@@ -1,1 +1,19 @@
-/home/tanphat199/Workspace/save/tanphat199/aether/packages/ignis/tsconfig.json
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./configs/tsconfig.common.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    
+    /* Paths */
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "exclude": ["node_modules", "dist", "**/__tests__/**"]
+}
