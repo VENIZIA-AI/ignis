@@ -1,0 +1,65 @@
+# Source files
+src/
+*.ts
+!*.d.ts
+
+# Build configuration
+tsconfig*.json
+!dist/tsconfig.base.json
+
+# Scripts
+scripts/
+
+# Tests
+**/__tests__/
+**/__mocks__/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+coverage/
+.nyc_output/
+
+# Development files
+.eslintrc*
+.prettierrc*
+.editorconfig
+.vscode/
+.idea/
+
+# Documentation (keep README.md and LICENSE)
+docs/
+*.md
+!README.md
+
+# Analysis files
+ANALYSIS_INDEX.md
+LOOPBACK_ANALYSIS.md
+LOOPBACK_SUMMARY.txt
+*.json
+!package.json
+!dist/**/*.json
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env*
+!.env.example
+
+# Misc
+*.swp
+*.swo
+*~
+.DS_Store
