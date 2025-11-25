@@ -1,6 +1,6 @@
 {
-  "name": "@minimaltech/ignis",
-  "version": "0.0.2-1",
+  "name": "@vez/ignis",
+  "version": "0.0.0",
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "keywords": [
     "web",
@@ -11,18 +11,19 @@
     "auth",
     "security",
     "backend",
-    "framework",
-    "backend framework",
     "infrastructure",
-    "minimaltech",
-    "minimaltek",
-    "mt",
+    "venizia",
+    "vez",
     "infra",
+    "bun",
     "nodejs",
-    "nodejs framework",
     "decorator",
     "class-based",
-    "dependency injection"
+    "framework",
+    "dependency injection",
+    "backend framework",
+    "nodejs framework",
+    "web framework"
   ],
   "exports": {
     ".": {
@@ -56,11 +57,11 @@
     "type": "git",
     "url": "git+https://github.com/phatnt199/aether.git"
   },
-  "author": "Minimal Technology <developer@miminaltek.com>",
+  "author": "Venizia AI <contact@venizia.com>",
   "bugs": {
-    "url": "https://github.com/phatnt199/aether/issues"
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
-  "homepage": "https://github.com/phatnt199/aether/wiki",
+  "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
   "license": "MIT",
   "files": [
     "README.md",

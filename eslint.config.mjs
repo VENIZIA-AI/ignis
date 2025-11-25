@@ -1,7 +1,7 @@
-import minimaltechLinter from '@minimaltech/eslint-node';
+import mtLinterConfs from '@minimaltech/eslint-node';
 
 const configs = [
-  ...minimaltechLinter,
+  ...mtLinterConfs,
   {
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',

@@ -37,6 +37,8 @@ export class CommonStatuses {
 
 export class UserStatuses extends CommonStatuses {}
 
+export class RoleStatuses extends CommonStatuses {}
+
 export class UserTypes {
   static readonly SYSTEM = 'SYSTEM';
   static readonly LINKED = 'LINKED';
