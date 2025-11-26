@@ -15,5 +15,5 @@
     }
   },
   "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "**/__tests__/**"]
+  "exclude": ["node_modules", "dist"]
 }

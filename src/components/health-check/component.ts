@@ -16,13 +16,15 @@ export class HealthCheckComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
-    super({ scope: HealthCheckComponent.name });
-
-    this.bindings = {
-      [HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS]: Binding.bind<IHealthCheckOptions>({
-        key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
-      }).toValue(DEFAULT_OPTIONS),
-    };
+    super({
+      scope: HealthCheckComponent.name,
+      initDefault: { enable: true, container: application },
+      bindings: {
+        [HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS]: Binding.bind<IHealthCheckOptions>({
+          key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
+        }).toValue(DEFAULT_OPTIONS),
+      },
+    });
   }
 
   override binding(): ValueOrPromise<void> {

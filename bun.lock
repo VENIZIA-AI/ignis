@@ -12,7 +12,7 @@
         "dayjs": "^1.11.18",
         "hono": "^4.10.5",
         "ioredis": "^5.7.0",
-        "jose": "^6.1.1",
+        "jose": "^6.1.2",
         "lodash": "^4.17.21",
         "minio": "^8.0.6",
         "mqtt": "^5.14.1",
@@ -44,22 +44,6 @@
         "tsx": "^4.20.6",
         "typescript": "^5.9.3",
       },
-      "peerDependencies": {
-        "@hono/node-server": "^1.19.6",
-        "@hono/swagger-ui": "^0.5.2",
-        "@socket.io/redis-adapter": "^8.3.0",
-        "@socket.io/redis-emitter": "^5.1.0",
-        "socket.io": "^4.8.1",
-        "socket.io-client": "^4.8.1",
-      },
-      "optionalPeers": [
-        "@hono/node-server",
-        "@hono/swagger-ui",
-        "@socket.io/redis-adapter",
-        "@socket.io/redis-emitter",
-        "socket.io",
-        "socket.io-client",
-      ],
     },
   },
   "packages": {
@@ -909,13 +893,9 @@
 
     "esbuild-register/debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
 
-    "eslint/debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
-
     "eslint-plugin-n/globals": ["globals@15.15.0", "", {}, "sha512-7ACyT3wmyp3I61S4fG682L0VA2RGD9otkqGJIwNUMF1SWUombIIk+af1unuDYgMm082aHYwD+mzJvv9Iu8dsgg=="],
 
     "fast-glob/glob-parent": ["glob-parent@5.1.2", "", { "dependencies": { "is-glob": "^4.0.1" } }, "sha512-AOIgSQCepiJYwP3ARnGx+5VnTu2HBYdzbGP45eLw1vr3zB3vZLeyed1sC9hnbcOc9/SrMyM5RPQrkGz4aS9Zow=="],
-
-    "ioredis/debug": ["debug@4.4.3", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-RGwwWnwQvkVfavKVt22FGLw+xYSdzARwm0ru6DhTVA3umU5hZc28V3kO4stgYryrTlLpuvgI9GiijltAjNbcqA=="],
 
     "micromatch/picomatch": ["picomatch@2.3.1", "", {}, "sha512-JU3teHTNjmE2VCGFzuY8EXzCDVwEqB2a8fsIvwaStHhAWJEeVd1o1QD80CU6+ZdEXXSLbSsuLwJjkCBWqRQUVA=="],
 

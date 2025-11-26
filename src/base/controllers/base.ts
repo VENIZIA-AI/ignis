@@ -1,8 +1,8 @@
-import { ValueOrPromise } from '@/common/types';
+import { TAuthStrategy, ValueOrPromise } from '@/common/types';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import { Env, Handler, Schema } from 'hono';
 import { BaseHelper } from '../helpers';
-import { IController, IControllerOptions, TAuthStrategy, TRouteDefinition } from './types';
+import { IController, IControllerOptions, TRouteDefinition } from './types';
 
 export abstract class BaseController<
     RouteEnv extends Env = Env,

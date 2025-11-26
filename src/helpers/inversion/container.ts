@@ -82,7 +82,7 @@ export class Binding<T = any> extends BaseHelper {
     return this.scope;
   }
 
-  getValue(container: Container): T {
+  getValue(container?: Container): T {
     if (this.scope === BindingScopes.SINGLETON && this.cachedInstance !== undefined) {
       return this.cachedInstance;
     }
@@ -103,7 +103,7 @@ export class Binding<T = any> extends BaseHelper {
         }
 
         const p = new provider();
-        instance = p.value();
+        instance = p.value(container);
         break;
       }
       case BindingValueTypes.CLASS: {
@@ -160,6 +160,11 @@ export class Container extends BaseHelper {
   unbind(opts: { key: string | symbol }): boolean {
     const key = String(opts.key);
     return this.bindings.delete(key);
+  }
+
+  set<T>(opts: { binding: Binding<T> }): void {
+    const { binding } = opts;
+    this.bindings.set(binding.key, binding);
   }
 
   get<T>(opts: { key: string | symbol; isOptional?: boolean }): T | undefined {

@@ -96,3 +96,5 @@ export const isClassProvider = <T>(target: any): target is IClass<IProvider<T>> 
     typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
   );
 };
+
+export type TAuthStrategy = 'jwt' | 'basic';

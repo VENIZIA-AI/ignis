@@ -125,7 +125,6 @@ export abstract class AbstractApplication<
     this.staticConfigure();
 
     await this.preConfigure();
-    await this.postConfigure();
   }
 
   // ------------------------------------------------------------------------------
@@ -183,6 +182,14 @@ export abstract class AbstractApplication<
   // ------------------------------------------------------------------------------
   protected startBunModule() {
     return new Promise((resolve, reject) => {
+      if (this.server.runtime !== RuntimeModules.BUN) {
+        reject(
+          getError({
+            message: `[startBunModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.BUN}`,
+          }),
+        );
+      }
+
       const port = this.getServerPort();
       const host = this.getServerHost();
       const server = this.getServer();
@@ -212,6 +219,14 @@ export abstract class AbstractApplication<
 
   protected startNodeModule() {
     return new Promise((resolve, reject) => {
+      if (this.server.runtime !== RuntimeModules.NODE) {
+        reject(
+          getError({
+            message: `[startNodeModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.NODE}`,
+          }),
+        );
+      }
+
       const port = this.getServerPort();
       const host = this.getServerHost();
       const server = this.getServer();

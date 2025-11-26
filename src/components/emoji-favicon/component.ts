@@ -13,12 +13,10 @@ export class RequestTrackerComponent extends BaseComponent {
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
     super({ scope: RequestTrackerComponent.name });
-
-    this.bindings = {};
   }
 
   override binding(): ValueOrPromise<void> {
-    const bindingKey = ['providers', RequestSpyMiddleware.name].join('.');
+    const bindingKey = ['middlewares', RequestSpyMiddleware.name].join('.');
     this.application
       .bind({ key: bindingKey })
       .toProvider(RequestSpyMiddleware)

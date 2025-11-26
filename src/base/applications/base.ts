@@ -248,15 +248,16 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   // ------------------------------------------------------------------------------
   override async initialize() {
     this.printStartUpInfo({ scope: this.initialize.name });
+    this.component(RequestTrackerComponent);
 
     await super.initialize();
-
-    this.component(RequestTrackerComponent);
 
     await this.registerDataSources();
     await this.registerComponents();
     await this.registerControllers();
 
     await this.registerDefaultMiddlewares();
+
+    await this.postConfigure();
   }
 }

@@ -1,4 +1,4 @@
-import { BaseNumberTzEntity, BaseStringTzEntity, enrichPrincipal, TColumns } from '@/base';
+import { BaseNumberTzEntity, BaseStringTzEntity, enrichPrincipal, TColumns } from '@/base/models';
 import { RoleStatuses, UserStatuses, UserTypes } from '@/common';
 import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 

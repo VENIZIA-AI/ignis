@@ -1,5 +1,13 @@
 import { IApplicationEnvironment } from './types';
 
+export const CommonEnvs = {
+  LOCAL: 'local',
+  DEVELOPMENT: 'development',
+  STAGING: 'staging',
+  ALPHA: 'alpha',
+  BETA: 'beta',
+};
+
 export class ApplicationEnvironment implements IApplicationEnvironment {
   private prefix: string;
   private arguments: Record<string, any> = {};

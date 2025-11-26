@@ -1,3 +1,4 @@
+export * from './auth';
 export * from './bindings';
 export * from './constants';
 export * from './environments';

@@ -1,19 +1,13 @@
-import isEmpty from 'lodash/isEmpty';
-import { applicationLogger } from './default-logger';
 import { getError } from '@/helpers/error';
+import isEmpty from 'lodash/isEmpty';
 import winston from 'winston';
+import { CommonEnvs } from '../env';
+import { applicationLogger } from './default-logger';
 import { TLogLevel } from './types';
 
 const extraLogEnvs =
   (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
-const LOG_ENVIRONMENTS = new Set([
-  'local',
-  'development',
-  'alpha',
-  'beta',
-  'staging',
-  ...extraLogEnvs,
-]);
+const LOG_ENVIRONMENTS = new Set([...Object.values(CommonEnvs), ...extraLogEnvs]);
 
 export class Logger {
   private readonly environment: string | undefined = process.env.NODE_ENV;
