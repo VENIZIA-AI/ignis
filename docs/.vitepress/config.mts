@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  title: "Ignis Framework",
+  title: "🔥 IGNIS",
   description: "A TypeScript Server Infrastructure with Hono Framework",
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
@@ -17,7 +17,8 @@ export default defineConfig({
         {
           text: 'Guides',
           items: [
-            { text: 'Creating a New Project', link: '/guides/creating-a-new-project' }
+            { text: 'Creating a New Project', link: '/guides/creating-a-new-project' },
+            { text: 'Setting up Project', link: '/guides/setting-up-project' }
           ]
         }
       ],

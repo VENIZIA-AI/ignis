@@ -1,1 +1,18 @@
-/* Custom styles for VitePress */
+:root {
+  --vp-c-brand-1: #AF5F5F;
+  --vp-c-brand-2: #E5B567;
+
+  /* Brand button */
+  --vp-button-brand-bg: #AF5F5F;
+  --vp-button-brand-hover-bg: #D59572;
+  --vp-button-brand-active-bg: #AF5F5F;
+  --vp-button-brand-text: #EEE2DE;
+  --vp-button-brand-hover-text: #EEE2DE;
+
+  /* Alt button */
+  --vp-button-alt-bg: #E5B567;
+  --vp-button-alt-hover-bg: #D59572;
+  --vp-button-alt-active-bg: #E5B567;
+  --vp-button-alt-text: #AF5F5F;
+  --vp-button-alt-hover-text: #AF5F5F;
+}

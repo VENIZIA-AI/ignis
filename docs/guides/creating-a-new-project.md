@@ -22,10 +22,10 @@ You'll need `hono` and `@vez/ignis`, which is the core framework.
 bun add hono @vez/ignis
 ```
 
-You will also need `typescript` and `ts-node` (or `tsx`) for running the application.
+You will also need development tools for TypeScript and running the application.
 
 ```bash
-bun add -d typescript @types/bun
+bun add -d typescript @types/bun tsx
 ```
 
 ## 3. Set Up Your `tsconfig.json`
@@ -34,23 +34,25 @@ A typical `tsconfig.json` for an Ignis project looks like this:
 
 ```json
 {
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@vez/ignis/configs/tsconfig.common.json",
   "compilerOptions": {
     "target": "ES2022",
-    "module": "ESNext",
-    "lib": ["ESNext"],
-    "moduleResolution": "node",
-    "esModuleInterop": true,
-    "strict": true,
-    "skipLibCheck": true,
-    "baseUrl": "./src",
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "src",
     "paths": {
-      "@/*": ["*"]
+      "@/*": ["./*"]
     },
-    "outDir": "./dist",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
+    "importHelpers": false,
+    "esModuleInterop": true,
+    "module": "nodenext",
+    "moduleResolution": "nodenext"
   },
-  "include": ["src"]
+  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "exclude": ["node_modules", "dist"]
 }
 ```
 
@@ -126,7 +128,6 @@ export class HelloController extends BaseController {
 This is the entry point that starts your application.
 
 ```typescript
-import 'reflect-metadata';
 import { Application, appConfigs } from './application';
 
 const app = new Application({
@@ -161,3 +162,8 @@ bun start
 Your server will be running on `http://localhost:3000`. You can access your new endpoint at `http://localhost:3000/api/hello`.
 
 Congratulations! You have successfully created your first application with the Ignis framework.
+
+## Next Steps
+
+Now that you have a basic application running, it's a good practice to set up your development environment with tools for linting and formatting. Follow the [Setting up Project](./setting-up-project.md) guide to configure ESLint, Prettier, and other development tools.
+

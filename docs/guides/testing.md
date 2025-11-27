@@ -2,7 +2,31 @@
 
 Testing is a crucial part of building robust and reliable applications. The Ignis framework is designed to be highly testable, and it provides a set of utilities to help you write unit and integration tests for your application. This guide uses `vitest` for examples, but you can use any testing framework you prefer.
 
-## Unit Testing
+## 1. Install Testing Dependencies
+
+To get started with testing, you'll need to install `vitest` as a development dependency:
+
+```bash
+bun add -d vitest
+```
+
+## 2. Configure Test Script
+
+Add a `test` script to your `package.json` to easily run your tests:
+
+```json
+"scripts": {
+  "test": "vitest"
+}
+```
+
+You can then run your tests using:
+
+```bash
+bun test
+```
+
+## 3. Unit Testing
 
 Unit tests focus on testing individual units of code in isolation, such as services, helpers, or utility functions.
 
@@ -43,7 +67,7 @@ describe('UserService', () => {
 });
 ```
 
-## Integration Testing
+## 4. Integration Testing
 
 Integration tests focus on testing the interaction between different parts of your application, such as controllers, middlewares, and services. A common use case is testing your API endpoints.
 
@@ -67,6 +91,8 @@ describe('HelloController', () => {
 ### Testing Authenticated Endpoints
 
 For endpoints that require authentication, you need to generate a valid JWT and include it in the `Authorization` header of your request.
+
+**Important:** Ensure that `process.env.APP_ENV_JWT_SECRET` and `process.env.APP_ENV_APPLICATION_SECRET` are correctly set in your test environment or provide mock values as needed.
 
 ```typescript
 import { describe, it, expect, beforeAll } from 'vitest';
@@ -102,7 +128,7 @@ describe('Protected Routes', () => {
 });
 ```
 
-## Testing Utilities
+## 5. Testing Utilities
 
 The `src/helpers/testing` directory contains utilities that can help you structure your tests. These utilities provide a way to define test plans and test cases in a declarative way, but their use is optional.
 
