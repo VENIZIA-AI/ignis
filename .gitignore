@@ -13,8 +13,5 @@ tsconfig.tsbuildinfo
 app_data
 **/*/app_data
 
-docs
-**/*/docs
-
 FEATURE_TEMPLATE.md
 *.log
