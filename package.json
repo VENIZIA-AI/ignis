@@ -53,7 +53,10 @@
     "rebuild:prepatch": "sh ./scripts/rebuild.sh prepatch",
     "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease",
     "pretest:develop": "bun run rebuild",
-    "test:develop": "NODE_ENV=development bun run ./dist/__tests__/index.js"
+    "test:develop": "NODE_ENV=development bun run ./dist/__tests__/index.js",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
   },
   "repository": {
     "type": "git",
@@ -136,7 +139,9 @@
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitepress": "^1.6.4",
+    "vue": "^3.5.25"
   },
   "sideEffects": false
 }
