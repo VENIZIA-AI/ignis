@@ -4,9 +4,9 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@/helpers/inversion';
 import { validateModule } from '@/utilities/module.utility';
+import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
 import { SwaggerBindingKeys } from './keys';
 import { ISwaggerOptions } from './types';
-import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
 
 const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
   restOptions: {

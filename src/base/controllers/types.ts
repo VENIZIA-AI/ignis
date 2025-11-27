@@ -1,4 +1,5 @@
-import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import { ValueOptional } from '@/common/types';
+import { createRoute, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import { Env, Schema } from 'hono';
 import { IRepository } from '../repositories';
 
@@ -15,6 +16,7 @@ export interface IController<
   configure(): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>>;
 }
 
+// ----------------------------------------------------------------------------------------------------------------------------------------
 export interface ICrudController extends IController {
   defaultLimit: number;
   relation?: { name: string; type: string };
@@ -29,6 +31,7 @@ export interface IControllerOptions {
   isStrict?: boolean;
 }
 
+export type TRouteConfig = ValueOptional<RouteConfig, 'responses'>;
 export type TRouteDefinition<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},

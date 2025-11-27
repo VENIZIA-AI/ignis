@@ -1,14 +1,18 @@
 import { inject } from '@/base/metadata';
 import { BaseService } from '@/base/services';
-import { Authentication } from '@/common/auth';
 import { HTTP } from '@/common/constants';
 import { AES } from '@/helpers/crypto';
 import { getError } from '@/helpers/error';
 import { int } from '@/utilities';
 import { Context } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
-import { AuthenticateBindingKeys } from './keys';
-import { IJWTTokenPayload, IJWTTokenServiceOptions, TGetTokenExpiresFn } from './types';
+import { Authentication } from '../common/constants';
+import {
+  AuthenticateBindingKeys,
+  IJWTTokenPayload,
+  IJWTTokenServiceOptions,
+  TGetTokenExpiresFn,
+} from './../common';
 
 export class JWTTokenService extends BaseService {
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([

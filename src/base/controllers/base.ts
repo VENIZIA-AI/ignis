@@ -1,8 +1,10 @@
 import { TAuthStrategy, ValueOrPromise } from '@/common/types';
+import { authenticate } from '@/components/auth';
+import { jsonResponse } from '@/utilities/schema.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import { Env, Handler, Schema } from 'hono';
 import { BaseHelper } from '../helpers';
-import { IController, IControllerOptions, TRouteDefinition } from './types';
+import { IController, IControllerOptions, TRouteConfig, TRouteDefinition } from './types';
 
 export abstract class BaseController<
     RouteEnv extends Env = Env,
@@ -12,7 +14,7 @@ export abstract class BaseController<
   extends BaseHelper
   implements IController<RouteEnv, RouteSchema, BasePath>
 {
-  protected tags: string[];
+  tags: string[];
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IControllerOptions) {
@@ -42,16 +44,20 @@ export abstract class BaseController<
   }
 
   // ------------------------------------------------------------------------------
-  protected defineRoute<RC extends RouteConfig>(opts: {
+  defineRoute<RC extends TRouteConfig>(opts: {
     configs: RC;
     handler: Handler<RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RouteEnv, RouteSchema, BasePath> {
     const { configs, handler, hook } = opts;
-    const routeConfig = createRoute<string, RC>({
-      ...configs,
-      tags: [...(configs?.tags ?? []), this._scope],
-    });
+    const { responses, tags = [] } = configs;
+
+    const routeConfig = createRoute<string, RouteConfig>(
+      Object.assign({}, configs, {
+        responses: Object.assign({}, jsonResponse({ description: 'Success Response' }), responses),
+        tags: [...tags, this.scope],
+      }),
+    );
 
     return {
       routeConfig,
@@ -60,21 +66,29 @@ export abstract class BaseController<
   }
 
   // ------------------------------------------------------------------------------
-  protected defineAuthRoute<
-    RC extends RouteConfig & { authStrategies: Array<TAuthStrategy> },
-  >(opts: {
+  defineAuthRoute<RC extends TRouteConfig & { authStrategies: Array<TAuthStrategy> }>(opts: {
     configs: RC;
     handler: Handler<RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RouteEnv, RouteSchema, BasePath> {
     const { configs, handler, hook } = opts;
+
     const { authStrategies, ...restConfig } = configs;
+    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
+
+    const mws = authStrategies.map(strategy => authenticate({ strategy }));
+    if (restConfig.middleware !== undefined && restConfig.middleware !== null) {
+      if (Array.isArray(restConfig.middleware)) {
+        for (const mw of restConfig.middleware) {
+          mws.push(mw);
+        }
+      } else {
+        mws.push(restConfig.middleware);
+      }
+    }
 
     return this.defineRoute<Omit<RC, 'authStrategies'>>({
-      configs: {
-        ...restConfig,
-        security: authStrategies.map(strategy => ({ [strategy]: [] })),
-      },
+      configs: { ...restConfig, middleware: mws, security },
       handler,
       hook,
     });

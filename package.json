@@ -83,7 +83,7 @@
     "casbin": "^5.38.0",
     "cron": "^4.3.3",
     "dayjs": "^1.11.18",
-    "hono": "^4.10.5",
+    "hono": "^4.10.7",
     "ioredis": "^5.7.0",
     "jose": "^6.1.2",
     "lodash": "^4.17.21",
@@ -118,7 +118,7 @@
   "devDependencies": {
     "@hono/node-server": "^1.19.6",
     "@hono/swagger-ui": "^0.5.2",
-    "@hono/zod-openapi": "^1.1.4",
+    "@hono/zod-openapi": "^1.1.5",
     "@minimaltech/eslint-node": "^0.2.1",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",

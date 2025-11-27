@@ -6,7 +6,7 @@ import { BindingScopes, BindingValueTypes, TBindingScope } from './types';
 
 // -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
-  private scope: TBindingScope = BindingScopes.TRANSIENT;
+  private bindScope: TBindingScope = BindingScopes.TRANSIENT;
 
   public key: string;
   private tags: Set<string>;
@@ -61,7 +61,7 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   setScope(scope: TBindingScope): this {
-    this.scope = scope;
+    this.bindScope = scope;
     return this;
   }
 
@@ -79,11 +79,11 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   getScope(): TBindingScope {
-    return this.scope;
+    return this.bindScope;
   }
 
   getValue(container?: Container): T {
-    if (this.scope === BindingScopes.SINGLETON && this.cachedInstance !== undefined) {
+    if (this.bindScope === BindingScopes.SINGLETON && this.cachedInstance !== undefined) {
       return this.cachedInstance;
     }
 
@@ -117,7 +117,7 @@ export class Binding<T = any> extends BaseHelper {
       }
     }
 
-    if (this.scope === BindingScopes.SINGLETON) {
+    if (this.bindScope === BindingScopes.SINGLETON) {
       this.cachedInstance = instance;
     }
 

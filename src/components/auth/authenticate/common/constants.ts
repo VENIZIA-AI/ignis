@@ -11,6 +11,10 @@ export class Authentication {
   // Token type
   static readonly TYPE_BASIC = 'Basic';
   static readonly TYPE_BEARER = 'Bearer';
+
+  static readonly AUTHENTICATION_STRATEGY = 'authentication.strategy';
+  static readonly SKIP_AUTHENTICATION = 'authentication.skip';
+  static readonly CURRENT_USER = 'auth.current.user';
 }
 
 export class AuthenticationTokenTypes {

@@ -1,13 +1,12 @@
 import { z } from '@hono/zod-openapi';
 
-export const ZErrorSchema = z
+export const ErrorSchema = z
   .object({
+    name: z.string().optional(),
     statusCode: z
       .number()
       .optional()
-      .openapi({
-        examples: [400, 401, 403],
-      }),
+      .openapi({ examples: [400, 401, 403] }),
     messageCode: z.string().optional().openapi({
       example: 'app.messasge.example_message_code',
     }),
@@ -17,4 +16,4 @@ export const ZErrorSchema = z
   })
   .catchall(z.any());
 
-export type TError = z.infer<typeof ZErrorSchema>;
+export type TError = z.infer<typeof ErrorSchema>;

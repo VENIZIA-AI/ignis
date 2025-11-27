@@ -2,16 +2,17 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { RequestSpyMiddleware } from '@/base/middlewares';
-import { CoreBindings } from '@/common/bindings';
+import { BindingNamespaces, CoreBindings } from '@/common/bindings';
 import { ValueOrPromise } from '@/common/types';
 import { Binding, BindingScopes } from '@/helpers/inversion';
 import { requestId } from 'hono/request-id';
 import { MiddlewareHandler } from 'hono/types';
 
 export class RequestTrackerComponent extends BaseComponent {
-  static readonly REQUEST_TRACKER_MW_BINDING_KEY = ['middlewares', RequestSpyMiddleware.name].join(
-    '.',
-  );
+  static readonly REQUEST_TRACKER_MW_BINDING_KEY = [
+    BindingNamespaces.MIDDLEWARE,
+    RequestSpyMiddleware.name,
+  ].join('.');
 
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,

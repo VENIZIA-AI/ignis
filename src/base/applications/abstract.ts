@@ -10,7 +10,7 @@ import { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
-import { defaultAPIHook } from '../middlewares';
+import { defaultAPIHook, requestNormalize } from '../middlewares';
 import {
   IApplication,
   IApplicationConfigs,
@@ -123,6 +123,9 @@ export abstract class AbstractApplication<
 
     this.validateEnvs();
     this.staticConfigure();
+
+    const server = this.getServer();
+    server.use(requestNormalize());
 
     await this.preConfigure();
   }

@@ -1,18 +1,17 @@
 import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
+import { EnvironmentKeys } from '@/common';
 import { CoreBindings } from '@/common/bindings';
 import { ValueOrPromise } from '@/common/types';
-import { Binding, BindingScopes } from '@/helpers/inversion';
-import { MiddlewareHandler } from 'hono/types';
-import { JWTTokenService } from './jwt-token.service';
-import { AuthenticateBindingKeys } from './keys';
-import { AuthenticateMiddleware } from './middleware';
-import { IAuthenticateOptions, IJWTTokenServiceOptions } from './types';
-import { EnvironmentKeys } from '@/common';
 import { getError } from '@/helpers';
+import { Binding } from '@/helpers/inversion';
+import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
+import { defineAuthController } from './controllers';
+import { JWTTokenService } from './services';
 
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
+  restOptions: { path: '/auth' },
   alwaysAllowPaths: [],
   tokenOptions: {
     applicationSecret: process.env[EnvironmentKeys.APP_ENV_APPLICATION_SECRET],
@@ -31,8 +30,6 @@ const DEFAULT_OPTIONS: IAuthenticateOptions = {
 };
 
 export class AuthenticateComponent extends BaseComponent {
-  static readonly AUTH_MW_BINDING_KEY = ['middlewares', AuthenticateMiddleware.name].join('.');
-
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
@@ -43,16 +40,15 @@ export class AuthenticateComponent extends BaseComponent {
         [AuthenticateBindingKeys.AUTHENTICATE_OPTIONS]: Binding.bind<IAuthenticateOptions>({
           key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
-        [AuthenticateComponent.AUTH_MW_BINDING_KEY]: Binding.bind({
-          key: AuthenticateComponent.AUTH_MW_BINDING_KEY,
-        })
-          .toProvider(AuthenticateMiddleware)
-          .setScope(BindingScopes.SINGLETON),
       },
     });
   }
 
-  override binding(): ValueOrPromise<void> {
+  defineOAuth2() {
+    // TODO Implement OAuth2
+  }
+
+  defineAuth() {
     const authenticateOptions = this.application.get<IAuthenticateOptions>({
       key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
     });
@@ -61,10 +57,15 @@ export class AuthenticateComponent extends BaseComponent {
       .toValue(authenticateOptions.tokenOptions);
     this.application.service(JWTTokenService);
 
-    const server = this.application.getServer();
-    const mw = this.application.get<MiddlewareHandler>({
-      key: AuthenticateComponent.AUTH_MW_BINDING_KEY,
-    });
-    server.use(mw);
+    this.application.controller(
+      defineAuthController({
+        restPath: authenticateOptions.restOptions?.path ?? '/auth',
+      }),
+    );
+  }
+
+  override binding(): ValueOrPromise<void> {
+    this.defineAuth();
+    this.defineOAuth2();
   }
 }
