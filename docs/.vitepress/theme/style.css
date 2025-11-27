@@ -10,9 +10,7 @@
   --vp-button-brand-hover-text: #EEE2DE;
 
   /* Alt button */
-  --vp-button-alt-bg: #E5B567;
   --vp-button-alt-hover-bg: #D59572;
   --vp-button-alt-active-bg: #E5B567;
-  --vp-button-alt-text: #AF5F5F;
-  --vp-button-alt-hover-text: #AF5F5F;
+  --vp-button-alt-text: #EEE2DE;
 }

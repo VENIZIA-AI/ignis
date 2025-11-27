@@ -9,10 +9,13 @@ hero:
   actions:
     - theme: brand
       text: Get Started
-      link: /guides/creating-a-new-project
+      link: /get-started/quickstart
     - theme: alt
       text: Core Concepts
-      link: /core-concepts/application
+      link: /get-started/core-concepts/application
+    - theme: alt
+      text: Philosophy
+      link: /get-started/philosophy
 
 features:
   - title: Component-Based

@@ -1,37 +1,35 @@
-# Feature: Swagger/OpenAPI Documentation
+# Swagger/OpenAPI Component
 
-## 1. Feature Overview
+The Swagger component automatically generates interactive API documentation for your Ignis application using Swagger UI and OpenAPI specifications.
 
-- **Feature Name:** Swagger/OpenAPI Documentation
-- **Purpose:** To automatically generate interactive API documentation for your Ignis application.
-- **Background:** Good documentation is crucial for any API. This feature leverages Hono's OpenAPI integration and Swagger UI to provide a seamless way to document your API endpoints.
-- **Related Features/Modules:** This feature is closely tied to `base/controllers` and the `defineRoute`/`defineAuthRoute` methods, which use `zod` schemas to define the API structure.
+## Overview
 
-## 2. Functional Specifications
+-   **Feature Name:** Swagger/OpenAPI Documentation
+-   **Purpose:** To automatically generate interactive API documentation for your Ignis application.
+-   **Background:** Good documentation is crucial for any API. This feature leverages Hono's OpenAPI integration and Swagger UI to provide a seamless way to document your API endpoints.
+-   **Related Features/Modules:** This feature is closely tied to `base/controllers` and the `defineRoute`/`defineAuthRoute` methods, which use `zod` schemas to define the API structure.
 
-- **Automatic Documentation Generation:** Automatically generates an `openapi.json` specification based on your route definitions.
-- **Interactive UI:** Provides a Swagger UI explorer to interact with your API.
-- **Zod Schema Integration:** Uses `zod` schemas defined in your controllers to generate the API documentation, ensuring that your documentation is always in sync with your code.
+## Design and Architecture
 
-## 3. Design and Architecture
+-   **`SwaggerComponent`:** The main component for this feature. It configures the Swagger UI and registers the necessary routes to serve the documentation.
+-   **`@hono/zod-openapi`:** The underlying library that powers the OpenAPI generation from `zod` schemas.
+-   **`@hono/swagger-ui`:** The library that provides the Swagger UI interface.
 
-- **`SwaggerComponent`:** The main component for this feature. It configures the Swagger UI and registers the necessary routes to serve the documentation.
-- **`@hono/zod-openapi`:** The underlying library that powers the OpenAPI generation from `zod` schemas.
-- **`@hono/swagger-ui`:** The library that provides the Swagger UI interface.
-
-## 4. Implementation Details
+## Implementation Details
 
 ### Tech Stack
-- **Hono**
-- **`@hono/zod-openapi`**
-- **`@hono/swagger-ui`**
-- **`zod`**
+
+-   **Hono**
+-   **`@hono/zod-openapi`**
+-   **`@hono/swagger-ui`**
+-   **`zod`**
 
 ### Configuration
 
 The Swagger component can be configured via the `ISwaggerOptions` binding. You can customize the path for the documentation, the OpenAPI version, and more.
 
-Default options:
+**Default options:**
+
 ```typescript
 const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
   restOptions: {
@@ -60,14 +58,17 @@ In your `src/application.ts`, register the `SwaggerComponent`.
 
 ```typescript
 // src/application.ts
-import { SwaggerComponent } from '@vez/ignis';
+import { SwaggerComponent, BaseApplication, ValueOrPromise } from '@vez/ignis';
 
-// ... in your Application class's preConfigure method
-  preConfigure(): ValueOrPromise<void> {
+export class Application extends BaseApplication {
     // ...
-    this.component(SwaggerComponent);
+    preConfigure(): ValueOrPromise<void> {
+        // ...
+        this.component(SwaggerComponent);
+        // ...
+    }
     // ...
-  }
+}
 ```
 
 #### 2. Defining Routes with Zod Schemas
@@ -105,12 +106,12 @@ export class HelloController extends BaseController {
 }
 ```
 
-## 5. API or Interface Specifications
+## API or Interface Specifications
 
 By default, the Swagger documentation is available at the following endpoints:
 
-- **`/doc/explorer`**: The Swagger UI.
-- **`/doc/openapi.json`**: The raw OpenAPI specification.
+-   **/doc/explorer**: The Swagger UI.
+-   **/doc/openapi.json**: The raw OpenAPI specification.
 
 These paths can be configured by providing custom `ISwaggerOptions` when you bind the `SwaggerComponent`.
 

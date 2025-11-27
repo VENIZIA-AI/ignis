@@ -1,0 +1,107 @@
+# Redis Helper
+
+The Redis helper in Ignis provides a powerful and flexible abstraction for interacting with Redis, supporting both single instances and cluster configurations via the `ioredis` library.
+
+## Overview
+
+The `DefaultRedisHelper` class offers a rich, unified API for various Redis operations, including key-value, hashes, JSON, and pub/sub. Concrete implementations (`RedisHelper` for single instances and `RedisClusterHelper` for clusters) make it easy to configure and use.
+
+## Creating a Redis Client
+
+### Single Instance
+
+Use the `RedisHelper` for connecting to a single Redis instance.
+
+```typescript
+import { RedisHelper } from '@vez/ignis';
+
+const redisClient = new RedisHelper({
+  name: 'my-redis-client',
+  host: 'localhost',
+  port: 6379,
+  password: 'password',
+  autoConnect: true,
+  maxRetry: 5,
+});
+```
+
+### Redis Cluster
+
+Use the `RedisClusterHelper` for connecting to a Redis cluster.
+
+```typescript
+import { RedisClusterHelper } from '@vez/ignis';
+
+const redisClusterClient = new RedisClusterHelper({
+  name: 'my-redis-cluster',
+  nodes: [
+    { host: 'localhost', port: 7000 },
+    { host: 'localhost', port: 7001 },
+    // ... other nodes
+  ],
+});
+```
+
+## Basic Operations
+
+The helper provides methods for common Redis commands.
+
+### Key-Value
+
+```typescript
+// Set a value
+await redisClient.set({ key: 'mykey', value: { a: 1, b: 2 } });
+
+// Get a value
+const value = await redisClient.getObject({ key: 'mykey' });
+// => { a: 1, b: 2 }
+
+// Delete a key
+await redisClient.del({ keys: ['mykey'] });
+```
+
+### Hashes
+
+```typescript
+// Set hash fields
+await redisClient.hset({ key: 'myhash', value: { field1: 'hello', field2: 'world' } });
+
+// Get all hash fields
+const hash = await redisClient.hgetall({ key: 'myhash' });
+// => { field1: 'hello', field2: 'world' }
+```
+
+## RedisJSON
+
+If your Redis server has the RedisJSON module installed, you can use the `j*` methods to work with JSON documents.
+
+```typescript
+// Set a JSON document
+await redisClient.jSet({ key: 'mydoc', path: '$', value: { a: { b: 1 } } });
+
+// Get a part of the document
+const result = await redisClient.jGet({ key: 'mydoc', path: '$.a.b' });
+// => [1]
+```
+
+## Pub/Sub
+
+The helper also supports Redis Pub/Sub for real-time messaging.
+
+```typescript
+// Subscribe to a topic
+redisClient.subscribe({ topic: 'my-channel' });
+
+// Listen for messages (in a separate part of your app)
+redisClient.getClient().on('message', (channel, message) => {
+  if (channel === 'my-channel') {
+    console.log('Received message:', JSON.parse(message));
+  }
+});
+
+// Publish a message
+await redisClient.publish({
+  topics: ['my-channel'],
+  payload: { data: 'some important update' },
+});
+```

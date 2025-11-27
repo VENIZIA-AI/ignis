@@ -22,10 +22,10 @@ You'll need `hono` and `@vez/ignis`, which is the core framework.
 bun add hono @vez/ignis
 ```
 
-You will also need development tools for TypeScript and running the application.
+You will also need `typescript` and `ts-node` (or `tsx`) for running the application.
 
 ```bash
-bun add -d typescript @types/bun tsx
+bun add -d typescript @types/bun
 ```
 
 ## 3. Set Up Your `tsconfig.json`
@@ -34,25 +34,23 @@ A typical `tsconfig.json` for an Ignis project looks like this:
 
 ```json
 {
-  "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/ignis/configs/tsconfig.common.json",
   "compilerOptions": {
     "target": "ES2022",
-    "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "src",
+    "module": "ESNext",
+    "lib": ["ESNext"],
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "baseUrl": "./src",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["*"]
     },
+    "outDir": "./dist",
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
-    "importHelpers": false,
-    "esModuleInterop": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
   },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src"]
 }
 ```
 
@@ -128,6 +126,7 @@ export class HelloController extends BaseController {
 This is the entry point that starts your application.
 
 ```typescript
+import 'reflect-metadata';
 import { Application, appConfigs } from './application';
 
 const app = new Application({
