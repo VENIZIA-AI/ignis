@@ -79,24 +79,37 @@ this.bind<string>({ key: 'API_KEY' }).toValue('my-secret-api-key');
 
 For dependencies that require more complex creation logic or are request-scoped, you can use providers. A provider is a function that returns an instance of the dependency.
 
-A great example of this is the `@CurrentUser` decorator. It injects a function that, when called, returns the user for the *current request*.
+### Accessing the Current User
+
+After a request has passed through the authentication middleware, the authenticated user's payload is attached to the Hono `Context` using the key `Authentication.CURRENT_USER`. You can access it directly within your route handlers or custom middlewares:
 
 ```typescript
-import { BaseService, CurrentUser, TJwtPayload } from '@vez/ignis';
+import { Context } from 'hono';
+import { Authentication } from '@vez/ignis'; // Assuming Authentication is imported
+import { TJwtPayload } from '@vez/ignis/helpers/crypto/jwt'; // Assuming TJwtPayload is defined
 
-export class MyRequestScopedService extends BaseService {
-  constructor(
-    @CurrentUser() private readonly getCurrentUser: () => TJwtPayload | undefined,
-  ) {
-    super({ scope: 'MyRequestScopedService' });
+// In a route handler
+export const myProtectedRoute = (c: Context) => {
+  const user = c.get(Authentication.CURRENT_USER) as TJwtPayload | undefined;
+  if (user) {
+    console.log('Authenticated user ID:', user.userId);
+  } else {
+    // This case should ideally not happen if the authentication middleware is enforced
+    console.log('No authenticated user found in context.');
   }
+  return c.json({ message: 'Hello from protected route' });
+};
 
-  doSomething() {
-    const user = this.getCurrentUser();
-    // ...
+// In a custom middleware
+export const userLoggerMiddleware = createMiddleware(async (c, next) => {
+  const user = c.get(Authentication.CURRENT_USER) as TJwtPayload | undefined;
+  if (user) {
+    console.log(`Request by user: ${user.userId}`);
   }
-}
+  await next();
+});
 ```
+
 
 The framework handles the complexity of making the request-specific user available to the DI container through the use of `AsyncLocalStorage`.
 
