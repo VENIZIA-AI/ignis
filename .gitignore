@@ -61,12 +61,23 @@ node_modules.zip
 
 # dotenv environment variables file
 .env
+**/*/.env
+
 .env.local
+**/*/.env.local
+
 .env.development
+**/*/.env.development
+
 # Transpiled JavaScript files from Typescript
 dist
+**/*/dist
+
 app_data
+**/*/app_data
+
 release
+**/*/release
 
 # Cache used by TypeScript's incremental build
 *.tsbuildinfo
