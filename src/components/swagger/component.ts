@@ -50,7 +50,7 @@ class UIProviderFactory {
     const provider = this.providers[type];
     if (!provider) {
       throw new Error(
-        `Unknown UI type: ${type}. Available: ${Object.keys(this.providers).join(', ')}`,
+        `[SwaggerComponent][getProvider] Unknown UI type: ${type}. Available: ${Object.keys(this.providers).join(', ')}`,
       );
     }
     return provider;
