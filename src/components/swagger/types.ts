@@ -1,9 +1,12 @@
+import type { Context, Next } from 'hono';
+
 export interface ISwaggerOptions {
   restOptions: {
     path: {
       base: string;
       doc: string;
       ui: string;
+      uiType?: 'swagger' | 'scalar' | string;
     };
   };
   explorer: {
@@ -19,4 +22,19 @@ export interface ISwaggerOptions {
       description?: string;
     }>;
   };
+  uiConfig?: Record<string, any>;
+}
+
+export interface IUIProvider {
+  render(context: Context, config: IUIConfig, next: Next): Promise<Response | void>;
+}
+
+export interface IUIConfig {
+  title: string;
+  url: string;
+  [key: string]: any;
+}
+
+export interface IGetProviderParams {
+  type: string;
 }

@@ -6,7 +6,60 @@ import { Binding } from '@/helpers/inversion';
 import { validateModule } from '@/utilities/module.utility';
 import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
 import { SwaggerBindingKeys } from './keys';
-import { ISwaggerOptions } from './types';
+import { IGetProviderParams, ISwaggerOptions, IUIConfig, IUIProvider } from './types';
+import type { Context, Next } from 'hono';
+import { getError } from '@/helpers';
+
+export class SwaggerUIProvider implements IUIProvider {
+  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
+    validateModule({ scope: 'SwaggerUIProvider', modules: ['@hono/swagger-ui'] });
+    const { swaggerUI } = await import('@hono/swagger-ui');
+    const { title, url, ...customConfig } = config;
+    return swaggerUI({
+      title,
+      url,
+      ...customConfig,
+    })(context, next);
+  }
+}
+
+export class ScalarUIProvider implements IUIProvider {
+  async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
+    validateModule({ scope: 'ScalarUIProvider', modules: ['@scalar/hono-api-reference'] });
+    const { Scalar } = await import('@scalar/hono-api-reference');
+    const { title, url, ...customConfig } = config;
+    return Scalar({
+      url,
+      pageTitle: title,
+      ...customConfig,
+    })(context, next);
+  }
+}
+
+export class UIProviderFactory {
+  private providers: Record<string, IUIProvider> = {
+    swagger: new SwaggerUIProvider(),
+    scalar: new ScalarUIProvider(),
+  };
+
+  getProvider({ type }: IGetProviderParams): IUIProvider {
+    const provider = this.providers[type];
+    if (!provider) {
+      throw getError({
+        message: `[SwaggerComponent][getProvider] Unknown UI type: ${type}. Available: ${Object.keys(this.providers).join(', ')}`,
+      });
+    }
+    return provider;
+  }
+
+  registerProvider(type: string, provider: IUIProvider): void {
+    this.providers[type] = provider;
+  }
+
+  getRegisteredProviders(): string[] {
+    return Object.keys(this.providers);
+  }
+}
 
 const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
   restOptions: {
@@ -14,6 +67,7 @@ const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
       base: '/doc',
       doc: '/openapi.json',
       ui: 'explorer',
+      uiType: 'scalar',
     },
   },
   explorer: {
@@ -27,10 +81,14 @@ const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
 };
 
 export class SwaggerComponent extends BaseComponent {
+  private uiProviderFactory: UIProviderFactory;
+
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
     super({ scope: SwaggerComponent.name });
+
+    this.uiProviderFactory = new UIProviderFactory();
 
     this.bindings = {
       [SwaggerBindingKeys.SWAGGER_OPTIONS]: Binding.bind<ISwaggerOptions>({
@@ -39,10 +97,11 @@ export class SwaggerComponent extends BaseComponent {
     };
   }
 
-  override async binding() {
-    validateModule({ scope: SwaggerComponent.name, modules: ['@hono/swagger-ui'] });
-    const { swaggerUI } = await import('@hono/swagger-ui');
+  getUIProviderFactory(): UIProviderFactory {
+    return this.uiProviderFactory;
+  }
 
+  override async binding() {
     const swaggerOptions =
       this.application.get<ISwaggerOptions>({
         key: SwaggerBindingKeys.SWAGGER_OPTIONS,
@@ -63,7 +122,6 @@ export class SwaggerComponent extends BaseComponent {
       contact: appInfo.author,
     };
 
-    // Application Server Urls
     if (!explorer.servers?.length) {
       explorer.servers = [
         {
@@ -87,13 +145,22 @@ export class SwaggerComponent extends BaseComponent {
     ].join('');
 
     rootRouter.doc(docPath, explorer as OpenAPIObjectConfigure<any, any>);
-    rootRouter.get(
-      uiPath,
-      swaggerUI({
-        title: appInfo.name,
-        url: [configs.path.base, configs.basePath ?? '', docPath].join(''),
-      }),
-    );
+
+    const uiType = restOptions.path.uiType || 'swagger';
+    const docUrl = [configs.path.base, configs.basePath ?? '', docPath].join('');
+    const uiProvider = this.uiProviderFactory.getProvider({ type: uiType });
+
+    rootRouter.get(uiPath, async (context: Context, next: Next) => {
+      return uiProvider.render(
+        context,
+        {
+          title: appInfo.name,
+          url: docUrl,
+          ...(swaggerOptions.uiConfig || {}),
+        },
+        next,
+      );
+    });
 
     rootRouter.openAPIRegistry.registerComponent('securitySchemes', 'jwt', {
       type: 'http',

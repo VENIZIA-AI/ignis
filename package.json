@@ -116,6 +116,9 @@
     },
     "socket.io-client": {
       "optional": true
+    },
+    "@scalar/hono-api-reference": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -123,6 +126,7 @@
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^1.1.5",
     "@minimaltech/eslint-node": "^0.2.1",
+    "@scalar/hono-api-reference": "^0.9.25",
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
     "@types/bun": "^1.3.2",
