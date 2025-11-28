@@ -105,6 +105,11 @@ Defines base classes and utilities for data models, often used with Drizzle ORM.
 | `enrichers/user-audit.enricher.ts` | Adds `createdBy` and `modifiedBy` fields. |
 | `types.ts`    | Defines types related to models, entities, and Drizzle ORM columns. |
 
+#### `base/providers`
+| File/Folder | Purpose/Key Details |
+| :---------- | :------------------ |
+| `base.ts`   | Contains `BaseProvider`, an abstract class for creating custom dependency injection providers. Providers are used for dependencies that require complex instantiation logic. |
+
 #### `base/repositories`
 | File/Folder | Purpose/Key Details |
 | :---------- | :------------------ |

@@ -55,7 +55,7 @@ Ignis comes with three main types of transports:
 
 **Example `.env` file:**
 
-```env
+```
 APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
 APP_ENV_LOGGER_DGRAM_HOST=127.0.0.1
 APP_ENV_LOGGER_DGRAM_PORT=5000

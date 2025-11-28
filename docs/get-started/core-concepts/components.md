@@ -19,21 +19,34 @@ Ignis comes with several built-in components, including:
 
 ## Creating a Component
 
-To create a new component, you need to create a class that extends `BaseComponent`.
+To create a new component, you need to create a class that extends `BaseComponent`. The constructor can be used to define default bindings that the component provides.
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise } from '@vez/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding } from '@vez/ignis';
+
+// An example service that the component will provide
+class MyCustomService {
+  // ...
+}
 
 export class MyCustomComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
-    super({ scope: MyCustomComponent.name });
+    super({
+      scope: MyCustomComponent.name,
+      // Enable default bindings for this component
+      initDefault: { enable: true, container: application },
+      // Define the default bindings
+      bindings: {
+        'services.MyCustomService': Binding.bind({ key: 'services.MyCustomService' }).toClass(MyCustomService),
+      },
+    });
   }
 
   override binding(): ValueOrPromise<void> {
-    // This is where you bind your component's resources.
-    this.application.service(MyCustomService);
+    // This is where you can perform additional bindings or configurations.
+    // The default bindings are already handled by the constructor.
     this.application.controller(MyCustomController);
   }
 }
@@ -43,8 +56,8 @@ export class MyCustomComponent extends BaseComponent {
 
 Components have a simple lifecycle:
 
-1.  **`constructor()`**: The component is instantiated. The constructor receives any injected dependencies. In this phase, you can also define default bindings.
-2.  **`binding()`**: This method is called by the application during the startup process. This is where you should register your component's controllers, services, repositories, etc., with the application's DI container.
+1.  **`constructor()`**: The component is instantiated. The constructor receives any injected dependencies. In this phase, you can also define default bindings using the `initDefault` and `bindings` options. If `initDefault.enable` is `true`, the `BaseComponent` will automatically register the bindings with the provided container if they are not already bound.
+2.  **`binding()`**: This method is called by the application during the startup process. This is where you should perform any additional setup, such as registering controllers or other resources that depend on the component's default bindings.
 
 ## Registering a Component
 

@@ -77,7 +77,42 @@ this.bind<string>({ key: 'API_KEY' }).toValue('my-secret-api-key');
 
 ## Providers
 
-For dependencies that require more complex creation logic or are request-scoped, you can use providers. A provider is a function that returns an instance of the dependency.
+For dependencies that require more complex creation logic or are request-scoped, you can use providers. A provider is a class or function that returns an instance of the dependency.
+
+### Creating a Custom Provider
+
+For more complex scenarios, you might need to create your own provider class. Ignis provides a `BaseProvider<T>` class that you can extend. This is useful when the creation of an object depends on other services or requires complex setup logic.
+
+A provider class must implement the `value()` method, which is responsible for creating and returning the instance of the dependency. The `value()` method receives the DI container as an argument, allowing you to resolve other dependencies.
+
+Here's an example of how you might create a provider:
+
+```typescript
+import { BaseProvider, inject, Container } from '@vez/ignis';
+import { SomeService } from '../services/some.service';
+import { SomeConfig } from '../configs/some.config';
+
+export class SomeServiceProvider extends BaseProvider<SomeService> {
+  @inject({ key: 'configs.Some' })
+  private someConfig: SomeConfig;
+  
+  value(container: Container): SomeService {
+    // The container parameter can be used to resolve other dependencies if needed
+    const service = new SomeService(this.someConfig);
+    service.initialize();
+    return service;
+  }
+}
+```
+
+You would then bind this provider in your application:
+
+```typescript
+// In your application class
+this.bind<SomeService>({ key: 'services.SomeService' }).toProvider(SomeServiceProvider);
+```
+
+When another class injects `services.SomeService`, the container will use `SomeServiceProvider` to create and return the instance.
 
 ### Accessing the Current User
 

@@ -46,7 +46,7 @@ The prefix for the environment variables can be configured by setting the `APPLI
 
 **Example `.env` file:**
 
-```env
+```
 APPLICATION_ENV_PREFIX=MY_APP_ENV
 
 # Now, your application variables should use the new prefix

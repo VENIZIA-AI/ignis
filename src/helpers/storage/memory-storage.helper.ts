@@ -1,19 +1,15 @@
+import { BaseHelper } from '@/base/helpers';
 import { AnyObject } from '@/common';
 
-export class MemoryStorageHelper<T extends object = AnyObject> {
-  private static instance: MemoryStorageHelper;
+export class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
   private container: T;
 
-  constructor() {
+  constructor(opts?: { scope?: string }) {
+    super({
+      scope: opts?.scope ?? MemoryStorageHelper.name,
+    });
+
     this.container = Object.assign({});
-  }
-
-  static getInstance<T extends object = AnyObject>() {
-    if (!this.instance) {
-      this.instance = new MemoryStorageHelper<T>();
-    }
-
-    return this.instance;
   }
 
   static newInstance<T extends object = AnyObject>() {

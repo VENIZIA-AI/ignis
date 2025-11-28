@@ -1,13 +1,14 @@
+import { TConstValue } from '@/common/types';
 import type { Context, Next } from 'hono';
+import { DocumentUITypes } from './constants';
+
+export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 
 export interface ISwaggerOptions {
   restOptions: {
-    path: {
-      base: string;
-      doc: string;
-      ui: string;
-      uiType?: 'swagger' | 'scalar' | string;
-    };
+    base: { path: string };
+    doc: { path: string };
+    ui: { path: string; type: TDocumentUIType };
   };
   explorer: {
     openapi: string;

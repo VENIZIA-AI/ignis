@@ -29,7 +29,7 @@ Configure the authentication feature using environment variables:
 
 **Example `.env` file:**
 
-```env
+```
 APP_ENV_APPLICATION_SECRET=your-strong-application-secret
 APP_ENV_JWT_SECRET=your-strong-jwt-secret
 APP_ENV_JWT_EXPIRES_IN=86400

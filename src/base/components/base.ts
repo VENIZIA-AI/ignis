@@ -51,6 +51,8 @@ export abstract class BaseComponent extends BaseHelper {
       this.initDefaultBindings({ container: this.initDefault.container });
     }
 
+    // this.initDefaultBindings({})
+
     await this.binding();
 
     this.logger.info('[binding] DONE | Binding component | Took: %s (ms)', performance.now() - t);

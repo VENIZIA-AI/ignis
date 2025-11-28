@@ -4,14 +4,14 @@ The Storage helpers in Ignis provide solutions for both in-memory and external o
 
 ## `MemoryStorageHelper`
 
-The `MemoryStorageHelper` is a simple, singleton-based in-memory key-value store. It's useful for caching, storing temporary application state, or passing data between loosely coupled parts of your application within a single process.
+The `MemoryStorageHelper` is a simple in-memory key-value store. It's useful for caching, storing temporary application state, or passing data between loosely coupled parts of your application within a single process.
 
-### Getting the Singleton Instance
+### Creating an Instance
 
 ```typescript
 import { MemoryStorageHelper } from '@vez/ignis';
 
-const memoryStore = MemoryStorageHelper.getInstance();
+const memoryStore = new MemoryStorageHelper();
 ```
 
 ### Usage
