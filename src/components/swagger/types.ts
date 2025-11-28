@@ -4,6 +4,7 @@ export interface ISwaggerOptions {
       base: string;
       doc: string;
       ui: string;
+      uiType?: 'swagger' | 'scalar';
     };
   };
   explorer: {
