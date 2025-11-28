@@ -10,29 +10,33 @@ import { IGetProviderParams, ISwaggerOptions, IUIConfig, IUIProvider } from './t
 import type { Context, Next } from 'hono';
 import { getError } from '@/helpers';
 
-class SwaggerUIProvider implements IUIProvider {
+export class SwaggerUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
     validateModule({ scope: 'SwaggerUIProvider', modules: ['@hono/swagger-ui'] });
     const { swaggerUI } = await import('@hono/swagger-ui');
+    const { title, url, ...customConfig } = config;
     return swaggerUI({
-      title: config.title,
-      url: config.url,
+      title,
+      url,
+      ...customConfig,
     })(context, next);
   }
 }
 
-class ScalarUIProvider implements IUIProvider {
+export class ScalarUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
     validateModule({ scope: 'ScalarUIProvider', modules: ['@scalar/hono-api-reference'] });
     const { Scalar } = await import('@scalar/hono-api-reference');
+    const { title, url, ...customConfig } = config;
     return Scalar({
-      url: config.url,
-      pageTitle: config.title,
+      url,
+      pageTitle: title,
+      ...customConfig,
     })(context, next);
   }
 }
 
-class UIProviderFactory {
+export class UIProviderFactory {
   private providers: Record<string, IUIProvider> = {
     swagger: new SwaggerUIProvider(),
     scalar: new ScalarUIProvider(),
@@ -50,6 +54,10 @@ class UIProviderFactory {
 
   registerProvider(type: string, provider: IUIProvider): void {
     this.providers[type] = provider;
+  }
+
+  getRegisteredProviders(): string[] {
+    return Object.keys(this.providers);
   }
 }
 
@@ -87,6 +95,10 @@ export class SwaggerComponent extends BaseComponent {
         key: SwaggerBindingKeys.SWAGGER_OPTIONS,
       }).toValue(DEFAULT_SWAGGER_OPTIONS),
     };
+  }
+
+  getUIProviderFactory(): UIProviderFactory {
+    return this.uiProviderFactory;
   }
 
   override async binding() {
@@ -144,6 +156,7 @@ export class SwaggerComponent extends BaseComponent {
         {
           title: appInfo.name,
           url: docUrl,
+          ...(swaggerOptions.uiConfig || {}),
         },
         next,
       );

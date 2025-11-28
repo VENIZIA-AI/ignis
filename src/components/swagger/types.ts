@@ -6,7 +6,7 @@ export interface ISwaggerOptions {
       base: string;
       doc: string;
       ui: string;
-      uiType?: 'swagger' | 'scalar';
+      uiType?: 'swagger' | 'scalar' | string;
     };
   };
   explorer: {
@@ -22,6 +22,7 @@ export interface ISwaggerOptions {
       description?: string;
     }>;
   };
+  uiConfig?: Record<string, any>;
 }
 
 export interface IUIProvider {
@@ -31,6 +32,7 @@ export interface IUIProvider {
 export interface IUIConfig {
   title: string;
   url: string;
+  [key: string]: any;
 }
 
 export interface IGetProviderParams {
