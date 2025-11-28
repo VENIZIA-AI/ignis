@@ -5,5 +5,6 @@ export * from './datasources';
 export * from './helpers';
 export * from './metadata';
 export * from './models';
+export * from './providers';
 export * from './repositories';
 export * from './services';
