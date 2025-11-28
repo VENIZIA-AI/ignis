@@ -6,17 +6,9 @@ import { Binding } from '@/helpers/inversion';
 import { validateModule } from '@/utilities/module.utility';
 import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
 import { SwaggerBindingKeys } from './keys';
-import { ISwaggerOptions } from './types';
+import { IGetProviderParams, ISwaggerOptions, IUIConfig, IUIProvider } from './types';
 import type { Context, Next } from 'hono';
-
-interface IUIProvider {
-  render(context: Context, config: IUIConfig, next: Next): Promise<Response | void>;
-}
-
-interface IUIConfig {
-  title: string;
-  url: string;
-}
+import { getError } from '@/helpers';
 
 class SwaggerUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
@@ -46,12 +38,12 @@ class UIProviderFactory {
     scalar: new ScalarUIProvider(),
   };
 
-  getProvider(type: string): IUIProvider {
+  getProvider({ type }: IGetProviderParams): IUIProvider {
     const provider = this.providers[type];
     if (!provider) {
-      throw new Error(
-        `[SwaggerComponent][getProvider] Unknown UI type: ${type}. Available: ${Object.keys(this.providers).join(', ')}`,
-      );
+      throw getError({
+        message: `[SwaggerComponent][getProvider] Unknown UI type: ${type}. Available: ${Object.keys(this.providers).join(', ')}`,
+      });
     }
     return provider;
   }
@@ -81,12 +73,14 @@ const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
 };
 
 export class SwaggerComponent extends BaseComponent {
-  private uiProviderFactory = new UIProviderFactory();
+  private uiProviderFactory: UIProviderFactory;
 
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
     super({ scope: SwaggerComponent.name });
+
+    this.uiProviderFactory = new UIProviderFactory();
 
     this.bindings = {
       [SwaggerBindingKeys.SWAGGER_OPTIONS]: Binding.bind<ISwaggerOptions>({
@@ -142,7 +136,7 @@ export class SwaggerComponent extends BaseComponent {
 
     const uiType = restOptions.path.uiType || 'swagger';
     const docUrl = [configs.path.base, configs.basePath ?? '', docPath].join('');
-    const uiProvider = this.uiProviderFactory.getProvider(uiType);
+    const uiProvider = this.uiProviderFactory.getProvider({ type: uiType });
 
     rootRouter.get(uiPath, async (context: Context, next: Next) => {
       return uiProvider.render(

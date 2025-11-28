@@ -116,6 +116,9 @@
     },
     "socket.io-client": {
       "optional": true
+    },
+    "@scalar/hono-api-reference": {
+      "optional": true
     }
   },
   "devDependencies": {
