@@ -8,7 +8,7 @@ const config = defineConfig({
   head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   themeConfig: {
     search: {
-      provider: 'local'
+      provider: 'local',
     },
 
     // https://vitepress.dev/reference/default-theme-config
@@ -31,19 +31,19 @@ const config = defineConfig({
           text: 'Core Concepts',
           items: [
             { text: 'Application', link: '/get-started/core-concepts/application' },
-            { text: 'Controllers', link: '/get-started//core-concepts/controllers' },
+            { text: 'Controllers', link: '/get-started/core-concepts/controllers' },
             {
               text: 'Dependency Injection',
-              link: '/get-started//core-concepts/dependency-injection',
+              link: '/get-started/core-concepts/dependency-injection',
             },
-            { text: 'Components', link: '/get-started//core-concepts/components' },
+            { text: 'Components', link: '/get-started/core-concepts/components' },
             {
               text: 'Services and Repositories',
-              link: '/get-started//core-concepts/services-and-repositories',
+              link: '/get-started/core-concepts/services-and-repositories',
             },
             {
               text: 'Datasources and Models',
-              link: '/get-started//core-concepts/datasources-and-models',
+              link: '/get-started/core-concepts/datasources-and-models',
             },
           ],
         },

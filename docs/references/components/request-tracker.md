@@ -53,8 +53,8 @@ When the component is registered, it automatically adds the `requestId` and `Req
 A sample log output for a request would look like this:
 
 ```
-[spy][&lt;request-id&gt;] START | Handling Request | forwardedIp: 127.0.0.1 | path: /hello | method: GET
-[spy][&lt;request-id&gt;] DONE  | Handling Request | forwardedIp: 127.0.0.1 | path: /hello | method: GET | Took: 1.234 (ms)
+[spy][<request-id>] START | Handling Request | forwardedIp: 127.0.0.1 | path: /hello | method: GET
+[spy][<request-id>] DONE  | Handling Request | forwardedIp: 127.0.0.1 | path: /hello | method: GET | Took: 1.234 (ms)
 ```
 
 This feature is essential for building production-ready applications with proper logging and traceability.
