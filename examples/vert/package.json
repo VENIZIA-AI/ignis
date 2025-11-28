@@ -19,19 +19,15 @@
     "eslint": "eslint --report-unused-disable-directives .",
     "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",
-    "openapi-spec": "bun run rebuild && node ./dist/openapi-spec",
     "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "migrate:prod": "bun run rebuild && NODE_ENV=production RUN_MODE=migrate bun ./dist/migrate",
     "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/datasources/migration.ts",
     "preserver:dev": "bun run rebuild",
     "server:dev": "NODE_ENV=development bun .",
-    "server:dev-debug": "DEBUG=loopback:connector:postgresql NODE_ENV=development bun .",
-    "server:prod": "NODE_ENV=production bun .",
-    "agent:dev": "mastra dev"
+    "server:prod": "NODE_ENV=production bun ."
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@vez/ignis": "file:///home/tanphat199/Workspace/save/venizia/ignis",
+    "@vez/ignis": "file://./../../../ignis",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",

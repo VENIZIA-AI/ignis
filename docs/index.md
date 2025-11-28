@@ -3,8 +3,8 @@
 layout: home
 
 hero:
-  name: "🔥 IGNIS"
-  text: "A TypeScript Server Infrastructure with Hono"
+  name: '🔥 IGNIS'
+  text: 'A TypeScript Server Infrastructure with Hono'
   tagline: A powerful and extensible backend framework, designed to be modular, scalable, and easy to use.
   actions:
     - theme: brand

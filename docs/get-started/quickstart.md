@@ -24,11 +24,11 @@ Install the core framework and essential libraries for building your application
 bun add hono @vez/ignis dotenv-flow drizzle-orm pg lodash
 ```
 
--   **`hono`**: The underlying high-performance web framework.
--   **`@vez/ignis`**: The core Ignis framework.
--   **`dotenv-flow`**: For managing environment variables.
--   **`drizzle-orm` & `pg`**: For database access using Drizzle ORM with PostgreSQL.
--   **`lodash`**: A utility library for common programming tasks.
+- **`hono`**: The underlying high-performance web framework.
+- **`@vez/ignis`**: The core Ignis framework.
+- **`dotenv-flow`**: For managing environment variables.
+- **`drizzle-orm` & `pg`**: For database access using Drizzle ORM with PostgreSQL.
+- **`lodash`**: A utility library for common programming tasks.
 
 ### Development Dependencies
 
@@ -175,7 +175,7 @@ export class HelloController extends BaseController {
   override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: { path: '/', method: 'get' },
-      handler: (c) => c.json({ message: 'Hello, World!' }),
+      handler: c => c.json({ message: 'Hello, World!' }),
     });
   }
 }
@@ -198,10 +198,7 @@ const main = async () => {
   });
 
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
-  logger.info(
-    '[main] Getting ready to start up %s Application...',
-    applicationName,
-  );
+  logger.info('[main] Getting ready to start up %s Application...', applicationName);
   await application.start();
   return application;
 };
@@ -211,18 +208,31 @@ export default main();
 
 ## 5. Run Your Application
 
-Add a `start` script to your `package.json`:
+Add common application scripts to your `package.json`:
 
 ```json
 "scripts": {
-  "start": "bun run src/index.ts"
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "bun run clean && bun run build",
+    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
+    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/datasources/migration.ts",
+    "preserver:dev": "bun run rebuild",
+    "server:dev": "NODE_ENV=development bun .",
+    "server:prod": "NODE_ENV=production bun ."
 }
 ```
 
 Now, start your application:
 
 ```bash
-bun start
+bun server:dev
 ```
 
 Your server will be running on `http://localhost:3000`. You can access your new endpoint at `http://localhost:3000/api/hello`.

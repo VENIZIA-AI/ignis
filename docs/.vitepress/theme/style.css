@@ -1,6 +1,12 @@
 :root {
   --vp-c-brand-1: #AF5F5F;
   --vp-c-brand-2: #E5B567;
+  --vp-c-bg: #111111;
+
+  /* Custom backgrounds */
+  --vp-code-block-bg: #282828;
+  --vp-sidebar-bg-color: #282828;
+  --vp-c-bg-elv: #282828;
 
   /* Brand button */
   --vp-button-brand-bg: #AF5F5F;
