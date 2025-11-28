@@ -1,11 +1,16 @@
+import { withMermaid } from 'vitepress-plugin-mermaid';
 import { defineConfig } from 'vitepress';
 
 // https://vitepress.dev/reference/site-config
-export default defineConfig({
+const config = defineConfig({
   title: '🔥 IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   themeConfig: {
+    search: {
+      provider: 'local'
+    },
+
     // https://vitepress.dev/reference/default-theme-config
     nav: [
       { text: 'Home', link: '/' },
@@ -98,3 +103,5 @@ export default defineConfig({
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
   },
 });
+
+export default withMermaid(config);

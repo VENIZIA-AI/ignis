@@ -88,7 +88,7 @@ export type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 // Provider
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IProvider<T> {
-  value(container?: Container): T;
+  value(container: Container): T;
 }
 
 export const isClassProvider = <T>(target: any): target is IClass<IProvider<T>> => {

@@ -142,6 +142,7 @@
     "tsx": "^4.20.6",
     "typescript": "^5.9.3",
     "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
     "vue": "^3.5.25"
   },
   "sideEffects": false
