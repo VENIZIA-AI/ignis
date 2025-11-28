@@ -91,3 +91,37 @@ You can register controllers, components, services, and datasources with your ap
 - `app.dataSource(MyDataSource)`
 
 These are typically called within the `preConfigure` method of your `Application` class.
+
+## Lifecycle Diagram
+
+Here is a diagram illustrating the application's lifecycle, based on the `BaseApplication` implementation. Methods that you can override are highlighted in pink.
+
+```mermaid
+graph LR
+    subgraph "Start Lifecycle"
+        A["start()"] --> B["initialize()"];
+        
+        subgraph "initialize() Internals"
+            B --> B1["printStartUpInfo()"];
+            B1 --> B2["validateEnvs()"];
+            B2 --> B3["staticConfigure()"];
+            B3 --> B4["preConfigure()"];
+            B4 --> B5["registerDataSources()"];
+            B5 --> B6["registerComponents()"];
+            B6 --> B7["registerControllers()"];
+            B7 --> B8["registerDefaultMiddlewares()"];
+            B8 --> B9["postConfigure()"];
+        end
+
+        B9 --> C["setupMiddlewares()"];
+        C --> D["Register Root Router"];
+        D --> E["Start HTTP Server"];
+    end
+
+    subgraph "Stop Lifecycle"
+        F["stop()"] --> G["Stop HTTP Server"];
+    end
+
+    classDef hook fill:#ffc0cb,stroke:#333,stroke-width:2px;
+    class B3,B4,B9,C hook;
+```

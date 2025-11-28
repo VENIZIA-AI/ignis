@@ -148,14 +148,27 @@ export class Application extends BaseApplication {
     return packageJson;
   }
 
-  staticConfigure(): void {}
+  staticConfigure(): void {
+    // Binding static resource(s) folder
+  }
+
+  setupMiddlewares(): ValueOrPromise<void> {
+    // Setup extra application middlewares
+  }
 
   preConfigure(): ValueOrPromise<void> {
+    // Register datasource(s)
+
+    // Register auth mechanism(s)
+
+    // Register component(s)
+
     this.controller(HelloController);
   }
 
-  postConfigure(): ValueOrPromise<void> {}
-  setupMiddlewares(): ValueOrPromise<void> {}
+  postConfigure(): ValueOrPromise<void> {
+    // Handle extra work(s) after setting up application
+  }
 }
 ```
 
@@ -166,10 +179,12 @@ This controller handles a simple `/hello` route.
 ```typescript
 import { BaseController, controller, HTTP, IControllerOptions, ValueOrPromise } from '@vez/ignis';
 
-@controller({ path: '/hello' })
+const BASE_PATH = '/hello';
+
+@controller({ path: BASE_PATH })
 export class HelloController extends BaseController {
   constructor(opts: IControllerOptions) {
-    super({ ...opts, scope: HelloController.name, path: '/hello' });
+    super({ ...opts, scope: HelloController.name, path: BASE_PATH });
   }
 
   override binding(): ValueOrPromise<void> {
@@ -177,6 +192,8 @@ export class HelloController extends BaseController {
       configs: { path: '/', method: 'get' },
       handler: c => c.json({ message: 'Hello, World!' }),
     });
+
+    // Note: use this.defineAuthRoute for authenticated endpoint
   }
 }
 ```
@@ -212,14 +229,14 @@ Add common application scripts to your `package.json`:
 
 ```json
 "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "eslint": "eslint --report-unused-disable-directives .",
-    "clean": "sh ./scripts/clean.sh",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app", # Build app into single-file execution
+    "clean": "sh ./scripts/clean.sh", # Please take a preview at clean.sh script below
     "rebuild": "bun run clean && bun run build",
     "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
     "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/datasources/migration.ts",
@@ -227,6 +244,20 @@ Add common application scripts to your `package.json`:
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."
 }
+```
+
+Add clean up script `<project_folder>/scripts/clean.sh`
+
+```bash
+#!/bin/bash
+
+echo "START | Clean up..."
+
+rm -rf dist *.tsbuildinfo .eslintcache
+rm -rf artifact.zip
+
+echo "DONE | Clean up..."
+
 ```
 
 Now, start your application:
