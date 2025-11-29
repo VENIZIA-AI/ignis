@@ -10,7 +10,7 @@ import { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
-import { defaultAPIHook, requestNormalize } from '../middlewares';
+import { defaultAPIHook } from '../middlewares';
 import {
   IApplication,
   IApplicationConfigs,
@@ -21,10 +21,10 @@ import {
 
 // ------------------------------------------------------------------------------
 export abstract class AbstractApplication<
-    AppEnv extends Env = Env,
-    AppSchema extends Schema = {},
-    BasePath extends string = '/',
-  >
+  AppEnv extends Env = Env,
+  AppSchema extends Schema = {},
+  BasePath extends string = '/',
+>
   extends Container
   implements IApplication<AppEnv, AppSchema, BasePath>
 {
@@ -40,7 +40,7 @@ export abstract class AbstractApplication<
         instance?: TNodeServerInstance;
       };
 
-  protected rootRouter: OpenAPIHono;
+  protected rootRouter: OpenAPIHono<AppEnv, AppSchema, BasePath>;
   protected configs: IApplicationConfigs;
   protected projectRoot: string;
 
@@ -55,7 +55,7 @@ export abstract class AbstractApplication<
     });
 
     this.projectRoot = this.getProjectRoot();
-    this.logger.info('[constructor] Project root: %s', this.projectRoot);
+    this.logger.info('Project root: %s', this.projectRoot);
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
       strict: this.configs.strictPath ?? true,
@@ -70,14 +70,17 @@ export abstract class AbstractApplication<
   }
 
   // ------------------------------------------------------------------------------
+  abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
+  abstract preConfigure(): ValueOrPromise<void>;
+  abstract postConfigure(): ValueOrPromise<void>;
+
+  abstract staticConfigure(): void;
+
   abstract setupMiddlewares(opts?: {
     middlewares?: Record<string | symbol, any>;
   }): ValueOrPromise<void>;
 
-  abstract staticConfigure(): void;
-  abstract preConfigure(): ValueOrPromise<void>;
-  abstract postConfigure(): ValueOrPromise<void>;
-  abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
+  abstract initialize(): Promise<void>;
 
   // ------------------------------------------------------------------------------
   getProjectConfigs(): IApplicationConfigs {
@@ -88,7 +91,7 @@ export abstract class AbstractApplication<
     return process.cwd();
   }
 
-  getRootRouter(): OpenAPIHono {
+  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
     return this.rootRouter;
   }
 
@@ -112,25 +115,19 @@ export abstract class AbstractApplication<
     return this.server.instance;
   }
 
-  async initialize() {
-    this.bind<typeof this>({ key: CoreBindings.APPLICATION_INSTANCE }).toProvider(() => this);
+  // ------------------------------------------------------------------------------
+  protected registerCoreBindings() {
+    this.bind<typeof this>({ key: CoreBindings.APPLICATION_INSTANCE }).toProvider(
+      (_: Container) => this,
+    );
     this.bind<typeof this.server>({ key: CoreBindings.APPLICATION_SERVER }).toProvider(
-      () => this.server,
+      (_: Container) => this.server,
     );
     this.bind<typeof this.rootRouter>({ key: CoreBindings.APPLICATION_ROOT_ROUTER }).toProvider(
-      () => this.rootRouter,
+      (_: Container) => this.rootRouter,
     );
-
-    this.validateEnvs();
-    this.staticConfigure();
-
-    const server = this.getServer();
-    server.use(requestNormalize());
-
-    await this.preConfigure();
   }
 
-  // ------------------------------------------------------------------------------
   protected detectRuntimeModule(): TRuntimeModule {
     if (typeof Bun !== 'undefined') {
       return RuntimeModules.BUN;
@@ -265,6 +262,7 @@ export abstract class AbstractApplication<
   }
 
   async start() {
+    this.registerCoreBindings();
     await this.initialize();
     await this.setupMiddlewares();
 

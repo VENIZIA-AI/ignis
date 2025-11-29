@@ -6,18 +6,18 @@ import { BindingScopes, BindingValueTypes, TBindingScope } from './types';
 
 // -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
-  private bindScope: TBindingScope = BindingScopes.TRANSIENT;
+  key: string;
 
-  public key: string;
+  private bindScope: TBindingScope = BindingScopes.TRANSIENT;
   private tags: Set<string>;
+  private cached?: T;
 
   private resolver:
     | { type: 'class'; value: IClass<T> }
     | { type: 'value'; value: T }
     | { type: 'provider'; value: ((container?: Container) => T) | IClass<IProvider<T>> };
 
-  private cachedInstance?: T;
-
+  // ------------------------------------------------------------------------------
   constructor(opts: { key: string; namespace?: string }) {
     super({ scope: opts.key.toString() });
     this.tags = new Set([]);
@@ -35,6 +35,7 @@ export class Binding<T = any> extends BaseHelper {
     return new Binding<T>(opts);
   }
 
+  // ------------------------------------------------------------------------------
   toClass(value: IClass<T>): this {
     this.resolver = { type: BindingValueTypes.CLASS, value };
     return this;
@@ -50,6 +51,7 @@ export class Binding<T = any> extends BaseHelper {
     return this;
   }
 
+  // ------------------------------------------------------------------------------
   getBindingMeta(opts: { type: TConstValue<typeof BindingValueTypes> }) {
     if (this.resolver.type !== opts.type) {
       throw ApplicationError.getError({
@@ -83,8 +85,8 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   getValue(container?: Container): T {
-    if (this.bindScope === BindingScopes.SINGLETON && this.cachedInstance !== undefined) {
-      return this.cachedInstance;
+    if (this.bindScope === BindingScopes.SINGLETON && this.cached !== undefined) {
+      return this.cached;
     }
 
     let instance: T;
@@ -118,14 +120,18 @@ export class Binding<T = any> extends BaseHelper {
     }
 
     if (this.bindScope === BindingScopes.SINGLETON) {
-      this.cachedInstance = instance;
+      this.cached = instance;
     }
 
     return instance;
   }
 
   clearCache() {
-    this.cachedInstance = undefined;
+    if (!this.cached) {
+      return;
+    }
+
+    this.cached = undefined;
   }
 }
 
@@ -233,7 +239,7 @@ export class Container extends BaseHelper {
   }
 
   clear(): void {
-    for (const [_key, binding] of this.bindings) {
+    for (const [_, binding] of this.bindings) {
       binding.clearCache();
     }
   }

@@ -42,7 +42,7 @@ export class Application extends BaseApplication {
 The Ignis application has a well-defined lifecycle, managed by the following methods:
 
 - **`constructor(opts)`**: Initializes the application with the given configuration.
-- **`initialize()`**: Initializes the application and its core bindings. It also calls `validateEnvs()`, `staticConfigure()`, and `preConfigure()`.
+- **`initialize()`**: Initializes the application and its core bindings. It calls `printStartUpInfo()`, `validateEnvs()`, `registerDefaultMiddlewares()`, `staticConfigure()`, `preConfigure()`, `registerDataSources()`, `registerComponents()`, `registerControllers()`, and `postConfigure()`.
 - **`start()`**: Starts the application server. This method calls `initialize()`, `setupMiddlewares()`, registers controllers, and then starts the HTTP server.
 - **`stop()`**: Stops the application server.
 
@@ -80,6 +80,7 @@ export const appConfigs: IApplicationConfigs = {
 - `path.base`: The base path for all routes in the application.
 - `path.isStrict`: If `true`, the router will be strict about trailing slashes.
 - `debug.showRoutes`: If `true`, all registered routes will be printed to the console on startup.
+- `favicon`: Optional. The path to a custom favicon for the application.
 
 ## Registering Resources
 
@@ -97,24 +98,33 @@ These are typically called within the `preConfigure` method of your `Application
 Here is a diagram illustrating the application's lifecycle, based on the `BaseApplication` implementation. Methods that you can override are highlighted in pink.
 
 ```mermaid
+%%{init: { "panZoom": true } }%%
 graph LR
     subgraph "Start Lifecycle"
-        A["start()"] --> B["initialize()"];
+        A["start()"] --> A1["registerCoreBindings()"];
+        A1 --> B["initialize()"];
         
         subgraph "initialize() Internals"
             B --> B1["printStartUpInfo()"];
             B1 --> B2["validateEnvs()"];
-            B2 --> B3["staticConfigure()"];
-            B3 --> B4["preConfigure()"];
-            B4 --> B5["registerDataSources()"];
-            B5 --> B6["registerComponents()"];
-            B6 --> B7["registerControllers()"];
-            B7 --> B8["registerDefaultMiddlewares()"];
+            B2 --> B3["registerDefaultMiddlewares()"];
+                subgraph "registerDefaultMiddlewares() Internals"
+                    B3 --> B3a["Register RequestTrackerComponent"];
+                    B3a --> B3b["Apply requestNormalize() middleware"];
+                    B3b --> B3c["Apply emojiFavicon() middleware"];
+                    B3c --> B3d["Apply notFoundHandler() middleware"];
+                    B3d --> B3e["Apply appErrorHandler() middleware"];
+                end
+            B3e --> B4["staticConfigure()"];
+            B4 --> B5["preConfigure()"];
+            B5 --> B6["registerDataSources()"];
+            B6 --> B7["registerComponents()"];
+            B7 --> B8["registerControllers()"];
             B8 --> B9["postConfigure()"];
         end
 
         B9 --> C["setupMiddlewares()"];
-        C --> D["Register Root Router"];
+        C --> D["Route Root Router"];
         D --> E["Start HTTP Server"];
     end
 
@@ -123,5 +133,5 @@ graph LR
     end
 
     classDef hook fill:#ffc0cb,stroke:#333,stroke-width:2px;
-    class B3,B4,B9,C hook;
+    class B4,B5,B9,C hook;
 ```

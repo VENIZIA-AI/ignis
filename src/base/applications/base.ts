@@ -9,7 +9,7 @@ import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
 import { BaseDataSource, IDataSource } from '../datasources';
-import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
+import { appErrorHandler, emojiFavicon, notFoundHandler, requestNormalize } from '../middlewares';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 import { AbstractApplication } from './abstract';
@@ -238,7 +238,15 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
       description: 'Register default application server handler',
       task: () => {
         const server = this.getServer();
-        server.use(emojiFavicon({ icon: '🔥' }));
+
+        // Assign requestId for every single request from client
+        this.component(RequestTrackerComponent);
+
+        // NOTE: Bug from Bun + Hono, this middleware aims to parse needed body for continue handling request
+        // Refer: https://github.com/honojs/middleware/issues/81
+        server.use(requestNormalize());
+
+        server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
         server.notFound(notFoundHandler({ logger: this.logger }));
         server.onError(appErrorHandler({ logger: this.logger }));
       },
@@ -248,16 +256,21 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   // ------------------------------------------------------------------------------
   override async initialize() {
     this.printStartUpInfo({ scope: this.initialize.name });
-    this.component(RequestTrackerComponent);
+    this.validateEnvs();
 
-    await super.initialize();
+    await this.registerDefaultMiddlewares();
+    this.staticConfigure();
+
+    await this.preConfigure();
 
     await this.registerDataSources();
     await this.registerComponents();
     await this.registerControllers();
 
-    await this.registerDefaultMiddlewares();
-
+    // NOTE: Do not binding any new datasource(s), component(s) or controller(s) in postConfigure
+    // It will not be registered into application automatically
+    // In case, register processes are required to be in postConfigure, end-users have to init binding and call configure manually
+    // Refer registerDataSources, registerComponents, or registerControllers to know how to load binding
     await this.postConfigure();
   }
 }

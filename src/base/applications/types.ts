@@ -96,19 +96,9 @@ export interface IApplicationConfigs {
   host?: string;
   port?: number;
   path: { base: string; isStrict: boolean };
-
-  // middlewares: IMiddlewareConfigs;
-
-  autoLoad?: {
-    dirs: {
-      [key: string | symbol]: { path: string };
-    };
-  };
-
-  debug?: {
-    showRoutes?: boolean;
-  };
-
+  favicon?: string;
+  autoLoad?: { dirs: { [key: string | symbol]: { path: string } } };
+  debug?: { showRoutes?: boolean };
   [key: string]: any;
 }
 
@@ -126,26 +116,25 @@ export interface IApplication<
   AppSchema extends Schema = Schema,
   BasePath extends string = '/',
 > {
-  initialize(): ValueOrPromise<void>;
-
-  setupMiddlewares(): ValueOrPromise<void>;
-
-  getProjectConfigs(): IApplicationConfigs;
   getProjectRoot(): string;
-  getRootRouter(): OpenAPIHono;
-
-  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  getProjectConfigs(): IApplicationConfigs;
   getServerHost(): string;
   getServerPort(): number;
   getServerAddress(): string;
+  getServer(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
+  getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath>;
 
+  setupMiddlewares(): ValueOrPromise<void>;
+
+  initialize(): ValueOrPromise<void>;
   start(): ValueOrPromise<void>;
   stop(): ValueOrPromise<void>;
 }
 
 // ------------------------------------------------------------------------------
 export interface IRestApplication
-  extends IApplication,
+  extends
+    IApplication,
     IComponentMixin,
     IControllerMixin,
     IRepositoryMixin,
