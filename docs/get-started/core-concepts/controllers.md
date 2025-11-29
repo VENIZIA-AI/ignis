@@ -23,9 +23,17 @@ export class UserController extends BaseController {
 }
 ```
 
-## Defining Routes
+## Controller Lifecycle
 
-Routes are defined within the `binding()` method of the controller. The `BaseController` class provides two helper methods for this: `defineRoute` and `defineAuthRoute`.
+Controllers in Ignis have a simple and effective lifecycle to manage their setup and route definitions.
+
+1.  **`constructor(opts)`**: The controller is instantiated with the options provided. This is where you call `super(opts)` to initialize the base controller with its scope and path.
+
+2.  **`configure()`**: This method is called by the application during the startup process to configure the controller. It logs the start and end of the binding process and then calls the `binding()` method.
+
+3.  **`binding()`**: This is an abstract method that you must implement in your controller. It is called by `configure()` and is the designated place to define all the routes for the controller using `defineRoute` and `defineAuthRoute`.
+
+This lifecycle ensures that controllers are set up in a consistent and predictable manner within the application.
 
 ### `defineRoute`
 

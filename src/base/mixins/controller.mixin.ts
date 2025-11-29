@@ -1,10 +1,11 @@
 import { BindingKeys, BindingNamespaces, HTTP, IClass, TMixinTarget } from '@/common';
-import { AbstractApplication, IApplication } from '../applications';
-import { IControllerMixin } from './types';
-import { BaseController } from '../controllers';
-import { BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { ApplicationError } from '@/helpers/error';
+import { BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
+import { executeWithPerformanceMeasure } from '@/utilities';
 import isEmpty from 'lodash/isEmpty';
+import { AbstractApplication, IApplication } from '../applications';
+import { BaseController } from '../controllers';
+import { IControllerMixin } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
@@ -19,31 +20,33 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
     }
 
     async registerControllers() {
-      const logger = this.getLogger();
-      logger.info('[registerControllers] START | Register Application Components...');
+      await executeWithPerformanceMeasure({
+        logger: this.logger,
+        description: 'Register application controllers',
+        scope: this.registerControllers.name,
+        task: async () => {
+          const router = this.getRootRouter();
 
-      const router = this.getRootRouter();
+          const bindings = this.findByTag({ tag: 'controllers' });
+          for (const binding of bindings) {
+            const controllerMetadata = MetadataRegistry.getControllerMetadata({
+              target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
+            });
 
-      const bindings = this.findByTag<BaseController>({ tag: 'controllers' });
-      for (const binding of bindings) {
-        const controllerMetadata = MetadataRegistry.getControllerMetadata({
-          target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
-        });
+            if (isEmpty(controllerMetadata?.path)) {
+              throw ApplicationError.getError({
+                statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+                message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
+              });
+            }
 
-        if (isEmpty(controllerMetadata?.path)) {
-          throw ApplicationError.getError({
-            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-            message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
-          });
-        }
+            const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
+            await instance.configure();
 
-        const instance = this.get<BaseController>({ key: binding.key });
-        await instance.configure();
-
-        router.route(controllerMetadata.path, instance.getRouter());
-      }
-
-      logger.info('[registerControllers] DONE | Register Application Components...');
+            router.route(controllerMetadata.path, instance.getRouter());
+          }
+        },
+      });
     }
   }
 

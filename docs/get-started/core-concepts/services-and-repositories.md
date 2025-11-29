@@ -8,27 +8,117 @@ Repositories are responsible for all communication with your data sources (e.g.,
 
 ### Creating a Repository
 
-To create a repository, you should extend the `BaseRepository` or `DefaultCrudRepository` class (if you are using a SQL database with Drizzle ORM).
+To create a repository, you should extend the `BaseRepository` or, for more feature-rich CRUD operations, the `DefaultCrudRepository` class. When using a SQL database with Drizzle ORM, `DefaultCrudRepository` provides a convenient starting point.
 
 ```typescript
-import { DefaultCrudRepository } from '@vez/ignis';
-import { users, User } from '../models/user.model'; // Your Drizzle schema
+import { DefaultCrudRepository, inject } from '@vez/ignis';
+import { users, User } from '../models/user.model'; // Your Drizzle schema and model
+import { MyDataSource } from '../datasources/my.datasource'; // Your datasource
 
-export class UserRepository extends DefaultCrudRepository<User> {
+export class UserRepository extends DefaultCrudRepository<
+  typeof users, // Drizzle table schema
+  User['id'],   // Type of the primary key
+  User          // The model class
+> {
   constructor(
-    // Inject your data source
+    @inject({ key: 'datasources.MyDataSource' }) dataSource: MyDataSource,
   ) {
-    super(users);
+    super(users, dataSource);
   }
 
   // You can add custom data access methods here
   async findByEmail(email: string): Promise<User | undefined> {
-    // ... logic to find a user by email
+    // ... logic to find a user by email using Drizzle
   }
 }
 ```
 
 By using repositories, you can easily switch out your data source without having to change your business logic.
+
+### Querying Data with Filters
+
+When retrieving data using methods like `find`, `findOne`, and `count`, you can use a powerful **filter** object to customize your queries. This object allows you to specify conditions, pagination, ordering, and which fields to return.
+
+The filter object can contain the following properties:
+
+- `where`: An object specifying the query conditions.
+- `limit`: The maximum number of records to return.
+- `offset` (or `skip`): The number of records to skip (for pagination).
+- `order`: A string or an array of strings to define the sorting order (e.g., `'name ASC'`, `['name ASC', 'createdAt DESC']`).
+- `fields`: An object to include or exclude specific fields.
+
+#### The `where` Clause
+
+The `where` clause is the most powerful part of the filter. It allows you to build complex queries using various operators.
+
+**Example: Simple Equality**
+
+To find all users with the status "active":
+
+```typescript
+const activeUsers = await userRepository.find({
+  where: { status: 'active' },
+});
+```
+
+**Using Operators**
+
+For more complex queries, you can use operators within the `where` clause.
+
+- `eq`: Equal
+- `neq`: Not equal
+- `gt`: Greater than
+- `gte`: Greater than or equal to
+- `lt`: Less than
+- `lte`: Less than or equal to
+- `inq`: In an array of values
+- `nin`: Not in an array of values
+- `like`: LIKE operator for string matching
+- `ilike`: ILIKE operator (case-insensitive LIKE, PostgreSQL only)
+
+**Operator Examples:**
+
+Find users who are older than 21:
+```typescript
+const adults = await userRepository.find({
+  where: { age: { gt: 21 } },
+});
+```
+
+Find users who are either admins or editors:
+```typescript
+const privilegedUsers = await userRepository.find({
+  where: { role: { inq: ['admin', 'editor'] } },
+});
+```
+
+**Logical Operators (`and`, `or`)**
+
+You can combine multiple conditions using `and` and `or` at the top level of your `where` clause.
+
+Find active users who are older than 21:
+```typescript
+const activeAdults = await userRepository.find({
+  where: {
+    and: [
+      { status: 'active' },
+      { age: { gt: 21 } },
+    ],
+  },
+});
+```
+
+Find users who are either inactive or are admins:
+```typescript
+const inactiveOrAdmins = await userRepository.find({
+  where: {
+    or: [
+      { status: 'inactive' },
+      { role: 'admin' },
+    ],
+  },
+});
+```
 
 ## Services: The Business Logic Layer
 

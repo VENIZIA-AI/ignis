@@ -1,9 +1,11 @@
 import { EnvironmentKeys } from '@/common/environments';
+import { Configuration, configurationSchema } from '@/models/entities';
 import {
   applicationEnvironment,
   BaseDataSource,
   datasource,
   int,
+  TNodePostgresConnector,
   ValueOrPromise,
 } from '@vez/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -19,8 +21,11 @@ interface IDSConfigs {
 }
 
 @datasource()
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
-  private readonly connector = 'postgresql';
+export class PostgresDataSource extends BaseDataSource<
+  TNodePostgresConnector,
+  IDSConfigs
+> {
+  private readonly protocol = 'postgresql';
 
   constructor() {
     super({
@@ -42,18 +47,25 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
         ),
         ssl: false,
       },
+
+      // NOTE: this is the place to define which models belonged to this datasource
+      schema: {
+        // ... extra entity models
+        // NOTE: schema key will be used for Query API in DrizzleORM
+        [Configuration.name]: configurationSchema,
+      },
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.dataSource = drizzle({
+    this.connector = drizzle({
       client: new Pool(this.settings),
+      schema: this.schema,
     });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
     const { host, port, user, password, database } = this.settings;
-    const protocol = this.connector.toLowerCase();
-    return `${protocol}://${user}:${password}@${host}:${port}/${database}`;
+    return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;
   }
 }

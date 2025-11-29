@@ -1,11 +1,14 @@
-import { ValueOrPromise } from '@/common';
+import { IConfigurable, ValueOrPromise } from '@/common';
+import { getError } from '@/helpers';
 import { Binding, Container } from '@/helpers/inversion';
 import { BaseHelper } from '../helpers';
-import { getError } from '@/helpers';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 
-export abstract class BaseComponent extends BaseHelper {
+export abstract class BaseComponent<ConfigurableOptions extends object = {}>
+  extends BaseHelper
+  implements IConfigurable<ConfigurableOptions>
+{
   protected bindings: Record<string | symbol, Binding>;
 
   protected initDefault: TInitDefault;
@@ -43,15 +46,15 @@ export abstract class BaseComponent extends BaseHelper {
   }
 
   // ------------------------------------------------------------------------------
-  async configure(): Promise<void> {
+  async configure(opts?: ConfigurableOptions): Promise<void> {
     const t = performance.now();
-    this.logger.info('[binding] START | Binding component');
+
+    const configureOptions = opts ?? {};
+    this.logger.info('[binding] START | Binding component | Options: %j', configureOptions);
 
     if (this.initDefault?.enable) {
       this.initDefaultBindings({ container: this.initDefault.container });
     }
-
-    // this.initDefaultBindings({})
 
     await this.binding();
 

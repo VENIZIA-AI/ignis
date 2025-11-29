@@ -17,6 +17,7 @@ export const MetadataKeys = {
   // Model metadata
   MODEL: Symbol.for('ignis:model'),
   DATASOURCE: Symbol.for('ignis:datasource'),
+  REPOSITORY: Symbol.for('ignis:repository'),
 
   // Injection metadata
   INJECT: Symbol.for('ignis:inject'),

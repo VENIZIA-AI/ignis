@@ -80,6 +80,11 @@ export class PostgresDataSource extends BaseDataSource {
 ```
 In the `configure` method, you initialize the Drizzle ORM instance with your database connection.
 
+### DataSource Lifecycle
+
+1.  **`constructor()`**: The datasource is instantiated with its configuration.
+2.  **`configure()`**: This method is called by the application during startup. It's where you should initialize the database connection and assign it to the `dataSource` property.
+
 ### Registering a DataSource
 
 You need to register your DataSource with your application in `src/application.ts`:

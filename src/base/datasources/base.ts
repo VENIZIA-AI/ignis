@@ -1,38 +1,58 @@
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '../helpers';
-import { IDataSource, TDataSourceDriver } from './types';
+import {
+  IDataSource,
+  TAnyDatasourceSchema,
+  TDatabaseConnector,
+  TDataSourceDriver,
+  TNodePostgresConnector,
+} from './types';
 
-export abstract class AbstractDataSource<S extends object = {}, DS = any>
+// --------------------------------------------------------------------------------------
+export abstract class AbstractDataSource<
+  Connector extends TDatabaseConnector = TNodePostgresConnector,
+  Settings extends object = {},
+  Schema extends TAnyDatasourceSchema = {},
+  ConfigurableOptions extends object = {},
+>
   extends BaseHelper
-  implements IDataSource
+  implements IDataSource<Connector, Settings, Schema, ConfigurableOptions>
 {
   name: string;
-  settings: S;
-  dataSource: DS;
-
+  settings: Settings;
+  connector: Connector;
+  schema: Schema;
   protected driver: TDataSourceDriver;
 
-  constructor(opts: { name: string; config: S; driver: TDataSourceDriver }) {
-    super({ scope: opts.name });
-
-    this.name = opts.name;
-    this.settings = opts.config;
-    this.driver = opts.driver;
-  }
-
-  abstract configure(): ValueOrPromise<void>;
+  abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
   abstract getConnectionString(): ValueOrPromise<string>;
 
   getSettings() {
     return this.settings;
   }
 
-  getDataSource() {
-    return this.dataSource;
+  getConnector() {
+    return this.connector;
+  }
+
+  getSchema() {
+    return this.schema;
   }
 }
 
+// --------------------------------------------------------------------------------------
 export abstract class BaseDataSource<
-  C extends object = object,
-  DS extends object = object,
-> extends AbstractDataSource<C, DS> {}
+  Connector extends TDatabaseConnector = TNodePostgresConnector,
+  Settings extends object = {},
+  Schema extends TAnyDatasourceSchema = {},
+  ConfigurableOptions extends object = {},
+> extends AbstractDataSource<Connector, Settings, Schema, ConfigurableOptions> {
+  constructor(opts: { name: string; config: Settings; driver: TDataSourceDriver; schema: Schema }) {
+    super({ scope: opts.name });
+
+    this.name = opts.name;
+    this.settings = opts.config;
+    this.driver = opts.driver;
+    this.schema = opts.schema;
+  }
+}

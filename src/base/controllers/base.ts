@@ -7,12 +7,13 @@ import { BaseHelper } from '../helpers';
 import { IController, IControllerOptions, TRouteConfig, TRouteDefinition } from './types';
 
 export abstract class BaseController<
-    RouteEnv extends Env = Env,
-    RouteSchema extends Schema = {},
-    BasePath extends string = '/',
-  >
+  RouteEnv extends Env = Env,
+  RouteSchema extends Schema = {},
+  BasePath extends string = '/',
+  ConfigurableOptions extends object = {},
+>
   extends BaseHelper
-  implements IController<RouteEnv, RouteSchema, BasePath>
+  implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 {
   tags: string[];
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
@@ -30,9 +31,13 @@ export abstract class BaseController<
     return this.router;
   }
 
-  async configure(): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
+  async configure(
+    opts?: ConfigurableOptions,
+  ): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
     const t = performance.now();
-    this.logger.info('[configure] START | Binding controller');
+
+    const configureOptions = opts ?? {};
+    this.logger.info('[configure] START | Binding controller | Options: %j', configureOptions);
 
     await this.binding();
 

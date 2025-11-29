@@ -2,6 +2,7 @@ import { AnyObject, IClass, ValueOrPromise } from '@/common/types';
 import { IApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IDataSource } from '../datasources';
+import { TBaseIdEntity } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 
@@ -27,7 +28,7 @@ export interface IControllerMixin {
 
 export interface IRepositoryMixin {
   dataSource<T extends IDataSource>(ctor: IClass<T>): IApplication;
-  repository<T extends IRepository>(ctor: IClass<T>): IApplication;
+  repository<T extends IRepository<TBaseIdEntity>>(ctor: IClass<T>): IApplication;
 }
 
 export interface IServiceMixin {

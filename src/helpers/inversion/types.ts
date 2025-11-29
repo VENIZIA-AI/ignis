@@ -69,6 +69,8 @@ export interface IModelMetadata {
 
 export interface IDataSourceMetadata {}
 
+export interface IRepositoryMetadata {}
+
 /* export interface IMiddlewareMetadata {
   handler: Function;
   priority?: number;

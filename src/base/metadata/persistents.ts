@@ -1,4 +1,9 @@
-import { IDataSourceMetadata, IModelMetadata, MetadataRegistry } from '@/helpers/inversion';
+import {
+  IDataSourceMetadata,
+  IModelMetadata,
+  IRepositoryMetadata,
+  MetadataRegistry,
+} from '@/helpers/inversion';
 
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
@@ -9,5 +14,11 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.setDataSourceMetadata({ target, metadata });
+  };
+};
+
+export const repository = (metadata?: IRepositoryMetadata): ClassDecorator => {
+  return target => {
+    MetadataRegistry.setRepositoryMetadata({ target, metadata });
   };
 };

@@ -1,156 +1,97 @@
-// import { AnyObject } from '@/common/types';
-// import { EntityClassType, IdType, TBaseIdEntity, TBaseTzEntity } from '../models';
-// import {
-//   DataObject,
-//   ICount,
-//   IFilter,
-//   IPersistableRepository,
-//   IRepository,
-//   ITzRepository,
-//   TWhere,
-// } from './types';
-//
-// /**
-//  * Base repository class
-//  * Provides common CRUD operations for all repositories
-//  */
-// export abstract class BaseRepository<E extends TBaseIdEntity> implements IRepository {
-//   protected entityClass: EntityClassType<E>;
-//   protected dataSource: any;
-//
-//   constructor(entityClass: EntityClassType<E>, dataSource: any) {
-//     this.entityClass = entityClass;
-//     this.dataSource = dataSource;
-//   }
-//
-//   /**
-//    * Get entity name
-//    */
-//   get modelName(): string {
-//     return this.entityClass.name;
-//   }
-//
-//   /**
-//    * Convert Filter to SQL WHERE clause
-//    */
-//   protected buildWhereClause(where?: TWhere<E>): AnyObject {
-//     if (!where) {
-//       return {};
-//     }
-//
-//     const result: AnyObject = {};
-//
-//     for (const key in where) {
-//       const value = where[key as keyof TWhere<E>];
-//       switch (key) {
-//         case 'and': {
-//           result.$and = (value as TWhere<E>[]).map(w => this.buildWhereClause(w));
-//           break;
-//         }
-//         case 'or': {
-//           result.$or = (value as TWhere<E>[]).map(w => this.buildWhereClause(w));
-//           break;
-//         }
-//         default: {
-//           if (typeof value === 'object' && value !== null) {
-//             result[key] = this.buildOperators(value);
-//             break;
-//           }
-//
-//           result[key] = value;
-//           break;
-//         }
-//       }
-//     }
-//
-//     return result;
-//   }
-//
-//   protected buildOperators(operators: AnyObject): AnyObject {
-//     const result: AnyObject = {};
-//
-//     for (const [op, value] of Object.entries(operators)) {
-//       switch (op) {
-//         case 'eq': {
-//           return value;
-//         }
-//         case 'neq':
-//         case 'ne': {
-//           result.$ne = value;
-//           break;
-//         }
-//         case 'gt': {
-//           result.$gt = value;
-//           break;
-//         }
-//         case 'gte': {
-//           result.$gte = value;
-//           break;
-//         }
-//         case 'lt': {
-//           result.$lt = value;
-//           break;
-//         }
-//         case 'lte': {
-//           result.$lte = value;
-//           break;
-//         }
-//         case 'like': {
-//           result.$like = value;
-//           break;
-//         }
-//         case 'ilike': {
-//           result.$ilike = value;
-//           break;
-//         }
-//         case 'regexp': {
-//           result.$regexp = value;
-//           break;
-//         }
-//         case 'in': {
-//           result.$in = value;
-//           break;
-//         }
-//         case 'nin': {
-//           result.$nin = value;
-//           break;
-//         }
-//         case 'between': {
-//           result.$between = value;
-//           break;
-//         }
-//         default:
-//           result[op] = value;
-//       }
-//     }
-//
-//     return result;
-//   }
-//
-//   /**
-//    * Apply limit to filter
-//    */
-//   protected applyLimit(filter?: IFilter<E>, defaultLimit: number = 50): IFilter<E> {
-//     return {
-//       ...filter,
-//       limit: filter?.limit || defaultLimit,
-//     };
-//   }
-//
-//   /**
-//    * Abstract methods to be implemented by concrete repositories
-//    */
-//   abstract find(filter?: IFilter<E>, options?: AnyObject): Promise<E[]>;
-//   abstract findById(id: IdType, filter?: IFilter<E>, options?: AnyObject): Promise<E>;
-//   abstract findOne(filter?: IFilter<E>, options?: AnyObject): Promise<E | null>;
-//   abstract count(where?: TWhere<E>, options?: AnyObject): Promise<ICount>;
-//   abstract create(data: DataObject<E>, options?: AnyObject): Promise<E>;
-//   abstract createAll(datum: DataObject<E>[], options?: AnyObject): Promise<E[]>;
-//   abstract updateById(id: IdType, data: DataObject<E>, options?: AnyObject): Promise<void>;
-//   abstract updateAll(data: DataObject<E>, where?: TWhere<E>, options?: AnyObject): Promise<ICount>;
-//   abstract deleteById(id: IdType, options?: AnyObject): Promise<void>;
-//   abstract existsWith(where?: TWhere<E>, options?: AnyObject): Promise<boolean>;
-// }
+import { IClass, TNullable } from '@/common/types';
+import { Table } from 'drizzle-orm';
+import { IDataSource } from '../datasources';
+import { BaseHelper } from '../helpers';
+import { IdType, TBaseIdEntity } from '../models';
+import {
+  IRepository,
+  RepositoryOperationScopes,
+  TCount,
+  TFilter,
+  TRepositoryOperationScope,
+  TWhere,
+} from './common';
+
+/**
+ * Base repository class
+ * Provides common CRUD operations for all repositories
+ */
+export abstract class AbstractRepository<
+  Entity extends TBaseIdEntity,
+  ExtraOptions extends object = {},
+>
+  extends BaseHelper
+  implements IRepository<Entity>
+{
+  protected operationScope: TRepositoryOperationScope;
+
+  entityClass: IClass<Entity>;
+  table: Table;
+  dataSource: IDataSource;
+
+  constructor(opts: {
+    scope?: string;
+    entityClass: IClass<Entity>;
+    dataSource: IDataSource;
+    operationScope?: TRepositoryOperationScope;
+  }) {
+    super({ scope: opts?.scope ?? [opts.entityClass.name, 'Repository'].join('') });
+    this.entityClass = opts.entityClass;
+    this.table = new this.entityClass().build();
+
+    this.dataSource = opts.dataSource;
+    this.operationScope = opts.operationScope ?? RepositoryOperationScopes.READ_ONLY;
+  }
+
+  get modelName(): string {
+    return this.entityClass.name;
+  }
+
+  get connector() {
+    return this.dataSource.connector;
+  }
+
+  // --------------------------------------------------------------------------------------
+  abstract count(opts: { where: TWhere<Entity>; options?: ExtraOptions }): Promise<TCount>;
+  abstract existsWith(opts: { where: TWhere<Entity>; options?: ExtraOptions }): Promise<boolean>;
+
+  abstract find(opts: { filter: TFilter<Entity>; options?: ExtraOptions }): Promise<Array<Entity>>;
+  abstract findById(opts: { id: IdType; options?: ExtraOptions }): Promise<TNullable<Entity>>;
+  abstract findOne(opts: {
+    filter: TFilter<Entity>;
+    options?: ExtraOptions;
+  }): Promise<TNullable<Entity>>;
+
+  abstract create(opts: {
+    data: Partial<Entity>;
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TNullable<Entity>>;
+  abstract createAll(opts: {
+    data: Partial<Entity>[];
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TNullable<Array<Entity>>>;
+
+  abstract updateById(opts: {
+    id: IdType;
+    data: Partial<Entity>;
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TCount & TNullable<Entity>>;
+  abstract updateAll(opts: {
+    data: Partial<Entity>;
+    where?: TWhere<Entity>;
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TCount & TNullable<Array<Entity>>>;
+
+  abstract deleteById(opts: {
+    id: IdType;
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TCount & TNullable<Entity>>;
+  abstract deleteAll(opts: {
+    where?: TWhere<Entity>;
+    options?: ExtraOptions & { returning: boolean };
+  }): Promise<TCount & TNullable<Entity>>;
+}
+
 //
 // /**
 //  * Default CRUD Repository

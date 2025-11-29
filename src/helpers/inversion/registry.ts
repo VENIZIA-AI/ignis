@@ -7,6 +7,7 @@ import type {
   IInjectableMetadata,
   IModelMetadata,
   IPropertyMetadata,
+  IRepositoryMetadata,
 } from './types';
 
 /**
@@ -137,6 +138,24 @@ export class MetadataRegistry {
   }): IDataSourceMetadata | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.DATASOURCE, target);
+  }
+
+  // -----------------------------------------------------------------
+  // Repository Metadata
+  // -----------------------------------------------------------------
+  static setRepositoryMetadata<T extends object = object>(opts: {
+    target: T;
+    metadata: IRepositoryMetadata;
+  }): void {
+    const { target, metadata } = opts;
+    Reflect.defineMetadata(MetadataKeys.REPOSITORY, metadata, target);
+  }
+
+  static getRepositoryMetadata<T extends object = object>(opts: {
+    target: T;
+  }): IRepositoryMetadata | undefined {
+    const { target } = opts;
+    return Reflect.getMetadata(MetadataKeys.REPOSITORY, target);
   }
 
   // -----------------------------------------------------------------

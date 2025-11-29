@@ -1,6 +1,7 @@
-import { ValueOptional } from '@/common/types';
+import { IConfigurable, ValueOptional } from '@/common/types';
 import { createRoute, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import { Env, Schema } from 'hono';
+import { TBaseIdEntity } from '../models';
 import { IRepository } from '../repositories';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -10,19 +11,19 @@ export interface IController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
-> {
+  ConfigurableOptions extends object = {},
+> extends IConfigurable<ConfigurableOptions, OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
-
-  configure(): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>>;
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export interface ICrudController extends IController {
   defaultLimit: number;
   relation?: { name: string; type: string };
-  repository?: IRepository;
-  sourceRepository?: IRepository;
-  targetRepository?: IRepository;
+
+  repository?: IRepository<TBaseIdEntity>;
+  sourceRepository?: IRepository<TBaseIdEntity>;
+  targetRepository?: IRepository<TBaseIdEntity>;
 }
 
 export interface IControllerOptions {

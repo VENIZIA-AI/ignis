@@ -1,6 +1,6 @@
 import { BindingKeys, BindingNamespaces } from '@/common/bindings';
 import { HTTP, RuntimeModules } from '@/common/constants';
-import { AnyObject, IClass } from '@/common/types';
+import { AnyObject, IClass, IConfigurable } from '@/common/types';
 import { RequestTrackerComponent } from '@/components';
 import { ApplicationError, getError } from '@/helpers/error';
 import { BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
@@ -8,8 +8,9 @@ import { executeWithPerformanceMeasure } from '@/utilities';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
-import { BaseDataSource, IDataSource } from '../datasources';
+import { IDataSource } from '../datasources';
 import { appErrorHandler, emojiFavicon, notFoundHandler, requestNormalize } from '../middlewares';
+import { TBaseIdEntity } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 import { AbstractApplication } from './abstract';
@@ -57,9 +58,9 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
       scope: this.registerComponents.name,
       description: 'Register application components',
       task: async () => {
-        const bindings = this.findByTag<BaseComponent>({ tag: 'components' });
+        const bindings = this.findByTag({ tag: 'components' });
         for (const binding of bindings) {
-          const instance = this.get<BaseComponent>({ key: binding.key, isOptional: false });
+          const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
           await instance.configure();
         }
       },
@@ -85,7 +86,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
       task: async () => {
         const router = this.getRootRouter();
 
-        const bindings = this.findByTag<BaseController>({ tag: 'controllers' });
+        const bindings = this.findByTag({ tag: 'controllers' });
         for (const binding of bindings) {
           const controllerMetadata = MetadataRegistry.getControllerMetadata({
             target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
@@ -119,17 +120,18 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  repository<T extends IRepository>(ctor: IClass<T>): IApplication {
+  repository<T extends IRepository<TBaseIdEntity>>(ctor: IClass<T>): IApplication {
     this.bind({
       key: BindingKeys.build({
         namespace: BindingNamespaces.REPOSITORY,
-        key: ctor.nameff,
+        key: ctor.name,
       }),
     }).toClass(ctor);
     return this;
   }
+
   // ------------------------------------------------------------------------------
-  dataSource<T extends IDataSource>(ctor: IClass<T>): IApplication {
+  dataSource<T extends IDataSource<any>>(ctor: IClass<T>): IApplication {
     this.bind({
       key: BindingKeys.build({
         namespace: BindingNamespaces.DATASOURCE,
@@ -147,9 +149,9 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
       scope: this.registerDataSources.name,
       description: 'Register application data sources',
       task: async () => {
-        const bindings = this.findByTag<BaseDataSource>({ tag: 'datasources' });
+        const bindings = this.findByTag({ tag: 'datasources' });
         for (const binding of bindings) {
-          const instance = this.get<BaseDataSource>({ key: binding.key, isOptional: false });
+          const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
           await instance.configure();
         }
       },

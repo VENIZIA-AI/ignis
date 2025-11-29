@@ -7,7 +7,6 @@ import {
   HealthCheckBindingKeys,
   HealthCheckComponent,
   HTTP,
-  // HTTP,
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
@@ -21,6 +20,7 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { TestController } from './controllers/test.controller';
 import { PostgresDataSource } from './datasources';
+import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
@@ -31,14 +31,6 @@ export const beConfigs: IApplicationConfigs = {
     base: process.env.APP_ENV_SERVER_BASE_PATH,
     isStrict: true,
   },
-  /* autoLoad: {
-    dirs: {
-      controllers: { path: '' },
-      services: { path: '' },
-      repositories: { path: '' },
-      datasources: { path: '' },
-    },
-  }, */
   debug: {
     showRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
@@ -117,11 +109,19 @@ export class Application extends BaseApplication {
   }
 
   preConfigure(): ValueOrPromise<void> {
+    // DataSources
     this.dataSource(PostgresDataSource);
 
+    // Repositories
+    this.repository(ConfigurationRepository);
+
+    // Services
     this.registerAuth();
+
+    // Controllers
     this.controller(TestController);
 
+    // Extra Components
     this.bind<IHealthCheckOptions>({
       key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
     }).toValue({
@@ -132,5 +132,19 @@ export class Application extends BaseApplication {
     this.component(SwaggerComponent);
   }
 
-  postConfigure(): ValueOrPromise<void> {}
+  postConfigure(): ValueOrPromise<void> {
+    console.log(this.bindings.keys());
+
+    const configurationRepository = this.get<ConfigurationRepository>({
+      key: 'repositories.ConfigurationRepository',
+    });
+
+    configurationRepository
+      .findById({
+        id: '619ce5bb-001a-40d1-a90f-3d6396c11119',
+         
+      })
+      .then(console.log)
+      .catch(console.error);
+  }
 }

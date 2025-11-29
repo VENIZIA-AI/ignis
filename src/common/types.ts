@@ -1,10 +1,12 @@
 import { Container } from '@/helpers/inversion';
 
 // --------------------------------------------------------------------------------------------------------
-export type TNullable = undefined | null | void;
+export type TNullable<T> = T | undefined | null | void;
 
 export type AnyType = any;
 export type AnyObject = Record<string | symbol | number, any>;
+
+export type TOptions<T extends object = {}> = T;
 
 export type ValueOrPromise<T> = T | Promise<T>;
 export type ValueOf<T> = T[keyof T];
@@ -80,13 +82,12 @@ export type TObjectFromFieldMappings<
 export type TPermissionEffect = 'allow' | 'deny';
 
 // --------------------------------------------------------------------------------------------------------
-// Injection Getter
-// --------------------------------------------------------------------------------------------------------
 export type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
-// --------------------------------------------------------------------------------------------------------
-// Provider
-// --------------------------------------------------------------------------------------------------------
+export interface IConfigurable<Options extends object = any, Result = any> {
+  configure(opts?: Options): ValueOrPromise<Result>;
+}
+
 export interface IProvider<T> {
   value(container: Container): T;
 }

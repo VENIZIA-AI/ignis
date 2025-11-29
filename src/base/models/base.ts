@@ -6,12 +6,12 @@ import { TColumns } from './types';
 // -------------------------------------------------------------------------------------------
 // Base Entity with Drizzle ORM support
 // -------------------------------------------------------------------------------------------
-export abstract class Entity extends BaseHelper {
-  protected schema: string;
-  protected name: string;
-  protected columns: TColumns;
+export abstract class Entity<ColumnDefinitions extends TColumns = TColumns> extends BaseHelper {
+  schema: string;
+  name: string;
+  columns: ColumnDefinitions;
 
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({ scope: opts.name });
 
     this.schema = opts.schema ?? 'public';
@@ -39,12 +39,14 @@ export abstract class Entity extends BaseHelper {
 // -------------------------------------------------------------------------------------------
 // Number ID Entity
 // -------------------------------------------------------------------------------------------
-export class BaseNumberIdEntity extends Entity {
-  constructor(opts: { schema: string; name: string; columns?: TColumns }) {
+export class BaseNumberIdEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends Entity<ColumnDefinitions> {
+  constructor(opts: { schema: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichId(opts.columns, {
+      columns: enrichId<ColumnDefinitions>(opts.columns, {
         id: { columnName: 'id', dataType: 'number' },
       }),
     });
@@ -54,66 +56,82 @@ export class BaseNumberIdEntity extends Entity {
 // -------------------------------------------------------------------------------------------
 // String ID Entity
 // -------------------------------------------------------------------------------------------
-export class BaseStringIdEntity extends Entity {
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+export class BaseStringIdEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends Entity<ColumnDefinitions> {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichId(opts.columns, {
+      columns: enrichId<ColumnDefinitions>(opts.columns, {
         id: { columnName: 'id', dataType: 'string' },
       }),
     });
   }
 }
 
-export type TBaseIdEntity = BaseNumberIdEntity['columns'] | BaseStringIdEntity['columns'];
+export type TBaseIdEntity<ColumnDefinitions extends TColumns = TColumns> =
+  | BaseNumberIdEntity<ColumnDefinitions>
+  | BaseStringIdEntity<ColumnDefinitions>;
 
 // -------------------------------------------------------------------------------------------
 // Timestamp Entities (with createdAt and modifiedAt)
 // -------------------------------------------------------------------------------------------
-export abstract class BaseNumberTzEntity extends BaseNumberIdEntity {
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+export abstract class BaseNumberTzEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends BaseNumberIdEntity<ColumnDefinitions> {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichTz(opts.columns, {}),
+      columns: enrichTz<ColumnDefinitions>(opts.columns, {}),
     });
   }
 }
 
-export abstract class BaseStringTzEntity extends BaseStringIdEntity {
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+export abstract class BaseStringTzEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends BaseStringIdEntity<ColumnDefinitions> {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichTz(opts.columns, {}),
+      columns: enrichTz<ColumnDefinitions>(opts.columns, {}),
     });
   }
 }
 
-export type TBaseTzEntity = BaseNumberTzEntity | BaseStringTzEntity;
+export type TBaseTzEntity<ColumnDefinitions extends TColumns = TColumns> =
+  | BaseNumberTzEntity<ColumnDefinitions>
+  | BaseStringTzEntity<ColumnDefinitions>;
 
 // -------------------------------------------------------------------------------------------
 // User Audit Entities (with createdBy and modifiedBy)
 // -------------------------------------------------------------------------------------------
-export abstract class BaseNumberUserAuditTzEntity extends BaseNumberTzEntity {
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+export abstract class BaseNumberUserAuditTzEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends BaseNumberTzEntity<ColumnDefinitions> {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichUserAudit(opts.columns),
+      columns: enrichUserAudit<ColumnDefinitions>(opts.columns),
     });
   }
 }
 
-export abstract class BaseStringUserAuditTzEntity extends BaseStringTzEntity {
-  constructor(opts: { schema?: string; name: string; columns?: TColumns }) {
+export abstract class BaseStringUserAuditTzEntity<
+  ColumnDefinitions extends TColumns = TColumns,
+> extends BaseStringTzEntity<ColumnDefinitions> {
+  constructor(opts: { schema?: string; name: string; columns?: ColumnDefinitions }) {
     super({
       schema: opts.schema,
       name: opts.name,
-      columns: enrichUserAudit(opts.columns),
+      columns: enrichUserAudit<ColumnDefinitions>(opts.columns),
     });
   }
 }
 
-export type TBaseUserAuditTzEntity = BaseNumberUserAuditTzEntity | BaseStringUserAuditTzEntity;
+export type TBaseUserAuditTzEntity<ColumnDefinitions extends TColumns = TColumns> =
+  | BaseNumberUserAuditTzEntity<ColumnDefinitions>
+  | BaseStringUserAuditTzEntity<ColumnDefinitions>;

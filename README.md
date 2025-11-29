@@ -40,7 +40,7 @@ These patterns are invaluable for building complex, large-scale applications tha
 
 ## Ignis: The Synthesis
 
-[Ignis][https://github.com/VENIZIA-AI/ignis] brings the architectural rigor of LoopBack 4 to the high-performance Hono runtime. It provides:
+[Ignis](https://github.com/VENIZIA-AI/ignis) brings the architectural rigor of LoopBack 4 to the high-performance Hono runtime. It provides:
 
 - **A Familiar Structure:** Developers familiar with LoopBack or other enterprise frameworks will feel right at home with Ignis's layered architecture and DI system.
 - **The Power of Hono:** Under the hood, Ignis leverages Hono's performance and flexibility, allowing you to build applications that are both robust and fast.

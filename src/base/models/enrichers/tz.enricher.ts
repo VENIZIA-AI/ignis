@@ -1,19 +1,26 @@
 import { timestamp } from 'drizzle-orm/pg-core';
 import { TColumns } from '../types';
 
-export const enrichTz = (
-  baseSchema: TColumns,
-  opts?: {
-    created?: { columnName: string; withTimezone: boolean };
-    modified?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
-  },
-): TColumns => {
+export type TTzEnricherOptions = {
+  created?: { columnName: string; withTimezone: boolean };
+  modified?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
+};
+
+/* export type TTzEnricherResult<ColumnDefinitions extends TColumns = TColumns> = ColumnDefinitions & {
+  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+  modifiedAt?: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+}; */
+
+export const enrichTz = <ColumnDefinitions extends TColumns = TColumns>(
+  baseSchema: ColumnDefinitions,
+  opts?: TTzEnricherOptions,
+) => {
   const {
     created = { columnName: 'created_at', withTimezone: true },
     modified = { enable: true, columnName: 'modified_at', withTimezone: true },
   } = opts ?? {};
 
-  const rs = Object.assign({}, baseSchema, {
+  let rs = Object.assign({}, baseSchema, {
     createdAt: timestamp(created.columnName, {
       mode: 'date',
       withTimezone: created.withTimezone,
@@ -26,7 +33,7 @@ export const enrichTz = (
     return rs;
   }
 
-  return Object.assign({}, rs, {
+  rs = Object.assign({}, rs, {
     modifiedAt: timestamp(modified.columnName, {
       mode: 'date',
       withTimezone: modified.withTimezone,
@@ -37,4 +44,6 @@ export const enrichTz = (
         return new Date();
       }),
   });
+
+  return rs;
 };

@@ -1,23 +1,20 @@
+import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { PgColumnBuilderBase } from 'drizzle-orm/pg-core';
-import { Entity } from './base';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export type NumberIdType = number;
 export type StringIdType = string;
 export type IdType = string | number;
+
 export type TColumnDefinition = PgColumnBuilderBase;
 export type TColumns = { [field: string | symbol]: TColumnDefinition };
-export type TEnricher<O extends object = any> = (baseColumns: TColumns, opts: O) => TColumns;
+export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Entity Interfaces
-// ----------------------------------------------------------------------------------------------------------------------------------------
-export interface IEntity {
-  id: IdType;
-}
-
-export type EntityClassType<T extends Entity> = typeof Entity & {
-  prototype: T & { id?: IdType };
-};
-
-export type EntityRelationType = Record<string, any>;
+/* export type TEnricher = <
+  ColumnDefinitions extends TColumns,
+  Options extends object = {},
+  EnrichedDefinitions extends TColumns = TColumns,
+>(
+  baseColumns: ColumnDefinitions,
+  opts: Options,
+) => EnrichedDefinitions; */
