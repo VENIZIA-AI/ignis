@@ -20,7 +20,7 @@
     "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",
     "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/datasources/migration.ts",
+    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
     "preserver:dev": "bun run rebuild",
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."

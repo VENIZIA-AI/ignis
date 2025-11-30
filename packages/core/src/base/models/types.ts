@@ -4,7 +4,8 @@ import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export type NumberIdType = number;
 export type StringIdType = string;
-export type IdType = string | number;
+// export type IdType = string | number | bigint;
+export type IdType = string | number | bigint;
 
 export type TColumnDefinition = PgColumnBuilderBase;
 export type TColumnDefinitions = { [field: string | symbol]: TColumnDefinition };

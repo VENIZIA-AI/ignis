@@ -1,8 +1,17 @@
-import { enrichPrincipal, TColumnDefinitions } from '@/base/models';
+import { generatePrincipalColumnDefs, TColumnDefinitions } from '@/base/models';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
-export class BaseNumberUserRole extends Object {
+export const extraUserRoleColumns = (opts?: {
+  idType: 'string' | 'number';
+}): TColumnDefinitions => {
+  return {
+    ...generatePrincipalColumnDefs({ defaultPolymorphic: 'Role', polymorphicIdType: 'number' }),
+    userId: opts?.idType === 'string' ? text('user_id') : integer('user_id'),
+  };
+};
+
+/* export class BaseNumberUserRole extends Object {
   constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
     super({
       ...opts,
@@ -24,4 +33,4 @@ export class BaseStringUserRole extends Object {
       }),
     });
   }
-}
+} */

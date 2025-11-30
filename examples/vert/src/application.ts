@@ -133,26 +133,46 @@ export class Application extends BaseApplication {
   }
 
   postConfigure(): ValueOrPromise<void> {
-    console.log(this.bindings.keys());
+    this.logger.info(
+      '[postConfigure] Inspect all of application binding keys: %s',
+      Array.from(this.bindings.keys()),
+    );
 
     const configurationRepository = this.get<ConfigurationRepository>({
       key: 'repositories.ConfigurationRepository',
     });
 
     configurationRepository
-      .findById({ id: '619ce5bb-001a-40d1-a90f-3d6396c11119' })
-      .then(console.log)
+      .findOne({
+        filter: { where: { code: 'CODE_1' } },
+      })
+      .then(rs => {
+        this.logger.info(
+          '[postConfigure] Trying to findOne | condition: %j | rs: %o',
+          { filter: { where: { code: 'CODE_1' } } },
+          rs,
+        );
+      })
       .catch(console.error);
 
     configurationRepository
       .find({
         filter: {
           where: { code: 'CODE_2' },
-          fields: { id: true, code: true, dataType: true },
+          fields: { id: true, code: true, dataType: true, createdBy: true },
           limit: 100,
+          include: [{ relation: 'creator' }],
         },
       })
-      .then(console.log)
+      .then(rs => {
+        this.logger.info(
+          '[postConfigure] Trying to find result | condition: %j | fields: %j | limit: %s | rs: %o',
+          { where: { code: 'CODE_2' } },
+          { fields: { id: true, code: true, dataType: true } },
+          100,
+          rs,
+        );
+      })
       .catch(console.error);
   }
 }

@@ -1,20 +1,22 @@
 import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../types';
 
-export type TUserAuditEnricherOptions = {
-  created?: { dataType: 'string' | 'number'; columnName: string };
-  modified?: { dataType: 'string' | 'number'; columnName: string };
+type TUserAuditColumnOpts = {
+  dataType: 'string' | 'number';
+  columnName: string;
 };
 
-export type TUserAuditEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
-  ColumnDefinitions & {
-    createdBy:
-      | PgIntegerBuilderInitial<string>
-      | PgTextBuilderInitial<string, [string, ...string[]]>;
-    modifiedBy:
-      | PgIntegerBuilderInitial<string>
-      | PgTextBuilderInitial<string, [string, ...string[]]>;
-  };
+export type TUserAuditEnricherOptions = {
+  created?: TUserAuditColumnOpts;
+  modified?: TUserAuditColumnOpts;
+};
+
+export type TUserAuditEnricherResult<
+  ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions,
+> = ColumnDefinitions & {
+  createdBy: PgIntegerBuilderInitial<string> | PgTextBuilderInitial<string, [string, ...string[]]>;
+  modifiedBy: PgIntegerBuilderInitial<string> | PgTextBuilderInitial<string, [string, ...string[]]>;
+};
 
 export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) => {
   const {

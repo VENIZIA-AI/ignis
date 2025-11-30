@@ -2,14 +2,9 @@ import 'dotenv-flow/config';
 
 import { applicationEnvironment, int, LoggerFactory } from '@vez/ignis';
 import { defineConfig } from 'drizzle-kit';
-// import { Application, beConfigs } from './application';
 
 const migration = () => {
   const logger = LoggerFactory.getLogger([migration.name]);
-  /* const migrationApplication = new Application({
-    scope: 'MigrationApplication',
-    config: beConfigs,
-  }); */
 
   const envKeys = applicationEnvironment.keys();
   logger.info('[migration] envKeys: %s', envKeys, process.env);

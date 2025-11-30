@@ -1,10 +1,27 @@
-import { integer, pgTable, varchar } from 'drizzle-orm/pg-core';
+import {
+  BaseEntity,
+  extraUserColumns,
+  generateIdColumnDefs,
+  model,
+  TTableObject,
+} from '@vez/ignis';
+import { pgTable } from 'drizzle-orm/pg-core';
 
-export const usersTable = pgTable('users', {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: varchar({ length: 255 }).notNull(),
-  age: integer().notNull(),
-  email: varchar({ length: 255 }).notNull().unique(),
+@model({ type: 'entity', skipMigrate: false })
+export class User extends BaseEntity<TUserSchema> {
+  static readonly TABLE_NAME = User.name;
+
+  constructor() {
+    super({ name: User.name, schema: usersTable });
+  }
+}
+
+// ----------------------------------------------------------------
+export const usersTable = pgTable(User.TABLE_NAME, {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...extraUserColumns({ idType: 'string' }),
 });
 
-export type x = typeof usersTable;
+export type TUserSchema = typeof usersTable;
+export type TUser = TTableObject<TUserSchema>;
+

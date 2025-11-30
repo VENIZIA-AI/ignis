@@ -13,8 +13,6 @@ export class BaseEntity<Schema extends TTableSchemaWithId = any> extends BaseHel
 
     this.name = opts.name;
     this.schema = opts.schema;
-
-    console.log(this.name, this.schema);
   }
 
   toObject() {

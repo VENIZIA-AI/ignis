@@ -84,4 +84,4 @@ node_modules.zip
 .mastra/
 **/*/__mf__/temp/
 
-docs/.vitepress/cache
+**/*/.vitepress/cache

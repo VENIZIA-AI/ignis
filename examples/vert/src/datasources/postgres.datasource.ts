@@ -1,5 +1,11 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { Configuration, configurationTable } from '@/models/entities';
+import {
+  Configuration,
+  configurationRelations,
+  configurationTable,
+  User,
+  usersTable,
+} from '@/models/entities';
 import {
   applicationEnvironment,
   BaseDataSource,
@@ -52,9 +58,15 @@ export class PostgresDataSource extends BaseDataSource<
       schema: {
         // ... extra entity models
         // NOTE: schema key will be used for Query API in DrizzleORM
-        [Configuration.name]: configurationTable,
+        [User.TABLE_NAME]: usersTable,
+        [Configuration.TABLE_NAME]: configurationTable,
+
+        // Declare all relations
+        configurationRelations,
       },
     });
+
+    console.log('[PostgresDataSource]', this.schema);
   }
 
   override configure(): ValueOrPromise<void> {

@@ -1,20 +1,92 @@
 # Dependency Injection
 
-The Ignis framework is built around a powerful, custom-built dependency injection (DI) container. DI allows you to write loosely coupled code that is easier to manage, test, and extend.
+The Ignis framework is built around a powerful dependency injection (DI) container. DI is a design pattern that allows you to write loosely coupled code that is easier to manage, test, and extend.
+
+> **Deep Dive:** For a technical breakdown of the `Container`, `Binding`, and `@inject` decorator, see the [**Deep Dive: Dependency Injection**](../../references/base/dependency-injection.md) page.
 
 ## Core Concepts
 
-- **Container:** The central registry for all your application's services and dependencies. The `Application` class itself extends the `Container`.
-- **Binding:** The process of registering a class or value with the container under a specific key (a string or a symbol).
-- **Injection:** The process of requesting a dependency from the container.
+| Concept | Description |
+| :--- | :--- |
+| **Container** | The central registry for all your application's services and dependencies. The `Application` class itself acts as the container. |
+| **Binding** | The process of registering a class or value with the container under a specific key (e.g., `'services.UserService'`). |
+| **Injection**| The process of requesting a dependency from the container using the `@inject` decorator. |
 
-## How to Inject Dependencies
+### How It Works: The DI Flow
 
-Ignis provides an `@inject` decorator to handle dependency injection. You can use it on constructor parameters or class properties.
+```mermaid
+graph TD
+    A[1. Bind Resource] -- app.service(MyService) --> B(Container stores a Binding for 'services.MyService');
+    B -- triggers --> C[2. Instantiate Consumer];
+    C -- @inject({ key: 'services.MyService' }) --> D(Container reads injection metadata);
+    D -- finds binding --> E[3. Resolve & Inject];
+    E -- gets dependency --> F(Container creates/gets instance of MyService);
+    F -- injects into --> G(MyController instance is created with MyService);
 
-### Constructor Injection
+    subgraph Application Startup
+        A
+    end
+    subgraph On-Demand Instantiation
+        C
+    end
+    subgraph Container Internals
+        B
+        D
+        E
+        F
+    end
+    subgraph Result
+        G
+    end
+```
 
-This is the recommended way to inject dependencies, as it makes them explicit and ensures they are available when the class is instantiated.
+## Binding Dependencies
+
+Before a dependency can be injected, it must be **bound** to the container. This is typically done in the `preConfigure` method of your `Application` class.
+
+### Standard Resource Binding
+
+The `Application` class provides helper methods for common resource types. These automatically create a binding with a conventional key.
+
+| Method | Example Key |
+| :--- | :--- |
+| `app.service(UserService)` | `services.UserService` |
+| `app.repository(UserRepository)` | `repositories.UserRepository` |
+| `app.dataSource(PostgresDataSource)` | `datasources.PostgresDataSource` |
+| `app.controller(UserController)` | `controllers.UserController` |
+| `app.component(MyComponent)` | `components.MyComponent` |
+
+### Custom Bindings
+
+For other values or more complex setups, use the `bind` method directly.
+
+```typescript
+// In your application class's preConfigure()
+this.bind<MyCustomClass>({ key: 'MyCustomClass' }).toClass(MyCustomClass);
+
+this.bind<string>({ key: 'API_KEY' }).toValue('my-secret-api-key');
+```
+
+### Binding Scopes
+
+You can control the lifecycle of your dependencies with scopes.
+
+-   **`TRANSIENT`** (default): A new instance is created every time the dependency is injected.
+-   **`SINGLETON`**: A single instance is created once and reused for all subsequent injections.
+
+```typescript
+this.bind({ key: 'services.MySingletonService' })
+  .toClass(MySingletonService)
+  .setScope(BindingScopes.SINGLETON); // Use SINGLETON for this service
+```
+
+## Injecting Dependencies
+
+Ignis provides the `@inject` decorator to request dependencies from the container.
+
+### Constructor Injection (Recommended)
+
+This makes dependencies explicit and ensures they are available right away.
 
 ```typescript
 import { BaseController, controller, inject } from '@vez/ignis';
@@ -23,83 +95,56 @@ import { UserService } from '../services/user.service';
 @controller({ path: '/users' })
 export class UserController extends BaseController {
   constructor(
-    @inject({ key: 'services.UserService' }) private userService: UserService
+    @inject({ key: 'services.UserService' })
+    private userService: UserService
   ) {
     super({ scope: UserController.name, path: '/users' });
   }
 
-  // ... use this.userService
+  // ... you can now use this.userService
 }
 ```
 
 ### Property Injection
 
-You can also inject dependencies as class properties.
+You can also inject dependencies directly as class properties.
 
 ```typescript
-import { BaseController, controller, inject } from '@vez/ignis';
+import { inject } from '@vez/ignis';
 import { UserService } from '../services/user.service';
 
-@controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserComponent {
   @inject({ key: 'services.UserService' })
   private userService: UserService;
-
-  constructor() {
-    super({ scope: UserController.name, path: '/users' });
-  }
-
-  // ... use this.userService
+  
+  // ...
 }
-```
-
-## Binding Dependencies
-
-Before a dependency can be injected, it must be bound to the container. The `Application` class provides helper methods for binding common resource types:
-
-- `app.service(MyService)`
-- `app.repository(MyRepository)`
-- `app.dataSource(MyDataSource)`
-- `app.controller(MyController)`
-- `app.component(MyComponent)`
-
-These methods automatically create a binding for the class with a conventional key (e.g., `services.MyService`).
-
-For more advanced use cases, you can create custom bindings using the `bind` method on the container:
-
-```typescript
-// In your application class
-this.bind<MyCustomClass>({ key: 'MyCustomClass' }).toClass(MyCustomClass);
-
-this.bind<string>({ key: 'API_KEY' }).toValue('my-secret-api-key');
 ```
 
 ## Providers
 
-For dependencies that require more complex creation logic or are request-scoped, you can use providers. A provider is a class or function that returns an instance of the dependency.
+Providers are used for dependencies that require complex setup logic. A provider is a class that implements a `value()` method, which is responsible for creating and returning the dependency instance.
 
 ### Creating a Custom Provider
 
-For more complex scenarios, you might need to create your own provider class. Ignis provides a `BaseProvider<T>` class that you can extend. This is useful when the creation of an object depends on other services or requires complex setup logic.
-
-A provider class must implement the `value()` method, which is responsible for creating and returning the instance of the dependency. The `value()` method receives the DI container as an argument, allowing you to resolve other dependencies.
-
-Here's an example of how you might create a provider:
-
 ```typescript
-import { BaseProvider, inject, Container } from '@vez/ignis';
-import { SomeService } from '../services/some.service';
-import { SomeConfig } from '../configs/some.config';
+import { BaseProvider, inject, Container, IConfig } from '@vez/ignis';
+import { ThirdPartyApiClient } from '../services/api-client.service';
 
-export class SomeServiceProvider extends BaseProvider<SomeService> {
-  @inject({ key: 'configs.Some' })
-  private someConfig: SomeConfig;
+// Assume IConfig is a configuration object we've bound elsewhere
+@injectable() // Make the provider itself injectable
+export class ApiClientProvider extends BaseProvider<ThirdPartyApiClient> {
+  @inject({ key: 'configs.api' })
+  private apiConfig: IConfig;
   
-  value(container: Container): SomeService {
-    // The container parameter can be used to resolve other dependencies if needed
-    const service = new SomeService(this.someConfig);
-    service.initialize();
-    return service;
+  // The container calls this method to get the instance
+  value(container: Container): ThirdPartyApiClient {
+    const client = new ThirdPartyApiClient({
+      apiKey: this.apiConfig.apiKey,
+      baseUrl: this.apiConfig.baseUrl,
+    });
+    client.connect(); // Perform initial setup
+    return client;
   }
 }
 ```
@@ -108,43 +153,6 @@ You would then bind this provider in your application:
 
 ```typescript
 // In your application class
-this.bind<SomeService>({ key: 'services.SomeService' }).toProvider(SomeServiceProvider);
+this.bind<ThirdPartyApiClient>({ key: 'services.ApiClient' })
+  .toProvider(ApiClientProvider);
 ```
-
-When another class injects `services.SomeService`, the container will use `SomeServiceProvider` to create and return the instance.
-
-### Accessing the Current User
-
-After a request has passed through the authentication middleware, the authenticated user's payload is attached to the Hono `Context` using the key `Authentication.CURRENT_USER`. You can access it directly within your route handlers or custom middlewares:
-
-```typescript
-import { Context } from 'hono';
-import { createMiddleware } from 'hono/factory';
-import { Authentication, IJWTTokenPayload } from '@vez/ignis';
-
-// In a route handler
-export const myProtectedRoute = (c: Context) => {
-  const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-  if (user) {
-    console.log('Authenticated user ID:', user.userId);
-  } else {
-    // This case should ideally not happen if the authentication middleware is enforced
-    console.log('No authenticated user found in context.');
-  }
-  return c.json({ message: 'Hello from protected route' });
-};
-
-// In a custom middleware
-export const userLoggerMiddleware = createMiddleware(async (c, next) => {
-  const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-  if (user) {
-    console.log(`Request by user: ${user.userId}`);
-  }
-  await next();
-});
-```
-
-
-The framework handles the complexity of making the request-specific user available to the DI container.
-
-By understanding and using dependency injection, you can build modular and maintainable applications with the Ignis framework.

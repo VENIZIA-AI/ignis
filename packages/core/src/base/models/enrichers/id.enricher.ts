@@ -1,43 +1,59 @@
 import { getError } from '@/helpers';
+import { sql } from 'drizzle-orm';
 import {
+  bigint,
   integer,
   PgIntegerBuilderInitial,
+  PgSequenceOptions,
   PgSerialBuilderInitial,
-  PgUUIDBuilderInitial,
-  serial,
-  uuid,
+  PgTextBuilderInitial,
+  text,
 } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions, TPrimaryKey } from '../types';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (
     | { dataType: 'string' }
-    | { dataType: 'number'; startWith?: number }
+    | {
+        dataType: 'number' | 'big-number';
+        numberMode?: 'number' | 'bigint';
+        sequenceOptions?: PgSequenceOptions;
+      }
   );
 };
 
-export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> = ColumnDefinitions & {
-  id:
-    | TPrimaryKey<PgUUIDBuilderInitial<'id'>>
-    | TPrimaryKey<PgIntegerBuilderInitial<'id'>>
-    | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
-};
+export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
+  ColumnDefinitions & {
+    id:
+      | TPrimaryKey<PgTextBuilderInitial<'id', [string, ...string[]]>>
+      | TPrimaryKey<PgIntegerBuilderInitial<'id'>>
+      | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
+  };
 
 export const generateIdColumnDefs = (opts?: TIdEnricherOptions) => {
   const { id = { dataType: 'number' } } = opts ?? {};
 
   switch (id.dataType) {
     case 'string': {
-      return { id: uuid('id').primaryKey() };
+      return {
+        id: text('id')
+          .default(sql`uuid_generate_v4()`)
+          .primaryKey(),
+      };
     }
     case 'number': {
-      if (id.startWith !== null && id.startWith !== undefined) {
-        return {
-          id: integer('id').primaryKey().generatedAlwaysAsIdentity({ startWith: id.startWith }),
-        };
-      }
+      return {
+        id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
+      };
+    }
+    case 'big-number': {
+      const numberMode = id.numberMode ?? 'number';
 
-      return { id: serial('id').primaryKey() };
+      return {
+        id: bigint('id', { mode: numberMode })
+          .primaryKey()
+          .generatedAlwaysAsIdentity(id.sequenceOptions),
+      };
     }
     default: {
       throw getError({
