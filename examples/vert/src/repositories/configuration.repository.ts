@@ -1,14 +1,11 @@
-import { Configuration } from '@/models/entities';
+import { Configuration, TConfigurationSchema } from '@/models/entities';
 import { IDataSource, inject, repository, ViewRepository } from '@vez/ignis';
 
 @repository({})
-export class ConfigurationRepository extends ViewRepository<Configuration> {
+export class ConfigurationRepository extends ViewRepository<TConfigurationSchema> {
   constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) postgresDs: IDataSource,
+    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    super({
-      dataSource: postgresDs,
-      entityClass: Configuration,
-    });
+    super({ dataSource, entityClass: Configuration });
   }
 }

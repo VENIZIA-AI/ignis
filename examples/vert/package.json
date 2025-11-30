@@ -1,5 +1,5 @@
 {
-  "name": "@nx/mc-vert",
+  "name": "@nx/vert",
   "version": "0.0.1",
   "description": "NEXPANDO - MC Vert",
   "main": "dist/index.js",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@vez/ignis": "file://../../../ignis",
+    "@vez/ignis": "workspace:*",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",

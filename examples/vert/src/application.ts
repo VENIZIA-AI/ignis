@@ -140,9 +140,17 @@ export class Application extends BaseApplication {
     });
 
     configurationRepository
-      .findById({
-        id: '619ce5bb-001a-40d1-a90f-3d6396c11119',
-         
+      .findById({ id: '619ce5bb-001a-40d1-a90f-3d6396c11119' })
+      .then(console.log)
+      .catch(console.error);
+
+    configurationRepository
+      .find({
+        filter: {
+          where: { code: 'CODE_2' },
+          fields: { id: true, code: true, dataType: true },
+          limit: 100,
+        },
       })
       .then(console.log)
       .catch(console.error);

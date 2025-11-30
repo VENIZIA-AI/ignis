@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { Configuration, configurationSchema } from '@/models/entities';
+import { Configuration, configurationTable } from '@/models/entities';
 import {
   applicationEnvironment,
   BaseDataSource,
@@ -52,7 +52,7 @@ export class PostgresDataSource extends BaseDataSource<
       schema: {
         // ... extra entity models
         // NOTE: schema key will be used for Query API in DrizzleORM
-        [Configuration.name]: configurationSchema,
+        [Configuration.name]: configurationTable,
       },
     });
   }

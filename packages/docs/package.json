@@ -1,0 +1,19 @@
+{
+  "name": "@vez/ignis-docs",
+  "version": "0.0.0",
+  "description": "JS/TS Server Infrastructure with Hono Framework - Documentation",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "^3.5.25"
+  }
+}
