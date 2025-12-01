@@ -100,3 +100,8 @@ export const isClassProvider = <T>(target: any): target is IClass<IProvider<T>> 
 
 // --------------------------------------------------------------------------------------------------------
 export type TAuthStrategy = 'jwt' | 'basic';
+
+// --------------------------------------------------------------------------------------------------------
+// JSX Types (re-exported from Hono for convenience)
+// --------------------------------------------------------------------------------------------------------
+export type { FC, PropsWithChildren, Child } from 'hono/jsx';

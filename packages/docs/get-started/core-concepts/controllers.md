@@ -32,9 +32,11 @@ Controllers have a simple and predictable lifecycle managed by the application.
 | Stage | Method | Description |
 | :--- | :--- | :--- |
 | **1. Instantiation** | `constructor(opts)` | The controller is created by the DI container. Dependencies are injected, and you call `super()` to initialize the internal Hono router. |
-| **2. Configuration**| `binding()` | Called by the application during the `registerControllers` startup phase. This is where you **must** define all your routes using `defineRoute` and `defineAuthRoute`. |
+| **2. Configuration**| `binding()` | Called by the application during the `registerControllers` startup phase. This is where you **must** define all your routes using `defineRoute`, `defineAuthRoute`, or `defineJSXRoute`. |
 
 ## Defining Routes
+
+Ignis provides three methods for defining routes, depending on whether you need JSON APIs, authenticated routes, or server-side rendered HTML pages.
 
 ### `defineRoute` (Public Routes)
 
@@ -88,6 +90,95 @@ this.defineAuthRoute({
   },
 });
 ```
+
+### `defineJSXRoute` (Server-Side Rendered HTML)
+
+Use this method for routes that render HTML pages using JSX components. This is perfect for building server-side rendered web applications.
+
+```typescript
+import { htmlResponse } from '@vez/ignis';
+
+// ... inside the binding() method
+
+this.defineJSXRoute({
+  configs: {
+    path: '/',
+    method: 'get',
+    description: 'Home page',
+    responses: htmlResponse({
+      description: 'HTML home page',
+    }),
+  },
+  handler: (c) => {
+    const user = { name: 'John Doe' };
+    return c.html(<HomePage user={user} />);
+  },
+});
+```
+
+**Key Points:**
+- The handler **must** return `c.html()` with a JSX component
+- JSX routes automatically include HTML content-type in OpenAPI documentation
+- Views are typically organized in `src/views/` directory
+- Components can be reused across multiple pages
+
+**Example View Component:**
+
+```typescript
+// src/views/pages/home.page.tsx
+import type { FC } from '@vez/ignis';
+import { MainLayout } from '../layouts/main.layout';
+
+interface HomePageProps {
+  user: { name: string };
+}
+
+export const HomePage: FC<HomePageProps> = ({ user }) => {
+  return (
+    <MainLayout title="Home">
+      <h1>Welcome, {user.name}!</h1>
+      <p>This page is rendered on the server using JSX.</p>
+    </MainLayout>
+  );
+};
+```
+
+**Example Layout Component:**
+
+```typescript
+// src/views/layouts/main.layout.tsx
+import type { FC, PropsWithChildren } from '@vez/ignis';
+
+interface MainLayoutProps {
+  title: string;
+}
+
+export const MainLayout: FC<PropsWithChildren<MainLayoutProps>> = ({ title, children }) => {
+  return (
+    <html lang="en">
+      <head>
+        <meta charSet="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>{title}</title>
+      </head>
+      <body>
+        <header>
+          <nav>
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+          </nav>
+        </header>
+        <main>{children}</main>
+        <footer>
+          <p>© 2025 My App</p>
+        </footer>
+      </body>
+    </html>
+  );
+};
+```
+
+> **Note:** JSX support in Ignis uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
 
 ## Accessing Validated Request Data
 
