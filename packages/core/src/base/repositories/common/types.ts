@@ -1,11 +1,11 @@
 import { IDataSource } from '@/base/datasources';
-import { BaseEntity, IdType, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TNullable } from '@/common/types';
+import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
+import { TNullable, ValueOptional } from '@/common/types';
 import { Column, SQL } from 'drizzle-orm';
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 // Repository Interfaces
-// ----------------------------------------------------------------------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
 export type TFilter<T = any> = {
   where?: TWhere<T>;
   fields?: TFields<T>;
@@ -16,93 +16,96 @@ export type TFilter<T = any> = {
   skip?: number;
 };
 
-export type DrizzleQueryOptions = {
-  limit?: number;
-  offset?: number;
-  orderBy?: SQL[];
-  where?: SQL;
-  with?: Record<string, boolean | DrizzleQueryOptions>;
-  columns?: Record<string, boolean>;
-};
+export type DrizzleQueryOptions = Partial<{
+  limit: number;
+  offset: number;
+  orderBy: SQL[];
+  where: SQL;
+  with: Record<string, boolean | DrizzleQueryOptions>;
+  columns: Record<string, boolean>;
+}>;
 
-export type TWhere<T = any> = { [key in keyof T]?: any } & {
-  and?: TWhere<T>[];
-  or?: TWhere<T>[];
-};
+export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; or?: TWhere<T>[] };
 
-export type TFields<T = any> = { [K in keyof T]?: boolean };
+export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
 
-export type TInclusion = { relation: string; scope?: TFilter };
+export type TInclusion = ValueOptional<{ relation: string; scope: TFilter }, 'scope'>;
 
 export type TCount = { count: number };
 
-// --------------------------------------------------------------------------------------
-export interface IRepository<EntitySchema extends TTableSchemaWithId = any> {
+// ---------------------------------------------------------------------------
+export interface IRepository<EntitySchema extends TTableSchemaWithId> {
   dataSource: IDataSource;
   entity: BaseEntity<EntitySchema>;
+
+  getEntity(): BaseEntity<EntitySchema>;
+  getEntitySchema(): EntitySchema;
+  getConnector(): IDataSource['connector'];
 }
 
-export interface IViewRepository<
-  EntitySchema extends TTableSchemaWithId = any,
-  ExtraOptions extends object = {},
+export interface IReadableRepository<
+  EntitySchema extends TTableSchemaWithId,
+  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  ExtraOptions extends TNullable<object> = undefined,
 > extends IRepository<EntitySchema> {
-  count(opts: {
-    where: TWhere<TTableObject<EntitySchema>>;
-    options?: ExtraOptions;
-  }): Promise<TCount>;
-  existsWith(opts: {
-    where: TWhere<TTableObject<EntitySchema>>;
-    options?: ExtraOptions;
-  }): Promise<boolean>;
+  count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
+  existsWith(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<boolean>;
 
-  find(opts: {
-    filter: TFilter<TTableObject<EntitySchema>>;
-    options?: ExtraOptions;
-  }): Promise<Array<BaseEntity<EntitySchema>>>;
-
+  find(opts: { filter: TFilter<DataObject>; options?: ExtraOptions }): Promise<Array<DataObject>>;
   findOne(opts: {
-    filter: TFilter<TTableObject<EntitySchema>>;
+    filter: TFilter<DataObject>;
     options?: ExtraOptions;
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
-
+  }): Promise<TNullable<DataObject>>;
   findById(opts: {
     id: IdType;
+    filter?: Exclude<TFilter<DataObject>, 'where'>;
     options?: ExtraOptions;
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
+  }): Promise<TNullable<DataObject>>;
 }
 
 export interface IPersistableRepository<
-  EntitySchema extends TTableSchemaWithId = any,
-  ExtraOptions extends object = {},
-> extends IViewRepository<EntitySchema, ExtraOptions> {
+  EntitySchema extends TTableSchemaWithId,
+  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
+  ExtraOptions extends TNullable<object> = undefined,
+> extends IReadableRepository<EntitySchema, DataObject, ExtraOptions> {
   create(opts: {
-    data: Partial<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
+    data: PersistObject;
+    options?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   createAll(opts: {
-    data: Partial<BaseEntity<EntitySchema>>[];
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TNullable<Array<BaseEntity<EntitySchema>>>>;
+    data: Array<PersistObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 
   updateById(opts: {
     id: IdType;
-    data: Partial<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
+    data: Partial<PersistObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   updateAll(opts: {
-    data: Partial<BaseEntity<EntitySchema>>;
-    where?: TWhere<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<Array<BaseEntity<EntitySchema>>>>;
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+  updateBy(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 
   deleteById(opts: {
     id: IdType;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
+    options?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   deleteAll(opts: {
-    where?: TWhere<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
+    where?: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+  deleteBy(opts: {
+    where?: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 }
 
 // --------------------------------------------------------------------------------------

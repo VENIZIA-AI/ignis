@@ -1,4 +1,4 @@
-import { InferSelectModel, IsPrimaryKey, NotNull } from 'drizzle-orm';
+import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
@@ -15,10 +15,12 @@ export type TIdColumn = AnyPgColumn<{ data: IdType }>;
 export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
   id: TIdColumn;
 };
-export type TTableObject<T extends TTableSchemaWithId> = InferSelectModel<T> & {
-  id: T['id']['_']['data'];
-};
+
+export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
+
 export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
+
+export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 
 /* export type TEnricher = <
   ColumnDefinitions extends TColumns,

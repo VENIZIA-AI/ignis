@@ -1,6 +1,6 @@
 # Deep Dive: Repositories
 
-This document provides a technical overview of Ignis's repository architecture, focusing on the `AbstractRepository` and `ViewRepository` classes.
+This document provides a technical overview of Ignis's repository architecture, focusing on the `AbstractRepository`, `ReadableRepository`, `PersistableRepository`, and `DefaultCRUDRepository` classes.
 
 ## `AbstractRepository`
 
@@ -28,15 +28,15 @@ The `AbstractRepository` is the base class for all repositories in Ignis. It set
 - `deleteById()`
 - (and `...All` variants)
 
-## `ViewRepository`
+## `ReadableRepository`
 
-The `ViewRepository` is the primary repository class you will extend. It provides a read-only implementation of the repository pattern.
+The `ReadableRepository` provides a **read-only** implementation of the repository pattern. It is ideal for data sources that should not be modified, such as views or tables from an external system.
 
--   **File:** `packages/core/src/base/repositories/core/view.ts`
+-   **File:** `packages/core/src/base/repositories/core/readable.ts`
 
 ### Implemented Methods
 
-`ViewRepository` provides concrete implementations for all read operations:
+`ReadableRepository` provides concrete implementations for all read operations:
 
 -   **`find(opts)`**: Returns an array of entities matching the filter.
 -   **`findOne(opts)`**: Returns the first entity matching the filter.
@@ -44,26 +44,43 @@ The `ViewRepository` is the primary repository class you will extend. It provide
 -   **`count(opts)`**: Returns the number of entities matching the `where` clause.
 -   **`existsWith(opts)`**: Returns `true` if at least one entity matches the `where` clause.
 
-### How it Works
-
-1.  When you call a method like `find({ filter })`, the `ViewRepository` passes the filter object to `this.filterBuilder.build()`.
-2.  The `DrizzleFilterBuilder` converts the Ignis-style filter (with `where`, `include`, `limit`, etc.) into a Drizzle-compatible options object (with `where`, `with`, `limit`, etc.).
-3.  The repository then uses the `this.connector` (the Drizzle instance) to execute the query (e.g., `this.connector.query.myModel.findMany(queryOptions)`).
-
 ### Write Operations
 
-`ViewRepository` throws a "NOT ALLOWED" error for all write operations (`create`, `update`, `delete`). A `CrudRepository` with write capabilities will be provided in a future version of the framework.
+`ReadableRepository` throws a "NOT ALLOWED" error for all write operations (`create`, `update`, `delete`).
+
+## `PersistableRepository`
+
+The `PersistableRepository` extends `ReadableRepository` and adds **write operations**. It provides the core logic for creating, updating, and deleting records.
+
+-   **File:** `packages/core/src/base/repositories/core/persistable.ts`
+
+### Implemented Methods
+
+-   `create(opts)`
+-   `createAll(opts)`
+-   `updateById(opts)`
+-   `updateAll(opts)`
+-   `deleteById(opts)`
+-   `deleteAll(opts)`
+
+You will typically not use this class directly, but rather the `DefaultCRUDRepository`.
+
+## `DefaultCRUDRepository`
+
+This is the primary class you should extend for repositories that require full **Create, Read, Update, and Delete (CRUD)** capabilities. It extends `PersistableRepository` and serves as the standard, full-featured repository implementation.
+
+-   **File:** `packages/core/src/base/repositories/core/default-crud.ts`
 
 ### Example Implementation
 
 ```typescript
 // src/repositories/configuration.repository.ts
 import { Configuration, TConfigurationSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ViewRepository } from '@vez/ignis';
+import { IDataSource, inject, repository, DefaultCRUDRepository } from '@vez/ignis';
 
 // Decorator to mark this class as a repository for DI
 @repository({})
-export class ConfigurationRepository extends ViewRepository<TConfigurationSchema> {
+export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
   constructor(
     // Inject the configured datasource
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,

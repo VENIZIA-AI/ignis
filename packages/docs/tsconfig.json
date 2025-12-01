@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    
+    /* Paths */
+    "outDir": "dist",
+    "rootDir": "mcp",
+    "baseUrl": "mcp",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "include": ["src", "mcp", "./*.config.*", ".prettierrc.*"],
+  "exclude": ["node_modules", "dist", "**/*.config.*"]
+}

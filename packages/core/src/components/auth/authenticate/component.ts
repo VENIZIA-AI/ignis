@@ -1,8 +1,8 @@
 import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
-import { EnvironmentKeys } from '@/common';
 import { CoreBindings } from '@/common/bindings';
+import { EnvironmentKeys } from '@/common/environments';
 import { ValueOrPromise } from '@/common/types';
 import { getError } from '@/helpers';
 import { Binding } from '@/helpers/inversion';
@@ -10,12 +10,14 @@ import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions 
 import { defineAuthController } from './controllers';
 import { JWTTokenService } from './services';
 
+const DEFAULT_SECRET = 'unknown_secret';
+
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
   restOptions: { path: '/auth' },
   alwaysAllowPaths: [],
   tokenOptions: {
-    applicationSecret: process.env[EnvironmentKeys.APP_ENV_APPLICATION_SECRET],
-    jwtSecret: process.env[EnvironmentKeys.APP_ENV_JWT_SECRET],
+    applicationSecret: process.env[EnvironmentKeys.APP_ENV_APPLICATION_SECRET] ?? DEFAULT_SECRET,
+    jwtSecret: process.env[EnvironmentKeys.APP_ENV_JWT_SECRET] ?? DEFAULT_SECRET,
     getTokenExpiresFn: () => {
       const jwtExpiresIn = process.env[EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN];
       if (!jwtExpiresIn) {
@@ -24,7 +26,7 @@ const DEFAULT_OPTIONS: IAuthenticateOptions = {
         });
       }
 
-      return parseInt(process.env[EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN]);
+      return parseInt(jwtExpiresIn);
     },
   },
 };
@@ -52,6 +54,26 @@ export class AuthenticateComponent extends BaseComponent {
     const authenticateOptions = this.application.get<IAuthenticateOptions>({
       key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
     });
+
+    if (!authenticateOptions) {
+      throw getError({
+        message:
+          '[defineAuth] Failed to binding authenticate component | Invalid authenticateOptions',
+      });
+    }
+
+    if (authenticateOptions.tokenOptions.applicationSecret === DEFAULT_SECRET) {
+      throw getError({
+        message: `[defineAuth] Failed to binding authenticate component | Invalid tokenOptions.applicationSecret | env: ${EnvironmentKeys.APP_ENV_APPLICATION_SECRET} | secret: ${authenticateOptions.tokenOptions.applicationSecret}`,
+      });
+    }
+
+    if (authenticateOptions.tokenOptions.jwtSecret === DEFAULT_SECRET) {
+      throw getError({
+        message: `[defineAuth] Failed to binding authenticate component | Invalid tokenOptions.jwtSecret | env:  | env: ${EnvironmentKeys.APP_ENV_JWT_SECRET} | secret: ${authenticateOptions.tokenOptions.jwtSecret}`,
+      });
+    }
+
     this.application
       .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       .toValue(authenticateOptions.tokenOptions);

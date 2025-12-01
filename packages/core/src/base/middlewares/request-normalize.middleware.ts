@@ -17,6 +17,10 @@ export const requestNormalize = (): MiddlewareHandler => {
         }
 
         const contentType = context.req.header('Content-Type');
+        if (!contentType) {
+          break;
+        }
+
         if (!contentType.startsWith(HTTP.HeaderValues.APPLICATION_JSON)) {
           break;
         }

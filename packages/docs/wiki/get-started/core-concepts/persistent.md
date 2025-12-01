@@ -178,15 +178,15 @@ Repositories abstract the data access logic. They use the configured `DataSource
 
 ### Creating a Repository
 
-A repository extends `ViewRepository` (for read-only operations) or a future `CrudRepository` (for read/write), is decorated with `@repository`, and injects the `DataSource`.
+A repository extends `DefaultCRUDRepository` (for full read/write operations) or `ReadableRepository` (for read-only access), is decorated with `@repository`, and injects the `DataSource`.
 
 ```typescript
 // src/repositories/configuration.repository.ts
 import { Configuration, TConfigurationSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ViewRepository } from '@vez/ignis';
+import { IDataSource, inject, repository, DefaultCRUDRepository } from '@vez/ignis';
 
 @repository({})
-export class ConfigurationRepository extends ViewRepository<TConfigurationSchema> {
+export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
   constructor(
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
@@ -222,4 +222,4 @@ if (results.length > 0) {
 This structured and declarative approach ensures that your data layer is organized, type-safe, and easy to maintain.
 
 > **Deep Dive:**
-> - Explore the [**`ViewRepository`**](../../references/base/repositories.md) class and its methods.
+> - Explore the [**`DefaultCRUDRepository`**](../../references/base/repositories.md) class and its methods.

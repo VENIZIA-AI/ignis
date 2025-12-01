@@ -18,7 +18,7 @@ export interface IAuthenticateOptions {
     path: string;
   };
   alwaysAllowPaths: Array<string>;
-  tokenOptions?: IJWTTokenServiceOptions;
+  tokenOptions: IJWTTokenServiceOptions;
 }
 
 export interface IAuthUser {

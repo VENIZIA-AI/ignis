@@ -2,8 +2,8 @@ import { BindingKeys, BindingNamespaces } from '@/common/bindings';
 import { HTTP, RuntimeModules } from '@/common/constants';
 import { AnyObject, IClass, IConfigurable } from '@/common/types';
 import { RequestTrackerComponent } from '@/components';
-import { ApplicationError, getError } from '@/helpers/error';
-import { BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
+import { getError } from '@/helpers/error';
+import { Binding, BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
@@ -13,7 +13,7 @@ import { appErrorHandler, emojiFavicon, notFoundHandler, requestNormalize } from
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 import { AbstractApplication } from './abstract';
-import { IApplication, IRestApplication } from './types';
+import { IRestApplication } from './types';
 
 const {
   NODE_ENV,
@@ -39,8 +39,8 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   component<T extends BaseComponent, O extends AnyObject = any>(
     ctor: IClass<T>,
     _args?: O,
-  ): IApplication {
-    this.bind({
+  ): Binding<T> {
+    return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.COMPONENT,
         key: ctor.name,
@@ -48,7 +48,6 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
     })
       .toClass(ctor)
       .setScope(BindingScopes.SINGLETON);
-    return this;
   }
 
   async registerComponents() {
@@ -60,6 +59,14 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
         const bindings = this.findByTag({ tag: 'components' });
         for (const binding of bindings) {
           const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
+          if (!instance) {
+            this.logger.debug(
+              '[registerComponents] No binding instance | Ignore registering component | key: %s',
+              binding.key,
+            );
+            continue;
+          }
+
           await instance.configure();
         }
       },
@@ -67,14 +74,13 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  controller<T>(ctor: IClass<T>): IApplication {
-    this.bind<T>({
+  controller<T>(ctor: IClass<T>): Binding<T> {
+    return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.CONTROLLER,
         key: ctor.name,
       }),
     }).toClass(ctor);
-    return this;
   }
 
   async registerControllers() {
@@ -91,14 +97,22 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
             target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
           });
 
-          if (isEmpty(controllerMetadata?.path)) {
-            throw ApplicationError.getError({
+          if (!controllerMetadata?.path || isEmpty(controllerMetadata?.path)) {
+            throw getError({
               statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
               message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
             });
           }
 
           const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
+          if (!instance) {
+            this.logger.debug(
+              '[registerControllers] No binding instance | Ignore registering controller | key: %s',
+              binding.key,
+            );
+            continue;
+          }
+
           await instance.configure();
 
           router.route(controllerMetadata.path, instance.getRouter());
@@ -108,30 +122,28 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  service<T extends IService>(ctor: IClass<T>): IApplication {
-    this.bind({
+  service<T extends IService>(ctor: IClass<T>): Binding<T> {
+    return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.SERVICE,
         key: ctor.name,
       }),
     }).toClass(ctor);
-    return this;
   }
 
   // ------------------------------------------------------------------------------
-  repository<T extends IRepository<any>>(ctor: IClass<T>): IApplication {
-    this.bind({
+  repository<T extends IRepository<any>>(ctor: IClass<T>): Binding<T> {
+    return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.REPOSITORY,
         key: ctor.name,
       }),
     }).toClass(ctor);
-    return this;
   }
 
   // ------------------------------------------------------------------------------
-  dataSource<T extends IDataSource<any>>(ctor: IClass<T>): IApplication {
-    this.bind({
+  dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
+    return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.DATASOURCE,
         key: ctor.name,
@@ -139,7 +151,6 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
     })
       .toClass(ctor)
       .setScope(BindingScopes.SINGLETON);
-    return this;
   }
 
   async registerDataSources() {
@@ -151,6 +162,14 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
         const bindings = this.findByTag({ tag: 'datasources' });
         for (const binding of bindings) {
           const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
+          if (!instance) {
+            this.logger.debug(
+              '[registerDataSources] No binding instance | Ignore registering datasource | key: %s',
+              binding.key,
+            );
+            continue;
+          }
+
           await instance.configure();
         }
       },

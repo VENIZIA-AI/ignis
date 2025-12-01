@@ -11,13 +11,13 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
   };
 };
 
-export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
+export const datasource = (metadata: IDataSourceMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.setDataSourceMetadata({ target, metadata });
   };
 };
 
-export const repository = (metadata?: IRepositoryMetadata): ClassDecorator => {
+export const repository = (metadata: IRepositoryMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.setRepositoryMetadata({ target, metadata });
   };

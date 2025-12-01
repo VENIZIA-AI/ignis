@@ -104,6 +104,13 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
       const authenticateOptions = container.get<IAuthenticateOptions>({
         key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
       });
+
+      if (!authenticateOptions) {
+        throw getError({
+          message: '[authenticate][mw] Failed to authenticate rquest | Invalid authenticateOptions',
+        });
+      }
+
       const alwaysAllowPaths = new Set(authenticateOptions.alwaysAllowPaths);
       if (alwaysAllowPaths.has(requestPath)) {
         return next();

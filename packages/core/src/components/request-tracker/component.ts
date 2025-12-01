@@ -4,6 +4,7 @@ import { inject } from '@/base/metadata';
 import { RequestSpyMiddleware } from '@/base/middlewares';
 import { BindingNamespaces, CoreBindings } from '@/common/bindings';
 import { ValueOrPromise } from '@/common/types';
+import { getError } from '@/helpers';
 import { Binding, BindingScopes } from '@/helpers/inversion';
 import { requestId } from 'hono/request-id';
 import { MiddlewareHandler } from 'hono/types';
@@ -34,9 +35,16 @@ export class RequestTrackerComponent extends BaseComponent {
     const server = this.application.getServer();
     server.use(requestId());
 
-    const sw = this.application.get<MiddlewareHandler>({
+    const mw = this.application.get<MiddlewareHandler>({
       key: RequestTrackerComponent.REQUEST_TRACKER_MW_BINDING_KEY,
     });
-    server.use(sw);
+
+    if (!mw) {
+      throw getError({
+        message: `[RequestTrackerComponent][binding] Invalid middleware to init request tracker | Please check again binding value | key: ${RequestTrackerComponent.REQUEST_TRACKER_MW_BINDING_KEY}`,
+      });
+    }
+
+    server.use(mw);
   }
 }

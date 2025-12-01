@@ -1,22 +1,21 @@
 import { BindingKeys, BindingNamespaces, HTTP, IClass, TMixinTarget } from '@/common';
-import { ApplicationError } from '@/helpers/error';
-import { BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
+import { getError } from '@/helpers/error';
+import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
 import isEmpty from 'lodash/isEmpty';
-import { AbstractApplication, IApplication } from '../applications';
+import { AbstractApplication } from '../applications';
 import { BaseController } from '../controllers';
 import { IControllerMixin } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
-    controller<T>(ctor: IClass<T>): IApplication {
-      this.bind<T>({
+    controller<T>(ctor: IClass<T>): Binding<T> {
+      return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.CONTROLLER,
           key: ctor.name,
         }),
       }).toClass(ctor);
-      return this;
     }
 
     async registerControllers() {
@@ -33,14 +32,22 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
               target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
             });
 
-            if (isEmpty(controllerMetadata?.path)) {
-              throw ApplicationError.getError({
+            if (!controllerMetadata?.path || isEmpty(controllerMetadata?.path)) {
+              throw getError({
                 statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
                 message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
               });
             }
 
             const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
+            if (!instance) {
+              this.logger.debug(
+                '[registerControllers] No binding instance | Ignore registering controller | key: %s',
+                binding.key,
+              );
+              continue;
+            }
+
             await instance.configure();
 
             router.route(controllerMetadata.path, instance.getRouter());

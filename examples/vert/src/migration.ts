@@ -10,11 +10,11 @@ const migration = () => {
   logger.info('[migration] envKeys: %s', envKeys, process.env);
 
   const databaseConfigs = {
-    host: process.env.APP_ENV_POSTGRES_HOST,
-    port: int(process.env.APP_ENV_POSTGRES_PORT),
-    database: process.env.APP_ENV_POSTGRES_DATABASE,
-    user: process.env.APP_ENV_POSTGRES_USERNAME,
-    password: process.env.APP_ENV_POSTGRES_PASSWORD,
+    host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
+    port: int(process.env.APP_ENV_POSTGRES_PORT ?? '5432'),
+    database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'postgres',
+    user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
+    password: process.env.APP_ENV_POSTGRES_PASSWORD ?? 'password',
     ssl: false,
   };
 

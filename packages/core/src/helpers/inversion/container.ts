@@ -1,8 +1,9 @@
 import { BaseHelper } from '@/base/helpers';
-import { IProvider, isClassProvider, TConstValue, type IClass } from '@/common/types';
+import { IProvider, isClassProvider, TConstValue, TNullable, type IClass } from '@/common/types';
 import { ApplicationError, getError } from '@/helpers/error';
 import { MetadataRegistry } from './registry';
 import { BindingScopes, BindingValueTypes, TBindingScope } from './types';
+import { BindingKeys } from '@/common';
 
 // -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
@@ -15,7 +16,7 @@ export class Binding<T = any> extends BaseHelper {
   private resolver:
     | { type: 'class'; value: IClass<T> }
     | { type: 'value'; value: T }
-    | { type: 'provider'; value: ((container?: Container) => T) | IClass<IProvider<T>> };
+    | { type: 'provider'; value: ((container: Container) => T) | IClass<IProvider<T>> };
 
   // ------------------------------------------------------------------------------
   constructor(opts: { key: string; namespace?: string }) {
@@ -99,6 +100,13 @@ export class Binding<T = any> extends BaseHelper {
       }
       case BindingValueTypes.PROVIDER: {
         const provider = this.resolver.value;
+
+        if (!container) {
+          throw getError({
+            message: `[getValue] Invalid context/container to get provider value | type: ${resolverType} | key: ${this.key}`,
+          });
+        }
+
         if (!isClassProvider(provider)) {
           instance = provider(container);
           break;
@@ -109,6 +117,12 @@ export class Binding<T = any> extends BaseHelper {
         break;
       }
       case BindingValueTypes.CLASS: {
+        if (!container) {
+          throw getError({
+            message: `[getValue] Invalid context/container to instantiate class | type: ${resolverType} | key: ${this.key}`,
+          });
+        }
+
         instance = container.instantiate(this.resolver.value);
         break;
       }
@@ -157,8 +171,30 @@ export class Container extends BaseHelper {
     return this.bindings.has(keyStr);
   }
 
-  getBinding<T>(opts: { key: string | symbol }): Binding<T> | undefined {
-    const key = String(opts.key);
+  getBinding<T>(opts: {
+    key: string | symbol | { namespace: string; key: string };
+  }): TNullable<Binding<T>> {
+    let key: string | symbol | null = null;
+    switch (typeof opts.key) {
+      case 'string': {
+        key = opts.key;
+        break;
+      }
+      case 'symbol': {
+        key = opts.key.toString();
+        break;
+      }
+      case 'object': {
+        key = BindingKeys.build(opts.key);
+        break;
+      }
+      default: {
+        throw getError({
+          message: `[getBinding] Invalid binding key type | opts: ${opts.key} | allowed: [string, symbol, { namespace: string, key: string }]`,
+        });
+      }
+    }
+
     const binding = this.bindings.get(key);
     return binding;
   }
@@ -173,7 +209,22 @@ export class Container extends BaseHelper {
     this.bindings.set(binding.key, binding);
   }
 
-  get<T>(opts: { key: string | symbol; isOptional?: boolean }): T | undefined {
+  get<T>(opts: {
+    key: string | symbol | { namespace: string; key: string };
+    isOptional?: false;
+  }): T;
+  get<T>(opts: {
+    key: string | symbol | { namespace: string; key: string };
+    isOptional: true;
+  }): T | undefined;
+  get<T>(opts: {
+    key: string | symbol | { namespace: string; key: string };
+    isOptional: boolean;
+  }): T | undefined;
+  get<T>(opts: {
+    key: string | symbol | { namespace: string; key: string };
+    isOptional?: boolean;
+  }): T | undefined {
     const { key, isOptional = false } = opts;
 
     const binding = this.getBinding<T>({ key });
@@ -203,7 +254,8 @@ export class Container extends BaseHelper {
       const sortedDeps = [...injectMetadata].sort((a, b) => a.index - b.index);
 
       for (const meta of sortedDeps) {
-        const dep = this.get({ key: meta.key, isOptional: meta.isOptional ?? false });
+        const isOptional = meta.isOptional ?? (false as false);
+        const dep = this.get({ key: meta.key, isOptional });
         args[meta.index] = dep;
       }
     }
