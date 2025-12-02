@@ -1,4 +1,4 @@
-import { $api } from "@/shared/api";
+import { $api } from "@/shared/api/base";
 
 /**
  * Hook to fetch about page content

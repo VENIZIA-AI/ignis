@@ -1,19 +1,22 @@
 # RPC Client App
+
 > A demonstration React application showcasing server-side rendering (SSR) and type-safe API integration using OpenAPI-generated clients with the Ignis backend framework.
 
 ## Table of Contents
-* [General Info](#general-information)
-* [Technologies Used](#technologies-used)
-* [Features](#features)
-* [Screenshots](#screenshots)
-* [Setup](#setup)
-* [Usage](#usage)
-* [Project Status](#project-status)
-* [Room for Improvement](#room-for-improvement)
-* [Acknowledgements](#acknowledgements)
-* [Contact](#contact)
+
+- [General Info](#general-information)
+- [Technologies Used](#technologies-used)
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Setup](#setup)
+- [Usage](#usage)
+- [Project Status](#project-status)
+- [Room for Improvement](#room-for-improvement)
+- [Acknowledgements](#acknowledgements)
+- [Contact](#contact)
 
 ## General Information
+
 - This project serves as a reference implementation for building modern React applications with type-safe API integration.
 - **Problem it solves**: Demonstrates how to eliminate runtime API errors and maintain type safety between frontend and backend using OpenAPI specifications.
 - **Purpose**: Educational example showing best practices for:
@@ -24,6 +27,7 @@
 - **Why this project**: Part of the Ignis framework examples to showcase full-stack TypeScript development with end-to-end type safety.
 
 ## Technologies Used
+
 - React - version 19.1.0
 - TypeScript - version 5.8.3
 - Vite - version 7.0.0
@@ -35,7 +39,9 @@
 - DOMPurify - version 3.3.0
 
 ## Features
+
 Ready features:
+
 - **Type-Safe API Integration**: Auto-generated TypeScript types and React hooks from OpenAPI schema
 - **Server-Side Rendering**: Demonstrates fetching and rendering HTML content from backend
 - **Holy Grail Layout**: Responsive layout with collapsible sidebar, sticky header, and footer
@@ -46,23 +52,28 @@ Ready features:
 - **Hot Module Replacement**: Fast development experience with Vite's HMR
 
 ## Screenshots
+
 ![RPC Client App Layout](./public/ignis-frontend.png)
+
 <!-- Screenshot showing the Holy Grail layout with navigation, sidebar, and content area -->
 
 ## Setup
 
 ### Prerequisites
+
 - Node.js 18+ or Bun 1.3+
 - Running Ignis backend server (see `examples/vert/` for backend setup)
 
 ### Installation
 
 1. Navigate to the project directory:
+
 ```bash
 cd examples/rpc-client-app
 ```
 
 2. Install dependencies:
+
 ```bash
 bun install
 # or
@@ -70,12 +81,15 @@ npm install
 ```
 
 3. Generate TypeScript types from OpenAPI schema:
+
 ```bash
 bun run generate:rpc-types
 ```
+
 This will fetch the OpenAPI schema from your backend and generate type-safe API hooks.
 
 4. Start the development server:
+
 ```bash
 bun run dev
 # or
@@ -85,11 +99,13 @@ npm run dev
 The application will be available at `http://localhost:5173` (or next available port).
 
 ### Environment Configuration
+
 The application expects the backend API to be running at the URL specified in `src/shared/config/api-config.ts`. Update this file if your backend runs on a different URL.
 
 ## Usage
 
 ### Development Commands
+
 ```bash
 # Start development server with hot reload
 bun run dev
@@ -116,6 +132,7 @@ npx openapi-typescript http://0.0.0.0:1190/v1/api/doc/openapi.json -o ./schema.d
 ### Code Examples
 
 **Type-safe API query:**
+
 ```typescript
 import { $api } from "@/shared/api";
 
@@ -128,6 +145,7 @@ export function useAboutQuery() {
 ```
 
 **Type-safe mutation:**
+
 ```typescript
 import { $api } from "@/shared/api";
 
@@ -139,21 +157,26 @@ export function useSignUp() {
 ```
 
 **Using in components:**
+
 ```typescript
 function SignUpForm() {
   const signUp = useSignUp();
-  
-  const handleSubmit = async (data: { username: string; credential: string }) => {
+
+  const handleSubmit = async (data: {
+    username: string;
+    credential: string;
+  }) => {
     const result = await signUp.mutateAsync({
       body: data, // Fully type-checked
     });
   };
-  
+
   // Component implementation...
 }
 ```
 
 ### Project Structure
+
 ```
 src/
 ├── app/              # Application initialization layer
@@ -175,6 +198,7 @@ src/
 ```
 
 ## Project Status
+
 Project is: _in progress_
 
 This is a demonstration project that continues to evolve alongside the Ignis framework. It serves as a living example of best practices and will be updated as new patterns and features are introduced.
@@ -182,6 +206,7 @@ This is a demonstration project that continues to evolve alongside the Ignis fra
 ## Room for Improvement
 
 Areas for improvement:
+
 - Add comprehensive error boundary implementation for better error handling
 - Improve accessibility with ARIA labels and skip links
 - Add loading skeletons for better perceived performance
@@ -189,6 +214,7 @@ Areas for improvement:
 - Add E2E tests using Playwright or Cypress
 
 To do:
+
 - Implement full authentication flow with JWT token management
 - Add protected routes and authorization guards
 - Create user profile management features
@@ -198,6 +224,7 @@ To do:
 - Create Storybook documentation for components
 
 ## Acknowledgements
+
 - This project is part of the [Ignis Framework](https://github.com/your-org/ignis) examples
 - Built with [Vite](https://vite.dev/) for blazing fast development experience
 - UI components powered by [Ant Design](https://ant.design/)
@@ -205,6 +232,7 @@ To do:
 - Inspired by modern React best practices and Feature-Sliced Design architecture
 
 ## Contact
+
 Created as part of the Ignis Framework project - feel free to contribute or raise issues on GitHub!
 
 ---

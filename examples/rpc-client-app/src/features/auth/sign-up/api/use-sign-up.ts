@@ -1,4 +1,4 @@
-import { $api } from "@/shared/api";
+import { $api } from "@/shared/api/base";
 
 /**
  * Hook for sign-up mutation
