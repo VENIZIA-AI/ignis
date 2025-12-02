@@ -15,6 +15,20 @@
     "noEmit": true,
     "jsx": "react-jsx",
 
+    /* Path Aliases for FSD */
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/app": ["./src/app"],
+      "@/app/*": ["./src/app/*"],
+      "@/features": ["./src/features"],
+      "@/features/*": ["./src/features/*"],
+      "@/widgets": ["./src/widgets"],
+      "@/widgets/*": ["./src/widgets/*"],
+      "@/shared": ["./src/shared"],
+      "@/shared/*": ["./src/shared/*"]
+    },
+
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
