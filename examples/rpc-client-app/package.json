@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.11",
+    "dompurify": "^3.3.0",
     "hono": "^4.10.7",
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
@@ -20,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",
+    "@types/dompurify": "^3.2.0",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.5.2",
