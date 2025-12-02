@@ -19,7 +19,8 @@
     "openapi-fetch": "^0.15.0",
     "openapi-react-query": "^0.5.1",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0"
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.9.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.29.0",

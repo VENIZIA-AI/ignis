@@ -1,2 +1,4 @@
-// Future composite UI blocks will be exported here
-// Example: export { Header } from './header';
+export { AppLayout } from "./layout";
+export { AppHeader } from "./header";
+export { AppSidebar } from "./sidebar";
+export { AppFooter } from "./footer";

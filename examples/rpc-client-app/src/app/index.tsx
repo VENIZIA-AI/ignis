@@ -1,18 +1,22 @@
+import { Routes, Route } from "react-router-dom";
+import { AppLayout } from "@/widgets";
+import { HomePage } from "@/features/home";
 import { AboutContent } from "@/features/about";
-import { SignUpForm } from "@/features/auth";
+import { SignUpForm, LoginForm } from "@/features/auth";
 
 /**
  * Main application component
- * Contains page layout and feature composition
+ * Configures routing with Holy Grail layout
  */
 export function App() {
   return (
-    <>
-      <AboutContent />
-      <SignUpForm />
-      <p className="read-the-docs">
-        Type-safe with openapi typescript + Ignis Framework
-      </p>
-    </>
+    <Routes>
+      <Route path="/" element={<AppLayout />}>
+        <Route index element={<HomePage />} />
+        <Route path="about" element={<AboutContent />} />
+        <Route path="sign-up" element={<SignUpForm />} />
+        <Route path="login" element={<LoginForm />} />
+      </Route>
+    </Routes>
   );
 }
