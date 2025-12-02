@@ -8,7 +8,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "generate:rpc-types": "bun run poc-generator.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check ."
   },
