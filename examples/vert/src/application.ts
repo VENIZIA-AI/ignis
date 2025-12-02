@@ -19,6 +19,7 @@ import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { TestController } from './controllers/test.controller';
+import { ViewController } from './controllers/view.controller';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
@@ -120,6 +121,7 @@ export class Application extends BaseApplication {
 
     // Controllers
     this.controller(TestController);
+    this.controller(ViewController);
 
     // Extra Components
     this.bind<IHealthCheckOptions>({

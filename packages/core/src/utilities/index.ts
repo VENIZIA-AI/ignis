@@ -1,5 +1,6 @@
 export * from './crypto.utility';
 export * from './date.utility';
+export * from './jsx.utility';
 export * from './module.utility';
 export * from './parse.utility';
 export * from './performance.utility';

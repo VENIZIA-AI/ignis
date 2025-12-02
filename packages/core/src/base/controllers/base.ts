@@ -1,5 +1,6 @@
 import { TAuthStrategy, ValueOrPromise } from '@/common/types';
 import { authenticate } from '@/components/auth';
+import { htmlResponse } from '@/utilities/jsx.utility';
 import { jsonResponse } from '@/utilities/schema.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import { Env, Handler, Schema } from 'hono';
@@ -7,11 +8,11 @@ import { BaseHelper } from '../helpers';
 import { IController, IControllerOptions, TRouteConfig, TRouteDefinition } from './types';
 
 export abstract class BaseController<
-  RouteEnv extends Env = Env,
-  RouteSchema extends Schema = {},
-  BasePath extends string = '/',
-  ConfigurableOptions extends object = {},
->
+    RouteEnv extends Env = Env,
+    RouteSchema extends Schema = {},
+    BasePath extends string = '/',
+    ConfigurableOptions extends object = {},
+  >
   extends BaseHelper
   implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 {
@@ -97,5 +98,57 @@ export abstract class BaseController<
       handler,
       hook,
     });
+  }
+
+  /**
+   * Define a JSX route that renders server-side HTML
+   * Scope: [BaseController][defineJSXRoute]
+   *
+   * JSX routes use Hono's built-in JSX support to render components to HTML.
+   * The handler must return c.html() with the JSX component.
+   *
+   * @example
+   * ```typescript
+   * this.defineJSXRoute({
+   *   configs: {
+   *     path: '/profile',
+   *     method: 'get',
+   *     description: 'User profile page',
+   *   },
+   *   handler: (c) => {
+   *     const user = c.get('user');
+   *     return c.html(<ProfilePage user={user} />);
+   *   }
+   * });
+   * ```
+   *
+   * @param opts - Route configuration and handler
+   * @returns Route definition
+   */
+  defineJSXRoute<RC extends TRouteConfig>(opts: {
+    configs: RC;
+    handler: Handler<RouteEnv>;
+    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+  }): TRouteDefinition<RouteEnv, RouteSchema, BasePath> {
+    const { configs, handler, hook } = opts;
+    const { responses, tags = [] } = configs;
+
+    const htmlResponses = Object.assign(
+      {},
+      htmlResponse({ description: configs.description || 'HTML page' }),
+      responses,
+    );
+
+    const routeConfig = createRoute<string, RouteConfig>(
+      Object.assign({}, configs, {
+        responses: htmlResponses,
+        tags: [...tags, this.scope],
+      }),
+    );
+
+    return {
+      routeConfig,
+      route: this.router.openapi(routeConfig, handler, hook),
+    };
   }
 }
