@@ -1,9 +1,9 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseHelper } from '@/base/helpers';
-import { BaseEntity, IdType, TTableObject, TTableSchemaWithId } from '@/base/models';
+import { BaseEntity, IdType, TTableInsert, TTableSchemaWithId } from '@/base/models';
 import { IClass, TNullable } from '@/common/types';
 import {
-  IRepository,
+  IPersistableRepository,
   RepositoryOperationScopes,
   TCount,
   TFilter,
@@ -17,11 +17,13 @@ import { DrizzleFilterBuilder } from '../operators';
  * Provides common CRUD operations for all repositories
  */
 export abstract class AbstractRepository<
-  EntitySchema extends TTableSchemaWithId = any,
-  ExtraOptions extends object = {},
+  EntitySchema extends TTableSchemaWithId,
+  DataObject extends EntitySchema['$inferSelect'] = EntitySchema['$inferSelect'],
+  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
+  ExtraOptions extends TNullable<object> = undefined,
 >
   extends BaseHelper
-  implements IRepository<EntitySchema>
+  implements IPersistableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions>
 {
   protected operationScope: TRepositoryOperationScope;
   protected filterBuilder: DrizzleFilterBuilder<EntitySchema>;
@@ -44,69 +46,95 @@ export abstract class AbstractRepository<
     this.dataSource = opts.dataSource;
   }
 
-  get modelName(): string {
-    return this.entity.name;
-  }
-
+  // ---------------------------------------------------------------------------
   get connector() {
     return this.dataSource.connector;
   }
 
-  // -----------------------------------------------------------------------------
-  abstract count(opts: {
-    where: TWhere<TTableObject<EntitySchema>>;
-    options?: ExtraOptions;
-  }): Promise<TCount>;
+  getEntity(): BaseEntity<EntitySchema> {
+    return this.entity;
+  }
+
+  getEntitySchema(): EntitySchema {
+    return this.entity.schema;
+  }
+
+  getConnector(): IDataSource['connector'] {
+    return this.connector;
+  }
+
+  // ---------------------------------------------------------------------------
+  abstract count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
+
   abstract existsWith(opts: {
-    where: TWhere<TTableObject<EntitySchema>>;
+    where: TWhere<DataObject>;
     options?: ExtraOptions;
   }): Promise<boolean>;
 
-  // -----------------------------------------------------------------------------
   abstract find(opts: {
-    filter: TFilter<TTableObject<EntitySchema>>;
+    filter: TFilter<DataObject>;
     options?: ExtraOptions;
-  }): Promise<Array<BaseEntity<EntitySchema>>>;
+  }): Promise<DataObject[]>;
   abstract findOne(opts: {
-    filter: TFilter<TTableObject<EntitySchema>>;
+    filter: TFilter<DataObject>;
     options?: ExtraOptions;
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
+  }): Promise<TNullable<DataObject>>;
+
   abstract findById(opts: {
     id: IdType;
+    filter?: TFilter<DataObject> | undefined;
     options?: ExtraOptions;
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
+  }): Promise<TNullable<DataObject>>;
 
-  // -----------------------------------------------------------------------------
+  // ---------------------------------------------------------------------------
   abstract create(opts: {
-    data: Partial<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TNullable<BaseEntity<EntitySchema>>>;
-  abstract createAll(opts: {
-    data: Partial<BaseEntity<EntitySchema>>[];
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TNullable<Array<BaseEntity<EntitySchema>>>>;
+    data: PersistObject;
+    option?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
 
-  // -----------------------------------------------------------------------------
+  abstract createAll(opts: {
+    data: Array<PersistObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+
+  // ---------------------------------------------------------------------------
   abstract updateById(opts: {
     id: IdType;
-    data: Partial<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
-  abstract updateAll(opts: {
-    data: Partial<BaseEntity<EntitySchema>>;
-    where?: TWhere<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<Array<BaseEntity<EntitySchema>>>>;
+    data: Partial<PersistObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
 
-  // -----------------------------------------------------------------------------
+  abstract updateAll(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+
+  updateBy(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
+    return this.updateAll(opts);
+  }
+
+  // ---------------------------------------------------------------------------
   abstract deleteById(opts: {
     id: IdType;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
+    option?: (ExtraOptions | {}) & { returning?: boolean };
+  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
+
   abstract deleteAll(opts: {
-    where?: TWhere<BaseEntity<EntitySchema>>;
-    options?: ExtraOptions & { returning: boolean };
-  }): Promise<TCount & TNullable<BaseEntity<EntitySchema>>>;
+    where: TWhere<DataObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+
+  deleteBy(opts: {
+    where: TWhere<DataObject>;
+    option?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
+    return this.deleteAll(opts);
+  }
 }
 
 //

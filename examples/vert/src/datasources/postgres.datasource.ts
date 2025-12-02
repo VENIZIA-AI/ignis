@@ -26,7 +26,7 @@ interface IDSConfigs {
   ssl: boolean;
 }
 
-@datasource()
+@datasource({})
 export class PostgresDataSource extends BaseDataSource<
   TNodePostgresConnector,
   IDSConfigs
@@ -65,8 +65,6 @@ export class PostgresDataSource extends BaseDataSource<
         configurationRelations,
       },
     });
-
-    console.log('[PostgresDataSource]', this.schema);
   }
 
   override configure(): ValueOrPromise<void> {

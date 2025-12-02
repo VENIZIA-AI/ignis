@@ -1,5 +1,16 @@
-import { boolean, customType, integer, jsonb, text } from 'drizzle-orm/pg-core';
+import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../types';
+
+export type TDataTypeEnricherOptions = {
+  defaultValue: Partial<{
+    dataType: string;
+    nValue: number;
+    tValue: string;
+    bValue: Buffer;
+    jValue: object;
+    boValue: boolean;
+  }>;
+};
 
 const byteaType = customType<{ data: Buffer }>({
   dataType() {
@@ -7,18 +18,31 @@ const byteaType = customType<{ data: Buffer }>({
   },
 });
 
-export const generateDataTypeColumnDefs = (_opts?: {}) => {
+export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) => {
+  const { defaultValue } = opts ?? {};
+
   return {
-    dataType: text('data_type'),
-    nValue: integer('n_value'),
-    tValue: text('t_value'),
-    bValue: byteaType('b_value'),
-    jValue: jsonb('j_value'),
-    boValue: boolean('bo_value'),
+    dataType: defaultValue?.dataType
+      ? text('data_type').default(defaultValue.dataType)
+      : text('data_type'),
+    nValue: defaultValue?.nValue
+      ? doublePrecision('n_value').default(defaultValue.nValue)
+      : doublePrecision('n_value'),
+    tValue: defaultValue?.tValue ? text('t_value').default(defaultValue.tValue) : text('t_value'),
+    bValue: defaultValue?.bValue
+      ? byteaType('b_value').default(defaultValue.bValue)
+      : byteaType('b_value'),
+    jValue: defaultValue?.jValue ? jsonb('j_value').default(defaultValue.jValue) : jsonb('j_value'),
+    boValue: defaultValue?.boValue
+      ? boolean('bo_value').default(defaultValue.boValue)
+      : boolean('bo_value'),
   };
 };
 
-export const enrichDataTypes = (baseSchema: TColumnDefinitions, opts?: {}) => {
+export const enrichDataTypes = (
+  baseSchema: TColumnDefinitions,
+  opts?: TDataTypeEnricherOptions,
+) => {
   const defs = generateDataTypeColumnDefs(opts);
   return Object.assign({}, baseSchema, defs);
 };

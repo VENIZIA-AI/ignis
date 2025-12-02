@@ -26,7 +26,7 @@ export const executePromiseWithLimit = async <T>(opts: {
 }) => {
   const { tasks, limit, onTaskDone } = opts;
 
-  const results = [];
+  const results: Promise<T>[] = [];
   const executing = new Set();
 
   for (const task of tasks) {

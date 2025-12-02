@@ -1,7 +1,7 @@
 import { Container } from '@/helpers/inversion';
 
 // --------------------------------------------------------------------------------------------------------
-export type TNullable<T> = T | undefined | null | void;
+export type TNullable<T> = T | undefined | null;
 
 export type AnyType = any;
 export type AnyObject = Record<string | symbol | number, any>;

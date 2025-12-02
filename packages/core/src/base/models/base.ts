@@ -4,7 +4,7 @@ import { TTableSchemaWithId } from './types';
 // -------------------------------------------------------------------------------------------
 // Base Entity with Drizzle ORM support
 // -------------------------------------------------------------------------------------------
-export class BaseEntity<Schema extends TTableSchemaWithId = any> extends BaseHelper {
+export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends BaseHelper {
   name: string;
   schema: Schema;
 

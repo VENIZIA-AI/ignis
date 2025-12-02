@@ -1,7 +1,8 @@
 import { BindingKeys, BindingNamespaces } from '@/common/bindings';
 import { IClass, IConfigurable, TMixinTarget } from '@/common/types';
+import { Binding, BindingScopes } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
-import { AbstractApplication, IApplication } from '../applications';
+import { AbstractApplication } from '../applications';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
@@ -9,24 +10,24 @@ import { IRepositoryMixin } from './types';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {
-    repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): IApplication {
-      this.bind({
+    repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): Binding<T> {
+      return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.REPOSITORY,
           key: ctor.name,
         }),
       }).toClass(ctor);
-      return this;
     }
 
-    dataSource<T extends IDataSource>(ctor: IClass<T>): IApplication {
-      this.bind({
+    dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
+      return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.DATASOURCE,
           key: ctor.name,
         }),
-      }).toClass(ctor);
-      return this;
+      })
+        .toClass(ctor)
+        .setScope(BindingScopes.SINGLETON);
     }
 
     async registerDataSources() {
@@ -38,6 +39,14 @@ export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(bas
           const bindings = this.findByTag({ tag: 'datasources' });
           for (const binding of bindings) {
             const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
+            if (!instance) {
+              this.logger.debug(
+                '[registerDataSources] No binding instance | Ignore registering datasource | key: %s',
+                binding.key,
+              );
+              continue;
+            }
+
             await instance.configure();
           }
         },

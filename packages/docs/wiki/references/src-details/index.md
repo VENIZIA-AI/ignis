@@ -113,8 +113,11 @@ Defines base classes and utilities for data models, often used with Drizzle ORM.
 #### `base/repositories`
 | File/Folder | Purpose/Key Details |
 | :---------- | :------------------ |
-| `base.ts`   | Defines `AbstractRepository` and `ViewRepository` for Drizzle ORM integration. |
-| `types.ts`  | Defines interfaces for filters (`TFilter`), WHERE clauses (`TWhere`), and repository operations (`IRepository`, `IPersistableRepository`). |
+| `core/base.ts`   | Defines `AbstractRepository`, the abstract base class for all repositories. |
+| `core/readable.ts`   | Implements `ReadableRepository` for **read-only** data access. |
+| `core/persistable.ts`   | Implements `PersistableRepository`, extending `ReadableRepository` with write capabilities (`create`, `update`, `delete`). |
+| `core/default-crud.ts`   | Provides `DefaultCRUDRepository`, the standard full CRUD repository that extends `PersistableRepository`. |
+| `common/types.ts`  | Defines interfaces for filters (`TFilter`), WHERE clauses (`TWhere`), and repository operations (`IRepository`, `IPersistableRepository`). |
 
 #### `base/services`
 | File/Folder | Purpose/Key Details |

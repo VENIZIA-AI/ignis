@@ -36,7 +36,7 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
         url: context.req.url,
         path: context.req.path,
       },
-      statusCode,
+      statusCode as Parameters<typeof context.json>[1],
     );
   };
 

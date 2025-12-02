@@ -5,12 +5,13 @@ import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
+import { Binding } from '@/helpers/inversion';
 
 export interface IComponentMixin {
   component<T extends BaseComponent, O extends AnyObject = any>(
     ctor: IClass<T>,
     args?: O,
-  ): IApplication;
+  ): Binding<T>;
   registerComponents(): ValueOrPromise<void>;
 }
 
@@ -22,17 +23,17 @@ export interface IServerConfigMixin {
 }
 
 export interface IControllerMixin {
-  controller<T>(ctor: IClass<T>): IApplication;
+  controller<T>(ctor: IClass<T>): Binding<T>;
   registerControllers(): ValueOrPromise<void>;
 }
 
 export interface IRepositoryMixin {
-  dataSource<T extends IDataSource>(ctor: IClass<T>): IApplication;
-  repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): IApplication;
+  dataSource<T extends IDataSource>(ctor: IClass<T>): Binding<T>;
+  repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): Binding<T>;
 }
 
 export interface IServiceMixin {
-  service<T extends IService>(ctor: IClass<T>): IApplication;
+  service<T extends IService>(ctor: IClass<T>): Binding<T>;
 }
 
 export interface IStaticServeMixin {

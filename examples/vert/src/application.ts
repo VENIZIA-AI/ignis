@@ -3,7 +3,11 @@ import {
   Authentication,
   AuthenticationStrategyRegistry,
   BaseApplication,
+  BindingKeys,
+  BindingNamespaces,
+  DataTypes,
   Environment,
+  getUID,
   HealthCheckBindingKeys,
   HealthCheckComponent,
   HTTP,
@@ -11,6 +15,7 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
+  int,
   JWTAuthenticationStrategy,
   SwaggerComponent,
   ValueOrPromise,
@@ -29,7 +34,7 @@ export const beConfigs: IApplicationConfigs = {
   host: process.env.APP_ENV_SERVER_HOST,
   port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
   path: {
-    base: process.env.APP_ENV_SERVER_BASE_PATH,
+    base: process.env.APP_ENV_SERVER_BASE_PATH!,
     isStrict: true,
   },
   debug: {
@@ -134,47 +139,132 @@ export class Application extends BaseApplication {
     this.component(SwaggerComponent);
   }
 
-  postConfigure(): ValueOrPromise<void> {
+  async postConfigure(): Promise<void> {
     this.logger.info(
       '[postConfigure] Inspect all of application binding keys: %s',
       Array.from(this.bindings.keys()),
     );
 
     const configurationRepository = this.get<ConfigurationRepository>({
-      key: 'repositories.ConfigurationRepository',
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: ConfigurationRepository.name,
+      }),
     });
 
-    configurationRepository
-      .findOne({
-        filter: { where: { code: 'CODE_1' } },
-      })
-      .then(rs => {
-        this.logger.info(
-          '[postConfigure] Trying to findOne | condition: %j | rs: %o',
-          { filter: { where: { code: 'CODE_1' } } },
-          rs,
-        );
-      })
-      .catch(console.error);
+    // ------------------------------------------------------------------------------------------------
+    const case1 = await configurationRepository.findOne({
+      filter: { where: { code: 'CODE_1' } },
+    });
+    this.logger.info(
+      '[postConfigure] CASE_1 | Trying to findOne | condition: %j | rs: %o',
+      { filter: { where: { code: 'CODE_1' } } },
+      case1,
+    );
 
-    configurationRepository
-      .find({
-        filter: {
-          where: { code: 'CODE_2' },
-          fields: { id: true, code: true, dataType: true, createdBy: true },
-          limit: 100,
-          include: [{ relation: 'creator' }],
-        },
-      })
-      .then(rs => {
-        this.logger.info(
-          '[postConfigure] Trying to find result | condition: %j | fields: %j | limit: %s | rs: %o',
-          { where: { code: 'CODE_2' } },
-          { fields: { id: true, code: true, dataType: true } },
-          100,
-          rs,
-        );
-      })
-      .catch(console.error);
+    // ------------------------------------------------------------------------------------------------
+    const case2 = await configurationRepository.find({
+      filter: {
+        where: { code: 'CODE_2' },
+        fields: { id: true, code: true, dataType: true, createdBy: true },
+        limit: 100,
+        include: [{ relation: 'creator' }],
+      },
+    });
+    this.logger.info(
+      '[postConfigure] CASE_2 | Trying to find result | condition: %j | fields: %j | limit: %s | rs: %o',
+      { where: { code: 'CODE_2' } },
+      { fields: { id: true, code: true, dataType: true } },
+      100,
+      case2,
+    );
+
+    // ------------------------------------------------------------------------------------------------
+    const case3Payload = {
+      code: `CODE_${getUID()}`,
+      group: 'SYSTEM',
+      dataType: DataTypes.NUMBER,
+      nValue: int((Math.random() * 100).toFixed(2)),
+    };
+    const case3 = await configurationRepository.create({ data: case3Payload });
+    this.logger.info(
+      '[postConfigure] CASE_3 | Trying to create | payload: %j | rs: %o',
+      case3Payload,
+      case3,
+    );
+
+    // ------------------------------------------------------------------------------------------------
+    const case4Payload = [
+      {
+        code: `CODE_${getUID()}`,
+        group: 'SYSTEM',
+        dataType: DataTypes.NUMBER,
+        nValue: int((Math.random() * 100).toFixed(2)),
+      },
+      {
+        code: `CODE_${getUID()}`,
+        group: 'SYSTEM',
+        dataType: DataTypes.JSON,
+        jValue: { value: int((Math.random() * 100).toFixed(2)) },
+      },
+    ];
+    const case4 = await configurationRepository.createAll({ data: case4Payload });
+    this.logger.info(
+      '[postConfigure] CASE_4 | Trying to create | payload: %j | rs: %o',
+      case4Payload,
+      case4,
+    );
+
+    // ------------------------------------------------------------------------------------------------
+    const case5Payload = {
+      id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
+      data: { nValue: int((Math.random() * 100).toFixed(2)) },
+    };
+    const case5 = await configurationRepository.updateById(case5Payload);
+    this.logger.info(
+      '[postConfigure] CASE_5 | Trying to update | payload: %j | rs: %o',
+      case5Payload,
+      case5,
+    );
+
+    // ------------------------------------------------------------------------------------------------
+    const case6Payload = {
+      data: {
+        nValue: int((Math.random() * 100).toFixed(2)),
+      },
+      where: {
+        id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
+      },
+      options: { returning: false },
+    };
+    const case6 = await configurationRepository.updateAll(case6Payload);
+    this.logger.info(
+      '[postConfigure] CASE_6 | Trying to update | payload: %j | rs: %o',
+      case6Payload,
+      case6,
+    );
+
+    // ------------------------------------------------------------------------------------------------
+    const case7Payload = {
+      id: case3.data!.id,
+      options: { returning: true },
+    };
+    const case7 = await configurationRepository.deleteById(case7Payload);
+    this.logger.info(
+      '[postConfigure] CASE_7 | Trying to delete | payload: %j | rs: %o',
+      case7Payload,
+      case7,
+    );
+
+    const case8Payload = {
+      where: { dataType: DataTypes.NUMBER },
+      options: { returning: true },
+    };
+    const case8 = await configurationRepository.deleteAll(case8Payload);
+    this.logger.info(
+      '[postConfigure] CASE_8 | Trying to delete | payload: %j | rs: %o',
+      case8Payload,
+      case8,
+    );
   }
 }

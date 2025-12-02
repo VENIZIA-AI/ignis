@@ -33,7 +33,7 @@
     /* Type Checking - Strict Mode (Balanced for Production) */
     "strict": true,
     "noImplicitAny": false,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
     "strictFunctionTypes": true,
     "strictBindCallApply": true,
     "strictPropertyInitialization": false,

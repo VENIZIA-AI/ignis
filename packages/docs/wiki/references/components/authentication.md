@@ -26,6 +26,10 @@ Configure the authentication feature using environment variables:
 -   `APP_ENV_JWT_SECRET`: The secret for signing and verifying the JWT signature.
 -   `APP_ENV_JWT_EXPIRES_IN`: The JWT expiration time in seconds.
 
+::: danger SECURITY NOTE
+Both `APP_ENV_APPLICATION_SECRET` and `APP_ENV_JWT_SECRET` are **mandatory**. For security purposes, you must set these to strong, unique secret values. The application will fail to start if these environment variables are missing or left empty.
+:::
+
 **Example `.env` file:**
 
 ```

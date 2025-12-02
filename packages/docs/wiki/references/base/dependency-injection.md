@@ -13,7 +13,7 @@ The `Container` is the heart of the DI system. It's a registry that manages the 
 | Method | Description |
 | :--- | :--- |
 | **`bind<T>({ key })`** | Starts a new binding for a given key. It returns a `Binding` instance that you can use to configure the dependency. |
-| **`get<T>({ key, isOptional })`** | Retrieves a dependency from the container. If the dependency is not found and `isOptional` is `false` (the default), it will throw an error. |
+| **`get<T>({ key, isOptional })`** | Retrieves a dependency from the container. The `key` can be a string, a symbol, or an object like `{ namespace: 'services', key: 'MyService' }`. If the dependency is not found and `isOptional` is `false` (the default), it will throw an error. |
 | **`instantiate<T>(cls)`** | Creates a new instance of a class, automatically injecting any dependencies specified in its constructor or on its properties. This is the method the container uses internally to create your controllers, services, etc. |
 | **`findByTag({ tag })`** | Finds all bindings that have been tagged with a specific tag (e.g., `'controllers'`, `'components'`). This is used by the application to discover and initialize all registered resources of a certain type. |
 
