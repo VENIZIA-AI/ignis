@@ -1,1 +1,1 @@
-export { useAboutQuery } from './use-about-query';
+export { useAboutQuery } from "./use-about-query";

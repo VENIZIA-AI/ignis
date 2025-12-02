@@ -1,2 +1,2 @@
-export { AboutContent } from './ui';
-export { useAboutQuery } from './api';
+export { AboutContent } from "./ui";
+export { useAboutQuery } from "./api";

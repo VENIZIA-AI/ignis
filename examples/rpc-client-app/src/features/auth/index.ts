@@ -1,2 +1,2 @@
-export { SignUpForm, useSignUp } from './sign-up';
-export type { FormState } from './sign-up';
+export { SignUpForm, useSignUp } from "./sign-up";
+export type { FormState } from "./sign-up";

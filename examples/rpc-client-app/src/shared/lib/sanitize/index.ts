@@ -1,1 +1,1 @@
-export { sanitizeHtml } from './html-sanitizer';
+export { sanitizeHtml } from "./html-sanitizer";

@@ -1,1 +1,1 @@
-export { useSignUp } from './use-sign-up';
+export { useSignUp } from "./use-sign-up";

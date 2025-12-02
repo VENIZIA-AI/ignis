@@ -1,5 +1,5 @@
-import { AboutContent } from '@/features/about';
-import { SignUpForm } from '@/features/auth';
+import { AboutContent } from "@/features/about";
+import { SignUpForm } from "@/features/auth";
 
 /**
  * Main application component

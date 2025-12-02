@@ -1,1 +1,1 @@
-export { AboutContent } from './about-content';
+export { AboutContent } from "./about-content";

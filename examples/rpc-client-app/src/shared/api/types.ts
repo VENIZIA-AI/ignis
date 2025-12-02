@@ -1,1 +1,1 @@
-export type { paths, components } from '../../../schema';
+export type { paths, components } from "../../../schema";
