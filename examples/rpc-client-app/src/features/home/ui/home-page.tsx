@@ -70,7 +70,11 @@ export function HomePage() {
         {features.map((feature, index) => (
           <Col xs={24} sm={12} key={index}>
             <Card hoverable style={{ height: "100%" }}>
-              <Space orientation="vertical" size="middle" style={{ width: "100%" }}>
+              <Space
+                orientation="vertical"
+                size="middle"
+                style={{ width: "100%" }}
+              >
                 {feature.icon}
                 <Title level={4} style={{ margin: 0 }}>
                   {feature.title}
