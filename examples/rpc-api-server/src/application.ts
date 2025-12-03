@@ -17,6 +17,7 @@ import {
   IMiddlewareConfigs,
   int,
   JWTAuthenticationStrategy,
+  SwaggerBindingKeys,
   SwaggerComponent,
   ValueOrPromise,
 } from '@vez/ignis';
@@ -135,6 +136,23 @@ export class Application extends BaseApplication {
       restOptions: { path: '/health-check' },
     });
 
+    const swaggerOptions = {
+      restOptions: {
+        base: { path: '/doc' },
+        doc: { path: '/openapi.json' },
+        ui: { path: '/explorer', type: 'scalar' },
+      },
+      explorer: {
+        openapi: '3.0.0',
+        info: {
+          title: 'API Documentation',
+          version: '1.0.0',
+          description: 'API documentation for your service',
+        },
+      },
+    };
+
+    this.bind({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue(swaggerOptions);
     this.component(HealthCheckComponent);
     this.component(SwaggerComponent);
   }

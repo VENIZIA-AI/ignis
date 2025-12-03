@@ -22,17 +22,32 @@ export class TestController extends BaseController {
   override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: {
-        path: '/1',
+        path: '/:id',
         method: 'get',
+        request: {
+          params: z.object({
+            id: z.string().openapi({
+              param: {
+                name: 'id',
+                in: 'path',
+              },
+              example: '123',
+            }),
+          }),
+        },
         responses: {
           [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-            description: 'Test message content 1',
+            description: 'test dynamic message content',
             schema: z.object({ message: z.string() }),
           }),
         },
       },
       handler: context => {
-        return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
+        const { id } = context.req.param();
+        return context.json(
+          { message: `Hello there!`, id: id },
+          HTTP.ResultCodes.RS_2.Ok,
+        );
       },
     });
 
