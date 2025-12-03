@@ -8,10 +8,6 @@
     "emitDecoratorMetadata": true,
     "useDefineForClassFields": false,
 
-    /* JSX */
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-
     /* Modules */
     "module": "Node16",
     "moduleResolution": "node16",

@@ -5,6 +5,10 @@
     "target": "ES2022",
     "module": "nodenext",
     "moduleResolution": "nodenext",
+
+    /* JSX */
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx",
     
     /* Paths */
     "outDir": "dist",

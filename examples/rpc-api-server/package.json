@@ -1,0 +1,50 @@
+{
+  "name": "@nx/rpc-api-server",
+  "version": "0.0.1",
+  "description": "NEXPANDO - RPC api server",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "author": {
+    "name": "NEXPANDO",
+    "email": "contact@nexpando.com",
+    "url": "https://nexpando.com/"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "bun run clean && bun run build",
+    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
+    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
+    "preserver:dev": "bun run rebuild",
+    "server:dev": "NODE_ENV=development bun .",
+    "server:prod": "NODE_ENV=production bun ."
+  },
+  "dependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "@vez/ignis": "workspace:*",
+    "dotenv-flow": "^4.1.0",
+    "drizzle-orm": "^0.44.7",
+    "hono": "^4.10.7",
+    "lodash": "^4.17.21",
+    "pg": "^8.16.3",
+    "rxjs": "^7.8.2"
+  },
+  "devDependencies": {
+    "@minimaltech/eslint-node": "^0.2.1",
+    "@types/bun": "^1.3.1",
+    "@types/lodash": "^4.14.194",
+    "@types/pg": "^8.15.6",
+    "drizzle-kit": "^0.31.7",
+    "eslint": "^9.32.0",
+    "prettier": "^3.6.2",
+    "tsc-alias": "^1.7.0",
+    "tsconfig-paths": "^4.1.0",
+    "typescript": "~5.9.3"
+  }
+}
