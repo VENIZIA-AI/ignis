@@ -32,16 +32,18 @@ Controllers have a simple and predictable lifecycle managed by the application.
 | Stage | Method | Description |
 | :--- | :--- | :--- |
 | **1. Instantiation** | `constructor(opts)` | The controller is created by the DI container. Dependencies are injected, and you call `super()` to initialize the internal Hono router. |
-| **2. Configuration**| `binding()` | Called by the application during the `registerControllers` startup phase. This is where you **must** define all your routes using `defineRoute` and `defineAuthRoute`. |
+| **2. Configuration**| `binding()` | Called by the application during the `registerControllers` startup phase. This is where you **must** define all your routes using `defineRoute` or `bindRoute`. |
 
 ## Defining Routes
 
-### `defineRoute` (Public Routes)
+Ignis offers two primary methods for defining routes: `defineRoute` and `bindRoute`. Both methods now support specifying authentication strategies directly in their `configs` object.
 
-Use this method for endpoints that do not require authentication.
+### `defineRoute`
+
+Use this method for defining a single API endpoint with all its configurations and handler.
 
 ```typescript
-import { HTTP, jsonResponse } from '@vez/ignis';
+import { Authentication, HTTP, jsonContent } from '@vez/ignis';
 import { z } from '@hono/zod-openapi';
 
 // ... inside the binding() method
@@ -50,7 +52,9 @@ this.defineRoute({
   configs: {
     path: '/',
     method: 'get',
-    responses: jsonResponse({ // Use the helper for standard responses
+    // Optional: Add authentication strategies
+    authStrategies: [Authentication.STRATEGY_JWT], 
+    responses: jsonContent({ // Use the helper for standard responses
       description: 'List of all users',
       schema: z.array(z.object({ id: z.number(), name: z.string() })),
     }),
@@ -60,34 +64,93 @@ this.defineRoute({
   },
 });
 ```
-This defines a `GET /users` endpoint that will appear in your OpenAPI documentation with the specified schema.
+This defines a `GET /users` endpoint that will appear in your OpenAPI documentation with the specified schema. If `authStrategies` is provided, the route will be protected.
 
-### `defineAuthRoute` (Protected Routes)
+### `bindRoute`
 
-Use this for routes that require authentication. It automatically adds the necessary middleware.
+This method offers a fluent API for defining routes, useful for more readable chaining of configurations.
 
 ```typescript
-import { Authentication, HTTP } from '@vez/ignis';
+import { Authentication, HTTP, jsonContent } from '@vez/ignis';
+import { z } from '@hono/zod-openapi';
 
 // ... inside the binding() method
 
-this.defineAuthRoute({
+this.bindRoute({
   configs: {
     path: '/:id',
     method: 'get',
-    authStrategies: [Authentication.STRATEGY_JWT], // Specify the auth strategy
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: {
-        description: 'A single user',
-      },
-    },
+    // Optional: Add authentication strategies
+    authStrategies: [Authentication.STRATEGY_JWT],
+    responses: jsonContent({
+      description: 'A single user',
+      schema: z.object({ id: z.string(), name: z.string() }),
+    }),
   },
+}).to({
   handler: (c) => {
     const { id } = c.req.param();
     return c.json({ id: id, name: 'John Doe' });
   },
 });
 ```
+
+## `ControllerFactory` for CRUD Operations
+
+For standard CRUD (Create, Read, Update, Delete) operations, Ignis provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
+
+```typescript
+// src/controllers/configuration.controller.ts (Example from @examples/vert)
+import { Configuration } from '@/models';
+import { ConfigurationRepository } from '@/repositories';
+import {
+  BindingKeys,
+  BindingNamespaces,
+  controller,
+  ControllerFactory,
+  inject,
+} from '@vez/ignis';
+
+const BASE_PATH = '/configurations';
+
+const _Controller = ControllerFactory.defineCrudController({
+  repository: { name: ConfigurationRepository.name },
+  controller: {
+    name: 'ConfigurationController',
+    basePath: BASE_PATH,
+    strict: true,
+  },
+  entity: () => Configuration, // Provide a resolver for your entity class
+});
+
+@controller({ path: BASE_PATH })
+export class ConfigurationController extends _Controller {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: ConfigurationRepository.name,
+      }),
+    })
+    repository: ConfigurationRepository,
+  ) {
+    super(repository); // The generated controller expects the repository in its constructor
+  }
+}
+```
+The `ControllerFactory.defineCrudController` method automatically sets up the following routes based on your entity schema:
+
+| Name | Method | Path | Description |
+| :--- | :--- | :--- | :--- |
+| `count` | `GET` | `/count` | Get the number of records matching a filter. |
+| `find` | `GET` | `/` | Retrieve all records matching a filter. |
+| `findById` | `GET` | `/:id` | Retrieve a single record by its ID. |
+| `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
+| `create` | `POST` | `/` | Create a new record. |
+| `updateById` | `PATCH` | `/:id` | Update a record by its ID. |
+| `updateAll` | `PATCH` | `/` | Update multiple records matching a filter. |
+| `deleteById` | `DELETE` | `/:id` | Delete a record by its ID. |
+| `deleteAll` | `DELETE` | `/` | Delete multiple records matching a filter. |
 
 ## Accessing Validated Request Data
 

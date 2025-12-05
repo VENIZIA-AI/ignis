@@ -3,7 +3,6 @@ import { controller, inject } from '@/base/metadata';
 import { HTTP } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
 import { getError } from '@/helpers/error';
-import { jsonContent } from '@/utilities';
 import { z } from '@hono/zod-openapi';
 import {
   // ChangePasswordRequestSchema,
@@ -11,6 +10,7 @@ import {
   SignUpRequestSchema,
 } from '../../models';
 import { Authentication, IAuthService } from '../common';
+import { jsonContent, jsonResponse } from '@/base/models';
 
 export const defineAuthController = (opts: {
   restPath?: string;
@@ -71,14 +71,16 @@ export const defineAuthController = (opts: {
               schema: payload?.signIn?.request?.schema ?? SignInRequestSchema,
             }),
           },
+          responses: jsonResponse({ description: 'Success Response' }),
         },
         handler: async context => {
           const body = await context.req.json();
-          return this.service.signIn(context, body);
+          const rs = await this.service.signIn(context, body);
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
         },
       });
 
-      this.defineAuthRoute({
+      this.defineRoute({
         configs: {
           path: '/sign-up',
           method: 'post',
@@ -90,14 +92,16 @@ export const defineAuthController = (opts: {
               schema: payload?.signUp?.request?.schema ?? SignUpRequestSchema,
             }),
           },
+          responses: jsonResponse({ description: 'Success Response' }),
         },
         handler: async context => {
           const body = await context.req.json();
-          return this.service.signUp(context, body);
+          const rs = await this.service.signUp(context, body);
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
         },
       });
 
-      this.defineAuthRoute({
+      this.defineRoute({
         configs: {
           path: '/change-password',
           method: 'post',
@@ -108,15 +112,17 @@ export const defineAuthController = (opts: {
               required: true,
             },
           }, */
+          responses: jsonResponse({ description: 'Success Response' }),
           authStrategies: [Authentication.STRATEGY_JWT],
         },
         handler: async context => {
           const body = await context.req.json();
-          return this.service.changePassword(context, body);
+          const rs = await this.service.changePassword(context, body);
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
         },
       });
 
-      this.defineAuthRoute({
+      this.defineRoute({
         configs: {
           path: '/who-am-i',
           method: 'post',

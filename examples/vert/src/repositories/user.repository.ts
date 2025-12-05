@@ -1,11 +1,11 @@
-import { User, TUserSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ReadableRepository } from '@vez/ignis';
+import { TUserSchema, User, userRelations } from '@/models/entities';
+import { IDataSource, inject, ReadableRepository, repository } from '@vez/ignis';
 
 @repository({})
 export class UserRepository extends ReadableRepository<TUserSchema> {
   constructor(
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    super({ dataSource, entityClass: User });
+    super({ dataSource, entityClass: User, relations: userRelations.definitions });
   }
 }

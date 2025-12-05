@@ -23,7 +23,7 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
-import { TestController } from './controllers/test.controller';
+import { ConfigurationController, TestController } from './controllers';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
@@ -125,6 +125,7 @@ export class Application extends BaseApplication {
 
     // Controllers
     this.controller(TestController);
+    this.controller(ConfigurationController);
 
     // Extra Components
     this.bind<IHealthCheckOptions>({
@@ -138,6 +139,7 @@ export class Application extends BaseApplication {
   }
 
   async postConfigure(): Promise<void> {
+    // ------------------------------------------------------------------------------------------------
     this.logger.info(
       '[postConfigure] Inspect all of application binding keys: %s',
       Array.from(this.bindings.keys()),
@@ -255,7 +257,9 @@ export class Application extends BaseApplication {
     );
 
     const case8Payload = {
-      where: { dataType: DataTypes.NUMBER },
+      where: {
+        and: [{ dataType: DataTypes.NUMBER }, { dataType: DataTypes.JSON }],
+      },
       options: { returning: true },
     };
     const case8 = await configurationRepository.deleteAll(case8Payload);

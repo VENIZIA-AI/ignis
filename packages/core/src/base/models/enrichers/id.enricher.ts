@@ -9,7 +9,7 @@ import {
   PgTextBuilderInitial,
   text,
 } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions, TPrimaryKey } from '../types';
+import { TColumnDefinitions, TPrimaryKey } from '../common/types';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (

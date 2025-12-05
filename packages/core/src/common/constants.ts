@@ -27,13 +27,13 @@ export class HTTP {
   } as const;
 
   static readonly Methods = {
-    GET: 'GET',
-    POST: 'POST',
-    PUT: 'PUT',
-    PATCH: 'PATCH',
-    DELETE: 'DELETE',
-    HEAD: 'HEAD',
-    OPTIONS: 'OPTIONS',
+    GET: 'get',
+    POST: 'post',
+    PUT: 'put',
+    PATCH: 'patch',
+    DELETE: 'delete',
+    HEAD: 'head',
+    OPTIONS: 'options',
   } as const;
 
   static readonly ResultCodes = {

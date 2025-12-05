@@ -45,8 +45,10 @@ This is the foundational layer of Ignis, defining the core architecture and abst
 #### `base/controllers`
 | File/Folder | Purpose/Key Details |
 | :---------- | :------------------ |
-| `base.ts`   | Provides `BaseController`, an abstract class for handling HTTP requests. Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. Key methods include `defineRoute` (for public endpoints) and `defineAuthRoute` (for authenticated/authorized endpoints using strategies like JWT). |
-| `types.ts`  | Defines interfaces related to controllers, such as `IControllerOptions` and `TRouteDefinition`. |
+| `abstract.ts` | Defines `AbstractController`, an abstract class providing core controller functionalities like `getRouteConfigs` for standardizing route configurations, including authentication. |
+| `base.ts`   | Extends `AbstractController` to provide `BaseController`, an abstract class for handling HTTP requests. Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. Key methods include `defineRoute` and `bindRoute`. |
+| `factory.ts` | Provides `ControllerFactory` to generate pre-configured CRUD controllers from a given entity and repository, simplifying the creation of standard API endpoints. |
+| `common/`   | Contains shared types (`types.ts`) and constants (`constants.ts`) for the controller layer. |
 
 #### `base/datasources`
 | File/Folder | Purpose/Key Details |
@@ -74,7 +76,6 @@ A collection of essential, low-level middlewares used by the application.
 | File/Folder | Purpose/Key Details |
 | :---------- | :------------------ |
 | `app-error.middleware.ts` | Global error handling middleware that catches `ApplicationError` instances and formats responses consistently. |
-| `default-api-hook.middleware.ts` | Provides a default hook for API routes, especially for handling validation errors from Zod schemas. |
 | `emoji-favicon.middleware.ts` | Serves a simple emoji favicon for the application. |
 | `not-found.middleware.ts` | Handles 404 Not Found errors. |
 | `request-normalize.middleware.ts` | Normalizes incoming requests, particularly for parsing JSON bodies. |
@@ -96,14 +97,14 @@ Defines base classes and utilities for data models, often used with Drizzle ORM.
 
 | File/Folder | Purpose/Key Details |
 | :---------- | :------------------ |
-| `base.ts`   | Contains `BaseEntity`, a base class for models that wrap Drizzle ORM schemas. |
+| `base.ts`   | Contains `BaseEntity`, a base class for models that wrap Drizzle ORM schemas and provide methods for generating Zod schemas for CRUD operations. |
+| `common/`   | Contains shared types (`types.ts`) and constants (`constants.ts`) for the model layer, including definitions for `IdType`, `TTableSchemaWithId`, and `SchemaTypes`. |
 | `enrichers/` | Sub-directory for functions that add common fields to Drizzle ORM schemas. |
 | `enrichers/data-type.enricher.ts` | Adds generic data type columns (number, text, byte, JSON, boolean). |
 | `enrichers/id.enricher.ts` | Adds `id` column with number (serial) or string (UUID) types. |
 | `enrichers/principal.enricher.ts` | Adds polymorphic fields for associating with different principal types. |
 | `enrichers/tz.enricher.ts` | Adds `createdAt` and `modifiedAt` timestamp columns. |
 | `enrichers/user-audit.enricher.ts` | Adds `createdBy` and `modifiedBy` fields. |
-| `types.ts`    | Defines types related to models, entities, and Drizzle ORM columns. |
 
 #### `base/providers`
 | File/Folder | Purpose/Key Details |

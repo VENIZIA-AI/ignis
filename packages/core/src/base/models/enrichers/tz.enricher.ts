@@ -1,16 +1,17 @@
 import { HasDefault, NotNull } from 'drizzle-orm';
 import { PgTimestampBuilderInitial, timestamp } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions } from '../types';
+import { TColumnDefinitions } from '../common/types';
 
 export type TTzEnricherOptions = {
   created?: { columnName: string; withTimezone: boolean };
   modified?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
 };
 
-export type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> = ColumnDefinitions & {
-  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
-  modifiedAt?: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
-};
+export type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
+  ColumnDefinitions & {
+    createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+    modifiedAt?: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+  };
 
 export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
   const {

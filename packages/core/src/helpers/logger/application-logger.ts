@@ -1,4 +1,5 @@
 import { getError } from '@/helpers/error';
+import { toBoolean } from '@/utilities';
 import isEmpty from 'lodash/isEmpty';
 import winston from 'winston';
 import { CommonEnvs } from '../env';
@@ -8,6 +9,7 @@ import { TLogLevel } from './types';
 const extraLogEnvs =
   (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
 const LOG_ENVIRONMENTS = new Set([...Object.values(CommonEnvs), ...extraLogEnvs]);
+const isDebug = toBoolean(process.env.DEBUG);
 
 export class Logger {
   private readonly environment: string | undefined = process.env.NODE_ENV;
@@ -69,7 +71,7 @@ export class Logger {
       return;
     }
 
-    if (!process.env.DEBUG) {
+    if (!isDebug) {
       return;
     }
 

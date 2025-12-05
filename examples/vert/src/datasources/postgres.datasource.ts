@@ -4,7 +4,8 @@ import {
   configurationRelations,
   configurationTable,
   User,
-  usersTable,
+  userRelations,
+  userTable,
 } from '@/models/entities';
 import {
   applicationEnvironment,
@@ -55,15 +56,21 @@ export class PostgresDataSource extends BaseDataSource<
       },
 
       // NOTE: this is the place to define which models belonged to this datasource
-      schema: {
+      schema: Object.assign(
+        {},
         // ... extra entity models
         // NOTE: schema key will be used for Query API in DrizzleORM
-        [User.TABLE_NAME]: usersTable,
-        [Configuration.TABLE_NAME]: configurationTable,
+        {
+          [User.TABLE_NAME]: userTable, // Table
+          [Configuration.TABLE_NAME]: configurationTable, // Table
+        },
 
-        // Declare all relations
-        configurationRelations,
-      },
+        // Relations
+        {
+          userRelations: userRelations.relations, // User relations
+          configurationRelations: configurationRelations.relations, // Configuration relations
+        },
+      ),
     });
   }
 

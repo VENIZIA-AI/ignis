@@ -1,5 +1,5 @@
 import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions } from '../types';
+import { TColumnDefinitions } from '../common/types';
 
 type TUserAuditColumnOpts = {
   dataType: 'string' | 'number';

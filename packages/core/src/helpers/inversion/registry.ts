@@ -1,4 +1,4 @@
-import type { IClass } from '@/common/types';
+import type { TClass } from '@/common/types';
 import { MetadataKeys } from './keys';
 import type {
   IControllerMetadata,
@@ -159,7 +159,7 @@ export class MetadataRegistry {
   }
 
   // -----------------------------------------------------------------
-  static getMethodNames<T = any>(opts: { target: IClass<T> }): string[] {
+  static getMethodNames<T = any>(opts: { target: TClass<T> }): string[] {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(

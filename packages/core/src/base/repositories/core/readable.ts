@@ -1,8 +1,8 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { IClass, TNullable } from '@/common/types';
+import { TClass, TNullable } from '@/common/types';
 import { getError } from '@/helpers';
-import { RepositoryOperationScopes, TCount, TFilter, TWhere } from '../common';
+import { RepositoryOperationScopes, TCount, TFilter, TRelationConfig, TWhere } from '../common';
 import { AbstractRepository } from './base';
 
 export class ReadableRepository<
@@ -11,9 +11,14 @@ export class ReadableRepository<
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends TNullable<object> = undefined,
 > extends AbstractRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  constructor(opts: { entityClass: IClass<BaseEntity<EntitySchema>>; dataSource: IDataSource }) {
+  constructor(opts: {
+    entityClass: TClass<BaseEntity<EntitySchema>>;
+    relations: { [relationName: string]: TRelationConfig };
+    dataSource: IDataSource;
+  }) {
     super({
       entityClass: opts.entityClass,
+      relations: opts.relations,
       dataSource: opts.dataSource,
       operationScope: RepositoryOperationScopes.READ_ONLY,
     });
@@ -23,6 +28,7 @@ export class ReadableRepository<
   override count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount> {
     return new Promise((resolve, reject) => {
       const where = this.filterBuilder.toWhere({
+        tableName: this.entity.name,
         schema: this.entity.schema,
         where: opts.where,
       });
@@ -56,10 +62,7 @@ export class ReadableRepository<
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
   }): Promise<Array<DataObject>> {
-    const queryOptions = this.filterBuilder.build({
-      schema: this.entity.schema,
-      filter: opts.filter,
-    });
+    const queryOptions = this.buildQuery({ filter: opts.filter });
 
     return this.connector.query[this.entity.name].findMany(queryOptions);
   }
@@ -68,10 +71,7 @@ export class ReadableRepository<
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
   }): Promise<TNullable<DataObject>> {
-    const queryOptions = this.filterBuilder.build({
-      schema: this.entity.schema,
-      filter: opts.filter,
-    });
+    const queryOptions = this.buildQuery({ filter: opts.filter });
 
     const { limit, offset, ...findFirstOptions } = queryOptions;
     return this.connector.query[this.entity.name].findFirst(findFirstOptions);

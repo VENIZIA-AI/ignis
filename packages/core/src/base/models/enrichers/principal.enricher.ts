@@ -1,5 +1,5 @@
 import { integer, text } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions } from '../types';
+import { TColumnDefinitions } from '../common/types';
 
 export type TPrincipalEnricherOptions = {
   discriminator?: string;

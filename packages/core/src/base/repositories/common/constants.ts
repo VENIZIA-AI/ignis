@@ -1,5 +1,7 @@
 import { TConstValue } from '@/common/types';
 
+export const DEFAULT_LIMIT = 10;
+
 // --------------------------------------------------------------------------------------
 export class RepositoryOperationScopes {
   static readonly READ_ONLY = 'READ_ONLY';
@@ -14,3 +16,17 @@ export class RepositoryOperationScopes {
 }
 
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
+
+// --------------------------------------------------------------------------------------
+export class RelationTypes {
+  static readonly ONE = 'one';
+  static readonly MANY = 'many';
+
+  static readonly SCHEME_SET = new Set([this.ONE, this.MANY]);
+
+  static isValid(orgType: string): boolean {
+    return this.SCHEME_SET.has(orgType);
+  }
+}
+
+export type TRelationType = TConstValue<typeof RelationTypes>;

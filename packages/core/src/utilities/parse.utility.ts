@@ -103,7 +103,8 @@ export const float = (input: any, digit = 2) => {
 // -------------------------------------------------------------------------
 export const toBoolean = (input: any) => {
   return (
-    (input !== 'false' &&
+    (input !== '' &&
+      input !== 'false' &&
       input !== '0' &&
       input !== false &&
       input !== 0 &&

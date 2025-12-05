@@ -1,6 +1,6 @@
 import { BindingKeys, BindingNamespaces } from '@/common/bindings';
 import { HTTP, RuntimeModules } from '@/common/constants';
-import { AnyObject, IClass, IConfigurable } from '@/common/types';
+import { AnyObject, TClass, IConfigurable } from '@/common/types';
 import { RequestTrackerComponent } from '@/components';
 import { getError } from '@/helpers/error';
 import { Binding, BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
@@ -37,7 +37,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
 
   // ------------------------------------------------------------------------------
   component<T extends BaseComponent, O extends AnyObject = any>(
-    ctor: IClass<T>,
+    ctor: TClass<T>,
     _args?: O,
   ): Binding<T> {
     return this.bind<T>({
@@ -74,7 +74,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  controller<T>(ctor: IClass<T>): Binding<T> {
+  controller<T>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.CONTROLLER,
@@ -122,7 +122,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  service<T extends IService>(ctor: IClass<T>): Binding<T> {
+  service<T extends IService>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.SERVICE,
@@ -132,7 +132,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  repository<T extends IRepository<any>>(ctor: IClass<T>): Binding<T> {
+  repository<T extends IRepository<any>>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.REPOSITORY,
@@ -142,7 +142,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
+  dataSource<T extends IDataSource<any>>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.DATASOURCE,

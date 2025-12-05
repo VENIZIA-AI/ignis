@@ -30,6 +30,7 @@
     "@vez/ignis": "workspace:*",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
+    "drizzle-zod": "^0.8.3",
     "hono": "^4.10.7",
     "lodash": "^4.17.21",
     "pg": "^8.16.3",

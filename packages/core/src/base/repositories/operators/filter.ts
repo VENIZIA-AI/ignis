@@ -2,49 +2,68 @@ import { BaseHelper } from '@/base/helpers';
 import { TTableObject, TTableSchemaWithId } from '@/base/models';
 import { getError } from '@/helpers';
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from 'drizzle-orm';
-import { DrizzleQueryOptions, TFilter, TWhere } from '../common';
+import isEmpty from 'lodash/isEmpty';
+import { DrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
 import { QueryOperators, Sorts } from './query';
 
-export class DrizzleFilterBuilder<
-  EntitySchema extends TTableSchemaWithId,
-  ObjectSchema = TTableObject<EntitySchema>,
-> extends BaseHelper {
+export class DrizzleFilterBuilder extends BaseHelper {
   constructor() {
     super({ scope: DrizzleFilterBuilder.name });
   }
 
-  build(opts: { schema: EntitySchema; filter: TFilter<ObjectSchema> }): DrizzleQueryOptions {
+  build<Schema extends TTableSchemaWithId>(opts: {
+    tableName: string;
+    schema: Schema;
+    relations: { [relationName: string]: TRelationConfig };
+    filter: TFilter<TTableObject<Schema>>;
+  }): DrizzleQueryOptions {
     if (!opts.filter) {
       return {};
     }
 
-    const { limit, skip, order, fields, where, include } = opts.filter;
-
-    return {
+    const { tableName, schema, relations, filter } = opts;
+    const { limit, skip, order, fields, where, include } = filter;
+    const rs = {
       ...(limit !== undefined && { limit }),
       ...(skip !== undefined && { offset: skip }),
-      ...(fields && { columns: fields as Record<string, boolean> }),
-      ...(order && {
-        orderBy: this.toOrderBy({
-          schema: opts.schema,
-          order,
-        }),
-      }),
-      ...(where && {
-        where: this.toWhere({
-          schema: opts.schema,
-          where,
-        }),
-      }),
-      ...(include && { with: this.toInclude(include) }),
+      ...(fields && { columns: this.toColumns(fields) }),
+      ...(order && { orderBy: this.toOrderBy({ tableName, schema, order }) }),
+      ...(where && { where: this.toWhere({ tableName, schema, where }) }),
+      ...(include && { with: this.toInclude({ include, relations }) }),
     };
+
+    return rs;
   }
 
-  toWhere(opts: { schema: EntitySchema; where: TWhere<ObjectSchema> }): SQL | undefined {
-    const { schema, where } = opts;
+  toColumns(fields: Record<string, boolean | undefined>): Record<string, boolean> {
+    // Filter out false values - only include true fields
+    const entries = Object.entries(fields);
+    const rs = entries.reduce((acc, [key, value]) => {
+      if (value === true) {
+        acc[key] = true;
+      }
+
+      return acc;
+    }, {});
+
+    return rs;
+  }
+
+  toWhere<Schema extends TTableSchemaWithId>(opts: {
+    tableName: string;
+    schema: Schema;
+    where: TWhere<TTableObject<Schema>>;
+  }): SQL | undefined {
+    const { tableName, schema, where } = opts;
 
     const conditions: SQL[] = [];
     const columns = getTableColumns(schema);
+
+    if (!columns || isEmpty(columns)) {
+      throw getError({
+        message: `[toWhere] Table: ${tableName} | Failed to get table columns | columns: ${columns}`,
+      });
+    }
 
     for (const key in where) {
       const value = where[key];
@@ -55,7 +74,7 @@ export class DrizzleFilterBuilder<
       // 1. Handle Logical Groups (AND / OR)
       if (QueryOperators.LOGICAL_GROUP_OPERATORS.has(key)) {
         const clauses = (Array.isArray(value) ? value : [value])
-          .map(innerWhere => this.toWhere({ schema, where: innerWhere }))
+          .map(innerWhere => this.toWhere({ tableName, schema, where: innerWhere }))
           .filter((c): c is SQL => !!c); // Remove undefined
 
         if (clauses.length > 0) {
@@ -64,9 +83,14 @@ export class DrizzleFilterBuilder<
         continue;
       }
 
-      // 2. Validate Column Existence
-      const column = columns[key];
+      const column = columns?.[key];
       if (!column) {
+        this.logger.debug(
+          '[toWhere][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
+          tableName,
+          key,
+          Object.keys(columns),
+        );
         continue;
       }
 
@@ -81,6 +105,11 @@ export class DrizzleFilterBuilder<
         if (value === null) {
           conditions.push(isNull(column));
         } else if (Array.isArray(value)) {
+          if (value.length === 0) {
+            // Empty array - skip this condition
+            continue;
+          }
+
           conditions.push(inArray(column, value));
         } else {
           conditions.push(eq(column, value));
@@ -98,10 +127,7 @@ export class DrizzleFilterBuilder<
           });
         }
 
-        const result = QueryOperators[op]({
-          column,
-          value: opVal,
-        });
+        const result = QueryOperators.FNS[op]({ column, value: opVal });
 
         if (!result) {
           continue;
@@ -122,9 +148,13 @@ export class DrizzleFilterBuilder<
     return and(...conditions);
   }
 
-  toOrderBy(opts: { schema: EntitySchema; order: string[] }): SQL[] {
-    const { schema, order } = opts;
-    if (!Array.isArray(order)) {
+  toOrderBy<Schema extends TTableSchemaWithId>(opts: {
+    tableName: string;
+    schema: Schema;
+    order: string[];
+  }): SQL[] {
+    const { tableName, schema, order } = opts;
+    if (!Array.isArray(order) || order.length === 0) {
       return [];
     }
 
@@ -132,13 +162,17 @@ export class DrizzleFilterBuilder<
 
     return order.reduce((rs, orderStr) => {
       const parts = orderStr.trim().split(/\s+/);
+      const [key, direction = Sorts.ASC] = parts;
 
-      const [field, direction = Sorts.ASC] = parts;
-      const column = columns[field];
+      const column = columns[key];
       if (!column) {
-        throw getError({
-          message: `[toOrderBy] Invalid column name to handle | column: '${column}'`,
-        });
+        this.logger.debug(
+          '[toOrderBy][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
+          tableName,
+          key,
+          Object.keys(columns),
+        );
+        return rs;
       }
 
       rs.push(direction.toLowerCase() === Sorts.DESC ? desc(column) : asc(column));
@@ -146,35 +180,59 @@ export class DrizzleFilterBuilder<
     }, [] as SQL[]);
   }
 
-  toInclude(include: any[]) {
-    return include.reduce(
-      (acc, inc) => {
-        // String syntax: "relationName"
-        if (typeof inc === 'string') {
-          acc[inc] = true;
-          return acc;
-        }
+  toInclude(opts: {
+    include: TInclusion[];
+    relations: { [relationName: string]: TRelationConfig };
+  }) {
+    const { include, relations } = opts;
 
-        // Object syntax: { relation: "relationName", scope: { ... } }
-        if (!inc.relation) {
-          return acc;
-        }
+    const rs = include.reduce((acc, inc) => {
+      let relationName: string;
+      let scope: any = undefined;
 
-        if (!inc.scope) {
-          acc[inc.relation] = true;
-          return acc;
-        }
+      // Parse include syntax
+      if (typeof inc === 'string') {
+        relationName = inc;
+      } else if (inc.relation) {
+        relationName = inc.relation;
+        scope = inc.scope;
+      } else {
+        this.logger.warn('[toInclude] Invalid include format | include: %j', inc);
+        return acc;
+      }
 
-        // Note: To strictly type this recursively, we would need the Schema for the related table.
-        // Since we don't have it here, we pass 'any' or generic object structure.
-        // Recursion works for Limit/Skip/Include, but nested 'Where' might fail
-        // if it tries to lookup columns on the wrong table object.
-        acc[inc.relation] = this.build({
-          schema: {} as EntitySchema,
-          filter: inc.scope,
-        });
-      },
-      {} as Record<string, any>,
-    );
+      // Validate relation exists
+      const relationConfig = relations[relationName];
+      if (!relationConfig) {
+        this.logger.warn(
+          `[toInclude] Relation NOT FOUND | relation: %s | available: %j`,
+          relationName,
+          Object.keys(relations),
+        );
+
+        return acc;
+      }
+
+      // No scope - just include the relation
+      if (!scope) {
+        acc[relationName] = true;
+        return acc;
+      }
+
+      // Build nested query with proper schema
+      const nestedQuery = this.build<TTableSchemaWithId>({
+        tableName: relationName,
+        schema: relationConfig.schema,
+        filter: scope,
+        relations, // Pass relations for nested includes
+      });
+
+      acc[relationName] = nestedQuery;
+      return acc;
+    }, {});
+
+    console.log(rs);
+
+    return rs;
   }
 }

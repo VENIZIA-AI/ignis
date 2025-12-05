@@ -1,4 +1,8 @@
-import { Configuration, TConfigurationSchema } from '@/models/entities';
+import {
+  Configuration,
+  configurationRelations,
+  TConfigurationSchema,
+} from '@/models/entities';
 import { DefaultCRUDRepository, IDataSource, inject, repository } from '@vez/ignis';
 
 @repository({})
@@ -6,6 +10,11 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
   constructor(
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    super({ dataSource, entityClass: Configuration });
+    console.log(configurationRelations);
+    super({
+      dataSource,
+      entityClass: Configuration,
+      relations: configurationRelations.definitions,
+    });
   }
 }

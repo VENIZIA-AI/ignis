@@ -10,7 +10,6 @@ import { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
-import { defaultAPIHook } from '../middlewares';
 import {
   IApplication,
   IApplicationConfigs,
@@ -59,9 +58,10 @@ export abstract class AbstractApplication<
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
       strict: this.configs.strictPath ?? true,
-      defaultHook: defaultAPIHook,
     });
-    this.rootRouter = new OpenAPIHono({ strict: true });
+    this.rootRouter = new OpenAPIHono({
+      strict: this.configs.strictPath ?? true,
+    });
 
     this.server = {
       hono: honoServer,

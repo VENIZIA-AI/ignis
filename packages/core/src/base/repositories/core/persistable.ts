@@ -1,9 +1,9 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { IClass, TNullable } from '@/common/types';
+import { TClass, TNullable } from '@/common/types';
 import { getError } from '@/helpers';
 import { isEmpty } from 'lodash';
-import { TCount, TWhere } from '../common';
+import { TCount, TRelationConfig, TWhere } from '../common';
 import { RepositoryOperationScopes } from '../common/constants';
 import { ReadableRepository } from './readable';
 
@@ -13,9 +13,14 @@ export class PersistableRepository<
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends TNullable<object> = undefined,
 > extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  constructor(opts: { entityClass: IClass<BaseEntity<EntitySchema>>; dataSource: IDataSource }) {
+  constructor(opts: {
+    entityClass: TClass<BaseEntity<EntitySchema>>;
+    relations: { [relationName: string]: TRelationConfig };
+    dataSource: IDataSource;
+  }) {
     super({
       entityClass: opts.entityClass,
+      relations: opts.relations,
       dataSource: opts.dataSource,
     });
     this.operationScope = RepositoryOperationScopes.READ_WRITE;
@@ -108,6 +113,7 @@ export class PersistableRepository<
       } = opts?.options ?? {};
 
       const where = this.filterBuilder.toWhere({
+        tableName: this.entity.name,
         schema: this.entity.schema,
         where: opts.where,
       });
@@ -208,6 +214,7 @@ export class PersistableRepository<
       } = opts?.options ?? {};
 
       const where = this.filterBuilder.toWhere({
+        tableName: this.entity.name,
         schema: this.entity.schema,
         where: opts.where,
       });

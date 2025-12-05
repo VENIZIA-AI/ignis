@@ -1,6 +1,6 @@
 import { BaseHelper } from '@/base/helpers';
 import { HTTP } from '@/common/constants';
-import { IClass } from '@/common/types';
+import { TClass } from '@/common/types';
 import { getError } from '@/helpers/error';
 import { BindingScopes, Container } from '@/helpers/inversion';
 import { MiddlewareHandler } from 'hono';
@@ -20,7 +20,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
     string,
     {
       container: Container;
-      strategyClass: IClass<IAuthenticationStrategy>;
+      strategyClass: TClass<IAuthenticationStrategy>;
     }
   >;
 
@@ -58,7 +58,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   // ------------------------------------------------------------------------------
   register(opts: {
     container: Container;
-    strategy: IClass<IAuthenticationStrategy>;
+    strategy: TClass<IAuthenticationStrategy>;
     name: string;
   }) {
     const { container, name, strategy: strategyClass } = opts;

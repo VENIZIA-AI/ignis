@@ -104,6 +104,7 @@ import minimaltechLinter from '@minimaltech/eslint-node';
 const configs = [
   ...minimaltechLinter,
   {
+    // Optional rules
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },
@@ -177,7 +178,15 @@ export class Application extends BaseApplication {
 This controller handles a simple `/hello` route.
 
 ```typescript
-import { BaseController, controller, HTTP, IControllerOptions, ValueOrPromise } from '@vez/ignis';
+import {
+  BaseController,
+  controller,
+  HTTP,
+  IControllerOptions,
+  jsonContent, // Import jsonContent
+  ValueOrPromise,
+} from '@vez/ignis';
+import { z } from '@hono/zod-openapi'; // Import z for schema definition
 
 const BASE_PATH = '/hello';
 
@@ -189,11 +198,25 @@ export class HelloController extends BaseController {
 
   override binding(): ValueOrPromise<void> {
     this.defineRoute({
-      configs: { path: '/', method: 'get' },
+      configs: {
+        path: '/',
+        method: 'get',
+        responses: {
+          [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+            description: 'A simple hello message',
+            schema: z.object({ message: z.string() }), // Define response schema
+          }),
+        },
+      },
       handler: c => c.json({ message: 'Hello, World!' }),
     });
 
-    // Note: use this.defineAuthRoute for authenticated endpoint
+    // For authenticated endpoints, use 'authStrategies' in configs:
+    // this.defineRoute({ configs: { path: '/secure', method: 'get', authStrategies: [Authentication.STRATEGY_JWT] }, handler: ... });
+
+    // For CRUD operations, consider using ControllerFactory to reduce boilerplate.
+    // import { ControllerFactory } from '@vez/ignis';
+    // const MyCrudController = ControllerFactory.defineCrudController(...);
   }
 }
 ```

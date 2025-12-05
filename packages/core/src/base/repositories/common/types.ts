@@ -1,14 +1,175 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TNullable, ValueOptional } from '@/common/types';
-import { Column, SQL } from 'drizzle-orm';
+import { TNullable } from '@/common/types';
+import { z } from '@hono/zod-openapi';
+import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
+import { Sorts } from '../operators';
+import { DEFAULT_LIMIT, RelationTypes } from './constants';
 
 // ---------------------------------------------------------------------------
 // Repository Interfaces
 // ---------------------------------------------------------------------------
+export const SkipSchema = z
+  .number()
+  .optional()
+  .default(0)
+  .openapi({
+    description: 'Number of items to skip for pagination. Default is 0.',
+    examples: [1, 2, 3],
+  });
+export type TSkip = z.infer<typeof SkipSchema>;
+
+// ---------------------------------------------------------------------------
+export const OffsetSchema = z
+  .number()
+  .optional()
+  .default(0)
+  .openapi({
+    description: 'Number of items to offset for pagination. Default is 0.',
+    examples: [1, 2, 3],
+  });
+export type TOffset = z.infer<typeof OffsetSchema>;
+
+// ---------------------------------------------------------------------------
+export const LimitSchema = z
+  .number()
+  .optional()
+  .default(DEFAULT_LIMIT)
+  .openapi({
+    description: 'Maximum number of items to return. Default is 10.',
+    examples: [1, 2, 3],
+  });
+export type TLimit = z.infer<typeof LimitSchema>;
+
+// ---------------------------------------------------------------------------
+export const OrderBySchema = z
+  .array(z.string())
+  .optional()
+  .openapi({
+    description: "Sorting order for results, e.g., 'fieldName ASC' or 'fieldName DESC'.",
+    examples: [
+      ['id', Sorts.DESC].join(' '),
+      ['field', `direction (${Sorts.ASC} | ${Sorts.DESC})`].join(' '),
+    ],
+  });
+export type TOrderBy = z.infer<typeof OrderBySchema>;
+
+// ---------------------------------------------------------------------------
+const _WhereSchema: z.ZodType<any> = z.lazy(() =>
+  z.record(z.string(), z.any()).and(
+    z.object({
+      and: z.array(_WhereSchema).optional(),
+      or: z.array(_WhereSchema).optional(),
+    }),
+  ),
+);
+
+export const WhereSchema = z
+  .union([
+    _WhereSchema,
+    z
+      .string()
+      .transform(val => {
+        if (val) {
+          return JSON.parse(val);
+        }
+
+        return undefined;
+      })
+      .pipe(_WhereSchema),
+  ])
+  .openapi({
+    type: 'object',
+    description: 'Query conditions for selecting data.',
+  });
+
+export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; or?: TWhere<T>[] };
+
+// ---------------------------------------------------------------------------
+export const FieldsSchema = z
+  .record(z.string(), z.boolean())
+  .optional()
+  .openapi({
+    description:
+      'Fields selection object - keys are field names, values are boolean (true to include)',
+    examples: [
+      JSON.stringify({ id: true, name: true }),
+      JSON.stringify({ id: true, name: true, email: true }),
+      JSON.stringify({ id: true, name: true, email: true, fullName: false }),
+    ],
+  });
+// export type TFields = z.infer<typeof FieldsSchema>;
+
+export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
+
+// ---------------------------------------------------------------------------
+export const InclusionSchema = z
+  .array(
+    z.object({
+      relation: z.string().openapi({ description: 'Model relation name' }),
+      scope: z
+        .lazy(() => FilterSchema)
+        .optional()
+        .openapi({ description: 'Model relation filter' }),
+    }),
+  )
+  .optional()
+  .openapi({
+    description: 'Define related models to include in the response.',
+    examples: [
+      JSON.stringify({ include: [{ relation: 'posts' }] }),
+      JSON.stringify({ include: [{ relation: 'posts', scope: { limit: 5 } }] }),
+    ],
+  });
+export type TInclusion = { relation: string; scope?: TFilter };
+
+// ---------------------------------------------------------------------------
+const _FilterSchema = z.object({
+  where: WhereSchema.optional(),
+  fields: FieldsSchema,
+  include: InclusionSchema,
+  order: OrderBySchema,
+  limit: LimitSchema,
+  offset: OffsetSchema,
+  skip: SkipSchema,
+});
+
+export const FilterSchema = z
+  .union([
+    _FilterSchema,
+    z
+      .string()
+      .transform(val => {
+        console.log(val);
+        if (val) {
+          return JSON.parse(val);
+        }
+
+        return {};
+      })
+      .pipe(_FilterSchema),
+  ])
+  .optional()
+  .openapi({
+    type: 'object',
+    description:
+      'A comprehensive filter object for querying data, including conditions, field selection, relations, pagination, and sorting.',
+    examples: [
+      JSON.stringify({ where: { name: 'John Doe' }, limit: 10 }),
+      JSON.stringify({ fields: { id: true, name: true, email: true }, order: ['createdAt DESC'] }),
+      JSON.stringify({ include: [{ relation: 'posts', scope: { limit: 5 } }] }),
+      JSON.stringify({
+        where: { or: [{ status: 'active' }, { isPublished: true }] },
+        skip: 20,
+        limit: 10,
+      }),
+      JSON.stringify({ where: { and: [{ role: 'admin' }, { createdAt: { gte: 'YYYY-MM-DD' } }] } }),
+    ],
+  });
+
 export type TFilter<T = any> = {
   where?: TWhere<T>;
-  fields?: TFields<T>;
+  fields?: TFields;
   include?: TInclusion[];
   order?: string[];
   limit?: number;
@@ -16,6 +177,14 @@ export type TFilter<T = any> = {
   skip?: number;
 };
 
+// ---------------------------------------------------------------------------
+export const CountSchema = z.object({ count: z.number().default(0) }).openapi({
+  description: 'Total count of items matching the criteria.',
+  examples: [{ count: 0 }, { count: 10 }],
+});
+export type TCount = z.infer<typeof CountSchema>;
+
+// ---------------------------------------------------------------------------
 export type DrizzleQueryOptions = Partial<{
   limit: number;
   offset: number;
@@ -25,18 +194,30 @@ export type DrizzleQueryOptions = Partial<{
   columns: Record<string, boolean>;
 }>;
 
-export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; or?: TWhere<T>[] };
-
-export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
-
-export type TInclusion = ValueOptional<{ relation: string; scope: TFilter }, 'scope'>;
-
-export type TCount = { count: number };
+export type TRelationConfig = {
+  name: string;
+} & (
+  | {
+      type: typeof RelationTypes.ONE;
+      schema: TTableSchemaWithId;
+      metadata: Parameters<
+        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]
+      >[1];
+    }
+  | {
+      type: typeof RelationTypes.MANY;
+      schema: TTableSchemaWithId;
+      metadata: Parameters<
+        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.MANY]
+      >[1];
+    }
+);
 
 // ---------------------------------------------------------------------------
 export interface IRepository<EntitySchema extends TTableSchemaWithId> {
   dataSource: IDataSource;
   entity: BaseEntity<EntitySchema>;
+  relations: { [relationName: string]: TRelationConfig };
 
   getEntity(): BaseEntity<EntitySchema>;
   getEntitySchema(): EntitySchema;
@@ -48,6 +229,8 @@ export interface IReadableRepository<
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   ExtraOptions extends TNullable<object> = undefined,
 > extends IRepository<EntitySchema> {
+  buildQuery(opts: { filter: TFilter<DataObject> }): DrizzleQueryOptions;
+
   count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
   existsWith(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<boolean>;
 

@@ -1,6 +1,6 @@
 import { BaseController, IControllerOptions } from '@/base/controllers';
+import { jsonContent } from '@/base/models';
 import { HTTP, ValueOrPromise } from '@/common';
-import { jsonContent } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 
 export class HealthCheckController extends BaseController {
@@ -12,28 +12,45 @@ export class HealthCheckController extends BaseController {
   }
 
   override binding(): ValueOrPromise<void> {
-    const HealthCheckOkSchema = z.object({ status: z.string() }).openapi({
-      description: 'HealthCheck Schema',
-      examples: [{ status: 'ok' }],
-    });
-
-    this.defineRoute({
+    // Method 1: Using 'bindRoute' to create a controller route
+    this.bindRoute({
       configs: {
         method: 'get',
         path: '/',
         responses: {
           [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-            schema: HealthCheckOkSchema,
+            schema: z.object({ status: z.string() }).openapi({
+              description: 'HealthCheck Schema',
+              examples: [{ status: 'ok' }],
+            }),
+            description: 'Health check status',
+          }),
+        },
+      },
+    }).to({
+      handler: context => {
+        return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
+      },
+    });
+
+    // Method 2: Using 'defineRoute' to create a controller route
+    /* this.defineRoute({
+      configs: {
+        method: 'get',
+        path: '/',
+        responses: {
+          [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+            schema: z.object({ status: z.string() }).openapi({
+              description: 'HealthCheck Schema',
+              examples: [{ status: 'ok' }],
+            }),
             description: 'Health check status',
           }),
         },
       },
       handler: context => {
-        return context.json<z.infer<typeof HealthCheckOkSchema>>(
-          { status: 'ok' },
-          HTTP.ResultCodes.RS_2.Ok,
-        );
+        return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
       },
-    });
+    }); */
   }
 }

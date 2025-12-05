@@ -1,9 +1,9 @@
 import { BaseHelper } from '@/base/helpers';
-import { IProvider, isClassProvider, TConstValue, TNullable, type IClass } from '@/common/types';
+import { BindingKeys } from '@/common';
+import { IProvider, isClassProvider, TConstValue, TNullable, type TClass } from '@/common/types';
 import { ApplicationError, getError } from '@/helpers/error';
 import { MetadataRegistry } from './registry';
 import { BindingScopes, BindingValueTypes, TBindingScope } from './types';
-import { BindingKeys } from '@/common';
 
 // -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
@@ -14,18 +14,21 @@ export class Binding<T = any> extends BaseHelper {
   private cached?: T;
 
   private resolver:
-    | { type: 'class'; value: IClass<T> }
-    | { type: 'value'; value: T }
-    | { type: 'provider'; value: ((container: Container) => T) | IClass<IProvider<T>> };
+    | { type: typeof BindingValueTypes.CLASS; value: TClass<T> }
+    | { type: typeof BindingValueTypes.VALUE; value: T }
+    | {
+        type: typeof BindingValueTypes.PROVIDER;
+        value: ((container: Container) => T) | TClass<IProvider<T>>;
+      };
 
   // ------------------------------------------------------------------------------
-  constructor(opts: { key: string; namespace?: string }) {
-    super({ scope: opts.key.toString() });
+  constructor(opts: { key: string }) {
+    super({ scope: opts.key });
     this.tags = new Set([]);
 
     this.key = opts.key;
 
-    const keyParts = opts.key.split('.');
+    const keyParts = this.key.split('.');
     if (keyParts.length > 1) {
       const [namespace] = keyParts;
       this.setTags(namespace);
@@ -37,7 +40,7 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   // ------------------------------------------------------------------------------
-  toClass(value: IClass<T>): this {
+  toClass(value: TClass<T>): this {
     this.resolver = { type: BindingValueTypes.CLASS, value };
     return this;
   }
@@ -47,7 +50,7 @@ export class Binding<T = any> extends BaseHelper {
     return this;
   }
 
-  toProvider(value: ((container: Container) => T) | IClass<IProvider<T>>): this {
+  toProvider(value: ((container: Container) => T) | TClass<IProvider<T>>): this {
     this.resolver = { type: BindingValueTypes.PROVIDER, value };
     return this;
   }
@@ -241,11 +244,11 @@ export class Container extends BaseHelper {
     return undefined;
   }
 
-  resolve<T>(cls: IClass<T>): T {
+  resolve<T>(cls: TClass<T>): T {
     return this.instantiate(cls);
   }
 
-  instantiate<T>(cls: IClass<T>): T {
+  instantiate<T>(cls: TClass<T>): T {
     // 1. Handle constructor parameter injection
     const injectMetadata = MetadataRegistry.getInjectMetadata({ target: cls });
 

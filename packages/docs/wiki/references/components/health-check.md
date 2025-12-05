@@ -12,7 +12,7 @@ The Health Check component provides a simple endpoint for monitoring the health 
 ## Design and Architecture
 
 -   **`HealthCheckComponent`:** This component registers the `HealthCheckController`.
--   **`HealthCheckController`:** A simple controller that defines the health check route and returns a static JSON response.
+-   **`HealthCheckController`:** A simple controller that defines the health check route using `bindRoute` and returns a static JSON response.
 
 ## Implementation Details
 

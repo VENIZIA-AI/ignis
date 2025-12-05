@@ -1,4 +1,4 @@
-import { BindingKeys, BindingNamespaces, HTTP, IClass, TMixinTarget } from '@/common';
+import { BindingKeys, BindingNamespaces, HTTP, TClass, TMixinTarget } from '@/common';
 import { getError } from '@/helpers/error';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
@@ -9,7 +9,7 @@ import { IControllerMixin } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
-    controller<T>(ctor: IClass<T>): Binding<T> {
+    controller<T>(ctor: TClass<T>): Binding<T> {
       return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.CONTROLLER,

@@ -1,5 +1,5 @@
 import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { IClass, IConfigurable, TMixinTarget } from '@/common/types';
+import { TClass, IConfigurable, TMixinTarget } from '@/common/types';
 import { Binding, BindingScopes } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
 import { AbstractApplication } from '../applications';
@@ -10,7 +10,7 @@ import { IRepositoryMixin } from './types';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {
-    repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): Binding<T> {
+    repository<T extends IRepository<TTableSchemaWithId>>(ctor: TClass<T>): Binding<T> {
       return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.REPOSITORY,
@@ -19,7 +19,7 @@ export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(bas
       }).toClass(ctor);
     }
 
-    dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
+    dataSource<T extends IDataSource<any>>(ctor: TClass<T>): Binding<T> {
       return this.bind<T>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.DATASOURCE,

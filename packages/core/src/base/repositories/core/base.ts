@@ -1,14 +1,17 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseHelper } from '@/base/helpers';
 import { BaseEntity, IdType, TTableInsert, TTableSchemaWithId } from '@/base/models';
-import { IClass, TNullable } from '@/common/types';
+import { TClass, TNullable } from '@/common/types';
 import {
-  IPersistableRepository,
-  RepositoryOperationScopes,
-  TCount,
-  TFilter,
-  TRepositoryOperationScope,
-  TWhere,
+    DEFAULT_LIMIT,
+    DrizzleQueryOptions,
+    IPersistableRepository,
+    RepositoryOperationScopes,
+    TCount,
+    TFilter,
+    TRelationConfig,
+    TRepositoryOperationScope,
+    TWhere,
 } from '../common';
 import { DrizzleFilterBuilder } from '../operators';
 
@@ -26,24 +29,30 @@ export abstract class AbstractRepository<
   implements IPersistableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions>
 {
   protected operationScope: TRepositoryOperationScope;
-  protected filterBuilder: DrizzleFilterBuilder<EntitySchema>;
+  protected filterBuilder: DrizzleFilterBuilder;
 
-  entity: BaseEntity<EntitySchema>;
   dataSource: IDataSource;
+  entity: BaseEntity<EntitySchema>;
+  relations: { [relationName: string]: TRelationConfig };
+  defaultLimit: number;
 
   constructor(opts: {
     scope?: string;
-    entityClass: IClass<BaseEntity<EntitySchema>>;
+    entityClass: TClass<BaseEntity<EntitySchema>>;
+    relations: { [relationName: string]: TRelationConfig };
     dataSource: IDataSource;
     operationScope?: TRepositoryOperationScope;
+    defaultLimit?: number;
   }) {
     super({ scope: opts?.scope ?? [opts.entityClass.name, 'Repository'].join('') });
 
     this.operationScope = opts.operationScope ?? RepositoryOperationScopes.READ_ONLY;
-    this.filterBuilder = new DrizzleFilterBuilder<EntitySchema>();
+    this.filterBuilder = new DrizzleFilterBuilder();
 
     this.entity = new opts.entityClass();
+    this.relations = opts.relations;
     this.dataSource = opts.dataSource;
+    this.defaultLimit = opts.defaultLimit ?? DEFAULT_LIMIT;
   }
 
   // ---------------------------------------------------------------------------
@@ -61,6 +70,15 @@ export abstract class AbstractRepository<
 
   getConnector(): IDataSource['connector'] {
     return this.connector;
+  }
+
+  buildQuery(opts: { filter: TFilter<DataObject> }): DrizzleQueryOptions {
+    return this.filterBuilder.build({
+      tableName: this.entity.name,
+      schema: this.entity.schema,
+      relations: this.relations,
+      filter: opts.filter,
+    });
   }
 
   // ---------------------------------------------------------------------------

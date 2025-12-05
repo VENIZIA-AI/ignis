@@ -1,5 +1,5 @@
 import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { AnyObject, IClass, IConfigurable, TAbstractMixinTarget } from '@/common/types';
+import { AnyObject, TClass, IConfigurable, TAbstractMixinTarget } from '@/common/types';
 import { Binding, BindingScopes } from '@/helpers/inversion';
 import { executeWithPerformanceMeasure } from '@/utilities';
 import { AbstractApplication } from '../applications';
@@ -11,7 +11,7 @@ export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplicatio
 ) => {
   abstract class Mixed extends baseClass implements IComponentMixin {
     component<T extends BaseComponent, O extends AnyObject = any>(
-      ctor: IClass<T>,
+      ctor: TClass<T>,
       _args?: O,
     ): Binding<T> {
       return this.bind<T>({
