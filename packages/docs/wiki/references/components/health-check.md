@@ -55,6 +55,38 @@ import { HealthCheckBindingKeys, IHealthCheckOptions, HealthCheckComponent } fro
 
 ### Code Samples
 
+#### Controller Implementation
+
+The `HealthCheckController` is a simple controller that uses the `@get` decorator to define the health check route.
+
+```typescript
+// packages/core/src/components/health-check/controller.ts
+import { BaseController, controller, get, HTTP, jsonContent, z } from '@vez/ignis';
+import { Context } from 'hono';
+
+@controller({ path: '/health' }) // Base path is configured by options
+export class HealthCheckController extends BaseController {
+  constructor() {
+    super({ scope: HealthCheckController.name, path: '/health' });
+  }
+
+  @get({
+    configs: {
+      path: '/',
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+          schema: z.object({ status: z.string() }),
+          description: 'Health check status',
+        }),
+      },
+    },
+  })
+  checkHealth(c: Context) {
+    return c.json({ status: 'ok' });
+  }
+}
+```
+
 #### Registering the Health Check Component
 
 In your `src/application.ts`, simply register the `HealthCheckComponent`.

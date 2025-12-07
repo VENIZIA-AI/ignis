@@ -52,7 +52,7 @@ This is the foundational layer of Ignis, defining the core architecture and abst
 
 | File/Folder   | Purpose/Key Details                                                                                                                                                                                                                                |
 | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `abstract.ts` | Defines `AbstractController`, an abstract class providing core controller functionalities like `getRouteConfigs` for standardizing route configurations, including authentication.                                                                 |
+| `abstract.ts` | Defines `AbstractController`, an abstract class providing core controller functionalities like `getRouteConfigs` for standardizing route configurations, and `registerRoutesFromRegistry()` for automatically registering decorator-based routes. |
 | `base.ts`     | Extends `AbstractController` to provide `BaseController`, an abstract class for handling HTTP requests. Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. Key methods include `defineRoute` and `bindRoute`. |
 | `factory.ts`  | Provides `ControllerFactory` to generate pre-configured CRUD controllers from a given entity and repository, simplifying the creation of standard API endpoints.                                                                                   |
 | `common/`     | Contains shared types (`types.ts`) and constants (`constants.ts`) for the controller layer.                                                                                                                                                        |
@@ -74,11 +74,11 @@ This is the foundational layer of Ignis, defining the core architecture and abst
 
 This directory centralizes the metadata handling for decorators, crucial for Ignis's DI and routing systems.
 
-| File/Folder      | Purpose/Key Details                                                                                              |
-| :--------------- | :--------------------------------------------------------------------------------------------------------------- |
-| `injectors.ts`   | Defines the `@injectable` and `@inject` decorators for dependency injection.                                     |
-| `persistents.ts` | Contains `@model` and `@datasource` decorators for marking classes as data models or data sources, respectively. |
-| `routes.ts`      | Defines the `@controller` decorator for marking classes as API controllers.                                      |
+| File/Folder      | Purpose/Key Details                                                                                                                                                             |
+| :--------------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `injectors.ts`   | Defines the `@injectable` and `@inject` decorators for dependency injection.                                                                                                    |
+| `persistents.ts` | Contains `@model` and `@datasource` decorators for marking classes as data models or data sources, respectively.                                                                |
+| `routes.ts`      | Defines the `@controller` decorator for marking classes as API controllers, and the new decorator set (`@api`, `@get`, `@post`, etc.) for defining routes on controller methods. |
 
 #### `base/middlewares`
 

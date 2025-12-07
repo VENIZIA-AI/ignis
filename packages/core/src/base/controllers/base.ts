@@ -21,28 +21,6 @@ export abstract class BaseController<
   }
 
   // ------------------------------------------------------------------------------
-  /* defineRoute<RC extends RouteConfig>(opts: {
-    configs: RC;
-    handler: TLazyRouteHandler<RC>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
-  }): TRouteDefinition<RouteEnv, RouteSchema, BasePath> {
-    const { configs, handler, hook } = opts;
-    const { responses, tags = [] } = configs;
-
-    const routeConfigs = createRoute<string, RouteConfig>(
-      Object.assign({}, configs, {
-        responses: Object.assign({}, jsonResponse({ description: 'Success Response' }), responses),
-        tags: [...tags, this.scope],
-      }),
-    );
-
-    return {
-      configs: routeConfigs,
-      route: this.router.openapi(routeConfigs, handler, hook),
-    };
-  } */
-
-  // ------------------------------------------------------------------------------
   bindRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
     configs: RC;
   }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath> {

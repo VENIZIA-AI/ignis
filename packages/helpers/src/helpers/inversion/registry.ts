@@ -1,4 +1,5 @@
 import type { TClass } from '@/common/types';
+import { BaseHelper } from '../base';
 import type {
   IControllerMetadata,
   IDataSourceMetadata,
@@ -7,35 +8,145 @@ import type {
   IModelMetadata,
   IPropertyMetadata,
   IRepositoryMetadata,
+  TRouteMetadata,
 } from './common';
 import { MetadataKeys } from './common';
 
 /**
  * Central metadata registry for storing and retrieving decorator metadata
  */
-export class MetadataRegistry {
+export class MetadataRegistry extends BaseHelper {
+  private static instance: MetadataRegistry;
+  protected metadata: WeakMap<any, Map<symbol, any>>;
+
+  private constructor() {
+    super({ scope: MetadataRegistry.name });
+    this.metadata = new WeakMap();
+  }
+
+  static getInstance(): MetadataRegistry {
+    if (!MetadataRegistry.instance) {
+      MetadataRegistry.instance = new MetadataRegistry();
+    }
+    return MetadataRegistry.instance;
+  }
+
+  // -----------------------------------------------------------------
+  // Generic Metadata Methods
+  // -----------------------------------------------------------------
+  define<Target extends object = object, Value = any>(opts: {
+    target: Target;
+    key: string | symbol;
+    value: Value;
+  }): void {
+    const { target, key, value } = opts;
+    this.logger.debug(
+      '[define] Set metadata | target: %s | key: %s | value: %j',
+      target.constructor.name,
+      key.toString(),
+      value,
+    );
+    Reflect.defineMetadata(key, value, target);
+  }
+
+  get<Target extends object = object, Value = any>(opts: {
+    target: Target;
+    key: string | symbol;
+  }): Value | undefined {
+    const { target, key } = opts;
+    return Reflect.getMetadata(key, target);
+  }
+
+  has<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
+    const { target, key } = opts;
+    return Reflect.hasMetadata(key, target);
+  }
+
+  delete<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
+    const { target, key } = opts;
+    return Reflect.deleteMetadata(key, target);
+  }
+
+  getKeys<Target extends object = object>(opts: { target: Target }): (string | symbol)[] {
+    const { target } = opts;
+    return (
+      Reflect.getMetadataKeys(target)?.filter(key => {
+        return typeof key === 'symbol' || typeof key === 'string';
+      }) ?? []
+    );
+  }
+
   // -----------------------------------------------------------------
   // Controller Metadata
   // -----------------------------------------------------------------
-  static setControllerMetadata<T extends object = object>(opts: {
-    target: T;
+  setControllerMetadata<Target extends object = object>(opts: {
+    target: Target;
     metadata: IControllerMetadata;
   }): void {
     const { target, metadata } = opts;
-    Reflect.defineMetadata(MetadataKeys.CONTROLLER, metadata, target);
+
+    const existing = this.getControllerMetadata({ target }) || {};
+    const merged = { ...existing, ...metadata };
+    Reflect.defineMetadata(MetadataKeys.CONTROLLER, merged, target);
   }
 
-  static getControllerMetadata<T extends object = object>(opts: {
-    target: T;
+  getControllerMetadata<Target extends object = object>(opts: {
+    target: Target;
   }): IControllerMetadata | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.CONTROLLER, target);
   }
 
+  /**
+   * Add a route to a controller class
+   */
+  addRoute<Target extends object = object>(opts: {
+    target: Target;
+    methodName: string | symbol;
+    configs: TRouteMetadata;
+  }): void {
+    const { target, methodName, configs } = opts;
+
+    const routes = this.getRoutes({ target }) || new Map();
+    routes.set(methodName, configs);
+
+    Reflect.defineMetadata(MetadataKeys.CONTROLLER_ROUTE, routes, target);
+  }
+
+  /**
+   * Get all routes from a controller class
+   */
+  getRoutes<Target extends object = object>(opts: {
+    target: Target;
+  }): Map<string | symbol, TRouteMetadata> | undefined {
+    const { target } = opts;
+    return Reflect.getMetadata(MetadataKeys.CONTROLLER_ROUTE, target);
+  }
+
+  /**
+   * Get a specific route by method name
+   */
+  getRoute<Target extends object = object>(opts: {
+    target: Target;
+    methodName: string | symbol;
+  }): TRouteMetadata | undefined {
+    const { target, methodName } = opts;
+    const routes = this.getRoutes({ target });
+    return routes?.get(methodName);
+  }
+
+  /**
+   * Check if a class has any routes defined
+   */
+  hasRoutes<Target extends object = object>(opts: { target: Target }): boolean {
+    const routes = this.getRoutes(opts);
+    return routes !== undefined && routes.size > 0;
+  }
+
   // -----------------------------------------------------------------
   // Property Metadata
   // -----------------------------------------------------------------
-  static setPropertyMetadata<T extends object = object>(opts: {
+  setPropertyMetadata<T extends object = object>(opts: {
     target: T;
     propertyName: string | symbol;
     metadata: IPropertyMetadata;
@@ -51,14 +162,14 @@ export class MetadataRegistry {
     Reflect.defineMetadata(MetadataKeys.PROPERTIES, properties, target.constructor);
   }
 
-  static getPropertiesMetadata<T extends object = object>(opts: {
+  getPropertiesMetadata<T extends object = object>(opts: {
     target: T;
   }): Map<string | symbol, IPropertyMetadata> | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.PROPERTIES, target.constructor);
   }
 
-  static getPropertyMetadata<T extends object = object>(opts: {
+  getPropertyMetadata<T extends object = object>(opts: {
     target: T;
     propertyName: string | symbol;
   }): IPropertyMetadata | undefined {
@@ -70,7 +181,7 @@ export class MetadataRegistry {
   // -----------------------------------------------------------------
   // Injection Metadata
   // -----------------------------------------------------------------
-  static setInjectMetadata<T extends object = object>(opts: {
+  setInjectMetadata<T extends object = object>(opts: {
     target: T;
     index: number;
     metadata: IInjectMetadata;
@@ -81,15 +192,13 @@ export class MetadataRegistry {
     Reflect.defineMetadata(MetadataKeys.INJECT, injects, target);
   }
 
-  static getInjectMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IInjectMetadata[] | undefined {
+  getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
   }
 
   // -----------------------------------------------------------------
-  static setInjectableMetadata<T extends object = object>(opts: {
+  setInjectableMetadata<T extends object = object>(opts: {
     target: T;
     metadata: IInjectableMetadata;
   }): void {
@@ -97,7 +206,7 @@ export class MetadataRegistry {
     Reflect.defineMetadata(MetadataKeys.INJECTABLE, metadata, target);
   }
 
-  static getInjectableMetadata<T extends object = object>(opts: {
+  getInjectableMetadata<T extends object = object>(opts: {
     target: T;
   }): IInjectableMetadata | undefined {
     const { target } = opts;
@@ -107,17 +216,12 @@ export class MetadataRegistry {
   // -----------------------------------------------------------------
   // Model Metadata
   // -----------------------------------------------------------------
-  static setModelMetadata<T extends object = object>(opts: {
-    target: T;
-    metadata: IModelMetadata;
-  }): void {
+  setModelMetadata<T extends object = object>(opts: { target: T; metadata: IModelMetadata }): void {
     const { target, metadata } = opts;
     Reflect.defineMetadata(MetadataKeys.MODEL, metadata, target);
   }
 
-  static getModelMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IModelMetadata | undefined {
+  getModelMetadata<T extends object = object>(opts: { target: T }): IModelMetadata | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.MODEL, target);
   }
@@ -125,7 +229,7 @@ export class MetadataRegistry {
   // -----------------------------------------------------------------
   // DataSource Metadata
   // -----------------------------------------------------------------
-  static setDataSourceMetadata<T extends object = object>(opts: {
+  setDataSourceMetadata<T extends object = object>(opts: {
     target: T;
     metadata: IDataSourceMetadata;
   }): void {
@@ -133,7 +237,7 @@ export class MetadataRegistry {
     Reflect.defineMetadata(MetadataKeys.DATASOURCE, metadata, target);
   }
 
-  static getDataSourceMetadata<T extends object = object>(opts: {
+  getDataSourceMetadata<T extends object = object>(opts: {
     target: T;
   }): IDataSourceMetadata | undefined {
     const { target } = opts;
@@ -143,7 +247,7 @@ export class MetadataRegistry {
   // -----------------------------------------------------------------
   // Repository Metadata
   // -----------------------------------------------------------------
-  static setRepositoryMetadata<T extends object = object>(opts: {
+  setRepositoryMetadata<T extends object = object>(opts: {
     target: T;
     metadata: IRepositoryMetadata;
   }): void {
@@ -151,7 +255,7 @@ export class MetadataRegistry {
     Reflect.defineMetadata(MetadataKeys.REPOSITORY, metadata, target);
   }
 
-  static getRepositoryMetadata<T extends object = object>(opts: {
+  getRepositoryMetadata<T extends object = object>(opts: {
     target: T;
   }): IRepositoryMetadata | undefined {
     const { target } = opts;
@@ -159,7 +263,7 @@ export class MetadataRegistry {
   }
 
   // -----------------------------------------------------------------
-  static getMethodNames<T = any>(opts: { target: TClass<T> }): string[] {
+  getMethodNames<T = any>(opts: { target: TClass<T> }): string[] {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(
@@ -168,7 +272,7 @@ export class MetadataRegistry {
     return methods;
   }
 
-  static clearMetadata<T extends object = object>(opts: { target: T }): void {
+  clearMetadata<T extends object = object>(opts: { target: T }): void {
     const { target } = opts;
     const keys = Reflect.getMetadataKeys(target);
 

@@ -244,8 +244,10 @@ export class Container extends BaseHelper {
   }
 
   instantiate<T>(cls: TClass<T>): T {
+    const registry = MetadataRegistry.getInstance();
+
     // 1. Handle constructor parameter injection
-    const injectMetadata = MetadataRegistry.getInjectMetadata({ target: cls });
+    const injectMetadata = registry.getInjectMetadata({ target: cls });
 
     const args: any[] = [];
     if (injectMetadata?.length) {
@@ -262,7 +264,7 @@ export class Container extends BaseHelper {
     const instance = new cls(...args);
 
     // 2. Handle property injection
-    const propertyMetadata = MetadataRegistry.getPropertiesMetadata({ target: instance as object });
+    const propertyMetadata = registry.getPropertiesMetadata({ target: instance as object });
     if (!propertyMetadata?.size) {
       return instance;
     }

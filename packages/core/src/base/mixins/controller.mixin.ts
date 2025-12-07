@@ -36,7 +36,7 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
 
           const bindings = this.findByTag({ tag: 'controllers' });
           for (const binding of bindings) {
-            const controllerMetadata = MetadataRegistry.getControllerMetadata({
+            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
               target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
             });
 

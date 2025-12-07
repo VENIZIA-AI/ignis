@@ -1,42 +1,55 @@
-import { IControllerMetadata, MetadataRegistry } from '@vez/ignis-helpers';
+import { RouteConfig } from '@hono/zod-openapi';
+import { HTTP, IControllerMetadata, MetadataRegistry, TAuthStrategy } from '@vez/ignis-helpers';
 
+// --------------------------------------------------------------------------------------------
 export const controller = (metadata: IControllerMetadata): ClassDecorator => {
   return target => {
-    MetadataRegistry.setControllerMetadata({ target, metadata });
+    MetadataRegistry.getInstance().setControllerMetadata({ target, metadata });
   };
 };
 
-// const routeMetadata = new WeakMap<any, Map<string | symbol, RouteConfig>>();
-//
-// export function api<R extends RouteConfig>(config: R) {
-//   return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
-//     if (!routeMetadata.has(target)) {
-//       routeMetadata.set(target, new Map());
-//     }
-//     routeMetadata.get(target)!.set(propertyKey, config);
-//     return descriptor;
-//   };
-// }
-//
-// /**
-//  * Decorator shortcuts for common HTTP methods
-//  */
-// export function get(path: string, config: Omit<RouteConfig, 'method' | 'path'> = {}) {
-//   return api({ ...config, method: 'get', path } as RouteConfig);
-// }
-//
-// export function post(path: string, config: Omit<RouteConfig, 'method' | 'path'> = {}) {
-//   return api({ ...config, method: 'post', path } as RouteConfig);
-// }
-//
-// export function put(path: string, config: Omit<RouteConfig, 'method' | 'path'> = {}) {
-//   return api({ ...config, method: 'put', path } as RouteConfig);
-// }
-//
-// export function patch(path: string, config: Omit<RouteConfig, 'method' | 'path'> = {}) {
-//   return api({ ...config, method: 'patch', path } as RouteConfig);
-// }
-//
-// export function del(path: string, config: Omit<RouteConfig, 'method' | 'path'> = {}) {
-//   return api({ ...config, method: 'delete', path } as RouteConfig);
-// }
+// --------------------------------------------------------------------------------------------
+export const api = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: RC;
+}) => {
+  return function (target: any, propertyKey: string | symbol, descriptor: PropertyDescriptor) {
+    MetadataRegistry.getInstance().addRoute({
+      target,
+      methodName: propertyKey,
+      configs: opts.configs,
+    });
+
+    return descriptor;
+  };
+};
+
+// --------------------------------------------------------------------------------------------
+export const get = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: Omit<RC, 'method'>;
+}) => {
+  return api({ configs: { ...opts.configs, method: HTTP.Methods.GET } });
+};
+
+export const post = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: Omit<RC, 'method'>;
+}) => {
+  return api({ configs: { ...opts.configs, method: HTTP.Methods.POST } });
+};
+
+export const put = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: Omit<RC, 'method'>;
+}) => {
+  return api({ configs: { ...opts.configs, method: HTTP.Methods.PUT } });
+};
+
+export const patch = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: Omit<RC, 'method'>;
+}) => {
+  return api({ configs: { ...opts.configs, method: HTTP.Methods.PATCH } });
+};
+
+export const del = <RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  configs: Omit<RC, 'method'>;
+}) => {
+  return api({ configs: { ...opts.configs, method: HTTP.Methods.DELETE } });
+};

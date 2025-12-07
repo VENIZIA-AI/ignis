@@ -13,7 +13,7 @@ The `AbstractController` class is an abstract base that integrates Hono's routin
 | Feature | Description |
 | :--- | :--- |
 | **Hono Router** | Each controller instance manages its own `OpenAPIHono` router. |
-| **Lifecycle** | Provides a `binding()` method, which is the designated place to define all routes for the controller. |
+| **Lifecycle** | Provides a `binding()` method for manual route definition and a `registerRoutesFromRegistry()` method for automatic registration of decorator-based routes. |
 | **OpenAPI Integration** | Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. |
 | **Standard Route Configs** | The `getRouteConfigs` method centralizes the logic for preparing route configurations, including adding authentication strategies, default responses, and controller-specific tags. |
 
@@ -23,11 +23,92 @@ The `BaseController` extends `AbstractController` and provides concrete implemen
 
 -   **File:** `packages/core/src/base/controllers/base.ts`
 
-### Route Definition Methods
+There are two primary ways to define routes in a controller: **Decorator-Based Routing** (recommended) and **Manual Route Definition**.
 
-`BaseController` offers two primary methods for defining routes:
+### Decorator-Based Routing (Recommended)
 
-### `defineRoute`
+With the latest updates, the recommended way to define routes is by using decorators directly on your controller methods. This approach is more declarative, cleaner, and reduces boilerplate. The framework automatically discovers and registers these routes during startup via the `registerRoutesFromRegistry()` method.
+
+The `binding()` method is no longer required if you are using only decorator-based routing.
+
+#### `@api` Decorator
+
+The generic `@api` decorator allows you to define a route with a full configuration object.
+
+```typescript
+import { api, BaseController, controller, HTTP, jsonResponse, z } from '@vez/ignis';
+import { Context } from 'hono';
+
+@controller({ path: '/my-feature' })
+export class MyFeatureController extends BaseController {
+
+  @api({
+    configs: {
+      method: 'get',
+      path: '/data',
+      responses: jsonResponse({ schema: z.object({ success: z.boolean() }) }),
+    },
+  })
+  getData(c: Context) {
+    return c.json({ success: true });
+  }
+}
+```
+
+#### HTTP Method Decorators (`@get`, `@post`, etc.)
+
+For convenience, Ignis provides decorator shortcuts for each HTTP method. These decorators accept the same `configs` object as `@api`, but without the `method` property.
+
+- `@get(opts)`
+- `@post(opts)`
+- `@put(opts)`
+- `@patch(opts)`
+- `@del(opts)`
+
+**Example using `@get`:**
+
+```typescript
+import { get, BaseController, controller, HTTP, jsonResponse, z } from '@vez/ignis';
+import { Context } from 'hono';
+
+@controller({ path: '/users' })
+export class UserController extends BaseController {
+
+  @get({
+    configs: {
+      path: '/',
+      responses: jsonResponse({
+        schema: z.array(z.object({ id: z.string(), name: z.string() })),
+      }),
+    },
+  })
+  getAllUsers(c: Context) {
+    return c.json([{ id: '1', name: 'John Doe' }]);
+  }
+
+  @get({
+    configs: {
+      path: '/:id',
+      request: {
+        params: z.object({ id: z.string() }),
+      },
+      responses: jsonResponse({
+        schema: z.object({ id: z.string(), name: z.string() }),
+      }),
+    },
+  })
+  getUserById(c: Context) {
+    const { id } = c.req.valid('param');
+    return c.json({ id, name: 'John Doe' });
+  }
+}
+```
+
+### Manual Route Definition Methods
+
+While decorator-based routing is recommended, the original methods for defining routes within the `binding()` method are still available.
+
+#### `defineRoute`
 
 This method is for creating API endpoints. It now handles both public and authenticated routes by accepting an `authStrategies` array within the `configs`.
 
@@ -43,7 +124,7 @@ this.defineRoute({
 -   **`handler`**: The Hono route handler function `(c: Context) => Response`.
 -   **`hook`**: An optional hook for processing the request or response, often used for validation error handling.
 
-### `bindRoute`
+#### `bindRoute`
 
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also supports `authStrategies`.
 

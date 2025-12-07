@@ -53,4 +53,28 @@ export class HealthCheckController extends BaseController {
       },
     }); */
   }
+
+  // Method 3: Using 'decorators' to create a controller route
+  // @api({
+  //   configs: {
+  //     method: 'get',
+  //     path: '/abc/:id',
+  //     request: {
+  //       params: idParamsSchema({ idType: 'string' }),
+  //     },
+  //     responses: {
+  //       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+  //         schema: z.object({ status: z.string() }).openapi({
+  //           description: 'HealthCheck Schema',
+  //           examples: [{ status: 'ok' }],
+  //         }),
+  //         description: 'Health check status',
+  //       }),
+  //     },
+  //   },
+  // })
+  // getServerStatus(c: Context) {
+  //   console.log(c, (c.req as any).valid('params'), c.req.param);
+  //   return c.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
+  // }
 }

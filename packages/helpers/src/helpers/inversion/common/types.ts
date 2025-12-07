@@ -1,4 +1,5 @@
-import type { TConstValue } from '@/common/types';
+import type { TAuthStrategy, TConstValue } from '@/common/types';
+import { RouteConfig } from '@hono/zod-openapi';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Binding
@@ -24,20 +25,7 @@ export interface IBindingTag {
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Metadata
 // ----------------------------------------------------------------------------------------------------------------------------------------
-/* export interface IRouteMetadata {
-  path: string;
-  method: THttpMethod;
-  methodName: string | symbol;
-  responses?: AnyObject;
-  description?: string;
-  tags?: string[];
-  operationId?: string;
-  security?: AnyObject[];
-  [key: string]: any;
-} */
-
-// export type TRouteMetadata = IRouteMetadata;
-// export type TPropertyMetadata = IPropertyMetadata;
+export type TRouteMetadata = RouteConfig & { authStrategies?: Array<TAuthStrategy> };
 
 export interface IControllerMetadata {
   path: string;

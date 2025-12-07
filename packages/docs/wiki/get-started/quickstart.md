@@ -175,49 +175,47 @@ export class Application extends BaseApplication {
 
 ### `src/controllers/hello.controller.ts`
 
-This controller handles a simple `/hello` route.
+This controller handles a simple `/hello` route using a decorator.
 
 ```typescript
 import {
   BaseController,
   controller,
+  get, // Import the 'get' decorator
   HTTP,
-  IControllerOptions,
-  jsonContent, // Import jsonContent
-  ValueOrPromise,
+  jsonContent,
 } from '@vez/ignis';
-import { z } from '@hono/zod-openapi'; // Import z for schema definition
+import { z } from '@hono/zod-openapi';
+import { Context } from 'hono';
 
 const BASE_PATH = '/hello';
 
 @controller({ path: BASE_PATH })
 export class HelloController extends BaseController {
-  constructor(opts: IControllerOptions) {
-    super({ ...opts, scope: HelloController.name, path: BASE_PATH });
+  constructor() {
+    super({ scope: HelloController.name, path: BASE_PATH });
   }
 
-  override binding(): ValueOrPromise<void> {
-    this.defineRoute({
-      configs: {
-        path: '/',
-        method: 'get',
-        responses: {
-          [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-            description: 'A simple hello message',
-            schema: z.object({ message: z.string() }), // Define response schema
-          }),
-        },
+  @get({
+    configs: {
+      path: '/',
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+          description: 'A simple hello message',
+          schema: z.object({ message: z.string() }),
+        }),
       },
-      handler: c => c.json({ message: 'Hello, World!' }),
-    });
-
-    // For authenticated endpoints, use 'authStrategies' in configs:
-    // this.defineRoute({ configs: { path: '/secure', method: 'get', authStrategies: [Authentication.STRATEGY_JWT] }, handler: ... });
-
-    // For CRUD operations, consider using ControllerFactory to reduce boilerplate.
-    // import { ControllerFactory } from '@vez/ignis';
-    // const MyCrudController = ControllerFactory.defineCrudController(...);
+    },
+  })
+  sayHello(c: Context) {
+    return c.json({ message: 'Hello, World!' });
   }
+
+  // For authenticated endpoints, add 'authStrategies' to the configs:
+  // @get({ configs: { path: '/secure', authStrategies: [Authentication.STRATEGY_JWT] } })
+  // secureMethod(c: Context) { /* ... */ }
+
+  // For CRUD operations, consider using ControllerFactory to reduce boilerplate.
 }
 ```
 

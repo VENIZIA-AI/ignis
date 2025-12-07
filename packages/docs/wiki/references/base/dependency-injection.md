@@ -54,3 +54,16 @@ The `@inject` decorator is used to mark where dependencies should be injected.
 5.  Finally, it creates the instance of `MyClass`, passing the resolved dependencies to the constructor or setting them on the instance properties.
 
 This entire process is managed by the framework when your application starts up, ensuring that all your registered classes are created with their required dependencies.
+
+## `MetadataRegistry`
+
+The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a singleton class responsible for storing and retrieving all the metadata attached by decorators like `@inject`, `@controller`, `@get`, etc.
+
+-   **File:** `packages/helpers/src/helpers/inversion/registry.ts`
+
+### Role in DI
+
+-   When you use a decorator (e.g., `@inject`), it calls a method on the `MetadataRegistry.getInstance()` to store information about the injection (like the binding key and target property/parameter).
+-   When the `Container` instantiates a class, it queries the `MetadataRegistry` to find out which dependencies need to be injected and where.
+
+You typically won't interact with the `MetadataRegistry` directly, but it's the underlying mechanism that makes the decorator-based DI and routing systems work seamlessly.

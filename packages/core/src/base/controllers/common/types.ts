@@ -1,5 +1,3 @@
-import { TTableSchemaWithId } from '@/base/models';
-import { IRepository } from '@/base/repositories';
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { IConfigurable, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
@@ -8,7 +6,7 @@ import { Env, Schema } from 'hono';
 export type TLazyRouteHandler<RC extends RouteConfig> = RC extends RC ? RouteHandler<RC> : never;
 
 export type TRouteDefinition<
-  RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> },
+  RC extends RouteConfig,
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
@@ -18,7 +16,7 @@ export type TRouteDefinition<
 };
 
 export type TRouteBindingOptions<
-  RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> },
+  RC extends RouteConfig,
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
@@ -49,27 +47,26 @@ export interface IController<
     handler: TLazyRouteHandler<RC>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath>;
-
-  /* defineAuthRoute<RC extends RouteConfig & { authStrategies: Array<TAuthStrategy> }>(opts: {
-    configs: RC;
-    handler: TLazyRouteHandler<RC>;
-    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
-  }): TRouteDefinition<RouteEnv, RouteSchema, BasePath>; */
 }
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // TODO Fix any type
-export interface ICrudController<
-  R extends TTableSchemaWithId = any,
-  S extends TTableSchemaWithId = any,
-  T extends TTableSchemaWithId = any,
-> extends IController {
-  defaultLimit: number;
-  relation?: { name: string; type: string };
+// export interface ICrudController<
+//   R extends TTableSchemaWithId = any,
+//   S extends TTableSchemaWithId = any,
+//   T extends TTableSchemaWithId = any,
+// > extends IController {
+//   defaultLimit: number;
+//   relation?: { name: string; type: string };
+//
+//   repository?: IRepository<R>;
+//   sourceRepository?: IRepository<S>;
+//   targetRepository?: IRepository<T>;
+// }
 
-  repository?: IRepository<R>;
-  sourceRepository?: IRepository<S>;
-  targetRepository?: IRepository<T>;
+export interface IReflectController<Target extends object, RC extends RouteConfig = RouteConfig> {
+  routeMetadata: WeakMap<Target, Map<string | symbol, RC>>;
+  registerRoutes(): void;
 }
 
 export interface IControllerOptions {

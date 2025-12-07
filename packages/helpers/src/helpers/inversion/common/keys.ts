@@ -4,7 +4,7 @@ import isEmpty from 'lodash/isEmpty';
 export const MetadataKeys = {
   // Controller metadata
   CONTROLLER: Symbol.for('ignis:controller'),
-  CONTROLLER_BASEPATH: Symbol.for('ignis:controller:basepath'),
+  CONTROLLER_ROUTE: Symbol.for('ignis:controller:route'),
 
   // Property metadata
   PROPERTIES: Symbol.for('ignis:properties'),

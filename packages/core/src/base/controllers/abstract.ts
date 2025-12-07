@@ -1,6 +1,6 @@
 import { authenticate } from '@/components/auth';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import { BaseHelper, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
+import { BaseHelper, MetadataRegistry, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { jsonResponse } from '../models';
 import {
@@ -43,6 +43,25 @@ export abstract class AbstractController<
     return this.router;
   }
 
+  // ------------------------------------------------------------------------------
+  registerRoutesFromRegistry(): void {
+    const routes = MetadataRegistry.getInstance().getRoutes({
+      target: Object.getPrototypeOf(this),
+    });
+
+    if (!routes?.size) {
+      return;
+    }
+
+    for (const [methodName, routeConfigs] of routes.entries()) {
+      const handler = (this as any)[methodName].bind(this);
+
+      this.bindRoute({
+        configs: routeConfigs,
+      }).to({ handler });
+    }
+  }
+
   async configure(
     opts?: ConfigurableOptions,
   ): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
@@ -52,6 +71,7 @@ export abstract class AbstractController<
     this.logger.info('[configure] START | Binding controller | Options: %j', configureOptions);
 
     await this.binding();
+    this.registerRoutesFromRegistry();
 
     this.logger.info(
       '[configure] DONE | Binding controller | Took: %s (ms)',
@@ -96,11 +116,8 @@ export abstract class AbstractController<
     configs: RC;
   }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath>;
 
-  abstract defineRoute<
-    RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> },
-    AuthRC extends RC & { authStrategies?: Array<TAuthStrategy> },
-  >(opts: {
-    configs: AuthRC;
+  abstract defineRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+    configs: RC;
     handler: TLazyRouteHandler<RC>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath>;
