@@ -1,10 +1,19 @@
-import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { HTTP, RuntimeModules } from '@/common/constants';
-import { AnyObject, TClass, IConfigurable } from '@/common/types';
+import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
-import { getError } from '@/helpers/error';
-import { Binding, BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
-import { executeWithPerformanceMeasure } from '@/utilities';
+import {
+  AnyObject,
+  Binding,
+  BindingKeys,
+  BindingScopes,
+  BindingValueTypes,
+  executeWithPerformanceMeasure,
+  getError,
+  HTTP,
+  IConfigurable,
+  MetadataRegistry,
+  RuntimeModules,
+  TClass,
+} from '@vez/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';

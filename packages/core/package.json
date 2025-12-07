@@ -53,11 +53,7 @@
     "rebuild:preminor": "sh ./scripts/rebuild.sh preminor",
     "rebuild:prepatch": "sh ./scripts/rebuild.sh prepatch",
     "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease",
-    "pretest:develop": "bun run rebuild",
-    "test:develop": "NODE_ENV=development bun run ./dist/__tests__/index.js",
-    "docs:dev": "vitepress dev docs",
-    "docs:build": "vitepress build docs",
-    "docs:preview": "vitepress preview docs"
+    "test:develop": "bun run rebuild && NODE_ENV=development bun run ./dist/__tests__/index.js"
   },
   "repository": {
     "type": "git",
@@ -82,22 +78,12 @@
     "access": "public"
   },
   "dependencies": {
-    "axios": "^1.12.2",
-    "bullmq": "^5.63.1",
+    "@vez/ignis-helpers": "workspace:*",
     "casbin": "^5.38.0",
-    "cron": "^4.3.3",
-    "dayjs": "^1.11.18",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.10.7",
-    "ioredis": "^5.7.0",
-    "jose": "^6.1.2",
     "lodash": "^4.17.21",
-    "minio": "^8.0.6",
-    "mqtt": "^5.14.1",
-    "reflect-metadata": "^0.2.2",
-    "winston": "^3.17.0",
-    "winston-daily-rotate-file": "^5.0.0",
-    "winston-transport": "^4.9.0"
+    "reflect-metadata": "^0.2.2"
   },
   "peerDependenciesMeta": {
     "@hono/node-server": {

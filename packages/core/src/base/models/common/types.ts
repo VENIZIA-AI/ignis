@@ -1,7 +1,6 @@
-import { HTTP } from '@/common/constants';
-import { ErrorSchema, getError } from '@/helpers/error';
 import { AnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
+import { ErrorSchema, getError, HTTP } from '@vez/ignis-helpers';
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
@@ -74,11 +73,10 @@ export const jsonContent = <T extends z.ZodObject>(opts: {
   description: string;
   required?: boolean;
 }) => {
-  const { schema, description, required = false } = opts;
   return {
-    description,
-    content: { 'application/json': { schema } },
-    required,
+    description: opts.description,
+    content: { 'application/json': { schema: opts.schema } },
+    required: opts.required,
   };
 };
 

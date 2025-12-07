@@ -10,7 +10,6 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
   constructor(
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    console.log(configurationRelations);
     super({
       dataSource,
       entityClass: Configuration,

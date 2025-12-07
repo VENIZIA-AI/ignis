@@ -1,11 +1,15 @@
 import { CoreBindings } from '@/common/bindings';
-import { RuntimeModules, TRuntimeModule } from '@/common/constants';
-import { ValueOrPromise } from '@/common/types';
-import { applicationEnvironment } from '@/helpers/env';
-import { getError } from '@/helpers/error';
-import { Container } from '@/helpers/inversion';
-import { int, toBoolean } from '@/utilities/parse.utility';
 import { OpenAPIHono } from '@hono/zod-openapi';
+import {
+  applicationEnvironment,
+  Container,
+  getError,
+  int,
+  RuntimeModules,
+  toBoolean,
+  TRuntimeModule,
+  ValueOrPromise,
+} from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
@@ -138,9 +142,9 @@ export abstract class AbstractApplication<
 
   protected inspectRoutes() {
     const t = performance.now();
-    const showRoutes = this.configs?.debug?.showRoutes ?? false;
+    const shouldShowRoutes = this.configs?.debug?.shouldShowRoutes ?? false;
 
-    if (!showRoutes) {
+    if (!shouldShowRoutes) {
       return;
     }
 

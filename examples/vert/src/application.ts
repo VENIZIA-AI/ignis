@@ -37,7 +37,7 @@ export const beConfigs: IApplicationConfigs = {
     isStrict: true,
   },
   debug: {
-    showRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
+    shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
 };
 
@@ -77,7 +77,7 @@ export class Application extends BaseApplication {
 
     for (const name in middlewares) {
       const mwDef = middlewares[name];
-      const { enable = false, path, module, ...mwOptions } = mwDef;
+      const { enable = false, path: mwPath, module, ...mwOptions } = mwDef;
 
       if (!enable) {
         this.logger.debug(
@@ -94,8 +94,8 @@ export class Application extends BaseApplication {
         enable,
         mwOptions,
       );
-      if (!isEmpty(path)) {
-        server.use(path, module?.[name]?.(mwOptions));
+      if (!isEmpty(mwPath)) {
+        server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
       }
 
@@ -235,7 +235,7 @@ export class Application extends BaseApplication {
       where: {
         id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
       },
-      options: { returning: false },
+      options: { shouldReturn: false },
     };
     const case6 = await configurationRepository.updateAll(case6Payload);
     this.logger.info(
@@ -247,7 +247,7 @@ export class Application extends BaseApplication {
     // ------------------------------------------------------------------------------------------------
     const case7Payload = {
       id: case3.data!.id,
-      options: { returning: true },
+      options: { shouldReturn: true },
     };
     const case7 = await configurationRepository.deleteById(case7Payload);
     this.logger.info(
@@ -260,7 +260,7 @@ export class Application extends BaseApplication {
       where: {
         and: [{ dataType: DataTypes.NUMBER }, { dataType: DataTypes.JSON }],
       },
-      options: { returning: true },
+      options: { shouldReturn: true },
     };
     const case8 = await configurationRepository.deleteAll(case8Payload);
     this.logger.info(

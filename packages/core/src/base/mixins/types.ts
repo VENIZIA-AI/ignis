@@ -1,11 +1,10 @@
-import { AnyObject, TClass, ValueOrPromise } from '@/common/types';
+import { AnyObject, Binding, TClass, ValueOrPromise } from '@vez/ignis-helpers';
 import { IApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
-import { Binding } from '@/helpers/inversion';
 
 export interface IComponentMixin {
   component<T extends BaseComponent, O extends AnyObject = any>(

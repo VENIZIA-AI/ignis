@@ -1,6 +1,6 @@
-import { TAuthStrategy, ValueOrPromise } from '@/common/types';
 import type { RouteConfig } from '@hono/zod-openapi';
 import { Hook } from '@hono/zod-openapi';
+import { TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {

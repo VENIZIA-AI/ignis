@@ -15,7 +15,7 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: {
     name: 'ConfigurationController',
     basePath: BASE_PATH,
-    strict: true,
+    isStrict: true,
   },
 
   // Define entity by direct declare entity class

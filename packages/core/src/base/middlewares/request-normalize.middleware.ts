@@ -1,4 +1,4 @@
-import { HTTP } from '@/common';
+import { HTTP } from '@vez/ignis-helpers';
 import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 

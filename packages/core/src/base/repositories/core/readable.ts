@@ -1,7 +1,6 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TClass, TNullable } from '@/common/types';
-import { getError } from '@/helpers';
+import { getError, TClass, TNullable } from '@vez/ignis-helpers';
 import { RepositoryOperationScopes, TCount, TFilter, TRelationConfig, TWhere } from '../common';
 import { AbstractRepository } from './base';
 
@@ -72,9 +71,7 @@ export class ReadableRepository<
     options?: ExtraOptions;
   }): Promise<TNullable<DataObject>> {
     const queryOptions = this.buildQuery({ filter: opts.filter });
-
-    const { limit, offset, ...findFirstOptions } = queryOptions;
-    return this.connector.query[this.entity.name].findFirst(findFirstOptions);
+    return this.connector.query[this.entity.name].findFirst(queryOptions);
   }
 
   override findById(opts: {
@@ -94,7 +91,7 @@ export class ReadableRepository<
   // ---------------------------------------------------------------------------
   override create(_opts: {
     data: PersistObject;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     throw getError({
       message: `[${this.create.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -103,7 +100,7 @@ export class ReadableRepository<
 
   override createAll(_opts: {
     data: Array<PersistObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     throw getError({
       message: `[${this.createAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -114,7 +111,7 @@ export class ReadableRepository<
   override updateById(_opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     throw getError({
       message: `[${this.updateById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -124,7 +121,7 @@ export class ReadableRepository<
   override updateAll(_opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     throw getError({
       message: `[${this.updateAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -134,7 +131,7 @@ export class ReadableRepository<
   // ---------------------------------------------------------------------------
   override deleteById(_opts: {
     id: IdType;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     throw getError({
       message: `[${this.deleteById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -143,7 +140,7 @@ export class ReadableRepository<
 
   override deleteAll(_opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     throw getError({
       message: `[${this.deleteAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,

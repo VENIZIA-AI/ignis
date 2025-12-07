@@ -43,8 +43,7 @@ Ignis offers two primary methods for defining routes: `defineRoute` and `bindRou
 Use this method for defining a single API endpoint with all its configurations and handler.
 
 ```typescript
-import { Authentication, HTTP, jsonContent } from '@vez/ignis';
-import { z } from '@hono/zod-openapi';
+import { Authentication, HTTP, jsonResponse, z } from '@vez/ignis';
 
 // ... inside the binding() method
 
@@ -54,7 +53,7 @@ this.defineRoute({
     method: 'get',
     // Optional: Add authentication strategies
     authStrategies: [Authentication.STRATEGY_JWT], 
-    responses: jsonContent({ // Use the helper for standard responses
+    responses: jsonResponse({ // Use the helper for standard responses
       description: 'List of all users',
       schema: z.array(z.object({ id: z.number(), name: z.string() })),
     }),
@@ -71,8 +70,7 @@ This defines a `GET /users` endpoint that will appear in your OpenAPI documentat
 This method offers a fluent API for defining routes, useful for more readable chaining of configurations.
 
 ```typescript
-import { Authentication, HTTP, jsonContent } from '@vez/ignis';
-import { z } from '@hono/zod-openapi';
+import { Authentication, HTTP, jsonResponse, z } from '@vez/ignis';
 
 // ... inside the binding() method
 
@@ -82,7 +80,7 @@ this.bindRoute({
     method: 'get',
     // Optional: Add authentication strategies
     authStrategies: [Authentication.STRATEGY_JWT],
-    responses: jsonContent({
+    responses: jsonResponse({
       description: 'A single user',
       schema: z.object({ id: z.string(), name: z.string() }),
     }),
@@ -118,7 +116,7 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: {
     name: 'ConfigurationController',
     basePath: BASE_PATH,
-    strict: true,
+    isStrict: true,
   },
   entity: () => Configuration, // Provide a resolver for your entity class
 });

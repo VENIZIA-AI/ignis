@@ -3,12 +3,10 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { EnvironmentKeys } from '@/common/environments';
-import { ValueOrPromise } from '@/common/types';
-import { getError } from '@/helpers';
-import { Binding } from '@/helpers/inversion';
 import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
 import { defineAuthController } from './controllers';
 import { JWTTokenService } from './services';
+import { Binding, getError, ValueOrPromise } from '@vez/ignis-helpers';
 
 const DEFAULT_SECRET = 'unknown_secret';
 

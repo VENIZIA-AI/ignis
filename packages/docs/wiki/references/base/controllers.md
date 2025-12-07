@@ -120,7 +120,7 @@ This factory method returns a `BaseController` class that is already set up with
 | `repository.name` | `string` | The binding key name of the repository associated with this entity (e.g., `'ConfigurationRepository'`). |
 | `controller.name` | `string` | A unique name for the generated controller (e.g., `'ConfigurationController'`). |
 | `controller.basePath`| `string` | The base path for all routes in this CRUD controller (e.g., `'/configurations'`). |
-| `controller.strict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
+| `controller.isStrict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
 | `controller.defaultLimit`| `number` | The default limit for `find` operations. Defaults to `10`. |
 
 ### Example
@@ -145,7 +145,7 @@ const _ConfigurationController = ControllerFactory.defineCrudController({
   controller: {
     name: 'ConfigurationController',
     basePath: BASE_PATH,
-    strict: true,
+    isStrict: true,
   },
   entity: () => Configuration, // Provide the entity class
 });
@@ -167,6 +167,4 @@ export class ConfigurationController extends _ConfigurationController {
 }
 ```
 
-By leveraging these structured configuration options and the `ControllerFactory`, you ensure that your API is not only functional but also well-documented, easy to validate, and rapidly deployable for standard CRUD operations.```
-
-By leveraging these structured configuration options, you ensure that your API is not only functional but also well-documented and easy to validate.
+By leveraging these structured configuration options and the `ControllerFactory`, you ensure that your API is not only functional but also well-documented, easy to validate, and rapidly deployable for standard CRUD operations.

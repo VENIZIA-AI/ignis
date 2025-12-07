@@ -3,7 +3,7 @@ import {
   IModelMetadata,
   IRepositoryMetadata,
   MetadataRegistry,
-} from '@/helpers/inversion';
+} from '@vez/ignis-helpers';
 
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {

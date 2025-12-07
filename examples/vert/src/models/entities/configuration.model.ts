@@ -12,21 +12,11 @@ import {
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, userTable } from './user.model';
 
-@model({ type: 'entity', skipMigrate: false })
-export class Configuration extends BaseEntity<TConfigurationSchema> {
-  static readonly TABLE_NAME = Configuration.name;
-
-  constructor() {
-    super({
-      name: Configuration.TABLE_NAME,
-      schema: configurationTable,
-    });
-  }
-}
+const TABLE_NAME = 'Configuration';
 
 // ----------------------------------------------------------------
 export const configurationTable = pgTable(
-  Configuration.TABLE_NAME,
+  TABLE_NAME,
   {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),
@@ -76,3 +66,16 @@ export const configurationRelations = createRelations({
 
 export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
+
+// ----------------------------------------------------------------
+@model({ type: 'entity', skipMigrate: false })
+export class Configuration extends BaseEntity<TConfigurationSchema> {
+  static readonly TABLE_NAME = Configuration.name;
+
+  constructor() {
+    super({
+      name: Configuration.TABLE_NAME,
+      schema: configurationTable,
+    });
+  }
+}

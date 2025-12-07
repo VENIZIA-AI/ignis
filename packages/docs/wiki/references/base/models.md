@@ -52,14 +52,6 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> 
       }
     }
   }
-
-  toObject() {
-    return Object.assign({}, this);
-  }
-
-  toJSON() {
-    return this.toObject();
-  }
 }
 ```
 
@@ -88,14 +80,12 @@ import {
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
-  generateDataTypeColumnDefs,
 } from '@vez/ignis';
 
 export const myTable = pgTable('MyTable', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   ...generateTzColumnDefs(),
   ...generateUserAuditColumnDefs({ created: { dataType: 'string' }, modified: { dataType: 'string' } }),
-  ...generateDataTypeColumnDefs(),
   name: text('name').notNull(),
 });
 ```

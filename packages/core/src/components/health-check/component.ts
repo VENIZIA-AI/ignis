@@ -2,11 +2,9 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { controller, inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
-import { ValueOrPromise } from '@/common/types';
-import { Binding } from '@/helpers/inversion';
+import { Binding, ValueOrPromise } from '@vez/ignis-helpers';
+import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
-import { HealthCheckBindingKeys } from './keys';
-import { IHealthCheckOptions } from './types';
 
 const DEFAULT_OPTIONS: IHealthCheckOptions = {
   restOptions: { path: '/health' },

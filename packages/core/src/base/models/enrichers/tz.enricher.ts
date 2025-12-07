@@ -19,7 +19,7 @@ export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
     modified = { enable: true, columnName: 'modified_at', withTimezone: true },
   } = opts ?? {};
 
-  let rs = {
+  const rs = {
     createdAt: timestamp(created.columnName, {
       mode: 'date',
       withTimezone: created.withTimezone,

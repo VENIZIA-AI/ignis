@@ -1,7 +1,7 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TNullable } from '@/common/types';
 import { z } from '@hono/zod-openapi';
+import { TNullable } from '@vez/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
 import { Sorts } from '../operators';
 import { DEFAULT_LIMIT, RelationTypes } from './constants';
@@ -108,7 +108,7 @@ export const InclusionSchema = z
     z.object({
       relation: z.string().openapi({ description: 'Model relation name' }),
       scope: z
-        .lazy(() => FilterSchema)
+        .lazy(() => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
         .optional()
         .openapi({ description: 'Model relation filter' }),
     }),
@@ -140,7 +140,6 @@ export const FilterSchema = z
     z
       .string()
       .transform(val => {
-        console.log(val);
         if (val) {
           return JSON.parse(val);
         }
@@ -185,12 +184,12 @@ export const CountSchema = z.object({ count: z.number().default(0) }).openapi({
 export type TCount = z.infer<typeof CountSchema>;
 
 // ---------------------------------------------------------------------------
-export type DrizzleQueryOptions = Partial<{
+export type TDrizzleQueryOptions = Partial<{
   limit: number;
   offset: number;
   orderBy: SQL[];
   where: SQL;
-  with: Record<string, boolean | DrizzleQueryOptions>;
+  with: Record<string, boolean | TDrizzleQueryOptions>;
   columns: Record<string, boolean>;
 }>;
 
@@ -229,7 +228,7 @@ export interface IReadableRepository<
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   ExtraOptions extends TNullable<object> = undefined,
 > extends IRepository<EntitySchema> {
-  buildQuery(opts: { filter: TFilter<DataObject> }): DrizzleQueryOptions;
+  buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
 
   count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
   existsWith(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<boolean>;
@@ -254,40 +253,40 @@ export interface IPersistableRepository<
 > extends IReadableRepository<EntitySchema, DataObject, ExtraOptions> {
   create(opts: {
     data: PersistObject;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   createAll(opts: {
     data: Array<PersistObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 
   updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
   updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 
   deleteById(opts: {
     id: IdType;
-    options?: (ExtraOptions | {}) & { returning?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
   deleteAll(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
   deleteBy(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { returning?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
 }
 

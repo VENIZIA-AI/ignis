@@ -1,7 +1,7 @@
 import { BaseController, IControllerOptions } from '@/base/controllers';
 import { jsonContent } from '@/base/models';
-import { HTTP, ValueOrPromise } from '@/common';
 import { z } from '@hono/zod-openapi';
+import { HTTP, ValueOrPromise } from '@vez/ignis-helpers';
 
 export class HealthCheckController extends BaseController {
   constructor(opts: IControllerOptions) {

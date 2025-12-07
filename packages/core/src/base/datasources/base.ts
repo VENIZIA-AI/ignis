@@ -1,5 +1,4 @@
-import { ValueOrPromise } from '@/common/types';
-import { BaseHelper } from '../helpers';
+import { BaseHelper, ValueOrPromise } from '@vez/ignis-helpers';
 import {
   IDataSource,
   TAnyDatasourceSchema,

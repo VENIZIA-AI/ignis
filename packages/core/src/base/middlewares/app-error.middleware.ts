@@ -1,5 +1,4 @@
-import { Environment, HTTP } from '@/common';
-import { ApplicationLogger } from '@/helpers/logger';
+import { ApplicationLogger, Environment, HTTP } from '@vez/ignis-helpers';
 import { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 
@@ -16,7 +15,7 @@ const formatZodError = (opts: {
   let validationErrors = error;
   try {
     validationErrors = JSON.parse(error.message);
-  } catch (parseError) {
+  } catch (_) {
     validationErrors = error;
   }
 
@@ -60,7 +59,7 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
 
     const env = context.env?.NODE_ENV || process.env.NODE_ENV;
 
-    let statusCode =
+    const statusCode =
       'status' in error
         ? error.status
         : 'statusCode' in error

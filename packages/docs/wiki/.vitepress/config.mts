@@ -169,44 +169,16 @@ const config = defineConfig({
         },
         {
           text: 'Framework Internals',
-          items: [{ text: 'Source Code Structure', link: '/references/src-details/' }],
+          items: [
+            { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
+            { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
+            { text: 'Documentation (@vez/ignis-docs)', link: '/references/src-details/docs' },
+          ],
         },
       ],
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
-
-    mermaid: {
-      theme: {
-        light: 'default',
-        dark: 'dark',
-      },
-      themeVariables: {
-        // Light theme variables
-        // Default theme in Mermaid is 'default', but we can override it
-        // to match our VitePress theme variables.
-        '--mermaid-font-family': 'var(--vp-font-family)',
-        '--mermaid-primary-color': 'var(--vp-c-brand-1)',
-        '--mermaid-primary-text-color': 'var(--vp-c-text-1)',
-        '--mermaid-secondary-color': 'var(--vp-c-bg-soft)',
-        '--mermaid-secondary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-tertiary-color': 'var(--vp-c-bg-alt)',
-        '--mermaid-tertiary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-line-color': 'var(--vp-c-divider)',
-        '--mermaid-border-color': 'var(--vp-c-divider)',
-
-        // Dark theme variables (when html.dark is active)
-        '--mermaid-dark-font-family': 'var(--vp-font-family)',
-        '--mermaid-dark-primary-color': 'var(--vp-c-brand-1)',
-        '--mermaid-dark-primary-text-color': 'var(--vp-c-text-1)',
-        '--mermaid-dark-secondary-color': 'var(--vp-c-bg-soft)',
-        '--mermaid-dark-secondary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-dark-tertiary-color': 'var(--vp-c-bg-alt)',
-        '--mermaid-dark-tertiary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-dark-line-color': 'var(--vp-c-divider)',
-        '--mermaid-dark-border-color': 'var(--vp-c-divider)',
-      },
-    },
   },
 });
 

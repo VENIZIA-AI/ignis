@@ -1,10 +1,15 @@
-import { HTTP } from '@/common/constants';
-import { isClass, TClass, TResolver, ValueOrPromise } from '@/common/types';
-import { getError } from '@/helpers/error';
-import { executeWithPerformanceMeasure } from '@/utilities';
 import { z } from '@hono/zod-openapi';
+import {
+  BaseHelper,
+  executeWithPerformanceMeasure,
+  getError,
+  HTTP,
+  isClass,
+  TClass,
+  TResolver,
+  ValueOrPromise,
+} from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
-import { BaseHelper } from '../helpers';
 import {
   BaseEntity,
   getIdType,
@@ -31,7 +36,7 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
     name: string;
     basePath: string;
     readonly?: boolean;
-    strict?: boolean;
+    isStrict?: boolean;
     defaultLimit?: number;
   };
   /* schema?: {
@@ -71,7 +76,7 @@ export class ControllerFactory extends BaseHelper {
     const {
       name,
       basePath = 'unknown_path',
-      strict = true,
+      isStrict = true,
       defaultLimit = DEFAULT_LIMIT,
     } = controller;
     if (!basePath || basePath === 'unknown_path') {
@@ -101,7 +106,7 @@ export class ControllerFactory extends BaseHelper {
       defaultLimit: number;
 
       constructor(repository: AbstractRepository<EntitySchema>) {
-        super({ scope: name, path: basePath, isStrict: true });
+        super({ scope: name, path: basePath, isStrict });
         this.repository = repository;
         this.defaultLimit = defaultLimit;
       }
@@ -115,7 +120,7 @@ export class ControllerFactory extends BaseHelper {
             method: HTTP.Methods.GET,
             path: RestPaths.COUNT,
             request: {
-              query: z.object({ where: strict ? WhereSchema : z.optional(WhereSchema) }),
+              query: z.object({ where: isStrict ? WhereSchema : z.optional(WhereSchema) }),
             },
             responses: jsonResponse({ schema: CountSchema }),
           },
@@ -150,8 +155,6 @@ export class ControllerFactory extends BaseHelper {
           },
           handler: async context => {
             const { filter = {} } = context.req.valid('query');
-
-            console.log(filter);
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,

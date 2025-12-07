@@ -1,7 +1,11 @@
-import { IConfigurable, ValueOrPromise } from '@/common';
-import { getError } from '@/helpers';
-import { Binding, Container } from '@/helpers/inversion';
-import { BaseHelper } from '../helpers';
+import {
+  BaseHelper,
+  Binding,
+  Container,
+  getError,
+  IConfigurable,
+  ValueOrPromise,
+} from '@vez/ignis-helpers';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 

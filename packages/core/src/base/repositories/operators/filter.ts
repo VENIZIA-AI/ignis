@@ -1,9 +1,8 @@
-import { BaseHelper } from '@/base/helpers';
 import { TTableObject, TTableSchemaWithId } from '@/base/models';
-import { getError } from '@/helpers';
+import { BaseHelper, getError } from '@vez/ignis-helpers';
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import isEmpty from 'lodash/isEmpty';
-import { DrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
+import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
 import { QueryOperators, Sorts } from './query';
 
 export class DrizzleFilterBuilder extends BaseHelper {
@@ -16,7 +15,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
     schema: Schema;
     relations: { [relationName: string]: TRelationConfig };
     filter: TFilter<TTableObject<Schema>>;
-  }): DrizzleQueryOptions {
+  }): TDrizzleQueryOptions {
     if (!opts.filter) {
       return {};
     }
@@ -230,8 +229,6 @@ export class DrizzleFilterBuilder extends BaseHelper {
       acc[relationName] = nestedQuery;
       return acc;
     }, {});
-
-    console.log(rs);
 
     return rs;
   }

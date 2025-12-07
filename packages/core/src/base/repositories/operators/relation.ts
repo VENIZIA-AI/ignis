@@ -16,7 +16,7 @@ export const createRelations = <SourceEntity extends TTableSchemaWithId>(opts: {
       curr[def.name] = def;
       return curr;
     }, {}),
-    relations: defineRelations(source, opts => {
+    relations: defineRelations(source, ({ one, many }) => {
       return relations.reduce((curr, def) => {
         if (!def) {
           return curr;
@@ -26,11 +26,11 @@ export const createRelations = <SourceEntity extends TTableSchemaWithId>(opts: {
 
         switch (type) {
           case 'one': {
-            curr[name] = opts.one(schema, Object.assign({}, { relationName: name }, metadata));
+            curr[name] = one(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }
           case 'many': {
-            curr[name] = opts.many(schema, Object.assign({}, { relationName: name }, metadata));
+            curr[name] = many(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }
           default: {

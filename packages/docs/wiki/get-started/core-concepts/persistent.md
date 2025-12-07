@@ -1,3 +1,61 @@
+# Persistent Layer: Models, DataSources, and Repositories
+
+The persistent layer is the foundation of your application's data management. Ignis uses [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and provides a structured repository pattern for abstracting data logic. This guide covers the three main parts: Models, DataSources, and Repositories.
+
+## 1. Models: Defining Your Data Structure
+
+A model in Ignis consists of two parts: a **Drizzle schema** that defines the database table and an **Entity class** that wraps it for use within the framework.
+
+### Creating a Basic Model
+
+Here's how to create a simple `User` model.
+
+```typescript
+// src/models/entities/user.model.ts
+import {
+  BaseEntity,
+  createRelations,
+  extraUserColumns,
+  generateIdColumnDefs,
+  model,
+  TTableObject,
+} from '@vez/ignis';
+import { pgTable } from 'drizzle-orm/pg-core';
+
+// 1. Define the Drizzle schema for the 'User' table
+export const userTable = pgTable(User.name, {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...extraUserColumns({ idType: 'string' }),
+});
+
+// 2. Define relations (empty for now, but required)
+export const userRelations = createRelations({
+  source: userTable,
+  relations: [],
+});
+
+// 3. Define the TypeScript type for a User object
+export type TUserSchema = typeof userTable;
+export type TUser = TTableObject<TUserSchema>;
+
+// 4. Create the Entity class, decorated with @model
+@model({ type: 'entity' })
+export class User extends BaseEntity<TUserSchema> {
+  static readonly TABLE_NAME = User.name;
+
+  constructor() {
+    super({ name: User.name, schema: userTable });
+  }
+}
+```
+
+**Key Concepts:**
+- **`pgTable`**: The standard function from Drizzle ORM to define a table schema.
+- **Enrichers**: Ignis provides helper functions like `generateIdColumnDefs()` and `extraUserColumns()` that add common, pre-configured columns (like `id`, `status`, `type`, etc.) to your schema, reducing boilerplate.
+- **`createRelations`**: A helper for defining relationships between models. Even if there are no relations, you must call it.
+- **`BaseEntity`**: The class your model extends. It wraps the Drizzle schema and provides utilities for the framework.
+- **`@model`**: A decorator that registers the class with the framework as a database model.
+
 ### Creating a Model with Relations
 
 Now, let's create a `Configuration` model that has a relationship with the `User` model.
@@ -73,7 +131,7 @@ export const configurationRelations = createRelations({
 export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
 
-@model({ type: 'entity', skipMigrate: false })
+@model({ type: 'entity' })
 export class Configuration extends BaseEntity<TConfigurationSchema> {
   static readonly TABLE_NAME = Configuration.name;
 
@@ -83,7 +141,7 @@ export class Configuration extends BaseEntity<TConfigurationSchema> {
 }
 ```
 **Key Concepts:**
-- **`createRelations`**: A helper function from Ignis (`@vez/ignis`) that simplifies defining Drizzle ORM relations. It creates both the Drizzle `relations` object and a `definitions` object for use in repositories. Here, we define a `creator` and `modifier` relation from `Configuration` to `User`. The names (`creator`, `modifier`) are important, as they will be used later when querying.
+- **`createRelations`**: This helper function from Ignis simplifies defining Drizzle ORM relations. It creates both a Drizzle `relations` object (for querying) and a `definitions` object (for repository configuration). Here, we define `creator` and `modifier` relations from `Configuration` to `User`. The names (`creator`, `modifier`) are important, as they will be used when querying.
 
 > **Deep Dive:**
 > - Explore the [**`BaseEntity`**](../../references/base/models.md#baseentity-class) class.
@@ -107,31 +165,21 @@ import {
   configurationRelations, // 1. Import relations object
   User,
   userTable,
+  userRelations, // Import relations for all models
 } from '@/models/entities';
 import {
-  applicationEnvironment,
   BaseDataSource,
   datasource,
-  int,
   TNodePostgresConnector,
-  ValueOrPromise,
 } from '@vez/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-interface IDSConfigs {
-  host: string;
-  port: number;
-  database: string;
-  user: string;
-  password: string;
-  ssl: boolean;
-}
+// ... interface IDSConfigs ...
 
 @datasource({})
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
-  private readonly protocol = 'postgresql';
-
+  // ... constructor and config setup ...
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -146,23 +194,20 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
           [Configuration.TABLE_NAME]: configurationTable,
         },
         // 3. Destructure the relations object from `createRelations`
+        userRelations.relations,
         configurationRelations.relations,
       ),
     });
   }
 
-  override configure(): ValueOrPromise<void> {
+  override configure(): void {
     // The `drizzle` function receives the schema with tables and relations
     this.connector = drizzle({
       client: new Pool(this.settings),
       schema: this.schema,
     });
   }
-
-  override getConnectionString(): ValueOrPromise<string> {
-    const { host, port, user, password, database } = this.settings;
-    return `${this.protocol}://${user}:${password}@${host}:${port}/${database}`;
-  }
+  // ...
 }
 ```
 
@@ -194,7 +239,7 @@ Repositories abstract the data access logic. They use the configured `DataSource
 
 ### Creating a Repository
 
-A repository extends `DefaultCRUDRepository` (for full read/write operations) or `ReadableRepository` (for read-only access), is decorated with `@repository`, and injects the `DataSource`.
+A repository extends `DefaultCRUDRepository` (for full read/write operations), is decorated with `@repository`, and injects the `DataSource`.
 
 ```typescript
 // src/repositories/configuration.repository.ts
@@ -215,38 +260,51 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
     // Pass the datasource, the model's Entity class, AND the relations definitions to the super constructor
     super({ dataSource, entityClass: Configuration, relations: configurationRelations.definitions });
   }
-
-  // You can add custom data access methods here
-  async findByCode(code: string): Promise<Configuration | undefined> {
-    // 'this.connector' gives you direct access to the Drizzle instance
-    const result = await this.connector.query.Configuration.findFirst({
-      where: (table, { eq }) => eq(table.code, code)
-    });
-    return result;
-  }
 }
 ```
 You would then register this repository in your `application.ts`: `this.repository(ConfigurationRepository);`
 
-### Querying with Relations
+### Querying Data
 
-To query related data, use the `include` property in the filter object. The `relation` name must match one of the keys you defined in the `relations` object (e.g., `creator`) or in `createRelations` definition.
+Repositories provide a full suite of type-safe methods for CRUD operations using a standardized `filter` object.
 
 ```typescript
 // Example usage in application.ts or a service
-const configurationRepository = this.get<ConfigurationRepository>({
-  key: 'repositories.ConfigurationRepository',
+const repo = this.get<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' });
+
+// Find multiple records
+const someConfigs = await repo.find({
+  filter: {
+    where: { group: 'SYSTEM' },
+    limit: 10,
+    order: ['createdAt DESC'],
+  }
 });
 
-const results = await configurationRepository.find({
+// Create a new record
+const newConfig = await repo.create({
+  data: {
+    code: 'NEW_CODE',
+    group: 'SYSTEM',
+    // ... other fields
+  }
+});
+```
+
+### Querying with Relations
+
+To query related data, use the `include` property in the filter object. The `relation` name must match one of the names you defined in `createRelations` (e.g., `creator`).
+
+```typescript
+const resultsWithCreator = await repo.find({
   filter: {
     where: { code: 'some_code' },
-    include: [{ relation: 'creator' }], // Fetch the related user (name must match relation key)
+    include: [{ relation: 'creator' }], // Fetch the related user
   },
 });
 
-if (results.length > 0) {
-  // `results[0].creator` will contain the full User object
-  console.log('Configuration created by:', results[0].creator.name);
+if (resultsWithCreator.length > 0) {
+  // `resultsWithCreator[0].creator` will contain the full User object
+  console.log('Configuration created by:', resultsWithCreator[0].creator.name);
 }
 ```

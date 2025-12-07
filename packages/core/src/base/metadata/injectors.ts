@@ -1,5 +1,4 @@
-import { IInjectableMetadata, MetadataRegistry } from '@/helpers/inversion';
-import { getError } from '@/helpers/error';
+import { getError, IInjectableMetadata, MetadataRegistry } from '@vez/ignis-helpers';
 
 export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
   return target => {

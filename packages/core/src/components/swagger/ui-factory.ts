@@ -1,7 +1,6 @@
-import { getError, MemoryStorageHelper } from '@/helpers';
-import { validateModule } from '@/utilities/module.utility';
 import type { Context, Next } from 'hono';
 import { DocumentUITypes, IGetProviderParams, IUIConfig, IUIProvider } from './common';
+import { getError, MemoryStorageHelper, validateModule } from '@vez/ignis-helpers';
 
 // -------------------------------------------------------------------
 export class SwaggerUIProvider implements IUIProvider {

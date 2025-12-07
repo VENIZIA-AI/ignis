@@ -1,9 +1,6 @@
 import { inject } from '@/base/metadata';
 import { BaseService } from '@/base/services';
-import { HTTP } from '@/common/constants';
-import { AES } from '@/helpers/crypto';
-import { getError } from '@/helpers/error';
-import { int } from '@/utilities';
+import { AES, getError, HTTP, int } from '@vez/ignis-helpers';
 import { Context } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
 import { Authentication } from '../common/constants';
@@ -224,7 +221,8 @@ export class JWTTokenService extends BaseService {
     const signer = await this.getSigner({ payload, getTokenExpiresFn });
 
     try {
-      return signer.sign(this.jwtSecret);
+      const rs = await signer.sign(this.jwtSecret);
+      return rs;
     } catch (error) {
       this.logger.error('[generate] Failed to generate token | Error: %s', error);
       throw getError({

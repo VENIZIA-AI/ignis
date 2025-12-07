@@ -2,12 +2,14 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
-import { HTTP } from '@/common/constants';
-import { ValueOrPromise } from '@/common/types';
-import { getError } from '@/helpers/error';
-import { Binding } from '@/helpers/inversion';
-import { DefaultRedisHelper } from '@/helpers/redis';
-import { SocketIOServerHelper } from '@/helpers/socket-io';
+import {
+  Binding,
+  DefaultRedisHelper,
+  getError,
+  HTTP,
+  SocketIOServerHelper,
+  ValueOrPromise,
+} from '@vez/ignis-helpers';
 import { ServerOptions } from 'socket.io';
 import { SocketIOBindingKeys } from './keys';
 
