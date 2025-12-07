@@ -58,10 +58,7 @@ export class HealthCheckController extends BaseController {
   // @api({
   //   configs: {
   //     method: 'get',
-  //     path: '/abc/:id',
-  //     request: {
-  //       params: idParamsSchema({ idType: 'string' }),
-  //     },
+  //     path: '/',
   //     responses: {
   //       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
   //         schema: z.object({ status: z.string() }).openapi({
@@ -74,7 +71,6 @@ export class HealthCheckController extends BaseController {
   //   },
   // })
   // getServerStatus(c: Context) {
-  //   console.log(c, (c.req as any).valid('params'), c.req.param);
   //   return c.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
   // }
 }

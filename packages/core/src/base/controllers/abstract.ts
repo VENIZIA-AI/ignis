@@ -54,11 +54,9 @@ export abstract class AbstractController<
     }
 
     for (const [methodName, routeConfigs] of routes.entries()) {
-      const handler = (this as any)[methodName].bind(this);
-
-      this.bindRoute({
-        configs: routeConfigs,
-      }).to({ handler });
+      this.bindRoute({ configs: routeConfigs }).to({
+        handler: this[methodName].bind(this),
+      });
     }
   }
 
