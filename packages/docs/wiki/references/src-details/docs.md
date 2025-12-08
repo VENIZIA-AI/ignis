@@ -23,7 +23,7 @@ This directory contains the implementation of a Model Context Protocol (MCP) ser
 
 | File/Folder | Purpose/Key Details                                                                                                                                                              |
 | :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `server.ts` | The entry point for the MCP server, responsible for initializing and serving documentation resources via the MCP. It uses `glob` to find markdown files in the `wiki` directory. |
+
 
 ### `wiki`
 

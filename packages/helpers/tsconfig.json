@@ -19,5 +19,5 @@
     "transpileOnly": true
   },
   "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "**/*.config.*"]
+  "exclude": ["**/*.config.*"]
 }

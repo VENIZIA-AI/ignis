@@ -1,17 +1,23 @@
 {
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./configs/tsconfig.common.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "nodenext",
     "moduleResolution": "nodenext",
-    
+    "skipLibCheck": true,
+
     /* Paths */
-    "outDir": "dist",
-    "rootDir": "mcp",
-    "baseUrl": "mcp",
+    "outDir": "mcp-server/dist",
+    "rootDir": "mcp-server",
+    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
-    }
+    },
+
+    /* Build Info */
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
   },
-  "include": ["src", "mcp", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "**/*.config.*"]
+  "include": ["mcp-server/**/*.ts"],
+  "exclude": ["node_modules", "dist", "mcp-server/dist", "wiki"]
 }
