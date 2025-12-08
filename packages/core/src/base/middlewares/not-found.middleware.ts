@@ -1,5 +1,4 @@
-import { HTTP } from '@/common/constants';
-import { ApplicationLogger } from '@/helpers/logger';
+import { ApplicationLogger, HTTP } from '@vez/ignis-helpers';
 import { NotFoundHandler } from 'hono/types';
 
 export const notFoundHandler = (opts: { logger?: ApplicationLogger }) => {

@@ -5,11 +5,12 @@
     "target": "ES2022",
     "module": "nodenext",
     "moduleResolution": "nodenext",
+    "skipLibCheck": true,
 
     /* JSX */
     "jsx": "react-jsx",
     "jsxImportSource": "hono/jsx",
-    
+
     /* Paths */
     "outDir": "dist",
     "rootDir": "src",
@@ -17,6 +18,9 @@
     "paths": {
       "@/*": ["./*"]
     }
+  },
+  "ts-node": {
+    "transpileOnly": true
   },
   "include": ["src", "./*.config.*", ".prettierrc.*"],
   "exclude": ["node_modules", "dist", "**/*.config.*"]

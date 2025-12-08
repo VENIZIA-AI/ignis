@@ -1,6 +1,5 @@
-import { TestCase, TestDescribe, TestPlan } from '@/helpers';
+import { TestCase, TestDescribe, TestPlan, getUID } from '@vez/ignis-helpers';
 import * as TestCases from './test-cases';
-import { getUID } from '@/utilities';
 
 TestDescribe.withTestPlan({
   testPlan: TestPlan.newInstance({

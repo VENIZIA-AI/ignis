@@ -1,4 +1,3 @@
-import { getError } from '@/helpers';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -9,7 +8,8 @@ import {
   PgTextBuilderInitial,
   text,
 } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions, TPrimaryKey } from '../types';
+import { TColumnDefinitions, TPrimaryKey } from '../common/types';
+import { getError } from '@vez/ignis-helpers';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (

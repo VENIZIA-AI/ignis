@@ -1,7 +1,13 @@
-import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { IClass, IConfigurable, TMixinTarget } from '@/common/types';
-import { Binding, BindingScopes } from '@/helpers/inversion';
-import { executeWithPerformanceMeasure } from '@/utilities';
+import { BindingNamespaces } from '@/common/bindings';
+import {
+  Binding,
+  BindingKeys,
+  BindingScopes,
+  executeWithPerformanceMeasure,
+  IConfigurable,
+  TClass,
+  TMixinTarget,
+} from '@vez/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
@@ -10,8 +16,8 @@ import { IRepositoryMixin } from './types';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {
-    repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): Binding<T> {
-      return this.bind<T>({
+    repository<R extends IRepository<TTableSchemaWithId>>(ctor: TClass<R>): Binding<R> {
+      return this.bind<R>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.REPOSITORY,
           key: ctor.name,
@@ -19,8 +25,8 @@ export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(bas
       }).toClass(ctor);
     }
 
-    dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
-      return this.bind<T>({
+    dataSource<D extends IDataSource<any>>(ctor: TClass<D>): Binding<D> {
+      return this.bind<D>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.DATASOURCE,
           key: ctor.name,
@@ -30,8 +36,8 @@ export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(bas
         .setScope(BindingScopes.SINGLETON);
     }
 
-    async registerDataSources() {
-      await executeWithPerformanceMeasure({
+    registerDataSources() {
+      return executeWithPerformanceMeasure({
         logger: this.logger,
         scope: this.registerDataSources.name,
         description: 'Register application data sources',

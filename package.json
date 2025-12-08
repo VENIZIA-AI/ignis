@@ -7,6 +7,8 @@
   ],
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "scripts": {
+    "rebuild:helpers": "bun run --filter \"@vez/ignis-helpers\" rebuild",
+    "prerebuild:ignis": "bun run rebuild:helpers",
     "rebuild:ignis": "bun run --filter \"@vez/ignis\" rebuild",
     "docs:dev": "bun run --filter \"@vez/ignis-docs\" docs:dev",
     "mcp:dev": "bun run --filter \"@vez/ignis-docs\" mcp:dev"

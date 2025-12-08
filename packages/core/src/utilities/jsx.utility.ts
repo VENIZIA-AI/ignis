@@ -1,6 +1,5 @@
-import { HTTP } from '@/common/constants';
-import { ErrorSchema } from '@/helpers/error';
 import { z } from '@hono/zod-openapi';
+import { ErrorSchema, HTTP } from '@vez/ignis-helpers';
 
 /**
  * Create HTML content configuration for OpenAPI documentation

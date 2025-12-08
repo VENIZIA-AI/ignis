@@ -2,13 +2,12 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
-import { getError } from '@/helpers';
-import { Binding } from '@/helpers/inversion';
 import { OpenAPIObjectConfigure } from '@hono/zod-openapi';
 import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { DocumentUITypes, ISwaggerOptions, SwaggerBindingKeys } from './common';
 import { UIProviderFactory } from './ui-factory';
+import { Binding, getError } from '@vez/ignis-helpers';
 
 const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
   restOptions: {

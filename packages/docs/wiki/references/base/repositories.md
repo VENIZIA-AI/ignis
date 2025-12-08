@@ -14,6 +14,7 @@ The `AbstractRepository` is the base class for all repositories in Ignis. It set
 -   `dataSource` (`IDataSource`): The datasource instance injected into the repository, which holds the database connection.
 -   `connector`: A getter that provides direct access to the Drizzle ORM instance from the datasource.
 -   `filterBuilder` (`DrizzleFilterBuilder`): An instance of the filter builder responsible for converting Ignis's filter objects into Drizzle-compatible query options.
+-   `relations` (`{ [relationName: string]: TRelationConfig }`): A map of relation configurations defined for the entity.
 
 ### Abstract Methods
 
@@ -75,7 +76,11 @@ This is the primary class you should extend for repositories that require full *
 
 ```typescript
 // src/repositories/configuration.repository.ts
-import { Configuration, TConfigurationSchema } from '@/models/entities';
+import {
+  Configuration,
+  configurationRelations,
+  TConfigurationSchema,
+} from '@/models/entities';
 import { IDataSource, inject, repository, DefaultCRUDRepository } from '@vez/ignis';
 
 // Decorator to mark this class as a repository for DI
@@ -85,8 +90,8 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
     // Inject the configured datasource
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    // Pass the datasource and the model's Entity class to the super constructor
-    super({ dataSource, entityClass: Configuration });
+    // Pass the datasource, the model's Entity class, and the relations definitions to the super constructor
+    super({ dataSource, entityClass: Configuration, relations: configurationRelations.definitions });
   }
 
   // You can add custom data access methods here

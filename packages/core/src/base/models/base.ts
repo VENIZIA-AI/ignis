@@ -1,18 +1,41 @@
-import { BaseHelper } from '../helpers';
-import { TTableSchemaWithId } from './types';
+import { createSchemaFactory } from 'drizzle-zod';
+import { SchemaTypes, TSchemaType, TTableSchemaWithId } from './common';
+import { BaseHelper, getError } from '@vez/ignis-helpers';
 
 // -------------------------------------------------------------------------------------------
 // Base Entity with Drizzle ORM support
 // -------------------------------------------------------------------------------------------
 export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends BaseHelper {
   name: string;
+
   schema: Schema;
+  schemaFactory: ReturnType<typeof createSchemaFactory>;
 
   constructor(opts: { name: string; schema: Schema }) {
     super({ scope: opts.name });
 
     this.name = opts.name;
     this.schema = opts.schema;
+    this.schemaFactory = createSchemaFactory();
+  }
+
+  getSchema(opts: { type: TSchemaType }) {
+    switch (opts.type) {
+      case SchemaTypes.CREATE: {
+        return this.schemaFactory.createInsertSchema(this.schema);
+      }
+      case SchemaTypes.UPDATE: {
+        return this.schemaFactory.createUpdateSchema(this.schema);
+      }
+      case SchemaTypes.SELECT: {
+        return this.schemaFactory.createSelectSchema(this.schema);
+      }
+      default: {
+        throw getError({
+          message: `[getSchema] Invalid schema type | type: ${opts.type} | valid: ${[SchemaTypes.SELECT, SchemaTypes.UPDATE, SchemaTypes.CREATE]}`,
+        });
+      }
+    }
   }
 
   toObject() {

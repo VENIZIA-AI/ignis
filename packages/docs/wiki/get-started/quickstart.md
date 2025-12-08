@@ -104,6 +104,7 @@ import minimaltechLinter from '@minimaltech/eslint-node';
 const configs = [
   ...minimaltechLinter,
   {
+    // Optional rules
     rules: {
       '@typescript-eslint/no-explicit-any': 'off',
     },
@@ -174,27 +175,47 @@ export class Application extends BaseApplication {
 
 ### `src/controllers/hello.controller.ts`
 
-This controller handles a simple `/hello` route.
+This controller handles a simple `/hello` route using a decorator.
 
 ```typescript
-import { BaseController, controller, HTTP, IControllerOptions, ValueOrPromise } from '@vez/ignis';
+import {
+  BaseController,
+  controller,
+  get, // Import the 'get' decorator
+  HTTP,
+  jsonContent,
+} from '@vez/ignis';
+import { z } from '@hono/zod-openapi';
+import { Context } from 'hono';
 
 const BASE_PATH = '/hello';
 
 @controller({ path: BASE_PATH })
 export class HelloController extends BaseController {
-  constructor(opts: IControllerOptions) {
-    super({ ...opts, scope: HelloController.name, path: BASE_PATH });
+  constructor() {
+    super({ scope: HelloController.name, path: BASE_PATH });
   }
 
-  override binding(): ValueOrPromise<void> {
-    this.defineRoute({
-      configs: { path: '/', method: 'get' },
-      handler: c => c.json({ message: 'Hello, World!' }),
-    });
-
-    // Note: use this.defineAuthRoute for authenticated endpoint
+  @get({
+    configs: {
+      path: '/',
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+          description: 'A simple hello message',
+          schema: z.object({ message: z.string() }),
+        }),
+      },
+    },
+  })
+  sayHello(c: Context) {
+    return c.json({ message: 'Hello, World!' });
   }
+
+  // For authenticated endpoints, add 'authStrategies' to the configs:
+  // @get({ configs: { path: '/secure', authStrategies: [Authentication.STRATEGY_JWT] } })
+  // secureMethod(c: Context) { /* ... */ }
+
+  // For CRUD operations, consider using ControllerFactory to reduce boilerplate.
 }
 ```
 

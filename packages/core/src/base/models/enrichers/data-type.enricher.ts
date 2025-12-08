@@ -1,5 +1,5 @@
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions } from '../types';
+import { TColumnDefinitions } from '../common/types';
 
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{

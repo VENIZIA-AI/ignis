@@ -1,8 +1,4 @@
-import { BaseHelper } from '@/base/helpers';
-import { HTTP } from '@/common/constants';
-import { IClass } from '@/common/types';
-import { getError } from '@/helpers/error';
-import { BindingScopes, Container } from '@/helpers/inversion';
+import { BaseHelper, BindingScopes, Container, getError, HTTP, TClass } from '@vez/ignis-helpers';
 import { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import isEmpty from 'lodash/isEmpty';
@@ -20,7 +16,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
     string,
     {
       container: Container;
-      strategyClass: IClass<IAuthenticationStrategy>;
+      strategyClass: TClass<IAuthenticationStrategy>;
     }
   >;
 
@@ -58,7 +54,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   // ------------------------------------------------------------------------------
   register(opts: {
     container: Container;
-    strategy: IClass<IAuthenticationStrategy>;
+    strategy: TClass<IAuthenticationStrategy>;
     name: string;
   }) {
     const { container, name, strategy: strategyClass } = opts;

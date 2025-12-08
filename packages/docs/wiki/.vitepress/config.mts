@@ -1,175 +1,184 @@
-import { defineConfig } from "vitepress";
-import { withMermaid } from "vitepress-plugin-mermaid";
+import { defineConfig } from 'vitepress';
+import { withMermaid } from 'vitepress-plugin-mermaid';
 
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
-  title: "🔥 IGNIS",
-  description: "A TypeScript Server Infrastructure with Hono Framework",
-  head: [["link", { rel: "icon", href: "/logo.svg" }]],
+  title: '🔥 IGNIS',
+  description: 'A TypeScript Server Infrastructure with Hono Framework',
+  head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   themeConfig: {
     search: {
-      provider: "local",
+      provider: 'local',
     },
 
     nav: [
-      { text: "Home", link: "/" },
-      { text: "Get Started", link: "/get-started/philosophy" },
-      { text: "Reference(s)", link: "/references/components/" },
+      { text: 'Home', link: '/' },
+      { text: 'Get Started', link: '/get-started/philosophy' },
+      { text: 'Reference(s)', link: '/references/components/' },
     ],
 
     sidebar: {
-      "/get-started/": [
+      '/get-started/': [
         {
-          text: "Get Started",
+          text: 'Get Started',
           items: [
-            { text: "Philosophy", link: "/get-started/philosophy" },
-            { text: "Quick Start", link: "/get-started/quickstart" },
+            { text: 'Philosophy', link: '/get-started/philosophy' },
+            { text: 'Quick Start', link: '/get-started/quickstart' },
           ],
         },
         {
-          text: "Core Concepts",
+          text: 'Core Concepts',
           items: [
             {
-              text: "Application",
-              link: "/get-started/core-concepts/application",
+              text: 'Application',
+              link: '/get-started/core-concepts/application',
             },
             {
-              text: "Controllers",
-              link: "/get-started/core-concepts/controllers",
+              text: 'Controllers',
+              link: '/get-started/core-concepts/controllers',
             },
             {
-              text: "Dependency Injection",
-              link: "/get-started/core-concepts/dependency-injection",
+              text: 'Dependency Injection',
+              link: '/get-started/core-concepts/dependency-injection',
             },
             {
-              text: "Components",
-              link: "/get-started/core-concepts/components",
+              text: 'Components',
+              link: '/get-started/core-concepts/components',
             },
             {
-              text: "Services",
-              link: "/get-started/core-concepts/services",
+              text: 'Services',
+              link: '/get-started/core-concepts/services',
             },
             {
-              text: "Persistent Layer",
-              link: "/get-started/core-concepts/persistent",
+              text: 'Persistent Layer',
+              link: '/get-started/core-concepts/persistent',
+            },
+          ],
+        },
+        {
+          text: 'Best Practices',
+          items: [
+            {
+              text: 'Architectural Patterns',
+              link: '/get-started/best-practices/architectural-patterns',
+            },
+            {
+              text: 'Performance Optimization',
+              link: '/get-started/best-practices/performance-optimization',
+            },
+            {
+              text: 'Security Guidelines',
+              link: '/get-started/best-practices/security-guidelines',
+            },
+            {
+              text: 'Code Style Standards',
+              link: '/get-started/best-practices/code-style-standards',
+            },
+            {
+              text: 'Deployment Strategies',
+              link: '/get-started/best-practices/deployment-strategies',
+            },
+            {
+              text: 'Common Pitfalls',
+              link: '/get-started/best-practices/common-pitfalls',
+            },
+            {
+              text: 'Troubleshooting Tips',
+              link: '/get-started/best-practices/troubleshooting-tips',
+            },
+            {
+              text: 'API Usage Examples',
+              link: '/get-started/best-practices/api-usage-examples',
+            },
+            {
+              text: 'Contribution Workflow',
+              link: '/get-started/best-practices/contribution-workflow',
             },
           ],
         },
       ],
-      "/references": [
+      '/references': [
         {
-          text: "Components",
+          text: 'Components',
           items: [
-            { text: "Overview", link: "/references/components/" },
+            { text: 'Overview', link: '/references/components/' },
             {
-              text: "Authentication",
-              link: "/references/components/authentication",
+              text: 'Authentication',
+              link: '/references/components/authentication',
             },
             {
-              text: "Health Check",
-              link: "/references/components/health-check",
+              text: 'Health Check',
+              link: '/references/components/health-check',
             },
             {
-              text: "Request Tracker",
-              link: "/references/components/request-tracker",
+              text: 'Request Tracker',
+              link: '/references/components/request-tracker',
             },
-            { text: "Socket.IO", link: "/references/components/socket-io" },
-            { text: "Swagger", link: "/references/components/swagger" },
+            { text: 'Socket.IO', link: '/references/components/socket-io' },
+            { text: 'Swagger', link: '/references/components/swagger' },
           ],
         },
         {
-          text: "Base Abstractions",
+          text: 'Base Abstractions',
           items: [
-            { text: "Application", link: "/references/base/application" },
-            { text: "Components", link: "/references/base/components" },
-            { text: "Controllers", link: "/references/base/controllers" },
-            { text: "Dependency Injection", link: "/references/base/dependency-injection" },
-            { text: "Models & Enrichers", link: "/references/base/models" },
-            { text: "DataSources", link: "/references/base/datasources" },
-            { text: "Repositories", link: "/references/base/repositories" },
-            { text: "Services", link: "/references/base/services" },
-          ]
+            { text: 'Application', link: '/references/base/application' },
+            { text: 'Components', link: '/references/base/components' },
+            { text: 'Controllers', link: '/references/base/controllers' },
+            { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
+            { text: 'Models & Enrichers', link: '/references/base/models' },
+            { text: 'DataSources', link: '/references/base/datasources' },
+            { text: 'Repositories', link: '/references/base/repositories' },
+            { text: 'Services', link: '/references/base/services' },
+          ],
         },
         {
-          text: "Helpers",
+          text: 'Helpers',
           items: [
-            { text: "Overview", link: "/references/helpers/" },
-            { text: "Cron", link: "/references/helpers/cron" },
-            { text: "Crypto", link: "/references/helpers/crypto" },
-            { text: "Environment", link: "/references/helpers/env" },
-            { text: "Error", link: "/references/helpers/error" },
-            { text: "Inversion (DI)", link: "/references/helpers/inversion" },
-            { text: "Logger", link: "/references/helpers/logger" },
-            { text: "Network", link: "/references/helpers/network" },
-            { text: "Queue", link: "/references/helpers/queue" },
-            { text: "Redis", link: "/references/helpers/redis" },
-            { text: "Socket.IO", link: "/references/helpers/socket-io" },
-            { text: "Storage", link: "/references/helpers/storage" },
-            { text: "Testing", link: "/references/helpers/testing" },
+            { text: 'Overview', link: '/references/helpers/' },
+            { text: 'Cron', link: '/references/helpers/cron' },
+            { text: 'Crypto', link: '/references/helpers/crypto' },
+            { text: 'Environment', link: '/references/helpers/env' },
+            { text: 'Error', link: '/references/helpers/error' },
+            { text: 'Inversion (DI)', link: '/references/helpers/inversion' },
+            { text: 'Logger', link: '/references/helpers/logger' },
+            { text: 'Network', link: '/references/helpers/network' },
+            { text: 'Queue', link: '/references/helpers/queue' },
+            { text: 'Redis', link: '/references/helpers/redis' },
+            { text: 'Socket.IO', link: '/references/helpers/socket-io' },
+            { text: 'Storage', link: '/references/helpers/storage' },
+            { text: 'Testing', link: '/references/helpers/testing' },
             {
-              text: "Worker Thread",
-              link: "/references/helpers/worker-thread",
+              text: 'Worker Thread',
+              link: '/references/helpers/worker-thread',
             },
           ],
         },
         {
-          text: "Utilities",
+          text: 'Utilities',
           items: [
-            { text: "Overview", link: "/references/utilities/" },
-            { text: "Crypto", link: "/references/utilities/crypto" },
-            { text: "Date", link: "/references/utilities/date" },
-            { text: "Module", link: "/references/utilities/module" },
-            { text: "Parse", link: "/references/utilities/parse" },
-            { text: "Performance", link: "/references/utilities/performance" },
-            { text: "Promise", link: "/references/utilities/promise" },
-            { text: "Request", link: "/references/utilities/request" },
-            { text: "Schema", link: "/references/utilities/schema" },
+            { text: 'Overview', link: '/references/utilities/' },
+            { text: 'Crypto', link: '/references/utilities/crypto' },
+            { text: 'Date', link: '/references/utilities/date' },
+            { text: 'Module', link: '/references/utilities/module' },
+            { text: 'Parse', link: '/references/utilities/parse' },
+            { text: 'Performance', link: '/references/utilities/performance' },
+            { text: 'Promise', link: '/references/utilities/promise' },
+            { text: 'Request', link: '/references/utilities/request' },
+            { text: 'Schema', link: '/references/utilities/schema' },
           ],
         },
         {
-          text: "Framework Internals",
+          text: 'Framework Internals',
           items: [
-            { text: "Source Code Structure", link: "/references/src-details/" },
+            { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
+            { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
+            { text: 'Documentation (@vez/ignis-docs)', link: '/references/src-details/docs' },
           ],
         },
       ],
     },
 
-    socialLinks: [
-      { icon: "github", link: "https://github.com/VENIZIA-AI/ignis" },
-    ],
-
-    mermaid: {
-      theme: {
-        light: 'default',
-        dark: 'dark',
-      },
-      themeVariables: {
-        // Light theme variables
-        // Default theme in Mermaid is 'default', but we can override it
-        // to match our VitePress theme variables.
-        '--mermaid-font-family': 'var(--vp-font-family)',
-        '--mermaid-primary-color': 'var(--vp-c-brand-1)',
-        '--mermaid-primary-text-color': 'var(--vp-c-text-1)',
-        '--mermaid-secondary-color': 'var(--vp-c-bg-soft)',
-        '--mermaid-secondary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-tertiary-color': 'var(--vp-c-bg-alt)',
-        '--mermaid-tertiary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-line-color': 'var(--vp-c-divider)',
-        '--mermaid-border-color': 'var(--vp-c-divider)',
-
-        // Dark theme variables (when html.dark is active)
-        '--mermaid-dark-font-family': 'var(--vp-font-family)',
-        '--mermaid-dark-primary-color': 'var(--vp-c-brand-1)',
-        '--mermaid-dark-primary-text-color': 'var(--vp-c-text-1)',
-        '--mermaid-dark-secondary-color': 'var(--vp-c-bg-soft)',
-        '--mermaid-dark-secondary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-dark-tertiary-color': 'var(--vp-c-bg-alt)',
-        '--mermaid-dark-tertiary-text-color': 'var(--vp-c-text-2)',
-        '--mermaid-dark-line-color': 'var(--vp-c-divider)',
-        '--mermaid-dark-border-color': 'var(--vp-c-divider)',
-      }
-    }
+    socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],
   },
 });
 

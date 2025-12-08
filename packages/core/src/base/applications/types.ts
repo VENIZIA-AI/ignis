@@ -1,4 +1,3 @@
-import { ValueOrPromise } from '@/common/types';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { Context, Env, Schema } from 'hono';
 import { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
@@ -9,6 +8,7 @@ import {
   IServiceMixin,
   IStaticServeMixin,
 } from '../mixins/types';
+import { ValueOrPromise } from '@vez/ignis-helpers';
 
 // ------------------------------------------------------------------------------
 // Common Middleware Options
@@ -98,7 +98,7 @@ export interface IApplicationConfigs {
   path: { base: string; isStrict: boolean };
   favicon?: string;
   autoLoad?: { dirs: { [key: string | symbol]: { path: string } } };
-  debug?: { showRoutes?: boolean };
+  debug?: { shouldShowRoutes?: boolean };
   [key: string]: any;
 }
 

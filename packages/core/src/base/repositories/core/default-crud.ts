@@ -1,6 +1,6 @@
 import { TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
+import { TNullable } from '@vez/ignis-helpers';
 import { PersistableRepository } from './persistable';
-import { TNullable } from '@/common/types';
 
 export class DefaultCRUDRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,

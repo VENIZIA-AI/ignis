@@ -1,7 +1,14 @@
-import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { AnyObject, IClass, IConfigurable, TAbstractMixinTarget } from '@/common/types';
-import { Binding, BindingScopes } from '@/helpers/inversion';
-import { executeWithPerformanceMeasure } from '@/utilities';
+import { BindingNamespaces } from '@/common/bindings';
+import {
+  AnyObject,
+  Binding,
+  BindingKeys,
+  BindingScopes,
+  executeWithPerformanceMeasure,
+  IConfigurable,
+  TAbstractMixinTarget,
+  TClass,
+} from '@vez/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IComponentMixin } from './types';
@@ -10,11 +17,11 @@ export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplicatio
   baseClass: T,
 ) => {
   abstract class Mixed extends baseClass implements IComponentMixin {
-    component<T extends BaseComponent, O extends AnyObject = any>(
-      ctor: IClass<T>,
+    component<C extends BaseComponent, O extends AnyObject = any>(
+      ctor: TClass<C>,
       _args?: O,
-    ): Binding<T> {
-      return this.bind<T>({
+    ): Binding<C> {
+      return this.bind<C>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.COMPONENT,
           key: ctor.name,
@@ -24,8 +31,8 @@ export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplicatio
         .setScope(BindingScopes.SINGLETON);
     }
 
-    async registerComponents() {
-      await executeWithPerformanceMeasure({
+    registerComponents() {
+      return executeWithPerformanceMeasure({
         logger: this.logger,
         scope: this.registerComponents.name,
         description: 'Register application components',

@@ -1,7 +1,11 @@
-import { ValueOrPromise } from '@/common/types';
 import { IJWTTokenPayload, JWTTokenService } from '@/components/auth';
-import { getError } from '@/helpers/error';
-import { TestCaseDecisions, TestCaseHandler, TTestCaseDecision } from '@/helpers/testing';
+import {
+  getError,
+  TestCaseDecisions,
+  TestCaseHandler,
+  TTestCaseDecision,
+  ValueOrPromise,
+} from '@vez/ignis-helpers';
 
 interface IArg {
   payload: IJWTTokenPayload;

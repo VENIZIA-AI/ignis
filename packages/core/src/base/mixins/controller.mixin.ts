@@ -1,7 +1,15 @@
-import { BindingKeys, BindingNamespaces, HTTP, IClass, TMixinTarget } from '@/common';
-import { getError } from '@/helpers/error';
-import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
-import { executeWithPerformanceMeasure } from '@/utilities';
+import { BindingNamespaces } from '@/common/bindings';
+import {
+  Binding,
+  BindingKeys,
+  BindingValueTypes,
+  executeWithPerformanceMeasure,
+  getError,
+  HTTP,
+  MetadataRegistry,
+  TClass,
+  TMixinTarget,
+} from '@vez/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import { AbstractApplication } from '../applications';
 import { BaseController } from '../controllers';
@@ -9,8 +17,8 @@ import { IControllerMixin } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
-    controller<T>(ctor: IClass<T>): Binding<T> {
-      return this.bind<T>({
+    controller<C>(ctor: TClass<C>): Binding<C> {
+      return this.bind<C>({
         key: BindingKeys.build({
           namespace: BindingNamespaces.CONTROLLER,
           key: ctor.name,
@@ -18,8 +26,8 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
       }).toClass(ctor);
     }
 
-    async registerControllers() {
-      await executeWithPerformanceMeasure({
+    registerControllers() {
+      return executeWithPerformanceMeasure({
         logger: this.logger,
         description: 'Register application controllers',
         scope: this.registerControllers.name,
@@ -28,7 +36,7 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
 
           const bindings = this.findByTag({ tag: 'controllers' });
           for (const binding of bindings) {
-            const controllerMetadata = MetadataRegistry.getControllerMetadata({
+            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
               target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
             });
 

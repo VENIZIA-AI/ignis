@@ -8,7 +8,7 @@ The Authentication component provides a robust, JWT-based authentication and aut
 -   **`AuthenticationStrategyRegistry`:** A singleton registry that manages available authentication strategies.
 -   **`JWTAuthenticationStrategy`:** The implementation for the JWT authentication strategy. It uses the `JWTTokenService` to verify tokens.
 -   **`JWTTokenService`:** A service responsible for generating, verifying, and encrypting/decrypting JWT payloads.
--   **`defineAuthRoute`:** A helper method in `BaseController` to secure a route by specifying authentication strategies. This method ensures that the authenticated user's payload is attached to the Hono `Context` using the key `Authentication.CURRENT_USER`.
+-   **`defineRoute`:** The method in `BaseController` to define a route. Authentication strategies can be specified in the `configs.authStrategies` property. This method ensures that the authenticated user's payload is attached to the Hono `Context` using the key `Authentication.CURRENT_USER`.
 
 ## Implementation Details
 
@@ -142,7 +142,7 @@ This service is then registered in `application.ts` as shown in the previous ste
 
 #### 3. Securing Routes
 
-In your controllers, use `defineAuthRoute` to protect endpoints. This method will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`.
+In your controllers, use `defineRoute` with the `authStrategies` property in the `configs` object to protect endpoints. This will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`.
 
 ```typescript
 // src/controllers/test.controller.ts
@@ -151,7 +151,7 @@ import {
   BaseController,
   controller,
   HTTP,
-  jsonContent,
+  jsonResponse,
   ValueOrPromise,
   IJWTTokenPayload,
 } from '@vez/ignis';
@@ -169,17 +169,15 @@ export class TestController extends BaseController {
 
   override binding(): ValueOrPromise<void> {
     // Requires a valid JWT
-    this.defineAuthRoute({
+    this.defineRoute({
       configs: {
         path: '/secure-data',
         method: 'get',
         authStrategies: [Authentication.STRATEGY_JWT],
-        responses: {
-            [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+        responses: jsonResponse({
             description: 'Test message content',
             schema: z.object({ message: z.string() }),
-          }),
-        },
+        }),
       },
       handler: (c: Context) => { // Access context directly
         const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
@@ -190,9 +188,9 @@ export class TestController extends BaseController {
 }
 ```
 
-#### 3. Accessing the Current User in Context
+#### 4. Accessing the Current User in Context
 
-After a route has been processed by `defineAuthRoute`, the authenticated user's payload is available directly on the Hono `Context` object, using the `Authentication.CURRENT_USER` key.
+After a route has been processed, the authenticated user's payload is available directly on the Hono `Context` object, using the `Authentication.CURRENT_USER` key.
 
 ```typescript
 import { Context } from 'hono';

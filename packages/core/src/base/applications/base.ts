@@ -1,10 +1,19 @@
-import { BindingKeys, BindingNamespaces } from '@/common/bindings';
-import { HTTP, RuntimeModules } from '@/common/constants';
-import { AnyObject, IClass, IConfigurable } from '@/common/types';
+import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
-import { getError } from '@/helpers/error';
-import { Binding, BindingScopes, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
-import { executeWithPerformanceMeasure } from '@/utilities';
+import {
+  AnyObject,
+  Binding,
+  BindingKeys,
+  BindingScopes,
+  BindingValueTypes,
+  executeWithPerformanceMeasure,
+  getError,
+  HTTP,
+  IConfigurable,
+  MetadataRegistry,
+  RuntimeModules,
+  TClass,
+} from '@vez/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
@@ -37,7 +46,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
 
   // ------------------------------------------------------------------------------
   component<T extends BaseComponent, O extends AnyObject = any>(
-    ctor: IClass<T>,
+    ctor: TClass<T>,
     _args?: O,
   ): Binding<T> {
     return this.bind<T>({
@@ -74,7 +83,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  controller<T>(ctor: IClass<T>): Binding<T> {
+  controller<T>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.CONTROLLER,
@@ -93,7 +102,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
 
         const bindings = this.findByTag({ tag: 'controllers' });
         for (const binding of bindings) {
-          const controllerMetadata = MetadataRegistry.getControllerMetadata({
+          const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
             target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
           });
 
@@ -122,7 +131,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  service<T extends IService>(ctor: IClass<T>): Binding<T> {
+  service<T extends IService>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.SERVICE,
@@ -132,7 +141,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  repository<T extends IRepository<any>>(ctor: IClass<T>): Binding<T> {
+  repository<T extends IRepository<any>>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.REPOSITORY,
@@ -142,7 +151,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  dataSource<T extends IDataSource<any>>(ctor: IClass<T>): Binding<T> {
+  dataSource<T extends IDataSource<any>>(ctor: TClass<T>): Binding<T> {
     return this.bind<T>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.DATASOURCE,

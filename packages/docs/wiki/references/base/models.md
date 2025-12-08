@@ -12,21 +12,46 @@ The `BaseEntity` class is a fundamental building block in the framework's data l
 
 -   **Schema Encapsulation**: It holds a reference to a Drizzle `pgTable` schema, providing a consistent object structure that repositories can work with.
 -   **Metadata**: When used with the `@model` decorator, it provides metadata to the framework, indicating that the class represents a database entity.
+-   **Schema Generation**: It leverages `drizzle-zod` to provide methods (`getSchema`) for generating Zod schemas for `SELECT`, `CREATE`, and `UPDATE` operations based on the Drizzle table schema.
 -   **Convenience**: It includes basic methods like `toObject()` and `toJSON()`.
 
 ### Class Definition
 
 ```typescript
-export class BaseEntity<Schema extends TTableSchemaWithId = any> extends BaseHelper {
+import { createSchemaFactory } from 'drizzle-zod';
+import { BaseHelper } from '../helpers';
+import { SchemaTypes, TSchemaType, TTableSchemaWithId } from './common';
+
+export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends BaseHelper {
   name: string;
   schema: Schema;
+  schemaFactory: ReturnType<typeof createSchemaFactory>;
 
   constructor(opts: { name: string; schema: Schema }) {
     super({ scope: opts.name });
     this.name = opts.name;
     this.schema = opts.schema;
+    this.schemaFactory = createSchemaFactory();
   }
-  // ...
+
+  getSchema(opts: { type: TSchemaType }) {
+    switch (opts.type) {
+      case SchemaTypes.CREATE: {
+        return this.schemaFactory.createInsertSchema(this.schema);
+      }
+      case SchemaTypes.UPDATE: {
+        return this.schemaFactory.createUpdateSchema(this.schema);
+      }
+      case SchemaTypes.SELECT: {
+        return this.schemaFactory.createSelectSchema(this.schema);
+      }
+      default: {
+        throw getError({
+          message: `[getSchema] Invalid schema type | type: ${opts.type} | valid: ${[SchemaTypes.SELECT, SchemaTypes.UPDATE, SchemaTypes.CREATE]}`,
+        });
+      }
+    }
+  }
 }
 ```
 
@@ -34,55 +59,33 @@ When you define a model in your application, you extend `BaseEntity`, passing yo
 
 ## Schema Enrichers
 
-Enrichers are helper functions that return an object of Drizzle ORM column definitions. They are designed to be spread into a `pgTable` definition to quickly add common, standardized fields to your models.
+Enrichers are helper functions located in `packages/core/src/base/models/enrichers/` that return an object of Drizzle ORM column definitions. They are designed to be spread into a `pgTable` definition to quickly add common, standardized fields to your models.
 
--   **Location:** `packages/core/src/base/models/enrichers/`
+### Available Enrichers
 
-### `generateIdColumnDefs`
+| Enricher Function | Purpose |
+| :--- | :--- |
+| **`generateIdColumnDefs`** | Adds a primary key `id` column (string UUID or numeric serial). |
+| **`generateTzColumnDefs`** | Adds `createdAt` and `modifiedAt` timestamp columns with timezone support. |
+| **`generateUserAuditColumnDefs`** | Adds `createdBy` and `modifiedBy` columns to track user audit information. |
+| **`generateDataTypeColumnDefs`** | Adds generic data type columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) for flexible data storage. |
+| **`generatePrincipalColumnDefs`** | Adds polymorphic fields for associating with different principal types. |
+| **`extraUserColumns`** (from `components/auth/models/entities/user.model.ts`) | Adds common fields for a user model, such as `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, and `parentId`. |
 
--   **File:** `id.enricher.ts`
--   **Purpose**: Adds a primary key `id` column.
--   **Options**:
-    -   `dataType`: Can be `'string'` (defaults to a `uuid` with `uuid_generate_v4()` default) or `'number'` (defaults to `serial`).
-
-```typescript
-// Example: String (UUID) ID
-...generateIdColumnDefs({ id: { dataType: 'string' } })
-
-// Example: Numeric (Serial) ID
-...generateIdColumnDefs({ id: { dataType: 'number' } })
-```
-
-### `generateTzColumnDefs`
-
--   **File:** `tz.enricher.ts`
--   **Purpose**: Adds `createdAt` and `modifiedAt` timestamp columns with timezone support.
--   **Details**:
-    -   `createdAt`: Defaults to `now()` and is not nullable.
-    -   `modifiedAt`: Defaults to `now()` and automatically updates when the record is updated using Drizzle's `$onUpdate()` feature.
-
-### `generateUserAuditColumnDefs`
-
--   **File:** `user-audit.enricher.ts`
--   **Purpose**: Adds `createdBy` and `modifiedBy` columns to track which user created or modified a record.
--   **Options**:
-    -   `dataType`: Can be `'string'` or `'number'` to match the data type of your user ID.
-    -   `columnName`: Allows you to override the default column names (`created_by`, `modified_by`).
+### Example Usage
 
 ```typescript
-// Example: User IDs are strings (UUIDs)
-...generateUserAuditColumnDefs({
-  created: { dataType: 'string', columnName: 'created_by' },
-  modified: { dataType: 'string', columnName: 'modified_by' },
-})
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import {
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  generateUserAuditColumnDefs,
+} from '@vez/ignis';
+
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  ...generateUserAuditColumnDefs({ created: { dataType: 'string' }, modified: { dataType: 'string' } }),
+  name: text('name').notNull(),
+});
 ```
-
-### `generateDataTypeColumnDefs`
-
--   **File:** `data-type.enricher.ts`
--   **Purpose**: Adds a set of columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) designed to store flexible, dynamic data of different types (number, text, byte array, JSON, boolean).
-
-### `extraUserColumns`
-
--   **File:** `packages/core/src/components/auth/models/entities/user.model.ts`
--   **Purpose**: Adds common fields for a user model, such as `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, and `parentId`.

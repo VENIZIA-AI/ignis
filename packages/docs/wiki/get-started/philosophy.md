@@ -1,6 +1,6 @@
 # Philosophy: The Best of Two Worlds
 
-Ignis was born from a simple yet powerful idea: to combine the structured, enterprise-grade development experience of **LoopBack 4** with the speed, simplicity, and modern JavaScript ecosystem of **Hono**.
+[Ignis](/get-started/philosophy.html) was born from a simple yet powerful idea: to combine the structured, enterprise-grade development experience of **LoopBack 4** with the speed, simplicity, and modern JavaScript ecosystem of **Hono**.
 
 ## The LoopBack 4 Inspiration
 

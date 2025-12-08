@@ -1,9 +1,8 @@
-import { IInjectableMetadata, MetadataRegistry } from '@/helpers/inversion';
-import { getError } from '@/helpers/error';
+import { getError, IInjectableMetadata, MetadataRegistry } from '@vez/ignis-helpers';
 
 export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
   return target => {
-    MetadataRegistry.setInjectableMetadata({ target, metadata });
+    MetadataRegistry.getInstance().setInjectableMetadata({ target, metadata });
   };
 };
 
@@ -41,7 +40,7 @@ export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => 
   return (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => {
     // Constructor parameter injection
     if (typeof parameterIndex === 'number') {
-      MetadataRegistry.setInjectMetadata({
+      MetadataRegistry.getInstance().setInjectMetadata({
         target,
         index: parameterIndex,
         metadata: {
@@ -55,7 +54,7 @@ export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => 
 
     // Property injection
     if (propertyName !== undefined) {
-      MetadataRegistry.setPropertyMetadata({
+      MetadataRegistry.getInstance().setPropertyMetadata({
         target,
         propertyName: propertyName,
         metadata: {

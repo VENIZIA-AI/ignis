@@ -3,22 +3,22 @@ import {
   IModelMetadata,
   IRepositoryMetadata,
   MetadataRegistry,
-} from '@/helpers/inversion';
+} from '@vez/ignis-helpers';
 
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
-    MetadataRegistry.setModelMetadata({ target, metadata });
+    MetadataRegistry.getInstance().setModelMetadata({ target, metadata });
   };
 };
 
 export const datasource = (metadata: IDataSourceMetadata): ClassDecorator => {
   return target => {
-    MetadataRegistry.setDataSourceMetadata({ target, metadata });
+    MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };
 };
 
 export const repository = (metadata: IRepositoryMetadata): ClassDecorator => {
   return target => {
-    MetadataRegistry.setRepositoryMetadata({ target, metadata });
+    MetadataRegistry.getInstance().setRepositoryMetadata({ target, metadata });
   };
 };

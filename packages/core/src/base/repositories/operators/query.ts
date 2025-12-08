@@ -1,4 +1,4 @@
-import { TConstValue } from '@/common/types';
+import { TConstValue } from '@vez/ignis-helpers';
 import {
   between,
   eq,

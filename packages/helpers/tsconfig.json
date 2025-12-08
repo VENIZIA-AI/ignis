@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "./configs/tsconfig.common.json",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    
+    /* Paths */
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["./*"]
+    }
+  },
+  "ts-node": {
+    "transpileOnly": true
+  },
+  "include": ["src", "./*.config.*", ".prettierrc.*"],
+  "exclude": ["node_modules", "dist", "**/*.config.*"]
+}

@@ -1,15 +1,14 @@
-import { AnyObject, IClass, ValueOrPromise } from '@/common/types';
+import { AnyObject, Binding, TClass, ValueOrPromise } from '@vez/ignis-helpers';
 import { IApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
-import { Binding } from '@/helpers/inversion';
 
 export interface IComponentMixin {
   component<T extends BaseComponent, O extends AnyObject = any>(
-    ctor: IClass<T>,
+    ctor: TClass<T>,
     args?: O,
   ): Binding<T>;
   registerComponents(): ValueOrPromise<void>;
@@ -23,17 +22,17 @@ export interface IServerConfigMixin {
 }
 
 export interface IControllerMixin {
-  controller<T>(ctor: IClass<T>): Binding<T>;
+  controller<T>(ctor: TClass<T>): Binding<T>;
   registerControllers(): ValueOrPromise<void>;
 }
 
 export interface IRepositoryMixin {
-  dataSource<T extends IDataSource>(ctor: IClass<T>): Binding<T>;
-  repository<T extends IRepository<TTableSchemaWithId>>(ctor: IClass<T>): Binding<T>;
+  dataSource<T extends IDataSource>(ctor: TClass<T>): Binding<T>;
+  repository<T extends IRepository<TTableSchemaWithId>>(ctor: TClass<T>): Binding<T>;
 }
 
 export interface IServiceMixin {
-  service<T extends IService>(ctor: IClass<T>): Binding<T>;
+  service<T extends IService>(ctor: TClass<T>): Binding<T>;
 }
 
 export interface IStaticServeMixin {

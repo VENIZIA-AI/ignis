@@ -1,7 +1,6 @@
-import { IProvider } from '@/common';
 import { createMiddleware } from 'hono/factory';
 import { MiddlewareHandler } from 'hono/types';
-import { BaseHelper } from '../helpers';
+import { BaseHelper, IProvider } from '@vez/ignis-helpers';
 
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';

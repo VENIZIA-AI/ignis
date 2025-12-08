@@ -1,5 +1,4 @@
-import { getError } from '@/helpers/error';
-import isEmpty from 'lodash/isEmpty';
+import { BindingKeys } from '@vez/ignis-helpers';
 
 export class BindingNamespaces {
   static readonly COMPONENT = BindingNamespaces.createNamespace({ name: 'components' });
@@ -16,7 +15,7 @@ export class BindingNamespaces {
   }
 }
 
-export class BindingKeys {
+export class CoreBindings extends BindingKeys {
   static readonly APPLICATION_INSTANCE = '@app/instance';
   static readonly APPLICATION_SERVER = '@app/server';
   static readonly APPLICATION_CONFIG = '@app/config';
@@ -25,23 +24,4 @@ export class BindingKeys {
 
   static readonly APPLICATION_ENVIRONMENTS = Symbol.for('@app/environments');
   static readonly APPLICATION_MIDDLEWARE_OPTIONS = Symbol.for('@app/middleware_options');
-
-  static build(opts: { namespace: string; key: string }) {
-    const { namespace, key } = opts;
-    const keyParts: Array<string> = [];
-    if (!isEmpty(namespace)) {
-      keyParts.push(namespace);
-    }
-
-    if (isEmpty(key)) {
-      throw getError({
-        message: `[BindingKeys][build] Invalid key to build | key: ${key}`,
-      });
-    }
-
-    keyParts.push(key);
-    return keyParts.join('.');
-  }
 }
-
-export class CoreBindings extends BindingKeys {}

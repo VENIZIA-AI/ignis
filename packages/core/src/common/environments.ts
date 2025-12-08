@@ -1,24 +1,3 @@
-export class Environment {
-  static readonly LOCAL = 'local';
-  static readonly DEBUG = 'debug';
-
-  static readonly DEVELOPMENT = 'development';
-
-  static readonly ALPHA = 'alpha';
-  static readonly BETA = 'beta';
-  static readonly STAGING = 'staging';
-
-  static readonly PRODUCTION = 'production';
-
-  static get current(): string {
-    return process.env.NODE_ENV || Environment.DEVELOPMENT;
-  }
-
-  static is(opts: { name: string }) {
-    return this.current === opts.name;
-  }
-}
-
 export class EnvironmentKeys {
   static readonly APP_ENV_APPLICATION_NAME = 'APP_ENV_APPLICATION_NAME';
   static readonly APP_ENV_APPLICATION_TIMEZONE = 'APP_ENV_APPLICATION_TIMEZONE';

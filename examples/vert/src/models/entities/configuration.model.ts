@@ -1,28 +1,22 @@
 import {
   BaseEntity,
+  createRelations,
   generateDataTypeColumnDefs,
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
   model,
+  RelationTypes,
   TTableObject,
 } from '@vez/ignis';
-import { relations } from 'drizzle-orm';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
-import { User, usersTable } from './user.model';
+import { User, userTable } from './user.model';
 
-@model({ type: 'entity', skipMigrate: false })
-export class Configuration extends BaseEntity<TConfigurationSchema> {
-  static readonly TABLE_NAME = Configuration.name;
-
-  constructor() {
-    super({ name: Configuration.TABLE_NAME, schema: configurationTable });
-  }
-}
+const TABLE_NAME = 'Configuration';
 
 // ----------------------------------------------------------------
 export const configurationTable = pgTable(
-  Configuration.TABLE_NAME,
+  TABLE_NAME,
   {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),
@@ -37,32 +31,51 @@ export const configurationTable = pgTable(
   },
   def => [
     unique(`UQ_${Configuration.TABLE_NAME}_code`).on(def.code),
-    /* check(
-      `CHECK_${Configuration.TABLE_NAME}_dataType`,
-      inArray(def.dataType, Array.from(DataTypes.SCHEME_SET)),
-    ), */
     index(`IDX_${Configuration.TABLE_NAME}_group`).on(def.group),
     foreignKey({
       columns: [def.createdBy],
-      foreignColumns: [usersTable.id],
+      foreignColumns: [userTable.id],
       name: `FK_${Configuration.TABLE_NAME}_createdBy_${User.TABLE_NAME}_id`,
     }),
   ],
 );
 
-export const configurationRelations = relations(configurationTable, opts => {
-  return {
-    creator: opts.one(usersTable, {
-      fields: [configurationTable.createdBy],
-      references: [usersTable.id],
-    }),
-    modifier: opts.one(usersTable, {
-      fields: [configurationTable.modifiedBy],
-      references: [usersTable.id],
-    }),
-  };
+export const configurationRelations = createRelations({
+  source: configurationTable,
+  relations: [
+    {
+      name: 'creator',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: {
+        fields: [configurationTable.createdBy],
+        references: [userTable.id],
+      },
+    },
+    {
+      name: 'modifier',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: {
+        fields: [configurationTable.modifiedBy],
+        references: [userTable.id],
+      },
+    },
+  ],
 });
 
 export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
 
+// ----------------------------------------------------------------
+@model({ type: 'entity', skipMigrate: false })
+export class Configuration extends BaseEntity<TConfigurationSchema> {
+  static readonly TABLE_NAME = Configuration.name;
+
+  constructor() {
+    super({
+      name: Configuration.TABLE_NAME,
+      schema: configurationTable,
+    });
+  }
+}
