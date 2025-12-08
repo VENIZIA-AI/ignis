@@ -6,6 +6,10 @@ export class UserRepository extends ReadableRepository<TUserSchema> {
   constructor(
     @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
   ) {
-    super({ dataSource, entityClass: User });
+    super({
+      dataSource,
+      entityClass: User,
+      relations: {},
+    });
   }
 }

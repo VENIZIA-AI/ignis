@@ -39,7 +39,7 @@ export const beConfigs: IApplicationConfigs = {
     isStrict: true,
   },
   debug: {
-    showRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
+    shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
 };
 
@@ -253,7 +253,7 @@ export class Application extends BaseApplication {
       where: {
         id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
       },
-      options: { returning: false },
+      options: { shouldReturn: false },
     };
     const case6 = await configurationRepository.updateAll(case6Payload);
     this.logger.info(
@@ -265,7 +265,7 @@ export class Application extends BaseApplication {
     // ------------------------------------------------------------------------------------------------
     const case7Payload = {
       id: case3.data!.id,
-      options: { returning: true },
+      options: { shouldReturn: true },
     };
     const case7 = await configurationRepository.deleteById(case7Payload);
     this.logger.info(
@@ -276,7 +276,7 @@ export class Application extends BaseApplication {
 
     const case8Payload = {
       where: { dataType: DataTypes.NUMBER },
-      options: { returning: true },
+      options: { shouldReturn: true },
     };
     const case8 = await configurationRepository.deleteAll(case8Payload);
     this.logger.info(

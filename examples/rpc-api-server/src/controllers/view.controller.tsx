@@ -1,6 +1,8 @@
 import {
   BaseController,
   controller,
+  htmlContent,
+  HTTP,
   type IControllerOptions,
   type ValueOrPromise,
 } from '@vez/ignis';
@@ -25,6 +27,11 @@ export class ViewController extends BaseController {
         method: 'get',
         description: 'Home page rendered with JSX',
         tags: ['Views'],
+        responses: {
+          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({
+            description: 'Home page HTML',
+          }),
+        },
       },
       handler: c => {
         const timestamp = new Date().toISOString();
@@ -39,6 +46,11 @@ export class ViewController extends BaseController {
         method: 'get',
         description: 'About page rendered with JSX',
         tags: ['Views'],
+        responses: {
+          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({
+            description: 'About page HTML',
+          }),
+        },
       },
       handler: c => {
         return c.html(<AboutPage />);

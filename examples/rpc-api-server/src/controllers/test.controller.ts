@@ -43,7 +43,7 @@ export class TestController extends BaseController {
         },
       },
       handler: context => {
-        const { id } = context.req.param();
+        const { id } = context.req.valid('param');
         return context.json(
           { message: `Hello there!`, id: id },
           HTTP.ResultCodes.RS_2.Ok,
@@ -51,7 +51,7 @@ export class TestController extends BaseController {
       },
     });
 
-    this.defineAuthRoute({
+    this.defineRoute({
       configs: {
         path: '/2',
         method: 'get',
@@ -64,7 +64,7 @@ export class TestController extends BaseController {
         },
       },
       handler: context => {
-        return context.json({ status: 'Hello 2' }, HTTP.ResultCodes.RS_2.Ok);
+        return context.json({ message: 'Hello 2' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }
