@@ -48,6 +48,10 @@ Controllers have a simple and predictable lifecycle managed by the application.
 
 The recommended way to define routes is by using decorators directly on the controller methods that handle them. This approach is more declarative, keeps your code organized, and provides **full type safety** for your request parameters, query, body, and even the response.
 
+:::tip Type Safety without Boilerplate
+For decorator-based routes, you do not need to explicitly annotate the return type with `TRouteResponse`. TypeScript will automatically infer and validate the return type against the OpenAPI response schema you define in your `configs`. This gives you full type safety with less code.
+:::
+
 ### HTTP Method Decorators
 
 Ignis provides a decorator for each common HTTP method:
@@ -66,7 +70,7 @@ The `opts` object contains a `configs` property that defines the route's path, r
 For optimal organization and type safety, define your route configurations in a constant with `as const`. This allows TypeScript to precisely infer the types for your request data and expected responses within your handler methods.
 
 ```typescript
-import { BaseController, controller, get, post, HTTP, jsonContent, jsonResponse, TRouteContext, TRouteResponse } from '@vez/ignis';
+import { BaseController, controller, get, post, HTTP, jsonContent, jsonResponse, TRouteContext } from '@vez/ignis';
 import { z } from '@hono/zod-openapi';
 
 // Define route configs as const for type inference
@@ -102,13 +106,13 @@ export class MyItemsController extends BaseController {
   }
 
   @get({ configs: TEST_ROUTES.getData })
-  getData(c: TRouteContext<typeof TEST_ROUTES.getData>) { // Return type is automatically inferred and validated
+  getData(c: TRouteContext<typeof TEST_ROUTES.getData>) { // Return type is automatically inferred
     // 'c' is fully typed here, including c.req.valid and c.json return type
     return c.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: TEST_ROUTES.createItem })
-  createItem(c: TRouteContext<typeof TEST_ROUTES.createItem>) { // Return type is automatically inferred and validated
+  createItem(c: TRouteContext<typeof TEST_ROUTES.createItem>) { // Return type is automatically inferred
     // c.req.valid('json') is automatically typed based on createItem.request.body.content['application/json'].schema
     const body = c.req.valid('json');
 
@@ -125,18 +129,16 @@ export class MyItemsController extends BaseController {
 }
 ```
 
-**Note:** For decorator-based routes, explicitly annotating the return type with `TRouteResponse` is generally optional. TypeScript will automatically infer and validate the return type against the OpenAPI response schema defined in your `configs`.
-
 ## Manual Route Definition (Legacy)
 
 While decorators are recommended, you can still define routes manually inside the `binding()` method. This can be useful for more complex scenarios or for organizing routes in a different way.
 
 ### `defineRoute`
 
-Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext` and `TRouteResponse`.
+Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
 
 ```typescript
-import { Authentication, HTTP, jsonResponse, z, TRouteContext, TRouteResponse } from '@vez/ignis';
+import { Authentication, HTTP, jsonResponse, z, TRouteContext } from '@vez/ignis';
 
 // ... inside the binding() method
 
@@ -152,7 +154,7 @@ const GetUsersRoute = {
 
 this.defineRoute({
   configs: GetUsersRoute,
-  handler: (c: TRouteContext<typeof GetUsersRoute>) => { // Return type is automatically inferred and validated
+  handler: (c: TRouteContext<typeof GetUsersRoute>) => { // Return type is automatically inferred
     return c.json([{ id: 1, name: 'John Doe' }]);
   },
 });
@@ -160,10 +162,10 @@ this.defineRoute({
 
 ### `bindRoute`
 
-This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` and `TRouteResponse` for type safety.
+This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
 ```typescript
-import { jsonResponse, z, TRouteContext, TRouteResponse } from '@vez/ignis';
+import { jsonResponse, z, TRouteContext } from '@vez/ignis';
 
 // ... inside the binding() method
 
@@ -179,7 +181,7 @@ const GetUserByIdRoute = {
 this.bindRoute({
   configs: GetUserByIdRoute,
 }).to({
-  handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred and validated
+  handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred
     const { id } = c.req.param();
     return c.json({ id: id, name: 'John Doe' });
   },

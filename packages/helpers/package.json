@@ -91,8 +91,7 @@
     "socket.io-client": "^4.8.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
-    "winston-transport": "^4.9.0",
-    "zod": "^4.1.13"
+    "winston-transport": "^4.9.0"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {

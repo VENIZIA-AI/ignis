@@ -30,7 +30,7 @@ export type TRouteBindingOptions<
 };
 
 export type TAuthRouteConfig<RC extends RouteConfig> = RC & {
-  authStrategies?: Array<TAuthStrategy>;
+  authStrategies?: readonly TAuthStrategy[];
 };
 
 /**
@@ -60,8 +60,11 @@ export type TRouteContext<
 > = Parameters<TLazyRouteHandler<RC, RouteEnv>>[0];
 
 /**
- * Extract the return type from a route config for use in decorated handler methods
- * Use this in combination with TRouteContext to get full type safety
+ * Extract the return type from a route config for use in decorated handler methods.
+ *
+ * **Note:** This type is optional for decorated methods, as TypeScript can automatically
+ * infer and validate the return type from the route configuration. It can be useful for
+ * explicit clarity or in complex scenarios.
  *
  * @example
  * ```typescript
@@ -73,7 +76,7 @@ export type TRouteContext<
  *
  * class MyController extends BaseController {
  *   @get({ configs: config })
- *   myMethod(context: TRouteContext<typeof config>): TRouteResponse<typeof config> {
+ *   myMethod(context: TRouteContext<typeof config>) { // TRouteResponse is optional here
  *     // Return type is validated - must return Response or TypedResponse matching the schema
  *     return context.json({ message: 'hello' }, 200);
  *   }

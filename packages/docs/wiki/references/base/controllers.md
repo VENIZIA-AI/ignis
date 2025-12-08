@@ -31,13 +31,16 @@ With the latest updates, the recommended way to define routes is by using decora
 
 The `binding()` method is no longer required if you are using only decorator-based routing.
 
+:::tip Type Safety without Boilerplate
+For decorator-based routes, you do not need to explicitly annotate the return type with `TRouteResponse`. TypeScript will automatically infer and validate the return type against the OpenAPI response schema you define in your `configs`. This gives you full type safety with less code.
+:::
+
 #### `@api` Decorator
 
 The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext, TRouteResponse } from '@vez/ignis';
-import { Context } from 'hono';
+import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@vez/ignis';
 
 const MyRouteConfig = {
   method: 'get',
@@ -68,7 +71,7 @@ For convenience, Ignis provides decorator shortcuts for each HTTP method. These 
 **Example using `@get` and `@post` with type inference:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, TRouteResponse } from '@vez/ignis';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@vez/ignis';
 
 // Define route configs as const for full type inference
 const USER_ROUTES = {
@@ -109,18 +112,18 @@ const USER_ROUTES = {
 // ... inside a controller class
 
   @get({ configs: USER_ROUTES.listUsers })
-  getAllUsers(c: TRouteContext<typeof USER_ROUTES.listUsers>) { // Return type is automatically inferred and validated
+  getAllUsers(c: TRouteContext<typeof USER_ROUTES.listUsers>) { // Return type is automatically inferred
     return c.json([{ id: '1', name: 'John Doe' }]);
   }
 
   @get({ configs: USER_ROUTES.getUser })
-  getUserById(c: TRouteContext<typeof USER_ROUTES.getUser>) { // Return type is automatically inferred and validated
+  getUserById(c: TRouteContext<typeof USER_ROUTES.getUser>) { // Return type is automatically inferred
     const { id } = c.req.valid('param'); // id is typed as string
     return c.json({ id, name: 'John Doe' });
   }
 
   @post({ configs: USER_ROUTES.createUser })
-  createUser(c: TRouteContext<typeof USER_ROUTES.createUser>) { // Return type is automatically inferred and validated
+  createUser(c: TRouteContext<typeof USER_ROUTES.createUser>) { // Return type is automatically inferred
     const { name } = c.req.valid('json'); // name is typed as string
     const newUser = { id: '2', name };
     return c.json(newUser, 201); // Return type is validated
@@ -132,7 +135,7 @@ const USER_ROUTES = {
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
 ```typescript
-import { api, BaseController, controller, TRouteContext, TRouteResponse, jsonContent, jsonResponse, HTTP } from '@vez/ignis';
+import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@vez/ignis';
 import { z } from 'hono/zod-openapi';
 
 const HEALTH_CHECK_ROUTES = {
@@ -154,14 +157,12 @@ const HEALTH_CHECK_ROUTES = {
 export class HealthCheckController extends BaseController {
   
   @api({ configs: HEALTH_CHECK_ROUTES['/ping'] })
-  ping(c: TRouteContext<typeof HEALTH_CHECK_ROUTES['/ping']>) { // Return type is automatically inferred and validated
+  ping(c: TRouteContext<typeof HEALTH_CHECK_ROUTES['/ping']>) { // Return type is automatically inferred
     const { message } = c.req.valid('json');
     return c.json({ pong: message });
   }
 }
 ```
-
-**Note:** While `TRouteResponse` can be explicitly added for clarity or certain advanced scenarios, it's generally optional for decorator-based routes due to TypeScript's powerful inference capabilities. The framework ensures that your returned value is validated against the defined response schema even without explicit annotation.
 
 ### Manual Route Definition Methods
 

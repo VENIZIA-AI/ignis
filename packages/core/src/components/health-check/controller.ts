@@ -3,11 +3,12 @@ import { api } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { HTTP, ValueOrPromise } from '@vez/ignis-helpers';
+import { HealthCheckRestPaths } from './common';
 
 const ROUTE_CONFIGS = {
-  ['/']: {
+  [HealthCheckRestPaths.ROOT]: {
     method: HTTP.Methods.GET,
-    path: '/',
+    path: HealthCheckRestPaths.ROOT,
     responses: jsonResponse({
       schema: z.object({ status: z.string() }).openapi({
         description: 'HealthCheck Schema',
@@ -16,9 +17,9 @@ const ROUTE_CONFIGS = {
       description: 'Health check status',
     }),
   },
-  ['/ping']: {
+  [HealthCheckRestPaths.PING]: {
     method: HTTP.Methods.POST,
-    path: '/ping',
+    path: HealthCheckRestPaths.PING,
     request: {
       body: jsonContent({
         description: 'PING | Request body',
@@ -76,8 +77,8 @@ export class HealthCheckController extends BaseController {
   // Method 3: Using 'decorators' to create a controller route
   // Note: No need to manually type the context and return type!
   // The @api decorator automatically infers them from the route config
-  @api({ configs: ROUTE_CONFIGS['/ping'] })
-  pingPong(context: TRouteContext<(typeof ROUTE_CONFIGS)['/ping']>) {
+  @api({ configs: ROUTE_CONFIGS[HealthCheckRestPaths.PING] })
+  pingPong(context: TRouteContext<(typeof ROUTE_CONFIGS)[typeof HealthCheckRestPaths.PING]>) {
     // context.req.valid('json') is automatically typed as { type?: string, message: string }
     const { message } = context.req.valid('json');
 
