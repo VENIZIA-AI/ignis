@@ -25,7 +25,7 @@ export interface IBindingTag {
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Metadata
 // ----------------------------------------------------------------------------------------------------------------------------------------
-export type TRouteMetadata = RouteConfig & { authStrategies?: Array<TAuthStrategy> };
+export type TRouteMetadata = RouteConfig & { authStrategies?: readonly TAuthStrategy[] };
 
 export interface IControllerMetadata {
   path: string;

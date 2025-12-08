@@ -12,7 +12,7 @@ The Health Check component provides a simple endpoint for monitoring the health 
 ## Design and Architecture
 
 -   **`HealthCheckComponent`:** This component registers the `HealthCheckController`.
--   **`HealthCheckController`:** A simple controller that defines the health check route using `bindRoute` and returns a static JSON response.
+-   **`HealthCheckController`:** A simple controller that uses decorators (`@api`) to define the health check routes and returns static JSON responses.
 
 ## Implementation Details
 
@@ -57,32 +57,75 @@ import { HealthCheckBindingKeys, IHealthCheckOptions, HealthCheckComponent } fro
 
 #### Controller Implementation
 
-The `HealthCheckController` is a simple controller that uses the `@get` decorator to define the health check route.
+The `HealthCheckController` is a simple controller that uses decorators to define its routes. It now includes a `GET /` for a simple status check and a `POST /ping` that echoes a message.
 
 ```typescript
 // packages/core/src/components/health-check/controller.ts
-import { BaseController, controller, get, HTTP, jsonContent, z } from '@vez/ignis';
-import { Context } from 'hono';
+import { BaseController, IControllerOptions, TRouteContext, api, jsonContent, jsonResponse, HTTP, z } from '@vez/ignis';
+
+const ROUTE_CONFIGS = {
+  '/': {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: jsonResponse({
+      schema: z.object({ status: z.string() }).openapi({
+        description: 'HealthCheck Schema',
+        examples: [{ status: 'ok' }],
+      }),
+      description: 'Health check status',
+    }),
+  },
+  '/ping': {
+    method: HTTP.Methods.POST,
+    path: '/ping',
+    request: {
+      body: jsonContent({
+        description: 'PING | Request body',
+        schema: z.object({
+          type: z.string().optional().default('PING'),
+          message: z.string().min(1).max(255),
+        }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z
+        .object({
+          type: z.string().optional().default('PONG'),
+          date: z.iso.datetime(),
+          message: z.string(),
+        })
+        .openapi({
+          description: 'HealthCheck PingPong Schema',
+          examples: [{ date: new Date().toISOString(), message: 'ok' }],
+        }),
+      description: 'HealthCheck PingPong Message',
+    }),
+  },
+} as const;
 
 @controller({ path: '/health' }) // Base path is configured by options
 export class HealthCheckController extends BaseController {
-  constructor() {
-    super({ scope: HealthCheckController.name, path: '/health' });
+  constructor(opts: IControllerOptions) {
+    super({ ...opts, scope: HealthCheckController.name });
+    // Note: This is optional declare internal controller route definitions
+    this.definitions = ROUTE_CONFIGS;
   }
 
-  @get({
-    configs: {
-      path: '/',
-      responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          schema: z.object({ status: z.string() }),
-          description: 'Health check status',
-        }),
-      },
-    },
-  })
-  checkHealth(c: Context) {
+  @api({ configs: ROUTE_CONFIGS['/'] })
+  checkHealth(c: TRouteContext<typeof ROUTE_CONFIGS['/']>) {
     return c.json({ status: 'ok' });
+  }
+
+  @api({ configs: ROUTE_CONFIGS['/ping'] })
+  pingPong(c: TRouteContext<typeof ROUTE_CONFIGS['/ping']>) {
+    // context.req.valid('json') is automatically typed as { type?: string, message: string }
+    const { message } = c.req.valid('json');
+
+    // Return type is automatically validated against the response schema
+    return c.json(
+      { type: 'PONG', date: new Date().toISOString(), message },
+      HTTP.ResultCodes.RS_2.Ok,
+    );
   }
 }
 ```
@@ -111,6 +154,22 @@ import { HealthCheckComponent } from '@vez/ignis';
     ```json
     {
       "status": "ok"
+    }
+    ```
+-   **Endpoint:** `POST /health/ping`
+-   **Method:** `POST`
+-   **Request Body:**
+    ```json
+    {
+      "message": "Any string here"
+    }
+    ```
+-   **Success Response (200 OK):**
+    ```json
+    {
+      "type": "PONG",
+      "date": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "message": "Any string here"
     }
     ```
 

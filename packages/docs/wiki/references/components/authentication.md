@@ -142,7 +142,7 @@ This service is then registered in `application.ts` as shown in the previous ste
 
 #### 3. Securing Routes
 
-In your controllers, use `defineRoute` with the `authStrategies` property in the `configs` object to protect endpoints. This will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`.
+In your controllers, use decorator-based routing (`@get`, `@post`, etc.) with the `authStrategies` property in the `configs` object to protect endpoints. This will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`, which can then be accessed type-safely using `TRouteContext`.
 
 ```typescript
 // src/controllers/test.controller.ts
@@ -150,13 +150,23 @@ import {
   Authentication,
   BaseController,
   controller,
+  get, // Or @api, @post, etc.
   HTTP,
   jsonResponse,
-  ValueOrPromise,
   IJWTTokenPayload,
+  TRouteContext, // Import TRouteContext for type safety
 } from '@vez/ignis';
-import { Context } from 'hono';
 import { z } from '@hono/zod-openapi';
+
+const SECURE_ROUTE_CONFIG = {
+  path: '/secure-data',
+  method: HTTP.Methods.GET,
+  authStrategies: [Authentication.STRATEGY_JWT],
+  responses: jsonResponse({
+      description: 'Test message content',
+      schema: z.object({ message: z.string() }),
+  }),
+} as const;
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {
@@ -167,23 +177,11 @@ export class TestController extends BaseController {
     });
   }
 
-  override binding(): ValueOrPromise<void> {
-    // Requires a valid JWT
-    this.defineRoute({
-      configs: {
-        path: '/secure-data',
-        method: 'get',
-        authStrategies: [Authentication.STRATEGY_JWT],
-        responses: jsonResponse({
-            description: 'Test message content',
-            schema: z.object({ message: z.string() }),
-        }),
-      },
-      handler: (c: Context) => { // Access context directly
-        const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-        return c.json({ message: `Hello, ${user?.userId || 'guest'} from protected data` });
-      },
-    });
+  @get({ configs: SECURE_ROUTE_CONFIG })
+  secureData(c: TRouteContext<typeof SECURE_ROUTE_CONFIG>) {
+    // 'c' is fully typed here, including c.get and c.json return type
+    const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
+    return c.json({ message: `Hello, ${user?.userId || 'guest'} from protected data` });
   }
 }
 ```

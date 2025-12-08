@@ -1,9 +1,9 @@
 import { Hook, RouteConfig } from '@hono/zod-openapi';
-import { Env, Schema } from 'hono';
 import { TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
+import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {
-  IControllerOptions,
+  TAuthRouteConfig,
   TLazyRouteHandler,
   TRouteBindingOptions,
   TRouteDefinition,
@@ -15,12 +15,8 @@ export abstract class BaseController<
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
 > extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
-  constructor(opts: IControllerOptions) {
-    super(opts);
-  }
-
   // ------------------------------------------------------------------------------
-  bindRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  bindRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
     configs: RC;
   }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RC>({ configs: opts.configs });
@@ -37,9 +33,9 @@ export abstract class BaseController<
   }
 
   // ------------------------------------------------------------------------------
-  defineRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  defineRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
     configs: RC;
-    handler: TLazyRouteHandler<RC>;
+    handler: TLazyRouteHandler<RC, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RC>({ configs: opts.configs });
@@ -77,7 +73,7 @@ export abstract class BaseController<
    */
   defineJSXRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
     configs: RC;
-    handler: TLazyRouteHandler<RC>;
+    handler: TLazyRouteHandler<RC, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getJSXRouteConfigs<RC>({ configs: opts.configs });

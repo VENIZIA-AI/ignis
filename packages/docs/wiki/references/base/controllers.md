@@ -31,25 +31,28 @@ With the latest updates, the recommended way to define routes is by using decora
 
 The `binding()` method is no longer required if you are using only decorator-based routing.
 
+:::tip Type Safety without Boilerplate
+For decorator-based routes, you do not need to explicitly annotate the return type with `TRouteResponse`. TypeScript will automatically infer and validate the return type against the OpenAPI response schema you define in your `configs`. This gives you full type safety with less code.
+:::
+
 #### `@api` Decorator
 
-The generic `@api` decorator allows you to define a route with a full configuration object.
+The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, HTTP, jsonResponse, z } from '@vez/ignis';
-import { Context } from 'hono';
+import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@vez/ignis';
+
+const MyRouteConfig = {
+  method: 'get',
+  path: '/data',
+  responses: jsonResponse({ schema: z.object({ success: z.boolean() }) }),
+} as const;
 
 @controller({ path: '/my-feature' })
 export class MyFeatureController extends BaseController {
 
-  @api({
-    configs: {
-      method: 'get',
-      path: '/data',
-      responses: jsonResponse({ schema: z.object({ success: z.boolean() }) }),
-    },
-  })
-  getData(c: Context) {
+  @api({ configs: MyRouteConfig })
+  getData(c: TRouteContext<typeof MyRouteConfig>) { // Return type is automatically inferred and validated
     return c.json({ success: true });
   }
 }
@@ -65,41 +68,98 @@ For convenience, Ignis provides decorator shortcuts for each HTTP method. These 
 - `@patch(opts)`
 - `@del(opts)`
 
-**Example using `@get`:**
+**Example using `@get` and `@post` with type inference:**
 
 ```typescript
-import { get, BaseController, controller, HTTP, jsonResponse, z } from '@vez/ignis';
-import { Context } from 'hono';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@vez/ignis';
 
-@controller({ path: '/users' })
-export class UserController extends BaseController {
-
-  @get({
-    configs: {
-      path: '/',
-      responses: jsonResponse({
-        schema: z.array(z.object({ id: z.string(), name: z.string() })),
+// Define route configs as const for full type inference
+const USER_ROUTES = {
+  listUsers: {
+    path: '/',
+    method: 'get',
+    responses: jsonResponse({
+      description: 'A list of users',
+      schema: z.array(z.object({ id: z.string(), name: z.string() })),
+    }),
+  },
+  getUser: {
+    path: '/:id',
+    method: 'get',
+    request: {
+      params: z.object({ id: z.string() }),
+    },
+    responses: jsonResponse({
+      description: 'A single user',
+      schema: z.object({ id: z.string(), name: z.string() }),
+    }),
+  },
+  createUser: {
+    path: '/',
+    method: 'post',
+    authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
+    request: {
+      body: jsonContent({
+        schema: z.object({ name: z.string() }),
       }),
     },
-  })
-  getAllUsers(c: Context) {
+    responses: jsonResponse({
+      schema: z.object({ id: z.string(), name: z.string() }),
+    }),
+  },
+} as const; // Crucial for type inference!
+
+// ... inside a controller class
+
+  @get({ configs: USER_ROUTES.listUsers })
+  getAllUsers(c: TRouteContext<typeof USER_ROUTES.listUsers>) { // Return type is automatically inferred
     return c.json([{ id: '1', name: 'John Doe' }]);
   }
 
-  @get({
-    configs: {
-      path: '/:id',
-      request: {
-        params: z.object({ id: z.string() }),
-      },
-      responses: jsonResponse({
-        schema: z.object({ id: z.string(), name: z.string() }),
+  @get({ configs: USER_ROUTES.getUser })
+  getUserById(c: TRouteContext<typeof USER_ROUTES.getUser>) { // Return type is automatically inferred
+    const { id } = c.req.valid('param'); // id is typed as string
+    return c.json({ id, name: 'John Doe' });
+  }
+
+  @post({ configs: USER_ROUTES.createUser })
+  createUser(c: TRouteContext<typeof USER_ROUTES.createUser>) { // Return type is automatically inferred
+    const { name } = c.req.valid('json'); // name is typed as string
+    const newUser = { id: '2', name };
+    return c.json(newUser, 201); // Return type is validated
+  }
+```
+
+**Example using shared `ROUTE_CONFIGS`:**
+
+For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
+
+```typescript
+import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@vez/ignis';
+import { z } from 'hono/zod-openapi';
+
+const HEALTH_CHECK_ROUTES = {
+  '/ping': {
+    method: HTTP.Methods.POST,
+    path: '/ping',
+    request: {
+      body: jsonContent({
+        schema: z.object({ message: z.string().min(1) }),
       }),
     },
-  })
-  getUserById(c: Context) {
-    const { id } = c.req.valid('param');
-    return c.json({ id, name: 'John Doe' });
+    responses: jsonResponse({
+      schema: z.object({ pong: z.string() }),
+    }),
+  },
+} as const; // Use 'as const' for strict type inference
+
+@controller({ path: '/health' })
+export class HealthCheckController extends BaseController {
+  
+  @api({ configs: HEALTH_CHECK_ROUTES['/ping'] })
+  ping(c: TRouteContext<typeof HEALTH_CHECK_ROUTES['/ping']>) { // Return type is automatically inferred
+    const { message } = c.req.valid('json');
+    return c.json({ pong: message });
   }
 }
 ```
@@ -114,8 +174,8 @@ This method is for creating API endpoints. It now handles both public and authen
 
 ```typescript
 this.defineRoute({
-  configs: TRouteConfig & { authStrategies?: TAuthStrategy[] };
-  handler: Handler;
+  configs: TAuthRouteConfig<RouteConfig>; // You would define this inline or via a const
+  handler: TLazyRouteHandler<typeof configs, RouteEnv>; // Inferred from configs
   hook?: Hook;
 });
 ```
@@ -130,9 +190,9 @@ This method offers a fluent API for defining routes, similar to `defineRoute`, b
 
 ```typescript
 this.bindRoute({
-  configs: TRouteConfig & { authStrategies?: TAuthStrategy[] };
+  configs: TAuthRouteConfig<RouteConfig>; // You would define this inline or via a const
 }).to({
-  handler: Handler;
+  handler: TLazyRouteHandler<typeof configs, RouteEnv>; // Inferred from configs
 });
 ```
 
@@ -171,11 +231,43 @@ request: {
 // ...
 ```
 
+### `defineRouteConfigs`
+
+-   **File:** `packages/core/src/base/controllers/factory/definition.ts`
+
+The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
+
+```typescript
+import { defineRouteConfigs, HTTP, jsonResponse, z } from '@vez/ignis';
+
+const ROUTE_CONFIGS = defineRouteConfigs({
+  '/': {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: jsonResponse({
+      schema: z.object({ status: z.string() }),
+    }),
+  },
+  '/ping': {
+    method: HTTP.Methods.POST,
+    path: '/ping',
+    request: {
+      body: jsonContent({
+        schema: z.object({ message: z.string() }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z.object({ message: z.string() }),
+    }),
+  },
+});
+```
+
 ## `ControllerFactory`
 
 The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `BaseEntity` and its corresponding repository. This significantly reduces boilerplate for standard RESTful resources.
 
--   **File:** `packages/core/src/base/controllers/factory.ts`
+-   **File:** `packages/core/src/base/controllers/factory/controller.ts`
 
 ### `static defineCrudController<EntitySchema>(opts: ICrudControllerOptions<EntitySchema>)`
 
