@@ -9,6 +9,7 @@ import {
   SignUpRequestSchema,
 } from '../../models';
 import { Authentication, IAuthService } from '../common';
+import { AnyObjectSchema } from '@/utilities';
 
 export const defineAuthController = (opts: {
   restPath?: string;
@@ -69,7 +70,10 @@ export const defineAuthController = (opts: {
               schema: payload?.signIn?.request?.schema ?? SignInRequestSchema,
             }),
           },
-          responses: jsonResponse({ description: 'Success Response' }),
+          responses: jsonResponse({
+            schema: AnyObjectSchema,
+            description: 'Success Response',
+          }),
         },
         handler: async context => {
           const body = await context.req.json();
@@ -90,7 +94,10 @@ export const defineAuthController = (opts: {
               schema: payload?.signUp?.request?.schema ?? SignUpRequestSchema,
             }),
           },
-          responses: jsonResponse({ description: 'Success Response' }),
+          responses: jsonResponse({
+            schema: AnyObjectSchema,
+            description: 'Success Response',
+          }),
         },
         handler: async context => {
           const body = await context.req.json();
@@ -110,7 +117,10 @@ export const defineAuthController = (opts: {
               required: true,
             },
           }, */
-          responses: jsonResponse({ description: 'Success Response' }),
+          responses: jsonResponse({
+            schema: AnyObjectSchema,
+            description: 'Success Response',
+          }),
           authStrategies: [Authentication.STRATEGY_JWT],
         },
         handler: async context => {

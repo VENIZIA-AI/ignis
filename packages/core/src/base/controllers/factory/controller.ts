@@ -1,3 +1,19 @@
+import {
+  BaseEntity,
+  getIdType,
+  idParamsSchema,
+  jsonContent,
+  jsonResponse,
+  SchemaTypes,
+  TTableSchemaWithId,
+} from '@/base/models';
+import {
+  AbstractRepository,
+  CountSchema,
+  DEFAULT_LIMIT,
+  FilterSchema,
+  WhereSchema,
+} from '@/base/repositories';
 import { z } from '@hono/zod-openapi';
 import {
   BaseHelper,
@@ -10,24 +26,8 @@ import {
   ValueOrPromise,
 } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
-import {
-  BaseEntity,
-  getIdType,
-  idParamsSchema,
-  jsonContent,
-  jsonResponse,
-  SchemaTypes,
-  TTableSchemaWithId,
-} from '../models';
-import {
-  AbstractRepository,
-  CountSchema,
-  DEFAULT_LIMIT,
-  FilterSchema,
-  WhereSchema,
-} from '../repositories';
-import { BaseController } from './base';
-import { RestPaths } from './common/constants';
+import { BaseController } from '../base';
+import { RestPaths } from '../common';
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;

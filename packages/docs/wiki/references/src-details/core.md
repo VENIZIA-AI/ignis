@@ -54,7 +54,9 @@ This is the foundational layer of Ignis, defining the core architecture and abst
 | :------------ | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `abstract.ts` | Defines `AbstractController`, an abstract class providing core controller functionalities like `getRouteConfigs` for standardizing route configurations, and `registerRoutesFromRegistry()` for automatically registering decorator-based routes. |
 | `base.ts`     | Extends `AbstractController` to provide `BaseController`, an abstract class for handling HTTP requests. Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. Key methods include `defineRoute` and `bindRoute`. |
-| `factory.ts`  | Provides `ControllerFactory` to generate pre-configured CRUD controllers from a given entity and repository, simplifying the creation of standard API endpoints.                                                                                   |
+| `factory/`  | Contains the `ControllerFactory` and related helpers for generating controllers. |
+| `factory/controller.ts` | Provides `ControllerFactory` to generate pre-configured CRUD controllers from a given entity and repository. |
+| `factory/definition.ts` | Exports route definition helpers. |
 | `common/`     | Contains shared types (`types.ts`) and constants (`constants.ts`) for the controller layer.                                                                                                                                                        |
 
 #### `base/datasources`

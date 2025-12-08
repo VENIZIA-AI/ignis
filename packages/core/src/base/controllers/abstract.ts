@@ -1,11 +1,11 @@
 import { authenticate } from '@/components/auth';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import { BaseHelper, MetadataRegistry, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
+import { BaseHelper, MetadataRegistry, ValueOrPromise } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
-import { jsonResponse } from '../models';
 import {
   IController,
   IControllerOptions,
+  TAuthRouteConfig,
   TLazyRouteHandler,
   TRouteBindingOptions,
   TRouteDefinition,
@@ -22,6 +22,7 @@ export abstract class AbstractController<
   implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 {
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+  definitions: Record<string, TAuthRouteConfig<RouteConfig>>;
 
   // ------------------------------------------------------------------------------
   constructor(opts: IControllerOptions) {
@@ -78,9 +79,7 @@ export abstract class AbstractController<
     return this.router;
   }
 
-  getRouteConfigs<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
-    configs: RC;
-  }) {
+  getRouteConfigs<RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: RC }) {
     const { configs } = opts;
 
     const { authStrategies = [], ...restConfig } = configs;
@@ -96,11 +95,10 @@ export abstract class AbstractController<
     for (const mw of extraMws) {
       mws.push(mw);
     }
-    const { responses, tags = [] } = configs;
+    const { tags = [] } = configs;
 
     return createRoute<string, RC>(
       Object.assign({}, configs, {
-        responses: Object.assign({}, jsonResponse({ description: 'Success Response' }), responses),
         tags: [...tags, this.scope],
         security,
       }),
@@ -110,13 +108,13 @@ export abstract class AbstractController<
   // ------------------------------------------------------------------------------
   abstract binding(): ValueOrPromise<void>;
 
-  abstract bindRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  abstract bindRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
     configs: RC;
   }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath>;
 
-  abstract defineRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+  abstract defineRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
     configs: RC;
-    handler: TLazyRouteHandler<RC>;
+    handler: TLazyRouteHandler<RC, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath>;
 }

@@ -1,4 +1,3 @@
-import { AnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 import { ErrorSchema, getError, HTTP } from '@vez/ignis-helpers';
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
@@ -81,7 +80,7 @@ export const jsonContent = <T extends z.ZodObject>(opts: {
 };
 
 export const jsonResponse = <T extends z.ZodObject>(opts: {
-  schema?: T;
+  schema: T;
   description?: string;
   required?: boolean;
 }) => {
@@ -89,7 +88,7 @@ export const jsonResponse = <T extends z.ZodObject>(opts: {
     [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
       required: opts.required,
       description: opts?.description ?? 'Success Response',
-      schema: opts.schema ?? AnyObjectSchema,
+      schema: opts.schema,
     }),
     ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
   };

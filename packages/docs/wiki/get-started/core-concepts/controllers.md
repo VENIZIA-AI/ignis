@@ -42,11 +42,11 @@ Controllers have a simple and predictable lifecycle managed by the application.
 | Stage | Method | Description |
 | :--- | :--- | :--- |
 | **1. Instantiation** | `constructor(opts)` | The controller is created by the DI container. Dependencies are injected, and you call `super()` to initialize the internal Hono router. |
-| **2. Configuration**| `registerControllers` phase | The application automatically discovers and registers all routes defined with decorators (`@get`, `@post`, etc.) on your controller methods. If you have routes defined manually inside `binding()`, that method is also called during this phase. |
+| **2. Configuration**| `registerControllers` phase | The application automatically discovers and registers all routes defined with decorators (`@get`, `@post`, etc.) on your controller methods. If you have routes defined manually inside `binding()`, that method is also called during this phase. **Note:** If you exclusively use decorators for routing, the `binding()` method can be omitted from your controller. |
 
 ## Defining Routes with Decorators (Recommended)
 
-The recommended way to define routes is by using decorators directly on the controller methods that handle them. This approach is more declarative and keeps your code organized.
+The recommended way to define routes is by using decorators directly on the controller methods that handle them. This approach is more declarative, keeps your code organized, and provides **full type safety** for your request parameters, query, body, and even the response.
 
 ### HTTP Method Decorators
 
@@ -61,48 +61,71 @@ Ignis provides a decorator for each common HTTP method:
 
 The `opts` object contains a `configs` property that defines the route's path, request validation, and OpenAPI response schemas.
 
+**Example using decorators with `ROUTE_CONFIGS` and full type inference:**
+
+For optimal organization and type safety, define your route configurations in a constant with `as const`. This allows TypeScript to precisely infer the types for your request data and expected responses within your handler methods.
+
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication } from '@vez/ignis';
+import { BaseController, controller, get, post, HTTP, jsonContent, jsonResponse, TRouteContext, TRouteResponse } from '@vez/ignis';
+import { z } from '@hono/zod-openapi';
 
-// ... inside a controller class
-
-  @get({
-    configs: {
-      path: '/:id',
-      request: {
-        params: z.object({ id: z.string() }),
-      },
-      responses: jsonResponse({
-        description: 'A single user',
-        schema: z.object({ id: z.string(), name: z.string() }),
+// Define route configs as const for type inference
+const TEST_ROUTES = {
+  getData: {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: jsonResponse({
+      description: 'A simple message',
+      schema: z.object({ message: z.string(), method: z.string() }),
+    }),
+  },
+  createItem: {
+    method: HTTP.Methods.POST,
+    path: '/',
+    request: {
+      body: jsonContent({
+        description: 'Request body for creating an item',
+        schema: z.object({ name: z.string(), value: z.number().int().positive() }),
       }),
     },
-  })
-  getUserById(c: Context) {
-    const { id } = c.req.valid('param');
-    return c.json({ id, name: 'John Doe' });
+    responses: jsonResponse({
+      description: 'Created item',
+      schema: z.object({ id: z.string(), name: z.string(), value: z.number() }),
+    }),
+  },
+} as const; // Crucial for strict type inference!
+
+@controller({ path: '/my-items' })
+export class MyItemsController extends BaseController {
+  constructor() {
+    super({ scope: MyItemsController.name, path: '/my-items' });
   }
 
-  @post({
-    configs: {
-      path: '/',
-      authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
-      request: {
-        body: jsonContent({
-          schema: z.object({ name: z.string() }),
-        }),
-      },
-      responses: jsonResponse({
-        schema: z.object({ id: z.string(), name: z.string() }),
-      }),
-    },
-  })
-  createUser(c: Context) {
-    const { name } = c.req.valid('json');
-    const newUser = { id: '2', name };
-    return c.json(newUser, 201);
+  @get({ configs: TEST_ROUTES.getData })
+  getData(c: TRouteContext<typeof TEST_ROUTES.getData>) { // Return type is automatically inferred and validated
+    // 'c' is fully typed here, including c.req.valid and c.json return type
+    return c.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
+
+  @post({ configs: TEST_ROUTES.createItem })
+  createItem(c: TRouteContext<typeof TEST_ROUTES.createItem>) { // Return type is automatically inferred and validated
+    // c.req.valid('json') is automatically typed based on createItem.request.body.content['application/json'].schema
+    const body = c.req.valid('json');
+
+    // Return type is automatically validated against createItem.responses[200].content['application/json'].schema
+    return c.json(
+      {
+        id: 'some-uuid',
+        name: body.name,
+        value: body.value,
+      },
+      HTTP.ResultCodes.RS_2.Ok,
+    );
+  }
+}
 ```
+
+**Note:** For decorator-based routes, explicitly annotating the return type with `TRouteResponse` is generally optional. TypeScript will automatically infer and validate the return type against the OpenAPI response schema defined in your `configs`.
 
 ## Manual Route Definition (Legacy)
 
@@ -110,24 +133,26 @@ While decorators are recommended, you can still define routes manually inside th
 
 ### `defineRoute`
 
-Use this method for defining a single API endpoint with all its configurations and handler.
+Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext` and `TRouteResponse`.
 
 ```typescript
-import { Authentication, HTTP, jsonResponse, z } from '@vez/ignis';
+import { Authentication, HTTP, jsonResponse, z, TRouteContext, TRouteResponse } from '@vez/ignis';
 
 // ... inside the binding() method
 
+const GetUsersRoute = {
+  path: '/',
+  method: 'get',
+  authStrategies: [Authentication.STRATEGY_JWT],
+  responses: jsonResponse({
+    description: 'List of all users',
+    schema: z.array(z.object({ id: z.number(), name: z.string() })),
+  }),
+} as const;
+
 this.defineRoute({
-  configs: {
-    path: '/',
-    method: 'get',
-    authStrategies: [Authentication.STRATEGY_JWT], 
-    responses: jsonResponse({
-      description: 'List of all users',
-      schema: z.array(z.object({ id: z.number(), name: z.string() })),
-    }),
-  },
-  handler: (c) => {
+  configs: GetUsersRoute,
+  handler: (c: TRouteContext<typeof GetUsersRoute>) => { // Return type is automatically inferred and validated
     return c.json([{ id: 1, name: 'John Doe' }]);
   },
 });
@@ -135,22 +160,26 @@ this.defineRoute({
 
 ### `bindRoute`
 
-This method offers a fluent API for defining routes.
+This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` and `TRouteResponse` for type safety.
 
 ```typescript
+import { jsonResponse, z, TRouteContext, TRouteResponse } from '@vez/ignis';
+
 // ... inside the binding() method
 
+const GetUserByIdRoute = {
+  path: '/:id',
+  method: 'get',
+  responses: jsonResponse({
+    description: 'A single user',
+    schema: z.object({ id: z.string(), name: z.string() }),
+  }),
+} as const;
+
 this.bindRoute({
-  configs: {
-    path: '/:id',
-    method: 'get',
-    responses: jsonResponse({
-      description: 'A single user',
-      schema: z.object({ id: z.string(), name: z.string() }),
-    }),
-  },
+  configs: GetUserByIdRoute,
 }).to({
-  handler: (c) => {
+  handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred and validated
     const { id } = c.req.param();
     return c.json({ id: id, name: 'John Doe' });
   },
@@ -253,4 +282,41 @@ updateUser(c: Context) {
 }
 ```
 
-Using `c.req.valid()` is the recommended way to access request data as it ensures that the data conforms to the schema you've defined, providing type safety within your handler.
+Using `c.req.valid()` is the recommended way to access request data as it ensures that the data conforms to the schema you've defined. For even better type safety, you can use the `TRouteContext` utility type.
+
+```typescript
+import { z } from '@hono/zod-openapi';
+import { jsonContent, put, TRouteContext } from '@vez/ignis';
+
+// ... inside a controller class
+
+const updateUserConfig = {
+  path: '/:id',
+  method: 'put',
+  request: {
+    params: z.object({ id: z.string() }),
+    query: z.object({ notify: z.string().optional() }),
+    body: jsonContent({
+      schema: z.object({ name: z.string(), email: z.string().email() }),
+    }),
+  },
+  // ... responses
+} as const; // Use 'as const' for strict type inference
+
+@put({ configs: updateUserConfig })
+updateUser(c: TRouteContext<typeof updateUserConfig>) {
+  // Access validated data from the request
+  const { id } = c.req.valid('param');
+  const { notify } = c.req.valid('query');
+  const userUpdateData = c.req.valid('json'); // for body
+
+  console.log(`Updating user ${id} with data:`, userUpdateData);
+  if (notify) {
+    console.log('Notification is enabled.');
+  }
+
+  return c.json({ success: true, id, ...userUpdateData });
+}
+```
+
+Using `TRouteContext` provides full type inference for `c.req.valid()`, so your editor will know that `id` is a string, `notify` is an optional string, and `userUpdateData` matches the body schema.
