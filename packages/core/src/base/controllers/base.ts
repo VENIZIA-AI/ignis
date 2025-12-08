@@ -1,6 +1,5 @@
-import type { RouteConfig } from '@hono/zod-openapi';
-import { Hook } from '@hono/zod-openapi';
-import { ValueOrPromise } from '@vez/ignis-helpers';
+import { Hook, RouteConfig } from '@hono/zod-openapi';
+import { TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {
@@ -40,6 +39,44 @@ export abstract class BaseController<
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RC>({ configs: opts.configs });
+
+    return {
+      configs: routeConfigs,
+      route: this.router.openapi(routeConfigs, opts.handler, opts.hook),
+    };
+  }
+
+  /**
+   * Define a JSX route that renders server-side HTML
+   * Scope: [BaseController][defineJSXRoute]
+   *
+   * JSX routes use Hono's built-in JSX support to render components to HTML.
+   * The handler must return c.html() with the JSX component.
+   *
+   * @example
+   * ```typescript
+   * this.defineJSXRoute({
+   *   configs: {
+   *     path: '/profile',
+   *     method: 'get',
+   *     description: 'User profile page',
+   *   },
+   *   handler: (c) => {
+   *     const user = c.get('user');
+   *     return c.html(<ProfilePage user={user} />);
+   *   }
+   * });
+   * ```
+   *
+   * @param opts - Route configuration and handler
+   * @returns Route definition
+   */
+  defineJSXRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+    configs: RC;
+    handler: TLazyRouteHandler<RC, RouteEnv>;
+    hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
+  }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
+    const routeConfigs = this.getJSXRouteConfigs<RC>({ configs: opts.configs });
 
     return {
       configs: routeConfigs,
