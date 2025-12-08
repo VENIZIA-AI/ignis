@@ -62,9 +62,12 @@ export class QueryOperators {
 
   static readonly FNS = {
     // Standard Comparison
-    [this.EQ]: (opts: IQueryHandlerOptions) => eq(opts.column, opts.value),
-    [this.NE]: (opts: IQueryHandlerOptions) => ne(opts.column, opts.value),
-    [this.NEQ]: (opts: IQueryHandlerOptions) => ne(opts.column, opts.value),
+    [this.EQ]: (opts: IQueryHandlerOptions) =>
+      opts.value === null ? isNull(opts.column) : eq(opts.column, opts.value),
+    [this.NE]: (opts: IQueryHandlerOptions) =>
+      opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
+    [this.NEQ]: (opts: IQueryHandlerOptions) =>
+      opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
 
     [this.GT]: (opts: IQueryHandlerOptions) => gt(opts.column, opts.value),
     [this.GTE]: (opts: IQueryHandlerOptions) => gte(opts.column, opts.value),

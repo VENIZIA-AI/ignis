@@ -129,9 +129,13 @@ export class MyItemsController extends BaseController {
 }
 ```
 
-## Manual Route Definition (Legacy)
+## Manual Route Definition (Recommended)
 
-While decorators are recommended, you can still define routes manually inside the `binding()` method. This can be useful for more complex scenarios or for organizing routes in a different way.
+While decorators are available, the recommended way to define routes is by using the `defineRoute` and `bindRoute` methods inside the `binding()` method. This can be useful for more complex scenarios or for organizing routes in a different way.
+
+:::tip Recommendation
+For better organization and a more declarative approach, we strongly recommend using `defineRoute` or `bindRoute` within the `binding()` method to define your controller's routes. This keeps all route definitions in one place, making your controller easier to read and maintain.
+:::
 
 ### `defineRoute`
 
@@ -244,6 +248,12 @@ The `ControllerFactory.defineCrudController` method automatically sets up the fo
 | `updateAll` | `PATCH` | `/` | Update multiple records matching a filter. |
 | `deleteById` | `DELETE` | `/:id` | Delete a record by its ID. |
 | `deleteAll` | `DELETE` | `/` | Delete multiple records matching a filter. |
+
+:::info Customization
+The `ControllerFactory` is highly customizable. You can override the Zod schemas for any of the generated routes to add, remove, or modify fields for request validation and response shapes. You can also configure other behaviors, like making delete operations return the deleted records.
+
+For a full list of customization options, see the [**Deep Dive: `ControllerFactory`**](../../references/base/controllers.md#controllerfactory) documentation.
+:::
 
 ## Accessing Validated Request Data
 

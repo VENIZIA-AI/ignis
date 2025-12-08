@@ -54,7 +54,9 @@ export abstract class AbstractController<
       return;
     }
 
-    for (const [methodName, routeConfigs] of routes.entries()) {
+    const routeDefs = routes.entries();
+    for (const [methodName, routeConfigs] of routeDefs) {
+      console.log(methodName, routeConfigs);
       this.bindRoute({ configs: routeConfigs }).to({
         handler: this[methodName].bind(this),
       });
@@ -106,6 +108,7 @@ export abstract class AbstractController<
   }
 
   // ------------------------------------------------------------------------------
+  // Notes: user can use `bindRoute` or `defineRoute` in this function to functionally add controller route(s)
   abstract binding(): ValueOrPromise<void>;
 
   abstract bindRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {

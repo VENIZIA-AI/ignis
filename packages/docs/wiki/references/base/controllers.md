@@ -166,7 +166,11 @@ export class HealthCheckController extends BaseController {
 
 ### Manual Route Definition Methods
 
-While decorator-based routing is recommended, the original methods for defining routes within the `binding()` method are still available.
+While decorator-based routing is available, the recommended way to define routes is by using the `defineRoute` and `bindRoute` methods inside the `binding()` method. This approach offers a clear and declarative syntax that keeps your route definitions organized and easy to manage.
+
+:::tip Recommendation
+For better organization and a more declarative approach, we strongly recommend using `defineRoute` or `bindRoute` within the `binding()` method to define your controller's routes. This keeps all route definitions in one place, making your controller easier to read and maintain.
+:::
 
 #### `defineRoute`
 
@@ -295,6 +299,8 @@ This factory method returns a `BaseController` class that is already set up with
 | `controller.basePath`| `string` | The base path for all routes in this CRUD controller (e.g., `'/configurations'`). |
 | `controller.isStrict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
 | `controller.defaultLimit`| `number` | The default limit for `find` operations. Defaults to `10`. |
+| `schema` | `object` | An optional object to override the default Zod schemas for specific CRUD endpoints (e.g., `find`, `create`, `updateByIdRequestBody`). This allows for fine-grained control over the request and response validation and OpenAPI documentation. |
+| `doDeleteWithReturn` | `boolean` | If `true`, the `deleteById` and `deleteAll` endpoints will return the deleted record(s) in the response body. Defaults to `false`. |
 
 ### Example
 

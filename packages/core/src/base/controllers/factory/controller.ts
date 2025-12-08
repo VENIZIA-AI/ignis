@@ -1,20 +1,5 @@
-import {
-  BaseEntity,
-  getIdType,
-  idParamsSchema,
-  jsonContent,
-  jsonResponse,
-  SchemaTypes,
-  TTableSchemaWithId,
-} from '@/base/models';
-import {
-  AbstractRepository,
-  CountSchema,
-  DEFAULT_LIMIT,
-  FilterSchema,
-  WhereSchema,
-} from '@/base/repositories';
-import { z } from '@hono/zod-openapi';
+import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from '@/base/models';
+import { AbstractRepository, DEFAULT_LIMIT } from '@/base/repositories';
 import {
   BaseHelper,
   executeWithPerformanceMeasure,
@@ -27,7 +12,8 @@ import {
 } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { BaseController } from '../base';
-import { RestPaths } from '../common';
+import { defineControllerRouteConfigs } from './definition';
+import { z } from '@hono/zod-openapi';
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -39,19 +25,24 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
     isStrict?: boolean;
     defaultLimit?: number;
   };
-  /* schema?: {
-    find?: SchemaRef;
-    findOne?: SchemaRef;
-    findById?: SchemaRef;
-    count?: SchemaRef;
-    createRequestBody?: SchemaRef;
-    create?: SchemaRef;
-    updateAll?: SchemaRef;
-    updateByIdRequestBody?: SchemaRef;
-    updateById?: SchemaRef;
-    replaceById?: SchemaRef;
-    deleteById?: SchemaRef;
-  }; */
+  schema?: {
+    count?: z.ZodObject;
+    find?: z.ZodObject;
+    findOne?: z.ZodObject;
+    findById?: z.ZodObject;
+
+    create?: z.ZodObject;
+    createRequestBody?: z.ZodObject;
+
+    updateById?: z.ZodObject;
+    updateByIdRequestBody?: z.ZodObject;
+
+    updateBy?: z.ZodObject;
+    updateByRequestBody?: z.ZodObject;
+
+    deleteById?: z.ZodObject;
+    deleteBy?: z.ZodObject;
+  };
   doDeleteWithReturn?: boolean;
 }
 
@@ -95,10 +86,16 @@ export class ControllerFactory extends BaseHelper {
     const entityInstance = new _entityClass();
 
     // 2. Define required CRU (Create - Retrieve - Update) schema
-    const idType = getIdType({ entity: entityInstance.schema });
-    const selectSchema = entityInstance.getSchema({ type: SchemaTypes.SELECT });
-    const createSchema = entityInstance.getSchema({ type: SchemaTypes.CREATE });
-    const updateSchema = entityInstance.getSchema({ type: SchemaTypes.UPDATE });
+    const routeDefinitions = defineControllerRouteConfigs({
+      isStrict,
+      idType: getIdType({ entity: entityInstance.schema }),
+      schema: {
+        select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
+        create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
+        update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
+        overrided: opts.schema,
+      },
+    });
 
     // 3. Define class
     return class extends BaseController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
@@ -108,7 +105,9 @@ export class ControllerFactory extends BaseHelper {
       constructor(repository: AbstractRepository<EntitySchema>) {
         super({ scope: name, path: basePath, isStrict });
         this.repository = repository;
+
         this.defaultLimit = defaultLimit;
+        this.definitions = routeDefinitions;
       }
 
       override binding(): ValueOrPromise<void> {
@@ -116,14 +115,7 @@ export class ControllerFactory extends BaseHelper {
         // Count
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.GET,
-            path: RestPaths.COUNT,
-            request: {
-              query: z.object({ where: isStrict ? WhereSchema : z.optional(WhereSchema) }),
-            },
-            responses: jsonResponse({ schema: CountSchema }),
-          },
+          configs: routeDefinitions.COUNT,
           handler: async context => {
             const { where } = context.req.valid('query');
 
@@ -145,14 +137,7 @@ export class ControllerFactory extends BaseHelper {
         // Find
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.GET,
-            path: RestPaths.ROOT,
-            request: {
-              query: z.object({ filter: FilterSchema }),
-            },
-            responses: jsonResponse({ schema: selectSchema }),
-          },
+          configs: routeDefinitions.FIND,
           handler: async context => {
             const { filter = {} } = context.req.valid('query');
 
@@ -174,15 +159,7 @@ export class ControllerFactory extends BaseHelper {
         // Find by ID
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.GET,
-            path: '/:id',
-            request: {
-              params: idParamsSchema({ idType }),
-              query: z.object({ filter: FilterSchema }),
-            },
-            responses: jsonResponse({ schema: selectSchema }),
-          },
+          configs: routeDefinitions.FIND_BY_ID,
           handler: async context => {
             const { id } = context.req.valid('param');
             const { filter } = context.req.valid('query');
@@ -205,14 +182,7 @@ export class ControllerFactory extends BaseHelper {
         // Find One
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.GET,
-            path: RestPaths.FIND_ONE,
-            request: {
-              query: z.object({ filter: FilterSchema }),
-            },
-            responses: jsonResponse({ schema: selectSchema }),
-          },
+          configs: routeDefinitions.FIND_ONE,
           handler: async context => {
             const { filter = {} } = context.req.valid('query');
 
@@ -235,19 +205,7 @@ export class ControllerFactory extends BaseHelper {
         // Create
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.POST,
-            path: RestPaths.ROOT,
-            request: {
-              body: jsonContent({
-                description: 'CREATE | Request body',
-                schema: createSchema,
-              }),
-            },
-            responses: jsonResponse({
-              schema: z.object({ count: CountSchema, data: selectSchema }),
-            }),
-          },
+          configs: routeDefinitions.CREATE,
           handler: async context => {
             const data = context.req.valid('json');
 
@@ -269,20 +227,7 @@ export class ControllerFactory extends BaseHelper {
         // Update by ID
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.PATCH,
-            path: '/:id',
-            request: {
-              params: idParamsSchema({ idType }),
-              body: jsonContent({
-                description: 'UPDATE BY ID | Request body',
-                schema: updateSchema,
-              }),
-            },
-            responses: jsonResponse({
-              schema: z.object({ count: CountSchema, data: selectSchema }),
-            }),
-          },
+          configs: routeDefinitions.UPDATE_BY_ID,
           handler: async context => {
             const { id } = context.req.valid('param');
             const data = context.req.valid('json');
@@ -305,20 +250,7 @@ export class ControllerFactory extends BaseHelper {
         // Update by
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.PATCH,
-            path: RestPaths.ROOT,
-            request: {
-              query: z.object({ where: WhereSchema }),
-              body: jsonContent({
-                description: 'UPDATE BY CONDITION | Request body',
-                schema: updateSchema,
-              }),
-            },
-            responses: jsonResponse({
-              schema: z.object({ count: CountSchema, data: z.array(selectSchema) }),
-            }),
-          },
+          configs: routeDefinitions.UPDATE_BY,
           handler: async context => {
             const { where } = context.req.valid('query');
             const data = context.req.valid('json');
@@ -341,16 +273,7 @@ export class ControllerFactory extends BaseHelper {
         // Delete by ID
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.DELETE,
-            path: '/:id',
-            request: {
-              params: idParamsSchema({ idType }),
-            },
-            responses: jsonResponse({
-              schema: z.object({ count: CountSchema, data: selectSchema }),
-            }),
-          },
+          configs: routeDefinitions.DELETE_BY_ID,
           handler: async context => {
             const { id } = context.req.valid('param');
 
@@ -372,16 +295,7 @@ export class ControllerFactory extends BaseHelper {
         // Delete by
         // -----------------------------------------------------------------------------
         this.defineRoute({
-          configs: {
-            method: HTTP.Methods.DELETE,
-            path: RestPaths.ROOT,
-            request: {
-              query: z.object({ where: WhereSchema }),
-            },
-            responses: jsonResponse({
-              schema: z.object({ count: CountSchema, data: z.array(selectSchema) }),
-            }),
-          },
+          configs: routeDefinitions.DELETE_BY,
           handler: async context => {
             const { where } = context.req.valid('query');
 
