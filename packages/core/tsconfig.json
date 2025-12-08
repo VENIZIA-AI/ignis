@@ -7,10 +7,6 @@
     "moduleResolution": "nodenext",
     "skipLibCheck": true,
 
-    /* JSX */
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx",
-
     /* Paths */
     "outDir": "dist",
     "rootDir": "src",
