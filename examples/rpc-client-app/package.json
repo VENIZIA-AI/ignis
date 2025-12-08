@@ -1,0 +1,40 @@
+{
+  "name": "rpc-client-app",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.11",
+    "antd": "^6.0.0",
+    "dompurify": "^3.3.0",
+    "openapi-fetch": "^0.15.0",
+    "openapi-react-query": "^0.5.1",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.9.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.29.0",
+    "@types/dompurify": "^3.2.0",
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.5.2",
+    "eslint": "^9.29.0",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "globals": "^16.2.0",
+    "openapi-typescript": "^7.10.1",
+    "prettier": "^3.7.3",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.34.1",
+    "vite": "^7.0.0"
+  }
+}

@@ -6,7 +6,7 @@
     "module": "nodenext",
     "moduleResolution": "nodenext",
     "skipLibCheck": true,
-    
+
     /* Paths */
     "outDir": "dist",
     "rootDir": "src",

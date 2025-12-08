@@ -1,6 +1,7 @@
 import { authenticate } from '@/components/auth';
+import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import { BaseHelper, MetadataRegistry, ValueOrPromise } from '@vez/ignis-helpers';
+import { BaseHelper, MetadataRegistry, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
   IController,
@@ -99,6 +100,35 @@ export abstract class AbstractController<
 
     return createRoute<string, RC>(
       Object.assign({}, configs, {
+        tags: [...tags, this.scope],
+        security,
+      }),
+    );
+  }
+
+  getJSXRouteConfigs<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+    configs: RC;
+  }) {
+    const { configs } = opts;
+
+    const { authStrategies = [], ...restConfig } = configs;
+
+    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
+    const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
+
+    const extraMws =
+      restConfig.middleware && Array.isArray(restConfig.middleware)
+        ? restConfig.middleware
+        : [restConfig.middleware];
+
+    for (const mw of extraMws) {
+      mws.push(mw);
+    }
+    const { responses, tags = [] } = configs;
+
+    return createRoute<string, RC>(
+      Object.assign({}, configs, {
+        responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
         security,
       }),
