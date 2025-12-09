@@ -3,6 +3,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
+  srcDir: '../wiki',
   title: '🔥 IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/logo.svg' }]],

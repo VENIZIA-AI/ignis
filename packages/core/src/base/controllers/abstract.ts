@@ -96,12 +96,19 @@ export abstract class AbstractController<
         : [restConfig.middleware];
 
     for (const mw of extraMws) {
+      if (!mw) {
+        continue;
+      }
+
       mws.push(mw);
     }
     const { tags = [] } = configs;
 
+    console.log(configs.path, configs.method, configs.authStrategies, mws);
+
     return createRoute<string, RC>(
       Object.assign({}, configs, {
+        middleware: mws,
         tags: [...tags, this.scope],
         security,
       }),

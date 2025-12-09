@@ -3,9 +3,10 @@
   "version": "0.0.1",
   "description": "Documentation and MCP Server for Ignis Framework",
   "scripts": {
-    "docs:dev": "vitepress dev wiki",
-    "docs:build": "vitepress build wiki",
-    "docs:preview": "vitepress preview wiki",
+    "docs:dev": "vitepress dev site",
+    "docs:clean": "sh ./scripts/docs-clean.sh",
+    "docs:build": "vitepress build site",
+    "docs:preview": "vitepress preview site",
     "mcp:build": "tsc",
     "mcp:clean": "rm -rf mcp-server/dist",
     "mcp:start": "bun run mcp-server/index.ts",
