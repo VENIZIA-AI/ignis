@@ -104,8 +104,6 @@ export abstract class AbstractController<
     }
     const { tags = [] } = configs;
 
-    console.log(configs.path, configs.method, configs.authStrategies, mws);
-
     return createRoute<string, RC>(
       Object.assign({}, configs, {
         middleware: mws,
