@@ -90,18 +90,20 @@ export abstract class AbstractController<
     const security = authStrategies.map(strategy => ({ [strategy]: [] }));
     const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
 
-    const extraMws =
-      restConfig.middleware && Array.isArray(restConfig.middleware)
+    if (restConfig.middleware) {
+      const extraMws = Array.isArray(restConfig.middleware)
         ? restConfig.middleware
         : [restConfig.middleware];
 
-    for (const mw of extraMws) {
-      if (!mw) {
-        continue;
-      }
+      for (const mw of extraMws) {
+        if (!mw) {
+          continue;
+        }
 
-      mws.push(mw);
+        mws.push(mw);
+      }
     }
+
     const { tags = [] } = configs;
 
     return createRoute<string, RC>(
