@@ -1,10 +1,25 @@
 # Error Helper
 
-The Error helper in Ignis provides a standardized approach to error handling, ensuring consistent error responses across your application.
+Standardized error handling with consistent responses across the application.
+
+## Quick Reference
+
+| Class/Function | Purpose |
+|----------------|---------|
+| **ApplicationError** | Custom error class with `statusCode` and `messageCode` |
+| **getError()** | Utility to create `ApplicationError` instances |
+| **appErrorHandler** | Middleware catching and formatting errors |
+
+### Error Response Format
+
+| Environment | Includes |
+|-------------|----------|
+| **Production** | `message`, `statusCode`, `requestId` |
+| **Development** | Above + `stack`, `cause`, `url`, `path` |
 
 ## `ApplicationError`
 
-The core of the error helper is the `ApplicationError` class, which extends the native `Error` class with additional properties for HTTP status codes and machine-readable message codes.
+Extends native `Error` with HTTP status codes and machine-readable message codes.
 
 ### Creating an `ApplicationError`
 
@@ -36,7 +51,7 @@ throw getError({
 
 ## Error Handling Middleware
 
-Ignis provides a default error handling middleware (`appErrorHandler`) that catches instances of `ApplicationError` (and other errors) and formats them into a consistent JSON response.
+`Ignis` provides a default error handling middleware (`appErrorHandler`) that catches instances of `ApplicationError` (and other errors) and formats them into a consistent JSON response.
 
 In development mode, the response will include the stack trace and error cause for easier debugging. In production, these details are omitted.
 

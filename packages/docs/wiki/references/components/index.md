@@ -1,14 +1,15 @@
 # Components
 
-Components are the primary way to extend the functionality of an Ignis application. They are reusable, pluggable modules that encapsulate a specific feature, such as authentication, logging, or API documentation.
+Reusable, pluggable modules that encapsulate specific features in Ignis applications.
 
-Ignis comes with several built-in components:
+## Built-in Components
 
--   [Authentication](./authentication.md): Sets up JWT-based authentication and authorization.
--   [Health Check](./health-check.md): Adds a health check endpoint to your application.
--   [Request Tracker](./request-tracker.md): Adds request logging and tracing.
--   [Socket.IO](./socket-io.md): Integrates Socket.IO for real-time communication.
--   [Swagger](./swagger.md): Generates interactive OpenAPI documentation for your API.
+| Component | Purpose | Key Features |
+|-----------|---------|--------------|
+| [Authentication](./authentication.md) | JWT-based auth | Token generation, protected routes, user payload |
+| [Health Check](./health-check.md) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
+| [Swagger](./swagger.md) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
+| [Socket.IO](./socket-io.md) | Real-time communication | WebSocket support, Redis adapter, event-based |
 
 ## Creating a Component
 
@@ -34,10 +35,10 @@ export class MyCustomComponent extends BaseComponent {
 
 ## Component Lifecycle
 
-Components have a simple lifecycle:
-
-1.  **`constructor()`**: The component is instantiated. The constructor receives any injected dependencies. In this phase, you can also define default bindings.
-2.  **`binding()`**: This method is called by the application during the startup process. This is where you should register your component's controllers, services, repositories, etc., with the application's DI container.
+| Phase | When | Purpose |
+|-------|------|---------|
+| **`constructor()`** | Component instantiation | Receive dependencies, define default bindings |
+| **`binding()`** | Application startup | Register controllers, services, repositories with DI container |
 
 ## Registering a Component
 

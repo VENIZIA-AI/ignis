@@ -2,40 +2,90 @@
   "name": "@vez/ignis-docs",
   "version": "0.0.1",
   "description": "Documentation and MCP Server for Ignis Framework",
+  "main": "./mcp-server/dist/index.js",
+  "types": "./mcp-server/dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./mcp-server/dist/index.d.ts",
+      "default": "./mcp-server/dist/index.js"
+    },
+    "./tools": {
+      "types": "./mcp-server/dist/tools/index.d.ts",
+      "default": "./mcp-server/dist/tools/index.js"
+    },
+    "./helpers": {
+      "types": "./mcp-server/dist/helpers/index.d.ts",
+      "default": "./mcp-server/dist/helpers/index.js"
+    },
+    "./common": {
+      "types": "./mcp-server/dist/common/index.d.ts",
+      "default": "./mcp-server/dist/common/index.js"
+    }
+  },
+  "bin": {
+    "ignis-docs-mcp": "./mcp-server/dist/index.js"
+  },
+  "files": [
+    "mcp-server/dist",
+    "wiki"
+  ],
   "scripts": {
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "eslint": "eslint --report-unused-disable-directives .",
     "docs:dev": "vitepress dev site",
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:build": "vitepress build site",
     "docs:preview": "vitepress preview site",
-    "mcp:build": "tsc",
-    "mcp:clean": "rm -rf mcp-server/dist",
+    "mcp:build": "tsc -p tsconfig.json",
+    "mcp:clean": "sh ./scripts/mcp-clean.sh",
     "mcp:start": "bun run mcp-server/index.ts",
-    "mcp:dev": "bun --watch mcp-server/index.ts"
+    "mcp:dev": "bun --watch mcp-server/index.ts",
+    "prepublishOnly": "bun run mcp:build"
   },
   "dependencies": {
-    "@braintree/sanitize-url": "^7.1.1",
+    "@mastra/core": "^0.24.6",
+    "@mastra/mcp": "^0.14.4",
     "dayjs": "^1.11.19",
     "debug": "^4.4.3",
     "fast-glob": "^3.3.3",
     "fuse.js": "^7.1.0",
-    "glob": "^10.4.2",
-    "vitepress": "^1.6.4",
-    "vitepress-plugin-mermaid": "^2.0.17",
-    "vue": "^3.5.25",
-    "@mastra/core": "latest",
-    "@mastra/mcp": "latest",
-    "zod": "latest",
-
-    "gray-matter": "latest"
+    "gray-matter": "^4.0.3",
+    "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@braintree/sanitize-url": "^7.1.1",
     "@minimaltech/eslint-node": "^0.2.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
     "@types/node": "^20.14.12",
     "eslint": "^9.36.0",
+    "glob": "^10.4.2",
     "prettier": "^3.6.2",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "vitepress": "^1.6.4",
+    "vitepress-plugin-mermaid": "^2.0.17",
+    "vue": "^3.5.25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/venizia-ai/ignis.git",
+    "directory": "packages/docs"
+  },
+  "author": "Venizia AI",
+  "license": "MIT",
+  "keywords": [
+    "ignis",
+    "mcp",
+    "model-context-protocol",
+    "documentation",
+    "ai",
+    "framework"
+  ],
+  "engines": {
+    "node": ">=18"
   }
 }

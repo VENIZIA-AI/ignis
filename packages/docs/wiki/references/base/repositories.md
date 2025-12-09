@@ -1,19 +1,30 @@
 # Deep Dive: Repositories
 
-This document provides a technical overview of Ignis's repository architecture, focusing on the `AbstractRepository`, `ReadableRepository`, `PersistableRepository`, and `DefaultCRUDRepository` classes.
+Technical reference for repository classes - the data access layer in Ignis.
+
+**Files:** `packages/core/src/base/repositories/core/*.ts`
+
+## Quick Reference
+
+| Class | Capabilities | Use Case |
+|-------|--------------|----------|
+| **AbstractRepository** | Base class with properties | Extend for custom repositories |
+| **ReadableRepository** | Read-only operations | Views, external tables |
+| **PersistableRepository** | Read + Write operations | Rarely used directly |
+| **DefaultCRUDRepository** | Full CRUD operations | Standard data tables ✅ |
 
 ## `AbstractRepository`
 
-The `AbstractRepository` is the base class for all repositories in Ignis. It sets up the fundamental properties and dependencies required for data access.
+Base class for all repositories - sets up fundamental properties and dependencies for data access.
 
--   **File:** `packages/core/src/base/repositories/core/base.ts`
+**File:** `packages/core/src/base/repositories/core/base.ts`
 
 ### Key Properties
 
 -   `entity` (`BaseEntity`): An instance of the model class associated with this repository. It provides access to the Drizzle schema.
 -   `dataSource` (`IDataSource`): The datasource instance injected into the repository, which holds the database connection.
 -   `connector`: A getter that provides direct access to the Drizzle ORM instance from the datasource.
--   `filterBuilder` (`DrizzleFilterBuilder`): An instance of the filter builder responsible for converting Ignis's filter objects into Drizzle-compatible query options.
+-   `filterBuilder` (`DrizzleFilterBuilder`): An instance of the filter builder responsible for converting `Ignis`'s filter objects into Drizzle-compatible query options.
 -   `relations` (`{ [relationName: string]: TRelationConfig }`): A map of relation configurations defined for the entity.
 
 ### Abstract Methods

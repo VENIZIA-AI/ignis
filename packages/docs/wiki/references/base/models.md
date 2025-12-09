@@ -1,19 +1,32 @@
 # Deep Dive: Models and Enrichers
 
-This document provides a technical overview of Ignis's base model architecture, focusing on the `BaseEntity` class and the various "enricher" functions used for schema definition with Drizzle ORM.
+Technical reference for model architecture and schema enrichers in Ignis.
+
+**Files:**
+- `packages/core/src/base/models/base.ts`
+- `packages/core/src/base/models/enrichers/*.ts`
+
+## Quick Reference
+
+| Component | Purpose | Key Features |
+|-----------|---------|--------------|
+| **BaseEntity** | Wraps Drizzle schema | Schema encapsulation, Zod generation, `toObject()`/`toJSON()` |
+| **Schema Enrichers** | Add common columns to tables | `generateIdColumnDefs()`, `generateTzColumnDefs()`, etc. |
 
 ## `BaseEntity` Class
 
-The `BaseEntity` class is a fundamental building block in the framework's data layer. It is an abstract class that serves as a wrapper around a Drizzle ORM schema.
+Fundamental building block wrapping a Drizzle ORM schema.
 
--   **File:** `packages/core/src/base/models/base.ts`
+**File:** `packages/core/src/base/models/base.ts`
 
 ### Purpose
 
--   **Schema Encapsulation**: It holds a reference to a Drizzle `pgTable` schema, providing a consistent object structure that repositories can work with.
--   **Metadata**: When used with the `@model` decorator, it provides metadata to the framework, indicating that the class represents a database entity.
--   **Schema Generation**: It leverages `drizzle-zod` to provide methods (`getSchema`) for generating Zod schemas for `SELECT`, `CREATE`, and `UPDATE` operations based on the Drizzle table schema.
--   **Convenience**: It includes basic methods like `toObject()` and `toJSON()`.
+| Feature | Description |
+|---------|-------------|
+| **Schema Encapsulation** | Holds Drizzle `pgTable` schema for consistent repository access |
+| **Metadata** | Works with `@model` decorator to mark database entities |
+| **Schema Generation** | Uses `drizzle-zod` to generate Zod schemas (`SELECT`, `CREATE`, `UPDATE`) |
+| **Convenience** | Includes `toObject()` and `toJSON()` methods |
 
 ### Class Definition
 

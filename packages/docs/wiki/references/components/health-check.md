@@ -1,18 +1,32 @@
 # Health Check Component
 
-The Health Check component provides a simple endpoint for monitoring the health of the application.
+Simple endpoint for monitoring application health - essential for microservices and containerized deployments.
 
-## Overview
+## Quick Reference
 
--   **Feature Name:** Health Check
--   **Purpose:** To provide a simple endpoint for monitoring the health of the application.
--   **Background:** In microservices architectures and containerized deployments (e.g., using Kubernetes), it is essential to have a health check endpoint that can be used by monitoring systems to determine if the application is running and healthy.
--   **Related Features/Modules:** This feature is a self-contained component that registers a controller with a single route.
+| Component | Purpose |
+|-----------|---------|
+| **HealthCheckComponent** | Registers health check controller |
+| **HealthCheckController** | Provides health check routes |
 
-## Design and Architecture
+### Default Endpoints
 
--   **`HealthCheckComponent`:** This component registers the `HealthCheckController`.
--   **`HealthCheckController`:** A simple controller that uses decorators (`@api`) to define the health check routes and returns static JSON responses.
+| Method | Path | Purpose | Response |
+|--------|------|---------|----------|
+| `GET` | `/health` | Basic health check | `{ "status": "ok" }` |
+| `POST` | `/health/ping` | Echo test | `{ "type": "PONG", "date": "...", "message": "..." }` |
+
+### Configuration
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `restOptions.path` | `/health` | Base path for health endpoints |
+
+## Architecture Components
+
+-   **`HealthCheckComponent`**: Registers `HealthCheckController`
+-   **`HealthCheckController`**: Uses decorators (`@api`) to define routes
+-   **Self-contained**: No external dependencies required
 
 ## Implementation Details
 
@@ -173,4 +187,4 @@ import { HealthCheckComponent } from '@vez/ignis';
     }
     ```
 
-This component provides a simple and effective way to monitor the health of your Ignis application.
+This component provides a simple and effective way to monitor the health of your `Ignis` application.

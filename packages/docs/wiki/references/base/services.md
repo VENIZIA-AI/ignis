@@ -1,20 +1,28 @@
 # Deep Dive: Services
 
-This document provides a technical overview of the `BaseService` class, the foundation for creating business logic layers in an Ignis application.
+Technical reference for `BaseService` - the foundation for business logic layers in Ignis.
+
+**File:** `packages/core/src/base/services/base.ts`
+
+## Quick Reference
+
+| Feature | Benefit |
+|---------|---------|
+| **Extends `BaseHelper`** | Auto-configured scoped logger (`this.logger`) |
+| **DI Integration** | Fits into framework's dependency injection system |
+| **Business Logic Layer** | Bridge between Controllers and Repositories |
 
 ## `BaseService` Class
 
-The `BaseService` is a simple abstract class that all of your application's services should extend.
+Abstract class that all application services should extend.
 
--   **File:** `packages/core/src/base/services/base.ts`
-
-### Purpose and Features
+### Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **Standardization** | It provides a common base for all services, ensuring they fit into the framework's architecture and DI system. |
-| **Logging** | It extends `BaseHelper`, which means every service automatically gets a pre-configured, scoped logger instance available at `this.logger`. The scope is automatically set to the service's class name. |
-| **Clarity** | By extending `BaseService`, you clearly signal that the purpose of the class is to contain business logic. |
+| **Standardization** | Common base for all services, fits framework architecture |
+| **Logging** | Extends `BaseHelper` - auto-configured logger at `this.logger` (scope = class name) |
+| **Clarity** | Signals the class contains business logic |
 
 ### Class Definition
 

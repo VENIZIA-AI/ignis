@@ -1,10 +1,24 @@
 # Redis Helper
 
-The Redis helper in Ignis provides a powerful and flexible abstraction for interacting with Redis, supporting both single instances and cluster configurations via the `ioredis` library.
+Powerful Redis abstraction supporting single instances and clusters via `ioredis`.
 
-## Overview
+## Quick Reference
 
-The `DefaultRedisHelper` class offers a rich, unified API for various Redis operations, including key-value, hashes, JSON, and pub/sub. Concrete implementations (`RedisHelper` for single instances and `RedisClusterHelper` for clusters) make it easy to configure and use.
+| Helper Class | Use Case |
+|--------------|----------|
+| **RedisHelper** | Single Redis instance |
+| **RedisClusterHelper** | Redis cluster |
+| **DefaultRedisHelper** | Base class with unified API |
+
+### Supported Operations
+
+| Operation | Methods |
+|-----------|---------|
+| **Key-Value** | `set()`, `get()`, `getObject()`, `del()` |
+| **Hashes** | `hset()`, `hget()`, `hgetall()` |
+| **JSON** (RedisJSON) | `jSet()`, `jGet()` (requires RedisJSON module) |
+| **Pub/Sub** | `subscribe()`, `publish()`, `unsubscribe()` |
+| **TTL** | Set expiration on keys |
 
 ## Creating a Redis Client
 

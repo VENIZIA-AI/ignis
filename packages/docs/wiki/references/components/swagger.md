@@ -1,19 +1,35 @@
 # Swagger/OpenAPI Component
 
-The Swagger component automatically generates interactive API documentation for your Ignis application using OpenAPI specifications and supports multiple UI providers like Swagger UI and Scalar.
+Automatic interactive API documentation generation using OpenAPI specifications.
 
-## Overview
+## Quick Reference
 
--   **Feature Name:** Swagger/OpenAPI Documentation
--   **Purpose:** To automatically generate interactive API documentation for your Ignis application.
--   **Background:** Good documentation is crucial for any API. This feature leverages Hono's OpenAPI integration and various UI providers to offer a seamless way to document your API endpoints.
--   **Related Features/Modules:** This feature is closely tied to `base/controllers` and the `defineRoute`/`defineAuthRoute` methods, which use `zod` schemas to define the API structure.
+| Component | Purpose |
+|-----------|---------|
+| **SwaggerComponent** | Configures documentation UI and routes |
+| **UIProviderFactory** | Manages UI providers (Swagger UI, Scalar) |
+| **Default UI** | Scalar (can be changed to Swagger UI) |
 
-## Design and Architecture
+### Default Endpoints
 
--   **`SwaggerComponent`:** The main component for this feature. It configures the documentation UI and registers the necessary routes to serve it.
--   **`UIProviderFactory`:** A factory class that manages different UI providers (e.g., `SwaggerUIProvider`, `ScalarUIProvider`).
--   **`@hono/zod-openapi`:** The underlying library that powers the OpenAPI generation from `zod` schemas.
+| Path | Description |
+|------|-------------|
+| `/doc/explorer` | Documentation UI (Scalar by default) |
+| `/doc/openapi.json` | Raw OpenAPI specification |
+
+### UI Provider Types
+
+| Provider | Value | When to Use |
+|----------|-------|-------------|
+| **Scalar** | `'scalar'` | Modern, clean UI (default) |
+| **Swagger UI** | `'swagger'` | Classic Swagger interface |
+
+## Architecture Components
+
+-   **`SwaggerComponent`**: Configures documentation UI and registers routes
+-   **`UIProviderFactory`**: Manages different UI providers
+-   **`@hono/zod-openapi`**: Powers OpenAPI generation from Zod schemas
+-   **Integration**: Works with controller `defineRoute` methods using Zod schemas
 
 ## Implementation Details
 
@@ -142,7 +158,7 @@ export class HelloController extends BaseController {
         },
       },
       handler: (c) => {
-        return c.json({ message: 'Hello, Ignis!' });
+        return c.json({ message: 'Hello, `Ignis`!' });
       },
     });
   }

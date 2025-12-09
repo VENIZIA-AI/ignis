@@ -1,6 +1,29 @@
 # Queue Helpers
 
-The Queue helpers in Ignis provide a variety of solutions for message queuing and asynchronous task management, including integrations with BullMQ and MQTT, as well as a simple in-memory queue.
+Message queuing and asynchronous task management with BullMQ, MQTT, and in-memory solutions.
+
+## Quick Reference
+
+| Helper | Type | Use Case | Backed By |
+|--------|------|----------|-----------|
+| **BullMQHelper** | Redis-backed job queue | Background job processing, task queue | BullMQ + Redis |
+| **MQTTClientHelper** | Message broker | Real-time messaging, IoT | MQTT broker |
+| **QueueHelper** | In-memory queue | Sequential tasks, single process | Memory |
+
+### BullMQHelper Roles
+
+| Role | Purpose | Key Property |
+|------|---------|--------------|
+| `worker` | Process jobs (consumer) | `onWorkerData`, `onWorkerDataCompleted` |
+| `queue` | Add jobs (producer) | `queue.add(name, data)` |
+
+### Common Operations
+
+| Helper | Subscribe/Consume | Publish/Produce |
+|--------|-------------------|-----------------|
+| **BullMQ** | Create worker role | `queue.add()` |
+| **MQTT** | `subscribe({ topics })` | `publish({ topic, message })` |
+| **In-Memory** | `new QueueHelper({ onMessage })` | `enqueue(payload)` |
 
 ## BullMQ Helper
 

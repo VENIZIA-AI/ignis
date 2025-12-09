@@ -1,39 +1,78 @@
+#!/usr/bin/env node
 import { MCPServer } from '@mastra/mcp';
-import * as tools from './tools';
-import * as docsLoader from './lib/docs-loader';
+import { DocsHelper, Logger } from './helpers';
+import {
+  GetDocContentTool,
+  GetDocMetadataTool,
+  ListCategoriesTool,
+  ListDocsTool,
+  SearchDocsTool,
+} from './tools';
 
-const myDocsServer = new MCPServer({
-  name: 'my-lib-docs',
+// ----------------------------------------------------------------------------
+// MCP SERVER CONFIGURATION
+// ----------------------------------------------------------------------------
+
+const mcpServer = new MCPServer({
+  name: 'ignis-docs',
   version: '0.0.1',
+
+  // Register tools using singleton instances
   tools: {
-    search: tools.searchDocsTool,
+    search: new SearchDocsTool().getTool(),
+    getDocContent: new GetDocContentTool().getTool(),
+    listDocs: new ListDocsTool().getTool(),
+    listCategories: new ListCategoriesTool().getTool(),
+    getDocMetadata: new GetDocMetadataTool().getTool(),
   },
+
+  // Resource handlers for direct document access
   resources: {
     listResources: async () => {
-      const docs = await docsLoader.loadDocumentation();
-      return docs.map(doc => ({
-        uri: `docs://${doc.id}`,
-        name: doc.title,
-      }));
+      const docs = await DocsHelper.loadDocumentation();
+
+      return docs.map(doc => {
+        const wordCount = doc.content.split(/\s+/).filter(Boolean).length;
+
+        return {
+          uri: `ignis://docs/${doc.id}`,
+          name: doc.title,
+          description: `${doc.category} - ${wordCount} words`,
+          mimeType: 'text/markdown',
+        };
+      });
     },
+
     getResourceContent: async ({ uri }) => {
-      const id = uri.replace('docs://', '');
-      const content = await docsLoader.getDocContent(id);
+      const id = uri.replace('ignis://docs/', '');
+      const content = await DocsHelper.getDocContent({ id });
+
       if (content === null) {
-        return { text: 'Resource not found' };
+        return { text: `Resource not found: ${id}` };
       }
+
       return { text: content };
     },
   },
 });
 
+// ----------------------------------------------------------------------------
+// SERVER INITIALIZATION
+// ----------------------------------------------------------------------------
+
 const main = async () => {
-  console.log('Initializing MCP Server...');
-  await docsLoader.loadDocumentation();
-  console.log('Documentation loaded.');
+  Logger.info('[main] Initializing Ignis MCP Documentation Server...');
 
-  console.log('Starting in Stdio mode...');
-  await myDocsServer.startStdio();
-}
+  try {
+    await DocsHelper.loadDocumentation();
+    Logger.info('[main] Documentation loaded successfully.');
 
-main().catch(console.error);
+    await mcpServer.startStdio();
+    Logger.info('[main] Server started in Stdio mode.');
+  } catch (error) {
+    Logger.error('Fatal error:', error);
+    process.exit(1);
+  }
+};
+
+main();

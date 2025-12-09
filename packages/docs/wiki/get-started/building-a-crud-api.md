@@ -1,0 +1,717 @@
+# Building a CRUD API: A Step-by-Step Tutorial
+
+Build a complete, database-backed REST API for managing todos. This guide covers Models, DataSources, Repositories, and Controllers - the core building blocks of Ignis applications.
+
+## Prerequisites
+
+- ✅ Completed [Quickstart Guide](./quickstart.md)
+- ✅ PostgreSQL installed and running
+- ✅ Database created (see [Prerequisites](./prerequisites.md))
+
+## What You'll Build
+
+**Components:**
+- `Todo` Model - Data structure definition
+- `PostgresDataSource` - Database connection
+- `TodoRepository` - Data access layer
+- `TodoController` - REST API endpoints
+
+**Endpoints:**
+- `POST /todos` - Create todo
+- `GET /todos` - List all todos
+- `GET /todos/:id` - Get single todo
+- `PATCH /todos/:id` - Update todo
+- `DELETE /todos/:id` - Delete todo
+
+### Architecture Flow
+
+Here's how a request flows through your application:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     HTTP Request                             │
+│              GET /api/todos/:id                              │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+           ┌──────────────────┐
+           │ TodoController   │  ← Handles HTTP, validates input
+           │                  │
+           │ @get('/api/...')│
+           └─────────┬────────┘
+                     │
+                     │ calls repository.findById()
+                     ▼
+           ┌──────────────────┐
+           │ TodoRepository   │  ← Type-safe data access
+           │                  │
+           │ findById(id)     │
+           └─────────┬────────┘
+                     │
+                     │ uses dataSource.connector
+                     ▼
+           ┌──────────────────┐
+           │PostgresDataSource│  ← Database connection
+           │                  │
+           │ Drizzle ORM      │
+           └─────────┬────────┘
+                     │
+                     │ executes SQL query
+                     ▼
+           ┌──────────────────┐
+           │   PostgreSQL     │  ← Actual database
+           │                  │
+           │   Todo table     │
+           └─────────┬────────┘
+                     │
+                     │ returns data
+                     ▼
+           ┌──────────────────┐
+           │   JSON Response  │
+           │                  │
+           │ { id, title,..} │
+           └──────────────────┘
+```
+
+**Key Points:**
+1. **Controller** - Entry point for HTTP requests
+2. **Repository** - Abstracts database operations (you could swap PostgreSQL for MySQL without changing controller)
+3. **DataSource** - Manages connection to database
+4. **Model** - Defines what the data looks like
+
+This separation makes code:
+- **Testable** - Mock repository in tests
+- **Maintainable** - Clear responsibility for each layer
+- **Flexible** - Change database without touching business logic
+
+## Step 0: Install Database Dependencies
+
+```bash
+# Add database packages
+bun add drizzle-orm drizzle-zod pg lodash
+
+# Add dev dependencies for migrations
+bun add -d drizzle-kit @types/pg @types/lodash
+```
+
+## Step 1: Define the Model
+
+Models combine Drizzle ORM schemas with Entity classes to define your data structure.
+
+Create `src/models/todo.model.ts`:
+
+```typescript
+// src/models/todo.model.ts
+import {
+  BaseEntity,
+  createRelations,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  model,
+  TTableObject,
+} from '@vez/ignis';
+import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
+
+// 1. Define the Drizzle schema for the 'Todo' table
+// Note: Use string literal 'Todo' to avoid circular reference
+export const todoTable = pgTable('Todo', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateTzColumnDefs(),
+  title: text('title').notNull(),
+  description: text('description'),
+  isCompleted: boolean('is_completed').default(false),
+});
+
+// 2. Define relations (empty for now, but required)
+export const todoRelations = createRelations({
+  source: todoTable,
+  relations: [],
+});
+
+// 3. Define the TypeScript type for a Todo object
+export type TTodoSchema = typeof todoTable;
+export type TTodo = TTableObject<TTodoSchema>;
+
+// 4. Create the Entity class, decorated with @model
+@model({ type: 'entity' })
+export class Todo extends BaseEntity<TTodoSchema> {
+  static readonly TABLE_NAME = 'Todo';
+
+  constructor() {
+    super({ name: Todo.TABLE_NAME, schema: todoTable });
+  }
+}
+```
+
+**Schema Enrichers:**
+- `generateIdColumnDefs()` - Adds `id` column (UUID primary key)
+- `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
+
+> **Deep Dive:** See [Models & Enrichers Reference](../references/base/models.md#schema-enrichers) for all available enrichers and options.
+
+## Step 2: Configure Database Connection
+
+### Understanding Environment Variables
+
+Before we connect to the database, let's understand **environment variables**.
+
+**What are they?**
+Environment variables are configuration values stored outside your code. Think of them as settings that can change without modifying your source code.
+
+**Why use them?**
+```typescript
+// ❌ BAD: Hardcoded values
+const password = "secret123";  // Now it's in Git history forever!
+
+// ✅ GOOD: Environment variable
+const password = process.env.DB_PASSWORD;  // Value comes from .env file
+```
+
+**Benefits:**
+1. **Security** - Never commit passwords to Git
+2. **Flexibility** - Different values for dev/staging/production
+3. **Team Collaboration** - Each developer has their own `.env` file
+
+**The `APP_ENV_` prefix:**
+Ignis uses `APP_ENV_` prefix for all its environment variables. This prevents conflicts with system variables (like `PATH`, `HOME`, etc.).
+
+### Create `.env` File
+
+Create `.env` in your project root with your database credentials:
+
+```bash
+# .env
+APP_ENV_POSTGRES_HOST=localhost
+APP_ENV_POSTGRES_PORT=5432
+APP_ENV_POSTGRES_USERNAME=postgres
+APP_ENV_POSTGRES_PASSWORD=your_password_here
+APP_ENV_POSTGRES_DATABASE=todo_db
+```
+
+**Replace these values:**
+- `your_password_here` - Your PostgreSQL password (or leave blank if no password)
+- `todo_db` - The database you created in [Prerequisites](./prerequisites.md#database-setup)
+
+**Important:** Add `.env` to your `.gitignore`:
+```bash
+echo ".env" >> .gitignore
+```
+
+This prevents accidentally committing secrets to Git.
+
+Create `src/datasources/postgres.datasource.ts`:
+
+```typescript
+// src/datasources/postgres.datasource.ts
+import { Todo, todoRelations, todoTable } from '@/models/todo.model';
+import {
+  BaseDataSource,
+  datasource,
+  TNodePostgresConnector,
+  ValueOrPromise,
+} from '@vez/ignis';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+interface IDSConfigs {
+  connection: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
+  };
+}
+
+@datasource()
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+  constructor() {
+    super({
+      name: PostgresDataSource.name,
+      driver: 'node-postgres',
+      config: {
+        connection: {
+          host: process.env.APP_ENV_POSTGRES_HOST,
+          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+          user: process.env.APP_ENV_POSTGRES_USERNAME,
+          password: process.env.APP_ENV_POSTGRES_PASSWORD,
+          database: process.env.APP_ENV_POSTGRES_DATABASE,
+        },
+      },
+      // Register all your models and their relations here
+      schema: Object.assign(
+        {},
+        { [Todo.TABLE_NAME]: todoTable },
+        todoRelations.relations,
+      ),
+    });
+  }
+
+  override configure(): ValueOrPromise<void> {
+    this.connector = drizzle({
+      client: new Pool(this.settings.connection),
+      schema: this.schema,
+    });
+  }
+
+  override async connect(): Promise<TNodePostgresConnector | undefined> {
+    await (this.connector.client as Pool).connect();
+    return this.connector;
+  }
+
+  override async disconnect(): Promise<void> {
+    await (this.connector.client as Pool).end();
+  }
+}
+```
+
+**Key Points:**
+- Registers `todoTable` and `todoRelations` in the schema
+- Uses environment variables for connection config
+- Implements connection lifecycle methods
+
+> **Deep Dive:** See [DataSources Reference](../references/base/datasources.md) for advanced configuration and multiple database support.
+
+## Step 3: Create the Repository
+
+Repositories provide type-safe CRUD operations using `DefaultCRUDRepository`.
+
+Create `src/repositories/todo.repository.ts`:
+
+```typescript
+// src/repositories/todo.repository.ts
+import { Todo, todoRelations, TTodoSchema } from '@/models/todo.model';
+import {
+  DefaultCRUDRepository,
+  IDataSource,
+  inject,
+  repository,
+} from '@vez/ignis';
+
+@repository()
+export class TodoRepository extends DefaultCRUDRepository<TTodoSchema> {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: IDataSource,
+  ) {
+    super({
+      dataSource,
+      entityClass: Todo,
+      relations: todoRelations.definitions,
+    });
+  }
+}
+```
+
+**Available Methods:**
+`create()`, `find()`, `findOne()`, `findById()`, `updateById()`, `updateAll()`, `deleteById()`, `deleteAll()`, `count()`
+
+> **Deep Dive:** See [Repositories Reference](../references/base/repositories.md) for query options and advanced filtering.
+
+## Step 4: Create the Controller
+
+`ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
+
+Create `src/controllers/todo.controller.ts`:
+
+```typescript
+// src/controllers/todo.controller.ts
+import { Todo } from '@/models/todo.model';
+import { TodoRepository } from '@/repositories/todo.repository';
+import {
+  BindingKeys,
+  BindingNamespaces,
+  controller,
+  ControllerFactory,
+  inject,
+} from '@vez/ignis';
+
+const BASE_PATH = '/todos';
+
+// 1. The factory generates a controller class with all CRUD routes
+const _Controller = ControllerFactory.defineCrudController({
+  repository: { name: TodoRepository.name },
+  controller: {
+    name: 'TodoController',
+    basePath: BASE_PATH,
+  },
+  entity: () => Todo, // The entity is used to generate OpenAPI schemas
+});
+
+// 2. Extend the generated controller to inject the repository
+@controller({ path: BASE_PATH })
+export class TodoController extends _Controller {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: TodoRepository.name,
+      }),
+    })
+    repository: TodoRepository,
+  ) {
+    super(repository);
+  }
+}
+```
+
+**Auto-generated Endpoints:**
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/todos` | List all todos |
+| GET | `/todos/:id` | Get todo by ID |
+| GET | `/todos/find-one` | Find one todo by filter |
+| GET | `/todos/count` | Count todos |
+| POST | `/todos` | Create todo |
+| PATCH | `/todos/:id` | Update todo by ID |
+| PATCH | `/todos` | Update multiple todos |
+| DELETE | `/todos/:id` | Delete todo by ID |
+| DELETE | `/todos` | Delete multiple todos |
+
+> **Deep Dive:** See [ControllerFactory Reference](../references/base/controllers.md#controllerfactory) for customization options.
+
+## Step 5: Register Components
+
+Update `src/application.ts` to register all components:
+
+```typescript
+// src/application.ts
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@vez/ignis';
+import { HelloController } from './controllers/hello.controller';
+import packageJson from '../package.json';
+
+// Import our new components
+import { PostgresDataSource } from './datasources/postgres.datasource';
+import { TodoRepository } from './repositories/todo.repository';
+import { TodoController } from './controllers/todo.controller';
+
+export const appConfigs: IApplicationConfigs = {
+  host: process.env.HOST ?? '0.0.0.0',
+  port: +(process.env.PORT ?? 3000),
+  path: { base: '/api', isStrict: true },
+};
+
+export class Application extends BaseApplication {
+  override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    return packageJson;
+  }
+
+  staticConfigure(): void {}
+
+  setupMiddlewares(): ValueOrPromise<void> {}
+
+  preConfigure(): ValueOrPromise<void> {
+    // 1. Register datasource
+    this.dataSource(PostgresDataSource);
+
+    // 2. Register repository
+    this.repository(TodoRepository);
+
+    // 3. Register controllers
+    this.controller(HelloController);
+    this.controller(TodoController);
+  }
+
+  postConfigure(): ValueOrPromise<void> {}
+}
+```
+
+## Step 6: Run Database Migration
+
+### Understanding Database Migrations
+
+**The Problem:**
+Your database is currently empty. It has no `Todo` table. But your code expects one!
+
+```typescript
+// Your code says:
+todoTable = pgTable('Todo', { id: ..., title: ..., ... });
+
+// But PostgreSQL doesn't have a 'Todo' table yet!
+```
+
+**What is a Migration?**
+A migration is a script that creates or modifies database tables. Think of it as "Git commits for your database schema."
+
+**Example Migration:**
+```sql
+-- This is what Drizzle will generate and run for you
+CREATE TABLE "Todo" (
+  "id" UUID PRIMARY KEY,
+  "title" TEXT NOT NULL,
+  "description" TEXT,
+  "is_completed" BOOLEAN DEFAULT false,
+  "created_at" TIMESTAMP DEFAULT NOW(),
+  "modified_at" TIMESTAMP DEFAULT NOW()
+);
+```
+
+**Why not create tables manually?**
+- **Team Collaboration** - Everyone runs the same migrations, databases stay in sync
+- **Version Control** - Schema changes are tracked in Git
+- **Rollback** - Can undo changes if something breaks
+
+### Create Migration Config
+
+Create `src/migration.ts`:
+
+```typescript
+// src/migration.ts
+import { defineConfig } from 'drizzle-kit';
+
+export default defineConfig({
+  schema: './src/models/todo.model.ts',  // Where your model definitions are
+  out: './migration',                     // Where to save generated SQL files
+  dialect: 'postgresql',                  // Database type
+  dbCredentials: {
+    // Use the same .env values as your datasource
+    host: process.env.APP_ENV_POSTGRES_HOST!,
+    port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+    user: process.env.APP_ENV_POSTGRES_USERNAME,
+    password: process.env.APP_ENV_POSTGRES_PASSWORD,
+    database: process.env.APP_ENV_POSTGRES_DATABASE!,
+  },
+});
+```
+
+### Run the Migration
+
+Run the migration (using the script from [Quickstart](./quickstart.md#5-run-your-application)):
+
+```bash
+bun run migrate:dev
+```
+
+**What happens when you run this:**
+
+1. **Reads** `src/models/todo.model.ts` to see what your schema looks like
+2. **Generates SQL** to create the `Todo` table
+3. **Connects** to your PostgreSQL database
+4. **Executes** the SQL to create the table
+5. **Saves** migration files to `./migration/` folder (for version control)
+
+**Expected output:**
+```
+Reading schema...
+Generating migration...
+Executing migration...
+✓ Done!
+```
+
+**Verify it worked:**
+```bash
+psql -U postgres -d todo_db -c "\d Todo"
+```
+
+You should see the `Todo` table structure with all your columns!
+
+## Step 7: Run and Test
+
+Start your application:
+
+```bash
+bun run server:dev
+```
+
+Test the API endpoints:
+
+```bash
+# Create a todo
+curl -X POST http://localhost:3000/api/todos \
+  -H "Content-Type: application/json" \
+  -d '{"title":"Learn Ignis","description":"Complete tutorial"}'
+
+# Get all todos
+curl http://localhost:3000/api/todos
+
+# Get todo by ID (replace {id} with actual ID from create response)
+curl http://localhost:3000/api/todos/{id}
+
+# Update todo
+curl -X PATCH http://localhost:3000/api/todos/{id} \
+  -H "Content-Type: application/json" \
+  -d '{"isCompleted":true}'
+
+# Delete todo
+curl -X DELETE http://localhost:3000/api/todos/{id}
+```
+
+**View API Documentation:**
+Open `http://localhost:3000/docs` in your browser to see interactive Swagger UI.
+
+🎉 **Congratulations!** You've built a complete CRUD API with:
+- ✅ Type-safe database operations
+- ✅ Automatic request validation
+- ✅ Auto-generated OpenAPI documentation
+- ✅ Clean, maintainable architecture
+
+## What Could Go Wrong? Common Errors
+
+### Error: "Binding 'datasources.PostgresDataSource' not found"
+
+**Cause:** Forgot to register DataSource in `application.ts`
+
+**Fix:**
+```typescript
+// In application.ts preConfigure():
+this.dataSource(PostgresDataSource);  // ← Make sure this is here!
+```
+
+**Order matters:** DataSource must be registered before Repository.
+
+---
+
+### Error: "connection refused" or "ECONNREFUSED"
+
+**Cause:** PostgreSQL isn't running, or wrong connection details in `.env`
+
+**Fix:**
+```bash
+# Check if PostgreSQL is running:
+psql -U postgres -c "SELECT 1;"
+
+# If not running, start it:
+brew services start postgresql@14  # macOS
+sudo service postgresql start      # Linux
+```
+
+**Verify `.env` values match your PostgreSQL setup.**
+
+---
+
+### Error: "relation 'Todo' does not exist"
+
+**Cause:** Forgot to run database migration
+
+**Fix:**
+```bash
+bun run migrate:dev
+```
+
+**Verify the table exists:**
+```bash
+psql -U postgres -d todo_db -c "\dt"
+```
+
+You should see `Todo` in the list.
+
+---
+
+### Error: 404 Not Found on `/api/todos`
+
+**Cause:** Controller not registered or wrong path configuration
+
+**Fix:**
+```typescript
+// In application.ts preConfigure():
+this.controller(TodoController);  // ← Make sure this is here!
+
+// Check appConfigs:
+path: { base: '/api', isStrict: true },  // All routes start with /api
+```
+
+**Debug:** Set `debug.showRoutes: true` in appConfigs to see all registered routes on startup.
+
+---
+
+### Error: "Invalid JSON" when creating todo
+
+**Cause:** Missing `Content-Type: application/json` header
+
+**Fix:**
+```bash
+# Make sure you include the header:
+curl -X POST http://localhost:3000/api/todos \
+  -H "Content-Type: application/json" \  # ← This line!
+  -d '{"title":"Learn Ignis"}'
+```
+
+---
+
+## Test Your Understanding: Build a Second Feature
+
+Now that you've built the Todo API, try building a **User** feature on your own!
+
+**Requirements:**
+- Create `/api/users` endpoint
+- Users should have: `id`, `email`, `name`, `createdAt`, `modifiedAt`
+- Use `ControllerFactory` for CRUD operations
+
+**Challenge checklist:**
+- [ ] Create `src/models/user.model.ts`
+- [ ] Update `PostgresDataSource` to include User schema
+- [ ] Create `src/repositories/user.repository.ts`
+- [ ] Create `src/controllers/user.controller.ts`
+- [ ] Register repository and controller in `application.ts`
+- [ ] Run migration: `bun run migrate:dev`
+- [ ] Test with curl
+
+**Hint:** Follow the exact same pattern as `Todo`. The only changes are the model name and fields!
+
+**Solution:** If you get stuck, check the [API Usage Examples](./best-practices/api-usage-examples.md) guide.
+
+---
+
+## Next Steps
+
+### Adding Business Logic with Services
+
+For complex validation or business rules, create a Service layer:
+
+```typescript
+// src/services/todo.service.ts
+import { BaseService, inject } from '@vez/ignis';
+import { TodoRepository } from '@/repositories/todo.repository';
+
+export class TodoService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.TodoRepository' })
+    private todoRepository: TodoRepository,
+  ) {
+    super({ scope: TodoService.name });
+  }
+
+  async createTodo(data: any) {
+    // Business logic validation
+    if (data.title.length < 3) {
+      throw new Error('Title too short');
+    }
+
+    // Check for duplicates
+    const existing = await this.todoRepository.findOne({
+      filter: { where: { title: data.title } },
+    });
+    if (existing) {
+      throw new Error('Todo already exists');
+    }
+
+    return this.todoRepository.create({ data });
+  }
+}
+```
+
+Register in `application.ts`:
+```typescript
+this.service(TodoService);
+```
+
+> **Deep Dive:** See [Services Reference](./core-concepts/services.md) for best practices and advanced patterns.
+
+## Continue Your Journey
+
+You now have a fully functional CRUD API! Here's what to explore next:
+
+**Core Concepts:**
+1. [Application Architecture](./core-concepts/application.md) - Understand the framework structure
+2. [Dependency Injection](./core-concepts/dependency-injection.md) - Master DI patterns
+3. [Components](./core-concepts/components.md) - Build reusable modules
+
+**Add Features:**
+1. [Authentication](../references/components/authentication.md) - Add JWT authentication
+2. [Custom Routes](./best-practices/api-usage-examples.md) - Beyond CRUD operations
+3. [Relationships](./core-concepts/persistent.md#querying-with-relations) - Link todos to users
+
+**Production:**
+1. [Deployment Strategies](./best-practices/deployment-strategies.md) - Deploy your API
+2. [Performance Optimization](./best-practices/performance-optimization.md) - Make it faster
+3. [Security Guidelines](./best-practices/security-guidelines.md) - Secure your API

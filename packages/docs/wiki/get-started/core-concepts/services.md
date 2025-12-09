@@ -1,8 +1,8 @@
 # Services
 
-In the Ignis framework, the application's logic is organized into **Services**. This layer is a key principle of the framework's architecture, promoting clean, maintainable, and testable code.
+Services contain your application's business logic, orchestrating data flow and executing use cases.
 
-> **Deep Dive:** For a technical breakdown of the underlying `BaseService` class, see the [**Deep Dive: Services**](../../references/base/services.md) page.
+> **Deep Dive:** See [Services Reference](../../references/base/services.md) for advanced patterns.
 
 ## The Business Logic Layer
 

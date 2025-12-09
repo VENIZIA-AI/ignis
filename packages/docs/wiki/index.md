@@ -5,14 +5,14 @@ layout: home
 hero:
   name: "🔥 IGNIS"
   text: "A TypeScript Server Infrastructure with Hono"
-  tagline: A powerful and extensible backend framework, designed to be modular, scalable, and easy to use.
+  tagline: Enterprise-grade architecture meets Hono's ultrafast performance. Build scalable REST APIs with TypeScript.
   actions:
     - theme: brand
       text: Get Started
-      link: /get-started/quickstart
+      link: /get-started/
     - theme: alt
-      text: Core Concepts
-      link: /get-started/core-concepts/application
+      text: Quickstart
+      link: /get-started/quickstart
     - theme: alt
       text: Philosophy
       link: /get-started/philosophy

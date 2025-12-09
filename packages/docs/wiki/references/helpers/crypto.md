@@ -1,6 +1,29 @@
 # Crypto Helper
 
-The Crypto helper in Ignis provides a suite of utilities for common cryptographic operations, including symmetric encryption (AES) and asymmetric encryption (RSA).
+Cryptographic utilities for AES symmetric encryption, RSA asymmetric encryption, and hashing.
+
+## Quick Reference
+
+| Class/Function | Algorithm | Use Case |
+|----------------|-----------|----------|
+| **AES** | Symmetric | Fast encryption for data at rest (AES-256-CBC, AES-256-GCM) |
+| **RSA** | Asymmetric | Key exchange, digital signatures (public/private keys) |
+| **hash()** | MD5, SHA256 | Passwords, data integrity (HMAC support) |
+
+### AES Algorithms
+
+| Algorithm | Mode | Features |
+|-----------|------|----------|
+| `aes-256-cbc` | CBC | Standard block cipher mode |
+| `aes-256-gcm` | GCM | Authenticated encryption |
+
+### Common Methods
+
+| Operation | AES | RSA |
+|-----------|-----|-----|
+| Encrypt | `aes.encrypt(message, secret)` | `rsa.encrypt(message, publicKey)` |
+| Decrypt | `aes.decrypt(encrypted, secret)` | `rsa.decrypt(encrypted, privateKey)` |
+| Key Generation | N/A (use secret) | `rsa.generateDERKeyPair()` |
 
 ## AES (Symmetric Encryption)
 
@@ -77,7 +100,7 @@ const decrypted = rsa.decrypt(encrypted, privateKey.toString('base64'));
 
 ## Hash Utility
 
-In addition to the `Crypto` helper, Ignis also provides a standalone `hash` utility function for creating hashes (e.g., for passwords or data integrity checks).
+In addition to the `Crypto` helper, `Ignis` also provides a standalone `hash` utility function for creating hashes (e.g., for passwords or data integrity checks).
 
 ```typescript
 import { hash } from '@vez/ignis';

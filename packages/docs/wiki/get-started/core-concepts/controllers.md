@@ -1,12 +1,12 @@
 # Controllers
 
-Controllers in the Ignis framework are responsible for handling incoming HTTP requests, processing them, and returning responses to the client. They are the entry point for your application's API endpoints.
+Controllers handle HTTP requests and return responses - they're your API endpoints.
 
-> **Deep Dive:** For a technical breakdown of the underlying `BaseController` class, see the [**Deep Dive: Controllers**](../../references/base/controllers.md) page.
+> **Deep Dive:** See [Controllers Reference](../../references/base/controllers.md) for advanced patterns.
 
 ## Creating a Controller
 
-To create a controller, you extend `BaseController`, use the `@controller` decorator to define its base path, and then use method decorators like `@get`, `@post`, etc., to define your routes.
+Extend `BaseController` and use decorators to define routes:
 
 ```typescript
 import { BaseController, controller, get, jsonResponse, z } from '@vez/ignis';
@@ -54,7 +54,7 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 
 ### HTTP Method Decorators
 
-Ignis provides a decorator for each common HTTP method:
+`Ignis` provides a decorator for each common HTTP method:
 
 -   `@get(opts)`
 -   `@post(opts)`
@@ -129,13 +129,31 @@ export class MyItemsController extends BaseController {
 }
 ```
 
-## Manual Route Definition (Recommended)
+## Manual Route Definition: An Alternative Approach
 
-While decorators are available, the recommended way to define routes is by using the `defineRoute` and `bindRoute` methods inside the `binding()` method. This can be useful for more complex scenarios or for organizing routes in a different way.
+While decorators are the recommended approach for most use cases, `Ignis` also provides a manual way to define routes within the controller's `binding()` method.
 
-:::tip Recommendation
-For better organization and a more declarative approach, we strongly recommend using `defineRoute` or `bindRoute` within the `binding()` method to define your controller's routes. This keeps all route definitions in one place, making your controller easier to read and maintain.
-:::
+### Decorator vs Manual: Quick Comparison
+
+| Aspect | Decorators (`@get`, `@post`) | Manual (`defineRoute`, `bindRoute`) |
+| :--- | :--- | :--- |
+| **Syntax** | Clean, declarative | More verbose |
+| **Organization** | Route config near the handler | Can be in separate files |
+| **Use Case** | Most standard CRUD endpoints | Dynamic route generation |
+| **Type Safety** | Full inference with `TRouteContext` | Full inference with `TRouteContext` |
+| **Readability** | High - easy to scan | Medium - requires scrolling |
+| **Best For** | 90% of use cases | Advanced scenarios |
+
+### When to Use Manual Route Definition
+
+Manual route definition is useful for:
+
+-   **Dynamically generating routes** based on configuration (e.g., loading routes from a database)
+-   **Organizing all routes** for a controller within a single method if you prefer centralized route declarations
+-   **Conditional route registration** (e.g., enabling/disabling routes based on feature flags)
+-   **Developers who prefer non-decorator syntax** (coming from Express/Fastify)
+
+When using this method, you will override the `binding()` method in your controller and use `this.defineRoute` or `this.bindRoute` to register your endpoints.
 
 ### `defineRoute`
 
@@ -194,7 +212,7 @@ this.bindRoute({
 
 ## `ControllerFactory` for CRUD Operations
 
-For standard CRUD (Create, Read, Update, Delete) operations, Ignis provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
+For standard CRUD (Create, Read, Update, Delete) operations, `Ignis` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
 ```typescript
 // src/controllers/configuration.controller.ts (Example from @examples/vert)
@@ -342,7 +360,7 @@ export const MainLayout: FC<PropsWithChildren<MainLayoutProps>> = ({ title, chil
 };
 ```
 
-> **Note:** JSX support in Ignis uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
+> **Note:** JSX support in `Ignis` uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
 
 ## Accessing Validated Request Data
 

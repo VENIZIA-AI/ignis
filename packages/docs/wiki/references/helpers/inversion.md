@@ -1,12 +1,39 @@
 # Inversion of Control (IoC) and Dependency Injection (DI)
 
-The Inversion of Control (IoC) and Dependency Injection (DI) system is at the heart of the Ignis framework. It allows you to write loosely coupled code that is easier to manage, test, and extend.
+Core DI system enabling loosely coupled, testable, and extensible code.
 
-## Core Concepts
+## Quick Reference
 
--   **Container:** The central registry for all your application's services and dependencies. The `Application` class itself extends the `Container`.
--   **Binding:** The process of registering a class or value with the container under a specific key (a string or a symbol).
--   **Injection:** The process of requesting a dependency from the container.
+| Concept | Description |
+|---------|-------------|
+| **Container** | Central registry for services/dependencies (Application extends Container) |
+| **Binding** | Register class/value with container under a key |
+| **Injection** | Request dependency from container using `@inject` decorator |
+| **MetadataRegistry** | Stores decorator metadata for DI and routing |
+
+### Binding Methods
+
+| Method | Purpose | Example |
+|--------|---------|---------|
+| `app.service(MyService)` | Bind service | Key: `services.MyService` |
+| `app.controller(MyController)` | Bind controller | Key: `controllers.MyController` |
+| `app.repository(MyRepo)` | Bind repository | Key: `repositories.MyRepo` |
+| `bind().toClass()` | Custom class binding | `bind({ key: 'MyClass' }).toClass(MyClass)` |
+| `bind().toValue()` | Bind constant value | `bind({ key: 'API_KEY' }).toValue('secret')` |
+
+### Binding Scopes
+
+| Scope | Behavior |
+|-------|----------|
+| `BindingScopes.TRANSIENT` | New instance each request (default) |
+| `BindingScopes.SINGLETON` | Single instance, reused |
+
+### Injection Styles
+
+| Style | When to Use |
+|-------|-------------|
+| **Constructor Injection** | Recommended - explicit, available at instantiation |
+| **Property Injection** | Alternative - inject as class property |
 
 ## Binding Dependencies
 
@@ -54,7 +81,7 @@ this.bind<MySingletonService>({ key: 'services.MySingletonService' })
 
 ## Injecting Dependencies
 
-Ignis provides an `@inject` decorator to handle dependency injection. You can use it on constructor parameters or class properties.
+`Ignis` provides an `@inject` decorator to handle dependency injection. You can use it on constructor parameters or class properties.
 
 ### Constructor Injection
 

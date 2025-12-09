@@ -1,8 +1,8 @@
 # Components
 
-Components are the primary way to extend the functionality of an Ignis application. They are reusable, pluggable modules that encapsulate a specific feature, such as authentication, logging, or API documentation.
+Components are reusable, pluggable modules that encapsulate features like authentication, logging, or API documentation.
 
-> **Deep Dive:** For a technical breakdown of the underlying `BaseComponent` class, see the [**Deep Dive: Components**](../../references/base/components.md) page.
+> **Deep Dive:** See [Components Reference](../../references/base/components.md) for technical details.
 
 ## What is a Component?
 
@@ -11,7 +11,7 @@ A component is a class that extends `BaseComponent` and is responsible for:
 - **Binding Dependencies**: Registering services, controllers, providers, or other resources with the application's dependency injection container.
 - **Configuring Features**: Setting up middlewares, initializing services, or performing any other setup required for the feature to work.
 
-Ignis comes with several built-in components, which you can explore in the [**Components Reference**](../../references/components/) section:
+`Ignis` comes with several built-in components, which you can explore in the [**Components Reference**](../../references/components/) section:
 
 - **`AuthenticateComponent`**: Sets up JWT-based authentication.
 - **`SwaggerComponent`**: Generates interactive OpenAPI documentation.

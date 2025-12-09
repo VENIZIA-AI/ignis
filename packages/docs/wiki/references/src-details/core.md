@@ -1,12 +1,25 @@
 # Package: `@vez/ignis`
 
-## Core Framework Directory: Detailed Breakdown
+Detailed breakdown of the core framework directory structure.
 
-The `src` directory is the core of the Ignis framework, housing all the fundamental building blocks, architectural layers, and modular features. This document provides a more in-depth look into each sub-directory within `src`, explaining their purpose, key components, and how they contribute to the overall framework.
+## Quick Reference
+
+**Package:** Core framework with fundamental building blocks, architectural layers, and modular features.
+
+### Top-Level Directories
+
+| Directory | Primary Focus | Key Components |
+|-----------|---------------|----------------|
+| **`base`** | Core architecture | Applications, Controllers, Repositories, Services, Models |
+| **`components`** | Pluggable features | Auth, Swagger, HealthCheck, SocketIO |
+| **`helpers`** | Utilities | Re-exports from `@vez/ignis-helpers` |
+| **`common`** | Shared code | Constants, bindings, types, environments |
+| **`utilities`** | Pure functions | Crypto, date, parse, performance, schema |
+| **`__tests__`** | Tests | Integration and E2E tests |
 
 ## Project Structure Overview
 
-For a quick reference, here's the top-level breakdown of the `src` directory:
+Top-level breakdown of the `src` directory:
 
 | Folder           | Purpose                                                                                                                |
 | :--------------- | :--------------------------------------------------------------------------------------------------------------------- |

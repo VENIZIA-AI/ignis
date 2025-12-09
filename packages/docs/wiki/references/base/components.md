@@ -1,20 +1,28 @@
 # Deep Dive: Components
 
-This document provides a technical overview of the `BaseComponent` class, the foundation for creating pluggable and reusable modules in Ignis.
+Technical reference for `BaseComponent` - creating pluggable, reusable modules in Ignis.
+
+**File:** `packages/core/src/base/components/base.ts`
+
+## Quick Reference
+
+| Feature | Benefit |
+|---------|---------|
+| **Encapsulation** | Bundle feature bindings (services, controllers) into single class |
+| **Lifecycle Management** | Auto-called `binding()` method during startup |
+| **Default Bindings** | Self-contained with automatic DI registration |
 
 ## `BaseComponent` Class
 
-The `BaseComponent` is an abstract class that all components must extend. It provides a structured way to bind resources to the application's dependency injection (DI) container and manage the component's lifecycle.
+Abstract class for all components - structures resource binding and lifecycle management.
 
--   **File:** `packages/core/src/base/components/base.ts`
-
-### Purpose and Features
+### Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **Encapsulation** | Bundles all the necessary bindings (services, controllers, etc.) for a specific feature into a single, manageable class. |
-| **Lifecycle Management** | Provides a `binding()` method that is automatically called by the application during startup, ensuring that the component's resources are configured at the right time. |
-| **Default Bindings** | Allows for the definition of default bindings that can be automatically registered with the application's container, making components self-contained. |
+| **Encapsulation** | Bundles necessary bindings (services, controllers) for a feature |
+| **Lifecycle Management** | `binding()` method auto-called during startup |
+| **Default Bindings** | Auto-registers with application container (self-contained) |
 
 ### Constructor Options
 

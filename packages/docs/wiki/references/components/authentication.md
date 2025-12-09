@@ -1,14 +1,32 @@
 # Authentication Component
 
-The Authentication component provides a robust, JWT-based authentication and authorization system for your Ignis application. It is designed to be extensible, allowing you to use different authentication strategies.
+JWT-based authentication and authorization system for Ignis applications.
 
-## Design and Architecture
+## Quick Reference
 
--   **`AuthenticateComponent`:** The main component for the authentication feature. It registers all necessary services and controllers.
--   **`AuthenticationStrategyRegistry`:** A singleton registry that manages available authentication strategies.
--   **`JWTAuthenticationStrategy`:** The implementation for the JWT authentication strategy. It uses the `JWTTokenService` to verify tokens.
--   **`JWTTokenService`:** A service responsible for generating, verifying, and encrypting/decrypting JWT payloads.
--   **`defineRoute`:** The method in `BaseController` to define a route. Authentication strategies can be specified in the `configs.authStrategies` property. This method ensures that the authenticated user's payload is attached to the Hono `Context` using the key `Authentication.CURRENT_USER`.
+| Component | Purpose |
+|-----------|---------|
+| **AuthenticateComponent** | Main component registering auth services and controllers |
+| **AuthenticationStrategyRegistry** | Singleton managing available auth strategies |
+| **JWTAuthenticationStrategy** | JWT verification using `JWTTokenService` |
+| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens |
+| **IAuthService** | Interface for custom auth implementation (sign-in, sign-up) |
+
+### Key Environment Variables
+
+| Variable | Purpose | Required |
+|----------|---------|----------|
+| `APP_ENV_APPLICATION_SECRET` | Encrypt JWT payload | ✅ Yes |
+| `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | ✅ Yes |
+| `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Optional |
+
+## Architecture Components
+
+-   **`AuthenticateComponent`**: Registers all necessary services and controllers
+-   **`AuthenticationStrategyRegistry`**: Singleton managing authentication strategies
+-   **`JWTAuthenticationStrategy`**: JWT strategy implementation using `JWTTokenService`
+-   **`JWTTokenService`**: Generates, verifies, encrypts/decrypts JWT payloads
+-   **Protected Routes**: Use `authStrategies` in route configs to secure endpoints
 
 ## Implementation Details
 

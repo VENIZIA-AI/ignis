@@ -1,12 +1,12 @@
 # The Application Class
 
-The `Application` class is the heart of every Ignis project. It orchestrates the application's configuration, lifecycle, and the registration of all its resources like components, controllers, and services.
+The Application class orchestrates your application's configuration, lifecycle, and resource registration (components, controllers, services).
 
-> **Deep Dive:** For a technical breakdown of the underlying classes, see the [**Deep Dive: Application**](../../references/base/application.md) page.
+> **Deep Dive:** See [Application Reference](../../references/base/application.md) for technical details.
 
 ## Creating an Application
 
-To create an application, you extend the `BaseApplication` class. This is where you'll implement the abstract methods to configure your application's unique setup.
+Extend `BaseApplication` and implement the hook methods:
 
 ```typescript
 // src/application.ts
@@ -60,7 +60,7 @@ export class Application extends BaseApplication {
 
 ## Application Lifecycle
 
-The Ignis application has a well-defined lifecycle, managed primarily by the `start()` and `initialize()` methods.
+The `Ignis` application has a well-defined lifecycle, managed primarily by the `start()` and `initialize()` methods.
 
 | Method | Description |
 | :--- | :--- |
@@ -148,12 +148,21 @@ export const appConfigs: IApplicationConfigs = {
 
 ## Registering Resources
 
-You register resources (controllers, services, etc.) with your application instance, typically within the `preConfigure` method.
+Register resources in `preConfigure()` to tell the DI container about your classes:
 
-- `app.controller(MyController)`
-- `app.component(MyComponent)`
-- `app.service(MyService)`
-- `app.repository(MyRepository)`
-- `app.dataSource(MyDataSource)`
+| Method | Example | When to Use |
+|--------|---------|-------------|
+| `this.controller(...)` | `this.controller(UserController)` | Register API endpoints |
+| `this.service(...)` | `this.service(UserService)` | Register business logic |
+| `this.repository(...)` | `this.repository(UserRepository)` | Register data access |
+| `this.dataSource(...)` | `this.dataSource(PostgresDataSource)` | Register database connection |
+| `this.component(...)` | `this.component(AuthComponent)` | Register reusable modules |
 
-This registration process tells the DI container about your classes so they can be instantiated and have their dependencies injected during startup.
+**Registration order:**
+1. DataSources first (database connections)
+2. Repositories (depend on DataSources)
+3. Services (depend on Repositories)
+4. Controllers (depend on Services)
+5. Components last
+
+> **Deep Dive:** See [Dependency Injection](./dependency-injection.md) for how registration and injection work together.

@@ -1,30 +1,37 @@
 # Deep Dive: DataSources
 
-This document provides a technical overview of Ignis's `DataSource` architecture, explaining the base classes and interfaces that manage database connections.
+Technical reference for DataSource classes - managing database connections in Ignis.
+
+**Files:** `packages/core/src/base/datasources/*.ts`
+
+## Quick Reference
+
+| Class/Interface | Purpose | Key Members |
+|-----------------|---------|-------------|
+| **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `schema`, `configure()` |
+| **AbstractDataSource** | Base implementation with logging | Extends `BaseHelper` |
+| **BaseDataSource** | Concrete class to extend | Constructor accepts `name`, `driver`, `config`, `schema` |
 
 ## `IDataSource` Interface
 
-The `IDataSource` interface defines the contract for all datasource classes in the framework.
+Contract for all datasource classes in the framework.
 
--   **File:** `packages/core/src/base/datasources/types.ts`
+**File:** `packages/core/src/base/datasources/types.ts`
 
-### Key Properties
+### Properties & Methods
 
--   `name` (string): The name of the datasource.
--   `settings` (object): The configuration object for the datasource.
--   `connector` (TDatabaseConnector): The actual database connector instance (e.g., the Drizzle instance).
--   `schema` (object): The combined Drizzle ORM schema object, including tables and relations.
-
-### Key Methods
-
--   `configure()`: The method where the `connector` is initialized.
--   `getConnectionString()`: Returns the database connection string.
+| Member | Type | Description |
+|--------|------|-------------|
+| `name` | `string` | Datasource name |
+| `settings` | `object` | Configuration object |
+| `connector` | `TDatabaseConnector` | Database connector instance (e.g., Drizzle) |
+| `schema` | `object` | Combined Drizzle schema (tables + relations) |
+| `configure()` | Method | Initializes the `connector` |
+| `getConnectionString()` | Method | Returns connection string |
 
 ## `AbstractDataSource` & `BaseDataSource`
 
-These abstract classes provide the core implementation for datasources.
-
--   **File:** `packages/core/src/base/datasources/base.ts`
+**File:** `packages/core/src/base/datasources/base.ts`
 
 ### `AbstractDataSource`
 

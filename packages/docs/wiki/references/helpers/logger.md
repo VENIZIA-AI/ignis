@@ -1,10 +1,24 @@
 # Logger Helper
 
-The Logger helper in Ignis provides a powerful and flexible logging solution built on top of [Winston](https://github.com/winstonjs/winston).
+Powerful, flexible logging built on Winston - supports multiple transports, log levels, and hierarchical scopes.
 
-## Overview
+## Quick Reference
 
-The logger is designed to be highly configurable, supporting different log levels, formats, and transports (e.g., console, file, UDP). It allows for contextual logging through scopes, making it easier to trace the flow of execution in your application.
+| Feature | Description |
+|---------|-------------|
+| **Factory Method** | `LoggerFactory.getLogger(['scope1', 'scope2'])` |
+| **Log Levels** | `error`, `alert`, `emerg`, `warn`, `info`, `http`, `verbose`, `debug`, `silly` |
+| **Transports** | Console (default), DailyRotateFile, UDP/Dgram |
+| **Scopes** | Hierarchical context tracking (e.g., `['MyService', 'MyMethod']`) |
+
+### Common Methods
+
+```typescript
+logger.info('message');      // Informational
+logger.error('message');     // Error
+logger.warn('message');      // Warning
+logger.debug('message');     // Debug
+```
 
 ## Getting a Logger Instance
 
@@ -38,7 +52,7 @@ The logger supports the following log levels (from highest to lowest priority): 
 
 ### Transports
 
-Ignis comes with three main types of transports:
+`Ignis` comes with three main types of transports:
 
 1.  **Console:** Logs messages to the console. Enabled by default.
 2.  **DailyRotateFile:** Logs messages to files that are rotated on a daily or hourly basis.

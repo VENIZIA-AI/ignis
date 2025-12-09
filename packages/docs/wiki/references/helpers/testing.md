@@ -1,12 +1,32 @@
 # Testing Helper
 
-The Testing helper in Ignis provides a structured and extensible framework for defining and executing tests, integrating with Node.js's native `node:test` module. It promotes a clear separation of test execution from validation.
+Structured test framework integrating with Node.js's native `node:test` module.
 
-## Core Concepts
+## Quick Reference
 
--   **`TestPlan`**: Organizes a collection of `TestCase` units into a test suite. It manages lifecycle hooks (`before`, `after`, etc.) and a shared context for its test cases.
--   **`TestCase`**: Represents a single, runnable test unit. It contains metadata (like a description and expectation) and a `TestCaseHandler`.
--   **`TestCaseHandler`**: An abstract class that encapsulates the execution (`execute`) and validation (`validate`) logic for a test case.
+| Component | Purpose |
+|-----------|---------|
+| **TestPlan** | Organizes test suite with lifecycle hooks and shared context |
+| **TestCase** | Single runnable test unit with metadata |
+| **TestCaseHandler** | Encapsulates test execution and validation logic |
+| **TestDescribe** | Runs test plans |
+
+### Test Lifecycle Hooks
+
+| Hook | When | Purpose |
+|------|------|---------|
+| `before` | Before all tests | Setup (e.g., start server, seed DB) |
+| `after` | After all tests | Cleanup (e.g., close connections) |
+| `beforeEach` | Before each test | Reset state |
+| `afterEach` | After each test | Cleanup per test |
+
+### TestCaseDecisions
+
+| Decision | Meaning |
+|----------|---------|
+| `SUCCESS` | Test passed |
+| `FAIL` | Test failed |
+| `SKIP` | Test skipped |
 
 ## Creating a Test Plan
 

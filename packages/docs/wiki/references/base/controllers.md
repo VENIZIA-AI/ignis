@@ -1,29 +1,41 @@
 # Deep Dive: Controllers
 
-This document provides a technical overview of the `AbstractController` and `BaseController` classes, which are the foundation for creating API endpoints in an Ignis application.
+Technical reference for controller classes - the foundation for creating API endpoints in Ignis.
+
+**Files:**
+- `packages/core/src/base/controllers/abstract.ts`
+- `packages/core/src/base/controllers/base.ts`
+
+## Quick Reference
+
+| Class | Purpose | Route Definition Methods |
+|-------|---------|--------------------------|
+| **AbstractController** | Base class with Hono router integration | `binding()`, `registerRoutesFromRegistry()` |
+| **BaseController** | Concrete implementation for API routes | `defineRoute()`, `bindRoute()`, `@get`, `@post`, `@api` decorators |
+
+## Routing Approaches
+
+| Approach | When to Use | Example |
+|----------|-------------|---------|
+| **Decorator-Based** (Recommended) | Clean, declarative routes | `@get({ configs: {...} })` |
+| **Manual Definition** | Complex routing logic | `this.defineRoute({ configs, handler })` |
 
 ## `AbstractController`
 
-The `AbstractController` class is an abstract base that integrates Hono's routing capabilities with Ignis's dependency injection and OpenAPI documentation generation.
-
--   **File:** `packages/core/src/base/controllers/abstract.ts`
+Base class integrating Hono routing with Ignis DI and OpenAPI generation.
 
 ### Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **Hono Router** | Each controller instance manages its own `OpenAPIHono` router. |
-| **Lifecycle** | Provides a `binding()` method for manual route definition and a `registerRoutesFromRegistry()` method for automatic registration of decorator-based routes. |
-| **OpenAPI Integration** | Integrates with `@hono/zod-openapi` for route definition and OpenAPI schema generation. |
-| **Standard Route Configs** | The `getRouteConfigs` method centralizes the logic for preparing route configurations, including adding authentication strategies, default responses, and controller-specific tags. |
+| **Hono Router** | Each controller manages its own `OpenAPIHono` router |
+| **Lifecycle** | `binding()` for manual routes, `registerRoutesFromRegistry()` for decorators |
+| **OpenAPI Integration** | Integrates with `@hono/zod-openapi` for schema generation |
+| **Standard Route Configs** | `getRouteConfigs` adds auth strategies, default responses, controller tags |
 
 ## `BaseController`
 
-The `BaseController` extends `AbstractController` and provides concrete implementations for defining various types of API routes.
-
--   **File:** `packages/core/src/base/controllers/base.ts`
-
-There are two primary ways to define routes in a controller: **Decorator-Based Routing** (recommended) and **Manual Route Definition**.
+Extends `AbstractController` with concrete implementations for defining API routes.
 
 ### Decorator-Based Routing (Recommended)
 
@@ -60,7 +72,7 @@ export class MyFeatureController extends BaseController {
 
 #### HTTP Method Decorators (`@get`, `@post`, etc.)
 
-For convenience, Ignis provides decorator shortcuts for each HTTP method. These decorators accept the same `configs` object as `@api`, but without the `method` property.
+For convenience, `Ignis` provides decorator shortcuts for each HTTP method: These decorators accept the same `configs` object as `@api`, but without the `method` property.
 
 - `@get(opts)`
 - `@post(opts)`

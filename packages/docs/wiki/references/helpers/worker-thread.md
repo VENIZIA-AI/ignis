@@ -1,13 +1,36 @@
 # Worker Thread Helper
 
-The Worker Thread helper provides a comprehensive framework for managing Node.js `worker_threads`, facilitating concurrent execution of CPU-bound tasks.
+Manage Node.js `worker_threads` for concurrent CPU-bound task execution.
 
-## Overview
+## Quick Reference
 
-This helper provides abstractions for:
--   **`WorkerPoolHelper`**: A singleton for managing a pool of worker threads, ideally matching the number of available CPU cores.
--   **`BaseWorkerHelper`**: A class for creating and managing the lifecycle of a single worker thread from the main thread.
--   **`BaseWorkerBusHelper`**: A class for establishing a communication channel (`MessagePort`) between the main thread and a worker thread.
+| Helper | Purpose |
+|--------|---------|
+| **WorkerPoolHelper** | Singleton managing pool of workers (matches CPU cores) |
+| **BaseWorkerHelper** | Create and manage single worker thread lifecycle |
+| **BaseWorkerBusHelper** | Two-way communication via `MessagePort` |
+
+### Use Cases
+
+- CPU-intensive calculations
+- Large data processing
+- Parallel computations
+- Video/image processing
+
+### Worker Communication
+
+| Pattern | Complexity | Use When |
+|---------|------------|----------|
+| **Simple (parentPort)** | Low | One-way or basic messaging |
+| **WorkerBus (MessageChannel)** | High | Complex two-way communication |
+
+### WorkerPoolHelper Methods
+
+| Method | Purpose |
+|--------|---------|
+| `getInstance()` | Get singleton instance |
+| `register({ key, worker })` | Add worker to pool |
+| `unregister({ key })` | Remove and terminate worker |
 
 ## `WorkerPoolHelper`
 

@@ -1,8 +1,8 @@
 # Dependency Injection
 
-The Ignis framework is built around a powerful dependency injection (DI) container. DI is a design pattern that allows you to write loosely coupled code that is easier to manage, test, and extend.
+Dependency Injection (DI) enables loosely coupled, testable code by automatically providing dependencies to classes.
 
-> **Deep Dive:** For a technical breakdown of the `Container`, `Binding`, and `@inject` decorator, see the [**Deep Dive: Dependency Injection**](../../references/base/dependency-injection.md) page.
+> **Deep Dive:** See [DI Reference](../../references/base/dependency-injection.md) for technical details on Container, Binding, and `@inject`.
 
 ## Core Concepts
 
@@ -82,7 +82,7 @@ this.bind({ key: 'services.MySingletonService' })
 
 ## Injecting Dependencies
 
-Ignis provides the `@inject` decorator to request dependencies from the container.
+`Ignis` provides the `@inject` decorator to request dependencies from the container.
 
 ### Constructor Injection (Recommended)
 

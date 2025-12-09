@@ -23,8 +23,13 @@ const config = defineConfig({
         {
           text: 'Get Started',
           items: [
+            { text: 'Overview', link: '/get-started/' },
+            { text: 'Prerequisites', link: '/get-started/prerequisites' },
             { text: 'Philosophy', link: '/get-started/philosophy' },
-            { text: 'Quick Start', link: '/get-started/quickstart' },
+            { text: '5-Minute Quickstart ⚡', link: '/get-started/5-minute-quickstart' },
+            { text: 'Complete Setup Guide', link: '/get-started/quickstart' },
+            { text: 'Building a CRUD API', link: '/get-started/building-a-crud-api' },
+            { text: 'MCP Docs Server', link: '/get-started/mcp-docs-server' },
           ],
         },
         {
@@ -174,6 +179,7 @@ const config = defineConfig({
             { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
             { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
             { text: 'Documentation (@vez/ignis-docs)', link: '/references/src-details/docs' },
+            { text: 'MCP Docs Server', link: '/references/src-details/mcp-server' },
           ],
         },
       ],

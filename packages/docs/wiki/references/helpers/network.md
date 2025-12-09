@@ -1,6 +1,32 @@
 # Network Helper
 
-The Network helper in Ignis provides a comprehensive suite of utilities for various network communication protocols, including HTTP, TCP, and UDP.
+Comprehensive network communication utilities for HTTP, TCP, and UDP protocols.
+
+## Quick Reference
+
+| Helper | Protocol | Type | Use Case |
+|--------|----------|------|----------|
+| **AxiosNetworkRequest** | HTTP/HTTPS | Client | REST API calls (axios-based) |
+| **NodeFetchNetworkRequest** | HTTP/HTTPS | Client | REST API calls (native fetch) |
+| **NetworkTcpClient** | TCP/TLS | Client | Raw TCP connections |
+| **NetworkTcpServer** | TCP/TLS | Server | TCP server implementation |
+| **NetworkUdpClient** | UDP | Client | Datagram sockets |
+
+### HTTP Methods
+
+| Method | Purpose |
+|--------|---------|
+| `get({ url })` | GET request |
+| `post({ url, data })` | POST request |
+| `put({ url, data })` | PUT request |
+| `delete({ url })` | DELETE request |
+
+### TCP Operations
+
+| Class | Methods |
+|-------|---------|
+| **Client** | `connect()`, `emit({ payload })`, `disconnect()` |
+| **Server** | `broadcast({ message })`, `sendToClient({ id, message })` |
 
 ## HTTP Request
 

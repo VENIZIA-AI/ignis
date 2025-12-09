@@ -1,10 +1,15 @@
 # Persistent Layer: Models, DataSources, and Repositories
 
-The persistent layer is the foundation of your application's data management. Ignis uses [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and provides a structured repository pattern for abstracting data logic. This guide covers the three main parts: Models, DataSources, and Repositories.
+The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and the Repository pattern for data abstraction.
+
+**Three main components:**
+- **Models** - Define data structure (Drizzle schemas + Entity classes)
+- **DataSources** - Manage database connections
+- **Repositories** - Provide CRUD operations
 
 ## 1. Models: Defining Your Data Structure
 
-A model in Ignis consists of two parts: a **Drizzle schema** that defines the database table and an **Entity class** that wraps it for use within the framework.
+A model in `Ignis` consists of two parts: a **Drizzle schema** that defines the database table and an **Entity class** that wraps it for use within the framework.
 
 ### Creating a Basic Model
 
@@ -48,6 +53,155 @@ export class User extends BaseEntity<TUserSchema> {
   }
 }
 ```
+
+### Understanding Enrichers: The Smart Column Generators
+
+You might have noticed functions like `generateIdColumnDefs()` and `extraUserColumns()` in the model definition. These are **Enrichers**—powerful helper functions that generate common database columns automatically.
+
+#### Why Enrichers Exist
+
+**Without enrichers (the hard way):**
+```typescript
+export const userTable = pgTable('User', {
+  // Manually define every common column in every table
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  status: text('status').notNull().default('ACTIVE'),
+  type: text('type'),
+  createdBy: text('created_by'),
+  modifiedBy: text('modified_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  modifiedAt: timestamp('modified_at', { withTimezone: true }).notNull().defaultNow(),
+  // ... your actual user-specific fields
+  email: text('email').notNull(),
+  name: text('name'),
+});
+```
+
+**With enrichers (the smart way):**
+```typescript
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),        // Adds: id (UUID)
+  ...extraUserColumns({ idType: 'string' }),                      // Adds: status, type, createdBy, modifiedBy, createdAt, modifiedAt
+  // Just your actual user-specific fields
+  email: text('email').notNull(),
+  name: text('name'),
+});
+```
+
+**Result:** Same table structure, but with:
+- 7 fewer lines of code
+- Guaranteed consistency across all tables
+- Less chance of typos or mistakes
+- Easier to maintain
+
+#### Common Enrichers
+
+| Enricher | What It Adds | Use Case |
+| :--- | :--- | :--- |
+| `generateIdColumnDefs()` | Primary key `id` column (UUID or number) | Every table needs an ID |
+| `generateTzColumnDefs()` | `createdAt` and `modifiedAt` timestamps | Track when records are created/updated |
+| `generateUserAuditColumnDefs()` | `createdBy` and `modifiedBy` foreign keys | Track which user created/updated records |
+| `generateDataTypeColumnDefs()` | `dataType` and type-specific value columns (`tValue`, `nValue`, etc.) | Configuration tables with mixed data types |
+| `extraUserColumns()` | Combination of audit + status + type fields | Full-featured entity tables |
+
+#### Practical Example: Building a Post Model
+
+Let's create a blog post model using enrichers:
+
+```typescript
+// src/models/post.model.ts
+import {
+  BaseEntity,
+  createRelations,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  generateUserAuditColumnDefs,
+  model,
+  RelationTypes,
+  TTableObject,
+} from '@vez/ignis';
+import { pgTable, text, boolean } from 'drizzle-orm/pg-core';
+import { userTable } from './user.model';
+
+export const postTable = pgTable('Post', {
+  // Use enrichers for common columns
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),      // id: UUID primary key
+  ...generateTzColumnDefs(),                                     // createdAt, modifiedAt
+  ...generateUserAuditColumnDefs({                              // createdBy, modifiedBy
+    created: { dataType: 'string', columnName: 'created_by' },
+    modified: { dataType: 'string', columnName: 'modified_by' },
+  }),
+
+  // Your post-specific fields
+  title: text('title').notNull(),
+  content: text('content').notNull(),
+  isPublished: boolean('is_published').default(false),
+  slug: text('slug').notNull().unique(),
+});
+
+export const postRelations = createRelations({
+  source: postTable,
+  relations: [
+    {
+      name: 'author',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: {
+        fields: [postTable.createdBy],
+        references: [userTable.id],
+      },
+    },
+  ],
+});
+
+export type TPostSchema = typeof postTable;
+export type TPost = TTableObject<TPostSchema>;
+
+@model({ type: 'entity' })
+export class Post extends BaseEntity<TPostSchema> {
+  static readonly TABLE_NAME = 'Post';
+
+  constructor() {
+    super({ name: Post.TABLE_NAME, schema: postTable });
+  }
+}
+```
+
+**What this gives you:**
+```typescript
+interface Post {
+  id: string;                    // From generateIdColumnDefs
+  createdAt: Date;              // From generateTzColumnDefs
+  modifiedAt: Date;             // From generateTzColumnDefs
+  createdBy: string;            // From generateUserAuditColumnDefs
+  modifiedBy: string;           // From generateUserAuditColumnDefs
+  title: string;                // Your field
+  content: string;              // Your field
+  isPublished: boolean;         // Your field
+  slug: string;                 // Your field
+}
+```
+
+#### When NOT to Use Enrichers
+
+You can always define columns manually if:
+- You need a custom ID strategy (e.g., integer auto-increment)
+- You don't need audit fields for a specific table
+- You have very specific timestamp requirements
+
+```typescript
+// Mixing enrichers with manual columns is perfectly fine
+export const simpleTable = pgTable('Simple', {
+  ...generateIdColumnDefs({ id: { dataType: 'number' } }), // Use enricher for ID
+  // But manually define everything else
+  name: text('name').notNull(),
+  value: integer('value'),
+});
+```
+
+:::tip
+For a complete list of available enrichers and their options, see the [**Schema Enrichers Reference**](../../references/base/models.md#schema-enrichers).
+:::
 
 **Key Concepts:**
 - **`pgTable`**: The standard function from Drizzle ORM to define a table schema.
@@ -141,7 +295,7 @@ export class Configuration extends BaseEntity<TConfigurationSchema> {
 }
 ```
 **Key Concepts:**
-- **`createRelations`**: This helper function from Ignis simplifies defining Drizzle ORM relations. It creates both a Drizzle `relations` object (for querying) and a `definitions` object (for repository configuration). Here, we define `creator` and `modifier` relations from `Configuration` to `User`. The names (`creator`, `modifier`) are important, as they will be used when querying.
+- **`createRelations`**: This helper function from `Ignis` simplifies defining Drizzle ORM relations. It creates both a Drizzle `relations` object (for querying) and a `definitions` object (for repository configuration). Here, we define `creator` and `modifier` relations from `Configuration` to `User`. The names (`creator`, `modifier`) are important, as they will be used when querying.
 
 > **Deep Dive:**
 > - Explore the [**`BaseEntity`**](../../references/base/models.md#baseentity-class) class.
@@ -155,60 +309,187 @@ A DataSource is a class responsible for managing the connection to your database
 
 ### Creating and Configuring a DataSource
 
-A `DataSource` must be decorated with `@datasource`. The most critical part is to provide a complete `schema` object to the `drizzle` function, which includes **both the tables and their relations**.
+A `DataSource` must be decorated with `@datasource`. **The most critical part** is correctly merging your table schemas and relations into a single object that Drizzle ORM can understand.
+
+#### ⚠️ Understanding Schema Merging (CRITICAL CONCEPT)
+
+This is one of the most important concepts in Ignis. If you don't get this right, your relations won't work.
+
+**The Problem:**
+Drizzle ORM needs to know about:
+1. Your table structures (e.g., `userTable`, `configurationTable`)
+2. The relationships between them (e.g., "Configuration belongs to User")
+
+**The Solution:**
+You must merge both into a single `schema` object in your DataSource constructor.
+
+#### Step-by-Step Example
+
+Let's say you have two models: `User` and `Configuration`. Here's how to set up the DataSource:
 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import {
   Configuration,
-  configurationTable,
-  configurationRelations, // 1. Import relations object
+  configurationTable,        // The table structure
+  configurationRelations,    // The relationships
   User,
-  userTable,
-  userRelations, // Import relations for all models
+  userTable,                 // The table structure
+  userRelations,             // The relationships
 } from '@/models/entities';
 import {
   BaseDataSource,
   datasource,
   TNodePostgresConnector,
+  ValueOrPromise,
 } from '@vez/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-// ... interface IDSConfigs ...
+// Configuration interface for database connection
+interface IDSConfigs {
+  connection: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
+  };
+}
 
-@datasource({})
+@datasource()
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
-  // ... constructor and config setup ...
   constructor() {
     super({
       name: PostgresDataSource.name,
       driver: 'node-postgres',
-      config: { /* ... connection details from environment ... */ },
+      config: {
+        connection: {
+          host: process.env.APP_ENV_POSTGRES_HOST,
+          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+          user: process.env.APP_ENV_POSTGRES_USERNAME,
+          password: process.env.APP_ENV_POSTGRES_PASSWORD,
+          database: process.env.APP_ENV_POSTGRES_DATABASE,
+        },
+      },
 
-      // 2. This is the place to define which models AND relations belong to this datasource
+      // 🔥 CRITICAL: This is where you merge tables and relations
       schema: Object.assign(
         {},
+        // Step 1: Add your table schemas
         {
           [User.TABLE_NAME]: userTable,
           [Configuration.TABLE_NAME]: configurationTable,
         },
-        // 3. Destructure the relations object from `createRelations`
+        // Step 2: Spread the relations objects
         userRelations.relations,
         configurationRelations.relations,
       ),
     });
   }
 
-  override configure(): void {
-    // The `drizzle` function receives the schema with tables and relations
+  override configure(): ValueOrPromise<void> {
+    // Pass the merged schema to Drizzle
     this.connector = drizzle({
-      client: new Pool(this.settings),
-      schema: this.schema,
+      client: new Pool(this.settings.connection),
+      schema: this.schema, // This now contains both tables AND relations
     });
   }
-  // ...
+
+  override async connect(): Promise<TNodePostgresConnector | undefined> {
+    await (this.connector.client as Pool).connect();
+    return this.connector;
+  }
+
+  override async disconnect(): Promise<void> {
+    await (this.connector.client as Pool).end();
+  }
 }
+```
+
+#### Why This Pattern?
+
+**Without the relations merged in:**
+```typescript
+// ❌ WRONG - Relations won't work!
+schema: {
+  [User.TABLE_NAME]: userTable,
+  [Configuration.TABLE_NAME]: configurationTable,
+}
+```
+
+**Result:** Your repository's `include` queries will fail. You won't be able to fetch related data.
+
+**With tables and relations merged:**
+```typescript
+// ✅ CORRECT - Relations work perfectly!
+schema: Object.assign(
+  {},
+  {
+    [User.TABLE_NAME]: userTable,
+    [Configuration.TABLE_NAME]: configurationTable,
+  },
+  userRelations.relations,
+  configurationRelations.relations,
+)
+```
+
+**Result:** You can now do:
+```typescript
+const config = await configRepo.findOne({
+  filter: {
+    where: { id: '123' },
+    include: [{ relation: 'creator' }], // This works!
+  },
+});
+console.log(config.creator.name); // Access related User data
+```
+
+#### Adding New Models to Your DataSource
+
+Every time you create a new model, you need to:
+
+1. Import its table and relations
+2. Add them to the schema object
+
+**Example - Adding a `Post` model:**
+```typescript
+import {
+  Post,
+  postTable,
+  postRelations,
+  // ... other models
+} from '@/models/entities';
+
+// In your constructor:
+schema: Object.assign(
+  {},
+  {
+    [User.TABLE_NAME]: userTable,
+    [Configuration.TABLE_NAME]: configurationTable,
+    [Post.TABLE_NAME]: postTable, // Add the table
+  },
+  userRelations.relations,
+  configurationRelations.relations,
+  postRelations.relations, // Add the relations
+),
+```
+
+**Pro tip:** As your app grows, consider using a helper function to reduce boilerplate:
+
+```typescript
+function buildSchema(models: Array<{ table: any; relations: any; name: string }>) {
+  const tables = models.reduce((acc, m) => ({ ...acc, [m.name]: m.table }), {});
+  const relations = models.map(m => m.relations.relations);
+  return Object.assign({}, tables, ...relations);
+}
+
+// Usage:
+schema: buildSchema([
+  { name: User.TABLE_NAME, table: userTable, relations: userRelations },
+  { name: Configuration.TABLE_NAME, table: configurationTable, relations: configurationRelations },
+  { name: Post.TABLE_NAME, table: postTable, relations: postRelations },
+])
 ```
 
 ### Registering a DataSource

@@ -1,28 +1,35 @@
 # Deep Dive: Application
 
-This document provides a technical overview of the `AbstractApplication` and `BaseApplication` classes, which form the foundation of every Ignis project.
+Technical reference for `AbstractApplication` and `BaseApplication` - the foundation classes for every Ignis application.
+
+**Files:**
+- `packages/core/src/base/applications/abstract.ts`
+- `packages/core/src/base/applications/base.ts`
+
+## Quick Reference
+
+| Class | Purpose | Key Methods |
+|-------|---------|-------------|
+| **AbstractApplication** | Base class with lifecycle management | `preConfigure()`, `postConfigure()`, `validateEnvs()` |
+| **BaseApplication** | Concrete implementation with resource registration | `component()`, `controller()`, `service()`, `repository()`, `dataSource()` |
 
 ## `AbstractApplication`
 
-The `AbstractApplication` class is the primary abstract class that your application will extend. It's responsible for the core lifecycle and server management.
+Base class responsible for core lifecycle and server management.
 
--   **File:** `packages/core/src/base/applications/abstract.ts`
-
-### Key Responsibilities and Features
+### Key Features
 
 | Feature | Description |
 | :--- | :--- |
-| **Hono Instance** | It creates and holds the `OpenAPIHono` instance, which is the underlying web server. |
-| **Runtime Detection** | It automatically detects whether the application is running on `Bun` or `Node.js` and uses the appropriate server implementation. |
-| **Core Bindings** | It registers essential services with the DI container, such as the application instance itself (`CoreBindings.APPLICATION_INSTANCE`) and the server (`CoreBindings.APPLICATION_SERVER`). |
-| **Lifecycle Management** | It defines the abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, etc.) that structure the application's startup and shutdown processes. |
-| **Environment Validation** | The `validateEnvs()` method ensures that all required environment variables (prefixed with `APP_ENV_`) are present. |
+| **Hono Instance** | Creates and holds the `OpenAPIHono` instance (underlying web server) |
+| **Runtime Detection** | Auto-detects Bun or Node.js and uses appropriate server implementation |
+| **Core Bindings** | Registers essential services (`CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`) |
+| **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`) |
+| **Environment Validation** | Validates all required `APP_ENV_*` environment variables |
 
 ## `BaseApplication`
 
-The `BaseApplication` class extends `AbstractApplication` and provides concrete implementations for most of the application's lifecycle, including resource registration and default middleware setup.
-
--   **File:** `packages/core/src/base/applications/base.ts`
+Extends `AbstractApplication` with concrete lifecycle implementations and resource registration.
 
 ### Resource Registration Methods
 
@@ -38,21 +45,23 @@ The `BaseApplication` class extends `AbstractApplication` and provides concrete 
 
 ### `initialize()` Method Flow
 
-The `initialize()` method orchestrates the entire startup sequence. Understanding this flow is key to knowing where to place your custom logic.
+Startup sequence executed by the `initialize()` method:
 
 ```mermaid
 graph TD
-    A(start() calls initialize()) --> B(printStartUpInfo);
+    A(start) --> B(printStartUpInfo);
     B --> C(validateEnvs);
     C --> D(registerDefaultMiddlewares);
-    D --> E(staticConfigure());
-    E --> F(preConfigure());
+    D --> E(staticConfigure);
+    E --> F(preConfigure);
     F --> G(registerDataSources);
     G --> H(registerComponents);
     H --> I(registerControllers);
-    I --> J(postConfigure());
+    I --> J(postConfigure);
 ```
 
--   **`preConfigure()`**: This is the ideal place to register all your resources (datasources, services, controllers, etc.). At this stage, nothing is instantiated yet, so the order of registration doesn't matter.
--   **`register...()` Methods**: These methods iterate over the bindings you created in `preConfigure`, instantiate the classes, and call their `configure()` or `binding()` methods. The order is important: DataSources are initialized first, as other layers depend on them.
--   **`postConfigure()`**: This method is for logic that needs to run *after* all resources have been instantiated and configured. For example, you might use it to fetch some initial data from a repository.
+| Hook | When to Use | Notes |
+|------|-------------|-------|
+| **`preConfigure()`** | Register all resources (datasources, services, controllers) | Nothing instantiated yet - order doesn't matter |
+| **`register...()`** | Framework iterates bindings and instantiates classes | DataSources initialized first (other layers depend on them) |
+| **`postConfigure()`** | Logic after all resources configured | Example: fetch initial data from repository |

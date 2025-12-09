@@ -1,16 +1,28 @@
 # Environment Helper
 
-The Environment helper provides a structured way to access and manage application-specific environment variables.
+Structured access to application-specific environment variables with prefix filtering.
 
-## Overview
+## Quick Reference
 
-The `applicationEnvironment` is a singleton instance that is automatically initialized when your application starts. It filters the global `process.env` to only include variables that start with a specific prefix (defaulting to `APP_ENV`), preventing conflicts with system-level variables.
+| Feature | Description |
+|---------|-------------|
+| **Singleton** | `applicationEnvironment` - auto-initialized at startup |
+| **Prefix** | Default `APP_ENV_` (customizable via `APPLICATION_ENV_PREFIX`) |
+| **Type-safe** | `get<T>(key)` with type inference |
+| **Isolation** | Filters `process.env` to prevent conflicts |
+
+### Common Methods
+
+| Method | Purpose | Example |
+|--------|---------|---------|
+| `get<T>(key)` | Get typed environment variable | `get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET)` |
+| `isDevelopment()` | Check if dev environment | `if (env.isDevelopment()) { ... }` |
 
 ### Key Features
 
--   **Prefix-based Filtering:** Isolates application-specific environment variables.
--   **Type-safe Access:** Provides a `get<T>()` method for retrieving variables with type inference.
--   **Centralized Management:** Offers a single, consistent way to access environment variables throughout your application.
+-   **Prefix-based Filtering**: Isolates app vars (e.g., `APP_ENV_*`)
+-   **Type-safe Access**: `get<T>()` with type inference
+-   **Centralized Management**: Single consistent access point
 
 ## Usage
 

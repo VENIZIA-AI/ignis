@@ -1,16 +1,32 @@
 # Socket.IO Helper
 
-The Socket.IO helpers in Ignis provide a structured way to manage both client and server-side Socket.IO implementations, enabling real-time, bidirectional communication in your application.
+Structured Socket.IO client and server management for real-time bidirectional communication.
 
-## `SocketIOServerHelper`
+## Quick Reference
 
-The `SocketIOServerHelper` is a powerful abstraction for the Socket.IO server, handling connections, authentication, room management, and Redis-based scaling.
+| Helper | Type | Features |
+|--------|------|----------|
+| **SocketIOServerHelper** | Server | Auth flow, room management, Redis scaling |
+| **SocketIOClientHelper** | Client | Structured API, event subscription |
 
-### Overview
+### SocketIOServerHelper Features
 
--   **Redis Integration:** Uses `@socket.io/redis-adapter` for scaling across multiple instances and `@socket.io/redis-emitter` for broadcasting messages.
--   **Authentication Flow:** Includes a built-in authentication flow that requires clients to emit an `authenticate` event before they can interact with the server.
--   **Client Management:** Tracks connected clients and their authentication state.
+| Feature | Description |
+|---------|-------------|
+| **Redis Integration** | `@socket.io/redis-adapter` (scaling), `@socket.io/redis-emitter` (broadcasting) |
+| **Authentication** | Built-in flow - clients emit `authenticate` event |
+| **Client Management** | Track connections and auth state |
+| **Room Management** | Group clients for targeted messaging |
+
+### Common Operations
+
+| Helper | Method | Purpose |
+|--------|--------|---------|
+| **Server** | `send({ destination, payload })` | Send message to room/socket |
+| **Server** | `broadcast({ payload })` | Broadcast to all clients |
+| **Client** | `connect()` | Connect to server |
+| **Client** | `emit({ topic, ...data })` | Emit event |
+| **Client** | `subscribe({ events })` | Subscribe to events |
 
 ### Usage
 

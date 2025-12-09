@@ -1,12 +1,26 @@
 # Deep Dive: Dependency Injection
 
-This document provides a technical overview of the dependency injection (DI) system in Ignis, focusing on the `Container`, `Binding`, and `@inject` decorator.
+Technical reference for the DI system in Ignis - managing resource lifecycles and dependency resolution.
+
+**Files:**
+- `packages/core/src/helpers/inversion/container.ts`
+- `packages/core/src/base/metadata/injectors.ts`
+- `packages/helpers/src/helpers/inversion/registry.ts`
+
+## Quick Reference
+
+| Component | Purpose | Key Methods |
+|-----------|---------|-------------|
+| **Container** | DI registry managing resource lifecycles | `bind()`, `get()`, `instantiate()`, `findByTag()` |
+| **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()` |
+| **@inject** | Decorator marking injection points | Applied to constructor parameters/properties |
+| **MetadataRegistry** | Stores decorator metadata | Singleton accessed via `getInstance()` |
 
 ## `Container` Class
 
-The `Container` is the heart of the DI system. It's a registry that manages the lifecycle of all your application's resources.
+Heart of the DI system - registry managing all application resources.
 
--   **File:** `packages/core/src/helpers/inversion/container.ts`
+**File:** `packages/core/src/helpers/inversion/container.ts`
 
 ### Key Methods
 

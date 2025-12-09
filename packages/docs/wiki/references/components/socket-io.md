@@ -1,20 +1,39 @@
 # Socket.IO Component
 
-The Socket.IO component integrates real-time, bidirectional, and event-based communication into your Ignis application using Socket.IO.
+Real-time, bidirectional, event-based communication using Socket.IO.
 
-## Overview
+## Quick Reference
 
--   **Feature Name:** Socket.IO
--   **Purpose:** To integrate real-time, bidirectional, and event-based communication into your Ignis application using Socket.IO.
--   **Background:** Many modern applications require real-time features like live notifications, chat, or collaborative editing. This component provides a robust way to add a Socket.IO server to your application, with support for Redis for horizontal scaling.
--   **Related Features/Modules:** This component depends on an HTTP server instance to attach to, and it can leverage the `redis` helper for scaling. It also integrates with the authentication system.
+| Component | Purpose |
+|-----------|---------|
+| **SocketIOComponent** | Sets up Socket.IO server and bindings |
+| **SocketIOServerHelper** | Encapsulates Socket.IO server instance |
+| **Redis Adapter** | Enables horizontal scaling with Redis |
+| **Redis Emitter** | Emit events from other processes/services |
 
-## Design and Architecture
+### Required Bindings
 
--   **`SocketIOComponent`:** This component is responsible for setting up the Socket.IO server. It binds the `SocketIOServerHelper` to the DI container.
--   **`SocketIOServerHelper`:** A helper class that encapsulates the Socket.IO server instance and provides methods for interacting with it.
--   **`@socket.io/redis-adapter`:** Used for scaling out the Socket.IO server with Redis.
--   **`@socket.io/redis-emitter`:** Used to emit events to clients from other processes or services.
+| Binding Key | Type | Purpose |
+|-------------|------|---------|
+| `SERVER_OPTIONS` | `ISocketIOOptions` | Socket.IO server configuration (optional) |
+| `REDIS_CONNECTION` | `DefaultRedisHelper` | Redis instance for scaling |
+| `AUTHENTICATE_HANDLER` | `Function` | Authenticate socket connections |
+| `CLIENT_CONNECTED_HANDLER` | `Function` | Handle successful connections (optional) |
+
+### Use Cases
+
+- Live notifications
+- Real-time chat
+- Collaborative editing
+- Live data streams
+
+## Architecture Components
+
+-   **`SocketIOComponent`**: Sets up Socket.IO server, binds `SocketIOServerHelper` to DI
+-   **`SocketIOServerHelper`**: Wraps Socket.IO server, provides interaction methods
+-   **`@socket.io/redis-adapter`**: Scales Socket.IO with Redis
+-   **`@socket.io/redis-emitter`**: Emits events from external processes
+-   **Integration**: Works with HTTP server and authentication system
 
 ## Implementation Details
 
