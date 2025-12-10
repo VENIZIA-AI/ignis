@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.0.1-0",
+  "version": "0.0.1-2",
   "description": "Dependency Injection & Inversion of Control Container",
   "keywords": [
     "dependency injection",
@@ -50,7 +50,8 @@
     "rebuild:premajor": "sh ./scripts/rebuild.sh premajor",
     "rebuild:preminor": "sh ./scripts/rebuild.sh preminor",
     "rebuild:prepatch": "sh ./scripts/rebuild.sh prepatch",
-    "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease"
+    "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease",
+    "prepublishOnly": "bun run rebuild"
   },
   "repository": {
     "type": "git",
@@ -74,7 +75,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.2",
     "@types/lodash": "^4.17.21",
-    "@venizia/dev-configs": "file://../dev-configs",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

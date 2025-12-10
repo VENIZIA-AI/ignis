@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.0.1-0",
+  "version": "0.0.1-1",
   "description": "Shared development configurations for Venizia packages",
   "keywords": [
     "config",
@@ -39,7 +39,8 @@
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
-    "rebuild": "sh ./scripts/rebuild.sh"
+    "rebuild": "sh ./scripts/rebuild.sh",
+    "prepublishOnly": "bun run rebuild"
   },
   "repository": {
     "type": "git",

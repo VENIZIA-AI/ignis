@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-docs",
-  "version": "0.0.1-0",
+  "version": "0.0.1-1",
   "description": "Documentation and MCP Server for Ignis Framework",
   "keywords": [
     "ignis",
@@ -53,6 +53,7 @@
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:build": "vitepress build site",
     "docs:preview": "vitepress preview site",
+    "premcp:build": "bun run mcp:clean",
     "mcp:build": "tsc -p tsconfig.json",
     "mcp:clean": "sh ./scripts/mcp-clean.sh",
     "mcp:start": "bun run mcp-server/index.ts",
@@ -88,7 +89,7 @@
     "@braintree/sanitize-url": "^7.1.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
-    "@venizia/dev-configs": "file://../dev-configs",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",
