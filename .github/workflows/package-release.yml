@@ -65,6 +65,9 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
+
           echo "[pkg_info] Package: $PACKAGE_NAME"
           echo "[pkg_info] Path: $PACKAGE_PATH"
           echo "[pkg_info] Current version: $CURRENT_VERSION"
@@ -134,7 +137,9 @@ jobs:
           NEW_VERSION=$(jq -r .version package.json)
           TAG_NAME="$PACKAGE-v$NEW_VERSION"
 
-          echo "tag_name=$TAG_NAME"
+          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
           echo "[version] New version: $NEW_VERSION"
 
       - name: Commit version change
