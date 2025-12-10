@@ -1,31 +1,17 @@
-import type { TAuthStrategy, TConstValue } from '@/common/types';
-import { RouteConfig } from '@hono/zod-openapi';
-
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Binding
-// ----------------------------------------------------------------------------------------------------------------------------------------
-export class BindingScopes {
-  static readonly SINGLETON = 'singleton';
-  static readonly TRANSIENT = 'transient';
-}
-export type TBindingScope = TConstValue<typeof BindingScopes>;
-
-export class BindingValueTypes {
-  static readonly CLASS = 'class';
-  static readonly VALUE = 'value';
-  static readonly PROVIDER = 'provider';
-}
-
-export type TBindingValueType = TConstValue<typeof BindingValueTypes>;
-
-export interface IBindingTag {
-  [name: string]: any;
-}
+import type { TAuthStrategy } from "@/common/types";
+import { RouteConfig } from "@hono/zod-openapi";
+import {
+  IInjectMetadata as _IInjectMetadata,
+  IPropertyMetadata as _IPropertyMetadata,
+  TBindingScope,
+} from "@vez/ignis-inversion";
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Metadata
 // ----------------------------------------------------------------------------------------------------------------------------------------
-export type TRouteMetadata = RouteConfig & { authStrategies?: readonly TAuthStrategy[] };
+export type TRouteMetadata = RouteConfig & {
+  authStrategies?: readonly TAuthStrategy[];
+};
 
 export interface IControllerMetadata {
   path: string;
@@ -33,17 +19,9 @@ export interface IControllerMetadata {
   description?: string;
 }
 
-export interface IPropertyMetadata {
-  bindingKey: string | symbol;
-  isOptional?: boolean;
-  [key: string]: any;
-}
+export interface IPropertyMetadata extends _IPropertyMetadata {}
 
-export interface IInjectMetadata {
-  key: string | symbol;
-  index: number;
-  isOptional?: boolean;
-}
+export interface IInjectMetadata extends _IInjectMetadata {}
 
 export interface IInjectableMetadata {
   scope?: TBindingScope;
@@ -51,7 +29,7 @@ export interface IInjectableMetadata {
 }
 
 export interface IModelMetadata {
-  type: 'entity' | 'view';
+  type: "entity" | "view";
   skipMigrate?: boolean;
 }
 
