@@ -7,7 +7,7 @@ import {
   IConfigurable,
   TClass,
   TMixinTarget,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';

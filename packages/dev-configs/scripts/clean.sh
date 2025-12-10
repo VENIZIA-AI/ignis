@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Cleaning @vez/dev-configs..."
+echo "Cleaning @venizia/dev-configs..."
 
 rm -rf dist
 rm -rf tsconfig.tsbuildinfo

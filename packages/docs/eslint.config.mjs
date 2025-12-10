@@ -1,4 +1,4 @@
-import { eslintConfigs } from "@vez/dev-configs";
+import { eslintConfigs } from "@venizia/dev-configs";
 
 const configs = [
   ...eslintConfigs,

@@ -3,7 +3,7 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { TCount, TRelationConfig, TWhere } from '../common';
 import { RepositoryOperationScopes } from '../common/constants';
 import { ReadableRepository } from './readable';
-import { getError, TClass, TNullable } from '@vez/ignis-helpers';
+import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 
 export class PersistableRepository<

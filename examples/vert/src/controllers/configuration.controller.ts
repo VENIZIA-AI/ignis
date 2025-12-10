@@ -6,7 +6,7 @@ import {
   controller,
   ControllerFactory,
   inject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 

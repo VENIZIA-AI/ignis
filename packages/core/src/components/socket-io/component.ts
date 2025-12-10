@@ -9,7 +9,7 @@ import {
   HTTP,
   SocketIOServerHelper,
   ValueOrPromise,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import { ServerOptions } from 'socket.io';
 import { SocketIOBindingKeys } from './keys';
 

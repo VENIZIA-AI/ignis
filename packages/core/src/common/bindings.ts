@@ -1,4 +1,4 @@
-import { BindingKeys } from '@vez/ignis-helpers';
+import { BindingKeys } from '@venizia/ignis-helpers';
 
 export class BindingNamespaces {
   static readonly COMPONENT = BindingNamespaces.createNamespace({ name: 'components' });

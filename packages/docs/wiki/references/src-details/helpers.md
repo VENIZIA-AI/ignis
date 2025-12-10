@@ -1,8 +1,8 @@
-# Package: `@vez/ignis-helpers`
+# Package: `@venizia/ignis-helpers`
 
 ## Helpers Package Directory: Detailed Breakdown
 
-The `@vez/ignis-helpers` package consolidates a wide array of reusable helper classes and utility functions designed to support various cross-cutting concerns within the Ignis framework. This package promotes modularity by extracting common functionalities into a standalone, easily consumable library.
+The `@venizia/ignis-helpers` package consolidates a wide array of reusable helper classes and utility functions designed to support various cross-cutting concerns within the Ignis framework. This package promotes modularity by extracting common functionalities into a standalone, easily consumable library.
 
 ## Project Structure Overview
 
@@ -22,7 +22,7 @@ Here's the top-level breakdown of the `src` directory within `@packages/helpers/
 
 ### `__tests__`
 
-This directory is dedicated to the test suite for the `@vez/ignis-helpers` package.
+This directory is dedicated to the test suite for the `@venizia/ignis-helpers` package.
 
 | File/Folder             | Purpose/Key Details                                                        |
 | :---------------------- | :------------------------------------------------------------------------- |
@@ -82,9 +82,9 @@ Cryptographic utilities.
 
 #### `helpers/inversion/`
 
-Application-enhanced Dependency Injection (DI) module that extends `@vez/ignis-inversion`.
+Application-enhanced Dependency Injection (DI) module that extends `@venizia/ignis-inversion`.
 
-> **Note:** The core DI functionality (Container, Binding, MetadataRegistry base classes) has been extracted to the standalone `@vez/ignis-inversion` package. This module extends and re-exports that functionality with application-specific enhancements.
+> **Note:** The core DI functionality (Container, Binding, MetadataRegistry base classes) has been extracted to the standalone `@venizia/ignis-inversion` package. This module extends and re-exports that functionality with application-specific enhancements.
 
 | File/Folder    | Purpose/Key Details                                                                                           |
 | :------------- | :------------------------------------------------------------------------------------------------------------ |
@@ -92,9 +92,9 @@ Application-enhanced Dependency Injection (DI) module that extends `@vez/ignis-i
 | `registry.ts`  | Extended `MetadataRegistry` with framework-specific metadata (controllers, models, repositories, datasources).|
 | `common/keys.ts`| Framework-specific `MetadataKeys` (CONTROLLER, MODEL, REPOSITORY, etc.) merged with base keys.               |
 | `common/types.ts`| Framework-specific interfaces (`IControllerMetadata`, `IModelMetadata`, `IRepositoryMetadata`, etc.).        |
-| `index.ts`     | Re-exports core classes from `@vez/ignis-inversion` plus application extensions.                              |
+| `index.ts`     | Re-exports core classes from `@venizia/ignis-inversion` plus application extensions.                              |
 
-**Re-exported from `@vez/ignis-inversion`:**
+**Re-exported from `@venizia/ignis-inversion`:**
 - `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`
 
 **Application-specific additions:**
@@ -102,7 +102,7 @@ Application-enhanced Dependency Injection (DI) module that extends `@vez/ignis-i
 - `MetadataRegistry` with `setControllerMetadata`, `setModelMetadata`, `setRepositoryMetadata`, etc.
 - Framework metadata interfaces for controllers, models, repositories, and data sources
 
-For standalone DI usage without framework features, import directly from `@vez/ignis-inversion`.
+For standalone DI usage without framework features, import directly from `@venizia/ignis-inversion`.
 
 #### `helpers/logger/`
 

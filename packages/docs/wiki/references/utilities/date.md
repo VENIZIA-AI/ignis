@@ -7,7 +7,7 @@ The Date utility provides a set of functions for date and time manipulation, bui
 The `dayjs` object is re-exported, so you can use it directly for any date and time operations. It is pre-configured with the following plugins: `CustomParseFormat`, `UTC`, `Timezone`, `Weekday`, and `IsoWeek`.
 
 ```typescript
-import { dayjs } from '@vez/ignis';
+import { dayjs } from '@venizia/ignis';
 
 // Get the current date and time
 const now = dayjs();
@@ -21,7 +21,7 @@ const formatted = now.format('YYYY-MM-DD HH:mm:ss');
 The `sleep` function pauses execution for a specified number of milliseconds.
 
 ```typescript
-import { sleep } from '@vez/ignis';
+import { sleep } from '@venizia/ignis';
 
 async function myAsyncFunction() {
   console.log('Start');
@@ -37,7 +37,7 @@ async function myAsyncFunction() {
 -   **`getNextWeekday(opts)`**: Returns the next weekday from a given date.
 
 ```typescript
-import { isWeekday, getPreviousWeekday } from '@vez/ignis';
+import { isWeekday, getPreviousWeekday } from '@venizia/ignis';
 
 const isTodayWeekday = isWeekday(new Date());
 
@@ -49,7 +49,7 @@ const lastBusinessDay = getPreviousWeekday();
 The `getDateTz` function allows you to get a `dayjs` object in a specific timezone, with an optional offset.
 
 ```typescript
-import { getDateTz } from '@vez/ignis';
+import { getDateTz } from '@venizia/ignis';
 
 const tokyoTime = getDateTz({
   date: '2023-10-27T10:00:00Z',
@@ -62,7 +62,7 @@ const tokyoTime = getDateTz({
 The `hrTime` function returns a high-resolution time measurement in seconds, useful for performance benchmarking.
 
 ```typescript
-import { hrTime } from '@vez/ignis';
+import { hrTime } from '@venizia/ignis';
 
 const start = hrTime();
 // ... some long-running operation

@@ -5,7 +5,7 @@ import {
   HTTP,
   type IControllerOptions,
   type ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
 

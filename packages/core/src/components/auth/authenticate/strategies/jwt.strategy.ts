@@ -1,5 +1,5 @@
 import { inject } from '@/base/metadata';
-import { BaseHelper } from '@vez/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers';
 import { Context, Env, Input } from 'hono';
 import { IAuthUser, IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common/constants';

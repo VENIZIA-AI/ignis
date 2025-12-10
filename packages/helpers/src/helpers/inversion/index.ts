@@ -3,7 +3,7 @@ export {
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
-} from "@vez/ignis-inversion";
+} from "@venizia/ignis-inversion";
 
 export * from "./common";
 export * from "./container";

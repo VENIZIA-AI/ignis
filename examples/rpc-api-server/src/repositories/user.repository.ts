@@ -1,5 +1,5 @@
 import { User, TUserSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ReadableRepository } from '@vez/ignis';
+import { IDataSource, inject, repository, ReadableRepository } from '@venizia/ignis';
 
 @repository({})
 export class UserRepository extends ReadableRepository<TUserSchema> {

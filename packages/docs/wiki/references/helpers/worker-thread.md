@@ -39,7 +39,7 @@ The `WorkerPoolHelper` is a singleton that manages the creation, registration, a
 ### Usage
 
 ```typescript
-import { WorkerPoolHelper, BaseWorkerHelper } from '@vez/ignis';
+import { WorkerPoolHelper, BaseWorkerHelper } from '@venizia/ignis';
 
 const workerPool = WorkerPoolHelper.getInstance();
 
@@ -66,7 +66,7 @@ You can create a worker from the main thread that executes a separate script fil
 ### Main Thread (`main.ts`)
 
 ```typescript
-import { BaseWorkerHelper } from '@vez/ignis';
+import { BaseWorkerHelper } from '@venizia/ignis';
 import path from 'node:path';
 
 const worker = new BaseWorkerHelper({
@@ -111,7 +111,7 @@ For more complex scenarios requiring two-way communication, you can use the `Wor
 ```typescript
 // ... (in main thread)
 import { MessageChannel } from 'node:worker_threads';
-import { BaseWorkerBusHelper, ... } from '@vez/ignis';
+import { BaseWorkerBusHelper, ... } from '@venizia/ignis';
 
 const { port1, port2 } = new MessageChannel();
 
@@ -142,7 +142,7 @@ mainThreadBus.postMessage({ message: { command: 'start-work' } });
 ```typescript
 // ... (in worker thread)
 import { workerData } from 'node:worker_threads';
-import { BaseWorkerBusHelper, ... } from '@vez/ignis';
+import { BaseWorkerBusHelper, ... } from '@venizia/ignis';
 
 const { port } = workerData;
 

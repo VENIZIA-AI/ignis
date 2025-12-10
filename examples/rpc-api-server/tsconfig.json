@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/ignis/configs/tsconfig.common.json",
+  "extends": "@venizia/ignis/configs/tsconfig.common.json",
   "compilerOptions": {
     "target": "ES2022",
     "outDir": "dist",

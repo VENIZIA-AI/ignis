@@ -1,4 +1,4 @@
-import { MetadataKeys as _MetadataKeys } from "@vez/ignis-inversion";
+import { MetadataKeys as _MetadataKeys } from "@venizia/ignis-inversion";
 
 export const MetadataKeys = Object.assign({}, _MetadataKeys, {
   // Controller metadata

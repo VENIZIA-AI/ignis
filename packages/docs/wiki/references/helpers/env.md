@@ -31,7 +31,7 @@ You can import the `applicationEnvironment` instance and use it to retrieve your
 ### Getting Environment Variables
 
 ```typescript
-import { applicationEnvironment, EnvironmentKeys } from '@vez/ignis';
+import { applicationEnvironment, EnvironmentKeys } from '@venizia/ignis';
 
 // Get the JWT secret
 const jwtSecret = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET);
@@ -45,7 +45,7 @@ const serverPort = applicationEnvironment.get<number>(EnvironmentKeys.APP_ENV_SE
 You can use the `isDevelopment()` method to check if the application is running in a development environment.
 
 ```typescript
-import { applicationEnvironment } from '@vez/ignis';
+import { applicationEnvironment } from '@venizia/ignis';
 
 if (applicationEnvironment.isDevelopment()) {
   // Do something only in development

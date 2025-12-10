@@ -1,13 +1,13 @@
 {
   "name": "@nx/rpc-api-server",
-  "version": "0.0.1",
-  "description": "NEXPANDO - RPC api server",
+  "version": "0.0.0",
+  "description": "RPC api server",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "author": {
-    "name": "NEXPANDO",
-    "email": "contact@nexpando.com",
-    "url": "https://nexpando.com/"
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@vez/ignis": "workspace:*",
+    "@venizia/ignis": "workspace:*",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",

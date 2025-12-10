@@ -699,7 +699,7 @@ Yes! The MCP server architecture is framework-agnostic. You can fork this repo a
 
 If you installed via npm:
 ```bash
-npm update -g @vez/ignis-docs
+npm update -g @venizia/ignis-docs
 ```
 
 The package includes bundled documentation that updates with each release.

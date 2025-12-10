@@ -1,5 +1,5 @@
 {
-  "name": "@vez/ignis-inversion",
+  "name": "@venizia/ignis-inversion",
   "version": "0.0.0",
   "description": "Dependency Injection & Inversion of Control Container",
   "keywords": [
@@ -46,7 +46,11 @@
     "type": "git",
     "url": "git+https://github.com/VENIZIA-AI/ignis.git"
   },
-  "author": "Venizia AI <contact@venizia.com>",
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
@@ -71,7 +75,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.2",
     "@types/lodash": "^4.17.21",
-    "@vez/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "workspace:*",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

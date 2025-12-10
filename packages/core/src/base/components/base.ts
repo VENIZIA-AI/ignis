@@ -5,7 +5,7 @@ import {
   getError,
   IConfigurable,
   ValueOrPromise,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 

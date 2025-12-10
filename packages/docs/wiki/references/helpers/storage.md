@@ -35,7 +35,7 @@ The `MemoryStorageHelper` is a simple in-memory key-value store. It's useful for
 ### Creating an Instance
 
 ```typescript
-import { MemoryStorageHelper } from '@vez/ignis';
+import { MemoryStorageHelper } from '@venizia/ignis';
 
 const memoryStore = new MemoryStorageHelper();
 ```
@@ -69,7 +69,7 @@ The `MinioHelper` is a comprehensive client for interacting with MinIO or any S3
 ### Creating a MinIO Client
 
 ```typescript
-import { MinioHelper } from '@vez/ignis';
+import { MinioHelper } from '@venizia/ignis';
 
 const minioClient = new MinioHelper({
   endPoint: 'localhost',

@@ -89,7 +89,7 @@ In your `src/application.ts`, register the `SwaggerComponent`.
 
 ```typescript
 // src/application.ts
-import { SwaggerComponent, BaseApplication, ValueOrPromise } from '@vez/ignis';
+import { SwaggerComponent, BaseApplication, ValueOrPromise } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
     // ...
@@ -107,7 +107,7 @@ export class Application extends BaseApplication {
 To change the UI provider to Swagger UI, you can bind custom options in your application's `preConfigure` method.
 
 ```typescript
-import { SwaggerComponent, SwaggerBindingKeys, ISwaggerOptions } from '@vez/ignis';
+import { SwaggerComponent, SwaggerBindingKeys, ISwaggerOptions } from '@venizia/ignis';
 
 // ... in your Application class's preConfigure method
   preConfigure(): ValueOrPromise<void> {
@@ -137,7 +137,7 @@ To get the most out of the documentation, define your routes with `zod` schemas.
 ```typescript
 // src/controllers/hello.controller.ts
 import { z } from '@hono/zod-openapi';
-import { BaseController, controller, HTTP, jsonContent, ValueOrPromise } from '@vez/ignis';
+import { BaseController, controller, HTTP, jsonContent, ValueOrPromise } from '@venizia/ignis';
 
 @controller({ path: '/hello' })
 export class HelloController extends BaseController {

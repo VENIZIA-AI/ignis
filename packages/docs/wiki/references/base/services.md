@@ -58,7 +58,7 @@ Services are the core of your application's logic. They act as a bridge between 
 ### Example
 
 ```typescript
-import { BaseService, inject } from '@vez/ignis';
+import { BaseService, inject } from '@venizia/ignis';
 import { UserRepository } from '../repositories/user.repository';
 import { TUser } from '../models/entities';
 

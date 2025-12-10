@@ -1,4 +1,4 @@
-import { TestCase, TestDescribe, TestPlan, getUID } from '@vez/ignis-helpers';
+import { TestCase, TestDescribe, TestPlan, getUID } from '@venizia/ignis-helpers';
 import * as TestCases from './test-cases';
 
 TestDescribe.withTestPlan({

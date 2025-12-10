@@ -27,7 +27,7 @@ Powerful Redis abstraction supporting single instances and clusters via `ioredis
 Use the `RedisHelper` for connecting to a single Redis instance.
 
 ```typescript
-import { RedisHelper } from '@vez/ignis';
+import { RedisHelper } from '@venizia/ignis';
 
 const redisClient = new RedisHelper({
   name: 'my-redis-client',
@@ -44,7 +44,7 @@ const redisClient = new RedisHelper({
 Use the `RedisClusterHelper` for connecting to a Redis cluster.
 
 ```typescript
-import { RedisClusterHelper } from '@vez/ignis';
+import { RedisClusterHelper } from '@venizia/ignis';
 
 const redisClusterClient = new RedisClusterHelper({
   name: 'my-redis-cluster',

@@ -1,5 +1,5 @@
 import { TColumnDefinitions } from '@/base/models';
-import { getError } from '@vez/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------

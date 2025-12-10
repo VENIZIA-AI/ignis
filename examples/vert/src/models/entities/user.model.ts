@@ -5,7 +5,7 @@ import {
   generateIdColumnDefs,
   model,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 // ----------------------------------------------------------------

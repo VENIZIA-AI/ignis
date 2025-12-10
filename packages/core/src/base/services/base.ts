@@ -1,4 +1,4 @@
-import { BaseHelper } from '@vez/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 
 /**

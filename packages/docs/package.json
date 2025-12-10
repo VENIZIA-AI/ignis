@@ -1,6 +1,6 @@
 {
-  "name": "@vez/ignis-docs",
-  "version": "0.0.1",
+  "name": "@venizia/ignis-docs",
+  "version": "0.0.0",
   "description": "Documentation and MCP Server for Ignis Framework",
   "main": "./mcp-server/dist/index.js",
   "types": "./mcp-server/dist/index.d.ts",
@@ -60,7 +60,7 @@
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
     "@types/node": "^20.14.12",
-    "@vez/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "workspace:*",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",
@@ -75,7 +75,11 @@
     "url": "https://github.com/venizia-ai/ignis.git",
     "directory": "packages/docs"
   },
-  "author": "Venizia AI",
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
   "license": "MIT",
   "keywords": [
     "ignis",

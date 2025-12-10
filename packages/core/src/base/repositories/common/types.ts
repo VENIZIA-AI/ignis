@@ -1,7 +1,7 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import { TNullable } from '@vez/ignis-helpers';
+import { TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
 import { Sorts } from '../operators';
 import { DEFAULT_LIMIT, RelationTypes } from './constants';

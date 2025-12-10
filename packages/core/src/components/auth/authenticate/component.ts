@@ -6,7 +6,7 @@ import { EnvironmentKeys } from '@/common/environments';
 import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
 import { defineAuthController } from './controllers';
 import { JWTTokenService } from './services';
-import { Binding, getError, ValueOrPromise } from '@vez/ignis-helpers';
+import { Binding, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 
 const DEFAULT_SECRET = 'unknown_secret';
 

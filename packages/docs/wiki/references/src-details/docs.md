@@ -1,4 +1,4 @@
-# Package: `@vez/ignis-docs`
+# Package: `@venizia/ignis-docs`
 
 Documentation package housing guides, references, and MCP server for the Ignis framework.
 

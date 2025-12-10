@@ -7,7 +7,7 @@ The Schema utility provides a set of helper functions and predefined schemas for
 The `jsonContent` function creates a standard OpenAPI content object for `application/json` payloads.
 
 ```typescript
-import { jsonContent, z } from '@vez/ignis';
+import { jsonContent, z } from '@venizia/ignis';
 
 const UserSchema = z.object({
   id: z.number(),
@@ -25,7 +25,7 @@ const userResponse = {
 The `jsonResponse` function generates a standard OpenAPI response object that includes a success (200 OK) response and a default error response for 4xx/5xx status codes.
 
 ```typescript
-import { jsonResponse, z } from '@vez/ignis';
+import { jsonResponse, z } from '@venizia/ignis';
 
 const UserSchema = z.object({
   id: z.number(),
@@ -50,7 +50,7 @@ this.defineRoute({
 This function creates a `zod` string schema that is non-empty and can be further constrained by length.
 
 ```typescript
-import { requiredString } from '@vez/ignis';
+import { requiredString } from '@venizia/ignis';
 
 const schema = z.object({
   username: requiredString({ min: 3, max: 20 }),
@@ -69,7 +69,7 @@ The utility also provides several predefined schemas for common use cases.
 ### Example
 
 ```typescript
-import { IdParamsSchema } from '@vez/ignis';
+import { IdParamsSchema } from '@venizia/ignis';
 
 this.defineRoute({
   configs: {

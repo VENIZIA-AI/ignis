@@ -5,7 +5,7 @@ import {
   TSignInRequest,
   TSignUpRequest,
   TChangePasswordRequest,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { Context } from 'hono';
 
 export class AuthenticationService

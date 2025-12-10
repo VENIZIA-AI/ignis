@@ -130,14 +130,14 @@ bun init -y
 **Production Dependencies:**
 
 ```bash
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis dotenv-flow
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis dotenv-flow
 bun add drizzle-orm drizzle-zod pg lodash
 ```
 
 **Development Dependencies:**
 
 ```bash
-bun add -d typescript @types/bun @vez/dev-configs
+bun add -d typescript @types/bun @venizia/dev-configs
 bun add -d tsc-alias tsconfig-paths
 bun add -d drizzle-kit @types/pg @types/lodash
 ```
@@ -149,7 +149,7 @@ bun add -d drizzle-kit @types/pg @types/lodash
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -166,7 +166,7 @@ bun add -d drizzle-kit @types/pg @types/lodash
 **ESLint** - Create `eslint.config.mjs`:
 
 ```javascript
-import { eslintConfigs } from "@vez/dev-configs";
+import { eslintConfigs } from "@venizia/dev-configs";
 
 export default eslintConfigs;
 ```
@@ -174,7 +174,7 @@ export default eslintConfigs;
 **Prettier** - Create `.prettierrc.mjs`:
 
 ```javascript
-import { prettierConfigs } from "@vez/dev-configs";
+import { prettierConfigs } from "@venizia/dev-configs";
 
 export default prettierConfigs;
 ```
@@ -206,7 +206,7 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from "@vez/ignis";
+} from "@venizia/ignis";
 import { Context } from "hono";
 import appInfo from "./../package.json";
 
@@ -319,9 +319,9 @@ my-ignis-app/
 ├── scripts/
 │   └── clean.sh                # Cleanup script
 ├── package.json
-├── tsconfig.json               # Extends @vez/dev-configs
-├── eslint.config.mjs            # Uses @vez/dev-configs/eslint
-└── .prettierrc.mjs              # Uses @vez/dev-configs/prettier
+├── tsconfig.json               # Extends @venizia/dev-configs
+├── eslint.config.mjs            # Uses @venizia/dev-configs/eslint
+└── .prettierrc.mjs              # Uses @venizia/dev-configs/prettier
 ```
 
 ---
@@ -579,7 +579,7 @@ Ignis is inspired by:
 
 - **Documentation**: [packages/docs/wiki](packages/docs/wiki)
 - **GitHub Issues**: [https://github.com/venizia-ai/ignis/issues](#) <!-- [TODO: Update with actual repository URL] -->
-- **Author**: Phat Nguyen <phat.nguyen@nexpando.com>
+- **Author**: VENIZIA AI Developer <developer@venizia.ai>
 
 ---
 

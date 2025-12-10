@@ -1,4 +1,4 @@
-import { BaseHelper, ValueOrPromise } from '@vez/ignis-helpers';
+import { BaseHelper, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   IDataSource,
   TAnyDatasourceSchema,

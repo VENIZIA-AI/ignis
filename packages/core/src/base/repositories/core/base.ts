@@ -1,6 +1,6 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableSchemaWithId } from '@/base/models';
-import { BaseHelper, TClass, TNullable } from '@vez/ignis-helpers';
+import { BaseHelper, TClass, TNullable } from '@venizia/ignis-helpers';
 import {
   DEFAULT_LIMIT,
   TDrizzleQueryOptions,

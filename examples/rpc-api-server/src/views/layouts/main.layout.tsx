@@ -1,4 +1,4 @@
-import type { FC, PropsWithChildren } from '@vez/ignis';
+import type { FC, PropsWithChildren } from '@venizia/ignis';
 
 interface MainLayoutProps {
   title: string;

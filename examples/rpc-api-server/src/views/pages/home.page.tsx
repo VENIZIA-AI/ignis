@@ -1,4 +1,4 @@
-import type { FC } from '@vez/ignis';
+import type { FC } from '@venizia/ignis';
 import { MainLayout } from '../layouts/main.layout';
 
 interface HomePageProps {

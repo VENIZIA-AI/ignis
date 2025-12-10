@@ -1,4 +1,4 @@
-import { IConfigurable, ValueOrPromise } from '@vez/ignis-helpers';
+import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import { NodePgClient, type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import { type drizzle as postgresjsConnector } from 'drizzle-orm/postgres-js';
 import { Pool } from 'pg';

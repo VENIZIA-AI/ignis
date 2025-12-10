@@ -6,7 +6,7 @@ import {
   MetadataRegistry,
   TAuthStrategy,
   ValueOrPromise,
-} from "@vez/ignis-helpers";
+} from "@venizia/ignis-helpers";
 import { Env, Schema } from "hono";
 import {
   IController,

@@ -92,7 +92,7 @@ import {
   configurationRelations,
   TConfigurationSchema,
 } from '@/models/entities';
-import { IDataSource, inject, repository, DefaultCRUDRepository } from '@vez/ignis';
+import { IDataSource, inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
 
 // Decorator to mark this class as a repository for DI
 @repository({})

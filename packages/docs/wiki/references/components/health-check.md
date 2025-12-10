@@ -52,7 +52,7 @@ const DEFAULT_OPTIONS: IHealthCheckOptions = {
 In your `src/application.ts`, you can bind your custom options:
 
 ```typescript
-import { HealthCheckBindingKeys, IHealthCheckOptions, HealthCheckComponent } from '@vez/ignis';
+import { HealthCheckBindingKeys, IHealthCheckOptions, HealthCheckComponent } from '@venizia/ignis';
 
 // ... in your Application class's preConfigure method
   preConfigure(): ValueOrPromise<void> {
@@ -75,7 +75,7 @@ The `HealthCheckController` is a simple controller that uses decorators to defin
 
 ```typescript
 // packages/core/src/components/health-check/controller.ts
-import { BaseController, IControllerOptions, TRouteContext, api, jsonContent, jsonResponse, HTTP, z } from '@vez/ignis';
+import { BaseController, IControllerOptions, TRouteContext, api, jsonContent, jsonResponse, HTTP, z } from '@venizia/ignis';
 
 const ROUTE_CONFIGS = {
   '/': {
@@ -150,7 +150,7 @@ In your `src/application.ts`, simply register the `HealthCheckComponent`.
 
 ```typescript
 // src/application.ts
-import { HealthCheckComponent } from '@vez/ignis';
+import { HealthCheckComponent } from '@venizia/ignis';
 
 // ... in your Application class's preConfigure method
   preConfigure(): ValueOrPromise<void> {

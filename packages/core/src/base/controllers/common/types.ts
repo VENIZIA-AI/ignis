@@ -1,6 +1,6 @@
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { IConfigurable, TAuthStrategy, ValueOrPromise } from '@vez/ignis-helpers';
+import { IConfigurable, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 
 export type TLazyRouteHandler<RC extends RouteConfig, RouteEnv extends Env = Env> = RC extends RC

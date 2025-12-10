@@ -2,7 +2,7 @@ import { BaseController, IControllerOptions, TRouteContext } from '@/base/contro
 import { api } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import { HTTP, ValueOrPromise } from '@vez/ignis-helpers';
+import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import { HealthCheckRestPaths } from './common';
 
 const ROUTE_CONFIGS = {

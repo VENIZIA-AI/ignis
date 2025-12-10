@@ -11,7 +11,7 @@ Use `@get`, `@post` decorators with `as const` route configs for full type safet
 **`src/controllers/test/definitions.ts`**
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { Authentication, HTTP, jsonContent, jsonResponse } from '@vez/ignis';
+import { Authentication, HTTP, jsonContent, jsonResponse } from '@venizia/ignis';
 
 // Define route configs as const for type inference
 export const ROUTE_CONFIGS = {
@@ -52,7 +52,7 @@ import {
   get,
   post,
   TRouteContext,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { ROUTE_CONFIGS } from './definitions';
 
 @controller({ path: '/test' })
@@ -86,7 +86,7 @@ You can also define routes manually within the controller's `binding()` method u
 
 **`src/controllers/test/controller.ts`**
 ```typescript
-import { BaseController, controller, HTTP, ValueOrPromise } from '@vez/ignis';
+import { BaseController, controller, HTTP, ValueOrPromise } from '@venizia/ignis';
 import { ROUTE_CONFIGS } from './definitions';
 
 @controller({ path: '/test' })
@@ -128,7 +128,7 @@ import {
   controller,
   ControllerFactory,
   inject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 

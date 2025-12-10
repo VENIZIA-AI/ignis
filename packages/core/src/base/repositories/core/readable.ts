@@ -1,6 +1,6 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { getError, TClass, TNullable } from '@vez/ignis-helpers';
+import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { RepositoryOperationScopes, TCount, TFilter, TRelationConfig, TWhere } from '../common';
 import { AbstractRepository } from './base';
 

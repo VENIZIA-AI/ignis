@@ -34,7 +34,7 @@ The `AES` class provides an interface for encrypting and decrypting data using t
 You can create an `AES` instance by specifying the algorithm (`aes-256-cbc` or `aes-256-gcm`).
 
 ```typescript
-import { AES } from '@vez/ignis';
+import { AES } from '@venizia/ignis';
 
 const aes = AES.withAlgorithm('aes-256-cbc');
 ```
@@ -67,7 +67,7 @@ The `RSA` class provides an interface for encrypting and decrypting data using t
 ### Creating an RSA Instance
 
 ```typescript
-import { RSA } from '@vez/ignis';
+import { RSA } from '@venizia/ignis';
 
 const rsa = RSA.withAlgorithm();
 ```
@@ -103,7 +103,7 @@ const decrypted = rsa.decrypt(encrypted, privateKey.toString('base64'));
 In addition to the `Crypto` helper, `Ignis` also provides a standalone `hash` utility function for creating hashes (e.g., for passwords or data integrity checks).
 
 ```typescript
-import { hash } from '@vez/ignis';
+import { hash } from '@venizia/ignis';
 
 // MD5 Hash
 const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });

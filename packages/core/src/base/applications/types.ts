@@ -8,7 +8,7 @@ import {
   IServiceMixin,
   IStaticServeMixin,
 } from '../mixins/types';
-import { ValueOrPromise } from '@vez/ignis-helpers';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
 
 // ------------------------------------------------------------------------------
 // Common Middleware Options

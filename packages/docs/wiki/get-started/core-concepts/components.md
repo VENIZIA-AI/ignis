@@ -24,7 +24,7 @@ A component is a class that extends `BaseComponent` and is responsible for:
 To create a new component, extend the `BaseComponent` class. The constructor is the ideal place to define any **default bindings** that the component provides.
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding, BindingScopes } from '@vez/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding, BindingScopes } from '@venizia/ignis';
 
 // An example service that the component will provide
 class MyFeatureService {

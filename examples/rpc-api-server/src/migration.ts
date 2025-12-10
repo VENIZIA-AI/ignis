@@ -1,6 +1,6 @@
 import 'dotenv-flow/config';
 
-import { applicationEnvironment, int, LoggerFactory } from '@vez/ignis';
+import { applicationEnvironment, int, LoggerFactory } from '@venizia/ignis';
 import { defineConfig } from 'drizzle-kit';
 
 const migration = () => {

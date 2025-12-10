@@ -24,7 +24,7 @@ import {
   generateIdColumnDefs,
   model,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 // 1. Define the Drizzle schema for the 'User' table
@@ -119,7 +119,7 @@ import {
   model,
   RelationTypes,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { pgTable, text, boolean } from 'drizzle-orm/pg-core';
 import { userTable } from './user.model';
 
@@ -226,7 +226,7 @@ import {
   model,
   RelationTypes,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, userTable } from './user.model';
 
@@ -342,7 +342,7 @@ import {
   datasource,
   TNodePostgresConnector,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -529,7 +529,7 @@ import {
   configurationRelations, // Import configurationRelations
   TConfigurationSchema,
 } from '@/models/entities';
-import { IDataSource, inject, repository, DefaultCRUDRepository } from '@vez/ignis';
+import { IDataSource, inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
 
 // Decorator to mark this class as a repository for DI
 @repository({})

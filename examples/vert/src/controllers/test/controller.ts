@@ -7,7 +7,7 @@ import {
   post,
   TRouteContext,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { ROUTE_CONFIGS } from './definitions';
 
 @controller({ path: '/test' })

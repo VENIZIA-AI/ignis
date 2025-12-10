@@ -1,14 +1,14 @@
-# Package: `@vez/ignis-inversion`
+# Package: `@venizia/ignis-inversion`
 
 ## Overview
 
-The `@vez/ignis-inversion` package provides a standalone, lightweight Dependency Injection (DI) and Inversion of Control (IoC) container. This package was extracted from `@vez/ignis-helpers` to enable independent usage and better modularity.
+The `@venizia/ignis-inversion` package provides a standalone, lightweight Dependency Injection (DI) and Inversion of Control (IoC) container. This package was extracted from `@venizia/ignis-helpers` to enable independent usage and better modularity.
 
 ## Package Information
 
 | Property | Value |
 |----------|-------|
-| **Package Name** | `@vez/ignis-inversion` |
+| **Package Name** | `@venizia/ignis-inversion` |
 | **Location** | `packages/inversion/` |
 | **Purpose** | Standalone DI/IoC container |
 | **Dependencies** | `lodash`, `reflect-metadata`, `zod` |
@@ -44,7 +44,7 @@ The `Binding<T>` class represents a single dependency registration in the contai
 #### Binding Example
 
 ```typescript
-import { Binding, BindingScopes } from '@vez/ignis-inversion';
+import { Binding, BindingScopes } from '@venizia/ignis-inversion';
 
 // Create a binding
 const binding = new Binding<MyService>({ key: 'services.MyService' })
@@ -75,7 +75,7 @@ The `Container` class is the main DI container for managing bindings and resolvi
 #### Container Example
 
 ```typescript
-import { Container, BindingScopes } from '@vez/ignis-inversion';
+import { Container, BindingScopes } from '@venizia/ignis-inversion';
 
 const container = new Container({ scope: 'MyApp' });
 
@@ -124,7 +124,7 @@ The `MetadataRegistry` stores and retrieves decorator metadata for DI.
 ### Binding Scopes
 
 ```typescript
-import { BindingScopes } from '@vez/ignis-inversion';
+import { BindingScopes } from '@venizia/ignis-inversion';
 
 BindingScopes.SINGLETON  // Single instance, reused
 BindingScopes.TRANSIENT  // New instance each request (default)
@@ -133,7 +133,7 @@ BindingScopes.TRANSIENT  // New instance each request (default)
 ### Binding Value Types
 
 ```typescript
-import { BindingValueTypes } from '@vez/ignis-inversion';
+import { BindingValueTypes } from '@venizia/ignis-inversion';
 
 BindingValueTypes.CLASS     // Bind to class constructor
 BindingValueTypes.VALUE     // Bind to static value
@@ -159,7 +159,7 @@ class DatabaseProvider implements IProvider<DatabaseConnection> {
 ### BindingKeys Helper
 
 ```typescript
-import { BindingKeys } from '@vez/ignis-inversion';
+import { BindingKeys } from '@venizia/ignis-inversion';
 
 const key = BindingKeys.build({ namespace: 'services', key: 'UserService' });
 // Result: 'services.UserService'
@@ -233,7 +233,7 @@ packages/inversion/
 ### Basic Container Usage
 
 ```typescript
-import { Container, BindingScopes } from '@vez/ignis-inversion';
+import { Container, BindingScopes } from '@venizia/ignis-inversion';
 
 // Create container
 const container = new Container();
@@ -252,7 +252,7 @@ const userService = container.get({ key: 'services.UserService' });
 ### Using Providers
 
 ```typescript
-import { Container, IProvider } from '@vez/ignis-inversion';
+import { Container, IProvider } from '@venizia/ignis-inversion';
 
 // Function provider
 container.bind({ key: 'database' })
@@ -309,22 +309,22 @@ if (cache) {
 
 ---
 
-## Relationship with @vez/ignis-helpers
+## Relationship with @venizia/ignis-helpers
 
-The `@vez/ignis-helpers` package extends this base inversion package with:
+The `@venizia/ignis-helpers` package extends this base inversion package with:
 
 - **ApplicationLogger integration**: Container with structured logging
 - **Framework-specific metadata**: Controllers, models, repositories, data sources
 - **Decorator implementations**: `@inject`, `@controller`, `@service`, etc.
 
-For framework usage, import from `@vez/ignis-helpers` or `@vez/ignis`. For standalone DI container usage, import directly from `@vez/ignis-inversion`.
+For framework usage, import from `@venizia/ignis-helpers` or `@venizia/ignis`. For standalone DI container usage, import directly from `@venizia/ignis-inversion`.
 
 ```typescript
 // Standalone usage
-import { Container, Binding } from '@vez/ignis-inversion';
+import { Container, Binding } from '@venizia/ignis-inversion';
 
 // Framework usage (includes logging and framework metadata)
-import { Container, inject, service } from '@vez/ignis-helpers';
+import { Container, inject, service } from '@venizia/ignis-helpers';
 ```
 
 ---

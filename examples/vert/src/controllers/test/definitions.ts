@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { Authentication, HTTP, jsonContent, jsonResponse } from '@vez/ignis';
+import { Authentication, HTTP, jsonContent, jsonResponse } from '@venizia/ignis';
 
 // Define route configs as const for type inference
 export const ROUTE_CONFIGS = {

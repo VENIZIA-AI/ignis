@@ -39,7 +39,7 @@ You can create a new HTTP client instance by extending either `AxiosNetworkReque
 **Using Axios:**
 
 ```typescript
-import { AxiosNetworkRequest } from '@vez/ignis';
+import { AxiosNetworkRequest } from '@venizia/ignis';
 
 class MyApiClient extends AxiosNetworkRequest {
   constructor() {
@@ -65,7 +65,7 @@ class MyApiClient extends AxiosNetworkRequest {
 **Using Node.js Fetch:**
 
 ```typescript
-import { NodeFetchNetworkRequest } from '@vez/ignis';
+import { NodeFetchNetworkRequest } from '@venizia/ignis';
 
 class MyApiClient extends NodeFetchNetworkRequest {
   constructor() {
@@ -92,7 +92,7 @@ The TCP Socket helpers provide a robust way to create and manage TCP and TLS/SSL
 ### TCP Client
 
 ```typescript
-import { NetworkTcpClient } from '@vez/ignis';
+import { NetworkTcpClient } from '@venizia/ignis';
 
 const tcpClient = new NetworkTcpClient({
   identifier: 'my-tcp-client',
@@ -110,7 +110,7 @@ tcpClient.emit({ payload: 'Hello, Server!' });
 ### TCP Server
 
 ```typescript
-import { NetworkTcpServer } from '@vez/ignis';
+import { NetworkTcpServer } from '@venizia/ignis';
 
 const tcpServer = new NetworkTcpServer({
   identifier: 'my-tcp-server',
@@ -129,7 +129,7 @@ The UDP Socket helper provides a way to create and manage UDP datagram sockets.
 ### UDP Client
 
 ```typescript
-import { NetworkUdpClient } from '@vez/ignis';
+import { NetworkUdpClient } from '@venizia/ignis';
 
 const udpClient = new NetworkUdpClient({
   identifier: 'my-udp-client',

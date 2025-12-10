@@ -26,7 +26,7 @@ Extends native `Error` with HTTP status codes and machine-readable message codes
 You can create a new `ApplicationError` with a message, status code, and an optional message code.
 
 ```typescript
-import { ApplicationError, HTTP } from '@vez/ignis';
+import { ApplicationError, HTTP } from '@venizia/ignis';
 
 // Throw an error for a resource not found
 throw new ApplicationError({
@@ -41,7 +41,7 @@ throw new ApplicationError({
 For convenience, you can use the `getError()` utility function to create `ApplicationError` instances.
 
 ```typescript
-import { getError, HTTP } from '@vez/ignis';
+import { getError, HTTP } from '@venizia/ignis';
 
 throw getError({
   message: 'Invalid credentials',

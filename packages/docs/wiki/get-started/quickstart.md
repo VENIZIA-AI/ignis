@@ -17,23 +17,23 @@ bun init -y
 ### Production Dependencies
 
 ```bash
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis dotenv-flow
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis dotenv-flow
 ```
 
 **What each package does:**
 - `hono` - High-performance web framework
 - `@hono/zod-openapi` - OpenAPI schema generation with Zod validation
 - `@scalar/hono-api-reference` - Interactive API documentation UI
-- `@vez/ignis` - Core Ignis framework
+- `@venizia/ignis` - Core Ignis framework
 - `dotenv-flow` - Environment variable management
 
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @vez/dev-configs tsc-alias tsconfig-paths
+bun add -d typescript @types/bun @venizia/dev-configs tsc-alias tsconfig-paths
 ```
 
-**What `@vez/dev-configs` provides:**
+**What `@venizia/dev-configs` provides:**
 - Centralized ESLint configuration
 - Centralized Prettier configuration
 - Shared TypeScript base configs
@@ -43,7 +43,7 @@ bun add -d typescript @types/bun @vez/dev-configs tsc-alias tsconfig-paths
 
 ## 3. Configure Development Tools
 
-All development configurations are centralized in the `@vez/dev-configs` package for consistency and ease of maintenance.
+All development configurations are centralized in the `@venizia/dev-configs` package for consistency and ease of maintenance.
 
 ### TypeScript
 
@@ -52,7 +52,7 @@ Create `tsconfig.json` in your project root:
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -66,14 +66,14 @@ Create `tsconfig.json` in your project root:
 }
 ```
 
-> **Note:** The `extends` field pulls in all TypeScript configuration from `@vez/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2022 target settings.
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@venizia/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2022 target settings.
 
 ### Prettier
 
 Create `.prettierrc.mjs` for code formatting:
 
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from '@venizia/dev-configs';
 
 export default prettierConfigs;
 ```
@@ -88,7 +88,7 @@ node_modules
 
 > **Customization:** To override Prettier settings, merge with the base config:
 > ```javascript
-> import { prettierConfigs } from '@vez/dev-configs';
+> import { prettierConfigs } from '@venizia/dev-configs';
 > export default { ...prettierConfigs, printWidth: 120 };
 > ```
 
@@ -97,14 +97,14 @@ node_modules
 Create `eslint.config.mjs` for code linting:
 
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 export default eslintConfigs;
 ```
 
 > **Customization:** To add project-specific rules:
 > ```javascript
-> import { eslintConfigs } from '@vez/dev-configs';
+> import { eslintConfigs } from '@venizia/dev-configs';
 > export default [...eslintConfigs, { rules: { 'no-console': 'warn' } }];
 > ```
 
@@ -164,7 +164,7 @@ src/
 Create `src/application.ts` - this is where you configure and register all your application resources:
 
 ```typescript
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@vez/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers/hello.controller';
 import packageJson from '../package.json';
 
@@ -234,7 +234,7 @@ import {
   get, // Import the 'get' decorator
   HTTP,
   jsonContent,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 import { Context } from 'hono';
 
@@ -293,7 +293,7 @@ Create `src/index.ts` - this starts your application:
 
 ```typescript
 import { Application, appConfigs } from './application';
-import { LoggerFactory } from '@vez/ignis';
+import { LoggerFactory } from '@venizia/ignis';
 
 const logger = LoggerFactory.getLogger(['main']);
 

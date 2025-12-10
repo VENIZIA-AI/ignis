@@ -15,7 +15,7 @@ import {
   IApplicationConfigs,
   IApplicationInfo,
   ValueOrPromise,
-} from "@vez/ignis";
+} from "@venizia/ignis";
 import packageJson from "./../package.json";
 
 // Application configurations

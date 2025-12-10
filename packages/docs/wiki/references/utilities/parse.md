@@ -15,7 +15,7 @@ The Parse utility provides a collection of functions for data type checking, con
 -   **`toStringDecimal(input, digit = 2)`**: Formats a number to a string with a specified number of decimal places, using locale-specific formatting.
 
 ```typescript
-import { int, float, toBoolean } from '@vez/ignis';
+import { int, float, toBoolean } from '@venizia/ignis';
 
 const myInt = int('1,000'); // => 1000
 const myFloat = float('1,234.567', 2); // => 1234.57
@@ -28,7 +28,7 @@ const myBool = toBoolean('true'); // => true
 -   **`keysToCamel(object)`**: Recursively converts all keys in an object (and nested objects) to camelCase.
 
 ```typescript
-import { toCamel, keysToCamel } from '@vez/ignis';
+import { toCamel, keysToCamel } from '@venizia/ignis';
 
 const camelString = toCamel('my-snake_case-string');
 // => 'mySnakeCaseString'
@@ -43,7 +43,7 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 -   **`parseArrayToMapWithKey(arr, keyMap)`**: Transforms an array of objects into a `Map`, using a specified property of the objects as keys. This is useful for efficient lookups.
 
 ```typescript
-import { parseArrayToMapWithKey } from '@vez/ignis';
+import { parseArrayToMapWithKey } from '@venizia/ignis';
 
 const users = [
   { id: 1, name: 'Alice' },
@@ -62,7 +62,7 @@ const user = usersMap.get(1);
 -   **`getUID()`**: Generates a simple, short unique ID string.
 
 ```typescript
-import { getUID } from '@vez/ignis';
+import { getUID } from '@venizia/ignis';
 
 const uniqueId = getUID(); // => e.g., 'A1B2C3D4'
 ```

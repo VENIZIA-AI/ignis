@@ -17,7 +17,7 @@ Services contain the core business logic of your application. They orchestrate t
 To create a service, you extend the `BaseService` class and inject the repositories or other services it depends on.
 
 ```typescript
-import { BaseService, inject } from '@vez/ignis';
+import { BaseService, inject } from '@venizia/ignis';
 import { ConfigurationRepository } from '../repositories';
 import { UserRepository } from '../repositories';
 import { TConfiguration } from '../models/entities';

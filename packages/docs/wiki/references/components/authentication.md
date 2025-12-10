@@ -34,7 +34,7 @@ JWT-based authentication and authorization system for Ignis applications.
 
 -   **Hono**
 -   **`jose`:** For JWT signing, verification, and encryption.
--   **`@vez/ignis`**: The core framework.
+-   **`@venizia/ignis`**: The core framework.
 
 ### Configuration
 
@@ -71,7 +71,7 @@ import {
   JWTAuthenticationStrategy,
   BaseApplication,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { AuthenticationService } from './services'; // Your custom auth service
 
 export class Application extends BaseApplication {
@@ -110,7 +110,7 @@ import {
   IJWTTokenPayload,
   JWTTokenService,
   TSignInRequest,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { Context } from 'hono';
 
 export class AuthenticationService extends BaseService implements IAuthService {
@@ -173,7 +173,7 @@ import {
   jsonResponse,
   IJWTTokenPayload,
   TRouteContext, // Import TRouteContext for type safety
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 const SECURE_ROUTE_CONFIG = {
@@ -210,7 +210,7 @@ After a route has been processed, the authenticated user's payload is available 
 
 ```typescript
 import { Context } from 'hono';
-import { Authentication, IJWTTokenPayload } from '@vez/ignis';
+import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
 
 // Inside a route handler or a custom middleware
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;

@@ -48,7 +48,7 @@ To create a cron job, you instantiate the `CronHelper` with your desired options
 Here's how to create a simple cron job that logs a message every minute:
 
 ```typescript
-import { CronHelper } from '@vez/ignis';
+import { CronHelper } from '@venizia/ignis';
 
 const myJob = new CronHelper({
   cronTime: '0 */1 * * * *', // Every minute

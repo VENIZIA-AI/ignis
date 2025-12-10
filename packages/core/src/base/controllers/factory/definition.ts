@@ -1,6 +1,6 @@
 import { RouteConfig, z } from '@hono/zod-openapi';
 import { RestPaths, TAuthRouteConfig } from '../common';
-import { HTTP } from '@vez/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
 import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories';
 import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models';
 

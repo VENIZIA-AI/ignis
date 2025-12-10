@@ -1,6 +1,6 @@
 import type { Context, Next } from 'hono';
 import { DocumentUITypes, IGetProviderParams, IUIConfig, IUIProvider } from './common';
-import { getError, MemoryStorageHelper } from '@vez/ignis-helpers';
+import { getError, MemoryStorageHelper } from '@venizia/ignis-helpers';
 
 // -------------------------------------------------------------------
 export class SwaggerUIProvider implements IUIProvider {

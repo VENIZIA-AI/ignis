@@ -43,7 +43,7 @@ The `super()` constructor in your component can take the following options:
 ### Example Implementation
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding } from '@vez/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding } from '@venizia/ignis';
 
 // A service this component provides
 class MyComponentService { /* ... */ }

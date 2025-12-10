@@ -4,7 +4,7 @@ import {
   generateIdColumnDefs,
   model,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity', skipMigrate: false })
@@ -24,4 +24,3 @@ export const usersTable = pgTable(User.TABLE_NAME, {
 
 export type TUserSchema = typeof usersTable;
 export type TUser = TTableObject<TUserSchema>;
-

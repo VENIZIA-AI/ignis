@@ -5,7 +5,7 @@ import {
   TestCaseHandler,
   TTestCaseDecision,
   ValueOrPromise,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 
 interface IArg {
   payload: IJWTTokenPayload;

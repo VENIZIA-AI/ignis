@@ -1,5 +1,5 @@
 {
-  "name": "@vez/lib",
+  "name": "@venizia/lib",
   "version": "0.0.0",
   "workspaces": [
     "packages/*",
@@ -7,19 +7,22 @@
   ],
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "scripts": {
-    "rebuild:dev-configs": "bun run --filter \"@vez/dev-configs\" rebuild",
-    "rebuild:docs": "bun run --filter \"@vez/ignis-docs\" docs:build",
-    "rebuild:mcp-docs-server": "bun run --filter \"@vez/ignis-docs\" mcp:build",
-    "rebuild:helpers": "bun run --filter \"@vez/ignis-helpers\" rebuild",
-    "rebuild:inversion": "bun run --filter \"@vez/ignis-inversion\" rebuild",
+    "rebuild:dev-configs": "bun run --filter \"@venizia/dev-configs\" rebuild",
+    "rebuild:docs": "bun run --filter \"@venizia/ignis-docs\" docs:build",
+    "rebuild:mcp-docs-server": "bun run --filter \"@venizia/ignis-docs\" mcp:build",
+    "rebuild:helpers": "bun run --filter \"@venizia/ignis-helpers\" rebuild",
+    "rebuild:inversion": "bun run --filter \"@venizia/ignis-inversion\" rebuild",
     "prerebuild:core": "bun run rebuild:inversion && bun run rebuild:helpers",
-    "rebuild:core": "bun run --filter \"@vez/ignis\" rebuild",
-    "rebuild:ignis": "bun run rebuild:dev-configs && bun run rebuild:core && bun run rebuild:docs && bun run rebuild:mcp-docs-server",
-    "docs:dev": "bun run --filter \"@vez/ignis-docs\" docs:dev",
-    "mcp:dev": "bun run --filter \"@vez/ignis-docs\" mcp:dev"
+    "rebuild:core": "bun run --filter \"@venizia/ignis\" rebuild",
+    "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
+    "mcp:dev": "bun run --filter \"@venizia/ignis-docs\" mcp:dev"
   },
   "keywords": [],
-  "author": "Phat Nguyen <phat.nguyen@nexpando.com>",
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
   "private": true,
   "license": "MIT",
   "engines": {

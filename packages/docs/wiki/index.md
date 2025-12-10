@@ -24,7 +24,7 @@ features:
 
   - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-git-branch"><line x1="6" y1="3" x2="6" y2="15"></line><path d="M18 6l-6 6-6-6"></path><path d="M12 18V6"></path><path d="M18 12l-6 6-6-6"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle></svg>
     title: Modular Package Architecture
-    details: Built as a monorepo with independent packages (@vez/ignis, @vez/ignis-helpers, @vez/ignis-inversion, @vez/dev-configs) for flexible, granular consumption.
+    details: Built as a monorepo with independent packages (@venizia/ignis, @venizia/ignis-helpers, @venizia/ignis-inversion, @venizia/dev-configs) for flexible, granular consumption.
 
   - icon: <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share-2"><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="18" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="16.49"></line><line x1="15.41" y1="7.51" x2="8.59" y2="10.49"></line></svg>
     title: Powerful Dependency Injection

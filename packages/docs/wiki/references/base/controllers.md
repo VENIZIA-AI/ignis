@@ -52,7 +52,7 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@vez/ignis';
+import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
 
 const MyRouteConfig = {
   method: 'get',
@@ -83,7 +83,7 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 **Example using `@get` and `@post` with type inference:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@vez/ignis';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
 
 // Define route configs as const for full type inference
 const USER_ROUTES = {
@@ -147,7 +147,7 @@ const USER_ROUTES = {
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
 ```typescript
-import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@vez/ignis';
+import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@venizia/ignis';
 import { z } from 'hono/zod-openapi';
 
 const HEALTH_CHECK_ROUTES = {
@@ -234,7 +234,7 @@ The `configs` object accepts properties based on the OpenAPI 3.0 specification.
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent } from '@vez/ignis';
+import { jsonContent } from '@venizia/ignis';
 
 // ...
 request: {
@@ -254,7 +254,7 @@ request: {
 The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
 
 ```typescript
-import { defineRouteConfigs, HTTP, jsonResponse, z } from '@vez/ignis';
+import { defineRouteConfigs, HTTP, jsonResponse, z } from '@venizia/ignis';
 
 const ROUTE_CONFIGS = defineRouteConfigs({
   '/': {
@@ -326,7 +326,7 @@ import {
   inject,
   BindingKeys,
   BindingNamespaces,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 const BASE_PATH = '/configurations';
 

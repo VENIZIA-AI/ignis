@@ -109,7 +109,7 @@ import {
   generateTzColumnDefs,
   model,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 // 1. Define the Drizzle schema for the 'Todo' table
@@ -209,7 +209,7 @@ import {
   datasource,
   TNodePostgresConnector,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -286,7 +286,7 @@ import {
   IDataSource,
   inject,
   repository,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 @repository()
 export class TodoRepository extends DefaultCRUDRepository<TTodoSchema> {
@@ -324,7 +324,7 @@ import {
   controller,
   ControllerFactory,
   inject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 const BASE_PATH = '/todos';
 
@@ -376,7 +376,7 @@ Update `src/application.ts` to register all components:
 
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@vez/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers/hello.controller';
 import packageJson from '../package.json';
 
@@ -660,7 +660,7 @@ For complex validation or business rules, create a Service layer:
 
 ```typescript
 // src/services/todo.service.ts
-import { BaseService, inject } from '@vez/ignis';
+import { BaseService, inject } from '@venizia/ignis';
 import { TodoRepository } from '@/repositories/todo.repository';
 
 export class TodoService extends BaseService {

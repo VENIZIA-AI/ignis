@@ -25,7 +25,7 @@ logger.debug('message');     // Debug
 The recommended way to get a logger instance is by using the `LoggerFactory`.
 
 ```typescript
-import { LoggerFactory } from '@vez/ignis';
+import { LoggerFactory } from '@venizia/ignis';
 
 const logger = LoggerFactory.getLogger(['MyService']);
 
@@ -82,7 +82,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info,debug
 While the default logger is powerful, you can create your own custom logger by extending the `Logger` class and providing a custom `winston.Logger` instance.
 
 ```typescript
-import { Logger, defineCustomLogger, applicationLogFormatter } from '@vez/ignis';
+import { Logger, defineCustomLogger, applicationLogFormatter } from '@venizia/ignis';
 import winston from 'winston';
 
 const myCustomWinstonLogger = defineCustomLogger({

@@ -1,14 +1,14 @@
-# Package: `@vez/dev-configs`
+# Package: `@venizia/dev-configs`
 
 ## Overview
 
-The `@vez/dev-configs` package provides centralized, shared development configurations for all packages in the Venizia/Ignis monorepo. This ensures consistent code style, linting rules, and TypeScript configurations across the entire project.
+The `@venizia/dev-configs` package provides centralized, shared development configurations for all packages in the Venizia/Ignis monorepo. This ensures consistent code style, linting rules, and TypeScript configurations across the entire project.
 
 ## Package Information
 
 | Property | Value |
 |----------|-------|
-| **Package Name** | `@vez/dev-configs` |
+| **Package Name** | `@venizia/dev-configs` |
 | **Location** | `packages/dev-configs/` |
 | **Purpose** | Centralized development configurations |
 | **Dependencies** | `@minimaltech/eslint-node` |
@@ -17,14 +17,14 @@ The `@vez/dev-configs` package provides centralized, shared development configur
 
 | Export Path | Type | Description |
 |-------------|------|-------------|
-| `@vez/dev-configs` | Module | Named exports: `eslintConfigs`, `prettierConfigs` |
-| `@vez/dev-configs/tsconfig.base.json` | JSON | Base TypeScript configuration |
-| `@vez/dev-configs/tsconfig.common.json` | JSON | Common TypeScript config for packages |
+| `@venizia/dev-configs` | Module | Named exports: `eslintConfigs`, `prettierConfigs` |
+| `@venizia/dev-configs/tsconfig.base.json` | JSON | Base TypeScript configuration |
+| `@venizia/dev-configs/tsconfig.common.json` | JSON | Common TypeScript config for packages |
 
 ### Named Exports
 
 ```typescript
-import { eslintConfigs, prettierConfigs } from '@vez/dev-configs';
+import { eslintConfigs, prettierConfigs } from '@venizia/dev-configs';
 ```
 
 - **`eslintConfigs`**: `Linter.Config[]` - ESLint flat config array
@@ -39,7 +39,7 @@ import { eslintConfigs, prettierConfigs } from '@vez/dev-configs';
 Create an `eslint.config.mjs` file in your package:
 
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 export default eslintConfigs;
 ```
@@ -49,7 +49,7 @@ export default eslintConfigs;
 To add package-specific rules:
 
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 const configs = [
   ...eslintConfigs,
@@ -84,7 +84,7 @@ export default configs;
 Create a `.prettierrc.mjs` file in your package:
 
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from '@venizia/dev-configs';
 
 export default prettierConfigs;
 ```
@@ -133,7 +133,7 @@ The base configuration includes all compiler options suitable for Node.js/Bun Ty
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.base.json",
+  "extends": "@venizia/dev-configs/tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src"
@@ -171,7 +171,7 @@ Extends the base config with settings for standard packages:
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -225,7 +225,7 @@ packages/dev-configs/
 ```json
 {
   "devDependencies": {
-    "@vez/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "workspace:*",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3"
@@ -239,7 +239,7 @@ packages/dev-configs/
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -253,14 +253,14 @@ packages/dev-configs/
 
 **`eslint.config.mjs`:**
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 export default eslintConfigs;
 ```
 
 **`.prettierrc.mjs`:**
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from '@venizia/dev-configs';
 
 export default prettierConfigs;
 ```

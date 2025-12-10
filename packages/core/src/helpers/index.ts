@@ -1,1 +1,1 @@
-export * from '@vez/ignis-helpers';
+export * from '@venizia/ignis-helpers';

@@ -34,7 +34,7 @@ A test plan is the main entry point for a test suite. You define the scope, hook
 
 ```typescript
 // __tests__/my-feature.test.ts
-import { TestPlan, TestDescribe, TestCase, TestCaseHandler, TestCaseDecisions } from '@vez/ignis';
+import { TestPlan, TestDescribe, TestCase, TestCaseHandler, TestCaseDecisions } from '@venizia/ignis';
 
 // 1. Define a Test Case Handler
 class MyTestHandler extends TestCaseHandler {
@@ -80,7 +80,7 @@ The `TestPlan` provides a `context` that can be used to share data between test 
 
 ```typescript
 // __tests__/auth.test.ts
-import { TestPlan, TestDescribe, TestCase, TestCaseHandler, ITestContext } from '@vez/ignis';
+import { TestPlan, TestDescribe, TestCase, TestCaseHandler, ITestContext } from '@venizia/ignis';
 
 // A handler that uses the context
 class SecureApiHandler extends TestCaseHandler<{ token: string }> {

@@ -4,7 +4,7 @@ Dependency Injection (DI) enables loosely coupled, testable code by automaticall
 
 > **Deep Dive:** See [DI Reference](../../references/base/dependency-injection.md) for technical details on Container, Binding, and `@inject`.
 
-> **Standalone Package:** The core DI container is available as the standalone `@vez/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](../../references/src-details/inversion.md) for details.
+> **Standalone Package:** The core DI container is available as the standalone `@venizia/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](../../references/src-details/inversion.md) for details.
 
 ## Core Concepts
 
@@ -91,7 +91,7 @@ this.bind({ key: 'services.MySingletonService' })
 This makes dependencies explicit and ensures they are available right away.
 
 ```typescript
-import { BaseController, controller, inject } from '@vez/ignis';
+import { BaseController, controller, inject } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 @controller({ path: '/users' })
@@ -112,7 +112,7 @@ export class UserController extends BaseController {
 You can also inject dependencies directly as class properties.
 
 ```typescript
-import { inject } from '@vez/ignis';
+import { inject } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 export class UserComponent {
@@ -130,7 +130,7 @@ Providers are used for dependencies that require complex setup logic. A provider
 ### Creating a Custom Provider
 
 ```typescript
-import { BaseProvider, inject, Container, IConfig } from '@vez/ignis';
+import { BaseProvider, inject, Container, IConfig } from '@venizia/ignis';
 import { ThirdPartyApiClient } from '../services/api-client.service';
 
 // Assume IConfig is a configuration object we've bound elsewhere

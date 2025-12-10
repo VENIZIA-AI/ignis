@@ -29,7 +29,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, jsonResponse } from '@vez/ignis';
+import { jsonContent, jsonResponse } from '@venizia/ignis';
 
 const CreateUserRoute = {
   method: 'post',
@@ -94,4 +94,4 @@ bun update
 - `hono` - Web framework
 - `jose` - JWT handling
 - `drizzle-orm` - Database ORM
-- `@vez/ignis` - Framework core
+- `@venizia/ignis` - Framework core

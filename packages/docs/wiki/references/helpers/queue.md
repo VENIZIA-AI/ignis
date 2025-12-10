@@ -34,7 +34,7 @@ The `BullMQHelper` provides a robust, Redis-backed message queuing system using 
 To process jobs, you create a `BullMQHelper` with the `worker` role.
 
 ```typescript
-import { BullMQHelper, RedisHelper } from '@vez/ignis';
+import { BullMQHelper, RedisHelper } from '@venizia/ignis';
 
 const redisConnection = new RedisHelper({
   name: 'redis-queue',
@@ -64,7 +64,7 @@ const myWorker = new BullMQHelper({
 To add jobs to the queue, you create a `BullMQHelper` with the `queue` role.
 
 ```typescript
-import { BullMQHelper, RedisHelper } from '@vez/ignis';
+import { BullMQHelper, RedisHelper } from '@venizia/ignis';
 
 const redisConnection = new RedisHelper({
     name: 'redis-queue',
@@ -89,7 +89,7 @@ myQueue.queue.add('send-welcome-email', { email: 'test@example.com' });
 The `MQTTClientHelper` provides an interface for interacting with an MQTT broker, allowing you to publish and subscribe to topics for real-time messaging.
 
 ```typescript
-import { MQTTClientHelper } from '@vez/ignis';
+import { MQTTClientHelper } from '@venizia/ignis';
 
 const mqttClient = new MQTTClientHelper({
   identifier: 'my-mqtt-client',
@@ -115,7 +115,7 @@ mqttClient.publish({ topic: 'my-topic', message: 'Hello, MQTT!' });
 The `QueueHelper` provides a simple, in-memory queue for managing sequential tasks within a single application instance. It's useful when you don't need the overhead of an external message broker.
 
 ```typescript
-import { QueueHelper } from '@vez/ignis';
+import { QueueHelper } from '@venizia/ignis';
 
 const myQueue = new QueueHelper<string>({
   identifier: 'my-in-memory-queue',

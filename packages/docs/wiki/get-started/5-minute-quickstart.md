@@ -9,8 +9,8 @@ Build your first Ignis API endpoint in 5 minutes. No database, no complex setup 
 ```bash
 mkdir my-app && cd my-app
 bun init -y
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis
-bun add -d typescript @types/bun @vez/dev-configs
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis
+bun add -d typescript @types/bun @venizia/dev-configs
 ```
 
 ## Step 2: Configure Development Tools (30 seconds)
@@ -20,7 +20,7 @@ Create `tsconfig.json`:
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -37,7 +37,7 @@ Create `tsconfig.json`:
 Create `eslint.config.mjs`:
 
 ```javascript
-import { eslintConfigs } from "@vez/dev-configs";
+import { eslintConfigs } from "@venizia/dev-configs";
 
 export default eslintConfigs;
 ```
@@ -45,7 +45,7 @@ export default eslintConfigs;
 Create `.prettierrc.mjs`:
 
 ```javascript
-import { prettierConfigs } from "@vez/dev-configs";
+import { prettierConfigs } from "@venizia/dev-configs";
 
 export default prettierConfigs;
 ```
@@ -73,7 +73,7 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from "@vez/ignis";
+} from "@venizia/ignis";
 import { Context } from "hono";
 import appInfo from "./../package.json";
 
@@ -165,12 +165,12 @@ Update `package.json` to add build scripts:
     "hono": "^4.4.12",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
-    "@vez/ignis": "workspace:*"
+    "@venizia/ignis": "workspace:*"
   },
   "devDependencies": {
     "typescript": "^5.5.3",
     "@types/bun": "latest",
-    "@vez/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "workspace:*",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.10",

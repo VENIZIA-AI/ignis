@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Building @vez/dev-configs..."
+echo "Building @venizia/dev-configs..."
 
 # Clean previous build
 rm -rf dist

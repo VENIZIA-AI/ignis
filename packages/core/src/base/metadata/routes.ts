@@ -1,5 +1,5 @@
 import { RouteConfig } from '@hono/zod-openapi';
-import { HTTP, IControllerMetadata, MetadataRegistry } from '@vez/ignis-helpers';
+import { HTTP, IControllerMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
 import { TAuthRouteConfig, TRouteContext, TRouteResponse } from '../controllers';
 
 // --------------------------------------------------------------------------------------------

@@ -13,7 +13,7 @@ import {
   MetadataRegistry,
   RuntimeModules,
   TClass,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';

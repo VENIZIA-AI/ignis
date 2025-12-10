@@ -1,5 +1,5 @@
 {
-  "name": "@vez/ignis",
+  "name": "@venizia/ignis",
   "version": "0.0.0",
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "keywords": [
@@ -58,7 +58,11 @@
     "type": "git",
     "url": "git+https://github.com/VENIZIA-AI/ignis.git"
   },
-  "author": "Venizia AI <contact@venizia.com>",
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
@@ -76,7 +80,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@vez/ignis-helpers": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2"
   },
@@ -126,7 +130,7 @@
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.2",
     "@types/pg": "^8.15.6",
-    "@vez/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",

@@ -7,7 +7,7 @@ import type {
   TRouteMetadata,
 } from "./common";
 import { MetadataKeys } from "./common";
-import { MetadataRegistry as _MetadataRegistry } from "@vez/ignis-inversion";
+import { MetadataRegistry as _MetadataRegistry } from "@venizia/ignis-inversion";
 
 /**
  * Central metadata registry for storing and retrieving decorator metadata

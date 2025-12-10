@@ -7,7 +7,7 @@ Optimize your Ignis application for speed and scalability.
 Identify bottlenecks before optimizing:
 
 ```typescript
-import { executeWithPerformanceMeasure } from '@vez/ignis';
+import { executeWithPerformanceMeasure } from '@venizia/ignis';
 
 await executeWithPerformanceMeasure({
   logger: this.logger,

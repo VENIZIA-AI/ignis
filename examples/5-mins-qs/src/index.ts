@@ -7,7 +7,7 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from "@vez/ignis";
+} from "@venizia/ignis";
 import { Context } from "hono";
 import appInfo from "./../package.json";
 

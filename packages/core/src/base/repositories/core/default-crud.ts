@@ -1,5 +1,5 @@
 import { TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TNullable } from '@vez/ignis-helpers';
+import { TNullable } from '@venizia/ignis-helpers';
 import { PersistableRepository } from './persistable';
 
 export class DefaultCRUDRepository<

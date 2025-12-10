@@ -9,7 +9,7 @@ import {
   MetadataRegistry,
   TClass,
   TMixinTarget,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import { AbstractApplication } from '../applications';
 import { BaseController } from '../controllers';

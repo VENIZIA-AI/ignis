@@ -1,4 +1,4 @@
-import { BaseHelper, BindingScopes, Container, getError, HTTP, TClass } from '@vez/ignis-helpers';
+import { BaseHelper, BindingScopes, Container, getError, HTTP, TClass } from '@venizia/ignis-helpers';
 import { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import isEmpty from 'lodash/isEmpty';

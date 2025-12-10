@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { ErrorSchema, getError, HTTP } from '@vez/ignis-helpers';
+import { ErrorSchema, getError, HTTP } from '@venizia/ignis-helpers';
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 

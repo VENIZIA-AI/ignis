@@ -8,7 +8,7 @@ import {
   IConfigurable,
   TAbstractMixinTarget,
   TClass,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IComponentMixin } from './types';

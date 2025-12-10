@@ -93,7 +93,7 @@ import {
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 export const myTable = pgTable('MyTable', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),

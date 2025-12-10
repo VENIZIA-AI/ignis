@@ -2,7 +2,7 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { controller, inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
-import { Binding, ValueOrPromise } from '@vez/ignis-helpers';
+import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
 import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
 

@@ -35,7 +35,7 @@ The `SocketIOServerHelper` is typically instantiated and managed by the `SocketI
 Once configured, you can inject the `SocketIOServerHelper` instance into your services or controllers to emit events.
 
 ```typescript
-import { SocketIOServerHelper, SocketIOBindingKeys, inject } from '@vez/ignis';
+import { SocketIOServerHelper, SocketIOBindingKeys, inject } from '@venizia/ignis';
 
 // ... in a service or controller
 
@@ -60,7 +60,7 @@ The `SocketIOClientHelper` provides a structured API for managing client-side So
 ### Creating a Socket.IO Client
 
 ```typescript
-import { SocketIOClientHelper } from '@vez/ignis';
+import { SocketIOClientHelper } from '@venizia/ignis';
 
 const socketClient = new SocketIOClientHelper({
   identifier: 'my-socket-client',

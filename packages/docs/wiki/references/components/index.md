@@ -16,7 +16,7 @@ Reusable, pluggable modules that encapsulate specific features in Ignis applicat
 To create a new component, you need to create a class that extends `BaseComponent`.
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise } from '@vez/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise } from '@venizia/ignis';
 
 export class MyCustomComponent extends BaseComponent {
   constructor(

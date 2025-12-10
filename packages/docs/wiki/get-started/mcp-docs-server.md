@@ -31,34 +31,34 @@ Choose one installation method:
 
 ```bash
 # Global installation
-npm install -g @vez/ignis-docs
+npm install -g @venizia/ignis-docs
 
 # Or use npx (no installation needed)
-npx @vez/ignis-docs
+npx @venizia/ignis-docs
 ```
 
 #### Option B: Bun
 
 ```bash
 # Global installation
-bun add -g @vez/ignis-docs
+bun add -g @venizia/ignis-docs
 
 # Or use bunx (no installation needed)
-bunx @vez/ignis-docs
+bunx @venizia/ignis-docs
 ```
 
 #### Option C: Yarn
 
 ```bash
 # Global installation
-yarn global add @vez/ignis-docs
+yarn global add @venizia/ignis-docs
 ```
 
 #### Option D: pnpm
 
 ```bash
 # Global installation
-pnpm add -g @vez/ignis-docs
+pnpm add -g @venizia/ignis-docs
 ```
 
 ### Step 3: Configure Your AI Tool
@@ -117,7 +117,7 @@ Add this configuration:
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"]
+      "args": ["-y", "@venizia/ignis-docs"]
     }
   }
 }
@@ -127,7 +127,7 @@ Add this configuration:
 
 First install globally:
 ```bash
-npm install -g @vez/ignis-docs
+npm install -g @venizia/ignis-docs
 ```
 
 Then configure:
@@ -148,7 +148,7 @@ Then configure:
   "mcpServers": {
     "ignis-docs": {
       "command": "bunx",
-      "args": ["@vez/ignis-docs"]
+      "args": ["@venizia/ignis-docs"]
     }
   }
 }
@@ -170,7 +170,7 @@ Can you search the Ignis docs for "dependency injection"?
 
 **If it doesn't work:**
 - Check the config file has valid JSON: `cat ~/.config/claude-code/config.json | python -m json.tool`
-- Check MCP server is accessible: `npx @vez/ignis-docs` (should show "MCP Server running...")
+- Check MCP server is accessible: `npx @venizia/ignis-docs` (should show "MCP Server running...")
 - Check logs: `claude --debug` to see MCP initialization logs
 
 #### 4. Example usage
@@ -245,7 +245,7 @@ Create `~/.config/gemini/mcp_servers.json`:
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"],
+      "args": ["-y", "@venizia/ignis-docs"],
       "env": {}
     }
   }
@@ -255,7 +255,7 @@ Create `~/.config/gemini/mcp_servers.json`:
 **Alternative: Global install**
 ```bash
 # First install globally
-npm install -g @vez/ignis-docs
+npm install -g @venizia/ignis-docs
 ```
 
 Then configure:
@@ -276,7 +276,7 @@ Before integrating with Gemini, test the MCP server works:
 
 ```bash
 # Test the MCP server can start
-npx @vez/ignis-docs
+npx @venizia/ignis-docs
 
 # Expected output:
 # "MCP Server listening on stdio..."
@@ -363,7 +363,7 @@ Open the config file for your extension and add the Ignis docs server:
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"]
+      "args": ["-y", "@venizia/ignis-docs"]
     }
   }
 }
@@ -375,7 +375,7 @@ Open the config file for your extension and add the Ignis docs server:
   "mcpServers": {
     "ignis-docs": {
       "command": "bunx",
-      "args": ["@vez/ignis-docs"]
+      "args": ["@venizia/ignis-docs"]
     }
   }
 }
@@ -443,7 +443,7 @@ The assistant should use the MCP tools to access and return documentation.
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"]
+      "args": ["-y", "@venizia/ignis-docs"]
     }
   }
 }
@@ -482,7 +482,7 @@ Replace `<IDE>` with your IDE name (e.g., `IntelliJIdea2024.1`, `PyCharm2024.1`)
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"]
+      "args": ["-y", "@venizia/ignis-docs"]
     }
   }
 }
@@ -584,7 +584,7 @@ Before troubleshooting, run these quick tests:
 
 **✅ Test 1: MCP server runs**
 ```bash
-npx @vez/ignis-docs
+npx @venizia/ignis-docs
 # Expected: "MCP Server listening on stdio..."
 # Press Ctrl+C to stop
 ```
@@ -618,7 +618,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
      "mcpServers": {
        "ignis-docs": {
          "command": "npx",
-         "args": ["-y", "@vez/ignis-docs"]
+         "args": ["-y", "@venizia/ignis-docs"]
        }
      }
    }
@@ -626,8 +626,8 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 2. **Check if installed:**
    ```bash
-   npm list -g @vez/ignis-docs
-   # Should show: @vez/ignis-docs@x.x.x
+   npm list -g @venizia/ignis-docs
+   # Should show: @venizia/ignis-docs@x.x.x
    ```
 
 3. **Find executable location:**
@@ -640,8 +640,8 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 4. **Reinstall:**
    ```bash
-   npm uninstall -g @vez/ignis-docs
-   npm install -g @vez/ignis-docs
+   npm uninstall -g @venizia/ignis-docs
+   npm install -g @venizia/ignis-docs
    ```
 
 ---
@@ -673,7 +673,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
      "mcpServers": {
        "ignis-docs": {
          "command": "npx"  // Missing comma!
-         "args": ["-y", "@vez/ignis-docs"]
+         "args": ["-y", "@venizia/ignis-docs"]
        }
      }
    }
@@ -683,7 +683,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
      "mcpServers": {
        "ignis-docs": {
          "command": "npx",
-         "args": ["-y", "@vez/ignis-docs"]
+         "args": ["-y", "@venizia/ignis-docs"]
        }
      }
    }
@@ -696,7 +696,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 4. **MCP server doesn't start**
    ```bash
    # Test manually:
-   npx @vez/ignis-docs
+   npx @venizia/ignis-docs
    # Should NOT error. Press Ctrl+C to stop.
    ```
 
@@ -710,14 +710,14 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 1. **Update package:**
    ```bash
-   npm update -g @vez/ignis-docs
+   npm update -g @venizia/ignis-docs
    ```
 
 2. **Clear cache and reinstall:**
    ```bash
    npm cache clean --force
-   npm uninstall -g @vez/ignis-docs
-   npm install -g @vez/ignis-docs
+   npm uninstall -g @venizia/ignis-docs
+   npm install -g @venizia/ignis-docs
    ```
 
 3. **Check Node.js version:**
@@ -728,7 +728,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 4. **Try Bun instead:**
    ```bash
-   bunx @vez/ignis-docs
+   bunx @venizia/ignis-docs
    ```
 
 ---
@@ -759,7 +759,7 @@ cat > ~/.config/claude-code/config.json <<'EOF'
   "mcpServers": {
     "ignis-docs": {
       "command": "npx",
-      "args": ["-y", "@vez/ignis-docs"]
+      "args": ["-y", "@venizia/ignis-docs"]
     }
   }
 }
@@ -774,7 +774,7 @@ If none of the above worked:
 
 **1. Enable debug mode:**
 ```bash
-DEBUG=1 npx @vez/ignis-docs
+DEBUG=1 npx @venizia/ignis-docs
 ```
 
 **2. Check AI tool logs:**
@@ -791,7 +791,7 @@ DEBUG=1 npx @vez/ignis-docs
   }
 }
 ```
-If this works, the issue is specific to `@vez/ignis-docs`.
+If this works, the issue is specific to `@venizia/ignis-docs`.
 
 **4. Report the bug:**
 - GitHub: https://github.com/venizia-ai/ignis/issues
@@ -823,7 +823,7 @@ Yes, once installed. The documentation is bundled with the package.
 
 ### How often is the documentation updated?
 
-When you update the package (`npm update -g @vez/ignis-docs`), you get the latest docs.
+When you update the package (`npm update -g @venizia/ignis-docs`), you get the latest docs.
 
 ### Can I use multiple MCP servers?
 

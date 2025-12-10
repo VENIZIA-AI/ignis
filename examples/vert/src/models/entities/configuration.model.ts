@@ -8,7 +8,7 @@ import {
   model,
   RelationTypes,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, userTable } from './user.model';
 

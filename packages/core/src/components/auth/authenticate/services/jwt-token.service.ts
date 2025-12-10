@@ -1,6 +1,6 @@
 import { inject } from '@/base/metadata';
 import { BaseService } from '@/base/services';
-import { AES, getError, HTTP, int } from '@vez/ignis-helpers';
+import { AES, getError, HTTP, int } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
 import { Authentication } from '../common/constants';

@@ -1,4 +1,4 @@
-import { ApplicationLogger, Environment, HTTP } from '@vez/ignis-helpers';
+import { ApplicationLogger, Environment, HTTP } from '@venizia/ignis-helpers';
 import { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 

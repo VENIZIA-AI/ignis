@@ -1,4 +1,4 @@
-import { TConstValue } from '@vez/ignis-helpers';
+import { TConstValue } from '@venizia/ignis-helpers';
 
 export const DEFAULT_LIMIT = 10;
 

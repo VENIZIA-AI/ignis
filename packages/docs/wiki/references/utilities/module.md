@@ -17,7 +17,7 @@ The `validateModule` function checks if a list of modules can be resolved. If a 
 The `SwaggerComponent` uses `validateModule` to ensure that `@hono/swagger-ui` is installed before attempting to use it.
 
 ```typescript
-import { validateModule } from '@vez/ignis';
+import { validateModule } from '@venizia/ignis';
 
 export class SwaggerComponent extends BaseComponent {
   // ...

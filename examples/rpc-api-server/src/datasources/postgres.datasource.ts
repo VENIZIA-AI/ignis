@@ -13,7 +13,7 @@ import {
   int,
   TNodePostgresConnector,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 

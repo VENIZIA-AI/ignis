@@ -7,7 +7,7 @@ import {
   IControllerOptions,
   jsonContent,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {

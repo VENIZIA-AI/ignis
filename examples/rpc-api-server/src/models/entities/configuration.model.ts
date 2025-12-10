@@ -6,7 +6,7 @@ import {
   generateUserAuditColumnDefs,
   model,
   TTableObject,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import { relations } from 'drizzle-orm';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, usersTable } from './user.model';
@@ -65,4 +65,3 @@ export const configurationRelations = relations(configurationTable, opts => {
 
 export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
-

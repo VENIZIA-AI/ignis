@@ -4,7 +4,7 @@ import {
   IInjectMetadata as _IInjectMetadata,
   IPropertyMetadata as _IPropertyMetadata,
   TBindingScope,
-} from "@vez/ignis-inversion";
+} from "@venizia/ignis-inversion";
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Metadata

@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "Rebuilding @vez/dev-configs..."
+echo "Rebuilding @venizia/dev-configs..."
 
 # Clean
 sh ./scripts/clean.sh

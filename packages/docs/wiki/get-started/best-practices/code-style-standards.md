@@ -1,13 +1,13 @@
 # Code Style Standards
 
-Maintain consistent code style using **Prettier** (formatting) and **ESLint** (code quality). Ignis provides centralized configurations via the `@vez/dev-configs` package.
+Maintain consistent code style using **Prettier** (formatting) and **ESLint** (code quality). Ignis provides centralized configurations via the `@venizia/dev-configs` package.
 
-## Using @vez/dev-configs
+## Using @venizia/dev-configs
 
 Install the centralized development configurations:
 
 ```bash
-bun add -d @vez/dev-configs
+bun add -d @venizia/dev-configs
 ```
 
 This package provides:
@@ -21,7 +21,7 @@ Automatic code formatting eliminates style debates.
 
 **`.prettierrc.mjs`:**
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from '@venizia/dev-configs';
 
 export default prettierConfigs;
 ```
@@ -36,7 +36,7 @@ export default prettierConfigs;
 
 **Customization:**
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from '@venizia/dev-configs';
 
 export default {
   ...prettierConfigs,
@@ -58,7 +58,7 @@ Prevents common errors and enforces best practices.
 
 **`eslint.config.mjs`:**
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 export default eslintConfigs;
 ```
@@ -69,7 +69,7 @@ export default eslintConfigs;
 
 **Customization:**
 ```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from '@venizia/dev-configs';
 
 export default [
   ...eslintConfigs,
@@ -98,7 +98,7 @@ Use the centralized TypeScript configs:
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/dev-configs/tsconfig.common.json",
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
@@ -119,4 +119,4 @@ Use the centralized TypeScript configs:
 - `strict: true` - Strict type checking with selective relaxations
 - `skipLibCheck: true` - Faster compilation
 
-See [`@vez/dev-configs` documentation](../../references/src-details/dev-configs.md) for full details.
+See [`@venizia/dev-configs` documentation](../../references/src-details/dev-configs.md) for full details.

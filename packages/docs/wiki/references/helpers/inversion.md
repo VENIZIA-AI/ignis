@@ -2,7 +2,7 @@
 
 Core DI system enabling loosely coupled, testable, and extensible code.
 
-> **Package Architecture Note:** The core DI container functionality has been extracted to a standalone package `@vez/ignis-inversion`. The `@vez/ignis-helpers` package extends and re-exports this functionality with application-specific enhancements (logging, framework metadata). All imports from `@vez/ignis-helpers` or `@vez/ignis` continue to work as before - backward compatibility is maintained.
+> **Package Architecture Note:** The core DI container functionality has been extracted to a standalone package `@venizia/ignis-inversion`. The `@venizia/ignis-helpers` package extends and re-exports this functionality with application-specific enhancements (logging, framework metadata). All imports from `@venizia/ignis-helpers` or `@venizia/ignis` continue to work as before - backward compatibility is maintained.
 
 ## Quick Reference
 
@@ -90,7 +90,7 @@ this.bind<MySingletonService>({ key: 'services.MySingletonService' })
 This is the recommended way to inject dependencies, as it makes them explicit and ensures they are available when the class is instantiated.
 
 ```typescript
-import { BaseController, controller, inject } from '@vez/ignis';
+import { BaseController, controller, inject } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 @controller({ path: '/users' })
@@ -110,7 +110,7 @@ export class UserController extends BaseController {
 You can also inject dependencies as class properties.
 
 ```typescript
-import { BaseController, controller, inject } from '@vez/ignis';
+import { BaseController, controller, inject } from '@venizia/ignis';
 import { UserService } from '../services/user.service';
 
 @controller({ path: '/users' })

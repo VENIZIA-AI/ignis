@@ -67,7 +67,7 @@ import {
   BaseApplication,
   ValueOrPromise,
   IHandshake,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 
 // ...
 
@@ -108,7 +108,7 @@ export class Application extends BaseApplication {
 You can get the `SocketIOServerHelper` instance from the container and use it to emit events.
 
 ```typescript
-import { SocketIOServerHelper, SocketIOBindingKeys, inject } from '@vez/ignis';
+import { SocketIOServerHelper, SocketIOBindingKeys, inject } from '@venizia/ignis';
 
 // ... in a service or controller
 

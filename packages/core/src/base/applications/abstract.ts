@@ -9,7 +9,7 @@ import {
   toBoolean,
   TRuntimeModule,
   ValueOrPromise,
-} from "@vez/ignis-helpers";
+} from "@venizia/ignis-helpers";
 import { Env, Schema } from "hono";
 import { showRoutes as showApplicationRoutes } from "hono/dev";
 import isEmpty from "lodash/isEmpty";

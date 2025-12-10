@@ -20,7 +20,7 @@ import {
   SwaggerBindingKeys,
   SwaggerComponent,
   ValueOrPromise,
-} from '@vez/ignis';
+} from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';

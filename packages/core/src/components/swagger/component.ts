@@ -7,7 +7,7 @@ import type { Context, Next } from 'hono';
 import { Authentication } from '../auth';
 import { DocumentUITypes, ISwaggerOptions, SwaggerBindingKeys } from './common';
 import { UIProviderFactory } from './ui-factory';
-import { Binding, getError } from '@vez/ignis-helpers';
+import { Binding, getError } from '@venizia/ignis-helpers';
 
 const DEFAULT_SWAGGER_OPTIONS: ISwaggerOptions = {
   restOptions: {

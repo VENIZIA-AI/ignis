@@ -9,7 +9,7 @@ import {
   TClass,
   TResolver,
   ValueOrPromise,
-} from '@vez/ignis-helpers';
+} from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';

@@ -1,5 +1,5 @@
 import { TTableObject, TTableSchemaWithId } from '@/base/models';
-import { BaseHelper, getError } from '@vez/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from 'drizzle-orm';
 import isEmpty from 'lodash/isEmpty';
 import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';

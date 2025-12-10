@@ -9,7 +9,7 @@ import {
   text,
 } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions, TPrimaryKey } from '../common/types';
-import { getError } from '@vez/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (
