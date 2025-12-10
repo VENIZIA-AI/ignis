@@ -114,24 +114,8 @@ jobs:
         id: version
         run: |
           cd ${{ env.PACKAGE_PATH }} 
-
-          case "$BUILD_MODE" in
-            prepatch)
-              npm version patch --no-git-tag-version
-              ;;
-            preminor)
-              npm version minor --no-git-tag-version
-              ;;
-            premajor)
-              npm version major --no-git-tag-version
-              ;;
-            prerelease)
-              npm version patch --no-git-tag-version
-              ;;
-            *)
-              npm version $BUILD_MODE --no-git-tag-version
-              ;;
-          esac
+          npm cache clean --force
+          npm version $BUILD_MODE --no-git-tag-version
 
           NEW_VERSION=$(jq -r .version package.json)
           TAG_NAME="$PACKAGE-v$NEW_VERSION"

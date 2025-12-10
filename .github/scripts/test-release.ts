@@ -85,17 +85,6 @@ const validateBuildArtifacts = async (
 };
 
 // -------------------------------------------------------------------------------
-const mapBuildModeToVersion = (buildMode: BuildMode): string => {
-  const mapping: Record<string, string> = {
-    prepatch: "patch",
-    preminor: "minor",
-    premajor: "major",
-    prerelease: "patch",
-  };
-  return mapping[buildMode] || buildMode;
-};
-
-// -------------------------------------------------------------------------------
 const getNpmTag = (buildMode: BuildMode): "latest" | "next" => {
   return ["prepatch", "preminor", "premajor", "prerelease"].includes(buildMode)
     ? "next"
@@ -120,7 +109,7 @@ const simulateVersionBump = async (
   await $`cp ${packageJsonPath} ${packageJsonPath}.backup`;
 
   try {
-    const versionMode = mapBuildModeToVersion(buildMode);
+    const versionMode = buildMode;
 
     await $`cd ${packagePath} && npm version ${versionMode} --no-git-tag-version 2>&1 || true`.text();
 
