@@ -200,6 +200,10 @@ class HelloController extends BaseController {
     super({ scope: 'HelloController', path: '/hello' });
   }
 
+  binding() {
+    // Bind dependencies here (if needed)
+  }
+
   @get({
     configs: {
       path: '/',
@@ -222,8 +226,20 @@ class App extends BaseApplication {
     return { name: 'my-app', version: '1.0.0' };
   }
 
+  staticConfigure() {
+    // Static configuration before dependency injection
+  }
+
   preConfigure() {
     this.controller(HelloController);
+  }
+
+  postConfigure() {
+    // Configuration after all bindings are complete
+  }
+
+  setupMiddlewares() {
+    // Custom middleware setup (optional)
   }
 }
 

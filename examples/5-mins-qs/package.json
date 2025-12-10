@@ -1,0 +1,19 @@
+{
+  "name": "5-mins-qs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts"
+  },
+  "dependencies": {
+    "hono": "^4.4.12",
+    "@hono/zod-openapi": "latest",
+    "@scalar/hono-api-reference": "latest",
+    "@vez/ignis": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "@types/bun": "latest",
+    "@vez/dev-configs": "workspace:*"
+  }
+}

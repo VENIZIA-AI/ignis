@@ -14,7 +14,9 @@ const config = defineConfig({
 
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Get Started', link: '/get-started/philosophy' },
+      { text: 'Get Started', link: '/get-started/' },
+      { text: 'Core Concepts', link: '/get-started/core-concepts/application' },
+      { text: 'Best Practices', link: '/get-started/best-practices/architectural-patterns' },
       { text: 'Reference(s)', link: '/references/components/' },
     ],
 

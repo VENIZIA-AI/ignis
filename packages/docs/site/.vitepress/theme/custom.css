@@ -1,0 +1,9 @@
+/* .vitepress/theme/custom.css */
+:root {
+  --vp-layout-max-width: 100% !important; /* Set content area to full width */
+}
+
+/* Ensure the content wrapper uses full width */
+.content-container {
+  max-width: 100% !important;
+}
