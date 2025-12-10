@@ -5,7 +5,7 @@ import {
   getError,
   IConfigurable,
   ValueOrPromise,
-} from '@venizia/ignis-helpers';
+} from "@venizia/ignis-helpers";
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 
@@ -36,7 +36,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
     if (!container) {
       throw getError({
-        message: '[initBindings] Invalid DI Container to init bindings!',
+        message: "[initBindings] Invalid DI Container to init bindings!",
       });
     }
 
@@ -54,7 +54,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
     const t = performance.now();
 
     const configureOptions = opts ?? {};
-    this.logger.info('[binding] START | Binding component | Options: %j', configureOptions);
+    this.logger.info("[binding] START | Binding component | Options: %j", configureOptions);
 
     if (this.initDefault?.enable) {
       this.initDefaultBindings({ container: this.initDefault.container });
@@ -62,6 +62,6 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
     await this.binding();
 
-    this.logger.info('[binding] DONE | Binding component | Took: %s (ms)', performance.now() - t);
+    this.logger.info("[binding] DONE | Binding component | Took: %s (ms)", performance.now() - t);
   }
 }

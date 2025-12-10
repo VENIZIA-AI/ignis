@@ -1,23 +1,22 @@
 {
   "name": "@nx/vert",
   "version": "0.0.0",
+  "private": true,
   "description": "MC Vert",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
+  "engines": {
+    "bun": ">=1.3"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
     "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
+    "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
-    "eslint": "eslint --report-unused-disable-directives .",
-    "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",
     "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
     "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
@@ -25,10 +24,16 @@
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."
   },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
     "@scalar/hono-api-reference": "^0.9.26",
-    "@venizia/ignis": "^0.0.0",
+    "@venizia/ignis": "latest",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
@@ -42,7 +47,7 @@
     "@types/bun": "^1.3.1",
     "@types/lodash": "^4.14.194",
     "@types/pg": "^8.15.6",
-    "@venizia/dev-configs": "^0.0.0",
+    "@venizia/dev-configs": "latest",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.32.0",
     "prettier": "^3.6.2",

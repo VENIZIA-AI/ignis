@@ -1,7 +1,7 @@
-import { BaseHelper } from '@/helpers/base';
-import { getError } from '@/helpers/error';
-import { int } from '@/utilities';
-import { DEFAULT_CIPHER_BITS, DEFAULT_PAD_END, ICryptoAlgorithm } from '../common';
+import { BaseHelper } from "@/helpers/base";
+import { getError } from "@/helpers/error";
+import { int } from "@/utilities";
+import { DEFAULT_CIPHER_BITS, DEFAULT_PAD_END, ICryptoAlgorithm } from "../common";
 
 export abstract class AbstractCryptoAlgorithm<AL extends string, IO>
   extends BaseHelper
@@ -48,7 +48,7 @@ export abstract class BaseCryptoAlgorithm<AL extends string, IO> extends Abstrac
   }
 
   getAlgorithmKeySize() {
-    const b = int(this.algorithm?.split('-')?.[1] ?? DEFAULT_CIPHER_BITS);
+    const b = int(this.algorithm?.split("-")?.[1] ?? DEFAULT_CIPHER_BITS);
     return int(b / 8);
   }
 }

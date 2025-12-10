@@ -1,7 +1,15 @@
 {
   "name": "@venizia/ignis-docs",
-  "version": "0.0.0",
+  "version": "0.0.1-0",
   "description": "Documentation and MCP Server for Ignis Framework",
+  "keywords": [
+    "ignis",
+    "mcp",
+    "model-context-protocol",
+    "documentation",
+    "ai",
+    "framework"
+  ],
   "main": "./mcp-server/dist/index.js",
   "types": "./mcp-server/dist/index.d.ts",
   "exports": {
@@ -29,12 +37,18 @@
     "mcp-server/dist",
     "wiki"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "bun": ">=1.3"
+  },
   "scripts": {
+    "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
-    "eslint": "eslint --report-unused-disable-directives .",
     "docs:dev": "vitepress dev site",
     "docs:clean": "sh ./scripts/docs-clean.sh",
     "docs:build": "vitepress build site",
@@ -45,6 +59,21 @@
     "mcp:dev": "bun --watch mcp-server/index.ts",
     "prepublishOnly": "bun run mcp:build"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/venizia-ai/ignis.git",
+    "directory": "packages/docs"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
+  "license": "MIT",
   "dependencies": {
     "@mastra/core": "^0.24.6",
     "@mastra/mcp": "^0.14.4",
@@ -59,8 +88,7 @@
     "@braintree/sanitize-url": "^7.1.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
-    "@types/node": "^20.14.12",
-    "@venizia/dev-configs": "^0.0.0",
+    "@venizia/dev-configs": "file://../dev-configs",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",
@@ -69,27 +97,5 @@
     "vitepress": "^1.6.4",
     "vitepress-plugin-mermaid": "^2.0.17",
     "vue": "^3.5.25"
-  },
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/venizia-ai/ignis.git",
-    "directory": "packages/docs"
-  },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "license": "MIT",
-  "keywords": [
-    "ignis",
-    "mcp",
-    "model-context-protocol",
-    "documentation",
-    "ai",
-    "framework"
-  ],
-  "engines": {
-    "node": ">=18"
   }
 }

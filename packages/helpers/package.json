@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.0.0",
+  "version": "0.0.1-0",
   "description": "JS/TS Helpers",
   "keywords": [
     "web",
@@ -27,13 +27,23 @@
   ],
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "dist",
+    "!/**/tests",
+    "!/**/dist/tests",
+    "!/**/__tests__"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
-    "node": ">=18",
     "bun": ">=1.3"
   },
   "scripts": {
@@ -67,21 +77,10 @@
   },
   "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
   "license": "MIT",
-  "files": [
-    "README.md",
-    "LICENSE",
-    "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "@venizia/ignis-inversion": "^0.0.0",
+    "@venizia/ignis-inversion": "file://../inversion",
     "axios": "^1.12.2",
     "bullmq": "^5.63.1",
     "cron": "^4.3.3",
@@ -114,10 +113,9 @@
   },
   "devDependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@types/bun": "^1.3.2",
+    "@types/bun": "^1.3.4",
     "@types/lodash": "^4.17.20",
-    "@types/node": "^24.7.2",
-    "@venizia/dev-configs": "^0.0.0",
+    "@venizia/dev-configs": "file://../dev-configs",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

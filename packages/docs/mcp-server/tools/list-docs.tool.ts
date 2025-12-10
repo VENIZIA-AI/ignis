@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type MastraTool } from './base.tool';
+import { z } from "zod";
+import { DocsHelper } from "../helpers";
+import { BaseTool, createTool, type TMastraTool } from "./base.tool";
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -80,9 +80,9 @@ TIP: If unsure of exact category name, call listCategories first or omit this pa
 const DocEntrySchema = z.object({
   id: z
     .string()
-    .describe('Document ID (relative file path). Use with getDocContent or getDocMetadata.'),
-  title: z.string().describe('Document title from frontmatter or filename.'),
-  category: z.string().describe('Document category for organizational grouping.'),
+    .describe("Document ID (relative file path). Use with getDocContent or getDocMetadata."),
+  title: z.string().describe("Document title from frontmatter or filename."),
+  category: z.string().describe("Document category for organizational grouping."),
 });
 
 const InputSchema = z.object({
@@ -90,8 +90,8 @@ const InputSchema = z.object({
 });
 
 const OutputSchema = z.object({
-  count: z.number().int().describe('Total documents returned. Reflects filter if applied.'),
-  docs: z.array(DocEntrySchema).describe('Document entries with id, title, and category.'),
+  count: z.number().int().describe("Total documents returned. Reflects filter if applied."),
+  docs: z.array(DocEntrySchema).describe("Document entries with id, title, and category."),
 });
 
 // ----------------------------------------------------------------------------
@@ -99,7 +99,7 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'listDocs';
+  readonly id = "listDocs";
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -113,7 +113,7 @@ export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSche
     };
   }
 
-  getTool(): MastraTool {
+  getTool(): TMastraTool {
     return createTool({
       id: this.id,
       description: this.description,

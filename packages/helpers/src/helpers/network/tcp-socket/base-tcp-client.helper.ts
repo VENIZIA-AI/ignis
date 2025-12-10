@@ -1,11 +1,11 @@
-import { BaseHelper } from '@/helpers/base';
-import { ValueOrPromise } from '@/common';
-import isEmpty from 'lodash/isEmpty';
+import { BaseHelper } from "@/helpers/base";
+import { ValueOrPromise } from "@/common";
+import isEmpty from "lodash/isEmpty";
 import {
   TcpSocketConnectOpts as PlainConnectionOptions,
   Socket as PlainSocketClient,
-} from 'node:net';
-import { ConnectionOptions as TlsConnectionOptions, TLSSocket as TlsSocketClient } from 'node:tls';
+} from "node:net";
+import { ConnectionOptions as TlsConnectionOptions, TLSSocket as TlsSocketClient } from "node:tls";
 
 const DEFAULT_MAX_RETRY = 5;
 
@@ -88,7 +88,7 @@ export class BaseNetworkTcpClient<
 
   handleConnected() {
     this.logger.info(
-      '[handleConnected][%s] Connected to TCP Server | Options: %j',
+      "[handleConnected][%s] Connected to TCP Server | Options: %j",
       this.identifier,
       this.options,
     );
@@ -99,7 +99,7 @@ export class BaseNetworkTcpClient<
 
   handleClosed() {
     this.logger.info(
-      '[handleClosed][%s] Closed connection TCP Server | Options: %j',
+      "[handleClosed][%s] Closed connection TCP Server | Options: %j",
       this.identifier,
       this.options,
     );
@@ -107,7 +107,7 @@ export class BaseNetworkTcpClient<
 
   handleError(error: any) {
     this.logger.error(
-      '[handleError][%s] Connection error | Options: %j | Error: %s',
+      "[handleError][%s] Connection error | Options: %j | Error: %s",
       this.identifier,
       this.options,
       error,
@@ -120,7 +120,7 @@ export class BaseNetworkTcpClient<
     const { currentReconnect, maxReconnect } = this.retry;
     if (maxReconnect > -1 && currentReconnect >= maxReconnect) {
       this.logger.info(
-        '[handleData] Exceeded max retry to reconnect! Max: %d | Current: %d',
+        "[handleData] Exceeded max retry to reconnect! Max: %d | Current: %d",
         maxReconnect,
         currentReconnect,
       );
@@ -132,7 +132,7 @@ export class BaseNetworkTcpClient<
       this.client = null;
 
       this.logger.info(
-        '[handleClosed][%s] Retrying to establish TCP Connection | Options: %j',
+        "[handleClosed][%s] Retrying to establish TCP Connection | Options: %j",
         this.identifier,
         this.options,
       );
@@ -144,17 +144,17 @@ export class BaseNetworkTcpClient<
 
   connect(opts: { resetReconnectCounter: boolean }) {
     if (this.isConnected()) {
-      this.logger.info('[connect][%s] NetworkTcpClient is already initialized!', this.identifier);
+      this.logger.info("[connect][%s] NetworkTcpClient is already initialized!", this.identifier);
       return;
     }
 
     if (isEmpty(this.options)) {
-      this.logger.info('[connect][%s] Cannot init TCP Client with null options', this.identifier);
+      this.logger.info("[connect][%s] Cannot init TCP Client with null options", this.identifier);
       return;
     }
 
     this.logger.info(
-      '[connect][%s] New network tcp client | Options: %s',
+      "[connect][%s] New network tcp client | Options: %s",
       this.identifier,
       this.options,
     );
@@ -170,7 +170,7 @@ export class BaseNetworkTcpClient<
 
     this.client = this.createClientFn(this.options, () => {
       if (!this.client) {
-        this.logger.error('[createClientFn] Failed to initialize socket client!');
+        this.logger.error("[createClientFn] Failed to initialize socket client!");
         return;
       }
 
@@ -181,11 +181,11 @@ export class BaseNetworkTcpClient<
       this.client.setEncoding(this.encoding);
     }
 
-    this.client.on('data', (message: string | Buffer) => {
+    this.client.on("data", (message: string | Buffer) => {
       this.onData({ identifier: this.identifier, message });
     });
 
-    this.client.on('close', () => {
+    this.client.on("close", () => {
       if (!this.client) {
         return;
       }
@@ -193,7 +193,7 @@ export class BaseNetworkTcpClient<
       this.onClosed?.({ client: this.client });
     });
 
-    this.client.on('error', error => {
+    this.client.on("error", error => {
       this.onError?.(error);
     });
   }
@@ -201,7 +201,7 @@ export class BaseNetworkTcpClient<
   disconnect() {
     if (!this.client) {
       this.logger.info(
-        '[disconnect][%s] NetworkTcpClient is not initialized yet!',
+        "[disconnect][%s] NetworkTcpClient is not initialized yet!",
         this.identifier,
       );
       return;
@@ -212,7 +212,7 @@ export class BaseNetworkTcpClient<
 
     clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = null;
-    this.logger.info('[disconnect][%s] NetworkTcpClient is destroyed!', this.identifier);
+    this.logger.info("[disconnect][%s] NetworkTcpClient is destroyed!", this.identifier);
   }
 
   forceReconnect() {
@@ -221,18 +221,18 @@ export class BaseNetworkTcpClient<
   }
 
   isConnected() {
-    return this.client && this.client.readyState !== 'closed';
+    return this.client && this.client.readyState !== "closed";
   }
 
   emit(opts: { payload: Buffer | string }) {
     if (!this.client) {
-      this.logger.info('[emit][%s] TPC Client is not configured yet!', this.identifier);
+      this.logger.info("[emit][%s] TPC Client is not configured yet!", this.identifier);
       return;
     }
 
     const { payload } = opts;
     if (!payload?.length) {
-      this.logger.info('[emit][%s] Invalid payload to write to TCP Socket!', this.identifier);
+      this.logger.info("[emit][%s] Invalid payload to write to TCP Socket!", this.identifier);
       return;
     }
 

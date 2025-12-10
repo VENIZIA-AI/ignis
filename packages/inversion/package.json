@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.0.0",
+  "version": "0.0.1-0",
   "description": "Dependency Injection & Inversion of Control Container",
   "keywords": [
     "dependency injection",
@@ -16,13 +16,23 @@
   ],
   "exports": {
     ".": {
-      "default": "./dist/index.js",
-      "types": "./dist/index.d.ts"
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
     },
     "./package.json": "./package.json"
   },
+  "files": [
+    "README.md",
+    "LICENSE",
+    "dist",
+    "!/**/tests",
+    "!/**/dist/tests",
+    "!/**/__tests__"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
-    "node": ">=18",
     "bun": ">=1.3"
   },
   "scripts": {
@@ -56,17 +66,6 @@
   },
   "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
   "license": "MIT",
-  "files": [
-    "README.md",
-    "LICENSE",
-    "dist",
-    "!/**/tests",
-    "!/**/dist/tests",
-    "!/**/__tests__"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2",
@@ -75,7 +74,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.2",
     "@types/lodash": "^4.17.21",
-    "@venizia/dev-configs": "^0.0.0",
+    "@venizia/dev-configs": "file://../dev-configs",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

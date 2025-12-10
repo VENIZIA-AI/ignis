@@ -1,6 +1,6 @@
-import { RouteConfig } from '@hono/zod-openapi';
-import { HTTP, IControllerMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
-import { TAuthRouteConfig, TRouteContext, TRouteResponse } from '../controllers';
+import { RouteConfig } from "@hono/zod-openapi";
+import { HTTP, IControllerMetadata, MetadataRegistry } from "@venizia/ignis-helpers";
+import { TAuthRouteConfig, TRouteContext, TRouteResponse } from "../controllers";
 
 // --------------------------------------------------------------------------------------------
 export const controller = (metadata: IControllerMetadata): ClassDecorator => {
@@ -57,7 +57,7 @@ export const api = <RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: R
  */
 export const get = <
   RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
+  Configs extends Omit<RC, "method"> = Omit<RC, "method">,
 >(opts: {
   configs: Configs & { method: typeof HTTP.Methods.GET };
 }) => {
@@ -70,7 +70,7 @@ export const get = <
  */
 export const post = <
   RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
+  Configs extends Omit<RC, "method"> = Omit<RC, "method">,
 >(opts: {
   configs: Configs & { method: typeof HTTP.Methods.POST };
 }) => {
@@ -83,7 +83,7 @@ export const post = <
  */
 export const put = <
   RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
+  Configs extends Omit<RC, "method"> = Omit<RC, "method">,
 >(opts: {
   configs: Configs & { method: typeof HTTP.Methods.PUT };
 }) => {
@@ -96,7 +96,7 @@ export const put = <
  */
 export const patch = <
   RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
+  Configs extends Omit<RC, "method"> = Omit<RC, "method">,
 >(opts: {
   configs: Configs & { method: typeof HTTP.Methods.PATCH };
 }) => {
@@ -109,7 +109,7 @@ export const patch = <
  */
 export const del = <
   RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
+  Configs extends Omit<RC, "method"> = Omit<RC, "method">,
 >(opts: {
   configs: Configs & { method: typeof HTTP.Methods.DELETE };
 }) => {

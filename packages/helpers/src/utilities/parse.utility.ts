@@ -1,14 +1,14 @@
-import get from 'lodash/get';
-import round from 'lodash/round';
-import { getError } from '@/helpers/error';
+import get from "lodash/get";
+import round from "lodash/round";
+import { getError } from "@/helpers/error";
 
 // -------------------------------------------------------------------------
-const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
+const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 0,
   minimumFractionDigits: 0,
 });
 
-const INTL_2_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
+const INTL_2_DIGITS_FORMATER = new Intl.NumberFormat("en-US", {
   maximumFractionDigits: 2,
   minimumFractionDigits: 2,
 });
@@ -19,7 +19,7 @@ export const getUID = () => Math.random().toString(36).slice(2).toUpperCase();
 // -------------------------------------------------------------------------
 export const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/gi, (sub: string) => {
-    return sub.toUpperCase().replace('-', '').replace('_', '');
+    return sub.toUpperCase().replace("-", "").replace("_", "");
   });
 };
 
@@ -33,13 +33,13 @@ export const keysToCamel = (object: object) => {
 
     let valueType: string = typeof value;
     if (Array.isArray(value)) {
-      valueType = 'array';
+      valueType = "array";
     } else if (value instanceof Date) {
-      valueType = 'date';
+      valueType = "date";
     }
 
     switch (valueType) {
-      case 'object': {
+      case "object": {
         if (!value) {
           n[toCamel(key)] = value;
           break;
@@ -86,7 +86,7 @@ export const int = (input: any) => {
     return 0;
   }
 
-  const normalized = input?.toString()?.replace(/,/g, '');
+  const normalized = input?.toString()?.replace(/,/g, "");
   return Number.parseInt(normalized, 10) ?? 0;
 };
 
@@ -96,16 +96,16 @@ export const float = (input: any, digit = 2) => {
     return 0;
   }
 
-  const normalized = input?.toString()?.replace(/,/g, '');
+  const normalized = input?.toString()?.replace(/,/g, "");
   return round(Number.parseFloat(normalized), digit);
 };
 
 // -------------------------------------------------------------------------
 export const toBoolean = (input: any) => {
   return (
-    (input !== '' &&
-      input !== 'false' &&
-      input !== '0' &&
+    (input !== "" &&
+      input !== "false" &&
+      input !== "0" &&
       input !== false &&
       input !== 0 &&
       input !== null &&
@@ -140,7 +140,7 @@ export const toStringDecimal = (input: any, digit = 2, options = { useLocaleForm
     return INTL_2_DIGITS_FORMATER.format(number);
   }
 
-  const formater = new Intl.NumberFormat('en-US', {
+  const formater = new Intl.NumberFormat("en-US", {
     maximumFractionDigits: digit,
     minimumFractionDigits: digit,
   });
@@ -148,7 +148,7 @@ export const toStringDecimal = (input: any, digit = 2, options = { useLocaleForm
 };
 
 // -------------------------------------------------------------------------
-export const getNumberValue = (input: string, method: 'int' | 'float' = 'int') => {
+export const getNumberValue = (input: string, method: "int" | "float" = "int") => {
   if (!input) {
     return 0;
   }
@@ -156,8 +156,8 @@ export const getNumberValue = (input: string, method: 'int' | 'float' = 'int') =
   let raw: any;
 
   switch (typeof input) {
-    case 'string': {
-      raw = input.replace(/,|\./gi, '');
+    case "string": {
+      raw = input.replace(/,|\./gi, "");
       break;
     }
     default: {
@@ -167,7 +167,7 @@ export const getNumberValue = (input: string, method: 'int' | 'float' = 'int') =
   }
 
   switch (method) {
-    case 'int': {
+    case "int": {
       return int(raw);
     }
     default: {
@@ -203,7 +203,7 @@ export const parseArrayToRecordWithKey = <
   arr.forEach(element => {
     if (!(keyMap in element)) {
       throw getError({
-        message: 'Invalid keyMap',
+        message: "Invalid keyMap",
       });
     }
     resultRecord[element[keyMap]] = element;
@@ -234,7 +234,7 @@ export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K exten
   arr.forEach(element => {
     if (!(keyMap in element)) {
       throw getError({
-        message: 'Invalid keyMap',
+        message: "Invalid keyMap",
       });
     }
     resultMap.set(element[keyMap], element);

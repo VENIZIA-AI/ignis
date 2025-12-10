@@ -1,5 +1,5 @@
-import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from '@/base/models';
-import { AbstractRepository, DEFAULT_LIMIT } from '@/base/repositories';
+import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from "@/base/models";
+import { AbstractRepository, DEFAULT_LIMIT } from "@/base/repositories";
 import {
   BaseHelper,
   executeWithPerformanceMeasure,
@@ -9,11 +9,11 @@ import {
   TClass,
   TResolver,
   ValueOrPromise,
-} from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
-import { BaseController } from '../base';
-import { defineControllerRouteConfigs } from './definition';
-import { z } from '@hono/zod-openapi';
+} from "@venizia/ignis-helpers";
+import { Env, Schema } from "hono";
+import { BaseController } from "../base";
+import { defineControllerRouteConfigs } from "./definition";
+import { z } from "@hono/zod-openapi";
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -55,7 +55,7 @@ export class ControllerFactory extends BaseHelper {
     EntitySchema extends TTableSchemaWithId,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
-    BasePath extends string = '/',
+    BasePath extends string = "/",
     ConfigurableOptions extends object = {},
   >(opts: ICrudControllerOptions<EntitySchema>) {
     const {
@@ -66,11 +66,11 @@ export class ControllerFactory extends BaseHelper {
 
     const {
       name,
-      basePath = 'unknown_path',
+      basePath = "unknown_path",
       isStrict = true,
       defaultLimit = DEFAULT_LIMIT,
     } = controller;
-    if (!basePath || basePath === 'unknown_path') {
+    if (!basePath || basePath === "unknown_path") {
       throw getError({
         message: `[defineCrudController] Invalid controller basePath | name: ${name} | basePath: ${basePath}`,
       });
@@ -117,13 +117,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.COUNT,
           handler: async context => {
-            const { where } = context.req.valid('query');
+            const { where } = context.req.valid("query");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'count',
-              description: 'execute count',
+              level: "debug",
+              scope: "count",
+              description: "execute count",
               args: { where },
               task: () => {
                 return this.repository.count({ where });
@@ -139,13 +139,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.FIND,
           handler: async context => {
-            const { filter = {} } = context.req.valid('query');
+            const { filter = {} } = context.req.valid("query");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'find',
-              description: 'execute find',
+              level: "debug",
+              scope: "find",
+              description: "execute find",
               args: filter,
               task: () => {
                 return this.repository.find({ filter });
@@ -161,14 +161,14 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.FIND_BY_ID,
           handler: async context => {
-            const { id } = context.req.valid('param');
-            const { filter } = context.req.valid('query');
+            const { id } = context.req.valid("param");
+            const { filter } = context.req.valid("query");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'find',
-              description: 'execute findById',
+              level: "debug",
+              scope: "find",
+              description: "execute findById",
               args: filter,
               task: () => {
                 return this.repository.findById({ id, filter });
@@ -184,13 +184,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.FIND_ONE,
           handler: async context => {
-            const { filter = {} } = context.req.valid('query');
+            const { filter = {} } = context.req.valid("query");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'findOne',
-              description: 'execute findOne',
+              level: "debug",
+              scope: "findOne",
+              description: "execute findOne",
               args: filter,
               task: () => {
                 return this.repository.findOne({ filter });
@@ -207,13 +207,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.CREATE,
           handler: async context => {
-            const data = context.req.valid('json');
+            const data = context.req.valid("json");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'create',
-              description: 'execute create',
+              level: "debug",
+              scope: "create",
+              description: "execute create",
               args: data,
               task: () => {
                 return this.repository.create({ data });
@@ -229,14 +229,14 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.UPDATE_BY_ID,
           handler: async context => {
-            const { id } = context.req.valid('param');
-            const data = context.req.valid('json');
+            const { id } = context.req.valid("param");
+            const data = context.req.valid("json");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'updateById',
-              description: 'execute updateById',
+              level: "debug",
+              scope: "updateById",
+              description: "execute updateById",
               args: { id, data },
               task: () => {
                 return this.repository.updateById({ id, data });
@@ -252,14 +252,14 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.UPDATE_BY,
           handler: async context => {
-            const { where } = context.req.valid('query');
-            const data = context.req.valid('json');
+            const { where } = context.req.valid("query");
+            const data = context.req.valid("json");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'updateBy',
-              description: 'execute updateBy',
+              level: "debug",
+              scope: "updateBy",
+              description: "execute updateBy",
               args: { where, data },
               task: () => {
                 return this.repository.updateBy({ where, data });
@@ -275,13 +275,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.DELETE_BY_ID,
           handler: async context => {
-            const { id } = context.req.valid('param');
+            const { id } = context.req.valid("param");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'deleteById',
-              description: 'execute deleteById',
+              level: "debug",
+              scope: "deleteById",
+              description: "execute deleteById",
               args: { id },
               task: () => {
                 return this.repository.deleteById({ id });
@@ -297,13 +297,13 @@ export class ControllerFactory extends BaseHelper {
         this.defineRoute({
           configs: routeDefinitions.DELETE_BY,
           handler: async context => {
-            const { where } = context.req.valid('query');
+            const { where } = context.req.valid("query");
 
             const rs = await executeWithPerformanceMeasure({
               logger: this.logger,
-              level: 'debug',
-              scope: 'deleteBy',
-              description: 'execute deleteBy',
+              level: "debug",
+              scope: "deleteBy",
+              description: "execute deleteBy",
               args: { where },
               task: () => {
                 return this.repository.deleteBy({ where });

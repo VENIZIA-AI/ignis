@@ -1,13 +1,13 @@
-import { BaseHelper } from '@/helpers/base';
-import { getError } from '@/helpers/error';
-import { DefaultRedisHelper } from '@/helpers/redis';
+import { BaseHelper } from "@/helpers/base";
+import { getError } from "@/helpers/error";
+import { DefaultRedisHelper } from "@/helpers/redis";
 // import { validateModule } from '@/utilities/module.utility';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { Emitter } from '@socket.io/redis-emitter';
-import isEmpty from 'lodash/isEmpty';
-import { Server as HTTPServer } from 'node:http';
-import { Server as IOServer, Socket as IOSocket, ServerOptions } from 'socket.io';
-import { IHandshake, ISocketIOServerOptions, SocketIOConstants } from '../common';
+import { createAdapter } from "@socket.io/redis-adapter";
+import { Emitter } from "@socket.io/redis-emitter";
+import isEmpty from "lodash/isEmpty";
+import { Server as HTTPServer } from "node:http";
+import { Server as IOServer, Socket as IOSocket, ServerOptions } from "socket.io";
+import { IHandshake, ISocketIOServerOptions, SocketIOConstants } from "../common";
 
 const CLIENT_AUTHENTICATE_TIMEOUT = 10_000;
 
@@ -32,7 +32,7 @@ export class SocketIOServerHelper extends BaseHelper {
     {
       id: string;
       socket: IOSocket;
-      state: 'unauthorized' | 'authenticating' | 'authenticated';
+      state: "unauthorized" | "authenticating" | "authenticated";
       interval?: NodeJS.Timeout;
       authenticateTimeout: NodeJS.Timeout;
     }
@@ -59,7 +59,7 @@ export class SocketIOServerHelper extends BaseHelper {
       throw getError({
         statusCode: 500,
         message:
-          '[SocketIOServerHelper] Invalid server and lb-application to initialize io-socket server!',
+          "[SocketIOServerHelper] Invalid server and lb-application to initialize io-socket server!",
       });
     }
 
@@ -69,7 +69,7 @@ export class SocketIOServerHelper extends BaseHelper {
     if (!this.redisConnection) {
       throw getError({
         statusCode: 500,
-        message: 'Invalid redis connection to config socket.io adapter!',
+        message: "Invalid redis connection to config socket.io adapter!",
       });
     }
 
@@ -94,11 +94,11 @@ export class SocketIOServerHelper extends BaseHelper {
   on(opts: { topic: string; handler: (...args: any) => Promise<void> }) {
     const { topic, handler } = opts;
     if (!topic || !handler) {
-      throw getError({ message: '[on] Invalid topic or event handler!' });
+      throw getError({ message: "[on] Invalid topic or event handler!" });
     }
 
     if (!this.io) {
-      throw getError({ message: '[on] IOServer is not initialized yet!' });
+      throw getError({ message: "[on] IOServer is not initialized yet!" });
     }
 
     this.io.on(topic, handler);
@@ -114,12 +114,12 @@ export class SocketIOServerHelper extends BaseHelper {
         'socket.io',
       ],
     }); */
-    this.logger.info('[configure][%s] Configuring IO Server', this.identifier);
+    this.logger.info("[configure][%s] Configuring IO Server", this.identifier);
 
     if (!this.server) {
       throw getError({
         statusCode: 500,
-        message: '[DANGER] Invalid server instance to init Socket.io server!',
+        message: "[DANGER] Invalid server instance to init Socket.io server!",
       });
     }
 
@@ -132,16 +132,16 @@ export class SocketIOServerHelper extends BaseHelper {
         this.redisConnection.getClient().duplicate(), // Redis SUB Client
       ),
     );
-    this.logger.info('[configure] SocketIO Server initialized Redis Adapter');
+    this.logger.info("[configure] SocketIO Server initialized Redis Adapter");
 
     // Config socket.io redis emitter
     this.emitter = new Emitter(
       this.redisConnection.getClient().duplicate(), // Redis EMITTER Client
     );
-    this.emitter.redisClient.on('error', (error: Error) => {
-      this.logger.error('[configure][Emitter] On Error: %j', error);
+    this.emitter.redisClient.on("error", (error: Error) => {
+      this.logger.error("[configure][Emitter] On Error: %j", error);
     });
-    this.logger.info('[configure] SocketIO Server initialized Redis Emitter!');
+    this.logger.info("[configure] SocketIO Server initialized Redis Emitter!");
 
     // Handle socket.io new connection
     this.io.on(SocketIOConstants.EVENT_CONNECT, (socket: IOSocket) => {
@@ -149,18 +149,18 @@ export class SocketIOServerHelper extends BaseHelper {
     });
 
     this.logger.info(
-      '[configure] SocketIO Server READY | Path: %s | Address: %j',
-      this.serverOptions?.path ?? '',
+      "[configure] SocketIO Server READY | Path: %s | Address: %j",
+      this.serverOptions?.path ?? "",
       this.server?.address(),
     );
-    this.logger.debug('[configure] Whether http listening: %s', this.server?.listening);
+    this.logger.debug("[configure] Whether http listening: %s", this.server?.listening);
   }
 
   // -------------------------------------------------------------------------------------------------------------
   onClientConnect(opts: { socket: IOSocket }) {
     const { socket } = opts;
     if (!socket) {
-      this.logger.info('[onClientConnect] Invalid new socket connection!');
+      this.logger.info("[onClientConnect] Invalid new socket connection!");
       return;
     }
 
@@ -168,20 +168,20 @@ export class SocketIOServerHelper extends BaseHelper {
     const { id, handshake } = socket;
     const { headers } = handshake;
     if (this.clients[id]) {
-      this.logger.info('[onClientConnect] Socket client already existed: %j', {
+      this.logger.info("[onClientConnect] Socket client already existed: %j", {
         id,
         headers,
       });
       return;
     }
 
-    this.logger.info('[onClientConnect] New connection request with options: %j', { id, headers });
+    this.logger.info("[onClientConnect] New connection request with options: %j", { id, headers });
     this.clients[id] = {
       id,
       socket,
-      state: 'unauthorized',
+      state: "unauthorized",
       authenticateTimeout: setTimeout(() => {
-        if (this.clients[id]?.state === 'authenticated') {
+        if (this.clients[id]?.state === "authenticated") {
           return;
         }
 
@@ -190,10 +190,10 @@ export class SocketIOServerHelper extends BaseHelper {
     };
 
     socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
-      this.clients[id].state = 'authenticating';
+      this.clients[id].state = "authenticating";
       this.authenticateFn(handshake)
         .then(rs => {
-          this.logger.info('[onClientAuthenticate] Socket: %s | Authenticate result: %s', id, rs);
+          this.logger.info("[onClientAuthenticate] Socket: %s | Authenticate result: %s", id, rs);
 
           // Valid connection
           if (rs) {
@@ -202,13 +202,13 @@ export class SocketIOServerHelper extends BaseHelper {
           }
 
           // Invalid connection
-          this.clients[id].state = 'unauthorized';
+          this.clients[id].state = "unauthorized";
           this.send({
             destination: socket.id,
             payload: {
               topic: SocketIOConstants.EVENT_UNAUTHENTICATE,
               data: {
-                message: 'Invalid token token authenticate! Please login again!',
+                message: "Invalid token token authenticate! Please login again!",
                 time: new Date().toISOString(),
               },
             },
@@ -219,9 +219,9 @@ export class SocketIOServerHelper extends BaseHelper {
         })
         .catch(error => {
           // Unexpected error while authenticating connection
-          this.clients[id].state = 'unauthorized';
+          this.clients[id].state = "unauthorized";
           this.logger.error(
-            '[onClientConnect] Connection: %s | Failed to authenticate new socket connection | Error: %s',
+            "[onClientConnect] Connection: %s | Failed to authenticate new socket connection | Error: %s",
             id,
             error,
           );
@@ -231,7 +231,7 @@ export class SocketIOServerHelper extends BaseHelper {
             payload: {
               topic: SocketIOConstants.EVENT_UNAUTHENTICATE,
               data: {
-                message: 'Failed to authenticate connection! Please login again!',
+                message: "Failed to authenticate connection! Please login again!",
                 time: new Date().toISOString(),
               },
             },
@@ -248,23 +248,23 @@ export class SocketIOServerHelper extends BaseHelper {
   onClientAuthenticated(opts: { socket: IOSocket }) {
     const { socket } = opts;
     if (!socket) {
-      this.logger.info('[onClientAuthenticated] Invalid new socket connection!');
+      this.logger.info("[onClientAuthenticated] Invalid new socket connection!");
       return;
     }
 
     // Validate user identifier
     const { id } = socket;
     if (!this.clients[id]) {
-      this.logger.info('[onClientAuthenticated] Unknown client id %s to continue!', id);
+      this.logger.info("[onClientAuthenticated] Unknown client id %s to continue!", id);
       this.disconnect({ socket });
       return;
     }
-    this.clients[id].state = 'authenticated';
+    this.clients[id].state = "authenticated";
     this.ping({ socket, doIgnoreAuth: true });
 
     // Valid connection
     this.logger.info(
-      '[onClientAuthenticated] Connection: %s | Identifier: %s | CONNECTED | Time: %s',
+      "[onClientAuthenticated] Connection: %s | Identifier: %s | CONNECTED | Time: %s",
       id,
       this.identifier,
       new Date().toISOString(),
@@ -273,14 +273,14 @@ export class SocketIOServerHelper extends BaseHelper {
     Promise.all(this.defaultRooms.map((room: string) => Promise.resolve(socket.join(room))))
       .then(() => {
         this.logger.info(
-          '[onClientAuthenticated] Connection %s joined all defaultRooms %s',
+          "[onClientAuthenticated] Connection %s joined all defaultRooms %s",
           id,
           this.defaultRooms,
         );
       })
       .catch(error => {
         this.logger.error(
-          '[onClientAuthenticated] Connection %s failed to join defaultRooms %s | Error: %s',
+          "[onClientAuthenticated] Connection %s failed to join defaultRooms %s | Error: %s",
           id,
           this.defaultRooms,
           error,
@@ -301,7 +301,7 @@ export class SocketIOServerHelper extends BaseHelper {
       Promise.all(rooms.map((room: string) => socket.join(room)))
         .then(() => {
           this.logger.info(
-            '[%s] Connection: %s joined all rooms %s',
+            "[%s] Connection: %s joined all rooms %s",
             SocketIOConstants.EVENT_JOIN,
             id,
             rooms,
@@ -309,7 +309,7 @@ export class SocketIOServerHelper extends BaseHelper {
         })
         .catch(error => {
           this.logger.error(
-            '[%s] Connection %s failed to join rooms %s | Error: %s',
+            "[%s] Connection %s failed to join rooms %s | Error: %s",
             SocketIOConstants.EVENT_JOIN,
             id,
             rooms,
@@ -318,7 +318,7 @@ export class SocketIOServerHelper extends BaseHelper {
         });
 
       this.logger.info(
-        '[%s] Connection: %s | JOIN Rooms: %j',
+        "[%s] Connection: %s | JOIN Rooms: %j",
         SocketIOConstants.EVENT_JOIN,
         id,
         rooms,
@@ -334,7 +334,7 @@ export class SocketIOServerHelper extends BaseHelper {
       Promise.all(rooms.map((room: string) => socket.leave(room)))
         .then(() => {
           this.logger.info(
-            '[%s] Connection %s left all rooms %s',
+            "[%s] Connection %s left all rooms %s",
             SocketIOConstants.EVENT_LEAVE,
             id,
             rooms,
@@ -342,7 +342,7 @@ export class SocketIOServerHelper extends BaseHelper {
         })
         .catch(error => {
           this.logger.error(
-            '[%s] Connection %s failed to leave rooms %s | Error: %s',
+            "[%s] Connection %s failed to leave rooms %s | Error: %s",
             SocketIOConstants.EVENT_LEAVE,
             id,
             rooms,
@@ -351,7 +351,7 @@ export class SocketIOServerHelper extends BaseHelper {
         });
 
       this.logger.info(
-        '[%s] Connection: %s | LEAVE Rooms: %j',
+        "[%s] Connection: %s | LEAVE Rooms: %j",
         SocketIOConstants.EVENT_LEAVE,
         id,
         rooms,
@@ -377,7 +377,7 @@ export class SocketIOServerHelper extends BaseHelper {
     this.onClientConnected?.({ socket })
       ?.then(() => {})
       .catch(error => {
-        this.logger.error('[onClientConnected][Handler] Error: %s', error);
+        this.logger.error("[onClientConnected][Handler] Error: %s", error);
       });
   }
 
@@ -386,14 +386,14 @@ export class SocketIOServerHelper extends BaseHelper {
     const { socket, doIgnoreAuth } = opts;
 
     if (!socket) {
-      this.logger.info('[ping] Socket is undefined to PING!');
+      this.logger.info("[ping] Socket is undefined to PING!");
       return;
     }
 
     const client = this.clients[socket.id];
-    if (!doIgnoreAuth && client.state !== 'authenticated') {
+    if (!doIgnoreAuth && client.state !== "authenticated") {
       this.logger.info(
-        '[ping] Socket client is not authenticated | Authenticated: %s',
+        "[ping] Socket client is not authenticated | Authenticated: %s",
         client.state,
       );
       this.disconnect({ socket });
@@ -435,7 +435,7 @@ export class SocketIOServerHelper extends BaseHelper {
     }
 
     this.logger.info(
-      '[disconnect] Connection: %s | DISCONNECT | Time: %s',
+      "[disconnect] Connection: %s | DISCONNECT | Time: %s",
       id,
       new Date().toISOString(),
     );

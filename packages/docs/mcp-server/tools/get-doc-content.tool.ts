@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type MastraTool } from './base.tool';
+import { z } from "zod";
+import { DocsHelper } from "../helpers";
+import { BaseTool, createTool, type TMastraTool } from "./base.tool";
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -85,13 +85,13 @@ TYPICAL STRUCTURE:
 // ----------------------------------------------------------------------------
 
 const SuccessSchema = z.object({
-  id: z.string().describe('The document ID that was requested.'),
+  id: z.string().describe("The document ID that was requested."),
   content: z.string().describe(CONTENT_DESCRIPTION),
 });
 
 const ErrorSchema = z.object({
-  id: z.string().describe('The document ID that was requested but not found.'),
-  error: z.string().describe('Error message. Verify the ID using listDocs or searchDocs.'),
+  id: z.string().describe("The document ID that was requested but not found."),
+  error: z.string().describe("Error message. Verify the ID using listDocs or searchDocs."),
 });
 
 const InputSchema = z.object({
@@ -100,14 +100,14 @@ const InputSchema = z.object({
 
 const OutputSchema = z
   .union([SuccessSchema, ErrorSchema])
-  .describe('Document content on success, or error object if not found.');
+  .describe("Document content on success, or error object if not found.");
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS
 // ----------------------------------------------------------------------------
 
 export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'getDocContent';
+  readonly id = "getDocContent";
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -116,13 +116,13 @@ export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof Outpu
     const content = await DocsHelper.getDocContent({ id: input.id });
 
     if (!content) {
-      return { error: 'Document not found', id: input.id };
+      return { error: "Document not found", id: input.id };
     }
 
     return { content, id: input.id };
   }
 
-  getTool(): MastraTool {
+  getTool(): TMastraTool {
     return createTool({
       id: this.id,
       description: this.description,

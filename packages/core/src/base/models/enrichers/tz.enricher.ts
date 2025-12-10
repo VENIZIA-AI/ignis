@@ -1,6 +1,6 @@
-import { HasDefault, NotNull } from 'drizzle-orm';
-import { PgTimestampBuilderInitial, timestamp } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions } from '../common/types';
+import { HasDefault, NotNull } from "drizzle-orm";
+import { PgTimestampBuilderInitial, timestamp } from "drizzle-orm/pg-core";
+import { TColumnDefinitions } from "../common/types";
 
 export type TTzEnricherOptions = {
   created?: { columnName: string; withTimezone: boolean };
@@ -15,13 +15,13 @@ export type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TCo
 
 export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
   const {
-    created = { columnName: 'created_at', withTimezone: true },
-    modified = { enable: true, columnName: 'modified_at', withTimezone: true },
+    created = { columnName: "created_at", withTimezone: true },
+    modified = { enable: true, columnName: "modified_at", withTimezone: true },
   } = opts ?? {};
 
   const rs = {
     createdAt: timestamp(created.columnName, {
-      mode: 'date',
+      mode: "date",
       withTimezone: created.withTimezone,
     })
       .defaultNow()
@@ -34,7 +34,7 @@ export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
 
   return Object.assign({}, rs, {
     modifiedAt: timestamp(modified.columnName, {
-      mode: 'date',
+      mode: "date",
       withTimezone: modified.withTimezone,
     })
       .defaultNow()

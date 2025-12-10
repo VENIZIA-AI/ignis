@@ -1,9 +1,9 @@
-import { AnyObject } from '@/common/types';
-import { getError } from '@/helpers/error';
-import get from 'lodash/get';
-import isEmpty from 'lodash/isEmpty';
-import { ITestCase } from './common';
-import { TestCaseHandler } from './test-handler';
+import { AnyObject } from "@/common/types";
+import { getError } from "@/helpers/error";
+import get from "lodash/get";
+import isEmpty from "lodash/isEmpty";
+import { ITestCase } from "./common";
+import { TestCaseHandler } from "./test-handler";
 
 export interface ITestCaseOptions<R extends object = {}, I extends object = {}> {
   code: string;
@@ -23,7 +23,7 @@ export class TestCase<R extends object = {}, I extends object = {}> implements I
   handler: TestCaseHandler<R, I>;
 
   constructor(opts: ITestCaseOptions<R, I>) {
-    const validateFields = ['code', 'description', 'expectation'];
+    const validateFields = ["code", "description", "expectation"];
     for (const key of validateFields) {
       const value = get(opts, key, null);
 

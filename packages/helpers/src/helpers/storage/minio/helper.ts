@@ -1,9 +1,9 @@
-import { MimeTypes } from '@/common';
-import { BaseHelper } from '@/helpers/base';
-import { getError } from '@/helpers/error';
-import isEmpty from 'lodash/isEmpty';
-import { Client, ClientOptions } from 'minio';
-import { Readable } from 'node:stream';
+import { MimeTypes } from "@/common";
+import { BaseHelper } from "@/helpers/base";
+import { getError } from "@/helpers/error";
+import isEmpty from "lodash/isEmpty";
+import { Client, ClientOptions } from "minio";
+import { Readable } from "node:stream";
 
 // ---------------------------------------------------------------------
 export interface IUploadFile {
@@ -58,7 +58,7 @@ export class MinioHelper extends BaseHelper {
     const { name } = opts;
     if (!name || isEmpty(name)) {
       throw getError({
-        message: '[createBucket] Invalid name to create bucket!',
+        message: "[createBucket] Invalid name to create bucket!",
       });
     }
 
@@ -72,7 +72,7 @@ export class MinioHelper extends BaseHelper {
     const { name } = opts;
     if (!name || isEmpty(name)) {
       throw getError({
-        message: '[removeBucket] Invalid name to remove bucket!',
+        message: "[removeBucket] Invalid name to remove bucket!",
       });
     }
 
@@ -119,9 +119,9 @@ export class MinioHelper extends BaseHelper {
       const { originalname: originalName, size } = file;
 
       if (!originalName || isEmpty(originalName)) {
-        this.logger.error('[upload] Invalid original name!');
+        this.logger.error("[upload] Invalid original name!");
         throw getError({
-          message: '[upload] Invalid original file name | please check again files!',
+          message: "[upload] Invalid original file name | please check again files!",
         });
       }
 
@@ -136,7 +136,7 @@ export class MinioHelper extends BaseHelper {
     const uploadPromises = files.map(async file => {
       const { originalname: originalName, mimetype: mimeType, buffer, size, encoding } = file;
 
-      const normalizeName = originalName.toLowerCase().replace(/ /g, '_');
+      const normalizeName = originalName.toLowerCase().replace(/ /g, "_");
       const t = new Date().getTime();
 
       const uploadInfo = await this.client.putObject(bucket, normalizeName, buffer, size, {
@@ -148,7 +148,7 @@ export class MinioHelper extends BaseHelper {
       });
 
       this.logger.info(
-        '[upload] Uploaded: %j | Took: %s (ms)',
+        "[upload] Uploaded: %j | Took: %s (ms)",
         uploadInfo,
         new Date().getTime() - t,
       );
@@ -199,7 +199,7 @@ export class MinioHelper extends BaseHelper {
 
   // ---------------------------------------------------------------------
   getListObjects(opts: { bucket: string; prefix?: string; useRecursive?: boolean }) {
-    const { bucket, prefix = '', useRecursive = false } = opts;
+    const { bucket, prefix = "", useRecursive = false } = opts;
     const listObjects = this.client.listObjects(bucket, prefix, useRecursive);
     return listObjects;
   }

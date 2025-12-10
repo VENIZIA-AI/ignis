@@ -1,6 +1,6 @@
-import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type MastraTool } from './base.tool';
+import { z } from "zod";
+import { DocsHelper } from "../helpers";
+import { BaseTool, createTool, type TMastraTool } from "./base.tool";
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -70,10 +70,10 @@ Pass any category name to listDocs(category) to filter documents by that categor
 // SCHEMAS
 // ----------------------------------------------------------------------------
 
-const InputSchema = z.object({}).describe('No input parameters required.');
+const InputSchema = z.object({}).describe("No input parameters required.");
 
 const OutputSchema = z.object({
-  count: z.number().int().describe('Total number of unique categories.'),
+  count: z.number().int().describe("Total number of unique categories."),
   categories: z.array(z.string()).describe(CATEGORIES_DESCRIPTION),
 });
 
@@ -82,7 +82,7 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'listCategories';
+  readonly id = "listCategories";
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -96,7 +96,7 @@ export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof Outp
     };
   }
 
-  getTool(): MastraTool {
+  getTool(): TMastraTool {
     return createTool({
       id: this.id,
       description: this.description,

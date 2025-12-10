@@ -1,16 +1,16 @@
-import { IApplicationEnvironment } from './types';
+import { IApplicationEnvironment } from "./types";
 
 export class Environment {
-  static readonly LOCAL = 'local';
-  static readonly DEBUG = 'debug';
+  static readonly LOCAL = "local";
+  static readonly DEBUG = "debug";
 
-  static readonly DEVELOPMENT = 'development';
+  static readonly DEVELOPMENT = "development";
 
-  static readonly ALPHA = 'alpha';
-  static readonly BETA = 'beta';
-  static readonly STAGING = 'staging';
+  static readonly ALPHA = "alpha";
+  static readonly BETA = "beta";
+  static readonly STAGING = "staging";
 
-  static readonly PRODUCTION = 'production';
+  static readonly PRODUCTION = "production";
 
   static COMMON_ENVS = new Set([
     this.LOCAL,
@@ -56,7 +56,7 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
   }
 
   isDevelopment() {
-    return process.env.NODE_ENV === 'development';
+    return process.env.NODE_ENV === "development";
   }
 
   keys() {
@@ -65,6 +65,6 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
 }
 
 export const applicationEnvironment = new ApplicationEnvironment({
-  prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
+  prefix: process.env.APPLICATION_ENV_PREFIX ?? "APP_ENV",
   envs: process.env,
 });

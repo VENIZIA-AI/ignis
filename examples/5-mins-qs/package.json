@@ -1,31 +1,37 @@
 {
   "name": "5-mins-qs",
   "version": "0.0.0",
-  "description": "5-minute quickstart example",
   "private": true,
+  "description": "5-minute quickstart example",
+  "engines": {
+    "bun": ">=1.3"
+  },
   "scripts": {
-    "start": "bun run src/index.ts",
-    "lint": "eslint --report-unused-disable-directives . && prettier \"**/*.{js,ts}\" -l",
-    "lint:fix": "eslint --report-unused-disable-directives . --fix && prettier \"**/*.{js,ts}\" --write",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
+    "start": "bun run src/index.ts",
     "server:dev": "NODE_ENV=development bun run src/index.ts",
     "server:prod": "NODE_ENV=production bun run dist/index.js"
   },
   "dependencies": {
-    "hono": "^4.4.12",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "^0.0.0"
+    "@venizia/ignis": "latest",
+    "hono": "^4.4.12"
   },
   "devDependencies": {
-    "typescript": "^5.5.3",
     "@types/bun": "latest",
-    "@venizia/dev-configs": "^0.0.0",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.10",
-    "tsconfig-paths": "^4.2.0"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.5.3"
   }
 }

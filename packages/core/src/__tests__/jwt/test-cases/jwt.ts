@@ -1,11 +1,11 @@
-import { IJWTTokenPayload, JWTTokenService } from '@/components/auth';
+import { IJWTTokenPayload, JWTTokenService } from "@/components/auth";
 import {
   getError,
   TestCaseDecisions,
   TestCaseHandler,
   TTestCaseDecision,
   ValueOrPromise,
-} from '@venizia/ignis-helpers';
+} from "@venizia/ignis-helpers";
 
 interface IArg {
   payload: IJWTTokenPayload;
@@ -18,7 +18,7 @@ export class TestCase001 extends TestCaseHandler<{}, IArg> {
   async execute() {
     if (!this.args) {
       throw getError({
-        message: '[Test001Handler][execute] Invalid input args!',
+        message: "[Test001Handler][execute] Invalid input args!",
       });
     }
 
@@ -32,7 +32,7 @@ export class TestCase001 extends TestCaseHandler<{}, IArg> {
     });
 
     const token = await jwtTokenService.generate({ payload });
-    this.logger.info('[execute] Token: %s', token);
+    this.logger.info("[execute] Token: %s", token);
 
     return { token };
   }

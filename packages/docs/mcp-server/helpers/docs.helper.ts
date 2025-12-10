@@ -1,10 +1,10 @@
-import fg from 'fast-glob';
-import Fuse from 'fuse.js';
-import matter from 'gray-matter';
-import fs from 'node:fs/promises';
-import path from 'node:path';
-import { MCP_CONFIG, Paths } from '../common';
-import { Logger } from './logger.helper';
+import fg from "fast-glob";
+import Fuse from "fuse.js";
+import matter from "gray-matter";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { MCP_CONFIG, Paths } from "../common";
+import { Logger } from "./logger.helper";
 
 interface IDoc {
   id: string;
@@ -32,10 +32,10 @@ export class DocsHelper {
     }
 
     try {
-      const files = await fg('**/*.md', {
+      const files = await fg("**/*.md", {
         cwd: Paths.WIKI,
         absolute: true,
-        ignore: ['node_modules'],
+        ignore: ["node_modules"],
       });
 
       if (files.length === 0) {
@@ -45,14 +45,14 @@ export class DocsHelper {
 
       this._docs = await Promise.all(
         files.map(async file => {
-          const rawContent = await fs.readFile(file, 'utf-8');
+          const rawContent = await fs.readFile(file, "utf-8");
           const { data, content } = matter(rawContent);
 
           return {
             id: path.relative(Paths.WIKI, file),
-            title: data.title || path.basename(file, '.md'),
+            title: data.title || path.basename(file, ".md"),
             content,
-            category: data.category || 'Uncategorized',
+            category: data.category || "Uncategorized",
             filePath: file,
           };
         }),
@@ -66,9 +66,9 @@ export class DocsHelper {
       Logger.info(`Loaded ${this._docs.length} documentation files`);
       return this._docs;
     } catch (error) {
-      Logger.error('Failed to load documentation:', error);
+      Logger.error("Failed to load documentation:", error);
       throw new Error(
-        `Documentation loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        `Documentation loading failed: ${error instanceof Error ? error.message : "Unknown error"}`,
       );
     }
   }
@@ -79,7 +79,7 @@ export class DocsHelper {
   static clearCache(): void {
     this._docs = [];
     this._fuse = null;
-    Logger.debug('Documentation cache cleared');
+    Logger.debug("Documentation cache cleared");
   }
 
   /**
@@ -94,9 +94,9 @@ export class DocsHelper {
     }
 
     const trimmed = content.substring(0, maxLength);
-    const lastSpace = trimmed.lastIndexOf(' ');
+    const lastSpace = trimmed.lastIndexOf(" ");
 
-    return (lastSpace > 0 ? trimmed.substring(0, lastSpace) : trimmed) + '...';
+    return (lastSpace > 0 ? trimmed.substring(0, lastSpace) : trimmed) + "...";
   }
 
   /**

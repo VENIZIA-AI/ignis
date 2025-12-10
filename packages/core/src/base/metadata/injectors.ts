@@ -1,4 +1,4 @@
-import { getError, IInjectableMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
+import { getError, IInjectableMetadata, MetadataRegistry } from "@venizia/ignis-helpers";
 
 export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
   return target => {
@@ -39,7 +39,7 @@ export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
 export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => {
   return (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => {
     // Constructor parameter injection
-    if (typeof parameterIndex === 'number') {
+    if (typeof parameterIndex === "number") {
       MetadataRegistry.getInstance().setInjectMetadata({
         target,
         index: parameterIndex,
@@ -66,7 +66,7 @@ export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => 
     }
 
     throw getError({
-      message: '@inject decorator can only be used on class properties or constructor parameters',
+      message: "@inject decorator can only be used on class properties or constructor parameters",
     });
   };
 };

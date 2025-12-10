@@ -1,5 +1,5 @@
-import { ClusterOptions } from 'ioredis';
-import { DefaultRedisHelper } from './default.helper';
+import { ClusterOptions } from "ioredis";
+import { DefaultRedisHelper } from "./default.helper";
 
 // -----------------------------------------------------------------------------------------------
 export interface IRedisHelperProps {
@@ -15,7 +15,7 @@ export interface IRedisHelperProps {
 
 export interface IRedisClusterHelperProps {
   name: string;
-  nodes: Array<Pick<IRedisHelperProps, 'host' | 'port'> & { password?: string }>;
+  nodes: Array<Pick<IRedisHelperProps, "host" | "port"> & { password?: string }>;
   clusterOptions?: ClusterOptions;
 }
 

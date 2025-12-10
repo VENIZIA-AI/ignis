@@ -1,5 +1,5 @@
-import 'reflect-metadata';
+import "reflect-metadata";
 
-export * from './common';
-export * from './container';
-export * from './registry';
+export * from "./common";
+export * from "./container";
+export * from "./registry";

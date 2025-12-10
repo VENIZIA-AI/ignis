@@ -1,7 +1,7 @@
-import { ApplicationLogger, LoggerFactory } from '@/helpers/logger';
-import { MemoryStorageHelper } from '@/helpers/storage';
-import { it } from 'node:test';
-import { ITestCase, ITestHooks, ITestPlan, ITestPlanOptions } from './common';
+import { ApplicationLogger, LoggerFactory } from "@/helpers/logger";
+import { MemoryStorageHelper } from "@/helpers/storage";
+import { it } from "node:test";
+import { ITestCase, ITestHooks, ITestPlan, ITestPlanOptions } from "./common";
 
 export abstract class BaseTestPlan<R extends object> implements ITestPlan<R> {
   private logger: ApplicationLogger;
@@ -68,20 +68,20 @@ export abstract class BaseTestPlan<R extends object> implements ITestPlan<R> {
   }
 
   execute() {
-    this.logger.info('[run] START RUNNING TEST CASE | Total test cases: %s', this.testCases.length);
+    this.logger.info("[run] START RUNNING TEST CASE | Total test cases: %s", this.testCases.length);
 
     if (!this.testCases.length) {
-      this.logger.info('[run] Not found test case(s)');
+      this.logger.info("[run] Not found test case(s)");
       return;
     }
 
     for (const testCase of this.testCases) {
       try {
-        it(`RUN Test Case | Code: ${testCase.code} | Description: ${testCase.name ? `${testCase.name} - ` : ''}${testCase.description} | Expect: ${testCase.expectation}`, () => {
+        it(`RUN Test Case | Code: ${testCase.code} | Description: ${testCase.name ? `${testCase.name} - ` : ""}${testCase.description} | Expect: ${testCase.expectation}`, () => {
           return testCase.run();
         });
       } catch (error) {
-        this.logger.error('[%s] Failed to finish test case | error: %s', testCase.name, error);
+        this.logger.error("[%s] Failed to finish test case | error: %s", testCase.name, error);
       }
     }
   }

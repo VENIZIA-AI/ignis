@@ -1,7 +1,7 @@
-import { int } from '@/utilities';
-import { Cluster } from 'ioredis';
-import { DefaultRedisHelper } from './default.helper';
-import { IRedisClusterHelperOptions } from './types';
+import { int } from "@/utilities";
+import { Cluster } from "ioredis";
+import { DefaultRedisHelper } from "./default.helper";
+import { IRedisClusterHelperOptions } from "./types";
 
 export class RedisClusterHelper extends DefaultRedisHelper {
   constructor(opts: IRedisClusterHelperOptions) {

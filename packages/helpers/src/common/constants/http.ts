@@ -1,26 +1,26 @@
-import { ValueOf } from '../types';
+import { ValueOf } from "../types";
 
 export class HTTP {
   static readonly Headers = {
-    AUTHORIZATION: 'authorization',
-    REQUEST_TRACING_ID: 'x-request-id',
+    AUTHORIZATION: "authorization",
+    REQUEST_TRACING_ID: "x-request-id",
   } as const;
 
   static readonly HeaderValues = {
-    APPLICATION_JSON: 'application/json',
-    APPLICATION_FORM_URLENCODED: 'application/x-www-form-urlencoded',
-    TEXT_PLAIN: 'text/plain',
-    MULTIPART_FORM_DATA: 'multipart/form-data',
+    APPLICATION_JSON: "application/json",
+    APPLICATION_FORM_URLENCODED: "application/x-www-form-urlencoded",
+    TEXT_PLAIN: "text/plain",
+    MULTIPART_FORM_DATA: "multipart/form-data",
   } as const;
 
   static readonly Methods = {
-    GET: 'get',
-    POST: 'post',
-    PUT: 'put',
-    PATCH: 'patch',
-    DELETE: 'delete',
-    HEAD: 'head',
-    OPTIONS: 'options',
+    GET: "get",
+    POST: "post",
+    PUT: "put",
+    PATCH: "patch",
+    DELETE: "delete",
+    HEAD: "head",
+    OPTIONS: "options",
   } as const;
 
   static readonly ResultCodes = {

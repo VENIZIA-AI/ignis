@@ -1,2 +1,2 @@
-export * from './jwt.strategy';
-export * from './strategy-registry';
+export * from "./jwt.strategy";
+export * from "./strategy-registry";

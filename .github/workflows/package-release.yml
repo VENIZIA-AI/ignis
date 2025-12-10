@@ -113,9 +113,9 @@ jobs:
       - name: Version bump
         id: version
         run: |
-          cd ${{ env.PACKAGE_PATH }} 
+          cd ${{ env.PACKAGE_PATH }}
           npm cache clean --force
-          npm version $BUILD_MODE --no-git-tag-version
+          npm version $BUILD_MODE --no-git-tag-version --workspaces-update=false
 
           NEW_VERSION=$(jq -r .version package.json)
           TAG_NAME="$PACKAGE-v$NEW_VERSION"

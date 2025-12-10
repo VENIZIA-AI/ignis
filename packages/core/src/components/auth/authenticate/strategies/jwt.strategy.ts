@@ -1,9 +1,9 @@
-import { inject } from '@/base/metadata';
-import { BaseHelper } from '@venizia/ignis-helpers';
-import { Context, Env, Input } from 'hono';
-import { IAuthUser, IAuthenticationStrategy } from '../common';
-import { Authentication } from '../common/constants';
-import { JWTTokenService } from '../services';
+import { inject } from "@/base/metadata";
+import { BaseHelper } from "@venizia/ignis-helpers";
+import { Context, Env, Input } from "hono";
+import { IAuthUser, IAuthenticationStrategy } from "../common";
+import { Authentication } from "../common/constants";
+import { JWTTokenService } from "../services";
 
 export class JWTAuthenticationStrategy<
   E extends Env = any,
@@ -15,7 +15,7 @@ export class JWTAuthenticationStrategy<
 {
   name = Authentication.STRATEGY_JWT;
 
-  constructor(@inject({ key: 'services.JWTTokenService' }) private service: JWTTokenService) {
+  constructor(@inject({ key: "services.JWTTokenService" }) private service: JWTTokenService) {
     super({ scope: JWTAuthenticationStrategy.name });
   }
 

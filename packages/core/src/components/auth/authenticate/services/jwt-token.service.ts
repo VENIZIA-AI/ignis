@@ -1,25 +1,25 @@
-import { inject } from '@/base/metadata';
-import { BaseService } from '@/base/services';
-import { AES, getError, HTTP, int } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
-import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
-import { Authentication } from '../common/constants';
+import { inject } from "@/base/metadata";
+import { BaseService } from "@/base/services";
+import { AES, getError, HTTP, int } from "@venizia/ignis-helpers";
+import { Context } from "hono";
+import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from "jose";
+import { Authentication } from "../common/constants";
 import {
   AuthenticateBindingKeys,
   IJWTTokenPayload,
   IJWTTokenServiceOptions,
   TGetTokenExpiresFn,
-} from './../common';
+} from "./../common";
 
 export class JWTTokenService extends BaseService {
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([
-    'iss',
-    'sub',
-    'aud',
-    'jti',
-    'nbf',
-    'exp',
-    'iat',
+    "iss",
+    "sub",
+    "aud",
+    "jti",
+    "nbf",
+    "exp",
+    "iat",
   ]);
 
   protected aes: AES;
@@ -32,7 +32,7 @@ export class JWTTokenService extends BaseService {
     super({ scope: JWTTokenService.name });
 
     const {
-      aesAlgorithm = 'aes-256-cbc',
+      aesAlgorithm = "aes-256-cbc",
       jwtSecret,
       applicationSecret,
       getTokenExpiresFn,
@@ -41,21 +41,21 @@ export class JWTTokenService extends BaseService {
     if (!jwtSecret) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[JWTTokenService] Invalid jwtSecret',
+        message: "[JWTTokenService] Invalid jwtSecret",
       });
     }
 
     if (!applicationSecret) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[JWTTokenService] Invalid applicationSecret',
+        message: "[JWTTokenService] Invalid applicationSecret",
       });
     }
 
     if (!getTokenExpiresFn) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[JWTTokenService] Invalid getTokenExpiresFn',
+        message: "[JWTTokenService] Invalid getTokenExpiresFn",
       });
     }
 
@@ -67,22 +67,22 @@ export class JWTTokenService extends BaseService {
   extractCredentials(context: Context): { type: string; token: string } {
     const request = context.req;
 
-    const authHeaderValue = request.header('Authorization');
+    const authHeaderValue = request.header("Authorization");
     if (!authHeaderValue) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: 'Unauthorized user! Missing authorization header',
+        message: "Unauthorized user! Missing authorization header",
       });
     }
 
     if (!authHeaderValue.startsWith(Authentication.TYPE_BEARER)) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: 'Unauthorized user! Invalid schema of request token!',
+        message: "Unauthorized user! Invalid schema of request token!",
       });
     }
 
-    const parts = authHeaderValue.split(' ');
+    const parts = authHeaderValue.split(" ");
     if (parts.length !== 2) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
@@ -109,11 +109,11 @@ export class JWTTokenService extends BaseService {
 
       const encryptedKey = this.aes.encrypt(key, this.options.applicationSecret);
       switch (key) {
-        case 'roles': {
+        case "roles": {
           rs[encryptedKey] = this.aes.encrypt(
             JSON.stringify(
               value.map(
-                (el: IJWTTokenPayload['roles'][number]) =>
+                (el: IJWTTokenPayload["roles"][number]) =>
                   `${el.id}|${el.identifier}|${el.priority}`,
               ),
             ),
@@ -135,7 +135,7 @@ export class JWTTokenService extends BaseService {
   decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
     const { payload, protectedHeader } = opts.result;
     this.logger.debug(
-      '[decryptPayload] JWT Token | payload: %j | header: %j',
+      "[decryptPayload] JWT Token | payload: %j | header: %j",
       payload,
       protectedHeader,
     );
@@ -151,9 +151,9 @@ export class JWTTokenService extends BaseService {
       const decryptedValue = this.aes.decrypt(payload[key], this.options.applicationSecret);
 
       switch (decryptedKey) {
-        case 'roles': {
+        case "roles": {
           rs[decryptedKey] = (JSON.parse(decryptedValue) as string[]).map(el => {
-            const [id, identifier, priority] = el.split('|');
+            const [id, identifier, priority] = el.split("|");
             return { id, identifier, priority: int(priority) };
           });
           break;
@@ -171,10 +171,10 @@ export class JWTTokenService extends BaseService {
   async verify(opts: { type: string; token: string }) {
     const { token } = opts;
     if (!token) {
-      this.logger.error('[verify] Missing token for validating request!');
+      this.logger.error("[verify] Missing token for validating request!");
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: '[verify] Invalid request token!',
+        message: "[verify] Invalid request token!",
       });
     }
 
@@ -182,7 +182,7 @@ export class JWTTokenService extends BaseService {
       const decodedToken = await jwtVerify<IJWTTokenPayload>(token, this.jwtSecret, {});
       return this.decryptPayload({ result: decodedToken });
     } catch (error) {
-      this.logger.error('[verify] Failed to verify token | Error: %s', error);
+      this.logger.error("[verify] Failed to verify token | Error: %s", error);
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: `[verify] Failed to verify token | Message: ${error.message}`,
@@ -198,7 +198,7 @@ export class JWTTokenService extends BaseService {
     const encryptedPayload = this.encryptPayload(opts.payload);
 
     return new SignJWT(Object.assign({}, encryptedPayload))
-      .setProtectedHeader({ alg: this.options.headerAlgorithm ?? 'HS256' })
+      .setProtectedHeader({ alg: this.options.headerAlgorithm ?? "HS256" })
       .setIssuedAt()
       .setExpirationTime(now + expiresIn)
       .setNotBefore(now);
@@ -214,7 +214,7 @@ export class JWTTokenService extends BaseService {
     if (!payload) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-        message: '[generate] Invalid token payload!',
+        message: "[generate] Invalid token payload!",
       });
     }
 
@@ -224,7 +224,7 @@ export class JWTTokenService extends BaseService {
       const rs = await signer.sign(this.jwtSecret);
       return rs;
     } catch (error) {
-      this.logger.error('[generate] Failed to generate token | Error: %s', error);
+      this.logger.error("[generate] Failed to generate token | Error: %s", error);
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[generate] Failed to generate token | Error: ${error.message}`,

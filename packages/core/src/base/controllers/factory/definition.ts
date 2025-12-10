@@ -1,8 +1,8 @@
-import { RouteConfig, z } from '@hono/zod-openapi';
-import { RestPaths, TAuthRouteConfig } from '../common';
-import { HTTP } from '@venizia/ignis-helpers';
-import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories';
-import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models';
+import { RouteConfig, z } from "@hono/zod-openapi";
+import { RestPaths, TAuthRouteConfig } from "../common";
+import { HTTP } from "@venizia/ignis-helpers";
+import { CountSchema, FilterSchema, WhereSchema } from "@/base/repositories";
+import { getIdType, idParamsSchema, jsonContent, jsonResponse } from "@/base/models";
 
 export const defineRouteConfigs = <RC extends TAuthRouteConfig<RouteConfig>>(configs: RC) => {
   return configs;
@@ -71,7 +71,7 @@ export const defineControllerRouteConfigs = (opts: {
     // -----------------------------------------------------------------------------
     FIND_BY_ID: defineRouteConfigs({
       method: HTTP.Methods.GET,
-      path: '/:id',
+      path: "/:id",
       request: {
         params: idParamsSchema({ idType }),
         query: z.object({ filter: FilterSchema }),
@@ -99,7 +99,7 @@ export const defineControllerRouteConfigs = (opts: {
       path: RestPaths.ROOT,
       request: {
         body: jsonContent({
-          description: 'CREATE | Request body',
+          description: "CREATE | Request body",
           schema: overrided?.createRequestBody ?? createSchema,
         }),
       },
@@ -113,11 +113,11 @@ export const defineControllerRouteConfigs = (opts: {
     // -----------------------------------------------------------------------------
     UPDATE_BY_ID: defineRouteConfigs({
       method: HTTP.Methods.PATCH,
-      path: '/:id',
+      path: "/:id",
       request: {
         params: idParamsSchema({ idType }),
         body: jsonContent({
-          description: 'UPDATE BY ID | Request body',
+          description: "UPDATE BY ID | Request body",
           schema: overrided?.updateByIdRequestBody ?? updateSchema,
         }),
       },
@@ -135,7 +135,7 @@ export const defineControllerRouteConfigs = (opts: {
       request: {
         query: z.object({ where: WhereSchema }),
         body: jsonContent({
-          description: 'UPDATE BY CONDITION | Request body',
+          description: "UPDATE BY CONDITION | Request body",
           schema: overrided?.updateByRequestBody ?? updateSchema,
         }),
       },
@@ -150,7 +150,7 @@ export const defineControllerRouteConfigs = (opts: {
     // -----------------------------------------------------------------------------
     DELETE_BY_ID: defineRouteConfigs({
       method: HTTP.Methods.DELETE,
-      path: '/:id',
+      path: "/:id",
       request: {
         params: idParamsSchema({ idType }),
       },

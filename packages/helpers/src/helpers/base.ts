@@ -1,4 +1,4 @@
-import { ApplicationLogger, LoggerFactory } from '@/helpers/logger';
+import { ApplicationLogger, LoggerFactory } from "@/helpers/logger";
 
 export class BaseHelper {
   scope: string;
@@ -7,11 +7,11 @@ export class BaseHelper {
 
   constructor(opts: { scope: string; identifier?: string }) {
     this.logger = LoggerFactory.getLogger(
-      [opts.scope, opts.identifier ?? ''].filter(el => el && el.length > 0),
+      [opts.scope, opts.identifier ?? ""].filter(el => el && el.length > 0),
     );
 
-    this.scope = opts.scope ?? '';
-    this.identifier = opts.identifier ?? '';
+    this.scope = opts.scope ?? "";
+    this.identifier = opts.identifier ?? "";
   }
 
   getIdentifier() {

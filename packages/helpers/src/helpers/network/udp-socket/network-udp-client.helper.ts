@@ -1,6 +1,6 @@
-import { BaseHelper } from '@/helpers/base';
-import { ValueOrPromise } from '@/common';
-import dgram from 'node:dgram';
+import { BaseHelper } from "@/helpers/base";
+import { ValueOrPromise } from "@/common";
+import dgram from "node:dgram";
 
 interface INetworkUdpClientProps {
   identifier: string;
@@ -91,7 +91,7 @@ export class NetworkUdpClient extends BaseHelper {
 
   handleConnected() {
     this.logger.info(
-      '[handleConnected][%s] Successfully bind connection | Options: %j',
+      "[handleConnected][%s] Successfully bind connection | Options: %j",
       this.identifier,
       {
         host: this.host,
@@ -103,7 +103,7 @@ export class NetworkUdpClient extends BaseHelper {
 
   handleData(opts: { identifier: string; message: string | Buffer; remoteInfo: dgram.RemoteInfo }) {
     this.logger.info(
-      '[handleData][%s][%s:%d][<==] Raw: %s',
+      "[handleData][%s][%s:%d][<==] Raw: %s",
       this.identifier,
       this.host,
       this.port,
@@ -116,7 +116,7 @@ export class NetworkUdpClient extends BaseHelper {
 
   handleClosed() {
     this.logger.info(
-      '[handleClosed][%s] Closed connection TCP Server | Options: %j',
+      "[handleClosed][%s] Closed connection TCP Server | Options: %j",
       this.identifier,
       {
         host: this.host,
@@ -128,7 +128,7 @@ export class NetworkUdpClient extends BaseHelper {
 
   handleError(opts: { identifier: string; error: Error }) {
     this.logger.error(
-      '[handleError][%s] Connection error | Options: %j | Error: %s',
+      "[handleError][%s] Connection error | Options: %j | Error: %s",
       this.identifier,
       {
         host: this.host,
@@ -140,37 +140,37 @@ export class NetworkUdpClient extends BaseHelper {
 
   connect() {
     if (this.client) {
-      this.logger.info('[connect][%s] UdpClient is already initialized!', this.identifier);
+      this.logger.info("[connect][%s] UdpClient is already initialized!", this.identifier);
       return;
     }
 
     if (!this.port) {
-      this.logger.info('[connect][%s] Cannot init UDP Client with null options', this.identifier);
+      this.logger.info("[connect][%s] Cannot init UDP Client with null options", this.identifier);
       return;
     }
 
     this.logger.info(
-      '[connect][%s] New network udp client | Host: %s | Port: %s | multicastAddress: %j',
+      "[connect][%s] New network udp client | Host: %s | Port: %s | multicastAddress: %j",
       this.identifier,
       this.host,
       this.port,
       this.multicastAddress,
     );
 
-    this.client = dgram.createSocket({ type: 'udp4', reuseAddr: this.reuseAddr });
-    this.client.on('close', () => {
+    this.client = dgram.createSocket({ type: "udp4", reuseAddr: this.reuseAddr });
+    this.client.on("close", () => {
       this.onClosed?.({ identifier: this.identifier, host: this.host, port: this.port });
     });
 
-    this.client.on('error', error => {
+    this.client.on("error", error => {
       this.onError?.({ identifier: this.identifier, host: this.host, port: this.port, error });
     });
 
-    this.client.on('listening', () => {
+    this.client.on("listening", () => {
       this.onConnected?.({ identifier: this.identifier, host: this.host, port: this.port });
     });
 
-    this.client.on('message', (message: string | Buffer, remoteInfo: dgram.RemoteInfo) => {
+    this.client.on("message", (message: string | Buffer, remoteInfo: dgram.RemoteInfo) => {
       this.onData?.({ identifier: this.identifier, message, remoteInfo });
     });
 
@@ -188,14 +188,14 @@ export class NetworkUdpClient extends BaseHelper {
 
   disconnect() {
     if (!this.client) {
-      this.logger.info('[disconnect][%s] UdpClient is not initialized yet!', this.identifier);
+      this.logger.info("[disconnect][%s] UdpClient is not initialized yet!", this.identifier);
       return;
     }
 
     this.client?.close();
 
     this.client = null;
-    this.logger.info('[disconnect][%s] UdpClient is destroyed!', this.identifier);
+    this.logger.info("[disconnect][%s] UdpClient is destroyed!", this.identifier);
   }
 
   isConnected() {

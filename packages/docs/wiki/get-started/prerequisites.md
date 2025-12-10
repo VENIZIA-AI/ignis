@@ -8,13 +8,12 @@ Before starting with Ignis, ensure you have the following installed and configur
 
 | Tool | Version | Purpose | Installation |
 |------|---------|---------|--------------|
-| **Bun** | ≥ 1.0.0 | JavaScript runtime (faster alternative to Node.js) | [bun.sh](https://bun.sh) |
+| **Bun** | ≥ 1.3 | JavaScript runtime & package manager | [bun.sh](https://bun.sh) |
 | **PostgreSQL** | ≥ 14.x | Database server for storing your data | [postgresql.org/download](https://www.postgresql.org/download/) |
-| **Node.js** (optional) | ≥ 18.x | Alternative runtime if you prefer Node over Bun | [nodejs.org](https://nodejs.org/) |
 
 ### Installation Quick Links
 
-**Bun (Recommended):**
+**Bun:**
 ```bash
 # macOS/Linux
 curl -fsSL https://bun.sh/install | bash
@@ -35,7 +34,7 @@ After installing, verify everything works:
 ```bash
 # Check Bun
 bun --version
-# Expected: 1.0.0 or higher
+# Expected: 1.3.0 or higher
 
 # Check PostgreSQL
 psql --version

@@ -1,5 +1,5 @@
-import { requiredString } from '@/utilities';
-import { z } from '@hono/zod-openapi';
+import { requiredString } from "@/utilities";
+import { z } from "@hono/zod-openapi";
 
 export const SignInRequestSchema = z
   .object({
@@ -9,8 +9,8 @@ export const SignInRequestSchema = z
         value: requiredString({ min: 8 }),
       })
       .openapi({
-        required: ['scheme', 'value'],
-        description: 'Sign-In Identifier',
+        required: ["scheme", "value"],
+        description: "Sign-In Identifier",
       }),
     credential: z
       .object({
@@ -18,24 +18,24 @@ export const SignInRequestSchema = z
         value: requiredString({ min: 8 }),
       })
       .openapi({
-        required: ['scheme', 'value'],
-        description: 'Sign-In Credential',
+        required: ["scheme", "value"],
+        description: "Sign-In Credential",
       }),
     clientId: z.string().optional().openapi({
-      description: 'Authenticate Provider',
+      description: "Authenticate Provider",
     }),
   })
   .openapi({
-    required: ['identifier', 'credential'],
+    required: ["identifier", "credential"],
     examples: [
       {
-        identifier: { scheme: 'username', value: 'test_username' },
-        credential: { scheme: 'basic', value: 'test_password' },
+        identifier: { scheme: "username", value: "test_username" },
+        credential: { scheme: "basic", value: "test_password" },
       },
       {
-        identifier: { scheme: 'username', value: 'test_username' },
-        credential: { scheme: 'basic', value: 'test_password' },
-        clientId: 'auth-provider',
+        identifier: { scheme: "username", value: "test_username" },
+        credential: { scheme: "basic", value: "test_password" },
+        clientId: "auth-provider",
       },
     ],
   });
