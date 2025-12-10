@@ -60,14 +60,14 @@ Ignis brings together the structured, enterprise development experience of **Loo
 
 ### 🔄 The Middle Ground
 
-| Aspect | Minimal Frameworks | Enterprise Frameworks | **Ignis** |
-|--------|-------------------|----------------------|-----------|
-| **Examples** | Express, Hono, Fastify | NestJS, LoopBack | **Ignis** |
-| **Performance** | ⚡ Very fast | 🐌 Slower | ⚡ Very fast |
-| **Architecture** | ❌ No structure | ✅ Structured | ✅ Structured |
-| **Learning Curve** | ✅ Easy | ❌ Steep | ✅ Gradual |
-| **Dependency Injection** | ❌ Manual | ✅ Built-in | ✅ Built-in |
-| **Boilerplate** | ✅ Minimal | ❌ Heavy | ✅ Moderate |
+| Aspect                   | Minimal Frameworks     | Enterprise Frameworks | **Ignis**     |
+| ------------------------ | ---------------------- | --------------------- | ------------- |
+| **Examples**             | Express, Hono, Fastify | NestJS, LoopBack      | **Ignis**     |
+| **Performance**          | ⚡ Very fast           | 🐌 Slower             | ⚡ Very fast  |
+| **Architecture**         | ❌ No structure        | ✅ Structured         | ✅ Structured |
+| **Learning Curve**       | ✅ Easy                | ❌ Steep              | ✅ Gradual    |
+| **Dependency Injection** | ❌ Manual              | ✅ Built-in           | ✅ Built-in   |
+| **Boilerplate**          | ✅ Minimal             | ❌ Heavy              | ✅ Moderate   |
 
 ---
 
@@ -75,15 +75,16 @@ Ignis brings together the structured, enterprise development experience of **Loo
 
 Before starting with Ignis, ensure you have:
 
-| Tool | Version | Purpose |
-|------|---------|---------|
-| **Bun** | ≥ 1.3.0 | JavaScript runtime (recommended) |
-| **Node.js** | ≥ 18.x | Alternative runtime (optional) |
-| **PostgreSQL** | ≥ 14.x | Database server |
+| Tool           | Version | Purpose                          |
+| -------------- | ------- | -------------------------------- |
+| **Bun**        | ≥ 1.3.0 | JavaScript runtime (recommended) |
+| **Node.js**    | ≥ 18.x  | Alternative runtime (optional)   |
+| **PostgreSQL** | ≥ 14.x  | Database server                  |
 
 ### Installation Commands
 
 **Bun (Recommended):**
+
 ```bash
 # macOS/Linux
 curl -fsSL https://bun.sh/install | bash
@@ -93,6 +94,7 @@ curl -fsSL https://bun.sh/install | bash
 ```
 
 **PostgreSQL:**
+
 ```bash
 # macOS
 brew install postgresql@14
@@ -105,6 +107,7 @@ sudo apt-get install postgresql-14
 ```
 
 **Verify Installation:**
+
 ```bash
 bun --version    # Expected: 1.3.0 or higher
 psql --version   # Expected: psql (PostgreSQL) 14.x or higher
@@ -125,12 +128,14 @@ bun init -y
 ### 2. Install Dependencies
 
 **Production Dependencies:**
+
 ```bash
 bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis dotenv-flow
 bun add drizzle-orm drizzle-zod pg lodash
 ```
 
 **Development Dependencies:**
+
 ```bash
 bun add -d typescript @types/bun @vez/dev-configs
 bun add -d tsc-alias tsconfig-paths
@@ -161,15 +166,26 @@ bun add -d drizzle-kit @types/pg @types/lodash
 **ESLint** - Create `eslint.config.mjs`:
 
 ```javascript
-import configs from '@vez/dev-configs/eslint';
-export default configs;
+import { eslintConfigs } from "@vez/dev-configs";
+
+export default eslintConfigs;
 ```
 
 **Prettier** - Create `.prettierrc.mjs`:
 
 ```javascript
-import config from '@vez/dev-configs/prettier';
-export default config;
+import { prettierConfigs } from "@vez/dev-configs";
+
+export default prettierConfigs;
+```
+
+Create `.prettierignore`:
+
+```
+dist
+node_modules
+*.log
+.*-audit.json
 ```
 
 ---
@@ -181,7 +197,7 @@ export default config;
 Create `index.ts`:
 
 ```typescript
-import { z } from '@hono/zod-openapi';
+import { z } from "@hono/zod-openapi";
 import {
   BaseApplication,
   BaseController,
@@ -190,35 +206,37 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from '@vez/ignis';
-import { Context } from 'hono';
-import appInfo from './../package.json';
+} from "@vez/ignis";
+import { Context } from "hono";
+import appInfo from "./../package.json";
 
 // 1. Define a controller
-@controller({ path: '/hello' })
+@controller({ path: "/hello" })
 class HelloController extends BaseController {
   constructor() {
-    super({ scope: 'HelloController', path: '/hello' });
+    super({ scope: "HelloController", path: "/hello" });
   }
 
-  binding() {
+  // NOTE: This is a function that must be overridden.
+  override binding() {
     // Bind dependencies here (if needed)
+    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
   }
 
   @get({
     configs: {
-      path: '/',
+      path: "/",
       method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: 'Says hello',
+          description: "Says hello",
           schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: "Hello from Ignis!" }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
@@ -247,11 +265,11 @@ class App extends BaseApplication {
 
 // 3. Start the server
 const app = new App({
-  scope: 'App',
+  scope: "App",
   config: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 3000,
-    path: { base: '/api', isStrict: false },
+    path: { base: "/api", isStrict: false },
   },
 });
 
@@ -265,6 +283,7 @@ bun run index.ts
 ```
 
 **Test the endpoint:**
+
 ```bash
 curl http://localhost:3000/api/hello
 # Response: {"message":"Hello from Ignis!"}
@@ -311,26 +330,26 @@ my-ignis-app/
 
 Add these scripts to your `package.json`:
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| **Development** | | |
-| `server:dev` | `NODE_ENV=development bun .` | Start development server |
-| `rebuild` | `bun run clean && bun run build` | Clean and rebuild project |
-| **Building** | | |
-| `build` | `tsc -p tsconfig.json && tsc-alias -p tsconfig.json` | Compile TypeScript to JavaScript |
-| `compile:linux` | `bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app` | Create standalone binary for Linux |
-| `clean` | `sh ./scripts/clean.sh` | Remove build artifacts |
-| **Database** | | |
-| `migrate:dev` | `NODE_ENV=development drizzle-kit push --config=src/migration.ts` | Apply database migrations |
-| `generate-migration:dev` | `NODE_ENV=development drizzle-kit generate --config=src/migration.ts` | Generate migration files |
-| **Code Quality** | | |
-| `lint` | `bun run eslint && bun run prettier:cli` | Check code style |
-| `lint:fix` | `bun run eslint --fix && bun run prettier:fix` | Auto-fix code style issues |
-| `eslint` | `eslint --report-unused-disable-directives .` | Run ESLint |
-| `prettier:cli` | `prettier "**/*.{js,ts}" -l` | Check formatting |
-| `prettier:fix` | `prettier "**/*.{js,ts}" --write` | Auto-format code |
-| **Production** | | |
-| `server:prod` | `NODE_ENV=production bun .` | Start production server |
+| Script                   | Command                                                                                                  | Description                        |
+| ------------------------ | -------------------------------------------------------------------------------------------------------- | ---------------------------------- |
+| **Development**          |                                                                                                          |                                    |
+| `server:dev`             | `NODE_ENV=development bun .`                                                                             | Start development server           |
+| `rebuild`                | `bun run clean && bun run build`                                                                         | Clean and rebuild project          |
+| **Building**             |                                                                                                          |                                    |
+| `build`                  | `tsc -p tsconfig.json && tsc-alias -p tsconfig.json`                                                     | Compile TypeScript to JavaScript   |
+| `compile:linux`          | `bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app` | Create standalone binary for Linux |
+| `clean`                  | `sh ./scripts/clean.sh`                                                                                  | Remove build artifacts             |
+| **Database**             |                                                                                                          |                                    |
+| `migrate:dev`            | `NODE_ENV=development drizzle-kit push --config=src/migration.ts`                                        | Apply database migrations          |
+| `generate-migration:dev` | `NODE_ENV=development drizzle-kit generate --config=src/migration.ts`                                    | Generate migration files           |
+| **Code Quality**         |                                                                                                          |                                    |
+| `lint`                   | `bun run eslint && bun run prettier:cli`                                                                 | Check code style                   |
+| `lint:fix`               | `bun run eslint --fix && bun run prettier:fix`                                                           | Auto-fix code style issues         |
+| `eslint`                 | `eslint --report-unused-disable-directives .`                                                            | Run ESLint                         |
+| `prettier:cli`           | `prettier "**/*.{js,ts}" -l`                                                                             | Check formatting                   |
+| `prettier:fix`           | `prettier "**/*.{js,ts}" --write`                                                                        | Auto-format code                   |
+| **Production**           |                                                                                                          |                                    |
+| `server:prod`            | `NODE_ENV=production bun .`                                                                              | Start production server            |
 
 ### Example `package.json` Scripts Section
 
@@ -411,13 +430,13 @@ Add these scripts to your `package.json`:
 Ignis uses decorator-based dependency injection:
 
 ```typescript
-@controller({ path: '/todos' })
+@controller({ path: "/todos" })
 export class TodoController extends BaseController {
   constructor(
-    @inject('repositories.TodoRepository')
+    @inject("repositories.TodoRepository")
     private todoRepository: TodoRepository,
   ) {
-    super({ scope: 'TodoController', path: '/todos' });
+    super({ scope: "TodoController", path: "/todos" });
   }
 }
 ```
@@ -429,6 +448,7 @@ export class TodoController extends BaseController {
 Comprehensive documentation is available in the `packages/docs/wiki` directory:
 
 ### Getting Started
+
 - [Philosophy](packages/docs/wiki/get-started/philosophy.md) - Understand the "why" behind Ignis
 - [Prerequisites](packages/docs/wiki/get-started/prerequisites.md) - Required tools and setup
 - [5-Minute Quickstart](packages/docs/wiki/get-started/5-minute-quickstart.md) - Fastest path to a working API
@@ -436,6 +456,7 @@ Comprehensive documentation is available in the `packages/docs/wiki` directory:
 - [Building a CRUD API](packages/docs/wiki/get-started/building-a-crud-api.md) - Complete tutorial
 
 ### Core Concepts
+
 - [Application Lifecycle](packages/docs/wiki/get-started/core-concepts/application.md)
 - [Controllers](packages/docs/wiki/get-started/core-concepts/controllers.md)
 - [Dependency Injection](packages/docs/wiki/get-started/core-concepts/dependency-injection.md)
@@ -444,18 +465,21 @@ Comprehensive documentation is available in the `packages/docs/wiki` directory:
 - [Components](packages/docs/wiki/get-started/core-concepts/components.md)
 
 ### Best Practices
+
 - [Architectural Patterns](packages/docs/wiki/get-started/best-practices/architectural-patterns.md)
 - [Security Guidelines](packages/docs/wiki/get-started/best-practices/security-guidelines.md)
 - [Performance Optimization](packages/docs/wiki/get-started/best-practices/performance-optimization.md)
 - [Code Style Standards](packages/docs/wiki/get-started/best-practices/code-style-standards.md)
 
 ### API Reference
+
 - [Components](packages/docs/wiki/references/components/)
 - [Base Abstractions](packages/docs/wiki/references/base/)
 - [Helpers](packages/docs/wiki/references/helpers/)
 - [Utilities](packages/docs/wiki/references/utilities/)
 
 ### Interactive Documentation
+
 Run the documentation server locally:
 
 ```bash
@@ -471,6 +495,7 @@ Then visit `http://localhost:5173` in your browser.
 ### Complete CRUD Example
 
 See [Building a CRUD API](packages/docs/wiki/get-started/building-a-crud-api.md) for a full tutorial on creating a Todo API with:
+
 - Database models and migrations
 - Repository pattern for data access
 - Auto-generated CRUD endpoints
@@ -544,6 +569,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 ## 🙏 Acknowledgments
 
 Ignis is inspired by:
+
 - **[LoopBack 4](https://loopback.io/)** - Enterprise patterns and architecture
 - **[Hono](https://hono.dev/)** - Performance and modern API design
 

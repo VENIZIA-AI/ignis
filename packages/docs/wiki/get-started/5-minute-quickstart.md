@@ -24,7 +24,10 @@ Create `tsconfig.json`:
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "src"
+    "baseUrl": "src",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
@@ -34,14 +37,7 @@ Create `tsconfig.json`:
 Create `eslint.config.mjs`:
 
 ```javascript
-import configs from '@vez/dev-configs/eslint';
-export default configs;
-```
-
-Create `eslint.config.mjs`:
-
-```javascript
-import { eslintConfigs } from '@vez/dev-configs';
+import { eslintConfigs } from "@vez/dev-configs";
 
 export default eslintConfigs;
 ```
@@ -49,7 +45,7 @@ export default eslintConfigs;
 Create `.prettierrc.mjs`:
 
 ```javascript
-import { prettierConfigs } from '@vez/dev-configs';
+import { prettierConfigs } from "@vez/dev-configs";
 
 export default prettierConfigs;
 ```
@@ -68,7 +64,7 @@ node_modules
 Create `index.ts`:
 
 ```typescript
-import { z } from '@hono/zod-openapi';
+import { z } from "@hono/zod-openapi";
 import {
   BaseApplication,
   BaseController,
@@ -77,35 +73,37 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from '@vez/ignis';
-import { Context } from 'hono';
-import appInfo from './../package.json';
+} from "@vez/ignis";
+import { Context } from "hono";
+import appInfo from "./../package.json";
 
 // 1. Define a controller
-@controller({ path: '/hello' })
+@controller({ path: "/hello" })
 class HelloController extends BaseController {
   constructor() {
-    super({ scope: 'HelloController', path: '/hello' });
+    super({ scope: "HelloController", path: "/hello" });
   }
 
-  binding() {
+  // NOTE: This is a function that must be overridden.
+  override binding() {
     // Bind dependencies here (if needed)
+    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
   }
 
   @get({
     configs: {
-      path: '/',
+      path: "/",
       method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: 'Says hello',
+          description: "Says hello",
           schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: "Hello from Ignis!" }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
@@ -134,11 +132,11 @@ class App extends BaseApplication {
 
 // 3. Start the server
 const app = new App({
-  scope: 'App',
+  scope: "App",
   config: {
-    host: '0.0.0.0',
+    host: "0.0.0.0",
     port: 3000,
-    path: { base: '/api', isStrict: false },
+    path: { base: "/api", isStrict: false },
   },
 });
 
@@ -207,8 +205,9 @@ bun run index.ts
 Visit `http://localhost:3000/api/hello` in your browser!
 
 **Response:**
+
 ```json
-{"message":"Hello from Ignis!"}
+{ "message": "Hello from Ignis!" }
 ```
 
 ## What Just Happened?
@@ -227,6 +226,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 ✅ **You have a working API!**
 
 **Want more?**
+
 - **Add a database?** → [Building a CRUD API](./building-a-crud-api.md)
 - **Production setup?** → [Complete Setup Guide](./quickstart.md) (ESLint, Prettier, etc.)
 - **Understand the architecture?** → [Core Concepts](./core-concepts/application.md)
@@ -234,6 +234,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 **Quick additions:**
 
 **Add a POST endpoint:**
+
 ```typescript
 @post({
   configs: {
@@ -257,6 +258,7 @@ async greet(c: Context) {
 ```
 
 Test it:
+
 ```bash
 curl -X POST http://localhost:3000/api/hello/greet \
   -H "Content-Type: application/json" \

@@ -18,8 +18,10 @@ class HelloController extends BaseController {
     super({ scope: "HelloController", path: "/hello" });
   }
 
-  binding() {
+  // NOTE: This is a function that must be overridden.
+  override binding() {
     // Bind dependencies here (if needed)
+    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
   }
 
   @get({
