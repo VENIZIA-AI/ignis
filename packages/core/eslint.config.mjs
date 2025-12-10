@@ -1,3 +1,3 @@
-import configs from '@vez/dev-configs/eslint';
+import { eslintConfigs } from "@vez/dev-configs";
 
-export default configs;
+export default eslintConfigs;

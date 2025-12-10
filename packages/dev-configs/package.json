@@ -17,17 +17,8 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./eslint": {
-      "types": "./dist/eslint.d.ts",
-      "default": "./dist/eslint.js"
-    },
-    "./prettier": {
-      "types": "./dist/prettier.d.ts",
-      "default": "./dist/prettier.js"
-    },
     "./tsconfig.base.json": "./tsconfig/tsconfig.base.json",
     "./tsconfig.common.json": "./tsconfig/tsconfig.common.json",
-    "./prettierignore": "./prettier/.prettierignore",
     "./package.json": "./package.json"
   },
   "engines": {

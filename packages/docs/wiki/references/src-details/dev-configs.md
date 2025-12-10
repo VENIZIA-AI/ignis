@@ -17,12 +17,18 @@ The `@vez/dev-configs` package provides centralized, shared development configur
 
 | Export Path | Type | Description |
 |-------------|------|-------------|
-| `@vez/dev-configs` | Module | Main entry (eslintConfig, prettierConfig) |
-| `@vez/dev-configs/eslint` | Module | ESLint configuration array |
-| `@vez/dev-configs/prettier` | Module | Prettier configuration object |
+| `@vez/dev-configs` | Module | Named exports: `eslintConfigs`, `prettierConfigs` |
 | `@vez/dev-configs/tsconfig.base.json` | JSON | Base TypeScript configuration |
 | `@vez/dev-configs/tsconfig.common.json` | JSON | Common TypeScript config for packages |
-| `@vez/dev-configs/prettierignore` | File | Prettier ignore patterns |
+
+### Named Exports
+
+```typescript
+import { eslintConfigs, prettierConfigs } from '@vez/dev-configs';
+```
+
+- **`eslintConfigs`**: `Linter.Config[]` - ESLint flat config array
+- **`prettierConfigs`**: `Config` - Prettier configuration object
 
 ---
 
@@ -33,9 +39,9 @@ The `@vez/dev-configs` package provides centralized, shared development configur
 Create an `eslint.config.mjs` file in your package:
 
 ```javascript
-import configs from '@vez/dev-configs/eslint';
+import { eslintConfigs } from '@vez/dev-configs';
 
-export default configs;
+export default eslintConfigs;
 ```
 
 ### Extending the Config
@@ -43,10 +49,10 @@ export default configs;
 To add package-specific rules:
 
 ```javascript
-import baseConfigs from '@vez/dev-configs/eslint';
+import { eslintConfigs } from '@vez/dev-configs';
 
 const configs = [
-  ...baseConfigs,
+  ...eslintConfigs,
   {
     // Add custom ignores
     ignores: ['custom-folder/**'],
@@ -78,9 +84,9 @@ export default configs;
 Create a `.prettierrc.mjs` file in your package:
 
 ```javascript
-import config from '@vez/dev-configs/prettier';
+import { prettierConfigs } from '@vez/dev-configs';
 
-export default config;
+export default prettierConfigs;
 ```
 
 ### Configuration Options
@@ -88,7 +94,7 @@ export default config;
 | Option | Value | Description |
 |--------|-------|-------------|
 | `bracketSpacing` | `true` | Spaces inside object braces: `{ foo: bar }` |
-| `singleQuote` | `true` | Use single quotes instead of double |
+| `singleQuote` | `false` | Use double quotes (changed from single) |
 | `printWidth` | `100` | Maximum line width |
 | `tabWidth` | `2` | Spaces per indentation level |
 | `trailingComma` | `'all'` | Trailing commas everywhere possible |
@@ -97,21 +103,22 @@ export default config;
 
 ### Prettier Ignore
 
-Copy or symlink the prettierignore file:
+Create a `.prettierignore` file in your package:
 
-```bash
-# In your package directory
-cp node_modules/@vez/dev-configs/prettier/.prettierignore .prettierignore
+```
+dist
+node_modules
+*.log
+.*-audit.json
 ```
 
-Default ignored patterns:
+Recommended ignore patterns:
 - `dist` - Build output
-- `examples` - Example code
 - `node_modules` - Dependencies
-- `coverage` - Test coverage
-- `build` - Alternative build output
-- `*.min.js` - Minified JavaScript
-- `*.min.css` - Minified CSS
+- `*.log` - Log files
+- `.*-audit.json` - Audit files
+- `coverage` - Test coverage (if applicable)
+- `*.min.js` - Minified files (if applicable)
 
 ---
 
@@ -246,14 +253,24 @@ packages/dev-configs/
 
 **`eslint.config.mjs`:**
 ```javascript
-import configs from '@vez/dev-configs/eslint';
-export default configs;
+import { eslintConfigs } from '@vez/dev-configs';
+
+export default eslintConfigs;
 ```
 
 **`.prettierrc.mjs`:**
 ```javascript
-import config from '@vez/dev-configs/prettier';
-export default config;
+import { prettierConfigs } from '@vez/dev-configs';
+
+export default prettierConfigs;
+```
+
+**`.prettierignore`:**
+```
+dist
+node_modules
+*.log
+.*-audit.json
 ```
 
 3. Add lint scripts to `package.json`:
@@ -261,11 +278,8 @@ export default config;
 ```json
 {
   "scripts": {
-    "eslint": "eslint --report-unused-disable-directives .",
-    "lint": "bun run eslint && bun run prettier:cli",
-    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
-    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
-    "prettier:fix": "bun run prettier:cli --write"
+    "lint": "eslint --report-unused-disable-directives . && prettier \"**/*.{js,ts}\" -l",
+    "lint:fix": "eslint --report-unused-disable-directives . --fix && prettier \"**/*.{js,ts}\" --write"
   }
 }
 ```

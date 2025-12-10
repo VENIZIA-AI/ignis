@@ -5,6 +5,25 @@
     "": {
       "name": "@vez/lib",
     },
+    "examples/5-mins-qs": {
+      "name": "5-mins-qs",
+      "version": "1.0.0",
+      "dependencies": {
+        "@hono/zod-openapi": "latest",
+        "@scalar/hono-api-reference": "latest",
+        "@vez/ignis": "workspace:*",
+        "hono": "^4.4.12",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@vez/dev-configs": "workspace:*",
+        "eslint": "^9.36.0",
+        "prettier": "^3.6.2",
+        "tsc-alias": "^1.8.10",
+        "tsconfig-paths": "^4.2.0",
+        "typescript": "^5.5.3",
+      },
+    },
     "examples/rpc-api-server": {
       "name": "@nx/rpc-api-server",
       "version": "0.0.1",
@@ -252,6 +271,8 @@
     },
   },
   "packages": {
+    "5-mins-qs": ["5-mins-qs@workspace:examples/5-mins-qs"],
+
     "@a2a-js/sdk": ["@a2a-js/sdk@0.2.5", "", { "dependencies": { "@types/cors": "^2.8.17", "@types/express": "^4.17.23", "body-parser": "^2.2.0", "cors": "^2.8.5", "express": "^4.21.2", "uuid": "^11.1.0" } }, "sha512-VTDuRS5V0ATbJ/LkaQlisMnTAeYKXAK6scMguVBstf+KIBQ7HIuKhiXLv+G/hvejkV+THoXzoNifInAkU81P1g=="],
 
     "@ai-sdk/anthropic-v5": ["@ai-sdk/anthropic@2.0.33", "", { "dependencies": { "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.12" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-egqr9PHqqX2Am5mn/Xs1C3+1/wphVKiAjpsVpW85eLc2WpW7AgiAg52DCBr4By9bw3UVVuMeR4uEO1X0dKDUDA=="],

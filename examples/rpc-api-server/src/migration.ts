@@ -18,7 +18,7 @@ const migration = () => {
     ssl: false,
   };
 
-  console.log(databaseConfigs);
+  logger.info('[migration] databaseConfigs: %j', databaseConfigs);
 
   return defineConfig({
     dialect: 'postgresql',

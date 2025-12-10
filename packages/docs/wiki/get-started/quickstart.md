@@ -73,20 +73,23 @@ Create `tsconfig.json` in your project root:
 Create `.prettierrc.mjs` for code formatting:
 
 ```javascript
-import config from '@vez/dev-configs/prettier';
-export default config;
+import { prettierConfigs } from '@vez/dev-configs';
+
+export default prettierConfigs;
 ```
 
 Create `.prettierignore`:
 ```
 dist
-*.json
+node_modules
+*.log
+.*-audit.json
 ```
 
 > **Customization:** To override Prettier settings, merge with the base config:
 > ```javascript
-> import baseConfig from '@vez/dev-configs/prettier';
-> export default { ...baseConfig, printWidth: 120 };
+> import { prettierConfigs } from '@vez/dev-configs';
+> export default { ...prettierConfigs, printWidth: 120 };
 > ```
 
 ### ESLint
@@ -94,14 +97,15 @@ dist
 Create `eslint.config.mjs` for code linting:
 
 ```javascript
-import configs from '@vez/dev-configs/eslint';
-export default configs;
+import { eslintConfigs } from '@vez/dev-configs';
+
+export default eslintConfigs;
 ```
 
 > **Customization:** To add project-specific rules:
 > ```javascript
-> import baseConfigs from '@vez/dev-configs/eslint';
-> export default [...baseConfigs, { rules: { 'no-console': 'warn' } }];
+> import { eslintConfigs } from '@vez/dev-configs';
+> export default [...eslintConfigs, { rules: { 'no-console': 'warn' } }];
 > ```
 
 > **Deep Dive:** See [Code Style Standards](./best-practices/code-style-standards.md) for detailed configuration options.

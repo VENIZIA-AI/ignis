@@ -1,9 +1,9 @@
-import baseConfigs from '@vez/dev-configs/eslint';
+import { eslintConfigs } from "@vez/dev-configs";
 
 const configs = [
-  ...baseConfigs,
+  ...eslintConfigs,
   {
-    ignores: ['site/.vitepress/cache/**', 'site/.vitepress/config.mts', 'site/.vitepress/theme/**'],
+    ignores: ["site/.vitepress/cache/**", "site/.vitepress/config.mts", "site/.vitepress/theme/**"],
   },
 ];
 

@@ -21,13 +21,14 @@ Automatic code formatting eliminates style debates.
 
 **`.prettierrc.mjs`:**
 ```javascript
-import config from '@vez/dev-configs/prettier';
-export default config;
+import { prettierConfigs } from '@vez/dev-configs';
+
+export default prettierConfigs;
 ```
 
 **Default Settings:**
 - `bracketSpacing: true` - `{ foo: bar }`
-- `singleQuote: true` - `'string'` not `"string"`
+- `singleQuote: false` - `"string"` (double quotes)
 - `printWidth: 100` - Maximum line length
 - `trailingComma: 'all'` - `[1, 2, 3,]`
 - `arrowParens: 'avoid'` - `x => x` not `(x) => x`
@@ -35,10 +36,10 @@ export default config;
 
 **Customization:**
 ```javascript
-import baseConfig from '@vez/dev-configs/prettier';
+import { prettierConfigs } from '@vez/dev-configs';
 
 export default {
-  ...baseConfig,
+  ...prettierConfigs,
   printWidth: 120,  // Override specific settings
 };
 ```
@@ -57,8 +58,9 @@ Prevents common errors and enforces best practices.
 
 **`eslint.config.mjs`:**
 ```javascript
-import configs from '@vez/dev-configs/eslint';
-export default configs;
+import { eslintConfigs } from '@vez/dev-configs';
+
+export default eslintConfigs;
 ```
 
 **Includes:**
@@ -67,10 +69,10 @@ export default configs;
 
 **Customization:**
 ```javascript
-import baseConfigs from '@vez/dev-configs/eslint';
+import { eslintConfigs } from '@vez/dev-configs';
 
 export default [
-  ...baseConfigs,
+  ...eslintConfigs,
   {
     rules: {
       'no-console': 'warn',  // Add project-specific rules

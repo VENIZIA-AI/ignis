@@ -181,17 +181,18 @@ export default config;
 Create `index.ts`:
 
 ```typescript
+import { z } from '@hono/zod-openapi';
 import {
   BaseApplication,
   BaseController,
-  IApplicationInfo,
   controller,
   get,
   HTTP,
+  IApplicationInfo,
   jsonContent,
 } from '@vez/ignis';
 import { Context } from 'hono';
-import { z } from '@hono/zod-openapi';
+import appInfo from './../package.json';
 
 // 1. Define a controller
 @controller({ path: '/hello' })
@@ -207,6 +208,7 @@ class HelloController extends BaseController {
   @get({
     configs: {
       path: '/',
+      method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
           description: 'Says hello',
@@ -216,14 +218,14 @@ class HelloController extends BaseController {
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' });
+    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
 // 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0' };
+    return appInfo;
   }
 
   staticConfigure() {
@@ -249,7 +251,7 @@ const app = new App({
   config: {
     host: '0.0.0.0',
     port: 3000,
-    path: { base: '/api' },
+    path: { base: '/api', isStrict: false },
   },
 });
 

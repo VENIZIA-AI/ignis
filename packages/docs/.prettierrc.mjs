@@ -1,3 +1,3 @@
-import config from '@vez/dev-configs/prettier';
+import { prettierConfigs } from "@vez/dev-configs";
 
-export default config;
+export default prettierConfigs;

@@ -38,11 +38,29 @@ import configs from '@vez/dev-configs/eslint';
 export default configs;
 ```
 
+Create `eslint.config.mjs`:
+
+```javascript
+import { eslintConfigs } from '@vez/dev-configs';
+
+export default eslintConfigs;
+```
+
 Create `.prettierrc.mjs`:
 
 ```javascript
-import config from '@vez/dev-configs/prettier';
-export default config;
+import { prettierConfigs } from '@vez/dev-configs';
+
+export default prettierConfigs;
+```
+
+Create `.prettierignore`:
+
+```
+dist
+node_modules
+*.log
+.*-audit.json
 ```
 
 ## Step 3: Write Your API (2 minutes)
@@ -50,10 +68,18 @@ export default config;
 Create `index.ts`:
 
 ```typescript
-import { BaseApplication, IApplicationInfo, controller, get, HTTP, jsonContent } from '@vez/ignis';
-import { BaseController } from '@vez/ignis';
-import { Context } from 'hono';
 import { z } from '@hono/zod-openapi';
+import {
+  BaseApplication,
+  BaseController,
+  controller,
+  get,
+  HTTP,
+  IApplicationInfo,
+  jsonContent,
+} from '@vez/ignis';
+import { Context } from 'hono';
+import appInfo from './../package.json';
 
 // 1. Define a controller
 @controller({ path: '/hello' })
@@ -69,6 +95,7 @@ class HelloController extends BaseController {
   @get({
     configs: {
       path: '/',
+      method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
           description: 'Says hello',
@@ -78,14 +105,14 @@ class HelloController extends BaseController {
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' });
+    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
 // 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0' };
+    return appInfo;
   }
 
   staticConfigure() {
@@ -111,11 +138,64 @@ const app = new App({
   config: {
     host: '0.0.0.0',
     port: 3000,
-    path: { base: '/api' }
-  }
+    path: { base: '/api', isStrict: false },
+  },
 });
 
 app.start();
+```
+
+Update `package.json` to add build scripts:
+
+```json
+{
+  "name": "5-mins-qs",
+  "version": "1.0.0",
+  "description": "5-minute quickstart example",
+  "private": true,
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "lint": "eslint --report-unused-disable-directives . && prettier \"**/*.{js,ts}\" -l",
+    "lint:fix": "eslint --report-unused-disable-directives . --fix && prettier \"**/*.{js,ts}\" --write",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "rebuild": "bun run clean && bun run build",
+    "server:dev": "NODE_ENV=development bun run src/index.ts",
+    "server:prod": "NODE_ENV=production bun run dist/index.js"
+  },
+  "dependencies": {
+    "hono": "^4.4.12",
+    "@hono/zod-openapi": "latest",
+    "@scalar/hono-api-reference": "latest",
+    "@vez/ignis": "workspace:*"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.3",
+    "@types/bun": "latest",
+    "@vez/dev-configs": "workspace:*",
+    "eslint": "^9.36.0",
+    "prettier": "^3.6.2",
+    "tsc-alias": "^1.8.10",
+    "tsconfig-paths": "^4.2.0"
+  }
+}
+```
+
+Create `scripts/clean.sh`:
+
+```bash
+#!/bin/bash
+
+# Remove build artifacts
+rm -rf dist/
+rm -rf node_modules/.cache/
+
+# Remove log files
+rm -f *.log
+rm -f .*.log
+rm -f .*-audit.json
+
+echo "Cleaned build artifacts and logs"
 ```
 
 ## Step 4: Run It (30 seconds)

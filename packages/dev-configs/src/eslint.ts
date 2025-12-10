@@ -1,13 +1,11 @@
-import mtLinterConfs from '@minimaltech/eslint-node';
-import type { Linter } from 'eslint';
+import mtLinterConfs from "@minimaltech/eslint-node";
+import type { Linter } from "eslint";
 
-const configs: Linter.Config[] = [
+export const eslintConfigs: Linter.Config[] = [
   ...mtLinterConfs,
   {
     rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
+      "@typescript-eslint/no-explicit-any": "off",
     },
   },
 ];
-
-export default configs;
