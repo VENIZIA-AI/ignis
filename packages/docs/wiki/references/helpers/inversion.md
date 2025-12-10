@@ -2,6 +2,8 @@
 
 Core DI system enabling loosely coupled, testable, and extensible code.
 
+> **Package Architecture Note:** The core DI container functionality has been extracted to a standalone package `@vez/ignis-inversion`. The `@vez/ignis-helpers` package extends and re-exports this functionality with application-specific enhancements (logging, framework metadata). All imports from `@vez/ignis-helpers` or `@vez/ignis` continue to work as before - backward compatibility is maintained.
+
 ## Quick Reference
 
 | Concept | Description |
@@ -128,7 +130,8 @@ export class UserController extends BaseController {
 
 The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a singleton class responsible for storing and retrieving all the metadata attached by decorators like `@inject`, `@controller`, `@get`, etc.
 
--   **File:** `packages/helpers/src/helpers/inversion/registry.ts`
+-   **Base File:** `packages/inversion/src/registry.ts` (core MetadataRegistry)
+-   **Extended File:** `packages/helpers/src/helpers/inversion/registry.ts` (with framework metadata)
 
 ### Role in DI
 

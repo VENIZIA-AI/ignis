@@ -82,14 +82,27 @@ Cryptographic utilities.
 
 #### `helpers/inversion/`
 
-Implementation of the custom Dependency Injection (DI) container, now part of the helpers package.
+Application-enhanced Dependency Injection (DI) module that extends `@vez/ignis-inversion`.
 
-| File/Folder    | Purpose/Key Details                                                          |
-| :------------- | :--------------------------------------------------------------------------- |
-| `container.ts` | `Binding` class for defining dependencies and `Container` for managing them. |
-| `keys.ts`      | `MetadataKeys` for decorator metadata.                                       |
-| `registry.ts`  | `MetadataRegistry` for storing and retrieving metadata.                      |
-| `types.ts`     | Interfaces and types related to DI.                                          |
+> **Note:** The core DI functionality (Container, Binding, MetadataRegistry base classes) has been extracted to the standalone `@vez/ignis-inversion` package. This module extends and re-exports that functionality with application-specific enhancements.
+
+| File/Folder    | Purpose/Key Details                                                                                           |
+| :------------- | :------------------------------------------------------------------------------------------------------------ |
+| `container.ts` | Extended `Container` class with `ApplicationLogger` integration.                                              |
+| `registry.ts`  | Extended `MetadataRegistry` with framework-specific metadata (controllers, models, repositories, datasources).|
+| `common/keys.ts`| Framework-specific `MetadataKeys` (CONTROLLER, MODEL, REPOSITORY, etc.) merged with base keys.               |
+| `common/types.ts`| Framework-specific interfaces (`IControllerMetadata`, `IModelMetadata`, `IRepositoryMetadata`, etc.).        |
+| `index.ts`     | Re-exports core classes from `@vez/ignis-inversion` plus application extensions.                              |
+
+**Re-exported from `@vez/ignis-inversion`:**
+- `Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`
+
+**Application-specific additions:**
+- `Container` with `ApplicationLogger` integration
+- `MetadataRegistry` with `setControllerMetadata`, `setModelMetadata`, `setRepositoryMetadata`, etc.
+- Framework metadata interfaces for controllers, models, repositories, and data sources
+
+For standalone DI usage without framework features, import directly from `@vez/ignis-inversion`.
 
 #### `helpers/logger/`
 

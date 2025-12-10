@@ -4,6 +4,8 @@ Dependency Injection (DI) enables loosely coupled, testable code by automaticall
 
 > **Deep Dive:** See [DI Reference](../../references/base/dependency-injection.md) for technical details on Container, Binding, and `@inject`.
 
+> **Standalone Package:** The core DI container is available as the standalone `@vez/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](../../references/src-details/inversion.md) for details.
+
 ## Core Concepts
 
 | Concept | Description |
