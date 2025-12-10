@@ -10,25 +10,39 @@ Build your first Ignis API endpoint in 5 minutes. No database, no complex setup 
 mkdir my-app && cd my-app
 bun init -y
 bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis
-bun add -d typescript @types/bun
+bun add -d typescript @types/bun @vez/dev-configs
 ```
 
-## Step 2: Configure TypeScript (30 seconds)
+## Step 2: Configure Development Tools (30 seconds)
 
 Create `tsconfig.json`:
 
 ```json
 {
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "extends": "@vez/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "target": "ES2022",
-    "module": "nodenext",
-    "moduleResolution": "nodenext",
-    "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "strict": true,
-    "esModuleInterop": true
-  }
+    "outDir": "dist",
+    "rootDir": "src",
+    "baseUrl": "src"
+  },
+  "include": ["src"],
+  "exclude": ["node_modules", "dist"]
 }
+```
+
+Create `eslint.config.mjs`:
+
+```javascript
+import configs from '@vez/dev-configs/eslint';
+export default configs;
+```
+
+Create `.prettierrc.mjs`:
+
+```javascript
+import config from '@vez/dev-configs/prettier';
+export default config;
 ```
 
 ## Step 3: Write Your API (2 minutes)

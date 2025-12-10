@@ -30,53 +30,50 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @vez/ignis dotenv-flow
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun eslint prettier @minimaltech/eslint-node tsc-alias tsconfig-paths
+bun add -d typescript @types/bun @vez/dev-configs tsc-alias tsconfig-paths
 ```
+
+**What `@vez/dev-configs` provides:**
+- Centralized ESLint configuration
+- Centralized Prettier configuration
+- Shared TypeScript base configs
+- Consistent code style across all Ignis projects
 
 > **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
 
-## 3. Configure TypeScript
+## 3. Configure Development Tools
+
+All development configurations are centralized in the `@vez/dev-configs` package for consistency and ease of maintenance.
+
+### TypeScript
 
 Create `tsconfig.json` in your project root:
 
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/ignis/configs/tsconfig.common.json",
+  "extends": "@vez/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",
     "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
-    },
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "importHelpers": false,
-    "esModuleInterop": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
+    }
   },
   "include": ["src", "./*.config.*", ".prettierrc.*"],
   "exclude": ["node_modules", "dist"]
 }
 ```
 
+> **Note:** The `extends` field pulls in all TypeScript configuration from `@vez/dev-configs/tsconfig.common.json`, which includes decorator support, strict mode, and ES2022 target settings.
+
 ### Prettier
 
 Create `.prettierrc.mjs` for code formatting:
 
 ```javascript
-const config = {
-  bracketSpacing: true,
-  singleQuote: true,
-  printWidth: 90,
-  trailingComma: 'all',
-  arrowParens: 'avoid',
-  semi: true,
-};
-
+import config from '@vez/dev-configs/prettier';
 export default config;
 ```
 
@@ -86,24 +83,26 @@ dist
 *.json
 ```
 
+> **Customization:** To override Prettier settings, merge with the base config:
+> ```javascript
+> import baseConfig from '@vez/dev-configs/prettier';
+> export default { ...baseConfig, printWidth: 120 };
+> ```
+
 ### ESLint
 
 Create `eslint.config.mjs` for code linting:
 
 ```javascript
-import minimaltechLinter from '@minimaltech/eslint-node';
-
-const configs = [
-  ...minimaltechLinter,
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-];
-
+import configs from '@vez/dev-configs/eslint';
 export default configs;
 ```
+
+> **Customization:** To add project-specific rules:
+> ```javascript
+> import baseConfigs from '@vez/dev-configs/eslint';
+> export default [...baseConfigs, { rules: { 'no-console': 'warn' } }];
+> ```
 
 > **Deep Dive:** See [Code Style Standards](./best-practices/code-style-standards.md) for detailed configuration options.
 

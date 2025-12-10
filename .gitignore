@@ -71,6 +71,10 @@ Thumbs.db
 ._*
 Desktop.ini
 
+# Prompts
+# Reusable AI prompts for development workflow
+.prompts/
+
 # Miscellaneous
 # Other temporary files, archives, and caches.
 .npm/

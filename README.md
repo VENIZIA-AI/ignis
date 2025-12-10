@@ -132,35 +132,44 @@ bun add drizzle-orm drizzle-zod pg lodash
 
 **Development Dependencies:**
 ```bash
-bun add -d typescript @types/bun eslint prettier
-bun add -d @minimaltech/eslint-node tsc-alias tsconfig-paths
+bun add -d typescript @types/bun @vez/dev-configs
+bun add -d tsc-alias tsconfig-paths
 bun add -d drizzle-kit @types/pg @types/lodash
 ```
 
-### 3. Configure TypeScript
+### 3. Configure Development Tools
 
-Create `tsconfig.json`:
+**TypeScript** - Create `tsconfig.json`:
 
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@vez/ignis/configs/tsconfig.common.json",
+  "extends": "@vez/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",
     "baseUrl": "src",
     "paths": {
       "@/*": ["./*"]
-    },
-    "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "module": "nodenext",
-    "moduleResolution": "nodenext"
+    }
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }
+```
+
+**ESLint** - Create `eslint.config.mjs`:
+
+```javascript
+import configs from '@vez/dev-configs/eslint';
+export default configs;
+```
+
+**Prettier** - Create `.prettierrc.mjs`:
+
+```javascript
+import config from '@vez/dev-configs/prettier';
+export default config;
 ```
 
 ---
@@ -273,9 +282,9 @@ my-ignis-app/
 ├── scripts/
 │   └── clean.sh                # Cleanup script
 ├── package.json
-├── tsconfig.json
-├── eslint.config.mjs
-└── .prettierrc.mjs
+├── tsconfig.json               # Extends @vez/dev-configs
+├── eslint.config.mjs            # Uses @vez/dev-configs/eslint
+└── .prettierrc.mjs              # Uses @vez/dev-configs/prettier
 ```
 
 ---
