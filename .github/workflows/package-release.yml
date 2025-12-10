@@ -85,12 +85,12 @@ jobs:
         run: |
           pwd
           ls -lah
-          bun run --filter "${{ env.PACKAGE_NAME }}" lint
+          bun run lint:$PACKAGE 
 
       - name: Build artifact
         run: |
           echo "[build] Building package"
-          bun run --filter "${{ env.PACKAGE_NAME }}" rebuild
+          bun run rebuild:$PACKAGE 
 
       - name: Validate build artifacts
         run: |
