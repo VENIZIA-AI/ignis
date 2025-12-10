@@ -84,16 +84,16 @@ jobs:
       - name: Linting application source
         run: |
           pwd
-          bun run --filter ${{ env.PACKAGE_NAME }} lint
+          bun run --filter "${{ env.PACKAGE_NAME }}" lint
 
       - name: Build artifact
         run: |
           echo "[build] Building package"
-          bun run --filter ${{ env.PACKAGE_NAME }} rebuild
+          bun run --filter "${{ env.PACKAGE_NAME }}" rebuild
 
       - name: Validate build artifacts
         run: |
-          cd $PACKAGE_PATH 
+          cd ${{ env.PACKAGE_PATH }} 
 
           if [ ! -d "dist" ]; then
             echo "[validate] Error: dist directory not found"
@@ -115,7 +115,7 @@ jobs:
       - name: Version bump
         id: version
         run: |
-          cd $PACKAGE_PATH 
+          cd ${{ env.PACKAGE_PATH }} 
 
           case "$BUILD_MODE" in
             prepatch)
@@ -138,41 +138,36 @@ jobs:
           NEW_VERSION=$(jq -r .version package.json)
           TAG_NAME="$PACKAGE-v$NEW_VERSION"
 
-          echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
           echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+
           echo "[version] New version: $NEW_VERSION"
 
       - name: Commit version change
         id: commit
         run: |
-          cd $PACKAGE_PATH 
+          cd ${{ env.PACKAGE_PATH }} 
 
           git fetch origin
           git checkout develop
           git pull origin develop
 
           git add package.json
-          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
-
-          COMMIT_SHA=$(git rev-parse HEAD)
-          echo "commit_sha=$COMMIT_SHA"
-          echo "[commit] Created commit: $COMMIT_SHA"
+          git commit -m "chore($PACKAGE): release v${{ env.NEW_VERSION }} [$BUILD_MODE]"
 
       - name: Push to develop
         id: push_develop
         run: |
           git push origin develop
           echo "[push_develop] Pushed to develop branch"
-          echo "pushed=true"
-          IS_PUSHED=true
+          echo "IS_PUSHED=true" >> $GITHUB_ENV
 
       - name: Create and push tag
         id: tag
         run: |
-          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
-          git push origin "$TAG_NAME"
-          IS_CREATED=true
+          git tag -a "${{ env.TAG_NAME }}" -m "${{ env.PACKAGE_NAME }} v${{ env.NEW_VERSION }}"
+          git push origin "${{ env.TAG_NAME }}"
+          echo "IS_CREATED=true" >> $GITHUB_ENV
 
       - name: Merge to main (stable releases only)
         id: merge_main
@@ -180,17 +175,16 @@ jobs:
         run: |
           git checkout main
           git pull origin main
-          git merge develop --no-ff -m "chore: merge $PACKAGE v$NEW_VERSION to main"
+          git merge develop --no-ff -m "chore: merge $PACKAGE v${{ env.NEW_VERSION }} to main"
           git push origin main
 
           echo "[merge_main] Merged to main branch"
-          echo "merged=true"
-          IS_MERGED=true
+          echo "IS_MERGED=true" >> $GITHUB_ENV
 
       - name: Publish to NPM
         id: publish
         run: |
-          cd $PACKAGE_PATH 
+          cd ${{ env.PACKAGE_PATH }} 
 
           npm_tag=$(case $BUILD_MODE in
             patch|minor|major) echo "latest" ;;
@@ -200,9 +194,7 @@ jobs:
           npm publish --access public --tag $npm_tag
 
           echo "[publish] Successfully published to NPM"
-          echo "npm_tag=$npm_tag"
-          echo "published=true"
-          IS_PUBLISHED=true
+          echo "IS_PUBLISHED=true" >> $GITHUB_ENV
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
@@ -210,17 +202,17 @@ jobs:
         if: failure()
         run: |
           echo "[rollback] Starting rollback process"
-          cd $PACKAGE_PATH 
+          cd ${{ env.PACKAGE_PATH }} 
 
           # Delete tag if created
-          if [ "$IS_CREATED" == "true" ]; then
-            git push --delete origin "$TAG_NAME" 2>/dev/null || echo "[rollback] Tag not found on remote"
-            git tag -d "$TAG_NAME" 2>/dev/null || echo "[rollback] Tag not found locally"
-            echo "[rollback] Deleted tag: $TAG_NAME"
+          if [ "${{ env.IS_CREATED }}" == "true" ]; then
+            git push --delete origin "${{ env.TAG_NAME }}" 2>/dev/null || echo "[rollback] Tag not found on remote"
+            git tag -d "${{ env.TAG_NAME }}" 2>/dev/null || echo "[rollback] Tag not found locally"
+            echo "[rollback] Deleted tag: ${{ env.TAG_NAME }}"
           fi
 
           # Reset develop branch if pushed
-          if [ "$IS_PUSHED" == "true" ]; then
+          if [ "${{ env.IS_PUSHED }}" == "true" ]; then
             git checkout develop
             git reset --hard HEAD~1
             git push --force origin develop
@@ -228,7 +220,7 @@ jobs:
           fi
 
           # Reset main branch if merged
-          if [ "$IS_MERGED" == "true" ]; then
+          if [ "${{ env.IS_MERGED }}" == "true" ]; then
             git checkout main
             git reset --hard HEAD~1
             git push --force origin main
@@ -237,7 +229,7 @@ jobs:
 
           echo "[rollback] Rollback completed"
           echo "[rollback] Note: NPM packages cannot be unpublished automatically"
-          if [ "$IS_PUBLISHED" == "true" ]; then
-            echo "[rollback] WARNING: Package was published to NPM as $PACKAGE_NAME@$NEW_VERSION"
-            echo "[rollback] You may need to deprecate it manually: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"
+          if [ "${{ env.IS_PUBLISHED }}" == "true" ]; then
+            echo "[rollback] WARNING: Package was published to NPM as ${{ env.PACKAGE_NAME }}@${{ env.NEW_VERSION }}"
+            echo "[rollback] You may need to deprecate it manually: npm deprecate ${{ env.PACKAGE_NAME }}@${{ env.NEW_VERSION }} 'Accidental release'"
           fi
