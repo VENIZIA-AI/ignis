@@ -84,6 +84,7 @@ jobs:
       - name: Linting application source
         run: |
           pwd
+          ls -lah
           bun run --filter "${{ env.PACKAGE_NAME }}" lint
 
       - name: Build artifact
