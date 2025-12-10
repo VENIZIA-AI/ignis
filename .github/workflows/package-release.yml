@@ -41,9 +41,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -59,7 +56,7 @@ jobs:
       - name: Setup Git
         run: |
           git config user.name "venizia-ci"
-          git config user.email "ci@venizia.ai"
+          git config user.email "developer@venizia.ai"
 
       - name: Get package info
         id: pkg_info
@@ -68,36 +65,31 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          echo "package_path=$PACKAGE_PATH" >> $GITHUB_OUTPUT
-          echo "package_name=$PACKAGE_NAME" >> $GITHUB_OUTPUT
-          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
-
           echo "[pkg_info] Package: $PACKAGE_NAME"
           echo "[pkg_info] Path: $PACKAGE_PATH"
           echo "[pkg_info] Current version: $CURRENT_VERSION"
 
       - name: Verify build mode
         run: |
-          echo "[verify] Package: ${{ steps.pkg_info.outputs.package_name }} | Build mode: $BUILD_MODE"
+          echo "[verify] Package: $PACKAGE_NAME | Path: $PACKAGE_PATH | Build mode: $BUILD_MODE"
 
       - name: Install dependencies
         run: |
           echo "[install] Installing dependencies"
-          bun install --frozen-lockfile
+          bun install
 
-      - name: Clean previous build
+      - name: Linting application source
         run: |
-          echo "[clean] Cleaning previous build"
-          bun run --filter "@venizia/$PACKAGE" clean || echo "[clean] No clean script found"
+          bun run --filter "$PACKAGE_NAME" lint
 
-      - name: Build package
+      - name: Build artifact
         run: |
           echo "[build] Building package"
-          bun run --filter "@venizia/$PACKAGE" build
+          bun run --filter "$PACKAGE_NAME" rebuild
 
       - name: Validate build artifacts
         run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
+          cd $PACKAGE_PATH 
 
           if [ ! -d "dist" ]; then
             echo "[validate] Error: dist directory not found"
@@ -119,7 +111,7 @@ jobs:
       - name: Version bump
         id: version
         run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
+          cd $PACKAGE_PATH 
 
           case "$BUILD_MODE" in
             prepatch)
@@ -140,25 +132,25 @@ jobs:
           esac
 
           NEW_VERSION=$(jq -r .version package.json)
-          echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
-          echo "tag_name=$PACKAGE-v$NEW_VERSION" >> $GITHUB_OUTPUT
+          TAG_NAME="$PACKAGE-v$NEW_VERSION"
+
+          echo "tag_name=$TAG_NAME"
           echo "[version] New version: $NEW_VERSION"
 
       - name: Commit version change
         id: commit
         run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
-          VERSION="${{ steps.version.outputs.version }}"
+          cd $PACKAGE_PATH 
 
           git fetch origin
           git checkout develop
           git pull origin develop
 
           git add package.json
-          git commit -m "chore($PACKAGE): release v$VERSION [$BUILD_MODE]"
+          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
 
           COMMIT_SHA=$(git rev-parse HEAD)
-          echo "commit_sha=$COMMIT_SHA" >> $GITHUB_OUTPUT
+          echo "commit_sha=$COMMIT_SHA"
           echo "[commit] Created commit: $COMMIT_SHA"
 
       - name: Push to develop
@@ -166,96 +158,63 @@ jobs:
         run: |
           git push origin develop
           echo "[push_develop] Pushed to develop branch"
-          echo "pushed=true" >> $GITHUB_OUTPUT
+          echo "pushed=true"
+          IS_PUSHED=true
 
       - name: Create and push tag
         id: tag
         run: |
-          TAG_NAME="${{ steps.version.outputs.tag_name }}"
-          VERSION="${{ steps.version.outputs.version }}"
-
-          git tag -a "$TAG_NAME" -m "${{ steps.pkg_info.outputs.package_name }} v$VERSION"
+          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
           git push origin "$TAG_NAME"
-
-          echo "[tag] Created and pushed tag: $TAG_NAME"
-          echo "created=true" >> $GITHUB_OUTPUT
+          IS_CREATED=true
 
       - name: Merge to main (stable releases only)
         id: merge_main
         if: ${{ !startsWith(env.BUILD_MODE, 'pre') }}
         run: |
-          VERSION="${{ steps.version.outputs.version }}"
-
           git checkout main
           git pull origin main
-          git merge develop --no-ff -m "chore: merge $PACKAGE v$VERSION to main"
+          git merge develop --no-ff -m "chore: merge $PACKAGE v$NEW_VERSION to main"
           git push origin main
 
           echo "[merge_main] Merged to main branch"
-          echo "merged=true" >> $GITHUB_OUTPUT
+          echo "merged=true"
+          IS_MERGED=true
 
       - name: Publish to NPM
         id: publish
         run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
+          cd $PACKAGE_PATH 
 
           npm_tag=$(case $BUILD_MODE in
             patch|minor|major) echo "latest" ;;
             prepatch|preminor|premajor|prerelease) echo "next" ;;
           esac)
 
-          echo "[publish] Publishing ${{ steps.pkg_info.outputs.package_name }}@${{ steps.version.outputs.version }} with tag: $npm_tag"
           npm publish --access public --tag $npm_tag
 
           echo "[publish] Successfully published to NPM"
-          echo "npm_tag=$npm_tag" >> $GITHUB_OUTPUT
-          echo "published=true" >> $GITHUB_OUTPUT
+          echo "npm_tag=$npm_tag"
+          echo "published=true"
+          IS_PUBLISHED=true
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-
-      - name: Create GitHub Release
-        id: github_release
-        if: ${{ !startsWith(env.BUILD_MODE, 'pre') }}
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ steps.version.outputs.tag_name }}
-          release_name: "${{ steps.pkg_info.outputs.package_name }} v${{ steps.version.outputs.version }}"
-          body: |
-            ## ${{ steps.pkg_info.outputs.package_name }} v${{ steps.version.outputs.version }}
-
-            ### Installation
-            ```bash
-            npm install ${{ steps.pkg_info.outputs.package_name }}@${{ steps.version.outputs.version }}
-            # or
-            bun add ${{ steps.pkg_info.outputs.package_name }}@${{ steps.version.outputs.version }}
-            ```
-
-            ### NPM Tags
-            - Published under: `${{ steps.publish.outputs.npm_tag }}`
-
-            ### Documentation
-            Visit [Ignis Wiki](https://github.com/VENIZIA-AI/ignis/wiki) for usage documentation.
-          draft: false
-          prerelease: false
 
       - name: Rollback on failure
         if: failure()
         run: |
           echo "[rollback] Starting rollback process"
-          cd ${{ steps.pkg_info.outputs.package_path }}
+          cd $PACKAGE_PATH 
 
           # Delete tag if created
-          if [ "${{ steps.tag.outputs.created }}" == "true" ]; then
-            TAG_NAME="${{ steps.version.outputs.tag_name }}"
+          if [ "$IS_CREATED" == "true" ]; then
             git push --delete origin "$TAG_NAME" 2>/dev/null || echo "[rollback] Tag not found on remote"
             git tag -d "$TAG_NAME" 2>/dev/null || echo "[rollback] Tag not found locally"
             echo "[rollback] Deleted tag: $TAG_NAME"
           fi
 
           # Reset develop branch if pushed
-          if [ "${{ steps.push_develop.outputs.pushed }}" == "true" ]; then
+          if [ "$IS_PUSHED" == "true" ]; then
             git checkout develop
             git reset --hard HEAD~1
             git push --force origin develop
@@ -263,7 +222,7 @@ jobs:
           fi
 
           # Reset main branch if merged
-          if [ "${{ steps.merge_main.outputs.merged }}" == "true" ]; then
+          if [ "$IS_MERGED" == "true" ]; then
             git checkout main
             git reset --hard HEAD~1
             git push --force origin main
@@ -272,26 +231,7 @@ jobs:
 
           echo "[rollback] Rollback completed"
           echo "[rollback] Note: NPM packages cannot be unpublished automatically"
-          if [ "${{ steps.publish.outputs.published }}" == "true" ]; then
-            echo "[rollback] WARNING: Package was published to NPM as ${{ steps.pkg_info.outputs.package_name }}@${{ steps.version.outputs.version }}"
-            echo "[rollback] You may need to deprecate it manually: npm deprecate ${{ steps.pkg_info.outputs.package_name }}@${{ steps.version.outputs.version }} 'Accidental release'"
+          if [ "$IS_PUBLISHED" == "true" ]; then
+            echo "[rollback] WARNING: Package was published to NPM as $PACKAGE_NAME@$NEW_VERSION"
+            echo "[rollback] You may need to deprecate it manually: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"
           fi
-
-  post-release:
-    name: Post-release verification
-    runs-on: ubuntu-latest
-    needs: [build-release]
-    if: success()
-
-    steps:
-      - name: Wait for NPM propagation
-        run: |
-          echo "[post-release] Waiting 30 seconds for NPM propagation"
-          sleep 30
-
-      - name: Verify package on NPM
-        run: |
-          PACKAGE_NAME="${{ needs.build-release.outputs.package_name || github.event.inputs.package }}"
-          echo "[post-release] Verifying package on NPM registry"
-          npm view @venizia/${{ github.event.inputs.package }} dist-tags || echo "[post-release] Package info not yet available"
-          echo "[post-release] Release completed successfully"
