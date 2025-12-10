@@ -67,7 +67,7 @@ export const idParamsSchema = (opts?: { idType: string }) => {
 };
 
 // -------------------------------------------------------------------------
-export const jsonContent = <T extends z.ZodObject>(opts: {
+export const jsonContent = <T extends z.ZodType>(opts: {
   schema: T;
   description: string;
   required?: boolean;
@@ -79,7 +79,7 @@ export const jsonContent = <T extends z.ZodObject>(opts: {
   };
 };
 
-export const jsonResponse = <T extends z.ZodObject>(opts: {
+export const jsonResponse = <T extends z.ZodType>(opts: {
   schema: T;
   description?: string;
   required?: boolean;
@@ -87,7 +87,7 @@ export const jsonResponse = <T extends z.ZodObject>(opts: {
   return {
     [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
       required: opts.required,
-      description: opts?.description ?? 'Success Response',
+      description: opts.description ?? 'Success Response',
       schema: opts.schema,
     }),
     ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
