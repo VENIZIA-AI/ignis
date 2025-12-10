@@ -1,5 +1,5 @@
-import { CoreBindings } from '@/common/bindings';
-import { OpenAPIHono } from '@hono/zod-openapi';
+import { CoreBindings } from "@/common/bindings";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import {
   applicationEnvironment,
   Container,
@@ -9,24 +9,24 @@ import {
   toBoolean,
   TRuntimeModule,
   ValueOrPromise,
-} from '@vez/ignis-helpers';
-import { Env, Schema } from 'hono';
-import { showRoutes as showApplicationRoutes } from 'hono/dev';
-import isEmpty from 'lodash/isEmpty';
-import path from 'node:path';
+} from "@vez/ignis-helpers";
+import { Env, Schema } from "hono";
+import { showRoutes as showApplicationRoutes } from "hono/dev";
+import isEmpty from "lodash/isEmpty";
+import path from "node:path";
 import {
   IApplication,
   IApplicationConfigs,
   IApplicationInfo,
   TBunServerInstance,
   TNodeServerInstance,
-} from './types';
+} from "./types";
 
 // ------------------------------------------------------------------------------
 export abstract class AbstractApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
-  BasePath extends string = '/',
+  BasePath extends string = "/",
 >
   extends Container
   implements IApplication<AppEnv, AppSchema, BasePath>
@@ -53,12 +53,20 @@ export abstract class AbstractApplication<
     super({ scope });
 
     this.configs = Object.assign({}, config, {
-      host: config.host || process.env.HOST || process.env.APP_ENV_SERVER_HOST || 'localhost',
-      port: config.port || int(process.env.PORT) || int(process.env.APP_ENV_SERVER_PORT) || 3000,
+      host:
+        config.host ||
+        process.env.HOST ||
+        process.env.APP_ENV_SERVER_HOST ||
+        "localhost",
+      port:
+        config.port ||
+        int(process.env.PORT) ||
+        int(process.env.APP_ENV_SERVER_PORT) ||
+        3000,
     });
 
     this.projectRoot = this.getProjectRoot();
-    this.logger.info('Project root: %s', this.projectRoot);
+    this.logger.info("Project root: %s", this.projectRoot);
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
       strict: this.configs.strictPath ?? true,
@@ -121,19 +129,19 @@ export abstract class AbstractApplication<
 
   // ------------------------------------------------------------------------------
   protected registerCoreBindings() {
-    this.bind<typeof this>({ key: CoreBindings.APPLICATION_INSTANCE }).toProvider(
-      (_: Container) => this,
-    );
-    this.bind<typeof this.server>({ key: CoreBindings.APPLICATION_SERVER }).toProvider(
-      (_: Container) => this.server,
-    );
-    this.bind<typeof this.rootRouter>({ key: CoreBindings.APPLICATION_ROOT_ROUTER }).toProvider(
-      (_: Container) => this.rootRouter,
-    );
+    this.bind<typeof this>({
+      key: CoreBindings.APPLICATION_INSTANCE,
+    }).toProvider((_) => this);
+    this.bind<typeof this.server>({
+      key: CoreBindings.APPLICATION_SERVER,
+    }).toProvider((_) => this.server);
+    this.bind<typeof this.rootRouter>({
+      key: CoreBindings.APPLICATION_ROOT_ROUTER,
+    }).toProvider((_) => this.rootRouter);
   }
 
   protected detectRuntimeModule(): TRuntimeModule {
-    if (typeof Bun !== 'undefined') {
+    if (typeof Bun !== "undefined") {
       return RuntimeModules.BUN;
     }
 
@@ -148,10 +156,12 @@ export abstract class AbstractApplication<
       return;
     }
 
-    this.logger.info('[inspectRoutes] START | Inspect all application route(s)');
+    this.logger.info(
+      "[inspectRoutes] START | Inspect all application route(s)",
+    );
     showApplicationRoutes(this.getServer());
     this.logger.info(
-      '[start] DONE | Inspect all application route(s) | Took: %s (ms)',
+      "[start] DONE | Inspect all application route(s) | Took: %s (ms)",
       performance.now() - t,
     );
   }
@@ -160,7 +170,7 @@ export abstract class AbstractApplication<
     const t = performance.now();
     const envKeys = applicationEnvironment.keys();
     this.logger.info(
-      '[initialize] Envs: %s | START Validating application environments...',
+      "[initialize] Envs: %s | START Validating application environments...",
       envKeys.length,
     );
 
@@ -177,7 +187,7 @@ export abstract class AbstractApplication<
     }
 
     this.logger.info(
-      '[validateEnvs] Envs: %s | DONE Validating application environments | Took: %s (ms)',
+      "[validateEnvs] Envs: %s | DONE Validating application environments | Took: %s (ms)",
       envKeys.length,
       performance.now() - t,
     );
@@ -205,14 +215,19 @@ export abstract class AbstractApplication<
           fetch: server.fetch,
         }),
       )
-        .then(rs => {
+        .then((rs) => {
           this.server.instance = rs;
           this.inspectRoutes();
 
-          this.logger.info('[start] Server STARTED | Address: %s', this.getServerAddress());
           this.logger.info(
-            '[start] Log folder: %s',
-            path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
+            "[start] Server STARTED | Address: %s",
+            this.getServerAddress(),
+          );
+          this.logger.info(
+            "[start] Log folder: %s",
+            path
+              .resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? "")
+              .toString(),
           );
 
           resolve(rs);
@@ -235,27 +250,35 @@ export abstract class AbstractApplication<
       const host = this.getServerHost();
       const server = this.getServer();
 
-      import('@hono/node-server')
-        .then(module => {
+      import("@hono/node-server")
+        .then((module) => {
           const { serve } = module;
-          const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
-            this.inspectRoutes();
-            this.logger.info(
-              '[start] Server STARTED | Address: %s | Info: %j',
-              this.getServerAddress(),
-              info,
-            );
-            this.logger.info(
-              '[start] Log folder: %s',
-              path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-            );
-          });
+          const rs = serve(
+            { fetch: server.fetch, port, hostname: host },
+            (info) => {
+              this.inspectRoutes();
+              this.logger.info(
+                "[start] Server STARTED | Address: %s | Info: %j",
+                this.getServerAddress(),
+                info,
+              );
+              this.logger.info(
+                "[start] Log folder: %s",
+                path
+                  .resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? "")
+                  .toString(),
+              );
+            },
+          );
 
           this.server.instance = rs;
           resolve(rs);
         })
-        .catch(error => {
-          this.logger.error('[start] Failed to import @hono/node-server | Error: %s', error);
+        .catch((error) => {
+          this.logger.error(
+            "[start] Failed to import @hono/node-server | Error: %s",
+            error,
+          );
           reject(
             getError({
               message: `[start] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
@@ -284,14 +307,14 @@ export abstract class AbstractApplication<
       }
       default: {
         throw getError({
-          message: '[start] Invalid runtimeModule to start server instance!',
+          message: "[start] Invalid runtimeModule to start server instance!",
         });
       }
     }
   }
 
   stop() {
-    this.logger.info('[stop] Server STOPPED');
+    this.logger.info("[stop] Server STOPPED");
     switch (this.server.runtime) {
       case RuntimeModules.BUN: {
         this.server.instance?.stop();
@@ -303,7 +326,7 @@ export abstract class AbstractApplication<
       }
       default: {
         throw getError({
-          message: '[stop] Invalid runtimeModule to stop server instance!',
+          message: "[stop] Invalid runtimeModule to stop server instance!",
         });
       }
     }
