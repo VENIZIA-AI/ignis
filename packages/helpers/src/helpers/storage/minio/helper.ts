@@ -11,7 +11,7 @@ export interface IUploadFile {
   mimetype: string;
   buffer: Buffer;
   size: number;
-  encoding: string;
+  encoding?: string;
   [key: string | symbol]: any;
 }
 
@@ -102,8 +102,10 @@ export class MinioHelper extends BaseHelper {
   async upload(opts: {
     bucket: string;
     files: Array<IUploadFile>;
+    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
   }): Promise<Array<{ bucket: string; fileName: string; link: string }>> {
-    const { bucket, files } = opts;
+    const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
 
     if (!files || files.length === 0) {
       return [];
@@ -136,7 +138,12 @@ export class MinioHelper extends BaseHelper {
     const uploadPromises = files.map(async file => {
       const { originalname: originalName, mimetype: mimeType, buffer, size, encoding } = file;
 
-      const normalizeName = originalName.toLowerCase().replace(/ /g, '_');
+      const normalizeName = normalizeNameFn
+        ? normalizeNameFn({ originalName })
+        : originalName.toLowerCase().replace(/ /g, '_');
+      const normalizeLink = normalizeLinkFn
+        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
+        : `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`;
       const t = new Date().getTime();
 
       const uploadInfo = await this.client.putObject(bucket, normalizeName, buffer, size, {
@@ -156,7 +163,7 @@ export class MinioHelper extends BaseHelper {
       return {
         bucket,
         fileName: normalizeName,
-        link: `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`,
+        link: normalizeLink,
       };
     });
 
