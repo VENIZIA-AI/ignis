@@ -83,14 +83,11 @@ jobs:
 
       - name: Linting application source
         run: |
-          pwd
-          ls -lah
-          bun run lint:$PACKAGE 
+          bun run --filter "${{ env.PACKAGE_NAME }}" lint
 
       - name: Build artifact
         run: |
-          echo "[build] Building package"
-          bun run rebuild:$PACKAGE 
+          bun run --filter "${{ env.PACKAGE_NAME }}" rebuild
 
       - name: Validate build artifacts
         run: |

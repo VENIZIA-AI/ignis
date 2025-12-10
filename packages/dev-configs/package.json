@@ -28,6 +28,11 @@
   "scripts": {
     "build": "sh ./scripts/build.sh",
     "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh"
   },
   "repository": {
