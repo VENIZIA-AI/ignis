@@ -7,9 +7,14 @@
   ],
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "scripts": {
+    "rebuild:dev-configs": "bun run --filter \"@vez/dev-configs\" rebuild",
+    "rebuild:docs": "bun run --filter \"@vez/ignis-docs\" docs:build",
+    "rebuild:mcp-docs-server": "bun run --filter \"@vez/ignis-docs\" mcp:build",
     "rebuild:helpers": "bun run --filter \"@vez/ignis-helpers\" rebuild",
-    "prerebuild:ignis": "bun run rebuild:helpers",
-    "rebuild:ignis": "bun run --filter \"@vez/ignis\" rebuild",
+    "rebuild:inversion": "bun run --filter \"@vez/ignis-inversion\" rebuild",
+    "prerebuild:core": "bun run rebuild:inversion && bun run rebuild:helpers",
+    "rebuild:core": "bun run --filter \"@vez/ignis\" rebuild",
+    "rebuild:ignis": "bun run rebuild:core",
     "docs:dev": "bun run --filter \"@vez/ignis-docs\" docs:dev",
     "mcp:dev": "bun run --filter \"@vez/ignis-docs\" mcp:dev"
   },

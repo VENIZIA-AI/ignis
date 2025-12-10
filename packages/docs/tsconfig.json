@@ -1,6 +1,6 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "./configs/tsconfig.common.json",
+  "extends": "@vez/dev-configs/tsconfig.base.json",
   "compilerOptions": {
     "target": "ES2022",
     "module": "nodenext",

@@ -1,2 +1,7 @@
 dist
 examples
+node_modules
+coverage
+build
+*.min.js
+*.min.css

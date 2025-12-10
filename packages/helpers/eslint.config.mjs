@@ -1,12 +1,3 @@
-import mtLinterConfs from '@minimaltech/eslint-node';
-
-const configs = [
-  ...mtLinterConfs,
-  {
-    rules: {
-      '@typescript-eslint/no-explicit-any': 'off',
-    },
-  },
-];
+import configs from '@vez/dev-configs/eslint';
 
 export default configs;
