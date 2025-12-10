@@ -95,12 +95,26 @@ jobs:
           echo "[build] Building package"
           bun run --filter "@venizia/$PACKAGE" build
 
-      - name: Backup package.json
-        id: backup
+      - name: Validate build artifacts
         run: |
           cd ${{ steps.pkg_info.outputs.package_path }}
-          cp package.json package.json.backup
-          echo "[backup] Created package.json backup"
+
+          if [ ! -d "dist" ]; then
+            echo "[validate] Error: dist directory not found"
+            exit 1
+          fi
+
+          if [ ! -f "dist/index.js" ]; then
+            echo "[validate] Error: dist/index.js not found"
+            exit 1
+          fi
+
+          if [ ! -f "dist/index.d.ts" ]; then
+            echo "[validate] Error: dist/index.d.ts not found"
+            exit 1
+          fi
+
+          echo "[validate] Build artifacts validated successfully"
 
       - name: Version bump
         id: version
@@ -129,27 +143,6 @@ jobs:
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "tag_name=$PACKAGE-v$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "[version] New version: $NEW_VERSION"
-
-      - name: Validate build artifacts
-        run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
-
-          if [ ! -d "dist" ]; then
-            echo "[validate] Error: dist directory not found"
-            exit 1
-          fi
-
-          if [ ! -f "dist/index.js" ]; then
-            echo "[validate] Error: dist/index.js not found"
-            exit 1
-          fi
-
-          if [ ! -f "dist/index.d.ts" ]; then
-            echo "[validate] Error: dist/index.d.ts not found"
-            exit 1
-          fi
-
-          echo "[validate] Build artifacts validated successfully"
 
       - name: Commit version change
         id: commit
@@ -247,24 +240,11 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Cleanup backup
-        if: success()
-        run: |
-          cd ${{ steps.pkg_info.outputs.package_path }}
-          rm -f package.json.backup
-          echo "[cleanup] Removed backup file"
-
       - name: Rollback on failure
         if: failure()
         run: |
           echo "[rollback] Starting rollback process"
           cd ${{ steps.pkg_info.outputs.package_path }}
-
-          # Restore package.json
-          if [ -f "package.json.backup" ]; then
-            mv package.json.backup package.json
-            echo "[rollback] Restored package.json"
-          fi
 
           # Delete tag if created
           if [ "${{ steps.tag.outputs.created }}" == "true" ]; then

@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis": "^0.0.0",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "hono": "^4.10.7",

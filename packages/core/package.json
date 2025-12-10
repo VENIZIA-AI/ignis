@@ -80,7 +80,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-helpers": "^0.0.0",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2"
   },
@@ -130,7 +130,7 @@
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.7.2",
     "@types/pg": "^8.15.6",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "^0.0.0",
     "drizzle-kit": "^0.31.7",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",

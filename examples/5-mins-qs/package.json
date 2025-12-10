@@ -17,12 +17,12 @@
     "hono": "^4.4.12",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "workspace:*"
+    "@venizia/ignis": "^0.0.0"
   },
   "devDependencies": {
     "typescript": "^5.5.3",
     "@types/bun": "latest",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "^0.0.0",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.10",

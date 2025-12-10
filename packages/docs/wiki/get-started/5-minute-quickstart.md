@@ -165,12 +165,12 @@ Update `package.json` to add build scripts:
     "hono": "^4.4.12",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "workspace:*"
+    "@venizia/ignis": "latest"
   },
   "devDependencies": {
     "typescript": "^5.5.3",
     "@types/bun": "latest",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.10",
