@@ -1,12 +1,12 @@
-import { jsonContent, jsonResponse } from '@/base/models';
-import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
-import { z } from '@hono/zod-openapi';
+import { jsonContent, jsonResponse  } from "@/base/models";
+import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
+import { z } from "@hono/zod-openapi";
 
 // ================================================================================
 export const MINIO_ASSET_ROUTES = {
-  ['GET /buckets']: {
-    method: 'get',
-    path: '/buckets',
+  ["GET /buckets"]: {
+    method: "get",
+    path: "/buckets",
     responses: jsonResponse({
       schema: z.array(
         z.object({
@@ -16,89 +16,89 @@ export const MINIO_ASSET_ROUTES = {
       ),
     }),
   },
-  ['GET /buckets/:bucket_name/objects/:object_name']: {
-    method: 'get',
-    path: '/buckets/:bucket_name/objects/:object_name',
+  ["GET /buckets/:bucketName/objects/:objectName"]: {
+    method: "get",
+    path: "/buckets/:bucketName/objects/:objectName",
     request: {
       params: z.object({
-        bucket_name: z.string().openapi({
+        bucketName: z.string().openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
-        object_name: z.string().openapi({
+        objectName: z.string().openapi({
           param: {
-            name: 'object_name',
-            in: 'path',
+            name: "objectName",
+            in: "path",
           },
-          example: 'photo.jpg',
+          example: "photo.jpg",
         }),
       }),
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: {
-        description: 'File stream response',
+        description: "File stream response",
         content: {
-          'application/octet-stream': {
+          "application/octet-stream": {
             schema: {
-              type: 'string',
-              format: 'binary',
+              type: "string",
+              format: "binary",
             },
           },
         },
       },
-      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
+      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
     },
   },
-  ['GET /buckets/:bucket_name/objects/:object_name/download']: {
-    method: 'get',
-    path: '/buckets/:bucket_name/objects/:object_name/download',
+  ["GET /buckets/:bucketName/objects/:objectName/download"]: {
+    method: "get",
+    path: "/buckets/:bucketName/objects/:objectName/download",
     request: {
       params: z.object({
-        bucket_name: z.string().openapi({
+        bucketName: z.string().openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
-        object_name: z.string().openapi({
+        objectName: z.string().openapi({
           param: {
-            name: 'object_name',
-            in: 'path',
+            name: "objectName",
+            in: "path",
           },
-          example: 'photo.jpg',
+          example: "photo.jpg",
         }),
       }),
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: {
-        description: 'File stream response',
+        description: "File stream response",
         content: {
-          'application/octet-stream': {
+          "application/octet-stream": {
             schema: {
-              type: 'string',
-              format: 'binary',
+              type: "string",
+              format: "binary",
             },
           },
         },
       },
-      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
+      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
     },
   },
-  ['GET /buckets/:bucket_name']: {
-    method: 'get',
-    path: '/buckets/:bucket_name',
+  ["GET /buckets/:bucketName"]: {
+    method: "get",
+    path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucket_name: z.string('bucket_name').openapi({
+        bucketName: z.string("bucketName").openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
       }),
     },
@@ -111,17 +111,17 @@ export const MINIO_ASSET_ROUTES = {
         .nullable(),
     }),
   },
-  ['POST /buckets/:bucket_name']: {
-    method: 'post',
-    path: '/buckets/:bucket_name',
+  ["POST /buckets/:bucketName"]: {
+    method: "post",
+    path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucket_name: z.string('bucket_name').openapi({
+        bucketName: z.string("bucketName").openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
       }),
     },
@@ -134,17 +134,17 @@ export const MINIO_ASSET_ROUTES = {
         .nullable(),
     }),
   },
-  ['POST /buckets/:bucket_name/upload']: {
-    method: 'post',
-    path: '/buckets/:bucket_name/upload',
+  ["POST /buckets/:bucketName/upload"]: {
+    method: "post",
+    path: "/buckets/:bucketName/upload",
     request: {
       params: z.object({
-        bucket_name: z.string('bucket_name').openapi({
+        bucketName: z.string("bucketName").openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
       }),
       query: z.object({
@@ -153,22 +153,22 @@ export const MINIO_ASSET_ROUTES = {
           .optional()
           .openapi({
             param: {
-              name: 'folderPath',
-              in: 'query',
-              description: 'Optional folder path to upload files into',
+              name: "folderPath",
+              in: "query",
+              description: "Optional folder path to upload files into",
             },
-            example: '20250101',
+            example: "20250101",
           }),
       }),
       body: {
         content: {
-          'multipart/form-data': {
+          "multipart/form-data": {
             schema: z.object({
               files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
-                type: 'array',
+                type: "array",
                 items: {
-                  type: 'string',
-                  format: 'binary',
+                  type: "string",
+                  format: "binary",
                 },
               }),
             }),
@@ -186,17 +186,17 @@ export const MINIO_ASSET_ROUTES = {
       ),
     }),
   },
-  ['DELETE /buckets/:bucket_name']: {
-    method: 'delete',
-    path: '/buckets/:bucket_name',
+  ["DELETE /buckets/:bucketName"]: {
+    method: "delete",
+    path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucket_name: z.string('bucket_name').openapi({
+        bucketName: z.string("bucketName").openapi({
           param: {
-            name: 'bucket_name',
-            in: 'path',
+            name: "bucketName",
+            in: "path",
           },
-          example: 'images',
+          example: "images",
         }),
       }),
     },
