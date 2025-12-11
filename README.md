@@ -319,9 +319,9 @@ my-ignis-app/
 ├── scripts/
 │   └── clean.sh                # Cleanup script
 ├── package.json
-├── tsconfig.json               # Extends @venizia/dev-configs
-├── eslint.config.mjs            # Uses @venizia/dev-configs/eslint
-└── .prettierrc.mjs              # Uses @venizia/dev-configs/prettier
+├── tsconfig.json               # Extends @venizia/dev-configs/tsconfig.common.json
+├── eslint.config.mjs           # Uses eslintConfigs from @venizia/dev-configs
+└── .prettierrc.mjs             # Uses prettierConfigs from @venizia/dev-configs
 ```
 
 ---
