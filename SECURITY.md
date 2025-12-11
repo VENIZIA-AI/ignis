@@ -5,7 +5,7 @@
 The following versions of Ignis are currently supported with security updates:
 
 | Version | Supported          |
-|---------|--------------------|
+| ------- | ------------------ |
 | 0.0.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
@@ -16,7 +16,7 @@ We take security vulnerabilities seriously. If you discover a security issue, pl
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, send an email to: **security@venizia.ai**
+Instead, send an email to: [**contact@venizia.ai**, **developer@venizia.ai**]
 
 Include the following information in your report:
 
@@ -28,10 +28,10 @@ Include the following information in your report:
 
 ### What to Expect
 
-| Timeline | Action |
-|----------|--------|
-| **Within 5 days** | Your report will be acknowledged |
-| **Within 14 days** | Initial assessment and response |
+| Timeline           | Action                              |
+| ------------------ | ----------------------------------- |
+| **Within 5 days**  | Your report will be acknowledged    |
+| **Within 14 days** | Initial assessment and response     |
 | **Within 90 days** | Fix developed, tested, and released |
 
 We will:
