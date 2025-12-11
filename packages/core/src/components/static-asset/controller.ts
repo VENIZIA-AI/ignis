@@ -4,7 +4,7 @@ import { controller, inject } from "@/base/metadata";
 import { CoreBindings } from "@/common";
 import { HTTP, IUploadFile, MinioHelper, ValueOrPromise } from "@venizia/ignis-helpers";
 import { stream } from "hono/streaming";
-import { Readable } from "stream";
+import { Readable } from "node:stream";
 import { StaticAssetBindingKeys } from "./common";
 import { MINIO_ASSET_ROUTES } from "./definition";
 
@@ -163,8 +163,8 @@ export class MinioAssetController extends BaseController {
         const uploaded = await minioInstance.upload({
           bucket: bucketName,
           files: modifiedFiles,
-          normalizeLinkFn: ({ bucketName, normalizeName }) => {
-            return `/static-assets/buckets/${bucketName}/objects/${encodeURIComponent(normalizeName)}`;
+          normalizeLinkFn: opts => {
+            return `/static-assets/buckets/${opts.bucketName}/objects/${encodeURIComponent(opts.normalizeName)}`;
           },
         });
 

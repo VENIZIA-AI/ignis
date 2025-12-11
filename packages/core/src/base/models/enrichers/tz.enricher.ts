@@ -17,9 +17,9 @@ export type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TCo
 
 export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
   const {
-    created = { columnName: 'created_at', withTimezone: true },
-    modified = { enable: true, columnName: 'modified_at', withTimezone: true },
-    deleted = { enable: true, columnName: 'deleted_at', withTimezone: true },
+    created = { columnName: "created_at", withTimezone: true },
+    modified = { enable: true, columnName: "modified_at", withTimezone: true },
+    deleted = { enable: true, columnName: "deleted_at", withTimezone: true },
   } = opts ?? {};
 
   let rs = {
@@ -38,7 +38,7 @@ export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
   if (modified.enable) {
     rs = Object.assign({}, rs, {
       modifiedAt: timestamp(modified.columnName, {
-        mode: 'date',
+        mode: "date",
         withTimezone: modified.withTimezone,
       })
         .defaultNow()
@@ -52,7 +52,7 @@ export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
   if (deleted.enable) {
     rs = Object.assign({}, rs, {
       deletedAt: timestamp(deleted.columnName, {
-        mode: 'date',
+        mode: "date",
         withTimezone: deleted.withTimezone,
       }),
     });

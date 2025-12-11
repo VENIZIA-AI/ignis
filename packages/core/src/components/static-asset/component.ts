@@ -1,10 +1,10 @@
-import { inject } from '@/base/metadata';
-import { BaseComponent } from '@/base/components';
-import { CoreBindings } from '@/common/bindings';
-import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseApplication } from '@/base/applications';
-import { TStaticAssetsOptions, StaticAssetBindingKeys } from './common';
-import { MinioAssetController } from './controller';
+import { inject } from "@/base/metadata";
+import { BaseComponent } from "@/base/components";
+import { CoreBindings } from "@/common/bindings";
+import { Binding, ValueOrPromise } from "@venizia/ignis-helpers";
+import { BaseApplication } from "@/base/applications";
+import { TStaticAssetsOptions, StaticAssetBindingKeys } from "./common";
+import { MinioAssetController } from "./controller";
 
 const DEFAULT_OPTIONS: TStaticAssetsOptions = {
   minioAsset: { enable: false },

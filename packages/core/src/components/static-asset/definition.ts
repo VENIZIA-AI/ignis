@@ -1,4 +1,4 @@
-import { jsonContent, jsonResponse  } from "@/base/models";
+import { jsonContent, jsonResponse } from "@/base/models";
 import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
 import { z } from "@hono/zod-openapi";
 
@@ -93,7 +93,7 @@ export const MINIO_ASSET_ROUTES = {
     path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucketName: z.string("bucketName").openapi({
+        bucketName: z.string().openapi({
           param: {
             name: "bucketName",
             in: "path",
@@ -116,7 +116,7 @@ export const MINIO_ASSET_ROUTES = {
     path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucketName: z.string("bucketName").openapi({
+        bucketName: z.string().openapi({
           param: {
             name: "bucketName",
             in: "path",
@@ -139,7 +139,7 @@ export const MINIO_ASSET_ROUTES = {
     path: "/buckets/:bucketName/upload",
     request: {
       params: z.object({
-        bucketName: z.string("bucketName").openapi({
+        bucketName: z.string().openapi({
           param: {
             name: "bucketName",
             in: "path",
@@ -191,7 +191,7 @@ export const MINIO_ASSET_ROUTES = {
     path: "/buckets/:bucketName",
     request: {
       params: z.object({
-        bucketName: z.string("bucketName").openapi({
+        bucketName: z.string().openapi({
           param: {
             name: "bucketName",
             in: "path",

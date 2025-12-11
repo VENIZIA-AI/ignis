@@ -1,4 +1,4 @@
-import { MinioHelper } from '@venizia/ignis-helpers';
+import { MinioHelper } from "@venizia/ignis-helpers";
 
 export type TStaticAssetsOptions = {
   staticAsset?: { enable: false } | { enable: true; resourceBasePath: string };
