@@ -1,6 +1,17 @@
 import { jsonContent, jsonResponse } from "@/base/models";
-import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
 import { z } from "@hono/zod-openapi";
+import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
+
+// ================================================================================
+const MultipartBodySchema = z.object({
+  files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
+    type: "array",
+    items: {
+      type: "string",
+      format: "binary",
+    },
+  }),
+});
 
 // ================================================================================
 export const MinIOAssetDefinitions = {
@@ -163,15 +174,7 @@ export const MinIOAssetDefinitions = {
       body: {
         content: {
           "multipart/form-data": {
-            schema: z.object({
-              files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
-                type: "array",
-                items: {
-                  type: "string",
-                  format: "binary",
-                },
-              }),
-            }),
+            schema: MultipartBodySchema,
           },
         },
       },
@@ -205,5 +208,61 @@ export const MinIOAssetDefinitions = {
         isDeleted: z.boolean(),
       }),
     }),
+  },
+} as const;
+
+// ================================================================================
+export const StaticResourceDefinitions = {
+  UPLOAD: {
+    method: "post",
+    path: "/resources/upload",
+    request: {
+      body: {
+        content: {
+          "multipart/form-data": {
+            schema: MultipartBodySchema,
+          },
+        },
+      },
+    },
+    responses: jsonResponse({
+      schema: z.array(
+        z.object({
+          objectName: z.string().openapi({
+            description: "Name of the uploaded resource",
+            example: "20250101/photo.jpg",
+          }),
+        }),
+      ),
+    }),
+  },
+  DOWNLOAD: {
+    method: "get",
+    path: "/resources/:objectName/download",
+    request: {
+      params: z.object({
+        objectName: z.string().openapi({
+          param: {
+            name: "objectName",
+            in: "path",
+          },
+          example: "photo.jpg",
+        }),
+      }),
+    },
+    responses: {
+      [HTTP.ResultCodes.RS_2.Ok]: {
+        description: "File stream response",
+        content: {
+          "application/octet-stream": {
+            schema: {
+              type: "string",
+              format: "binary",
+            },
+          },
+        },
+      },
+      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
+    },
   },
 } as const;

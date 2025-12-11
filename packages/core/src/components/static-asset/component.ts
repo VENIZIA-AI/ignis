@@ -1,14 +1,14 @@
-import { inject } from "@/base/metadata";
+import { BaseApplication } from "@/base/applications";
 import { BaseComponent } from "@/base/components";
+import { inject } from "@/base/metadata";
 import { CoreBindings } from "@/common/bindings";
 import { Binding, ValueOrPromise } from "@venizia/ignis-helpers";
-import { BaseApplication } from "@/base/applications";
-import { TStaticAssetsOptions, StaticAssetBindingKeys } from "./common";
-import { MinioAssetController } from "./controller";
+import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from "./common";
+import { MinioAssetController, StaticResourceController } from "./controller";
 
-const DEFAULT_OPTIONS: TStaticAssetsOptions = {
+const DEFAULT_OPTIONS: TStaticAssetsComponentOptions = {
   minioAsset: { enable: false },
-  staticAsset: { enable: false },
+  staticResource: { enable: false },
 };
 
 export class StaticAssetComponent extends BaseComponent {
@@ -19,17 +19,18 @@ export class StaticAssetComponent extends BaseComponent {
       scope: StaticAssetComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]: Binding.bind<TStaticAssetsOptions>({
-          key: StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-        }).toValue(DEFAULT_OPTIONS),
+        [StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]:
+          Binding.bind<TStaticAssetsComponentOptions>({
+            key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+          }).toValue(DEFAULT_OPTIONS),
       },
     });
   }
 
   override binding(): ValueOrPromise<void> {
-    const { minioAsset, staticAsset } =
-      this.application.get<TStaticAssetsOptions>({
-        key: StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    const { minioAsset, staticResource: staticAsset } =
+      this.application.get<TStaticAssetsComponentOptions>({
+        key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
         isOptional: true,
       }) ?? DEFAULT_OPTIONS;
 
@@ -37,12 +38,14 @@ export class StaticAssetComponent extends BaseComponent {
       const { minioHelper } = minioAsset;
       this.application
         .bind({
-          key: StaticAssetBindingKeys.MINIO_HELPER_INSTANCE,
+          key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         })
         .toValue(minioHelper);
-      this.application.bind({
-        key: StaticAssetBindingKeys.MINIO_ASSET_OPTIONS
-      }).toValue(minioAsset.options);
+      this.application
+        .bind({
+          key: StaticAssetComponentBindingKeys.MINIO_ASSET_OPTIONS,
+        })
+        .toValue(minioAsset.options);
 
       this.application.controller(MinioAssetController);
     }
@@ -51,9 +54,14 @@ export class StaticAssetComponent extends BaseComponent {
       const { resourceBasePath } = staticAsset;
       this.application
         .bind({
-          key: StaticAssetBindingKeys.RESOURCE_BASE_PATH,
+          key: StaticAssetComponentBindingKeys.RESOURCE_BASE_PATH,
         })
         .toValue(resourceBasePath);
+      this.application
+        .bind({ key: StaticAssetComponentBindingKeys.STATIC_RESOURCE_OPTIONS })
+        .toValue(staticAsset.options);
+
+      this.application.controller(StaticResourceController);
     }
   }
 }

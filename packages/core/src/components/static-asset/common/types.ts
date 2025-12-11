@@ -1,7 +1,9 @@
 import { AnyType, MinioHelper } from "@venizia/ignis-helpers";
 
-export type TStaticAssetsOptions = {
-  staticAsset?: { enable: false } | { enable: true; resourceBasePath: string };
+export type TStaticAssetsComponentOptions = {
+  staticResource?:
+    | { enable: false }
+    | { enable: true; resourceBasePath: string; options: TStaticResourceOptions };
   minioAsset?:
     | { enable: false }
     | {
@@ -12,6 +14,14 @@ export type TStaticAssetsOptions = {
 };
 
 export type TMinioAssetOptions = {
+  parseMultipartBody?: {
+    storage?: "memory" | "disk";
+    uploadDir?: string;
+  };
+  [key: string]: AnyType;
+};
+
+export type TStaticResourceOptions = {
   parseMultipartBody?: {
     storage?: "memory" | "disk";
     uploadDir?: string;
