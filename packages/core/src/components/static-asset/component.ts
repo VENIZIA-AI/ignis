@@ -19,8 +19,8 @@ export class StaticAssetComponent extends BaseComponent {
       scope: StaticAssetComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [StaticAssetBindingKeys.STATIC_ASSET_OPTIONS]: Binding.bind<TStaticAssetsOptions>({
-          key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
+        [StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]: Binding.bind<TStaticAssetsOptions>({
+          key: StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
         }).toValue(DEFAULT_OPTIONS),
       },
     });
@@ -29,7 +29,7 @@ export class StaticAssetComponent extends BaseComponent {
   override binding(): ValueOrPromise<void> {
     const { minioAsset, staticAsset } =
       this.application.get<TStaticAssetsOptions>({
-        key: StaticAssetBindingKeys.STATIC_ASSET_OPTIONS,
+        key: StaticAssetBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
         isOptional: true,
       }) ?? DEFAULT_OPTIONS;
 
@@ -40,6 +40,9 @@ export class StaticAssetComponent extends BaseComponent {
           key: StaticAssetBindingKeys.MINIO_HELPER_INSTANCE,
         })
         .toValue(minioHelper);
+      this.application.bind({
+        key: StaticAssetBindingKeys.MINIO_ASSET_OPTIONS
+      }).toValue(minioAsset.options);
 
       this.application.controller(MinioAssetController);
     }

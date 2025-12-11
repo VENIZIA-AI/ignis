@@ -7,9 +7,10 @@ import {
   HTTP,
   IUploadFile,
   MinioHelper,
+  parseMultipartBody,
   ValueOrPromise,
 } from "@venizia/ignis-helpers";
-import { StaticAssetBindingKeys } from "./common";
+import { StaticAssetBindingKeys, TMinioAssetOptions } from "./common";
 import { MINIO_ASSET_ROUTES } from "./definition";
 
 // ================================================================================
@@ -164,27 +165,29 @@ export class MinioAssetController extends BaseController {
       handler: async ctx => {
         const { bucketName } = ctx.req.valid("param");
         const { folderPath } = ctx.req.valid("query");
-        const { files } = ctx.req.valid("form");
-        const filesArray = Array.isArray(files) ? files : [files];
+        const minioAssetOptions = this.application.get<TMinioAssetOptions>({
+          key: StaticAssetBindingKeys.MINIO_ASSET_OPTIONS,
+        });
+
+        const filesArray = await parseMultipartBody({
+          context: ctx,
+          storage: minioAssetOptions?.parseMultipartBody?.storage,
+          uploadDir: minioAssetOptions?.parseMultipartBody?.uploadDir,
+        });
 
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetBindingKeys.MINIO_HELPER_INSTANCE,
         });
 
-        const modifiedFiles: IUploadFile[] = await Promise.all(
-          filesArray.map(file => {
-            return new Promise<IUploadFile>(resolve => {
-              file.arrayBuffer().then(buffer => {
-                resolve({
-                  originalname: folderPath ? `${folderPath}/${file.name}` : file.name,
-                  mimetype: file.type,
-                  buffer: Buffer.from(buffer),
-                  size: file.size,
-                });
-              });
-            });
-          }),
-        );
+        const modifiedFiles: IUploadFile[] = filesArray.map(file => {
+          return {
+            originalname: folderPath ? `${folderPath}/${file.originalname}` : file.originalname,
+            mimetype: file.mimetype,
+            buffer: file.buffer ?? Buffer.alloc(0),
+            size: file.size,
+            encoding: file.encoding,
+          };
+        });
         const uploaded = await minioInstance.upload({
           bucket: bucketName,
           files: modifiedFiles,
