@@ -11,7 +11,7 @@ import {
   ValueOrPromise,
 } from "@venizia/ignis-helpers";
 import { StaticAssetBindingKeys, TMinioAssetOptions } from "./common";
-import { MINIO_ASSET_ROUTES } from "./definition";
+import { MinIOAssetDefinitions } from "./definition";
 
 // ================================================================================
 export class StaticAssetController extends BaseController {
@@ -36,7 +36,7 @@ export class MinioAssetController extends BaseController {
   override binding(): ValueOrPromise<void> {
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["GET /buckets"],
+      configs: MinIOAssetDefinitions.GET_BUCKETS,
     }).to({
       handler: async ctx => {
         const minioInstance = this.application.get<MinioHelper>({
@@ -49,7 +49,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["GET /buckets/:bucketName"],
+      configs: MinIOAssetDefinitions.GET_BUCKET_BY_NAME,
     }).to({
       handler: async ctx => {
         const { bucketName } = ctx.req.valid("param");
@@ -63,7 +63,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["GET /buckets/:bucketName/objects/:objectName"],
+      configs: MinIOAssetDefinitions.GET_OBJECT_BY_NAME,
     }).to({
       handler: async ctx => {
         const { bucketName, objectName } = ctx.req.valid("param");
@@ -104,7 +104,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["GET /buckets/:bucketName/objects/:objectName/download"],
+      configs: MinIOAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
     }).to({
       handler: async ctx => {
         const { bucketName, objectName } = ctx.req.valid("param");
@@ -146,7 +146,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["POST /buckets/:bucketName"],
+      configs: MinIOAssetDefinitions.CREATE_BUCKET,
     }).to({
       handler: async ctx => {
         const { bucketName } = ctx.req.valid("param");
@@ -160,7 +160,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["POST /buckets/:bucketName/upload"],
+      configs: MinIOAssetDefinitions.UPLOAD,
     }).to({
       handler: async ctx => {
         const { bucketName } = ctx.req.valid("param");
@@ -211,7 +211,7 @@ export class MinioAssetController extends BaseController {
 
     // ----------------------------------------
     this.bindRoute({
-      configs: MINIO_ASSET_ROUTES["DELETE /buckets/:bucketName"],
+      configs: MinIOAssetDefinitions.DELETE_BUCKET,
     }).to({
       handler: async ctx => {
         const { bucketName } = ctx.req.valid("param");

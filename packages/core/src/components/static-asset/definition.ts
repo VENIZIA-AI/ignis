@@ -3,8 +3,8 @@ import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
 import { z } from "@hono/zod-openapi";
 
 // ================================================================================
-export const MINIO_ASSET_ROUTES = {
-  ["GET /buckets"]: {
+export const MinIOAssetDefinitions = {
+  GET_BUCKETS: {
     method: "get",
     path: "/buckets",
     responses: jsonResponse({
@@ -16,7 +16,7 @@ export const MINIO_ASSET_ROUTES = {
       ),
     }),
   },
-  ["GET /buckets/:bucketName/objects/:objectName"]: {
+  GET_OBJECT_BY_NAME: {
     method: "get",
     path: "/buckets/:bucketName/objects/:objectName",
     request: {
@@ -52,7 +52,7 @@ export const MINIO_ASSET_ROUTES = {
       ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
     },
   },
-  ["GET /buckets/:bucketName/objects/:objectName/download"]: {
+  DOWNLOAD_OBJECT_BY_NAME: {
     method: "get",
     path: "/buckets/:bucketName/objects/:objectName/download",
     request: {
@@ -88,7 +88,7 @@ export const MINIO_ASSET_ROUTES = {
       ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
     },
   },
-  ["GET /buckets/:bucketName"]: {
+  GET_BUCKET_BY_NAME: {
     method: "get",
     path: "/buckets/:bucketName",
     request: {
@@ -111,7 +111,7 @@ export const MINIO_ASSET_ROUTES = {
         .nullable(),
     }),
   },
-  ["POST /buckets/:bucketName"]: {
+  CREATE_BUCKET: {
     method: "post",
     path: "/buckets/:bucketName",
     request: {
@@ -134,7 +134,7 @@ export const MINIO_ASSET_ROUTES = {
         .nullable(),
     }),
   },
-  ["POST /buckets/:bucketName/upload"]: {
+  UPLOAD: {
     method: "post",
     path: "/buckets/:bucketName/upload",
     request: {
@@ -186,7 +186,7 @@ export const MINIO_ASSET_ROUTES = {
       ),
     }),
   },
-  ["DELETE /buckets/:bucketName"]: {
+  DELETE_BUCKET: {
     method: "delete",
     path: "/buckets/:bucketName",
     request: {
