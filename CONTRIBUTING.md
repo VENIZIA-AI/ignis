@@ -47,6 +47,16 @@ bun install
 git remote add upstream https://github.com/VENIZIA-AI/ignis.git
 ```
 
+### Join the Development Team (Optional)
+
+If you'd like to contribute directly to this repository without forking, you can request to join the development team. This gives you push access to create branches directly in the main repository.
+
+**To request access:**
+1. Open an issue with the title: `Request to join development team`
+2. Briefly describe your interest and how you'd like to contribute
+
+Once approved, you can clone the repo directly and push branches without maintaining a fork.
+
 ---
 
 ## Git Branching Strategy

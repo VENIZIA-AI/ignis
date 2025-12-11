@@ -26,14 +26,6 @@ Include the following information in your report:
 - **Suggested fix** (if you have one)
 - **Your contact information** for follow-up questions
 
-### What to Expect
-
-| Timeline           | Action                              |
-| ------------------ | ----------------------------------- |
-| **Within 5 days**  | Your report will be acknowledged    |
-| **Within 14 days** | Initial assessment and response     |
-| **Within 90 days** | Fix developed, tested, and released |
-
 We will:
 
 1. Acknowledge receipt of your report
