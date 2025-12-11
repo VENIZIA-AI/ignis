@@ -1,29 +1,27 @@
 {
   "name": "@venizia/ignis-helpers",
   "version": "0.0.1-2",
-  "description": "JS/TS Helpers",
+  "description": "Utility helpers for the Ignis Framework - logging, cron, Redis, queues, storage, and more",
   "keywords": [
-    "web",
-    "restful",
-    "rest",
-    "api",
-    "hono",
-    "auth",
-    "security",
-    "backend",
-    "infrastructure",
+    "helpers",
+    "utilities",
+    "logging",
+    "winston",
+    "cron",
+    "redis",
+    "ioredis",
+    "queue",
+    "bullmq",
+    "storage",
+    "minio",
+    "s3",
+    "mqtt",
+    "socket.io",
     "venizia",
-    "vez",
-    "infra",
+    "ignis",
     "bun",
     "nodejs",
-    "decorator",
-    "class-based",
-    "framework",
-    "dependency injection",
-    "backend framework",
-    "nodejs framework",
-    "web framework"
+    "typescript"
   ],
   "exports": {
     ".": {
@@ -34,7 +32,7 @@
   },
   "files": [
     "README.md",
-    "LICENSE",
+    "LICENSE.md",
     "dist",
     "!/**/tests",
     "!/**/dist/tests",
@@ -66,7 +64,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/helpers"
   },
   "author": {
     "name": "VENIZIA AI Developer",

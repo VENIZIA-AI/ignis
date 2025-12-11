@@ -1,6 +1,6 @@
 # 🔥 Ignis
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Bun Version](https://img.shields.io/badge/bun-%3E%3D1.3-black)](https://bun.sh)
 [![Node Version](https://img.shields.io/badge/node-%3E%3D18-green)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
@@ -539,7 +539,11 @@ async createTodo(c: Context) {
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please see [Contribution Workflow](packages/docs/wiki/get-started/best-practices/contribution-workflow.md) for guidelines.
+Contributions are welcome! Please read our:
+
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- [Security Policy](SECURITY.md) - Reporting vulnerabilities
 
 ### Development Setup
 
@@ -562,7 +566,7 @@ bun run docs:dev
 
 ## 📄 License
 
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE.md](LICENSE.md) file for details.
 
 ---
 

@@ -73,6 +73,8 @@ Desktop.ini
 
 # Prompts
 # Reusable AI prompts for development workflow
+.local/
+.claude/
 .prompts/
 
 # Miscellaneous

@@ -22,6 +22,8 @@
     "./package.json": "./package.json"
   },
   "files": [
+    "README.md",
+    "LICENSE.md",
     "dist",
     "tsconfig"
   ],
@@ -44,7 +46,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/dev-configs"
   },
   "author": {
     "name": "VENIZIA AI Developer",

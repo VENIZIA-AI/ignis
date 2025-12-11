@@ -23,7 +23,7 @@
   },
   "files": [
     "README.md",
-    "LICENSE",
+    "LICENSE.md",
     "dist",
     "!/**/tests",
     "!/**/dist/tests",
@@ -55,7 +55,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/inversion"
   },
   "author": {
     "name": "VENIZIA AI Developer",
