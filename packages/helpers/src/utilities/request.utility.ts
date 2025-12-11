@@ -88,3 +88,34 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
 
   return files;
 };
+
+// -------------------------------------------------------------------------
+// Sanitize filename for Content-Disposition
+export const sanitizeFilename = (filename: string): string => {
+  // Remove any path components (security)
+  const basename = path.basename(filename);
+
+  // Remove or replace dangerous characters
+  // Allow only alphanumeric, spaces, hyphens, underscores, and dots
+  const sanitized = basename.replace(/[^\w\s.-]/g, "_");
+
+  // Prevent empty filename
+  return sanitized || "download";
+};
+
+// Create RFC 5987 encoded filename
+export const encodeRFC5987 = (filename: string): string => {
+  return encodeURIComponent(filename)
+    .replace(/['()]/g, c => "%" + c.charCodeAt(0).toString(16).toUpperCase())
+    .replace(/\*/g, "%2A");
+};
+
+// Create safe Content-Disposition header
+export const createContentDispositionHeader = (filename: string): string => {
+  const sanitized = sanitizeFilename(filename);
+  const encoded = encodeRFC5987(sanitized);
+
+  // Use both ASCII fallback and UTF-8 encoded version for better compatibility
+  // filename= for old browsers, filename*= for modern browsers with UTF-8 support
+  return `attachment; filename="${sanitized}"; filename*=UTF-8''${encoded}`;
+};
