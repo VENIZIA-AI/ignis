@@ -1,7 +1,7 @@
-import { BaseApplication } from "@/base/applications";
-import { BaseController } from "@/base/controllers";
-import { controller, inject } from "@/base/metadata";
-import { CoreBindings } from "@/common";
+import { BaseApplication } from '@/base/applications';
+import { BaseController } from '@/base/controllers';
+import { controller, inject } from '@/base/metadata';
+import { CoreBindings } from '@/common';
 import {
   createContentDispositionHeader,
   dayjs,
@@ -10,30 +10,34 @@ import {
   MinioHelper,
   parseMultipartBody,
   ValueOrPromise,
-} from "@venizia/ignis-helpers";
-import isEmpty from "lodash/isEmpty";
-import fs from "node:fs";
-import path from "node:path";
-import { StaticAssetComponentBindingKeys, TMinioAssetOptions } from "./common";
-import { MinIOAssetDefinitions, StaticResourceDefinitions } from "./definition";
+} from '@venizia/ignis-helpers';
+import isEmpty from 'lodash/isEmpty';
+import fs from 'node:fs';
+import path from 'node:path';
+import {
+  StaticAssetComponentBindingKeys,
+  TMinioAssetOptions,
+  TStaticResourceOptions,
+} from './common';
+import { MinIOAssetDefinitions, StaticResourceDefinitions } from './definition';
 
 // ================================================================================
 const WHITELIST_HEADERS = [
-  "content-type",
-  "content-encoding",
-  "cache-control",
-  "etag",
-  "last-modified",
+  'content-type',
+  'content-encoding',
+  'cache-control',
+  'etag',
+  'last-modified',
 ];
 
 // ================================================================================
-@controller({ path: "/static-resources" })
+@controller({ path: '/static-resources' })
 export class StaticResourceController extends BaseController {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
     super({
-      path: "/static-resources",
+      path: '/static-resources',
       scope: StaticResourceController.name,
       isStrict: true,
     });
@@ -48,7 +52,7 @@ export class StaticResourceController extends BaseController {
         const basePath = this.application.get<string>({
           key: StaticAssetComponentBindingKeys.RESOURCE_BASE_PATH,
         });
-        const staticResourceOptions = this.application.get<TMinioAssetOptions>({
+        const staticResourceOptions = this.application.get<TStaticResourceOptions>({
           key: StaticAssetComponentBindingKeys.STATIC_RESOURCE_OPTIONS,
         });
         const filesArray = await parseMultipartBody({
@@ -73,10 +77,10 @@ export class StaticResourceController extends BaseController {
               return;
             }
 
-            const normalizedName = originalName.toLowerCase().replace(/ /g, "_");
+            const normalizedName = path.basename(originalName).toLowerCase().replace(/ /g, '_');
             return new Promise<{ objectName: string }>((resolve, reject) => {
               try {
-                const savedName = `${dayjs().format("YYYYMMDDHHmmss")}_${normalizedName}`;
+                const savedName = `${dayjs().format('YYYYMMDDHHmmss')}_${normalizedName}`;
                 const filePath = path.join(basePath, savedName);
                 fs.writeFileSync(filePath, buffer ?? Buffer.alloc(0));
                 resolve({ objectName: savedName });
@@ -99,7 +103,7 @@ export class StaticResourceController extends BaseController {
       configs: StaticResourceDefinitions.DOWNLOAD,
     }).to({
       handler: async ctx => {
-        const { objectName } = ctx.req.valid("param");
+        const { objectName } = ctx.req.valid('param');
         const basePath = this.application.get<string>({
           key: StaticAssetComponentBindingKeys.RESOURCE_BASE_PATH,
         });
@@ -107,10 +111,13 @@ export class StaticResourceController extends BaseController {
 
         const resolvedBasePath = path.resolve(basePath);
         const resolvedSavedPath = path.resolve(savedPath);
-        if (!resolvedSavedPath.startsWith(resolvedBasePath + path.sep)) {
+        if (
+          resolvedSavedPath === resolvedBasePath ||
+          !resolvedSavedPath.startsWith(resolvedBasePath + path.sep)
+        ) {
           // Path traversal detected, reject the request
           return ctx.json(
-            { error: "Invalid objectName | Path traversal detected" },
+            { error: 'Invalid objectName | Path traversal detected' },
             HTTP.ResultCodes.RS_4.BadRequest,
           );
         }
@@ -118,10 +125,10 @@ export class StaticResourceController extends BaseController {
         try {
           const fileStat = fs.statSync(savedPath);
           const { size } = fileStat;
-          ctx.header("content-type", "application/octet-stream");
-          ctx.header("content-length", size.toString());
-          ctx.header("content-disposition", createContentDispositionHeader(objectName));
-          ctx.header("x-content-type-options", "nosniff");
+          ctx.header('content-type', 'application/octet-stream');
+          ctx.header('content-length', size.toString());
+          ctx.header('content-disposition', createContentDispositionHeader(objectName));
+          ctx.header('x-content-type-options', 'nosniff');
           const fileStream = fs.createReadStream(savedPath);
           return new Response(fileStream, {
             headers: ctx.res.headers,
@@ -136,13 +143,13 @@ export class StaticResourceController extends BaseController {
 }
 
 // ================================================================================
-@controller({ path: "/static-assets" })
+@controller({ path: '/static-assets' })
 export class MinioAssetController extends BaseController {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
     super({
-      path: "/static-assets",
+      path: '/static-assets',
       scope: MinioAssetController.name,
       isStrict: true,
     });
@@ -167,7 +174,7 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.GET_BUCKET_BY_NAME,
     }).to({
       handler: async ctx => {
-        const { bucketName } = ctx.req.valid("param");
+        const { bucketName } = ctx.req.valid('param');
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
@@ -181,7 +188,7 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.GET_OBJECT_BY_NAME,
     }).to({
       handler: async ctx => {
-        const { bucketName, objectName } = ctx.req.valid("param");
+        const { bucketName, objectName } = ctx.req.valid('param');
 
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
@@ -193,13 +200,13 @@ export class MinioAssetController extends BaseController {
           if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
             return;
           }
-          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
+          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
         });
-        if (!ctx.res.headers.has("content-type")) {
-          ctx.header("content-type", "application/octet-stream");
+        if (!ctx.res.headers.has('content-type')) {
+          ctx.header('content-type', 'application/octet-stream');
         }
-        ctx.header("content-length", size.toString());
-        ctx.header("x-content-type-options", "nosniff");
+        ctx.header('content-length', size.toString());
+        ctx.header('x-content-type-options', 'nosniff');
 
         const minioStream = await minioInstance.getFile({
           bucket: bucketName,
@@ -217,7 +224,7 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
     }).to({
       handler: async ctx => {
-        const { bucketName, objectName } = ctx.req.valid("param");
+        const { bucketName, objectName } = ctx.req.valid('param');
 
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
@@ -230,14 +237,14 @@ export class MinioAssetController extends BaseController {
           if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
             return;
           }
-          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
+          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
         });
-        if (!ctx.res.headers.has("content-type")) {
-          ctx.header("content-type", "application/octet-stream");
+        if (!ctx.res.headers.has('content-type')) {
+          ctx.header('content-type', 'application/octet-stream');
         }
-        ctx.header("content-length", size.toString());
-        ctx.header("content-disposition", createContentDispositionHeader(objectName));
-        ctx.header("x-content-type-options", "nosniff");
+        ctx.header('content-length', size.toString());
+        ctx.header('content-disposition', createContentDispositionHeader(objectName));
+        ctx.header('x-content-type-options', 'nosniff');
 
         const minioStream = await minioInstance.getFile({
           bucket: bucketName,
@@ -255,7 +262,7 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.CREATE_BUCKET,
     }).to({
       handler: async ctx => {
-        const { bucketName } = ctx.req.valid("param");
+        const { bucketName } = ctx.req.valid('param');
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
@@ -269,8 +276,8 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.UPLOAD,
     }).to({
       handler: async ctx => {
-        const { bucketName } = ctx.req.valid("param");
-        const { folderPath } = ctx.req.valid("query");
+        const { bucketName } = ctx.req.valid('param');
+        const { folderPath } = ctx.req.valid('query');
         const minioAssetOptions = this.application.get<TMinioAssetOptions>({
           key: StaticAssetComponentBindingKeys.MINIO_ASSET_OPTIONS,
         });
@@ -319,7 +326,7 @@ export class MinioAssetController extends BaseController {
       configs: MinIOAssetDefinitions.DELETE_BUCKET,
     }).to({
       handler: async ctx => {
-        const { bucketName } = ctx.req.valid("param");
+        const { bucketName } = ctx.req.valid('param');
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
