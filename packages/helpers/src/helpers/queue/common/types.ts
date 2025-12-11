@@ -1,1 +1,1 @@
-export type TBullQueueRole = "queue" | "worker";
+export type TBullQueueRole = 'queue' | 'worker';

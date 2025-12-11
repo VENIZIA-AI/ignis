@@ -1,7 +1,7 @@
-import { BaseApplication } from "@/base/applications";
-import { BaseComponent } from "@/base/components";
-import { inject } from "@/base/metadata";
-import { CoreBindings } from "@/common/bindings";
+import { BaseApplication } from '@/base/applications';
+import { BaseComponent } from '@/base/components';
+import { inject } from '@/base/metadata';
+import { CoreBindings } from '@/common/bindings';
 import {
   Binding,
   DefaultRedisHelper,
@@ -9,20 +9,20 @@ import {
   HTTP,
   SocketIOServerHelper,
   ValueOrPromise,
-} from "@venizia/ignis-helpers";
-import { ServerOptions } from "socket.io";
-import { SocketIOBindingKeys } from "./keys";
+} from '@venizia/ignis-helpers';
+import { ServerOptions } from 'socket.io';
+import { SocketIOBindingKeys } from './keys';
 
 interface IServerOptions extends ServerOptions {
   identifier: string;
 }
 
 const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
-  identifier: "SOCKET_IO_SERVER",
-  path: "/io",
+  identifier: 'SOCKET_IO_SERVER',
+  path: '/io',
   cors: {
-    origin: "*",
-    methods: ["GET", "POST"],
+    origin: '*',
+    methods: ['GET', 'POST'],
     preflightContinue: false,
     optionsSuccessStatus: 204,
     credentials: true,
@@ -54,10 +54,10 @@ export class SocketIOComponent extends BaseComponent {
         key: SocketIOBindingKeys.REDIS_CONNECTION,
       }).toValue(null),
       [SocketIOBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind<
-        SocketIOServerHelper["authenticateFn"] | null
+        SocketIOServerHelper['authenticateFn'] | null
       >({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(null),
       [SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER]: Binding.bind<
-        SocketIOServerHelper["onClientConnected"] | null
+        SocketIOServerHelper['onClientConnected'] | null
       >({ key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER }).toValue(null),
     };
   }
@@ -66,10 +66,10 @@ export class SocketIOComponent extends BaseComponent {
     if (!this.application) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: "[binding] Invalid application to bind AuthenticateComponent",
+        message: '[binding] Invalid application to bind AuthenticateComponent',
       });
     }
-    this.logger.info("[binding] Binding authenticate for application...");
+    this.logger.info('[binding] Binding authenticate for application...');
 
     const extraServerOptions =
       this.application.get<Partial<ServerOptions>>({
@@ -77,7 +77,7 @@ export class SocketIOComponent extends BaseComponent {
         isOptional: true,
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
-    this.logger.debug("[binding] Socket.IO Server Options: %j", this.serverOptions);
+    this.logger.debug('[binding] Socket.IO Server Options: %j', this.serverOptions);
 
     const redisConnection = this.application.get<DefaultRedisHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
@@ -85,22 +85,22 @@ export class SocketIOComponent extends BaseComponent {
     if (!(redisConnection instanceof DefaultRedisHelper)) {
       throw getError({
         message:
-          "[SocketIOComponent][binding] Invaid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!",
+          '[SocketIOComponent][binding] Invaid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!',
       });
     }
 
-    const authenticateFn = this.application.get<SocketIOServerHelper["authenticateFn"]>({
+    const authenticateFn = this.application.get<SocketIOServerHelper['authenticateFn']>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     });
     if (!authenticateFn) {
       throw getError({
-        message: "[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!",
+        message: '[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!',
       });
     }
 
     let clientConnectedFn: any = null;
     if (this.application.isBound({ key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER })) {
-      clientConnectedFn = this.application.get<SocketIOServerHelper["onClientConnected"]>({
+      clientConnectedFn = this.application.get<SocketIOServerHelper['onClientConnected']>({
         key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
       });
     }
@@ -108,7 +108,7 @@ export class SocketIOComponent extends BaseComponent {
     const httpServer = this.application.getServerInstance();
     if (!httpServer) {
       throw getError({
-        message: "[DANGER][SocketIOComponent] Invalid http server to setup io socket server!",
+        message: '[DANGER][SocketIOComponent] Invalid http server to setup io socket server!',
       });
     }
 

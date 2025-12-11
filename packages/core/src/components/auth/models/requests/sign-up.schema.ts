@@ -1,4 +1,4 @@
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 
 export const SignUpRequestSchema = z
   .object({
@@ -6,11 +6,11 @@ export const SignUpRequestSchema = z
     credential: z.string().nonempty().min(8),
   })
   .openapi({
-    required: ["username", "credential"],
+    required: ['username', 'credential'],
     examples: [
       {
-        username: "example_username",
-        credential: "example_credential",
+        username: 'example_username',
+        credential: 'example_credential',
       },
     ],
   });

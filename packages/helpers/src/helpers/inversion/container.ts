@@ -1,9 +1,9 @@
 import {
   Container as _Container,
   MetadataRegistry as _MetadataRegistry,
-} from "@venizia/ignis-inversion";
-import { ApplicationLogger, LoggerFactory } from "../logger";
-import { MetadataRegistry } from "./registry";
+} from '@venizia/ignis-inversion';
+import { ApplicationLogger, LoggerFactory } from '../logger';
+import { MetadataRegistry } from './registry';
 
 // -------------------------------------------------------------------------------------
 export class Container extends _Container {

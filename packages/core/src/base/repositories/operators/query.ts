@@ -1,4 +1,4 @@
-import { TConstValue } from "@venizia/ignis-helpers";
+import { TConstValue } from '@venizia/ignis-helpers';
 import {
   between,
   eq,
@@ -16,49 +16,49 @@ import {
   notInArray,
   notLike,
   sql,
-} from "drizzle-orm";
-import { IQueryHandlerOptions } from "../common";
+} from 'drizzle-orm';
+import { IQueryHandlerOptions } from '../common';
 
 // --------------------------------------------------------------------------------------
 export class Sorts {
-  static readonly DESC = "desc";
-  static readonly ASC = "asc";
+  static readonly DESC = 'desc';
+  static readonly ASC = 'asc';
 }
 
 // --------------------------------------------------------------------------------------
 export class QueryOperators {
-  static readonly EQ = "eq";
-  static readonly NE = "ne";
-  static readonly NEQ = "neq";
+  static readonly EQ = 'eq';
+  static readonly NE = 'ne';
+  static readonly NEQ = 'neq';
 
-  static readonly GT = "gt";
-  static readonly GTE = "gte";
+  static readonly GT = 'gt';
+  static readonly GTE = 'gte';
 
-  static readonly LT = "lt";
-  static readonly LTE = "lte";
+  static readonly LT = 'lt';
+  static readonly LTE = 'lte';
 
-  static readonly LIKE = "like";
-  static readonly NOT_LIKE = "nlike";
-  static readonly ILIKE = "ilike";
-  static readonly NOT_ILIKE = "nilike";
+  static readonly LIKE = 'like';
+  static readonly NOT_LIKE = 'nlike';
+  static readonly ILIKE = 'ilike';
+  static readonly NOT_ILIKE = 'nilike';
 
-  static readonly IS = "is";
-  static readonly IS_NOT = "isn";
-  static readonly REGEXP = "regexp";
+  static readonly IS = 'is';
+  static readonly IS_NOT = 'isn';
+  static readonly REGEXP = 'regexp';
 
-  static readonly IN = "in";
-  static readonly INQ = "inq";
-  static readonly NIN = "nin";
+  static readonly IN = 'in';
+  static readonly INQ = 'inq';
+  static readonly NIN = 'nin';
 
-  static readonly EXISTS = "exists";
-  static readonly NOT_EXISTS = "notExists";
+  static readonly EXISTS = 'exists';
+  static readonly NOT_EXISTS = 'notExists';
 
-  static readonly BETWEEN = "between";
-  static readonly NOT_BETWEEN = "notBetween";
+  static readonly BETWEEN = 'between';
+  static readonly NOT_BETWEEN = 'notBetween';
 
-  static readonly NOT = "not";
-  static readonly AND = "and";
-  static readonly OR = "or";
+  static readonly NOT = 'not';
+  static readonly AND = 'and';
+  static readonly OR = 'or';
 
   static readonly FNS = {
     // Standard Comparison

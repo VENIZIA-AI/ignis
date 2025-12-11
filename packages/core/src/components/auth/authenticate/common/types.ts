@@ -1,8 +1,8 @@
-import { IdType } from "@/base/models";
-import { AESAlgorithmType, AnyObject, ValueOrPromise } from "@venizia/ignis-helpers";
-import { Context, Env, Input } from "hono";
-import { JWTPayload } from "jose";
-import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from "../../models/requests";
+import { IdType } from '@/base/models';
+import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Context, Env, Input } from 'hono';
+import { JWTPayload } from 'jose';
+import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
 
 export interface IJWTTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;

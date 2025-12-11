@@ -3,9 +3,7 @@ import { IDataSource, inject, ReadableRepository, repository } from '@venizia/ig
 
 @repository({})
 export class UserRepository extends ReadableRepository<TUserSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
-  ) {
+  constructor(@inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource) {
     super({ dataSource, entityClass: User, relations: userRelations.definitions });
   }
 }

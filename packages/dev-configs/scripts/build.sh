@@ -3,10 +3,7 @@ set -e
 
 echo "Building @venizia/dev-configs..."
 
-# Clean previous build
-rm -rf dist
-
 # Compile TypeScript
-tsc -p tsconfig.json
+tsc -p tsconfig.json --extendedDiagnostics
 
 echo "Build completed successfully!"

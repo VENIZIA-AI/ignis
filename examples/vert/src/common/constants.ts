@@ -1,8 +1,7 @@
 export class App {
   static readonly APPLICATION_NAME = process.env.APP_ENV_APPLICATION_NAME;
 
-  static readonly TIMEZONE =
-    process.env.APP_ENV_APPLICATION_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
+  static readonly TIMEZONE = process.env.APP_ENV_APPLICATION_TIMEZONE ?? 'Asia/Ho_Chi_Minh';
   static readonly TIME_OFFSET = '+07:00';
 
   static readonly SECRET = process.env.APP_ENV_APPLICATION_SECRET ?? 'ApPlicAti0n.SreT';

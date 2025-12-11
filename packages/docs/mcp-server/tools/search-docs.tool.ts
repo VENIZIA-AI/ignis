@@ -1,7 +1,7 @@
-import { z } from "zod";
-import { MCP_CONFIG } from "../common";
-import { DocsHelper } from "../helpers";
-import { BaseTool, createTool, type TMastraTool } from "./base.tool";
+import { z } from 'zod';
+import { MCP_CONFIG } from '../common';
+import { DocsHelper } from '../helpers';
+import { BaseTool, createTool, type TMastraTool } from './base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -74,12 +74,12 @@ const SearchResultSchema = z.object({
   id: z
     .string()
     .describe(
-      "Unique document identifier (relative file path). Use with getDocContent to retrieve full document.",
+      'Unique document identifier (relative file path). Use with getDocContent to retrieve full document.',
     ),
-  title: z.string().describe("Human-readable document title from frontmatter or filename."),
+  title: z.string().describe('Human-readable document title from frontmatter or filename.'),
   category: z.string().describe('Document category (e.g., "Getting Started", "References").'),
-  snippet: z.string().describe("Content preview (max 300 chars) for quick assessment."),
-  score: z.number().optional().describe("Relevance score 0-1 (lower = better match)."),
+  snippet: z.string().describe('Content preview (max 300 chars) for quick assessment.'),
+  score: z.number().optional().describe('Relevance score 0-1 (lower = better match).'),
 });
 
 const InputSchema = z.object({
@@ -93,25 +93,28 @@ const InputSchema = z.object({
     .describe(LIMIT_DESCRIPTION),
 });
 
-const OutputSchema = z
-  .array(SearchResultSchema)
-  .describe("Search results sorted by relevance. Empty array if no matches.");
+const OutputSchema = z.object({
+  results: z
+    .array(SearchResultSchema)
+    .describe('Search results sorted by relevance. Empty array if no matches.'),
+});
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS
 // ----------------------------------------------------------------------------
 
 export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = "searchDocs";
+  readonly id = 'searchDocs';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
   async execute(input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
-    return DocsHelper.searchDocs({
+    const results = await DocsHelper.searchDocs({
       query: input.query,
       limit: input.limit,
     });
+    return { results };
   }
 
   getTool(): TMastraTool {

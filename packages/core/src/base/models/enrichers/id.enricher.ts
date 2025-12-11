@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql } from 'drizzle-orm';
 import {
   bigint,
   integer,
@@ -7,16 +7,16 @@ import {
   PgSerialBuilderInitial,
   PgTextBuilderInitial,
   text,
-} from "drizzle-orm/pg-core";
-import { TColumnDefinitions, TPrimaryKey } from "../common/types";
-import { getError } from "@venizia/ignis-helpers";
+} from 'drizzle-orm/pg-core';
+import { TColumnDefinitions, TPrimaryKey } from '../common/types';
+import { getError } from '@venizia/ignis-helpers';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (
-    | { dataType: "string" }
+    | { dataType: 'string' }
     | {
-        dataType: "number" | "big-number";
-        numberMode?: "number" | "bigint";
+        dataType: 'number' | 'big-number';
+        numberMode?: 'number' | 'bigint';
         sequenceOptions?: PgSequenceOptions;
       }
   );
@@ -25,32 +25,32 @@ export type TIdEnricherOptions = {
 export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
   ColumnDefinitions & {
     id:
-      | TPrimaryKey<PgTextBuilderInitial<"id", [string, ...string[]]>>
-      | TPrimaryKey<PgIntegerBuilderInitial<"id">>
-      | TPrimaryKey<PgSerialBuilderInitial<"id">>;
+      | TPrimaryKey<PgTextBuilderInitial<'id', [string, ...string[]]>>
+      | TPrimaryKey<PgIntegerBuilderInitial<'id'>>
+      | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
   };
 
 export const generateIdColumnDefs = (opts?: TIdEnricherOptions) => {
-  const { id = { dataType: "number" } } = opts ?? {};
+  const { id = { dataType: 'number' } } = opts ?? {};
 
   switch (id.dataType) {
-    case "string": {
+    case 'string': {
       return {
-        id: text("id")
+        id: text('id')
           .default(sql`uuid_generate_v4()`)
           .primaryKey(),
       };
     }
-    case "number": {
+    case 'number': {
       return {
-        id: integer("id").primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
+        id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
       };
     }
-    case "big-number": {
-      const numberMode = id.numberMode ?? "number";
+    case 'big-number': {
+      const numberMode = id.numberMode ?? 'number';
 
       return {
-        id: bigint("id", { mode: numberMode })
+        id: bigint('id', { mode: numberMode })
           .primaryKey()
           .generatedAlwaysAsIdentity(id.sequenceOptions),
       };

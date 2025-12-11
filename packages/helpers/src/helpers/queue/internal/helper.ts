@@ -1,13 +1,13 @@
-import { BaseHelper } from "@/helpers/base";
-import { ValueOf, ValueOrPromise } from "@/common/types";
-import isEmpty from "lodash/isEmpty";
+import { BaseHelper } from '@/helpers/base';
+import { ValueOf, ValueOrPromise } from '@/common/types';
+import isEmpty from 'lodash/isEmpty';
 
 // --------------------------------------------------------
 export class QueueStatuses {
-  static readonly WAITING = "000_WAITING";
-  static readonly PROCESSING = "100_PROCESSING";
-  static readonly LOCKED = "200_LOCKED";
-  static readonly SETTLED = "300_SETTLED";
+  static readonly WAITING = '000_WAITING';
+  static readonly PROCESSING = '100_PROCESSING';
+  static readonly LOCKED = '200_LOCKED';
+  static readonly SETTLED = '300_SETTLED';
 
   static readonly SCHEME_SET = new Set([this.WAITING, this.PROCESSING, this.LOCKED, this.SETTLED]);
 
@@ -16,7 +16,7 @@ export class QueueStatuses {
   }
 }
 
-export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, "isValid" | "SCHEME_SET">>;
+export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, 'isValid' | 'SCHEME_SET'>>;
 export type TQueueElement<T> = { isLocked: boolean; payload: T };
 
 // --------------------------------------------------------
@@ -96,13 +96,13 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   protected async handleMessage() {
     const current = this.getElementAt(0);
     if (!current) {
-      this.logger.warn("[handleMessage] current: %j | Invalid current message to handle!", current);
+      this.logger.warn('[handleMessage] current: %j | Invalid current message to handle!', current);
       return;
     }
 
     const { isLocked, payload } = current;
     if (isLocked) {
-      this.logger.info("[handle] Skip LOCKED message | Payload: %j", payload);
+      this.logger.info('[handle] Skip LOCKED message | Payload: %j', payload);
       return;
     }
 
@@ -144,7 +144,7 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   private *_messageListener() {
     if (!this.onMessage) {
       this.logger.warn(
-        "[_messageListener] Queue has no onMessage listener | Skip initializing message iterator!",
+        '[_messageListener] Queue has no onMessage listener | Skip initializing message iterator!',
       );
       return;
     }
@@ -157,7 +157,7 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   nextMessage() {
     if (this.state !== QueueStatuses.WAITING) {
       this.logger.warn(
-        "[nextMessage] SKIP request next message | Invalid queue state to request next message | currentState: %s",
+        '[nextMessage] SKIP request next message | Invalid queue state to request next message | currentState: %s',
         this.state,
       );
       return;
@@ -169,7 +169,7 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   async enqueue(payload: TElementPayload) {
     if (this.isSettleRequested || this.state === QueueStatuses.SETTLED) {
       this.logger.error(
-        "[enqueue] isSettled: %s | currentState: %s | Queue was SETTLED | No more element acceptable",
+        '[enqueue] isSettled: %s | currentState: %s | Queue was SETTLED | No more element acceptable',
         this.isSettleRequested,
         this.state,
       );
@@ -207,7 +207,7 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   lock() {
     if (this.state >= QueueStatuses.LOCKED) {
       this.logger.error(
-        "[lock] isSettled | currentState: %s | Invalid queue state to request lock queue!",
+        '[lock] isSettled | currentState: %s | Invalid queue state to request lock queue!',
         this.isSettleRequested,
         this.state,
       );
@@ -222,7 +222,7 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   unlock(opts: { shouldProcessNextElement?: boolean }) {
     if (this.state > QueueStatuses.LOCKED) {
       this.logger.error(
-        "[unlock] isSettled | currentState: %s | Invalid queue state to request unlock queue!",
+        '[unlock] isSettled | currentState: %s | Invalid queue state to request unlock queue!',
         this.isSettleRequested,
         this.state,
       );

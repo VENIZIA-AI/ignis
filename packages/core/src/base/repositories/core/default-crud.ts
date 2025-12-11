@@ -1,6 +1,6 @@
-import { TTableInsert, TTableObject, TTableSchemaWithId } from "@/base/models";
-import { TNullable } from "@venizia/ignis-helpers";
-import { PersistableRepository } from "./persistable";
+import { TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
+import { TNullable } from '@venizia/ignis-helpers';
+import { PersistableRepository } from './persistable';
 
 export class DefaultCRUDRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,

@@ -1,14 +1,14 @@
-import type { OpenAPIHono } from "@hono/zod-openapi";
-import type { Context, Env, Schema } from "hono";
-import { IPRestrictionRules as IIPRestrictionRules } from "hono/ip-restriction";
+import type { OpenAPIHono } from '@hono/zod-openapi';
+import type { Context, Env, Schema } from 'hono';
+import { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
 import {
   IComponentMixin,
   IControllerMixin,
   IRepositoryMixin,
   IServiceMixin,
   IStaticServeMixin,
-} from "../mixins/types";
-import { ValueOrPromise } from "@venizia/ignis-helpers";
+} from '../mixins/types';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
 
 // ------------------------------------------------------------------------------
 // Common Middleware Options
@@ -23,7 +23,7 @@ export interface IBaseMiddlewareOptions {
 // Compress Middleware Options
 // ------------------------------------------------------------------------------
 export interface ICompressOptions extends IBaseMiddlewareOptions {
-  encoding: "gzip" | "deflate";
+  encoding: 'gzip' | 'deflate';
   threshold?: number;
 }
 
@@ -50,7 +50,7 @@ export interface ICORSOptions extends IBaseMiddlewareOptions {
 // CSRF Middleware Options
 // ------------------------------------------------------------------------------
 export type TIsAllowedOriginHandler = (origin: string, context: Context) => boolean;
-export const SecFetchSiteValues = ["same-origin", "same-site", "none", "cross-site"] as const;
+export const SecFetchSiteValues = ['same-origin', 'same-site', 'none', 'cross-site'] as const;
 export type TSecFetchSite = (typeof SecFetchSiteValues)[number];
 export type TIsAllowedSecFetchSiteHandler = (
   secFetchSite: TSecFetchSite,
@@ -114,7 +114,7 @@ export interface IApplicationInfo {
 export interface IApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = Schema,
-  BasePath extends string = "/",
+  BasePath extends string = '/',
 > {
   getProjectRoot(): string;
   getProjectConfigs(): IApplicationConfigs;

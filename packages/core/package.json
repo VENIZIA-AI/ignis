@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.0.1-2",
+  "version": "0.0.1-4",
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "keywords": [
     "web",
@@ -34,7 +34,7 @@
   },
   "files": [
     "README.md",
-    "LICENSE",
+    "LICENSE.md",
     "dist",
     "!/**/tests",
     "!/**/dist/tests",
@@ -55,19 +55,12 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "rebuild:major": "sh ./scripts/rebuild.sh major",
-    "rebuild:minor": "sh ./scripts/rebuild.sh minor",
-    "rebuild:patch": "sh ./scripts/rebuild.sh patch",
-    "rebuild:premajor": "sh ./scripts/rebuild.sh premajor",
-    "rebuild:preminor": "sh ./scripts/rebuild.sh preminor",
-    "rebuild:prepatch": "sh ./scripts/rebuild.sh prepatch",
-    "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease",
-    "test:develop": "bun run rebuild && NODE_ENV=development bun run ./dist/__tests__/index.js",
     "prepublishOnly": "bun run rebuild"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git"
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/core"
   },
   "author": {
     "name": "VENIZIA AI Developer",
@@ -81,6 +74,7 @@
   "license": "MIT",
   "dependencies": {
     "@venizia/ignis-helpers": "latest",
+    "@venizia/ignis-inversion": "latest",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2"
   },

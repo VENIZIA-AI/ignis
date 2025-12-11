@@ -11,10 +11,7 @@ const main = () => {
   });
 
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? '';
-  logger.info(
-    '[runApplication] Getting ready to start up %s Application...',
-    applicationName,
-  );
+  logger.info('[runApplication] Getting ready to start up %s Application...', applicationName);
   return application.start();
 };
 

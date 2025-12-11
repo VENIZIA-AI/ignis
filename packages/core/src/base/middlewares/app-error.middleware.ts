@@ -1,6 +1,6 @@
-import { ApplicationLogger, Environment, HTTP } from "@venizia/ignis-helpers";
-import { ErrorHandler, HTTPResponseError } from "hono/types";
-import { RequestSpyMiddleware } from "./request-spy.middleware";
+import { ApplicationLogger, Environment, HTTP } from '@venizia/ignis-helpers';
+import { ErrorHandler, HTTPResponseError } from 'hono/types';
+import { RequestSpyMiddleware } from './request-spy.middleware';
 
 const formatZodError = (opts: {
   env: string;
@@ -22,7 +22,7 @@ const formatZodError = (opts: {
   return {
     statusCode,
     response: {
-      message: "ValidationError",
+      message: 'ValidationError',
       statusCode,
       requestId,
       details: {
@@ -31,7 +31,7 @@ const formatZodError = (opts: {
         stack: env !== Environment.PRODUCTION ? error.stack : undefined,
         cause: Array.isArray(validationErrors)
           ? validationErrors.map(el => ({
-              path: el.path.join(".") || "root",
+              path: el.path.join('.') || 'root',
               message: el.message,
               code: el.code,
               expected: el.expected,
@@ -50,7 +50,7 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
     const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
 
     logger.error(
-      "[onError][%s] REQUEST ERROR | path: %s | url: %s | Error: %s",
+      '[onError][%s] REQUEST ERROR | path: %s | url: %s | Error: %s',
       requestId,
       context.req.path,
       context.req.url,
@@ -60,13 +60,13 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
     const env = context.env?.NODE_ENV || process.env.NODE_ENV;
 
     const statusCode =
-      "status" in error
+      'status' in error
         ? error.status
-        : "statusCode" in error
+        : 'statusCode' in error
           ? error.statusCode
           : HTTP.ResultCodes.RS_5.InternalServerError;
 
-    if (error.name === "ZodError") {
+    if (error.name === 'ZodError') {
       const rs = formatZodError({
         env,
         requestId,
@@ -86,8 +86,8 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
         details: {
           url: context.req.url,
           path: context.req.path,
-          stack: env !== "production" ? error.stack : undefined,
-          cause: env !== "production" ? error.cause : undefined,
+          stack: env !== 'production' ? error.stack : undefined,
+          cause: env !== 'production' ? error.cause : undefined,
         },
       },
       statusCode as Parameters<typeof context.json>[1],

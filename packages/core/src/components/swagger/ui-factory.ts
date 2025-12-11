@@ -1,12 +1,12 @@
-import type { Context, Next } from "hono";
-import { DocumentUITypes, IGetProviderParams, IUIConfig, IUIProvider } from "./common";
-import { getError, MemoryStorageHelper } from "@venizia/ignis-helpers";
+import type { Context, Next } from 'hono';
+import { DocumentUITypes, IGetProviderParams, IUIConfig, IUIProvider } from './common';
+import { getError, MemoryStorageHelper } from '@venizia/ignis-helpers';
 
 // -------------------------------------------------------------------
 export class SwaggerUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
     // validateModule({ scope: 'SwaggerUIProvider', modules: ['@hono/swagger-ui'] });
-    const { swaggerUI } = await import("@hono/swagger-ui");
+    const { swaggerUI } = await import('@hono/swagger-ui');
 
     const { title, url, ...customConfig } = config;
     return swaggerUI({ title, url, ...customConfig })(context, next);
@@ -16,7 +16,7 @@ export class SwaggerUIProvider implements IUIProvider {
 export class ScalarUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
     // validateModule({ scope: 'ScalarUIProvider', modules: ['@scalar/hono-api-reference'] });
-    const { Scalar } = await import("@scalar/hono-api-reference");
+    const { Scalar } = await import('@scalar/hono-api-reference');
 
     const { title, url, ...customConfig } = config;
     return Scalar({ url, pageTitle: title, ...customConfig })(context, next);
@@ -41,7 +41,7 @@ export class UIProviderFactory extends MemoryStorageHelper<{
     if (!this.isBound(type)) {
       const availableProviders = this.keys();
       throw getError({
-        message: `[UIProviderFactory][getProvider] Unknown UI Provider | type: ${type} | available: ${availableProviders.join(", ")}`,
+        message: `[UIProviderFactory][getProvider] Unknown UI Provider | type: ${type} | available: ${availableProviders.join(', ')}`,
       });
     }
 
@@ -50,7 +50,7 @@ export class UIProviderFactory extends MemoryStorageHelper<{
 
   register(opts: { type: string }): void {
     if (this.isBound(opts.type)) {
-      this.logger.warn("[register] Skip registering BOUNDED Document UI | type: %s", opts.type);
+      this.logger.warn('[register] Skip registering BOUNDED Document UI | type: %s', opts.type);
       return;
     }
 

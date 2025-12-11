@@ -1,14 +1,14 @@
-import { integer, text } from "drizzle-orm/pg-core";
-import { TColumnDefinitions } from "../common/types";
+import { integer, text } from 'drizzle-orm/pg-core';
+import { TColumnDefinitions } from '../common/types';
 
 export type TPrincipalEnricherOptions = {
   discriminator?: string;
   defaultPolymorphic?: string;
-  polymorphicIdType: "number" | "string";
+  polymorphicIdType: 'number' | 'string';
 };
 
 export const generatePrincipalColumnDefs = (opts: TPrincipalEnricherOptions) => {
-  const { discriminator = "principal", defaultPolymorphic = "", polymorphicIdType } = opts;
+  const { discriminator = 'principal', defaultPolymorphic = '', polymorphicIdType } = opts;
 
   const polymorphic = {
     typeField: `${discriminator}Type`,
@@ -20,7 +20,7 @@ export const generatePrincipalColumnDefs = (opts: TPrincipalEnricherOptions) => 
 
   return {
     [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
-    [polymorphic.idField]: (polymorphic.idType === "number"
+    [polymorphic.idField]: (polymorphic.idType === 'number'
       ? integer(polymorphic.idField)
       : text(polymorphic.idField)
     ).notNull(),

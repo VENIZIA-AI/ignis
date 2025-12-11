@@ -1,8 +1,8 @@
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from "drizzle-orm/pg-core";
-import { TColumnDefinitions } from "../common/types";
+import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import { TColumnDefinitions } from '../common/types';
 
 type TUserAuditColumnOpts = {
-  dataType: "string" | "number";
+  dataType: 'string' | 'number';
   columnName: string;
 };
 
@@ -20,15 +20,15 @@ export type TUserAuditEnricherResult<
 
 export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) => {
   const {
-    created = { dataType: "number", columnName: "created_by" },
-    modified = { dataType: "number", columnName: "modified_by" },
+    created = { dataType: 'number', columnName: 'created_by' },
+    modified = { dataType: 'number', columnName: 'modified_by' },
   } = opts ?? {};
 
   return {
     createdBy:
-      created.dataType === "number" ? integer(created.columnName) : text(created.columnName),
+      created.dataType === 'number' ? integer(created.columnName) : text(created.columnName),
     modifiedBy:
-      modified.dataType === "number" ? integer(modified.columnName) : text(modified.columnName),
+      modified.dataType === 'number' ? integer(modified.columnName) : text(modified.columnName),
   };
 };
 

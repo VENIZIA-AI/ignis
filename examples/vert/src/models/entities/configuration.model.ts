@@ -30,12 +30,12 @@ export const configurationTable = pgTable(
     group: text('group').notNull(),
   },
   def => [
-    unique(`UQ_${Configuration.TABLE_NAME}_code`).on(def.code),
-    index(`IDX_${Configuration.TABLE_NAME}_group`).on(def.group),
+    unique(`UQ_${TABLE_NAME}_code`).on(def.code),
+    index(`IDX_${TABLE_NAME}_group`).on(def.group),
     foreignKey({
       columns: [def.createdBy],
       foreignColumns: [userTable.id],
-      name: `FK_${Configuration.TABLE_NAME}_createdBy_${User.TABLE_NAME}_id`,
+      name: `FK_${TABLE_NAME}_createdBy_${User.TABLE_NAME}_id`,
     }),
   ],
 );

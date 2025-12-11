@@ -1,7 +1,7 @@
-import type { RouteConfig, RouteHandler } from "@hono/zod-openapi";
-import { createRoute, Hook, OpenAPIHono } from "@hono/zod-openapi";
-import { IConfigurable, TAuthStrategy, ValueOrPromise } from "@venizia/ignis-helpers";
-import { Env, Schema } from "hono";
+import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
+import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
+import { IConfigurable, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Env, Schema } from 'hono';
 
 export type TLazyRouteHandler<RC extends RouteConfig, RouteEnv extends Env = Env> = RC extends RC
   ? RouteHandler<RC, RouteEnv>
@@ -11,7 +11,7 @@ export type TRouteDefinition<
   RC extends RouteConfig,
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
-  BasePath extends string = "/",
+  BasePath extends string = '/',
 > = {
   configs: ReturnType<typeof createRoute<string, RC>>;
   route: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
@@ -21,7 +21,7 @@ export type TRouteBindingOptions<
   RC extends RouteConfig,
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
-  BasePath extends string = "/",
+  BasePath extends string = '/',
 > = {
   configs: RC;
   to: (opts: {
@@ -94,7 +94,7 @@ export type TRouteResponse<
 export interface IController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
-  BasePath extends string = "/",
+  BasePath extends string = '/',
   ConfigurableOptions extends object = {},
 > extends IConfigurable<ConfigurableOptions, OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;

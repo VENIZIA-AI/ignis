@@ -1,4 +1,4 @@
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 import {
   BaseApplication,
   BaseController,
@@ -7,15 +7,15 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
-} from "@venizia/ignis";
-import { Context } from "hono";
-import appInfo from "./../package.json";
+} from '@venizia/ignis';
+import { Context } from 'hono';
+import appInfo from './../package.json';
 
 // 1. Define a controller
-@controller({ path: "/hello" })
+@controller({ path: '/hello' })
 class HelloController extends BaseController {
   constructor() {
-    super({ scope: "HelloController", path: "/hello" });
+    super({ scope: 'HelloController', path: '/hello' });
   }
 
   // NOTE: This is a function that must be overridden.
@@ -26,18 +26,18 @@ class HelloController extends BaseController {
 
   @get({
     configs: {
-      path: "/",
+      path: '/',
       method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: "Says hello",
+          description: 'Says hello',
           schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: "Hello from Ignis!" }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
@@ -66,11 +66,11 @@ class App extends BaseApplication {
 
 // 3. Start the server
 const app = new App({
-  scope: "App",
+  scope: 'App',
   config: {
-    host: "0.0.0.0",
+    host: '0.0.0.0',
     port: 3000,
-    path: { base: "/api", isStrict: false },
+    path: { base: '/api', isStrict: false },
   },
 });
 

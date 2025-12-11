@@ -10,8 +10,7 @@ import { Context } from 'hono';
 
 export class AuthenticationService
   extends BaseService
-  implements
-    IAuthService<TSignInRequest, any, TSignUpRequest, any, TChangePasswordRequest, any>
+  implements IAuthService<TSignInRequest, any, TSignUpRequest, any, TChangePasswordRequest, any>
 {
   constructor() {
     super({ scope: AuthenticationService.name });

@@ -1,5 +1,5 @@
-import { AnyObject } from "@/common";
-import { BaseHelper } from "@/helpers/base";
+import { AnyObject } from '@/common';
+import { BaseHelper } from '@/helpers/base';
 
 export class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper {
   private container: T;

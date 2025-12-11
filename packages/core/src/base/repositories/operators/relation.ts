@@ -1,6 +1,6 @@
-import { TTableSchemaWithId } from "@/base/models";
-import { relations as defineRelations } from "drizzle-orm";
-import { TRelationConfig } from "../common";
+import { TTableSchemaWithId } from '@/base/models';
+import { relations as defineRelations } from 'drizzle-orm';
+import { TRelationConfig } from '../common';
 
 export const createRelations = <SourceEntity extends TTableSchemaWithId>(opts: {
   source: SourceEntity;
@@ -25,11 +25,11 @@ export const createRelations = <SourceEntity extends TTableSchemaWithId>(opts: {
         const { name, type, schema, metadata } = def;
 
         switch (type) {
-          case "one": {
+          case 'one': {
             curr[name] = one(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }
-          case "many": {
+          case 'many': {
             curr[name] = many(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }

@@ -1,5 +1,5 @@
-import { getError } from "./common/app-error";
-import { BaseHelper } from "./common/base-helper";
+import { getError } from './common/app-error';
+import { BaseHelper } from './common/base-helper';
 import {
   BindingKeys,
   BindingScopes,
@@ -10,8 +10,8 @@ import {
   TClass,
   TConstValue,
   TNullable,
-} from "./common/types";
-import { metadataRegistry } from "./registry";
+} from './common/types';
+import { metadataRegistry } from './registry';
 
 // -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
@@ -36,7 +36,7 @@ export class Binding<T = any> extends BaseHelper {
 
     this.key = opts.key;
 
-    const keyParts = this.key.split(".");
+    const keyParts = this.key.split('.');
     if (keyParts.length > 1) {
       const [namespace] = keyParts;
       this.setTags(namespace);
@@ -191,15 +191,15 @@ export class Container extends BaseHelper {
   }): TNullable<Binding<T>> {
     let key: string | symbol | null = null;
     switch (typeof opts.key) {
-      case "string": {
+      case 'string': {
         key = opts.key;
         break;
       }
-      case "symbol": {
+      case 'symbol': {
         key = opts.key.toString();
         break;
       }
-      case "object": {
+      case 'object': {
         key = BindingKeys.build(opts.key);
         break;
       }

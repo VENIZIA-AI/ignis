@@ -1,3 +1,3 @@
-export * from "./fetcher/";
+export * from './fetcher/';
 
-export * from "./base-network-request.helper";
+export * from './base-network-request.helper';

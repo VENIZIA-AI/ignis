@@ -1,6 +1,6 @@
 export class DocumentUITypes {
-  static readonly SWAGGER = "swagger";
-  static readonly SCALAR = "scalar";
+  static readonly SWAGGER = 'swagger';
+  static readonly SCALAR = 'scalar';
 
   static readonly SCHEME_SET = new Set([this.SWAGGER, this.SCALAR]);
 

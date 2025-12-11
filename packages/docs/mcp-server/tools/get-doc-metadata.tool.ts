@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { DocsHelper } from "../helpers";
-import { BaseTool, createTool, type TMastraTool } from "./base.tool";
+import { z } from 'zod';
+import { DocsHelper } from '../helpers';
+import { BaseTool, createTool, type TMastraTool } from './base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -72,35 +72,37 @@ IMPORTANT:
 // SCHEMAS
 // ----------------------------------------------------------------------------
 
-const SuccessSchema = z.object({
-  id: z.string().describe("The document ID that was requested."),
-  title: z.string().describe("Document title from frontmatter or filename."),
-  category: z.string().describe('Document category (e.g., "Getting Started", "References").'),
-  wordCount: z.number().int().describe("Total words. Useful for reading time estimation."),
-  charCount: z.number().int().describe("Total characters. Useful for token estimation."),
-  lastModified: z.date().optional().describe("Last modified timestamp. May be undefined."),
-  size: z.number().int().optional().describe("File size in bytes. May be undefined."),
-});
-
-const ErrorSchema = z.object({
-  id: z.string().describe("The document ID that was requested but not found."),
-  error: z.string().describe("Error message indicating the document was not found."),
-});
-
 const InputSchema = z.object({
   id: z.string().min(1).describe(ID_DESCRIPTION),
 });
 
-const OutputSchema = z
-  .union([SuccessSchema, ErrorSchema])
-  .describe("Document metadata on success, or error object if not found.");
+const OutputSchema = z.object({
+  id: z.string().describe('The document ID that was requested.'),
+  title: z.string().optional().describe('Document title from frontmatter or filename.'),
+  category: z
+    .string()
+    .optional()
+    .describe('Document category (e.g., "Getting Started", "References").'),
+  wordCount: z
+    .number()
+    .int()
+    .optional()
+    .describe('Total words. Useful for reading time estimation.'),
+  charCount: z.number().int().optional().describe('Total characters. Useful for token estimation.'),
+  lastModified: z
+    .string()
+    .optional()
+    .describe('Last modified timestamp (ISO string). May be undefined.'),
+  size: z.number().int().optional().describe('File size in bytes. May be undefined.'),
+  error: z.string().optional().describe('Error message if document not found.'),
+});
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS
 // ----------------------------------------------------------------------------
 
 export class GetDocMetadataTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = "getDocMetadata";
+  readonly id = 'getDocMetadata';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -109,10 +111,13 @@ export class GetDocMetadataTool extends BaseTool<typeof InputSchema, typeof Outp
     const metadata = await DocsHelper.getDocMetadata({ id: input.id });
 
     if (!metadata) {
-      return { error: "Document not found", id: input.id };
+      return { error: 'Document not found', id: input.id };
     }
 
-    return metadata;
+    return {
+      ...metadata,
+      lastModified: metadata.lastModified?.toISOString(),
+    };
   }
 
   getTool(): TMastraTool {

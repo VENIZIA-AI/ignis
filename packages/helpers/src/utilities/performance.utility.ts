@@ -1,5 +1,5 @@
-import { ApplicationLogger } from "@/helpers/logger";
-import { float } from "./parse.utility";
+import { ApplicationLogger } from '@/helpers/logger';
+import { float } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;
 
@@ -23,17 +23,17 @@ export const executeWithPerformanceMeasure = <R = any>(opts: {
     const t = performance.now();
     const {
       logger = console,
-      level = "debug",
+      level = 'debug',
       scope,
-      description = "Executing",
+      description = 'Executing',
       args,
       task,
     } = opts;
 
     if (args) {
-      logger?.[level]("[%s] START | %s... | Args: %j", scope, description, args);
+      logger?.[level]('[%s] START | %s... | Args: %j', scope, description, args);
     } else {
-      logger?.[level]("[%s] START | %s ...", scope, description);
+      logger?.[level]('[%s] START | %s ...', scope, description);
     }
 
     Promise.resolve(task())
@@ -43,14 +43,14 @@ export const executeWithPerformanceMeasure = <R = any>(opts: {
         const took = performance.now() - t;
         if (args) {
           logger?.[level](
-            "[%s] DONE | %s | Args: %j | Took: %s (ms)",
+            '[%s] DONE | %s | Args: %j | Took: %s (ms)',
             scope,
             description,
             args,
             took,
           );
         } else {
-          logger?.[level]("[%s] DONE | %s | Took: %s (ms)", scope, description, took);
+          logger?.[level]('[%s] DONE | %s | Took: %s (ms)', scope, description, took);
         }
       });
   });

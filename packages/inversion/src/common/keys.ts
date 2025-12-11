@@ -1,7 +1,7 @@
 export const MetadataKeys = {
   // Property metadata
-  PROPERTIES: Symbol.for("ignis:properties"),
+  PROPERTIES: Symbol.for('ignis:properties'),
 
   // Injection metadata
-  INJECT: Symbol.for("ignis:inject"),
+  INJECT: Symbol.for('ignis:inject'),
 };
