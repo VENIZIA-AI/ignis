@@ -41,7 +41,7 @@
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
-    "rebuild": "sh ./scripts/rebuild.sh",
+    "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
   },
   "repository": {

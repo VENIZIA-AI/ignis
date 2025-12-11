@@ -53,14 +53,15 @@
     "prettier:fix": "bun run prettier:cli --write",
     "docs:dev": "vitepress dev site",
     "docs:clean": "sh ./scripts/docs-clean.sh",
-    "docs:build": "vitepress build site",
+    "docs:build": "sh ./scripts/docs-build.sh",
     "docs:preview": "vitepress preview site",
-    "premcp:build": "bun run mcp:clean",
-    "mcp:build": "tsc -p tsconfig.json",
+    "rebuild": "sh ./scripts/mcp-rebuild.sh no-version",
+    "mcp:rebuild": "bun run rebuild",
+    "mcp:build": "sh ./scripts/mcp-build.sh",
     "mcp:clean": "sh ./scripts/mcp-clean.sh",
     "mcp:start": "bun run mcp-server/index.ts",
     "mcp:dev": "bun --watch mcp-server/index.ts",
-    "prepublishOnly": "bun run mcp:build"
+    "prepublishOnly": "bun run mcp:rebuild"
   },
   "repository": {
     "type": "git",

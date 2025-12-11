@@ -1,12 +1,6 @@
 #!/bin/bash
-set -e
+echo "\nCleaning up resources ..."
+bun run clean
 
-echo "Rebuilding @venizia/dev-configs..."
-
-# Clean
-sh ./scripts/clean.sh
-
-# Build
-sh ./scripts/build.sh
-
-echo "Rebuild completed!"
+echo "\nBuilding latest release..."
+bun run build

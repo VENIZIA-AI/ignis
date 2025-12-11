@@ -55,14 +55,6 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "sh ./scripts/rebuild.sh no-version",
-    "rebuild:major": "sh ./scripts/rebuild.sh major",
-    "rebuild:minor": "sh ./scripts/rebuild.sh minor",
-    "rebuild:patch": "sh ./scripts/rebuild.sh patch",
-    "rebuild:premajor": "sh ./scripts/rebuild.sh premajor",
-    "rebuild:preminor": "sh ./scripts/rebuild.sh preminor",
-    "rebuild:prepatch": "sh ./scripts/rebuild.sh prepatch",
-    "rebuild:prerelease": "sh ./scripts/rebuild.sh prerelease",
-    "test:develop": "bun run rebuild && NODE_ENV=development bun run ./dist/__tests__/index.js",
     "prepublishOnly": "bun run rebuild"
   },
   "repository": {

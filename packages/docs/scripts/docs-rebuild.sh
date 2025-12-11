@@ -1,9 +1,9 @@
 #!/bin/sh
 
 echo "\nCleaning up resources ..."
-bun run clean
+bun run docs:clean
 
 echo "\nBuilding latest release..."
-bun run build
+bun run docs:build
 
 echo "\nPLEASE PUSH LATEST BUILT FOR ANY CHANGE(S)"
