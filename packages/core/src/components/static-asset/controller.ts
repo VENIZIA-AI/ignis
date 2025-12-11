@@ -2,9 +2,13 @@ import { BaseApplication } from "@/base/applications";
 import { BaseController } from "@/base/controllers";
 import { controller, inject } from "@/base/metadata";
 import { CoreBindings } from "@/common";
-import { HTTP, IUploadFile, MinioHelper, ValueOrPromise } from "@venizia/ignis-helpers";
-import { stream } from "hono/streaming";
-import { Readable } from "node:stream";
+import {
+  createContentDispositionHeader,
+  HTTP,
+  IUploadFile,
+  MinioHelper,
+  ValueOrPromise,
+} from "@venizia/ignis-helpers";
 import { StaticAssetBindingKeys } from "./common";
 import { MINIO_ASSET_ROUTES } from "./definition";
 
@@ -69,20 +73,30 @@ export class MinioAssetController extends BaseController {
 
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
-
+        const whiteListHeaders = [
+          "content-type",
+          "content-encoding",
+          "cache-control",
+          "etag",
+          "last-modified",
+        ];
         Object.entries(metaData).forEach(([key, value]) => {
-          ctx.header(key, value);
+          if (!whiteListHeaders.includes(key.toLowerCase())) {
+            return;
+          }
+          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
         });
-        ctx.header("Content-Length", size.toString());
-        ctx.header("Content-Type", "application/octet-stream");
+        ctx.header("content-length", size.toString());
+        ctx.header("content-type", "application/octet-stream");
+        ctx.header("x-content-type-options", "nosniff");
 
         const minioStream = await minioInstance.getFile({
           bucket: bucketName,
           name: objectName,
         });
-
-        return stream(ctx, async streamHelper => {
-          await streamHelper.pipe(Readable.toWeb(minioStream));
+        return new Response(minioStream, {
+          headers: ctx.res.headers,
+          status: HTTP.ResultCodes.RS_2.Ok,
         });
       },
     });
@@ -101,19 +115,30 @@ export class MinioAssetController extends BaseController {
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
 
+        const whiteListHeaders = [
+          "content-type",
+          "content-encoding",
+          "cache-control",
+          "etag",
+          "last-modified",
+        ];
         Object.entries(metaData).forEach(([key, value]) => {
-          ctx.header(key, value);
+          if (!whiteListHeaders.includes(key.toLowerCase())) {
+            return;
+          }
+          ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
         });
-        ctx.header("Content-Length", size.toString());
-        ctx.header("Content-Disposition", `attachment; filename="${objectName}"`);
+        ctx.header("content-length", size.toString());
+        ctx.header("content-disposition", createContentDispositionHeader(objectName));
+        ctx.header("x-content-type-options", "nosniff");
 
         const minioStream = await minioInstance.getFile({
           bucket: bucketName,
           name: objectName,
         });
-
-        return stream(ctx, async streamHelper => {
-          await streamHelper.pipe(Readable.toWeb(minioStream));
+        return new Response(minioStream, {
+          headers: ctx.res.headers,
+          status: HTTP.ResultCodes.RS_2.Ok,
         });
       },
     });
