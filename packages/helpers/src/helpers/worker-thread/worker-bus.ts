@@ -112,7 +112,11 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     }
 
     this.onBeforePostMessage?.(opts);
-    this.port.postMessage(opts.message, opts.transferList);
+    if (opts.transferList) {
+      this.port.postMessage(opts.message, [...opts.transferList]);
+    } else {
+      this.port.postMessage(opts.message);
+    }
     this.onAfterPostMessage?.(opts);
   }
 }

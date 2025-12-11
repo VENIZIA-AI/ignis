@@ -103,7 +103,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     });
 
     this.worker.on('error', error => {
-      this.onError({ error });
+      this.onError({ error: error instanceof Error ? error : new Error(String(error)) });
     });
 
     this.worker.on('message', message => {
