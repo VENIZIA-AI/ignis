@@ -91,7 +91,10 @@ const InputSchema = z.object({
 const OutputSchema = z.object({
   id: z.string().describe("The document ID that was requested."),
   content: z.string().optional().describe(CONTENT_DESCRIPTION),
-  error: z.string().optional().describe("Error message if document not found. Verify the ID using listDocs or searchDocs."),
+  error: z
+    .string()
+    .optional()
+    .describe("Error message if document not found. Verify the ID using listDocs or searchDocs."),
 });
 
 // ----------------------------------------------------------------------------

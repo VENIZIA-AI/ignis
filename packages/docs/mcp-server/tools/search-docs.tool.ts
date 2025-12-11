@@ -94,7 +94,9 @@ const InputSchema = z.object({
 });
 
 const OutputSchema = z.object({
-  results: z.array(SearchResultSchema).describe("Search results sorted by relevance. Empty array if no matches."),
+  results: z
+    .array(SearchResultSchema)
+    .describe("Search results sorted by relevance. Empty array if no matches."),
 });
 
 // ----------------------------------------------------------------------------

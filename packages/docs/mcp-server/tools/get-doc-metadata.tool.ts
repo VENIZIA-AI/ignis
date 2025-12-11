@@ -79,10 +79,20 @@ const InputSchema = z.object({
 const OutputSchema = z.object({
   id: z.string().describe("The document ID that was requested."),
   title: z.string().optional().describe("Document title from frontmatter or filename."),
-  category: z.string().optional().describe('Document category (e.g., "Getting Started", "References").'),
-  wordCount: z.number().int().optional().describe("Total words. Useful for reading time estimation."),
+  category: z
+    .string()
+    .optional()
+    .describe('Document category (e.g., "Getting Started", "References").'),
+  wordCount: z
+    .number()
+    .int()
+    .optional()
+    .describe("Total words. Useful for reading time estimation."),
   charCount: z.number().int().optional().describe("Total characters. Useful for token estimation."),
-  lastModified: z.string().optional().describe("Last modified timestamp (ISO string). May be undefined."),
+  lastModified: z
+    .string()
+    .optional()
+    .describe("Last modified timestamp (ISO string). May be undefined."),
   size: z.number().int().optional().describe("File size in bytes. May be undefined."),
   error: z.string().optional().describe("Error message if document not found."),
 });
