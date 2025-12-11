@@ -84,23 +84,15 @@ TYPICAL STRUCTURE:
 // SCHEMAS
 // ----------------------------------------------------------------------------
 
-const SuccessSchema = z.object({
-  id: z.string().describe("The document ID that was requested."),
-  content: z.string().describe(CONTENT_DESCRIPTION),
-});
-
-const ErrorSchema = z.object({
-  id: z.string().describe("The document ID that was requested but not found."),
-  error: z.string().describe("Error message. Verify the ID using listDocs or searchDocs."),
-});
-
 const InputSchema = z.object({
   id: z.string().min(1).describe(ID_DESCRIPTION),
 });
 
-const OutputSchema = z
-  .union([SuccessSchema, ErrorSchema])
-  .describe("Document content on success, or error object if not found.");
+const OutputSchema = z.object({
+  id: z.string().describe("The document ID that was requested."),
+  content: z.string().optional().describe(CONTENT_DESCRIPTION),
+  error: z.string().optional().describe("Error message if document not found. Verify the ID using listDocs or searchDocs."),
+});
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS

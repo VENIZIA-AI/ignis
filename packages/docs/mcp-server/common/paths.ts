@@ -1,7 +1,9 @@
 import path from "node:path";
 
 const MCP_ROOT = __dirname;
-const DOCS_ROOT = path.resolve(MCP_ROOT, "..", "..");
+// When compiled, __dirname is mcp-server/dist/common
+// Go up 3 levels to reach package root: common -> dist -> mcp-server -> docs
+const DOCS_ROOT = path.resolve(MCP_ROOT, "..", "..", "..");
 
 export class Paths {
   static readonly WIKI = path.join(DOCS_ROOT, "wiki");

@@ -93,9 +93,9 @@ const InputSchema = z.object({
     .describe(LIMIT_DESCRIPTION),
 });
 
-const OutputSchema = z
-  .array(SearchResultSchema)
-  .describe("Search results sorted by relevance. Empty array if no matches.");
+const OutputSchema = z.object({
+  results: z.array(SearchResultSchema).describe("Search results sorted by relevance. Empty array if no matches."),
+});
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS
@@ -108,10 +108,11 @@ export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSc
   readonly outputSchema = OutputSchema;
 
   async execute(input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
-    return DocsHelper.searchDocs({
+    const results = await DocsHelper.searchDocs({
       query: input.query,
       limit: input.limit,
     });
+    return { results };
   }
 
   getTool(): TMastraTool {
