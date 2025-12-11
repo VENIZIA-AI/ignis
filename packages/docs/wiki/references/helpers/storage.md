@@ -98,12 +98,43 @@ if (!bucketExists) {
 The `upload` method takes an array of file objects, typically from a multipart form data request.
 
 ```typescript
-// Assuming `files` is an array of IUploadFile objects from a request
+// Basic upload
 const uploadResult = await minioClient.upload({
   bucket: 'my-bucket',
   files: files,
 });
 // => [{ bucket: 'my-bucket', fileName: '...', link: '...' }]
+
+// Upload with custom filename normalization
+const uploadResult = await minioClient.upload({
+  bucket: 'my-bucket',
+  files: files,
+  normalizeNameFn: ({ originalName }) => {
+    // Custom logic to normalize filename
+    return `${Date.now()}_${originalName.toLowerCase().replace(/\s/g, '-')}`;
+  },
+  normalizeLinkFn: ({ bucketName, normalizeName }) => {
+    // Custom link generation
+    return `/api/files/${bucketName}/${encodeURIComponent(normalizeName)}`;
+  },
+});
+```
+
+**Options:**
+- `bucket` (string): Target bucket name
+- `files` (Array<IUploadFile>): Array of file objects to upload
+- `normalizeNameFn` (optional): Custom function to normalize filenames (default: lowercase + replace spaces with underscores)
+- `normalizeLinkFn` (optional): Custom function to generate file access links (default: `/static-assets/{bucket}/{encodedName}`)
+
+**IUploadFile Interface:**
+```typescript
+interface IUploadFile {
+  originalname: string;
+  mimetype: string;
+  buffer: Buffer;
+  size: number;
+  encoding?: string;  // Optional encoding information
+}
 ```
 
 #### Getting an Object
