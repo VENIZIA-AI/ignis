@@ -1,4 +1,4 @@
-# 🔥 Ignis
+# 🔥 IGNIS
 
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 [![Bun Version](https://img.shields.io/badge/bun-%3E%3D1.3-black)](https://bun.sh)
