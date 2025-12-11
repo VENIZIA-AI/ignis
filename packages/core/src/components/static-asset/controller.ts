@@ -18,6 +18,15 @@ import { StaticAssetComponentBindingKeys, TMinioAssetOptions } from "./common";
 import { MinIOAssetDefinitions, StaticResourceDefinitions } from "./definition";
 
 // ================================================================================
+const WHITELIST_HEADERS = [
+  "content-type",
+  "content-encoding",
+  "cache-control",
+  "etag",
+  "last-modified",
+];
+
+// ================================================================================
 @controller({ path: "/static-resources" })
 export class StaticResourceController extends BaseController {
   constructor(
@@ -64,10 +73,10 @@ export class StaticResourceController extends BaseController {
               return;
             }
 
-            const normalizeName = originalName.toLowerCase().replace(/ /g, "_");
+            const normalizedName = originalName.toLowerCase().replace(/ /g, "_");
             return new Promise<{ objectName: string }>((resolve, reject) => {
               try {
-                const savedName = `${dayjs().format("YYYYMMDDHHmmss")}_${normalizeName}`;
+                const savedName = `${dayjs().format("YYYYMMDDHHmmss")}_${normalizedName}`;
                 const filePath = path.join(basePath, savedName);
                 fs.writeFileSync(filePath, buffer ?? Buffer.alloc(0));
                 resolve({ objectName: savedName });
@@ -96,17 +105,31 @@ export class StaticResourceController extends BaseController {
         });
         const savedPath = path.join(basePath, objectName);
 
-        const fileStat = fs.statSync(savedPath);
-        const { size } = fileStat;
-        ctx.header("content-type", "application/octet-stream");
-        ctx.header("content-length", size.toString());
-        ctx.header("content-disposition", createContentDispositionHeader(objectName));
-        ctx.header("x-content-type-options", "nosniff");
-        const fileStream = fs.createReadStream(savedPath);
-        return new Response(fileStream, {
-          headers: ctx.res.headers,
-          status: HTTP.ResultCodes.RS_2.Ok,
-        });
+        const resolvedBasePath = path.resolve(basePath);
+        const resolvedSavedPath = path.resolve(savedPath);
+        if (!resolvedSavedPath.startsWith(resolvedBasePath + path.sep)) {
+          // Path traversal detected, reject the request
+          return ctx.json(
+            { error: "Invalid objectName | Path traversal detected" },
+            HTTP.ResultCodes.RS_4.BadRequest,
+          );
+        }
+
+        try {
+          const fileStat = fs.statSync(savedPath);
+          const { size } = fileStat;
+          ctx.header("content-type", "application/octet-stream");
+          ctx.header("content-length", size.toString());
+          ctx.header("content-disposition", createContentDispositionHeader(objectName));
+          ctx.header("x-content-type-options", "nosniff");
+          const fileStream = fs.createReadStream(savedPath);
+          return new Response(fileStream, {
+            headers: ctx.res.headers,
+            status: HTTP.ResultCodes.RS_2.Ok,
+          });
+        } catch (e) {
+          return ctx.json({ message: `File not found` }, HTTP.ResultCodes.RS_4.NotFound);
+        }
       },
     });
   }
@@ -166,20 +189,15 @@ export class MinioAssetController extends BaseController {
 
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
-        const whiteListHeaders = [
-          "content-type",
-          "content-encoding",
-          "cache-control",
-          "etag",
-          "last-modified",
-        ];
         Object.entries(metaData).forEach(([key, value]) => {
-          if (!whiteListHeaders.includes(key.toLowerCase())) {
+          if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
             return;
           }
           ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
         });
+        if (!ctx.res.headers.has("content-type")) {
           ctx.header("content-type", "application/octet-stream");
+        }
         ctx.header("content-length", size.toString());
         ctx.header("x-content-type-options", "nosniff");
 
@@ -208,20 +226,15 @@ export class MinioAssetController extends BaseController {
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
 
-        const whiteListHeaders = [
-          "content-type",
-          "content-encoding",
-          "cache-control",
-          "etag",
-          "last-modified",
-        ];
         Object.entries(metaData).forEach(([key, value]) => {
-          if (!whiteListHeaders.includes(key.toLowerCase())) {
+          if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
             return;
           }
           ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ""));
         });
-        ctx.header("content-type", "application/octet-stream");
+        if (!ctx.res.headers.has("content-type")) {
+          ctx.header("content-type", "application/octet-stream");
+        }
         ctx.header("content-length", size.toString());
         ctx.header("content-disposition", createContentDispositionHeader(objectName));
         ctx.header("x-content-type-options", "nosniff");
