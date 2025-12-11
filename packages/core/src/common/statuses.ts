@@ -1,12 +1,12 @@
 export class Statuses {
-  static readonly UNKNOWN = '000_UNKNOWN';
-  static readonly DRAFT = '100_DRAFT';
-  static readonly ACTIVATED = '101_ACTIVATED';
-  static readonly DEACTIVATED = '102_DEACTIVATED';
-  static readonly BLOCKED = '103_BLOCKED';
-  static readonly ARCHIVE = '104_ARCHIVE';
-  static readonly SUCCESS = '105_SUCCESS';
-  static readonly FAIL = '106_FAIL';
+  static readonly UNKNOWN = "000_UNKNOWN";
+  static readonly DRAFT = "100_DRAFT";
+  static readonly ACTIVATED = "101_ACTIVATED";
+  static readonly DEACTIVATED = "102_DEACTIVATED";
+  static readonly BLOCKED = "103_BLOCKED";
+  static readonly ARCHIVE = "104_ARCHIVE";
+  static readonly SUCCESS = "105_SUCCESS";
+  static readonly FAIL = "106_FAIL";
 }
 
 export class MigrationStatuses {
@@ -40,8 +40,8 @@ export class UserStatuses extends CommonStatuses {}
 export class RoleStatuses extends CommonStatuses {}
 
 export class UserTypes {
-  static readonly SYSTEM = 'SYSTEM';
-  static readonly LINKED = 'LINKED';
+  static readonly SYSTEM = "SYSTEM";
+  static readonly LINKED = "LINKED";
 
   static readonly SCHEME_SET = new Set([this.SYSTEM, this.LINKED]);
 

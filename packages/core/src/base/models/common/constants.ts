@@ -1,9 +1,9 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import { TConstValue } from "@venizia/ignis-helpers";
 
 export class SchemaTypes {
-  static readonly SELECT = 'select';
-  static readonly UPDATE = 'update';
-  static readonly CREATE = 'create';
+  static readonly SELECT = "select";
+  static readonly UPDATE = "update";
+  static readonly CREATE = "create";
 
   static readonly SCHEME_SET = new Set([this.SELECT, this.UPDATE, this.CREATE]);
 

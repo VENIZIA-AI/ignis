@@ -1,7 +1,7 @@
-import { BaseHelper } from '@/helpers/base';
-import { getError } from '@/helpers/error';
-import isEmpty from 'lodash/isEmpty';
-import mqtt from 'mqtt';
+import { BaseHelper } from "@/helpers/base";
+import { getError } from "@/helpers/error";
+import isEmpty from "lodash/isEmpty";
+import mqtt from "mqtt";
 
 export interface IMQTTClientOptions {
   identifier: string;
@@ -44,7 +44,7 @@ export class MQTTClientHelper extends BaseHelper {
   configure() {
     if (this.client) {
       this.logger.info(
-        '[configure][%s] MQTT Client already established! Client: %j',
+        "[configure][%s] MQTT Client already established! Client: %j",
         this.identifier,
         this.client,
       );
@@ -54,35 +54,35 @@ export class MQTTClientHelper extends BaseHelper {
     if (isEmpty(this.url)) {
       throw getError({
         statusCode: 500,
-        message: '[configure] Invalid url to configure mqtt client!',
+        message: "[configure] Invalid url to configure mqtt client!",
       });
     }
 
     this.logger.info(
-      '[configure][%s] Start configuring mqtt client | Url: %s | Options: %j',
+      "[configure][%s] Start configuring mqtt client | Url: %s | Options: %j",
       this.identifier,
       this.url,
       this.options,
     );
     this.client = mqtt.connect(this.url, this.options);
 
-    this.client.on('connect', () => {
+    this.client.on("connect", () => {
       this.onConnect?.();
     });
 
-    this.client.on('disconnect', () => {
+    this.client.on("disconnect", () => {
       this.onDisconnect?.();
     });
 
-    this.client.on('message', (topic, message) => {
+    this.client.on("message", (topic, message) => {
       this.onMessage?.({ topic, message });
     });
 
-    this.client.on('error', error => {
+    this.client.on("error", error => {
       this.onError?.(error);
     });
 
-    this.client.on('close', (error?: Error) => {
+    this.client.on("close", (error?: Error) => {
       this.onClose?.(error);
     });
   }

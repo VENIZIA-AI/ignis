@@ -1,9 +1,9 @@
-import { BaseController, IControllerOptions, TRouteContext } from '@/base/controllers';
-import { api } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@/base/models';
-import { z } from '@hono/zod-openapi';
-import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
-import { HealthCheckRestPaths } from './common';
+import { BaseController, IControllerOptions, TRouteContext } from "@/base/controllers";
+import { api } from "@/base/metadata";
+import { jsonContent, jsonResponse } from "@/base/models";
+import { z } from "@hono/zod-openapi";
+import { HTTP, ValueOrPromise } from "@venizia/ignis-helpers";
+import { HealthCheckRestPaths } from "./common";
 
 const ROUTE_CONFIGS = {
   [HealthCheckRestPaths.ROOT]: {
@@ -11,10 +11,10 @@ const ROUTE_CONFIGS = {
     path: HealthCheckRestPaths.ROOT,
     responses: jsonResponse({
       schema: z.object({ status: z.string() }).openapi({
-        description: 'HealthCheck Schema',
-        examples: [{ status: 'ok' }],
+        description: "HealthCheck Schema",
+        examples: [{ status: "ok" }],
       }),
-      description: 'Health check status',
+      description: "Health check status",
     }),
   },
   [HealthCheckRestPaths.PING]: {
@@ -22,9 +22,9 @@ const ROUTE_CONFIGS = {
     path: HealthCheckRestPaths.PING,
     request: {
       body: jsonContent({
-        description: 'PING | Request body',
+        description: "PING | Request body",
         schema: z.object({
-          type: z.string().optional().default('PING'),
+          type: z.string().optional().default("PING"),
           message: z.string().min(1).max(255),
         }),
       }),
@@ -32,15 +32,15 @@ const ROUTE_CONFIGS = {
     responses: jsonResponse({
       schema: z
         .object({
-          type: z.string().optional().default('PONG'),
+          type: z.string().optional().default("PONG"),
           date: z.iso.datetime(),
           message: z.string(),
         })
         .openapi({
-          description: 'HealthCheck PingPong Schema',
-          examples: [{ date: new Date().toISOString(), message: 'ok' }],
+          description: "HealthCheck PingPong Schema",
+          examples: [{ date: new Date().toISOString(), message: "ok" }],
         }),
-      description: 'HealthCheck PingPong Message',
+      description: "HealthCheck PingPong Message",
     }),
   },
 } as const;
@@ -59,17 +59,17 @@ export class HealthCheckController extends BaseController {
 
   override binding(): ValueOrPromise<void> {
     // Method 1: Using 'bindRoute' to create a controller route
-    this.bindRoute({ configs: ROUTE_CONFIGS['/'] }).to({
+    this.bindRoute({ configs: ROUTE_CONFIGS["/"] }).to({
       handler: context => {
-        return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
+        return context.json({ status: "ok" }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // Method 2: Using 'defineRoute' to create a controller route
     this.defineRoute({
-      configs: ROUTE_CONFIGS['/'],
+      configs: ROUTE_CONFIGS["/"],
       handler: context => {
-        return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
+        return context.json({ status: "ok" }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }
@@ -80,11 +80,11 @@ export class HealthCheckController extends BaseController {
   @api({ configs: ROUTE_CONFIGS[HealthCheckRestPaths.PING] })
   pingPong(context: TRouteContext<(typeof ROUTE_CONFIGS)[typeof HealthCheckRestPaths.PING]>) {
     // context.req.valid('json') is automatically typed as { type?: string, message: string }
-    const { message } = context.req.valid('json');
+    const { message } = context.req.valid("json");
 
     // Return type is automatically validated against the response schema
     return context.json(
-      { type: 'PONG', date: new Date().toISOString(), message },
+      { type: "PONG", date: new Date().toISOString(), message },
       HTTP.ResultCodes.RS_2.Ok,
     );
   }

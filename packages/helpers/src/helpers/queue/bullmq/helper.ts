@@ -1,7 +1,7 @@
-import { BaseHelper } from '@/helpers/base';
-import { Job, Queue, Worker } from 'bullmq';
-import Redis from 'ioredis';
-import { TBullQueueRole } from '../common';
+import { BaseHelper } from "@/helpers/base";
+import { Job, Queue, Worker } from "bullmq";
+import Redis from "ioredis";
+import { TBullQueueRole } from "../common";
 
 interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
@@ -74,7 +74,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
   configureQueue() {
     if (!this.queueName) {
-      this.logger.error('[configureQueue][%s] Invalid queue name', this.identifier);
+      this.logger.error("[configureQueue][%s] Invalid queue name", this.identifier);
       return;
     }
 
@@ -89,7 +89,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
   configureWorker() {
     if (!this.queueName) {
-      this.logger.error('[configureWorkers][%s] Invalid worker name', this.identifier);
+      this.logger.error("[configureWorkers][%s] Invalid worker name", this.identifier);
       return;
     }
 
@@ -103,7 +103,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
         const { id, name, data } = job;
         this.logger.info(
-          '[onWorkerData][%s] queue: %s | id: %s | name: %s | data: %j',
+          "[onWorkerData][%s] queue: %s | id: %s | name: %s | data: %j",
           this.identifier,
           this.queueName,
           id,
@@ -118,14 +118,14 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       },
     );
 
-    this.worker.on('completed', (job, result) => {
+    this.worker.on("completed", (job, result) => {
       this.onWorkerDataCompleted?.(job, result)
         .then(() => {
           // Do something after processing completed job
         })
         .catch(error => {
           this.logger.error(
-            '[Worker][%s][completed] queue: %s | Error while processing completed job! Error: %s',
+            "[Worker][%s][completed] queue: %s | Error while processing completed job! Error: %s",
             this.identifier,
             this.queueName,
             error,
@@ -133,14 +133,14 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         });
     });
 
-    this.worker.on('failed', (job, reason) => {
+    this.worker.on("failed", (job, reason) => {
       this.onWorkerDataFail?.(job, reason)
         .then(() => {
           // Do something after processing failed job
         })
         .catch(error => {
           this.logger.error(
-            '[Worker][%s][failed] queue: %s | Error while processing completed job! Error: %s',
+            "[Worker][%s][failed] queue: %s | Error while processing completed job! Error: %s",
             this.identifier,
             this.queueName,
             error,
@@ -152,18 +152,18 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   configure() {
     if (!this.role) {
       this.logger.error(
-        '[configure][%s] Invalid client role to configure | Valid roles: [queue|worker]',
+        "[configure][%s] Invalid client role to configure | Valid roles: [queue|worker]",
         this.identifier,
       );
       return;
     }
 
     switch (this.role) {
-      case 'queue': {
+      case "queue": {
         this.configureQueue();
         break;
       }
-      case 'worker': {
+      case "worker": {
         this.configureWorker();
         break;
       }

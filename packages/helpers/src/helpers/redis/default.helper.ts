@@ -1,9 +1,9 @@
-import { BaseHelper } from '@/helpers/base';
-import { getError } from '@/helpers/error';
-import { Cluster, Redis } from 'ioredis';
-import isEmpty from 'lodash/isEmpty';
-import zlib from 'node:zlib';
-import { IRedisHelperCallbacks } from './types';
+import { BaseHelper } from "@/helpers/base";
+import { getError } from "@/helpers/error";
+import { Cluster, Redis } from "ioredis";
+import isEmpty from "lodash/isEmpty";
+import zlib from "node:zlib";
+import { IRedisHelperCallbacks } from "./types";
 
 // -----------------------------------------------------------------------------------------------
 export class DefaultRedisHelper extends BaseHelper {
@@ -20,23 +20,23 @@ export class DefaultRedisHelper extends BaseHelper {
 
     const { onInitialized, onConnected, onReady, onError } = opts;
 
-    this.client.on('connect', () => {
-      this.logger.info('[%s][connect] Redis CONNECTED', this.name);
+    this.client.on("connect", () => {
+      this.logger.info("[%s][connect] Redis CONNECTED", this.name);
       onConnected?.({ name: this.name, helper: this });
     });
 
-    this.client.on('ready', () => {
-      this.logger.info('[%s][ready] Redis READY', this.name);
+    this.client.on("ready", () => {
+      this.logger.info("[%s][ready] Redis READY", this.name);
       onReady?.({ name: this.name, helper: this });
     });
 
-    this.client.on('error', (error: Error) => {
-      this.logger.error('[%s][error] Redis ERROR | Error: %s', this.name, error);
+    this.client.on("error", (error: Error) => {
+      this.logger.error("[%s][error] Redis ERROR | Error: %s", this.name, error);
       onError?.({ name: this.name, helper: this, error });
     });
 
-    this.client.on('reconnecting', () => {
-      this.logger.warn('[%s][reconnecting] Redis client RECONNECTING', this.name);
+    this.client.on("reconnecting", () => {
+      this.logger.warn("[%s][reconnecting] Redis client RECONNECTING", this.name);
     });
 
     onInitialized?.({ name: this.name, helper: this });
@@ -53,14 +53,14 @@ export class DefaultRedisHelper extends BaseHelper {
   connect() {
     return new Promise<boolean>((resolve, reject) => {
       const invalidStatuses: (typeof this.client.status)[] = [
-        'ready',
-        'reconnecting',
-        'connecting',
+        "ready",
+        "reconnecting",
+        "connecting",
       ];
 
       if (!this.client || invalidStatuses.includes(this.client.status)) {
         this.logger.info(
-          '[connect] status: %s | Invalid redis status to invoke connect',
+          "[connect] status: %s | Invalid redis status to invoke connect",
           this.client.status,
         );
 
@@ -71,7 +71,7 @@ export class DefaultRedisHelper extends BaseHelper {
       this.client
         .connect()
         .then(() => {
-          resolve(this.client.status === 'ready');
+          resolve(this.client.status === "ready");
         })
         .catch(reject);
     });
@@ -80,10 +80,10 @@ export class DefaultRedisHelper extends BaseHelper {
   // ---------------------------------------------------------------------------------
   disconnect() {
     return new Promise<boolean>((resolve, reject) => {
-      const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
+      const invalidStatuses: (typeof this.client.status)[] = ["end", "close"];
       if (!this.client || invalidStatuses.includes(this.client.status)) {
         this.logger.info(
-          '[disconnect] status: %s | Invalid redis status to invoke connect',
+          "[disconnect] status: %s | Invalid redis status to invoke connect",
           this.client.status,
         );
         resolve(false);
@@ -93,7 +93,7 @@ export class DefaultRedisHelper extends BaseHelper {
       this.client
         .quit()
         .then(rs => {
-          resolve(rs === 'OK');
+          resolve(rs === "OK");
         })
         .catch(reject);
     });
@@ -104,7 +104,7 @@ export class DefaultRedisHelper extends BaseHelper {
     const { key, value, options = { log: false } } = opts;
 
     if (!this.client) {
-      this.logger.info('[set] No valid Redis connection!');
+      this.logger.info("[set] No valid Redis connection!");
       return;
     }
 
@@ -122,7 +122,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async get(opts: { key: string; transform?: (input: string) => any }) {
     const { key, transform = (input: string) => input } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.info("[get] No valid Redis connection!");
       return null;
     }
 
@@ -169,7 +169,7 @@ export class DefaultRedisHelper extends BaseHelper {
   // ---------------------------------------------------------------------------------
   async hset(opts: { key: string; value: any; options?: { log: boolean } }) {
     if (!this.client) {
-      this.logger.info('[hset] No valid Redis connection!');
+      this.logger.info("[hset] No valid Redis connection!");
       return;
     }
 
@@ -180,7 +180,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return rs;
     }
 
-    this.logger.info('[hset] Result: %j', rs);
+    this.logger.info("[hset] Result: %j", rs);
     return rs;
   }
 
@@ -193,7 +193,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async hgetall(opts: { key: string; transform?: <T, R>(input: T) => R }) {
     const { key, transform } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.info("[get] No valid Redis connection!");
       return null;
     }
 
@@ -213,7 +213,7 @@ export class DefaultRedisHelper extends BaseHelper {
   // ---------------------------------------------------------------------------------
   async mset(opts: { payload: Array<{ key: string; value: any }>; options?: { log: boolean } }) {
     if (!this.client) {
-      this.logger.info('[set] No valid Redis connection!');
+      this.logger.info("[set] No valid Redis connection!");
       return;
     }
 
@@ -228,7 +228,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return;
     }
 
-    this.logger.info('[mset] Payload: %j', serialized);
+    this.logger.info("[mset] Payload: %j", serialized);
   }
 
   // ---------------------------------------------------------------------------------
@@ -240,7 +240,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async mget(opts: { keys: Array<string>; transform?: (input: string) => any }) {
     const { keys, transform = (input: string) => input } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.info("[get] No valid Redis connection!");
       return null;
     }
 
@@ -261,7 +261,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async keys(opts: { key: string }) {
     const { key } = opts;
     if (!this.client) {
-      this.logger.info('[keys] No valid Redis connection!');
+      this.logger.info("[keys] No valid Redis connection!");
       return [];
     }
 
@@ -272,43 +272,43 @@ export class DefaultRedisHelper extends BaseHelper {
   // ---------------------------------------------------------------------------------
   jSet<T = any>(opts: { key: string; path: string; value: T }) {
     const { key, path, value } = opts;
-    return this.execute('JSON.SET', [key, path, JSON.stringify(value)]);
+    return this.execute("JSON.SET", [key, path, JSON.stringify(value)]);
   }
 
   // ---------------------------------------------------------------------------------
   jGet<T = any>(opts: { key: string; path?: string }) {
-    const { key, path = '$' } = opts;
-    return this.execute<T>('JSON.GET', [key, path]);
+    const { key, path = "$" } = opts;
+    return this.execute<T>("JSON.GET", [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
   jDelete(opts: { key: string; path?: string }) {
-    const { key, path = '$' } = opts;
-    return this.execute<number>('JSON.DEL', [key, path]);
+    const { key, path = "$" } = opts;
+    return this.execute<number>("JSON.DEL", [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }) {
     const { key, path, value } = opts;
-    return this.execute('JSON.NUMINCRBY', [key, path, value]);
+    return this.execute("JSON.NUMINCRBY", [key, path, value]);
   }
 
   // ---------------------------------------------------------------------------------
   jStringAppend(opts: { key: string; path: string; value: string }) {
     const { key, path, value } = opts;
-    return this.execute('JSON.STRAPPEND', [key, path, value]);
+    return this.execute("JSON.STRAPPEND", [key, path, value]);
   }
 
   // ---------------------------------------------------------------------------------
   jPush<T = any>(opts: { key: string; path: string; value: T }) {
     const { key, path, value } = opts;
-    return this.execute('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
+    return this.execute("JSON.ARRAPPEND", [key, path, JSON.stringify(value)]);
   }
 
   // ---------------------------------------------------------------------------------
   jPop<T = any>(opts: { key: string; path: string }) {
     const { key, path } = opts;
-    return this.execute<T>('JSON.ARRPOP', [key, path]);
+    return this.execute<T>("JSON.ARRPOP", [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
@@ -326,17 +326,17 @@ export class DefaultRedisHelper extends BaseHelper {
 
     const validTopics = topics?.filter(topic => !isEmpty(topic));
     if (!validTopics?.length) {
-      this.logger.error('[publish] No topic(s) to publish!');
+      this.logger.error("[publish] No topic(s) to publish!");
       return;
     }
 
     if (!payload) {
-      this.logger.error('[publish] Invalid payload to publish!');
+      this.logger.error("[publish] Invalid payload to publish!");
       return;
     }
 
     if (!this.client) {
-      this.logger.error('[publish] No valid Redis connection!');
+      this.logger.error("[publish] No valid Redis connection!");
       return;
     }
 
@@ -360,12 +360,12 @@ export class DefaultRedisHelper extends BaseHelper {
     const { topic } = opts;
 
     if (!topic || isEmpty(topic)) {
-      this.logger.error('[subscribe] No topic to subscribe!');
+      this.logger.error("[subscribe] No topic to subscribe!");
       return;
     }
 
     if (!this.client) {
-      this.logger.error('[subscribe] No valid Redis connection!');
+      this.logger.error("[subscribe] No valid Redis connection!");
       return;
     }
 
@@ -378,7 +378,7 @@ export class DefaultRedisHelper extends BaseHelper {
       }
 
       this.logger.info(
-        '[subscribe] Subscribed to %s channel(s). Listening to channel: %s',
+        "[subscribe] Subscribed to %s channel(s). Listening to channel: %s",
         count,
         topic,
       );

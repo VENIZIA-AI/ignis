@@ -40,30 +40,22 @@ export class MetadataRegistry extends BaseHelper {
   }
 
   // -----------------------------------------------------------------
-  has<Target extends object = object>(opts: {
-    target: Target;
-    key: string | symbol;
-  }): boolean {
+  has<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
     const { target, key } = opts;
     return Reflect.hasMetadata(key, target);
   }
 
   // -----------------------------------------------------------------
-  delete<Target extends object = object>(opts: {
-    target: Target;
-    key: string | symbol;
-  }): boolean {
+  delete<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
     const { target, key } = opts;
     return Reflect.deleteMetadata(key, target);
   }
 
   // -----------------------------------------------------------------
-  getKeys<Target extends object = object>(opts: {
-    target: Target;
-  }): (string | symbol)[] {
+  getKeys<Target extends object = object>(opts: { target: Target }): (string | symbol)[] {
     const { target } = opts;
     return (
-      Reflect.getMetadataKeys(target)?.filter((key) => {
+      Reflect.getMetadataKeys(target)?.filter(key => {
         return typeof key === "symbol" || typeof key === "string";
       }) ?? []
     );
@@ -74,7 +66,7 @@ export class MetadataRegistry extends BaseHelper {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(
-      (name) => name !== "constructor" && typeof prototype[name] === "function",
+      name => name !== "constructor" && typeof prototype[name] === "function",
     );
     return methods;
   }
@@ -105,11 +97,7 @@ export class MetadataRegistry extends BaseHelper {
     }
 
     properties.set(propertyName, metadata);
-    Reflect.defineMetadata(
-      MetadataKeys.PROPERTIES,
-      properties,
-      target.constructor,
-    );
+    Reflect.defineMetadata(MetadataKeys.PROPERTIES, properties, target.constructor);
   }
 
   getPropertiesMetadata<T extends object = object>(opts: {
@@ -142,9 +130,7 @@ export class MetadataRegistry extends BaseHelper {
     Reflect.defineMetadata(MetadataKeys.INJECT, injects, target);
   }
 
-  getInjectMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IInjectMetadata[] | undefined {
+  getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
   }

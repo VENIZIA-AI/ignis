@@ -1,15 +1,15 @@
-import { BaseController } from '@/base/controllers';
-import { controller, inject } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@/base/models';
-import { z } from '@hono/zod-openapi';
-import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseController } from "@/base/controllers";
+import { controller, inject } from "@/base/metadata";
+import { jsonContent, jsonResponse } from "@/base/models";
+import { z } from "@hono/zod-openapi";
+import { getError, HTTP, ValueOrPromise } from "@venizia/ignis-helpers";
 import {
   // ChangePasswordRequestSchema,
   SignInRequestSchema,
   SignUpRequestSchema,
-} from '../../models';
-import { Authentication, IAuthService } from '../common';
-import { AnyObjectSchema } from '@/utilities';
+} from "../../models";
+import { Authentication, IAuthService } from "../common";
+import { AnyObjectSchema } from "@/utilities";
 
 export const defineAuthController = (opts: {
   restPath?: string;
@@ -31,8 +31,8 @@ export const defineAuthController = (opts: {
   };
 }) => {
   const {
-    restPath = '/auth',
-    serviceKey = 'services.AuthenticationService',
+    restPath = "/auth",
+    serviceKey = "services.AuthenticationService",
     requireAuthenticatedSignUp = false,
     payload = {},
   } = opts;
@@ -51,7 +51,7 @@ export const defineAuthController = (opts: {
       if (!authService) {
         throw getError({
           message:
-            '[AuthController] Failed to init auth controller | Invalid injectable authentication service!',
+            "[AuthController] Failed to init auth controller | Invalid injectable authentication service!",
         });
       }
 
@@ -61,18 +61,18 @@ export const defineAuthController = (opts: {
     override binding(): ValueOrPromise<void> {
       this.defineRoute({
         configs: {
-          path: '/sign-in',
-          method: 'post',
+          path: "/sign-in",
+          method: "post",
           request: {
             body: jsonContent({
-              description: 'Sign-in request body',
+              description: "Sign-in request body",
               required: true,
               schema: payload?.signIn?.request?.schema ?? SignInRequestSchema,
             }),
           },
           responses: jsonResponse({
             schema: AnyObjectSchema,
-            description: 'Success Response',
+            description: "Success Response",
           }),
         },
         handler: async context => {
@@ -84,19 +84,19 @@ export const defineAuthController = (opts: {
 
       this.defineRoute({
         configs: {
-          path: '/sign-up',
-          method: 'post',
+          path: "/sign-up",
+          method: "post",
           authStrategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
           request: {
             body: jsonContent({
-              description: 'Sign-up request body',
+              description: "Sign-up request body",
               required: true,
               schema: payload?.signUp?.request?.schema ?? SignUpRequestSchema,
             }),
           },
           responses: jsonResponse({
             schema: AnyObjectSchema,
-            description: 'Success Response',
+            description: "Success Response",
           }),
         },
         handler: async context => {
@@ -108,8 +108,8 @@ export const defineAuthController = (opts: {
 
       this.defineRoute({
         configs: {
-          path: '/change-password',
-          method: 'post',
+          path: "/change-password",
+          method: "post",
           /* request: {
             body: {
               content: { 'application/json': { schema: ChangePasswordRequestSchema } },
@@ -119,7 +119,7 @@ export const defineAuthController = (opts: {
           }, */
           responses: jsonResponse({
             schema: AnyObjectSchema,
-            description: 'Success Response',
+            description: "Success Response",
           }),
           authStrategies: [Authentication.STRATEGY_JWT],
         },
@@ -132,18 +132,18 @@ export const defineAuthController = (opts: {
 
       this.defineRoute({
         configs: {
-          path: '/who-am-i',
-          method: 'post',
+          path: "/who-am-i",
+          method: "post",
           responses: {
             [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
               schema: z.object().catchall(z.any()),
-              description: 'Check who am i',
+              description: "Check who am i",
             }),
           },
           authStrategies: [Authentication.STRATEGY_JWT],
         },
         handler: context => {
-          return context.json({ message: 'check-who-am-i' }, HTTP.ResultCodes.RS_2.Ok);
+          return context.json({ message: "check-who-am-i" }, HTTP.ResultCodes.RS_2.Ok);
         },
       });
     }

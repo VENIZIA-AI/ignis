@@ -112,17 +112,12 @@ export class MetadataRegistry extends _MetadataRegistry {
   // -----------------------------------------------------------------
   // Model Metadata
   // -----------------------------------------------------------------
-  setModelMetadata<T extends object = object>(opts: {
-    target: T;
-    metadata: IModelMetadata;
-  }): void {
+  setModelMetadata<T extends object = object>(opts: { target: T; metadata: IModelMetadata }): void {
     const { target, metadata } = opts;
     Reflect.defineMetadata(MetadataKeys.MODEL, metadata, target);
   }
 
-  getModelMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IModelMetadata | undefined {
+  getModelMetadata<T extends object = object>(opts: { target: T }): IModelMetadata | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.MODEL, target);
   }

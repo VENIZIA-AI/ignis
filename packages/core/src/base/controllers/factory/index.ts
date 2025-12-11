@@ -1,2 +1,2 @@
-export * from './controller';
-export * from './definition';
+export * from "./controller";
+export * from "./definition";

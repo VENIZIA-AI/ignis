@@ -1,9 +1,9 @@
-import { IncomingHttpHeaders } from 'node:http';
-import { ParsedUrlQuery } from 'node:querystring';
-import { SocketOptions } from 'socket.io-client';
-import { Server as HTTPServer } from 'node:http';
-import { Socket as IOSocket, ServerOptions } from 'socket.io';
-import { DefaultRedisHelper } from '@/helpers/redis';
+import { IncomingHttpHeaders } from "node:http";
+import { ParsedUrlQuery } from "node:querystring";
+import { SocketOptions } from "socket.io-client";
+import { Server as HTTPServer } from "node:http";
+import { Socket as IOSocket, ServerOptions } from "socket.io";
+import { DefaultRedisHelper } from "@/helpers/redis";
 
 export interface IHandshake {
   headers: IncomingHttpHeaders;

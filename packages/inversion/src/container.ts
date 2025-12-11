@@ -26,9 +26,7 @@ export class Binding<T = any> extends BaseHelper {
     | { type: typeof BindingValueTypes.VALUE; value: T }
     | {
         type: typeof BindingValueTypes.PROVIDER;
-        value:
-          | (<C extends Container>(container: C) => T)
-          | TClass<IProvider<T>>;
+        value: (<C extends Container>(container: C) => T) | TClass<IProvider<T>>;
       };
 
   // ------------------------------------------------------------------------------
@@ -60,9 +58,7 @@ export class Binding<T = any> extends BaseHelper {
     return this;
   }
 
-  toProvider(
-    value: (<C extends Container>(container: C) => T) | TClass<IProvider<T>>,
-  ): this {
+  toProvider(value: (<C extends Container>(container: C) => T) | TClass<IProvider<T>>): this {
     this.resolver = { type: BindingValueTypes.PROVIDER, value };
     return this;
   }
@@ -84,7 +80,7 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   setTags(...tags: string[]): this {
-    tags.forEach((t) => this.tags.add(t));
+    tags.forEach(t => this.tags.add(t));
     return this;
   }
 
@@ -101,10 +97,7 @@ export class Binding<T = any> extends BaseHelper {
   }
 
   getValue(container?: Container): T {
-    if (
-      this.bindScope === BindingScopes.SINGLETON &&
-      this.cached !== undefined
-    ) {
+    if (this.bindScope === BindingScopes.SINGLETON && this.cached !== undefined) {
       return this.cached;
     }
 

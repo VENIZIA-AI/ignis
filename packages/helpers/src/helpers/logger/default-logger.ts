@@ -1,11 +1,11 @@
-import { Defaults } from '@/common/constants';
-import { int } from '@/utilities/parse.utility';
-import path from 'node:path';
-import winston from 'winston';
-import 'winston-daily-rotate-file';
-import { DgramTransport, IDgramTransportOptions } from './transports';
+import { Defaults } from "@/common/constants";
+import { int } from "@/utilities/parse.utility";
+import path from "node:path";
+import winston from "winston";
+import "winston-daily-rotate-file";
+import { DgramTransport, IDgramTransportOptions } from "./transports";
 
-const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? './';
+const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? "./";
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
 const f = winston.format;
 
@@ -57,21 +57,21 @@ export const defineCustomLogger = (opts: {
       silly: 6,
     },
     logColors = {
-      error: 'red',
-      alert: 'red',
-      emerg: 'red',
-      warn: 'yellow',
-      info: 'green',
-      http: 'magenta',
-      verbose: 'gray',
-      debug: 'blue',
-      silly: 'gray',
+      error: "red",
+      alert: "red",
+      emerg: "red",
+      warn: "yellow",
+      info: "green",
+      http: "magenta",
+      verbose: "gray",
+      debug: "blue",
+      silly: "gray",
     },
     loggerFormatter = applicationLogFormatter,
     transports: { info: infoTransportOptions, error: errorTransportOptions },
   } = opts;
 
-  const consoleLogTransport = new winston.transports.Console({ level: 'debug' });
+  const consoleLogTransport = new winston.transports.Console({ level: "debug" });
   const transports: {
     general: Array<winston.transport>;
     exception: Array<winston.transport>;
@@ -83,15 +83,15 @@ export const defineCustomLogger = (opts: {
   // File configure
   if (infoTransportOptions.file) {
     const transport = new winston.transports.DailyRotateFile({
-      frequency: '1h',
-      maxSize: '100m',
-      maxFiles: '5d',
-      datePattern: 'YYYYMMDD_HH',
+      frequency: "1h",
+      maxSize: "100m",
+      maxFiles: "5d",
+      datePattern: "YYYYMMDD_HH",
       filename: path.join(
         infoTransportOptions.file.folder,
         `/${infoTransportOptions.file.prefix}-info-%DATE%.log`,
       ),
-      level: 'info',
+      level: "info",
     });
 
     transports.general.push(transport);
@@ -99,15 +99,15 @@ export const defineCustomLogger = (opts: {
 
   if (errorTransportOptions.file) {
     const transport = new winston.transports.DailyRotateFile({
-      frequency: '1h',
-      maxSize: '100m',
-      maxFiles: '5d',
-      datePattern: 'YYYYMMDD_HH',
+      frequency: "1h",
+      maxSize: "100m",
+      maxFiles: "5d",
+      datePattern: "YYYYMMDD_HH",
       filename: path.join(
         errorTransportOptions.file.folder,
         `/${errorTransportOptions.file.prefix}-error-%DATE%.log`,
       ),
-      level: 'error',
+      level: "error",
     });
 
     transports.general.push(transport);
@@ -145,11 +145,11 @@ export const defineCustomLogger = (opts: {
 // -------------------------------------------------------------------------------------------
 const fileOptions = { folder: LOGGER_FOLDER_PATH, prefix: LOGGER_PREFIX };
 const dgramOptions: Partial<IDgramTransportOptions> = {
-  socketOptions: { type: 'udp4' },
+  socketOptions: { type: "udp4" },
   host: process.env.APP_ENV_LOGGER_DGRAM_HOST,
   port: int(process.env.APP_ENV_LOGGER_DGRAM_PORT),
   label: process.env.APP_ENV_LOGGER_DGRAM_LABEL,
-  levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map(el => el.trim()) ?? [],
+  levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(",").map(el => el.trim()) ?? [],
 };
 
 // -------------------------------------------------------------------------------------------

@@ -1,21 +1,21 @@
 #!/usr/bin/env node
-import { MCPServer } from '@mastra/mcp';
-import { DocsHelper, Logger } from './helpers';
+import { MCPServer } from "@mastra/mcp";
+import { DocsHelper, Logger } from "./helpers";
 import {
   GetDocContentTool,
   GetDocMetadataTool,
   ListCategoriesTool,
   ListDocsTool,
   SearchDocsTool,
-} from './tools';
+} from "./tools";
 
 // ----------------------------------------------------------------------------
 // MCP SERVER CONFIGURATION
 // ----------------------------------------------------------------------------
 
 const mcpServer = new MCPServer({
-  name: 'ignis-docs',
-  version: '0.0.1',
+  name: "ignis-docs",
+  version: "0.0.1",
 
   // Register tools using singleton instances
   tools: {
@@ -38,13 +38,13 @@ const mcpServer = new MCPServer({
           uri: `ignis://docs/${doc.id}`,
           name: doc.title,
           description: `${doc.category} - ${wordCount} words`,
-          mimeType: 'text/markdown',
+          mimeType: "text/markdown",
         };
       });
     },
 
     getResourceContent: async ({ uri }) => {
-      const id = uri.replace('ignis://docs/', '');
+      const id = uri.replace("ignis://docs/", "");
       const content = await DocsHelper.getDocContent({ id });
 
       if (content === null) {
@@ -61,16 +61,16 @@ const mcpServer = new MCPServer({
 // ----------------------------------------------------------------------------
 
 const main = async () => {
-  Logger.info('[main] Initializing Ignis MCP Documentation Server...');
+  Logger.info("[main] Initializing Ignis MCP Documentation Server...");
 
   try {
     await DocsHelper.loadDocumentation();
-    Logger.info('[main] Documentation loaded successfully.');
+    Logger.info("[main] Documentation loaded successfully.");
 
     await mcpServer.startStdio();
-    Logger.info('[main] Server started in Stdio mode.');
+    Logger.info("[main] Server started in Stdio mode.");
   } catch (error) {
-    Logger.error('Fatal error:', error);
+    Logger.error("Fatal error:", error);
     process.exit(1);
   }
 };

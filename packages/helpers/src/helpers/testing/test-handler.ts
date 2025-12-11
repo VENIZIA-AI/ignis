@@ -1,14 +1,14 @@
-import { ValueOrPromise } from '@/common';
-import { getError } from '@/helpers/error';
-import assert from 'node:assert';
-import { ApplicationLogger, LoggerFactory } from '../logger';
+import { ValueOrPromise } from "@/common";
+import { getError } from "@/helpers/error";
+import assert from "node:assert";
+import { ApplicationLogger, LoggerFactory } from "../logger";
 import {
   ITestCaseHandler,
   ITestCaseInput,
   ITestContext,
   TestCaseDecisions,
   TTestCaseDecision,
-} from './common';
+} from "./common";
 
 // --------------------------------------------------------------------------------------------
 export interface ITestCaseHandlerOptions<R extends object, I extends ITestCaseInput = {}> {
@@ -72,7 +72,7 @@ export abstract class TestCaseHandler<
       const executeRs = await this.execute();
       validateRs = await this.validate(executeRs);
     } catch (error) {
-      this.logger.error('[_execute] Failed to execute test handler | Error: %s', error);
+      this.logger.error("[_execute] Failed to execute test handler | Error: %s", error);
     }
 
     assert.equal(validateRs, TestCaseDecisions.SUCCESS);
@@ -83,7 +83,7 @@ export abstract class TestCaseHandler<
 
     if (!validator) {
       throw getError({
-        message: '[validate] Invalid test case validator!',
+        message: "[validate] Invalid test case validator!",
       });
     }
 

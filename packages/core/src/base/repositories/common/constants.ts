@@ -1,12 +1,12 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import { TConstValue } from "@venizia/ignis-helpers";
 
 export const DEFAULT_LIMIT = 10;
 
 // --------------------------------------------------------------------------------------
 export class RepositoryOperationScopes {
-  static readonly READ_ONLY = 'READ_ONLY';
-  static readonly WRITE_ONLY = 'WRITE_ONLY';
-  static readonly READ_WRITE = 'READ_WRITE';
+  static readonly READ_ONLY = "READ_ONLY";
+  static readonly WRITE_ONLY = "WRITE_ONLY";
+  static readonly READ_WRITE = "READ_WRITE";
 
   static readonly SCHEME_SET = new Set([this.READ_ONLY, this.WRITE_ONLY, this.READ_WRITE]);
 
@@ -19,8 +19,8 @@ export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationSc
 
 // --------------------------------------------------------------------------------------
 export class RelationTypes {
-  static readonly ONE = 'one';
-  static readonly MANY = 'many';
+  static readonly ONE = "one";
+  static readonly MANY = "many";
 
   static readonly SCHEME_SET = new Set([this.ONE, this.MANY]);
 

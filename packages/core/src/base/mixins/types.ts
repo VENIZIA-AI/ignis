@@ -1,10 +1,10 @@
-import { AnyObject, Binding, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
-import { IApplication } from '../applications';
-import { BaseComponent } from '../components';
-import { IDataSource } from '../datasources';
-import { TTableSchemaWithId } from '../models';
-import { IRepository } from '../repositories';
-import { IService } from '../services';
+import { AnyObject, Binding, TClass, ValueOrPromise } from "@venizia/ignis-helpers";
+import { IApplication } from "../applications";
+import { BaseComponent } from "../components";
+import { IDataSource } from "../datasources";
+import { TTableSchemaWithId } from "../models";
+import { IRepository } from "../repositories";
+import { IService } from "../services";
 
 export interface IComponentMixin {
   component<T extends BaseComponent, O extends AnyObject = any>(

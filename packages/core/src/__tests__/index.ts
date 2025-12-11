@@ -1,3 +1,3 @@
-import 'reflect-metadata';
+import "reflect-metadata";
 
-export * from './jwt';
+export * from "./jwt";

@@ -1,4 +1,4 @@
-import { BindingNamespaces } from '@/common/bindings';
+import { BindingNamespaces } from "@/common/bindings";
 import {
   AnyObject,
   Binding,
@@ -8,10 +8,10 @@ import {
   IConfigurable,
   TAbstractMixinTarget,
   TClass,
-} from '@venizia/ignis-helpers';
-import { AbstractApplication } from '../applications';
-import { BaseComponent } from '../components';
-import { IComponentMixin } from './types';
+} from "@venizia/ignis-helpers";
+import { AbstractApplication } from "../applications";
+import { BaseComponent } from "../components";
+import { IComponentMixin } from "./types";
 
 export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplication>>(
   baseClass: T,
@@ -35,14 +35,14 @@ export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplicatio
       return executeWithPerformanceMeasure({
         logger: this.logger,
         scope: this.registerComponents.name,
-        description: 'Register application components',
+        description: "Register application components",
         task: async () => {
-          const bindings = this.findByTag({ tag: 'components' });
+          const bindings = this.findByTag({ tag: "components" });
           for (const binding of bindings) {
             const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
             if (!instance) {
               this.logger.debug(
-                '[registerComponents] No binding instance | Ignore registering component | key: %s',
+                "[registerComponents] No binding instance | Ignore registering component | key: %s",
                 binding.key,
               );
               continue;

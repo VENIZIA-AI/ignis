@@ -1,7 +1,7 @@
-import { int } from '@/utilities/parse.utility';
-import Redis from 'ioredis';
-import { DefaultRedisHelper } from './default.helper';
-import { IRedisHelperOptions } from './types';
+import { int } from "@/utilities/parse.utility";
+import Redis from "ioredis";
+import { DefaultRedisHelper } from "./default.helper";
+import { IRedisHelperOptions } from "./types";
 
 export class RedisHelper extends DefaultRedisHelper {
   constructor(opts: IRedisHelperOptions) {

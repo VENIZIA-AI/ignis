@@ -225,7 +225,7 @@ packages/dev-configs/
 ```json
 {
   "devDependencies": {
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3"

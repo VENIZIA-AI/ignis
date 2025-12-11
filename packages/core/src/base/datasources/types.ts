@@ -1,13 +1,13 @@
-import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
-import { NodePgClient, type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
-import { type drizzle as postgresjsConnector } from 'drizzle-orm/postgres-js';
-import { Pool } from 'pg';
+import { IConfigurable, ValueOrPromise } from "@venizia/ignis-helpers";
+import { NodePgClient, type drizzle as nodePostgresConnector } from "drizzle-orm/node-postgres";
+import { type drizzle as postgresjsConnector } from "drizzle-orm/postgres-js";
+import { Pool } from "pg";
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // export type TRelationType = 'belongsTo' | 'hasOne' | 'hasMany' | 'hasManyThrough';
 
 // NOTE: Add more supportable datasource driver
-export type TDataSourceDriver = 'node-postgres' | 'postgres-js';
+export type TDataSourceDriver = "node-postgres" | "postgres-js";
 export type TAnyDatasourceSchema = Record<string, any>;
 
 export type TNodePostgresConnector<

@@ -74,10 +74,7 @@ export abstract class AbstractController<
     const t = performance.now();
 
     const configureOptions = opts ?? {};
-    this.logger.info(
-      "[configure] START | Binding controller | Options: %j",
-      configureOptions,
-    );
+    this.logger.info("[configure] START | Binding controller | Options: %j", configureOptions);
 
     await this.binding();
     this.registerRoutesFromRegistry();
@@ -89,16 +86,13 @@ export abstract class AbstractController<
     return this.router;
   }
 
-  getRouteConfigs<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
-    configs: RC;
-  }) {
+  getRouteConfigs<RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: RC }) {
     const { configs } = opts;
 
     const { authStrategies = [], ...restConfig } = configs;
 
-    const security = authStrategies.map((strategy) => ({ [strategy]: [] }));
-    const mws =
-      authStrategies?.map((strategy) => authenticate({ strategy })) ?? [];
+    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
+    const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
 
     if (restConfig.middleware) {
       const extraMws = Array.isArray(restConfig.middleware)
@@ -125,16 +119,15 @@ export abstract class AbstractController<
     );
   }
 
-  getJSXRouteConfigs<
-    RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> },
-  >(opts: { configs: RC }) {
+  getJSXRouteConfigs<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
+    configs: RC;
+  }) {
     const { configs } = opts;
 
     const { authStrategies = [], ...restConfig } = configs;
 
-    const security = authStrategies.map((strategy) => ({ [strategy]: [] }));
-    const mws =
-      authStrategies?.map((strategy) => authenticate({ strategy })) ?? [];
+    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
+    const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
 
     const extraMws =
       restConfig.middleware && Array.isArray(restConfig.middleware)
@@ -148,11 +141,7 @@ export abstract class AbstractController<
 
     return createRoute<string, RC>(
       Object.assign({}, configs, {
-        responses: Object.assign(
-          {},
-          htmlResponse({ description: "HTML page" }),
-          responses,
-        ),
+        responses: Object.assign({}, htmlResponse({ description: "HTML page" }), responses),
         tags: [...tags, this.scope],
         security,
       }),

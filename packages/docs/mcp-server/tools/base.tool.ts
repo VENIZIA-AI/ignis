@@ -1,5 +1,5 @@
-import { createTool } from '@mastra/core/tools';
-import type { z } from 'zod';
+import { createTool } from "@mastra/core/tools";
+import type { z } from "zod";
 
 // ============================================================================
 // TYPES
@@ -8,7 +8,7 @@ import type { z } from 'zod';
 /**
  * The tool type returned by createTool.
  */
-export type MastraTool = ReturnType<typeof createTool>;
+export type TMastraTool = ReturnType<typeof createTool>;
 
 /**
  * Re-export createTool for use in subclasses.
@@ -112,5 +112,5 @@ export abstract class BaseTool<
    * }
    * ```
    */
-  abstract getTool(): MastraTool;
+  abstract getTool(): TMastraTool;
 }

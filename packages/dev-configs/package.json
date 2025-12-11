@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.0.0",
+  "version": "0.0.1-2",
   "description": "Shared development configurations for Venizia packages",
   "keywords": [
     "config",
@@ -21,14 +21,26 @@
     "./tsconfig.common.json": "./tsconfig/tsconfig.common.json",
     "./package.json": "./package.json"
   },
+  "files": [
+    "dist",
+    "tsconfig"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "engines": {
-    "node": ">=18",
     "bun": ">=1.3"
   },
   "scripts": {
     "build": "sh ./scripts/build.sh",
     "clean": "sh ./scripts/clean.sh",
-    "rebuild": "sh ./scripts/rebuild.sh"
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "sh ./scripts/rebuild.sh",
+    "prepublishOnly": "bun run rebuild"
   },
   "repository": {
     "type": "git",
@@ -44,22 +56,8 @@
   },
   "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
   "license": "MIT",
-  "files": [
-    "dist",
-    "tsconfig",
-    "prettier/.prettierignore"
-  ],
-  "publishConfig": {
-    "access": "public"
-  },
   "dependencies": {
     "@minimaltech/eslint-node": "^0.2.1"
-  },
-  "devDependencies": {
-    "@types/node": "^24.7.2",
-    "eslint": "^9.36.0",
-  "prettier": "^3.6.2",
-    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "eslint": "^9.0.0",
@@ -76,5 +74,11 @@
     "typescript": {
       "optional": true
     }
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4",
+    "eslint": "^9.36.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
   }
 }
