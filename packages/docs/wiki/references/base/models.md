@@ -132,7 +132,7 @@ type TTzEnricherOptions = {
 **Default values:**
 - `created`: `{ columnName: 'created_at', withTimezone: true }`
 - `modified`: `{ enable: true, columnName: 'modified_at', withTimezone: true }`
-- `deleted`: `{ enable: true, columnName: 'deleted_at', withTimezone: true }`
+- `deleted`: `{ enable: false }` (disabled by default)
 
 #### Generated Columns
 
@@ -140,11 +140,11 @@ type TTzEnricherOptions = {
 |--------|------|-------------|---------|-------------|
 | `createdAt` | `timestamp` | `NOT NULL` | `now()` | When the record was created (always included) |
 | `modifiedAt` | `timestamp` | `NOT NULL` | `now()` | When the record was last modified (optional, enabled by default) |
-| `deletedAt` | `timestamp` | nullable | `null` | When the record was soft-deleted (optional, enabled by default) |
+| `deletedAt` | `timestamp` | nullable | `null` | When the record was soft-deleted (optional, **disabled by default**) |
 
 #### Usage Examples
 
-**Basic usage (all columns with defaults):**
+**Basic usage (default columns):**
 
 ```typescript
 import { pgTable, text } from 'drizzle-orm/pg-core';
@@ -155,7 +155,20 @@ export const myTable = pgTable('MyTable', {
   name: text('name').notNull(),
 });
 
-// Generates: createdAt, modifiedAt, deletedAt (all with timezone)
+// Generates: createdAt, modifiedAt (deletedAt is disabled by default)
+```
+
+**Enable soft delete:**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateTzColumnDefs({
+    deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates: createdAt, modifiedAt, deletedAt
 ```
 
 **Custom column names:**
@@ -184,18 +197,7 @@ export const myTable = pgTable('MyTable', {
 });
 ```
 
-**Disable soft delete (no deletedAt column):**
 
-```typescript
-export const myTable = pgTable('MyTable', {
-  ...generateTzColumnDefs({
-    deleted: { enable: false },
-  }),
-  name: text('name').notNull(),
-});
-
-// Generates: createdAt, modifiedAt (no deletedAt)
-```
 
 **Minimal setup (only createdAt):**
 

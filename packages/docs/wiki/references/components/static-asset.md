@@ -281,11 +281,20 @@ GET /static-resources/:objectName
 - Content-Type: `application/octet-stream`
 - Content-Length: File size in bytes
 
+**Error Responses:**
+- `400 Bad Request`: Path traversal detected in objectName
+- `404 Not Found`: File does not exist
+
 **Example:**
 ```typescript
 // Download link
 const downloadUrl = '/static-resources/20251211103045_my_document.pdf';
 ```
+
+**Security:**
+- Automatic path traversal protection
+- Validates that requested file is within the configured base path
+- Returns error if attempting to access files outside allowed directory
 
 ---
 
@@ -396,22 +405,83 @@ const localDownloadLink = `/static-resources/${objectName}`;
 
 ## Security Considerations
 
-### Content-Disposition Headers
+### Built-in Security Features
+
+The Static Asset Component includes multiple layers of security protection:
+
+#### 1. Path Traversal Protection
+
+**Static Resource Controller:**
+- Validates all file paths to prevent directory traversal attacks
+- Uses `path.resolve()` to normalize paths before comparison
+- Rejects requests attempting to access files outside the configured base directory
+- Returns `400 Bad Request` for malicious path patterns (e.g., `../../etc/passwd`)
+
+```typescript
+// Example: These requests are automatically blocked
+GET /static-resources/../../../etc/passwd    // ❌ Blocked
+GET /static-resources/./../../config.json    // ❌ Blocked
+```
+
+#### 2. Filename Sanitization
+
+**Upload Processing:**
+- Automatically applies `path.basename()` to extract just the filename
+- Removes path components from uploaded filenames
+- Normalizes filenames (lowercase, spaces to underscores)
+- Adds timestamp prefix to prevent filename collisions
+
+```typescript
+// Original: "../../malicious/file.txt"
+// Saved as: "20251211103045_file.txt" ✅
+```
+
+#### 3. Content-Disposition Headers
 
 Both controllers use the `createContentDispositionHeader` utility to generate secure, RFC-compliant headers:
 
-- Sanitizes filenames to prevent path traversal attacks
-- Removes dangerous characters
+- Sanitizes filenames to prevent injection attacks
+- Removes leading dots (prevents hidden file creation)
+- Removes consecutive dots and ".." patterns
 - Provides UTF-8 encoded filenames for international character support
 - Includes both ASCII fallback and UTF-8 encoded versions for browser compatibility
 
 ### Best Practices
 
 1. **Validate file types**: Implement middleware to check allowed MIME types
+   ```typescript
+   // Example middleware
+   const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
+   if (!allowedTypes.includes(file.mimetype)) {
+     throw new Error('File type not allowed');
+   }
+   ```
+
 2. **Limit file sizes**: Configure max upload size in your web server or application
-3. **Sanitize filenames**: The component automatically sanitizes filenames
-4. **Access control**: Add authentication/authorization middleware to protect endpoints
-5. **Storage limits**: Monitor disk space (Static Resource) or bucket quotas (MinIO)
+   ```typescript
+   options: {
+     parseMultipartBody: {
+       storage: 'disk',
+       uploadDir: './uploads',
+       limits: { fileSize: 10 * 1024 * 1024 } // 10MB
+     }
+   }
+   ```
+
+3. **Access control**: Add authentication/authorization middleware to protect endpoints
+   ```typescript
+   @controller({ path: '/static-resources' })
+   export class StaticResourceController extends BaseController {
+     // Add auth middleware to routes
+   }
+   ```
+
+4. **Storage limits**: Monitor disk space (Static Resource) or bucket quotas (MinIO)
+
+5. **Input validation**: Always validate user-provided filenames and paths
+   - Never trust client-provided filenames
+   - Use server-side filename generation (timestamp-based)
+   - Validate objectName parameters against expected patterns
 
 ---
 

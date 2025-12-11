@@ -102,7 +102,7 @@ ctx.header('content-disposition', createContentDispositionHeader('my-document.pd
 
 ### `sanitizeFilename`
 
-Sanitizes a filename by removing dangerous characters and path components.
+Sanitizes a filename for safe use, removing path components and dangerous characters. Useful for HTTP headers (e.g., Content-Disposition) and general file handling.
 
 #### `sanitizeFilename(filename: string): string`
 
@@ -114,7 +114,10 @@ Returns a safe filename suitable for use in headers or filesystem operations.
 - Removes path components (prevents directory traversal attacks)
 - Allows only alphanumeric characters, spaces, hyphens, underscores, and dots
 - Replaces dangerous characters with underscores
-- Prevents empty filenames
+- Removes leading dots (prevents hidden files)
+- Replaces consecutive dots with a single dot
+- Removes ".." patterns (additional path traversal protection)
+- Prevents empty filenames and suspicious patterns
 
 **Example:**
 
@@ -123,8 +126,11 @@ import { sanitizeFilename } from '@venizia/ignis-helpers';
 
 sanitizeFilename('../../etc/passwd');        // Returns: 'passwd'
 sanitizeFilename('my<file>name.txt');        // Returns: 'my_file_name.txt'
+sanitizeFilename('.hidden');                 // Returns: 'hidden'
+sanitizeFilename('file...txt');              // Returns: 'file.txt'
 sanitizeFilename('документ.pdf');            // Returns: '_________.pdf'
 sanitizeFilename('');                        // Returns: 'download'
+sanitizeFilename('..');                      // Returns: 'download'
 ```
 
 ---
