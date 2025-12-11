@@ -1,5 +1,5 @@
-import { z } from "@hono/zod-openapi";
-import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
+import { z } from '@hono/zod-openapi';
+import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
 
 /**
  * Create HTML content configuration for OpenAPI documentation
@@ -15,10 +15,10 @@ export const htmlContent = (opts: { description: string; required?: boolean }) =
   return {
     description,
     content: {
-      "text/html": {
+      'text/html': {
         schema: z.string().openapi({
-          description: "HTML content",
-          example: "<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>",
+          description: 'HTML content',
+          example: '<!DOCTYPE html><html><head><title>Page</title></head><body>...</body></html>',
         }),
       },
     },
@@ -40,10 +40,10 @@ export const htmlResponse = (opts: { description: string; required?: boolean }) 
       description: opts.description,
       required: opts.required,
     }),
-    ["4xx | 5xx"]: {
-      description: "Error Response",
+    ['4xx | 5xx']: {
+      description: 'Error Response',
       content: {
-        "application/json": {
+        'application/json': {
           schema: ErrorSchema,
         },
       },

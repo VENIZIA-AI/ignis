@@ -1,9 +1,9 @@
-import { isMainThread, Worker, WorkerOptions } from "node:worker_threads";
+import { isMainThread, Worker, WorkerOptions } from 'node:worker_threads';
 
-import { AnyType, ValueOrPromise } from "@/common/types";
-import { BaseHelper } from "@/helpers/base";
-import { getError } from "@/helpers/error";
-import { IWorker, IWorkerBus, IWorkerThread } from "./types";
+import { AnyType, ValueOrPromise } from '@/common/types';
+import { BaseHelper } from '@/helpers/base';
+import { getError } from '@/helpers/error';
+import { IWorker, IWorkerBus, IWorkerThread } from './types';
 
 // -------------------------------------------------------------------------------------------
 // WORKER
@@ -25,7 +25,7 @@ export abstract class AbstractWorkerHelper<MessageType>
 // -------------------------------------------------------------------------------------------
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
   protected eventHandlers?: Partial<
-    Pick<IWorker<MessageType>, "onOnline" | "onExit" | "onError" | "onMessage" | "onMessageError">
+    Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>
   >;
 
   constructor(opts: {
@@ -34,7 +34,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     path: string | URL;
     options: WorkerOptions;
     eventHandlers?: Partial<
-      Pick<IWorker<MessageType>, "onOnline" | "onExit" | "onError" | "onMessage" | "onMessageError">
+      Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>
     >;
   }) {
     super({ scope: BaseWorkerHelper.name, identifier: opts.identifier });
@@ -50,7 +50,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.info("[online] Worker ONLINE");
+    this.logger.info('[online] Worker ONLINE');
   }
 
   override onExit(opts: { code: string | number }): ValueOrPromise<void> {
@@ -59,7 +59,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.warn("[onExit] Worker EXIT | Code: %s", opts.code);
+    this.logger.warn('[onExit] Worker EXIT | Code: %s', opts.code);
   }
 
   override onError(opts: { error: Error }): ValueOrPromise<void> {
@@ -68,7 +68,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error("[onError] Worker ERROR | Error: %s", opts.error);
+    this.logger.error('[onError] Worker ERROR | Error: %s', opts.error);
   }
 
   override onMessage(opts: { message: MessageType }): ValueOrPromise<void> {
@@ -77,7 +77,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error("[onMessage] Worker MESSAGE | message: %j", opts.message);
+    this.logger.error('[onMessage] Worker MESSAGE | message: %j', opts.message);
   }
 
   override onMessageError(opts: { error: Error }): ValueOrPromise<void> {
@@ -86,31 +86,31 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error("[onMessageError] Worker MESSAGE_ERROR | Error: %s", opts.error);
+    this.logger.error('[onMessageError] Worker MESSAGE_ERROR | Error: %s', opts.error);
   }
 
   binding() {
     if (!this.worker) {
-      throw getError({ message: "[binding] Invalid worker instance to bind event handlers" });
+      throw getError({ message: '[binding] Invalid worker instance to bind event handlers' });
     }
 
-    this.worker.on("online", () => {
+    this.worker.on('online', () => {
       this.onOnline();
     });
 
-    this.worker.on("exit", code => {
+    this.worker.on('exit', code => {
       this.onExit({ code });
     });
 
-    this.worker.on("error", error => {
+    this.worker.on('error', error => {
       this.onError({ error });
     });
 
-    this.worker.on("message", message => {
+    this.worker.on('message', message => {
       this.onMessage({ message });
     });
 
-    this.worker.on("messageerror", error => {
+    this.worker.on('messageerror', error => {
       this.onMessageError({ error });
     });
   }
@@ -140,7 +140,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
     if (isMainThread) {
       throw getError({
-        message: "[BaseWorker] Cannot start worker in MAIN_THREAD",
+        message: '[BaseWorker] Cannot start worker in MAIN_THREAD',
       });
     }
 
@@ -154,7 +154,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
     const { key, bus } = opts;
     if (this.buses[key]) {
-      this.logger.warn("[bindWorkerBus] Worker Bus existed | key: %s", key);
+      this.logger.warn('[bindWorkerBus] Worker Bus existed | key: %s', key);
       return;
     }
 
@@ -168,7 +168,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
     const { key } = opts;
     if (!(key in this.buses)) {
-      this.logger.warn("[unbindWorkerBus] Worker Bus not existed | key: %s", key);
+      this.logger.warn('[unbindWorkerBus] Worker Bus not existed | key: %s', key);
       return;
     }
 

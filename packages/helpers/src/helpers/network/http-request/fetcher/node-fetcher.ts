@@ -1,5 +1,5 @@
-import { stringify } from "node:querystring";
-import { AbstractNetworkFetchableHelper, IRequestOptions } from "./base-fetcher";
+import { stringify } from 'node:querystring';
+import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
@@ -8,17 +8,17 @@ export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
 
 // -------------------------------------------------------------
 export class NodeFetcher extends AbstractNetworkFetchableHelper<
-  "node-fetch",
+  'node-fetch',
   INodeFetchRequestOptions,
   Awaited<ReturnType<typeof fetch>>
 > {
   private defaultConfigs: RequestInit;
 
   constructor(opts: { name: string; defaultConfigs: RequestInit; logger?: any }) {
-    super({ name: opts.name, variant: "node-fetch" });
+    super({ name: opts.name, variant: 'node-fetch' });
     const { name, defaultConfigs } = opts;
     this.name = name;
-    opts?.logger?.info("Creating new network request worker instance! Name: %s", this.name);
+    opts?.logger?.info('Creating new network request worker instance! Name: %s', this.name);
 
     this.defaultConfigs = defaultConfigs;
   }
@@ -27,7 +27,7 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   // SEND REQUEST
   // -------------------------------------------------------------
   override async send(opts: INodeFetchRequestOptions, logger?: any) {
-    const { url, method = "get", params, body, headers, timeout, signal, ...rest } = opts;
+    const { url, method = 'get', params, body, headers, timeout, signal, ...rest } = opts;
 
     let timeoutId: NodeJS.Timeout | undefined;
     let abortController: AbortController | undefined;
@@ -48,16 +48,16 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       signal: abortController?.signal ?? signal,
     };
 
-    let requestUrl = "";
+    let requestUrl = '';
     const urlParts = [url];
     if (params) {
       urlParts.push(stringify(params));
-      requestUrl = urlParts.join("?");
+      requestUrl = urlParts.join('?');
     } else {
       requestUrl = urlParts.join();
     }
 
-    logger?.info("[send] URL: %s | Props: %o | Timeout: %s", url, requestConfigs, timeout);
+    logger?.info('[send] URL: %s | Props: %o | Timeout: %s', url, requestConfigs, timeout);
 
     try {
       return await fetch(requestUrl, requestConfigs);

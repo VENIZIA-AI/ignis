@@ -1,5 +1,5 @@
-import { AnyObject, AnyType, ValueOrPromise } from "@/common";
-import { MemoryStorageHelper } from "@/helpers/storage";
+import { AnyObject, AnyType, ValueOrPromise } from '@/common';
+import { MemoryStorageHelper } from '@/helpers/storage';
 
 export interface ITestContext<R extends object> {
   scope: string;
@@ -10,7 +10,7 @@ export interface ITestContext<R extends object> {
   getSync: <E = AnyType>(opts: { key: keyof R }) => E;
 }
 
-export type TTestCaseDecision = "000_UNKNOWN" | "000_FAIL" | "200_SUCCESS";
+export type TTestCaseDecision = '000_UNKNOWN' | '000_FAIL' | '200_SUCCESS';
 
 export interface ITestCaseInput {}
 

@@ -1,7 +1,7 @@
-import { z } from "@hono/zod-openapi";
-import { ErrorSchema, getError, HTTP } from "@venizia/ignis-helpers";
-import { IsPrimaryKey, NotNull } from "drizzle-orm";
-import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from "drizzle-orm/pg-core";
+import { z } from '@hono/zod-openapi';
+import { ErrorSchema, getError, HTTP } from '@venizia/ignis-helpers';
+import { IsPrimaryKey, NotNull } from 'drizzle-orm';
+import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
 // --------------------------------------------------------------------------------------------
 export type NumberIdType = number;
@@ -19,42 +19,42 @@ export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<T
   id: TIdColumn;
 };
 
-export type TTableObject<T extends TTableSchemaWithId> = T["$inferSelect"];
+export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
 
-export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>["id"];
+export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
 
 export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => {
-  return opts.entity?.id?.dataType ?? "unknown";
+  return opts.entity?.id?.dataType ?? 'unknown';
 };
 
-export type TTableInsert<T extends TTableSchemaWithId> = T["$inferInsert"];
+export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 
 // --------------------------------------------------------------------------------------------
 export const idParamsSchema = (opts?: { idType: string }) => {
-  const { idType = "number" } = opts || {};
+  const { idType = 'number' } = opts || {};
 
   switch (idType) {
-    case "number": {
+    case 'number': {
       return z.object({
         id: z.number().openapi({
           param: {
-            name: "id",
-            in: "path",
-            description: "The unique id of the resource",
+            name: 'id',
+            in: 'path',
+            description: 'The unique id of the resource',
           },
           examples: [1, 2, 3],
         }),
       });
     }
-    case "string": {
+    case 'string': {
       return z.object({
         id: z.string().openapi({
           param: {
-            name: "id",
-            in: "path",
-            description: "The unique id of the resource",
+            name: 'id',
+            in: 'path',
+            description: 'The unique id of the resource',
           },
-          examples: ["4651e634-a530-4484-9b09-9616a28f35e3", "some_unique_id"],
+          examples: ['4651e634-a530-4484-9b09-9616a28f35e3', 'some_unique_id'],
         }),
       });
     }
@@ -74,7 +74,7 @@ export const jsonContent = <T extends z.ZodObject>(opts: {
 }) => {
   return {
     description: opts.description,
-    content: { "application/json": { schema: opts.schema } },
+    content: { 'application/json': { schema: opts.schema } },
     required: opts.required,
   };
 };
@@ -87,9 +87,9 @@ export const jsonResponse = <T extends z.ZodObject>(opts: {
   return {
     [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
       required: opts.required,
-      description: opts?.description ?? "Success Response",
+      description: opts?.description ?? 'Success Response',
       schema: opts.schema,
     }),
-    ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
+    ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
   };
 };

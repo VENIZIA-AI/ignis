@@ -1,7 +1,7 @@
-import { TFetcherResponse, TFetcherVariant, TFetcherWorker } from "../types";
+import { TFetcherResponse, TFetcherVariant, TFetcherWorker } from '../types';
 
-const HTTP = "http";
-const HTTPS = "https";
+const HTTP = 'http';
+const HTTPS = 'https';
 
 export interface IRequestOptions {
   url: string;
@@ -43,7 +43,7 @@ export abstract class AbstractNetworkFetchableHelper<
   abstract send(opts: RQ, logger?: any): Promise<RS>;
 
   getProtocol(url: string) {
-    return url.startsWith("http:") ? HTTP : HTTPS;
+    return url.startsWith('http:') ? HTTP : HTTPS;
   }
 
   getWorker() {
@@ -55,7 +55,7 @@ export abstract class AbstractNetworkFetchableHelper<
   // -------------------------------------------------------------
   get(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: "get" }, logger);
+    return this.send({ ...rest, method: 'get' }, logger);
   }
 
   // -------------------------------------------------------------
@@ -63,7 +63,7 @@ export abstract class AbstractNetworkFetchableHelper<
   // -------------------------------------------------------------
   post(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: "post" }, logger);
+    return this.send({ ...rest, method: 'post' }, logger);
   }
 
   // -------------------------------------------------------------
@@ -71,7 +71,7 @@ export abstract class AbstractNetworkFetchableHelper<
   // -------------------------------------------------------------
   put(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: "put" }, logger);
+    return this.send({ ...rest, method: 'put' }, logger);
   }
 
   // -------------------------------------------------------------
@@ -79,7 +79,7 @@ export abstract class AbstractNetworkFetchableHelper<
   // -------------------------------------------------------------
   patch(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: "patch" }, logger);
+    return this.send({ ...rest, method: 'patch' }, logger);
   }
 
   // -------------------------------------------------------------
@@ -87,6 +87,6 @@ export abstract class AbstractNetworkFetchableHelper<
   // -------------------------------------------------------------
   delete(opts: RQ, logger?: any) {
     const { ...rest } = opts;
-    return this.send({ ...rest, method: "delete" }, logger);
+    return this.send({ ...rest, method: 'delete' }, logger);
   }
 }

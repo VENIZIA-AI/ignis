@@ -1,6 +1,6 @@
-import isEmpty from "lodash/isEmpty";
-import { Container } from "./../container";
-import { getError } from "./app-error";
+import isEmpty from 'lodash/isEmpty';
+import { Container } from './../container';
+import { getError } from './app-error';
 
 // --------------------------------------------------------------------------------------------------------
 export type TNullable<T> = T | undefined | null;
@@ -20,27 +20,27 @@ export interface IProvider<T> {
 }
 
 export const isClass = <T>(target: any): target is TClass<T> => {
-  return typeof target === "function" && target.prototype !== undefined;
+  return typeof target === 'function' && target.prototype !== undefined;
 };
 
 export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> => {
   return (
-    typeof target === "function" && target.prototype && typeof target.prototype.value === "function"
+    typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
   );
 };
 
 // -----------------------------------------------------------------------
 export class BindingScopes {
-  static readonly SINGLETON = "singleton";
-  static readonly TRANSIENT = "transient";
+  static readonly SINGLETON = 'singleton';
+  static readonly TRANSIENT = 'transient';
 }
 export type TBindingScope = TConstValue<typeof BindingScopes>;
 
 // -----------------------------------------------------------------------
 export class BindingValueTypes {
-  static readonly CLASS = "class";
-  static readonly VALUE = "value";
-  static readonly PROVIDER = "provider";
+  static readonly CLASS = 'class';
+  static readonly VALUE = 'value';
+  static readonly PROVIDER = 'provider';
 }
 
 export type TBindingValueType = TConstValue<typeof BindingValueTypes>;
@@ -66,7 +66,7 @@ export class BindingKeys {
     }
 
     keyParts.push(key);
-    return keyParts.join(".");
+    return keyParts.join('.');
   }
 }
 

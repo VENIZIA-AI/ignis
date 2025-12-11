@@ -1,28 +1,28 @@
-import { TColumnDefinitions } from "@/base/models";
-import { getError } from "@venizia/ignis-helpers";
-import { integer, text } from "drizzle-orm/pg-core";
+import { TColumnDefinitions } from '@/base/models';
+import { getError } from '@venizia/ignis-helpers';
+import { integer, text } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
 export const extraPermissionMappingColumns = (opts?: {
-  idType: "string" | "number";
+  idType: 'string' | 'number';
 }): TColumnDefinitions => {
-  const { idType = "number" } = opts ?? {};
+  const { idType = 'number' } = opts ?? {};
 
   switch (idType) {
-    case "string": {
+    case 'string': {
       return {
-        effect: text("effect"),
-        userId: text("user_id"),
-        roleId: text("role_id"),
-        permissionId: text("permission_id"),
+        effect: text('effect'),
+        userId: text('user_id'),
+        roleId: text('role_id'),
+        permissionId: text('permission_id'),
       };
     }
-    case "number": {
+    case 'number': {
       return {
-        effect: text("effect"),
-        userId: integer("user_id"),
-        roleId: integer("role_id"),
-        permissionId: integer("permission_id"),
+        effect: text('effect'),
+        userId: integer('user_id'),
+        roleId: integer('role_id'),
+        permissionId: integer('permission_id'),
       };
     }
     default: {

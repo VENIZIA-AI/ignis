@@ -1,6 +1,6 @@
-import { createSchemaFactory } from "drizzle-zod";
-import { SchemaTypes, TSchemaType, TTableSchemaWithId } from "./common";
-import { BaseHelper, getError } from "@venizia/ignis-helpers";
+import { createSchemaFactory } from 'drizzle-zod';
+import { SchemaTypes, TSchemaType, TTableSchemaWithId } from './common';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 
 // -------------------------------------------------------------------------------------------
 // Base Entity with Drizzle ORM support

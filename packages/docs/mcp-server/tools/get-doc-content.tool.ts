@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { DocsHelper } from "../helpers";
-import { BaseTool, createTool, type TMastraTool } from "./base.tool";
+import { z } from 'zod';
+import { DocsHelper } from '../helpers';
+import { BaseTool, createTool, type TMastraTool } from './base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -89,12 +89,12 @@ const InputSchema = z.object({
 });
 
 const OutputSchema = z.object({
-  id: z.string().describe("The document ID that was requested."),
+  id: z.string().describe('The document ID that was requested.'),
   content: z.string().optional().describe(CONTENT_DESCRIPTION),
   error: z
     .string()
     .optional()
-    .describe("Error message if document not found. Verify the ID using listDocs or searchDocs."),
+    .describe('Error message if document not found. Verify the ID using listDocs or searchDocs.'),
 });
 
 // ----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = "getDocContent";
+  readonly id = 'getDocContent';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -111,7 +111,7 @@ export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof Outpu
     const content = await DocsHelper.getDocContent({ id: input.id });
 
     if (!content) {
-      return { error: "Document not found", id: input.id };
+      return { error: 'Document not found', id: input.id };
     }
 
     return { content, id: input.id };

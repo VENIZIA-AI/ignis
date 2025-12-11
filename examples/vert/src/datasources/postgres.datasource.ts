@@ -28,10 +28,7 @@ interface IDSConfigs {
 }
 
 @datasource({})
-export class PostgresDataSource extends BaseDataSource<
-  TNodePostgresConnector,
-  IDSConfigs
-> {
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {
@@ -40,18 +37,10 @@ export class PostgresDataSource extends BaseDataSource<
       driver: 'node-postgres',
       config: {
         host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
-        port: int(
-          applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT),
-        ),
-        database: applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_POSTGRES_DATABASE,
-        ),
-        user: applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_POSTGRES_USERNAME,
-        ),
-        password: applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD,
-        ),
+        port: int(applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT)),
+        database: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_DATABASE),
+        user: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_USERNAME),
+        password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
 

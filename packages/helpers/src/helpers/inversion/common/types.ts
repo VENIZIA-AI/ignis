@@ -1,10 +1,10 @@
-import type { TAuthStrategy } from "@/common/types";
-import { RouteConfig } from "@hono/zod-openapi";
+import type { TAuthStrategy } from '@/common/types';
+import { RouteConfig } from '@hono/zod-openapi';
 import {
   IInjectMetadata as _IInjectMetadata,
   IPropertyMetadata as _IPropertyMetadata,
   TBindingScope,
-} from "@venizia/ignis-inversion";
+} from '@venizia/ignis-inversion';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Metadata
@@ -29,7 +29,7 @@ export interface IInjectableMetadata {
 }
 
 export interface IModelMetadata {
-  type: "entity" | "view";
+  type: 'entity' | 'view';
   skipMigrate?: boolean;
 }
 

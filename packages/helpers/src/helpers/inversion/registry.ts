@@ -5,9 +5,9 @@ import type {
   IModelMetadata,
   IRepositoryMetadata,
   TRouteMetadata,
-} from "./common";
-import { MetadataKeys } from "./common";
-import { MetadataRegistry as _MetadataRegistry } from "@venizia/ignis-inversion";
+} from './common';
+import { MetadataKeys } from './common';
+import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 
 /**
  * Central metadata registry for storing and retrieving decorator metadata

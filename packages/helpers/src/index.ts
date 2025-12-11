@@ -1,5 +1,5 @@
-import "reflect-metadata";
+import 'reflect-metadata';
 
-export * from "./common";
-export * from "./helpers";
-export * from "./utilities";
+export * from './common';
+export * from './helpers';
+export * from './utilities';

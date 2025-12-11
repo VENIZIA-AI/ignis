@@ -1,8 +1,8 @@
-import { BindingNamespaces } from "@/common/bindings";
-import { Binding, BindingKeys, TClass, TMixinTarget } from "@venizia/ignis-helpers";
-import { AbstractApplication } from "../applications";
-import { IService } from "../services";
-import { IServiceMixin } from "./types";
+import { BindingNamespaces } from '@/common/bindings';
+import { Binding, BindingKeys, TClass, TMixinTarget } from '@venizia/ignis-helpers';
+import { AbstractApplication } from '../applications';
+import { IService } from '../services';
+import { IServiceMixin } from './types';
 
 export const ServiceMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   return class extends baseClass implements IServiceMixin {

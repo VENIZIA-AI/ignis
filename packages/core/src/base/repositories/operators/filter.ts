@@ -1,9 +1,9 @@
-import { TTableObject, TTableSchemaWithId } from "@/base/models";
-import { BaseHelper, getError } from "@venizia/ignis-helpers";
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from "drizzle-orm";
-import isEmpty from "lodash/isEmpty";
-import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from "../common";
-import { QueryOperators, Sorts } from "./query";
+import { TTableObject, TTableSchemaWithId } from '@/base/models';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from 'drizzle-orm';
+import isEmpty from 'lodash/isEmpty';
+import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
+import { QueryOperators, Sorts } from './query';
 
 export class DrizzleFilterBuilder extends BaseHelper {
   constructor() {
@@ -85,7 +85,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       const column = columns?.[key];
       if (!column) {
         this.logger.debug(
-          "[toWhere][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j",
+          '[toWhere][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
           tableName,
           key,
           Object.keys(columns),
@@ -96,7 +96,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       // 3. Handle Short Syntax (Implicit EQ, IN, or NULL)
       // Example: { status: 'active' } or { id: [1, 2] }
       if (
-        typeof value !== "object" ||
+        typeof value !== 'object' ||
         value === null ||
         Array.isArray(value) ||
         value instanceof Date
@@ -166,7 +166,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       const column = columns[key];
       if (!column) {
         this.logger.debug(
-          "[toOrderBy][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j",
+          '[toOrderBy][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
           tableName,
           key,
           Object.keys(columns),
@@ -190,13 +190,13 @@ export class DrizzleFilterBuilder extends BaseHelper {
       let scope: any = undefined;
 
       // Parse include syntax
-      if (typeof inc === "string") {
+      if (typeof inc === 'string') {
         relationName = inc;
       } else if (inc.relation) {
         relationName = inc.relation;
         scope = inc.scope;
       } else {
-        this.logger.warn("[toInclude] Invalid include format | include: %j", inc);
+        this.logger.warn('[toInclude] Invalid include format | include: %j', inc);
         return acc;
       }
 

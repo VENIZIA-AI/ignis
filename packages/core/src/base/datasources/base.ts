@@ -1,11 +1,11 @@
-import { BaseHelper, ValueOrPromise } from "@venizia/ignis-helpers";
+import { BaseHelper, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   IDataSource,
   TAnyDatasourceSchema,
   TDatabaseConnector,
   TDataSourceDriver,
   TNodePostgresConnector,
-} from "./types";
+} from './types';
 
 // --------------------------------------------------------------------------------------
 export abstract class AbstractDataSource<

@@ -1,4 +1,4 @@
-import { BindingNamespaces } from "@/common/bindings";
+import { BindingNamespaces } from '@/common/bindings';
 import {
   Binding,
   BindingKeys,
@@ -9,11 +9,11 @@ import {
   MetadataRegistry,
   TClass,
   TMixinTarget,
-} from "@venizia/ignis-helpers";
-import isEmpty from "lodash/isEmpty";
-import { AbstractApplication } from "../applications";
-import { BaseController } from "../controllers";
-import { IControllerMixin } from "./types";
+} from '@venizia/ignis-helpers';
+import isEmpty from 'lodash/isEmpty';
+import { AbstractApplication } from '../applications';
+import { BaseController } from '../controllers';
+import { IControllerMixin } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
@@ -29,12 +29,12 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
     registerControllers() {
       return executeWithPerformanceMeasure({
         logger: this.logger,
-        description: "Register application controllers",
+        description: 'Register application controllers',
         scope: this.registerControllers.name,
         task: async () => {
           const router = this.getRootRouter();
 
-          const bindings = this.findByTag({ tag: "controllers" });
+          const bindings = this.findByTag({ tag: 'controllers' });
           for (const binding of bindings) {
             const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
               target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
@@ -50,7 +50,7 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
             const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
             if (!instance) {
               this.logger.debug(
-                "[registerControllers] No binding instance | Ignore registering controller | key: %s",
+                '[registerControllers] No binding instance | Ignore registering controller | key: %s',
                 binding.key,
               );
               continue;

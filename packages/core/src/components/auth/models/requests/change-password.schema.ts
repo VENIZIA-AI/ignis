@@ -1,5 +1,5 @@
-import { requiredString } from "@/utilities";
-import { z } from "@hono/zod-openapi";
+import { requiredString } from '@/utilities';
+import { z } from '@hono/zod-openapi';
 
 export const ChangePasswordRequestSchema = z
   .object({
@@ -9,12 +9,12 @@ export const ChangePasswordRequestSchema = z
     userId: z.string().or(z.number()),
   })
   .openapi({
-    required: ["oldCredential", "newCredential"],
+    required: ['oldCredential', 'newCredential'],
     examples: [
       {
-        scheme: "basic",
-        oldCredential: "old_password",
-        newCredential: "new_password",
+        scheme: 'basic',
+        oldCredential: 'old_password',
+        newCredential: 'new_password',
       },
     ],
   });

@@ -1,6 +1,6 @@
-import { z } from "zod";
-import { DocsHelper } from "../helpers";
-import { BaseTool, createTool, type TMastraTool } from "./base.tool";
+import { z } from 'zod';
+import { DocsHelper } from '../helpers';
+import { BaseTool, createTool, type TMastraTool } from './base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -77,8 +77,8 @@ const InputSchema = z.object({
 });
 
 const OutputSchema = z.object({
-  id: z.string().describe("The document ID that was requested."),
-  title: z.string().optional().describe("Document title from frontmatter or filename."),
+  id: z.string().describe('The document ID that was requested.'),
+  title: z.string().optional().describe('Document title from frontmatter or filename.'),
   category: z
     .string()
     .optional()
@@ -87,14 +87,14 @@ const OutputSchema = z.object({
     .number()
     .int()
     .optional()
-    .describe("Total words. Useful for reading time estimation."),
-  charCount: z.number().int().optional().describe("Total characters. Useful for token estimation."),
+    .describe('Total words. Useful for reading time estimation.'),
+  charCount: z.number().int().optional().describe('Total characters. Useful for token estimation.'),
   lastModified: z
     .string()
     .optional()
-    .describe("Last modified timestamp (ISO string). May be undefined."),
-  size: z.number().int().optional().describe("File size in bytes. May be undefined."),
-  error: z.string().optional().describe("Error message if document not found."),
+    .describe('Last modified timestamp (ISO string). May be undefined.'),
+  size: z.number().int().optional().describe('File size in bytes. May be undefined.'),
+  error: z.string().optional().describe('Error message if document not found.'),
 });
 
 // ----------------------------------------------------------------------------
@@ -102,7 +102,7 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class GetDocMetadataTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = "getDocMetadata";
+  readonly id = 'getDocMetadata';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
@@ -111,7 +111,7 @@ export class GetDocMetadataTool extends BaseTool<typeof InputSchema, typeof Outp
     const metadata = await DocsHelper.getDocMetadata({ id: input.id });
 
     if (!metadata) {
-      return { error: "Document not found", id: input.id };
+      return { error: 'Document not found', id: input.id };
     }
 
     return {

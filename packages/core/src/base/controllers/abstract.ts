@@ -1,13 +1,13 @@
-import { authenticate } from "@/components/auth";
-import { htmlResponse } from "@/utilities/jsx.utility";
-import { createRoute, Hook, OpenAPIHono, RouteConfig } from "@hono/zod-openapi";
+import { authenticate } from '@/components/auth';
+import { htmlResponse } from '@/utilities/jsx.utility';
+import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
 import {
   BaseHelper,
   MetadataRegistry,
   TAuthStrategy,
   ValueOrPromise,
-} from "@venizia/ignis-helpers";
-import { Env, Schema } from "hono";
+} from '@venizia/ignis-helpers';
+import { Env, Schema } from 'hono';
 import {
   IController,
   IControllerOptions,
@@ -15,13 +15,13 @@ import {
   TLazyRouteHandler,
   TRouteBindingOptions,
   TRouteDefinition,
-} from "./common/types";
+} from './common/types';
 
 // -----------------------------------------------------------------------------
 export abstract class AbstractController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
-  BasePath extends string = "/",
+  BasePath extends string = '/',
   ConfigurableOptions extends object = {},
 >
   extends BaseHelper
@@ -74,13 +74,13 @@ export abstract class AbstractController<
     const t = performance.now();
 
     const configureOptions = opts ?? {};
-    this.logger.info("[configure] START | Binding controller | Options: %j", configureOptions);
+    this.logger.info('[configure] START | Binding controller | Options: %j', configureOptions);
 
     await this.binding();
     this.registerRoutesFromRegistry();
 
     this.logger.info(
-      "[configure] DONE | Binding controller | Took: %s (ms)",
+      '[configure] DONE | Binding controller | Took: %s (ms)',
       performance.now() - t,
     );
     return this.router;
@@ -141,7 +141,7 @@ export abstract class AbstractController<
 
     return createRoute<string, RC>(
       Object.assign({}, configs, {
-        responses: Object.assign({}, htmlResponse({ description: "HTML page" }), responses),
+        responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
         security,
       }),

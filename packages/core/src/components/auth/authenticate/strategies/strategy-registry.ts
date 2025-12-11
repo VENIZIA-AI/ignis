@@ -5,16 +5,16 @@ import {
   getError,
   HTTP,
   TClass,
-} from "@venizia/ignis-helpers";
-import { MiddlewareHandler } from "hono";
-import { createMiddleware } from "hono/factory";
-import isEmpty from "lodash/isEmpty";
+} from '@venizia/ignis-helpers';
+import { MiddlewareHandler } from 'hono';
+import { createMiddleware } from 'hono/factory';
+import isEmpty from 'lodash/isEmpty';
 import {
   AuthenticateBindingKeys,
   Authentication,
   IAuthenticateOptions,
   IAuthenticationStrategy,
-} from "../common";
+} from '../common';
 
 export class AuthenticationStrategyRegistry extends BaseHelper {
   private static instance: AuthenticationStrategyRegistry;
@@ -47,7 +47,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
       throw getError({ message: `[getStrategyKey] Invalid strategy name | name: ${opts.name}` });
     }
 
-    return [Authentication.AUTHENTICATION_STRATEGY, opts.name].join(".");
+    return [Authentication.AUTHENTICATION_STRATEGY, opts.name].join('.');
   }
 
   getStrategy(opts: { container: Container; name: string }) {
@@ -69,7 +69,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
     this.strategies.set(name, { container, strategyClass });
     container
       .bind({
-        key: [Authentication.AUTHENTICATION_STRATEGY, name].join("."),
+        key: [Authentication.AUTHENTICATION_STRATEGY, name].join('.'),
       })
       .toClass(strategyClass)
       .setScope(BindingScopes.SINGLETON);
@@ -83,7 +83,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
       if (isSkipAuthenticate) {
         const path = context.req.path;
-        this.logger.debug("[authenticate] SKIP checking authentication | action: %s", path);
+        this.logger.debug('[authenticate] SKIP checking authentication | action: %s', path);
         return next();
       }
 
@@ -110,7 +110,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
 
       if (!authenticateOptions) {
         throw getError({
-          message: "[authenticate][mw] Failed to authenticate rquest | Invalid authenticateOptions",
+          message: '[authenticate][mw] Failed to authenticate rquest | Invalid authenticateOptions',
         });
       }
 
@@ -120,7 +120,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
       }
 
       const strategy = container.get<IAuthenticationStrategy>({
-        key: [Authentication.AUTHENTICATION_STRATEGY, strategyName].join("."),
+        key: [Authentication.AUTHENTICATION_STRATEGY, strategyName].join('.'),
       });
 
       if (!strategy) {

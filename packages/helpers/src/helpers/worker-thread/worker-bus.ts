@@ -1,7 +1,7 @@
-import { ValueOrPromise } from "@/common/types";
-import { BaseHelper } from "@/helpers/base";
-import { MessagePort, Transferable } from "node:worker_threads";
-import { IWorkerBus, IWorkerMessageBusHandler } from "./types";
+import { ValueOrPromise } from '@/common/types';
+import { BaseHelper } from '@/helpers/base';
+import { MessagePort, Transferable } from 'node:worker_threads';
+import { IWorkerBus, IWorkerMessageBusHandler } from './types';
 
 // -------------------------------------------------------------------------------------------
 export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
@@ -34,13 +34,13 @@ export class BaseWorkerMessageBusHandlerHelper<
     this.onExit = opts?.onExit
       ? opts.onExit
       : (_opts: { exitCode: string | number }) => {
-          this.logger.warn("[onExit] worker EXITED | exitCode: %s", _opts.exitCode);
+          this.logger.warn('[onExit] worker EXITED | exitCode: %s', _opts.exitCode);
         };
 
     this.onError = opts?.onError
       ? opts.onError
       : (_opts: { error: Error }) => {
-          this.logger.error("[onError] worker error: %s", _opts.error);
+          this.logger.error('[onError] worker error: %s', _opts.error);
         };
   }
 }
@@ -78,23 +78,23 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     this.handler = opts.busHandler;
 
     // Binding events
-    this.port.on("message", message => {
+    this.port.on('message', message => {
       this.handler.onMessage({ message });
     });
 
-    this.port.on("error", error => {
+    this.port.on('error', error => {
       this.handler.onError({ error });
     });
 
-    this.port.on("messageerror", error => {
+    this.port.on('messageerror', error => {
       this.handler.onError({ error });
     });
 
-    this.port.on("exit", exitCode => {
+    this.port.on('exit', exitCode => {
       this.handler.onExit({ exitCode });
     });
 
-    this.port.on("close", () => {
+    this.port.on('close', () => {
       this.handler.onClose();
     });
   }
@@ -107,7 +107,7 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     transferList: readonly Transferable[] | undefined;
   }): ValueOrPromise<void> {
     if (!this.port) {
-      this.logger.error("[postMessage] Failed to post message to main | Invalid parentPort!");
+      this.logger.error('[postMessage] Failed to post message to main | Invalid parentPort!');
       return;
     }
 

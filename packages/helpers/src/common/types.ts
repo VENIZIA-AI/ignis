@@ -1,4 +1,4 @@
-import { Container } from "@/helpers/inversion";
+import { Container } from '@/helpers/inversion';
 
 // --------------------------------------------------------------------------------------------------------
 export type TNullable<T> = T | undefined | null;
@@ -33,7 +33,7 @@ export type TResolver<T> = (...args: any[]) => T;
 // --------------------------------------------------------------------------------------------------------
 // Field Mapping Types
 // --------------------------------------------------------------------------------------------------------
-export type TFieldMappingDataType = "string" | "number" | "strings" | "numbers" | "boolean";
+export type TFieldMappingDataType = 'string' | 'number' | 'strings' | 'numbers' | 'boolean';
 export interface IFieldMapping {
   name: string;
   type: TFieldMappingDataType;
@@ -42,8 +42,8 @@ export interface IFieldMapping {
 
 export type TFieldMappingNames<T extends Array<IFieldMapping>> = Extract<
   T[number],
-  { type: Exclude<T[number]["type"], undefined> }
->["name"];
+  { type: Exclude<T[number]['type'], undefined> }
+>['name'];
 
 export type TObjectFromFieldMappings<
   T extends readonly {
@@ -52,21 +52,21 @@ export type TObjectFromFieldMappings<
     [extra: string | symbol]: any;
   }[],
 > = {
-  [K in T[number]["name"]]: T extends {
+  [K in T[number]['name']]: T extends {
     name: K;
-    type: "string";
+    type: 'string';
     [extra: string | symbol]: any;
   }
     ? string
-    : T extends { name: K; type: "number"; [extra: string | symbol]: any }
+    : T extends { name: K; type: 'number'; [extra: string | symbol]: any }
       ? number
-      : T extends { name: K; type: "boolean"; [extra: string | symbol]: any }
+      : T extends { name: K; type: 'boolean'; [extra: string | symbol]: any }
         ? boolean
-        : T extends { name: K; type: "strings"; [extra: string | symbol]: any }
+        : T extends { name: K; type: 'strings'; [extra: string | symbol]: any }
           ? string[]
           : T extends {
                 name: K;
-                type: "numbers";
+                type: 'numbers';
                 [extra: string | symbol]: any;
               }
             ? number[]
@@ -76,7 +76,7 @@ export type TObjectFromFieldMappings<
 // --------------------------------------------------------------------------------------------------------
 // Domain Types
 // --------------------------------------------------------------------------------------------------------
-export type TPermissionEffect = "allow" | "deny";
+export type TPermissionEffect = 'allow' | 'deny';
 
 // --------------------------------------------------------------------------------------------------------
 export type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
@@ -90,19 +90,19 @@ export interface IProvider<T> {
 }
 
 export const isClass = <T>(target: any): target is TClass<T> => {
-  return typeof target === "function" && target.prototype !== undefined;
+  return typeof target === 'function' && target.prototype !== undefined;
 };
 
 export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> => {
   return (
-    typeof target === "function" && target.prototype && typeof target.prototype.value === "function"
+    typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
   );
 };
 
 // --------------------------------------------------------------------------------------------------------
-export type TAuthStrategy = "jwt" | "basic";
+export type TAuthStrategy = 'jwt' | 'basic';
 
 // --------------------------------------------------------------------------------------------------------
 // JSX Types (re-exported from Hono for convenience)
 // --------------------------------------------------------------------------------------------------------
-export type { FC, PropsWithChildren, Child } from "hono/jsx";
+export type { FC, PropsWithChildren, Child } from 'hono/jsx';

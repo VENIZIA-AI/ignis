@@ -1,13 +1,13 @@
-import { getError } from "@/helpers/error";
-import { toBoolean } from "@/utilities";
-import isEmpty from "lodash/isEmpty";
-import winston from "winston";
-import { applicationLogger } from "./default-logger";
-import { TLogLevel } from "./types";
-import { Environment } from "../env";
+import { getError } from '@/helpers/error';
+import { toBoolean } from '@/utilities';
+import isEmpty from 'lodash/isEmpty';
+import winston from 'winston';
+import { applicationLogger } from './default-logger';
+import { TLogLevel } from './types';
+import { Environment } from '../env';
 
 const extraLogEnvs =
-  (process.env.APP_ENV_EXTRA_LOG_ENVS ?? "").split(",").map(el => el.trim()) ?? [];
+  (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
 const isDebug = toBoolean(process.env.DEBUG);
 
@@ -28,13 +28,13 @@ export class Logger {
 
   // ---------------------------------------------------------------------
   private _enhanceMessage(parts: string[], message: string) {
-    const enhanced = parts?.reduce((prevState = "", current: string) => {
+    const enhanced = parts?.reduce((prevState = '', current: string) => {
       if (isEmpty(prevState)) {
         return current;
       }
 
       return prevState.concat(`-${current}`);
-    }, "");
+    }, '');
 
     return `[${enhanced}]${message}`;
   }
@@ -75,27 +75,27 @@ export class Logger {
       return;
     }
 
-    this.log("debug", message, ...args);
+    this.log('debug', message, ...args);
   }
 
   // ---------------------------------------------------------------------
   info(message: string, ...args: any[]) {
-    this.log("info", message, ...args);
+    this.log('info', message, ...args);
   }
 
   // ---------------------------------------------------------------------
   warn(message: string, ...args: any[]) {
-    this.log("warn", message, ...args);
+    this.log('warn', message, ...args);
   }
 
   // ---------------------------------------------------------------------
   error(message: string, ...args: any[]) {
-    this.log("error", message, ...args);
+    this.log('error', message, ...args);
   }
 
   // ---------------------------------------------------------------------
   emerg(message: string, ...args: any[]) {
-    this.log("emerg", message, ...args);
+    this.log('emerg', message, ...args);
   }
 }
 

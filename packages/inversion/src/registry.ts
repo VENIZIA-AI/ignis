@@ -1,7 +1,7 @@
-import { BaseHelper } from "./common/base-helper";
-import { MetadataKeys } from "./common/keys";
-import { Logger } from "./common/logger";
-import { IInjectMetadata, IPropertyMetadata, TClass } from "./common/types";
+import { BaseHelper } from './common/base-helper';
+import { MetadataKeys } from './common/keys';
+import { Logger } from './common/logger';
+import { IInjectMetadata, IPropertyMetadata, TClass } from './common/types';
 
 /**
  * Central metadata registry for storing and retrieving decorator metadata
@@ -22,7 +22,7 @@ export class MetadataRegistry extends BaseHelper {
   }): void {
     const { target, key, value } = opts;
     Logger.debug(
-      "[define] Set metadata | target: %s | key: %s | value: %j",
+      '[define] Set metadata | target: %s | key: %s | value: %j',
       target.constructor.name,
       key.toString(),
       value,
@@ -56,7 +56,7 @@ export class MetadataRegistry extends BaseHelper {
     const { target } = opts;
     return (
       Reflect.getMetadataKeys(target)?.filter(key => {
-        return typeof key === "symbol" || typeof key === "string";
+        return typeof key === 'symbol' || typeof key === 'string';
       }) ?? []
     );
   }
@@ -66,7 +66,7 @@ export class MetadataRegistry extends BaseHelper {
     const { target } = opts;
     const prototype = target.prototype;
     const methods = Object.getOwnPropertyNames(prototype).filter(
-      name => name !== "constructor" && typeof prototype[name] === "function",
+      name => name !== 'constructor' && typeof prototype[name] === 'function',
     );
     return methods;
   }

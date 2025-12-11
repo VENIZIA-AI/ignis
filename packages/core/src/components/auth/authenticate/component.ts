@@ -1,17 +1,17 @@
-import { BaseApplication } from "@/base/applications";
-import { BaseComponent } from "@/base/components";
-import { inject } from "@/base/metadata";
-import { CoreBindings } from "@/common/bindings";
-import { EnvironmentKeys } from "@/common/environments";
-import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from "./common";
-import { defineAuthController } from "./controllers";
-import { JWTTokenService } from "./services";
-import { Binding, getError, ValueOrPromise } from "@venizia/ignis-helpers";
+import { BaseApplication } from '@/base/applications';
+import { BaseComponent } from '@/base/components';
+import { inject } from '@/base/metadata';
+import { CoreBindings } from '@/common/bindings';
+import { EnvironmentKeys } from '@/common/environments';
+import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
+import { defineAuthController } from './controllers';
+import { JWTTokenService } from './services';
+import { Binding, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 
-const DEFAULT_SECRET = "unknown_secret";
+const DEFAULT_SECRET = 'unknown_secret';
 
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
-  restOptions: { path: "/auth" },
+  restOptions: { path: '/auth' },
   alwaysAllowPaths: [],
   tokenOptions: {
     applicationSecret: process.env[EnvironmentKeys.APP_ENV_APPLICATION_SECRET] ?? DEFAULT_SECRET,
@@ -56,7 +56,7 @@ export class AuthenticateComponent extends BaseComponent {
     if (!authenticateOptions) {
       throw getError({
         message:
-          "[defineAuth] Failed to binding authenticate component | Invalid authenticateOptions",
+          '[defineAuth] Failed to binding authenticate component | Invalid authenticateOptions',
       });
     }
 
@@ -79,7 +79,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     this.application.controller(
       defineAuthController({
-        restPath: authenticateOptions.restOptions?.path ?? "/auth",
+        restPath: authenticateOptions.restOptions?.path ?? '/auth',
       }),
     );
   }

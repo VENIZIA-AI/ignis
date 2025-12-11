@@ -1,4 +1,4 @@
-import { ValueOrPromise } from "@/common";
+import { ValueOrPromise } from '@/common';
 
 type TTask<T> = () => Promise<T>;
 
@@ -65,8 +65,8 @@ export async function transformValueOrPromise<T, V>(
 export function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (
     !!value &&
-    (typeof value === "object" || typeof value === "function") &&
-    typeof (value as PromiseLike<T>).then === "function"
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as PromiseLike<T>).then === 'function'
   );
 }
 
@@ -74,7 +74,7 @@ export function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLik
  * Try to get the value synchronously, throw if it's a promise
  */
 export function getDeepProperty<T, V>(obj: T, path: string): V {
-  const keys = path.split(".");
+  const keys = path.split('.');
   let result: any = obj;
 
   for (const key of keys) {

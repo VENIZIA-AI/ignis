@@ -1,13 +1,13 @@
-import { BaseApplication } from "@/base/applications";
-import { BaseComponent } from "@/base/components";
-import { controller, inject } from "@/base/metadata";
-import { CoreBindings } from "@/common/bindings";
-import { Binding, ValueOrPromise } from "@venizia/ignis-helpers";
-import { HealthCheckBindingKeys, IHealthCheckOptions } from "./common";
-import { HealthCheckController } from "./controller";
+import { BaseApplication } from '@/base/applications';
+import { BaseComponent } from '@/base/components';
+import { controller, inject } from '@/base/metadata';
+import { CoreBindings } from '@/common/bindings';
+import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
+import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
+import { HealthCheckController } from './controller';
 
 const DEFAULT_OPTIONS: IHealthCheckOptions = {
-  restOptions: { path: "/health" },
+  restOptions: { path: '/health' },
 };
 
 export class HealthCheckComponent extends BaseComponent {

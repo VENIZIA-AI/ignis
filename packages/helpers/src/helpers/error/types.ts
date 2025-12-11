@@ -1,4 +1,4 @@
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 
 export const ErrorSchema = z
   .object({
@@ -9,12 +9,12 @@ export const ErrorSchema = z
   })
   .catchall(z.any())
   .openapi({
-    description: "Error Schema",
+    description: 'Error Schema',
     example: {
-      name: "ErrorName",
-      statusCode: "4xx | 5xx",
-      messageCode: "app.example.error_code",
-      message: "Example Message",
+      name: 'ErrorName',
+      statusCode: '4xx | 5xx',
+      messageCode: 'app.example.error_code',
+      message: 'Example Message',
     },
   });
 

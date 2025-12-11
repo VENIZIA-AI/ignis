@@ -1,7 +1,7 @@
-import { BaseHelper } from "@/helpers/base";
-import { CronJob, CronOnCompleteCommand, CronTime } from "cron";
-import isEmpty from "lodash/isEmpty";
-import { ApplicationError } from "../error";
+import { BaseHelper } from '@/helpers/base';
+import { CronJob, CronOnCompleteCommand, CronTime } from 'cron';
+import isEmpty from 'lodash/isEmpty';
+import { ApplicationError } from '../error';
 
 export interface ICronHelperOptions {
   cronTime: string;
@@ -44,7 +44,7 @@ export class CronHelper extends BaseHelper {
   configure() {
     if (!this.cronTime || isEmpty(this.cronTime)) {
       throw ApplicationError.getError({
-        message: "[CronHelper][configure] Invalid cronTime to configure application cron!",
+        message: '[CronHelper][configure] Invalid cronTime to configure application cron!',
       });
     }
 
@@ -60,7 +60,7 @@ export class CronHelper extends BaseHelper {
 
   start() {
     if (!this.instance) {
-      this.logger.error("[CronHelper][start] Invalid cron instance to start cronjob!");
+      this.logger.error('[CronHelper][start] Invalid cron instance to start cronjob!');
       return;
     }
 

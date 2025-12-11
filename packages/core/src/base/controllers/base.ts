@@ -1,18 +1,18 @@
-import { Hook, RouteConfig } from "@hono/zod-openapi";
-import { TAuthStrategy, ValueOrPromise } from "@venizia/ignis-helpers";
-import { Env, Schema } from "hono";
-import { AbstractController } from "./abstract";
+import { Hook, RouteConfig } from '@hono/zod-openapi';
+import { TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Env, Schema } from 'hono';
+import { AbstractController } from './abstract';
 import {
   TAuthRouteConfig,
   TLazyRouteHandler,
   TRouteBindingOptions,
   TRouteDefinition,
-} from "./common/types";
+} from './common/types';
 
 export abstract class BaseController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
-  BasePath extends string = "/",
+  BasePath extends string = '/',
   ConfigurableOptions extends object = {},
 > extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
   // ------------------------------------------------------------------------------

@@ -1,4 +1,4 @@
-import { z } from "@hono/zod-openapi";
+import { z } from '@hono/zod-openapi';
 
 // -------------------------------------------------------------------------
 export const requiredString = (opts?: { min?: number; max?: number; fixed?: number }) => {
@@ -22,5 +22,5 @@ export const requiredString = (opts?: { min?: number; max?: number; fixed?: numb
 
 // -------------------------------------------------------------------------
 export const AnyObjectSchema = z.object().catchall(z.any()).openapi({
-  description: "Unknown schema",
+  description: 'Unknown schema',
 });
