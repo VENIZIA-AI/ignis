@@ -46,6 +46,7 @@
     "bun": ">=1.3"
   },
   "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",
     "lint:fix": "bun run eslint --fix && bun run prettier:fix",
@@ -92,7 +93,7 @@
     "@braintree/sanitize-url": "^7.1.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
-    "@venizia/dev-configs": "latest",
+    "@venizia/dev-configs": "^0.0.1-3",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",
