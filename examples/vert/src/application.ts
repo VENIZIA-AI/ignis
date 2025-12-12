@@ -1,4 +1,5 @@
 import {
+    applicationEnvironment,
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
@@ -17,7 +18,11 @@ import {
   IMiddlewareConfigs,
   int,
   JWTAuthenticationStrategy,
+  MinioHelper,
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
   SwaggerComponent,
+  TStaticAssetsComponentOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
@@ -27,6 +32,7 @@ import { ConfigurationController, TestController } from './controllers';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
+import { EnvironmentKeys } from './common/environments';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -133,9 +139,35 @@ export class Application extends BaseApplication {
     }).toValue({
       restOptions: { path: '/health-check' },
     });
-
     this.component(HealthCheckComponent);
+
     this.component(SwaggerComponent);
+
+    this.bind<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    }).toValue({
+      minioAsset: {
+        enable: true,
+        minioHelper: new MinioHelper({
+          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
+          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
+          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
+          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
+          useSSL: false,
+        }),
+        options: {
+          parseMultipartBody: {
+            storage: 'memory',
+          },
+        },
+      },
+      staticResource: {
+        enable: true,
+        resourceBasePath: './app_data/resources',
+        options: {},
+      },
+    });
+    this.component(StaticAssetComponent);
   }
 
   async postConfigure(): Promise<void> {
