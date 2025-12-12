@@ -13,44 +13,51 @@ The Static Asset Component provides file upload, download, and management capabi
 
 ## Installation & Setup
 
-### Basic Configuration
+### Complete Setup Example
+
+Here's a real-world example from the Vert application showing how to set up both MinIO and local filesystem storage:
 
 ```typescript
-import { StaticAssetComponent } from '@venizia/ignis';
-import { MinioHelper } from '@venizia/ignis-helpers';
+import {
+  applicationEnvironment,
+  BaseApplication,
+  int,
+  MinioHelper,
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  TStaticAssetsComponentOptions,
+  ValueOrPromise,
+} from '@venizia/ignis';
 
 export class Application extends BaseApplication {
   override preConfigure(): ValueOrPromise<void> {
-    // Configure Static Asset Component
-    this.bind({
+    // Configure Static Asset Component with both MinIO and local storage
+    this.bind<TStaticAssetsComponentOptions>({
       key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
     }).toValue({
-      // Option 1: Enable MinIO-based asset storage
+      // MinIO cloud storage for scalable file management
       minioAsset: {
         enable: true,
         minioHelper: new MinioHelper({
-          endPoint: 'minio.example.com',
-          port: 9000,
-          useSSL: true,
-          accessKey: 'YOUR_ACCESS_KEY',
-          secretKey: 'YOUR_SECRET_KEY',
+          endPoint: applicationEnvironment.get('APP_ENV_MINIO_HOST'),
+          port: int(applicationEnvironment.get('APP_ENV_MINIO_API_PORT')),
+          accessKey: applicationEnvironment.get('APP_ENV_MINIO_ACCESS_KEY'),
+          secretKey: applicationEnvironment.get('APP_ENV_MINIO_SECRET_KEY'),
+          useSSL: false,
         }),
         options: {
           parseMultipartBody: {
-            storage: 'memory', // or 'disk'
-            uploadDir: './temp-uploads',
+            storage: 'memory', // Use memory for smaller files
           },
         },
       },
-      
-      // Option 2: Enable local filesystem storage
+      // Local filesystem storage for quick access files
       staticResource: {
         enable: true,
-        resourceBasePath: './static-resources',
+        resourceBasePath: './app_data/resources',
         options: {
           parseMultipartBody: {
-            storage: 'disk',
-            uploadDir: './temp-uploads',
+            storage: 'memory', // Use memory for smaller files
           },
         },
       },
@@ -60,6 +67,79 @@ export class Application extends BaseApplication {
     this.component(StaticAssetComponent);
   }
 }
+```
+
+### Environment Variables
+
+Add these to your `.env` file:
+
+```bash
+# MinIO Configuration
+APP_ENV_MINIO_HOST=localhost
+APP_ENV_MINIO_API_PORT=9000
+APP_ENV_MINIO_ACCESS_KEY=minioadmin
+APP_ENV_MINIO_SECRET_KEY=minioadmin
+```
+
+### Environment Keys Configuration
+
+Define the environment keys in your application:
+
+```typescript
+// src/common/environments.ts
+import { EnvironmentKeys as BaseEnv } from '@venizia/ignis';
+
+export class EnvironmentKeys extends BaseEnv {
+  // MinIO Configuration Keys
+  static readonly APP_ENV_MINIO_HOST = 'APP_ENV_MINIO_HOST';
+  static readonly APP_ENV_MINIO_API_PORT = 'APP_ENV_MINIO_API_PORT';
+  static readonly APP_ENV_MINIO_ACCESS_KEY = 'APP_ENV_MINIO_ACCESS_KEY';
+  static readonly APP_ENV_MINIO_SECRET_KEY = 'APP_ENV_MINIO_SECRET_KEY';
+}
+```
+
+### Quick Start Options
+
+**Option 1: MinIO Only**
+```typescript
+this.bind({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  minioAsset: {
+    enable: true,
+    minioHelper: new MinioHelper({ /* ... */ }),
+    options: { parseMultipartBody: { storage: 'memory' } },
+  },
+  staticResource: { enable: false },
+});
+this.component(StaticAssetComponent);
+```
+
+**Option 2: Local Filesystem Only**
+```typescript
+this.bind({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  minioAsset: { enable: false },
+  staticResource: {
+    enable: true,
+    resourceBasePath: './uploads',
+    options: { parseMultipartBody: { storage: 'disk' } },
+  },
+});
+this.component(StaticAssetComponent);
+```
+
+**Option 3: Both (Recommended for Production)**
+```typescript
+// Use MinIO for user uploads and local filesystem for temporary/cache files
+this.bind({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  minioAsset: { enable: true, /* ... */ },
+  staticResource: { enable: true, /* ... */ },
+});
+this.component(StaticAssetComponent);
 ```
 
 ## MinIO Asset Controller
@@ -399,6 +479,161 @@ const localDownloadLink = `/static-resources/${objectName}`;
 
 // Use in HTML
 <a href={minioDownloadLink} download>Download File</a>
+```
+
+### Example 4: Production Setup with Environment Variables
+
+This example shows the complete setup from the Vert application, demonstrating best practices for production deployment:
+
+```typescript
+// src/application.ts
+import {
+  applicationEnvironment,
+  BaseApplication,
+  int,
+  MinioHelper,
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  TStaticAssetsComponentOptions,
+} from '@venizia/ignis';
+import { EnvironmentKeys } from './common/environments';
+
+export class Application extends BaseApplication {
+  override preConfigure(): ValueOrPromise<void> {
+    // ... other component configurations
+
+    // Configure Static Asset Component
+    this.bind<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    }).toValue({
+      // MinIO for cloud storage (user uploads, documents, media)
+      minioAsset: {
+        enable: true,
+        minioHelper: new MinioHelper({
+          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
+          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
+          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
+          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
+          useSSL: false, // Set to true in production with proper SSL setup
+        }),
+        options: {
+          parseMultipartBody: {
+            storage: 'memory', // Memory storage for files under ~100MB
+          },
+        },
+      },
+      // Local filesystem for temporary files and caching
+      staticResource: {
+        enable: true,
+        resourceBasePath: './app_data/resources',
+        options: {
+          parseMultipartBody: {
+            storage: 'memory', // Memory storage for small files
+          },
+        },
+      },
+    });
+
+    // Register the component
+    this.component(StaticAssetComponent);
+  }
+}
+```
+
+**Environment Configuration (`src/common/environments.ts`):**
+
+```typescript
+import { EnvironmentKeys as BaseEnv } from '@venizia/ignis';
+
+export class EnvironmentKeys extends BaseEnv {
+  // MinIO Configuration
+  static readonly APP_ENV_MINIO_HOST = 'APP_ENV_MINIO_HOST';
+  static readonly APP_ENV_MINIO_API_PORT = 'APP_ENV_MINIO_API_PORT';
+  static readonly APP_ENV_MINIO_ACCESS_KEY = 'APP_ENV_MINIO_ACCESS_KEY';
+  static readonly APP_ENV_MINIO_SECRET_KEY = 'APP_ENV_MINIO_SECRET_KEY';
+}
+```
+
+**Environment File (`.env`):**
+
+```bash
+# Application Settings
+APP_ENV_APPLICATION_NAME=Vert
+APP_ENV_APPLICATION_PORT=3000
+
+# MinIO Configuration
+APP_ENV_MINIO_HOST=localhost           # Use actual hostname in production
+APP_ENV_MINIO_API_PORT=9000
+APP_ENV_MINIO_ACCESS_KEY=minioadmin    # Use secure credentials in production
+APP_ENV_MINIO_SECRET_KEY=minioadmin    # Use secure credentials in production
+```
+
+**Docker Compose (for development):**
+
+```yaml
+version: '3.8'
+services:
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    ports:
+      - "9000:9000"   # API port
+      - "9001:9001"   # Console port
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+volumes:
+  minio_data:
+```
+
+**Using the Endpoints:**
+
+```typescript
+// Upload to MinIO
+const uploadToMinIO = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/static-assets/buckets/user-uploads/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const result = await response.json();
+  console.log('Uploaded to MinIO:', result);
+  // [{ objectName: 'file.pdf', bucketName: 'user-uploads', link: '/static-assets/...' }]
+};
+
+// Upload to local filesystem
+const uploadToLocal = async (file: File) => {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  const response = await fetch('/static-resources/upload', {
+    method: 'POST',
+    body: formData,
+  });
+
+  const result = await response.json();
+  console.log('Uploaded to local:', result);
+  // [{ objectName: '20251212091230_file.pdf' }]
+};
+
+// Download from MinIO
+const downloadFromMinIO = (bucketName: string, objectName: string) => {
+  const url = `/static-assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/download`;
+  window.open(url, '_blank');
+};
+
+// Download from local
+const downloadFromLocal = (objectName: string) => {
+  const url = `/static-resources/${objectName}`;
+  window.open(url, '_blank');
+};
 ```
 
 ---
