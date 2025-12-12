@@ -1,5 +1,5 @@
 import {
-    applicationEnvironment,
+  applicationEnvironment,
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
@@ -164,7 +164,11 @@ export class Application extends BaseApplication {
       staticResource: {
         enable: true,
         resourceBasePath: './app_data/resources',
-        options: {},
+        options: {
+          parseMultipartBody: {
+            storage: 'memory',
+          },
+        },
       },
     });
     this.component(StaticAssetComponent);
