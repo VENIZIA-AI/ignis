@@ -45,6 +45,7 @@
     "bun": ">=1.3"
   },
   "scripts": {
+    "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
     "clean": "sh ./scripts/clean.sh",
     "eslint": "eslint --report-unused-disable-directives .",
@@ -73,7 +74,7 @@
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "@venizia/ignis-inversion": "latest",
+    "@venizia/ignis-inversion": "^0.0.1-3",
     "axios": "^1.12.2",
     "bullmq": "^5.63.1",
     "cron": "^4.3.3",
@@ -109,7 +110,7 @@
     "@types/bun": "^1.3.4",
     "@types/lodash": "^4.17.20",
     "@types/node": "^25.0.0",
-    "@venizia/dev-configs": "latest",
+    "@venizia/dev-configs": "^0.0.1-3",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

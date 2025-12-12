@@ -1,9 +1,8 @@
 #!/bin/bash
-set -e
 
-echo "Cleaning @venizia/dev-configs..."
+echo "START | Clean up ..."
 
 rm -rf dist *.tsbuildinfo .eslintcache
 rm -rf artifact.zip
 
-echo "Clean completed!"
+echo "DONE | Clean up completed successfully!"

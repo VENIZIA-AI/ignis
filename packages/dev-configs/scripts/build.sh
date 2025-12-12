@@ -1,9 +1,8 @@
 #!/bin/bash
-set -e
 
-echo "Building @venizia/dev-configs..."
+echo "START | Building application..."
 
 # Compile TypeScript
 tsc -p tsconfig.json --extendedDiagnostics
 
-echo "Build completed successfully!"
+echo "DONE | Build completed successfully!"

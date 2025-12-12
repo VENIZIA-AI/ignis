@@ -1,8 +1,8 @@
 #!/bin/sh
 
-echo "Clean up ...START"
+echo "START | Clean up ..."
 
 rm -rf dist *.tsbuildinfo .eslintcache
 rm -rf artifact.zip
 
-echo "Clean up ...DONE"
+echo "DONE | Clean up completed successfully!"

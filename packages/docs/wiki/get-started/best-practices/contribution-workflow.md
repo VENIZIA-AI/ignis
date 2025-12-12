@@ -32,11 +32,43 @@ feature/*, fix/*, docs/* (your work)
 git clone https://github.com/YOUR_USERNAME/ignis.git
 cd ignis
 
-# 3. Install dependencies
-bun install
+# 3. Install dependencies (this also runs force-update to fetch latest from NPM)
+make install
+# Or: bun install
 
 # 4. Add upstream remote
 git remote add upstream https://github.com/VENIZIA-AI/ignis.git
+```
+
+## Makefile Commands
+
+The project uses a Makefile for common development tasks:
+
+| Command | Description |
+|---------|-------------|
+| `make install` | Install dependencies and force-update from NPM |
+| `make update` | Force update all packages from NPM registry |
+| `make build` | Rebuild all packages in correct order |
+| `make clean` | Clean build artifacts from all packages |
+| `make lint` | Lint all packages |
+| `make help` | Show all available commands |
+
+**Individual package builds:**
+```bash
+make core          # Build @venizia/ignis (after dependencies)
+make helpers       # Build @venizia/ignis-helpers
+make inversion     # Build @venizia/ignis-inversion
+make dev-configs   # Build @venizia/dev-configs
+make docs          # Build documentation
+```
+
+**Force update individual packages:**
+```bash
+make update-core
+make update-helpers
+make update-inversion
+make update-dev-configs
+make update-docs
 ```
 
 ## 2. Development Workflow
@@ -92,11 +124,13 @@ git commit -m "chore: upgrade Hono to v4.0"
 ### Step 4: Validate
 
 ```bash
-# Lint and format
-bun run lint:fix
+# Lint and format (from root)
+make lint
+# Or: bun run lint:fix
 
-# Build TypeScript
-bun run build
+# Build all packages
+make build
+# Or: bun run build
 
 # Run tests
 bun run test
