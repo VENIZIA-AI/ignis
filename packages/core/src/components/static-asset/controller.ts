@@ -62,6 +62,23 @@ export class StaticResourceController extends BaseController {
           uploadDir: staticResourceOptions?.parseMultipartBody?.uploadDir,
         });
 
+        // Validate all files before processing
+        for (const file of filesArray) {
+          const { originalname: originalName, size } = file;
+          if (!originalName || isEmpty(originalName)) {
+            throw getError({
+              message: `Invalid filename`,
+              statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            });
+          }
+          if (!size) {
+            throw getError({
+              message: `File is empty`,
+              statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            });
+          }
+        }
+
         if (!fs.existsSync(basePath)) {
           fs.mkdirSync(basePath, { recursive: true });
         }
@@ -69,26 +86,7 @@ export class StaticResourceController extends BaseController {
         const uploaded = await Promise.all(
           filesArray.map(file => {
             return new Promise<{ objectName: string }>((resolve, reject) => {
-              const { originalname: originalName, buffer, size } = file;
-              if (!originalName || isEmpty(originalName)) {
-                reject(
-                  getError({
-                    message: `Invalid filename`,
-                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                  }),
-                );
-                return;
-              }
-              if (!size) {
-                reject(
-                  getError({
-                    message: `File is empty`,
-                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                  }),
-                );
-                return;
-              }
-
+              const { originalname: originalName, buffer } = file;
               const normalizedName = path.basename(originalName).toLowerCase().replace(/ /g, '_');
               const savedName = `${dayjs().format('YYYYMMDDHHmmss')}_${normalizedName}`;
               const filePath = path.join(basePath, savedName);
@@ -232,8 +230,8 @@ export class MinioAssetController extends BaseController {
         }
 
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
-        const { size, metaData } = fileStat;
-        Object.entries(metaData).forEach(([key, value]) => {
+        const { size, metadata } = fileStat;
+        Object.entries(metadata).forEach(([key, value]) => {
           if (
             !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
           ) {
@@ -283,9 +281,9 @@ export class MinioAssetController extends BaseController {
         }
 
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
-        const { size, metaData } = fileStat;
+        const { size, metadata } = fileStat;
 
-        Object.entries(metaData).forEach(([key, value]) => {
+        Object.entries(metadata).forEach(([key, value]) => {
           if (
             !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
           ) {
