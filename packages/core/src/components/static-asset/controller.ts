@@ -20,15 +20,16 @@ import {
   TStaticResourceOptions,
 } from './common';
 import { MinIOAssetDefinitions, StaticResourceDefinitions } from './definition';
+import { getError } from '@venizia/ignis-inversion';
 
 // ================================================================================
 const WHITELIST_HEADERS = [
-  'content-type',
-  'content-encoding',
-  'cache-control',
-  'etag',
-  'last-modified',
-];
+  HTTP.Headers.CONTENT_TYPE,
+  HTTP.Headers.CONTENT_ENCODING,
+  HTTP.Headers.CACHE_CONTROL,
+  HTTP.Headers.ETAG,
+  HTTP.Headers.LAST_MODIFIED,
+] as const;
 
 // ================================================================================
 @controller({ path: '/static-resources' })
@@ -67,26 +68,38 @@ export class StaticResourceController extends BaseController {
 
         const uploaded = await Promise.all(
           filesArray.map(file => {
-            const { originalname: originalName, buffer, size } = file;
-
-            if (!originalName || isEmpty(originalName)) {
-              return;
-            }
-
-            if (!size) {
-              return;
-            }
-
-            const normalizedName = path.basename(originalName).toLowerCase().replace(/ /g, '_');
             return new Promise<{ objectName: string }>((resolve, reject) => {
-              try {
-                const savedName = `${dayjs().format('YYYYMMDDHHmmss')}_${normalizedName}`;
-                const filePath = path.join(basePath, savedName);
-                fs.writeFileSync(filePath, buffer ?? Buffer.alloc(0));
-                resolve({ objectName: savedName });
-              } catch (e) {
-                reject(e);
+              const { originalname: originalName, buffer, size } = file;
+              if (!originalName || isEmpty(originalName)) {
+                reject(
+                  getError({
+                    message: `Invalid filename`,
+                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                  }),
+                );
+                return;
               }
+              if (!size) {
+                reject(
+                  getError({
+                    message: `File is empty`,
+                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                  }),
+                );
+                return;
+              }
+
+              const normalizedName = path.basename(originalName).toLowerCase().replace(/ /g, '_');
+              const savedName = `${dayjs().format('YYYYMMDDHHmmss')}_${normalizedName}`;
+              const filePath = path.join(basePath, savedName);
+
+              fs.writeFile(filePath, buffer ?? Buffer.alloc(0), err => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve({ objectName: savedName });
+              });
             });
           }),
         );
@@ -125,16 +138,19 @@ export class StaticResourceController extends BaseController {
         try {
           const fileStat = fs.statSync(savedPath);
           const { size } = fileStat;
-          ctx.header('content-type', 'application/octet-stream');
-          ctx.header('content-length', size.toString());
-          ctx.header('content-disposition', createContentDispositionHeader(objectName));
+          ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPPLICATION_OCTET_STREAM);
+          ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
+          ctx.header(
+            HTTP.Headers.CONTENT_DISPOSITION,
+            createContentDispositionHeader({ filename: objectName, type: 'attachment' }),
+          );
           ctx.header('x-content-type-options', 'nosniff');
           const fileStream = fs.createReadStream(savedPath);
           return new Response(fileStream, {
             headers: ctx.res.headers,
             status: HTTP.ResultCodes.RS_2.Ok,
           });
-        } catch (e) {
+        } catch (_e) {
           return ctx.json({ message: `File not found` }, HTTP.ResultCodes.RS_4.NotFound);
         }
       },
@@ -178,6 +194,14 @@ export class MinioAssetController extends BaseController {
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
+
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
         const bucket = await minioInstance.getBucket({ name: bucketName });
         return ctx.json(bucket, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -194,18 +218,33 @@ export class MinioAssetController extends BaseController {
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
 
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+        if (!minioInstance.isValidName(objectName)) {
+          throw getError({
+            message: 'Invalid object name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
         Object.entries(metaData).forEach(([key, value]) => {
-          if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
+          if (
+            !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
+          ) {
             return;
           }
           ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
         });
-        if (!ctx.res.headers.has('content-type')) {
-          ctx.header('content-type', 'application/octet-stream');
+        if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
+          ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPPLICATION_OCTET_STREAM);
         }
-        ctx.header('content-length', size.toString());
+        ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
         ctx.header('x-content-type-options', 'nosniff');
 
         const minioStream = await minioInstance.getFile({
@@ -230,20 +269,38 @@ export class MinioAssetController extends BaseController {
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
 
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+        if (!minioInstance.isValidName(objectName)) {
+          throw getError({
+            message: 'Invalid object name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
         const fileStat = await minioInstance.getStat({ bucket: bucketName, name: objectName });
         const { size, metaData } = fileStat;
 
         Object.entries(metaData).forEach(([key, value]) => {
-          if (!WHITELIST_HEADERS.includes(key.toLowerCase())) {
+          if (
+            !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
+          ) {
             return;
           }
           ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
         });
-        if (!ctx.res.headers.has('content-type')) {
-          ctx.header('content-type', 'application/octet-stream');
+        if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
+          ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPPLICATION_OCTET_STREAM);
         }
-        ctx.header('content-length', size.toString());
-        ctx.header('content-disposition', createContentDispositionHeader(objectName));
+        ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
+        ctx.header(
+          HTTP.Headers.CONTENT_DISPOSITION,
+          createContentDispositionHeader({ filename: objectName, type: 'attachment' }),
+        );
         ctx.header('x-content-type-options', 'nosniff');
 
         const minioStream = await minioInstance.getFile({
@@ -266,6 +323,14 @@ export class MinioAssetController extends BaseController {
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
+
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
         const createdBucket = await minioInstance.createBucket({ name: bucketName });
         return ctx.json(createdBucket, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -284,6 +349,13 @@ export class MinioAssetController extends BaseController {
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
+
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
 
         const filesArray = await parseMultipartBody({
           context: ctx,
@@ -330,6 +402,14 @@ export class MinioAssetController extends BaseController {
         const minioInstance = this.application.get<MinioHelper>({
           key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
         });
+
+        if (!minioInstance.isValidName(bucketName)) {
+          throw getError({
+            message: 'Invalid bucket name',
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+          });
+        }
+
         const isRemovedBucket = await minioInstance.removeBucket({ name: bucketName });
         return ctx.json({ isDeleted: isRemovedBucket }, HTTP.ResultCodes.RS_2.Ok);
       },

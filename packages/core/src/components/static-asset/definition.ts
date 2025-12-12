@@ -1,14 +1,14 @@
-import { jsonContent, jsonResponse } from "@/base/models";
-import { z } from "@hono/zod-openapi";
-import { ErrorSchema, HTTP } from "@venizia/ignis-helpers";
+import { jsonContent, jsonResponse } from '@/base/models';
+import { z } from '@hono/zod-openapi';
+import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
 
 // ================================================================================
 const MultipartBodySchema = z.object({
   files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
-    type: "array",
+    type: 'array',
     items: {
-      type: "string",
-      format: "binary",
+      type: 'string',
+      format: 'binary',
     },
   }),
 });
@@ -16,8 +16,8 @@ const MultipartBodySchema = z.object({
 // ================================================================================
 export const MinIOAssetDefinitions = {
   GET_BUCKETS: {
-    method: "get",
-    path: "/buckets",
+    method: 'get',
+    path: '/buckets',
     responses: jsonResponse({
       schema: z.array(
         z.object({
@@ -28,88 +28,88 @@ export const MinIOAssetDefinitions = {
     }),
   },
   GET_OBJECT_BY_NAME: {
-    method: "get",
-    path: "/buckets/:bucketName/objects/:objectName",
+    method: 'get',
+    path: '/buckets/:bucketName/objects/:objectName',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
         objectName: z.string().openapi({
           param: {
-            name: "objectName",
-            in: "path",
+            name: 'objectName',
+            in: 'path',
           },
-          example: "photo.jpg",
+          example: 'photo.jpg',
         }),
       }),
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: {
-        description: "File stream response",
+        description: 'File stream response',
         content: {
-          "application/octet-stream": {
+          'application/octet-stream': {
             schema: {
-              type: "string",
-              format: "binary",
+              type: 'string',
+              format: 'binary',
             },
           },
         },
       },
-      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
+      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
   },
   DOWNLOAD_OBJECT_BY_NAME: {
-    method: "get",
-    path: "/buckets/:bucketName/objects/:objectName/download",
+    method: 'get',
+    path: '/buckets/:bucketName/objects/:objectName/download',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
         objectName: z.string().openapi({
           param: {
-            name: "objectName",
-            in: "path",
+            name: 'objectName',
+            in: 'path',
           },
-          example: "photo.jpg",
+          example: 'photo.jpg',
         }),
       }),
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: {
-        description: "File stream response",
+        description: 'File stream response',
         content: {
-          "application/octet-stream": {
+          'application/octet-stream': {
             schema: {
-              type: "string",
-              format: "binary",
+              type: 'string',
+              format: 'binary',
             },
           },
         },
       },
-      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
+      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
   },
   GET_BUCKET_BY_NAME: {
-    method: "get",
-    path: "/buckets/:bucketName",
+    method: 'get',
+    path: '/buckets/:bucketName',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
       }),
     },
@@ -123,16 +123,16 @@ export const MinIOAssetDefinitions = {
     }),
   },
   CREATE_BUCKET: {
-    method: "post",
-    path: "/buckets/:bucketName",
+    method: 'post',
+    path: '/buckets/:bucketName',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
       }),
     },
@@ -146,16 +146,16 @@ export const MinIOAssetDefinitions = {
     }),
   },
   UPLOAD: {
-    method: "post",
-    path: "/buckets/:bucketName/upload",
+    method: 'post',
+    path: '/buckets/:bucketName/upload',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
       }),
       query: z.object({
@@ -164,16 +164,16 @@ export const MinIOAssetDefinitions = {
           .optional()
           .openapi({
             param: {
-              name: "folderPath",
-              in: "query",
-              description: "Optional folder path to upload files into",
+              name: 'folderPath',
+              in: 'query',
+              description: 'Optional folder path to upload files into',
             },
-            example: "20250101",
+            example: '20250101',
           }),
       }),
       body: {
         content: {
-          "multipart/form-data": {
+          'multipart/form-data': {
             schema: MultipartBodySchema,
           },
         },
@@ -190,16 +190,16 @@ export const MinIOAssetDefinitions = {
     }),
   },
   DELETE_BUCKET: {
-    method: "delete",
-    path: "/buckets/:bucketName",
+    method: 'delete',
+    path: '/buckets/:bucketName',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
           param: {
-            name: "bucketName",
-            in: "path",
+            name: 'bucketName',
+            in: 'path',
           },
-          example: "images",
+          example: 'images',
         }),
       }),
     },
@@ -214,12 +214,12 @@ export const MinIOAssetDefinitions = {
 // ================================================================================
 export const StaticResourceDefinitions = {
   UPLOAD: {
-    method: "post",
-    path: "/resources/upload",
+    method: 'post',
+    path: '/resources/upload',
     request: {
       body: {
         content: {
-          "multipart/form-data": {
+          'multipart/form-data': {
             schema: MultipartBodySchema,
           },
         },
@@ -229,40 +229,40 @@ export const StaticResourceDefinitions = {
       schema: z.array(
         z.object({
           objectName: z.string().openapi({
-            description: "Name of the uploaded resource",
-            example: "20250101/photo.jpg",
+            description: 'Name of the uploaded resource',
+            example: '20250101/photo.jpg',
           }),
         }),
       ),
     }),
   },
   DOWNLOAD: {
-    method: "get",
-    path: "/resources/:objectName/download",
+    method: 'get',
+    path: '/resources/:objectName/download',
     request: {
       params: z.object({
         objectName: z.string().openapi({
           param: {
-            name: "objectName",
-            in: "path",
+            name: 'objectName',
+            in: 'path',
           },
-          example: "photo.jpg",
+          example: 'photo.jpg',
         }),
       }),
     },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: {
-        description: "File stream response",
+        description: 'File stream response',
         content: {
-          "application/octet-stream": {
+          'application/octet-stream': {
             schema: {
-              type: "string",
-              format: "binary",
+              type: 'string',
+              format: 'binary',
             },
           },
         },
       },
-      ["4xx | 5xx"]: jsonContent({ description: "Error Response", schema: ErrorSchema }),
+      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
   },
 } as const;

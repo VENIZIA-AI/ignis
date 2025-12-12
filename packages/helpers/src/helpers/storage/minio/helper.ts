@@ -25,6 +25,32 @@ export class MinioHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------
+  isValidName(name: string) {
+    if (!name || isEmpty(name) || typeof name !== 'string') return false;
+
+    // Prevent path traversal
+    if (name.includes('..') || name.includes('/') || name.includes('\\')) return false;
+
+    // Prevent hidden files (starting with dot)
+    if (name.startsWith('.')) return false;
+
+    // Prevent special shell characters
+    const dangerousChars = /[;|&$`<>(){}[\]!#]/;
+    if (dangerousChars.test(name)) return false;
+
+    // Prevent newlines/carriage returns (header injection)
+    if (name.includes('\n') || name.includes('\r') || name.includes('\0')) return false;
+
+    // Prevent extremely long names (DoS)
+    if (name.length > 255) return false;
+
+    // Prevent empty or whitespace-only names
+    if (name.trim().length === 0) return false;
+
+    return true;
+  }
+
+  // ---------------------------------------------------------------------
   async isBucketExists(opts: { name: string }) {
     const { name } = opts;
     if (!name || isEmpty(name)) {

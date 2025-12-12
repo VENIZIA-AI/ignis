@@ -1,7 +1,7 @@
-import { z } from "@hono/zod-openapi";
-import { ErrorSchema, getError, HTTP, keysToCamel, toCamel } from "@venizia/ignis-helpers";
-import { IsPrimaryKey, NotNull } from "drizzle-orm";
-import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from "drizzle-orm/pg-core";
+import { z } from '@hono/zod-openapi';
+import { ErrorSchema, getError, HTTP, keysToCamel, toCamel } from '@venizia/ignis-helpers';
+import { IsPrimaryKey, NotNull } from 'drizzle-orm';
+import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
 // --------------------------------------------------------------------------------------------
 export type NumberIdType = number;
@@ -87,7 +87,7 @@ export const jsonResponse = <T extends z.ZodType>(opts: {
   return {
     [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
       required: opts.required,
-      description: opts.description ?? "Success Response",
+      description: opts.description ?? 'Success Response',
       schema: opts.schema,
     }),
     ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
