@@ -4,12 +4,7 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
-import { MinioAssetController, StaticResourceController } from './controller';
-
-const DEFAULT_OPTIONS: TStaticAssetsComponentOptions = {
-  minioAsset: { enable: false },
-  staticResource: { enable: false },
-};
+import { AssetControllerFactory } from './controller';
 
 export class StaticAssetComponent extends BaseComponent {
   constructor(
@@ -22,46 +17,44 @@ export class StaticAssetComponent extends BaseComponent {
         [StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS]:
           Binding.bind<TStaticAssetsComponentOptions>({
             key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-          }).toValue(DEFAULT_OPTIONS),
+          }).toValue({}),
       },
     });
   }
 
   override binding(): ValueOrPromise<void> {
-    const { minioAsset, staticResource: staticAsset } =
-      this.application.get<TStaticAssetsComponentOptions>({
-        key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-        isOptional: true,
-      }) ?? DEFAULT_OPTIONS;
+    const componentOptions = this.application.get<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    });
 
-    if (minioAsset?.enable) {
-      const { minioHelper } = minioAsset;
-      this.application
-        .bind({
-          key: StaticAssetComponentBindingKeys.MINIO_HELPER_INSTANCE,
-        })
-        .toValue(minioHelper);
-      this.application
-        .bind({
-          key: StaticAssetComponentBindingKeys.MINIO_ASSET_OPTIONS,
-        })
-        .toValue(minioAsset.options);
+    for (const [key, opt] of Object.entries(componentOptions)) {
+      const { storage, controller, helper, extra } = opt;
 
-      this.application.controller(MinioAssetController);
-    }
+      const Controller = AssetControllerFactory.defineAssetController({
+        controller,
+        storage,
+        helper,
+        options: {
+          ...extra,
+          normalizeLinkFn: extra?.normalizeLinkFn
+            ? extra.normalizeLinkFn
+            : opts => {
+                return `/${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
+                  opts.normalizeName,
+                )}`;
+              },
+        },
+      });
+      this.application.controller(Controller);
 
-    if (staticAsset?.enable) {
-      const { resourceBasePath } = staticAsset;
-      this.application
-        .bind({
-          key: StaticAssetComponentBindingKeys.RESOURCE_BASE_PATH,
-        })
-        .toValue(resourceBasePath);
-      this.application
-        .bind({ key: StaticAssetComponentBindingKeys.STATIC_RESOURCE_OPTIONS })
-        .toValue(staticAsset.options);
-
-      this.application.controller(StaticResourceController);
+      this.application.logger.info(
+        `[binding] Asset storage is bound | Key: %s | Storage type: %s`,
+        key,
+        storage,
+      );
     }
   }
+
+  // ------------------------------------------------------------------------------
+  configureMinIOStorage(): void {}
 }

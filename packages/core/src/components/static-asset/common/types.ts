@@ -1,30 +1,26 @@
-import { AnyType, MinioHelper } from '@venizia/ignis-helpers';
+import { AnyType, DiskHelper, MinioHelper } from '@venizia/ignis-helpers';
+import { StaticAssetStorageTypes } from './constants';
+
+export type TStaticAssetExtraOptions = {
+  parseMultipartBody?: {
+    storage?: 'memory' | 'disk';
+    uploadDir?: string;
+  };
+  normalizeNameFn?: (opts: { originalName: string }) => string;
+  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  [key: string]: AnyType;
+};
 
 export type TStaticAssetsComponentOptions = {
-  staticResource?:
-    | { enable: false }
-    | { enable: true; resourceBasePath: string; options: TStaticResourceOptions };
-  minioAsset?:
-    | { enable: false }
-    | {
-        enable: true;
-        minioHelper: MinioHelper;
-        options: TMinioAssetOptions;
-      };
-};
-
-export type TMinioAssetOptions = {
-  parseMultipartBody?: {
-    storage?: 'memory' | 'disk';
-    uploadDir?: string;
-  };
-  [key: string]: AnyType;
-};
-
-export type TStaticResourceOptions = {
-  parseMultipartBody?: {
-    storage?: 'memory' | 'disk';
-    uploadDir?: string;
-  };
-  [key: string]: AnyType;
+  [key: string]: {
+    controller: {
+      name: string;
+      basePath: string;
+      isStrict?: boolean;
+    };
+    extra?: TStaticAssetExtraOptions;
+  } & (
+    | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
+    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
+  );
 };

@@ -14,7 +14,7 @@ const MultipartBodySchema = z.object({
 });
 
 // ================================================================================
-export const MinIOAssetDefinitions = {
+export const StaticAssetDefinitions = {
   GET_BUCKETS: {
     method: 'get',
     path: '/buckets',
@@ -25,6 +25,52 @@ export const MinIOAssetDefinitions = {
           creationDate: z.iso.datetime(),
         }),
       ),
+    }),
+  },
+  GET_BUCKET_BY_NAME: {
+    method: 'get',
+    path: '/buckets/:bucketName',
+    request: {
+      params: z.object({
+        bucketName: z.string().openapi({
+          param: {
+            name: 'bucketName',
+            in: 'path',
+          },
+          example: 'images',
+        }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z
+        .object({
+          name: z.string(),
+          creationDate: z.iso.datetime(),
+        })
+        .nullable(),
+    }),
+  },
+  CREATE_BUCKET: {
+    method: 'post',
+    path: '/buckets/:bucketName',
+    request: {
+      params: z.object({
+        bucketName: z.string().openapi({
+          param: {
+            name: 'bucketName',
+            in: 'path',
+          },
+          example: 'images',
+        }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z
+        .object({
+          name: z.string(),
+          creationDate: z.iso.datetime(),
+        })
+        .nullable(),
     }),
   },
   GET_OBJECT_BY_NAME: {
@@ -99,52 +145,6 @@ export const MinIOAssetDefinitions = {
       ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
   },
-  GET_BUCKET_BY_NAME: {
-    method: 'get',
-    path: '/buckets/:bucketName',
-    request: {
-      params: z.object({
-        bucketName: z.string().openapi({
-          param: {
-            name: 'bucketName',
-            in: 'path',
-          },
-          example: 'images',
-        }),
-      }),
-    },
-    responses: jsonResponse({
-      schema: z
-        .object({
-          name: z.string(),
-          creationDate: z.iso.datetime(),
-        })
-        .nullable(),
-    }),
-  },
-  CREATE_BUCKET: {
-    method: 'post',
-    path: '/buckets/:bucketName',
-    request: {
-      params: z.object({
-        bucketName: z.string().openapi({
-          param: {
-            name: 'bucketName',
-            in: 'path',
-          },
-          example: 'images',
-        }),
-      }),
-    },
-    responses: jsonResponse({
-      schema: z
-        .object({
-          name: z.string(),
-          creationDate: z.iso.datetime(),
-        })
-        .nullable(),
-    }),
-  },
   UPLOAD: {
     method: 'post',
     path: '/buckets/:bucketName/upload',
@@ -208,61 +208,5 @@ export const MinIOAssetDefinitions = {
         isDeleted: z.boolean(),
       }),
     }),
-  },
-} as const;
-
-// ================================================================================
-export const StaticResourceDefinitions = {
-  UPLOAD: {
-    method: 'post',
-    path: '/resources/upload',
-    request: {
-      body: {
-        content: {
-          'multipart/form-data': {
-            schema: MultipartBodySchema,
-          },
-        },
-      },
-    },
-    responses: jsonResponse({
-      schema: z.array(
-        z.object({
-          objectName: z.string().openapi({
-            description: 'Name of the uploaded resource',
-            example: '20250101/photo.jpg',
-          }),
-        }),
-      ),
-    }),
-  },
-  DOWNLOAD: {
-    method: 'get',
-    path: '/resources/:objectName/download',
-    request: {
-      params: z.object({
-        objectName: z.string().openapi({
-          param: {
-            name: 'objectName',
-            in: 'path',
-          },
-          example: 'photo.jpg',
-        }),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: {
-        description: 'File stream response',
-        content: {
-          'application/octet-stream': {
-            schema: {
-              type: 'string',
-              format: 'binary',
-            },
-          },
-        },
-      },
-      ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
-    },
   },
 } as const;
