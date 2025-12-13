@@ -5,7 +5,7 @@ import { withMermaid } from 'vitepress-plugin-mermaid';
 const config = defineConfig({
   base: '/ignis/',
   srcDir: '../wiki',
-  title: '🔥 IGNIS',
+  title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/ignis/logo.svg' }]],
   themeConfig: {
