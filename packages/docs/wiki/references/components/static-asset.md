@@ -1,63 +1,119 @@
 # Static Asset Component
 
-The Static Asset Component provides file upload, download, and management capabilities through two specialized controllers: **MinIO Asset Controller** for cloud storage and **Static Resource Controller** for local filesystem storage.
+> **Version 2.0 - Unified Storage Architecture**  
+> The Static Asset Component provides a flexible, extensible file management system with support for multiple storage backends through a unified interface.
 
 ## Overview
 
 | Feature | Description |
 |---------|-------------|
 | **Component** | `StaticAssetComponent` |
-| **Controllers** | `MinioAssetController`, `StaticResourceController` |
-| **Purpose** | File upload/download management with MinIO or local filesystem |
-| **Dependencies** | MinIO (optional), filesystem access |
+| **Architecture** | Factory-based controller generation with unified storage interface |
+| **Storage Types** | `DiskHelper` (local filesystem), `MinioHelper` (S3-compatible) |
+| **Extensibility** | Easy to add new storage backends (S3, Azure Blob, Google Cloud Storage) |
+| **Dependencies** | Node.js `fs`, `path`, `stream`; MinIO client (optional) |
+
+## Key Features
+
+✅ **Unified Storage Interface** - Single API for all storage types  
+✅ **Multiple Storage Instances** - Configure multiple storage backends simultaneously  
+✅ **Factory Pattern** - Dynamic controller generation  
+✅ **Built-in Security** - Comprehensive name validation, path traversal protection  
+✅ **Type-Safe** - Full TypeScript support with strict interfaces  
+✅ **Flexible Configuration** - Environment-based, production-ready setup  
+
+---
+
+## Architecture
+
+### Storage Helper Hierarchy
+
+```typescript
+IStorageHelper (interface)
+    ↓
+BaseStorageHelper (abstract class)
+    ↓
+    ├── DiskHelper (local filesystem)
+    └── MinioHelper (S3-compatible)
+```
+
+### Component Flow
+
+```
+Application Configuration
+    ↓
+StaticAssetComponent
+    ↓
+AssetControllerFactory
+    ↓
+Dynamic Controller(s) ← uses → IStorageHelper
+```
+
+---
 
 ## Installation & Setup
 
-### Complete Setup Example
+### New Configuration Format (v2.0)
 
-Here's a real-world example from the Vert application showing how to set up both MinIO and local filesystem storage:
+The configuration API has been completely redesigned for flexibility and extensibility:
 
 ```typescript
 import {
   applicationEnvironment,
   BaseApplication,
+  DiskHelper,
   int,
   MinioHelper,
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
   TStaticAssetsComponentOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
   override preConfigure(): ValueOrPromise<void> {
-    // Configure Static Asset Component with both MinIO and local storage
+    // Configure multiple storage backends
     this.bind<TStaticAssetsComponentOptions>({
       key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
     }).toValue({
-      // MinIO cloud storage for scalable file management
-      minioAsset: {
-        enable: true,
-        minioHelper: new MinioHelper({
+      // Storage backend 1: MinIO (cloud storage)
+      minioStorage: {
+        controller: {
+          name: 'MinIOAssetController',
+          basePath: '/static-assets',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.MINIO,
+        helper: new MinioHelper({
           endPoint: applicationEnvironment.get('APP_ENV_MINIO_HOST'),
           port: int(applicationEnvironment.get('APP_ENV_MINIO_API_PORT')),
           accessKey: applicationEnvironment.get('APP_ENV_MINIO_ACCESS_KEY'),
           secretKey: applicationEnvironment.get('APP_ENV_MINIO_SECRET_KEY'),
           useSSL: false,
         }),
-        options: {
+        extra: {
           parseMultipartBody: {
-            storage: 'memory', // Use memory for smaller files
+            storage: 'memory', // or 'disk'
           },
         },
       },
-      // Local filesystem storage for quick access files
-      staticResource: {
-        enable: true,
-        resourceBasePath: './app_data/resources',
-        options: {
+      
+      // Storage backend 2: Local disk
+      diskStorage: {
+        controller: {
+          name: 'DiskAssetController',
+          basePath: '/disk-assets',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.DISK,
+        helper: new DiskHelper({
+          basePath: './app_data/disk-storage',
+        }),
+        extra: {
           parseMultipartBody: {
-            storage: 'memory', // Use memory for smaller files
+            storage: 'disk',
+            uploadDir: './temp-uploads',
           },
         },
       },
@@ -69,103 +125,167 @@ export class Application extends BaseApplication {
 }
 ```
 
-### Environment Variables
+### Configuration Options
 
-Add these to your `.env` file:
-
-```bash
-# MinIO Configuration
-APP_ENV_MINIO_HOST=localhost
-APP_ENV_MINIO_API_PORT=9000
-APP_ENV_MINIO_ACCESS_KEY=minioadmin
-APP_ENV_MINIO_SECRET_KEY=minioadmin
-```
-
-### Environment Keys Configuration
-
-Define the environment keys in your application:
+#### `TStaticAssetsComponentOptions`
 
 ```typescript
-// src/common/environments.ts
-import { EnvironmentKeys as BaseEnv } from '@venizia/ignis';
+type TStaticAssetsComponentOptions = {
+  [key: string]: {
+    // Controller configuration
+    controller: {
+      name: string;        // Controller class name
+      basePath: string;    // Base URL path (e.g., '/static-assets')
+      isStrict?: boolean;  // Strict routing mode
+    };
+    
+    // Storage configuration
+    storage: 'disk' | 'minio';  // Storage type
+    helper: IStorageHelper;      // Storage helper instance
+    
+    // Extra options
+    extra?: {
+      parseMultipartBody?: {
+        storage?: 'memory' | 'disk';
+        uploadDir?: string;
+      };
+      normalizeNameFn?: (opts: { originalName: string }) => string;
+      normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    };
+  };
+};
+```
 
-export class EnvironmentKeys extends BaseEnv {
-  // MinIO Configuration Keys
-  static readonly APP_ENV_MINIO_HOST = 'APP_ENV_MINIO_HOST';
-  static readonly APP_ENV_MINIO_API_PORT = 'APP_ENV_MINIO_API_PORT';
-  static readonly APP_ENV_MINIO_ACCESS_KEY = 'APP_ENV_MINIO_ACCESS_KEY';
-  static readonly APP_ENV_MINIO_SECRET_KEY = 'APP_ENV_MINIO_SECRET_KEY';
+---
+
+## Storage Helpers
+
+### DiskHelper (Local Filesystem)
+
+Stores files on the local filesystem using a bucket-based directory structure.
+
+#### Constructor
+
+```typescript
+new DiskHelper({
+  basePath: string;  // Base directory for storage
+  scope?: string;    // Logger scope
+  identifier?: string; // Helper identifier
+})
+```
+
+#### Example
+
+```typescript
+const diskHelper = new DiskHelper({
+  basePath: './app_data/storage',
+});
+```
+
+**Directory Structure:**
+```
+app_data/storage/
+├── bucket-1/
+│   ├── file1.pdf
+│   └── file2.jpg
+├── bucket-2/
+│   └── document.docx
+```
+
+#### Features
+
+- Automatic directory creation
+- Built-in path validation
+- Metadata stored in file stats
+- Stream-based file operations
+
+---
+
+### MinioHelper (S3-Compatible Storage)
+
+Connects to MinIO or any S3-compatible object storage.
+
+#### Constructor
+
+```typescript
+new MinioHelper({
+  endPoint: string;      // MinIO server hostname
+  port: number;          // API port (default: 9000)
+  useSSL: boolean;       // Use HTTPS
+  accessKey: string;     // Access key
+  secretKey: string;     // Secret key
+})
+```
+
+#### Example
+
+```typescript
+const minioHelper = new MinioHelper({
+  endPoint: 'minio.example.com',
+  port: 9000,
+  useSSL: true,
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY,
+});
+```
+
+---
+
+## IStorageHelper Interface
+
+All storage helpers implement this unified interface:
+
+```typescript
+interface IStorageHelper {
+  // Name validation
+  isValidName(name: string): boolean;
+
+  // Bucket operations
+  isBucketExists(opts: { name: string }): Promise<boolean>;
+  getBuckets(): Promise<IBucketInfo[]>;
+  getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
+  createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
+  removeBucket(opts: { name: string }): Promise<boolean>;
+
+  // File operations
+  upload(opts: {
+    bucket: string;
+    files: IUploadFile[];
+    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  }): Promise<IUploadResult[]>;
+
+  getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
+  getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
+  removeObject(opts: { bucket: string; name: string }): Promise<void>;
+  removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
+  listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
+
+  // Utility
+  getFileType(opts: { mimeType: string }): string;
 }
 ```
 
-### Quick Start Options
+---
 
-**Option 1: MinIO Only**
-```typescript
-this.bind({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({
-  minioAsset: {
-    enable: true,
-    minioHelper: new MinioHelper({ /* ... */ }),
-    options: { parseMultipartBody: { storage: 'memory' } },
-  },
-  staticResource: { enable: false },
-});
-this.component(StaticAssetComponent);
-```
+## API Endpoints
 
-**Option 2: Local Filesystem Only**
-```typescript
-this.bind({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({
-  minioAsset: { enable: false },
-  staticResource: {
-    enable: true,
-    resourceBasePath: './uploads',
-    options: { parseMultipartBody: { storage: 'disk' } },
-  },
-});
-this.component(StaticAssetComponent);
-```
+The component dynamically generates REST endpoints for each configured storage backend.
 
-**Option 3: Both (Recommended for Production)**
-```typescript
-// Use MinIO for user uploads and local filesystem for temporary/cache files
-this.bind({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({
-  minioAsset: { enable: true, /* ... */ },
-  staticResource: { enable: true, /* ... */ },
-});
-this.component(StaticAssetComponent);
-```
+### Common Endpoints
 
-## MinIO Asset Controller
-
-Manages file storage using MinIO object storage (S3-compatible).
-
-### Base Path
-```
-/static-assets
-```
-
-### API Endpoints
+All storage backends expose the same API structure:
 
 #### **Get All Buckets**
 
 ```http
-GET /static-assets/buckets
+GET /{basePath}/buckets
 ```
 
-Returns a list of all available buckets.
-
 **Response:**
-```typescript
+```json
 [
-  { name: 'my-bucket', creationDate: '2025-01-01T00:00:00.000Z' },
-  // ...
+  { "name": "my-bucket", "creationDate": "2025-01-01T00:00:00.000Z" }
 ]
 ```
 
@@ -174,15 +294,19 @@ Returns a list of all available buckets.
 #### **Get Bucket by Name**
 
 ```http
-GET /static-assets/buckets/:bucketName
+GET /{basePath}/buckets/:bucketName
 ```
 
 **Parameters:**
-- `bucketName` (path): Name of the bucket
+- `bucketName` (path): Bucket name
+
+**Validation:**
+- ✅ Bucket name validated with `isValidName()`
+- ❌ Returns 400 if invalid
 
 **Response:**
-```typescript
-{ name: 'my-bucket', creationDate: '2025-01-01T00:00:00.000Z' }
+```json
+{ "name": "my-bucket", "creationDate": "2025-01-01T00:00:00.000Z" }
 ```
 
 ---
@@ -190,15 +314,15 @@ GET /static-assets/buckets/:bucketName
 #### **Create Bucket**
 
 ```http
-POST /static-assets/buckets/:bucketName
+POST /{basePath}/buckets/:bucketName
 ```
 
 **Parameters:**
 - `bucketName` (path): Name of the new bucket
 
 **Response:**
-```typescript
-{ success: true }
+```json
+{ "name": "my-bucket", "creationDate": "2025-12-12T00:00:00.000Z" }
 ```
 
 ---
@@ -206,53 +330,40 @@ POST /static-assets/buckets/:bucketName
 #### **Delete Bucket**
 
 ```http
-DELETE /static-assets/buckets/:bucketName
+DELETE /{basePath}/buckets/:bucketName
 ```
 
 **Parameters:**
-- `bucketName` (path): Name of the bucket to delete
+- `bucketName` (path): Bucket to delete
 
 **Response:**
-```typescript
-{ isDeleted: true }
+```json
+{ "success": true }
 ```
 
 ---
 
-#### **Upload Files to Bucket**
+#### **Upload Files**
 
 ```http
-POST /static-assets/buckets/:bucketName/upload
+POST /{basePath}/buckets/:bucketName/upload
 ```
 
-**Parameters:**
-- `bucketName` (path): Target bucket name
-- `folderPath` (query, optional): Folder path within bucket
+**Query Parameters:**
+- `folderPath` (optional): Subfolder path within bucket
 
 **Request Body:**
 - `multipart/form-data` with file fields
 
 **Response:**
-```typescript
+```json
 [
   {
-    objectName: 'folder/myfile.pdf',
-    bucketName: 'my-bucket',
-    link: '/static-assets/buckets/my-bucket/objects/folder%2Fmyfile.pdf',
-  },
-  // ...
+    "bucketName": "my-bucket",
+    "objectName": "file.pdf",
+    "link": "/static-assets/buckets/my-bucket/objects/file.pdf"
+  }
 ]
-```
-
-**Example:**
-```typescript
-const formData = new FormData();
-formData.append('file', fileBlob, 'document.pdf');
-
-const response = await fetch('/static-assets/buckets/my-bucket/upload?folderPath=docs', {
-  method: 'POST',
-  body: formData,
-});
 ```
 
 ---
@@ -260,16 +371,20 @@ const response = await fetch('/static-assets/buckets/my-bucket/upload?folderPath
 #### **Get Object (Stream)**
 
 ```http
-GET /static-assets/buckets/:bucketName/objects/:objectName
+GET /{basePath}/buckets/:bucketName/objects/:objectName
 ```
 
 **Parameters:**
 - `bucketName` (path): Bucket name
-- `objectName` (path): Object name/path (URL-encoded)
+- `objectName` (path): Object name (URL-encoded)
+
+**Validation:**
+- ✅ Both bucket and object names validated
+- ❌ Returns 400 if either is invalid
 
 **Response:**
 - Streams file content with appropriate headers
-- Content-Type: `application/octet-stream` (or from metadata)
+- Content-Type: From metadata or `application/octet-stream`
 - Content-Length: File size in bytes
 - X-Content-Type-Options: `nosniff`
 
@@ -278,323 +393,215 @@ GET /static-assets/buckets/:bucketName/objects/:objectName
 #### **Download Object**
 
 ```http
-GET /static-assets/buckets/:bucketName/objects/:objectName/download
+GET /{basePath}/buckets/:bucketName/objects/:objectName/download
 ```
 
 **Parameters:**
 - `bucketName` (path): Bucket name
-- `objectName` (path): Object name/path (URL-encoded)
+- `objectName` (path): Object name (URL-encoded)
 
 **Response:**
-- Streams file content with download headers
+- Streams file with download headers
 - Content-Disposition: `attachment; filename="..."`
 - Triggers browser download dialog
 
-**Example:**
-```typescript
-// Direct link for download
-const downloadUrl = `/static-assets/buckets/my-bucket/objects/${encodeURIComponent('folder/file.pdf')}/download`;
-```
-
 ---
 
-## Static Resource Controller
-
-Manages file storage using the local filesystem.
-
-### Base Path
-```
-/static-resources
-```
-
-### API Endpoints
-
-#### **Upload Files**
+#### **Delete Object**
 
 ```http
-POST /static-resources/upload
-```
-
-**Request Body:**
-- `multipart/form-data` with file fields
-
-**Response:**
-```typescript
-[
-  { objectName: '20251211103045_mydocument.pdf' },
-  // ...
-]
-```
-
-**Notes:**
-- Files are automatically renamed with timestamp prefix: `YYYYMMDDHHmmss_filename`
-- Filenames are normalized (lowercase, spaces replaced with underscores)
-- Files are stored in the configured `resourceBasePath` directory
-
-**Example:**
-```typescript
-const formData = new FormData();
-formData.append('file', fileBlob, 'My Document.pdf');
-
-const response = await fetch('/static-resources/upload', {
-  method: 'POST',
-  body: formData,
-});
-
-// Response: [{ objectName: '20251211103045_my_document.pdf' }]
-```
-
----
-
-#### **Download File**
-
-```http
-GET /static-resources/:objectName
+DELETE /{basePath}/buckets/:bucketName/objects/:objectName
 ```
 
 **Parameters:**
-- `objectName` (path): Name of the file to download
+- `bucketName` (path): Bucket name
+- `objectName` (path): Object to delete
 
 **Response:**
-- Streams file content with download headers
-- Content-Disposition: `attachment; filename="..."`
-- Content-Type: `application/octet-stream`
-- Content-Length: File size in bytes
-
-**Error Responses:**
-- `400 Bad Request`: Path traversal detected in objectName
-- `404 Not Found`: File does not exist
-
-**Example:**
-```typescript
-// Download link
-const downloadUrl = '/static-resources/20251211103045_my_document.pdf';
+```json
+{ "success": true }
 ```
-
-**Security:**
-- Automatic path traversal protection
-- Validates that requested file is within the configured base path
-- Returns error if attempting to access files outside allowed directory
 
 ---
 
-## Configuration Options
+#### **List Objects**
 
-### `TStaticAssetsComponentOptions`
-
-```typescript
-type TStaticAssetsComponentOptions = {
-  // MinIO-based storage
-  minioAsset?: 
-    | { enable: false }
-    | {
-        enable: true;
-        minioHelper: MinioHelper;
-        options: TMinioAssetOptions;
-      };
-  
-  // Local filesystem storage
-  staticResource?:
-    | { enable: false }
-    | {
-        enable: true;
-        resourceBasePath: string;
-        options: TStaticResourceOptions;
-      };
-};
+```http
+GET /{basePath}/buckets/:bucketName/objects
 ```
 
-### `TMinioAssetOptions` / `TStaticResourceOptions`
+**Query Parameters:**
+- `prefix` (optional): Filter by prefix
+- `recursive` (optional, boolean): Recursive listing
+- `maxKeys` (optional, number): Maximum objects to return
 
-```typescript
-type TMinioAssetOptions = {
-  parseMultipartBody?: {
-    storage?: 'memory' | 'disk';  // Default: 'memory'
-    uploadDir?: string;           // Default: './uploads'
-  };
-};
+**Response:**
+```json
+[
+  {
+    "name": "file1.pdf",
+    "size": 1024,
+    "lastModified": "2025-12-12T00:00:00.000Z",
+    "etag": "abc123"
+  }
+]
 ```
 
-**Options:**
-- `storage: 'memory'`: Files stored in memory as Buffer (suitable for small files)
-- `storage: 'disk'`: Files temporarily written to disk during upload (better for large files)
-- `uploadDir`: Temporary directory for disk-based uploads
+---
+
+## Security Features
+
+### Built-in Name Validation
+
+All storage helpers implement comprehensive name validation:
+
+```typescript
+isValidName(name: string): boolean {
+  // ❌ Prevents path traversal
+  if (name.includes('..') || name.includes('/') || name.includes('\\'))
+    return false;
+
+  // ❌ Prevents hidden files
+  if (name.startsWith('.')) return false;
+
+  // ❌ Prevents shell injection
+  const dangerousChars = /[;|&$`<>(){}[\]!#]/;
+  if (dangerousChars.test(name)) return false;
+
+  // ❌ Prevents header injection
+  if (name.includes('\n') || name.includes('\r') || name.includes('\0'))
+    return false;
+
+  // ❌ Prevents DoS (long names)
+  if (name.length > 255) return false;
+
+  // ❌ Prevents empty names
+  if (name.trim().length === 0) return false;
+
+  return true;
+}
+```
+
+**Blocked Patterns:**
+```
+../etc/passwd           ❌ Path traversal
+.hidden                 ❌ Hidden file
+file;rm -rf /           ❌ Shell injection
+file\ninjected          ❌ Header injection
+very_long_name...       ❌ > 255 characters
+```
+
+### HTTP Security Headers
+
+All responses include security headers:
+
+```http
+X-Content-Type-Options: nosniff
+Content-Disposition: attachment; filename="..."
+```
+
+---
+
+## Migration from v1.0
+
+### Old Configuration (v1.0)
+
+```typescript
+// ❌ Old API - no longer supported
+this.bind({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  minioAsset: {
+    enable: true,
+    minioHelper: new MinioHelper({ /* ... */ }),
+    options: { /* ... */ },
+  },
+  staticResource: {
+    enable: true,
+    resourceBasePath: './storage',
+    options: { /* ... */ },
+  },
+});
+```
+
+### New Configuration (v2.0)
+
+```typescript
+// ✅ New API - flexible and extensible
+this.bind<TStaticAssetsComponentOptions>({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  minioStorage: {
+    controller: { name: 'MinIOController', basePath: '/static-assets' },
+    storage: StaticAssetStorageTypes.MINIO,
+    helper: new MinioHelper({ /* ... */ }),
+    extra: { /* ... */ },
+  },
+  diskStorage: {
+    controller: { name: 'DiskController', basePath: '/disk-assets' },
+    storage: StaticAssetStorageTypes.DISK,
+    helper: new DiskHelper({ basePath: './storage' }),
+    extra: { /* ... */ },
+  },
+});
+```
+
+### Key Differences
+
+| Aspect | v1.0 | v2.0 |
+|--------|------|------|
+| Configuration | Fixed keys (`minioAsset`, `staticResource`) | Dynamic keys |
+| Controllers | 2 separate controllers | Factory-generated |
+| Storage Interface | Direct helper usage | `IStorageHelper` interface |
+| Extensibility | Limited to MinIO and local | Any storage backend |
+| Multiple Instances | Not supported | Fully supported |
 
 ---
 
 ## Usage Examples
 
-### Example 1: MinIO Asset Upload with Folder Path
+### Example 1: Multiple Storage Backends
 
 ```typescript
-import { BaseController, controller } from '@venizia/ignis';
-
-@controller({ path: '/documents' })
-export class DocumentController extends BaseController {
-  async uploadDocument(ctx: Context) {
-    const formData = new FormData();
-    formData.append('file', fileBlob, 'report.pdf');
-    
-    const response = await fetch('/static-assets/buckets/documents/upload?folderPath=reports/2025', {
-      method: 'POST',
-      body: formData,
-    });
-    
-    const uploaded = await response.json();
-    console.log(uploaded);
-    // [{ objectName: 'reports/2025/report.pdf', bucketName: 'documents', link: '...' }]
-  }
-}
-```
-
-### Example 2: Static Resource Upload
-
-```typescript
-async uploadToLocal(ctx: Context) {
-  const formData = new FormData();
-  formData.append('avatar', avatarFile, 'user_avatar.png');
+this.bind<TStaticAssetsComponentOptions>({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  // User uploads → MinIO
+  uploads: {
+    controller: { name: 'UploadController', basePath: '/uploads' },
+    storage: StaticAssetStorageTypes.MINIO,
+    helper: new MinioHelper({ /* ... */ }),
+    extra: { parseMultipartBody: { storage: 'memory' } },
+  },
   
-  const response = await fetch('/static-resources/upload', {
-    method: 'POST',
-    body: formData,
-  });
+  // Temporary files → Local disk
+  temp: {
+    controller: { name: 'TempController', basePath: '/temp' },
+    storage: StaticAssetStorageTypes.DISK,
+    helper: new DiskHelper({ basePath: './temp' }),
+    extra: { parseMultipartBody: { storage: 'disk' } },
+  },
   
-  const uploaded = await response.json();
-  console.log(uploaded);
-  // [{ objectName: '20251211120530_user_avatar.png' }]
-  
-  // File can be accessed at:
-  const downloadLink = `/static-resources/${uploaded[0].objectName}`;
-}
+  // Public assets → Local disk
+  public: {
+    controller: { name: 'PublicController', basePath: '/public' },
+    storage: StaticAssetStorageTypes.DISK,
+    helper: new DiskHelper({ basePath: './public' }),
+    extra: { parseMultipartBody: { storage: 'memory' } },
+  },
+});
 ```
 
-### Example 3: Direct Download Link Generation
+**Result:** 3 independent storage systems with different endpoints:
+- `/uploads/buckets/...`
+- `/temp/buckets/...`
+- `/public/buckets/...`
+
+### Example 2: Frontend Integration
 
 ```typescript
-// MinIO asset
-const minioDownloadLink = `/static-assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/download`;
-
-// Static resource
-const localDownloadLink = `/static-resources/${objectName}`;
-
-// Use in HTML
-<a href={minioDownloadLink} download>Download File</a>
-```
-
-### Example 4: Production Setup with Environment Variables
-
-This example shows the complete setup from the Vert application, demonstrating best practices for production deployment:
-
-```typescript
-// src/application.ts
-import {
-  applicationEnvironment,
-  BaseApplication,
-  int,
-  MinioHelper,
-  StaticAssetComponent,
-  StaticAssetComponentBindingKeys,
-  TStaticAssetsComponentOptions,
-} from '@venizia/ignis';
-import { EnvironmentKeys } from './common/environments';
-
-export class Application extends BaseApplication {
-  override preConfigure(): ValueOrPromise<void> {
-    // ... other component configurations
-
-    // Configure Static Asset Component
-    this.bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-    }).toValue({
-      // MinIO for cloud storage (user uploads, documents, media)
-      minioAsset: {
-        enable: true,
-        minioHelper: new MinioHelper({
-          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
-          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
-          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
-          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
-          useSSL: false, // Set to true in production with proper SSL setup
-        }),
-        options: {
-          parseMultipartBody: {
-            storage: 'memory', // Memory storage for files under ~100MB
-          },
-        },
-      },
-      // Local filesystem for temporary files and caching
-      staticResource: {
-        enable: true,
-        resourceBasePath: './app_data/resources',
-        options: {
-          parseMultipartBody: {
-            storage: 'memory', // Memory storage for small files
-          },
-        },
-      },
-    });
-
-    // Register the component
-    this.component(StaticAssetComponent);
-  }
-}
-```
-
-**Environment Configuration (`src/common/environments.ts`):**
-
-```typescript
-import { EnvironmentKeys as BaseEnv } from '@venizia/ignis';
-
-export class EnvironmentKeys extends BaseEnv {
-  // MinIO Configuration
-  static readonly APP_ENV_MINIO_HOST = 'APP_ENV_MINIO_HOST';
-  static readonly APP_ENV_MINIO_API_PORT = 'APP_ENV_MINIO_API_PORT';
-  static readonly APP_ENV_MINIO_ACCESS_KEY = 'APP_ENV_MINIO_ACCESS_KEY';
-  static readonly APP_ENV_MINIO_SECRET_KEY = 'APP_ENV_MINIO_SECRET_KEY';
-}
-```
-
-**Environment File (`.env`):**
-
-```bash
-# Application Settings
-APP_ENV_APPLICATION_NAME=Vert
-APP_ENV_APPLICATION_PORT=3000
-
-# MinIO Configuration
-APP_ENV_MINIO_HOST=localhost           # Use actual hostname in production
-APP_ENV_MINIO_API_PORT=9000
-APP_ENV_MINIO_ACCESS_KEY=minioadmin    # Use secure credentials in production
-APP_ENV_MINIO_SECRET_KEY=minioadmin    # Use secure credentials in production
-```
-
-**Docker Compose (for development):**
-
-```yaml
-version: '3.8'
-services:
-  minio:
-    image: minio/minio:latest
-    container_name: minio
-    ports:
-      - "9000:9000"   # API port
-      - "9001:9001"   # Console port
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - minio_data:/data
-
-volumes:
-  minio_data:
-```
-
-**Using the Endpoints:**
-
-```typescript
-// Upload to MinIO
-const uploadToMinIO = async (file: File) => {
+// Upload file to MinIO
+async function uploadFile(file: File) {
   const formData = new FormData();
   formData.append('file', file);
 
@@ -604,168 +611,142 @@ const uploadToMinIO = async (file: File) => {
   });
 
   const result = await response.json();
-  console.log('Uploaded to MinIO:', result);
-  // [{ objectName: 'file.pdf', bucketName: 'user-uploads', link: '/static-assets/...' }]
-};
+  // [{ bucketName: 'user-uploads', objectName: 'file.pdf', link: '...' }]
+  return result[0].link;
+}
 
-// Upload to local filesystem
-const uploadToLocal = async (file: File) => {
-  const formData = new FormData();
-  formData.append('file', file);
-
-  const response = await fetch('/static-resources/upload', {
-    method: 'POST',
-    body: formData,
-  });
-
-  const result = await response.json();
-  console.log('Uploaded to local:', result);
-  // [{ objectName: '20251212091230_file.pdf' }]
-};
-
-// Download from MinIO
-const downloadFromMinIO = (bucketName: string, objectName: string) => {
+// Download file
+function downloadFile(bucketName: string, objectName: string) {
   const url = `/static-assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/download`;
   window.open(url, '_blank');
-};
+}
 
-// Download from local
-const downloadFromLocal = (objectName: string) => {
-  const url = `/static-resources/${objectName}`;
-  window.open(url, '_blank');
-};
+// List files in bucket
+async function listFiles(bucketName: string, prefix?: string) {
+  const url = new URL(`/static-assets/buckets/${bucketName}/objects`, window.location.origin);
+  if (prefix) url.searchParams.append('prefix', prefix);
+
+  const response = await fetch(url);
+  return await response.json();
+}
 ```
 
 ---
 
-## Security Considerations
+## Custom Storage Implementation
 
-### Built-in Security Features
-
-The Static Asset Component includes multiple layers of security protection:
-
-#### 1. Path Traversal Protection
-
-**Static Resource Controller:**
-- Validates all file paths to prevent directory traversal attacks
-- Uses `path.resolve()` to normalize paths before comparison
-- Rejects requests attempting to access files outside the configured base directory
-- Returns `400 Bad Request` for malicious path patterns (e.g., `../../etc/passwd`)
+You can implement your own storage backend:
 
 ```typescript
-// Example: These requests are automatically blocked
-GET /static-resources/../../../etc/passwd    // ❌ Blocked
-GET /static-resources/./../../config.json    // ❌ Blocked
+import { BaseStorageHelper, IUploadFile, IUploadResult, /* ... */ } from '@venizia/ignis-helpers';
+
+class S3Helper extends BaseStorageHelper {
+  constructor(config: S3Config) {
+    super({ scope: 'S3Helper', identifier: 'S3Helper' });
+    // Initialize S3 client
+  }
+
+  async isBucketExists(opts: { name: string }): Promise<boolean> {
+    // Implementation
+  }
+
+  async upload(opts: {
+    bucket: string;
+    files: IUploadFile[];
+    // ...
+  }): Promise<IUploadResult[]> {
+    // Implementation
+  }
+
+  // Implement other methods...
+}
+
+// Usage
+this.bind<TStaticAssetsComponentOptions>({
+  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+}).toValue({
+  s3Storage: {
+    controller: { name: 'S3Controller', basePath: '/s3-assets' },
+    storage: 'custom-s3', // Custom type
+    helper: new S3Helper({ /* ... */ }),
+    extra: {},
+  },
+});
 ```
-
-#### 2. Filename Sanitization
-
-**Upload Processing:**
-- Automatically applies `path.basename()` to extract just the filename
-- Removes path components from uploaded filenames
-- Normalizes filenames (lowercase, spaces to underscores)
-- Adds timestamp prefix to prevent filename collisions
-
-```typescript
-// Original: "../../malicious/file.txt"
-// Saved as: "20251211103045_file.txt" ✅
-```
-
-#### 3. Content-Disposition Headers
-
-Both controllers use the `createContentDispositionHeader` utility to generate secure, RFC-compliant headers:
-
-- Sanitizes filenames to prevent injection attacks
-- Removes leading dots (prevents hidden file creation)
-- Removes consecutive dots and ".." patterns
-- Provides UTF-8 encoded filenames for international character support
-- Includes both ASCII fallback and UTF-8 encoded versions for browser compatibility
-
-### Best Practices
-
-1. **Validate file types**: Implement middleware to check allowed MIME types
-   ```typescript
-   // Example middleware
-   const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf'];
-   if (!allowedTypes.includes(file.mimetype)) {
-     throw new Error('File type not allowed');
-   }
-   ```
-
-2. **Limit file sizes**: Configure max upload size in your web server or application
-   ```typescript
-   options: {
-     parseMultipartBody: {
-       storage: 'disk',
-       uploadDir: './uploads',
-       limits: { fileSize: 10 * 1024 * 1024 } // 10MB
-     }
-   }
-   ```
-
-3. **Access control**: Add authentication/authorization middleware to protect endpoints
-   ```typescript
-   @controller({ path: '/static-resources' })
-   export class StaticResourceController extends BaseController {
-     // Add auth middleware to routes
-   }
-   ```
-
-4. **Storage limits**: Monitor disk space (Static Resource) or bucket quotas (MinIO)
-
-5. **Input validation**: Always validate user-provided filenames and paths
-   - Never trust client-provided filenames
-   - Use server-side filename generation (timestamp-based)
-   - Validate objectName parameters against expected patterns
 
 ---
 
 ## Troubleshooting
 
-### Issue: Upload fails with "Directory not found"
+### Issue: "Invalid bucket/object name" errors
 
-**Solution**: Ensure the configured directory exists or the component has permission to create it.
+**Cause:** Name fails `isValidName()` validation
 
+**Solution:** Ensure names:
+- Don't contain `..`, `/`, `\`
+- Don't start with `.`
+- Don't contain shell special characters
+- Are <= 255 characters
+- Are not empty or whitespace-only
+
+### Issue: Controller not registering
+
+**Cause:** Configuration key might be invalid
+
+**Solution:** Ensure each storage configuration has:
 ```typescript
-// Static Resource automatically creates directory
-staticResource: {
-  enable: true,
-  resourceBasePath: './my-storage', // Will be created if missing
+{
+  [uniqueKey]: {
+    controller: { name, basePath, isStrict },
+    storage: 'disk' | 'minio',
+    helper: IStorageHelper,
+    extra: {}
+  }
 }
 ```
 
-### Issue: MinIO connection error
+### Issue: Files not uploading
 
-**Solution**: Verify MinIO connection settings:
+**Cause:** Storage helper not properly initialized
 
-```typescript
-minioHelper: new MinioHelper({
-  endPoint: 'localhost',    // Check hostname
-  port: 9000,               // Check port
-  useSSL: false,            // Match your MinIO configuration
-  accessKey: 'minioadmin',  // Verify credentials
-  secretKey: 'minioadmin',
-})
-```
+**Solution for DiskHelper:**
+- Ensure `basePath` directory exists or can be created
+- Check filesystem permissions
 
-### Issue: Large file upload fails
-
-**Solution**: Switch to disk-based storage:
-
-```typescript
-options: {
-  parseMultipartBody: {
-    storage: 'disk',        // Better for large files
-    uploadDir: './uploads',
-  },
-}
-```
+**Solution for MinioHelper:**
+- Verify MinIO server is running
+- Check credentials (accessKey, secretKey)
+- Verify network connectivity
 
 ---
 
 ## Related Documentation
 
-- [MinIO Helper](../helpers/storage.md#minio-helper)
+- [Storage Helpers](../helpers/storage.md) - DiskHelper, MinioHelper, BaseStorageHelper
 - [Request Utilities](../utilities/request.md) - `parseMultipartBody`, `createContentDispositionHeader`
 - [Components Overview](./index.md)
 - [Controllers](../base/controllers.md)
+
+---
+
+## Breaking Changes from v1.0
+
+⚠️ **Version 2.0 introduces breaking changes:**
+
+1. **Configuration API completely changed**
+   - Old fixed keys → New dynamic keys
+   - Old `enable` flags → Removed (just don't configure if not needed)
+
+2. **Import paths changed**
+   - `controller.ts` → `controller/factory.ts`
+   - Separate controllers → Factory pattern
+
+3. **Type definitions changed**
+   - `TStaticAssetsComponentOptions` structure completely different
+   - New `StaticAssetStorageTypes` constants
+
+4. **Helper constructors changed**
+   - `DiskHelper` requires `basePath` instead of being created internally
+   - All helpers now implement `IStorageHelper`
+
+**Migration required for all existing applications using v1.0**
