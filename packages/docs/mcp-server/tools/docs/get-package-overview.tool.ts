@@ -107,21 +107,28 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
    */
   private extractDescription(opts: { content: string }): string {
     const lines = opts.content.split('\n');
-    let foundTitle = false;
+    let bFoundTitle = false;
     const descLines: string[] = [];
 
     for (const line of lines) {
       if (line.startsWith('# ')) {
-        foundTitle = true;
+        bFoundTitle = true;
         continue;
       }
-      if (foundTitle && line.trim() === '') {
-        if (descLines.length > 0) break;
+
+      if (bFoundTitle && line.trim() === '') {
+        if (descLines.length > 0) {
+          break;
+        }
+
         continue;
       }
-      if (foundTitle && !line.startsWith('#') && !line.startsWith('|') && !line.startsWith('-')) {
+
+      if (bFoundTitle && !line.startsWith('#') && !line.startsWith('|') && !line.startsWith('-')) {
         descLines.push(line.trim());
-        if (descLines.length >= 2) break;
+        if (descLines.length >= 2) {
+          break;
+        }
       }
     }
 
@@ -135,22 +142,22 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
     const directories: Array<{ name: string; purpose: string }> = [];
     const lines = opts.content.split('\n');
 
-    let inTable = false;
-    let headerPassed = false;
+    let isInTable = false;
+    let isHeaderPassed = false;
 
     for (const line of lines) {
       // Look for tables with Directory/Folder column
       if (line.includes('| Directory') || line.includes('| Folder') || line.includes('| **`')) {
-        inTable = true;
+        isInTable = true;
         continue;
       }
 
-      if (inTable && line.startsWith('|---')) {
-        headerPassed = true;
+      if (isInTable && line.startsWith('|---')) {
+        isHeaderPassed = true;
         continue;
       }
 
-      if (inTable && headerPassed && line.startsWith('|')) {
+      if (isInTable && isHeaderPassed && line.startsWith('|')) {
         const cells = line
           .split('|')
           .map(c => c.trim())
@@ -165,7 +172,7 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
       }
 
       // Stop at next section
-      if (inTable && headerPassed && (line.startsWith('##') || line.startsWith('---'))) {
+      if (isInTable && isHeaderPassed && (line.startsWith('##') || line.startsWith('---'))) {
         break;
       }
     }

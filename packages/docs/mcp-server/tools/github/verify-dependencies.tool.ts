@@ -118,7 +118,9 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
   }
 
   private async processDependencies(opts: { deps?: Record<string, string> }) {
-    if (!opts.deps) return [];
+    if (!opts.deps) {
+      return [];
+    }
 
     const results: z.infer<typeof DependencyInfoSchema>[] = [];
     for (const [name, version] of Object.entries(opts.deps)) {
@@ -166,7 +168,8 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
         dependencies,
         devDependencies,
       };
-    } catch (e) {
+    } catch (error) {
+      Logger.error('[execute] Failed to execute | Error: ', error);
       return { error: `Failed to parse package.json at ${packageJsonPath}.` };
     }
   }

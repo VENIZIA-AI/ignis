@@ -110,6 +110,8 @@ const OutputSchema = z.object({
 // TYPES
 // ----------------------------------------------------------------------------
 
+// GitHub API response uses snake_case - intentionally matching external API format
+/* eslint-disable @typescript-eslint/naming-convention */
 interface IGithubSearchResponse {
   total_count: number;
   incomplete_results: boolean;
@@ -125,6 +127,7 @@ interface IGithubSearchResponse {
   }>;
   message?: string;
 }
+/* eslint-enable @typescript-eslint/naming-convention */
 
 // ----------------------------------------------------------------------------
 // TOOL CLASS
