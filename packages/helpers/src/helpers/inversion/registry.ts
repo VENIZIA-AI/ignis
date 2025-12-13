@@ -1,7 +1,6 @@
 import type {
   IControllerMetadata,
   IDataSourceMetadata,
-  IInjectableMetadata,
   IModelMetadata,
   IRepositoryMetadata,
   TRouteMetadata,
@@ -91,22 +90,6 @@ export class MetadataRegistry extends _MetadataRegistry {
   hasRoutes<Target extends object = object>(opts: { target: Target }): boolean {
     const routes = this.getRoutes(opts);
     return routes !== undefined && routes.size > 0;
-  }
-
-  // -----------------------------------------------------------------
-  setInjectableMetadata<T extends object = object>(opts: {
-    target: T;
-    metadata: IInjectableMetadata;
-  }): void {
-    const { target, metadata } = opts;
-    Reflect.defineMetadata(MetadataKeys.INJECTABLE, metadata, target);
-  }
-
-  getInjectableMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IInjectableMetadata | undefined {
-    const { target } = opts;
-    return Reflect.getMetadata(MetadataKeys.INJECTABLE, target);
   }
 
   // -----------------------------------------------------------------

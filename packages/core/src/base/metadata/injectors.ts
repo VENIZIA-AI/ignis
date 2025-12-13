@@ -1,9 +1,8 @@
-import { getError, IInjectableMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
+import { IInjectableMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
+import { inject as coreInject, injectable as coreInjectable } from '@venizia/ignis-inversion';
 
 export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
-  return target => {
-    MetadataRegistry.getInstance().setInjectableMetadata({ target, metadata });
-  };
+  return coreInjectable(metadata, MetadataRegistry.getInstance());
 };
 
 /**
@@ -37,36 +36,5 @@ export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {
  * @param opts.optional - Whether the dependency is optional (defaults to false)
  */
 export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => {
-  return (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => {
-    // Constructor parameter injection
-    if (typeof parameterIndex === 'number') {
-      MetadataRegistry.getInstance().setInjectMetadata({
-        target,
-        index: parameterIndex,
-        metadata: {
-          key: opts.key,
-          index: parameterIndex,
-          isOptional: opts.isOptional ?? false,
-        },
-      });
-      return;
-    }
-
-    // Property injection
-    if (propertyName !== undefined) {
-      MetadataRegistry.getInstance().setPropertyMetadata({
-        target,
-        propertyName: propertyName,
-        metadata: {
-          bindingKey: opts.key,
-          isOptional: opts.isOptional ?? false,
-        },
-      });
-      return;
-    }
-
-    throw getError({
-      message: '@inject decorator can only be used on class properties or constructor parameters',
-    });
-  };
+  return coreInject({ ...opts, registry: MetadataRegistry.getInstance() });
 };

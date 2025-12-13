@@ -9,7 +9,4 @@ export const MetadataKeys = Object.assign({}, _MetadataKeys, {
   MODEL: Symbol.for('ignis:model'),
   DATASOURCE: Symbol.for('ignis:datasource'),
   REPOSITORY: Symbol.for('ignis:repository'),
-
-  // Injection metadata
-  INJECTABLE: Symbol.for('ignis:injectable'),
 });

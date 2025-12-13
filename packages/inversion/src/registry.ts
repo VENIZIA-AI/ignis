@@ -1,17 +1,14 @@
 import { BaseHelper } from './common/base-helper';
 import { MetadataKeys } from './common/keys';
 import { Logger } from './common/logger';
-import { IInjectMetadata, IPropertyMetadata, TClass } from './common/types';
+import { IInjectableMetadata, IInjectMetadata, IPropertyMetadata, TClass } from './common/types';
 
 /**
  * Central metadata registry for storing and retrieving decorator metadata
  */
 export class MetadataRegistry extends BaseHelper {
-  protected metadata: WeakMap<any, Map<symbol, any>>;
-
   constructor() {
     super({ scope: MetadataRegistry.name });
-    this.metadata = new WeakMap();
   }
 
   // -----------------------------------------------------------------
@@ -133,6 +130,22 @@ export class MetadataRegistry extends BaseHelper {
   getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
+  }
+
+  // -----------------------------------------------------------------
+  setInjectableMetadata<T extends object = object>(opts: {
+    target: T;
+    metadata: IInjectableMetadata;
+  }): void {
+    const { target, metadata } = opts;
+    Reflect.defineMetadata(MetadataKeys.INJECTABLE, metadata, target);
+  }
+
+  getInjectableMetadata<T extends object = object>(opts: {
+    target: T;
+  }): IInjectableMetadata | undefined {
+    const { target } = opts;
+    return Reflect.getMetadata(MetadataKeys.INJECTABLE, target);
   }
 }
 

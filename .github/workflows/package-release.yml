@@ -104,7 +104,14 @@ jobs:
       - name: Install & Build dependencies
         run: |
           bun install
-          bun run --filter "$PACKAGE_NAME" force-update
+
+          # Determine npm tag: pre* uses "next", others use "latest"
+          case $BUILD_MODE in
+            patch|minor|major) NPM_TAG="latest" ;;
+            *)                 NPM_TAG="next" ;;
+          esac
+
+          bun run --filter "$PACKAGE_NAME" force-update "$NPM_TAG"
 
           # Build only required dependencies (see dependency tree in header)
           case $PACKAGE in
