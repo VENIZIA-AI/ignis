@@ -58,16 +58,18 @@ Ignis brings together the structured, enterprise development experience of **Loo
 - **Quick Prototypes** - Use plain Hono for maximum speed
 - **3-5 Endpoint APIs** - Consider plain Hono unless you plan to grow
 
-### 🔄 The Middle Ground
+### 🔄 Framework Comparison
 
-| Aspect                   | Minimal Frameworks     | Enterprise Frameworks | **Ignis**     |
-| ------------------------ | ---------------------- | --------------------- | ------------- |
-| **Examples**             | Express, Hono, Fastify | NestJS, LoopBack      | **Ignis**     |
-| **Performance**          | ⚡ Very fast           | 🐌 Slower             | ⚡ Very fast  |
-| **Architecture**         | ❌ No structure        | ✅ Structured         | ✅ Structured |
-| **Learning Curve**       | ✅ Easy                | ❌ Steep              | ✅ Gradual    |
-| **Dependency Injection** | ❌ Manual              | ✅ Built-in           | ✅ Built-in   |
-| **Boilerplate**          | ✅ Minimal             | ❌ Heavy              | ✅ Moderate   |
+| Aspect | Minimal (Hono, Express) | Enterprise (NestJS, LoopBack) | **Ignis** |
+| --- | --- | --- | --- |
+| **Performance** | ⚡ ~150k req/s | ~25k req/s | ⚡ ~140k req/s |
+| **Architecture** | Flexible (DIY) | Strict conventions | Guided conventions |
+| **Learning Curve** | Low | High | Medium |
+| **Dependency Injection** | Manual/3rd party | Built-in (complex) | Built-in (simple) |
+| **Community** | Large (Express) / Growing (Hono) | Very large | Small (new) |
+| **Best For** | Microservices, serverless | Large teams, enterprise | Growing APIs, small teams |
+
+**Choose wisely:** Each approach has genuine strengths. See [Philosophy](packages/docs/wiki/get-started/philosophy.md) for detailed comparison.
 
 ---
 

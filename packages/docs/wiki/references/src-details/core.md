@@ -117,7 +117,21 @@ Contains mixins to extend the functionality of core classes, particularly `Abstr
 | `controller.mixin.ts` | Adds `controller()` and `registerControllers()` methods. |
 | `repository.mixin.ts` | Adds `dataSource()` and `repository()` methods.          |
 | `service.mixin.ts`    | Adds `service()` method.                                 |
-| `types.ts`            | Defines interfaces for these mixins.                     |
+| `types.ts`            | Defines interfaces and types (`TMixinOpts`, `IComponentMixin`, `IControllerMixin`, etc.). |
+
+All registration methods accept an optional `opts?: TMixinOpts` parameter for custom binding configuration:
+
+```typescript
+type TMixinOpts<Args extends AnyObject = any> = {
+  binding: { namespace: string; key: string };
+  args?: Args;
+};
+
+// Example: Custom binding key
+this.controller(UserController, {
+  binding: { namespace: 'controllers', key: 'CustomUserController' }
+});
+```
 
 #### `base/models`
 

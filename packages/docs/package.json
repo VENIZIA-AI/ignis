@@ -1,14 +1,31 @@
 {
   "name": "@venizia/ignis-docs",
-  "version": "0.0.1-4",
+  "version": "0.0.1-5",
   "description": "Documentation and MCP Server for Ignis Framework",
   "keywords": [
     "ignis",
+    "documentation",
+    "docs",
+    "guide",
+    "wiki",
+    "examples",
+    "vitepress",
     "mcp",
     "model-context-protocol",
-    "documentation",
+    "mastra",
+    "mastra-mcp",
     "ai",
-    "framework"
+    "ai-gateway",
+    "llm-gateway",
+    "model-router",
+    "ai-development",
+    "llm-development",
+    "server",
+    "cli",
+    "tooling",
+    "dev-tools",
+    "framework",
+    "venizia"
   ],
   "main": "./mcp-server/dist/index.js",
   "types": "./mcp-server/dist/index.d.ts",
@@ -37,7 +54,8 @@
     "README.md",
     "LICENSE.md",
     "mcp-server/dist",
-    "wiki"
+    "wiki",
+    "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"
@@ -93,7 +111,7 @@
     "@braintree/sanitize-url": "^7.1.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
-    "@venizia/dev-configs": "^0.0.1-3",
+    "@venizia/dev-configs": "^0.0.1-4",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",

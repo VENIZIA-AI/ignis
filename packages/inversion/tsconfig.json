@@ -2,7 +2,7 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "outDir": "dist/cjs",
     "rootDir": "src",
     "baseUrl": "src",
     "paths": {

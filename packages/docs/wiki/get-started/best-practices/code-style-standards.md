@@ -120,3 +120,44 @@ Use the centralized TypeScript configs:
 - `skipLibCheck: true` - Faster compilation
 
 See [`@venizia/dev-configs` documentation](../../references/src-details/dev-configs.md) for full details.
+
+## Environment Variables Management
+
+Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment` helper and define your keys as constants. This ensures type safety and centralized management.
+
+**Define Keys (`src/common/environments.ts`):**
+```typescript
+export class EnvironmentKeys {
+  static readonly APP_ENV_STRIPE_KEY = 'APP_ENV_STRIPE_KEY';
+  static readonly APP_ENV_MAX_RETRIES = 'APP_ENV_MAX_RETRIES';
+}
+```
+
+**Usage:**
+```typescript
+import { applicationEnvironment } from '@venizia/ignis';
+import { EnvironmentKeys } from '@/common/environments';
+
+// Correct usage
+const stripeKey = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_STRIPE_KEY);
+const retries = applicationEnvironment.get<number>(EnvironmentKeys.APP_ENV_MAX_RETRIES);
+```
+
+## Standardized Error Handling
+
+Use the `getError` helper and `HTTP` constants to throw consistent, formatted exceptions that the framework's error handler can process correctly.
+
+**Example:**
+```typescript
+import { getError, HTTP } from '@venizia/ignis';
+
+if (!record) {
+  throw getError({
+    statusCode: HTTP.ResultCodes.RS_4.NotFound,
+    message: 'Record not found',
+    // Optional details
+    details: { id: requestedId }
+  });
+}
+```
+

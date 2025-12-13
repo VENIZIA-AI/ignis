@@ -50,13 +50,25 @@ Before a dependency can be injected, it must be **bound** to the container. This
 
 The `Application` class provides helper methods for common resource types. These automatically create a binding with a conventional key.
 
-| Method | Example Key |
+| Method | Default Key |
 | :--- | :--- |
 | `app.service(UserService)` | `services.UserService` |
 | `app.repository(UserRepository)` | `repositories.UserRepository` |
 | `app.dataSource(PostgresDataSource)` | `datasources.PostgresDataSource` |
 | `app.controller(UserController)` | `controllers.UserController` |
 | `app.component(MyComponent)` | `components.MyComponent` |
+
+All these methods accept an optional second parameter to customize the binding key:
+
+```typescript
+// Default binding (key: 'controllers.UserController')
+app.controller(UserController);
+
+// Custom binding key
+app.controller(UserController, {
+  binding: { namespace: 'controllers', key: 'CustomUserController' }
+});
+```
 
 ### Custom Bindings
 

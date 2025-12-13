@@ -71,6 +71,10 @@ const config = defineConfig({
               link: '/get-started/best-practices/architectural-patterns',
             },
             {
+              text: 'Data Modeling',
+              link: '/get-started/best-practices/data-modeling',
+            },
+            {
               text: 'Performance Optimization',
               link: '/get-started/best-practices/performance-optimization',
             },
@@ -178,8 +182,10 @@ const config = defineConfig({
         {
           text: 'Framework Internals',
           items: [
-            { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
             { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
+            { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
+            { text: 'Inversion (@vez/ignis-inversion)', link: '/references/src-details/inversion' },
+            { text: 'Dev Configs (@vez/dev-configs)', link: '/references/src-details/dev-configs' },
             { text: 'Documentation (@vez/ignis-docs)', link: '/references/src-details/docs' },
             { text: 'MCP Docs Server', link: '/references/src-details/mcp-server' },
           ],

@@ -1,6 +1,7 @@
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type TMastraTool } from './base.tool';
+import { BaseTool, TMastraTool } from '../base.tool';
+import { DocsHelper } from '@/mcp-server/helpers';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -102,27 +103,27 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'getDocContent';
+  readonly id = 'getDocumentContent';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  async execute(input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
-    const content = await DocsHelper.getDocContent({ id: input.id });
+  async execute(opts: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
+    const content = await DocsHelper.getDocumentContent({ id: opts.id });
 
     if (!content) {
-      return { error: 'Document not found', id: input.id };
+      return { error: 'Document not found', id: opts.id };
     }
 
-    return { content, id: input.id };
+    return { content, id: opts.id };
   }
 
   getTool(): TMastraTool {
     return createTool({
       id: this.id,
       description: this.description,
-      inputSchema: InputSchema,
-      outputSchema: OutputSchema,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
       execute: async ({ context }) => this.execute(context),
     });
   }

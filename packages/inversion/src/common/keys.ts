@@ -4,4 +4,5 @@ export const MetadataKeys = {
 
   // Injection metadata
   INJECT: Symbol.for('ignis:inject'),
+  INJECTABLE: Symbol.for('ignis:injectable'),
 };

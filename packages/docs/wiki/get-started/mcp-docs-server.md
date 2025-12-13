@@ -5,7 +5,8 @@
 ## What You'll Need
 
 Before starting, ensure you have:
-- **Node.js** or **Bun** installed (for running the MCP server)
+
+- **Bun** (recommended) or **Node.js** installed (for running the MCP server)
 - **An AI tool** that supports MCP (Claude Code CLI, VS Code with MCP extensions, etc.)
 
 ## Quick Start (5 minutes)
@@ -14,37 +15,37 @@ Before starting, ensure you have:
 
 Pick which AI assistant you're using:
 
-| Tool | Best For |
-|------|----------|
+| Tool                                  | Best For                                 |
+| ------------------------------------- | ---------------------------------------- |
 | [Claude Code](#claude-code-cli-setup) | Terminal users, developers (Recommended) |
-| [Gemini CLI](#gemini-cli-setup) | Google AI users |
-| [VS Code](#vs-code-setup) | VS Code with MCP extensions |
-| [Cursor](#cursor-setup) | AI-first code editor |
-| [Windsurf](#windsurf-setup) | Codeium's AI editor |
-| [JetBrains IDEs](#jetbrains-setup) | IntelliJ, PyCharm, WebStorm |
+| [Gemini CLI](#gemini-cli-setup)       | Google AI users                          |
+| [VS Code](#vs-code-setup)             | VS Code with MCP extensions              |
+| [Cursor](#cursor-setup)               | AI-first code editor                     |
+| [Windsurf](#windsurf-setup)           | Codeium's AI editor                      |
+| [JetBrains IDEs](#jetbrains-setup)    | IntelliJ, PyCharm, WebStorm              |
 
 ### Step 2: Install the MCP Server
 
 Choose one installation method:
 
-#### Option A: NPM (Recommended)
+#### Option A: Bun (Recommended)
+
+```bash
+# Global installation
+bun add -g @venizia/ignis-docs
+
+# Or run without installation
+bun x -p @venizia/ignis-docs@latest ignis-docs-mcp
+```
+
+#### Option B: NPM
 
 ```bash
 # Global installation
 npm install -g @venizia/ignis-docs
 
 # Or use npx (no installation needed)
-npx @venizia/ignis-docs
-```
-
-#### Option B: Bun
-
-```bash
-# Global installation
-bun add -g @venizia/ignis-docs
-
-# Or use bunx (no installation needed)
-bunx @venizia/ignis-docs
+npx -y @venizia/ignis-docs
 ```
 
 #### Option C: Yarn
@@ -52,6 +53,9 @@ bunx @venizia/ignis-docs
 ```bash
 # Global installation
 yarn global add @venizia/ignis-docs
+
+# Or use npx (no installation needed)
+npx -y @venizia/ignis-docs
 ```
 
 #### Option D: pnpm
@@ -59,6 +63,37 @@ yarn global add @venizia/ignis-docs
 ```bash
 # Global installation
 pnpm add -g @venizia/ignis-docs
+
+# Or use pnpm dlx (no installation needed)
+pnpm dlx @venizia/ignis-docs
+```
+
+### Branch Configuration (Optional)
+
+By default, the MCP server fetches source code from the `main` branch. To use a different branch:
+
+```bash
+# Global install - pass branch as argument
+ignis-docs-mcp develop
+
+# Using bun x
+bun x -p @venizia/ignis-docs@latest ignis-docs-mcp develop
+
+# Using npx
+npx -y @venizia/ignis-docs develop
+```
+
+In your MCP config, add the branch as an argument:
+
+```json
+{
+  "mcpServers": {
+    "ignis-docs": {
+      "command": "bun",
+      "args": ["x", "-p", "@venizia/ignis-docs@latest", "ignis-docs-mcp"]
+    }
+  }
+}
 ```
 
 ### Step 3: Configure Your AI Tool
@@ -72,6 +107,7 @@ Choose your tool below and follow the specific instructions.
 ### Prerequisites
 
 1. **Install Claude Code CLI** (if not already installed):
+
    ```bash
    # macOS/Linux
    curl -fsSL https://code.claude.ai/install.sh | sh
@@ -126,11 +162,13 @@ Add this configuration:
 **Option B: Using global install:**
 
 First install globally:
+
 ```bash
 npm install -g @venizia/ignis-docs
 ```
 
 Then configure:
+
 ```json
 {
   "mcpServers": {
@@ -141,14 +179,27 @@ Then configure:
 }
 ```
 
-**Option C: Using bunx:**
+**Option C: Using bun x (Recommended):**
 
 ```json
 {
   "mcpServers": {
     "ignis-docs": {
-      "command": "bunx",
-      "args": ["@venizia/ignis-docs"]
+      "command": "bun",
+      "args": ["x", "-p", "@venizia/ignis-docs@latest", "ignis-docs-mcp"]
+    }
+  }
+}
+```
+
+**Option D: Using bun x with specific branch:**
+
+```json
+{
+  "mcpServers": {
+    "ignis-docs": {
+      "command": "bun",
+      "args": ["x", "-p", "@venizia/ignis-docs@latest", "ignis-docs-mcp", "develop"]
     }
   }
 }
@@ -164,11 +215,13 @@ Can you search the Ignis docs for "dependency injection"?
 ```
 
 **Expected behavior:**
+
 - Claude Code should use the `searchDocs` tool
 - You'll see a message like: `[Using tool: searchDocs]`
 - Results from Ignis documentation appear
 
 **If it doesn't work:**
+
 - Check the config file has valid JSON: `cat ~/.config/claude-code/config.json | python -m json.tool`
 - Check MCP server is accessible: `npx @venizia/ignis-docs` (should show "MCP Server running...")
 - Check logs: `claude --debug` to see MCP initialization logs
@@ -198,6 +251,7 @@ Once working, try these queries:
 ### Prerequisites
 
 1. **Install Google AI CLI tools:**
+
    ```bash
    # Option 1: Using pip (Python)
    pip install google-generativeai
@@ -240,6 +294,7 @@ mkdir -p ~/.config/gemini
 Create `~/.config/gemini/mcp_servers.json`:
 
 **Recommended: Using npx**
+
 ```json
 {
   "mcpServers": {
@@ -253,12 +308,14 @@ Create `~/.config/gemini/mcp_servers.json`:
 ```
 
 **Alternative: Global install**
+
 ```bash
 # First install globally
 npm install -g @venizia/ignis-docs
 ```
 
 Then configure:
+
 ```json
 {
   "mcpServers": {
@@ -288,12 +345,14 @@ npx @venizia/ignis-docs
 **⚠️ Note:** MCP support in Gemini CLI is limited. Alternative approaches:
 
 **Option A: Use Google AI Python SDK with custom MCP wrapper**
+
 ```python
 # This requires writing custom integration code
 # See: https://github.com/modelcontextprotocol/python-sdk
 ```
 
 **Option B: Use via Claude Code CLI instead**
+
 - Gemini CLI MCP support is experimental
 - Claude Code has better MCP support out of the box
 - Recommendation: Use [Claude Code CLI setup](#claude-code-cli-setup) for Ignis docs
@@ -301,11 +360,13 @@ npx @venizia/ignis-docs
 #### Troubleshooting
 
 **❌ "Command not found: gemini"**
+
 - Google doesn't have an official "gemini" CLI command
 - Use `gcloud ai` or Python SDK instead
 - Consider using Claude Code CLI for better MCP support
 
 **❌ MCP server not loading**
+
 - Gemini CLI MCP support is experimental
 - Check if your Gemini CLI version supports MCP:
   ```bash
@@ -323,6 +384,7 @@ VS Code supports MCP through various extensions. The setup process is similar to
 ### Prerequisites
 
 Install an MCP-compatible extension from the VS Code marketplace:
+
 - **[Continue](https://marketplace.visualstudio.com/items?itemName=Continue.continue)** - AI assistant with MCP support
 - **[Cline](https://marketplace.visualstudio.com/items?itemName=saoudrizwan.claude-dev)** - Claude-powered autonomous coding agent
 - Or any other VS Code extension that supports the Model Context Protocol
@@ -332,14 +394,17 @@ Install an MCP-compatible extension from the VS Code marketplace:
 The configuration location depends on which extension you're using:
 
 **For Continue extension:**
+
 - **macOS/Linux:** `~/.continue/config.json`
 - **Windows:** `%USERPROFILE%\.continue\config.json`
 
 **For Cline extension:**
+
 - **macOS/Linux:** `~/.cline/config.json`
 - **Windows:** `%USERPROFILE%\.cline\config.json`
 
 **For other MCP extensions:**
+
 - Check the extension's documentation for the config file location
 
 ### Add MCP Server Configuration
@@ -347,6 +412,7 @@ The configuration location depends on which extension you're using:
 Open the config file for your extension and add the Ignis docs server:
 
 **If you installed globally:**
+
 ```json
 {
   "mcpServers": {
@@ -358,6 +424,7 @@ Open the config file for your extension and add the Ignis docs server:
 ```
 
 **If using npx (recommended for most users):**
+
 ```json
 {
   "mcpServers": {
@@ -369,13 +436,14 @@ Open the config file for your extension and add the Ignis docs server:
 }
 ```
 
-**If using bunx:**
+**If using bun x (Recommended):**
+
 ```json
 {
   "mcpServers": {
     "ignis-docs": {
-      "command": "bunx",
-      "args": ["@venizia/ignis-docs"]
+      "command": "bun",
+      "args": ["x", "-p", "@venizia/ignis-docs@latest", "ignis-docs-mcp"]
     }
   }
 }
@@ -388,6 +456,7 @@ Reload the window: `Cmd/Ctrl + Shift + P` → "Developer: Reload Window"
 ### Verify it's working
 
 Open your AI assistant in VS Code and ask:
+
 ```
 Can you search the Ignis docs for "dependency injection"?
 ```
@@ -397,6 +466,7 @@ The assistant should use the MCP tools to access and return documentation.
 ## Cursor Setup
 
 ### Prerequisites
+
 - Install the MCP extension from Cursor's extension marketplace
 
 ### Configuration
@@ -418,11 +488,13 @@ The assistant should use the MCP tools to access and return documentation.
 ## Windsurf Setup
 
 ### Prerequisites
+
 - Download and install [Windsurf](https://codeium.com/windsurf) by Codeium
 
 ### Configuration
 
 **Config File:**
+
 - **macOS:** `~/Library/Application Support/Windsurf/mcp_config.json`
 - **Windows:** `%APPDATA%\Windsurf\mcp_config.json`
 - **Linux:** `~/.config/Windsurf/mcp_config.json`
@@ -438,6 +510,7 @@ The assistant should use the MCP tools to access and return documentation.
 ```
 
 **If using npx:**
+
 ```json
 {
   "mcpServers": {
@@ -454,12 +527,14 @@ The assistant should use the MCP tools to access and return documentation.
 ## JetBrains Setup
 
 ### Prerequisites
+
 - IntelliJ IDEA, PyCharm, WebStorm, or any JetBrains IDE with AI Assistant plugin
 - Install the [MCP Support Plugin](https://plugins.jetbrains.com/plugin/mcp-support) (check JetBrains marketplace)
 
 ### Configuration
 
 **Config File Location:**
+
 - **macOS:** `~/Library/Application Support/JetBrains/<IDE>/mcp_config.json`
 - **Windows:** `%APPDATA%\JetBrains\<IDE>\mcp_config.json`
 - **Linux:** `~/.config/JetBrains/<IDE>/mcp_config.json`
@@ -477,6 +552,7 @@ Replace `<IDE>` with your IDE name (e.g., `IntelliJIdea2024.1`, `PyCharm2024.1`)
 ```
 
 **If using npx:**
+
 ```json
 {
   "mcpServers": {
@@ -495,6 +571,7 @@ Replace `<IDE>` with your IDE name (e.g., `IntelliJIdea2024.1`, `PyCharm2024.1`)
 Once configured, you can ask your AI assistant:
 
 ### Example 1: Search Documentation
+
 ```
 You: "How do I set up dependency injection in Ignis?"
 AI: [Uses searchDocs tool, finds relevant pages]
@@ -502,6 +579,7 @@ AI: "Based on the Ignis documentation..."
 ```
 
 ### Example 2: Get Specific Guide
+
 ```
 You: "Show me the full Quickstart guide"
 AI: [Uses listDocs to find ID, then getDocContent]
@@ -509,6 +587,7 @@ AI: "Here's the complete Quickstart guide..."
 ```
 
 ### Example 3: Browse by Category
+
 ```
 You: "What documentation is available for helpers?"
 AI: [Uses listCategories, then listDocs with category filter]
@@ -545,30 +624,26 @@ bun run docs:mcp:dev
 Use absolute paths in your config:
 
 **macOS/Linux:**
+
 ```json
 {
   "mcpServers": {
     "ignis-docs-dev": {
       "command": "bun",
-      "args": [
-        "run",
-        "/absolute/path/to/ignis/packages/docs/mcp-server/index.ts"
-      ]
+      "args": ["run", "/absolute/path/to/ignis/packages/docs/mcp-server/index.ts"]
     }
   }
 }
 ```
 
 **Windows:**
+
 ```json
 {
   "mcpServers": {
     "ignis-docs-dev": {
       "command": "bun",
-      "args": [
-        "run",
-        "C:\\absolute\\path\\to\\ignis\\packages\\docs\\mcp-server\\index.ts"
-      ]
+      "args": ["run", "C:\\absolute\\path\\to\\ignis\\packages\\docs\\mcp-server\\index.ts"]
     }
   }
 }
@@ -583,6 +658,7 @@ Use absolute paths in your config:
 Before troubleshooting, run these quick tests:
 
 **✅ Test 1: MCP server runs**
+
 ```bash
 npx @venizia/ignis-docs
 # Expected: "MCP Server listening on stdio..."
@@ -590,12 +666,14 @@ npx @venizia/ignis-docs
 ```
 
 **✅ Test 2: Config file exists and is valid JSON**
+
 ```bash
 # Claude Code:
 cat ~/.config/claude-code/config.json | python -m json.tool
 ```
 
 **✅ Test 3: AI tool recognizes MCP server**
+
 - Restart your AI tool COMPLETELY (quit and reopen)
 - Ask: `Can you search the Ignis docs for "controller"?`
 - Look for: `[Using tool: searchDocs]`
@@ -613,6 +691,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Solutions (try in order):**
 
 1. **Use npx instead** (recommended):
+
    ```json
    {
      "mcpServers": {
@@ -625,12 +704,14 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 2. **Check if installed:**
+
    ```bash
    npm list -g @venizia/ignis-docs
    # Should show: @venizia/ignis-docs@x.x.x
    ```
 
 3. **Find executable location:**
+
    ```bash
    # macOS/Linux:
    which ignis-docs-mcp
@@ -653,6 +734,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Diagnosis:**
 
 1. **Wrong config file location**
+
    ```bash
    # Verify you edited the right file:
    # Claude Code:
@@ -660,6 +742,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 2. **Invalid JSON syntax**
+
    ```bash
    # Test JSON validity:
    cat ~/.config/claude-code/config.json | python -m json.tool
@@ -667,6 +750,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
    **Common JSON mistakes:**
+
    ```json
    // ❌ WRONG: Missing comma
    {
@@ -709,11 +793,13 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Solutions:**
 
 1. **Update package:**
+
    ```bash
    npm update -g @venizia/ignis-docs
    ```
 
 2. **Clear cache and reinstall:**
+
    ```bash
    npm cache clean --force
    npm uninstall -g @venizia/ignis-docs
@@ -721,6 +807,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 3. **Check Node.js version:**
+
    ```bash
    node --version
    # Must be v18.0.0 or higher
@@ -728,7 +815,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 4. **Try Bun instead:**
    ```bash
-   bunx @venizia/ignis-docs
+   bun x -p @venizia/ignis-docs@latest ignis-docs-mcp
    ```
 
 ---
@@ -738,6 +825,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **When it happens:** First query is slow, subsequent queries are fast
 
 **This is NORMAL!** Here's why:
+
 - **First search:** Loads all docs into memory (~3-5 seconds)
 - **Later searches:** Uses cache (~0.5 seconds)
 
@@ -773,14 +861,17 @@ EOF
 If none of the above worked:
 
 **1. Enable debug mode:**
+
 ```bash
 DEBUG=1 npx @venizia/ignis-docs
 ```
 
 **2. Check AI tool logs:**
+
 - **Claude Code:** Run with `claude --debug`
 
 **3. Test with minimal config:**
+
 ```json
 {
   "mcpServers": {
@@ -791,9 +882,11 @@ DEBUG=1 npx @venizia/ignis-docs
   }
 }
 ```
+
 If this works, the issue is specific to `@venizia/ignis-docs`.
 
 **4. Report the bug:**
+
 - GitHub: https://github.com/venizia-ai/ignis/issues
 - Include:
   - OS and version
@@ -832,9 +925,14 @@ Yes! Add more servers to the `mcpServers` object in your config file.
 ### What's the difference between the tools?
 
 | Tool | Use When |
-|------|----------|
+| -------------------- | ----------------------------------------- |
 | `searchDocs` | You know a keyword but not the page |
 | `getDocContent` | You know the exact page you need |
 | `listDocs` | You want to browse available docs |
 | `listCategories` | You want to explore by topic |
 | `getDocMetadata` | You need doc stats (length, last updated) |
+| `getPackageOverview` | You want a summary of a package |
+| `searchCode` | You want to search source code |
+| `listProjectFiles` | You want to see the project structure |
+| `viewSourceFile` | You want to read a source file |
+| `verifyDependencies` | You want to check package dependencies |

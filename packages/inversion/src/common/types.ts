@@ -82,3 +82,8 @@ export interface IInjectMetadata {
   index: number;
   isOptional?: boolean;
 }
+
+export interface IInjectableMetadata {
+  scope?: TBindingScope;
+  tags?: Record<string, any>;
+}

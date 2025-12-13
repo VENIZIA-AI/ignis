@@ -10,11 +10,6 @@ import type { z } from 'zod';
  */
 export type TMastraTool = ReturnType<typeof createTool>;
 
-/**
- * Re-export createTool for use in subclasses.
- */
-export { createTool };
-
 // ============================================================================
 // BASE TOOL CLASS
 // ============================================================================
@@ -38,11 +33,11 @@ export { createTool };
  *   readonly inputSchema = InputSchema;
  *   readonly outputSchema = OutputSchema;
  *
- *   async execute(input: z.infer<typeof InputSchema>) {
+ *   async execute(opts: z.infer<typeof InputSchema>) {
  *     return { result: 'done' };
  *   }
  *
- *   toMastraTool() {
+ *   getTool() {
  *     return createTool({
  *       id: this.id,
  *       description: this.description,
@@ -54,10 +49,7 @@ export { createTool };
  * }
  * ```
  */
-export abstract class BaseTool<
-  TInputSchema extends z.ZodType = z.ZodType,
-  TOutputSchema extends z.ZodType = z.ZodType,
-> {
+export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema extends z.ZodType> {
   /**
    * Unique identifier for the tool.
    * Used by MCP clients to invoke the tool.
@@ -88,10 +80,10 @@ export abstract class BaseTool<
   /**
    * Executes the tool's main logic.
    *
-   * @param input - Validated input matching inputSchema
+   * @param opts - Validated options object matching inputSchema
    * @returns Promise resolving to output matching outputSchema
    */
-  abstract execute(input: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
+  abstract execute(opts: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
 
   /**
    * Converts this tool instance to a Mastra-compatible tool object.
@@ -101,7 +93,7 @@ export abstract class BaseTool<
    *
    * @example
    * ```typescript
-   * toMastraTool() {
+   * getTool() {
    *   return createTool({
    *     id: this.id,
    *     description: this.description,

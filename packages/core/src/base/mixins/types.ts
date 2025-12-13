@@ -6,11 +6,16 @@ import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 
+export type TMixinOpts<Args extends AnyObject = any> = {
+  binding: { namespace: string; key: string };
+  args?: Args;
+};
+
 export interface IComponentMixin {
-  component<T extends BaseComponent, O extends AnyObject = any>(
-    ctor: TClass<T>,
-    args?: O,
-  ): Binding<T>;
+  component<Base extends BaseComponent, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base>;
   registerComponents(): ValueOrPromise<void>;
 }
 
@@ -22,17 +27,29 @@ export interface IServerConfigMixin {
 }
 
 export interface IControllerMixin {
-  controller<T>(ctor: TClass<T>): Binding<T>;
+  controller<Base, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base>;
   registerControllers(): ValueOrPromise<void>;
 }
 
 export interface IRepositoryMixin {
-  dataSource<T extends IDataSource>(ctor: TClass<T>): Binding<T>;
-  repository<T extends IRepository<TTableSchemaWithId>>(ctor: TClass<T>): Binding<T>;
+  dataSource<Base extends IDataSource, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base>;
+  repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base>;
 }
 
 export interface IServiceMixin {
-  service<T extends IService>(ctor: TClass<T>): Binding<T>;
+  service<Base extends IService, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base>;
 }
 
 export interface IStaticServeMixin {

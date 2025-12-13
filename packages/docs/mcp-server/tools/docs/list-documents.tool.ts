@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type TMastraTool } from './base.tool';
+import { createTool } from '@mastra/core/tools';
+import { BaseTool, TMastraTool } from '../base.tool';
+import { DocsHelper } from '@/mcp-server/helpers';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -99,13 +100,13 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'listDocs';
+  readonly id = 'listDocuments';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  async execute(input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
-    const docs = await DocsHelper.listDocs({ category: input.category });
+  async execute(opts: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
+    const docs = await DocsHelper.listDocumentFiles({ category: opts.category });
 
     return {
       count: docs.length,
@@ -117,8 +118,8 @@ export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSche
     return createTool({
       id: this.id,
       description: this.description,
-      inputSchema: InputSchema,
-      outputSchema: OutputSchema,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
       execute: async ({ context }) => this.execute(context),
     });
   }

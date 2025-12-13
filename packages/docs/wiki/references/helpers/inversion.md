@@ -15,13 +15,23 @@ Core DI system enabling loosely coupled, testable, and extensible code.
 
 ### Binding Methods
 
-| Method | Purpose | Example |
-|--------|---------|---------|
-| `app.service(MyService)` | Bind service | Key: `services.MyService` |
-| `app.controller(MyController)` | Bind controller | Key: `controllers.MyController` |
-| `app.repository(MyRepo)` | Bind repository | Key: `repositories.MyRepo` |
+| Method | Purpose | Default Key |
+|--------|---------|-------------|
+| `app.service(MyService, opts?)` | Bind service | `services.MyService` |
+| `app.controller(MyController, opts?)` | Bind controller | `controllers.MyController` |
+| `app.repository(MyRepo, opts?)` | Bind repository | `repositories.MyRepo` |
+| `app.component(MyComponent, opts?)` | Bind component | `components.MyComponent` |
+| `app.dataSource(MyDS, opts?)` | Bind datasource | `datasources.MyDS` |
 | `bind().toClass()` | Custom class binding | `bind({ key: 'MyClass' }).toClass(MyClass)` |
 | `bind().toValue()` | Bind constant value | `bind({ key: 'API_KEY' }).toValue('secret')` |
+
+All registration methods accept an optional `opts` parameter to customize the binding key:
+
+```typescript
+app.controller(UserController, {
+  binding: { namespace: 'controllers', key: 'CustomUserController' }
+});
+```
 
 ### Binding Scopes
 
@@ -41,13 +51,13 @@ Core DI system enabling loosely coupled, testable, and extensible code.
 
 Before a dependency can be injected, it must be bound to the container. The `Application` class provides helper methods for binding common resource types:
 
--   `app.component(MyComponent)`
--   `app.controller(MyController)`
--   `app.service(MyService)`
--   `app.repository(MyRepository)`
--   `app.dataSource(MyDataSource)`
+-   `app.component(MyComponent, opts?)`
+-   `app.controller(MyController, opts?)`
+-   `app.service(MyService, opts?)`
+-   `app.repository(MyRepository, opts?)`
+-   `app.dataSource(MyDataSource, opts?)`
 
-These methods automatically create a binding for the class with a conventional key (e.g., `services.MyService`).
+These methods automatically create a binding for the class with a conventional key (e.g., `services.MyService`). Use the optional `opts` parameter to customize binding keys when needed.
 
 ### Advanced Binding
 

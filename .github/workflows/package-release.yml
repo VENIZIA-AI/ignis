@@ -1,4 +1,5 @@
 name: "[Package] NPM Release"
+run-name: "NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}"
 
 on:
   workflow_dispatch:
@@ -8,16 +9,14 @@ on:
         description: Package to release
         options:
           - dev-configs
-          - core
-          - helpers
           - inversion
+          - helpers
+          - core
           - docs
         required: true
       build_mode:
         type: choice
-        description: |
-          Build Mode
-          (patch | minor | major | pre<patch | minor | major | release>)
+        description: "Version bump type (patch | minor | major | pre*)"
         options:
           - patch
           - minor
@@ -27,193 +26,198 @@ on:
           - premajor
           - prerelease
         required: true
-        default: 'patch'
+        default: "patch"
+
+# =============================================================================
+# PACKAGE DEPENDENCY TREE:
+#   dev-configs  → (none)
+#   inversion    → dev-configs
+#   helpers      → dev-configs, inversion
+#   core         → dev-configs, inversion, helpers
+#   docs         → dev-configs
+#
+# SPECIAL CASES (dist directories):
+#   - docs:      mcp-server/dist
+#   - inversion: dist/cjs, dist/esm
+#   - others:    dist
+# =============================================================================
 
 env:
   PACKAGE: ${{ github.event.inputs.package }}
   BUILD_MODE: ${{ github.event.inputs.build_mode }}
 
 jobs:
-  build-release:
-    name: Build & Release
+  release:
+    name: Release
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      # =========================================================================
+      # SETUP
+      # =========================================================================
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '24.11.0'
-          registry-url: 'https://registry.npmjs.org'
+          node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.3.2'
+          bun-version: "1.3.2"
 
       - name: Setup Git
         run: |
           git config user.name "venizia-ci"
           git config user.email "developer@venizia.ai"
 
+      # =========================================================================
+      # PREPARE
+      # =========================================================================
       - name: Get package info
-        id: pkg_info
         run: |
           PACKAGE_PATH="packages/$PACKAGE"
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          # Set dist directories for validation
+          case $PACKAGE in
+            docs)      DIST_DIRS="mcp-server/dist" ;;
+            inversion) DIST_DIRS="dist/cjs dist/esm" ;;
+            *)         DIST_DIRS="dist" ;;
+          esac
+
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
+          echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
+          echo "DIST_DIRS=$DIST_DIRS" >> $GITHUB_ENV
 
-          echo "[pkg_info] Package: $PACKAGE_NAME"
-          echo "[pkg_info] Path: $PACKAGE_PATH"
-          echo "[pkg_info] Current version: $CURRENT_VERSION"
+          echo "┌─────────────────────────────────────────────────"
+          echo "│ Package:     $PACKAGE_NAME"
+          echo "│ Path:        $PACKAGE_PATH"
+          echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
+          echo "│ Dist:        $DIST_DIRS"
+          echo "└─────────────────────────────────────────────────"
 
-      - name: Verify build mode
+      - name: Install & Build dependencies
         run: |
-          echo "[verify] Package: $PACKAGE_NAME | Path: $PACKAGE_PATH | Build mode: $BUILD_MODE"
-
-      - name: Install dependencies
-        run: |
-          echo "[install] Installing dependencies"
           bun install
 
-      - name: Linting application source
+          # Determine npm tag: pre* uses "next", others use "latest"
+          case $BUILD_MODE in
+            patch|minor|major) NPM_TAG="latest" ;;
+            *)                 NPM_TAG="next" ;;
+          esac
+
+          bun run --filter "$PACKAGE_NAME" force-update "$NPM_TAG"
+
+          # Build only required dependencies (see dependency tree in header)
+          case $PACKAGE in
+            dev-configs) ;;
+            inversion)   make dev-configs ;;
+            helpers)     make dev-configs && make inversion ;;
+            core)        make dev-configs && make inversion && make helpers ;;
+            docs)        make dev-configs ;;
+          esac
+
+      # =========================================================================
+      # LINT & BUILD
+      # =========================================================================
+      - name: Lint & Build
         run: |
-          bun run --filter "${{ env.PACKAGE_NAME }}" lint
+          echo ">>> Linting..."
+          bun run --filter "$PACKAGE_NAME" lint
 
-      - name: Build artifact
-        run: |
-          bun run --filter "${{ env.PACKAGE_NAME }}" rebuild
+          echo ""
+          echo ">>> Building..."
+          bun run --filter "$PACKAGE_NAME" rebuild
 
-      - name: Validate build artifacts
-        run: |
-          cd ${{ env.PACKAGE_PATH }} 
+          echo ""
+          echo ">>> Validating build artifacts..."
+          cd $PACKAGE_PATH
+          for dir in $DIST_DIRS; do
+            [ -f "$dir/index.js" ] && [ -f "$dir/index.d.ts" ] || { echo "ERROR: $dir missing files"; exit 1; }
+            echo "    ✓ $dir"
+          done
 
-          if [ ! -d "dist" ]; then
-            echo "[validate] Error: dist directory not found"
-            exit 1
-          fi
-
-          if [ ! -f "dist/index.js" ]; then
-            echo "[validate] Error: dist/index.js not found"
-            exit 1
-          fi
-
-          if [ ! -f "dist/index.d.ts" ]; then
-            echo "[validate] Error: dist/index.d.ts not found"
-            exit 1
-          fi
-
-          echo "[validate] Build artifacts validated successfully"
-
+      # =========================================================================
+      # VERSION & GIT
+      # =========================================================================
       - name: Version bump
-        id: version
         run: |
-          cd ${{ env.PACKAGE_PATH }}
-          npm cache clean --force
+          cd $PACKAGE_PATH
           npm version $BUILD_MODE --no-git-tag-version --workspaces-update=false
 
           NEW_VERSION=$(jq -r .version package.json)
-          TAG_NAME="$PACKAGE-v$NEW_VERSION"
-
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
+          echo "TAG_NAME=$PACKAGE-v$NEW_VERSION" >> $GITHUB_ENV
+          echo ">>> New version: $NEW_VERSION"
 
-          echo "[version] New version: $NEW_VERSION"
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
-
-      - name: Commit version change
-        id: commit
+      - name: Commit & Push
         run: |
-          cd ${{ env.PACKAGE_PATH }} 
-
-          git fetch origin
-          git checkout develop
-          git pull origin develop
-
+          cd $PACKAGE_PATH
+          git fetch origin && git checkout develop && git pull origin develop
           git add package.json
-          git commit -m "chore($PACKAGE): release v${{ env.NEW_VERSION }} [$BUILD_MODE]"
-
-      - name: Push to develop
-        id: push_develop
-        run: |
+          git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
           git push origin develop
-          echo "[push_develop] Pushed to develop branch"
           echo "IS_PUSHED=true" >> $GITHUB_ENV
 
-      - name: Create and push tag
-        id: tag
+      - name: Create tag
         run: |
-          git tag -a "${{ env.TAG_NAME }}" -m "${{ env.PACKAGE_NAME }} v${{ env.NEW_VERSION }}"
-          git push origin "${{ env.TAG_NAME }}"
-          echo "IS_CREATED=true" >> $GITHUB_ENV
+          git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
+          git push origin "$TAG_NAME"
+          echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
 
-      - name: Merge to main (stable releases only)
-        id: merge_main
-        if: ${{ !startsWith(env.BUILD_MODE, 'pre') }}
+      - name: Merge to main (stable only)
+        if: ${{ !startsWith(github.event.inputs.build_mode, 'pre') }}
         run: |
-          git checkout main
-          git pull origin main
-          git merge develop --no-ff -m "chore: merge $PACKAGE v${{ env.NEW_VERSION }} to main"
+          git checkout main && git pull origin main
+          git merge develop --no-ff -m "chore: merge $PACKAGE v$NEW_VERSION to main"
           git push origin main
-
-          echo "[merge_main] Merged to main branch"
           echo "IS_MERGED=true" >> $GITHUB_ENV
 
+      # =========================================================================
+      # PUBLISH
+      # =========================================================================
       - name: Publish to NPM
-        id: publish
         run: |
-          cd ${{ env.PACKAGE_PATH }} 
+          cd $PACKAGE_PATH
 
-          npm_tag=$(case $BUILD_MODE in
-            patch|minor|major) echo "latest" ;;
-            prepatch|preminor|premajor|prerelease) echo "next" ;;
-          esac)
+          case $BUILD_MODE in
+            patch|minor|major) NPM_TAG="latest" ;;
+            *)                 NPM_TAG="next" ;;
+          esac
 
-          npm publish --access public --tag $npm_tag
+          # Skip prepublishOnly since we already built
+          npm publish --access public --tag $NPM_TAG --ignore-scripts
 
-          echo "[publish] Successfully published to NPM"
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
+          echo "✓ Published $PACKAGE_NAME@$NEW_VERSION ($NPM_TAG)"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
+      # =========================================================================
+      # ROLLBACK
+      # =========================================================================
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "[rollback] Starting rollback process"
-          cd ${{ env.PACKAGE_PATH }} 
+          echo ">>> ROLLBACK STARTED"
 
-          # Delete tag if created
-          if [ "${{ env.IS_CREATED }}" == "true" ]; then
-            git push --delete origin "${{ env.TAG_NAME }}" 2>/dev/null || echo "[rollback] Tag not found on remote"
-            git tag -d "${{ env.TAG_NAME }}" 2>/dev/null || echo "[rollback] Tag not found locally"
-            echo "[rollback] Deleted tag: ${{ env.TAG_NAME }}"
-          fi
+          [ "$IS_TAG_CREATED" == "true" ] && {
+            git push --delete origin "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          }
 
-          # Reset develop branch if pushed
-          if [ "${{ env.IS_PUSHED }}" == "true" ]; then
-            git checkout develop
-            git reset --hard HEAD~1
-            git push --force origin develop
-            echo "[rollback] Reset develop branch"
-          fi
+          [ "$IS_PUSHED" == "true" ] && {
+            git checkout develop && git reset --hard HEAD~1 && git push --force origin develop
+          }
 
-          # Reset main branch if merged
-          if [ "${{ env.IS_MERGED }}" == "true" ]; then
-            git checkout main
-            git reset --hard HEAD~1
-            git push --force origin main
-            echo "[rollback] Reset main branch"
-          fi
+          [ "$IS_MERGED" == "true" ] && {
+            git checkout main && git reset --hard HEAD~1 && git push --force origin main
+          }
 
-          echo "[rollback] Rollback completed"
-          echo "[rollback] Note: NPM packages cannot be unpublished automatically"
-          if [ "${{ env.IS_PUBLISHED }}" == "true" ]; then
-            echo "[rollback] WARNING: Package was published to NPM as ${{ env.PACKAGE_NAME }}@${{ env.NEW_VERSION }}"
-            echo "[rollback] You may need to deprecate it manually: npm deprecate ${{ env.PACKAGE_NAME }}@${{ env.NEW_VERSION }} 'Accidental release'"
-          fi
+          echo ">>> ROLLBACK COMPLETED"
+          [ "$IS_PUBLISHED" == "true" ] && echo "⚠️  NPM package published - run: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"

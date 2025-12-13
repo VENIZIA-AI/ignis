@@ -1,15 +1,27 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.0.1-3",
+  "version": "0.0.1-4",
   "description": "Shared development configurations for Venizia packages",
   "keywords": [
-    "config",
-    "eslint",
-    "prettier",
-    "typescript",
-    "tsconfig",
     "venizia",
     "vez",
+    "ignis",
+    "dev-configs",
+    "configurations",
+    "settings",
+    "shared-config",
+    "eslint",
+    "eslint-config",
+    "prettier",
+    "prettier-config",
+    "typescript",
+    "tsconfig",
+    "tsconfig-base",
+    "code-style",
+    "linter",
+    "formatter",
+    "build-tools",
+    "dev-tools",
     "development"
   ],
   "exports": {
@@ -25,7 +37,8 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "tsconfig"
+    "tsconfig",
+    "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"
