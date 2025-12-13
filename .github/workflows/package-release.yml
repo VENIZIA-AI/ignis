@@ -1,4 +1,4 @@
-name: "[Package] NPM Release"
+name: "NPM Release"
 run-name: "NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}"
 
 on:
@@ -48,7 +48,7 @@ env:
 
 jobs:
   release:
-    name: Release
+    name: NPM Release
     runs-on: ubuntu-latest
 
     steps:
