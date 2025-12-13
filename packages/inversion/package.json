@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.0.1-4",
+  "version": "0.0.1-5",
   "description": "Dependency Injection & Inversion of Control Container",
   "keywords": [
     "inversion-of-control",
