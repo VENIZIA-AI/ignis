@@ -86,7 +86,7 @@
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
-  "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
+  "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",

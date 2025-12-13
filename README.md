@@ -5,6 +5,7 @@
 [![Node Version](https://img.shields.io/badge/node-%3E%3D18-green)](https://nodejs.org)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
+[![Documentation](https://img.shields.io/badge/docs-venizia--ai.github.io%2Fignis-blue)](https://venizia-ai.github.io/ignis)
 
 > A TypeScript Server Infrastructure combining enterprise-grade patterns with high performance.
 
@@ -447,7 +448,9 @@ export class TodoController extends BaseController {
 
 ## 📚 Documentation
 
-Comprehensive documentation is available in the `packages/docs/wiki` directory:
+**Online Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
+
+Comprehensive documentation is also available in the `packages/docs/wiki` directory:
 
 ### Getting Started
 
@@ -583,8 +586,8 @@ Ignis is inspired by:
 
 ## 📞 Support
 
-- **Documentation**: [packages/docs/wiki](packages/docs/wiki)
-- **GitHub Issues**: [https://github.com/venizia-ai/ignis/issues](#) <!-- [TODO: Update with actual repository URL] -->
+- **Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
+- **GitHub Issues**: [https://github.com/VENIZIA-AI/ignis/issues](https://github.com/VENIZIA-AI/ignis/issues)
 - **Author**: VENIZIA AI Developer <developer@venizia.ai>
 
 ---

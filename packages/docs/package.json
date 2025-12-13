@@ -95,7 +95,7 @@
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
-  "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
+  "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
     "@mastra/core": "^0.24.6",

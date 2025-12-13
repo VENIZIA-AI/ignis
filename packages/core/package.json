@@ -95,7 +95,7 @@
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
   },
-  "homepage": "https://github.com/VENIZIA-AI/ignis/wiki",
+  "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
     "@venizia/ignis-helpers": "^0.0.1-6",
