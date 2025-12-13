@@ -37,11 +37,11 @@ Extends `AbstractApplication` with concrete lifecycle implementations and resour
 
 | Method | DI Binding Key Convention |
 | :--- | :--- |
-| `component(MyComponent)` | `components.MyComponent` |
-| `controller(MyController)` | `controllers.MyController` |
-| `service(MyService)` | `services.MyService` |
-| `repository(MyRepository)`| `repositories.MyRepository` |
-| `dataSource(MyDataSource)`| `datasources.MyDataSource` |
+| `component(MyComponent, opts?)` | `components.MyComponent` (default) or custom key via `opts.binding` |
+| `controller(MyController, opts?)` | `controllers.MyController` (default) or custom key via `opts.binding` |
+| `service(MyService, opts?)` | `services.MyService` (default) or custom key via `opts.binding` |
+| `repository(MyRepository, opts?)`| `repositories.MyRepository` (default) or custom key via `opts.binding` |
+| `dataSource(MyDataSource, opts?)`| `datasources.MyDataSource` (default) or custom key via `opts.binding` |
 
 ### `initialize()` Method Flow
 

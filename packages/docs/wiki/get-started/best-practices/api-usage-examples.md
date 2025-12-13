@@ -219,4 +219,46 @@ const deleted = await configurationRepository.deleteById({
   id: newRecord.data!.id,
   options: { shouldReturn: true }, // Option to return the deleted record
 });
+
+## Server-Side Rendering (JSX)
+
+Ignis supports server-side rendering using Hono's JSX middleware. This is useful for returning HTML content, such as landing pages or simple admin views.
+
+**Usage:**
+
+Use `defineJSXRoute` in your controller and `htmlResponse` for documentation.
+
+```typescript
+import { BaseController, controller, htmlResponse } from '@venizia/ignis';
+
+@controller({ path: '/pages' })
+export class PageController extends BaseController {
+  
+  override binding(): void {
+    this.defineJSXRoute({
+      configs: {
+        method: 'get',
+        path: '/welcome',
+        description: 'Welcome Page',
+        responses: htmlResponse({ description: 'HTML Welcome Page' }),
+      },
+      handler: (c) => {
+        const title = 'Welcome to Ignis';
+        
+        // Return JSX directly
+        return c.html(
+          <html>
+            <head><title>{title}</title></head>
+            <body>
+              <h1>{title}</h1>
+              <p>Server-side rendered content.</p>
+            </body>
+          </html>
+        );
+      },
+    });
+  }
+}
+```
+
 ```

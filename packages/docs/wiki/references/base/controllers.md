@@ -287,7 +287,9 @@ The `ControllerFactory` provides a static method `defineCrudController` to quick
 
 ### `static defineCrudController<EntitySchema>(opts: ICrudControllerOptions<EntitySchema>)`
 
-This factory method returns a `BaseController` class that is already set up with the following standard CRUD endpoints:
+This factory method returns a `BaseController` class that is already set up with the following standard CRUD endpoints.
+
+**Note:** The returned class is dynamically named using `controller.name` from the options. This ensures that when registered with `app.controller()`, the class has a proper name for binding keys and debugging (e.g., `ConfigurationController` instead of an anonymous class).
 
 | Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |

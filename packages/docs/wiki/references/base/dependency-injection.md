@@ -3,9 +3,10 @@
 Technical reference for the DI system in Ignis - managing resource lifecycles and dependency resolution.
 
 **Files:**
-- `packages/core/src/helpers/inversion/container.ts`
-- `packages/core/src/base/metadata/injectors.ts`
-- `packages/helpers/src/helpers/inversion/registry.ts`
+- `packages/inversion/src/container.ts` (base Container and Binding classes)
+- `packages/helpers/src/helpers/inversion/container.ts` (extended Container with ApplicationLogger)
+- `packages/core/src/base/metadata/injectors.ts` (@inject, @injectable decorators)
+- `packages/helpers/src/helpers/inversion/registry.ts` (MetadataRegistry)
 
 ## Quick Reference
 
@@ -20,7 +21,7 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 
 Heart of the DI system - registry managing all application resources.
 
-**File:** `packages/core/src/helpers/inversion/container.ts`
+**File:** `packages/inversion/src/container.ts`
 
 ### Key Methods
 
@@ -35,7 +36,7 @@ Heart of the DI system - registry managing all application resources.
 
 A `Binding` represents a single registered dependency in the container. It's a fluent API that allows you to specify *how* a dependency should be created and managed.
 
--   **File:** `packages/core/src/helpers/inversion/container.ts`
+-   **File:** `packages/inversion/src/container.ts`
 
 ### Configuration Methods
 

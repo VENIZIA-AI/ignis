@@ -1,7 +1,8 @@
+import { MCPConfigs } from '@/mcp-server/common';
+import { DocsHelper } from '@/mcp-server/helpers';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { MCP_CONFIG } from '../common';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type TMastraTool } from './base.tool';
+import { BaseTool, TMastraTool } from '../base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -41,7 +42,7 @@ const QUERY_DESCRIPTION = `
 Search query string to match against documentation titles and content.
 
 REQUIREMENTS:
-- Minimum ${MCP_CONFIG.search.minQueryLength} characters required
+- Minimum ${MCPConfigs.search.minQueryLength} characters required
 - Supports natural language queries (e.g., "dependency injection setup")
 - Supports technical terms (e.g., "HttpServer middleware")
 - Case-insensitive matching
@@ -57,8 +58,8 @@ Maximum number of results to return.
 
 CONSTRAINTS:
 - Minimum: 1
-- Maximum: ${MCP_CONFIG.search.maxLimit}
-- Default: ${MCP_CONFIG.search.defaultLimit}
+- Maximum: ${MCPConfigs.search.maxLimit}
+- Default: ${MCPConfigs.search.defaultLimit}
 
 RECOMMENDATIONS:
 - Use default (10) for general queries
@@ -83,13 +84,13 @@ const SearchResultSchema = z.object({
 });
 
 const InputSchema = z.object({
-  query: z.string().min(MCP_CONFIG.search.minQueryLength).describe(QUERY_DESCRIPTION),
+  query: z.string().min(MCPConfigs.search.minQueryLength).describe(QUERY_DESCRIPTION),
   limit: z
     .number()
     .int()
     .min(1)
-    .max(MCP_CONFIG.search.maxLimit)
-    .default(MCP_CONFIG.search.defaultLimit)
+    .max(MCPConfigs.search.maxLimit)
+    .default(MCPConfigs.search.defaultLimit)
     .describe(LIMIT_DESCRIPTION),
 });
 
@@ -104,15 +105,15 @@ const OutputSchema = z.object({
 // ----------------------------------------------------------------------------
 
 export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
-  readonly id = 'searchDocs';
+  readonly id = 'searchDocuments';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  async execute(input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
-    const results = await DocsHelper.searchDocs({
-      query: input.query,
-      limit: input.limit,
+  async execute(opts: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
+    const results = await DocsHelper.searchDocuments({
+      query: opts.query,
+      limit: opts.limit,
     });
     return { results };
   }
@@ -121,8 +122,8 @@ export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSc
     return createTool({
       id: this.id,
       description: this.description,
-      inputSchema: InputSchema,
-      outputSchema: OutputSchema,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
       execute: async ({ context }) => this.execute(context),
     });
   }

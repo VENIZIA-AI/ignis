@@ -75,6 +75,9 @@ Desktop.ini
 # Reusable AI prompts for development workflow
 .local/
 .claude/
+**/*/.claude
+.gemini/
+**/*/.gemini
 .prompts/
 
 # Miscellaneous
@@ -91,5 +94,3 @@ node_modules.zip
 **/*/__mf__/temp/
 
 **/*/.vitepress/cache
-
-ignis.wiki

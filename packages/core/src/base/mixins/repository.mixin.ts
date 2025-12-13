@@ -1,5 +1,6 @@
 import { BindingNamespaces } from '@/common/bindings';
 import {
+  AnyObject,
   Binding,
   BindingKeys,
   BindingScopes,
@@ -12,25 +13,35 @@ import { AbstractApplication } from '../applications';
 import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
-import { IRepositoryMixin } from './types';
+import { IRepositoryMixin, TMixinOpts } from './types';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {
-    repository<R extends IRepository<TTableSchemaWithId>>(ctor: TClass<R>): Binding<R> {
-      return this.bind<R>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.REPOSITORY,
-          key: ctor.name,
-        }),
+    repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+      ctor: TClass<Base>,
+      opts?: TMixinOpts<Args>,
+    ): Binding<Base> {
+      return this.bind<Base>({
+        key: BindingKeys.build(
+          opts?.binding ?? {
+            namespace: BindingNamespaces.REPOSITORY,
+            key: ctor.name,
+          },
+        ),
       }).toClass(ctor);
     }
 
-    dataSource<D extends IDataSource<any>>(ctor: TClass<D>): Binding<D> {
-      return this.bind<D>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.DATASOURCE,
-          key: ctor.name,
-        }),
+    dataSource<Base extends IDataSource, Args extends AnyObject = any>(
+      ctor: TClass<Base>,
+      opts?: TMixinOpts<Args>,
+    ): Binding<Base> {
+      return this.bind<Base>({
+        key: BindingKeys.build(
+          opts?.binding ?? {
+            namespace: BindingNamespaces.DATASOURCE,
+            key: ctor.name,
+          },
+        ),
       })
         .toClass(ctor)
         .setScope(BindingScopes.SINGLETON);

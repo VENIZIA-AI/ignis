@@ -127,3 +127,44 @@ export class Application extends BaseApplication {
 }
 ```
 This architecture keeps the main `Application` class clean and focused on high-level assembly, while the details of each feature are neatly encapsulated within their respective components.
+
+## 4. Custom Components
+
+You can encapsulate your own logic or third-party integrations (like Socket.IO, Redis, specific Cron jobs) into reusable Components.
+
+**Structure of a Component:**
+1.  Extend `BaseComponent`.
+2.  Define default `bindings` (optional configuration/options).
+3.  Implement `binding()` to register services, providers, or attach logic to the application.
+
+**Example (`SocketIOComponent`):**
+
+```typescript
+import { BaseComponent, inject, CoreBindings, Binding } from '@venizia/ignis';
+
+export class MySocketComponent extends BaseComponent {
+  constructor(
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
+  ) {
+    super({
+      scope: MySocketComponent.name,
+      // Automatically register bindings when component is loaded
+      initDefault: { enable: true, container: application },
+      bindings: {
+        // Define default configuration binding
+        'my.socket.options': Binding.bind({ key: 'my.socket.options' }).toValue({ port: 8080 }),
+      },
+    });
+  }
+
+  // The binding method is called during application startup (preConfigure)
+  override binding(): void {
+    const options = this.application.get({ key: 'my.socket.options' });
+    
+    this.logger.info('Initializing Socket.IO with options: %j', options);
+    
+    // Perform setup logic, register other services, etc.
+    // this.application.bind(...).toValue(...);
+  }
+}
+```

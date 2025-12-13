@@ -3,7 +3,7 @@ import Fuse from 'fuse.js';
 import matter from 'gray-matter';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { MCP_CONFIG, Paths } from '../common';
+import { MCPConfigs, Paths } from '../common';
 import { Logger } from './logger.helper';
 
 interface IDoc {
@@ -19,6 +19,7 @@ interface ISearchOptions {
   limit?: number;
 }
 
+// --------------------------------------------------------------------------------------------------
 export class DocsHelper {
   private static _docs: IDoc[] = [];
   private static _fuse: Fuse<IDoc> | null = null;
@@ -26,7 +27,7 @@ export class DocsHelper {
   /**
    * Loads and caches documentation from the wiki.
    */
-  static async loadDocumentation(): Promise<IDoc[]> {
+  static async load(): Promise<IDoc[]> {
     if (this._docs.length > 0) {
       return this._docs;
     }
@@ -44,24 +45,26 @@ export class DocsHelper {
       }
 
       this._docs = await Promise.all(
-        files.map(async file => {
-          const rawContent = await fs.readFile(file, 'utf-8');
-          const { data, content } = matter(rawContent);
+        files.map(file => {
+          return new Promise<IDoc>((resolve, reject) => {
+            fs.readFile(file, 'utf-8')
+              .then(rawContent => {
+                const { data, content } = matter(rawContent);
 
-          return {
-            id: path.relative(Paths.WIKI, file),
-            title: data.title || path.basename(file, '.md'),
-            content,
-            category: data.category || 'Uncategorized',
-            filePath: file,
-          };
+                resolve({
+                  id: path.relative(Paths.WIKI, file),
+                  title: data.title || path.basename(file, '.md'),
+                  content,
+                  category: data.category || 'Uncategorized',
+                  filePath: file,
+                });
+              })
+              .catch(reject);
+          });
         }),
       );
 
-      this._fuse = new Fuse(this._docs, {
-        ...MCP_CONFIG.fuse,
-        keys: MCP_CONFIG.fuse.keys as any,
-      });
+      this._fuse = new Fuse(this._docs, { ...MCPConfigs.fuse, keys: MCPConfigs.fuse.keys });
 
       Logger.info(`Loaded ${this._docs.length} documentation files`);
       return this._docs;
@@ -85,10 +88,8 @@ export class DocsHelper {
   /**
    * Generates a smart snippet from content.
    */
-  private static generateSnippet(
-    content: string,
-    maxLength = MCP_CONFIG.search.snippetLength,
-  ): string {
+  private static generateSnippet(opts: { content: string; maxLength?: number }): string {
+    const { content, maxLength = MCPConfigs.search.snippetLength } = opts;
     if (content.length <= maxLength) {
       return content;
     }
@@ -102,23 +103,23 @@ export class DocsHelper {
   /**
    * Searches the loaded documentation.
    */
-  static async searchDocs(opts: ISearchOptions) {
+  static async searchDocuments(opts: ISearchOptions) {
     if (!this._fuse) {
-      await this.loadDocumentation();
+      await this.load();
     }
 
     if (!this._fuse) {
       return [];
     }
 
-    const limit = opts.limit ?? MCP_CONFIG.search.defaultLimit;
+    const limit = opts.limit ?? MCPConfigs.search.defaultLimit;
     const results = this._fuse.search(opts.query).slice(0, limit);
 
     return results.map(result => ({
       id: result.item.id,
       title: result.item.title,
       category: result.item.category,
-      snippet: this.generateSnippet(result.item.content),
+      snippet: this.generateSnippet({ content: result.item.content }),
       score: result.score,
     }));
   }
@@ -126,9 +127,9 @@ export class DocsHelper {
   /**
    * Gets the full content of a specific document.
    */
-  static async getDocContent(opts: { id: string }): Promise<string | null> {
+  static async getDocumentContent(opts: { id: string }): Promise<string | null> {
     if (this._docs.length === 0) {
-      await this.loadDocumentation();
+      await this.load();
     }
 
     const doc = this._docs.find(d => d.id === opts.id);
@@ -141,9 +142,9 @@ export class DocsHelper {
   /**
    * Lists all available documentation files.
    */
-  static async listDocs(opts: { category?: string }) {
+  static async listDocumentFiles(opts: { category?: string }) {
     if (this._docs.length === 0) {
-      await this.loadDocumentation();
+      await this.load();
     }
 
     const filteredDocs = opts.category
@@ -162,7 +163,7 @@ export class DocsHelper {
    */
   static async listCategories(): Promise<string[]> {
     if (this._docs.length === 0) {
-      await this.loadDocumentation();
+      await this.load();
     }
 
     const categories = new Set(this._docs.map(d => d.category));
@@ -172,9 +173,9 @@ export class DocsHelper {
   /**
    * Gets metadata about a specific document.
    */
-  static async getDocMetadata(opts: { id: string }) {
+  static async getDocumentMetadata(opts: { id: string }) {
     if (this._docs.length === 0) {
-      await this.loadDocumentation();
+      await this.load();
     }
 
     const doc = this._docs.find(d => d.id === opts.id);

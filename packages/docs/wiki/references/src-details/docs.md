@@ -23,24 +23,34 @@ Documentation package housing guides, references, and MCP server for the Ignis f
 
 ## Project Structure Overview
 
-Top-level breakdown of the `@packages/docs/` directory:
+Top-level breakdown of the `packages/docs/` directory:
 
-| Folder     | Purpose                                                                            |
-| :--------- | :--------------------------------------------------------------------------------- |
-| **`mcp`**  | Contains the Model Context Protocol (MCP) server implementation for documentation. |
-| **`wiki`** | The main documentation content, built using VitePress.                             |
+| Folder           | Purpose                                                                            |
+| :--------------- | :--------------------------------------------------------------------------------- |
+| **`mcp-server`** | Contains the Model Context Protocol (MCP) server implementation for documentation and code search. |
+| **`wiki`**       | The main documentation content, built using VitePress.                             |
 
 ---
 
 ## Detailed Sections
 
-### `mcp`
+### `mcp-server`
 
-This directory contains the implementation of a Model Context Protocol (MCP) server, which allows external tools to discover and read documentation resources.
+This directory contains the implementation of a Model Context Protocol (MCP) server, which allows external tools (AI assistants) to discover and read documentation resources, as well as search the source code.
 
-| File/Folder | Purpose/Key Details                                                                                                                                                              |
-| :---------- | :------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| File/Folder | Purpose/Key Details |
+| :---------- | :------------------ |
+| `index.ts` | Server entry point, tool registration, and CLI argument parsing |
+| `common/config.ts` | `MCPConfigs` class with server, GitHub, search, and Fuse.js settings |
+| `common/paths.ts` | Path resolution for wiki directory |
+| `helpers/docs.helper.ts` | `DocsHelper` for documentation loading, caching, and Fuse.js search |
+| `helpers/github.helper.ts` | `GithubHelper` for GitHub API integration (code search, file fetching) |
+| `helpers/logger.helper.ts` | Logging utilities |
+| `tools/base.tool.ts` | Abstract `BaseTool` class for all MCP tools |
+| `tools/docs/` | Documentation tools: `searchDocs`, `getDocContent`, `listDocs`, `listCategories`, `getDocMetadata`, `getPackageOverview` |
+| `tools/github/` | Code/project tools: `searchCode`, `listProjectFiles`, `viewSourceFile`, `verifyDependencies` |
 
+For detailed MCP server documentation, see [MCP Server Deep Dive](./mcp-server.md).
 
 ### `wiki`
 

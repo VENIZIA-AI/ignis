@@ -11,21 +11,20 @@ import {
 } from '@venizia/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { BaseComponent } from '../components';
-import { IComponentMixin } from './types';
+import { IComponentMixin, TMixinOpts } from './types';
 
 export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplication>>(
   baseClass: T,
 ) => {
   abstract class Mixed extends baseClass implements IComponentMixin {
-    component<C extends BaseComponent, O extends AnyObject = any>(
-      ctor: TClass<C>,
-      _args?: O,
-    ): Binding<C> {
-      return this.bind<C>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.COMPONENT,
-          key: ctor.name,
-        }),
+    component<Base extends BaseComponent, Args extends AnyObject = any>(
+      ctor: TClass<Base>,
+      opts?: TMixinOpts<Args>,
+    ): Binding<Base> {
+      return this.bind<Base>({
+        key: BindingKeys.build(
+          opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+        ),
       })
         .toClass(ctor)
         .setScope(BindingScopes.SINGLETON);

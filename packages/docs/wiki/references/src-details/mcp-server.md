@@ -12,23 +12,40 @@ This document provides a detailed look into the architecture, features, and inte
 graph TB
     AI[AI Assistant / MCP Client]
     MCP[MCPServer Entry Point]
-    Tools[MCP Tools Layer]
-    Helpers[Business Logic Layer]
-    Cache[In-Memory Cache]
-    FS[File System / Wiki Docs]
+    
+    subgraph ToolLayer [Tools Layer]
+        DocsTools[Documentation Tools]
+        CodeTools[Code & Project Tools]
+    end
+    
+    subgraph LogicLayer [Business Logic Layer]
+        DocsHelper[Docs Helper]
+        GitHubHelper[GitHub Helper]
+    end
+    
+    subgraph DataLayer [Data Sources]
+        FS[File System / Wiki Docs]
+        GitHubAPI[GitHub API]
+    end
 
     AI -->|MCP Protocol| MCP
-    MCP --> Tools
-    Tools --> Helpers
-    Helpers --> Cache
-    Cache -.->|Cache Miss| FS
+    MCP --> DocsTools
+    MCP --> CodeTools
+    
+    DocsTools --> DocsHelper
+    CodeTools --> GitHubHelper
+    
+    DocsHelper --> FS
+    GitHubHelper --> GitHubAPI
 
     style AI fill:#e1f5ff
     style MCP fill:#fff4e1
-    style Tools fill:#f0f0f0
-    style Helpers fill:#e8f5e9
-    style Cache fill:#fce4ec
+    style DocsTools fill:#f0f0f0
+    style CodeTools fill:#f0f0f0
+    style DocsHelper fill:#e8f5e9
+    style GitHubHelper fill:#e8f5e9
     style FS fill:#f3e5f5
+    style GitHubAPI fill:#e3f2fd
 ```
 
 ### Component Responsibilities
@@ -36,15 +53,16 @@ graph TB
 | Component | Responsibility | Key Features |
 |-----------|---------------|--------------|
 | **MCP Server** | Protocol handling, request routing | Stdio transport, tool registration |
-| **Tools Layer** | Input validation, output formatting | Zod schemas, type safety |
-| **DocsHelper** | Business logic, search, caching | Fuse.js search, memory cache |
-| **File System** | Documentation storage | Markdown files with frontmatter |
+| **Docs Tools** | Wiki documentation access | Search, content retrieval, metadata |
+| **Code Tools** | Source code analysis | Code search, file listing, dependency check |
+| **DocsHelper** | Docs logic, search, caching | Fuse.js search, memory cache |
+| **GitHubHelper** | GitHub API integration | Repository search, content fetching |
 
 ---
 
 ## Data Flow
 
-### Search Request Flow
+### Documentation Search Flow
 
 ```mermaid
 sequenceDiagram
@@ -52,27 +70,41 @@ sequenceDiagram
     participant MCP as MCP Server
     participant Tool as SearchDocsTool
     participant Helper as DocsHelper
-    participant Cache as Memory Cache
     participant FS as File System
 
     AI->>MCP: searchDocs("dependency injection")
     MCP->>Tool: Route to tool handler
-    Tool->>Tool: Validate input with Zod
-    Tool->>Helper: DocsHelper.searchDocs()
+    Tool->>Helper: DocsHelper.searchDocuments()
 
     alt Cache Empty (First Call)
         Helper->>FS: Load all .md files
         FS-->>Helper: Raw markdown files
-        Helper->>Helper: Parse frontmatter
         Helper->>Helper: Build Fuse.js index
-        Helper->>Cache: Store docs + index
     end
 
-    Helper->>Cache: Query Fuse.js index
-    Cache-->>Helper: Matching documents
-    Helper->>Helper: Generate smart snippets
+    Helper->>Helper: Query Fuse.js index
     Helper-->>Tool: Search results
-    Tool->>Tool: Validate output with Zod
+    Tool-->>MCP: Formatted response
+    MCP-->>AI: JSON results
+```
+
+### Code Search Flow (GitHub)
+
+```mermaid
+sequenceDiagram
+    participant AI as AI Assistant
+    participant MCP as MCP Server
+    participant Tool as SearchCodeTool
+    participant Helper as GitHubHelper
+    participant API as GitHub API
+
+    AI->>MCP: searchCode("BaseController")
+    MCP->>Tool: Route to tool handler
+    Tool->>Helper: GitHubHelper.searchCode()
+    Helper->>API: GET /search/code
+    API-->>Helper: JSON results
+    Helper->>Helper: Process & Format
+    Helper-->>Tool: Code matches
     Tool-->>MCP: Formatted response
     MCP-->>AI: JSON results
 ```
@@ -81,201 +113,81 @@ sequenceDiagram
 
 ## Tools Reference
 
-### Tool Comparison Table
+### 1. Documentation Tools
 
-| Tool | Purpose | Input Complexity | Use Case |
-|------|---------|------------------|----------|
-| `searchDocs` | Find docs by keyword | Simple (query + limit) | "How do I use Redis?" |
-| `getDocContent` | Get full document | Simple (id only) | Retrieve specific guide |
-| `listDocs` | Browse all docs | Simple (optional filter) | Explore documentation |
-| `listCategories` | List all categories | None | Understand structure |
-| `getDocMetadata` | Get doc stats | Simple (id only) | Check length before reading |
+Tools for accessing the Ignis Framework wiki and guide documentation.
 
-### 1. searchDocs
+| Tool | Purpose | Use Case |
+|------|---------|----------|
+| `searchDocs` | Find docs by keyword | "How do I use Redis?" |
+| `getDocContent` | Get full document content | "Show me the Redis guide" |
+| `listDocs` | Browse available docs | "What guides are available?" |
+| `listCategories` | List doc categories | "Show me doc topics" |
+| `getDocMetadata` | Get doc statistics | "Is this guide long?" |
+| `getPackageOverview` | Get package summaries | "What does the core package do?" |
 
-**What it does:** Fuzzy searches across all documentation titles and content.
+#### `searchDocs`
+Fuzzy searches across all documentation titles and content.
+- **Input:** `{ query: string, limit?: number }`
+- **Returns:** List of matching documents with snippets and relevance scores.
 
-**Parameters:**
+#### `getDocContent`
+Retrieves the full markdown content of a specific document.
+- **Input:** `{ id: string }`
+- **Returns:** Full document content.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `query` | string | Yes | - | Search keywords (min 2 chars) |
-| `limit` | number | No | 10 | Max results (1-50) |
+#### `listDocs`
+Lists all documentation files, optionally filtered by category.
+- **Input:** `{ category?: string }`
+- **Returns:** List of document metadata (id, title, category).
 
-**Returns:**
+#### `listCategories`
+Lists all unique documentation categories.
+- **Input:** `{}`
+- **Returns:** List of category names.
 
-```typescript
-Array<{
-  id: string;        // "get-started/intro.md"
-  title: string;     // "Introduction to Ignis"
-  category: string;  // "Getting Started"
-  snippet: string;   // First 300 chars preview
-  score: number;     // 0-1 relevance (lower = better)
-}>
-```
+#### `getDocMetadata`
+Retrieves statistics about a document without loading full content.
+- **Input:** `{ id: string }`
+- **Returns:** Word count, character count, last modified date.
 
-**Example Request:**
-
-```json
-{
-  "query": "dependency injection",
-  "limit": 5
-}
-```
-
-**Example Response:**
-
-```json
-[
-  {
-    "id": "core-concepts/dependency-injection.md",
-    "title": "Dependency Injection",
-    "category": "Core Concepts",
-    "snippet": "Ignis uses a powerful dependency injection system that allows you to...",
-    "score": 0.12
-  }
-]
-```
+#### `getPackageOverview`
+Retrieves high-level information about specific framework packages.
+- **Input:** `{ packageName?: string }`
+- **Returns:** Package description, version, and purpose.
 
 ---
 
-### 2. getDocContent
+### 2. Code & Project Tools
 
-**What it does:** Retrieves the full markdown content of a specific document.
+Tools for exploring the Ignis codebase, searching source code, and verifying dependencies via GitHub.
 
-**Parameters:**
+| Tool | Purpose | Use Case |
+|------|---------|----------|
+| `searchCode` | Search source code | "Find usages of BaseController" |
+| `listProjectFiles` | List repo files | "Show me files in packages/core" |
+| `viewSourceFile` | Read source code | "Read packages/core/src/index.ts" |
+| `verifyDependencies` | Check package.json | "Check dependencies for @venizia/core" |
 
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | string | Yes | Document ID from search/list |
+#### `searchCode`
+Searches the codebase using GitHub's code search API.
+- **Input:** `{ query: string, limit?: number, extension?: string }`
+- **Returns:** List of code matches with file paths and snippets.
 
-**Returns:**
+#### `listProjectFiles`
+Lists files and directories in the repository.
+- **Input:** `{ path?: string, recursive?: boolean }`
+- **Returns:** File tree structure.
 
-```typescript
-{
-  content: string;  // Full markdown content
-  id: string;       // Document ID
-  error?: string;   // Error message if not found
-}
-```
+#### `viewSourceFile`
+Retrieves the raw content of a source code file.
+- **Input:** `{ path: string }`
+- **Returns:** Raw file content.
 
-**Example Request:**
-
-```json
-{
-  "id": "get-started/intro.md"
-}
-```
-
----
-
-### 3. listDocs
-
-**What it does:** Lists all documentation files with their metadata.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `category` | string | No | Filter by category name |
-
-**Returns:**
-
-```typescript
-{
-  count: number;
-  docs: Array<{
-    id: string;
-    title: string;
-    category: string;
-  }>;
-}
-```
-
-**Example Response:**
-
-```json
-{
-  "count": 15,
-  "docs": [
-    {
-      "id": "get-started/intro.md",
-      "title": "Introduction",
-      "category": "Getting Started"
-    }
-  ]
-}
-```
-
----
-
-### 4. listCategories
-
-**What it does:** Lists all unique categories, sorted alphabetically.
-
-**Parameters:** None
-
-**Returns:**
-
-```typescript
-{
-  count: number;
-  categories: string[];  // ["Core Concepts", "Getting Started", ...]
-}
-```
-
-**Example Response:**
-
-```json
-{
-  "count": 6,
-  "categories": [
-    "Core Concepts",
-    "Getting Started",
-    "Helpers",
-    "References"
-  ]
-}
-```
-
----
-
-### 5. getDocMetadata
-
-**What it does:** Retrieves statistics about a document without loading full content.
-
-**Parameters:**
-
-| Parameter | Type | Required | Description |
-|-----------|------|----------|-------------|
-| `id` | string | Yes | Document ID |
-
-**Returns:**
-
-```typescript
-{
-  id: string;
-  title: string;
-  category: string;
-  wordCount: number;
-  charCount: number;
-  lastModified?: string;
-  size?: number;        // Bytes
-}
-```
-
-**Example Response:**
-
-```json
-{
-  "id": "core-concepts/dependency-injection.md",
-  "title": "Dependency Injection",
-  "category": "Core Concepts",
-  "wordCount": 2500,
-  "charCount": 15234,
-  "size": 15234
-}
-```
+#### `verifyDependencies`
+Checks the `package.json` of a specific package or the root project.
+- **Input:** `{ package?: string }`
+- **Returns:** List of dependencies and their versions.
 
 ---
 
@@ -338,20 +250,31 @@ pie
 ```
 mcp-server/
 ├── common/
-│   ├── config.ts           # Configuration constants
+│   ├── config.ts           # Configuration constants (MCPConfigs class)
 │   ├── logger.ts           # Logging infrastructure
 │   ├── paths.ts            # Path resolution
 │   └── index.ts            # Common exports
 ├── helpers/
 │   ├── docs.helper.ts      # Documentation loading and searching
+│   ├── github.helper.ts    # GitHub API integration
+│   ├── logger.helper.ts    # Logging utilities
 │   └── index.ts            # Helper exports
 ├── tools/
 │   ├── base.tool.ts        # Abstract base class for tools
-│   ├── search-docs.tool.ts
-│   ├── get-doc-content.tool.ts
-│   ├── list-docs.tool.ts
-│   ├── list-categories.tool.ts
-│   ├── get-doc-metadata.tool.ts
+│   ├── docs/               # Documentation tools
+│   │   ├── get-document-content.tool.ts
+│   │   ├── get-document-metadata.tool.ts
+│   │   ├── get-package-overview.tool.ts
+│   │   ├── list-categories.tool.ts
+│   │   ├── list-documents.tool.ts
+│   │   ├── search-documents.tool.ts
+│   │   └── index.ts
+│   ├── github/             # GitHub/Code tools
+│   │   ├── list-project-files.tool.ts
+│   │   ├── search-code.tool.ts
+│   │   ├── verify-dependencies.tool.ts
+│   │   ├── view-source-file.tool.ts
+│   │   └── index.ts
 │   └── index.ts
 ├── index.ts                # Server entry point
 └── README.md
@@ -364,9 +287,10 @@ mcp-server/
 | `index.ts` | Server initialization, tool registration | `main()`, `mcpServer` |
 | `tools/base.tool.ts` | Abstract tool class, singleton pattern | `BaseTool`, `createTool` |
 | `helpers/docs.helper.ts` | Documentation loading, search, cache | `DocsHelper` class |
-| `common/config.ts` | Centralized configuration | `MCP_CONFIG` object |
+| `helpers/github.helper.ts` | GitHub API integration | `GithubHelper` class |
+| `common/config.ts` | Centralized configuration | `MCPConfigs` class |
 | `common/logger.ts` | Structured logging | `Logger` class |
-| `common/paths.ts` | Path resolution | `PATHS` object |
+| `common/paths.ts` | Path resolution | `Paths` object |
 
 ---
 
@@ -543,28 +467,55 @@ const mcpServer = new MCPServer({
 
 ### Configuration Updates
 
-Modify `common/config.ts` to adjust global settings:
+Modify `common/config.ts` to adjust global settings. The configuration is now a class with static properties:
 
 ```typescript
-export const MCP_CONFIG = {
-  server: {
-    name: 'ignis-docs',
-    version: '0.0.1',
-  },
-  search: {
-    defaultLimit: 10,     // Change default result count
-    maxLimit: 50,         // Change maximum result count
-    minQueryLength: 2,    // Change minimum query length
-    snippetLength: 300,   // Change snippet preview length
-  },
-  fuse: {
-    threshold: 0.4,       // Adjust fuzzy matching strictness
+export class MCPConfigs {
+  // Server identification
+  static readonly server = { name: 'ignis-docs', version: '0.0.1' } as const;
+
+  // GitHub configuration (branch is runtime-configurable)
+  static readonly github = {
+    apiBase: 'https://api.github.com',
+    rawContentBase: 'https://raw.githubusercontent.com',
+    repoOwner: 'VENIZIA-AI',
+    repoName: 'ignis',
+    get branch(): string { return MCPConfigs._branch; },
+  };
+
+  // Set branch at runtime via CLI argument
+  static setBranch(opts: { branch: string }) {
+    MCPConfigs._branch = opts.branch;
+  }
+
+  // Documentation search settings
+  static readonly search = {
+    snippetLength: 320,   // Max characters for content snippet
+    defaultLimit: 10,     // Default results per search
+    maxLimit: 50,         // Maximum allowed results
+    minQueryLength: 2,    // Minimum query length
+  };
+
+  // Code search settings (GitHub API)
+  static readonly codeSearch = {
+    defaultLimit: 10,
+    maxLimit: 30,         // GitHub API limit
+    minQueryLength: 2,
+  };
+
+  // Fuse.js search engine settings
+  static readonly fuse = {
+    includeScore: true,
+    threshold: 0.4,       // 0.0 = exact, 1.0 = match anything
+    minMatchCharLength: 2,
+    findAllMatches: true,
+    ignoreLocation: true,
     keys: [
-      { name: 'title', weight: 0.7 },    // Adjust title weight
-      { name: 'content', weight: 0.3 },  // Adjust content weight
+      { name: 'title', weight: 0.7 },
+      { name: 'content', weight: 0.3 },
     ],
-  },
-};
+  };
+}
 ```
 
 **Configuration Impact:**
@@ -723,4 +674,4 @@ The search uses a threshold of 0.4, which balances between strict and fuzzy matc
 - Close matches: Tolerate 1-2 character typos
 - Partial matches: Find substrings anywhere in title/content
 
-Adjust `MCP_CONFIG.fuse.threshold` to make it stricter (lower) or fuzzier (higher).
+Adjust `MCPConfigs.fuse.threshold` to make it stricter (lower) or fuzzier (higher).

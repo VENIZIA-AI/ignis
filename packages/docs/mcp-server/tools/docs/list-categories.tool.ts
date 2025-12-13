@@ -1,6 +1,7 @@
+import { DocsHelper } from '@/mcp-server/helpers';
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { DocsHelper } from '../helpers';
-import { BaseTool, createTool, type TMastraTool } from './base.tool';
+import { BaseTool, TMastraTool } from '../base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
@@ -87,7 +88,7 @@ export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof Outp
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  async execute(_input: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
+  async execute(_opts: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
     const categories = await DocsHelper.listCategories();
 
     return {
@@ -100,8 +101,8 @@ export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof Outp
     return createTool({
       id: this.id,
       description: this.description,
-      inputSchema: InputSchema,
-      outputSchema: OutputSchema,
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
       execute: async ({ context }) => this.execute(context),
     });
   }

@@ -19,6 +19,8 @@ import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
 import { IDataSource } from '../datasources';
 import { appErrorHandler, emojiFavicon, notFoundHandler, requestNormalize } from '../middlewares';
+import { TMixinOpts } from '../mixins';
+import { TTableSchemaWithId } from '../models/common';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 import { AbstractApplication } from './abstract';
@@ -45,15 +47,14 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  component<T extends BaseComponent, O extends AnyObject = any>(
-    ctor: TClass<T>,
-    _args?: O,
-  ): Binding<T> {
-    return this.bind<T>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.COMPONENT,
-        key: ctor.name,
-      }),
+  component<Base extends BaseComponent, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? { namespace: BindingNamespaces.COMPONENT, key: ctor.name },
+      ),
     })
       .toClass(ctor)
       .setScope(BindingScopes.SINGLETON);
@@ -83,12 +84,17 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  controller<T>(ctor: TClass<T>): Binding<T> {
-    return this.bind<T>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.CONTROLLER,
-        key: ctor.name,
-      }),
+  controller<Base, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.CONTROLLER,
+          key: ctor.name,
+        },
+      ),
     }).toClass(ctor);
   }
 
@@ -131,32 +137,47 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
   }
 
   // ------------------------------------------------------------------------------
-  service<T extends IService>(ctor: TClass<T>): Binding<T> {
-    return this.bind<T>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: ctor.name,
-      }),
+  service<Base extends IService, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.SERVICE,
+          key: ctor.name,
+        },
+      ),
     }).toClass(ctor);
   }
 
   // ------------------------------------------------------------------------------
-  repository<T extends IRepository<any>>(ctor: TClass<T>): Binding<T> {
-    return this.bind<T>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: ctor.name,
-      }),
+  repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.REPOSITORY,
+          key: ctor.name,
+        },
+      ),
     }).toClass(ctor);
   }
 
   // ------------------------------------------------------------------------------
-  dataSource<T extends IDataSource<any>>(ctor: TClass<T>): Binding<T> {
-    return this.bind<T>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.DATASOURCE,
-        key: ctor.name,
-      }),
+  dataSource<Base extends IDataSource, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? {
+          namespace: BindingNamespaces.DATASOURCE,
+          key: ctor.name,
+        },
+      ),
     })
       .toClass(ctor)
       .setScope(BindingScopes.SINGLETON);

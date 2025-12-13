@@ -1,5 +1,6 @@
 import { BindingNamespaces } from '@/common/bindings';
 import {
+  AnyObject,
   Binding,
   BindingKeys,
   BindingValueTypes,
@@ -13,16 +14,21 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import { AbstractApplication } from '../applications';
 import { BaseController } from '../controllers';
-import { IControllerMixin } from './types';
+import { IControllerMixin, TMixinOpts } from './types';
 
 export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IControllerMixin {
-    controller<C>(ctor: TClass<C>): Binding<C> {
-      return this.bind<C>({
-        key: BindingKeys.build({
-          namespace: BindingNamespaces.CONTROLLER,
-          key: ctor.name,
-        }),
+    controller<Base, Args extends AnyObject = any>(
+      ctor: TClass<Base>,
+      opts?: TMixinOpts<Args>,
+    ): Binding<Base> {
+      return this.bind<Base>({
+        key: BindingKeys.build(
+          opts?.binding ?? {
+            namespace: BindingNamespaces.CONTROLLER,
+            key: ctor.name,
+          },
+        ),
       }).toClass(ctor);
     }
 

@@ -1,5 +1,6 @@
 import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from '@/base/models';
 import { AbstractRepository, DEFAULT_LIMIT } from '@/base/repositories';
+import { z } from '@hono/zod-openapi';
 import {
   BaseHelper,
   executeWithPerformanceMeasure,
@@ -13,7 +14,6 @@ import {
 import { Env, Schema } from 'hono';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';
-import { z } from '@hono/zod-openapi';
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -98,7 +98,12 @@ export class ControllerFactory extends BaseHelper {
     });
 
     // 3. Define class
-    return class extends BaseController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
+    const _controller = class extends BaseController<
+      RouteEnv,
+      RouteSchema,
+      BasePath,
+      ConfigurableOptions
+    > {
       repository: AbstractRepository<EntitySchema>;
       defaultLimit: number;
 
@@ -314,5 +319,9 @@ export class ControllerFactory extends BaseHelper {
         });
       }
     };
+
+    // Set the class name dynamically
+    Object.defineProperty(_controller, 'name', { value: name, configurable: true });
+    return _controller;
   }
 }
