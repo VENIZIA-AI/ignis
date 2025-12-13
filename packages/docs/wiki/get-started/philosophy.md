@@ -2,28 +2,107 @@
 
 Ignis combines the structured, enterprise-grade development experience of **LoopBack 4** with the speed and simplicity of **Hono**.
 
-## The Problem
+## The Landscape
 
-When building REST APIs with Node.js/Bun, developers face a choice:
+When building REST APIs with Node.js/Bun, developers choose from three categories of frameworks, each with genuine strengths:
 
-| Aspect | Minimal Frameworks | Enterprise Frameworks | **Ignis** |
-|--------|-------------------|----------------------|-----------|
-| **Examples** | Express, Hono, Fastify | NestJS, LoopBack | **Ignis** |
-| **Performance** | ⚡ Very fast | 🐌 Slower | ⚡ Very fast (Hono) |
-| **Architecture** | ❌ No structure | ✅ Structured | ✅ Structured |
-| **Learning Curve** | ✅ Easy | ❌ Steep | ✅ Gradual |
-| **Dependency Injection** | ❌ Manual | ✅ Built-in | ✅ Built-in |
-| **Boilerplate** | ✅ Minimal | ❌ Heavy | ✅ Moderate |
-| **Best For** | Prototypes, tiny APIs | Large enterprise apps | Growing APIs, teams |
+### Framework Categories
 
-### Ignis: The Middle Ground
+| Category | Examples | Philosophy |
+|----------|----------|------------|
+| **Minimal** | Express, Hono, Fastify, Koa | Freedom, speed, flexibility |
+| **Enterprise** | NestJS, LoopBack 4, AdonisJS | Structure, patterns, conventions |
+| **Balanced** | Ignis, Ts.ED | Structure with lighter footprint |
 
-Ignis provides the architectural benefits of enterprise frameworks while maintaining Hono's speed:
+## Honest Comparison
 
-- ✅ **Enterprise patterns** (DI, layered architecture) without the bloat
-- ✅ **Hono's performance** - one of the fastest frameworks
-- ✅ **Gradual complexity** - start simple, add structure as you grow
-- ✅ **TypeScript-first** with excellent type safety
+### Performance & Runtime
+
+| Framework | Requests/sec | Startup Time | Memory | Multi-Runtime |
+|-----------|-------------|--------------|--------|---------------|
+| **Hono** | ~150k | ~10ms | ~20MB | ✅ Bun, Node, Deno, CF Workers |
+| **Fastify** | ~80k | ~50ms | ~40MB | Node only |
+| **Express** | ~15k | ~100ms | ~50MB | Node only |
+| **NestJS** | ~25k | ~500ms | ~100MB | Node (Bun experimental) |
+| **LoopBack 4** | ~20k | ~800ms | ~120MB | Node only |
+| **Ignis** | ~140k | ~30ms | ~30MB | ✅ Bun, Node |
+
+*Benchmarks are approximate and vary by use case.*
+
+### Developer Experience
+
+| Aspect | Minimal (Hono/Express) | Enterprise (NestJS/LoopBack) | Ignis |
+|--------|------------------------|------------------------------|-------|
+| **Setup Time** | 5 minutes | 30+ minutes | 10 minutes |
+| **Learning Curve** | Low | High | Medium |
+| **Boilerplate** | Minimal | Heavy | Moderate |
+| **Type Safety** | Manual | Excellent | Excellent |
+| **IDE Support** | Basic | Excellent | Good |
+| **Documentation** | Good | Excellent | Growing |
+
+### Architecture & Patterns
+
+| Pattern | Minimal | Enterprise | Ignis |
+|---------|---------|------------|-------|
+| **Dependency Injection** | ❌ Manual/3rd party | ✅ Built-in (complex) | ✅ Built-in (simple) |
+| **Layered Architecture** | ❌ DIY | ✅ Enforced | ✅ Guided |
+| **Repository Pattern** | ❌ DIY | ✅ Built-in | ✅ Built-in |
+| **Validation** | ❌ 3rd party | ✅ Built-in | ✅ Built-in (Zod) |
+| **OpenAPI/Swagger** | ❌ 3rd party | ✅ Built-in | ✅ Built-in |
+| **Authentication** | ❌ DIY | ✅ Modules available | ✅ Built-in component |
+
+### Ecosystem & Maturity
+
+| Aspect | Minimal (Hono) | Enterprise (NestJS) | Ignis |
+|--------|----------------|---------------------|-------|
+| **Community Size** | Growing fast | Very large | Small |
+| **npm Downloads** | ~500k/week | ~3M/week | New |
+| **Stack Overflow** | Limited | Extensive | Limited |
+| **Third-party Modules** | Middleware-based | Rich ecosystem | Growing |
+| **Production Battle-tested** | Yes | Yes | Emerging |
+| **Corporate Backing** | Cloudflare | Trilon | Independent |
+
+### Flexibility vs Convention
+
+| Aspect | Minimal | Enterprise | Ignis |
+|--------|---------|------------|-------|
+| **Project Structure** | Total freedom | Strict conventions | Guided conventions |
+| **ORM Choice** | Any | TypeORM/Prisma preferred | Drizzle (flexible) |
+| **Testing Approach** | Any | Jest recommended | Any |
+| **Middleware System** | Simple | Complex interceptors | Hono middleware |
+| **Customization** | Unlimited | Plugin-based | Component-based |
+
+## The Middle Ground: Where Ignis Fits
+
+### What Each Approach Excels At
+
+**Minimal Frameworks (Hono, Express, Fastify):**
+- ✅ Maximum performance
+- ✅ Complete freedom in architecture
+- ✅ Fastest prototyping
+- ✅ Smallest bundle size
+- ✅ Edge/serverless deployments
+- ⚠️ Architecture decisions left to developer
+- ⚠️ Patterns must be implemented manually
+
+**Enterprise Frameworks (NestJS, LoopBack):**
+- ✅ Battle-tested patterns
+- ✅ Comprehensive documentation
+- ✅ Large community & ecosystem
+- ✅ Excellent for large teams
+- ✅ Strong conventions prevent chaos
+- ⚠️ Higher resource consumption
+- ⚠️ Steeper learning curve
+- ⚠️ More boilerplate
+
+**Ignis (The Middle Ground):**
+- ✅ Enterprise patterns without the weight
+- ✅ Hono's performance foundation
+- ✅ Gradual complexity adoption
+- ✅ TypeScript-first with Zod validation
+- ⚠️ Smaller community (new framework)
+- ⚠️ Less documentation than mature frameworks
+- ⚠️ Fewer third-party integrations
 
 ## Inspired By The Best
 
@@ -102,17 +181,111 @@ Ignis = LoopBack patterns + Hono performance:
 - Type-safe database operations
 - Automatic validation
 
+## Choose the Right Tool
+
+### Use Hono/Fastify/Express When:
+
+| Scenario | Why It's Better |
+|----------|-----------------|
+| Building a simple webhook handler | No structure overhead needed |
+| Edge/serverless functions | Minimal cold start, tiny bundle |
+| Rapid prototyping | Get something running in minutes |
+| Microservices with 1-5 endpoints | Structure adds unnecessary complexity |
+| You want maximum control | No conventions to follow |
+| Learning web development | Simpler mental model |
+
+### Use NestJS/LoopBack When:
+
+| Scenario | Why It's Better |
+|----------|-----------------|
+| Large team (10+ developers) | Strong conventions prevent chaos |
+| Enterprise with strict standards | Mature, battle-tested, auditable |
+| Need extensive ecosystem | Many official and community modules |
+| Complex microservices architecture | Built-in support for messaging, CQRS |
+| Hiring developers easily | Large talent pool familiar with it |
+| Long-term support is critical | Corporate backing, LTS versions |
+
+### Use Ignis When:
+
+| Scenario | Why It's Better |
+|----------|-----------------|
+| Medium-sized API (10-100 endpoints) | Right balance of structure and speed |
+| Small team wanting patterns | DI without enterprise complexity |
+| Performance is critical | Hono's speed with structure |
+| Coming from LoopBack/NestJS | Familiar patterns, lighter weight |
+| Bun-first development | Native Bun support |
+| Growing project | Start simple, add complexity gradually |
+
 ## The Trade-off
 
-| You Gain | You Give Up |
-|----------|-------------|
-| Clear architecture | ~100 lines setup boilerplate |
-| Built-in DI, validation, docs | Learning curve for patterns |
-| Faster for medium/large projects | Slightly more abstraction than Hono |
-| Easier testing | Initial time investment |
-| Team scalability | Convention over total freedom |
+Every choice has trade-offs. Here's an honest look:
 
-**Bottom line:** If you're building more than a simple API, the structure pays off in maintainability and productivity.
+### What You Gain with Ignis
+
+| Benefit | Compared To |
+|---------|-------------|
+| ~5x faster than NestJS | Enterprise frameworks |
+| Built-in DI, validation, OpenAPI | Minimal frameworks |
+| Structured codebase | DIY architecture |
+| Easier testing with DI | Manual mocking |
+| Team-friendly patterns | Individual coding styles |
+
+### What You Give Up with Ignis
+
+| Trade-off | Compared To |
+|-----------|-------------|
+| ~10% slower than raw Hono | Minimal frameworks |
+| Smaller community | NestJS/Express |
+| Less documentation | Mature frameworks |
+| Learning curve for patterns | No-structure approach |
+| Convention requirements | Total freedom |
+
+### Honest Assessment
+
+| Aspect | Ignis Reality |
+|--------|---------------|
+| **Maturity** | New framework, evolving API |
+| **Community** | Small but growing |
+| **Documentation** | Good but not comprehensive |
+| **Production Use** | Early adopters only |
+| **Breaking Changes** | Possible before v1.0 |
+| **Support** | Community-driven |
+
+**Bottom line:** Ignis is ideal for developers who want enterprise patterns without enterprise overhead. If you need battle-tested stability and extensive community support, consider NestJS. If you need maximum simplicity, stick with Hono.
+
+## Migration Paths
+
+### From Hono to Ignis
+
+If your Hono project grows complex:
+
+```
+1. Add Ignis as dependency
+2. Wrap existing Hono app with Ignis Application
+3. Gradually introduce DI for new features
+4. Migrate routes to controllers over time
+```
+
+### From NestJS to Ignis
+
+If you want better performance:
+
+```
+1. Controllers → Ignis Controllers (similar decorators)
+2. Services → Ignis Services (same pattern)
+3. Repositories → Ignis Repositories (Drizzle instead of TypeORM)
+4. Modules → Ignis Components (simpler structure)
+```
+
+### From Ignis to NestJS
+
+If you outgrow Ignis:
+
+```
+1. Patterns are similar - migration is straightforward
+2. Main changes: ORM, module system, interceptors
+3. DI concepts transfer directly
+```
 
 ## Next Steps
 
