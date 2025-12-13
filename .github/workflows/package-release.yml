@@ -80,6 +80,7 @@ jobs:
         run: |
           echo "[install] Installing dependencies"
           bun install
+          bun run --filter "${{ env.PACKAGE_NAME }}" force-update
 
       - name: Linting application source
         run: |
