@@ -7,8 +7,9 @@ const config = defineConfig({
   srcDir: '../wiki',
   title: '🔥 IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
-  head: [['link', { rel: 'icon', href: '/logo.svg' }]],
+  head: [['link', { rel: 'icon', href: '/ignis/logo.svg' }]],
   themeConfig: {
+    logo: '/logo.svg',
     search: {
       provider: 'local',
     },
