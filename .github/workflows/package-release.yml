@@ -29,15 +29,17 @@ on:
         default: "patch"
 
 # =============================================================================
-# PACKAGE DEPENDENCY TREE (for reference):
+# PACKAGE DEPENDENCY TREE:
 #   dev-configs  → (none)
 #   inversion    → dev-configs
 #   helpers      → dev-configs, inversion
 #   core         → dev-configs, inversion, helpers
 #   docs         → dev-configs
 #
-# SPECIAL CASES:
-#   - docs: builds to mcp-server/dist instead of dist
+# SPECIAL CASES (dist directories):
+#   - docs:      mcp-server/dist
+#   - inversion: dist/cjs, dist/esm
+#   - others:    dist
 # =============================================================================
 
 env:
@@ -46,20 +48,20 @@ env:
 
 jobs:
   release:
-    name: Build & Release
+    name: Release
     runs-on: ubuntu-latest
 
     steps:
       # =========================================================================
       # SETUP
       # =========================================================================
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: "https://registry.npmjs.org"
 
       - name: Setup Bun
@@ -73,7 +75,7 @@ jobs:
           git config user.email "developer@venizia.ai"
 
       # =========================================================================
-      # PACKAGE INFO
+      # PREPARE
       # =========================================================================
       - name: Get package info
         run: |
@@ -81,201 +83,134 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          # Set dist directories to validate
-          # SPECIAL CASES:
-          #   - docs: builds to mcp-server/dist
-          #   - inversion: builds to dist/cjs and dist/esm (dual build)
+          # Set dist directories for validation
           case $PACKAGE in
-            docs)
-              DIST_DIRS="mcp-server/dist"
-              ;;
-            inversion)
-              DIST_DIRS="dist/cjs dist/esm"
-              ;;
-            *)
-              DIST_DIRS="dist"
-              ;;
+            docs)      DIST_DIRS="mcp-server/dist" ;;
+            inversion) DIST_DIRS="dist/cjs dist/esm" ;;
+            *)         DIST_DIRS="dist" ;;
           esac
 
-          # Export to environment
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
           echo "DIST_DIRS=$DIST_DIRS" >> $GITHUB_ENV
 
-          # Log info
           echo "┌─────────────────────────────────────────────────"
           echo "│ Package:     $PACKAGE_NAME"
           echo "│ Path:        $PACKAGE_PATH"
-          echo "│ Version:     $CURRENT_VERSION"
-          echo "│ Build Mode:  $BUILD_MODE"
-          echo "│ Dist Dirs:   $DIST_DIRS"
+          echo "│ Version:     $CURRENT_VERSION → $BUILD_MODE"
+          echo "│ Dist:        $DIST_DIRS"
           echo "└─────────────────────────────────────────────────"
 
-      # =========================================================================
-      # BUILD
-      # =========================================================================
-      - name: Install dependencies
+      - name: Install & Build dependencies
         run: |
-          echo ">>> Installing dependencies..."
           bun install
           bun run --filter "$PACKAGE_NAME" force-update
 
-      - name: Build workspace dependencies
-        run: |
-          echo ">>> Building workspace dependencies for: $PACKAGE"
-          make dev-configs
-          make core
+          # Build only required dependencies (see dependency tree in header)
+          case $PACKAGE in
+            dev-configs) ;;
+            inversion)   make dev-configs ;;
+            helpers)     make dev-configs && make inversion ;;
+            core)        make dev-configs && make inversion && make helpers ;;
+            docs)        make dev-configs ;;
+          esac
 
-      - name: Lint source code
+      # =========================================================================
+      # LINT & BUILD
+      # =========================================================================
+      - name: Lint & Build
         run: |
-          echo ">>> Linting $PACKAGE_NAME..."
+          echo ">>> Linting..."
           bun run --filter "$PACKAGE_NAME" lint
 
-      - name: Build package
-        run: |
-          echo ">>> Building $PACKAGE_NAME..."
+          echo ""
+          echo ">>> Building..."
           bun run --filter "$PACKAGE_NAME" rebuild
 
-      - name: Validate build artifacts
-        run: |
+          echo ""
+          echo ">>> Validating build artifacts..."
           cd $PACKAGE_PATH
-
-          # Validate each dist directory
-          for DIST_DIR in $DIST_DIRS; do
-            echo ">>> Validating: $DIST_DIR"
-
-            # Check dist directory exists
-            if [ ! -d "$DIST_DIR" ]; then
-              echo "ERROR: $DIST_DIR directory not found"
-              exit 1
-            fi
-
-            # Check required files
-            for file in "index.js" "index.d.ts"; do
-              if [ ! -f "$DIST_DIR/$file" ]; then
-                echo "ERROR: $DIST_DIR/$file not found"
-                exit 1
-              fi
-            done
-
-            echo "    ✓ $DIST_DIR validated"
+          for dir in $DIST_DIRS; do
+            [ -f "$dir/index.js" ] && [ -f "$dir/index.d.ts" ] || { echo "ERROR: $dir missing files"; exit 1; }
+            echo "    ✓ $dir"
           done
 
-          echo "✓ All build artifacts validated successfully"
-
       # =========================================================================
-      # VERSION & PUBLISH
+      # VERSION & GIT
       # =========================================================================
-      - name: Bump version
+      - name: Version bump
         run: |
           cd $PACKAGE_PATH
           npm version $BUILD_MODE --no-git-tag-version --workspaces-update=false
 
           NEW_VERSION=$(jq -r .version package.json)
-          TAG_NAME="$PACKAGE-v$NEW_VERSION"
-
           echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_ENV
-          echo "TAG_NAME=$TAG_NAME" >> $GITHUB_ENV
+          echo "TAG_NAME=$PACKAGE-v$NEW_VERSION" >> $GITHUB_ENV
+          echo ">>> New version: $NEW_VERSION"
 
-          echo ">>> Version bumped to: $NEW_VERSION"
-          echo ">>> Tag name: $TAG_NAME"
-
-      - name: Commit version change
+      - name: Commit & Push
         run: |
-          echo ">>> Committing version change..."
           cd $PACKAGE_PATH
-
-          git fetch origin
-          git checkout develop
-          git pull origin develop
-
+          git fetch origin && git checkout develop && git pull origin develop
           git add package.json
           git commit -m "chore($PACKAGE): release v$NEW_VERSION [$BUILD_MODE]"
-
-      - name: Push to develop
-        run: |
-          echo ">>> Pushing to develop..."
           git push origin develop
           echo "IS_PUSHED=true" >> $GITHUB_ENV
 
-      - name: Create and push tag
+      - name: Create tag
         run: |
-          echo ">>> Creating tag: $TAG_NAME..."
           git tag -a "$TAG_NAME" -m "$PACKAGE_NAME v$NEW_VERSION"
           git push origin "$TAG_NAME"
           echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
 
-      - name: Merge to main (stable releases only)
+      - name: Merge to main (stable only)
         if: ${{ !startsWith(github.event.inputs.build_mode, 'pre') }}
         run: |
-          echo ">>> Merging to main (stable release)..."
-          git checkout main
-          git pull origin main
+          git checkout main && git pull origin main
           git merge develop --no-ff -m "chore: merge $PACKAGE v$NEW_VERSION to main"
           git push origin main
           echo "IS_MERGED=true" >> $GITHUB_ENV
 
+      # =========================================================================
+      # PUBLISH
+      # =========================================================================
       - name: Publish to NPM
         run: |
           cd $PACKAGE_PATH
 
-          # Determine npm tag based on build mode
           case $BUILD_MODE in
-            patch|minor|major)
-              NPM_TAG="latest"
-              ;;
-            prepatch|preminor|premajor|prerelease)
-              NPM_TAG="next"
-              ;;
+            patch|minor|major) NPM_TAG="latest" ;;
+            *)                 NPM_TAG="next" ;;
           esac
 
-          echo ">>> Publishing to NPM with tag: $NPM_TAG..."
-          npm publish --access public --tag $NPM_TAG
+          # Skip prepublishOnly since we already built
+          npm publish --access public --tag $NPM_TAG --ignore-scripts
 
           echo "IS_PUBLISHED=true" >> $GITHUB_ENV
-          echo "✓ Successfully published $PACKAGE_NAME@$NEW_VERSION"
+          echo "✓ Published $PACKAGE_NAME@$NEW_VERSION ($NPM_TAG)"
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
       # =========================================================================
-      # ROLLBACK (on failure)
+      # ROLLBACK
       # =========================================================================
       - name: Rollback on failure
         if: failure()
         run: |
-          echo "┌─────────────────────────────────────────────────"
-          echo "│ ROLLBACK: Starting rollback process..."
-          echo "└─────────────────────────────────────────────────"
+          echo ">>> ROLLBACK STARTED"
 
-          # Rollback tag
-          if [ "$IS_TAG_CREATED" == "true" ]; then
-            echo ">>> Deleting tag: $TAG_NAME"
-            git push --delete origin "$TAG_NAME" 2>/dev/null || echo "    (tag not found on remote)"
-            git tag -d "$TAG_NAME" 2>/dev/null || echo "    (tag not found locally)"
-          fi
+          [ "$IS_TAG_CREATED" == "true" ] && {
+            git push --delete origin "$TAG_NAME" 2>/dev/null || true
+            git tag -d "$TAG_NAME" 2>/dev/null || true
+          }
 
-          # Rollback develop branch
-          if [ "$IS_PUSHED" == "true" ]; then
-            echo ">>> Resetting develop branch..."
-            git checkout develop
-            git reset --hard HEAD~1
-            git push --force origin develop
-          fi
+          [ "$IS_PUSHED" == "true" ] && {
+            git checkout develop && git reset --hard HEAD~1 && git push --force origin develop
+          }
 
-          # Rollback main branch
-          if [ "$IS_MERGED" == "true" ]; then
-            echo ">>> Resetting main branch..."
-            git checkout main
-            git reset --hard HEAD~1
-            git push --force origin main
-          fi
+          [ "$IS_MERGED" == "true" ] && {
+            git checkout main && git reset --hard HEAD~1 && git push --force origin main
+          }
 
-          echo ""
-          echo "┌─────────────────────────────────────────────────"
-          echo "│ ROLLBACK COMPLETED"
-          echo "│"
-          if [ "$IS_PUBLISHED" == "true" ]; then
-            echo "│ ⚠️  WARNING: Package was published to NPM!"
-            echo "│ ⚠️  Run: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"
-          fi
-          echo "└─────────────────────────────────────────────────"
+          echo ">>> ROLLBACK COMPLETED"
+          [ "$IS_PUBLISHED" == "true" ] && echo "⚠️  NPM package published - run: npm deprecate $PACKAGE_NAME@$NEW_VERSION 'Accidental release'"

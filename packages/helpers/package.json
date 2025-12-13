@@ -52,7 +52,8 @@
     "dist",
     "!/**/tests",
     "!/**/dist/tests",
-    "!/**/__tests__"
+    "!/**/__tests__",
+    "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"

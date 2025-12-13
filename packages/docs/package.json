@@ -54,7 +54,8 @@
     "README.md",
     "LICENSE.md",
     "mcp-server/dist",
-    "wiki"
+    "wiki",
+    "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"

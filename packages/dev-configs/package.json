@@ -37,7 +37,8 @@
     "README.md",
     "LICENSE.md",
     "dist",
-    "tsconfig"
+    "tsconfig",
+    "!**/*.tsbuildinfo"
   ],
   "publishConfig": {
     "access": "public"
