@@ -7,6 +7,7 @@ import {
   BindingKeys,
   BindingNamespaces,
   DataTypes,
+  DiskHelper,
   Environment,
   getUID,
   HealthCheckBindingKeys,
@@ -21,6 +22,7 @@ import {
   MinioHelper,
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
   SwaggerComponent,
   TStaticAssetsComponentOptions,
   ValueOrPromise,
@@ -143,28 +145,43 @@ export class Application extends BaseApplication {
 
     this.component(SwaggerComponent);
 
+    // Configure Static Asset Component with v2.0 API
     this.bind<TStaticAssetsComponentOptions>({
       key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
     }).toValue({
-      minioAsset: {
-        enable: true,
-        minioHelper: new MinioHelper({
+      // MinIO storage for user uploads and media
+      staticAsset: {
+        controller: {
+          name: 'AssetController',
+          basePath: '/assets',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.MINIO,
+        helper: new MinioHelper({
           endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
           port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
           accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
           secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
           useSSL: false,
         }),
-        options: {
+        extra: {
           parseMultipartBody: {
             storage: 'memory',
           },
         },
       },
+      // Local disk storage for temporary files and cache
       staticResource: {
-        enable: true,
-        resourceBasePath: './app_data/resources',
-        options: {
+        controller: {
+          name: 'ResourceController',
+          basePath: '/resources',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.DISK,
+        helper: new DiskHelper({
+          basePath: './app_data/resources',
+        }),
+        extra: {
           parseMultipartBody: {
             storage: 'memory',
           },

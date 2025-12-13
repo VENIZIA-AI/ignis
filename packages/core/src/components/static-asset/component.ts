@@ -1,7 +1,7 @@
 import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
-import { CoreBindings } from '@/common/bindings';
+import { BindingNamespaces, CoreBindings } from '@/common/bindings';
 import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
 import { AssetControllerFactory } from './controller';
@@ -45,7 +45,7 @@ export class StaticAssetComponent extends BaseComponent {
               },
         },
       });
-      this.application.controller(Controller);
+      this.application.controller(Controller, {binding: {key: `AssetController_${key}`,namespace: BindingNamespaces.CONTROLLER}});
 
       this.application.logger.info(
         `[binding] Asset storage is bound | Key: %s | Storage type: %s`,

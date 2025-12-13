@@ -132,9 +132,7 @@ memoryStore.clear();
 
 ## `DiskHelper`
 
-> **New in v2.0** - Implements `IStorageHelper`
-
-The `DiskHelper` provides local filesystem storage using a bucket-based directory structure. It implements the same interface as `MinioHelper`, making it easy to switch between local and cloud storage.
+The `DiskHelper` provides local filesystem storage using a bucket-based directory structure. It implements the `IStorageHelper` interface, making it easy to switch between local and cloud storage.
 
 ### Creating an Instance
 
@@ -351,9 +349,7 @@ const localStorage = new DiskHelper({ basePath: './system-files' });
 
 ## `MinioHelper`
 
-> **Updated in v2.0** - Now implements `IStorageHelper`
-
-The `MinioHelper` is a comprehensive client for interacting with MinIO or any S3-compatible object storage service.
+The `MinioHelper` is a comprehensive client for interacting with MinIO or any S3-compatible object storage service. It implements the `IStorageHelper` interface for unified storage operations.
 
 ### Creating a MinIO Client
 
@@ -502,79 +498,6 @@ const systemStorage = new DiskHelper({ basePath: './system' });
 // Local storage for temporary files
 const tempStorage = new DiskHelper({ basePath: './temp' });
 ```
-
----
-
-## Migration from v1.0
-
-### Breaking Changes in v2.0
-
-⚠️ **MinioHelper now implements `IStorageHelper`**
-
-**Changes:**
-1. Upload response structure changed
-2. All methods now return standardized interfaces
-3. New validation methods added
-4. Interface-compatible with DiskHelper
-
-### Before (v1.0)
-
-```typescript
-// Old MinioHelper
-const result = await minioHelper.upload({
-  bucket: 'my-bucket',
-  files: files,
-});
-// Returns: Array<{ bucket, fileName, link }>
-```
-
-### After (v2.0)
-
-```typescript
-// New MinioHelper (implements IStorageHelper)
-const result = await minioHelper.upload({
-  bucket: 'my-bucket',
-  files: files,
-});
-// Returns: Array<{ bucketName, objectName, link }>
-
-// Note: 'fileName' renamed to 'objectName' for consistency
-// Note: 'bucket' renamed to 'bucketName' for clarity
-```
-
-### Migration Steps
-
-1. **Update return value destructuring:**
-   ```typescript
-   // Old
-   const { bucket, fileName, link } = result[0];
-   
-   // New
-   const { bucketName, objectName, link } = result[0];
-   ```
-
-2. **Update IUploadFile usage:**
-   ```typescript
-   // Old
-   interface IUploadFile {
-     encoding: string;  // Required
-   }
-   
-   // New
-   interface IUploadFile {
-     encoding?: string;  // Optional
-   }
-   ```
-
-3. **Use new interfaces:**
-   ```typescript
-   import {
-     IStorageHelper,
-     IUploadResult,
-     IFileStat,
-     IBucketInfo,
-   } from '@venizia/ignis-helpers';
-   ```
 
 ---
 
