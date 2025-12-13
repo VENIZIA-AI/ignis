@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.0.1-4",
+  "version": "0.0.1-5",
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "keywords": [
     "hono",
