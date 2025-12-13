@@ -81,6 +81,8 @@ jobs:
           echo "[install] Installing dependencies"
           bun install
           bun run --filter "${{ env.PACKAGE_NAME }}" force-update
+          make dev-configs
+          make core
 
       - name: Linting application source
         run: |
