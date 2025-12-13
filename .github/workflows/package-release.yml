@@ -1,5 +1,5 @@
 name: "[Package] NPM Release"
-run-name: "NPM Release | package: ${{ inputs.package }} | build_mode: (${{ inputs.build_mode }})"
+run-name: "NPM Release | package: ${{ inputs.package }} | build_mode: ${{ inputs.build_mode }}"
 
 on:
   workflow_dispatch:

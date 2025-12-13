@@ -4,7 +4,7 @@ echo "START | Building application..."
 
 # Build CJS (Node.js)
 echo ">>> Building CJS..."
-tsc -p tsconfig.cjs.json --extendedDiagnostics && tsc-alias -p tsconfig.cjs.json
+tsc -p tsconfig.json --extendedDiagnostics && tsc-alias -p tsconfig.json
 
 echo ""
 
