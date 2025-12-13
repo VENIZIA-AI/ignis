@@ -81,17 +81,26 @@ jobs:
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
-          # Set dist directory (SPECIAL CASE: docs uses mcp-server/dist)
-          if [ "$PACKAGE" == "docs" ]; then
-            DIST_DIR="mcp-server/dist"
-          else
-            DIST_DIR="dist"
-          fi
+          # Set dist directories to validate
+          # SPECIAL CASES:
+          #   - docs: builds to mcp-server/dist
+          #   - inversion: builds to dist/cjs and dist/esm (dual build)
+          case $PACKAGE in
+            docs)
+              DIST_DIRS="mcp-server/dist"
+              ;;
+            inversion)
+              DIST_DIRS="dist/cjs dist/esm"
+              ;;
+            *)
+              DIST_DIRS="dist"
+              ;;
+          esac
 
           # Export to environment
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
           echo "PACKAGE_NAME=$PACKAGE_NAME" >> $GITHUB_ENV
-          echo "DIST_DIR=$DIST_DIR" >> $GITHUB_ENV
+          echo "DIST_DIRS=$DIST_DIRS" >> $GITHUB_ENV
 
           # Log info
           echo "┌─────────────────────────────────────────────────"
@@ -99,7 +108,7 @@ jobs:
           echo "│ Path:        $PACKAGE_PATH"
           echo "│ Version:     $CURRENT_VERSION"
           echo "│ Build Mode:  $BUILD_MODE"
-          echo "│ Dist Dir:    $DIST_DIR"
+          echo "│ Dist Dirs:   $DIST_DIRS"
           echo "└─────────────────────────────────────────────────"
 
       # =========================================================================
@@ -129,24 +138,30 @@ jobs:
 
       - name: Validate build artifacts
         run: |
-          echo ">>> Validating build artifacts in $DIST_DIR..."
           cd $PACKAGE_PATH
 
-          # Check dist directory
-          if [ ! -d "$DIST_DIR" ]; then
-            echo "ERROR: $DIST_DIR directory not found"
-            exit 1
-          fi
+          # Validate each dist directory
+          for DIST_DIR in $DIST_DIRS; do
+            echo ">>> Validating: $DIST_DIR"
 
-          # Check required files
-          for file in "index.js" "index.d.ts"; do
-            if [ ! -f "$DIST_DIR/$file" ]; then
-              echo "ERROR: $DIST_DIR/$file not found"
+            # Check dist directory exists
+            if [ ! -d "$DIST_DIR" ]; then
+              echo "ERROR: $DIST_DIR directory not found"
               exit 1
             fi
+
+            # Check required files
+            for file in "index.js" "index.d.ts"; do
+              if [ ! -f "$DIST_DIR/$file" ]; then
+                echo "ERROR: $DIST_DIR/$file not found"
+                exit 1
+              fi
+            done
+
+            echo "    ✓ $DIST_DIR validated"
           done
 
-          echo "✓ Build artifacts validated successfully"
+          echo "✓ All build artifacts validated successfully"
 
       # =========================================================================
       # VERSION & PUBLISH
