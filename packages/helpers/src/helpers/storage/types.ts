@@ -2,11 +2,12 @@ import { Readable } from 'node:stream';
 
 // -------------------------------------------------------------------------
 export interface IUploadFile {
-  originalname: string;
+  originalName: string;
   mimetype: string;
   buffer: Buffer;
   size: number;
   encoding?: string;
+  folderPath?: string;
   [key: string | symbol]: any;
 }
 
@@ -15,6 +16,8 @@ export interface IUploadResult {
   bucketName: string;
   objectName: string;
   link: string;
+  metaLink?: any;
+  metaLinkError?: any;
 }
 
 // -------------------------------------------------------------------------
@@ -71,7 +74,7 @@ export interface IStorageHelper {
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
   }): Promise<IUploadResult[]>;
 

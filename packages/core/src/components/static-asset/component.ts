@@ -34,23 +34,28 @@ export class StaticAssetComponent extends BaseComponent {
         controller,
         storage,
         helper,
+        useMetaLink: opt.useMetaLink,
+        metaLink: opt.useMetaLink ? opt.metaLink : undefined,
         options: {
           ...extra,
           normalizeLinkFn: extra?.normalizeLinkFn
             ? extra.normalizeLinkFn
             : opts => {
-                return `/${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
+                return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
                   opts.normalizeName,
                 )}`;
               },
         },
       });
-      this.application.controller(Controller, {binding: {key: `AssetController_${key}`,namespace: BindingNamespaces.CONTROLLER}});
+      this.application.controller(Controller, {
+        binding: { key: `AssetController_${key}`, namespace: BindingNamespaces.CONTROLLER },
+      });
 
       this.application.logger.info(
-        `[binding] Asset storage is bound | Key: %s | Storage type: %s`,
+        `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
         key,
         storage,
+        Boolean(opt.useMetaLink),
       );
     }
   }

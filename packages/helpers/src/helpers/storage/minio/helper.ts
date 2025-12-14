@@ -1,5 +1,4 @@
 import { getError } from '@/helpers/error';
-import isEmpty from 'lodash/isEmpty';
 import { Client, ClientOptions } from 'minio';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
@@ -30,7 +29,7 @@ export class MinioHelper extends BaseStorageHelper {
   // ---------------------------------------------------------------------
   async isBucketExists(opts: { name: string }) {
     const { name } = opts;
-    if (!name || isEmpty(name)) {
+    if (!this.isValidName(name)) {
       return false;
     }
 
@@ -87,7 +86,7 @@ export class MinioHelper extends BaseStorageHelper {
   async upload(opts: {
     bucket: string;
     files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
   }): Promise<IUploadResult[]> {
     const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
@@ -98,33 +97,37 @@ export class MinioHelper extends BaseStorageHelper {
 
     const isExists = await this.isBucketExists({ name: bucket });
     if (!isExists) {
-      return [];
+      throw getError({
+        message: `[upload] Bucket does not exist | name: ${bucket}`,
+      });
     }
 
     // Validate all files first
     for (const file of files) {
-      const { originalname: originalName, size } = file;
+      const { originalName, size, folderPath } = file;
 
       if (!this.isValidName(originalName)) {
-        throw getError({
-          message: '[upload] Invalid original file name | please check again files!',
-        });
+        throw getError({ message: '[upload] Invalid original file name' });
+      }
+
+      if (folderPath && !this.isValidName(folderPath)) {
+        throw getError({ message: '[upload] Invalid folder path' });
       }
 
       if (!size) {
-        throw getError({
-          message: `[upload] Invalid file size | please check again update file | name: ${originalName}`,
-        });
+        throw getError({ message: `[upload] Invalid file size` });
       }
     }
 
     const uploadPromises = files.map(async file => {
-      const { originalname: originalName, mimetype: mimeType, buffer, size, encoding } = file;
+      const { folderPath, originalName, mimetype: mimeType, buffer, size, encoding } = file;
       const t = performance.now();
 
       const normalizeName = normalizeNameFn
-        ? normalizeNameFn({ originalName })
-        : originalName.toLowerCase().replace(/ /g, '_');
+        ? normalizeNameFn({ originalName, folderPath })
+        : folderPath
+          ? `${folderPath.toLowerCase().replace(/ /g, '_')}/${originalName.toLowerCase().replace(/ /g, '_')}`
+          : originalName.toLowerCase().replace(/ /g, '_');
       const normalizeLink = normalizeLinkFn
         ? normalizeLinkFn({ bucketName: bucket, normalizeName })
         : `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`;

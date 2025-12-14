@@ -91,7 +91,7 @@
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "@venizia/ignis-inversion": "^0.0.1-7",
+    "@venizia/ignis-inversion": "file://../inversion",
     "axios": "^1.12.2",
     "bullmq": "^5.63.1",
     "cron": "^4.3.3",

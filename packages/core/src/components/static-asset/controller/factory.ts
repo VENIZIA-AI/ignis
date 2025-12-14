@@ -5,10 +5,16 @@ import {
   HTTP,
   IStorageHelper,
   IUploadFile,
+  IUploadResult,
   parseMultipartBody,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
-import { TStaticAssetExtraOptions, TStaticAssetStorageType, WHITELIST_HEADERS } from '../common';
+import {
+  TStaticAssetExtraOptions,
+  TStaticAssetStorageType,
+  TMetaLinkConfig,
+  WHITELIST_HEADERS,
+} from '../common';
 import { StaticAssetDefinitions } from './base.definition';
 import { BaseController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
@@ -22,6 +28,8 @@ export interface IAssetControllerOptions {
   };
   storage: TStaticAssetStorageType;
   helper: IStorageHelper;
+  useMetaLink?: boolean;
+  metaLink?: TMetaLinkConfig;
   options?: TStaticAssetExtraOptions;
 }
 
@@ -31,7 +39,7 @@ export class AssetControllerFactory extends BaseHelper {
   }
 
   static defineAssetController(opts: IAssetControllerOptions) {
-    const { controller, helper, options } = opts;
+    const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
     const { name, basePath, isStrict = true } = controller;
 
     @controllerDecorator({ path: basePath })
@@ -203,18 +211,10 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid('param');
-            const { folderPath } = ctx.req.valid('query');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
                 message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
-            }
-
-            if (folderPath && !helper.isValidName(folderPath)) {
-              throw getError({
-                message: 'Invalid folder path',
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
@@ -225,26 +225,9 @@ export class AssetControllerFactory extends BaseHelper {
               uploadDir: options?.parseMultipartBody?.uploadDir,
             });
 
-            // Validate all files before processing
-            for (const file of filesArray) {
-              const { originalname: originalName, size } = file;
-              if (!helper.isValidName(originalName)) {
-                throw getError({
-                  message: `Invalid filename`,
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                });
-              }
-              if (!size) {
-                throw getError({
-                  message: `File is empty`,
-                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-                });
-              }
-            }
-
             const modifiedFiles: IUploadFile[] = filesArray.map(file => {
               return {
-                originalname: folderPath ? `${folderPath}/${file.originalname}` : file.originalname,
+                originalName: file.originalname,
                 mimetype: file.mimetype,
                 buffer: file.buffer ?? Buffer.alloc(0),
                 size: file.size,
@@ -259,7 +242,49 @@ export class AssetControllerFactory extends BaseHelper {
               normalizeLinkFn: options?.normalizeLinkFn,
             });
 
-            return ctx.json(uploaded, HTTP.ResultCodes.RS_2.Ok);
+            if (!useMetaLink || !metaLink) {
+              return ctx.json(uploaded, HTTP.ResultCodes.RS_2.Ok);
+            }
+
+            const results: IUploadResult[] = [];
+            for (const uploadResult of uploaded) {
+              try {
+                const fileStat = await helper.getStat({
+                  bucket: uploadResult.bucketName,
+                  name: uploadResult.objectName,
+                });
+
+                const createdMetaLink = await metaLink?.repository.create({
+                  data: {
+                    bucketName: uploadResult.bucketName,
+                    objectName: uploadResult.objectName,
+                    link: uploadResult.link,
+                    mimetype: fileStat.metadata?.['mimetype'],
+                    size: fileStat.size,
+                    etag: fileStat.etag,
+                    metadata: fileStat.metadata,
+                    storageType: storage,
+                  },
+                });
+
+                results.push({
+                  ...uploadResult,
+                  metaLink: createdMetaLink?.data,
+                });
+              } catch (error) {
+                this.logger.error(
+                  '[UPLOAD] Failed to create MetaLink for %s: %o',
+                  uploadResult.objectName,
+                  error,
+                );
+                results.push({
+                  ...uploadResult,
+                  metaLink: null,
+                  metaLinkError: error instanceof Error ? error.message : 'Unknown error',
+                });
+              }
+            }
+            return ctx.json(results, HTTP.ResultCodes.RS_2.Ok);
           },
         });
 
@@ -283,12 +308,187 @@ export class AssetControllerFactory extends BaseHelper {
             return ctx.json({ isDeleted: isRemovedBucket }, HTTP.ResultCodes.RS_2.Ok);
           },
         });
+
+        // ----------------------------------------
+        this.bindRoute({
+          configs: StaticAssetDefinitions.DELETE_OBJECT,
+        }).to({
+          handler: async ctx => {
+            const { bucketName, objectName } = ctx.req.valid('param');
+
+            if (!helper.isValidName(bucketName)) {
+              throw getError({
+                message: 'Invalid bucket name',
+                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+              });
+            }
+            if (!helper.isValidName(objectName)) {
+              throw getError({
+                message: 'Invalid object name',
+                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+              });
+            }
+
+            // Delete from storage
+            await helper.removeObject({
+              bucket: bucketName,
+              name: objectName,
+            });
+
+            if (!useMetaLink || !metaLink) {
+              return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
+            }
+
+            try {
+              await metaLink.repository.deleteAll({
+                where: {
+                  bucketName,
+                  objectName,
+                },
+              });
+            } catch (error) {
+              this.logger.error(
+                '[DELETE_OBJECT] Failed to delete MetaLink for %s/%s: %o',
+                bucketName,
+                objectName,
+                error,
+              );
+            } finally {
+              return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
+            }
+          },
+        });
+
+        // ----------------------------------------
+        this.bindRoute({
+          configs: StaticAssetDefinitions.LIST_OBJECTS,
+        }).to({
+          handler: async ctx => {
+            const { bucketName } = ctx.req.valid('param');
+            const { prefix, recursive, maxKeys } = ctx.req.valid('query');
+
+            if (!helper.isValidName(bucketName)) {
+              throw getError({
+                message: 'Invalid bucket name',
+                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+              });
+            }
+
+            const objects = await helper.listObjects({
+              bucket: bucketName,
+              prefix,
+              useRecursive: recursive === 'true',
+              maxKeys: maxKeys ? parseInt(maxKeys, 10) : undefined,
+            });
+
+            return ctx.json(objects, HTTP.ResultCodes.RS_2.Ok);
+          },
+        });
+
+        // ----------------------------------------
+        this.bindRoute({
+          configs: StaticAssetDefinitions.RECREATE_METALINK,
+        }).to({
+          handler: async ctx => {
+            const { bucketName, objectName } = ctx.req.valid('param');
+
+            if (!helper.isValidName(bucketName)) {
+              throw getError({
+                message: 'Invalid bucket name',
+                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+              });
+            }
+            if (!helper.isValidName(objectName)) {
+              throw getError({
+                message: 'Invalid object name',
+                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+              });
+            }
+
+            try {
+              if (!useMetaLink || !metaLink) {
+                throw getError({
+                  message: 'MetaLink is not enabled for this storage',
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
+              }
+              // Get file stat from storage
+              const fileStat = await helper.getStat({
+                bucket: bucketName,
+                name: objectName,
+              });
+
+              // Generate link
+              const link = options?.normalizeLinkFn
+                ? options.normalizeLinkFn({ bucketName, normalizeName: objectName })
+                : `/${basePath}/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}`;
+
+              // Check if MetaLink already exists
+              const existing = await metaLink.repository.findOne({
+                filter: {
+                  where: {
+                    bucketName,
+                    objectName,
+                  },
+                },
+              });
+
+              if (existing) {
+                // Update existing MetaLink
+                await metaLink.repository.updateById({
+                  id: existing.id,
+                  data: {
+                    link,
+                    mimetype: fileStat.metadata?.['mimetype'],
+                    size: fileStat.size,
+                    etag: fileStat.etag,
+                    metadata: fileStat.metadata,
+                    storageType: storage,
+                  },
+                });
+                const updatedMetaLink = await metaLink.repository.findById({ id: existing.id });
+                return ctx.json(
+                  { success: true, metaLink: updatedMetaLink },
+                  HTTP.ResultCodes.RS_2.Ok,
+                );
+              } else {
+                // Create new MetaLink
+                const createdMetaLink = await metaLink.repository.create({
+                  data: {
+                    bucketName,
+                    objectName,
+                    link,
+                    mimetype: fileStat.metadata?.['mimetype'],
+                    size: fileStat.size,
+                    etag: fileStat.etag,
+                    metadata: fileStat.metadata,
+                    storageType: storage,
+                  },
+                });
+                return ctx.json(
+                  { success: true, metaLink: createdMetaLink.data },
+                  HTTP.ResultCodes.RS_2.Ok,
+                );
+              }
+            } catch (error) {
+              this.logger.error(
+                '[RECREATE_METALINK] Failed to recreate MetaLink for %s/%s: %o',
+                bucketName,
+                objectName,
+                error,
+              );
+              throw getError({
+                message: 'Failed to recreate MetaLink',
+                statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+                cause: error,
+              });
+            }
+          },
+        });
       }
     }
 
     set(_Controller, 'name', name);
-    console.log('name', _Controller.name);
-    console.log('prototype', _Controller.prototype);
     return _Controller;
   }
 }

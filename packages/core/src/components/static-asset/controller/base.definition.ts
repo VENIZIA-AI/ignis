@@ -158,19 +158,6 @@ export const StaticAssetDefinitions = {
           example: 'images',
         }),
       }),
-      query: z.object({
-        folderPath: z
-          .string()
-          .optional()
-          .openapi({
-            param: {
-              name: 'folderPath',
-              in: 'query',
-              description: 'Optional folder path to upload files into',
-            },
-            example: '20250101',
-          }),
-      }),
       body: {
         content: {
           'multipart/form-data': {
@@ -185,6 +172,8 @@ export const StaticAssetDefinitions = {
           objectName: z.string(),
           link: z.string(),
           bucketName: z.string(),
+          metaLink: z.any().optional(),
+          metaLinkError: z.string().optional(),
         }),
       ),
     }),
@@ -206,6 +195,122 @@ export const StaticAssetDefinitions = {
     responses: jsonResponse({
       schema: z.object({
         isDeleted: z.boolean(),
+      }),
+    }),
+  },
+  DELETE_OBJECT: {
+    method: 'delete',
+    path: '/buckets/:bucketName/objects/:objectName',
+    request: {
+      params: z.object({
+        bucketName: z.string().openapi({
+          param: {
+            name: 'bucketName',
+            in: 'path',
+          },
+          example: 'images',
+        }),
+        objectName: z.string().openapi({
+          param: {
+            name: 'objectName',
+            in: 'path',
+          },
+          example: 'photo.jpg',
+        }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z.object({
+        success: z.boolean(),
+      }),
+    }),
+  },
+  LIST_OBJECTS: {
+    method: 'get',
+    path: '/buckets/:bucketName/objects',
+    request: {
+      params: z.object({
+        bucketName: z.string().openapi({
+          param: {
+            name: 'bucketName',
+            in: 'path',
+          },
+          example: 'images',
+        }),
+      }),
+      query: z.object({
+        prefix: z
+          .string()
+          .optional()
+          .openapi({
+            param: {
+              name: 'prefix',
+              in: 'query',
+              description: 'Filter objects by prefix',
+            },
+            example: 'folder/',
+          }),
+        recursive: z
+          .string()
+          .optional()
+          .openapi({
+            param: {
+              name: 'recursive',
+              in: 'query',
+              description: 'Recursive listing',
+            },
+            example: 'true',
+          }),
+        maxKeys: z
+          .string()
+          .optional()
+          .openapi({
+            param: {
+              name: 'maxKeys',
+              in: 'query',
+              description: 'Maximum number of objects to return',
+            },
+            example: '100',
+          }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z.array(
+        z.object({
+          name: z.string().optional(),
+          size: z.number().optional(),
+          lastModified: z.iso.datetime().optional(),
+          etag: z.string().optional(),
+          prefix: z.string().optional(),
+        }),
+      ),
+    }),
+  },
+  RECREATE_METALINK: {
+    method: 'post',
+    path: '/buckets/:bucketName/objects/:objectName/recreate-metalink',
+    request: {
+      params: z.object({
+        bucketName: z.string().openapi({
+          param: {
+            name: 'bucketName',
+            in: 'path',
+          },
+          example: 'images',
+        }),
+        objectName: z.string().openapi({
+          param: {
+            name: 'objectName',
+            in: 'path',
+          },
+          example: 'photo.jpg',
+        }),
+      }),
+    },
+    responses: jsonResponse({
+      schema: z.object({
+        success: z.boolean(),
+        metaLink: z.any().optional(),
       }),
     }),
   },
