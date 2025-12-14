@@ -58,7 +58,7 @@ interface IStorageHelper {
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
   }): Promise<IUploadResult[]>;
   
@@ -215,8 +215,9 @@ const result = await diskHelper.upload({
 const result = await diskHelper.upload({
   bucket: 'my-bucket',
   files: files,
-  normalizeNameFn: ({ originalName }) => {
-    return `${Date.now()}_${originalName.toLowerCase()}`;
+  normalizeNameFn: ({ originalName, folderPath }) => {
+    const name = `${Date.now()}_${originalName.toLowerCase()}`;
+    return folderPath ? `${folderPath}/${name}` : name;
   },
   normalizeLinkFn: ({ bucketName, normalizeName }) => {
     return `/files/${bucketName}/${normalizeName}`;
@@ -394,9 +395,10 @@ const uploadResult = await minioClient.upload({
 const uploadResult = await minioClient.upload({
   bucket: 'my-bucket',
   files: files,
-  normalizeNameFn: ({ originalName }) => {
+  normalizeNameFn: ({ originalName, folderPath }) => {
     // Custom logic to normalize filename
-    return `${Date.now()}_${originalName.toLowerCase().replace(/\s/g, '-')}`;
+    const name = `${Date.now()}_${originalName.toLowerCase().replace(/\s/g, '-')}`;
+    return folderPath ? `${folderPath}/${name}` : name;
   },
   normalizeLinkFn: ({ bucketName, normalizeName }) => {
     // Custom link generation
@@ -593,21 +595,26 @@ const storage = new ResilientStorage(
 
 ```typescript
 interface IUploadFile {
-  originalname: string;  // Original filename
+  originalName: string;  // Original filename (renamed from 'originalname')
   mimetype: string;      // MIME type (e.g., 'image/png')
   buffer: Buffer;        // File content
   size: number;          // File size in bytes
   encoding?: string;     // Optional encoding (e.g., '7bit', 'base64')
+  folderPath?: string;   // Optional folder path for organization
 }
 ```
+
+**Note:** The property was renamed from `originalname` to `originalName` for consistency.
 
 ### IUploadResult
 
 ```typescript
 interface IUploadResult {
-  bucketName: string;  // Bucket where file was stored
-  objectName: string;  // Stored filename
-  link: string;        // Access URL
+  bucketName: string;   // Bucket where file was stored
+  objectName: string;   // Stored filename
+  link: string;         // Access URL
+  metaLink?: any;       // MetaLink database record (if enabled)
+  metaLinkError?: any;  // Error message if MetaLink creation failed
 }
 ```
 

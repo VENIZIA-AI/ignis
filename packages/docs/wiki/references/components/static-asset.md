@@ -20,6 +20,7 @@ The Static Asset Component provides a flexible, extensible file management syste
 ✅ **Built-in Security** - Comprehensive name validation, path traversal protection  
 ✅ **Type-Safe** - Full TypeScript support with strict interfaces  
 ✅ **Flexible Configuration** - Environment-based, production-ready setup  
+✅ **Database Tracking (MetaLink)** - Optional database-backed file tracking with metadata  
 
 ---
 
@@ -187,10 +188,19 @@ type TStaticAssetsComponentOptions = {
         storage?: 'memory' | 'disk';
         uploadDir?: string;
       };
-      normalizeNameFn?: (opts: { originalName: string }) => string;
+      normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
       normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
     };
-  };
+  } & (
+    // MetaLink configuration (optional)
+    | { useMetaLink?: false }
+    | { useMetaLink: true; metaLink: TMetaLinkConfig }
+  );
+};
+
+type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
+  model: typeof BaseEntity<Schema>;        // MetaLink model class
+  repository: DefaultCRUDRepository<Schema>; // MetaLink repository instance
 };
 ```
 
@@ -253,6 +263,233 @@ this.bind({
 });
 this.component(StaticAssetComponent);
 ```
+
+---
+
+## MetaLink: Database File Tracking
+
+MetaLink is an optional feature that tracks uploaded files in a database, enabling advanced file management, querying, and metadata storage.
+
+### What is MetaLink?
+
+MetaLink creates a database record for every uploaded file, storing:
+- File location (bucket, object name, access link)
+- File metadata (mimetype, size, etag)
+- Storage type (disk or minio)
+- Timestamps (created, modified)
+- Custom metadata (JSONB field)
+
+### Benefits
+
+✅ **Query uploaded files** - Find files by bucket, name, mimetype, etc.  
+✅ **Track file history** - Know when files were uploaded  
+✅ **Store metadata** - Keep custom information about files  
+✅ **Database integration** - Associate files with other entities  
+✅ **Audit trail** - Track what was uploaded and when  
+✅ **Graceful errors** - Upload succeeds even if MetaLink creation fails  
+
+### Database Schema
+
+**Table:** `MetaLink`
+
+```sql
+CREATE TABLE "MetaLink" (
+  id              TEXT PRIMARY KEY,
+  created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+  modified_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+  bucket_name     TEXT NOT NULL,
+  object_name     TEXT NOT NULL,
+  link            TEXT NOT NULL,
+  mimetype        TEXT NOT NULL,
+  size            INTEGER NOT NULL,
+  etag            TEXT,
+  metadata        JSONB,
+  storage_type    TEXT NOT NULL
+);
+
+CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
+CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
+CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
+```
+
+### Setup
+
+#### Step 1: Create Model
+
+```typescript
+import { BaseMetaLinkModel } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+
+@model({ type: 'entity' })
+export class FileMetaLinkModel extends BaseMetaLinkModel {
+  // Inherits all fields from BaseMetaLinkModel
+}
+```
+
+#### Step 2: Create Repository
+
+```typescript
+import { BaseMetaLinkRepository } from '@venizia/ignis';
+import { repository, inject } from '@venizia/ignis';
+import { IDataSource } from '@venizia/ignis';
+
+@repository({})
+export class FileMetaLinkRepository extends BaseMetaLinkRepository {
+  constructor(@inject({ key: 'datasources.postgres' }) dataSource: IDataSource) {
+    super({
+      entityClass: FileMetaLinkModel,
+      relations: {},
+      dataSource,
+    });
+  }
+}
+```
+
+#### Step 3: Create Database Table
+
+The model has `skipMigrate: true`, so you need to create the table manually:
+
+```sql
+-- Run this in your database
+CREATE TABLE "MetaLink" (
+  id              TEXT PRIMARY KEY,
+  created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
+  modified_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+  bucket_name     TEXT NOT NULL,
+  object_name     TEXT NOT NULL,
+  link            TEXT NOT NULL,
+  mimetype        TEXT NOT NULL,
+  size            INTEGER NOT NULL,
+  etag            TEXT,
+  metadata        JSONB,
+  storage_type    TEXT NOT NULL
+);
+
+CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
+CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
+CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
+```
+
+#### Step 4: Configure Component
+
+```typescript
+import { FileMetaLinkModel, FileMetaLinkRepository } from './your-models';
+
+export class Application extends BaseApplication {
+  configureComponents(): void {
+    // Register repository
+    this.repository(FileMetaLinkRepository);
+
+    // Configure Static Asset Component with MetaLink
+    this.bind<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    }).toValue({
+      uploads: {
+        controller: {
+          name: 'UploadController',
+          basePath: '/uploads',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.MINIO,
+        helper: new MinioHelper({ /* ... */ }),
+        useMetaLink: true,
+        metaLink: {
+          model: FileMetaLinkModel,
+          repository: this.getSync(FileMetaLinkRepository),
+        },
+        extra: {
+          parseMultipartBody: { storage: 'memory' },
+        },
+      },
+    });
+
+    this.component(StaticAssetComponent);
+  }
+}
+```
+
+### API Response with MetaLink
+
+When `useMetaLink: true`, upload responses include the database record:
+
+```json
+[
+  {
+    "bucketName": "user-uploads",
+    "objectName": "document.pdf",
+    "link": "/uploads/buckets/user-uploads/objects/document.pdf",
+    "metaLink": {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "bucketName": "user-uploads",
+      "objectName": "document.pdf",
+      "link": "/uploads/buckets/user-uploads/objects/document.pdf",
+      "mimetype": "application/pdf",
+      "size": 1048576,
+      "etag": "abc123def456",
+      "metadata": {
+        "originalName": "My Document.pdf",
+        "uploadedBy": "user123"
+      },
+      "storageType": "minio",
+      "createdAt": "2025-12-14T15:00:00.000Z",
+      "modifiedAt": "2025-12-14T15:00:00.000Z"
+    }
+  }
+]
+```
+
+### Error Handling
+
+If MetaLink creation fails, the upload still succeeds:
+
+```json
+[
+  {
+    "bucketName": "user-uploads",
+    "objectName": "document.pdf",
+    "link": "/uploads/buckets/user-uploads/objects/document.pdf",
+    "metaLink": null,
+    "metaLinkError": "Database connection error"
+  }
+]
+```
+
+### Querying MetaLinks
+
+```typescript
+// Get all files in a bucket
+const files = await fileMetaLinkRepository.find({
+  where: { bucketName: 'user-uploads' },
+});
+
+// Get files by mimetype
+const pdfs = await fileMetaLinkRepository.find({
+  where: { mimetype: 'application/pdf' },
+});
+
+// Get files by storage type
+const minioFiles = await fileMetaLinkRepository.find({
+  where: { storageType: 'minio' },
+});
+
+// Get recent uploads
+const recent = await fileMetaLinkRepository.find({
+  orderBy: { createdAt: 'desc' },
+  limit: 10,
+});
+```
+
+### Automatic Cleanup
+
+When you delete a file, MetaLink records are automatically deleted:
+
+```http
+DELETE /uploads/buckets/user-uploads/objects/document.pdf
+```
+
+- Deletes file from storage
+- Deletes MetaLink record from database
+- Returns `{ "success": true }`
 
 ---
 
@@ -447,13 +684,11 @@ DELETE /{basePath}/buckets/:bucketName
 POST /{basePath}/buckets/:bucketName/upload
 ```
 
-**Query Parameters:**
-- `folderPath` (optional): Subfolder path within bucket
-
 **Request Body:**
 - `multipart/form-data` with file fields
+- Each file can optionally include `folderPath` for organization
 
-**Response:**
+**Response (without MetaLink):**
 ```json
 [
   {
@@ -464,15 +699,42 @@ POST /{basePath}/buckets/:bucketName/upload
 ]
 ```
 
+**Response (with MetaLink enabled):**
+```json
+[
+  {
+    "bucketName": "my-bucket",
+    "objectName": "file.pdf",
+    "link": "/assets/buckets/my-bucket/objects/file.pdf",
+    "metaLink": {
+      "id": "uuid",
+      "bucketName": "my-bucket",
+      "objectName": "file.pdf",
+      "link": "/assets/buckets/my-bucket/objects/file.pdf",
+      "mimetype": "application/pdf",
+      "size": 1024,
+      "etag": "abc123",
+      "metadata": {},
+      "storageType": "minio",
+      "createdAt": "2025-12-14T15:00:00.000Z",
+      "modifiedAt": "2025-12-14T15:00:00.000Z"
+    }
+  }
+]
+```
+
 **Example:**
 ```typescript
 const formData = new FormData();
 formData.append('file', fileBlob, 'document.pdf');
 
-const response = await fetch('/assets/buckets/uploads/upload?folderPath=documents', {
+const response = await fetch('/assets/buckets/uploads/upload', {
   method: 'POST',
   body: formData,
 });
+
+const result = await response.json();
+console.log(result[0].metaLink); // Database record (if MetaLink enabled)
 ```
 
 ---
@@ -560,6 +822,47 @@ GET /{basePath}/buckets/:bucketName/objects
     "etag": "abc123"
   }
 ]
+```
+
+---
+
+#### **Delete Object**
+
+```http
+DELETE /{basePath}/buckets/:bucketName/objects/:objectName
+```
+
+**Parameters:**
+- `bucketName` (path): Bucket name
+- `objectName` (path): Object to delete (URL-encoded)
+
+**Validation:**
+- ✅ Both bucket and object names validated
+- ❌ Returns 400 if either is invalid
+
+**Behavior:**
+- Deletes file from storage
+- If MetaLink enabled, also deletes database record
+- MetaLink deletion errors are logged but don't fail the request
+
+**Response:**
+```json
+{
+  "success": true
+}
+```
+
+**Example:**
+```typescript
+const bucketName = 'user-uploads';
+const objectName = 'document.pdf';
+
+await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}`, {
+  method: 'DELETE',
+});
+
+// File deleted from storage
+// MetaLink record deleted from database (if enabled)
 ```
 
 ---
