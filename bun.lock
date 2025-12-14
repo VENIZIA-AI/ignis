@@ -89,36 +89,36 @@
       "version": "0.0.0",
       "dependencies": {
         "@hono/zod-openapi": "^1.1.5",
-        "@scalar/hono-api-reference": "^0.9.26",
+        "@scalar/hono-api-reference": "^0.9.28",
         "@venizia/ignis": "latest",
         "dotenv-flow": "^4.1.0",
         "drizzle-orm": "^0.44.7",
         "drizzle-zod": "^0.8.3",
-        "hono": "^4.10.7",
+        "hono": "^4.11.0",
         "lodash": "^4.17.21",
         "pg": "^8.16.3",
         "rxjs": "^7.8.2",
       },
       "devDependencies": {
         "@minimaltech/eslint-node": "^0.2.1",
-        "@types/bun": "^1.3.1",
-        "@types/lodash": "^4.14.194",
-        "@types/pg": "^8.15.6",
+        "@types/bun": "^1.3.4",
+        "@types/lodash": "^4.17.21",
+        "@types/pg": "^8.16.0",
         "@venizia/dev-configs": "latest",
-        "drizzle-kit": "^0.31.7",
-        "eslint": "^9.32.0",
-        "prettier": "^3.6.2",
-        "tsc-alias": "^1.7.0",
-        "tsconfig-paths": "^4.1.0",
+        "drizzle-kit": "^0.31.8",
+        "eslint": "^9.39.2",
+        "prettier": "^3.7.4",
+        "tsc-alias": "^1.8.16",
+        "tsconfig-paths": "^4.2.0",
         "typescript": "~5.9.3",
       },
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.1-4",
+      "version": "0.0.1-6",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.0.1-4",
-        "@venizia/ignis-inversion": "^0.0.1-3",
+        "@venizia/ignis-helpers": "^0.0.1-6",
+        "@venizia/ignis-inversion": "^0.0.1-7",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
       },
@@ -128,7 +128,7 @@
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
         "@types/pg": "^8.15.6",
-        "@venizia/dev-configs": "^0.0.1-3",
+        "@venizia/dev-configs": "^0.0.1-4",
         "drizzle-kit": "^0.31.7",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
@@ -165,7 +165,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.0.1-3",
+      "version": "0.0.1-4",
       "dependencies": {
         "@minimaltech/eslint-node": "^0.2.1",
       },
@@ -188,7 +188,7 @@
     },
     "packages/docs": {
       "name": "@venizia/ignis-docs",
-      "version": "0.0.1-4",
+      "version": "0.0.1-5",
       "bin": {
         "ignis-docs-mcp": "./mcp-server/dist/index.js",
       },
@@ -206,7 +206,7 @@
         "@braintree/sanitize-url": "^7.1.1",
         "@types/bun": "^1.3.4",
         "@types/glob": "^8.1.0",
-        "@venizia/dev-configs": "^0.0.1-3",
+        "@venizia/dev-configs": "^0.0.1-4",
         "eslint": "^9.36.0",
         "glob": "^10.4.2",
         "prettier": "^3.6.2",
@@ -219,11 +219,11 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.1-4",
+      "version": "0.0.1-6",
       "dependencies": {
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
-        "@venizia/ignis-inversion": "^0.0.1-3",
+        "@venizia/ignis-inversion": "^0.0.1-7",
         "axios": "^1.12.2",
         "bullmq": "^5.63.1",
         "cron": "^4.3.3",
@@ -244,7 +244,7 @@
         "@hono/zod-openapi": "^1.1.5",
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
-        "@venizia/dev-configs": "^0.0.1-3",
+        "@venizia/dev-configs": "^0.0.1-4",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -254,7 +254,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.0.1-3",
+      "version": "0.0.1-7",
       "dependencies": {
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
@@ -263,7 +263,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "@types/lodash": "^4.17.21",
-        "@venizia/dev-configs": "^0.0.1-3",
+        "@venizia/dev-configs": "^0.0.1-4",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -1071,7 +1071,7 @@
 
     "@types/mysql": ["@types/mysql@2.15.27", "", { "dependencies": { "@types/node": "*" } }, "sha512-YfWiV16IY0OeBfBCk8+hXKmdTKrKlwKN1MNKAPBu5JYxLwBEZl7QzeEpGnlZb3VMGJrrGmB84gXiH+ofs/TezA=="],
 
-    "@types/node": ["@types/node@25.0.1", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-czWPzKIAXucn9PtsttxmumiQ9N0ok9FrBwgRWrwmVLlp86BrMExzvXRLFYRJ+Ex3g6yqj+KuaxfX1JTgV2lpfg=="],
+    "@types/node": ["@types/node@25.0.2", "", { "dependencies": { "undici-types": "~7.16.0" } }, "sha512-gWEkeiyYE4vqjON/+Obqcoeffmk0NF15WSBwSs7zwVA2bAbTaE0SJ7P0WNGoJn8uE7fiaV5a7dKYIJriEqOrmA=="],
 
     "@types/oracledb": ["@types/oracledb@6.5.2", "", { "dependencies": { "@types/node": "*" } }, "sha512-kK1eBS/Adeyis+3OlBDMeQQuasIDLUYXsi2T15ccNJ0iyUpQ4xDF7svFu3+bGVrI0CMBUclPciz+lsQR3JX3TQ=="],
 
@@ -1697,7 +1697,7 @@
 
     "help-me": ["help-me@5.0.0", "", {}, "sha512-7xgomUX6ADmcYzFik0HzAxh/73YlKR9bmFzf51CZwR+b6YtzU2m0u49hQCqV6SvlqIqsaxovfwdvbnsw3b/zpg=="],
 
-    "hono": ["hono@4.10.8", "", {}, "sha512-DDT0A0r6wzhe8zCGoYOmMeuGu3dyTAE40HHjwUsWFTEy5WxK1x2WDSsBPlEXgPbRIFY6miDualuUDbasPogIww=="],
+    "hono": ["hono@4.11.0", "", {}, "sha512-Jg8uZzN2ul8/qlyid5FO8O624F3AK0wKtkgoeEON1qBum1rM1itYBxoMKu/1SPJC7F1+xlIZsJMmc4HHhJ1AWg=="],
 
     "hono-openapi": ["hono-openapi@0.4.8", "", { "dependencies": { "json-schema-walker": "^2.0.0" }, "peerDependencies": { "@hono/arktype-validator": "^2.0.0", "@hono/effect-validator": "^1.2.0", "@hono/typebox-validator": "^0.2.0 || ^0.3.0", "@hono/valibot-validator": "^0.5.1", "@hono/zod-validator": "^0.4.1", "@sinclair/typebox": "^0.34.9", "@valibot/to-json-schema": "^1.0.0-beta.3", "arktype": "^2.0.0", "effect": "^3.11.3", "hono": "^4.6.13", "openapi-types": "^12.1.3", "valibot": "^1.0.0-beta.9", "zod": "^3.23.8", "zod-openapi": "^4.0.0" }, "optionalPeers": ["@hono/arktype-validator", "@hono/effect-validator", "@hono/typebox-validator", "@hono/valibot-validator", "@hono/zod-validator", "@sinclair/typebox", "@valibot/to-json-schema", "arktype", "effect", "hono", "valibot", "zod", "zod-openapi"] }, "sha512-LYr5xdtD49M7hEAduV1PftOMzuT8ZNvkyWfh1DThkLsIr4RkvDb12UxgIiFbwrJB6FLtFXLoOZL9x4IeDk2+VA=="],
 
