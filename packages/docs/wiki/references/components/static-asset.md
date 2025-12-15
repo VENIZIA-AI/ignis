@@ -304,13 +304,32 @@ CREATE TABLE "MetaLink" (
   size            INTEGER NOT NULL,
   etag            TEXT,
   metadata        JSONB,
-  storage_type    TEXT NOT NULL
+  storage_type    TEXT NOT NULL,
+  is_synced       BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
 CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
 CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
+CREATE INDEX "IDX_MetaLink_isSynced" ON "MetaLink"(is_synced);
 ```
+
+**Schema Fields:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | TEXT | Primary key (UUID) |
+| `created_at` | TIMESTAMP | When record was created |
+| `modified_at` | TIMESTAMP | When record was last updated |
+| `bucket_name` | TEXT | Storage bucket name |
+| `object_name` | TEXT | File object name |
+| `link` | TEXT | Access URL to the file |
+| `mimetype` | TEXT | File MIME type |
+| `size` | INTEGER | File size in bytes |
+| `etag` | TEXT | Entity tag for versioning |
+| `metadata` | JSONB | Additional file metadata |
+| `storage_type` | TEXT | Storage type ('disk' or 'minio') |
+| `is_synced` | BOOLEAN | Whether MetaLink is synchronized with storage (default: false) |
 
 ### Setup
 
@@ -362,12 +381,14 @@ CREATE TABLE "MetaLink" (
   size            INTEGER NOT NULL,
   etag            TEXT,
   metadata        JSONB,
-  storage_type    TEXT NOT NULL
+  storage_type    TEXT NOT NULL,
+  is_synced       BOOLEAN NOT NULL DEFAULT false
 );
 
 CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
 CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
 CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
+CREATE INDEX "IDX_MetaLink_isSynced" ON "MetaLink"(is_synced);
 ```
 
 #### Step 4: Configure Component
@@ -431,12 +452,15 @@ When `useMetaLink: true`, upload responses include the database record:
         "uploadedBy": "user123"
       },
       "storageType": "minio",
-      "createdAt": "2025-12-14T15:00:00.000Z",
-      "modifiedAt": "2025-12-14T15:00:00.000Z"
+      "isSynced": true,
+      "createdAt": "2025-12-15T03:00:00.000Z",
+      "modifiedAt": "2025-12-15T03:00:00.000Z"
     }
   }
 ]
 ```
+
+**Note:** The `isSynced` field is automatically set to `true` when files are uploaded, indicating the MetaLink is synchronized with the actual file in storage.
 
 ### Error Handling
 
@@ -470,6 +494,21 @@ const pdfs = await fileMetaLinkRepository.find({
 // Get files by storage type
 const minioFiles = await fileMetaLinkRepository.find({
   where: { storageType: 'minio' },
+});
+
+// Get synced files only
+const syncedFiles = await fileMetaLinkRepository.find({
+  where: { isSynced: true },
+});
+
+// Get unsynced files (for manual sync operations)
+const unsyncedFiles = await fileMetaLinkRepository.find({
+  where: { isSynced: false },
+});
+
+// Count synced files
+const syncedCount = await fileMetaLinkRepository.count({
+  where: { isSynced: true },
 });
 
 // Get recent uploads
@@ -716,8 +755,9 @@ POST /{basePath}/buckets/:bucketName/upload
       "etag": "abc123",
       "metadata": {},
       "storageType": "minio",
-      "createdAt": "2025-12-14T15:00:00.000Z",
-      "modifiedAt": "2025-12-14T15:00:00.000Z"
+      "isSynced": true,
+      "createdAt": "2025-12-15T03:00:00.000Z",
+      "modifiedAt": "2025-12-15T03:00:00.000Z"
     }
   }
 ]
@@ -863,6 +903,97 @@ await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectNa
 
 // File deleted from storage
 // MetaLink record deleted from database (if enabled)
+```
+
+---
+
+#### **Sync MetaLink** (MetaLink only)
+
+```http
+PUT /{basePath}/buckets/:bucketName/objects/:objectName/meta-links
+```
+
+**Availability:** Only available when `useMetaLink: true`
+
+**Parameters:**
+- `bucketName` (path): Bucket name
+- `objectName` (path): Object name (URL-encoded)
+
+**Validation:**
+- ✅ Both bucket and object names validated
+- ❌ Returns 400 if either is invalid
+
+**Behavior:**
+- Fetches current file metadata from storage
+- If MetaLink exists: Updates with latest metadata
+- If MetaLink doesn't exist: Creates new MetaLink record
+- Sets `isSynced: true` to mark as synchronized
+
+**Use Cases:**
+- Manually sync files that exist in storage but not in database
+- Update MetaLink metadata after file changes
+- Rebuild MetaLink records after database restore
+- Bulk synchronization operations
+
+**Response (MetaLink created):**
+```json
+{
+  "id": "uuid",
+  "bucketName": "user-uploads",
+  "objectName": "document.pdf",
+  "link": "/assets/buckets/user-uploads/objects/document.pdf",
+  "mimetype": "application/pdf",
+  "size": 1048576,
+  "etag": "abc123",
+  "metadata": {},
+  "storageType": "minio",
+  "isSynced": true,
+  "createdAt": "2025-12-15T03:00:00.000Z",
+  "modifiedAt": "2025-12-15T03:00:00.000Z"
+}
+```
+
+**Response (MetaLink updated):**
+```json
+{
+  "id": "existing-uuid",
+  "bucketName": "user-uploads",
+  "objectName": "document.pdf",
+  "link": "/assets/buckets/user-uploads/objects/document.pdf",
+  "mimetype": "application/pdf",
+  "size": 1048576,
+  "etag": "abc123updated",
+  "metadata": {},
+  "storageType": "minio",
+  "isSynced": true,
+  "createdAt": "2025-12-15T02:00:00.000Z",
+  "modifiedAt": "2025-12-15T03:00:00.000Z"
+}
+```
+
+**Example:**
+```typescript
+// Sync a single file
+const bucketName = 'user-uploads';
+const objectName = 'document.pdf';
+
+const response = await fetch(
+  `/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/meta-links`,
+  { method: 'PUT' }
+);
+
+const metaLink = await response.json();
+console.log('Synced:', metaLink.isSynced); // true
+
+// Bulk sync example: sync all files in storage
+const objects = await fetch(`/assets/buckets/${bucketName}/objects`).then(r => r.json());
+
+for (const obj of objects) {
+  await fetch(
+    `/assets/buckets/${bucketName}/objects/${encodeURIComponent(obj.name)}/meta-links`,
+    { method: 'PUT' }
+  );
+}
 ```
 
 ---
