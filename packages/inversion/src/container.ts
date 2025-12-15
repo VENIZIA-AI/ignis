@@ -286,7 +286,8 @@ export class Container extends BaseHelper {
       return instance;
     }
 
-    for (const [propertyKey, metadata] of propertyMetadata.entries()) {
+    const properties = propertyMetadata.entries();
+    for (const [propertyKey, metadata] of properties) {
       const dep = this.get({
         key: metadata.bindingKey,
         isOptional: metadata.optional ?? false,
