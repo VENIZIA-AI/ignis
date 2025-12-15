@@ -8,14 +8,30 @@ export type TTzEnricherOptions = {
   deleted?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
 };
 
-export type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
-  ColumnDefinitions & {
-    createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
-    modifiedAt?: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
-    deletedAt?: PgTimestampBuilderInitial<string>;
-  };
+type IsEnabled<T> = T extends { enable: false }
+  ? false
+  : T extends { enable?: true }
+    ? true
+    : undefined;
 
-export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
+export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
+  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+} & (Opts extends TTzEnricherOptions
+  ? IsEnabled<Opts['modified']> extends true
+    ? { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }
+    : IsEnabled<Opts['modified']> extends false
+      ? {}
+      : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> } // default for undefined modified
+  : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }) & // default when opts is undefined
+  (Opts extends TTzEnricherOptions
+    ? IsEnabled<Opts['deleted']> extends true
+      ? { deletedAt: PgTimestampBuilderInitial<string> }
+      : {}
+    : {}); // no deletedAt when opts is undefined
+
+export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined>(
+  opts?: Opts,
+): TTzEnricherResult<Opts> => {
   const {
     created = { columnName: 'created_at', withTimezone: true },
     modified = { enable: true, columnName: 'modified_at', withTimezone: true },
@@ -29,11 +45,7 @@ export const generateTzColumnDefs = (opts?: TTzEnricherOptions) => {
     })
       .defaultNow()
       .notNull(),
-  };
-
-  if (!modified.enable && !deleted.enable) {
-    return rs;
-  }
+  } as TTzEnricherResult<Opts>;
 
   if (modified.enable) {
     rs = Object.assign({}, rs, {
