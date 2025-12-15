@@ -215,8 +215,7 @@ const result = await diskHelper.upload({
 const result = await diskHelper.upload({
   bucket: 'my-bucket',
   files: files,
-  normalizeNameFn: ({ originalName, folderPath }) => {
-    const name = `${Date.now()}_${originalName.toLowerCase()}`;
+  normalizeNameFn: ({` originalName, folderPath `}) => {
     return folderPath ? `${folderPath}/${name}` : name;
   },
   normalizeLinkFn: ({ bucketName, normalizeName }) => {
@@ -395,11 +394,6 @@ const uploadResult = await minioClient.upload({
 const uploadResult = await minioClient.upload({
   bucket: 'my-bucket',
   files: files,
-  normalizeNameFn: ({ originalName, folderPath }) => {
-    // Custom logic to normalize filename
-    const name = `${Date.now()}_${originalName.toLowerCase().replace(/\s/g, '-')}`;
-    return folderPath ? `${folderPath}/${name}` : name;
-  },
   normalizeLinkFn: ({ bucketName, normalizeName }) => {
     // Custom link generation
     return `/api/files/${bucketName}/${encodeURIComponent(normalizeName)}`;
@@ -409,7 +403,7 @@ const uploadResult = await minioClient.upload({
 
 **Options:**
 - `bucket` (string): Target bucket name
-- `files` (Array<IUploadFile>): Array of file objects to upload
+- `files` (`Array<IUploadFile>`): Array of file objects to upload
 - `normalizeNameFn` (optional): Custom function to normalize filenames (default: lowercase + replace spaces with underscores)
 - `normalizeLinkFn` (optional): Custom function to generate file access links (default: `/static-assets/{bucket}/{encodedName}`)
 

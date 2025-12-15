@@ -114,6 +114,7 @@ const config = defineConfig({
       '/references': [
         {
           text: 'Components',
+          collapsed: true,
           items: [
             { text: 'Overview', link: '/references/components/' },
             {
@@ -129,11 +130,13 @@ const config = defineConfig({
               link: '/references/components/request-tracker',
             },
             { text: 'Socket.IO', link: '/references/components/socket-io' },
+            { text: 'Static Asset', link: '/references/components/static-asset' },
             { text: 'Swagger', link: '/references/components/swagger' },
           ],
         },
         {
           text: 'Base Abstractions',
+          collapsed: true,
           items: [
             { text: 'Application', link: '/references/base/application' },
             { text: 'Components', link: '/references/base/components' },
@@ -147,6 +150,7 @@ const config = defineConfig({
         },
         {
           text: 'Helpers',
+          collapsed: true,
           items: [
             { text: 'Overview', link: '/references/helpers/' },
             { text: 'Cron', link: '/references/helpers/cron' },
@@ -169,6 +173,7 @@ const config = defineConfig({
         },
         {
           text: 'Utilities',
+          collapsed: true,
           items: [
             { text: 'Overview', link: '/references/utilities/' },
             { text: 'Crypto', link: '/references/utilities/crypto' },
@@ -183,6 +188,7 @@ const config = defineConfig({
         },
         {
           text: 'Framework Internals',
+          collapsed: true,
           items: [
             { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
             { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
