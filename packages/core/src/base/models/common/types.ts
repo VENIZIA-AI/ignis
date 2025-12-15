@@ -1,5 +1,5 @@
 import { z } from '@hono/zod-openapi';
-import { ErrorSchema, getError, HTTP } from '@venizia/ignis-helpers';
+import { ErrorSchema, getError, HTTP, keysToCamel, toCamel } from '@venizia/ignis-helpers';
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
@@ -67,7 +67,7 @@ export const idParamsSchema = (opts?: { idType: string }) => {
 };
 
 // -------------------------------------------------------------------------
-export const jsonContent = <T extends z.ZodObject>(opts: {
+export const jsonContent = <T extends z.ZodType>(opts: {
   schema: T;
   description: string;
   required?: boolean;
@@ -79,7 +79,7 @@ export const jsonContent = <T extends z.ZodObject>(opts: {
   };
 };
 
-export const jsonResponse = <T extends z.ZodObject>(opts: {
+export const jsonResponse = <T extends z.ZodType>(opts: {
   schema: T;
   description?: string;
   required?: boolean;
@@ -87,9 +87,33 @@ export const jsonResponse = <T extends z.ZodObject>(opts: {
   return {
     [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
       required: opts.required,
-      description: opts?.description ?? 'Success Response',
+      description: opts.description ?? 'Success Response',
       schema: opts.schema,
     }),
     ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
   };
+};
+
+// -------------------------------------------------------------------------
+type TSnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
+  ? `${T}${Capitalize<TSnakeToCamelCase<U>>}`
+  : S;
+
+type TCamelCaseKeys<T extends z.ZodRawShape> = {
+  [K in keyof T as K extends string ? TSnakeToCamelCase<K> : K]: T[K] extends z.ZodType<infer U>
+    ? z.ZodType<U>
+    : T[K];
+};
+
+export const snakeToCamel = <T extends z.ZodRawShape>(shape: T) => {
+  const camelShape = Object.fromEntries(
+    Object.entries(shape).map(([key, value]) => {
+      return [toCamel(key), value];
+    }),
+  ) as TCamelCaseKeys<T>;
+
+  return z
+    .object(shape)
+    .transform(data => keysToCamel(data))
+    .pipe(z.object(camelShape));
 };

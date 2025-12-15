@@ -1,33 +1,35 @@
-import { MimeTypes } from '@/common';
-import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
-import isEmpty from 'lodash/isEmpty';
 import { Client, ClientOptions } from 'minio';
 import { Readable } from 'node:stream';
+import { BaseStorageHelper } from '../base';
+import {
+  IBucketInfo,
+  IFileStat,
+  IObjectInfo,
+  IStorageHelperOptions,
+  IUploadFile,
+  IUploadResult,
+} from '../types';
 
-// ---------------------------------------------------------------------
-export interface IUploadFile {
-  originalname: string;
-  mimetype: string;
-  buffer: Buffer;
-  size: number;
-  encoding: string;
-  [key: string | symbol]: any;
-}
+// ================================================================================
+export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 
-// ---------------------------------------------------------------------
-export class MinioHelper extends BaseHelper {
+// ================================================================================
+export class MinioHelper extends BaseStorageHelper {
   client: Client;
 
-  constructor(options: ClientOptions) {
-    super({ scope: MinioHelper.name, identifier: MinioHelper.name });
+  constructor(options: IMinioHelperOptions) {
+    super({
+      scope: options.scope ?? MinioHelper.name,
+      identifier: options.identifier ?? MinioHelper.name,
+    });
     this.client = new Client(options);
   }
 
   // ---------------------------------------------------------------------
   async isBucketExists(opts: { name: string }) {
     const { name } = opts;
-    if (!name || isEmpty(name)) {
+    if (!this.isValidName(name)) {
       return false;
     }
 
@@ -36,27 +38,27 @@ export class MinioHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------
-  async getBuckets() {
+  async getBuckets(): Promise<IBucketInfo[]> {
     const buckets = await this.client.listBuckets();
     return buckets;
   }
 
   // ---------------------------------------------------------------------
-  async getBucket(opts: { name: string }) {
+  async getBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const isExists = await this.isBucketExists(opts);
     if (!isExists) {
       return null;
     }
 
-    const allBuckets = await this.getBuckets();
-    const bucket = allBuckets.find(el => el.name === opts.name);
-    return bucket;
+    const buckets = await this.getBuckets();
+    const bucket = buckets.find(el => el.name === opts.name);
+    return bucket ?? null;
   }
 
   // ---------------------------------------------------------------------
-  async createBucket(opts: { name: string }) {
+  async createBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const { name } = opts;
-    if (!name || isEmpty(name)) {
+    if (!this.isValidName(name)) {
       throw getError({
         message: '[createBucket] Invalid name to create bucket!',
       });
@@ -68,9 +70,9 @@ export class MinioHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------
-  async removeBucket(opts: { name: string }) {
+  async removeBucket(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
-    if (!name || isEmpty(name)) {
+    if (!this.isValidName(name)) {
       throw getError({
         message: '[removeBucket] Invalid name to remove bucket!',
       });
@@ -81,29 +83,13 @@ export class MinioHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------
-  getFileType(opts: { mimeType: string }) {
-    const { mimeType } = opts;
-    if (mimeType?.toLowerCase()?.startsWith(MimeTypes.IMAGE)) {
-      return MimeTypes.IMAGE;
-    }
-
-    if (mimeType?.toLowerCase()?.startsWith(MimeTypes.VIDEO)) {
-      return MimeTypes.VIDEO;
-    }
-
-    if (mimeType?.toLowerCase()?.startsWith(MimeTypes.TEXT)) {
-      return MimeTypes.TEXT;
-    }
-
-    return MimeTypes.UNKNOWN;
-  }
-
-  // ---------------------------------------------------------------------
   async upload(opts: {
     bucket: string;
-    files: Array<IUploadFile>;
-  }): Promise<Array<{ bucket: string; fileName: string; link: string }>> {
-    const { bucket, files } = opts;
+    files: IUploadFile[];
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
+    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  }): Promise<IUploadResult[]> {
+    const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
 
     if (!files || files.length === 0) {
       return [];
@@ -111,35 +97,42 @@ export class MinioHelper extends BaseHelper {
 
     const isExists = await this.isBucketExists({ name: bucket });
     if (!isExists) {
-      return [];
+      throw getError({
+        message: `[upload] Bucket does not exist | name: ${bucket}`,
+      });
     }
 
     // Validate all files first
     for (const file of files) {
-      const { originalname: originalName, size } = file;
+      const { originalName, size, folderPath } = file;
 
-      if (!originalName || isEmpty(originalName)) {
-        this.logger.error('[upload] Invalid original name!');
-        throw getError({
-          message: '[upload] Invalid original file name | please check again files!',
-        });
+      if (!this.isValidName(originalName)) {
+        throw getError({ message: '[upload] Invalid original file name' });
+      }
+
+      if (folderPath && !this.isValidName(folderPath)) {
+        throw getError({ message: '[upload] Invalid folder path' });
       }
 
       if (!size) {
-        throw getError({
-          message: `[upload] Invalid file size | please check again update file | name: ${originalName}`,
-        });
+        throw getError({ message: `[upload] Invalid file size` });
       }
     }
 
-    // Upload all files
     const uploadPromises = files.map(async file => {
-      const { originalname: originalName, mimetype: mimeType, buffer, size, encoding } = file;
+      const { folderPath, originalName, mimetype: mimeType, buffer, size, encoding } = file;
+      const t = performance.now();
 
-      const normalizeName = originalName.toLowerCase().replace(/ /g, '_');
-      const t = new Date().getTime();
+      const normalizeName = normalizeNameFn
+        ? normalizeNameFn({ originalName, folderPath })
+        : folderPath
+          ? `${folderPath.toLowerCase().replace(/ /g, '_')}/${originalName.toLowerCase().replace(/ /g, '_')}`
+          : originalName.toLowerCase().replace(/ /g, '_');
+      const normalizeLink = normalizeLinkFn
+        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
+        : `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`;
 
-      const uploadInfo = await this.client.putObject(bucket, normalizeName, buffer, size, {
+      await this.client.putObject(bucket, normalizeName, buffer, size, {
         originalName,
         normalizeName,
         size,
@@ -149,14 +142,14 @@ export class MinioHelper extends BaseHelper {
 
       this.logger.info(
         '[upload] Uploaded: %j | Took: %s (ms)',
-        uploadInfo,
-        new Date().getTime() - t,
+        { normalizeName, normalizeLink, mimeType, encoding, size },
+        performance.now() - t,
       );
 
       return {
-        bucket,
-        fileName: normalizeName,
-        link: `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`,
+        bucketName: bucket,
+        objectName: normalizeName,
+        link: normalizeLink,
       };
     });
 
@@ -179,28 +172,59 @@ export class MinioHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------
-  async getStat(opts: { bucket: string; name: string }) {
+  async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
     const { bucket, name } = opts;
     const stat = await this.client.statObject(bucket, name);
-    return stat;
+    return {
+      size: stat.size,
+      metadata: stat.metaData,
+      lastModified: stat.lastModified,
+      etag: stat.etag,
+      versionId: stat.versionId ?? undefined,
+    };
   }
 
   // ---------------------------------------------------------------------
-  async removeObject(opts: { bucket: string; name: string }) {
+  async removeObject(opts: { bucket: string; name: string }): Promise<void> {
     const { bucket, name } = opts;
     await this.client.removeObject(bucket, name);
   }
 
   // ---------------------------------------------------------------------
-  async removeObjects(opts: { bucket: string; names: Array<string> }) {
+  async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {
     const { bucket, names } = opts;
     await this.client.removeObjects(bucket, names);
   }
 
   // ---------------------------------------------------------------------
-  getListObjects(opts: { bucket: string; prefix?: string; useRecursive?: boolean }) {
-    const { bucket, prefix = '', useRecursive = false } = opts;
-    const listObjects = this.client.listObjects(bucket, prefix, useRecursive);
-    return listObjects;
+  async listObjects(opts: {
+    bucket: string;
+    prefix?: string;
+    useRecursive?: boolean;
+    maxKeys?: number;
+  }): Promise<IObjectInfo[]> {
+    const { bucket, prefix = '', useRecursive = false, maxKeys } = opts;
+
+    return new Promise((resolve, reject) => {
+      const objects: IObjectInfo[] = [];
+      const stream = this.client.listObjects(bucket, prefix, useRecursive);
+
+      stream.on('data', obj => {
+        objects.push({
+          name: obj.name,
+          size: obj.size,
+          lastModified: obj.lastModified,
+          etag: obj.etag,
+          prefix: obj.prefix,
+        });
+
+        if (maxKeys && objects.length >= maxKeys) {
+          stream.destroy();
+        }
+      });
+
+      stream.on('end', () => resolve(objects));
+      stream.on('error', err => reject(err));
+    });
   }
 }

@@ -3,14 +3,22 @@ import { ValueOf } from '../types';
 export class HTTP {
   static readonly Headers = {
     AUTHORIZATION: 'authorization',
+    CACHE_CONTROL: 'cache-control',
+    CONTENT_DISPOSITION: 'content-disposition',
+    CONTENT_ENCODING: 'content-encoding',
+    CONTENT_LENGTH: 'content-length',
+    CONTENT_TYPE: 'content-type',
+    ETAG: 'etag',
+    LAST_MODIFIED: 'last-modified',
     REQUEST_TRACING_ID: 'x-request-id',
   } as const;
 
   static readonly HeaderValues = {
-    APPLICATION_JSON: 'application/json',
     APPLICATION_FORM_URLENCODED: 'application/x-www-form-urlencoded',
-    TEXT_PLAIN: 'text/plain',
+    APPLICATION_JSON: 'application/json',
+    APPPLICATION_OCTET_STREAM: 'application/octet-stream',
     MULTIPART_FORM_DATA: 'multipart/form-data',
+    TEXT_PLAIN: 'text/plain',
   } as const;
 
   static readonly Methods = {

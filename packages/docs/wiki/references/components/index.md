@@ -8,6 +8,7 @@ Reusable, pluggable modules that encapsulate specific features in Ignis applicat
 |-----------|---------|--------------|
 | [Authentication](./authentication.md) | JWT-based auth | Token generation, protected routes, user payload |
 | [Health Check](./health-check.md) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
+| [Static Asset](./static-asset.md) | File management | Upload/download files, MinIO & local filesystem support |
 | [Swagger](./swagger.md) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
 | [Socket.IO](./socket-io.md) | Real-time communication | WebSocket support, Redis adapter, event-based |
 

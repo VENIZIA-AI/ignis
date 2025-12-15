@@ -1,4 +1,5 @@
 import {
+  applicationEnvironment,
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
@@ -6,6 +7,7 @@ import {
   BindingKeys,
   BindingNamespaces,
   DataTypes,
+  DiskHelper,
   Environment,
   getUID,
   HealthCheckBindingKeys,
@@ -17,7 +19,12 @@ import {
   IMiddlewareConfigs,
   int,
   JWTAuthenticationStrategy,
+  MinioHelper,
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
   SwaggerComponent,
+  TStaticAssetsComponentOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
@@ -27,6 +34,7 @@ import { ConfigurationController, TestController } from './controllers';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
+import { EnvironmentKeys } from './common/environments';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -133,9 +141,54 @@ export class Application extends BaseApplication {
     }).toValue({
       restOptions: { path: '/health-check' },
     });
-
     this.component(HealthCheckComponent);
+
     this.component(SwaggerComponent);
+
+    // Configure Static Asset Component with v2.0 API
+    this.bind<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    }).toValue({
+      // MinIO storage for user uploads and media
+      staticAsset: {
+        controller: {
+          name: 'AssetController',
+          basePath: '/assets',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.MINIO,
+        helper: new MinioHelper({
+          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
+          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
+          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
+          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
+          useSSL: false,
+        }),
+        extra: {
+          parseMultipartBody: {
+            storage: 'memory',
+          },
+        },
+      },
+      // Local disk storage for temporary files and cache
+      staticResource: {
+        controller: {
+          name: 'ResourceController',
+          basePath: '/resources',
+          isStrict: true,
+        },
+        storage: StaticAssetStorageTypes.DISK,
+        helper: new DiskHelper({
+          basePath: './app_data/resources',
+        }),
+        extra: {
+          parseMultipartBody: {
+            storage: 'memory',
+          },
+        },
+      },
+    });
+    this.component(StaticAssetComponent);
   }
 
   async postConfigure(): Promise<void> {
