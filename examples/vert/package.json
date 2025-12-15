@@ -32,27 +32,27 @@
   "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
-    "@scalar/hono-api-reference": "^0.9.26",
+    "@scalar/hono-api-reference": "^0.9.28",
     "@venizia/ignis": "latest",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
-    "hono": "^4.10.7",
+    "hono": "^4.11.0",
     "lodash": "^4.17.21",
     "pg": "^8.16.3",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@minimaltech/eslint-node": "^0.2.1",
-    "@types/bun": "^1.3.1",
-    "@types/lodash": "^4.14.194",
-    "@types/pg": "^8.15.6",
+    "@types/bun": "^1.3.4",
+    "@types/lodash": "^4.17.21",
+    "@types/pg": "^8.16.0",
     "@venizia/dev-configs": "latest",
-    "drizzle-kit": "^0.31.7",
-    "eslint": "^9.32.0",
-    "prettier": "^3.6.2",
-    "tsc-alias": "^1.7.0",
-    "tsconfig-paths": "^4.1.0",
+    "drizzle-kit": "^0.31.8",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
+    "tsc-alias": "^1.8.16",
+    "tsconfig-paths": "^4.2.0",
     "typescript": "~5.9.3"
   }
 }
