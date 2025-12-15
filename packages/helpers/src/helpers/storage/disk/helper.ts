@@ -201,7 +201,6 @@ export class DiskHelper extends BaseStorageHelper {
       this.logger.info(
         '[upload] Uploaded: %j | Took: %s (ms)',
         { normalizeName, normalizeLink, mimeType, encoding, size },
-        size,
         performance.now() - t,
       );
 
