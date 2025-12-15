@@ -123,7 +123,7 @@ export class Binding<T = any> extends BaseHelper {
           break;
         }
 
-        const p = new provider();
+        const p = container.instantiate(provider);
         instance = p.value(container);
         break;
       }
