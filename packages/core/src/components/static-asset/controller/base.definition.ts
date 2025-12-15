@@ -287,8 +287,8 @@ export const StaticAssetDefinitions = {
     }),
   },
   RECREATE_METALINK: {
-    method: 'post',
-    path: '/buckets/:bucketName/objects/:objectName/recreate-metalink',
+    method: 'put',
+    path: '/buckets/:bucketName/objects/:objectName/meta-links',
     request: {
       params: z.object({
         bucketName: z.string().openapi({

@@ -1,7 +1,7 @@
 import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
-import { BindingNamespaces, CoreBindings } from '@/common/bindings';
+import { CoreBindings } from '@/common/bindings';
 import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
 import { AssetControllerFactory } from './controller';
@@ -30,26 +30,25 @@ export class StaticAssetComponent extends BaseComponent {
     for (const [key, opt] of Object.entries(componentOptions)) {
       const { storage, controller, helper, extra } = opt;
 
-      const Controller = AssetControllerFactory.defineAssetController({
-        controller,
-        storage,
-        helper,
-        useMetaLink: opt.useMetaLink,
-        metaLink: opt.useMetaLink ? opt.metaLink : undefined,
-        options: {
-          ...extra,
-          normalizeLinkFn: extra?.normalizeLinkFn
-            ? extra.normalizeLinkFn
-            : opts => {
-                return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
-                  opts.normalizeName,
-                )}`;
-              },
-        },
-      });
-      this.application.controller(Controller, {
-        binding: { key: `AssetController_${key}`, namespace: BindingNamespaces.CONTROLLER },
-      });
+      this.application.controller(
+        AssetControllerFactory.defineAssetController({
+          controller,
+          storage,
+          helper,
+          useMetaLink: opt.useMetaLink,
+          metaLink: opt.useMetaLink ? opt.metaLink : undefined,
+          options: {
+            ...extra,
+            normalizeLinkFn: extra?.normalizeLinkFn
+              ? extra.normalizeLinkFn
+              : opts => {
+                  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
+                    opts.normalizeName,
+                  )}`;
+                },
+          },
+        }),
+      );
 
       this.application.logger.info(
         `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,

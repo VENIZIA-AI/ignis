@@ -6,7 +6,7 @@ import {
   TTableObject,
 } from '@/base/models';
 import { createRelations } from '@/base/repositories';
-import { index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
 const TABLE_NAME = 'MetaLink';
 
@@ -24,11 +24,13 @@ export const metaLinkTable = pgTable(
     etag: text(),
     metadata: jsonb().$type<Record<string, any>>(),
     storageType: text('storage_type').notNull(),
+    isSynced: boolean('is_synced').notNull().default(false),
   },
   def => [
     index(`IDX_${TABLE_NAME}_bucketName`).on(def.bucketName),
     index(`IDX_${TABLE_NAME}_objectName`).on(def.objectName),
     index(`IDX_${TABLE_NAME}_storageType`).on(def.storageType),
+    index(`IDX_${TABLE_NAME}_isSynced`).on(def.isSynced),
   ],
 );
 

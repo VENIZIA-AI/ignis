@@ -35,7 +35,7 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     }
 
     // Prevent special shell characters
-    const dangerousChars = /[;|&$`<>(){}[\]!#]/;
+    const dangerousChars = /[;|&$`<>{}[\]!#]/;
     if (dangerousChars.test(name)) {
       this.logger.error('[isValidName] Name contains dangerous characters: %s', name);
       return false;

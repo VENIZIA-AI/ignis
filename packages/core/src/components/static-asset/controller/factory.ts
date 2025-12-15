@@ -18,7 +18,6 @@ import {
 import { StaticAssetDefinitions } from './base.definition';
 import { BaseController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
-import { set } from 'lodash';
 
 export interface IAssetControllerOptions {
   controller: {
@@ -43,7 +42,7 @@ export class AssetControllerFactory extends BaseHelper {
     const { name, basePath, isStrict = true } = controller;
 
     @controllerDecorator({ path: basePath })
-    class _Controller extends BaseController {
+    class _controller extends BaseController {
       constructor() {
         super({
           scope: name,
@@ -102,10 +101,7 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
-            const fileStat = await helper.getStat({
-              bucket: bucketName,
-              name: objectName,
-            });
+            const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
             const { size, metadata } = fileStat;
             Object.entries(metadata).forEach(([key, value]) => {
               if (
@@ -121,11 +117,8 @@ export class AssetControllerFactory extends BaseHelper {
             ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
             ctx.header('x-content-type-options', 'nosniff');
 
-            const minioStream = await helper.getFile({
-              bucket: bucketName,
-              name: objectName,
-            });
-            return new Response(minioStream, {
+            const stream = await helper.getFile({ bucket: bucketName, name: objectName });
+            return new Response(stream, {
               headers: ctx.res.headers,
               status: HTTP.ResultCodes.RS_2.Ok,
             });
@@ -151,10 +144,7 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
-            const fileStat = await helper.getStat({
-              bucket: bucketName,
-              name: objectName,
-            });
+            const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
             const { size, metadata } = fileStat;
 
             Object.entries(metadata).forEach(([key, value]) => {
@@ -175,10 +165,7 @@ export class AssetControllerFactory extends BaseHelper {
             );
             ctx.header('x-content-type-options', 'nosniff');
 
-            const stream = await helper.getFile({
-              bucket: bucketName,
-              name: objectName,
-            });
+            const stream = await helper.getFile({ bucket: bucketName, name: objectName });
             return new Response(stream, {
               headers: ctx.res.headers,
               status: HTTP.ResultCodes.RS_2.Ok,
@@ -264,6 +251,7 @@ export class AssetControllerFactory extends BaseHelper {
                     etag: fileStat.etag,
                     metadata: fileStat.metadata,
                     storageType: storage,
+                    isSynced: true,
                   },
                 });
 
@@ -386,32 +374,26 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         // ----------------------------------------
-        this.bindRoute({
-          configs: StaticAssetDefinitions.RECREATE_METALINK,
-        }).to({
-          handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid('param');
+        if (useMetaLink && metaLink) {
+          this.bindRoute({
+            configs: StaticAssetDefinitions.RECREATE_METALINK,
+          }).to({
+            handler: async ctx => {
+              const { bucketName, objectName } = ctx.req.valid('param');
 
-            if (!helper.isValidName(bucketName)) {
-              throw getError({
-                message: 'Invalid bucket name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
-            }
-            if (!helper.isValidName(objectName)) {
-              throw getError({
-                message: 'Invalid object name',
-                statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-              });
-            }
-
-            try {
-              if (!useMetaLink || !metaLink) {
+              if (!helper.isValidName(bucketName)) {
                 throw getError({
-                  message: 'MetaLink is not enabled for this storage',
+                  message: 'Invalid bucket name',
                   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
+              if (!helper.isValidName(objectName)) {
+                throw getError({
+                  message: 'Invalid object name',
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
+              }
+
               // Get file stat from storage
               const fileStat = await helper.getStat({
                 bucket: bucketName,
@@ -444,6 +426,7 @@ export class AssetControllerFactory extends BaseHelper {
                     etag: fileStat.etag,
                     metadata: fileStat.metadata,
                     storageType: storage,
+                    isSynced: true,
                   },
                 });
                 const updatedMetaLink = await metaLink.repository.findById({ id: existing.id });
@@ -463,6 +446,7 @@ export class AssetControllerFactory extends BaseHelper {
                     etag: fileStat.etag,
                     metadata: fileStat.metadata,
                     storageType: storage,
+                    isSynced: true,
                   },
                 });
                 return ctx.json(
@@ -470,25 +454,14 @@ export class AssetControllerFactory extends BaseHelper {
                   HTTP.ResultCodes.RS_2.Ok,
                 );
               }
-            } catch (error) {
-              this.logger.error(
-                '[RECREATE_METALINK] Failed to recreate MetaLink for %s/%s: %o',
-                bucketName,
-                objectName,
-                error,
-              );
-              throw getError({
-                message: 'Failed to recreate MetaLink',
-                statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-                cause: error,
-              });
-            }
-          },
-        });
+            },
+          });
+        }
       }
     }
 
-    set(_Controller, 'name', name);
-    return _Controller;
+    // Set the class name dynamically
+    Object.defineProperty(_controller, 'name', { value: name, configurable: true });
+    return _controller;
   }
 }
