@@ -9,7 +9,6 @@
 
     /* Paths */
     "outDir": "mcp-server/dist",
-    "rootDir": "mcp-server",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
@@ -18,6 +17,10 @@
     /* Build Info */
     "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
   },
-  "include": ["mcp-server/**/*.ts"],
+  "include": [
+    "mcp-server/**/*.ts",
+    "site/.vitepress/config.mts",
+    "site/.vitepress/theme/**/*.ts"
+  ],
   "exclude": ["node_modules", "dist", "mcp-server/dist", "wiki"]
 }
