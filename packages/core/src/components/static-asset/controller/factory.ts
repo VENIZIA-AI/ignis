@@ -318,32 +318,36 @@ export class AssetControllerFactory extends BaseHelper {
             }
 
             // Delete from storage
-            await helper.removeObject({
-              bucket: bucketName,
-              name: objectName,
-            });
+            await helper.removeObject({ bucket: bucketName, name: objectName });
 
             if (!useMetaLink || !metaLink) {
               return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
             }
 
-            try {
-              await metaLink.repository.deleteAll({
+            metaLink.repository
+              .deleteAll({
                 where: {
                   bucketName,
                   objectName,
                 },
+              })
+              .then(() => {
+                this.logger.info(
+                  '[DELETE_OBJECT] Successfully to delete MetaLink for %s/%s',
+                  bucketName,
+                  objectName,
+                );
+              })
+              .catch(error => {
+                this.logger.error(
+                  '[DELETE_OBJECT] Failed to delete MetaLink for %s/%s: %o',
+                  bucketName,
+                  objectName,
+                  error,
+                );
               });
-            } catch (error) {
-              this.logger.error(
-                '[DELETE_OBJECT] Failed to delete MetaLink for %s/%s: %o',
-                bucketName,
-                objectName,
-                error,
-              );
-            } finally {
-              return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
-            }
+
+            return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
           },
         });
 
