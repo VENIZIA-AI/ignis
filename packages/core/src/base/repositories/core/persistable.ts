@@ -116,12 +116,15 @@ export class PersistableRepository<
         schema: this.entity.schema,
         where: opts.where,
       });
+      const isEmptyWhere = !where || isEmpty(where);
 
-      if (!force && (!where || isEmpty(where))) {
+      if (!force && isEmptyWhere) {
         throw getError({
           message: `[_update] Entity: ${this.entity.name} | DENY to perform update | Empty where condition | condition: ${JSON.stringify(where)}`,
         });
-      } else {
+      }
+
+      if (isEmptyWhere) {
         this.logger.warn(
           '[_update] Entity: %s | Performing update with empty condition | data: %j | condition: %j ',
           this.entity.name,
@@ -217,12 +220,15 @@ export class PersistableRepository<
         schema: this.entity.schema,
         where: opts.where,
       });
+      const isEmptyWhere = !where || isEmpty(where);
 
-      if (!force && (!where || isEmpty(where))) {
+      if (!force && isEmptyWhere) {
         throw getError({
           message: `[_delete] Entity: ${this.entity.name} | DENY to perform delete | Empty where condition | condition: ${JSON.stringify(where)}`,
         });
-      } else {
+      }
+
+      if (isEmptyWhere) {
         this.logger.warn(
           '[_delete] Entity: %s | Performing delete with empty condition | condition: %j',
           this.entity.name,
