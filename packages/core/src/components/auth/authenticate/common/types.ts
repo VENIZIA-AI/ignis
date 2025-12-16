@@ -3,6 +3,7 @@ import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-help
 import { Context, Env, Input } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
+import { z } from '@hono/zod-openapi';
 
 export interface IJWTTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;
@@ -12,10 +13,34 @@ export interface IJWTTokenServiceOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
 }
 
-export interface IAuthenticateOptions {
-  restOptions?: {
-    path: string;
+export type TDefineAuthControllerOpts = {
+  restPath?: string;
+  serviceKey?: string;
+  requireAuthenticatedSignUp?: boolean;
+  payload?: {
+    signIn?: {
+      request: { schema: z.ZodObject };
+      response: { schema: z.ZodObject };
+    };
+    signUp?: {
+      request: { schema: z.ZodObject };
+      response: { schema: z.ZodObject };
+    };
+    changePassword?: {
+      request: { schema?: z.ZodObject };
+      response: { schema: z.ZodObject };
+    };
   };
+};
+
+export interface IAuthenticateOptions {
+  restOptions?: {} & (
+    | { useAuthController?: false | undefined }
+    | {
+        useAuthController: true;
+        controllerOpts: TDefineAuthControllerOpts;
+      }
+  );
   alwaysAllowPaths: Array<string>;
   tokenOptions: IJWTTokenServiceOptions;
 }

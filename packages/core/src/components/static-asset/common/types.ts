@@ -31,5 +31,5 @@ export type TStaticAssetsComponentOptions = {
     | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
     | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
   ) &
-    ({ useMetaLink: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
+    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
 };

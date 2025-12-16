@@ -8,28 +8,10 @@ import {
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '../../models';
-import { Authentication, IAuthService } from '../common';
+import { Authentication, IAuthService, TDefineAuthControllerOpts } from '../common';
 import { AnyObjectSchema } from '@/utilities';
 
-export const defineAuthController = (opts: {
-  restPath?: string;
-  serviceKey?: string;
-  requireAuthenticatedSignUp?: boolean;
-  payload?: {
-    signIn?: {
-      request: { schema: z.ZodObject };
-      response: { schema: z.ZodObject };
-    };
-    signUp?: {
-      request: { schema: z.ZodObject };
-      response: { schema: z.ZodObject };
-    };
-    changePassword?: {
-      request: { schema?: z.ZodObject };
-      response: { schema: z.ZodObject };
-    };
-  };
-}) => {
+export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
   const {
     restPath = '/auth',
     serviceKey = 'services.AuthenticationService',
