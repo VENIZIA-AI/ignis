@@ -37,7 +37,7 @@ on:
 #   docs         → dev-configs
 #
 # SPECIAL CASES (dist directories):
-#   - docs:      mcp-server/dist
+#   - docs:      dist/mcp-server
 #   - inversion: dist/cjs, dist/esm
 #   - others:    dist
 # =============================================================================
@@ -85,7 +85,7 @@ jobs:
 
           # Set dist directories for validation
           case $PACKAGE in
-            docs)      DIST_DIRS="mcp-server/dist" ;;
+            docs)      DIST_DIRS="dist/mcp-server" ;;
             inversion) DIST_DIRS="dist/cjs dist/esm" ;;
             *)         DIST_DIRS="dist" ;;
           esac
