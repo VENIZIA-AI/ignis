@@ -4,7 +4,7 @@ import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
-  // ChangePasswordRequestSchema,
+  ChangePasswordRequestSchema,
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '../../models';
@@ -53,7 +53,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             }),
           },
           responses: jsonResponse({
-            schema: AnyObjectSchema,
+            schema: payload?.signIn?.request?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
         },
@@ -77,7 +77,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             }),
           },
           responses: jsonResponse({
-            schema: AnyObjectSchema,
+            schema: payload?.signUp?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
         },
@@ -92,15 +92,15 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         configs: {
           path: '/change-password',
           method: 'post',
-          /* request: {
-            body: {
-              content: { 'application/json': { schema: ChangePasswordRequestSchema } },
+          request: {
+            body: jsonContent({
               description: 'Change password request body',
               required: true,
-            },
-          }, */
+              schema: payload?.changePassword?.request?.schema ?? ChangePasswordRequestSchema,
+            }),
+          },
           responses: jsonResponse({
-            schema: AnyObjectSchema,
+            schema: payload?.changePassword?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
           authStrategies: [Authentication.STRATEGY_JWT],
