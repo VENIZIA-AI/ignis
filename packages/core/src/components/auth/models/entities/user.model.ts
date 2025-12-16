@@ -1,9 +1,8 @@
-import { TColumnDefinitions } from '@/base/models';
 import { UserStatuses, UserTypes } from '@/common';
 import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
-export const extraUserColumns = (opts?: { idType: 'string' | 'number' }): TColumnDefinitions => {
+export const extraUserColumns = (opts?: { idType: 'string' | 'number' }) => {
   return {
     realm: text('realm').default(''),
     status: text('status').notNull().default(UserStatuses.UNKNOWN),

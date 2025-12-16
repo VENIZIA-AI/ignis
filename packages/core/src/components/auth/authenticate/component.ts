@@ -4,14 +4,16 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { EnvironmentKeys } from '@/common/environments';
 import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
-import { defineAuthController } from './controllers';
 import { JWTTokenService } from './services';
 import { Binding, getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import { defineAuthController } from './controllers';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
-  restOptions: { path: '/auth' },
+  restOptions: {
+    useAuthController: false,
+  },
   alwaysAllowPaths: [],
   tokenOptions: {
     applicationSecret: process.env[EnvironmentKeys.APP_ENV_APPLICATION_SECRET] ?? DEFAULT_SECRET,
@@ -77,11 +79,11 @@ export class AuthenticateComponent extends BaseComponent {
       .toValue(authenticateOptions.tokenOptions);
     this.application.service(JWTTokenService);
 
-    this.application.controller(
-      defineAuthController({
-        restPath: authenticateOptions.restOptions?.path ?? '/auth',
-      }),
-    );
+    if (authenticateOptions.restOptions?.useAuthController) {
+      this.application.controller(
+        defineAuthController(authenticateOptions.restOptions.controllerOpts),
+      );
+    }
   }
 
   override binding(): ValueOrPromise<void> {

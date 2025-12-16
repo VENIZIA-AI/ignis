@@ -107,6 +107,12 @@ export class JWTTokenService extends BaseService {
         continue;
       }
 
+      // NOTE: Skip undefined or null values because they cannot be encrypted
+      // or we may implment default value for them, like 'NA'
+      if (value === undefined || value === null) {
+        continue;
+      }
+
       const encryptedKey = this.aes.encrypt(key, this.options.applicationSecret);
       switch (key) {
         case 'roles': {
@@ -122,7 +128,7 @@ export class JWTTokenService extends BaseService {
           break;
         }
         default: {
-          rs[encryptedKey] = this.aes.encrypt(value, this.options.applicationSecret);
+          rs[encryptedKey] = this.aes.encrypt(`${value}`, this.options.applicationSecret);
           break;
         }
       }

@@ -62,7 +62,7 @@ The `ReadableRepository` provides a **read-only** implementation of the reposito
 
 ## `PersistableRepository`
 
-The `PersistableRepository` extends `ReadableRepository` and adds **write operations**. It provides the core logic for creating, updating, and deleting records.
+The `PersistableRepository` extends `ReadableRepository` and adds **write operations**. It provides the core logic for creating, updating, and deleting records with built-in safety mechanisms.
 
 -   **File:** `packages/core/src/base/repositories/core/persistable.ts`
 
@@ -74,6 +74,60 @@ The `PersistableRepository` extends `ReadableRepository` and adds **write operat
 -   `updateAll(opts)`
 -   `deleteById(opts)`
 -   `deleteAll(opts)`
+
+### Safety Features
+
+#### Empty Where Clause Protection
+
+The `PersistableRepository` includes safety mechanisms to prevent accidental mass updates or deletions:
+
+**Update Operations (`updateAll`):**
+```typescript
+// ❌ Throws error: Empty where condition without force flag
+await repository.updateAll({
+  data: { status: 'inactive' },
+  where: {}, // Empty condition
+});
+
+// ✅ Warning logged: Explicitly allow mass update with force flag
+await repository.updateAll({
+  data: { status: 'inactive' },
+  where: {},
+  force: true, // Force flag allows empty where
+});
+```
+
+**Delete Operations (`deleteAll`):**
+```typescript
+// ❌ Throws error: Empty where condition without force flag
+await repository.deleteAll({
+  where: {}, // Empty condition
+});
+
+// ✅ Warning logged: Explicitly allow mass delete with force flag
+await repository.deleteAll({
+  where: {},
+  force: true, // Force flag allows empty where
+});
+```
+
+#### Behavior Summary
+
+| Scenario | `force: false` (default) | `force: true` |
+|----------|-------------------------|---------------|
+| Empty `where` clause | ❌ Throws error | ✅ Logs warning and proceeds |
+| Valid `where` clause | ✅ Executes normally | ✅ Executes normally |
+
+**Warning Messages:**
+
+When performing operations with empty `where` conditions and `force: true`, the repository logs a warning:
+
+```
+[_update] Entity: MyEntity | Performing update with empty condition | data: {...} | condition: {}
+[_delete] Entity: MyEntity | Performing delete with empty condition | condition: {}
+```
+
+This helps track potentially dangerous operations in your logs.
 
 You will typically not use this class directly, but rather the `DefaultCRUDRepository`.
 

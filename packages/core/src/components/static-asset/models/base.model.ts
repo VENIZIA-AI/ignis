@@ -14,7 +14,7 @@ const TABLE_NAME = 'MetaLink';
 export const metaLinkTable = pgTable(
   TABLE_NAME,
   {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateIdColumnDefs(),
     ...generateTzColumnDefs(),
     bucketName: text('bucket_name').notNull(),
     objectName: text('object_name').notNull(),

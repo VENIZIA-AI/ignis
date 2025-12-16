@@ -9,8 +9,9 @@ JWT-based authentication and authorization system for Ignis applications.
 | **AuthenticateComponent** | Main component registering auth services and controllers |
 | **AuthenticationStrategyRegistry** | Singleton managing available auth strategies |
 | **JWTAuthenticationStrategy** | JWT verification using `JWTTokenService` |
-| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens |
+| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens (safely handles undefined/null) |
 | **IAuthService** | Interface for custom auth implementation (sign-in, sign-up) |
+| **defineAuthController** | Factory function for creating custom auth controllers |
 
 ### Key Environment Variables
 
@@ -20,12 +21,26 @@ JWT-based authentication and authorization system for Ignis applications.
 | `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | ✅ Yes |
 | `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Optional |
 
+### Authentication Options Configuration
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `restOptions.useAuthController` | `boolean` | Enable/disable built-in auth controller (default: `false`) |
+| `restOptions.controllerOpts` | `TDefineAuthControllerOpts` | Configuration for built-in auth controller (required if `useAuthController` is `true`) |
+| `restOptions.controllerOpts.restPath` | `string` | Base path for auth endpoints (default: `/auth`) |
+| `restOptions.controllerOpts.serviceKey` | `string` | Dependency injection key for auth service (default: `services.AuthenticationService`) |
+| `restOptions.controllerOpts.requireAuthenticatedSignUp` | `boolean` | Whether sign-up requires authentication (default: `false`) |
+| `restOptions.controllerOpts.payload` | `object` | Custom Zod schemas for request/response payloads |
+| `alwaysAllowPaths` | `string[]` | Array of paths that bypass authentication |
+| `tokenOptions` | `IJWTTokenServiceOptions` | JWT token configuration |
+
 ## Architecture Components
 
--   **`AuthenticateComponent`**: Registers all necessary services and controllers
+-   **`AuthenticateComponent`**: Registers all necessary services and optionally the authentication controller
 -   **`AuthenticationStrategyRegistry`**: Singleton managing authentication strategies
 -   **`JWTAuthenticationStrategy`**: JWT strategy implementation using `JWTTokenService`
--   **`JWTTokenService`**: Generates, verifies, encrypts/decrypts JWT payloads
+-   **`JWTTokenService`**: Generates, verifies, encrypts/decrypts JWT payloads (handles undefined/null values safely)
+-   **`defineAuthController`**: Factory function to create customizable authentication controller
 -   **Protected Routes**: Use `authStrategies` in route configs to secure endpoints
 
 ## Implementation Details
@@ -62,6 +77,8 @@ APP_ENV_JWT_EXPIRES_IN=86400
 
 In `src/application.ts`, register the `AuthenticateComponent` and the `JWTAuthenticationStrategy`. You also need to provide an `AuthenticationService`.
 
+**Basic Setup (without built-in auth controller):**
+
 ```typescript
 // src/application.ts
 import {
@@ -79,7 +96,116 @@ export class Application extends BaseApplication {
 
   registerAuth() {
     this.service(AuthenticationService);
-    this.component(AuthenticateComponent);
+    this.component(AuthenticateComponent, {
+      restOptions: {
+        useAuthController: false, // Default: controller not registered
+      },
+      alwaysAllowPaths: [],
+      tokenOptions: {
+        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+        jwtSecret: process.env.APP_ENV_JWT_SECRET,
+        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+      },
+    });
+    AuthenticationStrategyRegistry.getInstance().register({
+      container: this,
+      name: Authentication.STRATEGY_JWT,
+      strategy: JWTAuthenticationStrategy,
+    });
+  }
+
+  preConfigure(): ValueOrPromise<void> {
+    // ...
+    this.registerAuth();
+    // ...
+  }
+}
+```
+
+**Advanced Setup (with built-in auth controller):**
+
+```typescript
+import {
+  AuthenticateComponent,
+  Authentication,
+  AuthenticationStrategyRegistry,
+  JWTAuthenticationStrategy,
+  BaseApplication,
+  ValueOrPromise,
+} from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+import { AuthenticationService } from './services';
+
+export class Application extends BaseApplication {
+  // ...
+
+  registerAuth() {
+    this.service(AuthenticationService);
+    this.component(AuthenticateComponent, {
+      restOptions: {
+        useAuthController: true, // Enable built-in auth controller
+        controllerOpts: {
+          restPath: '/auth', // Base path for auth endpoints
+          serviceKey: 'services.AuthenticationService', // Default service key
+          requireAuthenticatedSignUp: false, // Whether sign-up requires authentication
+          payload: {
+            signIn: {
+              request: { 
+                schema: z.object({
+                  identifier: z.object({
+                    type: z.string(),
+                    value: z.string(),
+                  }),
+                  credential: z.object({
+                    type: z.string(),
+                    value: z.string(),
+                  }),
+                })
+              },
+              response: { 
+                schema: z.object({
+                  token: z.string(),
+                })
+              },
+            },
+            signUp: {
+              request: { 
+                schema: z.object({
+                  username: z.string(),
+                  email: z.string().email(),
+                  password: z.string().min(8),
+                })
+              },
+              response: { 
+                schema: z.object({
+                  token: z.string(),
+                  userId: z.string(),
+                })
+              },
+            },
+            changePassword: {
+              request: { 
+                schema: z.object({
+                  oldPassword: z.string(),
+                  newPassword: z.string().min(8),
+                })
+              },
+              response: { 
+                schema: z.object({
+                  success: z.boolean(),
+                })
+              },
+            },
+          },
+        },
+      },
+      alwaysAllowPaths: [],
+      tokenOptions: {
+        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+        jwtSecret: process.env.APP_ENV_JWT_SECRET,
+        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+      },
+    });
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       name: Authentication.STRATEGY_JWT,
@@ -158,7 +284,95 @@ export class AuthenticationService extends BaseService implements IAuthService {
 
 This service is then registered in `application.ts` as shown in the previous step. It injects the `JWTTokenService` (provided by the `AuthenticateComponent`) to generate a token upon successful sign-in.
 
-#### 3. Securing Routes
+#### 3. Custom Authentication Controller (Optional)
+
+If you need more control over the authentication endpoints, you can create a custom controller using the `defineAuthController` factory function.
+
+```typescript
+// src/controllers/custom-auth.controller.ts
+import { defineAuthController } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+
+export const CustomAuthController = defineAuthController({
+  restPath: '/api/auth',
+  serviceKey: 'services.AuthenticationService',
+  requireAuthenticatedSignUp: true, // Require authentication for sign-up
+  payload: {
+    signIn: {
+      request: {
+        schema: z.object({
+          email: z.string().email(),
+          password: z.string(),
+        }),
+      },
+      response: {
+        schema: z.object({
+          token: z.string(),
+          expiresIn: z.number(),
+        }),
+      },
+    },
+    signUp: {
+      request: {
+        schema: z.object({
+          email: z.string().email(),
+          password: z.string().min(8),
+          firstName: z.string(),
+          lastName: z.string(),
+        }),
+      },
+      response: {
+        schema: z.object({
+          token: z.string(),
+          userId: z.string(),
+        }),
+      },
+    },
+    changePassword: {
+      request: {
+        schema: z.object({
+          currentPassword: z.string(),
+          newPassword: z.string().min(8),
+        }),
+      },
+      response: {
+        schema: z.object({
+          success: z.boolean(),
+          message: z.string().optional(),
+        }),
+      },
+    },
+  },
+});
+```
+
+Then register it in your application:
+
+```typescript
+// src/application.ts
+import { CustomAuthController } from './controllers/custom-auth.controller';
+
+export class Application extends BaseApplication {
+  registerAuth() {
+    this.service(AuthenticationService);
+    this.component(AuthenticateComponent, {
+      restOptions: { useAuthController: false }, // Disable built-in controller
+      // ... other options
+    });
+    
+    // Register your custom controller
+    this.controller(CustomAuthController);
+    
+    AuthenticationStrategyRegistry.getInstance().register({
+      container: this,
+      name: Authentication.STRATEGY_JWT,
+      strategy: JWTAuthenticationStrategy,
+    });
+  }
+}
+```
+
+#### 4. Securing Routes
 
 In your controllers, use decorator-based routing (`@get`, `@post`, etc.) with the `authStrategies` property in the `configs` object to protect endpoints. This will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`, which can then be accessed type-safely using `TRouteContext`.
 
@@ -204,7 +418,7 @@ export class TestController extends BaseController {
 }
 ```
 
-#### 4. Accessing the Current User in Context
+#### 5. Accessing the Current User in Context
 
 After a route has been processed, the authenticated user's payload is available directly on the Hono `Context` object, using the `Authentication.CURRENT_USER` key.
 
