@@ -107,6 +107,161 @@ export const myTable = pgTable('MyTable', {
 
 ## Detailed Enricher Reference
 
+### `generateIdColumnDefs`
+
+Adds a primary key `id` column with support for string UUID, integer, or big integer types with full TypeScript type inference.
+
+**File:** `packages/core/src/base/models/enrichers/id.enricher.ts`
+
+#### Signature
+
+```typescript
+generateIdColumnDefs<Opts extends TIdEnricherOptions | undefined>(
+  opts?: Opts,
+): TIdColumnDef<Opts>
+```
+
+#### Options (`TIdEnricherOptions`)
+
+```typescript
+type TIdEnricherOptions = {
+  id?: { columnName?: string } & (
+    | { dataType: 'string' }
+    | {
+        dataType: 'number';
+        sequenceOptions?: PgSequenceOptions;
+      }
+    | {
+        dataType: 'big-number';
+        numberMode: 'number' | 'bigint'; // Required for big-number
+        sequenceOptions?: PgSequenceOptions;
+      }
+  );
+};
+```
+
+**Default values:**
+- `dataType`: `'number'` (auto-incrementing integer)
+- `columnName`: `'id'`
+
+#### Generated Columns
+
+| Data Type | Column Type | Constraints | Description |
+|-----------|------------|-------------|-------------|
+| `'string'` | `text` | Primary Key, Default: `uuid_generate_v4()` | UUID-based string ID |
+| `'number'` | `integer` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing integer |
+| `'big-number'` | `bigint` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing big integer (mode: 'number' or 'bigint') |
+
+#### Type Inference
+
+The function provides **full TypeScript type inference** based on the configuration options:
+
+```typescript
+type TIdColumnDef<Opts extends TIdEnricherOptions | undefined> = 
+  Opts extends { id: infer IdOpts }
+    ? IdOpts extends { dataType: 'string' }
+      ? { id: IsPrimaryKey<NotNull<HasDefault<PgTextBuilderInitial<'id', [string, ...string[]]>>>> }
+      : IdOpts extends { dataType: 'number' }
+        ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
+        : IdOpts extends { dataType: 'big-number' }
+          ? IdOpts extends { numberMode: 'number' }
+            ? { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'> }
+            : { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'> }
+          : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
+    : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> };
+```
+
+This ensures that TypeScript correctly infers the exact column type based on your configuration.
+
+#### Usage Examples
+
+**Default (auto-incrementing integer):**
+
+```typescript
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { generateIdColumnDefs } from '@venizia/ignis';
+
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs(),
+  name: text('name').notNull(),
+});
+
+// Generates: id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+```
+
+**UUID-based string ID:**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+});
+
+// Generates: id text PRIMARY KEY DEFAULT uuid_generate_v4()
+// Requires: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+```
+
+**Auto-incrementing integer with sequence options:**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({
+    id: {
+      dataType: 'number',
+      sequenceOptions: { startWith: 1000, increment: 1 },
+    },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates: id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY (START WITH 1000 INCREMENT BY 1)
+```
+
+**Big number with JavaScript number mode (up to 2^53-1):**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({
+    id: {
+      dataType: 'big-number',
+      numberMode: 'number', // Required field
+      sequenceOptions: { startWith: 1, increment: 1 },
+    },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates: id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+// Type-safe: Returns PgBigInt53BuilderInitial (safe for JavaScript numbers)
+```
+
+**Big number with BigInt mode (for values > 2^53-1):**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({
+    id: {
+      dataType: 'big-number',
+      numberMode: 'bigint', // Required field
+      sequenceOptions: { startWith: 1, increment: 1 },
+    },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates: id bigint PRIMARY KEY GENERATED ALWAYS AS IDENTITY
+// Type-safe: Returns PgBigInt64BuilderInitial (requires BigInt in JavaScript)
+```
+
+#### Important Notes
+
+- **UUID Extension:** When using `dataType: 'string'`, ensure the `uuid-ossp` extension is enabled in your PostgreSQL database
+- **Type Safety:** The return type is fully inferred based on your options, providing better autocomplete and type checking
+- **Big Number Mode:** For `dataType: 'big-number'`, the `numberMode` field is required to specify whether to use JavaScript `number` (up to 2^53-1) or `bigint` (for larger values)
+- **Sequence Options:** Available for `number` and `big-number` types to customize identity generation behavior
+
+---
+
 ### `generateTzColumnDefs`
 
 Adds timestamp columns for tracking entity creation, modification, and soft deletion.
