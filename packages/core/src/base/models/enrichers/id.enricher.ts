@@ -15,7 +15,11 @@ export type TIdEnricherOptions = {
   id?: { columnName?: string } & (
     | { dataType: 'string' }
     | {
-        dataType: 'number' | 'big-number';
+        dataType: 'number';
+        sequenceOptions?: PgSequenceOptions;
+      }
+    | {
+        dataType: 'big-number';
         numberMode?: 'number' | 'bigint';
         sequenceOptions?: PgSequenceOptions;
       }
@@ -30,7 +34,29 @@ export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TCo
       | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
   };
 
-export const generateIdColumnDefs = (opts?: TIdEnricherOptions) => {
+type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opts extends {
+  id: infer IdOpts;
+}
+  ? IdOpts extends { dataType: 'string' }
+    ? { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> }
+    : IdOpts extends { dataType: 'number' }
+      ? {
+          id: ReturnType<
+            ReturnType<ReturnType<typeof integer>['primaryKey']>['generatedAlwaysAsIdentity']
+          >;
+        }
+      : IdOpts extends { dataType: 'big-number' }
+        ? {
+            id: ReturnType<
+              ReturnType<ReturnType<typeof bigint>['primaryKey']>['generatedAlwaysAsIdentity']
+            >;
+          }
+        : { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> } // default to number
+  : { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> };
+
+export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
+  opts?: Opts,
+): TIdColumnDef<Opts> => {
   const { id = { dataType: 'number' } } = opts ?? {};
 
   switch (id.dataType) {
@@ -39,21 +65,19 @@ export const generateIdColumnDefs = (opts?: TIdEnricherOptions) => {
         id: text('id')
           .default(sql`uuid_generate_v4()`)
           .primaryKey(),
-      };
+      } as TIdColumnDef<Opts>;
     }
     case 'number': {
       return {
         id: integer('id').primaryKey().generatedAlwaysAsIdentity(id.sequenceOptions),
-      };
+      } as TIdColumnDef<Opts>;
     }
     case 'big-number': {
-      const numberMode = id.numberMode ?? 'number';
-
       return {
-        id: bigint('id', { mode: numberMode })
+        id: bigint('id', { mode: id.numberMode ?? 'number' })
           .primaryKey()
           .generatedAlwaysAsIdentity(id.sequenceOptions),
-      };
+      } as TIdColumnDef<Opts>;
     }
     default: {
       throw getError({
