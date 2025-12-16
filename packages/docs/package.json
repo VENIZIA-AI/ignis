@@ -27,28 +27,28 @@
     "framework",
     "venizia"
   ],
-  "main": "./mcp-server/dist/index.js",
-  "types": "./mcp-server/dist/index.d.ts",
+  "main": "./dist/mcp-server/index.js",
+  "types": "./dist/mcp-server/index.d.ts",
   "exports": {
     ".": {
-      "types": "./mcp-server/dist/index.d.ts",
-      "default": "./mcp-server/dist/index.js"
+      "types": "./dist/mcp-server/index.d.ts",
+      "default": "./dist/mcp-server/index.js"
     },
     "./tools": {
-      "types": "./mcp-server/dist/tools/index.d.ts",
-      "default": "./mcp-server/dist/tools/index.js"
+      "types": "./dist/mcp-server/tools/index.d.ts",
+      "default": "./dist/mcp-server/tools/index.js"
     },
     "./helpers": {
-      "types": "./mcp-server/dist/helpers/index.d.ts",
-      "default": "./mcp-server/dist/helpers/index.js"
+      "types": "./dist/mcp-server/helpers/index.d.ts",
+      "default": "./dist/mcp-server/helpers/index.js"
     },
     "./common": {
-      "types": "./mcp-server/dist/common/index.d.ts",
-      "default": "./mcp-server/dist/common/index.js"
+      "types": "./dist/mcp-server/common/index.d.ts",
+      "default": "./dist/mcp-server/common/index.js"
     }
   },
   "bin": {
-    "ignis-docs-mcp": "./mcp-server/dist/index.js"
+    "ignis-docs-mcp": "./dist/mcp-server/index.js"
   },
   "files": [
     "README.md",
