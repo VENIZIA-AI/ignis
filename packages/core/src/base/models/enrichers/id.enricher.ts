@@ -1,7 +1,9 @@
-import { sql } from 'drizzle-orm';
+import { HasDefault, IsIdentity, IsPrimaryKey, NotNull, sql } from 'drizzle-orm';
 import {
   bigint,
   integer,
+  PgBigInt53BuilderInitial,
+  PgBigInt64BuilderInitial,
   PgIntegerBuilderInitial,
   PgSequenceOptions,
   PgSerialBuilderInitial,
@@ -20,7 +22,7 @@ export type TIdEnricherOptions = {
       }
     | {
         dataType: 'big-number';
-        numberMode?: 'number' | 'bigint';
+        numberMode: 'number' | 'bigint';
         sequenceOptions?: PgSequenceOptions;
       }
   );
@@ -38,21 +40,15 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
   id: infer IdOpts;
 }
   ? IdOpts extends { dataType: 'string' }
-    ? { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> }
+    ? { id: IsPrimaryKey<NotNull<HasDefault<PgTextBuilderInitial<'id', [string, ...string[]]>>>> }
     : IdOpts extends { dataType: 'number' }
-      ? {
-          id: ReturnType<
-            ReturnType<ReturnType<typeof integer>['primaryKey']>['generatedAlwaysAsIdentity']
-          >;
-        }
+      ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
       : IdOpts extends { dataType: 'big-number' }
-        ? {
-            id: ReturnType<
-              ReturnType<ReturnType<typeof bigint>['primaryKey']>['generatedAlwaysAsIdentity']
-            >;
-          }
-        : { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> } // default to number
-  : { id: ReturnType<ReturnType<ReturnType<typeof text>['default']>['primaryKey']> };
+        ? IdOpts extends { numberMode: 'number' }
+          ? { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'> }
+          : { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'> }
+        : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
+  : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> };
 
 export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
   opts?: Opts,
