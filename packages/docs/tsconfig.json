@@ -8,8 +8,8 @@
     "skipLibCheck": true,
 
     /* Paths */
-    "outDir": "mcp-server/dist",
-    "rootDir": "mcp-server",
+    "outDir": "dist",
+    "rootDir": ".",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]

@@ -1,12 +1,12 @@
+import { Paths } from '@/mcp-server/common';
+import { Logger } from '@/mcp-server/helpers';
 import { createTool } from '@mastra/core/tools';
 import fg from 'fast-glob';
 import matter from 'gray-matter';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
-import { Paths } from '../../common';
-import { Logger } from '../../helpers';
-import { BaseTool, type TMastraTool } from '../base.tool';
+import { BaseTool, TMastraTool } from '../base.tool';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS

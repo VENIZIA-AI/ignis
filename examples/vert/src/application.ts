@@ -30,11 +30,11 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
+import { EnvironmentKeys } from './common/environments';
 import { ConfigurationController, TestController } from './controllers';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
 import { AuthenticationService } from './services';
-import { EnvironmentKeys } from './common/environments';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -164,6 +164,7 @@ export class Application extends BaseApplication {
           secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
           useSSL: false,
         }),
+        useMetaLink: false,
         extra: {
           parseMultipartBody: {
             storage: 'memory',
@@ -181,6 +182,7 @@ export class Application extends BaseApplication {
         helper: new DiskHelper({
           basePath: './app_data/resources',
         }),
+        useMetaLink: false,
         extra: {
           parseMultipartBody: {
             storage: 'memory',

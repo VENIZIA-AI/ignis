@@ -1,8 +1,8 @@
-import { MCPConfigs } from '@/mcp-server/common';
-import { DocsHelper } from '@/mcp-server/helpers';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { BaseTool, TMastraTool } from '../base.tool';
+import { MCPConfigs } from '@/mcp-server/common';
+import { DocsHelper } from '@/mcp-server/helpers';
 
 // ----------------------------------------------------------------------------
 // DESCRIPTIONS
