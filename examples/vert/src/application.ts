@@ -1,20 +1,35 @@
+import { PostgresDataSource } from '@/datasources';
+import { ConfigurationRepository, MetaLinkRepository } from '@/repositories';
+import {
+  ChangePasswordRequestSchema,
+  ChangePasswordResponseSchema,
+  SignInRequestSchema,
+  SignInResponseSchema,
+  SignUpRequestSchema,
+  SignUpResponseSchema,
+} from '@/schemas';
+import { AuthenticationService } from '@/services';
 import {
   applicationEnvironment,
+  AuthenticateBindingKeys,
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
   BaseApplication,
+  BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
   DataTypes,
   DiskHelper,
   Environment,
+  getError,
   getUID,
   HealthCheckBindingKeys,
   HealthCheckComponent,
   HTTP,
   IApplicationConfigs,
   IApplicationInfo,
+  IAuthenticateOptions,
   IHealthCheckOptions,
   IMiddlewareConfigs,
   int,
@@ -32,9 +47,6 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { ConfigurationController, TestController } from './controllers';
-import { PostgresDataSource } from './datasources';
-import { ConfigurationRepository } from './repositories';
-import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -112,8 +124,49 @@ export class Application extends BaseApplication {
   }
 
   registerAuth() {
-    this.service(AuthenticationService);
+    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
+      alwaysAllowPaths: [],
+      restOptions: {
+        useAuthController: true,
+        controllerOpts: {
+          restPath: '/auth',
+          payload: {
+            signIn: {
+              request: { schema: SignInRequestSchema },
+              response: { schema: SignInResponseSchema },
+            },
+            signUp: {
+              request: { schema: SignUpRequestSchema },
+              response: { schema: SignUpResponseSchema },
+            },
+            changePassword: {
+              request: { schema: ChangePasswordRequestSchema },
+              response: { schema: ChangePasswordResponseSchema },
+            },
+          },
+        },
+      },
+      tokenOptions: {
+        applicationSecret: applicationEnvironment.get<string>(
+          EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
+        ),
+        jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
+        getTokenExpiresFn: () => {
+          const jwtExpiresIn = applicationEnvironment.get<string>(
+            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
+          );
+          if (!jwtExpiresIn) {
+            throw getError({
+              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
+            });
+          }
+
+          return parseInt(jwtExpiresIn);
+        },
+      },
+    });
     this.component(AuthenticateComponent);
+    this.service(AuthenticationService);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       name: Authentication.STRATEGY_JWT,
@@ -127,6 +180,7 @@ export class Application extends BaseApplication {
 
     // Repositories
     this.repository(ConfigurationRepository);
+    this.repository(MetaLinkRepository);
 
     // Services
     this.registerAuth();
@@ -164,7 +218,11 @@ export class Application extends BaseApplication {
           secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
           useSSL: false,
         }),
-        useMetaLink: false,
+        useMetaLink: true,
+        metaLink: {
+          model: BaseMetaLinkModel,
+          repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
+        },
         extra: {
           parseMultipartBody: {
             storage: 'memory',
@@ -182,7 +240,6 @@ export class Application extends BaseApplication {
         helper: new DiskHelper({
           basePath: './app_data/resources',
         }),
-        useMetaLink: false,
         extra: {
           parseMultipartBody: {
             storage: 'memory',
