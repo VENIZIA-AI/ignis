@@ -18,7 +18,7 @@ export interface IArtifactOptions {
 
   /**
    * Whether to scan nested directories
-   * @default true
+   * @default false
    */
   nested?: boolean;
 
@@ -34,6 +34,7 @@ export interface IBootOptions {
   services?: IArtifactOptions;
   repositories?: IArtifactOptions;
   datasources?: IArtifactOptions;
+  debug?: boolean;
 }
 
 export type TBootPhase = 'configure' | 'discover' | 'load';
@@ -56,6 +57,16 @@ export interface IBootExecutionOptions {
    * @default false
    */
   debug?: boolean;
+}
+
+export interface IBootableApplication {
+  bootOptions: IBootOptions;
+  getProjectRoot(): string;
+}
+
+export interface IBooterConfiguration {
+  application: IBootableApplication;
+  artifactOptions: IArtifactOptions;
 }
 
 export interface IBooter {

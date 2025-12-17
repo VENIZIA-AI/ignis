@@ -37,7 +37,10 @@ export const discoverFiles: (opts: {
  * @param root - Root directory (for relative paths in errors)
  * @returns Array of class constructors
  */
-export const loadClasses: (opts: { files: string[] }) => Promise<any[]> = async opts => {
+export const loadClasses: (opts: {
+  files: string[];
+  root: string;
+}) => Promise<any[]> = async opts => {
   const { files } = opts;
   const classes: TClass<any>[] = [];
 

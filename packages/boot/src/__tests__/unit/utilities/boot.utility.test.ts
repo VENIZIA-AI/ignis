@@ -3,6 +3,10 @@ import { describe, test, expect, beforeAll } from 'bun:test';
 import path from 'node:path';
 
 describe('Boot Utility Tests', () => {
+  let root: string;
+  beforeAll(() => {
+    root = path.resolve(process.cwd(), 'dist/cjs/__tests__/fixtures');
+  });
   // --------------------------------------------------------------------------------
   describe('isClass', () => {
     test('should return true for class constructors', () => {
@@ -36,25 +40,20 @@ describe('Boot Utility Tests', () => {
 
   // --------------------------------------------------------------------------------
   describe('discoverFiles', () => {
-    let root: string;
-    beforeAll(() => {
-      root = path.resolve(process.cwd(), 'dist/cjs/__tests__/utilities/fixtures');
-    });
-
     test('should return files matching the nested glob pattern', async () => {
-      const pattern = '**/*.artifact.js';
+      const pattern = '**/*.repository.js';
       const files = await discoverFiles({ pattern, root });
       expect(files.length).toBeGreaterThan(0);
     });
 
     test('should return files matching the non-nested glob pattern', async () => {
-      const pattern = 'lv1/lv2/*.artifact.js';
+      const pattern = 'repositories/sub-repositories/*.repository.js';
       const files = await discoverFiles({ pattern, root });
       expect(files.length).toBeGreaterThan(0);
     });
 
     test('should return files matching the specific glob pattern', async () => {
-      const pattern = 'lv1/lv2/a.artifact.js';
+      const pattern = 'repositories/sub-repositories/model3.repository.js';
       const files = await discoverFiles({ pattern, root });
       expect(files.length).toBe(1);
     });
@@ -70,16 +69,11 @@ describe('Boot Utility Tests', () => {
 
   // --------------------------------------------------------------------------------
   describe('loadClasses', () => {
-    let root: string;
-    beforeAll(() => {
-      root = path.resolve(process.cwd(), 'dist/cjs/__tests__/utilities/fixtures');
-    });
-
     test('should load classes from files', async () => {
       const pattern = 'repositories/*.repository.js';
       const files = await discoverFiles({ pattern, root });
 
-      const classes = await loadClasses({ files });
+      const classes = await loadClasses({ files, root });
       expect(classes.length).toBeGreaterThan(0);
     });
 
@@ -87,7 +81,7 @@ describe('Boot Utility Tests', () => {
       const pattern = 'non-repositories/*.repository.js';
       const files = await discoverFiles({ pattern, root });
 
-      const classes = await loadClasses({ files });
+      const classes = await loadClasses({ files, root });
       expect(classes).toEqual([]);
     });
   });
