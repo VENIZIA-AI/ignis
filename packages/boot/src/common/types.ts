@@ -1,3 +1,5 @@
+import { IContainer } from '@venizia/ignis-inversion';
+
 export type TConstructor<T> = new (...args: any[]) => T;
 export type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
 export type TClass<T> = TConstructor<T> & { [property: string]: any };
@@ -41,25 +43,7 @@ export type TBootPhase = 'configure' | 'discover' | 'load';
 
 export const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load'];
 
-export interface IBootExecutionOptions {
-  /**
-   * Phases to execute
-   * @default ['configure', 'discover', 'load']
-   */
-  phases?: TBootPhase[];
-  /**
-   * Specific booters to run (by name)
-   * If not specified, all booters are run
-   */
-  booters?: string[];
-  /**
-   * Enable debug mode
-   * @default false
-   */
-  debug?: boolean;
-}
-
-export interface IBootableApplication {
+export interface IBootableApplication extends IContainer {
   bootOptions: IBootOptions;
   getProjectRoot(): string;
 }
@@ -89,6 +73,28 @@ export interface IBooter {
    * Phase 3: Load modules and bind to application
    */
   load?(): Promise<void> | void;
+}
+
+export interface IBootExecutionOptions {
+  /**
+   * Phases to execute
+   * @default ['configure', 'discover', 'load']
+   */
+  phases?: TBootPhase[];
+  /**
+   * Specific booters to run (by name)
+   * If not specified, all booters are run
+   */
+  booters?: string[];
+}
+
+
+export interface IBootstrapperOptions {
+  application: IBootableApplication;
+}
+
+export interface IBootstrapper {
+  boot(opts: IBootExecutionOptions): Promise<IBootReport>;
 }
 
 // ================================================================================

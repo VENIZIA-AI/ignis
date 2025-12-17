@@ -10,6 +10,9 @@ class TestBooter extends BaseArtifactBooter {
   protected override getDefaultExtensions(): string[] {
     return ['.repository.js'];
   }
+  protected override bind(): Promise<void> {
+    throw new Error('Method not implemented.');
+  }
 }
 
 describe('Base Artifact Booter Tests', () => {
@@ -18,13 +21,8 @@ describe('Base Artifact Booter Tests', () => {
   const debug = false;
 
   beforeAll(() => {
-    application = new TestApplication({
-      bootOptions: { debug },
-    });
-    booter = new TestBooter({
-      application,
-      artifactOptions: {},
-    });
+    application = new TestApplication({ bootOptions: { debug } });
+    booter = new TestBooter({ application, artifactOptions: {} });
   });
 
   describe('configure', () => {

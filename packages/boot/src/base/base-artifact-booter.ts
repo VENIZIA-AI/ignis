@@ -12,6 +12,7 @@ export abstract class BaseArtifactBooter implements IBooter {
 
   protected abstract getDefaultDirs(): string[];
   protected abstract getDefaultExtensions(): string[];
+  protected abstract bind(): Promise<void>;
 
   constructor(opts: IBooterConfiguration) {
     this.name = this.constructor.name;
