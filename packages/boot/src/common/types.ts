@@ -36,7 +36,6 @@ export interface IBootOptions {
   services?: IArtifactOptions;
   repositories?: IArtifactOptions;
   datasources?: IArtifactOptions;
-  debug?: boolean;
 }
 
 export type TBootPhase = 'configure' | 'discover' | 'load';
@@ -49,16 +48,12 @@ export interface IBootableApplication extends IContainer {
 }
 
 export interface IBooterConfiguration {
+  scope: string;
   application: IBootableApplication;
   artifactOptions?: IArtifactOptions;
 }
 
 export interface IBooter {
-  /**
-   * Booter name (e.g., 'ControllerBooter')
-   */
-  readonly name: string;
-
   /**
    * Phase 1: Configure booter options
    */
@@ -90,6 +85,7 @@ export interface IBootExecutionOptions {
 
 
 export interface IBootstrapperOptions {
+  scope: string;
   application: IBootableApplication;
 }
 

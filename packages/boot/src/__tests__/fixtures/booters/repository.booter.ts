@@ -7,8 +7,10 @@ export class RepositoryBooter extends BaseArtifactBooter {
   constructor(@inject({ key: '@app/instance' }) application: IBootableApplication) {
     super({
       application,
+      scope: RepositoryBooter.name,
     });
   }
+
   // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['repositories'];
@@ -23,10 +25,7 @@ export class RepositoryBooter extends BaseArtifactBooter {
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
       this.configuration.application.bind({ key: `repositories.${cls.name}` }).toClass(cls);
-
-      if (this.debug) {
-        console.log(`[DEBUG][${this.name}][bind] Bound repository class: ${cls.name}`);
-      }
+      this.logger.debug(`[bind] Bound key: %s`, `repositories.${cls.name}`);
     }
   }
 }

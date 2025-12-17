@@ -8,6 +8,7 @@ import {
   IBootstrapperOptions,
   TBootPhase,
 } from '@/common/types';
+import { BaseHelper } from '@venizia/ignis-helpers';
 
 /**
  * BaseBootstrapper orchestrates the boot process
@@ -17,17 +18,16 @@ import {
  * 2. Run boot phases (configure, discover, load)
  * 3. Generate boot report
  */
-export class BaseBootstrapper implements IBootstrapper {
+export class BaseBootstrapper extends BaseHelper implements IBootstrapper {
   private booters: IBooter[] = [];
   private phaseStartTimings: Map<string, number> = new Map();
   private phaseEndTimings: Map<string, number> = new Map();
-  protected debug: boolean = false;
 
   protected configuration: IBootstrapperOptions;
 
   constructor(opts: IBootstrapperOptions) {
+    super({ scope: opts.scope });
     this.configuration = opts;
-    this.debug = this.configuration.application.bootOptions?.debug ?? false;
   }
 
   // --------------------------------------------------------------------------------
@@ -35,9 +35,7 @@ export class BaseBootstrapper implements IBootstrapper {
     const { phases = BOOT_PHASES, booters } = opts;
 
     await this.discoverBooters();
-    if (this.debug) {
-      console.log(`\n[DEBUG]🚀 Starting boot with ${this.booters.length} booters\n`);
-    }
+    this.logger.debug(`[boot] Starting boot | Number of booters: %d`, this.booters.length);
     for (const phase of phases) {
       await this.runPhase({ phase, booterNames: booters });
     }
@@ -50,51 +48,46 @@ export class BaseBootstrapper implements IBootstrapper {
 
     for (const binding of booterBindings) {
       this.booters.push(binding.getValue(this.configuration.application));
-      if (this.debug) {
-        console.log(`[DEBUG][discoverBooters] Discovered booter: ${binding.key}`);
-      }
+      this.logger.debug(`[discoverBooters] Discovered booter: %s`, binding.key);
     }
   }
 
   // --------------------------------------------------------------------------------
   private async runPhase(opts: { phase: TBootPhase; booterNames?: string[] }): Promise<void> {
-    const { phase, booterNames } = opts;
+    const { phase } = opts; // TODO: booterNames filtering can be implemented later
     this.phaseStartTimings.set(phase, performance.now());
-    if (this.debug) {
-      console.log(`[DEBUG][runPhase] Starting phase: ${phase.toUpperCase()}`);
-    }
+    this.logger.debug(`[runPhase] Starting phase: %s`, phase.toUpperCase());
 
-    const bootersToRun = booterNames
-      ? this.booters.filter(b => booterNames.includes(b.name))
-      : this.booters;
-
-    for (const booter of bootersToRun) {
+    for (const booter of this.booters) {
       const phaseMethod = booter[phase];
       if (!phaseMethod) {
-        if (this.debug) {
-          console.log(
-            `[DEBUG][runPhase] Skipping phase '${phase}' on booter '${booter.name}' (method not implemented)`,
-          );
-        }
+        this.logger.debug(
+          `[runPhase] SKIP not implemented booter | Phase: %s | Booter: %s`,
+          phase,
+          booter.constructor.name,
+        );
         continue;
       }
       if (typeof phaseMethod !== 'function') {
-        if (this.debug) {
-          console.log(
-            `[DEBUG][runPhase] Phase '${phase}' on booter '${booter.name}' (not a function)`,
-          );
-        }
+        this.logger.debug(
+          `[runPhase] SKIP not a function booter | Phase: %s | Booter: %s`,
+          phase,
+          booter.constructor.name,
+        );
+
         continue;
       }
 
       try {
-        if (this.debug) {
-          console.log(`[DEBUG]➡️  Running ${phase.toUpperCase()} on ${booter.name}`);
-        }
+        this.logger.debug(
+          `[runPhase] Running | Phase: %s | Booter: %s`,
+          phase,
+          booter.constructor.name,
+        );
         await phaseMethod.call(booter);
       } catch (error) {
         throw getError({
-          message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.name}': ${error.message}`,
+          message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.constructor.name}': ${error.message}`,
         });
       }
     }
@@ -104,11 +97,11 @@ export class BaseBootstrapper implements IBootstrapper {
     const end = this.phaseEndTimings.get(phase) ?? 0;
     const duration = end - start;
 
-    if (this.debug) {
-      console.log(
-        `[DEBUG][runPhase] Completed phase: ${phase.toUpperCase()} | Took: ${duration} ms`,
-      );
-    }
+    this.logger.debug(
+      `[DEBUG][runPhase] Completed phase: %s | Took: %d ms`,
+      phase.toUpperCase(),
+      duration,
+    );
   }
 
   // --------------------------------------------------------------------------------
@@ -125,12 +118,6 @@ export class BaseBootstrapper implements IBootstrapper {
       totalLoaded: 0,
       totalErrors: 0,
     };
-
-    // Log report if debug mode
-    if (this.debug) {
-      console.log('\n[DEBUG] Boot Report:');
-      console.log(JSON.stringify(report, null, 2));
-    }
 
     return report;
   }

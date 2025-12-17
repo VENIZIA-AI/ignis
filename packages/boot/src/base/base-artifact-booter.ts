@@ -1,23 +1,22 @@
 import { getError } from '@/common/app-error';
 import { IArtifactOptions, IBooter, IBooterConfiguration, TClass } from '@/common/types';
 import { discoverFiles, loadClasses } from '@/utilities';
+import { BaseHelper } from '@venizia/ignis-helpers';
 
-export abstract class BaseArtifactBooter implements IBooter {
-  name: string;
+export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   protected configuration: IBooterConfiguration;
   protected artifactOptions: IArtifactOptions = {};
   protected discoveredFiles: string[] = [];
   protected loadedClasses: TClass<any>[] = [];
-  protected debug: boolean = false;
 
   protected abstract getDefaultDirs(): string[];
   protected abstract getDefaultExtensions(): string[];
   protected abstract bind(): Promise<void>;
 
   constructor(opts: IBooterConfiguration) {
-    this.name = this.constructor.name;
+    super({ scope: opts.scope });
+
     this.configuration = opts;
-    this.debug = this.configuration?.application.bootOptions.debug ?? false;
   }
 
   protected getPattern(): string {
@@ -28,13 +27,13 @@ export abstract class BaseArtifactBooter implements IBooter {
 
     if (!this.artifactOptions.dirs?.length) {
       throw getError({
-        message: `[${this.name}][getPattern] No directories specified for artifact discovery`,
+        message: `[getPattern] No directories specified for artifact discovery`,
       });
     }
 
     if (!this.artifactOptions.extensions?.length) {
       throw getError({
-        message: `[${this.name}][getPattern] No file extensions specified for artifact discovery`,
+        message: `[${this.scope}][getPattern] No file extensions specified for artifact discovery`,
       });
     }
 
@@ -64,9 +63,7 @@ export abstract class BaseArtifactBooter implements IBooter {
       ...this.configuration.artifactOptions,
     };
 
-    if (this.debug) {
-      console.log(`[DEBUG][${this.name}][configure] Configured:`, this.artifactOptions);
-    }
+    this.logger.debug(`[configure] Configured: %j`, this.artifactOptions);
   }
 
   // --------------------------------------------------------------------------------
@@ -75,23 +72,21 @@ export abstract class BaseArtifactBooter implements IBooter {
 
     try {
       this.discoveredFiles = []; // Reset discovered files
-      if (this.debug) {
-        console.log(
-          `[DEBUG][${this.name}][discover] Using pattern: ${pattern} | Root: ${this.configuration.application.getProjectRoot()}`,
-        );
-      }
+      this.logger.debug(
+        `[discover] Root: %s | Using pattern: %s`,
+        this.configuration.application.getProjectRoot(),
+        pattern,
+      );
 
       this.discoveredFiles = await discoverFiles({
         root: this.configuration.application.getProjectRoot(),
         pattern,
       });
 
-      if (this.debug) {
-        console.log(`[DEBUG][${this.name}][discover] Discovered files:`, this.discoveredFiles);
-      }
+      this.logger.debug(`[discover] Discovered files: %j`, this.discoveredFiles);
     } catch (error) {
       throw getError({
-        message: `[${this.name}][discover] Failed to discover files using pattern: ${pattern} | Error: ${(error as Error)?.message}`,
+        message: `[discover] Failed to discover files using pattern: ${pattern} | Error: ${(error as Error)?.message}`,
       });
     }
   }
@@ -99,9 +94,7 @@ export abstract class BaseArtifactBooter implements IBooter {
   // --------------------------------------------------------------------------------
   async load(): Promise<void> {
     if (!this.discoveredFiles.length) {
-      if (this.debug) {
-        console.log(`[DEBUG][${this.name}][load] No files to load.`);
-      }
+      this.logger.debug(`[load] No files discovered to load.`);
       return;
     }
 
@@ -114,7 +107,7 @@ export abstract class BaseArtifactBooter implements IBooter {
       await this.bind();
     } catch (error) {
       throw getError({
-        message: `[${this.name}][load] Failed to load classes from discovered files | Error: ${(error as Error)?.message}`,
+        message: `[load] Failed to load classes from discovered files | Error: ${(error as Error)?.message}`,
       });
     }
   }

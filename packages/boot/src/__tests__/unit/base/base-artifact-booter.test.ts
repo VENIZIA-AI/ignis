@@ -18,11 +18,10 @@ class TestBooter extends BaseArtifactBooter {
 describe('Base Artifact Booter Tests', () => {
   let application: IBootableApplication;
   let booter: TestBooter;
-  const debug = false;
 
   beforeAll(() => {
-    application = new TestApplication({ bootOptions: { debug } });
-    booter = new TestBooter({ application, artifactOptions: {} });
+    application = new TestApplication({ bootOptions: {} });
+    booter = new TestBooter({ application, artifactOptions: {}, scope: TestBooter.name });
   });
 
   describe('configure', () => {
@@ -36,6 +35,7 @@ describe('Base Artifact Booter Tests', () => {
 
     test('should override with provided options', () => {
       const customBooter = new TestBooter({
+        scope: TestBooter.name,
         application,
         artifactOptions: {
           dirs: ['custom-dir'],
@@ -61,6 +61,7 @@ describe('Base Artifact Booter Tests', () => {
 
     test('should generate pattern with multiple dirs and extensions', async () => {
       const multiBooter = new TestBooter({
+        scope: TestBooter.name,
         application,
         artifactOptions: {
           dirs: ['dir1', 'dir2'],
@@ -74,6 +75,7 @@ describe('Base Artifact Booter Tests', () => {
 
     test('should use custom glob if provided', async () => {
       const globBooter = new TestBooter({
+        scope: TestBooter.name,
         application,
         artifactOptions: {
           glob: 'custom/glob/pattern/**/*.js',
@@ -94,6 +96,7 @@ describe('Base Artifact Booter Tests', () => {
 
     test('should discover no files if pattern matches none', async () => {
       const noFileBooter = new TestBooter({
+        scope: TestBooter.name,
         application,
         artifactOptions: {
           glob: 'nonexistent/**/*.js',

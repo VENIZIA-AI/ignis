@@ -18,9 +18,7 @@ export class RepositoryBooter extends BaseArtifactBooter {
     for (const cls of this.loadedClasses) {
       this.configuration.application.bind({ key: `repository.${cls.name}` }).toValue(cls);
 
-      if (this.debug) {
-        console.log(`[DEBUG][${this.name}][bind] Bound repository class: ${cls.name}`);
-      }
+      this.logger.debug(`[bind] Bound key: %s`, `repository.${cls.name}`);
     }
   }
 }
