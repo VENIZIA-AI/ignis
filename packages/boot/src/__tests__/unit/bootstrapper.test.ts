@@ -3,7 +3,7 @@ import { BaseBootstrapper } from '@/base';
 import { IBootableApplication, IBootstrapper } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 
-describe('Base Bootstrapper Tests', () => {
+describe('Bootstrapper Tests', () => {
   let application: IBootableApplication;
   let bootstrapper: IBootstrapper;
 

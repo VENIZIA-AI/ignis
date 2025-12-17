@@ -43,8 +43,8 @@
     "prepublishOnly": "bun run rebuild",
     "pretest": "bun run rebuild",
     "pretest:watch": "bun run rebuild",
-    "test": "NODE_ENV=test bun test --env-file=.env.test dist/cjs/__tests__/**/**/*.test.js",
-    "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test dist/cjs/__tests__/**/**/*.test.js"
+    "test": "NODE_ENV=test bun test --env-file=.env.test dist/cjs/__tests__/{**/**,**}/*.test.js",
+    "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test dist/cjs/__tests__/{**/**,**}/*.test.js"
   },
   "repository": {
     "type": "git",
