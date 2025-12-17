@@ -12,7 +12,7 @@ Detailed breakdown of the core framework directory structure.
 |-----------|---------------|----------------|
 | **`base`** | Core architecture | Applications, Controllers, Repositories, Services, Models |
 | **`components`** | Pluggable features | Auth, Swagger, HealthCheck, SocketIO |
-| **`helpers`** | Utilities | Re-exports from `@venizia/ignis-helpers` |
+| **`helpers`** | Utilities | DI (extended), Re-exports from `@venizia/ignis-helpers` |
 | **`common`** | Shared code | Constants, bindings, types, environments |
 | **`utilities`** | Pure functions | Crypto, date, parse, performance, schema |
 | **`__tests__`** | Tests | Integration and E2E tests |
@@ -27,7 +27,7 @@ Top-level breakdown of the `src` directory:
 | **`base`**       | The core building blocks and abstract classes of the framework. This is where the fundamental architecture is defined. |
 | **`common`**     | A directory for code that is shared and used across the entire framework.                                              |
 | **`components`** | A collection of ready-to-use, high-level components that can be plugged into an Ignis application.                     |
-| **`helpers`**    | Re-exports all modules from the dedicated `@venizia/ignis-helpers` package.                                                |
+| **`helpers`**    | Contains core extensions (like Inversion) and re-exports from `@venizia/ignis-helpers`.                                    |
 | **`utilities`**  | A collection of pure, standalone utility functions.                                                                    |
 
 ---
@@ -237,11 +237,12 @@ Generates interactive OpenAPI documentation.
 
 ### `helpers`
 
-The `helpers` directory has been refactored into its own dedicated package, `@venizia/ignis-helpers`, to improve modularity. The `src/helpers` directory within the core framework now simply re-exports all modules from this new package.
+Contains framework extensions and utilities.
 
 | File/Folder | Purpose/Key Details                                                                                                                                        |
 | :---------- | :--------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `index.ts`  | Re-exports all helpers from the `@venizia/ignis-helpers` package, making them available through the core framework for backward compatibility and convenience. |
+| `inversion/`| **Framework DI Extension**: Extends `@venizia/ignis-inversion` to provide application-aware dependency injection with logging and enhanced metadata support. |
+| `index.ts`  | Re-exports extensions and utilities from `@venizia/ignis-helpers`. |
 
 ### `utilities`
 

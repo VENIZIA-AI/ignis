@@ -4,9 +4,9 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 
 **Files:**
 - `packages/inversion/src/container.ts` (base Container and Binding classes)
-- `packages/helpers/src/helpers/inversion/container.ts` (extended Container with ApplicationLogger)
+- `packages/core/src/helpers/inversion/container.ts` (extended Container with ApplicationLogger)
 - `packages/core/src/base/metadata/injectors.ts` (@inject, @injectable decorators)
-- `packages/helpers/src/helpers/inversion/registry.ts` (MetadataRegistry)
+- `packages/core/src/helpers/inversion/registry.ts` (MetadataRegistry)
 
 ## Quick Reference
 
@@ -21,7 +21,7 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 
 Heart of the DI system - registry managing all application resources.
 
-**File:** `packages/inversion/src/container.ts`
+**File:** `packages/inversion/src/container.ts` (Base) & `packages/core/src/helpers/inversion/container.ts` (Extended)
 
 ### Key Methods
 
@@ -74,7 +74,7 @@ This entire process is managed by the framework when your application starts up,
 
 The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a singleton class responsible for storing and retrieving all the metadata attached by decorators like `@inject`, `@controller`, `@get`, etc.
 
--   **File:** `packages/helpers/src/helpers/inversion/registry.ts`
+-   **File:** `packages/core/src/helpers/inversion/registry.ts`
 
 ### Role in DI
 

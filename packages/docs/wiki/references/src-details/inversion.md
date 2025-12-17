@@ -309,22 +309,22 @@ if (cache) {
 
 ---
 
-## Relationship with @venizia/ignis-helpers
+## Integration with Framework
 
-The `@venizia/ignis-helpers` package extends this base inversion package with:
+The core `@venizia/ignis` package extends this base inversion package with:
 
 - **ApplicationLogger integration**: Container with structured logging
 - **Framework-specific metadata**: Controllers, models, repositories, data sources
 - **Decorator implementations**: `@inject`, `@controller`, `@service`, etc.
 
-For framework usage, import from `@venizia/ignis-helpers` or `@venizia/ignis`. For standalone DI container usage, import directly from `@venizia/ignis-inversion`.
+For framework usage, import from `@venizia/ignis`. For standalone DI container usage, import directly from `@venizia/ignis-inversion`.
 
 ```typescript
 // Standalone usage
 import { Container, Binding } from '@venizia/ignis-inversion';
 
 // Framework usage (includes logging and framework metadata)
-import { Container, inject, service } from '@venizia/ignis-helpers';
+import { Container, inject, service } from '@venizia/ignis';
 ```
 
 ---
