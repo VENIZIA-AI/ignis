@@ -50,7 +50,7 @@ export interface IBootableApplication extends IContainer {
 
 export interface IBooterConfiguration {
   application: IBootableApplication;
-  artifactOptions: IArtifactOptions;
+  artifactOptions?: IArtifactOptions;
 }
 
 export interface IBooter {

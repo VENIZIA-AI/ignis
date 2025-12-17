@@ -14,6 +14,8 @@ describe('Base Bootstrapper Tests', () => {
   describe('boot', () => {
     test('should run boot process and return report', async () => {
       await bootstrapper.boot({});
+
+      console.log(application.get({ key: 'repositories.Model1Repository', isOptional: true }));
     });
   });
 });

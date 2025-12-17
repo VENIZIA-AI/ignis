@@ -11,7 +11,7 @@ class TestBooter extends BaseArtifactBooter {
     return ['.repository.js'];
   }
   protected override bind(): Promise<void> {
-    throw new Error('Method not implemented.');
+    return Promise.resolve();
   }
 }
 

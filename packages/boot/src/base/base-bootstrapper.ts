@@ -39,7 +39,7 @@ export class BaseBootstrapper implements IBootstrapper {
       console.log(`\n[DEBUG]🚀 Starting boot with ${this.booters.length} booters\n`);
     }
     for (const phase of phases) {
-      this.runPhase({ phase, booterNames: booters });
+      await this.runPhase({ phase, booterNames: booters });
     }
     return this.generateReport();
   }
@@ -47,15 +47,11 @@ export class BaseBootstrapper implements IBootstrapper {
   // --------------------------------------------------------------------------------
   private async discoverBooters(): Promise<void> {
     const booterBindings = this.configuration.application.findByTag<IBooter>({ tag: 'booter' });
-    console.log('oooooooooooooooooooooooooooooooooooooooooooooooooo')
-    console.log(`Discovered ${booterBindings.length} booters.`);
 
     for (const binding of booterBindings) {
       this.booters.push(binding.getValue(this.configuration.application));
-      if(this.debug) {
-        console.log(
-          `[DEBUG][discoverBooters] Discovered booter: ${binding.key}`,
-        );
+      if (this.debug) {
+        console.log(`[DEBUG][discoverBooters] Discovered booter: ${binding.key}`);
       }
     }
   }
@@ -95,7 +91,7 @@ export class BaseBootstrapper implements IBootstrapper {
         if (this.debug) {
           console.log(`[DEBUG]➡️  Running ${phase.toUpperCase()} on ${booter.name}`);
         }
-        phaseMethod.call(booter);
+        await phaseMethod.call(booter);
       } catch (error) {
         throw getError({
           message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.name}': ${error.message}`,

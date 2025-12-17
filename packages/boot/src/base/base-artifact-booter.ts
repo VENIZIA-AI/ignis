@@ -5,7 +5,7 @@ import { discoverFiles, loadClasses } from '@/utilities';
 export abstract class BaseArtifactBooter implements IBooter {
   name: string;
   protected configuration: IBooterConfiguration;
-  protected artifactOptions: IArtifactOptions;
+  protected artifactOptions: IArtifactOptions = {};
   protected discoveredFiles: string[] = [];
   protected loadedClasses: TClass<any>[] = [];
   protected debug: boolean = false;
@@ -17,7 +17,7 @@ export abstract class BaseArtifactBooter implements IBooter {
   constructor(opts: IBooterConfiguration) {
     this.name = this.constructor.name;
     this.configuration = opts;
-    this.debug = this.configuration.application.bootOptions.debug ?? false;
+    this.debug = this.configuration?.application.bootOptions.debug ?? false;
   }
 
   protected getPattern(): string {
@@ -55,12 +55,12 @@ export abstract class BaseArtifactBooter implements IBooter {
   }
 
   // --------------------------------------------------------------------------------
- async  configure(): Promise<void> {
+  async configure(): Promise<void> {
     this.artifactOptions = {
-      dirs: this.configuration.artifactOptions.dirs ?? this.getDefaultDirs(),
-      extensions: this.configuration.artifactOptions.extensions ?? this.getDefaultExtensions(),
-      nested: this.configuration.artifactOptions.nested ?? false,
-      glob: this.configuration.artifactOptions.glob,
+      dirs: this.configuration.artifactOptions?.dirs ?? this.getDefaultDirs(),
+      extensions: this.configuration.artifactOptions?.extensions ?? this.getDefaultExtensions(),
+      nested: this.configuration.artifactOptions?.nested ?? false,
+      glob: this.configuration.artifactOptions?.glob,
       ...this.configuration.artifactOptions,
     };
 
@@ -111,6 +111,7 @@ export abstract class BaseArtifactBooter implements IBooter {
         files: this.discoveredFiles,
         root: this.configuration.application.getProjectRoot(),
       });
+      await this.bind();
     } catch (error) {
       throw getError({
         message: `[${this.name}][load] Failed to load classes from discovered files | Error: ${(error as Error)?.message}`,
