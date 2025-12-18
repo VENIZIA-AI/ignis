@@ -26,49 +26,136 @@ Fundamental building block wrapping a Drizzle ORM schema.
 | **Schema Encapsulation** | Holds Drizzle `pgTable` schema for consistent repository access |
 | **Metadata** | Works with `@model` decorator to mark database entities |
 | **Schema Generation** | Uses `drizzle-zod` to generate Zod schemas (`SELECT`, `CREATE`, `UPDATE`) |
+| **Static Properties** | Supports static `schema`, `relations`, and `TABLE_NAME` for cleaner syntax |
 | **Convenience** | Includes `toObject()` and `toJSON()` methods |
+
+### Definition Patterns
+
+`BaseEntity` supports two patterns for defining models:
+
+#### Pattern 1: Static Properties (Recommended)
+
+Define schema and relations as static properties:
+
+```typescript
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { BaseEntity, model, generateIdColumnDefs, createRelations } from '@venizia/ignis';
+
+// Define table schema
+export const userTable = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+});
+
+// Define relations
+export const userRelations = createRelations({
+  source: userTable,
+  relations: [],
+});
+
+// Entity class with static properties
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = userTable;
+  static override relations = () => userRelations.definitions;
+  static override TABLE_NAME = 'User';
+}
+```
+
+**Benefits:**
+- Schema and relations are auto-resolved by repositories
+- No need to pass `relations` in repository constructor
+- Cleaner, more declarative syntax
+
+#### Pattern 2: Constructor-Based (Legacy)
+
+Pass schema in constructor:
+
+```typescript
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof userTable> {
+  constructor() {
+    super({ name: 'User', schema: userTable });
+  }
+}
+```
+
+### Static Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `schema` | `TTableSchemaWithId` | Drizzle table schema defined with `pgTable()` |
+| `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading) |
+| `TABLE_NAME` | `string` | Table name (defaults to class name) |
+
+### IEntity Interface
+
+Models implementing static properties conform to the `IEntity` interface:
+
+```typescript
+interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+  TABLE_NAME?: string;
+  schema: Schema;
+  relations?: TValueOrResolver<Array<TRelationConfig>>;
+}
+```
+
+### Instance Methods
+
+| Method | Description |
+|--------|-------------|
+| `getSchema({ type })` | Get Zod schema for validation (`SELECT`, `CREATE`, `UPDATE`) |
+| `toObject()` | Convert to plain object |
+| `toJSON()` | Convert to JSON string |
 
 ### Class Definition
 
 ```typescript
-import { createSchemaFactory } from 'drizzle-zod';
-import { BaseHelper } from '../helpers';
-import { SchemaTypes, TSchemaType, TTableSchemaWithId } from './common';
-
-export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> extends BaseHelper {
+export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
+  extends BaseHelper
+  implements IEntity<Schema>
+{
+  // Instance properties
   name: string;
   schema: Schema;
   schemaFactory: ReturnType<typeof createSchemaFactory>;
 
-  constructor(opts: { name: string; schema: Schema }) {
-    super({ scope: opts.name });
-    this.name = opts.name;
-    this.schema = opts.schema;
+  // Static properties - override in subclass
+  static schema: TTableSchemaWithId;
+  static relations?: TValueOrResolver<Array<TRelationConfig>>;
+  static get TABLE_NAME(): string {
+    return this.name;
+  }
+
+  // Constructor supports both patterns
+  constructor(opts?: { name?: string; schema?: Schema }) {
+    const ctor = new.target;
+    const name = opts?.name || ctor.TABLE_NAME || ctor.name;
+
+    super({ scope: name });
+
+    this.name = name;
+    this.schema = opts?.schema || (ctor.schema as Schema);
     this.schemaFactory = createSchemaFactory();
   }
 
   getSchema(opts: { type: TSchemaType }) {
     switch (opts.type) {
-      case SchemaTypes.CREATE: {
+      case SchemaTypes.CREATE:
         return this.schemaFactory.createInsertSchema(this.schema);
-      }
-      case SchemaTypes.UPDATE: {
+      case SchemaTypes.UPDATE:
         return this.schemaFactory.createUpdateSchema(this.schema);
-      }
-      case SchemaTypes.SELECT: {
+      case SchemaTypes.SELECT:
         return this.schemaFactory.createSelectSchema(this.schema);
-      }
-      default: {
+      default:
         throw getError({
-          message: `[getSchema] Invalid schema type | type: ${opts.type} | valid: ${[SchemaTypes.SELECT, SchemaTypes.UPDATE, SchemaTypes.CREATE]}`,
+          message: `[getSchema] Invalid schema type | type: ${opts.type}`,
         });
-      }
     }
   }
 }
 ```
-
-When you define a model in your application, you extend `BaseEntity`, passing your Drizzle table schema to the `super` constructor.
 
 ## Schema Enrichers
 
@@ -148,7 +235,7 @@ type TIdEnricherOptions = {
 
 | Data Type | Column Type | Constraints | Description |
 |-----------|------------|-------------|-------------|
-| `'string'` | `text` | Primary Key, Default: `uuid_generate_v4()` | UUID-based string ID |
+| `'string'` | `uuid` | Primary Key, Default: `gen_random_uuid()` | Native PostgreSQL UUID (no extension required) |
 | `'number'` | `integer` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing integer |
 | `'big-number'` | `bigint` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing big integer (mode: 'number' or 'bigint') |
 
@@ -157,10 +244,10 @@ type TIdEnricherOptions = {
 The function provides **full TypeScript type inference** based on the configuration options:
 
 ```typescript
-type TIdColumnDef<Opts extends TIdEnricherOptions | undefined> = 
+type TIdColumnDef<Opts extends TIdEnricherOptions | undefined> =
   Opts extends { id: infer IdOpts }
     ? IdOpts extends { dataType: 'string' }
-      ? { id: IsPrimaryKey<NotNull<HasDefault<PgTextBuilderInitial<'id', [string, ...string[]]>>>> }
+      ? { id: IsPrimaryKey<NotNull<HasDefault<PgUUIDBuilderInitial<'id'>>>> }
       : IdOpts extends { dataType: 'number' }
         ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
         : IdOpts extends { dataType: 'big-number' }
@@ -197,8 +284,8 @@ export const myTable = pgTable('MyTable', {
   name: text('name').notNull(),
 });
 
-// Generates: id text PRIMARY KEY DEFAULT uuid_generate_v4()
-// Requires: CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+// Generates: id uuid PRIMARY KEY DEFAULT gen_random_uuid()
+// No extension required - built into PostgreSQL 13+
 ```
 
 **Auto-incrementing integer with sequence options:**
@@ -255,7 +342,7 @@ export const myTable = pgTable('MyTable', {
 
 #### Important Notes
 
-- **UUID Extension:** When using `dataType: 'string'`, ensure the `uuid-ossp` extension is enabled in your PostgreSQL database
+- **UUID Type:** When using `dataType: 'string'`, the native PostgreSQL `uuid` type is used with `gen_random_uuid()` - no extension required (built into PostgreSQL 13+). This is more efficient than `text` type (16 bytes vs 36 bytes) and provides better indexing performance.
 - **Type Safety:** The return type is fully inferred based on your options, providing better autocomplete and type checking
 - **Big Number Mode:** For `dataType: 'big-number'`, the `numberMode` field is required to specify whether to use JavaScript `number` (up to 2^53-1) or `bigint` (for larger values)
 - **Sequence Options:** Available for `number` and `big-number` types to customize identity generation behavior

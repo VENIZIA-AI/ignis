@@ -1,6 +1,5 @@
-import { Container } from '@/helpers/inversion';
+import { isClassConstructor } from '@venizia/ignis-inversion';
 
-// --------------------------------------------------------------------------------------------------------
 export type TNullable<T> = T | undefined | null;
 
 export type AnyType = any;
@@ -29,6 +28,44 @@ export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | nu
 export type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 export type TResolver<T> = (...args: any[]) => T;
+export type TValueOrResolver<T> = T | TResolver<T>;
+
+/**
+ * Helper to resolve lazy value.
+ * If valueOrResolver is:
+ * - A class constructor: returns as-is
+ * - An arrow/resolver function: calls it and returns result
+ * - Any other value: returns as-is
+ */
+export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
+  if (typeof valueOrResolver !== 'function') {
+    return valueOrResolver;
+  }
+
+  // If it's a class constructor, return as-is (it's the value itself)
+  if (isClassConstructor(valueOrResolver as Function)) {
+    return valueOrResolver as T;
+  }
+
+  // Otherwise it's a resolver function, call it
+  return (valueOrResolver as TResolver<T>)();
+};
+
+/**
+ * Helper to resolve lazy class references.
+ * Handles string binding keys in addition to class/resolver patterns.
+ */
+export const resolveClass = <T>(
+  ref: TClass<T> | TResolver<TClass<T>> | string,
+): TClass<T> | string => {
+  // String binding keys are returned as-is
+  if (typeof ref === 'string') {
+    return ref;
+  }
+
+  // Delegate to resolveValue for class/resolver handling
+  return resolveValue(ref);
+};
 
 // --------------------------------------------------------------------------------------------------------
 // Field Mapping Types
@@ -85,24 +122,10 @@ export interface IConfigurable<Options extends object = any, Result = any> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }
 
-export interface IProvider<T> {
-  value(container: Container): T;
-}
-
-export const isClass = <T>(target: any): target is TClass<T> => {
-  return typeof target === 'function' && target.prototype !== undefined;
-};
-
-export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> => {
-  return (
-    typeof target === 'function' && target.prototype && typeof target.prototype.value === 'function'
-  );
-};
-
 // --------------------------------------------------------------------------------------------------------
 export type TAuthStrategy = 'jwt' | 'basic';
 
 // --------------------------------------------------------------------------------------------------------
 // JSX Types (re-exported from Hono for convenience)
 // --------------------------------------------------------------------------------------------------------
-export type { FC, PropsWithChildren, Child } from 'hono/jsx';
+export type { Child, FC, PropsWithChildren } from 'hono/jsx';

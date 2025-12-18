@@ -1,9 +1,7 @@
 import { BindingNamespaces } from '@/common/bindings';
+import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
 import {
   AnyObject,
-  Binding,
-  BindingKeys,
-  BindingScopes,
   executeWithPerformanceMeasure,
   IConfigurable,
   TAbstractMixinTarget,

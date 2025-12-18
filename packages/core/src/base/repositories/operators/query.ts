@@ -45,6 +45,7 @@ export class QueryOperators {
   static readonly IS = 'is';
   static readonly IS_NOT = 'isn';
   static readonly REGEXP = 'regexp';
+  static readonly IREGEXP = 'iregexp'; // Case-insensitive regex
 
   static readonly IN = 'in';
   static readonly INQ = 'inq';
@@ -82,16 +83,35 @@ export class QueryOperators {
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
 
     // Arrays / Lists
-    [this.IN]: (opts: IQueryHandlerOptions) =>
-      Array.isArray(opts.value) ? inArray(opts.column, opts.value) : eq(opts.column, opts.value),
-    [this.INQ]: (opts: IQueryHandlerOptions) =>
-      Array.isArray(opts.value) ? inArray(opts.column, opts.value) : eq(opts.column, opts.value),
-    [this.NIN]: (opts: IQueryHandlerOptions) =>
-      Array.isArray(opts.value) ? notInArray(opts.column, opts.value) : ne(opts.column, opts.value),
-    [this.BETWEEN]: (opts: IQueryHandlerOptions) =>
-      Array.isArray(opts.value) && opts.value.length === 2
-        ? between(opts.column, opts.value[0], opts.value[1])
-        : undefined,
+    [this.IN]: (opts: IQueryHandlerOptions) => {
+      if (!Array.isArray(opts.value)) {
+        return eq(opts.column, opts.value);
+      }
+      // Empty array IN () = FALSE (matches nothing)
+      return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
+    },
+    [this.INQ]: (opts: IQueryHandlerOptions) => {
+      if (!Array.isArray(opts.value)) {
+        return eq(opts.column, opts.value);
+      }
+      // Empty array IN () = FALSE (matches nothing)
+      return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
+    },
+    [this.NIN]: (opts: IQueryHandlerOptions) => {
+      if (!Array.isArray(opts.value)) {
+        return ne(opts.column, opts.value);
+      }
+      // Empty array NOT IN () = TRUE (matches everything) - no constraint needed
+      return opts.value.length === 0 ? sql`true` : notInArray(opts.column, opts.value);
+    },
+    [this.BETWEEN]: (opts: IQueryHandlerOptions) => {
+      if (!Array.isArray(opts.value) || opts.value.length !== 2) {
+        throw new Error(
+          `[BETWEEN] Invalid value: expected array of 2 elements, got ${JSON.stringify(opts.value)}`,
+        );
+      }
+      return between(opts.column, opts.value[0], opts.value[1]);
+    },
 
     // Strings
     [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
@@ -99,8 +119,9 @@ export class QueryOperators {
     [this.ILIKE]: (opts: IQueryHandlerOptions) => ilike(opts.column, opts.value), // Postgres specific (Case insensitive)
     [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => not(ilike(opts.column, opts.value)),
 
-    // Advanced
-    [this.REGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} REGEXP ${opts.value}`, // Dialect specific
+    // Advanced - PostgreSQL POSIX regex operators
+    [this.REGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~ ${opts.value}`, // Case-sensitive regex
+    [this.IREGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~* ${opts.value}`, // Case-insensitive regex
   };
 
   static readonly SCHEME_SET = new Set([
@@ -118,6 +139,7 @@ export class QueryOperators {
     this.IS,
     this.IS_NOT,
     this.REGEXP,
+    this.IREGEXP,
     this.IN,
     this.INQ,
     this.NIN,

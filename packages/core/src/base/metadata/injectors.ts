@@ -1,4 +1,4 @@
-import { IInjectableMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
+import { IInjectableMetadata, MetadataRegistry } from '@/helpers/inversion';
 import { inject as coreInject, injectable as coreInjectable } from '@venizia/ignis-inversion';
 
 export const injectable = (metadata: IInjectableMetadata): ClassDecorator => {

@@ -1,41 +1,40 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
-import { TCount, TRelationConfig, TWhere } from '../common';
-import { RepositoryOperationScopes } from '../common/constants';
-import { ReadableRepository } from './readable';
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
+import { TCount, TRepositoryLogOptions, TWhere } from '../common';
+import { RepositoryOperationScopes } from '../common/constants';
+import { ReadableRepository } from './readable';
 
+/**
+ * Persistable repository with full CRUD operations.
+ */
 export class PersistableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends TNullable<object> = undefined,
 > extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  constructor(opts: {
-    entityClass: TClass<BaseEntity<EntitySchema>>;
-    relations: { [relationName: string]: TRelationConfig };
-    dataSource: IDataSource;
-  }) {
-    super({
-      entityClass: opts.entityClass,
-      relations: opts.relations,
-      dataSource: opts.dataSource,
-    });
+  constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
+    super(ds, { entityClass: opts?.entityClass });
     this.operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
   protected _create(opts: {
     data: Array<PersistObject>;
-    options: (ExtraOptions | {}) & { shouldReturn?: boolean };
+    options: (ExtraOptions | {}) & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return new Promise((resolve, reject) => {
       const {
         shouldReturn = true,
-
+        log,
         // TODO Handle extra options later
         // ...rest,
       } = opts.options ?? {};
+
+      if (log?.use) {
+        this.logger.log(log.level ?? 'info', '[_create] Executing with opts: %j', opts);
+      }
 
       const task = () => {
         return this.connector.insert(this.entity.schema).values(opts.data);
@@ -74,7 +73,15 @@ export class PersistableRepository<
   // ---------------------------------------------------------------------------
   override create(opts: {
     data: PersistObject;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  override create(opts: {
+    data: PersistObject;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
+  override create(opts: {
+    data: PersistObject;
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     return new Promise((resolve, reject) => {
       this._create({ data: [opts.data], options: opts.options ?? { shouldReturn: true } })
@@ -85,9 +92,18 @@ export class PersistableRepository<
     });
   }
 
+  // --------------------------------0-------------------------------------------
   override createAll(opts: {
     data: Array<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  override createAll(opts: {
+    data: Array<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Array<EntitySchema['$inferSelect']> }>;
+  override createAll(opts: {
+    data: Array<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return new Promise((resolve, reject) => {
       this._create({ data: opts.data, options: opts.options ?? { shouldReturn: true } })
@@ -100,16 +116,24 @@ export class PersistableRepository<
   protected _update(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: boolean;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return new Promise((resolve, reject) => {
       const {
         shouldReturn = true,
         force = false,
-
+        log,
         // TODO Handle extra options later
         // ...rest,
       } = opts?.options ?? {};
+
+      if (log?.use) {
+        this.logger.log(log.level ?? 'info', '[_update] Executing with opts: %j', opts);
+      }
 
       const where = this.filterBuilder.toWhere({
         tableName: this.entity.name,
@@ -175,10 +199,21 @@ export class PersistableRepository<
     });
   }
 
+  // ---------------------------------------------------------------------------
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  override updateById(opts: {
+    id: IdType;
+    data: Partial<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
+  override updateById(opts: {
+    id: IdType;
+    data: Partial<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     return new Promise((resolve, reject) => {
       return this._update({
@@ -193,10 +228,33 @@ export class PersistableRepository<
     });
   }
 
+  // ---------------------------------------------------------------------------
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  override updateAll(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<EntitySchema['$inferSelect']> }>;
+  override updateAll(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: boolean;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return this._update(opts);
   }
@@ -204,16 +262,24 @@ export class PersistableRepository<
   // ---------------------------------------------------------------------------
   protected _delete(opts: {
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: boolean;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return new Promise((resolve, reject) => {
       const {
         shouldReturn = true,
         force = false,
-
+        log,
         // TODO Handle extra options later
         // ...rest,
       } = opts?.options ?? {};
+
+      if (log?.use) {
+        this.logger.log(log.level ?? 'info', '[_delete] Executing with opts: %j', opts);
+      }
 
       const where = this.filterBuilder.toWhere({
         tableName: this.entity.name,
@@ -273,7 +339,15 @@ export class PersistableRepository<
 
   override deleteById(opts: {
     id: IdType;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  override deleteById(opts: {
+    id: IdType;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
+  override deleteById(opts: {
+    id: IdType;
+    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }> {
     return new Promise((resolve, reject) => {
       return this._delete({
@@ -289,7 +363,27 @@ export class PersistableRepository<
 
   override deleteAll(opts: {
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  override deleteAll(opts: {
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<EntitySchema['$inferSelect']> }>;
+  override deleteAll(opts: {
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: boolean;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
   }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }> {
     return this._delete(opts);
   }

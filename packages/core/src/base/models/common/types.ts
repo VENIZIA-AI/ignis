@@ -1,5 +1,13 @@
+import { TRelationConfig } from '@/base/repositories';
 import { z } from '@hono/zod-openapi';
-import { ErrorSchema, getError, HTTP, keysToCamel, toCamel } from '@venizia/ignis-helpers';
+import {
+  ErrorSchema,
+  getError,
+  HTTP,
+  keysToCamel,
+  toCamel,
+  TValueOrResolver,
+} from '@venizia/ignis-helpers';
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
@@ -28,6 +36,16 @@ export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => 
 };
 
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
+
+// --------------------------------------------------------------------------------------------
+/**
+ * Interface for model class with static schema and relations.
+ */
+export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+  TABLE_NAME?: string;
+  schema: Schema;
+  relations?: TValueOrResolver<Array<TRelationConfig>>;
+}
 
 // --------------------------------------------------------------------------------------------
 export const idParamsSchema = (opts?: { idType: string }) => {

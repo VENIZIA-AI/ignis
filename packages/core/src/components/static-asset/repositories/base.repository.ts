@@ -1,17 +1,15 @@
-import { IDataSource } from '@/base/datasources';
-import { repository } from '@/base/metadata';
-import { DefaultCRUDRepository, TRelationConfig } from '@/base/repositories';
-import { TMetaLinkSchema } from '../models';
-import { TClass } from '@venizia/ignis-helpers';
-import { BaseEntity } from '@/base/models';
+import { DefaultCRUDRepository } from '@/base/repositories';
+import { BaseMetaLinkModel } from '../models';
 
-@repository({})
-export class BaseMetaLinkRepository extends DefaultCRUDRepository<TMetaLinkSchema> {
-  constructor(opts: {
-    entityClass: TClass<BaseEntity<TMetaLinkSchema>>;
-    relations: { [relationName: string]: TRelationConfig };
-    dataSource: IDataSource;
-  }) {
-    super(opts);
-  }
-}
+/**
+ * Base repository for MetaLink with dependency injection support.
+ *
+ * Can be extended with a datasource binding:
+ * ```typescript
+ * @repository({ model: BaseMetaLinkModel, dataSource: PostgresDataSource })
+ * export class MetaLinkRepository extends BaseMetaLinkRepository {}
+ * ```
+ */
+export class BaseMetaLinkRepository extends DefaultCRUDRepository<
+  typeof BaseMetaLinkModel.schema
+> {}

@@ -1,13 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
 import {
-  Configuration,
-  configurationRelations,
-  configurationTable,
-  User,
-  userRelations,
-  userTable,
-} from '@/models/entities';
-import {
   applicationEnvironment,
   BaseDataSource,
   datasource,
@@ -27,14 +19,26 @@ interface IDSConfigs {
   ssl: boolean;
 }
 
-@datasource({})
+/**
+ * PostgresDataSource with auto-discovery support.
+ *
+ * Features:
+ * - Driver is read from @datasource decorator (no need to pass in constructor)
+ * - Schema is auto-discovered from repositories that reference this datasource
+ *
+ * How it works:
+ * 1. @repository decorator binds model to datasource
+ * 2. When configure() is called, getSchema() auto-discovers all bound models
+ * 3. Drizzle is initialized with the auto-discovered schema
+ */
+@datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {
     super({
       name: PostgresDataSource.name,
-      driver: 'node-postgres',
+      // driver read from @datasource decorator - no need to pass here!
       config: {
         host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
         port: int(applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT)),
@@ -43,31 +47,23 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
         password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PASSWORD),
         ssl: false,
       },
-
-      // NOTE: this is the place to define which models belonged to this datasource
-      schema: Object.assign(
-        {},
-        // ... extra entity models
-        // NOTE: schema key will be used for Query API in DrizzleORM
-        {
-          [User.TABLE_NAME]: userTable, // Table
-          [Configuration.TABLE_NAME]: configurationTable, // Table
-        },
-
-        // Relations
-        {
-          userRelations: userRelations.relations, // User relations
-          configurationRelations: configurationRelations.relations, // Configuration relations
-        },
-      ),
+      // NO schema property - auto-discovered from @repository bindings!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings),
-      schema: this.schema,
-    });
+    // getSchema() auto-discovers models from @repository bindings
+    const schema = this.getSchema();
+
+    const dsSchema = Object.keys(schema);
+    this.logger.debug(
+      '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
+      dsSchema.length,
+      dsSchema,
+    );
+
+    const client = new Pool(this.settings);
+    this.connector = drizzle({ client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

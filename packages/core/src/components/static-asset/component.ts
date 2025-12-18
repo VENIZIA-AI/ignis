@@ -2,7 +2,8 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
-import { Binding, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Binding } from '@/helpers/inversion';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
 import { StaticAssetComponentBindingKeys, TStaticAssetsComponentOptions } from './common';
 import { AssetControllerFactory } from './controller';
 

@@ -1,4 +1,4 @@
-import { BindingKeys } from '@venizia/ignis-helpers';
+import { BindingKeys } from '@/helpers/inversion';
 
 export class BindingNamespaces {
   static readonly COMPONENT = BindingNamespaces.createNamespace({ name: 'components' });
@@ -22,6 +22,6 @@ export class CoreBindings extends BindingKeys {
 
   static readonly APPLICATION_ROOT_ROUTER = '@app/router/root';
 
-  static readonly APPLICATION_ENVIRONMENTS = Symbol.for('@app/environments');
-  static readonly APPLICATION_MIDDLEWARE_OPTIONS = Symbol.for('@app/middleware_options');
+  static readonly APPLICATION_ENVIRONMENTS = '@app/environments';
+  static readonly APPLICATION_MIDDLEWARE_OPTIONS = '@app/middleware_options';
 }

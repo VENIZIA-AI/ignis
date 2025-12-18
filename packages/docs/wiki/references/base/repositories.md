@@ -137,6 +137,92 @@ This is the primary class you should extend for repositories that require full *
 
 -   **File:** `packages/core/src/base/repositories/core/default-crud.ts`
 
+### @repository Decorator Requirements
+
+**IMPORTANT:** Both `model` AND `dataSource` are required in the `@repository` decorator for schema auto-discovery. Without both, the model won't be registered and relational queries will fail.
+
+```typescript
+// ❌ WRONG - Will throw error
+@repository({ model: User })  // Missing dataSource!
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+
+// ❌ WRONG - Will throw error
+@repository({ dataSource: PostgresDataSource })  // Missing model!
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+
+// ✅ CORRECT - Both model and dataSource provided
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+```
+
+### Injection Patterns
+
+The `@repository` decorator supports two injection patterns:
+
+#### Pattern 1: Zero Boilerplate (Recommended)
+
+DataSource is auto-injected from metadata - no constructor needed:
+
+```typescript
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  // No constructor needed - datasource auto-injected at param index 0
+
+  async findByEmail(email: string) {
+    return this.findOne({ filter: { where: { email } } });
+  }
+}
+```
+
+#### Pattern 2: Explicit @inject
+
+When you need constructor control, use explicit `@inject`. **Important:** The first parameter must extend `AbstractDataSource` - this is enforced via reflection:
+
+```typescript
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: PostgresDataSource,  // ✅ Must be concrete DataSource type, NOT 'any'
+  ) {
+    super(dataSource);
+  }
+}
+```
+
+**Note:** When `@inject` is at param index 0, auto-injection is skipped (your `@inject` takes precedence).
+
+### Constructor Type Validation
+
+The framework validates constructor parameters at decorator time:
+
+1. **First parameter must extend `AbstractDataSource`** - Using `any`, `object`, or non-DataSource types will throw an error
+2. **Type compatibility check** - The constructor parameter type must be compatible with the `dataSource` specified in `@repository`
+
+```typescript
+// ❌ Error: First parameter must extend AbstractDataSource | Received: 'Object'
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: any,  // Will cause runtime error!
+  ) {
+    super(dataSource);
+  }
+}
+
+// ❌ Error: Type mismatch | Constructor expects 'MongoDataSource' but @repository specifies 'PostgresDataSource'
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  constructor(
+    @inject({ key: 'datasources.MongoDataSource' })
+    dataSource: MongoDataSource,  // Wrong type!
+  ) {
+    super(dataSource);
+  }
+}
+```
+
 ### Example Implementation
 
 ```typescript
@@ -146,22 +232,20 @@ import {
   configurationRelations,
   TConfigurationSchema,
 } from '@/models/entities';
-import { IDataSource, inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
+import { PostgresDataSource } from '@/datasources';
+import { inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
 
-// Decorator to mark this class as a repository for DI
-@repository({})
+@repository({ model: Configuration, dataSource: PostgresDataSource })
 export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
   constructor(
-    // Inject the configured datasource
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: PostgresDataSource,
   ) {
-    // Pass the datasource, the model's Entity class, and the relations definitions to the super constructor
-    super({ dataSource, entityClass: Configuration, relations: configurationRelations.definitions });
+    super(dataSource, { entityClass: Configuration, relations: configurationRelations.definitions });
   }
 
-  // You can add custom data access methods here
+  // Custom data access methods
   async findByCode(code: string): Promise<Configuration | undefined> {
-    // 'this.connector' gives you direct access to the Drizzle instance
     const result = await this.connector.query.Configuration.findFirst({
       where: (table, { eq }) => eq(table.code, code)
     });
@@ -169,4 +253,96 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
   }
 }
 ```
+
 This architecture provides a clean and powerful abstraction for data access, separating the "how" of data fetching (Drizzle logic) from the "what" of business logic (services).
+
+## Advanced Features
+
+### Log Option for Debugging
+
+All CRUD operations support a `log` option for debugging:
+
+```typescript
+// Enable logging for a specific operation
+await repo.create({
+  data: { name: 'John', email: 'john@example.com' },
+  options: {
+    log: { use: true, level: 'debug' }
+  }
+});
+// Output: [_create] Executing with opts: { data: [...], options: {...} }
+
+// Available log levels: 'debug', 'info', 'warn', 'error'
+await repo.updateById({
+  id: '123',
+  data: { name: 'Jane' },
+  options: { log: { use: true, level: 'info' } }
+});
+```
+
+**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`
+
+### TypeScript Return Type Inference
+
+Repository methods now have improved type inference based on `shouldReturn`:
+
+```typescript
+// When shouldReturn: false - TypeScript knows data is null
+const result1 = await repo.create({
+  data: { name: 'John' },
+  options: { shouldReturn: false }
+});
+// Type: Promise<TCount & { data: null }>
+console.log(result1.data); // null
+
+// When shouldReturn: true (default) - TypeScript knows data is the entity
+const result2 = await repo.create({
+  data: { name: 'John' },
+  options: { shouldReturn: true }
+});
+// Type: Promise<TCount & { data: User }>
+console.log(result2.data.name); // 'John' - fully typed!
+
+// Same for array operations
+const results = await repo.createAll({
+  data: [{ name: 'John' }, { name: 'Jane' }],
+  options: { shouldReturn: true }
+});
+// Type: Promise<TCount & { data: User[] }>
+```
+
+### Relations Auto-Resolution
+
+Relations are now automatically resolved from the entity's static `relations` property:
+
+```typescript
+// Define entity with static relations
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = userTable;
+  static override relations = () => userRelations.definitions;
+}
+
+// Repository automatically uses entity's relations
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  // No need to pass relations in constructor - auto-resolved!
+}
+
+// Relations are available for include queries
+const users = await repo.find({
+  filter: {
+    where: { status: 'active' },
+    include: [{ relation: 'posts' }], // Works automatically
+  }
+});
+```
+
+### Query Interface Validation
+
+The `getQueryInterface()` method validates that the entity's schema is properly registered:
+
+```typescript
+// If schema key doesn't match, you get a helpful error:
+// Error: [UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post] | Ensure the model's TABLE_NAME matches the schema registration key
+```

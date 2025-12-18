@@ -309,34 +309,14 @@ A DataSource is a class responsible for managing the connection to your database
 
 ### Creating and Configuring a DataSource
 
-A `DataSource` must be decorated with `@datasource`. **The most critical part** is correctly merging your table schemas and relations into a single object that Drizzle ORM can understand.
+A `DataSource` must be decorated with `@datasource`. The framework now supports **schema auto-discovery**, which means you no longer need to manually merge tables and relations!
 
-#### ⚠️ Understanding Schema Merging (CRITICAL CONCEPT)
+### Pattern 1: Auto-Discovery (Recommended)
 
-This is one of the most important concepts in Ignis. If you don't get this right, your relations won't work.
-
-**The Problem:**
-Drizzle ORM needs to know about:
-1. Your table structures (e.g., `userTable`, `configurationTable`)
-2. The relationships between them (e.g., "Configuration belongs to User")
-
-**The Solution:**
-You must merge both into a single `schema` object in your DataSource constructor.
-
-#### Step-by-Step Example
-
-Let's say you have two models: `User` and `Configuration`. Here's how to set up the DataSource:
+With auto-discovery, the schema is automatically built from your `@repository` decorators:
 
 ```typescript
 // src/datasources/postgres.datasource.ts
-import {
-  Configuration,
-  configurationTable,        // The table structure
-  configurationRelations,    // The relationships
-  User,
-  userTable,                 // The table structure
-  userRelations,             // The relationships
-} from '@/models/entities';
 import {
   BaseDataSource,
   datasource,
@@ -346,7 +326,6 @@ import {
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-// Configuration interface for database connection
 interface IDSConfigs {
   connection: {
     host?: string;
@@ -357,12 +336,11 @@ interface IDSConfigs {
   };
 }
 
-@datasource()
+@datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
-      driver: 'node-postgres',
       config: {
         connection: {
           host: process.env.APP_ENV_POSTGRES_HOST,
@@ -372,27 +350,14 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
           database: process.env.APP_ENV_POSTGRES_DATABASE,
         },
       },
-
-      // 🔥 CRITICAL: This is where you merge tables and relations
-      schema: Object.assign(
-        {},
-        // Step 1: Add your table schemas
-        {
-          [User.TABLE_NAME]: userTable,
-          [Configuration.TABLE_NAME]: configurationTable,
-        },
-        // Step 2: Spread the relations objects
-        userRelations.relations,
-        configurationRelations.relations,
-      ),
+      // No schema needed - auto-discovered from @repository decorators!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    // Pass the merged schema to Drizzle
     this.connector = drizzle({
       client: new Pool(this.settings.connection),
-      schema: this.schema, // This now contains both tables AND relations
+      schema: this.schema, // Auto-discovered schema
     });
   }
 
@@ -407,34 +372,24 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 }
 ```
 
-#### Why This Pattern?
+**How auto-discovery works:**
 
-**Without the relations merged in:**
+When you define repositories with both `model` and `dataSource`:
+
 ```typescript
-// ❌ WRONG - Relations won't work!
-schema: {
-  [User.TABLE_NAME]: userTable,
-  [Configuration.TABLE_NAME]: configurationTable,
-}
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+
+@repository({ model: Configuration, dataSource: PostgresDataSource })
+export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {}
 ```
 
-**Result:** Your repository's `include` queries will fail. You won't be able to fetch related data.
+The framework automatically:
+1. Registers each model-datasource binding
+2. Builds the combined schema (tables + relations) when `getSchema()` is called
+3. Makes all registered models available for relational queries
 
-**With tables and relations merged:**
-```typescript
-// ✅ CORRECT - Relations work perfectly!
-schema: Object.assign(
-  {},
-  {
-    [User.TABLE_NAME]: userTable,
-    [Configuration.TABLE_NAME]: configurationTable,
-  },
-  userRelations.relations,
-  configurationRelations.relations,
-)
-```
-
-**Result:** You can now do:
+**Result:** You can use `include` queries without any manual schema configuration:
 ```typescript
 const config = await configRepo.findOne({
   filter: {
@@ -445,52 +400,57 @@ const config = await configRepo.findOne({
 console.log(config.creator.name); // Access related User data
 ```
 
-#### Adding New Models to Your DataSource
+### Pattern 2: Manual Schema (Full Control)
 
-Every time you create a new model, you need to:
+If you need explicit control over the schema, you can still provide it manually:
 
-1. Import its table and relations
-2. Add them to the schema object
-
-**Example - Adding a `Post` model:**
 ```typescript
 import {
-  Post,
-  postTable,
-  postRelations,
-  // ... other models
+  Configuration, configurationTable, configurationRelations,
+  User, userTable, userRelations,
 } from '@/models/entities';
 
-// In your constructor:
-schema: Object.assign(
-  {},
-  {
-    [User.TABLE_NAME]: userTable,
-    [Configuration.TABLE_NAME]: configurationTable,
-    [Post.TABLE_NAME]: postTable, // Add the table
-  },
-  userRelations.relations,
-  configurationRelations.relations,
-  postRelations.relations, // Add the relations
-),
+@datasource({ driver: 'node-postgres' })
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+  constructor() {
+    super({
+      name: PostgresDataSource.name,
+      config: { /* ... */ },
+      // Manually merge tables and relations
+      schema: Object.assign(
+        {},
+        {
+          [User.TABLE_NAME]: userTable,
+          [Configuration.TABLE_NAME]: configurationTable,
+        },
+        userRelations.relations,
+        configurationRelations.relations,
+      ),
+    });
+  }
+
+  override configure(): ValueOrPromise<void> {
+    this.connector = drizzle({
+      client: new Pool(this.settings.connection),
+      schema: this.schema,
+    });
+  }
+}
 ```
 
-**Pro tip:** As your app grows, consider using a helper function to reduce boilerplate:
+### @datasource Decorator
 
 ```typescript
-function buildSchema(models: Array<{ table: any; relations: any; name: string }>) {
-  const tables = models.reduce((acc, m) => ({ ...acc, [m.name]: m.table }), {});
-  const relations = models.map(m => m.relations.relations);
-  return Object.assign({}, tables, ...relations);
-}
-
-// Usage:
-schema: buildSchema([
-  { name: User.TABLE_NAME, table: userTable, relations: userRelations },
-  { name: Configuration.TABLE_NAME, table: configurationTable, relations: configurationRelations },
-  { name: Post.TABLE_NAME, table: postTable, relations: postRelations },
-])
+@datasource({
+  driver: 'node-postgres',    // Required - database driver
+  autoDiscovery?: true        // Optional - defaults to true
+})
 ```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `driver` | `TDataSourceDriver` | - | Database driver name |
+| `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
 
 ### Registering a DataSource
 
@@ -520,29 +480,58 @@ Repositories abstract the data access logic. They use the configured `DataSource
 
 ### Creating a Repository
 
-A repository extends `DefaultCRUDRepository` (for full read/write operations), is decorated with `@repository`, and injects the `DataSource`.
+A repository extends `DefaultCRUDRepository` (for full read/write operations) and is decorated with `@repository`.
+
+**IMPORTANT:** Both `model` AND `dataSource` are required in `@repository` for schema auto-discovery. Without both, the model won't be registered and relational queries will fail.
+
+#### Pattern 1: Zero Boilerplate (Recommended)
+
+The simplest approach - dataSource is auto-injected from metadata:
 
 ```typescript
 // src/repositories/configuration.repository.ts
-import {
-  Configuration,
-  configurationRelations, // Import configurationRelations
-  TConfigurationSchema,
-} from '@/models/entities';
-import { IDataSource, inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
+import { Configuration, TConfigurationSchema } from '@/models/entities';
+import { PostgresDataSource } from '@/datasources';
+import { repository, DefaultCRUDRepository } from '@venizia/ignis';
 
-// Decorator to mark this class as a repository for DI
-@repository({})
+@repository({ model: Configuration, dataSource: PostgresDataSource })
 export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
-  constructor(
-    // Inject the configured datasource
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
-  ) {
-    // Pass the datasource, the model's Entity class, AND the relations definitions to the super constructor
-    super({ dataSource, entityClass: Configuration, relations: configurationRelations.definitions });
+  // No constructor needed - datasource auto-injected!
+
+  // Add custom methods as needed
+  async findByCode(code: string) {
+    return this.findOne({ filter: { where: { code } } });
   }
 }
 ```
+
+#### Pattern 2: Explicit @inject
+
+When you need constructor control (e.g., for read-only repositories or custom initialization):
+
+```typescript
+// src/repositories/user.repository.ts
+import { User } from '@/models/entities';
+import { PostgresDataSource } from '@/datasources';
+import { inject, repository, ReadableRepository } from '@venizia/ignis';
+
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends ReadableRepository<typeof User.schema> {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: PostgresDataSource,  // Must be concrete DataSource type, NOT 'any'
+  ) {
+    super(dataSource);
+  }
+
+  async findByRealm(realm: string) {
+    return this.findOne({ filter: { where: { realm } } });
+  }
+}
+```
+
+**Note:** When `@inject` is at param index 0, auto-injection is skipped (your `@inject` takes precedence).
+
 You would then register this repository in your `application.ts`: `this.repository(ConfigurationRepository);`
 
 ### Querying Data

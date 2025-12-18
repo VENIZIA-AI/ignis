@@ -1,12 +1,12 @@
+import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
 import {
-  Container as _Container,
+  Container as DIContainer,
   MetadataRegistry as _MetadataRegistry,
 } from '@venizia/ignis-inversion';
-import { ApplicationLogger, LoggerFactory } from '../logger';
 import { MetadataRegistry } from './registry';
 
 // -------------------------------------------------------------------------------------
-export class Container extends _Container {
+export class Container extends DIContainer {
   logger: ApplicationLogger;
 
   constructor(opts?: { scope: string }) {

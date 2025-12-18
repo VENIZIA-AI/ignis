@@ -2,8 +2,8 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
+import { Binding } from '@/helpers/inversion';
 import {
-  Binding,
   DefaultRedisHelper,
   getError,
   HTTP,

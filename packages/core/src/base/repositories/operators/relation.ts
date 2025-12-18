@@ -2,8 +2,8 @@ import { TTableSchemaWithId } from '@/base/models';
 import { relations as defineRelations } from 'drizzle-orm';
 import { TRelationConfig } from '../common';
 
-export const createRelations = <SourceEntity extends TTableSchemaWithId>(opts: {
-  source: SourceEntity;
+export const createRelations = <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
+  source: Schema;
   relations: Array<TRelationConfig>;
 }) => {
   const { source, relations } = opts;

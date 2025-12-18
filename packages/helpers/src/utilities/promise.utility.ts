@@ -1,6 +1,7 @@
 import { ValueOrPromise } from '@/common';
+import { getError } from '@/helpers/error';
 
-type TTask<T> = () => Promise<T>;
+export type TTask<T> = (...args: any[]) => Promise<T>;
 
 /**
  *  Execute all tasks with limit number of asyncronous tasks.
@@ -79,7 +80,7 @@ export function getDeepProperty<T, V>(obj: T, path: string): V {
 
   for (const key of keys) {
     if (result == null) {
-      throw new Error(`Cannot read property '${key}' of ${result}`);
+      throw getError({ message: `Cannot read property '${key}' of ${result}` });
     }
     result = result[key];
   }

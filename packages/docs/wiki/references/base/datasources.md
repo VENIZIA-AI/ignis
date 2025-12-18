@@ -10,7 +10,7 @@ Technical reference for DataSource classes - managing database connections in Ig
 |-----------------|---------|-------------|
 | **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `schema`, `configure()` |
 | **AbstractDataSource** | Base implementation with logging | Extends `BaseHelper` |
-| **BaseDataSource** | Concrete class to extend | Constructor accepts `name`, `driver`, `config`, `schema` |
+| **BaseDataSource** | Concrete class to extend | Auto-discovery, driver from decorator |
 
 ## `IDataSource` Interface
 
@@ -39,29 +39,60 @@ This is the top-level abstract class that implements the `IDataSource` interface
 
 ### `BaseDataSource`
 
-This class extends `AbstractDataSource` and provides a constructor that standardizes how datasources are created. When you create your own datasource, you extend `BaseDataSource`.
+This class extends `AbstractDataSource` and provides a constructor with **auto-discovery** support. When you create your own datasource, you extend `BaseDataSource`.
 
-### Constructor and Configuration Flow
+#### Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Driver Auto-Read** | Driver is read from `@datasource` decorator - no need to pass in constructor |
+| **Schema Auto-Discovery** | Schema is automatically built from registered `@repository` decorators |
+| **Manual Override** | You can still manually provide schema in constructor for full control |
+
+### Constructor Options
+
+```typescript
+constructor(opts: {
+  name: string;           // DataSource name (usually class name)
+  config: Settings;       // Database connection settings
+  driver?: TDataSourceDriver;  // Optional - read from @datasource if not provided
+  schema?: Schema;        // Optional - auto-discovered if not provided
+})
+```
+
+### Schema Auto-Discovery
+
+When you use `@repository({ model: YourModel, dataSource: YourDataSource })`, the framework automatically:
+
+1. Registers the model-datasource binding in the MetadataRegistry
+2. When `getSchema()` is called, discovers all models bound to this datasource
+3. Builds the combined schema (tables + relations) automatically
+
+**This means you no longer need to manually merge tables and relations in the DataSource constructor!**
+
+### Configuration Flow
 
 1.  **Your DataSource's `constructor` is called**:
-    -   You call `super()` with the `name`, `driver`, `config` (connection settings), and the crucial `schema` object.
-    -   The `schema` object **must** contain all your Drizzle tables and `relations` definitions.
+    -   You call `super()` with `name` and `config`
+    -   Driver is automatically read from `@datasource` decorator
+    -   Schema is auto-discovered from `@repository` bindings (or manually provided)
 
 2.  **`Application.registerDataSources()` is called during startup**:
-    -   The application gets your `DataSource` instance from the DI container.
-    -   It calls the `configure()` method on your instance.
+    -   The application gets your `DataSource` instance from the DI container
+    -   It calls the `configure()` method on your instance
 
 3.  **Your `configure()` method runs**:
-    -   This is where you instantiate the Drizzle ORM.
-    -   You pass the `this.settings` (your config) and `this.schema` to Drizzle, creating the `this.connector`.
+    -   This is where you instantiate the Drizzle ORM
+    -   Use `this.schema` (auto-discovered) to pass to Drizzle
 
-### Example Implementation
+### Example Implementations
+
+#### Pattern 1: Auto-Discovery (Recommended)
+
+Simplest approach - schema is auto-discovered from repositories:
 
 ```typescript
 // src/datasources/postgres.datasource.ts
-import {
-  // ... import your models and relations
-} from '@/models/entities';
 import {
   BaseDataSource,
   datasource,
@@ -71,35 +102,125 @@ import {
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
-// Decorator to mark this class as a datasource for DI
-@datasource()
-export class PostgresDataSource extends BaseDataSource<
-  TNodePostgresConnector, // Type of the connector
-  IDSConfigs              // Type of the config object
-> {
+interface IDSConfigs {
+  connection: {
+    host?: string;
+    port?: number;
+    user?: string;
+    password?: string;
+    database?: string;
+  };
+}
+
+@datasource({ driver: 'node-postgres' })
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
-      driver: 'node-postgres',
-      config: { /* ... connection details from environment ... */ },
-      schema: {
-        // Register all tables and relations here
-        usersTable,
-        configurationTable,
-        ...configurationRelations,
+      config: {
+        connection: {
+          host: process.env.APP_ENV_POSTGRES_HOST,
+          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+          user: process.env.APP_ENV_POSTGRES_USERNAME,
+          password: process.env.APP_ENV_POSTGRES_PASSWORD,
+          database: process.env.APP_ENV_POSTGRES_DATABASE,
+        },
       },
+      // No schema needed - auto-discovered from @repository decorators!
     });
   }
 
-  // This method is called by the application at startup
   override configure(): ValueOrPromise<void> {
     this.connector = drizzle({
-      client: new Pool(this.settings),
+      client: new Pool(this.settings.connection),
+      schema: this.schema, // Auto-discovered schema
+    });
+  }
+
+  override async connect(): Promise<TNodePostgresConnector | undefined> {
+    await (this.connector.client as Pool).connect();
+    return this.connector;
+  }
+
+  override async disconnect(): Promise<void> {
+    await (this.connector.client as Pool).end();
+  }
+}
+```
+
+With this pattern, when you define repositories:
+
+```typescript
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
+
+@repository({ model: Configuration, dataSource: PostgresDataSource })
+export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {}
+```
+
+The `PostgresDataSource.schema` will automatically include User and Configuration tables and their relations.
+
+#### Pattern 2: Manual Schema (Full Control)
+
+When you need explicit control over schema:
+
+```typescript
+import {
+  User, userTable, userRelations,
+  Configuration, configurationTable, configurationRelations,
+} from '@/models/entities';
+
+@datasource({ driver: 'node-postgres' })
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+  constructor() {
+    super({
+      name: PostgresDataSource.name,
+      config: { /* ... */ },
+      // Manually provide schema
+      schema: Object.assign(
+        {},
+        {
+          [User.TABLE_NAME]: userTable,
+          [Configuration.TABLE_NAME]: configurationTable,
+        },
+        userRelations.relations,
+        configurationRelations.relations,
+      ),
+    });
+  }
+
+  override configure(): ValueOrPromise<void> {
+    this.connector = drizzle({
+      client: new Pool(this.settings.connection),
       schema: this.schema,
     });
   }
-  // ...
 }
 ```
+
+### @datasource Decorator
+
+The `@datasource` decorator registers datasource metadata:
+
+```typescript
+@datasource({
+  driver: 'node-postgres',       // Required - database driver
+  autoDiscovery?: true           // Optional - defaults to true
+})
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `driver` | `TDataSourceDriver` | - | Database driver name |
+| `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
+
+### Helper Methods
+
+| Method | Description |
+|--------|-------------|
+| `getSchema()` | Returns the schema (auto-discovers if not manually provided) |
+| `getSettings()` | Returns connection settings |
+| `getConnector()` | Returns the Drizzle connector |
+| `hasDiscoverableModels()` | Returns `true` if there are models registered for this datasource |
 
 This architecture ensures that datasources are configured consistently and that the fully-initialized Drizzle connector, aware of all schemas and relations, is available to repositories for querying.

@@ -1,6 +1,7 @@
 import { RouteConfig } from '@hono/zod-openapi';
-import { HTTP, IControllerMetadata, MetadataRegistry } from '@venizia/ignis-helpers';
 import { TAuthRouteConfig, TRouteContext, TRouteResponse } from '../controllers';
+import { IControllerMetadata, MetadataRegistry } from '@/helpers/inversion';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // --------------------------------------------------------------------------------------------
 export const controller = (metadata: IControllerMetadata): ClassDecorator => {
