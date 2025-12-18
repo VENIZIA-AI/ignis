@@ -1,14 +1,14 @@
 import { BaseArtifactBooter } from '@/base';
-import { IApplication, IArtifactOptions } from '@/common';
+import { IApplication, IBootOptions } from '@/common';
 import { inject } from '@venizia/ignis-inversion';
 
 export class DatasourceBooter extends BaseArtifactBooter {
   constructor(
     @inject({ key: '@app/project_root' }) root: string,
     @inject({ key: '@app/instance' }) private readonly application: IApplication,
-    @inject({ key: '@app/artifact-booter/datasources', isOptional: true }) artifactOptions?: IArtifactOptions,
+    @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions,
   ) {
-    super({ scope: DatasourceBooter.name, root, artifactOptions: artifactOptions ?? {} });
+    super({ scope: DatasourceBooter.name, root, artifactOptions: bootOptions.datasources ?? {} });
   }
 
   // --------------------------------------------------------------------------------

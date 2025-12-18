@@ -58,11 +58,6 @@ export interface IBootExecutionOptions {
   booters?: string[];
 }
 
-export interface IBootstrapperOptions {
-  scope: string;
-  application: IApplication;
-}
-
 export interface IBootstrapper {
   boot(opts: IBootExecutionOptions): Promise<IBootReport>;
 }

@@ -1,15 +1,14 @@
 import { BaseArtifactBooter } from '@/base';
-import { IApplication, IArtifactOptions } from '@/common';
+import { IApplication, IBootOptions } from '@/common';
 import { inject } from '@venizia/ignis-inversion';
 
 export class ServiceBooter extends BaseArtifactBooter {
   constructor(
     @inject({ key: '@app/project_root' }) root: string,
     @inject({ key: '@app/instance' }) protected application: IApplication,
-    @inject({ key: '@app/artifact-booter/services', isOptional: true })
-    artifactOptions?: IArtifactOptions,
+    @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions,
   ) {
-    super({ scope: ServiceBooter.name, root, artifactOptions: artifactOptions ?? {} });
+    super({ scope: ServiceBooter.name, root, artifactOptions: bootOptions.services ?? {} });
   }
 
   // --------------------------------------------------------------------------------

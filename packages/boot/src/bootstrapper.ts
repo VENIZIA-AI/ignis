@@ -5,10 +5,10 @@ import {
   IBootExecutionOptions,
   IBootReport,
   IBootstrapper,
-  IBootstrapperOptions,
   TBootPhase,
 } from '@/common/types';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { inject } from '@venizia/ignis-inversion';
 
 /**
  * BaseBootstrapper orchestrates the boot process
@@ -22,13 +22,9 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private booters: IBooter[] = [];
   private phaseStartTimings: Map<string, number> = new Map();
   private phaseEndTimings: Map<string, number> = new Map();
-  protected application: IApplication;
 
-  // protected configuration: IBootstrapperOptions;
-
-  constructor(opts: IBootstrapperOptions) {
-    super({ scope: opts.scope });
-    this.application = opts.application;
+  constructor(@inject({ key: '@app/instance' }) private readonly application: IApplication) {
+    super({ scope: Bootstrapper.name });
   }
 
   // --------------------------------------------------------------------------------
