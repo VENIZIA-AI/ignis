@@ -5,6 +5,7 @@ import {
   ControllerBooter,
   DatasourceBooter,
   IBootableApplication,
+  IBootOptions,
   IBootReport,
   RepositoryBooter,
   ServiceBooter,
@@ -53,8 +54,17 @@ export abstract class BaseApplication
   extends AbstractApplication
   implements IRestApplication, IBootableApplication
 {
+  bootOptions?: IBootOptions | undefined;
+
   // ------------------------------------------------------------------------------
   boot(): Promise<IBootReport> {
+    if (this.bootOptions) {
+      // TODO: implement inject configuration from bootOptions
+      for (const [key, value] of Object.entries(this.bootOptions)) {
+        this.bind({ key: `@app/artifact-booter/${key}` }).toValue(value);
+      }
+    }
+
     this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
     this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
     this.bind({ key: 'booter.ServiceBooter' }).toClass(ServiceBooter).setTags('booter');
