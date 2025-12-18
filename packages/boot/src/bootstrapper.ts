@@ -115,7 +115,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
         discover: { duration: 0 },
         load: { duration: 0 },
       },
-      success: true,
+      isSuccess: true,
       totalLoaded: 0,
       totalErrors: 0,
     };
