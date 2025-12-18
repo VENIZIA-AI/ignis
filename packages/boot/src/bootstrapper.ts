@@ -1,5 +1,6 @@
 import {
   BOOT_PHASES,
+  IApplication,
   IBooter,
   IBootExecutionOptions,
   IBootReport,
@@ -21,12 +22,13 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private booters: IBooter[] = [];
   private phaseStartTimings: Map<string, number> = new Map();
   private phaseEndTimings: Map<string, number> = new Map();
+  protected application: IApplication;
 
-  protected configuration: IBootstrapperOptions;
+  // protected configuration: IBootstrapperOptions;
 
   constructor(opts: IBootstrapperOptions) {
     super({ scope: opts.scope });
-    this.configuration = opts;
+    this.application = opts.application;
   }
 
   // --------------------------------------------------------------------------------
@@ -43,10 +45,10 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
 
   // --------------------------------------------------------------------------------
   private async discoverBooters(): Promise<void> {
-    const booterBindings = this.configuration.application.findByTag<IBooter>({ tag: 'booter' });
+    const booterBindings = this.application.findByTag<IBooter>({ tag: 'booter' });
 
     for (const binding of booterBindings) {
-      this.booters.push(binding.getValue(this.configuration.application));
+      this.booters.push(binding.getValue(this.application));
       this.logger.debug(`[discoverBooters] Discovered booter: %s`, binding.key);
     }
   }

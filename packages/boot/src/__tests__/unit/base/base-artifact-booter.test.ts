@@ -1,7 +1,6 @@
-import { TestApplication } from '@/__tests__/fixtures/application';
 import { BaseArtifactBooter } from '@/base';
-import { IApplication } from '@/common/types';
 import { beforeAll, describe, expect, test } from 'bun:test';
+import path from 'node:path';
 
 class TestBooter extends BaseArtifactBooter {
   protected override getDefaultDirs(): string[] {
@@ -16,12 +15,11 @@ class TestBooter extends BaseArtifactBooter {
 }
 
 describe('Base Artifact Booter Tests', () => {
-  let application: IApplication;
   let booter: TestBooter;
+  let root = path.resolve(process.cwd(), 'dist/cjs/__tests__/fixtures');
 
   beforeAll(() => {
-    application = new TestApplication({ bootOptions: {} });
-    booter = new TestBooter({ application, artifactOptions: {}, scope: TestBooter.name });
+    booter = new TestBooter({ root, artifactOptions: {}, scope: TestBooter.name });
   });
 
   describe('configure', () => {
@@ -36,7 +34,7 @@ describe('Base Artifact Booter Tests', () => {
     test('should override with provided options', () => {
       const customBooter = new TestBooter({
         scope: TestBooter.name,
-        application,
+        root,
         artifactOptions: {
           dirs: ['custom-dir'],
           extensions: ['.custom.js'],
@@ -56,13 +54,13 @@ describe('Base Artifact Booter Tests', () => {
     test('should generate pattern with defaults', async () => {
       await booter.configure();
       const pattern = booter['getPattern']();
-      expect(pattern).toBe('repositories/{**,*}.repository.js');
+      expect(pattern).toBe('repositories/{**/*,*}.repository.js');
     });
 
     test('should generate pattern with multiple dirs and extensions', async () => {
       const multiBooter = new TestBooter({
         scope: TestBooter.name,
-        application,
+        root,
         artifactOptions: {
           dirs: ['dir1', 'dir2'],
           extensions: ['.ext1.js', '.ext2.js'],
@@ -70,13 +68,13 @@ describe('Base Artifact Booter Tests', () => {
       });
       await multiBooter.configure();
       const pattern = multiBooter['getPattern']();
-      expect(pattern).toBe('{dir1,dir2}/{**,*}.{ext1.js,ext2.js}');
+      expect(pattern).toBe('{dir1,dir2}/{**/*,*}.{ext1.js,ext2.js}');
     });
 
     test('should use custom glob if provided', async () => {
       const globBooter = new TestBooter({
         scope: TestBooter.name,
-        application,
+        root,
         artifactOptions: {
           glob: 'custom/glob/pattern/**/*.js',
         },
@@ -97,7 +95,7 @@ describe('Base Artifact Booter Tests', () => {
     test('should discover no files if pattern matches none', async () => {
       const noFileBooter = new TestBooter({
         scope: TestBooter.name,
-        application,
+        root,
         artifactOptions: {
           glob: 'nonexistent/**/*.js',
         },

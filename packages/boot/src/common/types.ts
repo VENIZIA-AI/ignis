@@ -17,6 +17,7 @@ export interface IBootOptions {
   services?: IArtifactOptions;
   repositories?: IArtifactOptions;
   datasources?: IArtifactOptions;
+  [artifactType: string]: IArtifactOptions | undefined;
 }
 
 export type TBootPhase = 'configure' | 'discover' | 'load';
@@ -32,10 +33,10 @@ export interface IBootableApplication extends IApplication {
   boot(): Promise<IBootReport>;
 }
 
-export interface IBooterConfiguration {
+export interface IBooterOptions {
   scope: string;
-  application: IApplication;
-  artifactOptions?: IArtifactOptions;
+  root: string;
+  artifactOptions: IArtifactOptions;
 }
 
 export interface IBooter {

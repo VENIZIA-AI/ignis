@@ -4,10 +4,14 @@ import { inject, injectable } from '@venizia/ignis-inversion';
 
 @injectable({ tags: ['booter'] })
 export class RepositoryBooter extends BaseArtifactBooter {
-  constructor(@inject({ key: '@app/instance' }) application: IApplication) {
+  constructor(
+    @inject({ key: '@app/project_root' }) root: string,
+    @inject({ key: '@app/instance' }) protected application: IApplication,
+  ) {
     super({
-      application,
       scope: RepositoryBooter.name,
+      root,
+      artifactOptions: {},
     });
   }
 

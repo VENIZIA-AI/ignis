@@ -1,11 +1,9 @@
-import { IArtifactOptions, IBooter, IBooterConfiguration, TClass } from '@/common/types';
+import { IArtifactOptions, IBooter, IBooterOptions, TClass } from '@/common/types';
 import { discoverFiles, loadClasses } from '@/utilities';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import { Container } from '@venizia/ignis-inversion';
 
 export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   protected root: string = '';
-  protected application: Container;
   protected artifactOptions: IArtifactOptions = {};
   protected discoveredFiles: string[] = [];
   protected loadedClasses: TClass<any>[] = [];
@@ -14,12 +12,11 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   protected abstract getDefaultExtensions(): string[];
   protected abstract bind(): Promise<void>;
 
-  constructor(opts: IBooterConfiguration) {
+  constructor(opts: IBooterOptions) {
     super({ scope: opts.scope });
 
-    this.artifactOptions = opts.artifactOptions ?? {};
-    this.application = opts.application;
-    this.root = opts.application.getProjectRoot();
+    this.artifactOptions = opts.artifactOptions;
+    this.root = opts.root;
   }
 
   protected getPattern(): string {
@@ -45,7 +42,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
       .map(e => (e.startsWith('.') ? e.slice(1) : e))
       .join(',');
 
-    const nested = this.artifactOptions.nested ? '{**,*}' : '*'; // NOTE: only suports one level of nesting now
+    const nested = this.artifactOptions.nested ? '{**/*,*}' : '*'; // NOTE: only suports one level of nesting now
 
     // Pattern: {dir1,dir2}/**/*.{artifact}.{ext1,ext2}
     // Example: {private-controllers,public-controllers}/**/*.controller.{js,ts}

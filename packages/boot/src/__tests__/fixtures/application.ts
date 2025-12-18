@@ -13,6 +13,7 @@ export class TestApplication extends Container {
     this.bootOptions = opts.bootOptions;
 
     this.bind({ key: '@app/instance' }).toValue(this);
+    this.bind({ key: '@app/project_root' }).toValue(__dirname);
 
     this.bindBooters();
   }
