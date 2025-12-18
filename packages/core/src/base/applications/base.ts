@@ -1,6 +1,15 @@
 import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import {
+  Bootstrapper,
+  ControllerBooter,
+  DatasourceBooter,
+  IBootableApplication,
+  IBootReport,
+  RepositoryBooter,
+  ServiceBooter,
+} from '@venizia/ignis-boot';
+import {
   AnyObject,
   Binding,
   BindingKeys,
@@ -40,7 +49,25 @@ const {
 } = process.env;
 
 // ------------------------------------------------------------------------------
-export abstract class BaseApplication extends AbstractApplication implements IRestApplication {
+export abstract class BaseApplication
+  extends AbstractApplication
+  implements IRestApplication, IBootableApplication
+{
+  // ------------------------------------------------------------------------------
+  boot(): Promise<IBootReport> {
+    this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
+    this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
+    this.bind({ key: 'booter.ServiceBooter' }).toClass(ServiceBooter).setTags('booter');
+    this.bind({ key: 'booter.ControllerBooter' }).toClass(ControllerBooter).setTags('booter');
+
+    const bootstrapper = new Bootstrapper({
+      application: this,
+      scope: Bootstrapper.name,
+    });
+    return bootstrapper.boot({});
+  }
+
+  // ------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
     return joined || '/';
@@ -305,6 +332,8 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
 
   // ------------------------------------------------------------------------------
   override async initialize() {
+    await this.boot();
+
     this.printStartUpInfo({ scope: this.initialize.name });
     this.validateEnvs();
 

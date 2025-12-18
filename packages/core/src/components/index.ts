@@ -1,4 +1,5 @@
 export * from './auth';
+export * from './boot';
 export * from './health-check';
 export * from './request-tracker';
 export * from './socket-io';

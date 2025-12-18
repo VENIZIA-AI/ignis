@@ -98,8 +98,9 @@
   "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
-    "@venizia/ignis-helpers": "^0.0.1-7",
-    "@venizia/ignis-inversion": "^0.0.1-8",
+    "@venizia/ignis-boot": "file://../boot",
+    "@venizia/ignis-helpers": "file://../helpers",
+    "@venizia/ignis-inversion": "file://../inversion",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2"
   },
