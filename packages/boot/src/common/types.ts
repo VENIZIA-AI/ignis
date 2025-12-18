@@ -28,7 +28,7 @@ export interface IApplication extends Container {
   getProjectRoot(): string;
 }
 
-export interface IBootableApplication extends IApplication {
+export interface IBootableApplication {
   bootOptions?: IBootOptions;
   boot(): Promise<IBootReport>;
 }
