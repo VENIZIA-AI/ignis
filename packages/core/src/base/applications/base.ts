@@ -4,11 +4,11 @@ import {
   Bootstrapper,
   ControllerBooter,
   DatasourceBooter,
-  IBootableApplication,
   IBootOptions,
   IBootReport,
   RepositoryBooter,
   ServiceBooter,
+  IBootableApplication
 } from '@venizia/ignis-boot';
 import {
   AnyObject,
@@ -58,22 +58,7 @@ export abstract class BaseApplication
 
   // ------------------------------------------------------------------------------
   boot(): Promise<IBootReport> {
-    if (this.bootOptions) {
-      // TODO: implement inject configuration from bootOptions
-      for (const [key, value] of Object.entries(this.bootOptions)) {
-        this.bind({ key: `@app/artifact-booter/${key}` }).toValue(value);
-      }
-    }
-
-    this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
-    this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
-    this.bind({ key: 'booter.ServiceBooter' }).toClass(ServiceBooter).setTags('booter');
-    this.bind({ key: 'booter.ControllerBooter' }).toClass(ControllerBooter).setTags('booter');
-
-    const bootstrapper = new Bootstrapper({
-      application: this,
-      scope: Bootstrapper.name,
-    });
+    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
     return bootstrapper.boot({});
   }
 
@@ -342,6 +327,15 @@ export abstract class BaseApplication
 
   // ------------------------------------------------------------------------------
   override async initialize() {
+    this.bind({ key: `@app/boot-options` }).toValue(this.bootOptions ?? {});
+
+    this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
+    this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
+    this.bind({ key: 'booter.ServiceBooter' }).toClass(ServiceBooter).setTags('booter');
+    this.bind({ key: 'booter.ControllerBooter' }).toClass(ControllerBooter).setTags('booter');
+
+    this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
+
     await this.boot();
 
     this.printStartUpInfo({ scope: this.initialize.name });
