@@ -111,7 +111,7 @@
     "@braintree/sanitize-url": "^7.1.1",
     "@types/bun": "^1.3.4",
     "@types/glob": "^8.1.0",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "glob": "^10.4.2",
     "prettier": "^3.6.2",
