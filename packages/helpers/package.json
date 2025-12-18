@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.0.1-7",
+  "version": "0.0.1-8",
   "description": "Utility helpers for the Ignis Framework - logging, cron, Redis, queues, storage, and more",
   "keywords": [
     "ignis",
@@ -91,7 +91,7 @@
   "dependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "@venizia/ignis-inversion": "workspace:*",
+    "@venizia/ignis-inversion": "^0.0.1-9",
     "axios": "^1.12.2",
     "drizzle-orm": "^0.44.0",
     "bullmq": "^5.63.1",
@@ -127,7 +127,7 @@
     "@hono/zod-openapi": "^1.1.5",
     "@types/bun": "^1.3.4",
     "@types/lodash": "^4.17.20",
-    "@venizia/dev-configs": "workspace:*",
+    "@venizia/dev-configs": "^0.0.1-4",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",

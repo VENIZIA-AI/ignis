@@ -280,4 +280,3 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
     return this.processingEvents;
   }
 }
-
