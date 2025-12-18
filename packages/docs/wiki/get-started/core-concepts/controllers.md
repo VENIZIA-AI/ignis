@@ -9,7 +9,7 @@ Controllers handle HTTP requests and return responses - they're your API endpoin
 Extend `BaseController` and use decorators to define routes:
 
 ```typescript
-import { BaseController, controller, get, jsonResponse, z } from '@venizia/ignis';
+import { BaseController, controller, get, jsonResponse, z, HTTP } from '@venizia/ignis';
 import { Context } from 'hono';
 
 @controller({ path: '/users' })
@@ -29,7 +29,7 @@ export class UserController extends BaseController {
     },
   })
   getAllUsers(c: Context) {
-    return c.json([{ id: '1', name: 'John Doe' }]);
+    return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -177,7 +177,7 @@ const GetUsersRoute = {
 this.defineRoute({
   configs: GetUsersRoute,
   handler: (c: TRouteContext<typeof GetUsersRoute>) => { // Return type is automatically inferred
-    return c.json([{ id: 1, name: 'John Doe' }]);
+    return c.json([{ id: 1, name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   },
 });
 ```
@@ -187,7 +187,7 @@ this.defineRoute({
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
 ```typescript
-import { jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { jsonResponse, z, TRouteContext, HTTP } from '@venizia/ignis';
 
 // ... inside the binding() method
 
@@ -205,7 +205,7 @@ this.bindRoute({
 }).to({
   handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred
     const { id } = c.req.param();
-    return c.json({ id: id, name: 'John Doe' });
+    return c.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   },
 });
 ```
@@ -255,17 +255,17 @@ export class ConfigurationController extends _Controller {
 ```
 The `ControllerFactory.defineCrudController` method automatically sets up the following routes based on your entity schema:
 
-| Name | Method | Path | Description |
+| Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Get the number of records matching a filter. |
 | `find` | `GET` | `/` | Retrieve all records matching a filter. |
 | `findById` | `GET` | `/:id` | Retrieve a single record by its ID. |
 | `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
 | `create` | `POST` | `/` | Create a new record. |
-| `updateById` | `PATCH` | `/:id` | Update a record by its ID. |
-| `updateAll` | `PATCH` | `/` | Update multiple records matching a filter. |
-| `deleteById` | `DELETE` | `/:id` | Delete a record by its ID. |
-| `deleteAll` | `DELETE` | `/` | Delete multiple records matching a filter. |
+| `updateById` | `PATCH` | `/:id` | Update a single record by its ID. |
+| `updateBy` | `PATCH` | `/` | Update multiple records matching a `where` filter. |
+| `deleteById` | `DELETE` | `/:id` | Delete a single record by its ID. |
+| `deleteBy` | `DELETE` | `/` | Delete multiple records matching a `where` filter. |
 
 :::info Customization
 The `ControllerFactory` is highly customizable. You can override the Zod schemas for any of the generated routes to add, remove, or modify fields for request validation and response shapes. You can also configure other behaviors, like making delete operations return the deleted records.
@@ -368,7 +368,7 @@ When you define Zod schemas in your route's `request` configuration (whether wit
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put } from '@venizia/ignis';
+import { jsonContent, put, HTTP } from '@venizia/ignis';
 
 // ... inside a controller class
 
@@ -397,7 +397,7 @@ updateUser(c: Context) {
     console.log('Notification is enabled.');
   }
 
-  return c.json({ success: true, id, ...userUpdateData });
+  return c.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
@@ -405,7 +405,7 @@ Using `c.req.valid()` is the recommended way to access request data as it ensure
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put, TRouteContext } from '@venizia/ignis';
+import { jsonContent, put, TRouteContext, HTTP } from '@venizia/ignis';
 
 // ... inside a controller class
 
@@ -434,7 +434,7 @@ updateUser(c: TRouteContext<typeof updateUserConfig>) {
     console.log('Notification is enabled.');
   }
 
-  return c.json({ success: true, id, ...userUpdateData });
+  return c.json({ success: true, id, ...userUpdateData }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 

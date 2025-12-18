@@ -52,6 +52,7 @@ import {
   get,
   post,
   TRouteContext,
+  HTTP,
 } from '@venizia/ignis';
 import { ROUTE_CONFIGS } from './definitions';
 
@@ -62,7 +63,7 @@ export class TestController extends BaseController {
   @get({ configs: ROUTE_CONFIGS['/4'] })
   getWithDecorator(context: TRouteContext<(typeof ROUTE_CONFIGS)['/4']>) {
     // context is fully typed!
-    return context.json({ message: 'Hello from decorator', method: 'GET' });
+    return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: ROUTE_CONFIGS['/5'] })
@@ -71,11 +72,14 @@ export class TestController extends BaseController {
     const body = context.req.valid('json');
 
     // The response is validated against the schema
-    return context.json({
-      id: crypto.randomUUID(),
-      name: body.name,
-      age: body.age,
-    });
+    return context.json(
+      {
+        id: crypto.randomUUID(),
+        name: body.name,
+        age: body.age,
+      },
+      HTTP.ResultCodes.RS_2.Ok,
+    );
   }
 }
 ```
@@ -97,7 +101,7 @@ export class TestController extends BaseController {
     this.defineRoute({
       configs: ROUTE_CONFIGS['/1'],
       handler: context => {
-        return context.json({ message: 'Hello' });
+        return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
@@ -106,7 +110,7 @@ export class TestController extends BaseController {
       configs: ROUTE_CONFIGS['/3'],
     }).to({
       handler: context => {
-        return context.json({ message: 'Hello 3' });
+        return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }

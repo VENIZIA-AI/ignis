@@ -1,6 +1,7 @@
 import { BaseController } from '@/base/controllers';
 import { controller, inject } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@/base/models';
+import { AnyObjectSchema } from '@/utilities';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
@@ -9,7 +10,6 @@ import {
   SignUpRequestSchema,
 } from '../../models';
 import { Authentication, IAuthService, TDefineAuthControllerOpts } from '../common';
-import { AnyObjectSchema } from '@/utilities';
 
 export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
   const {

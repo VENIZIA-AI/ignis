@@ -1,12 +1,7 @@
 import { authenticate } from '@/components/auth';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import {
-  BaseHelper,
-  MetadataRegistry,
-  TAuthStrategy,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers';
+import { BaseHelper, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
   IController,
@@ -16,6 +11,7 @@ import {
   TRouteBindingOptions,
   TRouteDefinition,
 } from './common/types';
+import { MetadataRegistry } from '@/helpers/inversion';
 
 // -----------------------------------------------------------------------------
 export abstract class AbstractController<

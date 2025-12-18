@@ -8,7 +8,7 @@ export type TTzEnricherOptions = {
   deleted?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
 };
 
-type IsEnabled<T> = T extends { enable: false }
+type TIsEnabled<T> = T extends { enable: false }
   ? false
   : T extends { enable?: true }
     ? true
@@ -17,14 +17,14 @@ type IsEnabled<T> = T extends { enable: false }
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
   createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
 } & (Opts extends TTzEnricherOptions
-  ? IsEnabled<Opts['modified']> extends true
+  ? TIsEnabled<Opts['modified']> extends true
     ? { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }
-    : IsEnabled<Opts['modified']> extends false
+    : TIsEnabled<Opts['modified']> extends false
       ? {}
       : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> } // default for undefined modified
   : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }) & // default when opts is undefined
   (Opts extends TTzEnricherOptions
-    ? IsEnabled<Opts['deleted']> extends true
+    ? TIsEnabled<Opts['deleted']> extends true
       ? { deletedAt: PgTimestampBuilderInitial<string> }
       : {}
     : {}); // no deletedAt when opts is undefined
@@ -48,26 +48,26 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
   } as TTzEnricherResult<Opts>;
 
   if (modified.enable) {
-    rs = Object.assign({}, rs, {
+    rs = {
+      ...rs,
       modifiedAt: timestamp(modified.columnName, {
         mode: 'date',
         withTimezone: modified.withTimezone,
       })
         .defaultNow()
         .notNull()
-        .$onUpdate(() => {
-          return new Date();
-        }),
-    });
+        .$onUpdate(() => new Date()),
+    } as TTzEnricherResult<Opts>;
   }
 
   if (deleted.enable) {
-    rs = Object.assign({}, rs, {
+    rs = {
+      ...rs,
       deletedAt: timestamp(deleted.columnName, {
         mode: 'date',
         withTimezone: deleted.withTimezone,
       }),
-    });
+    } as TTzEnricherResult<Opts>;
   }
 
   return rs;
@@ -75,5 +75,5 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
 
 export const enrichTz = (baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions) => {
   const defs = generateTzColumnDefs(opts);
-  return Object.assign({}, baseSchema, defs);
+  return { ...baseSchema, ...defs };
 };

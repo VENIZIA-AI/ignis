@@ -3,7 +3,8 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { RequestSpyMiddleware } from '@/base/middlewares';
 import { BindingNamespaces, CoreBindings } from '@/common/bindings';
-import { Binding, BindingScopes, getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Binding, BindingScopes } from '@/helpers/inversion';
+import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { requestId } from 'hono/request-id';
 import { MiddlewareHandler } from 'hono/types';
 

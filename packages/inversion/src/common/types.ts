@@ -29,6 +29,14 @@ export const isClassProvider = <T>(target: any): target is TClass<IProvider<T>> 
   );
 };
 
+/**
+ * Check if a function is a class constructor (has named prototype).
+ * Arrow functions and regular functions don't have meaningful prototype.constructor.name
+ */
+export const isClassConstructor = (fn: Function): boolean => {
+  return !!fn.prototype?.constructor?.name;
+};
+
 // -----------------------------------------------------------------------
 export class BindingScopes {
   static readonly SINGLETON = 'singleton';

@@ -17,30 +17,3 @@ export const extraPermissionColumns = (opts?: {
 };
 
 // -------------------------------------------------------------------------------------------
-/* export class BaseNumberPermission extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign(
-        {},
-        extraPermissionColumns,
-        { parentId: integer('parent_id') },
-        opts.columns ?? {},
-      ),
-    });
-  }
-}
-
-export class BaseStringPermission extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign(
-        {},
-        extraPermissionColumns,
-        { parentId: text('parent_id') },
-        opts.columns ?? {},
-      ),
-    });
-  }
-} */

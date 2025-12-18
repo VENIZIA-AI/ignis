@@ -1,9 +1,6 @@
 import { BindingNamespaces } from '@/common/bindings';
 import {
   AnyObject,
-  Binding,
-  BindingKeys,
-  BindingScopes,
   executeWithPerformanceMeasure,
   IConfigurable,
   TClass,
@@ -14,6 +11,7 @@ import { IDataSource } from '../datasources';
 import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IRepositoryMixin, TMixinOpts } from './types';
+import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {

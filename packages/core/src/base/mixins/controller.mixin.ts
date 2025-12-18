@@ -1,13 +1,10 @@
 import { BindingNamespaces } from '@/common/bindings';
+import { Binding, BindingKeys, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import {
   AnyObject,
-  Binding,
-  BindingKeys,
-  BindingValueTypes,
   executeWithPerformanceMeasure,
   getError,
   HTTP,
-  MetadataRegistry,
   TClass,
   TMixinTarget,
 } from '@venizia/ignis-helpers';

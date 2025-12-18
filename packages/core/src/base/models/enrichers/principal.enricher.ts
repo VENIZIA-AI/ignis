@@ -32,5 +32,5 @@ export const enrichPrincipal = <ColumnDefinitions extends TColumnDefinitions = T
   opts: TPrincipalEnricherOptions,
 ) => {
   const defs = generatePrincipalColumnDefs(opts);
-  return Object.assign({}, baseSchema, defs);
+  return { ...baseSchema, ...defs };
 };

@@ -1,11 +1,5 @@
-import {
-  BaseHelper,
-  Binding,
-  Container,
-  getError,
-  IConfigurable,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers';
+import { Binding, Container } from '@/helpers/inversion';
+import { BaseHelper, getError, IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 
 type TInitDefault = { enable: false } | { enable: true; container: Container };
 

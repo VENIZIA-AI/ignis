@@ -1,4 +1,4 @@
-import { HasDefault, IsIdentity, IsPrimaryKey, NotNull, sql } from 'drizzle-orm';
+import { HasDefault, IsIdentity, IsPrimaryKey, NotNull } from 'drizzle-orm';
 import {
   bigint,
   integer,
@@ -7,8 +7,8 @@ import {
   PgIntegerBuilderInitial,
   PgSequenceOptions,
   PgSerialBuilderInitial,
-  PgTextBuilderInitial,
-  text,
+  PgUUIDBuilderInitial,
+  uuid,
 } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions, TPrimaryKey } from '../common/types';
 import { getError } from '@venizia/ignis-helpers';
@@ -31,7 +31,7 @@ export type TIdEnricherOptions = {
 export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
   ColumnDefinitions & {
     id:
-      | TPrimaryKey<PgTextBuilderInitial<'id', [string, ...string[]]>>
+      | TPrimaryKey<PgUUIDBuilderInitial<'id'>>
       | TPrimaryKey<PgIntegerBuilderInitial<'id'>>
       | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
   };
@@ -40,7 +40,7 @@ type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opt
   id: infer IdOpts;
 }
   ? IdOpts extends { dataType: 'string' }
-    ? { id: IsPrimaryKey<NotNull<HasDefault<PgTextBuilderInitial<'id', [string, ...string[]]>>>> }
+    ? { id: IsPrimaryKey<NotNull<HasDefault<PgUUIDBuilderInitial<'id'>>>> }
     : IdOpts extends { dataType: 'number' }
       ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
       : IdOpts extends { dataType: 'big-number' }
@@ -57,10 +57,10 @@ export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined
 
   switch (id.dataType) {
     case 'string': {
+      // Using native PostgreSQL uuid type with gen_random_uuid() (built-in since PostgreSQL 13+)
+      // More efficient than text type and no extension required
       return {
-        id: text('id')
-          .default(sql`uuid_generate_v4()`)
-          .primaryKey(),
+        id: uuid('id').defaultRandom().primaryKey(),
       } as TIdColumnDef<Opts>;
     }
     case 'number': {
@@ -85,5 +85,5 @@ export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined
 
 export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => {
   const defs = generateIdColumnDefs(opts);
-  return Object.assign({}, baseColumns, defs);
+  return { ...baseColumns, ...defs };
 };

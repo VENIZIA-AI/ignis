@@ -1,8 +1,8 @@
 import { CoreBindings } from '@/common/bindings';
+import { Container } from '@/helpers/inversion';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import {
   applicationEnvironment,
-  Container,
   getError,
   int,
   RuntimeModules,

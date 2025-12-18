@@ -2,6 +2,6 @@
 
 echo "START | Building application..."
 
-tsc -p tsconfig.jsx.json --extendedDiagnostics && tsc-alias -p tsconfig.jsx.json
+tsc -p tsconfig.json --extendedDiagnostics && tsc-alias -p tsconfig.json
 
 echo "DONE | Build completed successfully!"

@@ -14,22 +14,18 @@ import {
   model,
   TTableObject,
 } from '@venizia/ignis';
-import { configurationTable } from './schema'; // Your Drizzle schema
+import { configurationTable, configurationRelations } from './schema'; // Your Drizzle schema
 
 // Define types for TypeScript inference
 export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
 
 @model({ type: 'entity', skipMigrate: false })
-export class Configuration extends BaseEntity<TConfigurationSchema> {
-  static readonly TABLE_NAME = Configuration.name;
-
-  constructor() {
-    super({
-      name: Configuration.TABLE_NAME,
-      schema: configurationTable,
-    });
-  }
+export class Configuration extends BaseEntity<typeof Configuration.schema> {
+  // Use static properties (recommended pattern)
+  static override schema = configurationTable;
+  static override relations = () => configurationRelations.definitions;
+  static override TABLE_NAME = 'Configuration';
 }
 ```
 
@@ -110,17 +106,15 @@ export const configurationRelations = createRelations({
 });
 ```
 
-This configuration is then passed directly to your Repository:
+This configuration is automatically used when you define your Repository with the `@repository` decorator:
 
 ```typescript
-@repository({})
-export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
-  constructor(@inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource) {
-    super({
-      dataSource,
-      entityClass: Configuration,
-      relations: configurationRelations.definitions, // <-- Injected here
-    });
-  }
+import { PostgresDataSource } from '@/datasources';
+
+// Both 'model' and 'dataSource' are required for schema auto-discovery
+@repository({ model: Configuration, dataSource: PostgresDataSource })
+export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {
+  // No constructor needed! DataSource and relations are auto-resolved
+  // from the @repository decorator and entity's static properties
 }
 ```

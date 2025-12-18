@@ -44,5 +44,5 @@ export const enrichDataTypes = (
   opts?: TDataTypeEnricherOptions,
 ) => {
   const defs = generateDataTypeColumnDefs(opts);
-  return Object.assign({}, baseSchema, defs);
+  return { ...baseSchema, ...defs };
 };

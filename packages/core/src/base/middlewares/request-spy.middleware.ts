@@ -1,6 +1,7 @@
+import { BaseHelper } from '@venizia/ignis-helpers';
+import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import { MiddlewareHandler } from 'hono/types';
-import { BaseHelper, IProvider } from '@venizia/ignis-helpers';
 
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';

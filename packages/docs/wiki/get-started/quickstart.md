@@ -265,7 +265,7 @@ export class HelloController extends BaseController {
   })
   sayHello(c: Context) {
     // This looks just like Hono! Because it IS Hono under the hood.
-    return c.json({ message: 'Hello, World!' });
+    return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   // You can add more routes here:

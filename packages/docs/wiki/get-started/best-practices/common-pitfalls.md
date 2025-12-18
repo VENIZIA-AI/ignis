@@ -79,7 +79,7 @@ export class Application extends BaseApplication {
         const company = await this.companyRepository.findOrCreate(companyName);
         const user = await this.userRepository.create({ name, email, companyId: company.id });
         
-        return c.json(user);
+        return c.json(user, HTTP.ResultCodes.RS_2.Ok);
     }
     ```
 -   **Good:**
@@ -89,7 +89,7 @@ export class Application extends BaseApplication {
         const userData = c.req.valid('json');
         // Delegate to the service
         const newUser = await this.userService.createUser(userData);
-        return c.json(newUser);
+        return c.json(newUser, HTTP.ResultCodes.RS_2.Ok);
     }
     
     // In UserService

@@ -4,7 +4,6 @@ import { type drizzle as postgresjsConnector } from 'drizzle-orm/postgres-js';
 import { Pool } from 'pg';
 
 // ----------------------------------------------------------------------------------------------------------------------------------------
-// export type TRelationType = 'belongsTo' | 'hasOne' | 'hasMany' | 'hasManyThrough';
 
 // NOTE: Add more supportable datasource driver
 export type TDataSourceDriver = 'node-postgres' | 'postgres-js';

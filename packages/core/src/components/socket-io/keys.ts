@@ -1,5 +1,4 @@
 export class SocketIOBindingKeys {
-  // static readonly IDENTIFIER = '@app/socket-io/identifier';
   static readonly SOCKET_IO_INSTANCE = '@app/socket-io/instance';
 
   static readonly SERVER_OPTIONS = '@app/socket-io/server-options';

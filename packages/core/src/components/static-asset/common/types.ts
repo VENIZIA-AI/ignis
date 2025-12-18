@@ -1,8 +1,8 @@
 import { BaseEntity } from '@/base/models';
 import { DefaultCRUDRepository } from '@/base/repositories';
 import { AnyType, DiskHelper, MinioHelper } from '@venizia/ignis-helpers';
-import { StaticAssetStorageTypes } from './constants';
 import { TMetaLinkSchema } from '../models';
+import { StaticAssetStorageTypes } from './constants';
 
 export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {

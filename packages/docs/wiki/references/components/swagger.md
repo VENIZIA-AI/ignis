@@ -158,7 +158,7 @@ export class HelloController extends BaseController {
         },
       },
       handler: (c) => {
-        return c.json({ message: 'Hello, `Ignis`!' });
+        return c.json({ message: 'Hello, `Ignis`!' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }

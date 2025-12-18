@@ -413,7 +413,10 @@ export class TestController extends BaseController {
   secureData(c: TRouteContext<typeof SECURE_ROUTE_CONFIG>) {
     // 'c' is fully typed here, including c.get and c.json return type
     const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-    return c.json({ message: `Hello, ${user?.userId || 'guest'} from protected data` });
+    return c.json(
+      { message: `Hello, ${user?.userId || 'guest'} from protected data` },
+      HTTP.ResultCodes.RS_2.Ok,
+    );
   }
 }
 ```

@@ -1,7 +1,7 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import { TNullable } from '@venizia/ignis-helpers';
+import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
 import { Sorts } from '../operators';
 import { DEFAULT_LIMIT, RelationTypes } from './constants';
@@ -98,7 +98,6 @@ export const FieldsSchema = z
       JSON.stringify({ id: true, name: true, email: true, fullName: false }),
     ],
   });
-// export type TFields = z.infer<typeof FieldsSchema>;
 
 export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
 
@@ -212,22 +211,26 @@ export type TRelationConfig = {
     }
 );
 
-// ---------------------------------------------------------------------------
-export interface IRepository<EntitySchema extends TTableSchemaWithId> {
-  dataSource: IDataSource;
-  entity: BaseEntity<EntitySchema>;
-  relations: { [relationName: string]: TRelationConfig };
+export type TRepositoryLogOptions = {
+  use: boolean;
+  level?: TLogLevel;
+};
 
-  getEntity(): BaseEntity<EntitySchema>;
-  getEntitySchema(): EntitySchema;
+// ---------------------------------------------------------------------------
+export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+  dataSource: IDataSource;
+  entity: BaseEntity<Schema>;
+
+  getEntity(): BaseEntity<Schema>;
+  getEntitySchema(): Schema;
   getConnector(): IDataSource['connector'];
 }
 
 export interface IReadableRepository<
-  EntitySchema extends TTableSchemaWithId,
-  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  Schema extends TTableSchemaWithId = TTableSchemaWithId,
+  DataObject extends TTableObject<Schema> = TTableObject<Schema>,
   ExtraOptions extends TNullable<object> = undefined,
-> extends IRepository<EntitySchema> {
+> extends IRepository<Schema> {
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
 
   count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
@@ -246,48 +249,120 @@ export interface IReadableRepository<
 }
 
 export interface IPersistableRepository<
-  EntitySchema extends TTableSchemaWithId,
-  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
-  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
+  Schema extends TTableSchemaWithId = TTableSchemaWithId,
+  DataObject extends TTableObject<Schema> = TTableObject<Schema>,
+  PersistObject extends TTableInsert<Schema> = TTableInsert<Schema>,
   ExtraOptions extends TNullable<object> = undefined,
-> extends IReadableRepository<EntitySchema, DataObject, ExtraOptions> {
+> extends IReadableRepository<Schema, DataObject, ExtraOptions> {
   create(opts: {
     data: PersistObject;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  create(opts: {
+    data: PersistObject;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+
   createAll(opts: {
     data: Array<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  createAll(opts: {
+    data: Array<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
 
   updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  updateById(opts: {
+    id: IdType;
+    data: Partial<PersistObject>;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+
   updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  updateAll(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+
   updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  updateBy(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
 
   deleteById(opts: {
     id: IdType;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean };
-  }): Promise<TCount & { data: TNullable<EntitySchema['$inferSelect']> }>;
+    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: null }>;
+  deleteById(opts: {
+    id: IdType;
+    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+
   deleteAll(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  deleteAll(opts: {
+    where?: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+
   deleteBy(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<EntitySchema['$inferSelect']>> }>;
+    options: (ExtraOptions | {}) & {
+      shouldReturn: false;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: null }>;
+  deleteBy(opts: {
+    where?: TWhere<DataObject>;
+    options?: (ExtraOptions | {}) & {
+      shouldReturn?: true;
+      force?: boolean;
+      log?: TRepositoryLogOptions;
+    };
+  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
 }
 
 // --------------------------------------------------------------------------------------
@@ -295,11 +370,3 @@ export interface IQueryHandlerOptions<T = any> {
   column: Column;
   value: T;
 }
-
-/* export interface ITzRepository<E extends TBaseTzEntity> extends IPersistableRepository<E> {
-  mixTimestamp(entity: DataObject<E>, options?: { newInstance: boolean }): DataObject<E>;
-  mixUserAudit(
-    entity: DataObject<E>,
-    options?: { newInstance: boolean; authorId: IdType },
-  ): DataObject<E>;
-} */

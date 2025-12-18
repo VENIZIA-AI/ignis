@@ -6,7 +6,6 @@ import {
   executeWithPerformanceMeasure,
   getError,
   HTTP,
-  isClass,
   TClass,
   TResolver,
   ValueOrPromise,
@@ -14,6 +13,7 @@ import {
 import { Env, Schema } from 'hono';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';
+import { isClass } from '@venizia/ignis-inversion';
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -58,11 +58,7 @@ export class ControllerFactory extends BaseHelper {
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
   >(opts: ICrudControllerOptions<EntitySchema>) {
-    const {
-      controller,
-      entity,
-      // repository,
-    } = opts;
+    const { controller, entity } = opts;
 
     const {
       name,

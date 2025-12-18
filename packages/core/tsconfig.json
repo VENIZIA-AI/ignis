@@ -1,14 +1,8 @@
 {
   "$schema": "http://json.schemastore.org/tsconfig",
-  "extends": "@venizia/dev-configs/tsconfig.common.json",
+  "extends": "./tsconfig.core.json",
   "compilerOptions": {
-    "outDir": "dist",
-    "rootDir": "src",
-    "baseUrl": "src",
-    "paths": {
-      "@/*": ["./*"]
-    }
-  },
-  "include": ["src", "./*.config.*", ".prettierrc.*"],
-  "exclude": ["node_modules", "dist", "app_data"]
+    "jsx": "react-jsx",
+    "jsxImportSource": "hono/jsx"
+  }
 }

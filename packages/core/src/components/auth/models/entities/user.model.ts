@@ -14,20 +14,3 @@ export const extraUserColumns = (opts?: { idType: 'string' | 'number' }) => {
 };
 
 // -------------------------------------------------------------------------------------------
-/* export class BaseNumberUser extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign({}, extraUserColumns, opts.columns ?? {}),
-    });
-  }
-}
-
-export class BaseStringUser extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign({}, extraUserColumns, opts.columns ?? {}),
-    });
-  }
-} */

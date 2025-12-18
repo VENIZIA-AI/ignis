@@ -1,13 +1,41 @@
 import { TTableObject, TTableSchemaWithId } from '@/base/models';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import { and, asc, desc, eq, getTableColumns, inArray, isNull, or, type SQL } from 'drizzle-orm';
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  getTableColumns,
+  inArray,
+  isNull,
+  or,
+  sql,
+  type SQL,
+} from 'drizzle-orm';
 import isEmpty from 'lodash/isEmpty';
 import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
 import { QueryOperators, Sorts } from './query';
 
 export class DrizzleFilterBuilder extends BaseHelper {
+  private static columnCache = new WeakMap<
+    TTableSchemaWithId,
+    ReturnType<typeof getTableColumns>
+  >();
+
   constructor() {
     super({ scope: DrizzleFilterBuilder.name });
+  }
+
+  /**
+   * Get table columns with caching.
+   */
+  private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
+    let columns = DrizzleFilterBuilder.columnCache.get(schema);
+    if (!columns) {
+      columns = getTableColumns(schema);
+      DrizzleFilterBuilder.columnCache.set(schema, columns);
+    }
+    return columns;
   }
 
   build<Schema extends TTableSchemaWithId>(opts: {
@@ -56,7 +84,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
     const { tableName, schema, where } = opts;
 
     const conditions: SQL[] = [];
-    const columns = getTableColumns(schema);
+    const columns = this.getColumns(schema);
 
     if (!columns || isEmpty(columns)) {
       throw getError({
@@ -84,13 +112,9 @@ export class DrizzleFilterBuilder extends BaseHelper {
 
       const column = columns?.[key];
       if (!column) {
-        this.logger.debug(
-          '[toWhere][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
-          tableName,
-          key,
-          Object.keys(columns),
-        );
-        continue;
+        throw getError({
+          message: `[toWhere] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+        });
       }
 
       // 3. Handle Short Syntax (Implicit EQ, IN, or NULL)
@@ -105,11 +129,12 @@ export class DrizzleFilterBuilder extends BaseHelper {
           conditions.push(isNull(column));
         } else if (Array.isArray(value)) {
           if (value.length === 0) {
-            // Empty array - skip this condition
-            continue;
+            // Empty array IN () = FALSE (matches nothing)
+            // Using sql`false` to ensure no rows are returned
+            conditions.push(sql`false`);
+          } else {
+            conditions.push(inArray(column, value));
           }
-
-          conditions.push(inArray(column, value));
         } else {
           conditions.push(eq(column, value));
         }
@@ -157,7 +182,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       return [];
     }
 
-    const columns = getTableColumns(schema);
+    const columns = this.getColumns(schema);
 
     return order.reduce((rs, orderStr) => {
       const parts = orderStr.trim().split(/\s+/);
@@ -165,13 +190,9 @@ export class DrizzleFilterBuilder extends BaseHelper {
 
       const column = columns[key];
       if (!column) {
-        this.logger.debug(
-          '[toOrderBy][%s] Column NOT FOUND | tableName: %s | key: %s | available: %j',
-          tableName,
-          key,
-          Object.keys(columns),
-        );
-        return rs;
+        throw getError({
+          message: `[toOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${key}'`,
+        });
       }
 
       rs.push(direction.toLowerCase() === Sorts.DESC ? desc(column) : asc(column));
@@ -196,20 +217,17 @@ export class DrizzleFilterBuilder extends BaseHelper {
         relationName = inc.relation;
         scope = inc.scope;
       } else {
-        this.logger.warn('[toInclude] Invalid include format | include: %j', inc);
-        return acc;
+        throw getError({
+          message: `[toInclude] Invalid include format | include: ${JSON.stringify(inc)}`,
+        });
       }
 
       // Validate relation exists
       const relationConfig = relations[relationName];
       if (!relationConfig) {
-        this.logger.warn(
-          `[toInclude] Relation NOT FOUND | relation: %s | available: %j`,
-          relationName,
-          Object.keys(relations),
-        );
-
-        return acc;
+        throw getError({
+          message: `[toInclude] Relation NOT FOUND | relation: '${relationName}'`,
+        });
       }
 
       // No scope - just include the relation

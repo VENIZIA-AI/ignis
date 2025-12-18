@@ -14,20 +14,3 @@ export const extraRoleColumns = (): TColumnDefinitions => {
 };
 
 // -------------------------------------------------------------------------------------------
-/* export class BaseNumberRole extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign({}, extraRoleColumns, opts.columns ?? {}),
-    });
-  }
-}
-
-export class BaseStringRole extends Object {
-  constructor(opts: { name: string; schema?: string; columns?: TColumnDefinitions }) {
-    super({
-      ...opts,
-      columns: Object.assign({}, extraRoleColumns, opts.columns ?? {}),
-    });
-  }
-} */

@@ -1,13 +1,42 @@
 import { MimeTypes } from '@/common';
 import { BaseHelper } from '@/helpers/base';
 import isEmpty from 'lodash/isEmpty';
+import path from 'node:path';
 import { Readable } from 'node:stream';
 import { IBucketInfo, IFileStat, IStorageHelper, IUploadFile, IUploadResult } from './types';
 
 // -------------------------------------------------------------------------
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
+  protected static MIME_MAP: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.svg': 'image/svg+xml',
+    '.pdf': 'application/pdf',
+    '.json': 'application/json',
+    '.txt': 'text/plain',
+    '.html': 'text/html',
+    '.css': 'text/css',
+    '.js': 'text/javascript',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.mp3': 'audio/mpeg',
+    '.wav': 'audio/wav',
+    '.zip': 'application/zip',
+    '.csv': 'text/csv',
+    '.xml': 'application/xml',
+  };
+
   constructor(opts: { scope: string; identifier: string }) {
     super(opts);
+  }
+
+  // -------------------------------------------------------------------------
+  getMimeType(filename: string): string {
+    const ext = path.extname(filename).toLowerCase();
+    return BaseStorageHelper.MIME_MAP[ext] || 'application/octet-stream';
   }
 
   // -------------------------------------------------------------------------

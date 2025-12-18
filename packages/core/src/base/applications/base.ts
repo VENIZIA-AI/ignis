@@ -16,11 +16,14 @@ import {
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
+  MetadataRegistry,
+} from '@/helpers/inversion';
+import {
+  AnyObject,
   executeWithPerformanceMeasure,
   getError,
   HTTP,
   IConfigurable,
-  MetadataRegistry,
   RuntimeModules,
   TClass,
 } from '@venizia/ignis-helpers';
@@ -346,6 +349,8 @@ export abstract class BaseApplication
 
     await this.preConfigure();
 
+    // IMPORTANT: DataSources must be registered and configured before repositories
+    // This ensures datasources are available for auto-resolution
     await this.registerDataSources();
     await this.registerComponents();
     await this.registerControllers();

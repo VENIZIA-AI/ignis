@@ -1,5 +1,6 @@
 import { BindingNamespaces } from '@/common/bindings';
-import { AnyObject, Binding, BindingKeys, TClass, TMixinTarget } from '@venizia/ignis-helpers';
+import { Binding, BindingKeys } from '@/helpers/inversion';
+import { AnyObject, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { IService } from '../services';
 import { IServiceMixin, TMixinOpts } from './types';

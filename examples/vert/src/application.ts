@@ -1,5 +1,5 @@
 import { PostgresDataSource } from '@/datasources';
-import { ConfigurationRepository, MetaLinkRepository } from '@/repositories';
+import { ConfigurationRepository, UserRepository } from '@/repositories';
 import {
   ChangePasswordRequestSchema,
   ChangePasswordResponseSchema,
@@ -45,8 +45,9 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
-import { EnvironmentKeys } from './common/environments';
 import { ConfigurationController, TestController } from './controllers';
+import { MetaLinkRepository } from './repositories/meta-link.repository';
+import { EnvironmentKeys } from './common/environments';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -179,6 +180,7 @@ export class Application extends BaseApplication {
     this.dataSource(PostgresDataSource);
 
     // Repositories
+    this.repository(UserRepository);
     this.repository(ConfigurationRepository);
     this.repository(MetaLinkRepository);
 
@@ -199,7 +201,6 @@ export class Application extends BaseApplication {
 
     this.component(SwaggerComponent);
 
-    // Configure Static Asset Component with v2.0 API
     this.bind<TStaticAssetsComponentOptions>({
       key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
     }).toValue({
@@ -340,45 +341,27 @@ export class Application extends BaseApplication {
     );
 
     // ------------------------------------------------------------------------------------------------
-    const case6Payload = {
+    await configurationRepository.updateBy({
       data: {
         nValue: int((Math.random() * 100).toFixed(2)),
       },
       where: {
         id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
       },
-      options: { shouldReturn: false },
-    };
-    const case6 = await configurationRepository.updateAll(case6Payload);
-    this.logger.info(
-      '[postConfigure] CASE_6 | Trying to update | payload: %j | rs: %o',
-      case6Payload,
-      case6,
-    );
+      options: { shouldReturn: false, log: { use: true } },
+    });
 
     // ------------------------------------------------------------------------------------------------
-    const case7Payload = {
+    await configurationRepository.deleteById({
       id: case3.data!.id,
-      options: { shouldReturn: true },
-    };
-    const case7 = await configurationRepository.deleteById(case7Payload);
-    this.logger.info(
-      '[postConfigure] CASE_7 | Trying to delete | payload: %j | rs: %o',
-      case7Payload,
-      case7,
-    );
+      options: { shouldReturn: true, log: { use: true } },
+    });
 
-    const case8Payload = {
+    await configurationRepository.deleteAll({
       where: {
         and: [{ dataType: DataTypes.NUMBER }, { dataType: DataTypes.JSON }],
       },
-      options: { shouldReturn: true },
-    };
-    const case8 = await configurationRepository.deleteAll(case8Payload);
-    this.logger.info(
-      '[postConfigure] CASE_8 | Trying to delete | payload: %j | rs: %o',
-      case8Payload,
-      case8,
-    );
+      options: { shouldReturn: true, log: { use: true } },
+    });
   }
 }
