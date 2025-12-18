@@ -1,5 +1,6 @@
 import { getError } from '@/helpers/error';
 import fs from 'node:fs';
+import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
 import { BaseStorageHelper } from '../base';
@@ -28,7 +29,7 @@ export class DiskHelper extends BaseStorageHelper {
     });
     this.basePath = path.resolve(options.basePath);
 
-    // Ensure base path exists
+    // Ensure base path exists (Synchronous is fine for initialization)
     if (!fs.existsSync(this.basePath)) {
       fs.mkdirSync(this.basePath, { recursive: true });
     }
@@ -45,6 +46,16 @@ export class DiskHelper extends BaseStorageHelper {
   }
 
   // ---------------------------------------------------------------------
+  private async exists(pathToCheck: string): Promise<boolean> {
+    try {
+      await fsp.access(pathToCheck);
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  // ---------------------------------------------------------------------
   async isBucketExists(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
     if (!this.isValidName(name)) {
@@ -52,22 +63,27 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const bucketPath = this.getBucketPath(name);
-    return fs.existsSync(bucketPath) && fs.statSync(bucketPath).isDirectory();
+    if (!(await this.exists(bucketPath))) {
+      return false;
+    }
+
+    const stat = await fsp.stat(bucketPath);
+    return stat.isDirectory();
   }
 
   // ---------------------------------------------------------------------
   async getBuckets(): Promise<IBucketInfo[]> {
-    if (!fs.existsSync(this.basePath)) {
+    if (!(await this.exists(this.basePath))) {
       return [];
     }
 
-    const entries = fs.readdirSync(this.basePath, { withFileTypes: true });
+    const entries = await fsp.readdir(this.basePath, { withFileTypes: true });
     const buckets: IBucketInfo[] = [];
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const bucketPath = path.join(this.basePath, entry.name);
-        const stat = fs.statSync(bucketPath);
+        const stat = await fsp.stat(bucketPath);
         buckets.push({
           name: entry.name,
           creationDate: stat.birthtime,
@@ -87,7 +103,7 @@ export class DiskHelper extends BaseStorageHelper {
     }
 
     const bucketPath = this.getBucketPath(name);
-    const stat = fs.statSync(bucketPath);
+    const stat = await fsp.stat(bucketPath);
 
     return {
       name,
@@ -106,13 +122,13 @@ export class DiskHelper extends BaseStorageHelper {
 
     const bucketPath = this.getBucketPath(name);
 
-    if (fs.existsSync(bucketPath)) {
+    if (await this.exists(bucketPath)) {
       throw getError({
         message: `[createBucket] Bucket already exists | name: ${name}`,
       });
     }
 
-    fs.mkdirSync(bucketPath, { recursive: true });
+    await fsp.mkdir(bucketPath, { recursive: true });
     return this.getBucket({ name });
   }
 
@@ -127,21 +143,21 @@ export class DiskHelper extends BaseStorageHelper {
 
     const bucketPath = this.getBucketPath(name);
 
-    if (!fs.existsSync(bucketPath)) {
+    if (!(await this.exists(bucketPath))) {
       throw getError({
         message: `[removeBucket] Bucket does not exist | name: ${name}`,
       });
     }
 
     // Check if bucket is empty
-    const files = fs.readdirSync(bucketPath);
+    const files = await fsp.readdir(bucketPath);
     if (files.length > 0) {
       throw getError({
         message: `[removeBucket] Bucket is not empty | name: ${name}`,
       });
     }
 
-    fs.rmdirSync(bucketPath);
+    await fsp.rmdir(bucketPath);
     return true;
   }
 
@@ -196,7 +212,14 @@ export class DiskHelper extends BaseStorageHelper {
         : `/static-resources/${bucket}/${encodeURIComponent(normalizeName)}`;
 
       const objectPath = this.getObjectPath(bucket, normalizeName);
-      fs.writeFileSync(objectPath, buffer);
+
+      // Ensure sub-directories exist if normalizeName contains paths
+      const objectDir = path.dirname(objectPath);
+      if (!(await this.exists(objectDir))) {
+        await fsp.mkdir(objectDir, { recursive: true });
+      }
+
+      await fsp.writeFile(objectPath, buffer);
 
       this.logger.info(
         '[upload] Uploaded: %j | Took: %s (ms)',
@@ -219,7 +242,7 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, name } = opts;
     const objectPath = this.getObjectPath(bucket, name);
 
-    if (!fs.existsSync(objectPath)) {
+    if (!(await this.exists(objectPath))) {
       throw getError({
         message: `[getFile] File not found | bucket: ${bucket} | name: ${name}`,
       });
@@ -233,18 +256,20 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, name } = opts;
     const objectPath = this.getObjectPath(bucket, name);
 
-    if (!fs.existsSync(objectPath)) {
+    if (!(await this.exists(objectPath))) {
       throw getError({
         message: `[getStat] File not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
-    const stat = fs.statSync(objectPath);
+    const stat = await fsp.stat(objectPath);
 
     return {
       size: stat.size,
       lastModified: stat.mtime,
-      metadata: {},
+      metadata: {
+        mimetype: this.getMimeType(name),
+      },
     };
   }
 
@@ -253,13 +278,13 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, name } = opts;
     const objectPath = this.getObjectPath(bucket, name);
 
-    if (!fs.existsSync(objectPath)) {
+    if (!(await this.exists(objectPath))) {
       throw getError({
         message: `[removeObject] File not found | bucket: ${bucket} | name: ${name}`,
       });
     }
 
-    fs.unlinkSync(objectPath);
+    await fsp.unlink(objectPath);
   }
 
   // ---------------------------------------------------------------------
@@ -281,18 +306,18 @@ export class DiskHelper extends BaseStorageHelper {
     const { bucket, prefix = '', useRecursive = false, maxKeys } = opts;
     const bucketPath = this.getBucketPath(bucket);
 
-    if (!fs.existsSync(bucketPath)) {
+    if (!(await this.exists(bucketPath))) {
       return [];
     }
 
     const objects: IObjectInfo[] = [];
 
-    const scanDirectory = (dirPath: string, currentPrefix: string = '') => {
+    const scanDirectory = async (dirPath: string, currentPrefix: string = '') => {
       if (maxKeys && objects.length >= maxKeys) {
         return;
       }
 
-      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      const entries = await fsp.readdir(dirPath, { withFileTypes: true });
 
       for (const entry of entries) {
         const fullName = currentPrefix ? `${currentPrefix}/${entry.name}` : entry.name;
@@ -300,12 +325,12 @@ export class DiskHelper extends BaseStorageHelper {
 
         if (entry.isDirectory()) {
           if (useRecursive) {
-            scanDirectory(fullPath, fullName);
+            await scanDirectory(fullPath, fullName);
           }
         } else if (entry.isFile()) {
           // Check if file matches prefix
           if (!prefix || fullName.startsWith(prefix)) {
-            const stat = fs.statSync(fullPath);
+            const stat = await fsp.stat(fullPath);
             objects.push({
               name: fullName,
               size: stat.size,
@@ -321,7 +346,7 @@ export class DiskHelper extends BaseStorageHelper {
       }
     };
 
-    scanDirectory(bucketPath);
+    await scanDirectory(bucketPath);
     return objects;
   }
 }

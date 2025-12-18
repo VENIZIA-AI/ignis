@@ -1,7 +1,6 @@
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
 import { DefaultRedisHelper } from '@/helpers/redis';
-// import { validateModule } from '@/utilities/module.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import isEmpty from 'lodash/isEmpty';
@@ -106,14 +105,6 @@ export class SocketIOServerHelper extends BaseHelper {
 
   // -------------------------------------------------------------------------------------------------------------
   configure() {
-    /* validateModule({
-      scope: SocketIOServerHelper.name,
-      modules: [
-        '@socket.io/redis-adapter', 
-        '@socket.io/redis-emitter', 
-        'socket.io',
-      ],
-    }); */
     this.logger.info('[configure][%s] Configuring IO Server', this.identifier);
 
     if (!this.server) {

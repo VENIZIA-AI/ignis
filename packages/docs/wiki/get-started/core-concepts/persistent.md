@@ -45,12 +45,10 @@ export type TUser = TTableObject<TUserSchema>;
 
 // 4. Create the Entity class, decorated with @model
 @model({ type: 'entity' })
-export class User extends BaseEntity<TUserSchema> {
-  static readonly TABLE_NAME = User.name;
-
-  constructor() {
-    super({ name: User.name, schema: userTable });
-  }
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = userTable;
+  static override relations = () => userRelations.definitions;
+  static override TABLE_NAME = 'User';
 }
 ```
 
@@ -158,12 +156,10 @@ export type TPostSchema = typeof postTable;
 export type TPost = TTableObject<TPostSchema>;
 
 @model({ type: 'entity' })
-export class Post extends BaseEntity<TPostSchema> {
-  static readonly TABLE_NAME = 'Post';
-
-  constructor() {
-    super({ name: Post.TABLE_NAME, schema: postTable });
-  }
+export class Post extends BaseEntity<typeof Post.schema> {
+  static override schema = postTable;
+  static override relations = () => postRelations.definitions;
+  static override TABLE_NAME = 'Post';
 }
 ```
 
@@ -286,12 +282,10 @@ export type TConfigurationSchema = typeof configurationTable;
 export type TConfiguration = TTableObject<TConfigurationSchema>;
 
 @model({ type: 'entity' })
-export class Configuration extends BaseEntity<TConfigurationSchema> {
-  static readonly TABLE_NAME = Configuration.name;
-
-  constructor() {
-    super({ name: Configuration.TABLE_NAME, schema: configurationTable });
-  }
+export class Configuration extends BaseEntity<typeof Configuration.schema> {
+  static override schema = configurationTable;
+  static override relations = () => configurationRelations.definitions;
+  static override TABLE_NAME = 'Configuration';
 }
 ```
 **Key Concepts:**
@@ -416,16 +410,13 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
     super({
       name: PostgresDataSource.name,
       config: { /* ... */ },
-      // Manually merge tables and relations
-      schema: Object.assign(
-        {},
-        {
-          [User.TABLE_NAME]: userTable,
-          [Configuration.TABLE_NAME]: configurationTable,
-        },
-        userRelations.relations,
-        configurationRelations.relations,
-      ),
+      // Manually merge tables and relations using spread syntax
+      schema: {
+        [User.TABLE_NAME]: userTable,
+        [Configuration.TABLE_NAME]: configurationTable,
+        ...userRelations.relations,
+        ...configurationRelations.relations,
+      },
     });
   }
 

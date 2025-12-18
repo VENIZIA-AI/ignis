@@ -4,7 +4,6 @@ import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
-  // ChangePasswordRequestSchema,
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '../../models';
@@ -92,13 +91,6 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         configs: {
           path: '/change-password',
           method: 'post',
-          /* request: {
-            body: {
-              content: { 'application/json': { schema: ChangePasswordRequestSchema } },
-              description: 'Change password request body',
-              required: true,
-            },
-          }, */
           responses: jsonResponse({
             schema: AnyObjectSchema,
             description: 'Success Response',

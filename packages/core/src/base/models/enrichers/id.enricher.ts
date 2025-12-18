@@ -85,5 +85,5 @@ export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined
 
 export const enrichId = (baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions) => {
   const defs = generateIdColumnDefs(opts);
-  return Object.assign({}, baseColumns, defs);
+  return { ...baseColumns, ...defs };
 };

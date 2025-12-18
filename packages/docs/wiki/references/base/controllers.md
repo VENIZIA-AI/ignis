@@ -65,7 +65,7 @@ export class MyFeatureController extends BaseController {
 
   @api({ configs: MyRouteConfig })
   getData(c: TRouteContext<typeof MyRouteConfig>) { // Return type is automatically inferred and validated
-    return c.json({ success: true });
+    return c.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
@@ -83,7 +83,7 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 **Example using `@get` and `@post` with type inference:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, HTTP } from '@venizia/ignis';
 
 // Define route configs as const for full type inference
 const USER_ROUTES = {
@@ -125,20 +125,20 @@ const USER_ROUTES = {
 
   @get({ configs: USER_ROUTES.listUsers })
   getAllUsers(c: TRouteContext<typeof USER_ROUTES.listUsers>) { // Return type is automatically inferred
-    return c.json([{ id: '1', name: 'John Doe' }]);
+    return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 
   @get({ configs: USER_ROUTES.getUser })
   getUserById(c: TRouteContext<typeof USER_ROUTES.getUser>) { // Return type is automatically inferred
     const { id } = c.req.valid('param'); // id is typed as string
-    return c.json({ id, name: 'John Doe' });
+    return c.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: USER_ROUTES.createUser })
   createUser(c: TRouteContext<typeof USER_ROUTES.createUser>) { // Return type is automatically inferred
     const { name } = c.req.valid('json'); // name is typed as string
     const newUser = { id: '2', name };
-    return c.json(newUser, 201); // Return type is validated
+    return c.json(newUser, HTTP.ResultCodes.RS_2.Created); // Return type is validated
   }
 ```
 
@@ -171,17 +171,21 @@ export class HealthCheckController extends BaseController {
   @api({ configs: HEALTH_CHECK_ROUTES['/ping'] })
   ping(c: TRouteContext<typeof HEALTH_CHECK_ROUTES['/ping']>) { // Return type is automatically inferred
     const { message } = c.req.valid('json');
-    return c.json({ pong: message });
+    return c.json({ pong: message }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
 
 ### Manual Route Definition Methods
 
-While decorator-based routing is available, the recommended way to define routes is by using the `defineRoute` and `bindRoute` methods inside the `binding()` method. This approach offers a clear and declarative syntax that keeps your route definitions organized and easy to manage.
+For advanced use cases or when you prefer a non-decorator approach, you can define routes manually using `defineRoute` and `bindRoute` methods inside the `binding()` method.
 
-:::tip Recommendation
-For better organization and a more declarative approach, we strongly recommend using `defineRoute` or `bindRoute` within the `binding()` method to define your controller's routes. This keeps all route definitions in one place, making your controller easier to read and maintain.
+:::tip When to Use Manual Definition
+Manual route definition is useful for:
+- Dynamically generating routes based on configuration
+- Conditional route registration (feature flags)
+- Developers who prefer non-decorator syntax (coming from Express/Fastify)
+- Complex routing logic that benefits from programmatic control
 :::
 
 #### `defineRoute`
@@ -291,17 +295,17 @@ This factory method returns a `BaseController` class that is already set up with
 
 **Note:** The returned class is dynamically named using `controller.name` from the options. This ensures that when registered with `app.controller()`, the class has a proper name for binding keys and debugging (e.g., `ConfigurationController` instead of an anonymous class).
 
-| Name | Method | Path | Description |
+| Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Get the number of records matching a filter. |
 | `find` | `GET` | `/` | Retrieve all records matching a filter. |
 | `findById` | `GET` | `/:id` | Retrieve a single record by its ID. |
 | `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
 | `create` | `POST` | `/` | Create a new record. |
-| `updateById` | `PATCH` | `/:id` | Update a record by its ID. |
-| `updateAll` | `PATCH` | `/` | Update multiple records matching a filter. |
-| `deleteById` | `DELETE` | `/:id` | Delete a record by its ID. |
-| `deleteAll` | `DELETE` | `/` | Delete multiple records matching a filter. |
+| `updateById` | `PATCH` | `/:id` | Update a single record by its ID. |
+| `updateBy` | `PATCH` | `/` | Update multiple records matching a `where` filter. |
+| `deleteById` | `DELETE` | `/:id` | Delete a single record by its ID. |
+| `deleteBy` | `DELETE` | `/` | Delete multiple records matching a `where` filter. |
 
 ### `ICrudControllerOptions<EntitySchema>`
 
@@ -311,10 +315,30 @@ This factory method returns a `BaseController` class that is already set up with
 | `repository.name` | `string` | The binding key name of the repository associated with this entity (e.g., `'ConfigurationRepository'`). |
 | `controller.name` | `string` | A unique name for the generated controller (e.g., `'ConfigurationController'`). |
 | `controller.basePath`| `string` | The base path for all routes in this CRUD controller (e.g., `'/configurations'`). |
+| `controller.readonly` | `boolean` | If `true`, only read operations (find, findOne, findById, count) are generated. Write operations are excluded. Defaults to `false`. |
 | `controller.isStrict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
 | `controller.defaultLimit`| `number` | The default limit for `find` operations. Defaults to `10`. |
-| `schema` | `object` | An optional object to override the default Zod schemas for specific CRUD endpoints (e.g., `find`, `create`, `updateByIdRequestBody`). This allows for fine-grained control over the request and response validation and OpenAPI documentation. |
-| `doDeleteWithReturn` | `boolean` | If `true`, the `deleteById` and `deleteAll` endpoints will return the deleted record(s) in the response body. Defaults to `false`. |
+| `schema` | `object` | An optional object to override the default Zod schemas for specific CRUD endpoints. See schema options below. |
+| `doDeleteWithReturn` | `boolean` | If `true`, the `deleteById` and `deleteBy` endpoints will return the deleted record(s) in the response body. Defaults to `false`. |
+
+### Schema Override Options
+
+The `schema` option allows fine-grained control over request/response validation and OpenAPI documentation:
+
+| Schema Option | Description |
+| :--- | :--- |
+| `count` | Override response schema for count endpoint |
+| `find` | Override response schema for find endpoint |
+| `findOne` | Override response schema for findOne endpoint |
+| `findById` | Override response schema for findById endpoint |
+| `create` | Override response schema for create endpoint |
+| `createRequestBody` | Override request body schema for create endpoint |
+| `updateById` | Override response schema for updateById endpoint |
+| `updateByIdRequestBody` | Override request body schema for updateById endpoint |
+| `updateBy` | Override response schema for updateBy (bulk update) endpoint |
+| `updateByRequestBody` | Override request body schema for updateBy endpoint |
+| `deleteById` | Override response schema for deleteById endpoint |
+| `deleteBy` | Override response schema for deleteBy (bulk delete) endpoint |
 
 ### Example
 

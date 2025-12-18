@@ -1,5 +1,6 @@
 import { IDataSource } from '@/base';
 import { BaseEntity, TTableSchemaWithId } from '@/base/models';
+import { createRelations, TRelationConfig } from '@/base/repositories';
 import { resolveValue, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { relations as defineRelations } from 'drizzle-orm';
@@ -81,7 +82,57 @@ export const RepositoryMetadataMixin = <
     }
 
     /**
-     * Get all models registered for a specific datasource
+     * Resolve and build relations for a model entry, caching the result.
+     * This is called lazily when DataSource.buildSchema() requests the models,
+     * ensuring all models are loaded before relations are resolved.
+     *
+     * `resolveModelRelations` & `getModels`
+     * Lazy Resolution: resolveModelRelations correctly checks for _builtRelations (cache) before resolving.
+     * Execution Timing: getModels calls resolveModelRelations. getModels is called by buildSchema. buildSchema is called by DataSource.configure().
+     * Flow Verification:
+     * 1. @model decorators run (register classes, store resolvers).
+     * 2. App starts.
+     * 3. DataSource.configure() is called.
+     * 4. registry.buildSchema() is called.
+     * 5. registry.getModels() is called.
+     * 6. CRITICAL: At this point, all @model decorators have finished running.
+     * 7. resolveModelRelations() executes the stored arrow functions.
+     * 8. If ModelA needs ModelB, ModelB is already registered.
+     *
+     * @internal - Not intended for external use
+     */
+    resolveModelRelations(modelMeta: IModelRegistryEntry): TDrizzleRelations | undefined {
+      // Return cached relations if already built
+      if (modelMeta._builtRelations !== undefined) {
+        return modelMeta._builtRelations;
+      }
+
+      // No relations resolver defined
+      if (!modelMeta.relationsResolver) {
+        return undefined;
+      }
+
+      // Resolve the relations (execute the arrow function)
+      const relations = resolveValue(modelMeta.relationsResolver) as Array<TRelationConfig>;
+
+      // Build Drizzle relations using createRelations utility
+      if (relations && modelMeta.schema) {
+        const builtRelations = createRelations({
+          source: modelMeta.schema,
+          relations,
+        });
+
+        // Cache the built relations
+        modelMeta._builtRelations = builtRelations?.relations;
+        return modelMeta._builtRelations;
+      }
+
+      return undefined;
+    }
+
+    /**
+     * Get all models registered for a specific datasource.
+     * Relations are resolved lazily (on first access) to avoid circular dependency issues.
      */
     getModels<Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
       dataSource: string | TClass<IDataSource>;
@@ -105,10 +156,13 @@ export const RepositoryMetadataMixin = <
             return null;
           }
 
+          // Resolve relations lazily - this ensures all models are loaded first
+          const relations = this.resolveModelRelations(modelMeta);
+
           return {
             tableName,
             schema: modelMeta.schema as Schema,
-            relations: modelMeta.relations,
+            relations,
           };
         })
         .filter((item): item is NonNullable<typeof item> => {

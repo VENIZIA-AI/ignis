@@ -1,6 +1,5 @@
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
-// import { validateModule } from '@/utilities/module.utility';
 import { io, type Socket } from 'socket.io-client';
 import { IOptions, ISocketIOClientOptions } from '../common';
 
@@ -30,7 +29,6 @@ export class SocketIOClientHelper extends BaseHelper {
       return;
     }
 
-    // validateModule({ scope: SocketIOClientHelper.name, modules: ['socket.io-client'] });
     this.client = io(this.host, this.options);
   }
 

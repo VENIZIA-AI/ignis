@@ -13,10 +13,8 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   extends BaseHelper
   implements IEntity<Schema>
 {
-  // Instance properties
   name: string;
   schema: Schema;
-  schemaFactory: ReturnType<typeof createSchemaFactory>;
 
   /**
    * Static schema - defined by subclass using pgTable()
@@ -31,10 +29,17 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
   /**
-   * Table name - defaults to class name
+   * Table name - can be overridden by subclass, defaults to class name
    */
-  static get TABLE_NAME(): string {
-    return this.name;
+  static TABLE_NAME?: string;
+
+  /**
+   * Lazy singleton for schemaFactory to avoid creating new instance per entity
+   * Performance optimization: shared across all BaseEntity instances
+   */
+  private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
+  protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
+    return (BaseEntity._schemaFactory ??= createSchemaFactory());
   }
 
   /**
@@ -43,26 +48,27 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
    * - Option B: Explicit opts (legacy, backward compatible)
    */
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target;
-    const name = opts?.name || ctor.TABLE_NAME || ctor.name;
+    const ctor = new.target as typeof BaseEntity;
+    // Use explicit TABLE_NAME if defined, otherwise fall back to class name
+    const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
     super({ scope: name });
 
     this.name = name;
     this.schema = opts?.schema || (ctor.schema as Schema);
-    this.schemaFactory = createSchemaFactory();
   }
 
   getSchema(opts: { type: TSchemaType }) {
+    const factory = BaseEntity.schemaFactory;
     switch (opts.type) {
       case SchemaTypes.CREATE: {
-        return this.schemaFactory.createInsertSchema(this.schema);
+        return factory.createInsertSchema(this.schema);
       }
       case SchemaTypes.UPDATE: {
-        return this.schemaFactory.createUpdateSchema(this.schema);
+        return factory.createUpdateSchema(this.schema);
       }
       case SchemaTypes.SELECT: {
-        return this.schemaFactory.createSelectSchema(this.schema);
+        return factory.createSelectSchema(this.schema);
       }
       default: {
         throw getError({
@@ -73,7 +79,7 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   }
 
   toObject() {
-    return Object.assign({}, this);
+    return { ...this };
   }
 
   toJSON() {

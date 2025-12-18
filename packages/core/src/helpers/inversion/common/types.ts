@@ -114,7 +114,15 @@ export interface IModelRegistryEntry<
   target: TValueOrResolver<TClass<Model>>;
   metadata: IModelMetadata;
   schema: Schema;
-  relations?: TDrizzleRelations;
+  /**
+   * Lazy relations resolver - stored as function to avoid circular dependency issues.
+   * Only resolved when DataSource builds its schema (all models loaded by then).
+   */
+  relationsResolver?: TValueOrResolver<Array<unknown>>;
+  /**
+   * Cache for built Drizzle relations - populated on first access via buildSchema().
+   */
+  _builtRelations?: TDrizzleRelations;
 }
 
 export interface IRepositoryBinding<

@@ -87,7 +87,7 @@ export class User extends BaseEntity<typeof userTable> {
 |----------|------|-------------|
 | `schema` | `TTableSchemaWithId` | Drizzle table schema defined with `pgTable()` |
 | `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading) |
-| `TABLE_NAME` | `string` | Table name (defaults to class name) |
+| `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
 
 ### IEntity Interface
 
@@ -119,43 +119,58 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   // Instance properties
   name: string;
   schema: Schema;
-  schemaFactory: ReturnType<typeof createSchemaFactory>;
 
   // Static properties - override in subclass
   static schema: TTableSchemaWithId;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
-  static get TABLE_NAME(): string {
-    return this.name;
+  static TABLE_NAME?: string;  // Optional, defaults to class name
+
+  // Static singleton for schemaFactory - shared across all instances
+  // Performance optimization: avoids creating new factory per entity
+  private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
+  protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
+    return (BaseEntity._schemaFactory ??= createSchemaFactory());
   }
 
   // Constructor supports both patterns
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target;
-    const name = opts?.name || ctor.TABLE_NAME || ctor.name;
+    const ctor = new.target as typeof BaseEntity;
+    // Use explicit TABLE_NAME if defined, otherwise fall back to class name
+    const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
     super({ scope: name });
 
     this.name = name;
     this.schema = opts?.schema || (ctor.schema as Schema);
-    this.schemaFactory = createSchemaFactory();
   }
 
   getSchema(opts: { type: TSchemaType }) {
+    const factory = BaseEntity.schemaFactory;  // Uses static singleton
     switch (opts.type) {
       case SchemaTypes.CREATE:
-        return this.schemaFactory.createInsertSchema(this.schema);
+        return factory.createInsertSchema(this.schema);
       case SchemaTypes.UPDATE:
-        return this.schemaFactory.createUpdateSchema(this.schema);
+        return factory.createUpdateSchema(this.schema);
       case SchemaTypes.SELECT:
-        return this.schemaFactory.createSelectSchema(this.schema);
+        return factory.createSelectSchema(this.schema);
       default:
         throw getError({
           message: `[getSchema] Invalid schema type | type: ${opts.type}`,
         });
     }
   }
+
+  toObject() {
+    return { ...this };
+  }
+
+  toJSON() {
+    return this.toObject();
+  }
 }
 ```
+
+**Performance Note:** The `schemaFactory` is implemented as a static lazy singleton, meaning it's created once and shared across all `BaseEntity` instances. This avoids the overhead of creating a new `drizzle-zod` schema factory for every entity instantiation.
 
 ## Schema Enrichers
 
@@ -366,10 +381,14 @@ generateTzColumnDefs(opts?: TTzEnricherOptions): TTzEnricherResult
 ```typescript
 type TTzEnricherOptions = {
   created?: { columnName: string; withTimezone: boolean };
-  modified?: { enable: boolean; columnName: string; withTimezone: boolean };
-  deleted?: { enable: boolean; columnName: string; withTimezone: boolean };
+  modified?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
+  deleted?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
 };
 ```
+
+The `modified` and `deleted` options use a discriminated union pattern:
+- When `enable: false`, no other properties are needed
+- When `enable: true` (or omitted), `columnName` and `withTimezone` are required
 
 **Default values:**
 - `created`: `{ columnName: 'created_at', withTimezone: true }`
@@ -499,6 +518,115 @@ type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDef
 
 ---
 
+### `generateUserAuditColumnDefs`
+
+Adds `createdBy` and `modifiedBy` columns to track which user created or modified a record.
+
+**File:** `packages/core/src/base/models/enrichers/user-audit.enricher.ts`
+
+#### Signature
+
+```typescript
+generateUserAuditColumnDefs(opts?: TUserAuditEnricherOptions): {
+  createdBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
+  modifiedBy: PgIntegerBuilderInitial | PgTextBuilderInitial;
+}
+```
+
+#### Options (`TUserAuditEnricherOptions`)
+
+```typescript
+type TUserAuditColumnOpts = {
+  dataType: 'string' | 'number';  // Required - type of user ID
+  columnName: string;              // Column name in database
+};
+
+type TUserAuditEnricherOptions = {
+  created?: TUserAuditColumnOpts;
+  modified?: TUserAuditColumnOpts;
+};
+```
+
+**Default values:**
+- `created`: `{ dataType: 'number', columnName: 'created_by' }`
+- `modified`: `{ dataType: 'number', columnName: 'modified_by' }`
+
+#### Generated Columns
+
+| Column | Data Type | Column Name | Description |
+|--------|-----------|-------------|-------------|
+| `createdBy` | `integer` or `text` | `created_by` | User ID who created the record |
+| `modifiedBy` | `integer` or `text` | `modified_by` | User ID who last modified the record |
+
+#### Validation
+
+The enricher validates the `dataType` option and throws an error for invalid values:
+
+```typescript
+// ✅ Valid
+generateUserAuditColumnDefs({ created: { dataType: 'number', columnName: 'created_by' } });
+generateUserAuditColumnDefs({ created: { dataType: 'string', columnName: 'created_by' } });
+
+// ❌ Invalid - throws error
+generateUserAuditColumnDefs({ created: { dataType: 'uuid', columnName: 'created_by' } });
+// Error: [enrichUserAudit] Invalid dataType for 'createdBy' | value: uuid | valid: ['number', 'string']
+```
+
+#### Usage Examples
+
+**Default (integer user IDs):**
+
+```typescript
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { generateIdColumnDefs, generateUserAuditColumnDefs } from '@venizia/ignis';
+
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs(),
+  ...generateUserAuditColumnDefs(),
+  name: text('name').notNull(),
+});
+
+// Generates:
+// createdBy: integer('created_by')
+// modifiedBy: integer('modified_by')
+```
+
+**String user IDs (UUID):**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateUserAuditColumnDefs({
+    created: { dataType: 'string', columnName: 'created_by' },
+    modified: { dataType: 'string', columnName: 'modified_by' },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates:
+// createdBy: text('created_by')
+// modifiedBy: text('modified_by')
+```
+
+**Custom column names:**
+
+```typescript
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs(),
+  ...generateUserAuditColumnDefs({
+    created: { dataType: 'number', columnName: 'author_id' },
+    modified: { dataType: 'number', columnName: 'editor_id' },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates:
+// createdBy: integer('author_id')
+// modifiedBy: integer('editor_id')
+```
+
+---
+
 ## Schema Utilities
 
 ### `snakeToCamel`
@@ -567,7 +695,7 @@ console.log(result);
 **Use case:** API endpoint that accepts snake_case but works with camelCase internally
 
 ```typescript
-import { BaseController, controller, snakeToCamel } from '@venizia/ignis';
+import { BaseController, controller, snakeToCamel, HTTP } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 const createUserSchema = snakeToCamel({
@@ -608,7 +736,7 @@ export class UserController extends BaseController {
         console.log(data.firstName);  // ✅ TypeScript knows this exists
         console.log(data.first_name);  // ❌ TypeScript error
         
-        return ctx.json({ success: true });
+        return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }

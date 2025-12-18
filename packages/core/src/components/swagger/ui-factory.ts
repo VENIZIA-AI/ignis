@@ -5,7 +5,6 @@ import { getError, MemoryStorageHelper } from '@venizia/ignis-helpers';
 // -------------------------------------------------------------------
 export class SwaggerUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
-    // validateModule({ scope: 'SwaggerUIProvider', modules: ['@hono/swagger-ui'] });
     const { swaggerUI } = await import('@hono/swagger-ui');
 
     const { title, url, ...customConfig } = config;
@@ -15,7 +14,6 @@ export class SwaggerUIProvider implements IUIProvider {
 
 export class ScalarUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
-    // validateModule({ scope: 'ScalarUIProvider', modules: ['@scalar/hono-api-reference'] });
     const { Scalar } = await import('@scalar/hono-api-reference');
 
     const { title, url, ...customConfig } = config;

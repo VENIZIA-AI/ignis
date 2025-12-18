@@ -1,3 +1,4 @@
+import { getError } from '@venizia/ignis-helpers';
 import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../common/types';
 
@@ -18,6 +19,26 @@ export type TUserAuditEnricherResult<
   modifiedBy: PgIntegerBuilderInitial<string> | PgTextBuilderInitial<string, [string, ...string[]]>;
 };
 
+const buildUserAuditColumn = (opts: {
+  columnOpts: TUserAuditColumnOpts;
+  columnField: 'createdBy' | 'modifiedBy';
+}) => {
+  const { columnOpts, columnField } = opts;
+  switch (columnOpts.dataType) {
+    case 'number': {
+      return integer(columnOpts.columnName);
+    }
+    case 'string': {
+      return text(columnOpts.columnName);
+    }
+    default: {
+      throw getError({
+        message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${(columnOpts as TUserAuditColumnOpts).dataType} | valid: ['number', 'string']`,
+      });
+    }
+  }
+};
+
 export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) => {
   const {
     created = { dataType: 'number', columnName: 'created_by' },
@@ -25,10 +46,14 @@ export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) =>
   } = opts ?? {};
 
   return {
-    createdBy:
-      created.dataType === 'number' ? integer(created.columnName) : text(created.columnName),
-    modifiedBy:
-      modified.dataType === 'number' ? integer(modified.columnName) : text(modified.columnName),
+    createdBy: buildUserAuditColumn({
+      columnOpts: created,
+      columnField: 'createdBy',
+    }),
+    modifiedBy: buildUserAuditColumn({
+      columnOpts: modified,
+      columnField: 'modifiedBy',
+    }),
   };
 };
 
@@ -37,5 +62,5 @@ export const enrichUserAudit = <ColumnDefinitions extends TColumnDefinitions = T
   opts?: TUserAuditEnricherOptions,
 ): TUserAuditEnricherResult<ColumnDefinitions> => {
   const defs = generateUserAuditColumnDefs(opts);
-  return Object.assign({}, baseSchema, defs);
+  return { ...baseSchema, ...defs } as TUserAuditEnricherResult<ColumnDefinitions>;
 };

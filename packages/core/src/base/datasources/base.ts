@@ -144,11 +144,11 @@ export abstract class BaseDataSource<
       models,
     );
 
-    return Object.assign({}, schema, relations) as Schema;
+    return { ...schema, ...relations } as Schema;
   }
 
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
-    return registry.hasModels({ dataSource: this.constructor.name });
+    return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 }

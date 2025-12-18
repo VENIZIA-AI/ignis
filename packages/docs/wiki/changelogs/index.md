@@ -6,6 +6,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Version | Date | Description |
 |---------|------|-------------|
+| [2025-12-18 Performance](./2025-12-18-performance-optimizations.md) | 2025-12-18 | Performance Optimizations (Core API, WeakMap Cache) |
 | [2025-12-18](./2025-12-18-repository-validation-security.md) | 2025-12-18 | Repository Validation & Security Improvements |
 | [2025-12-17](./2025-12-17-refactor.md) | 2025-12-17 | Inversion of Control Refactor |
 | [v0.0.1-8](./v0.0.1-8-model-repo-datasource-refactor.md) | 2025-12-16 | Model-Repository-DataSource Architecture Refactor |

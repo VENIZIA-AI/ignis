@@ -61,7 +61,6 @@ export class ControllerFactory extends BaseHelper {
     const {
       controller,
       entity,
-      // repository,
     } = opts;
 
     const {

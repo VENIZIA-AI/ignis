@@ -17,8 +17,25 @@ import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } fr
 import { QueryOperators, Sorts } from './query';
 
 export class DrizzleFilterBuilder extends BaseHelper {
+  private static columnCache = new WeakMap<
+    TTableSchemaWithId,
+    ReturnType<typeof getTableColumns>
+  >();
+
   constructor() {
     super({ scope: DrizzleFilterBuilder.name });
+  }
+
+  /**
+   * Get table columns with caching.
+   */
+  private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
+    let columns = DrizzleFilterBuilder.columnCache.get(schema);
+    if (!columns) {
+      columns = getTableColumns(schema);
+      DrizzleFilterBuilder.columnCache.set(schema, columns);
+    }
+    return columns;
   }
 
   build<Schema extends TTableSchemaWithId>(opts: {
@@ -67,7 +84,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
     const { tableName, schema, where } = opts;
 
     const conditions: SQL[] = [];
-    const columns = getTableColumns(schema);
+    const columns = this.getColumns(schema);
 
     if (!columns || isEmpty(columns)) {
       throw getError({
@@ -165,7 +182,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       return [];
     }
 
-    const columns = getTableColumns(schema);
+    const columns = this.getColumns(schema);
 
     return order.reduce((rs, orderStr) => {
       const parts = orderStr.trim().split(/\s+/);

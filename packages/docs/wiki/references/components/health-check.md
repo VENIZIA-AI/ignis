@@ -127,7 +127,7 @@ export class HealthCheckController extends BaseController {
 
   @api({ configs: ROUTE_CONFIGS['/'] })
   checkHealth(c: TRouteContext<typeof ROUTE_CONFIGS['/']>) {
-    return c.json({ status: 'ok' });
+    return c.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @api({ configs: ROUTE_CONFIGS['/ping'] })

@@ -8,7 +8,7 @@ Technical reference for DataSource classes - managing database connections in Ig
 
 | Class/Interface | Purpose | Key Members |
 |-----------------|---------|-------------|
-| **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `schema`, `configure()` |
+| **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `getSchema()`, `configure()` |
 | **AbstractDataSource** | Base implementation with logging | Extends `BaseHelper` |
 | **BaseDataSource** | Concrete class to extend | Auto-discovery, driver from decorator |
 
@@ -25,7 +25,7 @@ Contract for all datasource classes in the framework.
 | `name` | `string` | Datasource name |
 | `settings` | `object` | Configuration object |
 | `connector` | `TDatabaseConnector` | Database connector instance (e.g., Drizzle) |
-| `schema` | `object` | Combined Drizzle schema (tables + relations) |
+| `getSchema()` | Method | Returns combined Drizzle schema (auto-discovered or manual) |
 | `configure()` | Method | Initializes the `connector` |
 | `getConnectionString()` | Method | Returns connection string |
 
@@ -83,7 +83,7 @@ When you use `@repository({ model: YourModel, dataSource: YourDataSource })`, th
 
 3.  **Your `configure()` method runs**:
     -   This is where you instantiate the Drizzle ORM
-    -   Use `this.schema` (auto-discovered) to pass to Drizzle
+    -   Use `this.getSchema()` to get the auto-discovered schema and pass to Drizzle
 
 ### Example Implementations
 
@@ -103,47 +103,52 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
-  connection: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  };
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
 }
 
+/**
+ * PostgresDataSource with auto-discovery support.
+ *
+ * How it works:
+ * 1. @repository decorator binds model to datasource
+ * 2. When configure() is called, getSchema() auto-discovers all bound models
+ * 3. Drizzle is initialized with the auto-discovered schema
+ */
 @datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
+      // Driver is read from @datasource decorator - no need to pass here!
       config: {
-        connection: {
-          host: process.env.APP_ENV_POSTGRES_HOST,
-          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-          user: process.env.APP_ENV_POSTGRES_USERNAME,
-          password: process.env.APP_ENV_POSTGRES_PASSWORD,
-          database: process.env.APP_ENV_POSTGRES_DATABASE,
-        },
+        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
+        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'mydb',
+        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
+        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
       },
-      // No schema needed - auto-discovered from @repository decorators!
+      // NO schema property - auto-discovered from @repository bindings!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings.connection),
-      schema: this.schema, // Auto-discovered schema
-    });
-  }
+    // getSchema() auto-discovers models from @repository bindings
+    const schema = this.getSchema();
 
-  override async connect(): Promise<TNodePostgresConnector | undefined> {
-    await (this.connector.client as Pool).connect();
-    return this.connector;
-  }
+    // Log discovered schema for debugging
+    const schemaKeys = Object.keys(schema);
+    this.logger.debug(
+      '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
+      schemaKeys.length,
+      schemaKeys,
+    );
 
-  override async disconnect(): Promise<void> {
-    await (this.connector.client as Pool).end();
+    const client = new Pool(this.settings);
+    this.connector = drizzle({ client, schema });
   }
 }
 ```
@@ -162,7 +167,7 @@ The `PostgresDataSource.schema` will automatically include User and Configuratio
 
 #### Pattern 2: Manual Schema (Full Control)
 
-When you need explicit control over schema:
+When you need explicit control over schema (e.g., subset of models, custom ordering):
 
 ```typescript
 import {
@@ -175,25 +180,27 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
   constructor() {
     super({
       name: PostgresDataSource.name,
-      config: { /* ... */ },
-      // Manually provide schema
-      schema: Object.assign(
-        {},
-        {
-          [User.TABLE_NAME]: userTable,
-          [Configuration.TABLE_NAME]: configurationTable,
-        },
-        userRelations.relations,
-        configurationRelations.relations,
-      ),
+      config: {
+        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
+        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'mydb',
+        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
+        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
+      },
+      // Manually provide schema using spread syntax
+      schema: {
+        [User.TABLE_NAME]: userTable,
+        [Configuration.TABLE_NAME]: configurationTable,
+        ...userRelations.relations,
+        ...configurationRelations.relations,
+      },
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings.connection),
-      schema: this.schema,
-    });
+    // When schema is manually provided, getSchema() returns it directly
+    const client = new Pool(this.settings);
+    this.connector = drizzle({ client, schema: this.getSchema() });
   }
 }
 ```
@@ -213,6 +220,40 @@ The `@datasource` decorator registers datasource metadata:
 |--------|------|---------|-------------|
 | `driver` | `TDataSourceDriver` | - | Database driver name |
 | `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
+
+### Abstract Methods
+
+These methods must be implemented in your datasource class:
+
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the Drizzle ORM connector. Called during application startup. |
+| `getConnectionString()` | `ValueOrPromise<string>` | Return the database connection string. |
+
+### Optional Override Methods
+
+These methods can be optionally overridden for connection lifecycle management:
+
+| Method | Return Type | Description |
+|--------|-------------|-------------|
+| `connect()` | `Promise<Connector \| undefined>` | Establish database connection. Useful for connection pooling. |
+| `disconnect()` | `Promise<void>` | Close database connection gracefully. |
+
+```typescript
+@datasource({ driver: 'node-postgres' })
+export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+  // ... constructor and configure() ...
+
+  override async connect(): Promise<TNodePostgresConnector | undefined> {
+    await (this.connector.client as Pool).connect();
+    return this.connector;
+  }
+
+  override async disconnect(): Promise<void> {
+    await (this.connector.client as Pool).end();
+  }
+}
+```
 
 ### Helper Methods
 

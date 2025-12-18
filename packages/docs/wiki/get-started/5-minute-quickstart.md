@@ -253,7 +253,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 })
 async greet(c: Context) {
   const { name } = await c.req.json();
-  return c.json({ greeting: `Hello, ${name}!` });
+  return c.json({ greeting: `Hello, ${name}!` }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 

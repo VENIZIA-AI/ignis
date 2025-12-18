@@ -1,6 +1,5 @@
 import { BaseEntity, TTableSchemaWithId } from '@/base/models';
-import { createRelations } from '@/base/repositories';
-import { resolveValue, TMixinTarget } from '@venizia/ignis-helpers';
+import { TMixinTarget } from '@venizia/ignis-helpers';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
 import {
@@ -39,6 +38,12 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
      * Register a model with its schema and relations in the model registry.
      * This is called by the @model decorator.
      *
+     * IMPORTANT: Relations are stored as a resolver function (not resolved immediately)
+     * to avoid circular dependency issues. When Model A references Model B and vice versa,
+     * one would be undefined at decorator execution time. By storing the resolver function
+     * and only executing it when DataSource.buildSchema() is called, we ensure all models
+     * are loaded before relations are resolved.
+     *
      * Accepts either:
      * - A strongly typed model class (TClass<Model> & IEntity<Schema>)
      * - A decorator target which will be treated as a model class
@@ -55,19 +60,16 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // Determine table name: metadata.tableName > static TABLE_NAME > class name
       const tableName = metadata.tableName || modelClass.TABLE_NAME || modelClass.name;
 
-      // Build Drizzle relations if defined using createRelations utility
-      const relations = modelClass.relations ? resolveValue(modelClass.relations) : undefined;
-      const builtRelations =
-        relations && modelClass.schema
-          ? createRelations({ source: modelClass.schema, relations })
-          : undefined;
+      // Store relations resolver function (NOT resolved value) to avoid circular dependencies
+      // The resolver will be executed lazily in buildSchema() when all models are loaded
+      const relationsResolver = modelClass.relations;
 
       // Store in model registry
       this.modelRegistry.set(tableName, {
         target: modelClass,
         metadata,
         schema: modelClass.schema,
-        relations: builtRelations?.relations,
+        relationsResolver, // Store the resolver function, not the resolved value
       });
 
       // Set via Reflect for backward compatibility

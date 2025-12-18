@@ -134,12 +134,10 @@ export type TTodo = TTableObject<TTodoSchema>;
 
 // 4. Create the Entity class, decorated with @model
 @model({ type: 'entity' })
-export class Todo extends BaseEntity<TTodoSchema> {
-  static readonly TABLE_NAME = 'Todo';
-
-  constructor() {
-    super({ name: Todo.TABLE_NAME, schema: todoTable });
-  }
+export class Todo extends BaseEntity<typeof Todo.schema> {
+  static override schema = todoTable;
+  static override relations = () => todoRelations.definitions;
+  static override TABLE_NAME = 'Todo';
 }
 ```
 
@@ -203,7 +201,6 @@ Create `src/datasources/postgres.datasource.ts`:
 
 ```typescript
 // src/datasources/postgres.datasource.ts
-import { Todo, todoRelations, todoTable } from '@/models/todo.model';
 import {
   BaseDataSource,
   datasource,
@@ -214,61 +211,61 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
-  connection: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  };
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
 }
 
-@datasource()
+/**
+ * PostgresDataSource with auto-discovery support.
+ *
+ * How it works:
+ * 1. @repository decorator binds model to datasource
+ * 2. When configure() is called, getSchema() auto-discovers all bound models
+ * 3. Drizzle is initialized with the auto-discovered schema
+ */
+@datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
-      driver: 'node-postgres',
+      // Driver is read from @datasource decorator - no need to pass here!
       config: {
-        connection: {
-          host: process.env.APP_ENV_POSTGRES_HOST,
-          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-          user: process.env.APP_ENV_POSTGRES_USERNAME,
-          password: process.env.APP_ENV_POSTGRES_PASSWORD,
-          database: process.env.APP_ENV_POSTGRES_DATABASE,
-        },
+        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
+        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'todo_db',
+        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
+        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
       },
-      // Register all your models and their relations here
-      schema: Object.assign(
-        {},
-        { [Todo.TABLE_NAME]: todoTable },
-        todoRelations.relations,
-      ),
+      // NO schema property - auto-discovered from @repository bindings!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings.connection),
-      schema: this.schema,
-    });
-  }
+    // getSchema() auto-discovers models from @repository bindings
+    const schema = this.getSchema();
 
-  override async connect(): Promise<TNodePostgresConnector | undefined> {
-    await (this.connector.client as Pool).connect();
-    return this.connector;
-  }
+    // Log discovered schema for debugging
+    const schemaKeys = Object.keys(schema);
+    this.logger.debug(
+      '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
+      schemaKeys.length,
+      schemaKeys,
+    );
 
-  override async disconnect(): Promise<void> {
-    await (this.connector.client as Pool).end();
+    const client = new Pool(this.settings);
+    this.connector = drizzle({ client, schema });
   }
 }
 ```
 
 **Key Points:**
-- Registers `todoTable` and `todoRelations` in the schema
+- Schema is auto-discovered from `@repository` decorators - no manual registration needed
+- Uses `getSchema()` for lazy schema resolution (resolves when all models are loaded)
 - Uses environment variables for connection config
-- Implements connection lifecycle methods
+- Implements connection lifecycle methods (`connect()`, `disconnect()`)
 
 > **Deep Dive:** See [DataSources Reference](../references/base/datasources.md) for advanced configuration and multiple database support.
 
@@ -280,26 +277,15 @@ Create `src/repositories/todo.repository.ts`:
 
 ```typescript
 // src/repositories/todo.repository.ts
-import { Todo, todoRelations, TTodoSchema } from '@/models/todo.model';
-import {
-  DefaultCRUDRepository,
-  IDataSource,
-  inject,
-  repository,
-} from '@venizia/ignis';
+import { Todo } from '@/models/todo.model';
+import { PostgresDataSource } from '@/datasources/postgres.datasource';
+import { DefaultCRUDRepository, repository } from '@venizia/ignis';
 
-@repository()
-export class TodoRepository extends DefaultCRUDRepository<TTodoSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
-    dataSource: IDataSource,
-  ) {
-    super({
-      dataSource,
-      entityClass: Todo,
-      relations: todoRelations.definitions,
-    });
-  }
+// Both 'model' and 'dataSource' are required for schema auto-discovery
+@repository({ model: Todo, dataSource: PostgresDataSource })
+export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
+  // No constructor needed! DataSource and relations are auto-resolved
+  // from the @repository decorator and entity's static properties
 }
 ```
 
@@ -358,15 +344,15 @@ export class TodoController extends _Controller {
 **Auto-generated Endpoints:**
 | Method | Path | Description |
 |--------|------|-------------|
-| GET | `/todos` | List all todos |
-| GET | `/todos/:id` | Get todo by ID |
-| GET | `/todos/find-one` | Find one todo by filter |
-| GET | `/todos/count` | Count todos |
-| POST | `/todos` | Create todo |
-| PATCH | `/todos/:id` | Update todo by ID |
-| PATCH | `/todos` | Update multiple todos |
-| DELETE | `/todos/:id` | Delete todo by ID |
-| DELETE | `/todos` | Delete multiple todos |
+| GET | `/todos` | List all todos (find) |
+| GET | `/todos/:id` | Get todo by ID (findById) |
+| GET | `/todos/find-one` | Find one todo by filter (findOne) |
+| GET | `/todos/count` | Count todos (count) |
+| POST | `/todos` | Create todo (create) |
+| PATCH | `/todos/:id` | Update todo by ID (updateById) |
+| PATCH | `/todos` | Update multiple todos by filter (updateBy) |
+| DELETE | `/todos/:id` | Delete todo by ID (deleteById) |
+| DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
 > **Deep Dive:** See [ControllerFactory Reference](../references/base/controllers.md#controllerfactory) for customization options.
 
@@ -639,8 +625,7 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 
 **Challenge checklist:**
 - [ ] Create `src/models/user.model.ts`
-- [ ] Update `PostgresDataSource` to include User schema
-- [ ] Create `src/repositories/user.repository.ts`
+- [ ] Create `src/repositories/user.repository.ts` (this auto-registers User with PostgresDataSource)
 - [ ] Create `src/controllers/user.controller.ts`
 - [ ] Register repository and controller in `application.ts`
 - [ ] Run migration: `bun run migrate:dev`

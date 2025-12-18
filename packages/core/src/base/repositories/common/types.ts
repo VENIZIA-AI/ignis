@@ -98,7 +98,7 @@ export const FieldsSchema = z
       JSON.stringify({ id: true, name: true, email: true, fullName: false }),
     ],
   });
-// export type TFields = z.infer<typeof FieldsSchema>;
+
 
 export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
 
@@ -372,10 +372,3 @@ export interface IQueryHandlerOptions<T = any> {
   value: T;
 }
 
-/* export interface ITzRepository<E extends TBaseTzEntity> extends IPersistableRepository<E> {
-  mixTimestamp(entity: DataObject<E>, options?: { newInstance: boolean }): DataObject<E>;
-  mixUserAudit(
-    entity: DataObject<E>,
-    options?: { newInstance: boolean; authorId: IdType },
-  ): DataObject<E>;
-} */

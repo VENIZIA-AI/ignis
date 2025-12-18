@@ -21,11 +21,16 @@ Base class for all repositories - sets up fundamental properties and dependencie
 
 ### Key Properties
 
--   `entity` (`BaseEntity`): An instance of the model class associated with this repository. It provides access to the Drizzle schema.
--   `dataSource` (`IDataSource`): The datasource instance injected into the repository, which holds the database connection.
+-   `entity` (`BaseEntity`): An instance of the model class associated with this repository. It provides access to the Drizzle schema. Auto-resolved from `@repository` metadata or passed in constructor.
+-   `dataSource` (`IDataSource`): The datasource instance injected into the repository, which holds the database connection. Auto-injected from `@repository` decorator or passed in constructor.
 -   `connector`: A getter that provides direct access to the Drizzle ORM instance from the datasource.
 -   `filterBuilder` (`DrizzleFilterBuilder`): An instance of the filter builder responsible for converting `Ignis`'s filter objects into Drizzle-compatible query options.
--   `relations` (`{ [relationName: string]: TRelationConfig }`): A map of relation configurations defined for the entity.
+-   `operationScope` (`TRepositoryOperationScope`): Defines whether the repository is read-only or read-write.
+-   `defaultLimit` (`number`): Default limit for queries (default: 10).
+
+### Key Methods
+
+-   `getEntityRelations()`: Returns a map of relation configurations from the entity's static `relations` property.
 
 ### Abstract Methods
 
@@ -72,8 +77,10 @@ The `PersistableRepository` extends `ReadableRepository` and adds **write operat
 -   `createAll(opts)`
 -   `updateById(opts)`
 -   `updateAll(opts)`
+-   `updateBy(opts)` - Alias for `updateAll`
 -   `deleteById(opts)`
 -   `deleteAll(opts)`
+-   `deleteBy(opts)` - Alias for `deleteAll`
 
 ### Safety Features
 
@@ -93,7 +100,7 @@ await repository.updateAll({
 await repository.updateAll({
   data: { status: 'inactive' },
   where: {},
-  force: true, // Force flag allows empty where
+  options: { force: true }, // Force flag allows empty where
 });
 ```
 
@@ -107,7 +114,7 @@ await repository.deleteAll({
 // ✅ Warning logged: Explicitly allow mass delete with force flag
 await repository.deleteAll({
   where: {},
-  force: true, // Force flag allows empty where
+  options: { force: true }, // Force flag allows empty where
 });
 ```
 
@@ -227,22 +234,14 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 
 ```typescript
 // src/repositories/configuration.repository.ts
-import {
-  Configuration,
-  configurationRelations,
-  TConfigurationSchema,
-} from '@/models/entities';
+import { Configuration, TConfigurationSchema } from '@/models/entities';
 import { PostgresDataSource } from '@/datasources';
 import { inject, repository, DefaultCRUDRepository } from '@venizia/ignis';
 
+// Pattern 1: Zero boilerplate (recommended)
 @repository({ model: Configuration, dataSource: PostgresDataSource })
 export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
-    dataSource: PostgresDataSource,
-  ) {
-    super(dataSource, { entityClass: Configuration, relations: configurationRelations.definitions });
-  }
+  // No constructor needed - datasource and entity auto-resolved!
 
   // Custom data access methods
   async findByCode(code: string): Promise<Configuration | undefined> {
@@ -250,6 +249,17 @@ export class ConfigurationRepository extends DefaultCRUDRepository<TConfiguratio
       where: (table, { eq }) => eq(table.code, code)
     });
     return result;
+  }
+}
+
+// Pattern 2: With explicit constructor (when you need custom initialization)
+@repository({ model: Configuration, dataSource: PostgresDataSource })
+export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    dataSource: PostgresDataSource,
+  ) {
+    super(dataSource); // Just pass dataSource - entity and relations auto-resolved!
   }
 }
 ```
@@ -346,3 +356,216 @@ The `getQueryInterface()` method validates that the entity's schema is properly 
 // If schema key doesn't match, you get a helpful error:
 // Error: [UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post] | Ensure the model's TABLE_NAME matches the schema registration key
 ```
+
+## Performance Optimizations
+
+### Core API for Flat Queries
+
+The `ReadableRepository` automatically optimizes flat queries (no relations, no field selection) using Drizzle's Core API instead of Query API. This provides ~15-20% performance improvement for simple queries.
+
+**Automatic Optimization:**
+
+```typescript
+// This query is automatically optimized to use Core API
+const users = await repo.find({
+  filter: {
+    where: { status: 'active' },
+    limit: 10,
+    order: ['createdAt DESC'],
+  }
+});
+// Uses: db.select().from(table).where(...).orderBy(...).limit(10)
+
+// This query uses Query API (relations need relational mapper)
+const usersWithPosts = await repo.find({
+  filter: {
+    where: { status: 'active' },
+    include: [{ relation: 'posts' }],  // Has relations
+  }
+});
+// Uses: db.query.tableName.findMany({ with: { posts: true }, ... })
+```
+
+**When Core API is used:**
+
+| Filter Options | API Used | Reason |
+|----------------|----------|--------|
+| `where`, `limit`, `order`, `offset` only | Core API | Flat query, no overhead |
+| Has `include` (relations) | Query API | Needs relational mapper |
+| Has `fields` selection | Query API | Core API field syntax differs |
+
+**Protected Helper Method:**
+
+For advanced use cases, you can directly use the `findWithCoreAPI` method:
+
+```typescript
+// Available in subclasses
+protected async findWithCoreAPI(opts: {
+  filter: TFilter<DataObject>;
+  findOne?: boolean;
+}): Promise<Array<DataObject>>;
+
+// Check if Core API can be used
+protected canUseCoreAPI(filter: TFilter<DataObject>): boolean;
+```
+
+### WeakMap Cache for Filter Builder
+
+The `DrizzleFilterBuilder` uses a static WeakMap cache for `getTableColumns()` results, avoiding repeated reflection calls:
+
+```typescript
+// Internal optimization - no action needed
+// First call: getTableColumns(schema) → cached
+// Subsequent calls: retrieved from WeakMap
+```
+
+This is especially beneficial for:
+- High-concurrency environments
+- Queries with nested AND/OR conditions (each recursion reuses cache)
+- Multiple queries to the same table
+
+## Query Operators
+
+The filter builder supports a comprehensive set of query operators for building complex queries.
+
+**File:** `packages/core/src/base/repositories/operators/query.ts`
+
+### Available Operators
+
+| Operator | Alias | SQL Equivalent | Description |
+|----------|-------|----------------|-------------|
+| `eq` | - | `=` | Equal to |
+| `ne` | `neq` | `!=` | Not equal to |
+| `gt` | - | `>` | Greater than |
+| `gte` | - | `>=` | Greater than or equal |
+| `lt` | - | `<` | Less than |
+| `lte` | - | `<=` | Less than or equal |
+| `like` | - | `LIKE` | Pattern matching (case-sensitive) |
+| `nlike` | - | `NOT LIKE` | Negative pattern matching |
+| `ilike` | - | `ILIKE` | Pattern matching (case-insensitive, PostgreSQL) |
+| `nilike` | - | `NOT ILIKE` | Negative case-insensitive pattern |
+| `in` | `inq` | `IN` | Value in array |
+| `nin` | - | `NOT IN` | Value not in array |
+| `between` | - | `BETWEEN` | Value between two values |
+| `is` | - | `IS NULL` | Null check |
+| `isn` | - | `IS NOT NULL` | Not null check |
+| `regexp` | - | `~` | PostgreSQL POSIX regex (case-sensitive) |
+| `iregexp` | - | `~*` | PostgreSQL POSIX regex (case-insensitive) |
+
+### Logical Operators
+
+| Operator | Description |
+|----------|-------------|
+| `and` | Combine conditions with AND |
+| `or` | Combine conditions with OR |
+
+### Usage Examples
+
+**Simple equality:**
+```typescript
+await repo.find({ filter: { where: { status: 'active' } } });
+// SQL: WHERE status = 'active'
+```
+
+**Comparison operators:**
+```typescript
+await repo.find({
+  filter: {
+    where: {
+      age: { gte: 18, lt: 65 },
+      score: { gt: 100 }
+    }
+  }
+});
+// SQL: WHERE age >= 18 AND age < 65 AND score > 100
+```
+
+**Array operators:**
+```typescript
+// IN operator
+await repo.find({ filter: { where: { id: [1, 2, 3] } } });
+// SQL: WHERE id IN (1, 2, 3)
+
+// Using explicit IN
+await repo.find({ filter: { where: { status: { in: ['active', 'pending'] } } } });
+
+// NOT IN
+await repo.find({ filter: { where: { status: { nin: ['deleted', 'archived'] } } } });
+```
+
+**Pattern matching:**
+```typescript
+// LIKE (case-sensitive)
+await repo.find({ filter: { where: { name: { like: '%john%' } } } });
+
+// ILIKE (case-insensitive, PostgreSQL)
+await repo.find({ filter: { where: { email: { ilike: '%@gmail.com' } } } });
+```
+
+**Regex (PostgreSQL):**
+```typescript
+// Case-sensitive regex
+await repo.find({ filter: { where: { name: { regexp: '^John' } } } });
+
+// Case-insensitive regex
+await repo.find({ filter: { where: { name: { iregexp: '^john' } } } });
+```
+
+**Between:**
+```typescript
+await repo.find({
+  filter: {
+    where: {
+      createdAt: { between: [new Date('2024-01-01'), new Date('2024-12-31')] }
+    }
+  }
+});
+// SQL: WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31'
+```
+
+**Logical operators:**
+```typescript
+// OR conditions
+await repo.find({
+  filter: {
+    where: {
+      or: [
+        { status: 'active' },
+        { isPublished: true }
+      ]
+    }
+  }
+});
+
+// AND conditions (explicit)
+await repo.find({
+  filter: {
+    where: {
+      and: [
+        { role: 'admin' },
+        { createdAt: { gte: new Date('2024-01-01') } }
+      ]
+    }
+  }
+});
+
+// Nested conditions
+await repo.find({
+  filter: {
+    where: {
+      status: 'active',
+      or: [
+        { role: 'admin' },
+        { and: [{ role: 'user' }, { verified: true }] }
+      ]
+    }
+  }
+});
+```
+
+### Security Notes
+
+- **Empty IN array:** Returns `false` (no rows), preventing security bypass
+- **Empty NOT IN array:** Returns `true` (all rows match)
+- **BETWEEN validation:** Requires exactly 2 elements in array, throws error otherwise
+- **Invalid columns:** Throws error if column doesn't exist in schema

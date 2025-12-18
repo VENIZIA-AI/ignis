@@ -48,10 +48,6 @@ export const keysToCamel = (object: object) => {
         n[toCamel(key)] = keysToCamel(value);
         break;
       }
-      /* case 'array': {
-        n[toCamel(key)] = value;
-        break;
-      } */
       default: {
         n[toCamel(key)] = value;
         break;
