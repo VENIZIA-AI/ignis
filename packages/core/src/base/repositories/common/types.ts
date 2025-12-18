@@ -99,7 +99,6 @@ export const FieldsSchema = z
     ],
   });
 
-
 export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
 
 // ---------------------------------------------------------------------------
@@ -371,4 +370,3 @@ export interface IQueryHandlerOptions<T = any> {
   column: Column;
   value: T;
 }
-

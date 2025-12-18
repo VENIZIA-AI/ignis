@@ -58,10 +58,7 @@ export class ControllerFactory extends BaseHelper {
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
   >(opts: ICrudControllerOptions<EntitySchema>) {
-    const {
-      controller,
-      entity,
-    } = opts;
+    const { controller, entity } = opts;
 
     const {
       name,

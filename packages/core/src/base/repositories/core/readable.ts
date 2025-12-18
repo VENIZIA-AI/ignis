@@ -84,9 +84,9 @@ export class ReadableRepository<
    */
   protected async findWithCoreAPI(opts: {
     filter: TFilter<DataObject>;
-    findOne?: boolean;
+    isFindOne?: boolean;
   }): Promise<Array<DataObject>> {
-    const { filter, findOne = false } = opts;
+    const { filter, isFindOne = false } = opts;
     const schema = this.entity.schema;
 
     // Build where clause
@@ -108,7 +108,7 @@ export class ReadableRepository<
       : undefined;
 
     // Calculate limit and offset
-    const limit = findOne ? 1 : filter.limit;
+    const limit = isFindOne ? 1 : filter.limit;
     const offset = filter.skip ?? filter.offset;
 
     // Build query using Core API
@@ -155,7 +155,7 @@ export class ReadableRepository<
   }): Promise<TNullable<DataObject>> {
     // Use Core API for flat queries (no relations, no field selection)
     if (this.canUseCoreAPI(opts.filter)) {
-      const results = await this.findWithCoreAPI({ filter: opts.filter, findOne: true });
+      const results = await this.findWithCoreAPI({ filter: opts.filter, isFindOne: true });
       return results[0] ?? null;
     }
 

@@ -10,4 +10,3 @@ export const extraUserRoleColumns = (opts?: {
     userId: opts?.idType === 'string' ? text('user_id') : integer('user_id'),
   };
 };
-
