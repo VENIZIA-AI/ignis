@@ -6,28 +6,9 @@ export type TClass<T> = TConstructor<T> & { [property: string]: any };
 
 // ================================================================================
 export interface IArtifactOptions {
-  /**
-   * Array of directories to scan
-   * @default Artifact-specific default (e.g., ['controllers'])
-   */
   dirs?: string[];
-
-  /**
-   * Array of file extensions to match
-   * @default Artifact-specific default (e.g., ['.controller.js'])
-   */
   extensions?: string[];
-
-  /**
-   * Whether to scan nested directories
-   * @default false
-   */
   nested?: boolean;
-
-  /**
-   * Custom glob pattern (overrides dirs/extensions/nested)
-   * @example 'src/api/**\/*.controller.{js,ts}'
-   */
   glob?: string;
 }
 
@@ -54,19 +35,8 @@ export interface IBooterConfiguration {
 }
 
 export interface IBooter {
-  /**
-   * Phase 1: Configure booter options
-   */
   configure?(): Promise<void> | void;
-
-  /**
-   * Phase 2: Discover files matching patterns
-   */
   discover?(): Promise<void> | void;
-
-  /**
-   * Phase 3: Load modules and bind to application
-   */
   load?(): Promise<void> | void;
 }
 

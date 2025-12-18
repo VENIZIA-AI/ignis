@@ -1,5 +1,5 @@
 import { TestApplication } from '@/__tests__/fixtures/application';
-import { BaseBootstrapper } from '@/base';
+import { Bootstrapper } from '@/bootstrapper';
 import { IBootableApplication, IBootstrapper } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 
@@ -8,7 +8,7 @@ describe('Bootstrapper Tests', () => {
   let bootstrapper: IBootstrapper;
 
   application = new TestApplication({ bootOptions: {} });
-  bootstrapper = new BaseBootstrapper({ application, scope: BaseBootstrapper.name });
+  bootstrapper = new Bootstrapper({ application, scope: Bootstrapper.name });
 
   describe('boot', () => {
     test('should run boot process and return report', async () => {

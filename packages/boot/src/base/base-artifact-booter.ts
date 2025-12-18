@@ -1,7 +1,6 @@
-import { getError } from '@/common/app-error';
 import { IArtifactOptions, IBooter, IBooterConfiguration, TClass } from '@/common/types';
 import { discoverFiles, loadClasses } from '@/utilities';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 
 export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   protected configuration: IBooterConfiguration;

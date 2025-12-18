@@ -1,5 +1,5 @@
-import { getError } from '@/common/app-error';
 import { TClass } from '@/common/types';
+import { getError } from '@venizia/ignis-helpers';
 import { glob } from 'glob';
 
 /**

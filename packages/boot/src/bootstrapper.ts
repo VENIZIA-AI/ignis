@@ -1,4 +1,3 @@
-import { getError } from '@/common/app-error';
 import {
   BOOT_PHASES,
   IBooter,
@@ -8,7 +7,7 @@ import {
   IBootstrapperOptions,
   TBootPhase,
 } from '@/common/types';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 
 /**
  * BaseBootstrapper orchestrates the boot process
@@ -18,7 +17,7 @@ import { BaseHelper } from '@venizia/ignis-helpers';
  * 2. Run boot phases (configure, discover, load)
  * 3. Generate boot report
  */
-export class BaseBootstrapper extends BaseHelper implements IBootstrapper {
+export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private booters: IBooter[] = [];
   private phaseStartTimings: Map<string, number> = new Map();
   private phaseEndTimings: Map<string, number> = new Map();
