@@ -1,9 +1,9 @@
-import { IBootableApplication, IBootOptions } from '@/common/types';
+import { IBootOptions } from '@/common/types';
 import { Container } from '@venizia/ignis-inversion';
 import path from 'node:path';
 import { RepositoryBooter } from './booters/repository.booter';
 
-export class TestApplication extends Container implements IBootableApplication {
+export class TestApplication extends Container {
   bootOptions: IBootOptions;
 
   constructor(opts: { bootOptions: IBootOptions }) {

@@ -1,9 +1,11 @@
 import { IArtifactOptions, IBooter, IBooterConfiguration, TClass } from '@/common/types';
 import { discoverFiles, loadClasses } from '@/utilities';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { Container } from '@venizia/ignis-inversion';
 
 export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
-  protected configuration: IBooterConfiguration;
+  protected root: string = '';
+  protected application: Container;
   protected artifactOptions: IArtifactOptions = {};
   protected discoveredFiles: string[] = [];
   protected loadedClasses: TClass<any>[] = [];
@@ -15,7 +17,9 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   constructor(opts: IBooterConfiguration) {
     super({ scope: opts.scope });
 
-    this.configuration = opts;
+    this.artifactOptions = opts.artifactOptions ?? {};
+    this.application = opts.application;
+    this.root = opts.application.getProjectRoot();
   }
 
   protected getPattern(): string {
@@ -41,25 +45,25 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
       .map(e => (e.startsWith('.') ? e.slice(1) : e))
       .join(',');
 
-    const nested = this.artifactOptions.nested ? '**/' : '';
+    const nested = this.artifactOptions.nested ? '{**,*}' : '*'; // NOTE: only suports one level of nesting now
 
     // Pattern: {dir1,dir2}/**/*.{artifact}.{ext1,ext2}
     // Example: {private-controllers,public-controllers}/**/*.controller.{js,ts}
     if (this.artifactOptions.dirs.length > 1 || this.artifactOptions.extensions.length > 1) {
-      return `{${dirs}}/${nested}*.{${exts}}`;
+      return `{${dirs}}/${nested}.{${exts}}`;
     } else {
-      return `${dirs}/${nested}*.${exts}`;
+      return `${dirs}/${nested}.${exts}`;
     }
   }
 
   // --------------------------------------------------------------------------------
   async configure(): Promise<void> {
     this.artifactOptions = {
-      dirs: this.configuration.artifactOptions?.dirs ?? this.getDefaultDirs(),
-      extensions: this.configuration.artifactOptions?.extensions ?? this.getDefaultExtensions(),
-      nested: this.configuration.artifactOptions?.nested ?? false,
-      glob: this.configuration.artifactOptions?.glob,
-      ...this.configuration.artifactOptions,
+      dirs: this.artifactOptions?.dirs ?? this.getDefaultDirs(),
+      extensions: this.artifactOptions?.extensions ?? this.getDefaultExtensions(),
+      nested: this.artifactOptions?.nested ?? true,
+      glob: this.artifactOptions?.glob,
+      ...this.artifactOptions,
     };
 
     this.logger.debug(`[configure] Configured: %j`, this.artifactOptions);
@@ -71,18 +75,13 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     try {
       this.discoveredFiles = []; // Reset discovered files
+      this.discoveredFiles = await discoverFiles({ root: this.root, pattern });
       this.logger.debug(
-        `[discover] Root: %s | Using pattern: %s`,
-        this.configuration.application.getProjectRoot(),
+        `[discover] Root: %s | Using pattern: %s | Discovered file: %j`,
+        this.root,
         pattern,
+        this.discoveredFiles,
       );
-
-      this.discoveredFiles = await discoverFiles({
-        root: this.configuration.application.getProjectRoot(),
-        pattern,
-      });
-
-      this.logger.debug(`[discover] Discovered files: %j`, this.discoveredFiles);
     } catch (error) {
       throw getError({
         message: `[discover] Failed to discover files using pattern: ${pattern} | Error: ${(error as Error)?.message}`,
@@ -99,10 +98,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     try {
       this.loadedClasses = []; // Reset loaded classes
-      this.loadedClasses = await loadClasses({
-        files: this.discoveredFiles,
-        root: this.configuration.application.getProjectRoot(),
-      });
+      this.loadedClasses = await loadClasses({ files: this.discoveredFiles, root: this.root });
       await this.bind();
     } catch (error) {
       throw getError({

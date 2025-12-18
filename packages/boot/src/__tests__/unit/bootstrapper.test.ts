@@ -1,10 +1,10 @@
 import { TestApplication } from '@/__tests__/fixtures/application';
 import { Bootstrapper } from '@/bootstrapper';
-import { IBootableApplication, IBootstrapper } from '@/common/types';
+import { IApplication, IBootstrapper } from '@/common/types';
 import { describe, expect, test } from 'bun:test';
 
 describe('Bootstrapper Tests', () => {
-  let application: IBootableApplication;
+  let application: IApplication;
   let bootstrapper: IBootstrapper;
 
   application = new TestApplication({ bootOptions: {} });

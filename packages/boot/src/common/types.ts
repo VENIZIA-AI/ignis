@@ -1,4 +1,4 @@
-import { IContainer } from '@venizia/ignis-inversion';
+import { Container } from '@venizia/ignis-inversion';
 
 export type TConstructor<T> = new (...args: any[]) => T;
 export type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
@@ -23,14 +23,18 @@ export type TBootPhase = 'configure' | 'discover' | 'load';
 
 export const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load'];
 
-export interface IBootableApplication extends IContainer {
-  bootOptions: IBootOptions;
+export interface IApplication extends Container {
   getProjectRoot(): string;
+}
+
+export interface IBootableApplication extends IApplication {
+  bootOptions?: IBootOptions;
+  boot(): Promise<IBootReport>;
 }
 
 export interface IBooterConfiguration {
   scope: string;
-  application: IBootableApplication;
+  application: IApplication;
   artifactOptions?: IArtifactOptions;
 }
 
@@ -53,10 +57,9 @@ export interface IBootExecutionOptions {
   booters?: string[];
 }
 
-
 export interface IBootstrapperOptions {
   scope: string;
-  application: IBootableApplication;
+  application: IApplication;
 }
 
 export interface IBootstrapper {

@@ -1,6 +1,6 @@
 import { TestApplication } from '@/__tests__/fixtures/application';
 import { BaseArtifactBooter } from '@/base';
-import { IBootableApplication } from '@/common';
+import { IApplication } from '@/common/types';
 import { beforeAll, describe, expect, test } from 'bun:test';
 
 class TestBooter extends BaseArtifactBooter {
@@ -16,7 +16,7 @@ class TestBooter extends BaseArtifactBooter {
 }
 
 describe('Base Artifact Booter Tests', () => {
-  let application: IBootableApplication;
+  let application: IApplication;
   let booter: TestBooter;
 
   beforeAll(() => {
@@ -29,7 +29,7 @@ describe('Base Artifact Booter Tests', () => {
       booter.configure();
       expect(booter['artifactOptions'].dirs).toEqual(['repositories']);
       expect(booter['artifactOptions'].extensions).toEqual(['.repository.js']);
-      expect(booter['artifactOptions'].nested).toEqual(false);
+      expect(booter['artifactOptions'].nested).toEqual(true);
       expect(booter['artifactOptions'].glob).toBeUndefined();
     });
 
@@ -56,7 +56,7 @@ describe('Base Artifact Booter Tests', () => {
     test('should generate pattern with defaults', async () => {
       await booter.configure();
       const pattern = booter['getPattern']();
-      expect(pattern).toBe('repositories/*.repository.js');
+      expect(pattern).toBe('repositories/{**,*}.repository.js');
     });
 
     test('should generate pattern with multiple dirs and extensions', async () => {
@@ -70,7 +70,7 @@ describe('Base Artifact Booter Tests', () => {
       });
       await multiBooter.configure();
       const pattern = multiBooter['getPattern']();
-      expect(pattern).toBe('{dir1,dir2}/*.{ext1.js,ext2.js}');
+      expect(pattern).toBe('{dir1,dir2}/{**,*}.{ext1.js,ext2.js}');
     });
 
     test('should use custom glob if provided', async () => {

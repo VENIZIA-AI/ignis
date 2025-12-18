@@ -57,7 +57,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     this.phaseStartTimings.set(phase, performance.now());
     this.logger.debug(`[runPhase] Starting phase: %s`, phase.toUpperCase());
 
-    for (const booter of this.booters) {
+    for await (const booter of this.booters) {
       const phaseMethod = booter[phase];
       if (!phaseMethod) {
         this.logger.debug(

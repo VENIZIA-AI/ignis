@@ -1,6 +1,12 @@
 import { BaseArtifactBooter } from '@/base';
+import { IApplication } from '@/common';
+import { inject } from '@venizia/ignis-inversion';
 
 export class DatasourceBooter extends BaseArtifactBooter {
+  constructor(@inject({ key: '@app/instance' }) application: IApplication) {
+    super({ scope: DatasourceBooter.name, application, artifactOptions: {} });
+  }
+
   // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['datasources'];
@@ -14,7 +20,7 @@ export class DatasourceBooter extends BaseArtifactBooter {
   // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
-      this.configuration.application.bind({ key: `datasources.${cls.name}` }).toClass(cls);
+      this.application.bind({ key: `datasources.${cls.name}` }).toClass(cls);
 
       this.logger.debug(`[bind] Bound key: %s`, `datasources.${cls.name}`);
     }

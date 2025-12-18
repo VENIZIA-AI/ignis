@@ -1,6 +1,12 @@
 import { BaseArtifactBooter } from '@/base';
+import { IApplication } from '@/common';
+import { inject } from '@venizia/ignis-inversion';
 
 export class ServiceBooter extends BaseArtifactBooter {
+  constructor(@inject({ key: '@app/instance' }) application: IApplication) {
+    super({ scope: ServiceBooter.name, application, artifactOptions: {} });
+  }
+
   // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['services'];
@@ -14,7 +20,7 @@ export class ServiceBooter extends BaseArtifactBooter {
   // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
-      this.configuration.application.bind({ key: `services.${cls.name}` }).toClass(cls);
+      this.application.bind({ key: `services.${cls.name}` }).toClass(cls);
 
       this.logger.debug(`[bind] Bound key: %s`, `services.${cls.name}`);
     }
