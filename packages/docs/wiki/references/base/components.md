@@ -1,6 +1,6 @@
 # Deep Dive: Components
 
-Technical reference for `BaseComponent` - creating pluggable, reusable modules in Ignis.
+Technical reference for `BaseComponent`—the foundation for creating reusable, pluggable features in Ignis. Components are powerful containers that can group together multiple providers, services, controllers, repositories, and even entire mini-applications into a single, redistributable module.
 
 **File:** `packages/core/src/base/components/base.ts`
 

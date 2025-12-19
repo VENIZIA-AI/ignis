@@ -66,6 +66,8 @@ export class Application extends BaseApplication {
 
 -   **Bad:**
     ```typescript
+    import { ApplicationError, getError } from '@venizia/ignis';
+
     // In a Controller
     async createUser(c: Context) {
         const { name, email, companyName } = c.req.valid('json');
@@ -73,7 +75,7 @@ export class Application extends BaseApplication {
         // Complex logic inside the controller
         const existingUser = await this.userRepository.findByEmail(email);
         if (existingUser) {
-            throw new ApplicationError({ message: 'Email already exists' });
+            throw getError({ message: 'Email already exists' });
         }
         
         const company = await this.companyRepository.findOrCreate(companyName);

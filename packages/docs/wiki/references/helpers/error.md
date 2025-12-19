@@ -26,10 +26,10 @@ Extends native `Error` with HTTP status codes and machine-readable message codes
 You can create a new `ApplicationError` with a message, status code, and an optional message code.
 
 ```typescript
-import { ApplicationError, HTTP } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis';
 
 // Throw an error for a resource not found
-throw new ApplicationError({
+throw getError({
   message: 'User not found',
   statusCode: HTTP.ResultCodes.RS_4.NotFound,
   messageCode: 'USER_NOT_FOUND',

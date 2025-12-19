@@ -645,7 +645,7 @@ For complex validation or business rules, create a Service layer:
 
 ```typescript
 // src/services/todo.service.ts
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, getError } from '@venizia/ignis';
 import { TodoRepository } from '@/repositories/todo.repository';
 
 export class TodoService extends BaseService {
@@ -659,7 +659,7 @@ export class TodoService extends BaseService {
   async createTodo(data: any) {
     // Business logic validation
     if (data.title.length < 3) {
-      throw new Error('Title too short');
+      throw getError({ message: 'Title too short' });
     }
 
     // Check for duplicates
@@ -667,7 +667,7 @@ export class TodoService extends BaseService {
       filter: { where: { title: data.title } },
     });
     if (existing) {
-      throw new Error('Todo already exists');
+      throw getError({ message: 'Todo already exists' });
     }
 
     return this.todoRepository.create({ data });

@@ -1,313 +1,172 @@
+---
+title: Persistent Layer
+description: Models, DataSources, and Repositories in Ignis
+---
+
 # Persistent Layer: Models, DataSources, and Repositories
 
 The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and the Repository pattern for data abstraction.
 
 **Three main components:**
-- **Models** - Define data structure (Drizzle schemas + Entity classes)
-- **DataSources** - Manage database connections
-- **Repositories** - Provide CRUD operations
+
+- **Models** - Define data structure (static schema + relations on Entity class)
+- **DataSources** - Manage database connections with auto-discovery
+- **Repositories** - Provide CRUD operations with zero boilerplate
 
 ## 1. Models: Defining Your Data Structure
 
-A model in `Ignis` consists of two parts: a **Drizzle schema** that defines the database table and an **Entity class** that wraps it for use within the framework.
+A model in Ignis is a single class with static properties for schema and relations. No separate variables needed.
 
 ### Creating a Basic Model
 
-Here's how to create a simple `User` model.
-
 ```typescript
 // src/models/entities/user.model.ts
-import {
-  BaseEntity,
-  createRelations,
-  extraUserColumns,
-  generateIdColumnDefs,
-  model,
-  TTableObject,
-} from '@venizia/ignis';
+import { BaseEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
-// 1. Define the Drizzle schema for the 'User' table
-export const userTable = pgTable(User.name, {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-  ...extraUserColumns({ idType: 'string' }),
-});
-
-// 2. Define relations (empty for now, but required)
-export const userRelations = createRelations({
-  source: userTable,
-  relations: [],
-});
-
-// 3. Define the TypeScript type for a User object
-export type TUserSchema = typeof userTable;
-export type TUser = TTableObject<TUserSchema>;
-
-// 4. Create the Entity class, decorated with @model
 @model({ type: 'entity' })
 export class User extends BaseEntity<typeof User.schema> {
-  static override schema = userTable;
-  static override relations = () => userRelations.definitions;
-  static override TABLE_NAME = 'User';
+  // Define schema as static property
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...extraUserColumns({ idType: 'string' }),
+  });
+
+  // Relations (empty array if none)
+  static override relations = () => [];
 }
 ```
 
-### Understanding Enrichers: The Smart Column Generators
+**Key points:**
 
-You might have noticed functions like `generateIdColumnDefs()` and `extraUserColumns()` in the model definition. These are **Enrichers**—powerful helper functions that generate common database columns automatically.
-
-#### Why Enrichers Exist
-
-**Without enrichers (the hard way):**
-```typescript
-export const userTable = pgTable('User', {
-  // Manually define every common column in every table
-  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  status: text('status').notNull().default('ACTIVE'),
-  type: text('type'),
-  createdBy: text('created_by'),
-  modifiedBy: text('modified_by'),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  modifiedAt: timestamp('modified_at', { withTimezone: true }).notNull().defaultNow(),
-  // ... your actual user-specific fields
-  email: text('email').notNull(),
-  name: text('name'),
-});
-```
-
-**With enrichers (the smart way):**
-```typescript
-export const userTable = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),        // Adds: id (UUID)
-  ...extraUserColumns({ idType: 'string' }),                      // Adds: status, type, createdBy, modifiedBy, createdAt, modifiedAt
-  // Just your actual user-specific fields
-  email: text('email').notNull(),
-  name: text('name'),
-});
-```
-
-**Result:** Same table structure, but with:
-- 7 fewer lines of code
-- Guaranteed consistency across all tables
-- Less chance of typos or mistakes
-- Easier to maintain
-
-#### Common Enrichers
-
-| Enricher | What It Adds | Use Case |
-| :--- | :--- | :--- |
-| `generateIdColumnDefs()` | Primary key `id` column (UUID or number) | Every table needs an ID |
-| `generateTzColumnDefs()` | `createdAt` and `modifiedAt` timestamps | Track when records are created/updated |
-| `generateUserAuditColumnDefs()` | `createdBy` and `modifiedBy` foreign keys | Track which user created/updated records |
-| `generateDataTypeColumnDefs()` | `dataType` and type-specific value columns (`tValue`, `nValue`, etc.) | Configuration tables with mixed data types |
-| `extraUserColumns()` | Combination of audit + status + type fields | Full-featured entity tables |
-
-#### Practical Example: Building a Post Model
-
-Let's create a blog post model using enrichers:
-
-```typescript
-// src/models/post.model.ts
-import {
-  BaseEntity,
-  createRelations,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
-  model,
-  RelationTypes,
-  TTableObject,
-} from '@venizia/ignis';
-import { pgTable, text, boolean } from 'drizzle-orm/pg-core';
-import { userTable } from './user.model';
-
-export const postTable = pgTable('Post', {
-  // Use enrichers for common columns
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),      // id: UUID primary key
-  ...generateTzColumnDefs(),                                     // createdAt, modifiedAt
-  ...generateUserAuditColumnDefs({                              // createdBy, modifiedBy
-    created: { dataType: 'string', columnName: 'created_by' },
-    modified: { dataType: 'string', columnName: 'modified_by' },
-  }),
-
-  // Your post-specific fields
-  title: text('title').notNull(),
-  content: text('content').notNull(),
-  isPublished: boolean('is_published').default(false),
-  slug: text('slug').notNull().unique(),
-});
-
-export const postRelations = createRelations({
-  source: postTable,
-  relations: [
-    {
-      name: 'author',
-      type: RelationTypes.ONE,
-      schema: userTable,
-      metadata: {
-        fields: [postTable.createdBy],
-        references: [userTable.id],
-      },
-    },
-  ],
-});
-
-export type TPostSchema = typeof postTable;
-export type TPost = TTableObject<TPostSchema>;
-
-@model({ type: 'entity' })
-export class Post extends BaseEntity<typeof Post.schema> {
-  static override schema = postTable;
-  static override relations = () => postRelations.definitions;
-  static override TABLE_NAME = 'Post';
-}
-```
-
-**What this gives you:**
-```typescript
-interface Post {
-  id: string;                    // From generateIdColumnDefs
-  createdAt: Date;              // From generateTzColumnDefs
-  modifiedAt: Date;             // From generateTzColumnDefs
-  createdBy: string;            // From generateUserAuditColumnDefs
-  modifiedBy: string;           // From generateUserAuditColumnDefs
-  title: string;                // Your field
-  content: string;              // Your field
-  isPublished: boolean;         // Your field
-  slug: string;                 // Your field
-}
-```
-
-#### When NOT to Use Enrichers
-
-You can always define columns manually if:
-- You need a custom ID strategy (e.g., integer auto-increment)
-- You don't need audit fields for a specific table
-- You have very specific timestamp requirements
-
-```typescript
-// Mixing enrichers with manual columns is perfectly fine
-export const simpleTable = pgTable('Simple', {
-  ...generateIdColumnDefs({ id: { dataType: 'number' } }), // Use enricher for ID
-  // But manually define everything else
-  name: text('name').notNull(),
-  value: integer('value'),
-});
-```
-
-:::tip
-For a complete list of available enrichers and their options, see the [**Schema Enrichers Reference**](../../references/base/models.md#schema-enrichers).
-:::
-
-**Key Concepts:**
-- **`pgTable`**: The standard function from Drizzle ORM to define a table schema.
-- **Enrichers**: Ignis provides helper functions like `generateIdColumnDefs()` and `extraUserColumns()` that add common, pre-configured columns (like `id`, `status`, `type`, etc.) to your schema, reducing boilerplate.
-- **`createRelations`**: A helper for defining relationships between models. Even if there are no relations, you must call it.
-- **`BaseEntity`**: The class your model extends. It wraps the Drizzle schema and provides utilities for the framework.
-- **`@model`**: A decorator that registers the class with the framework as a database model.
+- Schema is defined inline as `static override schema`
+- Relations are defined as `static override relations`
+- No constructor needed - BaseEntity auto-discovers from static properties
+- Type parameter uses `typeof User.schema` (self-referencing)
 
 ### Creating a Model with Relations
-
-Now, let's create a `Configuration` model that has a relationship with the `User` model.
 
 ```typescript
 // src/models/entities/configuration.model.ts
 import {
   BaseEntity,
-  createRelations, // Import createRelations
   generateDataTypeColumnDefs,
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
   model,
   RelationTypes,
-  TTableObject,
+  TRelationConfig,
 } from '@venizia/ignis';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
-import { User, userTable } from './user.model';
+import { User } from './user.model';
 
-// 1. Define the Drizzle schema for the 'Configuration' table
-export const configurationTable = pgTable(
-  Configuration.name,
-  {
-    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
-    ...generateDataTypeColumnDefs(),
-    ...generateUserAuditColumnDefs({
-      created: { dataType: 'string', columnName: 'created_by' },
-      modified: { dataType: 'string', columnName: 'modified_by' },
-    }),
-    code: text('code').notNull(),
-    description: text('description'),
-    group: text('group').notNull(),
-  },
-  (def) => [
-    unique(`UQ_${Configuration.name}_code`).on(def.code),
-    index(`IDX_${Configuration.name}_group`).on(def.group),
-    foreignKey({
-      columns: [def.createdBy],
-      foreignColumns: [userTable.id],
-      name: `FK_${Configuration.name}_createdBy_${User.name}_id`,
-    }),
-  ],
-);
+@model({ type: 'entity' })
+export class Configuration extends BaseEntity<typeof Configuration.schema> {
+  static override schema = pgTable(
+    'Configuration',
+    {
+      ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+      ...generateTzColumnDefs(),
+      ...generateDataTypeColumnDefs(),
+      ...generateUserAuditColumnDefs({
+        created: { dataType: 'string', columnName: 'created_by' },
+        modified: { dataType: 'string', columnName: 'modified_by' },
+      }),
+      code: text('code').notNull(),
+      description: text('description'),
+      group: text('group').notNull(),
+    },
+    def => [
+      unique('UQ_Configuration_code').on(def.code),
+      index('IDX_Configuration_group').on(def.group),
+      foreignKey({
+        columns: [def.createdBy],
+        foreignColumns: [User.schema.id], // Reference User.schema, not a separate variable
+        name: 'FK_Configuration_createdBy_User_id',
+      }),
+    ],
+  );
 
-// 2. Define the relations using Ignis's `createRelations` helper
-export const configurationRelations = createRelations({
-  source: configurationTable,
-  relations: [
+  // Define relations using TRelationConfig array
+  static override relations = (): TRelationConfig[] => [
     {
       name: 'creator',
       type: RelationTypes.ONE,
-      schema: userTable,
+      schema: User.schema,
       metadata: {
-        fields: [configurationTable.createdBy],
-        references: [userTable.id],
+        fields: [Configuration.schema.createdBy],
+        references: [User.schema.id],
       },
     },
     {
       name: 'modifier',
       type: RelationTypes.ONE,
-      schema: userTable,
+      schema: User.schema,
       metadata: {
-        fields: [configurationTable.modifiedBy],
-        references: [userTable.id],
+        fields: [Configuration.schema.modifiedBy],
+        references: [User.schema.id],
       },
     },
-  ],
-});
-
-// 3. Define types and the Entity class as before
-export type TConfigurationSchema = typeof configurationTable;
-export type TConfiguration = TTableObject<TConfigurationSchema>;
-
-@model({ type: 'entity' })
-export class Configuration extends BaseEntity<typeof Configuration.schema> {
-  static override schema = configurationTable;
-  static override relations = () => configurationRelations.definitions;
-  static override TABLE_NAME = 'Configuration';
+  ];
 }
 ```
-**Key Concepts:**
-- **`createRelations`**: This helper function from `Ignis` simplifies defining Drizzle ORM relations. It creates both a Drizzle `relations` object (for querying) and a `definitions` object (for repository configuration). Here, we define `creator` and `modifier` relations from `Configuration` to `User`. The names (`creator`, `modifier`) are important, as they will be used when querying.
 
-> **Deep Dive:**
-> - Explore the [**`BaseEntity`**](../../references/base/models.md#baseentity-class) class.
-> - See all available [**Enrichers**](../../references/base/models.md#schema-enrichers) for schema generation.
+**Key points:**
+
+- Relations use `TRelationConfig[]` format directly
+- Reference other models via `Model.schema` (e.g., `User.schema.id`)
+- Relation names (`creator`, `modifier`) are used in queries with `include`
+
+### Understanding Enrichers
+
+Enrichers are helper functions that generate common database columns automatically.
+
+**Without enrichers:**
+
+```typescript
+static override schema = pgTable('User', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  status: text('status').notNull().default('ACTIVE'),
+  createdBy: text('created_by'),
+  modifiedBy: text('modified_by'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  modifiedAt: timestamp('modified_at', { withTimezone: true }).notNull().defaultNow(),
+  // ... your fields
+});
+```
+
+**With enrichers:**
+
+```typescript
+static override schema = pgTable('User', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),  // id (UUID)
+  ...extraUserColumns({ idType: 'string' }),                 // status, audit fields, timestamps
+  // ... your fields
+});
+```
+
+#### Available Enrichers
+
+| Enricher | Columns Added | Use Case |
+|----------|---------------|----------|
+| `generateIdColumnDefs()` | `id` (UUID or number) | Every table |
+| `generateTzColumnDefs()` | `createdAt`, `modifiedAt` | Track timestamps |
+| `generateUserAuditColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
+| `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
+| `extraUserColumns()` | Combines audit + status + type | Full-featured entities |
+
+:::tip
+For a complete list of enrichers and options, see the [Schema Enrichers Reference](../../references/base/models.md#schema-enrichers).
+:::
 
 ---
 
 ## 2. DataSources: Connecting to Your Database
 
-A DataSource is a class responsible for managing the connection to your database and making the Drizzle ORM instance available to your application.
+A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
-### Creating and Configuring a DataSource
-
-A `DataSource` must be decorated with `@datasource`. The framework now supports **schema auto-discovery**, which means you no longer need to manually merge tables and relations!
-
-### Pattern 1: Auto-Discovery (Recommended)
-
-With auto-discovery, the schema is automatically built from your `@repository` decorators:
+### Creating a DataSource
 
 ```typescript
 // src/datasources/postgres.datasource.ts
@@ -321,13 +180,11 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
-  connection: {
-    host?: string;
-    port?: number;
-    user?: string;
-    password?: string;
-    database?: string;
-  };
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
 }
 
 @datasource({ driver: 'node-postgres' })
@@ -336,205 +193,164 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
     super({
       name: PostgresDataSource.name,
       config: {
-        connection: {
-          host: process.env.APP_ENV_POSTGRES_HOST,
-          port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
-          user: process.env.APP_ENV_POSTGRES_USERNAME,
-          password: process.env.APP_ENV_POSTGRES_PASSWORD,
-          database: process.env.APP_ENV_POSTGRES_DATABASE,
-        },
+        host: process.env.POSTGRES_HOST ?? 'localhost',
+        port: +(process.env.POSTGRES_PORT ?? 5432),
+        database: process.env.POSTGRES_DATABASE ?? 'mydb',
+        user: process.env.POSTGRES_USER ?? 'postgres',
+        password: process.env.POSTGRES_PASSWORD ?? '',
       },
-      // No schema needed - auto-discovered from @repository decorators!
+      // No schema needed - auto-discovered from @repository bindings!
     });
   }
 
   override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings.connection),
-      schema: this.schema, // Auto-discovered schema
-    });
+    // getSchema() auto-discovers models from @repository bindings
+    const schema = this.getSchema();
+
+    this.logger.debug(
+      '[configure] Auto-discovered schema | Keys: %o',
+      Object.keys(schema),
+    );
+
+    const client = new Pool(this.settings);
+    this.connector = drizzle({ client, schema });
   }
 
-  override async connect(): Promise<TNodePostgresConnector | undefined> {
-    await (this.connector.client as Pool).connect();
-    return this.connector;
-  }
-
-  override async disconnect(): Promise<void> {
-    await (this.connector.client as Pool).end();
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 }
 ```
 
 **How auto-discovery works:**
 
-When you define repositories with both `model` and `dataSource`:
+1. `@repository` decorators register model-datasource bindings
+2. When `configure()` is called, `getSchema()` collects all bound models
+3. Drizzle is initialized with the complete schema
+
+### Manual Schema (Optional)
+
+If you need explicit control, you can still provide schema manually:
 
 ```typescript
-@repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
-
-@repository({ model: Configuration, dataSource: PostgresDataSource })
-export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {}
-```
-
-The framework automatically:
-1. Registers each model-datasource binding
-2. Builds the combined schema (tables + relations) when `getSchema()` is called
-3. Makes all registered models available for relational queries
-
-**Result:** You can use `include` queries without any manual schema configuration:
-```typescript
-const config = await configRepo.findOne({
-  filter: {
-    where: { id: '123' },
-    include: [{ relation: 'creator' }], // This works!
-  },
-});
-console.log(config.creator.name); // Access related User data
-```
-
-### Pattern 2: Manual Schema (Full Control)
-
-If you need explicit control over the schema, you can still provide it manually:
-
-```typescript
-import {
-  Configuration, configurationTable, configurationRelations,
-  User, userTable, userRelations,
-} from '@/models/entities';
-
 @datasource({ driver: 'node-postgres' })
 export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
       config: { /* ... */ },
-      // Manually merge tables and relations using spread syntax
       schema: {
-        [User.TABLE_NAME]: userTable,
-        [Configuration.TABLE_NAME]: configurationTable,
-        ...userRelations.relations,
-        ...configurationRelations.relations,
+        User: User.schema,
+        Configuration: Configuration.schema,
+        // Add relations if using Drizzle's relational queries
       },
     });
   }
-
-  override configure(): ValueOrPromise<void> {
-    this.connector = drizzle({
-      client: new Pool(this.settings.connection),
-      schema: this.schema,
-    });
-  }
 }
 ```
-
-### @datasource Decorator
-
-```typescript
-@datasource({
-  driver: 'node-postgres',    // Required - database driver
-  autoDiscovery?: true        // Optional - defaults to true
-})
-```
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `driver` | `TDataSourceDriver` | - | Database driver name |
-| `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
 
 ### Registering a DataSource
 
-Finally, register your `DataSource` with the application in `src/application.ts`.
-
 ```typescript
 // src/application.ts
-import { PostgresDataSource } from './datasources';
-
 export class Application extends BaseApplication {
-  // ...
   preConfigure(): ValueOrPromise<void> {
     this.dataSource(PostgresDataSource);
-    // ...
   }
 }
 ```
-
-> **Deep Dive:**
-> - Explore the [**`BaseDataSource`**](../../references/base/datasources.md) class.
 
 ---
 
 ## 3. Repositories: The Data Access Layer
 
-Repositories abstract the data access logic. They use the configured `DataSource` to perform type-safe queries against the database.
+Repositories provide type-safe CRUD operations. Use `@repository` decorator with both `model` and `dataSource` for auto-discovery.
 
-### Creating a Repository
+### Pattern 1: Zero Boilerplate (Recommended)
 
-A repository extends `DefaultCRUDRepository` (for full read/write operations) and is decorated with `@repository`.
-
-**IMPORTANT:** Both `model` AND `dataSource` are required in `@repository` for schema auto-discovery. Without both, the model won't be registered and relational queries will fail.
-
-#### Pattern 1: Zero Boilerplate (Recommended)
-
-The simplest approach - dataSource is auto-injected from metadata:
+The simplest approach - everything is auto-resolved:
 
 ```typescript
 // src/repositories/configuration.repository.ts
-import { Configuration, TConfigurationSchema } from '@/models/entities';
-import { PostgresDataSource } from '@/datasources';
-import { repository, DefaultCRUDRepository } from '@venizia/ignis';
+import { Configuration } from '@/models/entities';
+import { PostgresDataSource } from '@/datasources/postgres.datasource';
+import { DefaultCRUDRepository, repository } from '@venizia/ignis';
 
-@repository({ model: Configuration, dataSource: PostgresDataSource })
-export class ConfigurationRepository extends DefaultCRUDRepository<TConfigurationSchema> {
-  // No constructor needed - datasource auto-injected!
+@repository({
+  model: Configuration,
+  dataSource: PostgresDataSource,
+})
+export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {
+  // No constructor needed!
 
-  // Add custom methods as needed
   async findByCode(code: string) {
     return this.findOne({ filter: { where: { code } } });
+  }
+
+  async findByGroup(group: string) {
+    return this.find({ filter: { where: { group } } });
   }
 }
 ```
 
-#### Pattern 2: Explicit @inject
+### Pattern 2: Explicit @inject
 
-When you need constructor control (e.g., for read-only repositories or custom initialization):
+When you need constructor control (e.g., read-only repository or additional dependencies):
 
 ```typescript
 // src/repositories/user.repository.ts
 import { User } from '@/models/entities';
-import { PostgresDataSource } from '@/datasources';
-import { inject, repository, ReadableRepository } from '@venizia/ignis';
+import { PostgresDataSource } from '@/datasources/postgres.datasource';
+import { inject, ReadableRepository, repository } from '@venizia/ignis';
+import { CacheService } from '@/services/cache.service';
 
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends ReadableRepository<typeof User.schema> {
   constructor(
+    // First parameter MUST be DataSource injection
     @inject({ key: 'datasources.PostgresDataSource' })
-    dataSource: PostgresDataSource,  // Must be concrete DataSource type, NOT 'any'
+    dataSource: PostgresDataSource, // Must be concrete type, not 'any'
+
+    // After first arg, you can inject any additional dependencies
+    @inject({ key: 'some.cache' })
+    private cache: SomeCache,
   ) {
     super(dataSource);
   }
 
   async findByRealm(realm: string) {
+    // Use injected dependencies
+    const cached = await this.cacheService.get(`user:realm:${realm}`);
+    if (cached) {
+      return cached;
+    }
+
     return this.findOne({ filter: { where: { realm } } });
   }
 }
 ```
 
-**Note:** When `@inject` is at param index 0, auto-injection is skipped (your `@inject` takes precedence).
+> **Important:**
+> - First constructor parameter **MUST** be the DataSource injection
+> - After the first argument, you can inject any additional dependencies you need
+> - When `@inject` is at param index 0, auto-injection is skipped
 
-You would then register this repository in your `application.ts`: `this.repository(ConfigurationRepository);`
+### Repository Types
+
+| Type | Description |
+|------|-------------|
+| `DefaultCRUDRepository` | Full read/write operations |
+| `ReadableRepository` | Read-only operations |
+| `PersistableRepository` | Write operations only |
 
 ### Querying Data
 
-Repositories provide a full suite of type-safe methods for CRUD operations using a standardized `filter` object.
-
 ```typescript
-// Example usage in application.ts or a service
 const repo = this.get<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' });
 
 // Find multiple records
-const someConfigs = await repo.find({
+const configs = await repo.find({
   filter: {
     where: { group: 'SYSTEM' },
     limit: 10,
@@ -542,30 +358,186 @@ const someConfigs = await repo.find({
   }
 });
 
-// Create a new record
+// Find one record
+const config = await repo.findOne({
+  filter: { where: { code: 'APP_NAME' } }
+});
+
+// Create a record
 const newConfig = await repo.create({
   data: {
-    code: 'NEW_CODE',
+    code: 'NEW_SETTING',
     group: 'SYSTEM',
-    // ... other fields
+    description: 'A new setting',
   }
 });
+
+// Update by ID
+await repo.updateById({
+  id: 'uuid-here',
+  data: { description: 'Updated description' }
+});
+
+// Delete by ID
+await repo.deleteById({ id: 'uuid-here' });
 ```
 
 ### Querying with Relations
 
-To query related data, use the `include` property in the filter object. The `relation` name must match one of the names you defined in `createRelations` (e.g., `creator`).
+Use `include` to fetch related data. The relation name must match what you defined in `static relations`:
 
 ```typescript
-const resultsWithCreator = await repo.find({
+const configWithCreator = await repo.findOne({
   filter: {
-    where: { code: 'some_code' },
-    include: [{ relation: 'creator' }], // Fetch the related user
+    where: { code: 'APP_NAME' },
+    include: [{ relation: 'creator' }],
   },
 });
 
-if (resultsWithCreator.length > 0) {
-  // `resultsWithCreator[0].creator` will contain the full User object
-  console.log('Configuration created by:', resultsWithCreator[0].creator.name);
+console.log('Created by:', configWithCreator.creator.name);
+```
+
+### Registering Repositories
+
+```typescript
+// src/application.ts
+export class Application extends BaseApplication {
+  preConfigure(): ValueOrPromise<void> {
+    this.dataSource(PostgresDataSource);
+    this.repository(UserRepository);
+    this.repository(ConfigurationRepository);
+  }
 }
 ```
+
+---
+
+## 4. Advanced Topics
+
+### Performance: Core API Optimization
+
+Ignis automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads.
+
+### Transactions (Current)
+
+Currently, use Drizzle's callback-based `connector.transaction` for atomic operations:
+
+```typescript
+const ds = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
+
+await ds.connector.transaction(async (tx) => {
+  await tx.insert(User.schema).values({ /* ... */ });
+  await tx.insert(Configuration.schema).values({ /* ... */ });
+});
+```
+
+> **Note:** This callback-based approach requires all transaction logic to be in one callback. See [Section 5](#5-transactions-planned) for the planned improvement.
+
+### Modular Persistence with Components
+
+Bundle related persistence resources into Components for better organization:
+
+```typescript
+export class UserManagementComponent extends BaseComponent {
+  override binding() {
+    this.application.dataSource(PostgresDataSource);
+    this.application.repository(UserRepository);
+    this.application.repository(ProfileRepository);
+  }
+}
+```
+
+---
+
+## 5. Transactions (Planned)
+
+> **Status:** Planned - Not yet implemented. See [full plan](../../changelogs/planned-transaction-support).
+
+### The Problem
+
+Drizzle's callback-based transactions make it hard to pass transactions across services:
+
+```typescript
+// Current: Everything must be inside the callback
+await ds.connector.transaction(async (tx) => {
+  // Can't easily call other services with this tx
+});
+```
+
+### Planned Solution
+
+Loopback 4-style explicit transaction objects that can be passed anywhere:
+
+```typescript
+// Start transaction from repository
+const tx = await userRepo.beginTransaction({
+  isolationLevel: 'SERIALIZABLE'  // Optional, defaults to 'READ COMMITTED'
+});
+
+try {
+  // Pass tx to multiple services/repositories
+  const user = await userRepo.create({ data, options: { transaction: tx } });
+  await profileRepo.create({ data: { userId: user.id }, options: { transaction: tx } });
+  await orderService.createInitialOrder(user.id, { transaction: tx });
+
+  await tx.commit();
+} catch (err) {
+  await tx.rollback();
+  throw err;
+}
+```
+
+### Isolation Levels
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `READ COMMITTED` | Default. Sees only committed data | General use |
+| `REPEATABLE READ` | Snapshot from transaction start | Reports, consistent reads |
+| `SERIALIZABLE` | Full isolation, may throw errors | Financial, critical data |
+
+### Benefits
+
+| Aspect | Current (Callback) | Planned (Pass-through) |
+|--------|-------------------|------------------------|
+| Service composition | Hard | Easy - pass tx anywhere |
+| Separation of concerns | Services coupled | Services independent |
+| Testing | Complex mocking | Easy to mock tx |
+| Code organization | Nested callbacks | Flat, sequential |
+
+---
+
+## Quick Reference
+
+### Model Template
+
+```typescript
+import { BaseEntity, generateIdColumnDefs, model, TRelationConfig } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+@model({ type: 'entity' })
+export class MyModel extends BaseEntity<typeof MyModel.schema> {
+  static override schema = pgTable('MyModel', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    name: text('name').notNull(),
+  });
+
+  static override relations = (): TRelationConfig[] => [];
+}
+```
+
+### Repository Template
+
+```typescript
+import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { MyModel } from '@/models/entities';
+import { PostgresDataSource } from '@/datasources/postgres.datasource';
+
+@repository({ model: MyModel, dataSource: PostgresDataSource })
+export class MyModelRepository extends DefaultCRUDRepository<typeof MyModel.schema> {}
+```
+
+> **Deep Dive:**
+> - [BaseEntity Reference](../../references/base/models.md#baseentity-class)
+> - [Schema Enrichers](../../references/base/models.md#schema-enrichers)
+> - [BaseDataSource Reference](../../references/base/datasources.md)
+> - [Repository Reference](../../references/base/repositories.md)
