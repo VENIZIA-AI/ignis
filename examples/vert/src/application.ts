@@ -1,46 +1,53 @@
 import { PostgresDataSource } from '@/datasources';
 import { ConfigurationRepository, UserRepository } from '@/repositories';
 import {
-    ChangePasswordRequestSchema,
-    ChangePasswordResponseSchema,
-    SignInRequestSchema,
-    SignInResponseSchema,
-    SignUpRequestSchema,
-    SignUpResponseSchema,
+  ChangePasswordRequestSchema,
+  ChangePasswordResponseSchema,
+  SignInRequestSchema,
+  SignInResponseSchema,
+  SignUpRequestSchema,
+  SignUpResponseSchema,
 } from '@/schemas';
 import { AuthenticationService } from '@/services';
 import {
-    applicationEnvironment,
-    AuthenticateBindingKeys,
-    AuthenticateComponent,
-    Authentication,
-    AuthenticationStrategyRegistry,
-    BaseApplication,
-    BindingKeys,
-    BindingNamespaces,
-    DataTypes,
-    Environment,
-    EnvironmentKeys,
-    getError,
-    getUID,
-    HealthCheckBindingKeys,
-    HealthCheckComponent,
-    HTTP,
-    IApplicationConfigs,
-    IApplicationInfo,
-    IAuthenticateOptions,
-    IHealthCheckOptions,
-    IMiddlewareConfigs,
-    int,
-    JWTAuthenticationStrategy,
-    SwaggerComponent,
-    ValueOrPromise,
+  applicationEnvironment,
+  AuthenticateBindingKeys,
+  AuthenticateComponent,
+  Authentication,
+  AuthenticationStrategyRegistry,
+  BaseApplication,
+  BaseMetaLinkModel,
+  BindingKeys,
+  BindingNamespaces,
+  DataTypes,
+  DiskHelper,
+  Environment,
+  getError,
+  getUID,
+  HealthCheckBindingKeys,
+  HealthCheckComponent,
+  HTTP,
+  IApplicationConfigs,
+  IApplicationInfo,
+  IAuthenticateOptions,
+  IHealthCheckOptions,
+  IMiddlewareConfigs,
+  int,
+  JWTAuthenticationStrategy,
+  MinioHelper,
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
+  SwaggerComponent,
+  TStaticAssetsComponentOptions,
+  ValueOrPromise,
 } from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { ConfigurationController, TestController } from './controllers';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
+import { EnvironmentKeys } from './common/environments';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -194,8 +201,7 @@ export class Application extends BaseApplication {
 
     this.component(SwaggerComponent);
 
-    // Configure Static Asset Component with v2.0 API
-    /* this.bind<TStaticAssetsComponentOptions>({
+    this.bind<TStaticAssetsComponentOptions>({
       key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
     }).toValue({
       // MinIO storage for user uploads and media
@@ -242,7 +248,7 @@ export class Application extends BaseApplication {
         },
       },
     });
-    this.component(StaticAssetComponent); */
+    this.component(StaticAssetComponent);
   }
 
   async postConfigure(): Promise<void> {

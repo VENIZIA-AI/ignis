@@ -1,17 +1,8 @@
-import {
-  BaseMetaLinkModel,
-  BaseMetaLinkRepository,
-  IDataSource,
-  inject,
-  metaLinkRelations,
-} from '@venizia/ignis';
+import { PostgresDataSource } from '@/datasources';
+import { BaseMetaLinkModel, BaseMetaLinkRepository, repository } from '@venizia/ignis';
 
-export class MetaLinkRepository extends BaseMetaLinkRepository {
-  constructor(@inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource) {
-    super({
-      dataSource,
-      entityClass: BaseMetaLinkModel,
-      relations: metaLinkRelations.definitions,
-    });
-  }
-}
+@repository({
+  model: BaseMetaLinkModel,
+  dataSource: PostgresDataSource,
+})
+export class MetaLinkRepository extends BaseMetaLinkRepository {}
