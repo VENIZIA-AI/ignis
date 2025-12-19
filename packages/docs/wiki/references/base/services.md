@@ -58,7 +58,7 @@ Services are the core of your application's logic. They act as a bridge between 
 ### Example
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, getError } from '@venizia/ignis';
 import { UserRepository } from '../repositories/user.repository';
 import { TUser } from '../models/entities';
 
@@ -81,7 +81,7 @@ export class UserService extends BaseService {
     const user = await this.userRepository.findById({ id: userId });
 
     if (!user) {
-      throw new Error('User not found');
+      throw getError({ message: 'User not found' });
     }
 
     // 5. Returns transformed data

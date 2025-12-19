@@ -20,9 +20,67 @@ const config = defineConfig({
       { text: 'Core Concepts', link: '/get-started/core-concepts/application' },
       { text: 'Best Practices', link: '/get-started/best-practices/architectural-patterns' },
       { text: 'Reference(s)', link: '/references/components/' },
+      { text: 'Change Log(s)', link: '/changelogs/' },
     ],
 
     sidebar: {
+      '/changelogs/': [
+        {
+          text: 'Overview',
+          items: [
+            { text: 'Introduction', link: '/changelogs/' },
+            { text: 'Template', link: '/changelogs/template' },
+          ],
+        },
+        {
+          text: 'Planning',
+          collapsed: true,
+          items: [
+            {
+              text: 'Transaction Support',
+              link: '/changelogs/planned-transaction-support',
+            },
+          ],
+        },
+        {
+          text: '2025-12-18',
+          collapsed: false,
+          items: [
+            {
+              text: 'Performance Optimizations',
+              link: '/changelogs/2025-12-18-performance-optimizations',
+            },
+            {
+              text: 'Validation & Security',
+              link: '/changelogs/2025-12-18-repository-validation-security',
+            },
+          ],
+        },
+        {
+          text: '2025-12-17',
+          collapsed: true,
+          items: [
+            {
+              text: 'Inversion of Control Refactor',
+              link: '/changelogs/2025-12-17-refactor',
+            },
+          ],
+        },
+        {
+          text: '2025-12-16',
+          collapsed: true,
+          items: [
+            {
+              text: 'Model-Repository-DataSource Refactor',
+              link: '/changelogs/2025-12-16-model-repo-datasource-refactor',
+            },
+            {
+              text: 'Initial Architecture',
+              link: '/changelogs/2025-12-16-initial-architecture',
+            },
+          ],
+        },
+      ],
       '/get-started/': [
         {
           text: 'Get Started',
