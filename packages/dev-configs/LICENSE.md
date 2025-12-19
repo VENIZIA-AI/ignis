@@ -33,6 +33,7 @@ This monorepo contains the following packages, all licensed under MIT:
 | Package | Description |
 |---------|-------------|
 | `@venizia/ignis` | Core framework - controllers, services, decorators |
+| `@venizia/ignis-boot` | Application bootstrapping & artifact auto-discovery |
 | `@venizia/ignis-helpers` | Utility helpers - logging, cron, Redis, queues, storage |
 | `@venizia/ignis-inversion` | Dependency Injection & IoC container |
 | `@venizia/dev-configs` | Shared ESLint, Prettier, TypeScript configurations |

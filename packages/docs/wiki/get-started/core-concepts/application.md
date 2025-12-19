@@ -42,10 +42,13 @@ export class Application extends BaseApplication {
   }
   
   preConfigure(): ValueOrPromise<void> {
-    // Register all your resources here
+    // Manual registration (traditional approach)
     this.dataSource(MyDataSource);
     this.service(MyService);
     this.controller(MyController);
+    
+    // Or use boot system for auto-discovery (recommended for larger apps)
+    // See Bootstrapping section below
   }
   
   postConfigure(): ValueOrPromise<void> {
@@ -75,9 +78,73 @@ The `BaseApplication` class provides several **overridable hook methods** that a
 | :--- | :--- |
 | `getAppInfo()` | **Required.** Return application metadata, usually from `package.json`. Used for OpenAPI docs. |
 | `staticConfigure()` | Configure static file serving. |
-| `preConfigure()` | **Most Important Hook.** Set up application resources like components, controllers, services, and datasources. |
+| `preConfigure()` | **Most Important Hook.** Set up application resources like components, controllers, services, and datasources. Can be skipped if using boot system. |
 | `postConfigure()` | Perform actions *after* all resources have been configured and instantiated. |
 | `setupMiddlewares()`| Add custom application-level middlewares to the Hono instance. |
+
+## Bootstrapping (Auto-discovery)
+
+The boot system provides automatic artifact discovery and loading, eliminating manual registration. When enabled, it scans your project directory and automatically loads controllers, services, repositories, and datasources.
+
+> **Detailed Guide:** See [Bootstrapping Concepts](./bootstrapping.md) for complete documentation.
+
+### Enabling Boot System
+
+Add `bootOptions` to your application config:
+
+```typescript
+export const appConfigs: IApplicationConfigs = {
+  host: process.env.APP_ENV_SERVER_HOST,
+  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
+  // Enable boot system
+  bootOptions: {
+    datasources: { dirs: ['datasources'] },
+    repositories: { dirs: ['repositories'] },
+    services: { dirs: ['services'] },
+    controllers: { dirs: ['controllers'] }
+  }
+};
+```
+
+With boot enabled, you can skip manual registration in `preConfigure()`:
+
+```typescript
+export class Application extends BaseApplication {
+  // No need to register artifacts manually!
+  // Boot system handles it automatically
+  
+  preConfigure(): ValueOrPromise<void> {
+    // Only register things that need custom configuration
+    // Everything else is auto-discovered
+  }
+}
+```
+
+### Boot vs Manual Registration
+
+| Approach | Use Case | Pros | Cons |
+|----------|----------|------|------|
+| **Boot System** | Apps with 10+ artifacts per type | Auto-discovery, scalable, clean code | Requires file naming conventions |
+| **Manual Registration** | Small apps (< 5 artifacts) | Fine-grained control, explicit | Tedious, maintenance burden |
+
+### Project Structure for Boot
+
+Follow naming conventions for auto-discovery:
+
+```
+src/
+├── datasources/
+│   └── postgres.datasource.js
+├── repositories/
+│   ├── user.repository.js
+│   └── product.repository.js
+├── services/
+│   ├── auth.service.js
+│   └── user.service.js
+└── controllers/
+    ├── auth.controller.js
+    └── user.controller.js
+```
 
 ## Lifecycle Diagram
 
@@ -90,7 +157,8 @@ graph TD
     
     subgraph "initialize() Sequence"
         direction TB
-        B --> B1["printStartUpInfo"];
+        B --> B0["boot() - if bootOptions configured"];
+        B0 --> B1["printStartUpInfo"];
         B1 --> B2["validateEnvs"];
         B2 --> B3["registerDefaultMiddlewares"];
         B3 --> B4["staticConfigure()"];
@@ -129,6 +197,7 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `path.isStrict`| `boolean`| `true` | If `true`, the router is strict about trailing slashes. |
 | `debug.showRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
+| `bootOptions` | `IBootOptions` | `undefined` | Enable auto-discovery of artifacts. See [Bootstrapping](./bootstrapping.md). |
 
 ### Example Configuration
 

@@ -63,24 +63,4 @@ export interface IBootstrapper {
 }
 
 // ================================================================================
-export interface IArtifactStats {
-  discovered: number;
-  loaded: number;
-  errors: number;
-  files?: string[];
-  errorMessages?: string[];
-}
-
-export interface IPhaseStats {
-  duration: number;
-  errors?: string[];
-}
-
-export interface IBootReport {
-  duration: number;
-  artifacts: Record<string, IArtifactStats>;
-  phases: Record<TBootPhase, IPhaseStats>;
-  isSuccess: boolean;
-  totalLoaded: number;
-  totalErrors: number;
-}
+export interface IBootReport {}

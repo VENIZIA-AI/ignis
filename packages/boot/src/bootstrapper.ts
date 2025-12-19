@@ -103,18 +103,8 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
 
   // --------------------------------------------------------------------------------
   private generateReport(): IBootReport {
-    const report: IBootReport = {
-      duration: 0,
-      artifacts: {},
-      phases: {
-        configure: { duration: 0 },
-        discover: { duration: 0 },
-        load: { duration: 0 },
-      },
-      isSuccess: true,
-      totalLoaded: 0,
-      totalErrors: 0,
-    };
+    const report: IBootReport = {};
+    this.logger.debug(`[generateReport] Boot report: %j`, report);
 
     return report;
   }
