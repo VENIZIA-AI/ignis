@@ -98,7 +98,6 @@ export interface IApplicationConfigs {
   port?: number;
   path: { base: string; isStrict: boolean };
   favicon?: string;
-  autoLoad?: { dirs: { [key: string | symbol]: { path: string } } };
   debug?: { shouldShowRoutes?: boolean };
   bootOptions?: IBootOptions;
   [key: string]: any;

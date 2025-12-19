@@ -1,14 +1,12 @@
+import { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Container } from '@venizia/ignis-inversion';
-
-export type TConstructor<T> = new (...args: any[]) => T;
-export type TAbstractConstructor<T> = abstract new (...args: any[]) => T;
-export type TClass<T> = TConstructor<T> & { [property: string]: any };
+import { BootPhases } from './constants';
 
 // ================================================================================
 export interface IArtifactOptions {
   dirs?: string[];
   extensions?: string[];
-  nested?: boolean;
+  isNested?: boolean;
   glob?: string;
 }
 
@@ -20,7 +18,7 @@ export interface IBootOptions {
   [artifactType: string]: IArtifactOptions | undefined;
 }
 
-export type TBootPhase = 'configure' | 'discover' | 'load';
+export type TBootPhase = TConstValue<typeof BootPhases>;
 
 export const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load'];
 
@@ -29,7 +27,6 @@ export interface IApplication extends Container {
 }
 
 export interface IBootableApplication {
-  bootOptions?: IBootOptions;
   boot(): Promise<IBootReport>;
 }
 
@@ -40,9 +37,9 @@ export interface IBooterOptions {
 }
 
 export interface IBooter {
-  configure?(): Promise<void> | void;
-  discover?(): Promise<void> | void;
-  load?(): Promise<void> | void;
+  configure(): ValueOrPromise<void>;
+  discover(): ValueOrPromise<void>;
+  load(): ValueOrPromise<void>;
 }
 
 export interface IBootExecutionOptions {

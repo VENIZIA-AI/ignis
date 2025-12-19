@@ -24,7 +24,7 @@ describe('Boot Utility Tests', () => {
       const obj = {};
       const str = 'string';
       const num = 1;
-      const bool = true;
+      const isBool = true;
       const nil = null;
       const undef = undefined;
 
@@ -32,7 +32,7 @@ describe('Boot Utility Tests', () => {
       expect(isClass(obj)).toBe(false);
       expect(isClass(str)).toBe(false);
       expect(isClass(num)).toBe(false);
-      expect(isClass(bool)).toBe(false);
+      expect(isClass(isBool)).toBe(false);
       expect(isClass(nil)).toBe(false);
       expect(isClass(undef)).toBe(false);
     });
@@ -60,7 +60,7 @@ describe('Boot Utility Tests', () => {
 
     test('should return an empty array if no files match', async () => {
       const pattern = '**/*.nonexistent';
-      const root = process.cwd();
+      root = process.cwd();
 
       const files = await discoverFiles({ pattern, root });
       expect(files).toEqual([]);

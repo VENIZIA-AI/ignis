@@ -1,6 +1,6 @@
 import { BaseArtifactBooter } from '@/base';
 import { IApplication, IBootOptions } from '@/common';
-import { inject } from '@venizia/ignis-inversion';
+import { BindingKeys, inject } from '@venizia/ignis-inversion';
 
 export class ServiceBooter extends BaseArtifactBooter {
   constructor(
@@ -24,9 +24,9 @@ export class ServiceBooter extends BaseArtifactBooter {
   // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
-      this.application.bind({ key: `services.${cls.name}` }).toClass(cls);
-
-      this.logger.debug(`[bind] Bound key: %s`, `services.${cls.name}`);
+      const key = BindingKeys.build({ namespace: 'services', key: cls.name });
+      this.application.bind({ key }).toClass(cls).setTags('services');
+      this.logger.debug('[bind] Bound key: %s', key);
     }
   }
 }

@@ -1,5 +1,4 @@
-import { TClass } from '@/common/types';
-import { getError } from '@venizia/ignis-helpers';
+import { AnyType, getError, TClass } from '@venizia/ignis-helpers';
 import { glob } from 'glob';
 
 /**
@@ -8,7 +7,7 @@ import { glob } from 'glob';
  * @param target - Target to check
  * @returns True if target is a class
  */
-export const isClass = <T>(target: any): target is TClass<T> => {
+export const isClass = <T>(target: AnyType): target is TClass<T> => {
   return typeof target === 'function' && target.prototype !== undefined;
 };
 
@@ -25,9 +24,15 @@ export const discoverFiles: (opts: {
 }) => Promise<string[]> = async opts => {
   const { pattern, root } = opts;
 
-  return new Promise<string[]>((resolve, reject) => {
-    glob(pattern, { cwd: root, absolute: true }).then(resolve).catch(reject);
-  });
+  try {
+    const discovered = await glob(pattern, { cwd: root, absolute: true });
+    return discovered;
+  } catch (error) {
+    const errorMessage = (error as Error).message ?? 'Unknown error';
+    throw getError({
+      message: `Failed to discover files with pattern: ${pattern} | Error: ${errorMessage}`,
+    });
+  }
 };
 
 /**
@@ -40,9 +45,9 @@ export const discoverFiles: (opts: {
 export const loadClasses: (opts: {
   files: string[];
   root: string;
-}) => Promise<any[]> = async opts => {
+}) => Promise<AnyType[]> = async opts => {
   const { files } = opts;
-  const classes: TClass<any>[] = [];
+  const classes: TClass<AnyType>[] = [];
 
   for (const file of files) {
     try {
@@ -55,8 +60,9 @@ export const loadClasses: (opts: {
         classes.push(exported);
       }
     } catch (error) {
+      const errorMessage = (error as Error).message ?? 'Unknown error';
       throw getError({
-        message: `Failed to load file`,
+        message: `Failed to load file: ${file} | Error: ${errorMessage}`,
       });
     }
   }

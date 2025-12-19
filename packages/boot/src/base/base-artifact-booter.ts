@@ -1,6 +1,7 @@
-import { IArtifactOptions, IBooter, IBooterOptions, TClass } from '@/common/types';
+import { IArtifactOptions, IBooter, IBooterOptions } from '@/common/types';
 import { discoverFiles, loadClasses } from '@/utilities';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import { TClass } from '@venizia/ignis-inversion';
 
 export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   protected root: string = '';
@@ -42,7 +43,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
       .map(e => (e.startsWith('.') ? e.slice(1) : e))
       .join(',');
 
-    const nested = this.artifactOptions.nested ? '{**/*,*}' : '*'; // NOTE: only suports one level of nesting now
+    const nested = this.artifactOptions.isNested ? '{**/*,*}' : '*'; // NOTE: only suports one level of nesting now
 
     // Pattern: {dir1,dir2}/**/*.{artifact}.{ext1,ext2}
     // Example: {private-controllers,public-controllers}/**/*.controller.{js,ts}
@@ -58,7 +59,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     this.artifactOptions = {
       dirs: this.artifactOptions?.dirs ?? this.getDefaultDirs(),
       extensions: this.artifactOptions?.extensions ?? this.getDefaultExtensions(),
-      nested: this.artifactOptions?.nested ?? true,
+      isNested: this.artifactOptions?.isNested ?? true,
       glob: this.artifactOptions?.glob,
       ...this.artifactOptions,
     };

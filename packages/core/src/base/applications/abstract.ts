@@ -267,8 +267,13 @@ export abstract class AbstractApplication<
     });
   }
 
-  async start() {
+  // ------------------------------------------------------------------------------
+  init() {
     this.registerCoreBindings();
+  }
+
+  // ------------------------------------------------------------------------------
+  async start() {
     await this.initialize();
     await this.setupMiddlewares();
 

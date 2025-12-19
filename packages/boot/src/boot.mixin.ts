@@ -29,8 +29,8 @@ export const BootMixin = <T extends TMixinTarget<Container>>(baseClass: T) => {
     bootOptions?: IBootOptions | undefined;
 
     boot(): Promise<IBootReport> {
-    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-    return bootstrapper.boot({});
+      const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
+      return bootstrapper.boot({});
     }
   }
 

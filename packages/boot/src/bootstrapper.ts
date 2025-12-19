@@ -55,7 +55,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     this.phaseStartTimings.set(phase, performance.now());
     this.logger.debug(`[runPhase] Starting phase: %s`, phase.toUpperCase());
 
-    for await (const booter of this.booters) {
+    for (const booter of this.booters) {
       const phaseMethod = booter[phase];
       if (!phaseMethod) {
         this.logger.debug(
@@ -71,7 +71,6 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
           phase,
           booter.constructor.name,
         );
-
         continue;
       }
 
@@ -83,8 +82,10 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
         );
         await phaseMethod.call(booter);
       } catch (error) {
+        const errorMessage = (error as Error)?.message || String(error);
+
         throw getError({
-          message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.constructor.name}': ${error.message}`,
+          message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.constructor.name}': ${errorMessage}`,
         });
       }
     }

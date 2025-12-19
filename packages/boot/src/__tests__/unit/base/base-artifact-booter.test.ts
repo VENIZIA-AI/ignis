@@ -16,7 +16,7 @@ class TestBooter extends BaseArtifactBooter {
 
 describe('Base Artifact Booter Tests', () => {
   let booter: TestBooter;
-  let root = path.resolve(process.cwd(), 'dist/cjs/__tests__/fixtures');
+  const root = path.resolve(process.cwd(), 'dist/cjs/__tests__/fixtures');
 
   beforeAll(() => {
     booter = new TestBooter({ root, artifactOptions: {}, scope: TestBooter.name });
@@ -27,7 +27,7 @@ describe('Base Artifact Booter Tests', () => {
       booter.configure();
       expect(booter['artifactOptions'].dirs).toEqual(['repositories']);
       expect(booter['artifactOptions'].extensions).toEqual(['.repository.js']);
-      expect(booter['artifactOptions'].nested).toEqual(true);
+      expect(booter['artifactOptions'].isNested).toEqual(true);
       expect(booter['artifactOptions'].glob).toBeUndefined();
     });
 
@@ -38,14 +38,14 @@ describe('Base Artifact Booter Tests', () => {
         artifactOptions: {
           dirs: ['custom-dir'],
           extensions: ['.custom.js'],
-          nested: true,
+          isNested: true,
           glob: 'custom/glob/pattern/**/*.js',
         },
       });
       customBooter.configure();
       expect(customBooter['artifactOptions'].dirs).toEqual(['custom-dir']);
       expect(customBooter['artifactOptions'].extensions).toEqual(['.custom.js']);
-      expect(customBooter['artifactOptions'].nested).toEqual(true);
+      expect(customBooter['artifactOptions'].isNested).toEqual(true);
       expect(customBooter['artifactOptions'].glob).toEqual('custom/glob/pattern/**/*.js');
     });
   });

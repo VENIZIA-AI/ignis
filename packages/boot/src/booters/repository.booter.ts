@@ -1,6 +1,6 @@
 import { BaseArtifactBooter } from '@/base';
 import { IApplication, IBootOptions } from '@/common';
-import { inject } from '@venizia/ignis-inversion';
+import { BindingKeys, inject } from '@venizia/ignis-inversion';
 
 export class RepositoryBooter extends BaseArtifactBooter {
   constructor(
@@ -23,9 +23,9 @@ export class RepositoryBooter extends BaseArtifactBooter {
   // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
-      this.application.bind({ key: `repositories.${cls.name}` }).toClass(cls);
-
-      this.logger.debug(`[bind] Bound key: %s`, `repositories.${cls.name}`);
+      const key = BindingKeys.build({ namespace: 'repositories', key: cls.name });
+      this.application.bind({ key }).toClass(cls).setTags('repositories');
+      this.logger.debug('[bind] Bound key: %s', key);
     }
   }
 }

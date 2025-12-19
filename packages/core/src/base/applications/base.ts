@@ -4,7 +4,6 @@ import {
   Bootstrapper,
   ControllerBooter,
   DatasourceBooter,
-  IBootOptions,
   IBootReport,
   RepositoryBooter,
   ServiceBooter,
@@ -57,14 +56,6 @@ export abstract class BaseApplication
   extends AbstractApplication
   implements IRestApplication, IBootableApplication
 {
-  bootOptions?: IBootOptions | undefined;
-
-  // ------------------------------------------------------------------------------
-  boot(): Promise<IBootReport> {
-    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-    return bootstrapper.boot({});
-  }
-
   // ------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
@@ -123,6 +114,7 @@ export abstract class BaseApplication
     }).toClass(ctor);
   }
 
+  // ------------------------------------------------------------------------------
   async registerControllers() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -247,6 +239,25 @@ export abstract class BaseApplication
   }
 
   // ------------------------------------------------------------------------------
+  async registerBooters() {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerDataSources.name,
+      description: 'Register application data sources',
+      task: async () => {
+        this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
+        this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
+
+        // Define default booters
+        this.booter(DatasourceBooter);
+        this.booter(RepositoryBooter);
+        this.booter(ServiceBooter);
+        this.booter(ControllerBooter);
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------------------
   static(opts: { restPath?: string; folderPath: string }) {
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
@@ -344,20 +355,16 @@ export abstract class BaseApplication
   }
 
   // ------------------------------------------------------------------------------
+  async boot(): Promise<IBootReport> {
+    await this.registerBooters();
+
+    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
+
+    return bootstrapper.boot({});
+  }
+
+  // ------------------------------------------------------------------------------
   override async initialize() {
-    if (this.configs.bootOptions) {
-      this.bind({ key: `@app/boot-options` }).toValue(this.bootOptions ?? {});
-      this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
-
-      // Define default booters
-      this.booter(DatasourceBooter);
-      this.booter(RepositoryBooter);
-      this.booter(ServiceBooter);
-      this.booter(ControllerBooter);
-
-      await this.boot();
-    }
-
     this.printStartUpInfo({ scope: this.initialize.name });
     this.validateEnvs();
 
