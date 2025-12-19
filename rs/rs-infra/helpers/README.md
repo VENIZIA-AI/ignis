@@ -1,40 +1,31 @@
 # rs_infra_helpers
 
-RSAX Macros
-
-Usage
+## Usage:
 
 ```rust
-use rs_infra_helpers::fetcher::{BaseFetcher, BaseFetcherOptions, RequestOptions, TBaseFetcher};
+    use rs_infra_helpers::fetcher::{BaseFetcher, BaseFetcherOptions, RequestOptions, TBaseFetcher};
+    use reqwest::Method;
 
-use reqwest::Method;
-
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let token = "your_token";
-
-    let base_url = "your_base_url";
-
-    let opts = BaseFetcherOptions {
-        base_url: base_url.to_string(),
+    let networkRequestOptions = NetworkRequestOptions {
+        name: 'your_name',
+        base_url: 'your_base_url',
         ..Default::default()
     };
 
-    let fetcher = BaseFetcher::new(opts);
+    let networkRequest = NetworkRequest::new(networkRequestOptions);
 
-    let who_am_i_url = "/auth/who-am-i";
-
-    let options = RequestOptions {
-        url: who_am_i_url.to_string(),
+    let requestOptions = RequestOptions {
+        url: 'your_url',
         method: Method::GET,
-        bearer_auth: Some(token.to_string()),
         ..Default::default()
     };
 
-    let resp = fetcher.send(options).await?.text().await?;
+    let response = network_request
+        .get_fetcher()
+        .send(request_options)
+        .await?
+        .text()
+        .await?;
 
-    println!("{resp:#?}");
-
-    Ok(())
-}
+    println!("{response:#?}");
 ```

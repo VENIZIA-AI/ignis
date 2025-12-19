@@ -1,1 +1,2 @@
-pub mod fetcher;
+pub mod error;
+pub mod network;

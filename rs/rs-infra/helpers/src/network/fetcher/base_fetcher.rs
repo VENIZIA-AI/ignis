@@ -1,8 +1,5 @@
 use async_trait::async_trait;
-use reqwest::{
-    Client, Error, Method, RequestBuilder, Response,
-    header::{CONTENT_TYPE, HeaderMap, HeaderValue},
-};
+use reqwest::{Client, Error, Method, RequestBuilder, Response, header::HeaderMap};
 use serde_json::Value;
 use std::time::Duration;
 
@@ -24,7 +21,7 @@ pub struct RequestOptions {
 // --------------------------------------------------
 #[derive(Debug, Default, Clone)]
 pub struct BaseFetcherOptions {
-    pub name: Option<String>,
+    pub name: String,
     pub base_url: String,
     pub headers: Option<HeaderMap>,
     pub timeout: Option<Duration>,
@@ -33,7 +30,7 @@ pub struct BaseFetcherOptions {
 // --------------------------------------------------
 #[derive(Debug, Clone)]
 pub struct BaseFetcher {
-    pub name: Option<String>,
+    pub name: String,
     pub base_url: String,
     client: Client,
 }
@@ -42,6 +39,8 @@ pub struct BaseFetcher {
 #[async_trait]
 pub trait TBaseFetcher: Sized {
     fn new(options: BaseFetcherOptions) -> Self;
+
+    fn get_request_url(&self, path: &str) -> String;
 
     async fn send(&self, options: RequestOptions) -> Result<Response, Error>;
 
@@ -98,11 +97,7 @@ impl TBaseFetcher for BaseFetcher {
         } = options;
 
         let timeout_value: Duration = timeout.unwrap_or(TIME_OUT);
-        let mut default_headers = headers.unwrap_or_default();
-
-        default_headers
-            .entry(CONTENT_TYPE)
-            .or_insert(HeaderValue::from_static("application/json"));
+        let default_headers = headers.unwrap_or_default();
 
         let client = Client::builder()
             .timeout(timeout_value)
@@ -125,28 +120,42 @@ impl TBaseFetcher for BaseFetcher {
     }
 
     // --------------------------------------------------
-    async fn send(&self, options: RequestOptions) -> Result<Response, Error> {
-        let full_url = format!(
+    fn get_request_url(&self, path: &str) -> String {
+        format!(
             "{}/{}",
             self.base_url.trim_end_matches('/'),
-            options.url.trim_start_matches('/')
-        );
+            path.trim_start_matches('/')
+        )
+    }
 
-        let mut rb: RequestBuilder = self.client.request(options.method, &full_url);
+    // --------------------------------------------------
+    async fn send(&self, options: RequestOptions) -> Result<Response, Error> {
+        let RequestOptions {
+            url,
+            method,
+            headers,
+            bearer_auth,
+            body,
+            query,
+        } = options;
 
-        if let Some(headers_data) = options.headers {
+        let url: String = self.get_request_url(&url);
+
+        let mut rb: RequestBuilder = self.client.request(method, &url);
+
+        if let Some(headers_data) = headers {
             rb = rb.headers(headers_data);
         }
 
-        if let Some(bearer_auth_data) = options.bearer_auth {
+        if let Some(bearer_auth_data) = bearer_auth {
             rb = rb.bearer_auth(bearer_auth_data);
         }
 
-        if let Some(body_data) = options.body {
+        if let Some(body_data) = body {
             rb = rb.json(&body_data);
         }
 
-        if let Some(query_data) = options.query {
+        if let Some(query_data) = query {
             rb = rb.query(&query_data);
         }
 
