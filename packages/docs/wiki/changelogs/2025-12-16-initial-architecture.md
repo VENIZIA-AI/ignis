@@ -1,11 +1,19 @@
-# v0.0.1-7 - Initial Architecture (Pre-Refactor)
+---
+title: Initial Architecture
+description: Documentation of the original Ignis architecture before the Model-Repository-DataSource refactor
+---
 
-**Release Date**: 2025-12-16
-**Status**: Superseded by v0.0.1-8
+# Changelog - 2025-12-16
+
+## Initial Architecture (Pre-Refactor)
+
+This documents the original architecture of the Ignis framework before the Model-Repository-DataSource refactor. This version required manual schema registration and explicit constructor parameters.
 
 ## Overview
 
-This documents the original architecture of the Ignis framework before the Model-Repository-DataSource refactor. This version required manual schema registration and explicit constructor parameters.
+- **Model Definition**: Three separate declarations (table, relations, class) for each model.
+- **DataSource Definition**: Required manual schema registration.
+- **Repository Definition**: Required explicit constructor injection.
 
 ## Architecture Pattern
 
@@ -103,12 +111,12 @@ export class ConfigurationRepository extends DefaultCRUDRepository<typeof config
 
 ## Pain Points
 
-1. **Verbose Model Definition**: Three separate declarations (table, relations, class) for each model
-2. **Manual Schema Registration**: DataSource required explicit registration of every model and relation
-3. **Unclear Repository Role**: Repository just wrapped datasource without defining the model-datasource binding
-4. **Declaration Order Issues**: Had to declare table before relations, relations before class
-5. **No Auto-Discovery**: Adding a new model required updates in multiple places
-6. **Tight Coupling**: Changes to model structure required updates in datasource configuration
+- **Verbose Model Definition**: Three separate declarations (table, relations, class) for each model
+- **Manual Schema Registration**: DataSource required explicit registration of every model and relation
+- **Unclear Repository Role**: Repository just wrapped datasource without defining the model-datasource binding
+- **Declaration Order Issues**: Had to declare table before relations, relations before class
+- **No Auto-Discovery**: Adding a new model required updates in multiple places
+- **Tight Coupling**: Changes to model structure required updates in datasource configuration
 
 ## File Structure
 
@@ -132,6 +140,6 @@ src/
 - `drizzle-orm`: ORM layer
 - `drizzle-zod`: Schema validation
 
----
+## No Breaking Changes
 
-*This architecture was superseded by the Loopback 4-style refactor in v0.0.1-8*
+This document describes the initial state of the architecture.

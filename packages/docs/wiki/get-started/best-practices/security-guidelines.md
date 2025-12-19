@@ -72,9 +72,11 @@ const SecureRoute = {
 
 **Access user in protected routes:**
 ```typescript
+import { Authentication, IJWTTokenPayload, ApplicationError, getError } from '@venizia/ignis';
+
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
 if (!user.roles.includes('admin')) {
-    throw new ApplicationError({ statusCode: 403, message: 'Forbidden' });
+    throw getError({ statusCode: 403, message: 'Forbidden' });
 }
 ```
 

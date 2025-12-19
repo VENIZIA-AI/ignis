@@ -103,7 +103,7 @@ export class ConfigurationController extends _Controller {
 
 ## 3. Component-Based Modularity
 
-Components bundle related features into self-contained, pluggable modules.
+Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories, essentially functioning as a mini-application that can be easily "plugged in" to any Ignis project.
 
 **Built-in Components:**
 - `AuthenticateComponent` - JWT authentication

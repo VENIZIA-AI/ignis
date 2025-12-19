@@ -9,7 +9,8 @@ Services contain your application's business logic, orchestrating data flow and 
 Services contain the core business logic of your application. They orchestrate the flow of data and execute the application's use cases. A service's primary responsibilities are:
 
 -   **Encapsulating Business Rules**: Centralizing logic such as calculations, data validation, and process workflows.
--   **Coordinating Data Operations**: Using one or more repositories to fetch and persist data.
+-   **Coordinating Operations**: Using repositories to fetch and persist data, or orchestrating other services to execute complex business workflows.
+-   **Reusing Business Logic**: Services can inject other services to reuse established logic, ensuring "Don't Repeat Yourself" (DRY) principles are maintained across the application.
 -   **Isolating Controllers**: Keeping controllers thin by handling all the complex logic, so controllers are only responsible for handling the HTTP request and response.
 
 ### Creating a Service
@@ -17,9 +18,10 @@ Services contain the core business logic of your application. They orchestrate t
 To create a service, you extend the `BaseService` class and inject the repositories or other services it depends on.
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, getError } from '@venizia/ignis';
 import { ConfigurationRepository } from '../repositories';
 import { UserRepository } from '../repositories';
+import { LoggingService } from './logging.service'; // Example of another service
 import { TConfiguration } from '../models/entities';
 
 export class ConfigurationService extends BaseService {
@@ -28,53 +30,45 @@ export class ConfigurationService extends BaseService {
     private configurationRepository: ConfigurationRepository,
     @inject({ key: 'repositories.UserRepository' }) 
     private userRepository: UserRepository,
+    @inject({ key: 'services.LoggingService' })
+    private loggingService: LoggingService, // Injecting another service for reuse
   ) {
     super({ scope: ConfigurationService.name });
   }
 
   async createConfigurationForUser(userId: string, data: Partial<TConfiguration>): Promise<TConfiguration> {
+    // Call another service logic
+    await this.loggingService.audit(`Creating config for user: ${userId}`);
+
     // Business logic: Check if the user exists
     const user = await this.userRepository.findById({ id: userId });
-    if (!user) {
-      throw new Error(`User with ID ${userId} not found.`);
-    }
-    
-    // Business logic: Check for duplicate configuration code
-    const existingConfig = await this.configurationRepository.findOne({ where: { code: data.code } });
-    if (existingConfig) {
-      throw new Error('Configuration with this code already exists.');
-    }
-
-    // Use the repository to create the configuration, assigning the creator
-    const newConfigData = { ...data, createdBy: userId, modifiedBy: userId };
-    return this.configurationRepository.create(newConfigData);
-  }
-}
+// ...
 ```
 
 ## How Services Fit into the Architecture
 
-Services act as the intermediary between controllers and repositories, ensuring a clean separation of concerns.
+Services act as the primary layer for business logic, sitting between controllers and repositories. While controllers are the typical entry point, **services can also inject and call other services**. This enables powerful logic reuse and allows you to build complex use cases by composing smaller, specialized services.
 
 ```mermaid
 graph LR
     A[Client Request] --> B(Controller);
-    B --> C{Service};
-    C --> D[Repository];
-    D --> E((Database));
-    E --> D;
-    D --> C;
-    C --> B;
-    B --> F[Client Response];
+    B --> C1{Service A};
+    C1 --> C2{Service B};
+    C1 --> D1[Repository A];
+    C2 --> D2[Repository B];
+    D1 --> E((Database));
+    D2 --> E;
 
     subgraph "Presentation Layer"
         B
     end
     subgraph "Business Logic Layer"
-        C
+        C1
+        C2
     end
     subgraph "Data Access Layer"
-        D
+        D1
+        D2
     end
     subgraph "Data Store"
         E

@@ -1,6 +1,6 @@
 # Components
 
-Components are reusable, pluggable modules that encapsulate features like authentication, logging, or API documentation.
+Components are reusable, pluggable modules that encapsulate a group of related features. A component acts as a powerful container for various resources—including providers, services, controllers, repositories, and even entire mini-applications—making it easy to share and integrate complex functionality across projects.
 
 > **Deep Dive:** See [Components Reference](../../references/base/components.md) for technical details.
 
@@ -8,8 +8,10 @@ Components are reusable, pluggable modules that encapsulate features like authen
 
 A component is a class that extends `BaseComponent` and is responsible for:
 
-- **Binding Dependencies**: Registering services, controllers, providers, or other resources with the application's dependency injection container.
+- **Binding Dependencies**: Registering services, controllers, repositories, providers, or other resources with the application's dependency injection container.
 - **Configuring Features**: Setting up middlewares, initializing services, or performing any other setup required for the feature to work.
+
+A single component can bundle everything needed for a specific domain—for example, an "AuthComponent" might include multiple services for token management, repositories for user data, and controllers for login/signup endpoints, essentially functioning as a plug-and-play mini-application.
 
 `Ignis` comes with several built-in components, which you can explore in the [**Components Reference**](../../references/components/) section:
 

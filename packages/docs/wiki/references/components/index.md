@@ -1,6 +1,6 @@
 # Components
 
-Reusable, pluggable modules that encapsulate specific features in Ignis applications.
+Reusable, pluggable modules that group together related features. A component can encapsulate various resources such as providers, services, controllers, repositories, or even an entire mini-application, providing a clean way to modularize and share complex logic across Ignis applications.
 
 ## Built-in Components
 

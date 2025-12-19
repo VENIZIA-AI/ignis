@@ -236,6 +236,7 @@ import {
   IJWTTokenPayload,
   JWTTokenService,
   TSignInRequest,
+  getError,
 } from '@venizia/ignis';
 import { Context } from 'hono';
 
@@ -256,7 +257,7 @@ export class AuthenticationService extends BaseService implements IAuthService {
     const user = { id: 'user-id-from-db', roles: [] }; // Dummy user
 
     if (identifier.value !== 'test_username' || credential.value !== 'test_password') {
-      throw new Error('Invalid credentials');
+      throw getError({ message: 'Invalid credentials' });
     }
     // --- End of custom logic ---
 
@@ -272,12 +273,12 @@ export class AuthenticationService extends BaseService implements IAuthService {
 
   async signUp(context: Context, opts: any): Promise<any> {
     // Implement your sign-up logic
-    throw new Error('Method not implemented.');
+    throw getError({ message: 'Method not implemented.' });
   }
 
   async changePassword(context: Context, opts: any): Promise<any> {
     // Implement your change password logic
-    throw new Error('Method not implemented.');
+    throw getError({ message: 'Method not implemented.' });
   }
 }
 ```
