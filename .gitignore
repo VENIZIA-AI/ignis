@@ -94,3 +94,7 @@ node_modules.zip
 **/*/__mf__/temp/
 
 **/*/.vitepress/cache
+
+
+# rust
+rs/**/target/
