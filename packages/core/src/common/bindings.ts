@@ -9,6 +9,7 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = BindingNamespaces.createNamespace({ name: 'middlewares' });
   static readonly PROVIDER = BindingNamespaces.createNamespace({ name: 'providers' });
   static readonly CONTROLLER = BindingNamespaces.createNamespace({ name: 'controllers' });
+  static readonly BOOTERS = BindingNamespaces.createNamespace({ name: 'booters' });
 
   static createNamespace(opts: { name: string }) {
     return opts.name;

@@ -9,6 +9,7 @@ import {
   IStaticServeMixin,
 } from '../mixins/types';
 import { ValueOrPromise } from '@venizia/ignis-helpers';
+import { IBootOptions } from '@venizia/ignis-boot';
 
 // ------------------------------------------------------------------------------
 // Common Middleware Options
@@ -99,6 +100,7 @@ export interface IApplicationConfigs {
   favicon?: string;
   autoLoad?: { dirs: { [key: string | symbol]: { path: string } } };
   debug?: { shouldShowRoutes?: boolean };
+  bootOptions?: IBootOptions;
   [key: string]: any;
 }
 

@@ -8,10 +8,10 @@ import {
   IBootReport,
   RepositoryBooter,
   ServiceBooter,
-  IBootableApplication
+  IBootableApplication,
+  IBooter,
 } from '@venizia/ignis-boot';
 import {
-  AnyObject,
   Binding,
   BindingKeys,
   BindingScopes,
@@ -208,6 +208,7 @@ export abstract class BaseApplication
       .setScope(BindingScopes.SINGLETON);
   }
 
+  // ------------------------------------------------------------------------------
   async registerDataSources() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -229,6 +230,20 @@ export abstract class BaseApplication
         }
       },
     });
+  }
+
+  // ------------------------------------------------------------------------------
+  booter<Base extends IBooter, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
+      ),
+    })
+      .toClass(ctor)
+      .setTags('booter');
   }
 
   // ------------------------------------------------------------------------------
@@ -330,16 +345,18 @@ export abstract class BaseApplication
 
   // ------------------------------------------------------------------------------
   override async initialize() {
-    this.bind({ key: `@app/boot-options` }).toValue(this.bootOptions ?? {});
+    if (this.configs.bootOptions) {
+      this.bind({ key: `@app/boot-options` }).toValue(this.bootOptions ?? {});
+      this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
 
-    this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
-    this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
-    this.bind({ key: 'booter.ServiceBooter' }).toClass(ServiceBooter).setTags('booter');
-    this.bind({ key: 'booter.ControllerBooter' }).toClass(ControllerBooter).setTags('booter');
+      // Define default booters
+      this.booter(DatasourceBooter);
+      this.booter(RepositoryBooter);
+      this.booter(ServiceBooter);
+      this.booter(ControllerBooter);
 
-    this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
-
-    await this.boot();
+      await this.boot();
+    }
 
     this.printStartUpInfo({ scope: this.initialize.name });
     this.validateEnvs();
