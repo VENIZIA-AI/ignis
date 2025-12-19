@@ -31,7 +31,7 @@ pub struct BaseFetcherOptions {
 }
 
 // --------------------------------------------------
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct BaseFetcher {
     pub name: Option<String>,
     pub base_url: String,
