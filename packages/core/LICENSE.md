@@ -33,6 +33,7 @@ This monorepo contains the following packages, all licensed under MIT:
 | Package | Description |
 |---------|-------------|
 | `@venizia/ignis` | Core framework - controllers, services, decorators |
+| `@venizia/ignis-boot` | Application bootstrapping & artifact auto-discovery |
 | `@venizia/ignis-helpers` | Utility helpers - logging, cron, Redis, queues, storage |
 | `@venizia/ignis-inversion` | Dependency Injection & IoC container |
 | `@venizia/dev-configs` | Shared ESLint, Prettier, TypeScript configurations |
@@ -73,6 +74,7 @@ Ignis uses the following open-source libraries. We are grateful to the authors a
 |---------|---------|-------------|
 | [Lodash](https://github.com/lodash/lodash) | MIT | Utility library |
 | [reflect-metadata](https://github.com/rbuckton/reflect-metadata) | Apache-2.0 | Metadata reflection API |
+| [glob](https://github.com/isaacs/node-glob) | ISC | File pattern matching (used by boot) |
 
 ### Documentation Dependencies
 

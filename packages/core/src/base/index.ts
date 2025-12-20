@@ -3,6 +3,7 @@ export * from './components';
 export * from './controllers';
 export * from './datasources';
 export * from './metadata';
+export * from './mixins';
 export * from './models';
 export * from './providers';
 export * from './repositories';

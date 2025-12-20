@@ -9,6 +9,7 @@ export class BindingNamespaces {
   static readonly MIDDLEWARE = BindingNamespaces.createNamespace({ name: 'middlewares' });
   static readonly PROVIDER = BindingNamespaces.createNamespace({ name: 'providers' });
   static readonly CONTROLLER = BindingNamespaces.createNamespace({ name: 'controllers' });
+  static readonly BOOTERS = BindingNamespaces.createNamespace({ name: 'booters' });
 
   static createNamespace(opts: { name: string }) {
     return opts.name;
@@ -19,6 +20,7 @@ export class CoreBindings extends BindingKeys {
   static readonly APPLICATION_INSTANCE = '@app/instance';
   static readonly APPLICATION_SERVER = '@app/server';
   static readonly APPLICATION_CONFIG = '@app/config';
+  static readonly APPLICATION_PROJECT_ROOT = '@app/project_root';
 
   static readonly APPLICATION_ROOT_ROUTER = '@app/router/root';
 

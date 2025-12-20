@@ -92,7 +92,9 @@ export abstract class AbstractApplication<
   }
 
   getProjectRoot(): string {
-    return process.cwd();
+    const projectRoot = process.cwd();
+    this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+    return projectRoot;
   }
 
   getRootRouter(): OpenAPIHono<AppEnv, AppSchema, BasePath> {
@@ -265,8 +267,13 @@ export abstract class AbstractApplication<
     });
   }
 
-  async start() {
+  // ------------------------------------------------------------------------------
+  init() {
     this.registerCoreBindings();
+  }
+
+  // ------------------------------------------------------------------------------
+  async start() {
     await this.initialize();
     await this.setupMiddlewares();
 

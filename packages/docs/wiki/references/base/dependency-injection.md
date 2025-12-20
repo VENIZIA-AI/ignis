@@ -13,9 +13,10 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 | Component | Purpose | Key Methods |
 |-----------|---------|-------------|
 | **Container** | DI registry managing resource lifecycles | `bind()`, `get()`, `instantiate()`, `findByTag()` |
-| **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()` |
+| **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()` |
 | **@inject** | Decorator marking injection points | Applied to constructor parameters/properties |
 | **MetadataRegistry** | Stores decorator metadata | Singleton accessed via `getInstance()` |
+| **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
 
 ## `Container` Class
 
@@ -82,3 +83,95 @@ The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a s
 -   When the `Container` instantiates a class, it queries the `MetadataRegistry` to find out which dependencies need to be injected and where.
 
 You typically won't interact with the `MetadataRegistry` directly, but it's the underlying mechanism that makes the decorator-based DI and routing systems work seamlessly.
+
+## Boot System Integration
+
+The boot system (`@venizia/ignis-boot`) extends the DI container to support automatic artifact discovery and registration.
+
+### Key Bindings
+
+When boot system is enabled, the following bindings are created:
+
+| Binding Key | Type | Description |
+|-------------|------|-------------|
+| `@app/instance` | Value | The application container instance |
+| `@app/project_root` | Value | Absolute path to project root |
+| `@app/boot-options` | Value | Boot configuration options |
+| `bootstrapper` | Class (Singleton) | Main boot orchestrator |
+| `booter.DatasourceBooter` | Class (Tagged: 'booter') | Datasource discovery booter |
+| `booter.RepositoryBooter` | Class (Tagged: 'booter') | Repository discovery booter |
+| `booter.ServiceBooter` | Class (Tagged: 'booter') | Service discovery booter |
+| `booter.ControllerBooter` | Class (Tagged: 'booter') | Controller discovery booter |
+
+### Tag-based Discovery
+
+The boot system uses container tags for automatic discovery:
+
+```typescript
+// Register a booter with tag
+this.bind({ key: 'booter.CustomBooter' })
+  .toClass(CustomBooter)
+  .setTags('booter');
+
+// Find all booters
+const booterBindings = this.findByTag<IBooter>({ tag: 'booter' });
+```
+
+This pattern allows the `Bootstrapper` to automatically discover and execute all registered booters without explicit registration.
+
+### Artifact Bindings
+
+Once artifacts are discovered and loaded, they're bound using consistent patterns:
+
+```typescript
+// Controllers
+this.bind({ key: 'controllers.UserController' }).toClass(UserController);
+
+// Services
+this.bind({ key: 'services.UserService' }).toClass(UserService);
+
+// Repositories
+this.bind({ key: 'repositories.UserRepository' }).toClass(UserRepository);
+
+// Datasources
+this.bind({ key: 'datasources.PostgresDataSource' }).toClass(PostgresDataSource);
+```
+
+### Boot Lifecycle & DI
+
+The boot system integrates into the application lifecycle:
+
+1. **Application Constructor** - Binds boot infrastructure if `bootOptions` configured
+2. **initialize()** - Calls `boot()` which:
+   - Discovers booters from container (via `findByTag`)
+   - Instantiates booters (via `container.get()` or `binding.getValue()`)
+   - Executes boot phases (configure → discover → load)
+   - Each booter binds discovered artifacts to container
+3. **Post-Boot** - All artifacts available for dependency injection
+
+**Example Flow:**
+
+```typescript
+// 1. Boot discovers UserController.js file
+// 2. Boot loads UserController class
+// 3. Boot binds to container:
+app.bind({ key: 'controllers.UserController' }).toClass(UserController);
+
+// 4. Later, when UserController is instantiated:
+@injectable()
+class UserController {
+  constructor(
+    @inject({ key: 'services.UserService' }) 
+    private userService: UserService  // Auto-injected!
+  ) {}
+}
+```
+
+### Benefits
+
+- **Zero-configuration DI**: Artifacts auto-discovered and registered
+- **Convention-based**: Follow naming patterns, get DI for free
+- **Extensible**: Custom booters integrate seamlessly via tags
+- **Type-safe**: Full TypeScript support throughout boot process
+
+> **Learn More:** See [Bootstrapping Concepts](/get-started/core-concepts/bootstrapping.md) and [Boot Package Reference](/references/src-details/boot.md)

@@ -1,6 +1,16 @@
 import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import {
+  Bootstrapper,
+  ControllerBooter,
+  DatasourceBooter,
+  IBootReport,
+  RepositoryBooter,
+  ServiceBooter,
+  IBootableApplication,
+  IBooter,
+} from '@venizia/ignis-boot';
+import {
   Binding,
   BindingKeys,
   BindingScopes,
@@ -42,7 +52,11 @@ const {
 } = process.env;
 
 // ------------------------------------------------------------------------------
-export abstract class BaseApplication extends AbstractApplication implements IRestApplication {
+export abstract class BaseApplication
+  extends AbstractApplication
+  implements IRestApplication, IBootableApplication
+{
+  // ------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
     return joined || '/';
@@ -100,6 +114,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
     }).toClass(ctor);
   }
 
+  // ------------------------------------------------------------------------------
   async registerControllers() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -185,6 +200,7 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
       .setScope(BindingScopes.SINGLETON);
   }
 
+  // ------------------------------------------------------------------------------
   async registerDataSources() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -204,6 +220,39 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
 
           await instance.configure();
         }
+      },
+    });
+  }
+
+  // ------------------------------------------------------------------------------
+  booter<Base extends IBooter, Args extends AnyObject = any>(
+    ctor: TClass<Base>,
+    opts?: TMixinOpts<Args>,
+  ): Binding<Base> {
+    return this.bind<Base>({
+      key: BindingKeys.build(
+        opts?.binding ?? { namespace: BindingNamespaces.BOOTERS, key: ctor.name },
+      ),
+    })
+      .toClass(ctor)
+      .setTags('booter');
+  }
+
+  // ------------------------------------------------------------------------------
+  async registerBooters() {
+    await executeWithPerformanceMeasure({
+      logger: this.logger,
+      scope: this.registerDataSources.name,
+      description: 'Register application data sources',
+      task: async () => {
+        this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
+        this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
+
+        // Define default booters
+        this.booter(DatasourceBooter);
+        this.booter(RepositoryBooter);
+        this.booter(ServiceBooter);
+        this.booter(ControllerBooter);
       },
     });
   }
@@ -303,6 +352,15 @@ export abstract class BaseApplication extends AbstractApplication implements IRe
         server.onError(appErrorHandler({ logger: this.logger }));
       },
     });
+  }
+
+  // ------------------------------------------------------------------------------
+  async boot(): Promise<IBootReport> {
+    await this.registerBooters();
+
+    const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
+
+    return bootstrapper.boot({});
   }
 
   // ------------------------------------------------------------------------------

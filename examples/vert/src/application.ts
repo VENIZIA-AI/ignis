@@ -1,5 +1,3 @@
-import { PostgresDataSource } from '@/datasources';
-import { ConfigurationRepository, UserRepository } from '@/repositories';
 import {
   ChangePasswordRequestSchema,
   ChangePasswordResponseSchema,
@@ -8,7 +6,6 @@ import {
   SignUpRequestSchema,
   SignUpResponseSchema,
 } from '@/schemas';
-import { AuthenticationService } from '@/services';
 import {
   applicationEnvironment,
   AuthenticateBindingKeys,
@@ -19,6 +16,7 @@ import {
   BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
+  CoreBindings,
   DataTypes,
   DiskHelper,
   Environment,
@@ -45,9 +43,9 @@ import {
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
-import { ConfigurationController, TestController } from './controllers';
-import { MetaLinkRepository } from './repositories/meta-link.repository';
 import { EnvironmentKeys } from './common/environments';
+import { ConfigurationRepository } from './repositories';
+import { MetaLinkRepository } from './repositories/meta-link.repository';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -60,18 +58,29 @@ export const beConfigs: IApplicationConfigs = {
   debug: {
     shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
+  bootOptions: {},
 };
 
 // -----------------------------------------------------------------------------------------------
 export class Application extends BaseApplication {
+  // --------------------------------------------------------------------------------
+  override getProjectRoot(): string {
+    const projectRoot = __dirname;
+    this.bind<string>({ key: CoreBindings.APPLICATION_PROJECT_ROOT }).toValue(projectRoot);
+    return projectRoot;
+  }
+
+  // --------------------------------------------------------------------------------
   override getAppInfo(): ValueOrPromise<IApplicationInfo> {
     return packageJson;
   }
 
+  // --------------------------------------------------------------------------------
   staticConfigure(): void {
     this.static({ folderPath: path.join(__dirname, '../public') });
   }
 
+  // --------------------------------------------------------------------------------
   override async setupMiddlewares() {
     const server = this.getServer();
 
@@ -124,6 +133,7 @@ export class Application extends BaseApplication {
     }
   }
 
+  // --------------------------------------------------------------------------------
   registerAuth() {
     this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
       alwaysAllowPaths: [],
@@ -167,7 +177,6 @@ export class Application extends BaseApplication {
       },
     });
     this.component(AuthenticateComponent);
-    this.service(AuthenticationService);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       name: Authentication.STRATEGY_JWT,
@@ -175,21 +184,9 @@ export class Application extends BaseApplication {
     });
   }
 
+  // --------------------------------------------------------------------------------
   preConfigure(): ValueOrPromise<void> {
-    // DataSources
-    this.dataSource(PostgresDataSource);
-
-    // Repositories
-    this.repository(UserRepository);
-    this.repository(ConfigurationRepository);
-    this.repository(MetaLinkRepository);
-
-    // Services
     this.registerAuth();
-
-    // Controllers
-    this.controller(TestController);
-    this.controller(ConfigurationController);
 
     // Extra Components
     this.bind<IHealthCheckOptions>({
@@ -251,6 +248,7 @@ export class Application extends BaseApplication {
     this.component(StaticAssetComponent);
   }
 
+  // --------------------------------------------------------------------------------
   async postConfigure(): Promise<void> {
     // ------------------------------------------------------------------------------------------------
     this.logger.info(

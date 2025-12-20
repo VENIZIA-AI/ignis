@@ -121,6 +121,10 @@ const config = defineConfig({
               text: 'Persistent Layer',
               link: '/get-started/core-concepts/persistent',
             },
+            {
+              text: 'Bootstrapping',
+              link: '/get-started/core-concepts/bootstrapping',
+            },
           ],
         },
         {
@@ -197,6 +201,7 @@ const config = defineConfig({
           collapsed: true,
           items: [
             { text: 'Application', link: '/references/base/application' },
+            { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
             { text: 'Components', link: '/references/base/components' },
             { text: 'Controllers', link: '/references/base/controllers' },
             { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
@@ -249,6 +254,7 @@ const config = defineConfig({
           collapsed: true,
           items: [
             { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
+            { text: 'Boot (@vez/ignis-boot)', link: '/references/src-details/boot' },
             { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },
             { text: 'Inversion (@vez/ignis-inversion)', link: '/references/src-details/inversion' },
             { text: 'Dev Configs (@vez/dev-configs)', link: '/references/src-details/dev-configs' },
