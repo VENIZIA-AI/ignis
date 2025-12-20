@@ -170,7 +170,7 @@ class MyApp extends BootMixin(Container) {
       extensions: ['.controller.js', '.controller.ts']
     },
     services: { 
-      nested: true // scan subdirectories
+      isNested: true // scan subdirectories
     }
   };
 }
@@ -189,7 +189,7 @@ Configure artifact discovery per artifact type.
 |----------|------|---------|-------------|
 | `dirs` | `string[]` | Varies | Directories to scan |
 | `extensions` | `string[]` | Varies | File extensions to match |
-| `nested` | `boolean` | `true` | Scan subdirectories |
+| `isNested` | `boolean` | `true` | Scan subdirectories |
 | `glob` | `string` | - | Custom glob pattern (overrides dirs/extensions) |
 
 ### IBootOptions
@@ -211,7 +211,7 @@ const bootOptions: IBootOptions = {
   controllers: {
     dirs: ['controllers/private', 'controllers/public'],
     extensions: ['.controller.js'],
-    nested: true
+    isNested: true
   },
   repositories: {
     glob: 'data-access/**/*.repository.js' // custom pattern
@@ -219,7 +219,7 @@ const bootOptions: IBootOptions = {
   services: {
     dirs: ['services'],
     extensions: ['.service.js', '.service.ts'],
-    nested: false // only scan root level
+    isNested: false // only scan root level
   }
 };
 ```
@@ -317,12 +317,12 @@ export const appConfigs: IApplicationConfigs = {
     controllers: {
       dirs: ['controllers'],
       extensions: ['.controller.js'],
-      nested: true
+      isNested: true
     },
     services: {
       dirs: ['services'],
       extensions: ['.service.js'],
-      nested: true
+      isNested: true
     },
     repositories: {
       dirs: ['repositories'],

@@ -1,6 +1,7 @@
-.PHONY: all build build-all core dev-configs docs mcp-server helpers inversion \
-        docs-dev mcp-dev help install clean lint \
-        update update-all update-core update-dev-configs update-docs update-helpers update-inversion
+.PHONY: all build build-all core dev-configs docs mcp-server helpers inversion boot \
+        help install clean \
+        lint lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs \
+        update update-all update-core update-dev-configs update-docs update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
 
@@ -23,34 +24,39 @@ clean:
 # ============================================================================
 build: build-all
 
-build-all: dev-configs core docs mcp-server
+build-all: core docs mcp-server
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
-# Note: 'core' depends on 'inversion' and 'helpers' to respect the prerebuild step
-core: inversion helpers
-	@echo "📦 Rebuilding @venizia/ignis (core)..."
-	@bun run rebuild:core
-
+# Dependency chain: dev-configs → inversion → helpers → boot → core
+# Note: Using --filter directly to avoid triggering prerebuild scripts (Make handles deps)
 dev-configs:
 	@echo "📦 Rebuilding @venizia/dev-configs..."
-	@bun run rebuild:dev-configs
+	@bun run --filter "@venizia/dev-configs" rebuild
 
-docs:
+inversion: dev-configs
+	@echo "📦 Rebuilding @venizia/ignis-inversion..."
+	@bun run --filter "@venizia/ignis-inversion" rebuild
+
+helpers: inversion
+	@echo "📦 Rebuilding @venizia/ignis-helpers..."
+	@bun run --filter "@venizia/ignis-helpers" rebuild
+
+boot: helpers
+	@echo "📦 Rebuilding @venizia/ignis-boot..."
+	@bun run --filter "@venizia/ignis-boot" rebuild
+
+core: boot
+	@echo "📦 Rebuilding @venizia/ignis (core)..."
+	@bun run --filter "@venizia/ignis" rebuild
+
+docs: dev-configs
 	@echo "📦 Rebuilding @venizia/ignis-docs..."
-	@bun run rebuild:docs
+	@bun run --filter "@venizia/ignis-docs" docs:build
 
 mcp-server:
 	@echo "📦 Rebuilding MCP docs server..."
-	@bun run rebuild:mcp-docs-server
-
-helpers:
-	@echo "📦 Rebuilding @venizia/ignis-helpers..."
-	@bun run rebuild:helpers
-
-inversion:
-	@echo "📦 Rebuilding @venizia/ignis-inversion..."
-	@bun run rebuild:inversion
+	@bun run --filter "@venizia/ignis-docs" mcp:build
 
 # ============================================================================
 # FORCE UPDATE TARGETS (fetch latest from NPM registry)
@@ -80,6 +86,10 @@ update-inversion:
 	@echo "🔄 Force updating @venizia/ignis-inversion..."
 	@bun run --filter "@venizia/ignis-inversion" force-update
 
+update-boot:
+	@echo "🔄 Force updating @venizia/ignis-boot..."
+	@bun run --filter "@venizia/ignis-boot" force-update
+
 # ============================================================================
 # LINT TARGETS
 # ============================================================================
@@ -89,18 +99,27 @@ lint:
 
 lint-dev-configs:
 	@echo "🔍 Linting @venizia/dev-configs..."
-	@bun run lint:dev-configs
+	@bun run --filter "@venizia/dev-configs" lint
 
-# ============================================================================
-# DEVELOPMENT TASKS
-# ============================================================================
-docs-dev:
-	@echo "🌐 Starting docs development server..."
-	@bun run docs:dev
+lint-inversion:
+	@echo "🔍 Linting @venizia/ignis-inversion..."
+	@bun run --filter "@venizia/ignis-inversion" lint
 
-mcp-dev:
-	@echo "🌐 Starting MCP development server..."
-	@bun run mcp:dev
+lint-helpers:
+	@echo "🔍 Linting @venizia/ignis-helpers..."
+	@bun run --filter "@venizia/ignis-helpers" lint
+
+lint-boot:
+	@echo "🔍 Linting @venizia/ignis-boot..."
+	@bun run --filter "@venizia/ignis-boot" lint
+
+lint-core:
+	@echo "🔍 Linting @venizia/ignis (core)..."
+	@bun run --filter "@venizia/ignis" lint
+
+lint-docs:
+	@echo "🔍 Linting @venizia/ignis-docs..."
+	@bun run --filter "@venizia/ignis-docs" lint
 
 # ============================================================================
 # HELP
@@ -125,9 +144,11 @@ help:
 	@echo "  update-docs       - Force update @venizia/ignis-docs dependencies."
 	@echo "  update-helpers    - Force update @venizia/ignis-helpers dependencies."
 	@echo "  update-inversion  - Force update @venizia/ignis-inversion dependencies."
+	@echo "  update-boot       - Force update @venizia/ignis-boot dependencies."
 	@echo ""
 	@echo "Individual Package Builds:"
 	@echo "  core          - Rebuilds @venizia/ignis (after its dependencies)."
+	@echo "  boot          - Rebuilds @venizia/ignis-boot (after its dependencies)."
 	@echo "  dev-configs   - Rebuilds @venizia/dev-configs."
 	@echo "  docs          - Rebuilds @venizia/ignis-docs."
 	@echo "  mcp-server    - Rebuilds the MCP docs server."
@@ -135,12 +156,17 @@ help:
 	@echo "  inversion     - Rebuilds @venizia/ignis-inversion."
 	@echo ""
 	@echo "Linting:"
-	@echo "  lint          - Lint all packages."
-	@echo "  lint-dev-configs - Lint @venizia/dev-configs."
-	@echo ""
-	@echo "Development:"
-	@echo "  docs-dev      - Start documentation site in development mode."
-	@echo "  mcp-dev       - Start MCP server in development mode."
+	@echo "  lint              - Lint all packages."
+	@echo "  lint-dev-configs  - Lint @venizia/dev-configs."
+	@echo "  lint-inversion    - Lint @venizia/ignis-inversion."
+	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."
+	@echo "  lint-boot         - Lint @venizia/ignis-boot."
+	@echo "  lint-core         - Lint @venizia/ignis (core)."
+	@echo "  lint-docs         - Lint @venizia/ignis-docs."
 	@echo ""
 	@echo "Other:"
 	@echo "  help          - Show this help message."
+	@echo ""
+	@echo "Development (use bun run directly):"
+	@echo "  bun run docs:dev  - Start documentation site in development mode."
+	@echo "  bun run mcp:dev   - Start MCP server in development mode."

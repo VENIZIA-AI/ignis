@@ -34,7 +34,7 @@
     "@hono/zod-openapi": "^1.1.5",
     "@scalar/hono-api-reference": "^0.9.28",
     "@venizia/ignis": "latest",
-    "@venizia/ignis-boot": "latest",
+    "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "latest",
     "@venizia/ignis-inversion": "latest",
     "dotenv-flow": "^4.1.0",

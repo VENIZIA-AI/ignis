@@ -103,7 +103,7 @@ export class Application extends BaseApplication {
     }
     ```
 
-### 4. Missing Environment Variables
+## 4. Missing Environment Variables
 
 **Pitfall:** The application fails to start or behaves unexpectedly because required environment variables are not defined in your `.env` file. The framework validates variables prefixed with `APP_ENV_` by default.
 
@@ -123,7 +123,7 @@ APP_ENV_POSTGRES_PASSWORD=password
 APP_ENV_POSTGRES_DATABASE=db
 ```
 
-### 5. Not Using `as const` for Route Definitions
+## 5. Not Using `as const` for Route Definitions
 
 **Pitfall:** When using the decorator-based routing with a shared `ROUTE_CONFIGS` object, you forget to add `as const` to the object definition. TypeScript will infer the types too broadly, and you will lose the benefits of type-safe contexts (`TRouteContext`).
 

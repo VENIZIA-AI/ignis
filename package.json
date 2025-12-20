@@ -9,14 +9,6 @@
   },
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
-    "lint:dev-configs": "bun run --filter \"@venizia/dev-configs\" lint",
-    "rebuild:dev-configs": "bun run --filter \"@venizia/dev-configs\" rebuild",
-    "rebuild:docs": "bun run --filter \"@venizia/ignis-docs\" docs:build",
-    "rebuild:mcp-docs-server": "bun run --filter \"@venizia/ignis-docs\" mcp:build",
-    "rebuild:helpers": "bun run --filter \"@venizia/ignis-helpers\" rebuild",
-    "rebuild:inversion": "bun run --filter \"@venizia/ignis-inversion\" rebuild",
-    "prerebuild:core": "bun run rebuild:inversion && bun run rebuild:helpers",
-    "rebuild:core": "bun run --filter \"@venizia/ignis\" rebuild",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
     "mcp:dev": "bun run --filter \"@venizia/ignis-docs\" mcp:dev"
   },
@@ -29,8 +21,5 @@
   "workspaces": [
     "packages/*",
     "examples/*"
-  ],
-  "devDependencies": {
-    "@types/bun": "^1.3.4"
-  }
+  ]
 }

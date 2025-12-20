@@ -264,5 +264,3 @@ export class PageController extends BaseController {
   }
 }
 ```
-
-```

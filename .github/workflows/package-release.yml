@@ -11,6 +11,7 @@ on:
           - dev-configs
           - inversion
           - helpers
+          - boot
           - core
           - docs
         required: true
@@ -33,12 +34,14 @@ on:
 #   dev-configs  → (none)
 #   inversion    → dev-configs
 #   helpers      → dev-configs, inversion
-#   core         → dev-configs, inversion, helpers
+#   boot         → dev-configs, inversion, helpers
+#   core         → dev-configs, inversion, helpers, boot
 #   docs         → dev-configs
 #
 # SPECIAL CASES (dist directories):
 #   - docs:      dist/mcp-server
 #   - inversion: dist/cjs, dist/esm
+#   - boot:      dist/cjs, dist/esm
 #   - others:    dist
 # =============================================================================
 
@@ -67,7 +70,7 @@ jobs:
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: "1.3.2"
+          bun-version: "1.3.3"
 
       - name: Setup Git
         run: |
@@ -85,9 +88,9 @@ jobs:
 
           # Set dist directories for validation
           case $PACKAGE in
-            docs)      DIST_DIRS="dist/mcp-server" ;;
-            inversion) DIST_DIRS="dist/cjs dist/esm" ;;
-            *)         DIST_DIRS="dist" ;;
+            docs)            DIST_DIRS="dist/mcp-server" ;;
+            inversion|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
+            *)               DIST_DIRS="dist" ;;
           esac
 
           echo "PACKAGE_PATH=$PACKAGE_PATH" >> $GITHUB_ENV
@@ -101,41 +104,28 @@ jobs:
           echo "│ Dist:        $DIST_DIRS"
           echo "└─────────────────────────────────────────────────"
 
-      - name: Install & Build dependencies
-        run: |
-          bun install
+      - name: Install
+        run: bun install
 
-          # Determine npm tag: pre* uses "next", others use "latest"
+      - name: Force update package
+        run: |
           case $BUILD_MODE in
             patch|minor|major) NPM_TAG="latest" ;;
             *)                 NPM_TAG="next" ;;
           esac
-
           bun run --filter "$PACKAGE_NAME" force-update "$NPM_TAG"
 
-          # Build only required dependencies (see dependency tree in header)
-          case $PACKAGE in
-            dev-configs) ;;
-            inversion)   make dev-configs ;;
-            helpers)     make dev-configs && make inversion ;;
-            core)        make dev-configs && make inversion && make helpers ;;
-            docs)        make dev-configs ;;
-          esac
+      # =========================================================================
+      # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
+      # =========================================================================
+      - name: Build
+        run: make $PACKAGE
 
-      # =========================================================================
-      # LINT & BUILD
-      # =========================================================================
-      - name: Lint & Build
+      - name: Lint
+        run: make lint-$PACKAGE
+
+      - name: Validate build artifacts
         run: |
-          echo ">>> Linting..."
-          bun run --filter "$PACKAGE_NAME" lint
-
-          echo ""
-          echo ">>> Building..."
-          bun run --filter "$PACKAGE_NAME" rebuild
-
-          echo ""
-          echo ">>> Validating build artifacts..."
           cd $PACKAGE_PATH
           for dir in $DIST_DIRS; do
             [ -f "$dir/index.js" ] && [ -f "$dir/index.d.ts" ] || { echo "ERROR: $dir missing files"; exit 1; }

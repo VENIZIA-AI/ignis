@@ -90,7 +90,7 @@ export class ConfigurationController extends _Controller {
     // an instance of ConfigurationRepository here.
     @inject({
       key: BindingKeys.build({
-        namespace: BindingNames...REPOSITORY,
+        namespace: BindingNamespaces.REPOSITORY,
         key: ConfigurationRepository.name,
       }),
     })

@@ -141,7 +141,7 @@ const bootOptions: IBootOptions = {
   controllers: {
     dirs: ['controllers'],           // where to look
     extensions: ['.controller.js'],  // what to match
-    nested: true                     // scan subdirectories
+    isNested: true                   // scan subdirectories
   }
 };
 ```
@@ -158,7 +158,7 @@ const bootOptions: IBootOptions = {
       'controllers/public'    // public API controllers
     ],
     extensions: ['.controller.js'],
-    nested: true
+    isNested: true
   }
 };
 ```
@@ -172,7 +172,7 @@ const bootOptions: IBootOptions = {
   services: {
     dirs: ['services'],
     extensions: ['.service.js', '.service.ts'],
-    nested: true
+    isNested: true
   }
 };
 ```
@@ -199,7 +199,7 @@ const bootOptions: IBootOptions = {
   controllers: {
     dirs: ['controllers'],
     extensions: ['.controller.js'],
-    nested: false  // only scan controllers/*.controller.js, not subdirs
+    isNested: false  // only scan controllers/*.controller.js, not subdirs
   }
 };
 ```
@@ -496,7 +496,7 @@ Boot is most valuable in **production** where artifact count is high. In **devel
 
 ### Optimization Tips
 
-1. **Limit nested scanning** - Set `nested: false` when possible
+1. **Limit nested scanning** - Set `isNested: false` when possible
 2. **Specific patterns** - Use precise glob patterns
 3. **Skip unused booters** - Only enable needed booters
 4. **Pre-compiled bundles** - For serverless, consider bundling

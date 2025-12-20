@@ -75,7 +75,7 @@ const bootOptions: IBootOptions = {
   controllers: {
     dirs: ['controllers/private', 'controllers/public'],
     extensions: ['.controller.js'],
-    nested: true
+    isNested: true
   },
   services: {
     glob: 'features/**/*.service.js'
@@ -98,7 +98,7 @@ Configuration for discovering a specific artifact type.
 interface IArtifactOptions {
   dirs?: string[];
   extensions?: string[];
-  nested?: boolean;
+  isNested?: boolean;
   glob?: string;
 }
 ```
@@ -107,7 +107,7 @@ interface IArtifactOptions {
 |----------|------|---------|-------------|
 | `dirs` | `string[]` | `undefined` | Directories to scan (relative to project root) |
 | `extensions` | `string[]` | `undefined` | File extensions to match (e.g., `['.controller.js']`) |
-| `nested` | `boolean` | `true` | Scan subdirectories recursively |
+| `isNested` | `boolean` | `true` | Scan subdirectories recursively |
 | `glob` | `string` | `undefined` | Custom glob pattern (overrides dirs/extensions) |
 
 **Example:**
@@ -116,7 +116,7 @@ interface IArtifactOptions {
 const artifactOptions: IArtifactOptions = {
   dirs: ['controllers/v1', 'controllers/v2'],
   extensions: ['.controller.js', '.controller.ts'],
-  nested: true
+  isNested: true
 };
 
 // Or with custom glob

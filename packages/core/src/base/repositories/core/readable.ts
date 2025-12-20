@@ -1,7 +1,6 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
-import type { PgTable } from 'drizzle-orm/pg-core';
 import {
   RepositoryOperationScopes,
   TCount,
@@ -10,6 +9,7 @@ import {
   TWhere,
 } from '../common';
 import { AbstractRepository } from './base';
+import { PgTable } from 'drizzle-orm/pg-core';
 
 /**
  * Read-only repository with dependency injection support.
@@ -113,7 +113,7 @@ export class ReadableRepository<
 
     // Build query using Core API
     // Type assertion to PgTable is safe: EntitySchema extends TTableSchemaWithId which extends PgTable
-    const table = schema as unknown as PgTable;
+    const table = schema as PgTable;
     let query = this.connector.select().from(table).$dynamic();
 
     if (where) {

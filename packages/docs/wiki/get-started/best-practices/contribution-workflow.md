@@ -56,6 +56,7 @@ The project uses a Makefile for common development tasks:
 **Individual package builds:**
 ```bash
 make core          # Build @venizia/ignis (after dependencies)
+make boot          # Build @venizia/ignis-boot
 make helpers       # Build @venizia/ignis-helpers
 make inversion     # Build @venizia/ignis-inversion
 make dev-configs   # Build @venizia/dev-configs
@@ -65,6 +66,7 @@ make docs          # Build documentation
 **Force update individual packages:**
 ```bash
 make update-core
+make update-boot
 make update-helpers
 make update-inversion
 make update-dev-configs
