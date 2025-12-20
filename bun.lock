@@ -115,10 +115,10 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.0.1-0",
+      "version": "0.0.1",
       "dependencies": {
-        "@venizia/ignis-helpers": "0.0.1-8",
-        "@venizia/ignis-inversion": "0.0.1-9",
+        "@venizia/ignis-helpers": "^0.0.1",
+        "@venizia/ignis-inversion": "^0.0.1",
         "glob": "^13.0.0",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
@@ -126,7 +126,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "@types/lodash": "^4.17.21",
-        "@venizia/dev-configs": "^0.0.1-4",
+        "@venizia/dev-configs": "^0.0.2",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -136,11 +136,11 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.1-8",
+      "version": "0.0.1",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.0.1-0",
-        "@venizia/ignis-helpers": "^0.0.1-8",
-        "@venizia/ignis-inversion": "^0.0.1-9",
+        "@venizia/ignis-boot": "^0.0.1",
+        "@venizia/ignis-helpers": "^0.0.1",
+        "@venizia/ignis-inversion": "^0.0.1",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
       },
@@ -150,7 +150,7 @@
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
         "@types/pg": "^8.15.6",
-        "@venizia/dev-configs": "^0.0.1-4",
+        "@venizia/dev-configs": "^0.0.2",
         "drizzle-kit": "^0.31.7",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
@@ -187,7 +187,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.0.1-4",
+      "version": "0.0.2",
       "dependencies": {
         "@minimaltech/eslint-node": "^0.2.1",
       },
@@ -228,7 +228,7 @@
         "@braintree/sanitize-url": "^7.1.1",
         "@types/bun": "^1.3.4",
         "@types/glob": "^8.1.0",
-        "@venizia/dev-configs": "^0.0.1-4",
+        "@venizia/dev-configs": "^0.0.2",
         "eslint": "^9.36.0",
         "glob": "^10.4.2",
         "prettier": "^3.6.2",
@@ -242,11 +242,11 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.1-8",
+      "version": "0.0.1",
       "dependencies": {
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
-        "@venizia/ignis-inversion": "^0.0.1-9",
+        "@venizia/ignis-inversion": "^0.0.1",
         "axios": "^1.12.2",
         "bullmq": "^5.63.1",
         "cron": "^4.3.3",
@@ -268,7 +268,7 @@
         "@hono/zod-openapi": "^1.1.5",
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
-        "@venizia/dev-configs": "^0.0.1-4",
+        "@venizia/dev-configs": "^0.0.2",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -278,7 +278,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.0.1-9",
+      "version": "0.0.1",
       "dependencies": {
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
@@ -287,7 +287,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "@types/lodash": "^4.17.21",
-        "@venizia/dev-configs": "^0.0.1-4",
+        "@venizia/dev-configs": "^0.0.2",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -1119,7 +1119,7 @@
 
     "@types/readable-stream": ["@types/readable-stream@4.0.23", "", { "dependencies": { "@types/node": "*" } }, "sha512-wwXrtQvbMHxCbBgjHaMGEmImFTQxxpfMOR/ZoQnXxB1woqkUbdLGFDgauo00Py9IudiaqSeiBiulSV9i6XIPig=="],
 
-    "@types/send": ["@types/send@0.17.6", "", { "dependencies": { "@types/mime": "^1", "@types/node": "*" } }, "sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og=="],
+    "@types/send": ["@types/send@1.2.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ=="],
 
     "@types/serve-static": ["@types/serve-static@1.15.10", "", { "dependencies": { "@types/http-errors": "*", "@types/node": "*", "@types/send": "<1" } }, "sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw=="],
 
@@ -2503,9 +2503,9 @@
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
-    "5-mins-qs/@venizia/dev-configs": ["@venizia/dev-configs@0.0.1-3", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-nG+ghzLHJvirjdt/9NLWQuGePlRYEPXPK4MkWRPbbGHShC5FuJ3X1wxuavwL5gUkZwnv+fC0+4llxHFJQxBHVg=="],
+    "5-mins-qs/@venizia/dev-configs": ["@venizia/dev-configs@0.0.2", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-F7joB5xVOqSmX/wYuMqmwatOJa8+ZnAA29jHyUGCF5/SMSHLhyd9CPW0v/gL4a/Uemenzh1WgeuqGXNn4COaig=="],
 
-    "5-mins-qs/@venizia/ignis": ["@venizia/ignis@0.0.1-4", "", { "dependencies": { "@venizia/ignis-helpers": "latest", "@venizia/ignis-inversion": "latest", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-VynOblavkFFkhlQ/yKirvlwJC5DRadua5NgDEMt9Q4DZ1RBhZRgqiKgNEEp2bBpTfmm+w3v6EDr0wyrrqdvSEg=="],
+    "5-mins-qs/@venizia/ignis": ["@venizia/ignis@0.0.1", "", { "dependencies": { "@venizia/ignis-boot": "^0.0.1-0", "@venizia/ignis-helpers": "^0.0.1", "@venizia/ignis-inversion": "^0.0.1", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-rfyUY9r5TAyrg1TQeFmdTEHtrwutf5djpPOc24r2mE2wTIZTO1Ed8+BnZ995s8rqSmnvS1aoCPUw6ukcCIsl0w=="],
 
     "@ai-sdk/anthropic-v5/@ai-sdk/provider": ["@ai-sdk/provider@2.0.0", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA=="],
 
@@ -2577,17 +2577,17 @@
 
     "@modelcontextprotocol/sdk/express": ["express@5.2.1", "", { "dependencies": { "accepts": "^2.0.0", "body-parser": "^2.2.1", "content-disposition": "^1.0.0", "content-type": "^1.0.5", "cookie": "^0.7.1", "cookie-signature": "^1.2.1", "debug": "^4.4.0", "depd": "^2.0.0", "encodeurl": "^2.0.0", "escape-html": "^1.0.3", "etag": "^1.8.1", "finalhandler": "^2.1.0", "fresh": "^2.0.0", "http-errors": "^2.0.0", "merge-descriptors": "^2.0.0", "mime-types": "^3.0.0", "on-finished": "^2.4.1", "once": "^1.4.0", "parseurl": "^1.3.3", "proxy-addr": "^2.0.7", "qs": "^6.14.0", "range-parser": "^1.2.1", "router": "^2.2.0", "send": "^1.1.0", "serve-static": "^2.2.0", "statuses": "^2.0.1", "type-is": "^2.0.1", "vary": "^1.1.2" } }, "sha512-hIS4idWWai69NezIdRt2xFVofaF4j+6INOpJlVOLDO8zXGpUVEVzIYk12UUi2JzjEzWL3IOAxcTubgz9Po0yXw=="],
 
-    "@nx/rpc-api-server/@venizia/dev-configs": ["@venizia/dev-configs@0.0.1-3", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-nG+ghzLHJvirjdt/9NLWQuGePlRYEPXPK4MkWRPbbGHShC5FuJ3X1wxuavwL5gUkZwnv+fC0+4llxHFJQxBHVg=="],
+    "@nx/rpc-api-server/@venizia/dev-configs": ["@venizia/dev-configs@0.0.2", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-F7joB5xVOqSmX/wYuMqmwatOJa8+ZnAA29jHyUGCF5/SMSHLhyd9CPW0v/gL4a/Uemenzh1WgeuqGXNn4COaig=="],
 
-    "@nx/rpc-api-server/@venizia/ignis": ["@venizia/ignis@0.0.1-4", "", { "dependencies": { "@venizia/ignis-helpers": "latest", "@venizia/ignis-inversion": "latest", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-VynOblavkFFkhlQ/yKirvlwJC5DRadua5NgDEMt9Q4DZ1RBhZRgqiKgNEEp2bBpTfmm+w3v6EDr0wyrrqdvSEg=="],
+    "@nx/rpc-api-server/@venizia/ignis": ["@venizia/ignis@0.0.1", "", { "dependencies": { "@venizia/ignis-boot": "^0.0.1-0", "@venizia/ignis-helpers": "^0.0.1", "@venizia/ignis-inversion": "^0.0.1", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-rfyUY9r5TAyrg1TQeFmdTEHtrwutf5djpPOc24r2mE2wTIZTO1Ed8+BnZ995s8rqSmnvS1aoCPUw6ukcCIsl0w=="],
 
-    "@nx/vert/@venizia/dev-configs": ["@venizia/dev-configs@0.0.1-3", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-nG+ghzLHJvirjdt/9NLWQuGePlRYEPXPK4MkWRPbbGHShC5FuJ3X1wxuavwL5gUkZwnv+fC0+4llxHFJQxBHVg=="],
+    "@nx/vert/@venizia/dev-configs": ["@venizia/dev-configs@0.0.2", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-F7joB5xVOqSmX/wYuMqmwatOJa8+ZnAA29jHyUGCF5/SMSHLhyd9CPW0v/gL4a/Uemenzh1WgeuqGXNn4COaig=="],
 
-    "@nx/vert/@venizia/ignis": ["@venizia/ignis@0.0.1-4", "", { "dependencies": { "@venizia/ignis-helpers": "latest", "@venizia/ignis-inversion": "latest", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-VynOblavkFFkhlQ/yKirvlwJC5DRadua5NgDEMt9Q4DZ1RBhZRgqiKgNEEp2bBpTfmm+w3v6EDr0wyrrqdvSEg=="],
+    "@nx/vert/@venizia/ignis": ["@venizia/ignis@0.0.1", "", { "dependencies": { "@venizia/ignis-boot": "^0.0.1-0", "@venizia/ignis-helpers": "^0.0.1", "@venizia/ignis-inversion": "^0.0.1", "lodash": "^4.17.21", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@hono/node-server": "^1.19.6", "@hono/swagger-ui": "^0.5.2", "@hono/zod-openapi": "^1.1.5", "@scalar/hono-api-reference": "^0.9.26", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "casbin": "^5.38.0", "drizzle-orm": "^0.44.7", "drizzle-zod": "^0.8.3", "hono": "^4.10.7", "jose": "^6.1.3", "pg": "^8.16.3", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "socket.io", "socket.io-client"] }, "sha512-rfyUY9r5TAyrg1TQeFmdTEHtrwutf5djpPOc24r2mE2wTIZTO1Ed8+BnZ995s8rqSmnvS1aoCPUw6ukcCIsl0w=="],
 
-    "@nx/vert/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.0.1-4", "", { "dependencies": { "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "@venizia/ignis-inversion": "latest", "axios": "^1.12.2", "bullmq": "^5.63.1", "cron": "^4.3.3", "dayjs": "^1.11.18", "hono": "^4.10.7", "ioredis": "^5.7.0", "lodash": "^4.17.21", "minio": "^8.0.6", "mqtt": "^5.14.1", "reflect-metadata": "^0.2.2", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" } }, "sha512-eiRPRQE7irTMd8Kt59GpKj3pIMxBAcOvjkxnYUgb0nGGsHzaNG2/uWVyqZG2NnzZWe9ZbBxYDIwUW5wHNXFnhQ=="],
+    "@nx/vert/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.0.1", "", { "dependencies": { "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "@venizia/ignis-inversion": "^0.0.1", "axios": "^1.12.2", "bullmq": "^5.63.1", "cron": "^4.3.3", "dayjs": "^1.11.18", "drizzle-orm": "^0.44.0", "hono": "^4.10.7", "ioredis": "^5.7.0", "lodash": "^4.17.21", "minio": "^8.0.6", "mqtt": "^5.14.1", "reflect-metadata": "^0.2.2", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" } }, "sha512-lnvpUD+pLiS1ZLIOyZCOqAq+OFsWOYalS4ZdlVCA+AJAcDR26zmi3oqAUOjx7GL40LAE9WiTb0qPu0cJii/teQ=="],
 
-    "@nx/vert/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.1-3", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-GuuJFz5rOb8f45fOVxlCikOzsEHyWZ4QKxiCgmBr7qiNgExtsR7oosdyyhlj5maV+4Q01re0DFtCSHqJd55Hig=="],
+    "@nx/vert/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.1", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-gyFiayAzLVQMwRT6f7+1Y6T7CkzcFZWoW2mHbh/FiyTidC8QeXCar3ZD5WdNV/b3RuTOMCue9+jNocxxLOTSsQ=="],
 
     "@openrouter/ai-sdk-provider-v5/ai": ["ai@5.0.97", "", { "dependencies": { "@ai-sdk/gateway": "2.0.12", "@ai-sdk/provider": "2.0.0", "@ai-sdk/provider-utils": "3.0.17", "@opentelemetry/api": "1.9.0" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-8zBx0b/owis4eJI2tAlV8a1Rv0BANmLxontcAelkLNwEHhgfgXeKpDkhNB6OgV+BJSwboIUDkgd9312DdJnCOQ=="],
 
@@ -2702,6 +2702,8 @@
     "@socket.io/redis-adapter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
 
     "@socket.io/redis-emitter/debug": ["debug@4.3.7", "", { "dependencies": { "ms": "^2.1.3" } }, "sha512-Er2nc/H7RrMXZBFCEim6TCmMk02Z8vLC2Rbi1KEBggpo0fS6l0S1nnapwmIi3yW/+GOJap1Krg4w0Hg80oCqgQ=="],
+
+    "@types/serve-static/@types/send": ["@types/send@0.17.6", "", { "dependencies": { "@types/mime": "^1", "@types/node": "*" } }, "sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og=="],
 
     "@typescript-eslint/eslint-plugin/ignore": ["ignore@7.0.5", "", {}, "sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="],
 
@@ -2845,10 +2847,6 @@
 
     "zod-from-json-schema-v3/zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
 
-    "5-mins-qs/@venizia/ignis/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.0.1-4", "", { "dependencies": { "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "@venizia/ignis-inversion": "latest", "axios": "^1.12.2", "bullmq": "^5.63.1", "cron": "^4.3.3", "dayjs": "^1.11.18", "hono": "^4.10.7", "ioredis": "^5.7.0", "lodash": "^4.17.21", "minio": "^8.0.6", "mqtt": "^5.14.1", "reflect-metadata": "^0.2.2", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" } }, "sha512-eiRPRQE7irTMd8Kt59GpKj3pIMxBAcOvjkxnYUgb0nGGsHzaNG2/uWVyqZG2NnzZWe9ZbBxYDIwUW5wHNXFnhQ=="],
-
-    "5-mins-qs/@venizia/ignis/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.1-3", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-GuuJFz5rOb8f45fOVxlCikOzsEHyWZ4QKxiCgmBr7qiNgExtsR7oosdyyhlj5maV+4Q01re0DFtCSHqJd55Hig=="],
-
     "@apidevtools/json-schema-ref-parser/js-yaml/argparse": ["argparse@2.0.1", "", {}, "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="],
 
     "@esbuild-kit/core-utils/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.18.20", "", { "os": "android", "cpu": "arm" }, "sha512-fyi7TDI/ijKKNZTUJAQqiG5T7YjJXgnzkURqmGj13C6dCqckZBLdl4h7bkhHt/t0WP+zO9/zwroDvANaOqO5Sw=="],
@@ -2917,9 +2915,11 @@
 
     "@modelcontextprotocol/sdk/express/serve-static": ["serve-static@2.2.1", "", { "dependencies": { "encodeurl": "^2.0.0", "escape-html": "^1.0.3", "parseurl": "^1.3.3", "send": "^1.2.0" } }, "sha512-xRXBn0pPqQTVQiC8wyQrKs2MOlX24zQ0POGaj0kultvoOCstBQM5yvOhAVSUwOMjQtTvsPWoNCHfPGwaaQJhTw=="],
 
-    "@nx/rpc-api-server/@venizia/ignis/@venizia/ignis-helpers": ["@venizia/ignis-helpers@0.0.1-4", "", { "dependencies": { "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "@venizia/ignis-inversion": "latest", "axios": "^1.12.2", "bullmq": "^5.63.1", "cron": "^4.3.3", "dayjs": "^1.11.18", "hono": "^4.10.7", "ioredis": "^5.7.0", "lodash": "^4.17.21", "minio": "^8.0.6", "mqtt": "^5.14.1", "reflect-metadata": "^0.2.2", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1", "winston": "^3.17.0", "winston-daily-rotate-file": "^5.0.0", "winston-transport": "^4.9.0" } }, "sha512-eiRPRQE7irTMd8Kt59GpKj3pIMxBAcOvjkxnYUgb0nGGsHzaNG2/uWVyqZG2NnzZWe9ZbBxYDIwUW5wHNXFnhQ=="],
+    "@nx/vert/@venizia/ignis/@venizia/ignis-helpers": ["@venizia/ignis-helpers@workspace:packages/helpers"],
 
-    "@nx/rpc-api-server/@venizia/ignis/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.1-3", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-GuuJFz5rOb8f45fOVxlCikOzsEHyWZ4QKxiCgmBr7qiNgExtsR7oosdyyhlj5maV+4Q01re0DFtCSHqJd55Hig=="],
+    "@nx/vert/@venizia/ignis/@venizia/ignis-inversion": ["@venizia/ignis-inversion@workspace:packages/inversion"],
+
+    "@nx/vert/@venizia/ignis-helpers/@venizia/ignis-inversion": ["@venizia/ignis-inversion@workspace:packages/inversion"],
 
     "@openrouter/ai-sdk-provider-v5/ai/@ai-sdk/provider": ["@ai-sdk/provider@2.0.0", "", { "dependencies": { "json-schema": "^0.4.0" } }, "sha512-6o7Y2SeO9vFKB8lArHXehNuusnpddKPk7xqL7T2/b+OvXMRIXUO1rR4wcv1hAFUAT9avGZshty3Wlua/XA7TvA=="],
 
@@ -3090,6 +3090,12 @@
     "@modelcontextprotocol/sdk/express/accepts/negotiator": ["negotiator@1.0.0", "", {}, "sha512-8Ofs/AUQh8MaEcrlq5xOX0CQ9ypTF5dl78mjlMNfOK08fzpgTHQRQPBxcPlEtIw0yRpws+Zo/3r+5WRby7u3Gg=="],
 
     "@modelcontextprotocol/sdk/express/mime-types/mime-db": ["mime-db@1.54.0", "", {}, "sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ=="],
+
+    "@nx/vert/@venizia/ignis-helpers/@venizia/ignis-inversion/@venizia/dev-configs": ["@venizia/dev-configs@workspace:packages/dev-configs"],
+
+    "@nx/vert/@venizia/ignis/@venizia/ignis-helpers/@venizia/dev-configs": ["@venizia/dev-configs@workspace:packages/dev-configs"],
+
+    "@nx/vert/@venizia/ignis/@venizia/ignis-inversion/@venizia/dev-configs": ["@venizia/dev-configs@workspace:packages/dev-configs"],
 
     "@venizia/ignis-docs/glob/minimatch/brace-expansion": ["brace-expansion@2.0.2", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-Jt0vHyM+jmUBqojB7E1NIYadt0vI0Qxjxd2TErW94wDz+E2LAm5vKMXXwg6ZZBTHPuUlDgQHKXvjGBdfcF1ZDQ=="],
 

@@ -13,7 +13,7 @@ fi
 echo "START | Force updating from NPM registry (tag: $TAG)..."
 
 # Packages to update from NPM (not workspace)
-PACKAGES="@venizia/dev-configs @venizia/ignis-inversion @venizia/ignis-helpers"
+PACKAGES="@venizia/dev-configs @venizia/ignis-inversion @venizia/ignis-helpers @venizia/ignis-boot"
 
 for pkg in $PACKAGES; do
   echo "[$pkg] Fetching $TAG version..."
