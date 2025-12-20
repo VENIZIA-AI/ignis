@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.0.1-9",
+  "version": "0.0.1",
   "description": "Dependency Injection & Inversion of Control Container",
   "keywords": [
     "inversion-of-control",
@@ -89,7 +89,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.2",
     "@types/lodash": "^4.17.21",
-    "@venizia/dev-configs": "^0.0.1-4",
+    "@venizia/dev-configs": "^0.0.2",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",
