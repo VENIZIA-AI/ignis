@@ -160,14 +160,6 @@ jobs:
           git push origin "$TAG_NAME"
           echo "IS_TAG_CREATED=true" >> $GITHUB_ENV
 
-      - name: Merge to main (stable only)
-        if: ${{ !startsWith(github.event.inputs.build_mode, 'pre') }}
-        run: |
-          git checkout main && git pull origin main
-          git merge develop --no-ff -m "chore: merge $PACKAGE v$NEW_VERSION to main"
-          git push origin main
-          echo "IS_MERGED=true" >> $GITHUB_ENV
-
       # =========================================================================
       # PUBLISH
       # =========================================================================
