@@ -13,7 +13,7 @@ on:
           - helpers
           - boot
           - core
-          - docs
+          - docs-mcp
         required: true
       build_mode:
         type: choice
@@ -36,10 +36,10 @@ on:
 #   helpers      → dev-configs, inversion
 #   boot         → dev-configs, inversion, helpers
 #   core         → dev-configs, inversion, helpers, boot
-#   docs         → dev-configs
+#   docs-mcp     → dev-configs (MCP server for documentation)
 #
 # SPECIAL CASES (dist directories):
-#   - docs:      dist/mcp-server
+#   - docs-mcp:  dist/mcp-server
 #   - inversion: dist/cjs, dist/esm
 #   - boot:      dist/cjs, dist/esm
 #   - others:    dist
@@ -82,13 +82,18 @@ jobs:
       # =========================================================================
       - name: Get package info
         run: |
-          PACKAGE_PATH="packages/$PACKAGE"
+          # Map package input to actual folder path
+          case $PACKAGE in
+            docs-mcp)  PACKAGE_PATH="packages/docs" ;;
+            *)         PACKAGE_PATH="packages/$PACKAGE" ;;
+          esac
+
           PACKAGE_NAME=$(jq -r .name "$PACKAGE_PATH/package.json")
           CURRENT_VERSION=$(jq -r .version "$PACKAGE_PATH/package.json")
 
           # Set dist directories for validation
           case $PACKAGE in
-            docs)            DIST_DIRS="dist/mcp-server" ;;
+            docs-mcp)        DIST_DIRS="dist/mcp-server" ;;
             inversion|boot)  DIST_DIRS="dist/cjs dist/esm" ;;
             *)               DIST_DIRS="dist" ;;
           esac

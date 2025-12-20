@@ -35,7 +35,7 @@ jobs:
         run: bun install
 
       - name: Build Docs
-        run: bun run --filter "@venizia/ignis-docs" docs:build
+        run: make docs
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

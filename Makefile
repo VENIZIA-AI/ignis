@@ -1,7 +1,7 @@
-.PHONY: all build build-all core dev-configs docs mcp-server helpers inversion boot \
+.PHONY: all build build-all core dev-configs docs docs-mcp helpers inversion boot \
         help install clean \
-        lint lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs \
-        update update-all update-core update-dev-configs update-docs update-helpers update-inversion update-boot
+        lint lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
+        update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
 
@@ -24,7 +24,7 @@ clean:
 # ============================================================================
 build: build-all
 
-build-all: core docs mcp-server
+build-all: core docs docs-mcp
 	@echo "🚀 All packages rebuilt successfully."
 
 # Granular build targets for individual packages
@@ -50,14 +50,13 @@ core: boot
 	@echo "📦 Rebuilding @venizia/ignis (core)..."
 	@bun run --filter "@venizia/ignis" rebuild
 
-docs: dev-configs
-	@echo "📦 Rebuilding @venizia/ignis-docs (VitePress + MCP Server)..."
+docs:
+	@echo "📦 Rebuilding wiki (VitePress)..."
 	@bun run --filter "@venizia/ignis-docs" docs:build
-	@bun run --filter "@venizia/ignis-docs" mcp:build
 
-mcp-server: dev-configs
-	@echo "📦 Rebuilding MCP docs server..."
-	@bun run --filter "@venizia/ignis-docs" mcp:build
+docs-mcp: dev-configs
+	@echo "📦 Rebuilding @venizia/ignis-docs (MCP Server)..."
+	@bun run --filter "@venizia/ignis-docs" mcp:rebuild
 
 # ============================================================================
 # FORCE UPDATE TARGETS (fetch latest from NPM registry)
@@ -75,8 +74,8 @@ update-dev-configs:
 	@echo "🔄 Force updating @venizia/dev-configs..."
 	@bun run --filter "@venizia/dev-configs" force-update
 
-update-docs:
-	@echo "🔄 Force updating @venizia/ignis-docs..."
+update-docs-mcp:
+	@echo "🔄 Force updating @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" force-update
 
 update-helpers:
@@ -118,8 +117,8 @@ lint-core:
 	@echo "🔍 Linting @venizia/ignis (core)..."
 	@bun run --filter "@venizia/ignis" lint
 
-lint-docs:
-	@echo "🔍 Linting @venizia/ignis-docs..."
+lint-docs-mcp:
+	@echo "🔍 Linting @venizia/ignis-docs (MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" lint
 
 # ============================================================================
@@ -142,7 +141,7 @@ help:
 	@echo "  update-all        - Same as 'update'."
 	@echo "  update-core       - Force update @venizia/ignis (core) dependencies."
 	@echo "  update-dev-configs- Force update @venizia/dev-configs dependencies."
-	@echo "  update-docs       - Force update @venizia/ignis-docs dependencies."
+	@echo "  update-docs-mcp   - Force update @venizia/ignis-docs (MCP) dependencies."
 	@echo "  update-helpers    - Force update @venizia/ignis-helpers dependencies."
 	@echo "  update-inversion  - Force update @venizia/ignis-inversion dependencies."
 	@echo "  update-boot       - Force update @venizia/ignis-boot dependencies."
@@ -151,8 +150,8 @@ help:
 	@echo "  core          - Rebuilds @venizia/ignis (after its dependencies)."
 	@echo "  boot          - Rebuilds @venizia/ignis-boot (after its dependencies)."
 	@echo "  dev-configs   - Rebuilds @venizia/dev-configs."
-	@echo "  docs          - Rebuilds @venizia/ignis-docs."
-	@echo "  mcp-server    - Rebuilds the MCP docs server."
+	@echo "  docs          - Rebuilds wiki (VitePress) for GitHub Pages."
+	@echo "  docs-mcp      - Rebuilds @venizia/ignis-docs (MCP Server) for NPM."
 	@echo "  helpers       - Rebuilds @venizia/ignis-helpers."
 	@echo "  inversion     - Rebuilds @venizia/ignis-inversion."
 	@echo ""
@@ -163,7 +162,7 @@ help:
 	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."
 	@echo "  lint-boot         - Lint @venizia/ignis-boot."
 	@echo "  lint-core         - Lint @venizia/ignis (core)."
-	@echo "  lint-docs         - Lint @venizia/ignis-docs."
+	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
 	@echo ""
 	@echo "Other:"
 	@echo "  help          - Show this help message."
