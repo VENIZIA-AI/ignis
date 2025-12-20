@@ -51,10 +51,11 @@ core: boot
 	@bun run --filter "@venizia/ignis" rebuild
 
 docs: dev-configs
-	@echo "📦 Rebuilding @venizia/ignis-docs..."
+	@echo "📦 Rebuilding @venizia/ignis-docs (VitePress + MCP Server)..."
 	@bun run --filter "@venizia/ignis-docs" docs:build
+	@bun run --filter "@venizia/ignis-docs" mcp:build
 
-mcp-server:
+mcp-server: dev-configs
 	@echo "📦 Rebuilding MCP docs server..."
 	@bun run --filter "@venizia/ignis-docs" mcp:build
 
