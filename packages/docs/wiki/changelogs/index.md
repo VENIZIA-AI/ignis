@@ -12,6 +12,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | Feature | Description | Priority |
 |---------|-------------|----------|
 | [Transaction Support](./planned-transaction-support) | Loopback 4-style explicit transaction objects with isolation levels | Future |
+| [Schema Migrator](./planned-schema-migrator) | LoopBack 4-style auto schema migration without Drizzle Kit | High |
 
 ## Recent Changes
 

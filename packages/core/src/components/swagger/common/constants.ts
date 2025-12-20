@@ -1,3 +1,5 @@
+import { TConstValue } from '@venizia/ignis-helpers';
+
 export class DocumentUITypes {
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
@@ -8,3 +10,5 @@ export class DocumentUITypes {
     return this.SCHEME_SET.has(value);
   }
 }
+
+export type TRelationType = TConstValue<typeof DocumentUITypes>;

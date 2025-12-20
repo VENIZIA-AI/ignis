@@ -40,6 +40,10 @@ const config = defineConfig({
               text: 'Transaction Support',
               link: '/changelogs/planned-transaction-support',
             },
+            {
+              text: 'Schema Migrator',
+              link: '/changelogs/planned-schema-migrator',
+            },
           ],
         },
         {
