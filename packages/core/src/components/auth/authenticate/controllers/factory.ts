@@ -9,7 +9,26 @@ import {
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '../../models';
-import { Authentication, IAuthService, TDefineAuthControllerOpts } from '../common';
+import {
+  Authentication,
+  IAuthService,
+  IJWTTokenPayload,
+  TDefineAuthControllerOpts,
+} from '../common';
+
+export const JWTTokenPayloadSchema = z.object({
+  userId: z.string().or(z.number()),
+  roles: z.array(
+    z.object({
+      id: z.string().or(z.number()),
+      identifier: z.string(),
+      priority: z.number().int(),
+    }),
+  ),
+  clientId: z.string().optional(),
+  provider: z.string().optional(),
+  email: z.email().optional(),
+});
 
 export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
   const {
@@ -118,14 +137,15 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           method: 'post',
           responses: {
             [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-              schema: z.object().catchall(z.any()),
-              description: 'Check who am i',
+              description: 'Success Response',
+              schema: JWTTokenPayloadSchema,
             }),
           },
           authStrategies: [Authentication.STRATEGY_JWT],
         },
         handler: context => {
-          return context.json({ message: 'check-who-am-i' }, HTTP.ResultCodes.RS_2.Ok);
+          const currentUser = context.get(Authentication.CURRENT_USER as never) as IJWTTokenPayload;
+          return context.json(currentUser, HTTP.ResultCodes.RS_2.Ok);
         },
       });
     }
