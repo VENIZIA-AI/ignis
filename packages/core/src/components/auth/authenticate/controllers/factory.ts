@@ -134,7 +134,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
       this.defineRoute({
         configs: {
           path: '/who-am-i',
-          method: 'post',
+          method: 'get',
           responses: {
             [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
               description: 'Success Response',
