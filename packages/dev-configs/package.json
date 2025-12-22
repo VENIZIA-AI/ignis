@@ -74,7 +74,8 @@
   "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
-    "@minimaltech/eslint-node": "^0.2.1"
+    "@minimaltech/eslint-node": "^0.2.1",
+    "eslint-plugin-unicorn": "^62.0.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0",
