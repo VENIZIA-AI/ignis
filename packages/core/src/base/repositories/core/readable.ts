@@ -171,8 +171,8 @@ export class ReadableRepository<
   }): Promise<TNullable<DataObject>> {
     return this.findOne({
       filter: {
-        where: { id: opts.id },
         ...opts.filter,
+        where: { id: opts.id },
       },
       options: opts.options,
     });
