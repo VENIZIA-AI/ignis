@@ -2,47 +2,40 @@ import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'dr
 import { TColumnDefinitions } from '../common/types';
 import { HasDefault, NotNull } from 'drizzle-orm';
 
-export type TPrincipalEnricherOptions = {
-  discriminator?: string;
+export type TPrincipalEnricherOptions<
+  Discriminator extends string = string,
+  IdType extends 'number' | 'string' = 'number' | 'string',
+> = {
+  discriminator?: Discriminator;
   defaultPolymorphic?: string;
-  polymorphicIdType: 'number' | 'string';
+  polymorphicIdType: IdType;
 };
 
-type TPrincipalColumnDef<Opts extends TPrincipalEnricherOptions> = Opts extends {
-  discriminator: infer Discriminator extends string;
-}
-  ? Opts extends { polymorphicIdType: infer IdType }
-    ? IdType extends 'number'
-      ? {
-          [K in `${Discriminator}Type`]: HasDefault<
-            PgTextBuilderInitial<string, [string, ...string[]]>
-          >;
-        } & {
-          [K in `${Discriminator}Id`]: NotNull<PgIntegerBuilderInitial<`${Discriminator}_id`>>;
-        }
-      : {
-          [K in `${Discriminator}Type`]: HasDefault<
-            PgTextBuilderInitial<string, [string, ...string[]]>
-          >;
-        } & {
-          [K in `${Discriminator}Id`]: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-        }
-    : never
-  : Opts extends { polymorphicIdType: infer IdType }
-    ? IdType extends 'number'
-      ? {
-          principalType: HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>;
-          principalId: NotNull<PgIntegerBuilderInitial<string>>;
-        }
-      : {
-          principalType: HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>;
-          principalId: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-        }
-    : never;
+type TPrincipalColumnDef<
+  Discriminator extends string,
+  IdType extends 'number' | 'string',
+> = IdType extends 'number'
+  ? {
+      [K in `${Discriminator}Type`]: HasDefault<
+        PgTextBuilderInitial<string, [string, ...string[]]>
+      >;
+    } & {
+      [K in `${Discriminator}Id`]: NotNull<PgIntegerBuilderInitial<string>>;
+    }
+  : {
+      [K in `${Discriminator}Type`]: HasDefault<
+        PgTextBuilderInitial<string, [string, ...string[]]>
+      >;
+    } & {
+      [K in `${Discriminator}Id`]: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    };
 
-export const generatePrincipalColumnDefs = <Opts extends TPrincipalEnricherOptions>(
-  opts: Opts,
-): TPrincipalColumnDef<Opts> => {
+export const generatePrincipalColumnDefs = <
+  Discriminator extends string = 'principal',
+  IdType extends 'number' | 'string' = 'number',
+>(
+  opts: TPrincipalEnricherOptions<Discriminator, IdType>,
+): TPrincipalColumnDef<Discriminator, IdType> => {
   const { discriminator = 'principal', defaultPolymorphic = '', polymorphicIdType } = opts;
 
   const polymorphic = {
@@ -58,13 +51,13 @@ export const generatePrincipalColumnDefs = <Opts extends TPrincipalEnricherOptio
       return {
         [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
         [polymorphic.idField]: integer(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Opts>;
+      } as TPrincipalColumnDef<Discriminator, IdType>;
     }
     case 'string': {
       return {
         [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
         [polymorphic.idField]: text(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Opts>;
+      } as TPrincipalColumnDef<Discriminator, IdType>;
     }
     default: {
       throw new Error(
