@@ -1,16 +1,13 @@
-import { TColumnDefinitions } from '@/base/models';
 import { RoleStatuses } from '@/common';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
-export const extraRoleColumns = (): TColumnDefinitions => {
+export const extraRoleColumns = () => {
   return {
-    identifier: text('identifier').unique(),
-    name: text('name'),
+    identifier: text('identifier').unique().notNull(),
+    name: text('name').notNull(),
     description: text('description'),
-    priority: integer('priority'),
+    priority: integer('priority').notNull(),
     status: text('status').notNull().default(RoleStatuses.ACTIVATED),
   };
 };
-
-// -------------------------------------------------------------------------------------------
