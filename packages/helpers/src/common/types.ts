@@ -28,7 +28,9 @@ export type TConstValue<T extends TClass<any>> = Extract<ValueOf<T>, string | nu
 export type TPrettify<T> = { [K in keyof T]: T[K] } & {};
 
 export type TResolver<T> = (...args: any[]) => T;
+export type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
 export type TValueOrResolver<T> = T | TResolver<T>;
+export type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 
 /**
  * Helper to resolve lazy value.
@@ -49,6 +51,29 @@ export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
 
   // Otherwise it's a resolver function, call it
   return (valueOrResolver as TResolver<T>)();
+};
+
+/**
+ * Helper to resolve lazy value (async version).
+ * If valueOrResolver is:
+ * - A class constructor: returns as-is
+ * - An arrow/resolver function: calls it and awaits result
+ * - Any other value: returns as-is
+ */
+export const resolveValueAsync = async <T>(
+  valueOrResolver: TValueOrAsyncResolver<T>,
+): Promise<T> => {
+  if (typeof valueOrResolver !== 'function') {
+    return valueOrResolver;
+  }
+
+  // If it's a class constructor, return as-is (it's the value itself)
+  if (isClassConstructor(valueOrResolver as Function)) {
+    return valueOrResolver as T;
+  }
+
+  // Otherwise it's a resolver function, call it and await
+  return (valueOrResolver as TAsyncResolver<T>)();
 };
 
 /**

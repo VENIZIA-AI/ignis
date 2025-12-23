@@ -6,6 +6,7 @@ Reusable classes and functions providing common functionality - designed for eas
 
 | Helper | Purpose | Key Features |
 |--------|---------|--------------|
+| [Common Types](./types.md) | Utility types | Nullable, resolvers, class types |
 | [Cron](./cron.md) | Job scheduling | Cron expressions, task management |
 | [Crypto](./crypto.md) | Cryptographic operations | Hashing, AES/RSA encryption/decryption |
 | [Environment](./env.md) | Environment variables | Centralized config access |
