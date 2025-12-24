@@ -6,6 +6,7 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue)](https://www.typescriptlang.org/)
 [![Build Status](https://img.shields.io/badge/build-passing-brightgreen)](#)
 [![Documentation](https://img.shields.io/badge/docs-venizia--ai.github.io%2Fignis-blue)](https://venizia-ai.github.io/ignis)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/VENIZIA-AI/ignis)
 
 > A TypeScript Server Infrastructure combining enterprise-grade patterns with high performance.
 
