@@ -58,7 +58,7 @@ export abstract class AbstractApplication<
     });
 
     this.projectRoot = this.getProjectRoot();
-    this.logger.info('Project root: %s', this.projectRoot);
+    this.logger.info(' Project root: %s', this.projectRoot);
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
       strict: this.configs.strictPath ?? true,

@@ -1,5 +1,6 @@
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../common/types';
+import { AnyType } from '@/helpers';
 
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{
@@ -32,7 +33,9 @@ export const generateDataTypeColumnDefs = (opts?: TDataTypeEnricherOptions) => {
     bValue: defaultValue?.bValue
       ? byteaType('b_value').default(defaultValue.bValue)
       : byteaType('b_value'),
-    jValue: defaultValue?.jValue ? jsonb('j_value').default(defaultValue.jValue) : jsonb('j_value'),
+    jValue: defaultValue?.jValue
+      ? jsonb('j_value').default(defaultValue.jValue).$type<Record<string, AnyType>>()
+      : jsonb('j_value').$type<Record<string, AnyType>>(),
     boValue: defaultValue?.boValue
       ? boolean('bo_value').default(defaultValue.boValue)
       : boolean('bo_value'),
