@@ -298,11 +298,24 @@ export class Container extends BaseHelper {
     return instance;
   }
 
-  findByTag<T = any>(opts: { tag: string }): Binding<T>[] {
+  findByTag<T = any>(opts: { tag: string; exclude?: Array<string> | Set<string> }): Binding<T>[] {
+    const { tag, exclude } = opts;
+
     const rs: Binding<T>[] = [];
+
     for (const [_k, binding] of this.bindings) {
-      if (!binding.hasTag(opts.tag)) {
+      if (!binding.hasTag(tag)) {
         continue;
+      }
+
+      if (exclude) {
+        if (exclude instanceof Array && exclude.length > 0 && exclude.includes(binding.key)) {
+          continue;
+        }
+
+        if (exclude instanceof Set && exclude.size > 0 && exclude.has(binding.key)) {
+          continue;
+        }
       }
 
       rs.push(binding);

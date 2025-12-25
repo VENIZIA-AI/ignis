@@ -1,22 +1,22 @@
 import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import {
-  Bootstrapper,
-  ControllerBooter,
-  DatasourceBooter,
-  IBootReport,
-  RepositoryBooter,
-  ServiceBooter,
-  IBootableApplication,
-  IBooter,
-} from '@venizia/ignis-boot';
-import {
   Binding,
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
   MetadataRegistry,
 } from '@/helpers/inversion';
+import {
+  Bootstrapper,
+  ControllerBooter,
+  DatasourceBooter,
+  IBootableApplication,
+  IBooter,
+  IBootReport,
+  RepositoryBooter,
+  ServiceBooter,
+} from '@venizia/ignis-boot';
 import {
   AnyObject,
   executeWithPerformanceMeasure,
@@ -82,18 +82,27 @@ export abstract class BaseApplication
       scope: this.registerComponents.name,
       description: 'Register application components',
       task: async () => {
-        const bindings = this.findByTag({ tag: 'components' });
-        for (const binding of bindings) {
+        const configured = new Set<string>([]);
+
+        let bindings = this.findByTag({ tag: 'components' });
+        while (bindings.length > 0) {
+          const binding = bindings.shift()!;
+
           const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
           if (!instance) {
             this.logger.debug(
               '[registerComponents] No binding instance | Ignore registering component | key: %s',
               binding.key,
             );
+            configured.add(binding.key);
             continue;
           }
 
           await instance.configure();
+          configured.add(binding.key);
+
+          // Re-fetch excluding already configured - picks up dynamically added components
+          bindings = this.findByTag({ tag: 'components', exclude: configured });
         }
       },
     });
