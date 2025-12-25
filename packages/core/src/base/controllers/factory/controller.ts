@@ -1,19 +1,19 @@
 import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from '@/base/models';
 import { AbstractRepository, DEFAULT_LIMIT } from '@/base/repositories';
-import { z } from '@hono/zod-openapi';
 import {
   BaseHelper,
   executeWithPerformanceMeasure,
   getError,
   HTTP,
+  TAuthStrategy,
   TClass,
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
+import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
 import { BaseController } from '../base';
-import { defineControllerRouteConfigs } from './definition';
-import { isClass } from '@venizia/ignis-inversion';
+import { defineControllerRouteConfigs, TRoutesConfig } from './definition';
 
 export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -25,25 +25,43 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
     isStrict?: boolean;
     defaultLimit?: number;
   };
-  schema?: {
-    count?: z.ZodObject;
-    find?: z.ZodObject;
-    findOne?: z.ZodObject;
-    findById?: z.ZodObject;
-
-    create?: z.ZodObject;
-    createRequestBody?: z.ZodObject;
-
-    updateById?: z.ZodObject;
-    updateByIdRequestBody?: z.ZodObject;
-
-    updateBy?: z.ZodObject;
-    updateByRequestBody?: z.ZodObject;
-
-    deleteById?: z.ZodObject;
-    deleteBy?: z.ZodObject;
-  };
-  doDeleteWithReturn?: boolean;
+  /**
+   * Auth strategies applied to all routes (unless overridden per-route)
+   *
+   * @example
+   * // Apply JWT auth to all routes
+   * authStrategies: ['jwt']
+   */
+  authStrategies?: Array<TAuthStrategy>;
+  /**
+   * Per-route configuration combining schema and auth
+   *
+   * @example
+   * // JWT auth on all, skip for public read endpoints
+   * authStrategies: ['jwt'],
+   * routes: {
+   *   find: { skipAuth: true },
+   *   findById: { skipAuth: true },
+   *   count: { skipAuth: true },
+   * }
+   *
+   * @example
+   * // No controller auth, require JWT only for writes
+   * routes: {
+   *   create: { authStrategies: ['jwt'] },
+   *   updateById: { authStrategies: ['jwt'], requestBody: CustomUpdateSchema },
+   *   deleteById: { authStrategies: ['jwt'] },
+   * }
+   *
+   * @example
+   * // Custom response schema with auth
+   * authStrategies: ['jwt'],
+   * routes: {
+   *   find: { schema: CustomFindResponseSchema, skipAuth: true },
+   *   create: { schema: CustomCreateResponseSchema, requestBody: CustomCreateBodySchema },
+   * }
+   */
+  routes?: TRoutesConfig;
 }
 
 export class ControllerFactory extends BaseHelper {
@@ -58,7 +76,7 @@ export class ControllerFactory extends BaseHelper {
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
   >(opts: ICrudControllerOptions<EntitySchema>) {
-    const { controller, entity } = opts;
+    const { controller, entity, authStrategies, routes } = opts;
 
     const {
       name,
@@ -85,11 +103,12 @@ export class ControllerFactory extends BaseHelper {
     const routeDefinitions = defineControllerRouteConfigs({
       isStrict,
       idType: getIdType({ entity: entityInstance.schema }),
+      authStrategies,
+      routes,
       schema: {
         select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
         create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
         update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
-        overrided: opts.schema,
       },
     });
 

@@ -318,27 +318,94 @@ This factory method returns a `BaseController` class that is already set up with
 | `controller.readonly` | `boolean` | If `true`, only read operations (find, findOne, findById, count) are generated. Write operations are excluded. Defaults to `false`. |
 | `controller.isStrict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
 | `controller.defaultLimit`| `number` | The default limit for `find` operations. Defaults to `10`. |
-| `schema` | `object` | An optional object to override the default Zod schemas for specific CRUD endpoints. See schema options below. |
-| `doDeleteWithReturn` | `boolean` | If `true`, the `deleteById` and `deleteBy` endpoints will return the deleted record(s) in the response body. Defaults to `false`. |
+| `authStrategies` | `Array<TAuthStrategy>` | Auth strategies applied to all routes (unless overridden per-route). |
+| `routes` | `TRoutesConfig` | Per-route configuration combining schema and auth. See routes configuration below. |
 
-### Schema Override Options
+### Routes Configuration
 
-The `schema` option allows fine-grained control over request/response validation and OpenAPI documentation:
+The `routes` option provides a unified way to configure both schema overrides and authentication for each endpoint:
 
-| Schema Option | Description |
-| :--- | :--- |
-| `count` | Override response schema for count endpoint |
-| `find` | Override response schema for find endpoint |
-| `findOne` | Override response schema for findOne endpoint |
-| `findById` | Override response schema for findById endpoint |
-| `create` | Override response schema for create endpoint |
-| `createRequestBody` | Override request body schema for create endpoint |
-| `updateById` | Override response schema for updateById endpoint |
-| `updateByIdRequestBody` | Override request body schema for updateById endpoint |
-| `updateBy` | Override response schema for updateBy (bulk update) endpoint |
-| `updateByRequestBody` | Override request body schema for updateBy endpoint |
-| `deleteById` | Override response schema for deleteById endpoint |
-| `deleteBy` | Override response schema for deleteBy (bulk delete) endpoint |
+```typescript
+type TRouteAuthConfig =
+  | { skipAuth: true }
+  | { skipAuth?: false; authStrategies: Array<TAuthStrategy> };
+
+type TReadRouteConfig = TRouteAuthConfig & { schema?: z.ZodObject };
+type TWriteRouteConfig = TReadRouteConfig & { requestBody?: z.ZodObject };
+type TDeleteRouteConfig = TRouteAuthConfig & { schema?: z.ZodObject };
+```
+
+| Route | Type | Description |
+| :--- | :--- | :--- |
+| `count` | `TReadRouteConfig` | Config for count endpoint |
+| `find` | `TReadRouteConfig` | Config for find endpoint |
+| `findOne` | `TReadRouteConfig` | Config for findOne endpoint |
+| `findById` | `TReadRouteConfig` | Config for findById endpoint |
+| `create` | `TWriteRouteConfig` | Config for create endpoint (supports `requestBody`) |
+| `updateById` | `TWriteRouteConfig` | Config for updateById endpoint (supports `requestBody`) |
+| `updateBy` | `TWriteRouteConfig` | Config for updateBy endpoint (supports `requestBody`) |
+| `deleteById` | `TDeleteRouteConfig` | Config for deleteById endpoint |
+| `deleteBy` | `TDeleteRouteConfig` | Config for deleteBy endpoint |
+
+### Auth Resolution Priority
+
+When resolving authentication for a route, the following priority applies:
+
+1. **Endpoint `skipAuth: true`** → No auth (ignores controller `authStrategies`)
+2. **Endpoint `authStrategies`** → Override controller (empty array = no auth)
+3. **Controller `authStrategies`** → Default fallback
+
+### Authentication Examples
+
+```typescript
+// 1. JWT auth on ALL routes
+const UserController = ControllerFactory.defineCrudController({
+  entity: UserEntity,
+  repository: { name: 'UserRepository' },
+  controller: { name: 'UserController', basePath: '/users' },
+  authStrategies: ['jwt'],
+});
+
+// 2. JWT auth on all, but skip for public read endpoints
+const ProductController = ControllerFactory.defineCrudController({
+  entity: ProductEntity,
+  repository: { name: 'ProductRepository' },
+  controller: { name: 'ProductController', basePath: '/products' },
+  authStrategies: ['jwt'],
+  routes: {
+    find: { skipAuth: true },
+    findById: { skipAuth: true },
+    count: { skipAuth: true },
+  },
+});
+
+// 3. No controller auth, require JWT only for write operations
+const ArticleController = ControllerFactory.defineCrudController({
+  entity: ArticleEntity,
+  repository: { name: 'ArticleRepository' },
+  controller: { name: 'ArticleController', basePath: '/articles' },
+  routes: {
+    create: { authStrategies: ['jwt'] },
+    updateById: { authStrategies: ['jwt'] },
+    deleteById: { authStrategies: ['jwt'] },
+  },
+});
+
+// 4. Custom schema with auth configuration
+const OrderController = ControllerFactory.defineCrudController({
+  entity: OrderEntity,
+  repository: { name: 'OrderRepository' },
+  controller: { name: 'OrderController', basePath: '/orders' },
+  authStrategies: ['jwt'],
+  routes: {
+    find: { schema: CustomOrderListSchema, skipAuth: true },
+    create: {
+      schema: CustomOrderResponseSchema,
+      requestBody: CustomOrderCreateSchema,
+    },
+  },
+});
+```
 
 ### Example
 
