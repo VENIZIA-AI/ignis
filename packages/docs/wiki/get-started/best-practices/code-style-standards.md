@@ -117,6 +117,55 @@ Use the centralized TypeScript configs:
 
 See [`@venizia/dev-configs` documentation](../../references/src-details/dev-configs.md) for full details.
 
+## Directory Structure
+
+### Component Organization
+
+```
+src/components/[feature]/
+├── index.ts              # Barrel exports
+├── component.ts          # IoC binding setup
+├── controller.ts         # Route handlers
+└── common/
+    ├── index.ts          # Barrel exports
+    ├── keys.ts           # Binding key constants
+    ├── types.ts          # Interfaces and types
+    └── rest-paths.ts     # Route path constants
+```
+
+### Complex Component (with multiple features)
+
+```
+src/components/auth/
+├── index.ts
+├── authenticate/
+│   ├── index.ts
+│   ├── component.ts
+│   ├── common/
+│   ├── controllers/
+│   ├── services/
+│   └── strategies/
+└── models/
+    ├── entities/         # Database models
+    └── requests/         # Request schemas
+```
+
+### Barrel Exports
+
+Every folder should have an `index.ts` that re-exports its contents:
+
+```typescript
+// components/health-check/index.ts
+export * from './common';
+export * from './component';
+export * from './controller';
+
+// components/health-check/common/index.ts
+export * from './keys';
+export * from './rest-paths';
+export * from './types';
+```
+
 ## Naming Conventions
 
 ### Class Names
@@ -184,53 +233,236 @@ export class SocketIOBindingKeys {
 }
 ```
 
-## Directory Structure
+## Type Safety
 
-### Component Organization
+To ensure long-term maintainability and catch errors at compile-time, Ignis enforces strict type safety.
 
-```
-src/components/[feature]/
-├── index.ts              # Barrel exports
-├── component.ts          # IoC binding setup
-├── controller.ts         # Route handlers
-└── common/
-    ├── index.ts          # Barrel exports
-    ├── keys.ts           # Binding key constants
-    ├── types.ts          # Interfaces and types
-    └── rest-paths.ts     # Route path constants
-```
+### Avoid `any` and `unknown`
 
-### Complex Component (with multiple features)
+**Never use `any` or `unknown` as much as possible.** You must specify clear, descriptive types for all variables, parameters, and return values.
 
-```
-src/components/auth/
-├── index.ts
-├── authenticate/
-│   ├── index.ts
-│   ├── component.ts
-│   ├── common/
-│   ├── controllers/
-│   ├── services/
-│   └── strategies/
-└── models/
-    ├── entities/         # Database models
-    └── requests/         # Request schemas
-```
+-   **`any`**: Bypasses all type checking and leads to "runtime surprises". It is strictly discouraged.
+-   **`unknown`**: While safer than `any`, it still forces consumers to perform manual type checking. Prefer using generics or specific interfaces.
 
-### Barrel Exports
+**Why?**
+- **Maintenance**: Developers reading your code in the future will know exactly what the data structure is.
+- **Refactoring**: Changing an interface automatically highlights all broken code across the monorepo.
+- **Documentation**: Types act as a self-documenting contract for your APIs and services.
 
-Every folder should have an `index.ts` that re-exports its contents:
+## Type Definitions
+
+### Explicit Return Types
+Always define explicit return types for **public methods** and **API handlers**.
+
+**Why?**
+- **Compiler Performance:** Speeds up TypeScript type checking in large projects.
+- **Safety:** Prevents accidental exposure of internal types or sensitive data.
 
 ```typescript
-// components/health-check/index.ts
-export * from './common';
-export * from './component';
-export * from './controller';
+// ✅ GOOD
+public async findUser(id: string): Promise<User | null> { ... }
 
-// components/health-check/common/index.ts
-export * from './keys';
-export * from './rest-paths';
-export * from './types';
+// ❌ BAD (Implicit inference)
+public async findUser(id: string) { ... }
+```
+
+## Type Inference Patterns
+
+### Zod Schema to Type
+
+```typescript
+// Define schema
+export const SignInRequestSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+// Infer type from schema
+export type TSignInRequest = z.infer<typeof SignInRequestSchema>;
+```
+
+### Const Assertion for Literal Types
+
+```typescript
+const ROUTE_CONFIGS = {
+  '/users': { method: 'GET', path: '/users' },
+  '/users/:id': { method: 'GET', path: '/users/:id' },
+} as const;
+
+// Type is now narrowed to literal values
+type RouteKey = keyof typeof ROUTE_CONFIGS; // '/users' | '/users/:id'
+```
+
+### Generic Type Constraints
+
+```typescript
+export class DefaultCRUDRepository<
+  Schema extends TTableSchemaWithId = TTableSchemaWithId
+> {
+  // Schema is constrained to have an 'id' column
+}
+
+export interface IAuthService<
+  SIRQ extends TSignInRequest = TSignInRequest,
+  SIRS = AnyObject,
+> {
+  signIn(context: Context, opts: SIRQ): Promise<SIRS>;
+}
+```
+
+## Module Exports
+
+### Prefer Named Exports
+Avoid `export default` except for configuration files (e.g., `eslint.config.mjs`) or lazy-loaded components. Use named exports for all classes, functions, and constants.
+
+**Why?**
+- **Refactoring:** Renaming a symbol automatically updates imports across the monorepo.
+- **Consistency:** Enforces consistent naming across all files importing the module.
+
+```typescript
+// ✅ GOOD
+export class UserController { ... }
+
+// ❌ BAD
+export default class UserController { ... }
+```
+
+## Function Signatures
+
+### The Options Object Pattern
+Prefer using a single object parameter (`opts`) over multiple positional arguments, especially for constructors and public methods with more than 2 arguments.
+
+**Why?**
+- **Extensibility:** You can add new properties without breaking existing calls.
+- **Readability:** Named keys act as documentation at the call site.
+
+```typescript
+// ✅ GOOD
+class UserService {
+  createUser(opts: { name: string; email: string; role?: string }) { ... }
+}
+// Usage: service.createUser({ name: 'John', email: 'john@example.com' });
+
+// ❌ BAD
+class UserService {
+  createUser(name: string, email: string, role?: string) { ... }
+}
+// Usage: service.createUser('John', 'john@example.com');
+```
+
+## Route Definition Patterns
+
+Ignis supports three methods for defining routes. Choose based on your needs:
+
+### Method 1: Config-Driven Routes
+
+Define route configurations as constants:
+
+```typescript
+// common/rest-paths.ts
+export class UserRestPaths {
+  static readonly ROOT = '/';
+  static readonly BY_ID = '/:id';
+  static readonly PROFILE = '/profile';
+}
+
+// common/route-configs.ts
+export const ROUTE_CONFIGS = {
+  [UserRestPaths.ROOT]: {
+    method: HTTP.Methods.GET,
+    path: UserRestPaths.ROOT,
+    responses: jsonResponse({
+      [HTTP.ResultCodes.RS_2.Ok]: UserListSchema,
+    }),
+  },
+  [UserRestPaths.BY_ID]: {
+    method: HTTP.Methods.GET,
+    path: UserRestPaths.BY_ID,
+    request: {
+      params: z.object({ id: z.string().uuid() }),
+    },
+    responses: jsonResponse({
+      [HTTP.ResultCodes.RS_2.Ok]: UserSchema,
+      [HTTP.ResultCodes.RS_4.NotFound]: ErrorSchema,
+    }),
+  },
+} as const;
+```
+
+### Method 2: Using `@api` Decorator
+
+```typescript
+@controller({ path: '/users' })
+export class UserController extends BaseController {
+
+  @api({ configs: ROUTE_CONFIGS[UserRestPaths.ROOT] })
+  list(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.ROOT]>) {
+    return context.json({ users: [] }, HTTP.ResultCodes.RS_2.Ok);
+  }
+
+  @api({ configs: ROUTE_CONFIGS[UserRestPaths.BY_ID] })
+  getById(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.BY_ID]>) {
+    const { id } = context.req.valid('param');
+    return context.json({ id, name: 'User' }, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+### Method 3: Using `bindRoute` (Programmatic)
+
+```typescript
+@controller({ path: '/health' })
+export class HealthCheckController extends BaseController {
+  constructor() {
+    super({ scope: HealthCheckController.name });
+
+    this.bindRoute({ configs: ROUTE_CONFIGS['/'] }).to({
+      handler: context => context.json({ status: 'ok' }),
+    });
+  }
+}
+```
+
+### Method 4: Using `defineRoute` (Inline)
+
+```typescript
+@controller({ path: '/health' })
+export class HealthCheckController extends BaseController {
+  constructor() {
+    super({ scope: HealthCheckController.name });
+
+    this.defineRoute({
+      configs: ROUTE_CONFIGS['/ping'],
+      handler: context => {
+        const { message } = context.req.valid('json');
+        return context.json({ echo: message }, HTTP.ResultCodes.RS_2.Ok);
+      },
+    });
+  }
+}
+```
+
+### OpenAPI Schema Integration
+
+Use Zod with `.openapi()` for automatic documentation:
+
+```typescript
+const CreateUserSchema = z.object({
+  email: z.string().email(),
+  name: z.string().min(1).max(100),
+}).openapi({
+  description: 'Create user request body',
+  example: { email: 'user@example.com', name: 'John Doe' },
+});
+
+const UserSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string(),
+  createdAt: z.string().datetime(),
+}).openapi({
+  description: 'User response',
+});
 ```
 
 ## Constants Pattern
@@ -427,6 +659,28 @@ constructor(options: IJWTTokenServiceOptions) {
 }
 ```
 
+## Environment Variables Management
+
+Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment` helper and define your keys as constants. This ensures type safety and centralized management.
+
+**Define Keys (`src/common/environments.ts`):**
+```typescript
+export class EnvironmentKeys {
+  static readonly APP_ENV_STRIPE_KEY = 'APP_ENV_STRIPE_KEY';
+  static readonly APP_ENV_MAX_RETRIES = 'APP_ENV_MAX_RETRIES';
+}
+```
+
+**Usage:**
+```typescript
+import { applicationEnvironment } from '@venizia/ignis';
+import { EnvironmentKeys } from '@/common/environments';
+
+// Correct usage
+const stripeKey = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_STRIPE_KEY);
+const retries = applicationEnvironment.get<number>(EnvironmentKeys.APP_ENV_MAX_RETRIES);
+```
+
 ## Logging Patterns
 
 ### Method Context Prefix
@@ -449,46 +703,6 @@ Use format specifiers for structured logging:
 // %s - string, %d - number, %j - JSON object
 this.logger.info('[create] User created | ID: %s | Email: %s', user.id, user.email);
 this.logger.debug('[config] Server options: %j', this.serverOptions);
-```
-
-## Scope Naming
-
-Every class extending a base class should set its scope using `ClassName.name`:
-
-```typescript
-export class JWTTokenService extends BaseService {
-  constructor() {
-    super({ scope: JWTTokenService.name });
-  }
-}
-
-export class UserController extends BaseController {
-  constructor() {
-    super({ scope: UserController.name });
-  }
-}
-```
-
-## Environment Variables Management
-
-Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment` helper and define your keys as constants. This ensures type safety and centralized management.
-
-**Define Keys (`src/common/environments.ts`):**
-```typescript
-export class EnvironmentKeys {
-  static readonly APP_ENV_STRIPE_KEY = 'APP_ENV_STRIPE_KEY';
-  static readonly APP_ENV_MAX_RETRIES = 'APP_ENV_MAX_RETRIES';
-}
-```
-
-**Usage:**
-```typescript
-import { applicationEnvironment } from '@venizia/ignis';
-import { EnvironmentKeys } from '@/common/environments';
-
-// Correct usage
-const stripeKey = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_STRIPE_KEY);
-const retries = applicationEnvironment.get<number>(EnvironmentKeys.APP_ENV_MAX_RETRIES);
 ```
 
 ## Standardized Error Handling
@@ -551,162 +765,21 @@ constructor(options: IServiceOptions) {
 | Not Found | `HTTP.ResultCodes.RS_4.NotFound` | Resource not found |
 | Internal Error | `HTTP.ResultCodes.RS_5.InternalServerError` | Server errors |
 
-## Route Definition Patterns
+## Scope Naming
 
-Ignis supports three methods for defining routes. Choose based on your needs:
-
-### Method 1: Config-Driven Routes
-
-Define route configurations as constants:
+Every class extending a base class should set its scope using `ClassName.name`:
 
 ```typescript
-// common/rest-paths.ts
-export class UserRestPaths {
-  static readonly ROOT = '/';
-  static readonly BY_ID = '/:id';
-  static readonly PROFILE = '/profile';
+export class JWTTokenService extends BaseService {
+  constructor() {
+    super({ scope: JWTTokenService.name });
+  }
 }
 
-// common/route-configs.ts
-export const ROUTE_CONFIGS = {
-  [UserRestPaths.ROOT]: {
-    method: HTTP.Methods.GET,
-    path: UserRestPaths.ROOT,
-    responses: jsonResponse({
-      [HTTP.ResultCodes.RS_2.Ok]: UserListSchema,
-    }),
-  },
-  [UserRestPaths.BY_ID]: {
-    method: HTTP.Methods.GET,
-    path: UserRestPaths.BY_ID,
-    request: {
-      params: z.object({ id: z.string().uuid() }),
-    },
-    responses: jsonResponse({
-      [HTTP.ResultCodes.RS_2.Ok]: UserSchema,
-      [HTTP.ResultCodes.RS_4.NotFound]: ErrorSchema,
-    }),
-  },
-} as const;
-```
-
-### Method 2: Using `@api` Decorator
-
-```typescript
-@controller({ path: '/users' })
 export class UserController extends BaseController {
-
-  @api({ configs: ROUTE_CONFIGS[UserRestPaths.ROOT] })
-  list(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.ROOT]>) {
-    return context.json({ users: [] }, HTTP.ResultCodes.RS_2.Ok);
-  }
-
-  @api({ configs: ROUTE_CONFIGS[UserRestPaths.BY_ID] })
-  getById(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.BY_ID]>) {
-    const { id } = context.req.valid('param');
-    return context.json({ id, name: 'User' }, HTTP.ResultCodes.RS_2.Ok);
-  }
-}
-```
-
-### Method 3: Using `bindRoute` (Programmatic)
-
-```typescript
-@controller({ path: '/health' })
-export class HealthCheckController extends BaseController {
   constructor() {
-    super({ scope: HealthCheckController.name });
-
-    this.bindRoute({ configs: ROUTE_CONFIGS['/'] }).to({
-      handler: context => context.json({ status: 'ok' }),
-    });
+    super({ scope: UserController.name });
   }
-}
-```
-
-### Method 4: Using `defineRoute` (Inline)
-
-```typescript
-@controller({ path: '/health' })
-export class HealthCheckController extends BaseController {
-  constructor() {
-    super({ scope: HealthCheckController.name });
-
-    this.defineRoute({
-      configs: ROUTE_CONFIGS['/ping'],
-      handler: context => {
-        const { message } = context.req.valid('json');
-        return context.json({ echo: message }, HTTP.ResultCodes.RS_2.Ok);
-      },
-    });
-  }
-}
-```
-
-### OpenAPI Schema Integration
-
-Use Zod with `.openapi()` for automatic documentation:
-
-```typescript
-const CreateUserSchema = z.object({
-  email: z.string().email(),
-  name: z.string().min(1).max(100),
-}).openapi({
-  description: 'Create user request body',
-  example: { email: 'user@example.com', name: 'John Doe' },
-});
-
-const UserSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
-  name: z.string(),
-  createdAt: z.string().datetime(),
-}).openapi({
-  description: 'User response',
-});
-```
-
-## Type Inference Patterns
-
-### Zod Schema to Type
-
-```typescript
-// Define schema
-export const SignInRequestSchema = z.object({
-  email: z.string().email(),
-  password: z.string().min(8),
-});
-
-// Infer type from schema
-export type TSignInRequest = z.infer<typeof SignInRequestSchema>;
-```
-
-### Const Assertion for Literal Types
-
-```typescript
-const ROUTE_CONFIGS = {
-  '/users': { method: 'GET', path: '/users' },
-  '/users/:id': { method: 'GET', path: '/users/:id' },
-} as const;
-
-// Type is now narrowed to literal values
-type RouteKey = keyof typeof ROUTE_CONFIGS; // '/users' | '/users/:id'
-```
-
-### Generic Type Constraints
-
-```typescript
-export class DefaultCRUDRepository<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId
-> {
-  // Schema is constrained to have an 'id' column
-}
-
-export interface IAuthService<
-  SIRQ extends TSignInRequest = TSignInRequest,
-  SIRS = AnyObject,
-> {
-  signIn(context: Context, opts: SIRQ): Promise<SIRS>;
 }
 ```
 
@@ -724,5 +797,8 @@ export interface IAuthService<
 | Error format | `[ClassName][method] Message` |
 | Logging format | `[method] Message \| Key: %s` |
 | Default options | `DEFAULT_OPTIONS` constant |
+| Type safety | No `any` or `unknown` allowed |
 | Scope naming | `ClassName.name` |
-
+| Arguments | Options object (`opts`) |
+| Exports | Named exports only |
+| Return types | Explicitly defined |

@@ -1,4 +1,4 @@
-import { IDataSource } from '@/base/datasources';
+import { IDataSource, ITransaction } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
@@ -188,7 +188,7 @@ export type TDrizzleQueryOptions = Partial<{
   offset: number;
   orderBy: SQL[];
   where: SQL;
-  with: Record<string, boolean | TDrizzleQueryOptions>;
+  with: Record<string, true | TDrizzleQueryOptions>;
   columns: Record<string, boolean>;
 }>;
 
@@ -217,6 +217,13 @@ export type TRepositoryLogOptions = {
 };
 
 // ---------------------------------------------------------------------------
+// Transaction Support
+// ---------------------------------------------------------------------------
+export type TTransactionOption = {
+  transaction?: ITransaction;
+};
+
+// ---------------------------------------------------------------------------
 export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
   dataSource: IDataSource;
   entity: BaseEntity<Schema>;
@@ -229,140 +236,143 @@ export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWit
 export interface IReadableRepository<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<Schema> = TTableObject<Schema>,
-  ExtraOptions extends TNullable<object> = undefined,
+  ExtraOptions extends TTransactionOption = TTransactionOption,
 > extends IRepository<Schema> {
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
 
   count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
   existsWith(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<boolean>;
 
-  find(opts: { filter: TFilter<DataObject>; options?: ExtraOptions }): Promise<Array<DataObject>>;
-  findOne(opts: {
+  find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
-  }): Promise<TNullable<DataObject>>;
-  findById(opts: {
+  }): Promise<Array<R>>;
+  findOne<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options?: ExtraOptions;
+  }): Promise<TNullable<R>>;
+  findById<R = DataObject>(opts: {
     id: IdType;
     filter?: Exclude<TFilter<DataObject>, 'where'>;
     options?: ExtraOptions;
-  }): Promise<TNullable<DataObject>>;
+  }): Promise<TNullable<R>>;
 }
 
 export interface IPersistableRepository<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<Schema> = TTableObject<Schema>,
   PersistObject extends TTableInsert<Schema> = TTableInsert<Schema>,
-  ExtraOptions extends TNullable<object> = undefined,
+  ExtraOptions extends TTransactionOption = TTransactionOption,
 > extends IReadableRepository<Schema, DataObject, ExtraOptions> {
   create(opts: {
     data: PersistObject;
-    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  create(opts: {
+  create<R = Schema['$inferSelect']>(opts: {
     data: PersistObject;
-    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: R }>;
 
   createAll(opts: {
     data: Array<PersistObject>;
-    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  createAll(opts: {
+  createAll<R = Schema['$inferSelect']>(opts: {
     data: Array<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: Array<R> }>;
 
   updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  updateById(opts: {
+  updateById<R = Schema['$inferSelect']>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: R }>;
 
   updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options: (ExtraOptions | {}) & {
+    options: ExtraOptions & {
       shouldReturn: false;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  updateAll(opts: {
+  updateAll<R = Schema['$inferSelect']>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & {
+    options?: ExtraOptions & {
       shouldReturn?: true;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
-  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+  }): Promise<TCount & { data: Array<R> }>;
 
   updateBy(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options: (ExtraOptions | {}) & {
+    options: ExtraOptions & {
       shouldReturn: false;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  updateBy(opts: {
+  updateBy<R = Schema['$inferSelect']>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & {
+    options?: ExtraOptions & {
       shouldReturn?: true;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
-  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+  }): Promise<TCount & { data: Array<R> }>;
 
   deleteById(opts: {
     id: IdType;
-    options: (ExtraOptions | {}) & { shouldReturn: false; log?: TRepositoryLogOptions };
+    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  deleteById(opts: {
+  deleteById<R = Schema['$inferSelect']>(opts: {
     id: IdType;
-    options?: (ExtraOptions | {}) & { shouldReturn?: true; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: Schema['$inferSelect'] }>;
+    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+  }): Promise<TCount & { data: R }>;
 
   deleteAll(opts: {
     where?: TWhere<DataObject>;
-    options: (ExtraOptions | {}) & {
+    options: ExtraOptions & {
       shouldReturn: false;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  deleteAll(opts: {
+  deleteAll<R = Schema['$inferSelect']>(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & {
+    options?: ExtraOptions & {
       shouldReturn?: true;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
-  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+  }): Promise<TCount & { data: Array<R> }>;
 
   deleteBy(opts: {
     where?: TWhere<DataObject>;
-    options: (ExtraOptions | {}) & {
+    options: ExtraOptions & {
       shouldReturn: false;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  deleteBy(opts: {
+  deleteBy<R = Schema['$inferSelect']>(opts: {
     where?: TWhere<DataObject>;
-    options?: (ExtraOptions | {}) & {
+    options?: ExtraOptions & {
       shouldReturn?: true;
       force?: boolean;
       log?: TRepositoryLogOptions;
     };
-  }): Promise<TCount & { data: Array<Schema['$inferSelect']> }>;
+  }): Promise<TCount & { data: Array<R> }>;
 }
 
 // --------------------------------------------------------------------------------------

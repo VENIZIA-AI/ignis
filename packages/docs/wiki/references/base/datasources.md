@@ -8,15 +8,17 @@ Technical reference for DataSource classes - managing database connections in Ig
 
 | Class/Interface | Purpose | Key Members |
 |-----------------|---------|-------------|
-| **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `getSchema()`, `configure()` |
+| **IDataSource** | Contract for all datasources | `name`, `settings`, `connector`, `getSchema()`, `configure()`, `beginTransaction()` |
 | **AbstractDataSource** | Base implementation with logging | Extends `BaseHelper` |
-| **BaseDataSource** | Concrete class to extend | Auto-discovery, driver from decorator |
+| **BaseDataSource** | Concrete class to extend | Auto-discovery, driver from decorator, transaction support |
+| **ITransaction** | Transaction object | `connector`, `isActive`, `commit()`, `rollback()` |
+| **IsolationLevels** | Isolation level constants | `READ_COMMITTED`, `REPEATABLE_READ`, `SERIALIZABLE` |
 
 ## `IDataSource` Interface
 
 Contract for all datasource classes in the framework.
 
-**File:** `packages/core/src/base/datasources/types.ts`
+**File:** `packages/core/src/base/datasources/common/types.ts`
 
 ### Properties & Methods
 
@@ -24,10 +26,14 @@ Contract for all datasource classes in the framework.
 |--------|------|-------------|
 | `name` | `string` | Datasource name |
 | `settings` | `object` | Configuration object |
-| `connector` | `TDatabaseConnector` | Database connector instance (e.g., Drizzle) |
-| `getSchema()` | Method | Returns combined Drizzle schema (auto-discovered or manual) |
+| `connector` | `TNodePostgresConnector` | Database connector instance (Drizzle) |
+| `schema` | `Schema` | Combined Drizzle schema (auto-discovered or manual) |
+| `getSchema()` | Method | Returns combined Drizzle schema |
+| `getSettings()` | Method | Returns connection settings |
+| `getConnector()` | Method | Returns the Drizzle connector |
 | `configure()` | Method | Initializes the `connector` |
 | `getConnectionString()` | Method | Returns connection string |
+| `beginTransaction(opts?)` | Method | Starts a new database transaction |
 
 ## `AbstractDataSource` & `BaseDataSource`
 
@@ -263,5 +269,72 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 | `getSettings()` | Returns connection settings |
 | `getConnector()` | Returns the Drizzle connector |
 | `hasDiscoverableModels()` | Returns `true` if there are models registered for this datasource |
+
+## Transaction Support
+
+DataSources provide built-in transaction management through the `beginTransaction()` method. This allows you to perform atomic operations across multiple repositories.
+
+### Transaction Types
+
+**File:** `packages/core/src/base/datasources/common/types.ts`
+
+| Type | Description |
+|------|-------------|
+| `ITransaction<Schema>` | Transaction object with `commit()`, `rollback()`, and `connector` |
+| `ITransactionOptions` | Options for starting a transaction (e.g., `isolationLevel`) |
+| `TIsolationLevel` | Union type: `'READ COMMITTED'` \| `'REPEATABLE READ'` \| `'SERIALIZABLE'` |
+| `IsolationLevels` | Static class with isolation level constants and validation |
+
+### ITransaction Interface
+
+```typescript
+interface ITransaction<Schema> {
+  connector: TNodePostgresTransactionConnector<Schema>;
+  isActive: boolean;
+  isolationLevel: TIsolationLevel;
+
+  commit(): Promise<void>;
+  rollback(): Promise<void>;
+}
+```
+
+### Isolation Levels
+
+Use the `IsolationLevels` static class for type-safe isolation level constants:
+
+```typescript
+import { IsolationLevels } from '@venizia/ignis';
+
+// Available levels
+IsolationLevels.READ_COMMITTED   // Default - prevents dirty reads
+IsolationLevels.REPEATABLE_READ  // Consistent reads within transaction
+IsolationLevels.SERIALIZABLE     // Strictest isolation
+
+// Validation
+IsolationLevels.isValid('READ COMMITTED'); // true
+IsolationLevels.isValid('INVALID');        // false
+```
+
+### Usage Example
+
+```typescript
+// Start transaction from datasource or repository
+const tx = await dataSource.beginTransaction({
+  isolationLevel: IsolationLevels.SERIALIZABLE
+});
+
+try {
+  // Use tx.connector for operations
+  await tx.connector.insert(userTable).values({ name: 'Alice' });
+  await tx.connector.insert(profileTable).values({ userId: '...', bio: 'Hello' });
+
+  await tx.commit();
+} catch (error) {
+  await tx.rollback();
+  throw error;
+}
+```
+
+> **Note:** For most use cases, prefer using `repository.beginTransaction()` which provides a higher-level API. See [Repositories Reference](./repositories.md#transactions) for details.
 
 This architecture ensures that datasources are configured consistently and that the fully-initialized Drizzle connector, aware of all schemas and relations, is available to repositories for querying.

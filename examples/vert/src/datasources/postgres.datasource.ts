@@ -4,7 +4,6 @@ import {
   BaseDataSource,
   datasource,
   int,
-  TNodePostgresConnector,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -23,7 +22,6 @@ interface IDSConfigs {
  * PostgresDataSource with auto-discovery support.
  *
  * Features:
- * - Driver is read from @datasource decorator (no need to pass in constructor)
  * - Schema is auto-discovered from repositories that reference this datasource
  *
  * How it works:
@@ -32,13 +30,12 @@ interface IDSConfigs {
  * 3. Drizzle is initialized with the auto-discovered schema
  */
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {
     super({
       name: PostgresDataSource.name,
-      // driver read from @datasource decorator - no need to pass here!
       config: {
         host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
         port: int(applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_PORT)),
@@ -62,8 +59,9 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
       dsSchema,
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // Store pool reference for transaction support
+    this.pool = new Pool(this.settings);
+    this.connector = drizzle({ client: this.pool, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

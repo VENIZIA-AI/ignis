@@ -16,6 +16,8 @@ import isEmpty from 'lodash/isEmpty';
 import { TDrizzleQueryOptions, TFilter, TInclusion, TRelationConfig, TWhere } from '../common';
 import { QueryOperators, Sorts } from './query';
 
+export type TRelationResolver = (schema: TTableSchemaWithId) => Record<string, TRelationConfig>;
+
 export class DrizzleFilterBuilder extends BaseHelper {
   private static columnCache = new WeakMap<
     TTableSchemaWithId,
@@ -43,12 +45,13 @@ export class DrizzleFilterBuilder extends BaseHelper {
     schema: Schema;
     relations: { [relationName: string]: TRelationConfig };
     filter: TFilter<TTableObject<Schema>>;
+    relationResolver: TRelationResolver;
   }): TDrizzleQueryOptions {
     if (!opts.filter) {
       return {};
     }
 
-    const { tableName, schema, relations, filter } = opts;
+    const { tableName, schema, relations, filter, relationResolver } = opts;
     const { limit, skip, order, fields, where, include } = filter;
     const rs = {
       ...(limit !== undefined && { limit }),
@@ -56,7 +59,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       ...(fields && { columns: this.toColumns(fields) }),
       ...(order && { orderBy: this.toOrderBy({ tableName, schema, order }) }),
       ...(where && { where: this.toWhere({ tableName, schema, where }) }),
-      ...(include && { with: this.toInclude({ include, relations }) }),
+      ...(include && { with: this.toInclude({ include, relations, relationResolver }) }),
     };
 
     return rs;
@@ -203,8 +206,9 @@ export class DrizzleFilterBuilder extends BaseHelper {
   toInclude(opts: {
     include: TInclusion[];
     relations: { [relationName: string]: TRelationConfig };
+    relationResolver: TRelationResolver;
   }) {
-    const { include, relations } = opts;
+    const { include, relations, relationResolver } = opts;
 
     const rs = include.reduce((acc, inc) => {
       let relationName: string;
@@ -241,7 +245,8 @@ export class DrizzleFilterBuilder extends BaseHelper {
         tableName: relationName,
         schema: relationConfig.schema,
         filter: scope,
-        relations, // Pass relations for nested includes
+        relations: relationResolver?.(relationConfig.schema) ?? {},
+        relationResolver,
       });
 
       acc[relationName] = nestedQuery;

@@ -37,12 +37,22 @@ const config = defineConfig({
           collapsed: true,
           items: [
             {
-              text: 'Transaction Support',
-              link: '/changelogs/planned-transaction-support',
-            },
-            {
               text: 'Schema Migrator',
               link: '/changelogs/planned-schema-migrator',
+            },
+          ],
+        },
+        {
+          text: '2025-12-26',
+          collapsed: false,
+          items: [
+            {
+              text: 'Transaction Support',
+              link: '/changelogs/2025-12-26-transaction-support',
+            },
+            {
+              text: 'Nested Relations & Generic Types',
+              link: '/changelogs/2025-12-26-nested-relations-and-generics',
             },
           ],
         },

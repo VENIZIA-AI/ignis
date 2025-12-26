@@ -11,7 +11,6 @@ import {
   BaseDataSource,
   datasource,
   int,
-  TNodePostgresConnector,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -26,17 +25,13 @@ interface IDSConfigs {
   ssl: boolean;
 }
 
-@datasource({})
-export class PostgresDataSource extends BaseDataSource<
-  TNodePostgresConnector,
-  IDSConfigs
-> {
+@datasource({ driver: 'node-postgres' })
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {
     super({
       name: PostgresDataSource.name,
-      driver: 'node-postgres',
       config: {
         host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST),
         port: int(
@@ -68,8 +63,10 @@ export class PostgresDataSource extends BaseDataSource<
   }
 
   override configure(): ValueOrPromise<void> {
+    // Store pool reference for transaction support
+    this.pool = new Pool(this.settings);
     this.connector = drizzle({
-      client: new Pool(this.settings),
+      client: this.pool,
       schema: this.schema,
     });
   }

@@ -1,4 +1,4 @@
-import { IDataSource, TDataSourceDriver } from '@/base/datasources';
+import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
 import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
 import { IRepository, TRepositoryOperationScope } from '@/base/repositories';
 import { RouteConfig } from '@hono/zod-openapi';

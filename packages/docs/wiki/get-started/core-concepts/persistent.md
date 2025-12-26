@@ -418,21 +418,6 @@ export class Application extends BaseApplication {
 
 Ignis automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads.
 
-### Transactions (Current)
-
-Currently, use Drizzle's callback-based `connector.transaction` for atomic operations:
-
-```typescript
-const ds = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
-
-await ds.connector.transaction(async (tx) => {
-  await tx.insert(User.schema).values({ /* ... */ });
-  await tx.insert(Configuration.schema).values({ /* ... */ });
-});
-```
-
-> **Note:** This callback-based approach requires all transaction logic to be in one callback. See [Section 5](#5-transactions-planned) for the planned improvement.
-
 ### Modular Persistence with Components
 
 Bundle related persistence resources into Components for better organization:
@@ -449,39 +434,41 @@ export class UserManagementComponent extends BaseComponent {
 
 ---
 
-## 5. Transactions (Planned)
+## 5. Transactions
 
-> **Status:** Planned - Not yet implemented. See [full plan](../../changelogs/planned-transaction-support).
+Ignis supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
-### The Problem
+### Using Transactions
 
-Drizzle's callback-based transactions make it hard to pass transactions across services:
-
-```typescript
-// Current: Everything must be inside the callback
-await ds.connector.transaction(async (tx) => {
-  // Can't easily call other services with this tx
-});
-```
-
-### Planned Solution
-
-Loopback 4-style explicit transaction objects that can be passed anywhere:
+To use transactions, start one from a repository or datasource, and then pass it to subsequent operations via the `options` parameter.
 
 ```typescript
-// Start transaction from repository
+// 1. Start a transaction
 const tx = await userRepo.beginTransaction({
-  isolationLevel: 'SERIALIZABLE'  // Optional, defaults to 'READ COMMITTED'
+  isolationLevel: 'SERIALIZABLE' // Optional, defaults to 'READ COMMITTED'
 });
 
 try {
-  // Pass tx to multiple services/repositories
-  const user = await userRepo.create({ data, options: { transaction: tx } });
-  await profileRepo.create({ data: { userId: user.id }, options: { transaction: tx } });
+  // 2. Pass transaction to operations
+  // Create user
+  const user = await userRepo.create({ 
+    data: userData, 
+    options: { transaction: tx } 
+  });
+
+  // Create profile (using same transaction)
+  await profileRepo.create({ 
+    data: { userId: user.id, ...profileData }, 
+    options: { transaction: tx } 
+  });
+
+  // Call a service method (passing the transaction)
   await orderService.createInitialOrder(user.id, { transaction: tx });
 
+  // 3. Commit the transaction
   await tx.commit();
 } catch (err) {
+  // 4. Rollback on error
   await tx.rollback();
   throw err;
 }
@@ -489,20 +476,29 @@ try {
 
 ### Isolation Levels
 
+Ignis supports standard PostgreSQL isolation levels:
+
 | Level | Description | Use Case |
 |-------|-------------|----------|
-| `READ COMMITTED` | Default. Sees only committed data | General use |
-| `REPEATABLE READ` | Snapshot from transaction start | Reports, consistent reads |
-| `SERIALIZABLE` | Full isolation, may throw errors | Financial, critical data |
+| `READ COMMITTED` | (Default) Queries see only data committed before the query began. | General use, prevents dirty reads. |
+| `REPEATABLE READ` | Queries see a snapshot as of the start of the transaction. | Reports, consistent reads across multiple queries. |
+| `SERIALIZABLE` | Strictest level. Emulates serial execution. | Financial transactions, critical data integrity. |
 
-### Benefits
+### Best Practices
 
-| Aspect | Current (Callback) | Planned (Pass-through) |
-|--------|-------------------|------------------------|
-| Service composition | Hard | Easy - pass tx anywhere |
-| Separation of concerns | Services coupled | Services independent |
-| Testing | Complex mocking | Easy to mock tx |
-| Code organization | Nested callbacks | Flat, sequential |
+1.  **Always use `try...catch...finally`**: Ensure `rollback()` is called on error to release the connection.
+2.  **Keep it short**: Long-running transactions hold database locks and connections.
+3.  **Pass explicit options**: When calling other services inside a transaction, ensure they accept and use the `transaction` option.
+
+```typescript
+// Service method supporting transactions
+async createInitialOrder(userId: string, opts?: { transaction?: ITransaction }) {
+  return this.orderRepository.create({
+    data: { userId, status: 'PENDING' },
+    options: { transaction: opts?.transaction } // Forward the transaction
+  });
+}
+```
 
 ---
 

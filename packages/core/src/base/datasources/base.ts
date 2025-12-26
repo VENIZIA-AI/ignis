@@ -1,31 +1,36 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseHelper, getError, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool, PoolClient } from 'pg';
 import {
   IDataSource,
-  TAnyDatasourceSchema,
-  TDatabaseConnector,
-  TDataSourceDriver,
+  IsolationLevels,
+  ITransaction,
+  ITransactionOptions,
+  TAnyDataSourceSchema,
+  TIsolationLevel,
   TNodePostgresConnector,
-} from './types';
+} from './common';
 
 // --------------------------------------------------------------------------------------
 export abstract class AbstractDataSource<
-  Connector extends TDatabaseConnector = TNodePostgresConnector,
   Settings extends object = {},
-  Schema extends TAnyDatasourceSchema = {},
+  Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
 >
   extends BaseHelper
-  implements IDataSource<Connector, Settings, Schema, ConfigurableOptions>
+  implements IDataSource<Settings, Schema, ConfigurableOptions>
 {
   name: string;
   settings: Settings;
-  connector: Connector;
+  connector: TNodePostgresConnector<Schema>;
   schema: Schema;
-  protected driver: TDataSourceDriver;
+
+  protected pool: Pool;
 
   abstract configure(opts?: ConfigurableOptions): ValueOrPromise<void>;
   abstract getConnectionString(): ValueOrPromise<string>;
+  abstract beginTransaction(opts?: ITransactionOptions): Promise<ITransaction<Schema>>;
 
   getSettings() {
     return this.settings;
@@ -50,18 +55,16 @@ export abstract class AbstractDataSource<
  * Base DataSource with auto-discovery support.
  *
  * Features:
- * - Driver is read from @datasource decorator (no need to pass in constructor)
  * - Schema auto-discovered from registered repositories
  *
  * Usage:
  * ```typescript
- * @datasource({ driver: 'node-postgres' })
- * export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDbConfig> {
+ * @datasource({})
+ * export class PostgresDataSource extends BaseDataSource<IDbConfig> {
  *   constructor() {
  *     super({
  *       name: PostgresDataSource.name,
  *       config: { host: '...', port: 5432, ... },
- *       // driver read from @datasource decorator
  *       // schema auto-discovered from repositories
  *     });
  *   }
@@ -69,45 +72,24 @@ export abstract class AbstractDataSource<
  * ```
  */
 export abstract class BaseDataSource<
-  Connector extends TDatabaseConnector = TNodePostgresConnector,
   Settings extends object = {},
-  Schema extends TAnyDatasourceSchema = {},
+  Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
-> extends AbstractDataSource<Connector, Settings, Schema, ConfigurableOptions> {
+> extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
   /**
    * @param opts.name - DataSource name (usually class name)
    * @param opts.config - Database connection settings
-   * @param opts.driver - Optional, read from @datasource decorator if not provided
    * @param opts.schema - Optional, auto-discovered from repositories if not provided
    */
-  constructor(opts: {
-    name: string;
-    config: Settings;
-    driver?: TDataSourceDriver;
-    schema?: Schema;
-  }) {
+  constructor(opts: { name: string; config: Settings; schema?: Schema }) {
     super({ scope: opts.name });
 
     this.name = opts.name;
     this.settings = opts.config;
-    this.driver = opts.driver ?? this.resolveDriver();
 
     if (opts.schema) {
       this.schema = opts.schema;
     }
-  }
-
-  private resolveDriver(): TDataSourceDriver {
-    const registry = MetadataRegistry.getInstance();
-    const metadata = registry.getDataSourceMetadata({ target: this.constructor });
-
-    if (!metadata?.driver) {
-      throw getError({
-        message: `[${this.constructor.name}] Driver not available. Use @datasource({ driver: '...' }) decorator or pass driver in constructor.`,
-      });
-    }
-
-    return metadata.driver;
   }
 
   /**
@@ -150,5 +132,56 @@ export abstract class BaseDataSource<
   hasDiscoverableModels(): boolean {
     const registry = MetadataRegistry.getInstance();
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Transaction Support
+  // ---------------------------------------------------------------------------
+  async beginTransaction(opts?: ITransactionOptions): Promise<ITransaction<Schema>> {
+    if (!this.pool) {
+      throw getError({
+        message: `[${this.constructor.name}][beginTransaction] Pool not initialized. Set this.pool in configure().`,
+      });
+    }
+
+    const client: PoolClient = await this.pool.connect();
+    const isolationLevel: TIsolationLevel = opts?.isolationLevel ?? IsolationLevels.READ_COMMITTED;
+
+    await client.query(`BEGIN TRANSACTION ISOLATION LEVEL ${isolationLevel}`);
+    let isActive = true;
+
+    return {
+      connector: drizzle({ client, schema: this.schema }),
+      get isActive() {
+        return isActive;
+      },
+      isolationLevel,
+
+      commit: async () => {
+        if (!isActive) {
+          throw getError({ message: '[Transaction][commit] Transaction already ended' });
+        }
+
+        try {
+          await client.query('COMMIT');
+        } finally {
+          isActive = false;
+          client.release();
+        }
+      },
+
+      rollback: async () => {
+        if (!isActive) {
+          throw getError({ message: '[Transaction][rollback] Transaction already ended' });
+        }
+
+        try {
+          await client.query('ROLLBACK');
+        } finally {
+          isActive = false;
+          client.release();
+        }
+      },
+    };
   }
 }

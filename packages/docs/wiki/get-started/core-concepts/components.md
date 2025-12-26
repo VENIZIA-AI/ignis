@@ -2,7 +2,7 @@
 
 Components are reusable, pluggable modules that encapsulate a group of related features. A component acts as a powerful container for various resources—including providers, services, controllers, repositories, and even entire mini-applications—making it easy to share and integrate complex functionality across projects.
 
-> **Deep Dive:** See [Components Reference](../../references/base/components.md) for technical details.
+> **Deep Dive:** See [Components Reference](../../references/base/components.md) for detailed implementation patterns, directory structure, and best practices.
 
 ## What is a Component?
 
@@ -13,86 +13,103 @@ A component is a class that extends `BaseComponent` and is responsible for:
 
 A single component can bundle everything needed for a specific domain—for example, an "AuthComponent" might include multiple services for token management, repositories for user data, and controllers for login/signup endpoints, essentially functioning as a plug-and-play mini-application.
 
+## Built-in Components
+
 `Ignis` comes with several built-in components, which you can explore in the [**Components Reference**](../../references/components/) section:
 
-- **`AuthenticateComponent`**: Sets up JWT-based authentication.
-- **`SwaggerComponent`**: Generates interactive OpenAPI documentation.
-- **`HealthCheckComponent`**: Adds a health check endpoint.
-- **`RequestTrackerComponent`**: Adds request logging and tracing.
-- **`SocketIOComponent`**: Integrates Socket.IO for real-time communication.
+| Component | Description |
+|-----------|-------------|
+| `AuthenticateComponent` | JWT-based authentication with token services |
+| `SwaggerComponent` | Interactive OpenAPI documentation |
+| `HealthCheckComponent` | Health check endpoints |
+| `RequestTrackerComponent` | Request logging and tracing |
+| `SocketIOComponent` | Real-time communication with Socket.IO |
+| `StaticAssetComponent` | File upload and storage management |
 
-## Creating a Component
-
-To create a new component, extend the `BaseComponent` class. The constructor is the ideal place to define any **default bindings** that the component provides.
+## Creating a Simple Component
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding, BindingScopes } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding } from '@venizia/ignis';
 
-// An example service that the component will provide
-class MyFeatureService {
-  // ... business logic
+// Define a service
+class NotificationService {
+  send(message: string) { /* ... */ }
 }
 
-// A controller that depends on the service
-@controller({ path: '/my-feature' })
-class MyFeatureController {
+// Define a controller
+@controller({ path: '/notifications' })
+class NotificationController extends BaseController {
   constructor(
-    @inject({ key: 'services.MyFeatureService' })
-    private myFeatureService: MyFeatureService
-  ) { /* ... */ }
+    @inject({ key: 'services.NotificationService' })
+    private notificationService: NotificationService
+  ) {
+    super({ scope: NotificationController.name });
+  }
 }
 
-export class MyFeatureComponent extends BaseComponent {
+// Create the component
+export class NotificationComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE })
     private application: BaseApplication,
   ) {
     super({
-      scope: MyFeatureComponent.name,
-      // Enable default bindings for this component
+      scope: NotificationComponent.name,
       initDefault: { enable: true, container: application },
-      // Define the default bindings this component provides
       bindings: {
-        'services.MyFeatureService': Binding.bind({ key: 'services.MyFeatureService' })
-          .toClass(MyFeatureService)
-          .setScope(BindingScopes.SINGLETON), // Make it a singleton
+        'services.NotificationService': Binding.bind({ key: 'services.NotificationService' })
+          .toClass(NotificationService),
       },
     });
   }
 
   override binding(): ValueOrPromise<void> {
-    // This is where you configure logic that USES the bindings.
-    // Here, we register a controller that depends on the service
-    // we just bound in the constructor.
-    this.application.controller(MyFeatureController);
+    this.application.controller(NotificationController);
   }
 }
 ```
 
 ## Component Lifecycle
 
-Components have a simple, two-stage lifecycle managed by the application.
-
 | Stage | Method | Description |
 | :--- | :--- | :--- |
-| **1. Instantiation** | `constructor()` | The component is created by the DI container. This is where you call `super()` and define the component's `bindings`. If `initDefault` is enabled, these bindings are registered with the application container immediately. |
-| **2. Configuration**| `binding()` | Called by the application during the `registerComponents` startup phase. This is where you should set up resources (like controllers) that *depend* on the bindings you defined in the constructor. |
+| **1. Instantiation** | `constructor()` | Component is created. Define default `bindings` here. |
+| **2. Configuration** | `binding()` | Called during startup. Register controllers and resources here. |
 
 ## Registering a Component
 
-To activate a component, you must register it with the application instance, usually in the `preConfigure` method of your `Application` class.
+Register components in your application's `preConfigure` method:
 
 ```typescript
-// in src/application.ts
-import { MyFeatureComponent } from './components/my-feature.component';
-
-// ... inside your Application class
-
+// src/application.ts
+export class Application extends BaseApplication {
   preConfigure(): ValueOrPromise<void> {
-    // ...
-    this.component(MyFeatureComponent);
-    // ...
+    this.component(HealthCheckComponent);
+    this.component(SwaggerComponent);
+    this.component(NotificationComponent);
   }
+}
 ```
 
-When the application starts, it will find the `MyFeatureComponent` binding, instantiate it, and then call its `binding()` method at the appropriate time. This modular approach keeps your main application class clean and makes it easy to toggle features on and off.
+## Customizing Component Options
+
+Most components accept configuration options. Override them before registration:
+
+```typescript
+// src/application.ts
+export class Application extends BaseApplication {
+  preConfigure(): ValueOrPromise<void> {
+    // Override options BEFORE registering component
+    this.bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS })
+      .toValue({ restOptions: { path: '/api/health' } });
+
+    this.component(HealthCheckComponent);
+  }
+}
+```
+
+---
+
+> **Next Steps:**
+> - [Components Reference](../../references/base/components.md) - Directory structure, keys, types, constants patterns
+> - [Built-in Components](../../references/components/) - Detailed documentation for each component

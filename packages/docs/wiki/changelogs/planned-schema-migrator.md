@@ -46,7 +46,7 @@ await migrator.automigrate(); // Drops and recreates all tables
 
 ### Step 1: Define Migrator Types
 
-**File:** `packages/core/src/base/datasources/types.ts`
+**File:** `packages/core/src/base/datasources/common/types.ts`
 
 ```typescript
 /** Column information from database introspection */
@@ -424,7 +424,7 @@ export abstract class BaseDataSource<...> {
 
 | File | Changes |
 |------|---------|
-| `packages/core/src/base/datasources/types.ts` | Add migration types and interfaces |
+| `packages/core/src/base/datasources/common/types.ts` | Add migration types and interfaces |
 | `packages/core/src/base/datasources/base.ts` | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
 | `packages/core/src/base/datasources/index.ts` | Export new classes |
 

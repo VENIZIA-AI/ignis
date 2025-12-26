@@ -33,10 +33,10 @@
   "dependencies": {
     "@hono/zod-openapi": "^1.1.5",
     "@scalar/hono-api-reference": "^0.9.28",
-    "@venizia/ignis": "latest",
-    "@venizia/ignis-boot": "^0.0.1-0",
-    "@venizia/ignis-helpers": "latest",
-    "@venizia/ignis-inversion": "latest",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.44.7",
     "drizzle-zod": "^0.8.3",
@@ -46,11 +46,10 @@
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
-    "@minimaltech/eslint-node": "^0.2.1",
     "@types/bun": "^1.3.4",
     "@types/lodash": "^4.17.21",
     "@types/pg": "^8.16.0",
-    "@venizia/dev-configs": "latest",
+    "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "^0.31.8",
     "eslint": "^9.39.2",
     "prettier": "^3.7.4",

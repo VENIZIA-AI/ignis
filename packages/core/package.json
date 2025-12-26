@@ -150,6 +150,9 @@
     },
     "mailgun.js": {
       "optional": true
+    },
+    "pg": {
+      "optional": true
     }
   },
   "devDependencies": {

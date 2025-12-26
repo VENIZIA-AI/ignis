@@ -11,13 +11,14 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Feature | Description | Priority |
 |---------|-------------|----------|
-| [Transaction Support](./planned-transaction-support) | Loopback 4-style explicit transaction objects with isolation levels | Future |
 | [Schema Migrator](./planned-schema-migrator) | LoopBack 4-style auto schema migration without Drizzle Kit | High |
 
 ## Recent Changes
 
 | Date | Title | Type |
 |------|-------|------|
+| 2025-12-26 | [Transaction Support](./2025-12-26-transaction-support) | Enhancement |
+| 2025-12-26 | [Nested Relations & Generic Types](./2025-12-26-nested-relations-and-generics) | Enhancement |
 | 2025-12-18 | [Performance Optimizations](./2025-12-18-performance-optimizations) | Enhancement |
 | 2025-12-18 | [Repository Validation & Security](./2025-12-18-repository-validation-security) | Breaking Change, Security |
 | 2025-12-17 | [Inversion of Control Refactor](./2025-12-17-refactor) | Refactor |

@@ -321,9 +321,86 @@ const results = await repo.createAll({
 // Type: Promise<TCount & { data: User[] }>
 ```
 
+### Generic Return Types
+
+For queries involving relations (`include`) or custom mapped types, you can override the return type of repository methods. This provides stronger type safety at the application layer without losing the convenience of the repository pattern.
+
+```typescript
+// Define custom return type with relations
+type ProductWithChannels = Product & {
+  saleChannelProducts: (SaleChannelProduct & {
+    saleChannel: SaleChannel
+  })[]
+};
+
+// Use generic override
+const product = await productRepo.findOne<ProductWithChannels>({
+  filter: {
+    where: { id: '...' },
+    include: [{
+      relation: 'saleChannelProducts',
+      scope: { include: [{ relation: 'saleChannel' }] }
+    }]
+  }
+});
+
+// TypeScript knows the structure!
+if (product) {
+  console.log(product.saleChannelProducts[0].saleChannel.name);
+}
+```
+
+**Supported Methods:**
+- `find<R>()`
+- `findOne<R>()`
+- `findById<R>()`
+- `create<R>()`, `createAll<R>()`
+- `updateById<R>()`, `updateAll<R>()`
+- `deleteById<R>()`, `deleteAll<R>()`
+
+### Transactions
+
+Repositories provide direct access to transaction management via the `beginTransaction()` method. This allows you to orchestrate atomic operations across multiple repositories or services.
+
+```typescript
+// Start a transaction
+const tx = await repo.beginTransaction();
+
+try {
+  // Perform operations within the transaction
+  const user = await userRepo.create({
+    data: { name: 'Alice' },
+    options: { transaction: tx } // Pass the transaction object
+  });
+
+  const profile = await profileRepo.create({
+    data: { userId: user.id, bio: 'Hello' },
+    options: { transaction: tx } // Use the same transaction
+  });
+
+  // Commit changes
+  await tx.commit();
+} catch (error) {
+  // Rollback on error
+  await tx.rollback();
+  throw error;
+}
+```
+
+**Isolation Levels:**
+You can specify the isolation level when starting a transaction:
+```typescript
+const tx = await repo.beginTransaction({
+  isolationLevel: 'SERIALIZABLE' // 'READ COMMITTED' | 'REPEATABLE READ' | 'SERIALIZABLE'
+});
+```
+
 ### Relations Auto-Resolution
 
-Relations are now automatically resolved from the entity's static `relations` property:
+Relations are automatically resolved from the entity's static `relations` property. This resolution is **recursive**, allowing for deeply nested `include` queries across multiple levels of the entity graph.
+
+> [!WARNING]
+> **Performance Recommendation:** Each nested `include` adds significant overhead to SQL generation and result mapping. We strongly recommend a **maximum of 2 levels** (e.g., `Product -> Junction -> SaleChannel`). For deeper relationships, fetching data in multiple smaller queries is often more performant.
 
 ```typescript
 // Define entity with static relations
@@ -339,11 +416,17 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   // No need to pass relations in constructor - auto-resolved!
 }
 
-// Relations are available for include queries
-const users = await repo.find({
+// Nested inclusion (Product -> Junction -> SaleChannel)
+const product = await repo.findOne({
   filter: {
-    where: { status: 'active' },
-    include: [{ relation: 'posts' }], // Works automatically
+    include: [
+      {
+        relation: 'saleChannelProducts', // Level 1
+        scope: {
+          include: [{ relation: 'saleChannel' }] // Level 2 (Nested)
+        }
+      }
+    ]
   }
 });
 ```
@@ -363,6 +446,9 @@ The `getQueryInterface()` method validates that the entity's schema is properly 
 
 The `ReadableRepository` automatically optimizes flat queries (no relations, no field selection) using Drizzle's Core API instead of Query API. This provides ~15-20% performance improvement for simple queries.
 
+> [!IMPORTANT]
+> **Always use `limit`:** To ensure consistent performance and prevent memory exhaustion, always provide a `limit` in your filter options, especially for public-facing endpoints.
+
 **Automatic Optimization:**
 
 ```typescript
@@ -370,7 +456,7 @@ The `ReadableRepository` automatically optimizes flat queries (no relations, no 
 const users = await repo.find({
   filter: {
     where: { status: 'active' },
-    limit: 10,
+    limit: 10,                       // ✅ Mandatory limit for performance
     order: ['createdAt DESC'],
   }
 });
