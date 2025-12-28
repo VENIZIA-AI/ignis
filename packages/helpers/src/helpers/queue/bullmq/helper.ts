@@ -1,13 +1,60 @@
 import { BaseHelper } from '@/helpers/base';
+import { DefaultRedisHelper } from '@/helpers/redis';
 import { Job, Queue, Worker } from 'bullmq';
-import Redis from 'ioredis';
 import { TBullQueueRole } from '../common';
 
+/**
+ * BullMQ Helper for queue and worker management.
+ *
+ * @example
+ * // When using Redis Cluster, initialize with recommended options:
+ * import { Cluster } from 'ioredis';
+ *
+ * const cluster = new Cluster(
+ *   [
+ *     { host: 'node1.redis.example.com', port: 6379 },
+ *     { host: 'node2.redis.example.com', port: 6379 },
+ *     { host: 'node3.redis.example.com', port: 6379 },
+ *   ],
+ *   {
+ *     // Recommended options for BullMQ:
+ *     maxRetriesPerRequest: null,      // Required by BullMQ (disables retry limit)
+ *     enableReadyCheck: true,          // Wait until cluster is ready
+ *     scaleReads: 'slave',             // Optional: read from replicas to reduce master load
+ *
+ *     // If behind NAT/proxy:
+ *     // natMap: {
+ *     //   'internal-ip:6379': { host: 'external-ip', port: 6379 }
+ *     // },
+ *
+ *     redisOptions: {
+ *       password: 'your-password',     // If auth required
+ *       tls: {},                       // If TLS required
+ *     },
+ *   }
+ * );
+ *
+ * const redisHelper = new DefaultRedisHelper({
+ *   scope: 'BullMQ',
+ *   identifier: 'my-redis',
+ *   client: cluster,
+ * });
+ *
+ * const helper = BullMQHelper.newInstance({
+ *   queueName: 'my-queue',
+ *   identifier: 'my-worker',
+ *   role: 'worker',
+ *   redisConnection: redisHelper,
+ *   onWorkerData: async (job) => { ... },
+ * });
+ *
+ * @note `maxRetriesPerRequest: null` is required by BullMQ for both Redis and Cluster connections to prevent blocking issues.
+ */
 interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
-  connection: Redis;
+  redisConnection: DefaultRedisHelper;
 
   numberOfWorker?: number;
   lockDuration?: number;
@@ -21,22 +68,22 @@ interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
 }
 
 export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
-  private queueName: string;
-  private role: TBullQueueRole;
-  private connection: Redis;
+  protected queueName: string;
+  protected role: TBullQueueRole;
+  protected redisConnection: DefaultRedisHelper;
 
   queue: Queue<TQueueElement, TQueueResult>;
   worker: Worker<TQueueElement, TQueueResult>;
 
-  private numberOfWorker = 1;
-  private lockDuration = 90 * 60 * 1000;
+  protected numberOfWorker = 1;
+  protected lockDuration = 90 * 60 * 1000;
 
-  private onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
-  private onWorkerDataCompleted?: (
+  protected onWorkerData?: (job: Job<TQueueElement, TQueueResult>) => Promise<any>;
+  protected onWorkerDataCompleted?: (
     job: Job<TQueueElement, TQueueResult>,
     result: any,
   ) => Promise<void>;
-  private onWorkerDataFail?: (
+  protected onWorkerDataFail?: (
     job: Job<TQueueElement, TQueueResult> | undefined,
     error: Error,
   ) => Promise<void>;
@@ -45,7 +92,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     super({ scope: BullMQHelper.name, identifier: options.identifier });
     const {
       queueName,
-      connection,
+      redisConnection,
       role,
       numberOfWorker = 1,
       lockDuration = 90 * 60 * 1000,
@@ -56,7 +103,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     this.queueName = queueName;
     this.role = role;
-    this.connection = connection;
+    this.redisConnection = redisConnection;
 
     this.numberOfWorker = numberOfWorker;
     this.lockDuration = lockDuration;
@@ -79,7 +126,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     }
 
     this.queue = new Queue<TQueueElement, TQueueResult>(this.queueName, {
-      connection: this.connection,
+      connection: this.redisConnection.getClient().duplicate(),
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
@@ -112,7 +159,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         );
       },
       {
-        connection: this.connection,
+        connection: this.redisConnection.getClient().duplicate(),
         concurrency: this.numberOfWorker,
         lockDuration: this.lockDuration,
       },
@@ -167,6 +214,17 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         this.configureWorker();
         break;
       }
+    }
+  }
+
+  async close() {
+    try {
+      await this.worker?.close();
+      await this.queue?.close();
+      this.logger.info('[close][%s] BullMQ helper closed successfully', this.identifier);
+    } catch (error) {
+      this.logger.error('[close][%s] Error closing BullMQ helper: %s', this.identifier, error);
+      throw error;
     }
   }
 }
