@@ -29,6 +29,8 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
       metadata: jsonb().$type<Record<string, any>>(),
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
+      principalType: text('principal_type'),
+      principalId: integer('principal_id'),
     },
     def => [
       index(`IDX_MetaLink_bucketName`).on(def.bucketName),

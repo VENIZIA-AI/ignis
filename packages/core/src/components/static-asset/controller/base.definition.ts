@@ -158,6 +158,10 @@ export const StaticAssetDefinitions = {
           example: 'images',
         }),
       }),
+      query: z.object({
+        principalType: z.string().optional(),
+        principalId: z.number().optional(),
+      }),
       body: {
         content: {
           'multipart/form-data': {

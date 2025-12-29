@@ -198,6 +198,7 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid('param');
+            const { principalType, principalId } = ctx.req.valid('query');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -252,6 +253,8 @@ export class AssetControllerFactory extends BaseHelper {
                     metadata: fileStat.metadata,
                     storageType: storage,
                     isSynced: true,
+                    principalId,
+                    principalType,
                   },
                 });
 
