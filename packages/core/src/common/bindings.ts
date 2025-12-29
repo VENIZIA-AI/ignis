@@ -1,4 +1,7 @@
+import { TConstValue } from '@venizia/ignis-helpers';
 import { BindingKeys } from '@/helpers/inversion';
+
+export type TBindingNamespace = TConstValue<typeof BindingNamespaces>;
 
 export class BindingNamespaces {
   static readonly COMPONENT = BindingNamespaces.createNamespace({ name: 'components' });

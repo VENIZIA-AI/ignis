@@ -1,4 +1,4 @@
-import { BindingNamespaces } from '@/common/bindings';
+import { BindingNamespaces, TBindingNamespace } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import {
   Binding,
@@ -52,14 +52,69 @@ const {
 } = process.env;
 
 // ------------------------------------------------------------------------------
+interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
+  namespace: TBindingNamespace;
+  onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
+  onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
+}
+
+// ------------------------------------------------------------------------------
 export abstract class BaseApplication
   extends AbstractApplication
   implements IRestApplication, IBootableApplication
 {
+  private registeredBindings: Record<string, Set<string>> = {};
+
   // ------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
     return joined || '/';
+  }
+
+  // ------------------------------------------------------------------------------
+  protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
+    opts: IRegisterDynamicBindingsOptions<T>,
+  ): Promise<void> {
+    const { namespace, onBeforeConfigure, onAfterConfigure } = opts;
+
+    if (!this.registeredBindings[namespace]) {
+      this.registeredBindings[namespace] = new Set<string>();
+    }
+    const configured = this.registeredBindings[namespace];
+
+    let bindings = this.findByTag({ tag: namespace, exclude: configured });
+    while (bindings.length > 0) {
+      const binding = bindings.shift();
+      if (!binding) {
+        this.logger.debug('[registerDynamicBindings] Empty binding | namespace: %s', namespace);
+        continue;
+      }
+
+      if (onBeforeConfigure) {
+        await onBeforeConfigure({ binding });
+      }
+
+      const instance = this.get<T>({ key: binding.key, isOptional: false });
+      if (!instance) {
+        this.logger.debug(
+          '[registerDynamicBindings] No binding instance | namespace: %s | key: %s',
+          namespace,
+          binding.key,
+        );
+        configured.add(binding.key);
+        continue;
+      }
+
+      await instance.configure();
+      configured.add(binding.key);
+
+      if (onAfterConfigure) {
+        await onAfterConfigure({ binding, instance });
+      }
+
+      // Re-fetch excluding already configured - picks up dynamically added bindings
+      bindings = this.findByTag({ tag: namespace, exclude: configured });
+    }
   }
 
   // ------------------------------------------------------------------------------
@@ -76,34 +131,19 @@ export abstract class BaseApplication
       .setScope(BindingScopes.SINGLETON);
   }
 
-  async registerComponents() {
+  async registerComponents(): Promise<void> {
     await executeWithPerformanceMeasure({
       logger: this.logger,
       scope: this.registerComponents.name,
       description: 'Register application components',
       task: async () => {
-        const configured = new Set<string>([]);
-
-        let bindings = this.findByTag({ tag: 'components' });
-        while (bindings.length > 0) {
-          const binding = bindings.shift()!;
-
-          const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
-          if (!instance) {
-            this.logger.debug(
-              '[registerComponents] No binding instance | Ignore registering component | key: %s',
-              binding.key,
-            );
-            configured.add(binding.key);
-            continue;
-          }
-
-          await instance.configure();
-          configured.add(binding.key);
-
-          // Re-fetch excluding already configured - picks up dynamically added components
-          bindings = this.findByTag({ tag: 'components', exclude: configured });
-        }
+        await this.registerDynamicBindings({
+          namespace: BindingNamespaces.COMPONENT,
+          onAfterConfigure: async () => {
+            // Register any datasources dynamically added by this component
+            await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
+          },
+        });
       },
     });
   }
@@ -124,7 +164,7 @@ export abstract class BaseApplication
   }
 
   // ------------------------------------------------------------------------------
-  async registerControllers() {
+  async registerControllers(): Promise<void> {
     await executeWithPerformanceMeasure({
       logger: this.logger,
       description: 'Register application controllers',
@@ -132,32 +172,30 @@ export abstract class BaseApplication
       task: async () => {
         const router = this.getRootRouter();
 
-        const bindings = this.findByTag({ tag: 'controllers' });
-        for (const binding of bindings) {
-          const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
-            target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
-          });
-
-          if (!controllerMetadata?.path || isEmpty(controllerMetadata?.path)) {
-            throw getError({
-              statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-              message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
+        await this.registerDynamicBindings<BaseController>({
+          namespace: BindingNamespaces.CONTROLLER,
+          onBeforeConfigure: async ({ binding }) => {
+            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
+              target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
             });
-          }
 
-          const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
-          if (!instance) {
-            this.logger.debug(
-              '[registerControllers] No binding instance | Ignore registering controller | key: %s',
-              binding.key,
-            );
-            continue;
-          }
+            if (!controllerMetadata?.path || isEmpty(controllerMetadata?.path)) {
+              throw getError({
+                statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+                message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
+              });
+            }
+          },
+          onAfterConfigure: async ({ binding, instance }) => {
+            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
+              target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
+            });
 
-          await instance.configure();
-
-          router.route(controllerMetadata.path, instance.getRouter());
-        }
+            if (controllerMetadata?.path) {
+              router.route(controllerMetadata.path, instance.getRouter());
+            }
+          },
+        });
       },
     });
   }
@@ -210,25 +248,13 @@ export abstract class BaseApplication
   }
 
   // ------------------------------------------------------------------------------
-  async registerDataSources() {
+  async registerDataSources(): Promise<void> {
     await executeWithPerformanceMeasure({
       logger: this.logger,
       scope: this.registerDataSources.name,
       description: 'Register application data sources',
       task: async () => {
-        const bindings = this.findByTag({ tag: 'datasources' });
-        for (const binding of bindings) {
-          const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
-          if (!instance) {
-            this.logger.debug(
-              '[registerDataSources] No binding instance | Ignore registering datasource | key: %s',
-              binding.key,
-            );
-            continue;
-          }
-
-          await instance.configure();
-        }
+        await this.registerDynamicBindings({ namespace: BindingNamespaces.DATASOURCE });
       },
     });
   }
