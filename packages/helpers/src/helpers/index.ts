@@ -11,4 +11,5 @@ export * from './redis';
 export * from './socket-io';
 export * from './storage';
 export * from './testing';
+export * from './uid';
 export * from './worker-thread';
