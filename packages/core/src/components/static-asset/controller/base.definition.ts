@@ -160,7 +160,7 @@ export const StaticAssetDefinitions = {
       }),
       query: z.object({
         principalType: z.string().optional(),
-        principalId: z.number().optional(),
+        principalId: z.string().or(z.number()).optional(),
       }),
       body: {
         content: {
