@@ -43,6 +43,20 @@ const config = defineConfig({
           ],
         },
         {
+          text: '2025-12-29',
+          collapsed: false,
+          items: [
+            {
+              text: 'Snowflake UID Helper',
+              link: '/changelogs/2025-12-29-snowflake-uid-helper',
+            },
+            {
+              text: 'Dynamic Binding Registration Fix',
+              link: '/changelogs/2025-12-29-dynamic-binding-registration',
+            },
+          ],
+        },
+        {
           text: '2025-12-26',
           collapsed: false,
           items: [
@@ -242,6 +256,7 @@ const config = defineConfig({
             { text: 'Socket.IO', link: '/references/helpers/socket-io' },
             { text: 'Storage', link: '/references/helpers/storage' },
             { text: 'Testing', link: '/references/helpers/testing' },
+            { text: 'UID', link: '/references/helpers/uid' },
             {
               text: 'Worker Thread',
               link: '/references/helpers/worker-thread',

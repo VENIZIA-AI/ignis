@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2025-12-29 | [Snowflake UID Helper](./2025-12-29-snowflake-uid-helper) | New Feature |
+| 2025-12-29 | [Dynamic Binding Registration Fix](./2025-12-29-dynamic-binding-registration) | Bug Fix |
 | 2025-12-26 | [Transaction Support](./2025-12-26-transaction-support) | Enhancement |
 | 2025-12-26 | [Nested Relations & Generic Types](./2025-12-26-nested-relations-and-generics) | Enhancement |
 | 2025-12-18 | [Performance Optimizations](./2025-12-18-performance-optimizations) | Enhancement |

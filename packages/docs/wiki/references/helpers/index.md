@@ -19,4 +19,5 @@ Reusable classes and functions providing common functionality - designed for eas
 | [Socket.IO](./socket-io.md) | Real-time communication | Socket.IO client/server helpers |
 | [Storage](./storage.md) | File storage | In-memory, Minio object storage |
 | [Testing](./testing.md) | Test utilities | Test plan runner, base test classes |
+| [UID](./uid.md) | Unique ID generation | Snowflake IDs, Base62 encoding |
 | [Worker Thread](./worker-thread.md) | Worker threads | Node.js worker management |
