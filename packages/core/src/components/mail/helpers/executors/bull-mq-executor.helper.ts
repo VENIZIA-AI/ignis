@@ -64,7 +64,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
         this.queueHelper = new BullMQHelper<IQueueJobPayload, IMailQueueResult>({
           identifier: queue.identifier,
           queueName: queue.name,
-          connection: this.redisConnection.getClient(),
+          redisConnection: this.redisConnection,
           role: 'queue',
         });
 
@@ -143,7 +143,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     const workerHelper = new BullMQHelper<IQueueJobPayload, IMailProcessorResult>({
       identifier: workerIdentifier,
       queueName: this.queueName,
-      connection: this.redisConnection.getClient(),
+      redisConnection: this.redisConnection,
       role: 'worker',
       numberOfWorker: concurrency,
       lockDuration,
