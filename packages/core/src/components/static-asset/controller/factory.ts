@@ -247,7 +247,7 @@ export class AssetControllerFactory extends BaseHelper {
                     bucketName: uploadResult.bucketName,
                     objectName: uploadResult.objectName,
                     link: uploadResult.link,
-                    mimeType: fileStat.metadata?.['mimeType'],
+                    mimetype: fileStat.metadata?.['mimetype'],
                     size: fileStat.size,
                     etag: fileStat.etag,
                     metadata: fileStat.metadata,
