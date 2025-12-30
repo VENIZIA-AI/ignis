@@ -19,11 +19,11 @@ export class Statuses {
   static readonly RECEIVED = '205_RECEIVED';
 
   // 3xx - Completed (positive terminal)
-  static readonly COMPLETED = '300_COMPLETED';
-  static readonly SUCCESS = '301_SUCCESS';
-  static readonly PARTIAL = '302_PARTIAL';
-  static readonly SETTLED = '303_SETTLED';
-  static readonly APPROVED = '304_APPROVED';
+  static readonly PARTIAL = '300_PARTIAL';
+  static readonly APPROVED = '301_APPROVED';
+  static readonly SUCCESS = '302_SUCCESS';
+  static readonly COMPLETED = '303_COMPLETED';
+  static readonly SETTLED = '304_SETTLED';
 
   // 4xx - Inactive (negative, reversible)
   static readonly DISABLED = '400_DISABLED';
