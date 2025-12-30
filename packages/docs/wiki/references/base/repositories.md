@@ -268,6 +268,70 @@ This architecture provides a clean and powerful abstraction for data access, sep
 
 ## Advanced Features
 
+### Hidden Properties Support
+
+Repositories automatically exclude hidden properties configured in the model's `@model` decorator. This happens at the **SQL level** for maximum security and performance.
+
+**Configuration (in Model):**
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['password', 'secret'],
+  },
+})
+export class User extends BaseEntity<typeof User.schema> { ... }
+```
+
+**Automatic Exclusion:**
+```typescript
+// All read operations exclude hidden properties
+const user = await userRepo.findById({ id: '123' });
+// Result: { id: '123', email: 'john@example.com' }
+// Note: password and secret are NOT included
+
+// Write operations exclude hidden from RETURNING clause
+const created = await userRepo.create({
+  data: { email: 'new@example.com', password: 'secret123' }
+});
+// Result: { count: 1, data: { id: '456', email: 'new@example.com' } }
+// Note: password stored in DB but not returned
+```
+
+**Filtering by Hidden Properties:**
+```typescript
+// You CAN filter by hidden properties - just can't see them in results
+const user = await userRepo.findOne({
+  filter: { where: { password: 'hashed_value' } }
+});
+// Works! Returns user without password in result
+```
+
+**Accessing Hidden Data (Direct Connector):**
+```typescript
+// Bypass repository to access hidden fields when needed
+const connector = userRepo.getConnector();
+const [fullUser] = await connector
+  .select()
+  .from(User.schema)
+  .where(eq(User.schema.id, '123'));
+// fullUser includes password and secret
+```
+
+**Relations with Hidden Properties:**
+
+Hidden properties are also excluded from included relations:
+```typescript
+const post = await postRepo.findOne({
+  filter: {
+    include: [{ relation: 'author' }]  // Author model has hiddenProperties
+  }
+});
+// post.author will NOT include hidden properties like password
+```
+
+See [Models & Enrichers - Hidden Properties](/references/base/models#hidden-properties) for configuration details.
+
 ### Log Option for Debugging
 
 All CRUD operations support a `log` option for debugging:
@@ -655,3 +719,152 @@ await repo.find({
 - **Empty NOT IN array:** Returns `true` (all rows match)
 - **BETWEEN validation:** Requires exactly 2 elements in array, throws error otherwise
 - **Invalid columns:** Throws error if column doesn't exist in schema
+
+## Field Selection
+
+The `fields` option allows you to specify which columns to return from queries. Supports both **array** and **object** formats.
+
+### Array Format (Recommended)
+
+Simpler syntax - list the field names you want:
+
+```typescript
+// Select specific fields using array
+const users = await userRepo.find({
+  filter: {
+    where: { status: 'active' },
+    fields: ['id', 'email', 'name'],  // Only these fields returned
+  }
+});
+// Result: [{ id: '...', email: '...', name: '...' }, ...]
+```
+
+### Object Format
+
+Boolean map - set `true` for fields you want:
+
+```typescript
+// Select specific fields using object
+const users = await userRepo.find({
+  filter: {
+    where: { status: 'active' },
+    fields: { id: true, email: true, name: true },
+  }
+});
+// Result: [{ id: '...', email: '...', name: '...' }, ...]
+
+// Fields set to false are excluded
+const users = await userRepo.find({
+  filter: {
+    fields: { password: false, secret: false },  // Only false values - excluded
+  }
+});
+```
+
+### Type Definition
+
+```typescript
+type TFields<T> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
+```
+
+## Ordering
+
+The `order` option specifies sort order for query results. Supports regular columns and **JSON/JSONB path ordering**.
+
+### Basic Ordering
+
+```typescript
+// Single column
+const users = await userRepo.find({
+  filter: {
+    order: ['createdAt DESC'],
+  }
+});
+
+// Multiple columns
+const users = await userRepo.find({
+  filter: {
+    order: ['status ASC', 'createdAt DESC'],
+  }
+});
+
+// Default direction is ASC
+const users = await userRepo.find({
+  filter: {
+    order: ['name'],  // Same as 'name ASC'
+  }
+});
+```
+
+### JSON Path Ordering
+
+Order by nested fields within JSON/JSONB columns using dot notation and array indices:
+
+```typescript
+// Order by nested JSON field
+const products = await productRepo.find({
+  filter: {
+    order: ['metadata.priority DESC'],
+  }
+});
+// SQL: ORDER BY "metadata" #> '{priority}' DESC
+
+// Order by deeply nested field
+const configs = await configRepo.find({
+  filter: {
+    order: ['settings.display.theme ASC'],
+  }
+});
+// SQL: ORDER BY "settings" #> '{display,theme}' ASC
+
+// Order by array element
+const items = await itemRepo.find({
+  filter: {
+    order: ['tags[0] ASC'],  // First element of tags array
+  }
+});
+// SQL: ORDER BY "tags" #> '{0}' ASC
+
+// Complex nested path with array
+const records = await recordRepo.find({
+  filter: {
+    order: ['data.items[2].name DESC'],
+  }
+});
+// SQL: ORDER BY "data" #> '{items,2,name}' DESC
+```
+
+### JSON Ordering Behavior
+
+| JSONB Type | Sort Order |
+|------------|------------|
+| `null` | First (lowest) |
+| `boolean` | `false` < `true` |
+| `number` | Numeric order |
+| `string` | Lexicographic |
+| `array` | Element-wise comparison |
+| `object` | Key-value comparison |
+
+### Validation & Security
+
+The JSON path ordering includes built-in security:
+
+```typescript
+// ✅ Valid path components
+'metadata.fieldName'        // Identifiers
+'data.items[0]'             // Array indices
+'config.nested_field'       // Underscores allowed
+
+// ❌ Invalid - throws error (SQL injection prevention)
+'metadata.field;DROP TABLE' // Special characters rejected
+'data.123invalid'           // Can't start with number (unless array index)
+```
+
+**Error messages:**
+```
+// Non-JSON column
+Error: Column 'name' is not JSON/JSONB type | dataType: 'text'
+
+// Invalid path component
+Error: Invalid JSON path component: 'field;DROP'
+```

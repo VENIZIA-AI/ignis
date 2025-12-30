@@ -23,6 +23,12 @@ import { IQueryHandlerOptions } from '../common';
 export class Sorts {
   static readonly DESC = 'desc';
   static readonly ASC = 'asc';
+
+  static readonly SCHEMA_SET = new Set([Sorts.ASC, Sorts.DESC]);
+
+  static isValid(value: string): boolean {
+    return Sorts.SCHEMA_SET.has(value.toLowerCase());
+  }
 }
 
 // --------------------------------------------------------------------------------------

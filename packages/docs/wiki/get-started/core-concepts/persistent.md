@@ -160,6 +160,59 @@ static override schema = pgTable('User', {
 For a complete list of enrichers and options, see the [Schema Enrichers Reference](../../references/base/models.md#schema-enrichers).
 :::
 
+### Hidden Properties
+
+Protect sensitive data by configuring properties that are **never returned** through repository queries. Hidden properties are excluded at the SQL level for maximum security and performance.
+
+```typescript
+import { BaseEntity, generateIdColumnDefs, model } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['password', 'secret'],  // Never returned via repository
+  },
+})
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    email: text('email').notNull(),
+    password: text('password'),  // Hidden from queries
+    secret: text('secret'),      // Hidden from queries
+  });
+}
+```
+
+**Behavior:**
+
+| Operation | Behavior |
+|-----------|----------|
+| `find()`, `findOne()`, `findById()` | Hidden excluded from SELECT |
+| `create()`, `updateById()`, `deleteById()` | Hidden excluded from RETURNING |
+| Where clause filtering | Hidden fields **can** be used in filters |
+| Direct connector query | Hidden fields **included** (bypasses repository) |
+
+When you need to access hidden data, use the connector directly:
+
+```typescript
+// Repository query - excludes hidden
+const user = await userRepo.findById({ id: '123' });
+// { id: '123', email: 'john@example.com' }
+
+// Connector query - includes all fields
+const connector = userRepo.getConnector();
+const [fullUser] = await connector
+  .select()
+  .from(User.schema)
+  .where(eq(User.schema.id, '123'));
+// { id: '123', email: 'john@example.com', password: '...', secret: '...' }
+```
+
+:::tip
+For complete hidden properties documentation, see the [Models Reference](../../references/base/models.md#hidden-properties).
+:::
+
 ---
 
 ## 2. DataSources: Connecting to Your Database
@@ -361,6 +414,21 @@ const configs = await repo.find({
 // Find one record
 const config = await repo.findOne({
   filter: { where: { code: 'APP_NAME' } }
+});
+
+// Select specific fields (array format)
+const configCodes = await repo.find({
+  filter: {
+    fields: ['id', 'code', 'group'],  // Only these fields returned
+    limit: 100,
+  }
+});
+
+// Order by JSON/JSONB nested fields
+const sorted = await repo.find({
+  filter: {
+    order: ['metadata.priority DESC', 'createdAt ASC'],
+  }
 });
 
 // Create a record

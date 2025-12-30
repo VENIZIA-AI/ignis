@@ -24,7 +24,9 @@ export class SaleChannelRepository extends DefaultCRUDRepository<typeof SaleChan
     return this.findOne({
       filter: {
         where: { id: saleChannelId },
-        include: [{ relation: 'saleChannelProducts', scope: { include: [{ relation: 'product' }] } }],
+        include: [
+          { relation: 'saleChannelProducts', scope: { include: [{ relation: 'product' }] } },
+        ],
       },
     });
   }

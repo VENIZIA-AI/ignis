@@ -29,6 +29,89 @@ Fundamental building block wrapping a Drizzle ORM schema.
 | **Static Properties** | Supports static `schema`, `relations`, and `TABLE_NAME` for cleaner syntax |
 | **Convenience** | Includes `toObject()` and `toJSON()` methods |
 
+### The `@model` Decorator
+
+The `@model` decorator marks a class as a database entity and configures its behavior.
+
+#### Decorator Options
+
+```typescript
+@model({
+  type: 'entity' | 'view',
+  tableName?: string,
+  skipMigrate?: boolean,
+  settings?: {
+    hiddenProperties?: string[],  // Properties to exclude from query results
+  }
+})
+```
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `type` | `'entity' \| 'view'` | Entity type - `'entity'` for tables, `'view'` for database views |
+| `tableName` | `string` | Optional custom table name (defaults to class name) |
+| `skipMigrate` | `boolean` | Skip this model during schema migrations |
+| `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
+
+### Hidden Properties
+
+Hidden properties are **excluded at the SQL level** - they are never fetched from the database when querying through repositories. This provides:
+
+- **Security**: Sensitive data like passwords are never accidentally exposed
+- **Performance**: Less data transferred from database
+- **Consistency**: Hidden properties are excluded from ALL repository operations
+
+```typescript
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['password', 'secret'],  // Never returned via repository
+  },
+})
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    email: text('email').notNull(),
+    password: text('password'),  // Hidden - never in query results
+    secret: text('secret'),      // Hidden - never in query results
+  });
+}
+```
+
+#### Behavior
+
+| Operation | Hidden Properties |
+|-----------|-------------------|
+| `find()`, `findOne()`, `findById()` | Excluded from SELECT |
+| `create()`, `createAll()` | Excluded from RETURNING |
+| `updateById()`, `updateAll()` | Excluded from RETURNING |
+| `deleteById()`, `deleteAll()` | Excluded from RETURNING |
+| `count()`, `existsWith()` | Can filter by hidden fields |
+| Direct connector query | **Included** (bypasses repository) |
+
+#### Important Notes
+
+- Hidden properties can still be used in `where` clauses for filtering
+- Data is still **stored** in the database - only excluded from query results
+- Use direct connector queries when you need to access hidden data:
+
+```typescript
+// Repository query - password/secret NOT included
+const user = await userRepo.findById({ id: '123' });
+// user = { id: '123', email: 'john@example.com' }
+
+// Direct connector query - ALL fields included
+const connector = userRepo.getConnector();
+const [fullUser] = await connector
+  .select()
+  .from(User.schema)
+  .where(eq(User.schema.id, '123'));
+// fullUser = { id: '123', email: 'john@example.com', password: 'hashed...', secret: '...' }
+```
+
 ### Definition Patterns
 
 `BaseEntity` supports two patterns for defining models:

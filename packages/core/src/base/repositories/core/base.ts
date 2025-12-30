@@ -2,6 +2,7 @@ import { IDataSource, ITransaction, ITransactionOptions, TAnyConnector } from '@
 import { BaseEntity, IdType, IEntity, TTableInsert, TTableSchemaWithId } from '@/base/models';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseHelper, getError, resolveValue, TClass, TNullable } from '@venizia/ignis-helpers';
+import { getTableColumns } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import {
   DEFAULT_LIMIT,
@@ -16,7 +17,7 @@ import {
   TTransactionOption,
   TWhere,
 } from '../common';
-import { DrizzleFilterBuilder } from '../operators';
+import { DrizzleFilterBuilder, THiddenPropertiesResolver } from '../operators';
 
 /**
  * Base repository class with dependency injection support.
@@ -59,6 +60,11 @@ export abstract class AbstractRepository<
   // Lazy-resolved properties
   private _dataSource?: IDataSource;
   private _entity?: BaseEntity<Schema>;
+
+  // Cached hidden properties configuration (computed once per repository)
+  // Using null as sentinel to distinguish "not computed" from "computed as undefined"
+  private _hiddenProperties: Set<string> | null = null;
+  private _visibleColumns: Record<string, any> | null | undefined = null;
 
   defaultLimit: number;
 
@@ -196,6 +202,92 @@ export abstract class AbstractRepository<
     };
   }
 
+  // ---------------------------------------------------------------------------
+  // Hidden Properties Support
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Get hidden properties from model metadata.
+   * Cached for performance - computed once per repository instance.
+   */
+  protected getHiddenProperties(): Set<string> {
+    if (this._hiddenProperties !== null) {
+      return this._hiddenProperties;
+    }
+
+    const registry = MetadataRegistry.getInstance();
+    const modelEntry = registry.getModelEntry({ name: this.entity.name });
+    const hiddenProps = modelEntry?.metadata?.settings?.hiddenProperties ?? [];
+
+    this._hiddenProperties = new Set(hiddenProps);
+    return this._hiddenProperties;
+  }
+
+  /**
+   * Check if this entity has hidden properties configured.
+   */
+  protected hasHiddenProperties(): boolean {
+    return this.getHiddenProperties().size > 0;
+  }
+
+  /**
+   * Get visible columns object for Drizzle select/returning.
+   * Excludes hidden properties. Cached for performance.
+   *
+   * @returns Column object for Drizzle (e.g., { id: schema.id, email: schema.email })
+   *          or undefined if no hidden properties (use default select all behavior)
+   */
+  protected getVisibleColumns(): Record<string, any> | undefined {
+    // null = not computed yet, undefined = computed as "no hidden properties"
+    if (this._visibleColumns !== null) {
+      return this._visibleColumns;
+    }
+
+    const hiddenProps = this.getHiddenProperties();
+
+    // If no hidden properties, cache and return undefined (signal to use default behavior)
+    if (hiddenProps.size === 0) {
+      this._visibleColumns = undefined;
+      return undefined;
+    }
+
+    // Build columns object excluding hidden properties
+    const schema = this.entity.schema;
+    const columns = getTableColumns(schema);
+    const visibleColumns: Record<string, any> = {};
+
+    for (const [key, column] of Object.entries(columns)) {
+      if (!hiddenProps.has(key)) {
+        visibleColumns[key] = column;
+      }
+    }
+
+    this._visibleColumns = visibleColumns;
+    return this._visibleColumns;
+  }
+
+  /**
+   * Get a resolver function for hidden properties of related entities.
+   * Returns a function that takes a relation name and returns hidden properties.
+   */
+  protected getHiddenPropertiesResolver(): THiddenPropertiesResolver {
+    return (relationName: string) => {
+      const relations = this.getEntityRelations();
+      const relationConfig = relations[relationName];
+
+      if (!relationConfig?.schema) {
+        return new Set();
+      }
+
+      // Find model entry by schema table name
+      const tableName = getTableConfig(relationConfig.schema).name;
+      const registry = MetadataRegistry.getInstance();
+      const modelEntry = registry.getModelEntry({ name: tableName });
+
+      return new Set(modelEntry?.metadata?.settings?.hiddenProperties ?? []);
+    };
+  }
+
   setDataSource(opts: { dataSource: IDataSource }): void {
     this._dataSource = opts.dataSource;
   }
@@ -221,15 +313,17 @@ export abstract class AbstractRepository<
   // Transaction Support
   // ---------------------------------------------------------------------------
   protected resolveConnector(transaction?: ITransaction): TAnyConnector {
-    if (transaction) {
-      if (!transaction.isActive) {
-        throw getError({
-          message: `[${this.constructor.name}][resolveConnector] Transaction is no longer active`,
-        });
-      }
-      return transaction.connector;
+    if (!transaction) {
+      return this.dataSource.connector;
     }
-    return this.dataSource.connector;
+
+    if (!transaction.isActive) {
+      throw getError({
+        message: `[${this.constructor.name}][resolveConnector] Transaction is no longer active`,
+      });
+    }
+
+    return transaction.connector;
   }
 
   async beginTransaction(opts?: ITransactionOptions): Promise<ITransaction> {
@@ -237,13 +331,38 @@ export abstract class AbstractRepository<
   }
 
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions {
-    return this.filterBuilder.build({
+    const result = this.filterBuilder.build({
       tableName: this.entity.name,
       schema: this.entity.schema,
       relations: this.getEntityRelations(),
       filter: opts.filter,
       relationResolver: this.getRelationResolver(),
+      hiddenPropertiesResolver: this.getHiddenPropertiesResolver(),
     });
+
+    // Exclude hidden properties from columns at SQL level
+    if (this.hasHiddenProperties()) {
+      const hiddenProps = this.getHiddenProperties();
+      const columns = getTableColumns(this.entity.schema);
+
+      // If user specified fields, filter out hidden from their selection
+      // If no fields specified, create columns object excluding hidden
+      const baseColumns = result.columns
+        ? result.columns
+        : Object.fromEntries(Object.keys(columns).map(k => [k, true]));
+
+      // Remove hidden properties
+      const filteredColumns: Record<string, boolean> = {};
+      for (const [key, isEnabled] of Object.entries(baseColumns)) {
+        if (!hiddenProps.has(key)) {
+          filteredColumns[key] = isEnabled as boolean;
+        }
+      }
+
+      result.columns = filteredColumns;
+    }
+
+    return result;
   }
 
   // ---------------------------------------------------------------------------

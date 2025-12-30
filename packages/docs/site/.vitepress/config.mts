@@ -43,6 +43,16 @@ const config = defineConfig({
           ],
         },
         {
+          text: '2025-12-30',
+          collapsed: false,
+          items: [
+            {
+              text: 'Repository Enhancements',
+              link: '/changelogs/2025-12-30-repository-enhancements',
+            },
+          ],
+        },
+        {
           text: '2025-12-29',
           collapsed: false,
           items: [

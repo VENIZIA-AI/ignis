@@ -20,7 +20,9 @@ export class ProductRepository extends DefaultCRUDRepository<typeof Product.sche
     return this.findOne({
       filter: {
         where: { id: productId },
-        include: [{ relation: 'saleChannelProducts', scope: { include: [{ relation: 'saleChannel' }] } }],
+        include: [
+          { relation: 'saleChannelProducts', scope: { include: [{ relation: 'saleChannel' }] } },
+        ],
       },
     });
   }

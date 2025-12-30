@@ -41,10 +41,26 @@ export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 // ----------------------------------------------------------------------------------------------------------------------------------------
 // Model Metadata & Types
 // ----------------------------------------------------------------------------------------------------------------------------------------
+export interface IModelSettings {
+  /**
+   * Properties to exclude from all repository query results.
+   * Hidden properties are excluded at the SQL level for performance.
+   * Use direct connector queries to access hidden properties when needed.
+   *
+   * @example
+   * settings: { hiddenProperties: ['password', 'secret'] }
+   */
+  hiddenProperties?: string[];
+}
+
 export interface IModelMetadata {
   type: 'entity' | 'view';
   tableName?: string;
   skipMigrate?: boolean;
+  /**
+   * Model settings for advanced configuration.
+   */
+  settings?: IModelSettings;
 }
 
 export type TModelClass<

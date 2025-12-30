@@ -28,10 +28,7 @@ export class Product extends BaseEntity<typeof Product.schema> {
       description: text('description'),
       price: integer('price').notNull().default(0),
     },
-    def => [
-      unique('UQ_Product_code').on(def.code),
-      index('IDX_Product_name').on(def.name),
-    ],
+    def => [unique('UQ_Product_code').on(def.code), index('IDX_Product_name').on(def.name)],
   );
 
   static override relations = (): TRelationConfig[] => [

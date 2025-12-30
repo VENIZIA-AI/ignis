@@ -59,13 +59,22 @@ export class ReadableRepository<
    */
   protected getQueryInterface(opts?: { options?: ExtraOptions }) {
     const connector = this.resolveConnector(opts?.options?.transaction);
+
+    // Validate connector.query exists
+    if (!connector.query) {
+      throw getError({
+        message: `[${this.constructor.name}] Connector query interface not available | Ensure datasource is properly configured with schema`,
+      });
+    }
+
     const queryInterface = connector.query[this.entity.name];
     if (!queryInterface) {
-      const availableKeys = Object.keys(connector.query || {});
+      const availableKeys = Object.keys(connector.query);
       throw getError({
         message: `[${this.constructor.name}] Schema key mismatch | Entity name '${this.entity.name}' not found in connector.query | Available keys: [${availableKeys.join(', ')}] | Ensure the model's TABLE_NAME matches the schema registration key`,
       });
     }
+
     return queryInterface;
   }
 
@@ -77,7 +86,11 @@ export class ReadableRepository<
    */
   protected canUseCoreAPI(filter: TFilter<DataObject>): boolean {
     const hasInclude = filter.include && filter.include.length > 0;
-    const hasFields = filter.fields && Object.keys(filter.fields).length > 0;
+    const hasFields =
+      filter.fields &&
+      (Array.isArray(filter.fields)
+        ? filter.fields.length > 0
+        : Object.keys(filter.fields).length > 0);
     return !hasInclude && !hasFields;
   }
 
@@ -119,7 +132,12 @@ export class ReadableRepository<
     // Type assertion to PgTable is safe: EntitySchema extends TTableSchemaWithId which extends PgTable
     const table = schema as PgTable;
     const connector = this.resolveConnector(options?.transaction);
-    let query = connector.select().from(table).$dynamic();
+
+    // Select only visible columns (excludes hidden properties at SQL level)
+    const visibleColumns = this.getVisibleColumns();
+    let query = visibleColumns
+      ? connector.select(visibleColumns).from(table).$dynamic()
+      : connector.select().from(table).$dynamic();
 
     if (where) {
       query = query.where(where);

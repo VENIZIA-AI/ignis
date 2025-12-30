@@ -175,3 +175,33 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
   }
 }
 ```
+
+## 5. Hidden Properties
+
+Protect sensitive data by configuring properties that are excluded at the SQL level. Hidden properties are **never returned** through repository queries.
+
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['password', 'secret'],
+  },
+})
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    email: text('email').notNull(),
+    password: text('password'),  // Never returned via repository
+    secret: text('secret'),      // Never returned via repository
+  });
+}
+```
+
+**Key points:**
+
+- Hidden properties are excluded from SELECT, INSERT RETURNING, UPDATE RETURNING, DELETE RETURNING
+- You can still **filter by** hidden properties in where clauses
+- Hidden properties are **recursively excluded** from included relations
+- Use the connector directly when you need to access hidden data (e.g., password verification)
+
+> **Reference:** See [Hidden Properties](../../references/base/models.md#hidden-properties) for complete documentation.

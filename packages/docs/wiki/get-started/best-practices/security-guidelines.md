@@ -80,7 +80,48 @@ if (!user.roles.includes('admin')) {
 }
 ```
 
-## 4. Secure Dependencies
+## 4. Protecting Sensitive Data with Hidden Properties
+
+Configure model properties that should **never be returned** through repository queries. Hidden properties are excluded at the SQL level - they never leave the database.
+
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['password', 'apiSecret', 'internalToken'],
+  },
+})
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    email: text('email').notNull(),
+    password: text('password'),      // Never returned via repository
+    apiSecret: text('api_secret'),   // Never returned via repository
+  });
+}
+```
+
+**Why SQL-level exclusion matters:**
+
+| Approach | Security Level | Data Exposure Risk |
+|----------|---------------|-------------------|
+| Post-query filtering (JS) | Low | Data passes through network/memory |
+| **SQL-level exclusion** | **High** | **Data never leaves database** |
+
+**When you legitimately need hidden data** (e.g., password verification), use the connector directly:
+
+```typescript
+// For authentication - access password via connector
+const connector = userRepo.getConnector();
+const [user] = await connector
+  .select({ id: User.schema.id, password: User.schema.password })
+  .from(User.schema)
+  .where(eq(User.schema.email, email));
+```
+
+> **Reference:** See [Hidden Properties](../../references/base/models.md#hidden-properties) for complete documentation.
+
+## 5. Secure Dependencies
 
 Regularly audit and update dependencies:
 

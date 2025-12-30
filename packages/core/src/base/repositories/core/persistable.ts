@@ -25,6 +25,33 @@ export class PersistableRepository<
     this.operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
+  // ---------------------------------------------------------------------------
+  // Validation Helpers
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Validate where condition for bulk operations (update/delete).
+   * Throws error if empty where without force flag.
+   *
+   * @param opts - Validation options
+   * @returns true if where is empty (for logging purposes)
+   */
+  protected validateWhereCondition(opts: {
+    where: TWhere<DataObject>;
+    force?: boolean;
+    operationName: string;
+  }): boolean {
+    const isEmptyWhere = !opts.where || isEmpty(opts.where);
+
+    if (!opts.force && isEmptyWhere) {
+      throw getError({
+        message: `[${opts.operationName}] Entity: ${this.entity.name} | DENY to perform ${opts.operationName.replace('_', '')} | Empty where condition`,
+      });
+    }
+
+    return isEmptyWhere;
+  }
+
   protected async _create<R = EntitySchema['$inferSelect']>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -44,8 +71,11 @@ export class PersistableRepository<
       return { count: rs.rowCount ?? 0, data: null };
     }
 
-    // const rs = (await query.returning()) as unknown as Array<R>;
-    const rs = (await query.returning()) as unknown as Array<R>;
+    // Return only visible columns (excludes hidden properties at SQL level)
+    const visibleColumns = this.getVisibleColumns();
+    const rs = visibleColumns
+      ? ((await query.returning(visibleColumns)) as unknown as Array<R>)
+      : ((await query.returning()) as unknown as Array<R>);
     this.logger.debug('[_create] INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
   }
@@ -107,13 +137,12 @@ export class PersistableRepository<
       this.logger.log(log.level ?? 'info', '[_update] Executing with opts: %j', opts);
     }
 
-    // Early validation BEFORE conversion (Phase 2.1 fix)
-    const isEmptyInputWhere = !opts.where || isEmpty(opts.where);
-    if (!force && isEmptyInputWhere) {
-      throw getError({
-        message: `[_update] Entity: ${this.entity.name} | DENY to perform update | Empty where condition`,
-      });
-    }
+    // Validate where condition (throws if empty without force)
+    const isEmptyWhere = this.validateWhereCondition({
+      where: opts.where,
+      force,
+      operationName: '_update',
+    });
 
     const where = this.filterBuilder.toWhere({
       tableName: this.entity.name,
@@ -121,7 +150,7 @@ export class PersistableRepository<
       where: opts.where,
     });
 
-    if (isEmptyInputWhere) {
+    if (isEmptyWhere) {
       this.logger.warn(
         '[_update] Entity: %s | Performing update with empty condition | data: %j',
         this.entity.name,
@@ -138,7 +167,11 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    const rs = (await query.returning()) as unknown as Array<R>;
+    // Return only visible columns (excludes hidden properties at SQL level)
+    const visibleColumns = this.getVisibleColumns();
+    const rs = visibleColumns
+      ? ((await query.returning(visibleColumns)) as Array<R>)
+      : ((await query.returning()) as Array<R>);
     this.logger.debug('[_update] UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
   }
@@ -213,13 +246,12 @@ export class PersistableRepository<
       this.logger.log(log.level ?? 'info', '[_delete] Executing with opts: %j', opts);
     }
 
-    // Early validation BEFORE conversion (Phase 2.1 fix)
-    const isEmptyInputWhere = !opts.where || isEmpty(opts.where);
-    if (!force && isEmptyInputWhere) {
-      throw getError({
-        message: `[_delete] Entity: ${this.entity.name} | DENY to perform delete | Empty where condition`,
-      });
-    }
+    // Validate where condition (throws if empty without force)
+    const isEmptyWhere = this.validateWhereCondition({
+      where: opts.where,
+      force,
+      operationName: '_delete',
+    });
 
     const where = this.filterBuilder.toWhere({
       tableName: this.entity.name,
@@ -227,7 +259,7 @@ export class PersistableRepository<
       where: opts.where,
     });
 
-    if (isEmptyInputWhere) {
+    if (isEmptyWhere) {
       this.logger.warn(
         '[_delete] Entity: %s | Performing delete with empty condition',
         this.entity.name,
@@ -243,7 +275,11 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    const rs = (await query.returning()) as unknown as Array<R>;
+    // Return only visible columns (excludes hidden properties at SQL level)
+    const visibleColumns = this.getVisibleColumns();
+    const rs = visibleColumns
+      ? ((await query.returning(visibleColumns)) as unknown as Array<R>)
+      : ((await query.returning()) as unknown as Array<R>);
     this.logger.debug('[_delete] DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
   }

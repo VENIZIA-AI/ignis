@@ -3,7 +3,6 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
-import { Sorts } from '../operators';
 import { DEFAULT_LIMIT, RelationTypes } from './constants';
 
 // ---------------------------------------------------------------------------
@@ -46,10 +45,14 @@ export const OrderBySchema = z
   .array(z.string())
   .optional()
   .openapi({
-    description: "Sorting order for results, e.g., 'fieldName ASC' or 'fieldName DESC'.",
+    description:
+      "Sorting order for results. Supports regular columns ('fieldName ASC') and JSON/JSONB paths ('metadata.field DESC', 'data.nested[0].value ASC').",
     examples: [
-      ['id', Sorts.DESC].join(' '),
-      ['field', `direction (${Sorts.ASC} | ${Sorts.DESC})`].join(' '),
+      'id DESC',
+      'createdAt ASC',
+      'metadata.priority DESC',
+      'data.nested.value ASC',
+      'items[0].score DESC',
     ],
   });
 export type TOrderBy = z.infer<typeof OrderBySchema>;
@@ -88,18 +91,19 @@ export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; 
 // ---------------------------------------------------------------------------
 export const FieldsSchema = z
   .record(z.string(), z.boolean())
+  .or(z.array(z.string()))
   .optional()
   .openapi({
     description:
-      'Fields selection object - keys are field names, values are boolean (true to include)',
+      'Fields selection - either an array of field names to include, or an object with field names as keys and boolean values (true to include, false to exclude)',
     examples: [
+      JSON.stringify(['id', 'name', 'email']),
       JSON.stringify({ id: true, name: true }),
-      JSON.stringify({ id: true, name: true, email: true }),
       JSON.stringify({ id: true, name: true, email: true, fullName: false }),
     ],
   });
 
-export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }>;
+export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
 
 // ---------------------------------------------------------------------------
 export const InclusionSchema = z
