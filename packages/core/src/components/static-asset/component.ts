@@ -59,7 +59,4 @@ export class StaticAssetComponent extends BaseComponent {
       );
     }
   }
-
-  // ------------------------------------------------------------------------------
-  configureMinIOStorage(): void {}
 }

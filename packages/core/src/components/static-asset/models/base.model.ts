@@ -5,7 +5,7 @@ import {
   generateTzColumnDefs,
   TTableObject,
 } from '@/base/models';
-import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, uuid } from 'drizzle-orm/pg-core';
 
 // ================================================================================
 /**
@@ -30,7 +30,7 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
       principalType: text('principal_type'),
-      principalId: integer('principal_id'),
+      principalId: uuid('principal_id'),
     },
     def => [
       index(`IDX_MetaLink_bucketName`).on(def.bucketName),
