@@ -1,6 +1,13 @@
 import { getError } from '@venizia/ignis-helpers';
 import { NotNull } from 'drizzle-orm';
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  PgIntegerBuilderInitial,
+  PgTextBuilderInitial,
+  PgUUIDBuilderInitial,
+  text,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
 export type TPermissionOptions = {
@@ -21,7 +28,7 @@ type TPermissionColumnDef<Opts extends TPermissionOptions | undefined = undefine
 }
   ? IdType extends 'string'
     ? TPermissionCommonColumns & {
-        parentId: PgTextBuilderInitial<string, [string, ...string[]]>;
+        parentId: PgUUIDBuilderInitial<string>;
       }
     : TPermissionCommonColumns & {
         parentId: PgIntegerBuilderInitial<string>;
@@ -55,7 +62,7 @@ export const extraPermissionColumns = <Opts extends TPermissionOptions | undefin
         pType: text('p_type').notNull(),
         action: text('action').notNull(),
         scope: text('scope').notNull(),
-        parentId: text('parent_id'),
+        parentId: uuid('parent_id'),
       } as TPermissionColumnDef<Opts>;
     }
     default: {

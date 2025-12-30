@@ -1,15 +1,22 @@
 import { generatePrincipalColumnDefs } from '@/base/models';
 import { getError } from '@venizia/ignis-helpers';
 import { NotNull } from 'drizzle-orm';
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  PgIntegerBuilderInitial,
+  PgTextBuilderInitial,
+  PgUUIDBuilderInitial,
+  text,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
 export type TUserRoleOptions = {
-  idType?: 'string' | 'number';
+  idType?: 'string' | 'number' | 'uuid';
 };
 
 export type TUserRoleCommonColumns = ReturnType<
-  typeof generatePrincipalColumnDefs<'principal', 'number'>
+  typeof generatePrincipalColumnDefs<'principal', 'string' | 'number' | 'uuid'>
 >;
 
 type TUserRoleColumnDef<Opts extends TUserRoleOptions | undefined = undefined> = Opts extends {
@@ -18,9 +25,13 @@ type TUserRoleColumnDef<Opts extends TUserRoleOptions | undefined = undefined> =
   ? TUserRoleCommonColumns & {
       userId: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
     }
-  : TUserRoleCommonColumns & {
-      userId: NotNull<PgIntegerBuilderInitial<string>>;
-    };
+  : Opts extends { idType: 'uuid' }
+    ? TUserRoleCommonColumns & {
+        userId: NotNull<PgUUIDBuilderInitial<string>>;
+      }
+    : TUserRoleCommonColumns & {
+        userId: NotNull<PgIntegerBuilderInitial<string>>;
+      };
 
 export const extraUserRoleColumns = <Opts extends TUserRoleOptions | undefined>(
   opts?: Opts,
@@ -28,7 +39,7 @@ export const extraUserRoleColumns = <Opts extends TUserRoleOptions | undefined>(
   const { idType = 'number' } = opts ?? {};
   const principalColumns = generatePrincipalColumnDefs({
     defaultPolymorphic: 'Role',
-    polymorphicIdType: 'number',
+    polymorphicIdType: idType,
   });
 
   switch (idType) {
@@ -42,6 +53,12 @@ export const extraUserRoleColumns = <Opts extends TUserRoleOptions | undefined>(
       return {
         ...principalColumns,
         userId: text('user_id').notNull(),
+      } as TUserRoleColumnDef<Opts>;
+    }
+    case 'uuid': {
+      return {
+        ...principalColumns,
+        userId: uuid('user_id').notNull(),
       } as TUserRoleColumnDef<Opts>;
     }
     default: {
