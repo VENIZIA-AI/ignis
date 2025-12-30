@@ -3,7 +3,6 @@ import {
   createContentDispositionHeader,
   getError,
   HTTP,
-  int,
   IStorageHelper,
   IUploadFile,
   IUploadResult,
@@ -254,7 +253,7 @@ export class AssetControllerFactory extends BaseHelper {
                     metadata: fileStat.metadata,
                     storageType: storage,
                     isSynced: true,
-                    principalId: int(principalId),
+                    principalId: String(principalId),
                     principalType,
                   },
                 });

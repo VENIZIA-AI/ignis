@@ -1,7 +1,14 @@
 import { getError } from '@venizia/ignis-helpers';
 
 import { NotNull } from 'drizzle-orm';
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import {
+  integer,
+  PgIntegerBuilderInitial,
+  PgTextBuilderInitial,
+  PgUUIDBuilderInitial,
+  text,
+  uuid,
+} from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
 export type TPermissionMappingOptions = {
@@ -16,9 +23,9 @@ type TPermissionMappingColumnDef<Opts extends TPermissionMappingOptions | undefi
   Opts extends { idType: infer IdType }
     ? IdType extends 'string'
       ? TPermissionMappingCommonColumns & {
-          userId: PgTextBuilderInitial<string, [string, ...string[]]>;
-          roleId: PgTextBuilderInitial<string, [string, ...string[]]>;
-          permissionId: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+          userId: PgUUIDBuilderInitial<string>;
+          roleId: PgUUIDBuilderInitial<string>;
+          permissionId: NotNull<PgUUIDBuilderInitial<string>>;
         }
       : TPermissionMappingCommonColumns & {
           userId: PgIntegerBuilderInitial<string>;
@@ -40,9 +47,9 @@ export const extraPermissionMappingColumns = <Opts extends TPermissionMappingOpt
     case 'string': {
       return {
         effect: text('effect'),
-        userId: text('user_id'),
-        roleId: text('role_id'),
-        permissionId: text('permission_id').notNull(),
+        userId: uuid('user_id'),
+        roleId: uuid('role_id'),
+        permissionId: uuid('permission_id').notNull(),
       } as TPermissionMappingColumnDef<Opts>;
     }
     case 'number': {
