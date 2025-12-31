@@ -8,6 +8,7 @@ Reusable, pluggable modules that group together related features. A component ca
 |-----------|---------|--------------|
 | [Authentication](./authentication.md) | JWT-based auth | Token generation, protected routes, user payload |
 | [Health Check](./health-check.md) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
+| [Mail](./mail.md) | Email sending system | Multiple transports, templating, queue-based processing |
 | [Request Tracker](./request-tracker.md) | Request logging | Request ID generation, timing, structured logging |
 | [Socket.IO](./socket-io.md) | Real-time communication | WebSocket support, Redis adapter, event-based |
 | [Static Asset](./static-asset.md) | File management | Upload/download files, MinIO & local filesystem support |
