@@ -40,6 +40,32 @@ make install
 git remote add upstream https://github.com/VENIZIA-AI/ignis.git
 ```
 
+## Package Build Order
+
+Ignis is a monorepo with interdependent packages. Understanding the dependency chain is critical for development:
+
+```
+dev-configs → inversion → helpers → boot → core
+     ↓            ↓           ↓        ↓      ↓
+  @venizia/   @venizia/   @venizia/  @venizia/  @venizia/
+  dev-configs ignis-      ignis-     ignis-     ignis
+              inversion   helpers    boot       (core)
+```
+
+**Dependency meanings:**
+| Package | Depends On | Purpose |
+|---------|------------|---------|
+| `dev-configs` | - | Shared ESLint, TypeScript configs |
+| `inversion` | dev-configs | IoC container, DI primitives |
+| `helpers` | inversion | Utilities, loggers, crypto |
+| `boot` | helpers | Application bootstrapping |
+| `core` | boot | Full framework (controllers, repos, etc.) |
+
+**Why this matters:**
+- If you modify `helpers`, you must rebuild `boot` and `core`
+- If you modify `inversion`, you must rebuild `helpers`, `boot`, and `core`
+- The Makefile handles this automatically with dependencies
+
 ## Makefile Commands
 
 The project uses a Makefile for common development tasks:
@@ -53,14 +79,15 @@ The project uses a Makefile for common development tasks:
 | `make lint` | Lint all packages |
 | `make help` | Show all available commands |
 
-**Individual package builds:**
+**Individual package builds** (dependencies are automatically resolved):
 ```bash
-make core          # Build @venizia/ignis (after dependencies)
-make boot          # Build @venizia/ignis-boot
-make helpers       # Build @venizia/ignis-helpers
-make inversion     # Build @venizia/ignis-inversion
-make dev-configs   # Build @venizia/dev-configs
-make docs          # Build documentation
+make core          # Build @venizia/ignis (builds dev-configs → inversion → helpers → boot → core)
+make boot          # Build @venizia/ignis-boot (builds dev-configs → inversion → helpers → boot)
+make helpers       # Build @venizia/ignis-helpers (builds dev-configs → inversion → helpers)
+make inversion     # Build @venizia/ignis-inversion (builds dev-configs → inversion)
+make dev-configs   # Build @venizia/dev-configs only
+make docs          # Build VitePress documentation (independent)
+make docs-mcp      # Build MCP documentation server
 ```
 
 **Force update individual packages:**

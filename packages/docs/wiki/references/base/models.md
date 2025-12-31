@@ -268,7 +268,7 @@ Enrichers are helper functions located in `packages/core/src/base/models/enriche
 | **`generateUserAuditColumnDefs`** | Adds `createdBy` and `modifiedBy` columns to track user audit information. |
 | **`generateDataTypeColumnDefs`** | Adds generic data type columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) for flexible data storage. |
 | **`generatePrincipalColumnDefs`** | Adds polymorphic fields for associating with different principal types. |
-| **`extraUserColumns`** (from `components/auth/models/entities/user.model.ts`) | Adds common fields for a user model, such as `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, and `parentId`. |
+| **`extraUserColumns`** | Adds common fields for a user model, such as `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, and `parentId`. Import from `@venizia/ignis`. |
 
 ### Example Usage
 
@@ -311,7 +311,7 @@ generateIdColumnDefs<Opts extends TIdEnricherOptions | undefined>(
 ```typescript
 type TIdEnricherOptions = {
   id?: { columnName?: string } & (
-    | { dataType: 'string' }
+    | { dataType: 'string'; generator?: () => string }  // Optional custom ID generator
     | {
         dataType: 'number';
         sequenceOptions?: PgSequenceOptions;
@@ -333,7 +333,7 @@ type TIdEnricherOptions = {
 
 | Data Type | Column Type | Constraints | Description |
 |-----------|------------|-------------|-------------|
-| `'string'` | `uuid` | Primary Key, Default: `gen_random_uuid()` | Native PostgreSQL UUID (no extension required) |
+| `'string'` | `text` | Primary Key, Default: `crypto.randomUUID()` | Text column with customizable ID generator (default: UUID) |
 | `'number'` | `integer` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing integer |
 | `'big-number'` | `bigint` | Primary Key, `GENERATED ALWAYS AS IDENTITY` | Auto-incrementing big integer (mode: 'number' or 'bigint') |
 
@@ -342,18 +342,27 @@ type TIdEnricherOptions = {
 The function provides **full TypeScript type inference** based on the configuration options:
 
 ```typescript
-type TIdColumnDef<Opts extends TIdEnricherOptions | undefined> =
-  Opts extends { id: infer IdOpts }
-    ? IdOpts extends { dataType: 'string' }
-      ? { id: IsPrimaryKey<NotNull<HasDefault<PgUUIDBuilderInitial<'id'>>>> }
-      : IdOpts extends { dataType: 'number' }
-        ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
-        : IdOpts extends { dataType: 'big-number' }
-          ? IdOpts extends { numberMode: 'number' }
-            ? { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'> }
-            : { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'> }
-          : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
-    : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> };
+// Type aliases for readability
+type TStringIdCol = HasRuntimeDefault<
+  HasDefault<IsPrimaryKey<NotNull<PgTextBuilderInitial<'id', [string, ...string[]]>>>>
+>;
+type TNumberIdCol = IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'>;
+type TBigInt53IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'>;
+type TBigInt64IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'>;
+
+type TIdColumnDef<Opts extends TIdEnricherOptions | undefined> = Opts extends {
+  id: infer IdOpts;
+}
+  ? IdOpts extends { dataType: 'string' }
+    ? { id: TStringIdCol }
+    : IdOpts extends { dataType: 'number' }
+      ? { id: TNumberIdCol }
+      : IdOpts extends { dataType: 'big-number' }
+        ? IdOpts extends { numberMode: 'number' }
+          ? { id: TBigInt53IdCol }
+          : { id: TBigInt64IdCol }
+        : { id: TNumberIdCol }
+  : { id: TNumberIdCol };
 ```
 
 This ensures that TypeScript correctly infers the exact column type based on your configuration.
@@ -374,7 +383,7 @@ export const myTable = pgTable('MyTable', {
 // Generates: id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY
 ```
 
-**UUID-based string ID:**
+**Text-based string ID (UUID by default):**
 
 ```typescript
 export const myTable = pgTable('MyTable', {
@@ -382,8 +391,26 @@ export const myTable = pgTable('MyTable', {
   name: text('name').notNull(),
 });
 
-// Generates: id uuid PRIMARY KEY DEFAULT gen_random_uuid()
-// No extension required - built into PostgreSQL 13+
+// Generates: id text PRIMARY KEY with $defaultFn(() => crypto.randomUUID())
+// Uses text column for maximum database compatibility
+```
+
+**Custom ID generator (e.g., nanoid, cuid):**
+
+```typescript
+import { nanoid } from 'nanoid';
+
+export const myTable = pgTable('MyTable', {
+  ...generateIdColumnDefs({
+    id: {
+      dataType: 'string',
+      generator: () => nanoid(),  // Custom generator function
+    },
+  }),
+  name: text('name').notNull(),
+});
+
+// Generates: id text PRIMARY KEY with $defaultFn(() => nanoid())
 ```
 
 **Auto-incrementing integer with sequence options:**
@@ -440,7 +467,8 @@ export const myTable = pgTable('MyTable', {
 
 #### Important Notes
 
-- **UUID Type:** When using `dataType: 'string'`, the native PostgreSQL `uuid` type is used with `gen_random_uuid()` - no extension required (built into PostgreSQL 13+). This is more efficient than `text` type (16 bytes vs 36 bytes) and provides better indexing performance.
+- **Text Column:** When using `dataType: 'string'`, a `text` column is used for maximum database compatibility. This allows you to use any ID format (UUID, nanoid, cuid, etc.) without database-specific constraints.
+- **Custom Generator:** You can provide a custom `generator` function to generate IDs. Default is `crypto.randomUUID()`.
 - **Type Safety:** The return type is fully inferred based on your options, providing better autocomplete and type checking
 - **Big Number Mode:** For `dataType: 'big-number'`, the `numberMode` field is required to specify whether to use JavaScript `number` (up to 2^53-1) or `bigint` (for larger values)
 - **Sequence Options:** Available for `number` and `big-number` types to customize identity generation behavior

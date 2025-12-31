@@ -1,4 +1,4 @@
-import { HasDefault, IsIdentity, IsPrimaryKey, NotNull } from 'drizzle-orm';
+import { HasDefault, HasRuntimeDefault, IsIdentity, IsPrimaryKey, NotNull } from 'drizzle-orm';
 import {
   bigint,
   integer,
@@ -7,15 +7,15 @@ import {
   PgIntegerBuilderInitial,
   PgSequenceOptions,
   PgSerialBuilderInitial,
-  PgUUIDBuilderInitial,
-  uuid,
+  PgTextBuilderInitial,
+  text,
 } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions, TPrimaryKey } from '../common/types';
 import { getError } from '@venizia/ignis-helpers';
 
 export type TIdEnricherOptions = {
   id?: { columnName?: string } & (
-    | { dataType: 'string' }
+    | { dataType: 'string'; generator?: () => string }
     | {
         dataType: 'number';
         sequenceOptions?: PgSequenceOptions;
@@ -28,27 +28,32 @@ export type TIdEnricherOptions = {
   );
 };
 
+// Type aliases for id column definitions
+type TStringIdCol = HasRuntimeDefault<
+  HasDefault<IsPrimaryKey<NotNull<PgTextBuilderInitial<'id', [string, ...string[]]>>>>
+>;
+type TNumberIdCol = IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'>;
+type TBigInt53IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'>;
+type TBigInt64IdCol = IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'>;
+
 export type TIdEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> =
   ColumnDefinitions & {
-    id:
-      | TPrimaryKey<PgUUIDBuilderInitial<'id'>>
-      | TPrimaryKey<PgIntegerBuilderInitial<'id'>>
-      | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
+    id: TStringIdCol | TNumberIdCol | TPrimaryKey<PgSerialBuilderInitial<'id'>>;
   };
 
 type TIdColumnDef<Opts extends TIdEnricherOptions | undefined = undefined> = Opts extends {
   id: infer IdOpts;
 }
   ? IdOpts extends { dataType: 'string' }
-    ? { id: IsPrimaryKey<NotNull<HasDefault<PgUUIDBuilderInitial<'id'>>>> }
+    ? { id: TStringIdCol }
     : IdOpts extends { dataType: 'number' }
-      ? { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
+      ? { id: TNumberIdCol }
       : IdOpts extends { dataType: 'big-number' }
         ? IdOpts extends { numberMode: 'number' }
-          ? { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt53BuilderInitial<'id'>>>, 'always'> }
-          : { id: IsIdentity<IsPrimaryKey<NotNull<PgBigInt64BuilderInitial<'id'>>>, 'always'> }
-        : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> }
-  : { id: IsIdentity<IsPrimaryKey<NotNull<PgIntegerBuilderInitial<'id'>>>, 'always'> };
+          ? { id: TBigInt53IdCol }
+          : { id: TBigInt64IdCol }
+        : { id: TNumberIdCol }
+  : { id: TNumberIdCol };
 
 export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined>(
   opts?: Opts,
@@ -57,10 +62,10 @@ export const generateIdColumnDefs = <Opts extends TIdEnricherOptions | undefined
 
   switch (id.dataType) {
     case 'string': {
-      // Using native PostgreSQL uuid type with gen_random_uuid() (built-in since PostgreSQL 13+)
-      // More efficient than text type and no extension required
       return {
-        id: uuid('id').defaultRandom().primaryKey(),
+        id: text('id')
+          .primaryKey()
+          .$defaultFn(id.generator ?? (() => crypto.randomUUID())),
       } as TIdColumnDef<Opts>;
     }
     case 'number': {

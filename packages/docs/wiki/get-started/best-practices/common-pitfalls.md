@@ -125,14 +125,119 @@ APP_ENV_POSTGRES_DATABASE=db
 
 ## 5. Not Using `as const` for Route Definitions
 
-**Pitfall:** When using the decorator-based routing with a shared `ROUTE_CONFIGS` object, you forget to add `as const` to the object definition. TypeScript will infer the types too broadly, and you will lose the benefits of type-safe contexts (`TRouteContext`).
+**Pitfall:** When using the decorator-based routing with a shared `RouteConfigs` object, you forget to add `as const` to the object definition. TypeScript will infer the types too broadly, and you will lose the benefits of type-safe contexts (`TRouteContext`).
 
 **Solution:** Always use `as const` when exporting a shared route configuration object.
 
 **Example (`src/controllers/test/definitions.ts`):**
 ```typescript
-export const ROUTE_CONFIGS = {
-  // ... your route definitions
+export const RouteConfigs = {
+  GET_USERS: { /* ... */ },
+  GET_USER_BY_ID: { /* ... */ },
 } as const; // <-- This is crucial!
 ```
-This ensures that `TRouteContext<typeof ROUTE_CONFIGS['/path']>` has the precise types for request body, params, and response.
+This ensures that `TRouteContext<typeof RouteConfigs.GET_USERS>` has the precise types for request body, params, and response.
+
+## 6. Bulk Operations Without WHERE Clause
+
+**Problem:** Attempting to update or delete all records without an explicit `where` condition.
+
+**Solution:** Ignis prevents accidental bulk data destruction. You must either provide a `where` condition or explicitly set `force: true`.
+
+```typescript
+// ❌ BAD - Will throw error
+await userRepository.updateBy({
+  data: { status: 'INACTIVE' },
+  where: {},  // Empty where = targets ALL records
+});
+// Error: [updateBy] DENY to perform updateBy | Empty where condition
+
+// ✅ GOOD - Explicit where condition
+await userRepository.updateBy({
+  data: { status: 'INACTIVE' },
+  where: { lastLoginAt: { lt: new Date('2024-01-01') } },
+});
+
+// ✅ GOOD - Intentionally affect all records with force flag
+await userRepository.updateBy({
+  data: { status: 'INACTIVE' },
+  where: {},
+  options: { force: true },  // Explicitly allow empty where
+});
+```
+
+> [!WARNING]
+> The `force: true` flag bypasses the safety check. Only use when you intentionally want to affect ALL records in the table.
+
+## 7. Schema Key Mismatch
+
+**Problem:** Entity name doesn't match the table name registered in the DataSource's schema.
+
+**Error Message:**
+```
+[UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post]
+```
+
+**Solution:** Ensure your entity class name matches the table name in `pgTable()`:
+
+```typescript
+// ❌ BAD - Class name 'User' doesn't match table name 'users'
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('users', { /* ... */ });  // Lowercase 'users'
+}
+
+// ✅ GOOD - Class name matches table name
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', { /* ... */ });  // Matches class name
+}
+```
+
+**Why this matters:** The framework uses `entity.name` (class name) to look up the query interface in `connector.query`. If they don't match, the repository can't find its table.
+
+## 8. Validation Error Response Structure
+
+**Problem:** Client receives validation errors but doesn't know how to parse them.
+
+**Solution:** Understand the Zod validation error response format:
+
+```json
+{
+  "statusCode": 422,
+  "message": "ValidationError",
+  "requestId": "abc123",
+  "details": {
+    "cause": [
+      {
+        "path": "email",
+        "message": "Invalid email",
+        "code": "invalid_string",
+        "expected": "email",
+        "received": "string"
+      },
+      {
+        "path": "age",
+        "message": "Expected number, received string",
+        "code": "invalid_type",
+        "expected": "number",
+        "received": "string"
+      }
+    ]
+  }
+}
+```
+
+**Client-side handling:**
+```typescript
+try {
+  await api.post('/users', data);
+} catch (error) {
+  if (error.response?.status === 422) {
+    const errors = error.response.data.details.cause;
+    errors.forEach(err => {
+      console.log(`Field '${err.path}': ${err.message}`);
+    });
+  }
+}
+```

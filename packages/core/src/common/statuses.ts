@@ -1,3 +1,4 @@
+// -----------------------------------------------------------------------------
 export class Statuses {
   // 0xx - Initial
   static readonly UNKNOWN = '000_UNKNOWN';
@@ -134,12 +135,20 @@ export class Statuses {
   }
 }
 
+// -----------------------------------------------------------------------------
 export class MigrationStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly SUCCESS = Statuses.SUCCESS;
   static readonly FAIL = Statuses.FAIL;
+
+  static readonly SCHEME_SET = new Set([this.UNKNOWN, this.SUCCESS, this.FAIL]);
+
+  static isValid(scheme: string): boolean {
+    return this.SCHEME_SET.has(scheme);
+  }
 }
 
+// -----------------------------------------------------------------------------
 export class CommonStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly ACTIVATED = Statuses.ACTIVATED;
@@ -160,10 +169,13 @@ export class CommonStatuses {
   }
 }
 
+// -----------------------------------------------------------------------------
 export class UserStatuses extends CommonStatuses {}
 
+// -----------------------------------------------------------------------------
 export class RoleStatuses extends CommonStatuses {}
 
+// -----------------------------------------------------------------------------
 export class UserTypes {
   static readonly SYSTEM = 'SYSTEM';
   static readonly LINKED = 'LINKED';

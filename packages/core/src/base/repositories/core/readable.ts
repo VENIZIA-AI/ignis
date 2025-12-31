@@ -133,10 +133,10 @@ export class ReadableRepository<
     const table = schema as PgTable;
     const connector = this.resolveConnector(options?.transaction);
 
-    // Select only visible columns (excludes hidden properties at SQL level)
-    const visibleColumns = this.getVisibleColumns();
-    let query = visibleColumns
-      ? connector.select(visibleColumns).from(table).$dynamic()
+    // Select only visible properties (excludes hidden properties at SQL level)
+    const visibleProps = this.getVisibleProperties();
+    let query = visibleProps
+      ? connector.select(visibleProps).from(table).$dynamic()
       : connector.select().from(table).$dynamic();
 
     if (where) {

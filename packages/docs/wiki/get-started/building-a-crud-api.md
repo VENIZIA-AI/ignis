@@ -142,7 +142,7 @@ export class Todo extends BaseEntity<typeof Todo.schema> {
 ```
 
 **Schema Enrichers:**
-- `generateIdColumnDefs()` - Adds `id` column (UUID primary key)
+- `generateIdColumnDefs()` - Adds `id` column (text with UUID default, or auto-incrementing number)
 - `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
 
 > **Deep Dive:** See [Models & Enrichers Reference](../references/base/models.md#schema-enrichers) for all available enrichers and options.
@@ -423,7 +423,7 @@ A migration is a script that creates or modifies database tables. Think of it as
 ```sql
 -- This is what Drizzle will generate and run for you
 CREATE TABLE "Todo" (
-  "id" UUID PRIMARY KEY,
+  "id" TEXT PRIMARY KEY,
   "title" TEXT NOT NULL,
   "description" TEXT,
   "is_completed" BOOLEAN DEFAULT false,

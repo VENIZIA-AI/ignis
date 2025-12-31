@@ -43,6 +43,16 @@ const config = defineConfig({
           ],
         },
         {
+          text: '2025-12-31',
+          collapsed: false,
+          items: [
+            {
+              text: 'String ID with Custom Generator',
+              link: '/changelogs/2025-12-31-string-id-custom-generator',
+            },
+          ],
+        },
+        {
           text: '2025-12-30',
           collapsed: false,
           items: [

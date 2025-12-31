@@ -2,16 +2,14 @@ import {
   integer,
   PgIntegerBuilderInitial,
   PgTextBuilderInitial,
-  PgUUIDBuilderInitial,
   text,
-  uuid,
 } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../common/types';
 import { HasDefault, NotNull } from 'drizzle-orm';
 
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
-  IdType extends 'number' | 'string' | 'uuid' = 'number' | 'string' | 'uuid',
+  IdType extends 'number' | 'string' = 'number' | 'string',
 > = {
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
@@ -20,24 +18,20 @@ export type TPrincipalEnricherOptions<
 
 type TPrincipalColumnDef<
   Discriminator extends string,
-  IdType extends 'number' | 'string' | 'uuid',
+  IdType extends 'number' | 'string',
 > = (IdType extends 'number'
   ? {
       [K in `${Discriminator}Id`]: NotNull<PgIntegerBuilderInitial<string>>;
     }
-  : IdType extends 'uuid'
-    ? {
-        [K in `${Discriminator}Id`]: NotNull<PgUUIDBuilderInitial<string>>;
-      }
-    : {
-        [K in `${Discriminator}Id`]: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
-      }) & {
+  : {
+      [K in `${Discriminator}Id`]: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+    }) & {
   [K in `${Discriminator}Type`]: HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>;
 };
 
 export const generatePrincipalColumnDefs = <
   Discriminator extends string = 'principal',
-  IdType extends 'number' | 'string' | 'uuid' = 'number',
+  IdType extends 'number' | 'string' = 'number',
 >(
   opts: TPrincipalEnricherOptions<Discriminator, IdType>,
 ): TPrincipalColumnDef<Discriminator, IdType> => {
@@ -64,15 +58,9 @@ export const generatePrincipalColumnDefs = <
         [polymorphic.idField]: text(polymorphic.idColumnName).notNull(),
       } as TPrincipalColumnDef<Discriminator, IdType>;
     }
-    case 'uuid': {
-      return {
-        [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
-        [polymorphic.idField]: uuid(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Discriminator, IdType>;
-    }
     default: {
       throw new Error(
-        `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphic.idType} | valid: ['number', 'string', 'uuid]`,
+        `[generatePrincipalColumnDefs] Invalid polymorphicIdType | value: ${polymorphic.idType} | valid: ['number', 'string']`,
       );
     }
   }

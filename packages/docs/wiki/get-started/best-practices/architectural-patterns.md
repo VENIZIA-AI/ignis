@@ -168,3 +168,248 @@ export class MySocketComponent extends BaseComponent {
   }
 }
 ```
+
+## 5. Application Lifecycle Hooks
+
+Ignis applications follow a predictable startup sequence with hooks for customization:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     initialize()                            │
+├─────────────────────────────────────────────────────────────┤
+│  1. printStartUpInfo()     - Log startup configuration      │
+│  2. validateEnvs()         - Validate APP_ENV_* variables   │
+│  3. registerDefaultMiddlewares() - Error handlers, favicon  │
+│  4. staticConfigure()      - Configure static file serving  │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 5. preConfigure()  ← YOUR CODE HERE                 │    │
+│  │    - Register DataSources                           │    │
+│  │    - Register Repositories                          │    │
+│  │    - Register Services                              │    │
+│  │    - Register Controllers                           │    │
+│  │    - Register Components                            │    │
+│  └─────────────────────────────────────────────────────┘    │
+│                                                             │
+│  6. registerDataSources()  - Initialize DB connections      │
+│  7. registerComponents()   - Configure all components       │
+│  8. registerControllers()  - Mount routes to router         │
+│                                                             │
+│  ┌─────────────────────────────────────────────────────┐    │
+│  │ 9. postConfigure()  ← YOUR CODE HERE                │    │
+│  │    - Seed data                                      │    │
+│  │    - Start background jobs                          │    │
+│  │    - Custom initialization                          │    │
+│  └─────────────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Lifecycle Methods:**
+
+| Method | When | Purpose |
+|--------|------|---------|
+| `staticConfigure()` | Before DI registration | Configure static file serving |
+| `preConfigure()` | Before auto-registration | Register all bindings (datasources, repos, services, controllers, components) |
+| `postConfigure()` | After everything is registered | Seed data, start jobs, custom logic |
+
+**Example:**
+```typescript
+export class Application extends BaseApplication {
+  // Called before automatic registration
+  async preConfigure(): Promise<void> {
+    // DataSources (order matters - first)
+    this.dataSource(PostgresDataSource);
+
+    // Repositories
+    this.repository(UserRepository);
+    this.repository(OrderRepository);
+
+    // Services
+    this.service(AuthService);
+    this.service(EmailService);
+
+    // Controllers
+    this.controller(UserController);
+    this.controller(OrderController);
+
+    // Components
+    this.component(AuthenticateComponent);
+    this.component(SwaggerComponent);
+  }
+
+  // Called after all registrations complete
+  async postConfigure(): Promise<void> {
+    // Access registered services
+    const userRepo = this.get<UserRepository>({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    });
+
+    // Seed initial data
+    const adminExists = await userRepo.findOne({
+      filter: { where: { role: 'admin' } },
+    });
+    if (!adminExists.data) {
+      await userRepo.create({ data: { name: 'Admin', role: 'admin' } });
+    }
+  }
+
+  // Configure static file serving
+  staticConfigure(): void {
+    this.static({ restPath: '/public/*', folderPath: './public' });
+  }
+}
+```
+
+> [!WARNING]
+> Do not register new datasources, components, or controllers in `postConfigure()`. They will not be automatically initialized. Use `preConfigure()` for all registrations.
+
+## 6. Mixin Pattern
+
+Mixins enable class composition without deep inheritance hierarchies. Ignis uses mixins to add capabilities to the `BaseApplication` class.
+
+**How Mixins Work:**
+```typescript
+// A mixin is a function that takes a class and returns an extended class
+const ServiceMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
+  return class extends baseClass {
+    service<Base extends IService>(ctor: TClass<Base>): Binding<Base> {
+      return this.bind<Base>({
+        key: BindingKeys.build({
+          namespace: BindingNamespaces.SERVICE,
+          key: ctor.name,
+        }),
+      }).toClass(ctor);
+    }
+  };
+};
+```
+
+**Available Mixins:**
+
+| Mixin | Methods Added | Purpose |
+|-------|---------------|---------|
+| `ServiceMixin` | `service()` | Register service classes |
+| `RepositoryMixin` | `repository()`, `dataSource()`, `registerDataSources()` | Register data layer |
+| `ControllerMixin` | `controller()` | Register HTTP controllers |
+| `ComponentMixin` | `component()` | Register modular components |
+
+**Composing Mixins:**
+```typescript
+// The framework composes mixins like this:
+class AbstractApplication extends ComponentMixin(
+  ControllerMixin(
+    ServiceMixin(
+      RepositoryMixin(BaseClass)
+    )
+  )
+) {
+  // Now has: service(), repository(), dataSource(), controller(), component()
+}
+```
+
+**Why Mixins?**
+- Avoid "diamond inheritance" problems
+- Add capabilities selectively
+- Keep base classes focused
+- Enable code reuse across unrelated classes
+
+## 7. Controller Factory Pattern
+
+`ControllerFactory.defineCrudController()` generates a complete CRUD controller from an entity definition. This reduces boilerplate while maintaining full customization.
+
+**Basic Usage:**
+```typescript
+const _Controller = ControllerFactory.defineCrudController({
+  entity: () => User,
+  repository: { name: UserRepository.name },
+  controller: {
+    name: 'UserController',
+    basePath: '/users',
+    isStrict: true,      // Enable strict validation
+    defaultLimit: 50,    // Default pagination limit
+  },
+});
+
+@controller({ path: '/users' })
+export class UserController extends _Controller {
+  constructor(
+    @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.REPOSITORY, key: UserRepository.name }) })
+    repository: UserRepository,
+  ) {
+    super(repository);
+  }
+}
+```
+
+**Per-Route Authentication:**
+```typescript
+const _Controller = ControllerFactory.defineCrudController({
+  entity: () => User,
+  repository: { name: UserRepository.name },
+  controller: { name: 'UserController', basePath: '/users' },
+
+  // Apply JWT to all routes by default
+  authStrategies: [Authentication.STRATEGY_JWT],
+
+  // Override per-route
+  routes: {
+    // Public read endpoints
+    find: { skipAuth: true },
+    findById: { skipAuth: true },
+    count: { skipAuth: true },
+
+    // Protected write endpoints (use controller-level auth)
+    create: {},
+    updateById: {},
+    deleteById: {},
+  },
+});
+```
+
+**Custom Schemas Per Route:**
+```typescript
+const _Controller = ControllerFactory.defineCrudController({
+  entity: () => User,
+  repository: { name: UserRepository.name },
+  controller: { name: 'UserController', basePath: '/users' },
+
+  routes: {
+    // Custom request body schema for create
+    create: {
+      authStrategies: [Authentication.STRATEGY_JWT],
+      requestBody: z.object({
+        email: z.string().email(),
+        name: z.string().min(2),
+        // Exclude sensitive fields from client input
+      }),
+    },
+
+    // Custom response schema
+    find: {
+      skipAuth: true,
+      schema: z.array(z.object({
+        id: z.string(),
+        name: z.string(),
+        // Exclude internal fields from response
+      })),
+    },
+  },
+});
+```
+
+**Generated Routes:**
+
+| Route | Method | Path | Description |
+|-------|--------|------|-------------|
+| `count` | GET | `/count` | Count records matching filter |
+| `find` | GET | `/` | List records with filter |
+| `findById` | GET | `/:id` | Get single record |
+| `findOne` | GET | `/find-one` | Get first matching record |
+| `create` | POST | `/` | Create new record |
+| `updateById` | PATCH | `/:id` | Update record by ID |
+| `updateBy` | PATCH | `/` | Bulk update by filter |
+| `deleteById` | DELETE | `/:id` | Delete by ID |
+| `deleteBy` | DELETE | `/` | Bulk delete by filter |

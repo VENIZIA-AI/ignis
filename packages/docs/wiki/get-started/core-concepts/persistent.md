@@ -126,7 +126,7 @@ Enrichers are helper functions that generate common database columns automatical
 
 ```typescript
 static override schema = pgTable('User', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
   status: text('status').notNull().default('ACTIVE'),
   createdBy: text('created_by'),
   modifiedBy: text('modified_by'),
@@ -140,7 +140,7 @@ static override schema = pgTable('User', {
 
 ```typescript
 static override schema = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),  // id (UUID)
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),  // id (text with UUID default)
   ...extraUserColumns({ idType: 'string' }),                 // status, audit fields, timestamps
   // ... your fields
 });
@@ -150,7 +150,7 @@ static override schema = pgTable('User', {
 
 | Enricher | Columns Added | Use Case |
 |----------|---------------|----------|
-| `generateIdColumnDefs()` | `id` (UUID or number) | Every table |
+| `generateIdColumnDefs()` | `id` (text or number) | Every table |
 | `generateTzColumnDefs()` | `createdAt`, `modifiedAt` | Track timestamps |
 | `generateUserAuditColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
 | `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |

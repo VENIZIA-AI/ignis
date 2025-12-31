@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2025-12-31 | [String ID with Custom Generator](./2025-12-31-string-id-custom-generator) | Enhancement |
+| 2025-12-30 | [Repository Enhancements](./2025-12-30-repository-enhancements) | Enhancement |
 | 2025-12-29 | [Snowflake UID Helper](./2025-12-29-snowflake-uid-helper) | New Feature |
 | 2025-12-29 | [Dynamic Binding Registration Fix](./2025-12-29-dynamic-binding-registration) | Bug Fix |
 | 2025-12-26 | [Transaction Support](./2025-12-26-transaction-support) | Enhancement |

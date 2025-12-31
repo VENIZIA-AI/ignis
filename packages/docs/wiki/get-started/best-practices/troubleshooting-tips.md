@@ -98,3 +98,99 @@ cat .env | grep APP_ENV
 - Check database queries with Drizzle's logging: `{ logger: true }`
 
 > **Deep Dive:** See [Logger Helper](../../references/helpers/logger.md) for advanced logging configuration.
+
+## 6. Request ID Tracking
+
+Every request in Ignis is automatically assigned a unique `requestId` for log correlation. The `RequestSpyMiddleware` logs this ID at the start and end of each request.
+
+**Log output format:**
+```
+[spy][abc123] START | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET
+[spy][abc123] DONE  | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET | Took: 45.2 (ms)
+```
+
+**Access request ID in handlers:**
+```typescript
+import { RequestSpyMiddleware } from '@venizia/ignis';
+
+// Inside a controller method
+async getUser(c: Context) {
+  const requestId = c.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+  this.logger.info('[%s] Processing user request', requestId);
+  // ...
+}
+```
+
+**Filtering logs by request:**
+```bash
+# Find all logs for a specific request
+grep "abc123" logs/app.log
+
+# Extract request timing
+grep "\[spy\]\[abc123\]" logs/app.log
+```
+
+**Why this matters:**
+- Correlate logs across services in distributed systems
+- Debug specific user issues by their request ID
+- Measure request duration from START to DONE timestamps
+
+## 7. Validation Error Debugging
+
+When Zod validation fails, Ignis returns a structured error response. Understanding this format helps debug client-side issues.
+
+**Error response structure:**
+```json
+{
+  "statusCode": 422,
+  "message": "ValidationError",
+  "requestId": "abc123",
+  "details": {
+    "cause": [
+      {
+        "path": "email",
+        "message": "Invalid email",
+        "code": "invalid_string",
+        "expected": "email",
+        "received": "string"
+      }
+    ]
+  }
+}
+```
+
+**Common validation error codes:**
+
+| Code | Meaning | Example |
+|------|---------|---------|
+| `invalid_type` | Wrong data type | Expected `number`, got `string` |
+| `invalid_string` | String format invalid | Invalid email or UUID format |
+| `too_small` | Value below minimum | String shorter than min length |
+| `too_big` | Value above maximum | Number exceeds max value |
+| `invalid_enum_value` | Value not in enum | Status must be 'ACTIVE' or 'INACTIVE' |
+| `unrecognized_keys` | Extra fields in request | Strict schema rejects unknown fields |
+
+**Debugging tips:**
+
+1. **Check the `path` field** - Shows which field failed validation
+2. **Compare `expected` vs `received`** - Identifies type mismatches
+3. **Review schema definition** - Ensure client sends correct format
+
+**Example: Debugging nested validation errors:**
+```json
+{
+  "details": {
+    "cause": [
+      {
+        "path": "address.zipCode",
+        "message": "Expected string, received number",
+        "code": "invalid_type",
+        "expected": "string",
+        "received": "number"
+      }
+    ]
+  }
+}
+```
+
+The `path` uses dot notation for nested objects. Here, `address.zipCode` means the `zipCode` field inside the `address` object is invalid.

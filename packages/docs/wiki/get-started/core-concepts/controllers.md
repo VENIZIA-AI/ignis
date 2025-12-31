@@ -204,7 +204,7 @@ this.bindRoute({
   configs: GetUserByIdRoute,
 }).to({
   handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred
-    const { id } = c.req.param();
+    const { id } = c.req.valid('param');  // Use valid() for type-safe validated params
     return c.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   },
 });

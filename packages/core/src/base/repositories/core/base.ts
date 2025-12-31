@@ -64,7 +64,7 @@ export abstract class AbstractRepository<
   // Cached hidden properties configuration (computed once per repository)
   // Using null as sentinel to distinguish "not computed" from "computed as undefined"
   private _hiddenProperties: Set<string> | null = null;
-  private _visibleColumns: Record<string, any> | null | undefined = null;
+  private _visibleProperties: Record<string, any> | null | undefined = null;
 
   defaultLimit: number;
 
@@ -129,6 +129,28 @@ export abstract class AbstractRepository<
 
   set entity(value: BaseEntity<Schema>) {
     this._entity = value;
+  }
+
+  /**
+   * Get hidden properties - auto-resolves from model metadata if not explicitly set
+   */
+  get hiddenProperties(): Set<string> {
+    return this.getHiddenProperties();
+  }
+
+  set hiddenProperties(value: Set<string>) {
+    this._hiddenProperties = value;
+  }
+
+  /**
+   * Get visible properties - auto-resolves from schema excluding hidden properties
+   */
+  get visibleProperties(): Record<string, any> | undefined {
+    return this.getVisibleProperties();
+  }
+
+  set visibleProperties(value: Record<string, any> | undefined) {
+    this._visibleProperties = value;
   }
 
   /**
@@ -231,39 +253,39 @@ export abstract class AbstractRepository<
   }
 
   /**
-   * Get visible columns object for Drizzle select/returning.
+   * Get visible properties object for Drizzle select/returning.
    * Excludes hidden properties. Cached for performance.
    *
    * @returns Column object for Drizzle (e.g., { id: schema.id, email: schema.email })
    *          or undefined if no hidden properties (use default select all behavior)
    */
-  protected getVisibleColumns(): Record<string, any> | undefined {
+  protected getVisibleProperties(): Record<string, any> | undefined {
     // null = not computed yet, undefined = computed as "no hidden properties"
-    if (this._visibleColumns !== null) {
-      return this._visibleColumns;
+    if (this._visibleProperties !== null) {
+      return this._visibleProperties;
     }
 
     const hiddenProps = this.getHiddenProperties();
 
     // If no hidden properties, cache and return undefined (signal to use default behavior)
     if (hiddenProps.size === 0) {
-      this._visibleColumns = undefined;
+      this._visibleProperties = undefined;
       return undefined;
     }
 
     // Build columns object excluding hidden properties
     const schema = this.entity.schema;
     const columns = getTableColumns(schema);
-    const visibleColumns: Record<string, any> = {};
+    const visibleProperties: Record<string, any> = {};
 
     for (const [key, column] of Object.entries(columns)) {
       if (!hiddenProps.has(key)) {
-        visibleColumns[key] = column;
+        visibleProperties[key] = column;
       }
     }
 
-    this._visibleColumns = visibleColumns;
-    return this._visibleColumns;
+    this._visibleProperties = visibleProperties;
+    return this._visibleProperties;
   }
 
   /**

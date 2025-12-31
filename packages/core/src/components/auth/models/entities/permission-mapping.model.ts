@@ -5,9 +5,7 @@ import {
   integer,
   PgIntegerBuilderInitial,
   PgTextBuilderInitial,
-  PgUUIDBuilderInitial,
   text,
-  uuid,
 } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
@@ -23,9 +21,9 @@ type TPermissionMappingColumnDef<Opts extends TPermissionMappingOptions | undefi
   Opts extends { idType: infer IdType }
     ? IdType extends 'string'
       ? TPermissionMappingCommonColumns & {
-          userId: PgUUIDBuilderInitial<string>;
-          roleId: PgUUIDBuilderInitial<string>;
-          permissionId: NotNull<PgUUIDBuilderInitial<string>>;
+          userId: PgTextBuilderInitial<string, [string, ...string[]]>;
+          roleId: PgTextBuilderInitial<string, [string, ...string[]]>;
+          permissionId: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
         }
       : TPermissionMappingCommonColumns & {
           userId: PgIntegerBuilderInitial<string>;
@@ -47,9 +45,9 @@ export const extraPermissionMappingColumns = <Opts extends TPermissionMappingOpt
     case 'string': {
       return {
         effect: text('effect'),
-        userId: uuid('user_id'),
-        roleId: uuid('role_id'),
-        permissionId: uuid('permission_id').notNull(),
+        userId: text('user_id'),
+        roleId: text('role_id'),
+        permissionId: text('permission_id').notNull(),
       } as TPermissionMappingColumnDef<Opts>;
     }
     case 'number': {

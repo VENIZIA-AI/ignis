@@ -233,6 +233,57 @@ export class SocketIOBindingKeys {
 }
 ```
 
+## Private Field Naming Convention
+
+Use underscore prefix (`_`) for private and protected class fields to distinguish them from public fields and method parameters.
+
+```typescript
+class MyRepository extends BaseRepository {
+  // Private fields with underscore prefix
+  private _dataSource: IDataSource;
+  private _entity: BaseEntity;
+  private _hiddenProperties: Set<string> | null = null;
+
+  // Protected fields also use underscore prefix
+  protected _schemaFactory?: ReturnType<typeof createSchemaFactory>;
+
+  constructor(dataSource: IDataSource) {
+    // 'dataSource' (param) vs '_dataSource' (field)
+    this._dataSource = dataSource;
+  }
+}
+```
+
+**Benefits:**
+- Clear distinction between fields and parameters
+- Avoids naming conflicts in constructors
+- Consistent with TypeScript community conventions
+
+## Sentinel Value Pattern for Caching
+
+Use `null` to distinguish "not computed" from "computed as undefined" for lazy-initialized cached values.
+
+```typescript
+class Repository {
+  // null = not computed yet, undefined = computed but no value
+  private _visibleProperties: Record<string, any> | null | undefined = null;
+
+  get visibleProperties(): Record<string, any> | undefined {
+    if (this._visibleProperties !== null) {
+      return this._visibleProperties;
+    }
+    // Compute once and cache (may be undefined)
+    this._visibleProperties = this.computeVisibleProperties();
+    return this._visibleProperties;
+  }
+}
+```
+
+**Why not just `undefined`?**
+- `undefined` can be a valid computed result
+- `null` clearly indicates "never computed"
+- Prevents redundant re-computation
+
 ## Type Safety
 
 To ensure long-term maintainability and catch errors at compile-time, Ignis enforces strict type safety.
@@ -284,13 +335,13 @@ export type TSignInRequest = z.infer<typeof SignInRequestSchema>;
 ### Const Assertion for Literal Types
 
 ```typescript
-const ROUTE_CONFIGS = {
-  '/users': { method: 'GET', path: '/users' },
-  '/users/:id': { method: 'GET', path: '/users/:id' },
+const RouteConfigs = {
+  GET_USERS: { method: 'GET', path: '/users' },
+  GET_USER_BY_ID: { method: 'GET', path: '/users/:id' },
 } as const;
 
 // Type is now narrowed to literal values
-type RouteKey = keyof typeof ROUTE_CONFIGS; // '/users' | '/users/:id'
+type RouteKey = keyof typeof RouteConfigs; // 'GET_USERS' | 'GET_USER_BY_ID'
 ```
 
 ### Generic Type Constraints
@@ -309,6 +360,35 @@ export interface IAuthService<
   signIn(context: Context, opts: SIRQ): Promise<SIRS>;
 }
 ```
+
+### Method Overloading for Conditional Returns
+
+Use TypeScript method overloads when return types depend on input options:
+
+```typescript
+class Repository<T, R> {
+  // Overload 1: shouldReturn: false → data is null
+  create(opts: { data: T; options: { shouldReturn: false } }): Promise<{ count: number; data: null }>;
+  // Overload 2: shouldReturn: true (default) → data is R
+  create(opts: { data: T; options?: { shouldReturn?: true } }): Promise<{ count: number; data: R }>;
+  // Implementation signature
+  create(opts: { data: T; options?: { shouldReturn?: boolean } }): Promise<{ count: number; data: R | null }> {
+    // implementation
+  }
+}
+
+// Usage
+const result1 = await repo.create({ data: user, options: { shouldReturn: false } });
+// result1.data is typed as null
+
+const result2 = await repo.create({ data: user });
+// result2.data is typed as R (the entity type)
+```
+
+**When to use:**
+- Return type varies based on boolean flag
+- API with optional "return data" behavior
+- Methods with conditional processing
 
 ## Module Exports
 
@@ -350,13 +430,54 @@ class UserService {
 // Usage: service.createUser('John', 'john@example.com');
 ```
 
+## Function Naming Conventions
+
+Use consistent prefixes based on function purpose:
+
+| Prefix | Purpose | Examples |
+|--------|---------|----------|
+| `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
+| `build*` | Construct complex objects | `buildPrimitiveCondition()`, `buildJsonOrderBy()` |
+| `to*` | Convert/transform data | `toCamel()`, `toBoolean()`, `toStringDecimal()` |
+| `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
+| `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
+| `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
+| `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
+| `resolve*` | Determine/compute value | `resolveValue()`, `resolvePath()` |
+
+**Examples:**
+
+```typescript
+// Generators - create schema definitions
+const idCols = generateIdColumnDefs({ id: { dataType: 'string' } });
+const tzCols = generateTzColumnDefs();
+
+// Builders - construct complex query objects
+const condition = buildPrimitiveCondition(column, operator, value);
+const orderBy = buildJsonOrderBy(schema, path, direction);
+
+// Converters - transform data types
+const camelCase = toCamel('snake_case');
+const bool = toBoolean('true');
+const decimal = toStringDecimal(123.456, 2);
+
+// Validators - boolean checks
+if (isWeekday(date)) { /* ... */ }
+if (isInt(value)) { /* ... */ }
+if (isPromiseLike(result)) { /* ... */ }
+
+// Extractors - pull specific data
+const timestamp = extractTimestamp(snowflakeId);
+const workerId = extractWorkerId(snowflakeId);
+```
+
 ## Route Definition Patterns
 
 Ignis supports three methods for defining routes. Choose based on your needs:
 
 ### Method 1: Config-Driven Routes
 
-Define route configurations as constants:
+Define route configurations as constants with UPPER_CASE names:
 
 ```typescript
 // common/rest-paths.ts
@@ -367,19 +488,19 @@ export class UserRestPaths {
 }
 
 // common/route-configs.ts
-export const ROUTE_CONFIGS = {
-  [UserRestPaths.ROOT]: {
+export const RouteConfigs = {
+  GET_USERS: {
     method: HTTP.Methods.GET,
     path: UserRestPaths.ROOT,
     responses: jsonResponse({
       [HTTP.ResultCodes.RS_2.Ok]: UserListSchema,
     }),
   },
-  [UserRestPaths.BY_ID]: {
+  GET_USER_BY_ID: {
     method: HTTP.Methods.GET,
     path: UserRestPaths.BY_ID,
     request: {
-      params: z.object({ id: z.string().uuid() }),
+      params: z.object({ id: z.string() }),
     },
     responses: jsonResponse({
       [HTTP.ResultCodes.RS_2.Ok]: UserSchema,
@@ -395,13 +516,13 @@ export const ROUTE_CONFIGS = {
 @controller({ path: '/users' })
 export class UserController extends BaseController {
 
-  @api({ configs: ROUTE_CONFIGS[UserRestPaths.ROOT] })
-  list(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.ROOT]>) {
+  @api({ configs: RouteConfigs.GET_USERS })
+  list(context: TRouteContext<typeof RouteConfigs.GET_USERS>) {
     return context.json({ users: [] }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  @api({ configs: ROUTE_CONFIGS[UserRestPaths.BY_ID] })
-  getById(context: TRouteContext<typeof ROUTE_CONFIGS[typeof UserRestPaths.BY_ID]>) {
+  @api({ configs: RouteConfigs.GET_USER_BY_ID })
+  getById(context: TRouteContext<typeof RouteConfigs.GET_USER_BY_ID>) {
     const { id } = context.req.valid('param');
     return context.json({ id, name: 'User' }, HTTP.ResultCodes.RS_2.Ok);
   }
@@ -416,7 +537,7 @@ export class HealthCheckController extends BaseController {
   constructor() {
     super({ scope: HealthCheckController.name });
 
-    this.bindRoute({ configs: ROUTE_CONFIGS['/'] }).to({
+    this.bindRoute({ configs: RouteConfigs.GET_HEALTH }).to({
       handler: context => context.json({ status: 'ok' }),
     });
   }
@@ -432,7 +553,7 @@ export class HealthCheckController extends BaseController {
     super({ scope: HealthCheckController.name });
 
     this.defineRoute({
-      configs: ROUTE_CONFIGS['/ping'],
+      configs: RouteConfigs.POST_PING,
       handler: context => {
         const { message } = context.req.valid('json');
         return context.json({ echo: message }, HTTP.ResultCodes.RS_2.Ok);
@@ -765,6 +886,87 @@ constructor(options: IServiceOptions) {
 | Not Found | `HTTP.ResultCodes.RS_4.NotFound` | Resource not found |
 | Internal Error | `HTTP.ResultCodes.RS_5.InternalServerError` | Server errors |
 
+## Control Flow Patterns
+
+### Mandatory Braces
+
+**Always use braces for `if`, `for`, `while`, and `do-while` statements**, even for single-line bodies. Never use inline statements.
+
+```typescript
+// ✅ GOOD - Always use braces
+if (condition) {
+  doSomething();
+}
+
+for (const item of items) {
+  process(item);
+}
+
+while (running) {
+  tick();
+}
+
+do {
+  attempt();
+} while (retrying);
+
+// ❌ BAD - Never inline without braces
+if (condition) doSomething();
+for (const item of items) process(item);
+while (running) tick();
+```
+
+**Why braces are mandatory:**
+- Prevents bugs when adding statements later
+- Clearer code structure at a glance
+- Consistent formatting across codebase
+
+### Switch Statement Requirements
+
+**All switch statements must:**
+1. Use braces `{}` for each case block
+2. Include a `default` case (even if it throws)
+
+```typescript
+// ✅ GOOD - Braces and default case
+switch (status) {
+  case 'active': {
+    activateUser();
+    break;
+  }
+  case 'inactive': {
+    deactivateUser();
+    break;
+  }
+  case 'pending': {
+    notifyAdmin();
+    break;
+  }
+  default: {
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+      message: `Unknown status: ${status}`,
+    });
+  }
+}
+
+// ❌ BAD - Missing braces and default case
+switch (status) {
+  case 'active':
+    activateUser();
+    break;
+  case 'inactive':
+    deactivateUser();
+    break;
+  // Missing default case!
+}
+```
+
+**Why these rules:**
+- Braces prevent variable scoping issues between cases
+- Default case ensures all values are handled
+- Throwing in default catches unexpected values early
+
 ## Scope Naming
 
 Every class extending a base class should set its scope using `ClassName.name`:
@@ -783,6 +985,188 @@ export class UserController extends BaseController {
 }
 ```
 
+## Code Organization
+
+### Section Separator Comments
+
+Use visual separators for major code sections in long files:
+
+```typescript
+// ---------------------------------------------------------------------------
+// Type Definitions
+// ---------------------------------------------------------------------------
+
+type TMyType = { /* ... */ };
+
+// ---------------------------------------------------------------------------
+// Constants
+// ---------------------------------------------------------------------------
+
+const DEFAULT_OPTIONS = { /* ... */ };
+
+// ---------------------------------------------------------------------------
+// Main Implementation
+// ---------------------------------------------------------------------------
+
+export class MyClass {
+  // ...
+}
+```
+
+**Guidelines:**
+- Use for files > 200 lines with distinct sections
+- Use 75-character wide separator lines
+- Descriptive section names (2-4 words)
+
+### Import Organization Order
+
+Organize imports in this order:
+
+```typescript
+// 1. Node built-ins (with 'node:' prefix)
+import fs from 'node:fs';
+import path from 'node:path';
+
+// 2. Third-party packages (alphabetical)
+import { z } from '@hono/zod-openapi';
+import dayjs from 'dayjs';
+
+// 3. Internal absolute imports (by domain/package)
+import { getError } from '@venizia/ignis-helpers';
+import { BaseEntity } from '@/base/models';
+import { UserService } from '@/services';
+
+// 4. Relative imports (same feature) - LAST
+import { AbstractRepository } from './base';
+import { QueryBuilder } from '../query';
+```
+
+**Rules:**
+- Blank line between each group
+- Alphabetical within each group
+- `node:` prefix for Node.js built-ins
+- Relative imports only for same feature/module
+
+## Performance Logging Pattern
+
+Use `performance.now()` for timing critical operations:
+
+```typescript
+const t = performance.now();
+
+// ... operation to measure ...
+
+this.logger.info('[methodName] DONE | Took: %s (ms)', performance.now() - t);
+```
+
+**With the helper utility:**
+
+```typescript
+import { executeWithPerformanceMeasure } from '@venizia/ignis';
+
+await executeWithPerformanceMeasure({
+  logger: this.logger,
+  scope: 'DataSync',
+  description: 'Sync user records',
+  task: async () => {
+    await syncAllUsers();
+  },
+});
+// Logs: [DataSync] Sync user records | Took: 1234.56 (ms)
+```
+
+## Advanced Patterns
+
+### Mixin Pattern
+
+Create reusable class extensions without deep inheritance:
+
+```typescript
+import { TMixinTarget } from '@venizia/ignis';
+
+export const LoggableMixin = <BaseClass extends TMixinTarget<Base>>(
+  baseClass: BaseClass,
+) => {
+  return class extends baseClass {
+    protected logger = LoggerFactory.getLogger(this.constructor.name);
+
+    log(message: string): void {
+      this.logger.info(message);
+    }
+  };
+};
+
+// Usage
+class MyService extends LoggableMixin(BaseService) {
+  doWork(): void {
+    this.log('Work started');  // Method from mixin
+  }
+}
+```
+
+### Factory Pattern with Dynamic Class
+
+Generate classes dynamically with configuration:
+
+```typescript
+class ControllerFactory {
+  static defineCrudController<Schema extends TTableSchemaWithId>(
+    opts: ICrudControllerOptions<Schema>,
+  ) {
+    return class extends BaseController {
+      constructor(repository: AbstractRepository<Schema>) {
+        super({ scope: opts.controller.name });
+        this.repository = repository;
+        this.setupRoutes();
+      }
+
+      private setupRoutes(): void {
+        // Dynamically bind CRUD routes
+      }
+    };
+  }
+}
+
+// Usage
+const UserCrudController = ControllerFactory.defineCrudController({
+  controller: { name: 'UserController', basePath: '/users' },
+  repository: { name: UserRepository.name },
+  entity: () => User,
+});
+
+@controller({ path: '/users' })
+export class UserController extends UserCrudController {
+  // Additional custom routes
+}
+```
+
+### Value Resolver Pattern
+
+Support multiple input types that resolve to a single value:
+
+```typescript
+export type TValueOrResolver<T> = T | TResolver<T> | TConstructor<T>;
+
+export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
+  if (typeof valueOrResolver !== 'function') {
+    return valueOrResolver;  // Direct value
+  }
+  if (isClassConstructor(valueOrResolver)) {
+    return valueOrResolver as T;  // Class constructor (return as-is)
+  }
+  return (valueOrResolver as TResolver<T>)();  // Function resolver
+};
+
+// Usage
+interface IOptions {
+  entity: TValueOrResolver<typeof User>;
+}
+
+// All valid:
+const opts1: IOptions = { entity: User };           // Direct class
+const opts2: IOptions = { entity: () => User };     // Resolver function
+```
+
 ## Summary Table
 
 | Aspect | Standard |
@@ -791,6 +1175,7 @@ export class UserController extends BaseController {
 | Type alias prefix | `T` (e.g., `TUserRequest`) |
 | Class naming | PascalCase with suffix (e.g., `UserController`) |
 | File naming | kebab-case (e.g., `user.controller.ts`) |
+| Private fields | Underscore prefix (`_dataSource`) |
 | Binding keys | `@app/[component]/[feature]` |
 | Constants | Static readonly class (not enums) |
 | Barrel exports | `index.ts` at every folder level |
@@ -802,3 +1187,7 @@ export class UserController extends BaseController {
 | Arguments | Options object (`opts`) |
 | Exports | Named exports only |
 | Return types | Explicitly defined |
+| Control flow | Always use braces (`{}`) |
+| Switch statements | Braces + default case required |
+| Imports | Node → Third-party → Internal → Relative |
+| Function naming | `generate*`, `build*`, `to*`, `is*`, `extract*` |

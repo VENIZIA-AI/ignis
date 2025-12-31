@@ -16,7 +16,7 @@ This update adds strict validation to the `@repository` decorator and fixes seve
 - **DataSource Auto-Discovery**: Schema is automatically built from `@repository` bindings.
 - **Filter Security**: Fixed empty IN array bypass, invalid column handling, BETWEEN validation.
 - **PostgreSQL Compatibility**: REGEXP now uses PostgreSQL POSIX operators.
-- **UUID Generation**: Now uses native PostgreSQL `uuid` type with `gen_random_uuid()`.
+- **String ID Generation**: Uses `text` column with customizable ID generator (default: `crypto.randomUUID()`).
 
 ## Breaking Changes
 
@@ -114,17 +114,23 @@ export class PostgresDataSource extends BaseDataSource<...> {
 }
 ```
 
-### UUID Type Improvement
+### String ID with Custom Generator
 
 **File:** `packages/core/src/base/models/enrichers/id.enricher.ts`
 
-**Problem:** JS-generated UUIDs were stored as text, which is less efficient.
+**Problem:** Need flexible ID generation with maximum database compatibility.
 
-**Solution:** Changed to native PostgreSQL `uuid` type with `gen_random_uuid()`.
+**Solution:** Uses `text` column with customizable ID generator (default: `crypto.randomUUID()`).
 
 ```typescript
-// After: uuid('id').defaultRandom().primaryKey()
+// Default: text('id').primaryKey().$defaultFn(() => crypto.randomUUID())
+// Custom: text('id').primaryKey().$defaultFn(() => nanoid())
 ```
+
+**Benefits:**
+- Maximum database compatibility with `text` column type
+- Customizable ID generation (UUID, nanoid, cuid, etc.)
+- Application-level ID generation via `$defaultFn()`
 
 ### Case-Insensitive REGEXP (IREGEXP)
 
@@ -188,7 +194,7 @@ await repo.find({ filter: { where: { age: { BETWEEN: [10] } } } });
 |------|---------|
 | `src/base/models/base.ts` | Static schema/relations support, IEntity interface |
 | `src/base/models/common/types.ts` | IEntity interface definition |
-| `src/base/models/enrichers/id.enricher.ts` | Native PostgreSQL UUID type |
+| `src/base/models/enrichers/id.enricher.ts` | Text column with customizable ID generator |
 | `src/base/repositories/core/base.ts` | Constructor signature change, relations auto-resolution |
 | `src/base/repositories/core/readable.ts` | Constructor change, getQueryInterface validation |
 | `src/base/repositories/core/persistable.ts` | Constructor change, log option, TypeScript overloads |

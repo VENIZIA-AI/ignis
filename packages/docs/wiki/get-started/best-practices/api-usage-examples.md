@@ -14,19 +14,19 @@ import { z } from '@hono/zod-openapi';
 import { Authentication, HTTP, jsonContent, jsonResponse } from '@venizia/ignis';
 
 // Define route configs as const for type inference
-export const ROUTE_CONFIGS = {
-  // ... (other routes)
-  ['/4']: {
+export const RouteConfigs = {
+  // Use UPPER_CASE descriptive names for each route
+  GET_TEST: {
     method: HTTP.Methods.GET,
-    path: '/4',
+    path: '/test',
     responses: jsonResponse({
       description: 'Test decorator GET endpoint',
       schema: z.object({ message: z.string(), method: z.string() }),
     }),
   },
-  ['/5']: {
+  CREATE_ITEM: {
     method: HTTP.Methods.POST,
-    path: '/5',
+    path: '/items',
     authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
     request: {
       body: jsonContent({
@@ -54,20 +54,20 @@ import {
   TRouteContext,
   HTTP,
 } from '@venizia/ignis';
-import { ROUTE_CONFIGS } from './definitions';
+import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {
   // ...
 
-  @get({ configs: ROUTE_CONFIGS['/4'] })
-  getWithDecorator(context: TRouteContext<(typeof ROUTE_CONFIGS)['/4']>) {
+  @get({ configs: RouteConfigs.GET_TEST })
+  getWithDecorator(context: TRouteContext<typeof RouteConfigs.GET_TEST>) {
     // context is fully typed!
     return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  @post({ configs: ROUTE_CONFIGS['/5'] })
-  createWithDecorator(context: TRouteContext<(typeof ROUTE_CONFIGS)['/5']>) {
+  @post({ configs: RouteConfigs.CREATE_ITEM })
+  createWithDecorator(context: TRouteContext<typeof RouteConfigs.CREATE_ITEM>) {
     // context.req.valid('json') is automatically typed as { name: string, age: number }
     const body = context.req.valid('json');
 
@@ -91,7 +91,7 @@ You can also define routes manually within the controller's `binding()` method u
 **`src/controllers/test/controller.ts`**
 ```typescript
 import { BaseController, controller, HTTP, ValueOrPromise } from '@venizia/ignis';
-import { ROUTE_CONFIGS } from './definitions';
+import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {
@@ -99,7 +99,7 @@ export class TestController extends BaseController {
   override binding(): ValueOrPromise<void> {
     // Using 'defineRoute'
     this.defineRoute({
-      configs: ROUTE_CONFIGS['/1'],
+      configs: RouteConfigs.GET_HELLO,
       handler: context => {
         return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -107,7 +107,7 @@ export class TestController extends BaseController {
 
     // Using 'bindRoute' for a fluent API
     this.bindRoute({
-      configs: ROUTE_CONFIGS['/3'],
+      configs: RouteConfigs.GET_GREETING,
     }).to({
       handler: context => {
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
@@ -264,3 +264,328 @@ export class PageController extends BaseController {
   }
 }
 ```
+
+## Custom Middleware
+
+Create reusable middleware using Hono's `createMiddleware` helper.
+
+### Basic Middleware Pattern
+
+```typescript
+import { createMiddleware } from 'hono/factory';
+import type { MiddlewareHandler } from 'hono';
+
+// Simple middleware with options
+export const rateLimiter = (opts: { maxRequests: number }): MiddlewareHandler => {
+  const { maxRequests } = opts;
+  const requests = new Map<string, number>();
+
+  return createMiddleware(async (c, next) => {
+    const ip = c.req.header('x-forwarded-for') ?? 'unknown';
+    const count = requests.get(ip) ?? 0;
+
+    if (count >= maxRequests) {
+      return c.json({ error: 'Too many requests' }, 429);
+    }
+
+    requests.set(ip, count + 1);
+    await next();
+  });
+};
+
+// Usage in application
+server.use('/api/*', rateLimiter({ maxRequests: 100 }));
+```
+
+### Middleware with Logging
+
+```typescript
+import { BaseHelper } from '@venizia/ignis';
+import { createMiddleware } from 'hono/factory';
+
+export const requestLogger = (): MiddlewareHandler => {
+  const helper = new BaseHelper({ scope: 'RequestLogger' });
+
+  return createMiddleware(async (c, next) => {
+    const start = performance.now();
+    const method = c.req.method;
+    const path = c.req.path;
+
+    helper.logger.info('[%s] %s - Started', method, path);
+
+    await next();
+
+    const duration = performance.now() - start;
+    helper.logger.info('[%s] %s - Completed in %dms', method, path, duration.toFixed(2));
+  });
+};
+```
+
+### Middleware in Controllers
+
+Apply middleware to specific routes in your controller:
+
+```typescript
+@controller({ path: '/admin' })
+export class AdminController extends BaseController {
+  constructor() {
+    super({ scope: AdminController.name, path: '/admin' });
+  }
+
+  override binding(): void {
+    // Apply middleware to all routes in this controller
+    this.getRouter().use('*', adminOnlyMiddleware());
+
+    this.defineRoute({
+      configs: { method: 'get', path: '/dashboard', /* ... */ },
+      handler: (c) => c.json({ /* ... */ }),
+    });
+  }
+}
+```
+
+## Service Layer Patterns
+
+Services contain business logic and orchestrate operations across multiple repositories.
+
+### Basic Service
+
+```typescript
+import { BaseService, inject, BindingKeys, BindingNamespaces } from '@venizia/ignis';
+
+export class UserService extends BaseService {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    private userRepository: UserRepository,
+
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: OrderRepository.name,
+      }),
+    })
+    private orderRepository: OrderRepository,
+  ) {
+    super({ scope: UserService.name });
+  }
+
+  async getUserWithOrders(userId: string) {
+    const user = await this.userRepository.findById({ id: userId });
+    if (!user.data) {
+      return null;
+    }
+
+    const orders = await this.orderRepository.find({
+      filter: { where: { userId } },
+    });
+
+    return {
+      ...user.data,
+      orders: orders.data,
+    };
+  }
+
+  async deactivateUser(userId: string) {
+    // Business logic: cancel pending orders before deactivating
+    await this.orderRepository.updateBy({
+      where: { userId, status: 'PENDING' },
+      data: { status: 'CANCELLED' },
+    });
+
+    return this.userRepository.updateById({
+      id: userId,
+      data: { status: 'INACTIVE' },
+    });
+  }
+}
+```
+
+### Using Services in Controllers
+
+```typescript
+@controller({ path: '/users' })
+export class UserController extends BaseController {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: UserService.name,
+      }),
+    })
+    private userService: UserService,
+  ) {
+    super({ scope: UserController.name, path: '/users' });
+  }
+
+  @get({ configs: RouteConfigs.GET_USER_WITH_ORDERS })
+  async getUserWithOrders(c: TRouteContext<typeof RouteConfigs.GET_USER_WITH_ORDERS>) {
+    const { id } = c.req.valid('param');
+    const result = await this.userService.getUserWithOrders(id);
+
+    if (!result) {
+      throw getError({ statusCode: 404, message: 'User not found' });
+    }
+
+    return c.json(result, HTTP.ResultCodes.RS_2.Ok);
+  }
+}
+```
+
+## Batch Operations
+
+Use `updateBy` and `deleteBy` for bulk operations with filter conditions.
+
+### Bulk Update
+
+```typescript
+// Update all inactive users to archived
+const result = await userRepository.updateBy({
+  where: { status: 'INACTIVE', lastLoginAt: { lt: new Date('2024-01-01') } },
+  data: { status: 'ARCHIVED' },
+});
+// result.count = number of affected rows
+
+// Update ALL records (requires force flag)
+await userRepository.updateBy({
+  where: {},  // Empty = all records
+  data: { notificationSent: true },
+  options: { force: true },  // Required for safety
+});
+```
+
+### Bulk Delete
+
+```typescript
+// Delete expired sessions
+const result = await sessionRepository.deleteBy({
+  where: { expiresAt: { lt: new Date() } },
+});
+
+// Delete with return values
+const deleted = await sessionRepository.deleteBy({
+  where: { userId: 'user-123' },
+  options: { shouldReturn: true },  // Returns deleted records
+});
+// deleted.data = array of deleted records
+```
+
+### Batch Create
+
+```typescript
+// Create multiple records at once
+const result = await userRepository.createAll({
+  data: [
+    { name: 'Alice', email: 'alice@example.com' },
+    { name: 'Bob', email: 'bob@example.com' },
+    { name: 'Charlie', email: 'charlie@example.com' },
+  ],
+});
+// result.data = array of created records with IDs
+```
+
+## Error Handling
+
+Use `getError()` to throw structured errors that are automatically formatted by the framework.
+
+### Throwing Errors
+
+```typescript
+import { getError, HTTP } from '@venizia/ignis';
+
+// Basic error
+throw getError({ message: 'Something went wrong' });
+// Returns: { statusCode: 400, message: 'Something went wrong' }
+
+// With status code
+throw getError({
+  statusCode: HTTP.ResultCodes.RS_4.NotFound,
+  message: 'User not found',
+});
+
+// With message code for i18n
+throw getError({
+  statusCode: 404,
+  message: 'User not found',
+  messageCode: 'USER_NOT_FOUND',
+});
+```
+
+### Error Handling in Route Handlers
+
+```typescript
+@get({ configs: RouteConfigs.GET_USER })
+async getUser(c: TRouteContext<typeof RouteConfigs.GET_USER>) {
+  const { id } = c.req.valid('param');
+
+  const user = await this.userRepository.findById({ id });
+
+  if (!user.data) {
+    throw getError({
+      statusCode: 404,
+      message: `User with ID '${id}' not found`,
+    });
+  }
+
+  return c.json(user.data, HTTP.ResultCodes.RS_2.Ok);
+}
+```
+
+### Error Response Format
+
+All errors are automatically formatted:
+
+```json
+{
+  "statusCode": 404,
+  "message": "User not found",
+  "messageCode": "USER_NOT_FOUND",
+  "requestId": "abc123"
+}
+```
+
+### Try-Catch for Complex Operations
+
+```typescript
+async processOrder(c: Context) {
+  const data = c.req.valid('json');
+
+  try {
+    const tx = await this.orderRepository.beginTransaction({
+      isolationLevel: 'READ COMMITTED',
+    });
+
+    try {
+      const order = await this.orderRepository.create({
+        data: { ...data, status: 'PENDING' },
+        options: { transaction: tx },
+      });
+
+      await this.inventoryService.decrementStock({
+        items: data.items,
+        transaction: tx,
+      });
+
+      await tx.commit();
+      return c.json(order.data, HTTP.ResultCodes.RS_2.Created);
+    } catch (error) {
+      await tx.rollback();
+      throw error;
+    }
+  } catch (error) {
+    this.logger.error('[processOrder] Failed: %s', error);
+
+    if (error instanceof ApplicationError) {
+      throw error;  // Re-throw application errors
+    }
+
+    throw getError({
+      statusCode: 500,
+      message: 'Failed to process order',
+    });
+  }
+}

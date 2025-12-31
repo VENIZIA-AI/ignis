@@ -121,7 +121,85 @@ const [user] = await connector
 
 > **Reference:** See [Hidden Properties](../../references/base/models.md#hidden-properties) for complete documentation.
 
-## 5. Secure Dependencies
+## 5. File Upload Security
+
+When handling file uploads, prevent **path traversal attacks** and ensure safe file handling.
+
+### Path Traversal Prevention
+
+**Problem:** Malicious filenames like `../../../etc/passwd` can write files outside intended directories.
+
+**Solution:** Use `sanitizeFilename()` to strip dangerous patterns:
+
+```typescript
+import { sanitizeFilename } from '@venizia/ignis';
+
+// ❌ DANGEROUS - User-controlled filename
+const unsafeFilename = req.body.filename; // Could be "../../../etc/passwd"
+fs.writeFileSync(`./uploads/${unsafeFilename}`, data);
+
+// ✅ SAFE - Sanitized filename
+const safeFilename = sanitizeFilename(req.body.filename);
+fs.writeFileSync(`./uploads/${safeFilename}`, data);
+```
+
+**What `sanitizeFilename()` does:**
+- Extracts basename (removes directory paths)
+- Removes dangerous characters (`../`, special chars)
+- Replaces consecutive dots with single dot
+- Returns `'download'` for empty/suspicious patterns
+
+### Safe File Download Headers
+
+Use `createContentDispositionHeader()` for secure download responses:
+
+```typescript
+import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis';
+
+async downloadFile(c: Context) {
+  const filename = sanitizeFilename(c.req.param('filename'));
+  const fileBuffer = await fs.readFile(`./uploads/${filename}`);
+
+  return new Response(fileBuffer, {
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Disposition': createContentDispositionHeader({
+        filename: filename,
+        type: 'attachment',
+      }),
+    },
+  });
+}
+```
+
+### Built-in Multipart Parsing
+
+Use `parseMultipartBody()` for safe file uploads with automatic sanitization:
+
+```typescript
+import { parseMultipartBody } from '@venizia/ignis';
+
+async uploadFile(c: Context) {
+  const files = await parseMultipartBody({
+    context: c,
+    storage: 'disk',        // or 'memory' for buffer
+    uploadDir: './uploads', // Target directory
+  });
+
+  // Files are saved with sanitized names: timestamp-random-sanitized_name.ext
+  return c.json({ uploaded: files.map(f => f.filename) });
+}
+```
+
+**Security features:**
+- Automatic filename sanitization
+- Creates upload directory if missing
+- Generates unique filenames (prevents overwrites)
+- Returns file metadata (size, mimetype) for validation
+
+> **Reference:** See [Request Utility](../../references/utilities/request.md) for full API documentation.
+
+## 6. Secure Dependencies
 
 Regularly audit and update dependencies:
 

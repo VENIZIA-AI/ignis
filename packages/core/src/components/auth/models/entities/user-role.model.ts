@@ -5,18 +5,16 @@ import {
   integer,
   PgIntegerBuilderInitial,
   PgTextBuilderInitial,
-  PgUUIDBuilderInitial,
   text,
-  uuid,
 } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
 export type TUserRoleOptions = {
-  idType?: 'string' | 'number' | 'uuid';
+  idType?: 'string' | 'number';
 };
 
 export type TUserRoleCommonColumns = ReturnType<
-  typeof generatePrincipalColumnDefs<'principal', 'string' | 'number' | 'uuid'>
+  typeof generatePrincipalColumnDefs<'principal', 'string' | 'number'>
 >;
 
 type TUserRoleColumnDef<Opts extends TUserRoleOptions | undefined = undefined> = Opts extends {
@@ -25,13 +23,9 @@ type TUserRoleColumnDef<Opts extends TUserRoleOptions | undefined = undefined> =
   ? TUserRoleCommonColumns & {
       userId: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
     }
-  : Opts extends { idType: 'uuid' }
-    ? TUserRoleCommonColumns & {
-        userId: NotNull<PgUUIDBuilderInitial<string>>;
-      }
-    : TUserRoleCommonColumns & {
-        userId: NotNull<PgIntegerBuilderInitial<string>>;
-      };
+  : TUserRoleCommonColumns & {
+      userId: NotNull<PgIntegerBuilderInitial<string>>;
+    };
 
 export const extraUserRoleColumns = <Opts extends TUserRoleOptions | undefined>(
   opts?: Opts,
@@ -53,12 +47,6 @@ export const extraUserRoleColumns = <Opts extends TUserRoleOptions | undefined>(
       return {
         ...principalColumns,
         userId: text('user_id').notNull(),
-      } as TUserRoleColumnDef<Opts>;
-    }
-    case 'uuid': {
-      return {
-        ...principalColumns,
-        userId: uuid('user_id').notNull(),
       } as TUserRoleColumnDef<Opts>;
     }
     default: {

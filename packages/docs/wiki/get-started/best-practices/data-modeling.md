@@ -35,7 +35,8 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 
 | Enricher | Description | Columns Added |
 |----------|-------------|---------------|
-| `generateIdColumnDefs` | Adds a Primary Key | `id` (string/UUID or number/Serial) |
+| `generateIdColumnDefs` | Adds a Primary Key | `id` (text, number, or big-number) |
+| `generatePrincipalColumnDefs` | Adds polymorphic relation fields | `{discriminator}Id`, `{discriminator}Type` |
 | `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating) |
 | `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` |
 | `generateDataTypeColumnDefs` | Adds generic value fields | `nValue` (number), `tValue` (text), `jValue` (json), etc. |
@@ -54,7 +55,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 export const configurationTable = pgTable(
   'Configuration',
   {
-    // 1. Auto-generate UUID Primary Key
+    // 1. Auto-generate text Primary Key with UUID default
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
 
     // 2. Auto-generate createdAt / modifiedAt
@@ -78,39 +79,207 @@ export const configurationTable = pgTable(
 );
 ```
 
+### ID Type Options
+
+The `generateIdColumnDefs` enricher supports multiple ID strategies:
+
+| Data Type | PostgreSQL Type | JavaScript Type | Use Case |
+|-----------|-----------------|-----------------|----------|
+| `string` | `TEXT` | `string` | UUIDs, custom IDs, distributed systems |
+| `number` | `INTEGER GENERATED ALWAYS AS IDENTITY` | `number` | Auto-increment, simple sequences |
+| `big-number` (mode: `number`) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `number` | Large sequences (up to 2^53) |
+| `big-number` (mode: `bigint`) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `bigint` | Very large sequences (up to 2^64) |
+
+**Examples:**
+
+```typescript
+// String ID with default UUID generator
+...generateIdColumnDefs({ id: { dataType: 'string' } })
+// Result: id TEXT PRIMARY KEY DEFAULT crypto.randomUUID()
+
+// String ID with custom generator (e.g., nanoid, ulid)
+import { nanoid } from 'nanoid';
+...generateIdColumnDefs({ id: { dataType: 'string', generator: () => nanoid() } })
+
+// Auto-increment integer
+...generateIdColumnDefs({ id: { dataType: 'number' } })
+// Result: id INTEGER GENERATED ALWAYS AS IDENTITY PRIMARY KEY
+
+// Big integer for large datasets (JavaScript number - up to 2^53)
+...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'number' } })
+
+// Big integer with native BigInt (up to 2^64)
+...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'bigint' } })
+
+// With sequence options
+...generateIdColumnDefs({
+  id: {
+    dataType: 'number',
+    sequenceOptions: { startWith: 1000, increment: 1 },
+  },
+})
+```
+
+### Principal Enricher (Polymorphic Relations)
+
+Use `generatePrincipalColumnDefs` when a record can belong to different entity types (polymorphic relationship).
+
+**Use Case:** A `Comment` can belong to either a `Post` or a `Product`.
+
+```typescript
+import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+export const commentTable = pgTable('Comment', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+
+  // Polymorphic relation: commentable can be Post or Product
+  ...generatePrincipalColumnDefs({
+    discriminator: 'commentable',      // Field prefix
+    polymorphicIdType: 'string',       // ID type of related entities
+    defaultPolymorphic: 'Post',        // Default type
+  }),
+
+  content: text('content').notNull(),
+});
+
+// Generated columns:
+// - commentableId: TEXT NOT NULL
+// - commentableType: TEXT DEFAULT 'Post'
+```
+
+**Querying polymorphic relations:**
+```typescript
+// Find all comments on a specific post
+const comments = await commentRepo.find({
+  filter: {
+    where: {
+      commentableType: 'Post',
+      commentableId: postId,
+    },
+  },
+});
+
+// Find all comments on a product
+const productComments = await commentRepo.find({
+  filter: {
+    where: {
+      commentableType: 'Product',
+      commentableId: productId,
+    },
+  },
+});
+```
+
 ## 3. Defining Relations
 
 Relations are defined using the `TRelationConfig` structure within the static `relations` method of your model.
 
-**Example (`src/models/entities/configuration.model.ts`):**
+### Relation Types
 
+| Type | Constant | Description | Example |
+|------|----------|-------------|---------|
+| One-to-One | `RelationTypes.ONE` | Single related record | User → Profile |
+| One-to-Many | `RelationTypes.MANY` | Multiple related records | User → Posts |
+
+### Basic Relations
+
+**One-to-One (belongsTo):**
 ```typescript
-import {
-  BaseEntity,
-  model,
-  RelationTypes,
-  TRelationConfig,
-} from '@venizia/ignis';
+import { BaseEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
 import { User } from './user.model';
 
 @model({ type: 'entity' })
 export class Configuration extends BaseEntity<typeof Configuration.schema> {
-  // ... schema definition ...
+  static override schema = pgTable('Configuration', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    createdBy: text('created_by'),
+    // ...
+  });
 
   // Define relations
   static override relations = (): TRelationConfig[] => [
     {
-      name: 'creator',
-      type: RelationTypes.ONE,
-      schema: User.schema,
+      name: 'creator',               // Relation name used in include
+      type: RelationTypes.ONE,       // One Configuration → One User
+      schema: User.schema,           // Related entity's schema
       metadata: {
-        fields: [Configuration.schema.createdBy],
-        references: [User.schema.id],
+        fields: [Configuration.schema.createdBy],  // Foreign key
+        references: [User.schema.id],              // Primary key
       },
     },
   ];
 }
 ```
+
+**One-to-Many (hasMany):**
+```typescript
+@model({ type: 'entity' })
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    name: text('name').notNull(),
+  });
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'posts',                 // User.posts
+      type: RelationTypes.MANY,      // One User → Many Posts
+      schema: Post.schema,
+      metadata: {
+        fields: [User.schema.id],
+        references: [Post.schema.authorId],
+      },
+    },
+    {
+      name: 'comments',              // User.comments
+      type: RelationTypes.MANY,
+      schema: Comment.schema,
+      metadata: {
+        fields: [User.schema.id],
+        references: [Comment.schema.userId],
+      },
+    },
+  ];
+}
+```
+
+### Using Relations in Queries
+
+```typescript
+// Eager load single relation
+const configs = await configRepo.find({
+  filter: {
+    include: [{ relation: 'creator' }],
+  },
+});
+// Result: [{ id, code, ..., creator: { id, name, email } }]
+
+// Eager load multiple relations
+const users = await userRepo.find({
+  filter: {
+    include: [
+      { relation: 'posts' },
+      { relation: 'comments' },
+    ],
+  },
+});
+
+// Nested relations (up to 2 levels recommended)
+const users = await userRepo.find({
+  filter: {
+    include: [{
+      relation: 'posts',
+      scope: {
+        include: [{ relation: 'comments' }],
+      },
+    }],
+  },
+});
+```
+
+> [!TIP]
+> Avoid deeply nested includes (more than 2 levels). Each level adds query complexity. For complex data fetching, consider separate queries.
 
 ## 4. Repositories and Auto-Discovery
 

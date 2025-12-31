@@ -44,6 +44,63 @@ Prevent blocking the event loop with Worker Threads:
 | **Paginate results** | `limit: 20, offset: 0` | Prevent memory overflow |
 | **Eager load relations** | `include: [{ relation: 'creator' }]` | Solve N+1 problem |
 
+### Query Operators Reference
+
+Ignis supports extensive query operators for filtering:
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `eq` | Equal (handles null) | `{ status: { eq: 'ACTIVE' } }` |
+| `ne`, `neq` | Not equal | `{ status: { ne: 'DELETED' } }` |
+| `gt`, `gte` | Greater than (or equal) | `{ age: { gte: 18 } }` |
+| `lt`, `lte` | Less than (or equal) | `{ price: { lt: 100 } }` |
+| `like` | SQL LIKE (case-sensitive) | `{ name: { like: '%john%' } }` |
+| `ilike` | Case-insensitive LIKE | `{ email: { ilike: '%@gmail%' } }` |
+| `nlike`, `nilike` | NOT LIKE variants | `{ name: { nlike: '%test%' } }` |
+| `regexp` | PostgreSQL regex (`~`) | `{ code: { regexp: '^[A-Z]+$' } }` |
+| `iregexp` | Case-insensitive regex (`~*`) | `{ name: { iregexp: '^john' } }` |
+| `in`, `inq` | Value in array | `{ status: { in: ['A', 'B'] } }` |
+| `nin` | Value NOT in array | `{ role: { nin: ['guest'] } }` |
+| `between` | Range (inclusive) | `{ age: { between: [18, 65] } }` |
+| `is`, `isn` | IS NULL / IS NOT NULL | `{ deletedAt: { is: null } }` |
+| `and`, `or` | Logical operators | `{ or: [{ a: 1 }, { b: 2 }] }` |
+
+**Complex Filter Example:**
+
+```typescript
+await repo.find({
+  filter: {
+    where: {
+      and: [
+        { status: { in: ['ACTIVE', 'PENDING'] } },
+        { createdAt: { gte: new Date('2024-01-01') } },
+        { or: [
+          { role: 'admin' },
+          { permissions: { ilike: '%manage%' } }
+        ]}
+      ]
+    },
+    limit: 50,
+  },
+});
+```
+
+### JSON Path Filtering
+
+Filter by nested JSON/JSONB fields using PostgreSQL's `#>` operator:
+
+```typescript
+// Order by nested JSON path
+await repo.find({
+  filter: {
+    order: ['metadata.nested[0].field ASC'],
+  },
+});
+
+// The framework uses PostgreSQL #> operator for path extraction
+// metadata #> '{nested,0,field}'
+```
+
 > [!TIP]
 > **Avoid Deep Nesting:** While Ignis supports deeply nested `include` filters, each level adds significant overhead to query construction and result mapping. We strongly recommend a **maximum of 2 levels** (e.g., `User -> Orders -> Items`). For more complex data fetching, consider separate queries.
 
@@ -95,3 +152,45 @@ if (!cached) {
 ```bash
 pm2 start dist/index.js -i max  # Use all CPU cores
 ```
+
+## 6. Transaction Support
+
+Use transactions to ensure atomicity across multiple database operations:
+
+```typescript
+// Start a transaction
+const tx = await userRepository.beginTransaction({
+  isolationLevel: 'READ COMMITTED', // or 'REPEATABLE READ' | 'SERIALIZABLE'
+});
+
+try {
+  // Pass transaction to all operations
+  const user = await userRepository.create({
+    data: { name: 'John', email: 'john@example.com' },
+    options: { transaction: tx },
+  });
+
+  await orderRepository.create({
+    data: { userId: user.data.id, total: 100 },
+    options: { transaction: tx },
+  });
+
+  // Commit if all operations succeed
+  await tx.commit();
+} catch (error) {
+  // Rollback on any failure
+  await tx.rollback();
+  throw error;
+}
+```
+
+**Transaction Isolation Levels:**
+
+| Level | Description | Use Case |
+|-------|-------------|----------|
+| `READ COMMITTED` | See committed data only (default) | Most CRUD operations |
+| `REPEATABLE READ` | Consistent reads within transaction | Reports, aggregations |
+| `SERIALIZABLE` | Full isolation, may retry | Financial transactions |
+
+> [!WARNING]
+> Higher isolation levels reduce concurrency. Use `READ COMMITTED` unless you have specific consistency requirements.

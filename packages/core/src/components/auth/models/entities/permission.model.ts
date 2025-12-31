@@ -4,9 +4,7 @@ import {
   integer,
   PgIntegerBuilderInitial,
   PgTextBuilderInitial,
-  PgUUIDBuilderInitial,
   text,
-  uuid,
 } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------
@@ -28,7 +26,7 @@ type TPermissionColumnDef<Opts extends TPermissionOptions | undefined = undefine
 }
   ? IdType extends 'string'
     ? TPermissionCommonColumns & {
-        parentId: PgUUIDBuilderInitial<string>;
+        parentId: PgTextBuilderInitial<string, [string, ...string[]]>;
       }
     : TPermissionCommonColumns & {
         parentId: PgIntegerBuilderInitial<string>;
@@ -62,7 +60,7 @@ export const extraPermissionColumns = <Opts extends TPermissionOptions | undefin
         pType: text('p_type').notNull(),
         action: text('action').notNull(),
         scope: text('scope').notNull(),
-        parentId: uuid('parent_id'),
+        parentId: text('parent_id'),
       } as TPermissionColumnDef<Opts>;
     }
     default: {

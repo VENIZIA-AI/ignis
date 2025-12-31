@@ -71,10 +71,10 @@ export class PersistableRepository<
       return { count: rs.rowCount ?? 0, data: null };
     }
 
-    // Return only visible columns (excludes hidden properties at SQL level)
-    const visibleColumns = this.getVisibleColumns();
-    const rs = visibleColumns
-      ? ((await query.returning(visibleColumns)) as unknown as Array<R>)
+    // Return only visible properties (excludes hidden properties at SQL level)
+    const visibleProps = this.getVisibleProperties();
+    const rs = visibleProps
+      ? ((await query.returning(visibleProps)) as unknown as Array<R>)
       : ((await query.returning()) as unknown as Array<R>);
     this.logger.debug('[_create] INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
@@ -167,10 +167,10 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    // Return only visible columns (excludes hidden properties at SQL level)
-    const visibleColumns = this.getVisibleColumns();
-    const rs = visibleColumns
-      ? ((await query.returning(visibleColumns)) as Array<R>)
+    // Return only visible properties (excludes hidden properties at SQL level)
+    const visibleProps = this.getVisibleProperties();
+    const rs = visibleProps
+      ? ((await query.returning(visibleProps)) as Array<R>)
       : ((await query.returning()) as Array<R>);
     this.logger.debug('[_update] UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
@@ -275,10 +275,10 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    // Return only visible columns (excludes hidden properties at SQL level)
-    const visibleColumns = this.getVisibleColumns();
-    const rs = visibleColumns
-      ? ((await query.returning(visibleColumns)) as unknown as Array<R>)
+    // Return only visible properties (excludes hidden properties at SQL level)
+    const visibleProps = this.getVisibleProperties();
+    const rs = visibleProps
+      ? ((await query.returning(visibleProps)) as unknown as Array<R>)
       : ((await query.returning()) as unknown as Array<R>);
     this.logger.debug('[_delete] DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
