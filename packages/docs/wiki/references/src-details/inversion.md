@@ -176,7 +176,6 @@ const key = BindingKeys.build({ namespace: 'services', key: 'UserService' });
 | `IPropertyMetadata` | Property injection metadata |
 | `IInjectMetadata` | Constructor injection metadata |
 
----
 
 ## Injection Metadata
 
@@ -200,7 +199,6 @@ interface IInjectMetadata {
 }
 ```
 
----
 
 ## Project Structure
 
@@ -226,7 +224,6 @@ packages/inversion/
 └── dist/                     # Built output
 ```
 
----
 
 ## Usage Examples
 
@@ -307,7 +304,6 @@ if (cache) {
 }
 ```
 
----
 
 ## Integration with Framework
 
@@ -327,7 +323,6 @@ import { Container, Binding } from '@venizia/ignis-inversion';
 import { Container, inject, service } from '@venizia/ignis';
 ```
 
----
 
 ## Building the Package
 

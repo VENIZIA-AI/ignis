@@ -40,7 +40,6 @@ await migrator.automigrate(); // Drops and recreates all tables
 | `autoupdate()` | Compares DB ↔ Model, applies ALTER statements | **No** |
 | `automigrate()` | Drops and recreates tables | **Yes** |
 
----
 
 ## Implementation Steps
 
@@ -409,7 +408,6 @@ export abstract class BaseDataSource<...> {
 }
 ```
 
----
 
 ## Files to Create
 
@@ -428,7 +426,6 @@ export abstract class BaseDataSource<...> {
 | `packages/core/src/base/datasources/base.ts` | Add `getMigrator()`, `autoupdate()`, `automigrate()` |
 | `packages/core/src/base/datasources/index.ts` | Export new classes |
 
----
 
 ## Drizzle to PostgreSQL Type Mapping
 
@@ -449,7 +446,6 @@ export abstract class BaseDataSource<...> {
 | `real()` | `real` | 32-bit float |
 | `doublePrecision()` | `double precision` | 64-bit float |
 
----
 
 ## Change Detection Matrix
 
@@ -466,7 +462,6 @@ export abstract class BaseDataSource<...> {
 | New index | Index not in DB | `CREATE INDEX` |
 | Removed index | Index not in model | `DROP INDEX` |
 
----
 
 ## Usage Examples
 
@@ -515,7 +510,6 @@ if (process.env.NODE_ENV === 'development') {
 }
 ```
 
----
 
 ## Safety Considerations
 
@@ -536,7 +530,6 @@ if (process.env.NODE_ENV === 'development') {
 | `ALTER TYPE` | May fail if incompatible | Checks compatibility first |
 | `automigrate()` | Drops all tables | Requires `force: true` |
 
----
 
 ## Future Enhancements
 
@@ -546,7 +539,6 @@ if (process.env.NODE_ENV === 'development') {
 4. **Multi-Schema Support** - Support for PostgreSQL schemas beyond `public`
 5. **MySQL/SQLite Support** - Extend beyond PostgreSQL
 
----
 
 ## Comparison with Alternatives
 

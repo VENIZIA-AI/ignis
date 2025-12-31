@@ -109,7 +109,6 @@ sequenceDiagram
     MCP-->>AI: JSON results
 ```
 
----
 
 ## Tools Reference
 
@@ -156,7 +155,6 @@ Retrieves high-level information about specific framework packages.
 - **Input:** `{ packageName?: string }`
 - **Returns:** Package description, version, and purpose.
 
----
 
 ### 2. Code & Project Tools
 
@@ -189,7 +187,6 @@ Checks the `package.json` of a specific package or the root project.
 - **Input:** `{ package?: string }`
 - **Returns:** List of dependencies and their versions.
 
----
 
 ## Resources
 
@@ -212,7 +209,6 @@ The server exposes documentation as MCP resources for direct access:
 }
 ```
 
----
 
 ## Search Configuration
 
@@ -243,7 +239,6 @@ pie
 
 **Why this matters:** When you search for "dependency injection", documents with that phrase in the title will rank higher than those with it only in the content.
 
----
 
 ## Project Structure
 
@@ -292,7 +287,6 @@ mcp-server/
 | `common/logger.ts` | Structured logging | `Logger` class |
 | `common/paths.ts` | Path resolution | `Paths` object |
 
----
 
 ## Performance Characteristics
 
@@ -330,7 +324,6 @@ graph LR
 - Memory usage is constant after first load
 - No disk I/O after initialization
 
----
 
 ## Error Handling
 
@@ -369,7 +362,6 @@ All tools return consistent error responses:
 DEBUG=1 ignis-docs-mcp
 ```
 
----
 
 ## Development Guide
 
@@ -526,7 +518,6 @@ export class MCPConfigs {
 | `title weight` | Less title importance | More title importance |
 | `snippetLength` | Shorter previews | Longer previews |
 
----
 
 ## Best Practices
 
@@ -574,7 +565,6 @@ export class MCPConfigs {
 3. getDocContent("references/api.md") → Fetch full content
 ```
 
----
 
 ## Debugging
 
@@ -608,7 +598,6 @@ DEBUG=docs:cache ignis-docs-mcp
 | Check search | Use searchDocs tool | "Found N matches in Xms" |
 | Inspect cache | Check memory usage | ~5-10MB after first load |
 
----
 
 ## Roadmap
 
@@ -628,7 +617,6 @@ Want to add features or fix bugs? See the main Ignis repository:
 - **Issues**: Report bugs or request features
 - **Pull Requests**: Submit improvements
 
----
 
 ## FAQ
 

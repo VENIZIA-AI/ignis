@@ -110,36 +110,8 @@ export default eslintConfigs;
 
 > **Deep Dive:** See [Code Style Standards](./best-practices/code-style-standards.md) for detailed configuration options.
 
-:::tip A Note on Setup for Express/Hono/Fastify Developers
-If you're coming from a minimal framework like Express, Hono, or Fastify, you might be thinking: "This is a lot of setup just to get started!"
-
-You're right—and it's intentional. Here's why:
-
-**In Express/Hono/Fastify, you might start with:**
-```javascript
-const app = require('express')();
-app.get('/', (req, res) => res.json({ hello: 'world' }));
-app.listen(3000);
-```
-
-That's 3 lines. Beautiful and fast.
-
-**The problem comes later:**
-- Where do you put database logic?
-- How do you organize routes when you have 50+ endpoints?
-- How do you share code between routes?
-- How do you validate requests?
-- How do you generate API docs?
-- How do you test business logic in isolation?
-
-`Ignis` answers these questions upfront with:
-- **Type Safety (`tsconfig.json`):** Catches errors before they reach production
-- **Consistent Formatting (`.prettierrc.mjs`):** No more debates about code style in PRs
-- **Code Quality (`eslint.config.mjs`):** Prevents common bugs and enforces best practices
-
-**The trade-off:** You write 50-100 lines of config once. In return, you get a scalable architecture that handles projects with 10, 100, or 1000+ endpoints without becoming spaghetti code.
-
-If you're building a quick prototype or tiny API (< 5 endpoints), stick with plain Hono. But if your API will grow or be maintained by a team, this setup pays for itself within a week.
+:::tip Coming from Express/Hono/Fastify?
+This setup might seem verbose compared to minimal frameworks. The trade-off: ~50 lines of config upfront gives you scalable architecture for 10-1000+ endpoints without spaghetti code. For quick prototypes (< 5 endpoints), use plain Hono instead.
 :::
 
 ## 4. Build Your First Application

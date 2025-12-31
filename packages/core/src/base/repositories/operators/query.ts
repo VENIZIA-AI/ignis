@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import { getError, TConstValue } from '@venizia/ignis-helpers';
 import {
   between,
   eq,
@@ -63,6 +63,11 @@ export class QueryOperators {
   static readonly BETWEEN = 'between';
   static readonly NOT_BETWEEN = 'notBetween';
 
+  // Array Column Operators (PostgreSQL specific)
+  static readonly CONTAINS = 'contains'; // @> array contains
+  static readonly CONTAINED_BY = 'containedBy'; // <@ array is contained by
+  static readonly OVERLAPS = 'overlaps'; // && array overlaps
+
   static readonly NOT = 'not';
   static readonly AND = 'and';
   static readonly OR = 'or';
@@ -118,6 +123,43 @@ export class QueryOperators {
       }
       return between(opts.column, opts.value[0], opts.value[1]);
     },
+    [this.NOT_BETWEEN]: (opts: IQueryHandlerOptions) => {
+      if (!Array.isArray(opts.value) || opts.value.length !== 2) {
+        throw new Error(
+          `[NOT_BETWEEN] Invalid value: expected array of 2 elements, got ${JSON.stringify(opts.value)}`,
+        );
+      }
+      // NOT BETWEEN is equivalent to: value < min OR value > max
+      return not(between(opts.column, opts.value[0], opts.value[1]));
+    },
+
+    // Array Column Operators (PostgreSQL specific)
+    // Note: For string arrays, we cast both sides to text[] for type compatibility
+    // This handles varchar[], text[], char[] columns uniformly
+    [this.CONTAINS]: (opts: IQueryHandlerOptions) => {
+      const value = Array.isArray(opts.value) ? opts.value : [opts.value];
+      if (value.length === 0) {
+        return sql`true`; // Everything contains empty set
+      }
+      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
+      return sql.raw(`${columnExpr} @> ${arrayLiteral}`);
+    },
+    [this.CONTAINED_BY]: (opts: IQueryHandlerOptions) => {
+      const value = Array.isArray(opts.value) ? opts.value : [opts.value];
+      if (value.length === 0) {
+        return sql`${opts.column} = '{}'`; // Only empty arrays are contained by empty
+      }
+      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
+      return sql.raw(`${columnExpr} <@ ${arrayLiteral}`);
+    },
+    [this.OVERLAPS]: (opts: IQueryHandlerOptions) => {
+      const value = Array.isArray(opts.value) ? opts.value : [opts.value];
+      if (value.length === 0) {
+        return sql`false`; // No overlap with empty array
+      }
+      const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
+      return sql.raw(`${columnExpr} && ${arrayLiteral}`);
+    },
 
     // Strings
     [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
@@ -153,6 +195,9 @@ export class QueryOperators {
     this.NOT_EXISTS,
     this.BETWEEN,
     this.NOT_BETWEEN,
+    this.CONTAINS,
+    this.CONTAINED_BY,
+    this.OVERLAPS,
     this.NOT,
     this.AND,
     this.OR,
@@ -160,9 +205,105 @@ export class QueryOperators {
 
   static readonly LOGICAL_GROUP_OPERATORS = new Set([this.AND, this.OR]);
 
+  static readonly NUMERIC_COMPARISON_OPERATORS = new Set([
+    this.GT,
+    this.GTE,
+    this.LT,
+    this.LTE,
+    this.BETWEEN,
+    this.NOT_BETWEEN,
+  ]);
+
+  /**
+   * Check if an operator object contains any numeric comparison operators with numeric values.
+   * Used to determine if numeric casting is needed for JSON path filtering.
+   *
+   * Validates both:
+   * - Key is a numeric operator (gt, gte, lt, lte, between)
+   * - Value is of correct type (number for gt/gte/lt/lte, array of 2 numbers for between)
+   *
+   * @throws Error if numeric operator has invalid value type
+   */
+  static hasNumericComparison(opts: { operators: Record<string, any> }): boolean {
+    const { operators } = opts;
+    let hasNumeric = false;
+
+    for (const [op, value] of Object.entries(operators)) {
+      if (!this.NUMERIC_COMPARISON_OPERATORS.has(op)) {
+        continue;
+      }
+
+      // For 'between' and 'notBetween' operators: value must be an array of exactly 2 numbers
+      if (op === this.BETWEEN || op === this.NOT_BETWEEN) {
+        if (!Array.isArray(value) || value.length !== 2) {
+          throw getError({
+            message: `[QueryOperators][hasNumericComparison] Invalid '${op}' value | Expected: [min, max] | Got: ${JSON.stringify(value)}`,
+          });
+        }
+        if (value.every(v => typeof v === 'number')) {
+          hasNumeric = true;
+        }
+        continue;
+      }
+
+      // For gt, gte, lt, lte: if value is number, it's numeric comparison
+      if (typeof value === 'number') {
+        hasNumeric = true;
+      }
+      // If value is string, it's text comparison (no error, just not numeric)
+    }
+
+    return hasNumeric;
+  }
+
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
   }
 }
+
+/**
+ * Build PostgreSQL array comparison expressions with proper type handling.
+ *
+ * For string arrays: Cast both column and value to text[] for type compatibility.
+ * This handles varchar[], text[], char[] columns uniformly since PostgreSQL's
+ * array operators (@>, <@, &&) require matching types.
+ *
+ * For numeric/boolean arrays: No casting needed as PostgreSQL infers correctly.
+ */
+const buildPgArrayComparison = (opts: {
+  column: any;
+  value: any[];
+}): { columnExpr: string; arrayLiteral: string } => {
+  const { column, value } = opts;
+  const first = value[0];
+  const valueType = typeof first;
+
+  // Get column name from Drizzle column object
+  const columnName = column.name;
+
+  // Numbers: No casting needed, PostgreSQL infers integer[]/numeric[]
+  if (valueType === 'number') {
+    return {
+      columnExpr: `"${columnName}"`,
+      arrayLiteral: `ARRAY[${value.join(', ')}]`,
+    };
+  }
+
+  // Booleans: No casting needed, PostgreSQL infers boolean[]
+  if (valueType === 'boolean') {
+    return {
+      columnExpr: `"${columnName}"`,
+      arrayLiteral: `ARRAY[${value.join(', ')}]`,
+    };
+  }
+
+  // Strings: Cast BOTH column and value to text[] for compatibility
+  // This works with varchar[], text[], char[] etc.
+  const escapedValues = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
+  return {
+    columnExpr: `"${columnName}"::text[]`,
+    arrayLiteral: `ARRAY[${escapedValues}]::text[]`,
+  };
+};
 
 export type TQueryOperator = TConstValue<typeof QueryOperators>;

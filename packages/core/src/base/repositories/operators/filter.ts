@@ -32,6 +32,10 @@ export class DrizzleFilterBuilder extends BaseHelper {
     ReturnType<typeof getTableColumns>
   >();
 
+  // JSON path component validation pattern
+  // Allows: identifiers with hyphens for kebab-case (e.g., user-id, meta_data) or array indices
+  private static readonly JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
+
   constructor() {
     super({ scope: DrizzleFilterBuilder.name });
   }
@@ -92,6 +96,15 @@ export class DrizzleFilterBuilder extends BaseHelper {
   }
 
   /**
+   * Check if a key represents a JSON path (contains '.' or '[').
+   * Examples: "jValue.priority", "metadata.nested[0].field"
+   */
+  private isJsonPath(opts: { key: string }): boolean {
+    const { key } = opts;
+    return key.includes('.') || key.includes('[');
+  }
+
+  /**
    * Check if value is a primitive (not an operator object).
    * Primitives: null, arrays, dates, strings, numbers, booleans
    */
@@ -103,9 +116,32 @@ export class DrizzleFilterBuilder extends BaseHelper {
   }
 
   /**
-   * Build SQL condition for primitive values (null, array, or scalar).
+   * Check if value is an operator object (all keys are valid operators).
+   * Distinguishes between: { gt: 10 } (operators) vs { role: 'admin' } (plain object).
    */
-  private buildPrimitiveCondition(opts: { column: any; value: any }): SQL {
+  private isOperatorObject(opts: { value: any }): boolean {
+    const { value } = opts;
+
+    // Not an object or is a primitive → not an operator object
+    if (this.isPrimitiveValue({ value })) {
+      return false;
+    }
+
+    // Empty object → treat as plain object for equality
+    const keys = Object.keys(value);
+    if (keys.length === 0) {
+      return false;
+    }
+
+    // All keys must be valid operators
+    return keys.every(key => QueryOperators.isValid(key));
+  }
+
+  /**
+   * Build SQL condition for value equality (primitives or plain objects).
+   * Handles: null, arrays, scalars, plain objects for JSON columns.
+   */
+  private buildValueCondition(opts: { column: any; value: any }): SQL {
     const { column, value } = opts;
 
     // Handle null → IS NULL
@@ -119,7 +155,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       return value.length === 0 ? sql`false` : inArray(column, value);
     }
 
-    // Handle scalar (string, number, boolean, Date) → equals
+    // Handle scalar (string, number, boolean, Date) or plain object → equals
     return eq(column, value);
   }
 
@@ -145,6 +181,92 @@ export class DrizzleFilterBuilder extends BaseHelper {
     }
 
     return conditions;
+  }
+
+  /**
+   * Validate and parse a JSON path key.
+   * Returns the column and parsed path components.
+   */
+  private validateJsonColumn(opts: {
+    key: string;
+    columns: ReturnType<typeof getTableColumns>;
+    tableName: string;
+    methodName: string;
+  }): { column: ReturnType<typeof getTableColumns>[string]; path: string[] } {
+    const { key, columns, tableName, methodName } = opts;
+
+    // Parse: "jValue.metadata.score" → { columnName: "jValue", path: ["metadata", "score"] }
+    const parsed = this.parseJsonPath(key);
+
+    // Validate column exists
+    const column = columns[parsed.columnName];
+    if (!column) {
+      throw getError({
+        message: `[DrizzleFilterBuilder][${methodName}] Table: ${tableName} | Column NOT FOUND | key: '${parsed.columnName}'`,
+      });
+    }
+
+    // Validate column is JSON/JSONB type
+    const dataType = column.dataType.toLowerCase();
+    if (dataType !== 'json' && dataType !== 'jsonb') {
+      throw getError({
+        message: `[DrizzleFilterBuilder][${methodName}] Table: ${tableName} | Column '${parsed.columnName}' is not JSON/JSONB type | dataType: '${column.dataType}'`,
+      });
+    }
+
+    // Validate path components to prevent SQL injection
+    for (const part of parsed.path) {
+      if (!DrizzleFilterBuilder.JSON_PATH_PATTERN.test(part)) {
+        throw getError({
+          message: `[DrizzleFilterBuilder][${methodName}] Table: ${tableName} | Invalid JSON path component: '${part}'`,
+        });
+      }
+    }
+
+    return { column, path: parsed.path };
+  }
+
+  /**
+   * Build SQL conditions for filtering by a JSON/JSONB field path.
+   * Uses PostgreSQL #>> operator for text extraction with optional numeric casting.
+   */
+  private buildJsonWhereCondition(opts: {
+    key: string;
+    value: any;
+    columns: ReturnType<typeof getTableColumns>;
+    tableName: string;
+  }): SQL[] {
+    const { key, value, columns, tableName } = opts;
+
+    // Validate and parse JSON path
+    const { column, path } = this.validateJsonColumn({
+      key,
+      columns,
+      tableName,
+      methodName: 'buildJsonWhereCondition',
+    });
+
+    // Build JSON extraction expression using #>> (returns text)
+    const jsonPath = `"${column.name}" #>> '{${path.join(',')}}'`;
+
+    // Safe numeric casting: validates format before casting to prevent crashes on mixed-type JSON
+    // Returns NULL for non-numeric values instead of throwing an error
+    const safeNumericCast = `CASE WHEN (${jsonPath}) ~ '^-?[0-9]+(\\.[0-9]+)?$' THEN (${jsonPath})::numeric ELSE NULL END`;
+
+    // Check if value is an operator object vs plain value
+    if (!this.isOperatorObject({ value })) {
+      // Plain value (primitive or object) → equality comparison
+      const jsonExtraction =
+        typeof value === 'number' ? sql.raw(safeNumericCast) : sql.raw(jsonPath);
+      return [this.buildValueCondition({ column: jsonExtraction, value })];
+    }
+
+    // Operator object → apply operators with safe numeric casting if needed
+    const jsonExtraction = QueryOperators.hasNumericComparison({ operators: value })
+      ? sql.raw(safeNumericCast)
+      : sql.raw(jsonPath);
+
+    return this.buildOperatorConditions({ column: jsonExtraction, value });
   }
 
   /**
@@ -201,7 +323,13 @@ export class DrizzleFilterBuilder extends BaseHelper {
         continue;
       }
 
-      // Validate column exists
+      // Check if it's a JSON path (contains '.' or '[')
+      if (this.isJsonPath({ key })) {
+        conditions.push(...this.buildJsonWhereCondition({ key, value, columns, tableName }));
+        continue;
+      }
+
+      // Validate column exists for regular columns
       const column = columns[key];
       if (!column) {
         throw getError({
@@ -209,13 +337,14 @@ export class DrizzleFilterBuilder extends BaseHelper {
         });
       }
 
-      // Handle primitive values (null, array, scalar)
-      if (this.isPrimitiveValue({ value })) {
-        conditions.push(this.buildPrimitiveCondition({ column, value }));
+      // Check if value is an operator object vs plain value
+      if (!this.isOperatorObject({ value })) {
+        // Plain value (primitive or object) → equality comparison
+        conditions.push(this.buildValueCondition({ column, value }));
         continue;
       }
 
-      // Handle operator syntax { gt: 10, lte: 20 }
+      // Operator object → apply operators { gt: 10, lte: 20 }
       conditions.push(...this.buildOperatorConditions({ column, value }));
     }
 
@@ -239,7 +368,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
 
   /**
    * Build SQL for ordering by a JSON/JSONB field path.
-   * Uses PostgreSQL #>> operator for text extraction.
+   * Uses PostgreSQL #> operator to preserve original JSONB type for proper ordering.
    */
   private buildJsonOrderBy(opts: {
     key: string;
@@ -249,38 +378,17 @@ export class DrizzleFilterBuilder extends BaseHelper {
   }): SQL {
     const { key, direction, columns, tableName } = opts;
 
-    // Parse: "metadata.nested[0].field" → { columnName: "metadata", path: ["nested", "0", "field"] }
-    const parsed = this.parseJsonPath(key);
-
-    const column = columns[parsed.columnName];
-    if (!column) {
-      throw getError({
-        message: `[DrizzleFilterBuilder][buildJsonOrderBy] Table: ${tableName} | Column NOT FOUND | key: '${parsed.columnName}'`,
-      });
-    }
-
-    // Validate column is JSON/JSONB type
-    const dataType = column.dataType.toLowerCase();
-    if (dataType !== 'json' && dataType !== 'jsonb') {
-      throw getError({
-        message: `[DrizzleFilterBuilder][buildJsonOrderBy] Table: ${tableName} | Column '${parsed.columnName}' is not JSON/JSONB type | dataType: '${column.dataType}'`,
-      });
-    }
-
-    // Validate path components to prevent SQL injection
-    // Allow: identifiers (a-z, A-Z, _, 0-9 but not starting with number) or array indices (numbers only)
-    const validPathPattern = /^[a-zA-Z_][a-zA-Z0-9_]*$|^\d+$/;
-    for (const part of parsed.path) {
-      if (!validPathPattern.test(part)) {
-        throw getError({
-          message: `[DrizzleFilterBuilder][buildJsonOrderBy] Table: ${tableName} | Invalid JSON path component: '${part}'`,
-        });
-      }
-    }
+    // Validate and parse JSON path
+    const { column, path } = this.validateJsonColumn({
+      key,
+      columns,
+      tableName,
+      methodName: 'buildJsonOrderBy',
+    });
 
     // Use #> operator (returns JSONB) to preserve original type
     // JSONB comparison: null < boolean < number < string < array < object
-    return sql.raw(`"${column.name}" #> '{${parsed.path.join(',')}}' ${direction.toUpperCase()}`);
+    return sql.raw(`"${column.name}" #> '{${path.join(',')}}' ${direction.toUpperCase()}`);
   }
 
   toOrderBy<Schema extends TTableSchemaWithId>(opts: {
@@ -306,7 +414,7 @@ export class DrizzleFilterBuilder extends BaseHelper {
       }
 
       // Check if it's a JSON path (contains '.' or '[')
-      if (key.includes('.') || key.includes('[')) {
+      if (this.isJsonPath({ key })) {
         return this.buildJsonOrderBy({
           key,
           direction: direction as TConstValue<typeof Sorts>,

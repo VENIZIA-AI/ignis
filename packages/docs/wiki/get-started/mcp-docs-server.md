@@ -594,7 +594,6 @@ AI: [Uses listCategories, then listDocs with category filter]
 AI: "The Helpers category contains: Redis, Logger, Queue..."
 ```
 
----
 
 ## Local Development Setup
 
@@ -649,7 +648,6 @@ Use absolute paths in your config:
 }
 ```
 
----
 
 ## Comprehensive Troubleshooting Guide
 
@@ -678,7 +676,6 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 - Ask: `Can you search the Ignis docs for "controller"?`
 - Look for: `[Using tool: searchDocs]`
 
----
 
 ### Common Issues and Solutions
 
@@ -725,7 +722,6 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    npm install -g @venizia/ignis-docs
    ```
 
----
 
 #### ❌ Issue #2: AI assistant doesn't use MCP tools
 
@@ -784,7 +780,6 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    # Should NOT error. Press Ctrl+C to stop.
    ```
 
----
 
 #### ❌ Issue #3: "Module not found" errors
 
@@ -818,7 +813,6 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    bun x -p @venizia/ignis-docs@latest ignis-docs-mcp
    ```
 
----
 
 #### ❌ Issue #4: First search takes 10+ seconds
 
@@ -831,7 +825,6 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 **Not an error - just one-time startup cost.**
 
----
 
 #### ❌ Issue #5: Config file doesn't exist
 
@@ -854,7 +847,6 @@ cat > ~/.config/claude-code/config.json <<'EOF'
 EOF
 ```
 
----
 
 ### 🐛 Advanced Troubleshooting
 
@@ -894,7 +886,6 @@ If this works, the issue is specific to `@venizia/ignis-docs`.
   - Error messages
   - Your config file (remove secrets)
 
----
 
 ## What's Next?
 
@@ -902,7 +893,6 @@ If this works, the issue is specific to `@venizia/ignis-docs`.
 - **Advanced Usage:** Explore how to chain tools for complex documentation queries
 - **Contribute:** Help improve the docs or add new features
 
----
 
 ## FAQ
 

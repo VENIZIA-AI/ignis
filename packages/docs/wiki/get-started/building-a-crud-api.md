@@ -151,27 +151,17 @@ export class Todo extends BaseEntity<typeof Todo.schema> {
 
 ### Understanding Environment Variables
 
-Before we connect to the database, let's understand **environment variables**.
+Environment variables store configuration outside code (in `.env` files). Benefits: security (no passwords in Git), flexibility (different values per environment).
 
-**What are they?**
-Environment variables are configuration values stored outside your code. Think of them as settings that can change without modifying your source code.
-
-**Why use them?**
 ```typescript
 // ❌ BAD: Hardcoded values
-const password = "secret123";  // Now it's in Git history forever!
+const password = "secret123";  // In Git history forever!
 
 // ✅ GOOD: Environment variable
-const password = process.env.DB_PASSWORD;  // Value comes from .env file
+const password = process.env.DB_PASSWORD;  // From .env file
 ```
 
-**Benefits:**
-1. **Security** - Never commit passwords to Git
-2. **Flexibility** - Different values for dev/staging/production
-3. **Team Collaboration** - Each developer has their own `.env` file
-
-**The `APP_ENV_` prefix:**
-Ignis uses `APP_ENV_` prefix for all its environment variables. This prevents conflicts with system variables (like `PATH`, `HOME`, etc.).
+Ignis uses `APP_ENV_` prefix to prevent conflicts with system variables.
 
 ### Create `.env` File
 
@@ -406,22 +396,10 @@ export class Application extends BaseApplication {
 
 ### Understanding Database Migrations
 
-**The Problem:**
-Your database is currently empty. It has no `Todo` table. But your code expects one!
+Your code defines a `Todo` table, but PostgreSQL doesn't have it yet. A migration creates/modifies database tables - like "Git commits for your schema."
 
-```typescript
-// Your code says:
-todoTable = pgTable('Todo', { id: ..., title: ..., ... });
-
-// But PostgreSQL doesn't have a 'Todo' table yet!
-```
-
-**What is a Migration?**
-A migration is a script that creates or modifies database tables. Think of it as "Git commits for your database schema."
-
-**Example Migration:**
 ```sql
--- This is what Drizzle will generate and run for you
+-- Drizzle generates and runs this for you:
 CREATE TABLE "Todo" (
   "id" TEXT PRIMARY KEY,
   "title" TEXT NOT NULL,
@@ -432,10 +410,7 @@ CREATE TABLE "Todo" (
 );
 ```
 
-**Why not create tables manually?**
-- **Team Collaboration** - Everyone runs the same migrations, databases stay in sync
-- **Version Control** - Schema changes are tracked in Git
-- **Rollback** - Can undo changes if something breaks
+Benefits: team sync, version control, rollback capability.
 
 ### Create Migration Config
 
@@ -545,7 +520,6 @@ this.dataSource(PostgresDataSource);  // ← Make sure this is here!
 
 **Order matters:** DataSource must be registered before Repository.
 
----
 
 ### Error: "connection refused" or "ECONNREFUSED"
 
@@ -563,7 +537,6 @@ sudo service postgresql start      # Linux
 
 **Verify `.env` values match your PostgreSQL setup.**
 
----
 
 ### Error: "relation 'Todo' does not exist"
 
@@ -581,7 +554,6 @@ psql -U postgres -d todo_db -c "\dt"
 
 You should see `Todo` in the list.
 
----
 
 ### Error: 404 Not Found on `/api/todos`
 
@@ -598,7 +570,6 @@ path: { base: '/api', isStrict: true },  // All routes start with /api
 
 **Debug:** Set `debug.showRoutes: true` in appConfigs to see all registered routes on startup.
 
----
 
 ### Error: "Invalid JSON" when creating todo
 
@@ -612,7 +583,6 @@ curl -X POST http://localhost:3000/api/todos \
   -d '{"title":"Learn Ignis"}'
 ```
 
----
 
 ## Test Your Understanding: Build a Second Feature
 
@@ -635,7 +605,6 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 
 **Solution:** If you get stuck, check the [API Usage Examples](./best-practices/api-usage-examples.md) guide.
 
----
 
 ## Next Steps
 

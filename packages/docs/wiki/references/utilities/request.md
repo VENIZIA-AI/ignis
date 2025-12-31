@@ -139,7 +139,6 @@ sanitizeFilename('');                        // Returns: 'download'
 sanitizeFilename('..');                      // Returns: 'download'
 ```
 
----
 
 ### `encodeRFC5987`
 
@@ -160,7 +159,6 @@ encodeRFC5987('my document.pdf');     // Returns: 'my%20document.pdf'
 encodeRFC5987('файл.txt');            // Returns: '%D1%84%D0%B0%D0%B9%D0%BB.txt'
 ```
 
----
 
 ## Complete File Download Example
 

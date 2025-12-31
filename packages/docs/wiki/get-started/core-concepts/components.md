@@ -108,7 +108,6 @@ export class Application extends BaseApplication {
 }
 ```
 
----
 
 > **Next Steps:**
 > - [Components Reference](../../references/base/components.md) - Directory structure, keys, types, constants patterns

@@ -288,7 +288,6 @@ export const myTable = pgTable('MyTable', {
 });
 ```
 
----
 
 ## Detailed Enricher Reference
 
@@ -473,7 +472,6 @@ export const myTable = pgTable('MyTable', {
 - **Big Number Mode:** For `dataType: 'big-number'`, the `numberMode` field is required to specify whether to use JavaScript `number` (up to 2^53-1) or `bigint` (for larger values)
 - **Sequence Options:** Available for `number` and `big-number` types to customize identity generation behavior
 
----
 
 ### `generateTzColumnDefs`
 
@@ -627,7 +625,6 @@ type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDef
 };
 ```
 
----
 
 ### `generateUserAuditColumnDefs`
 
@@ -736,7 +733,6 @@ export const myTable = pgTable('MyTable', {
 // modifiedBy: integer('editor_id')
 ```
 
----
 
 ## Schema Utilities
 

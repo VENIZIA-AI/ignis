@@ -12,7 +12,6 @@ Technical reference for `BaseComponent`—the foundation for creating reusable, 
 | **Lifecycle Management** | Auto-called `binding()` method during startup |
 | **Default Bindings** | Self-contained with automatic DI registration |
 
----
 
 ## Component Directory Structure
 
@@ -65,7 +64,6 @@ src/components/auth/
         └── sign-up.schema.ts
 ```
 
----
 
 ## The `common/` Directory
 
@@ -224,7 +222,6 @@ export * from './component';
 export * from './controller';
 ```
 
----
 
 ## `BaseComponent` Class
 
@@ -246,7 +243,6 @@ The `super()` constructor in your component can take the following options:
 2. **Constructor Runs**: Your component's constructor calls `super()`, setting up its scope and defining its default `bindings`. If `initDefault` is enabled, these bindings are immediately registered with the application container.
 3. **Application Calls `binding()`**: During the `registerComponents` phase of the application startup, the `binding()` method of your component is called. This is where you can perform additional setup that might depend on the default bindings being available.
 
----
 
 ## Component Implementation Patterns
 
@@ -399,7 +395,6 @@ override binding(): ValueOrPromise<void> {
 }
 ```
 
----
 
 ## Exposing and Consuming Component Options
 
@@ -471,7 +466,6 @@ override binding(): ValueOrPromise<void> {
 }
 ```
 
----
 
 ## Best Practices Summary
 
@@ -487,7 +481,6 @@ override binding(): ValueOrPromise<void> {
 | **Logging** | Log binding activity with structured messages |
 | **Scope** | Always set `scope: ComponentName.name` |
 
----
 
 ## Quick Reference Template
 

@@ -4,11 +4,14 @@ Welcome to Ignis! This guide takes you from zero to a fully functional, database
 
 **Recommended learning path:**
 
-## 1. Prerequisites
+> **New to backend development?** Check out our [Glossary](./glossary.md) for explanations of key terms like Controllers, Repositories, Dependency Injection, and more.
 
-Before starting, ensure you have the required tools installed.
+## 1. Prerequisites & IDE Setup
 
-[Check Prerequisites](./prerequisites.md)
+Before starting, ensure you have the required tools and configure your development environment.
+
+- [Check Prerequisites](./prerequisites.md) - Required software
+- [IDE Setup](./ide-setup.md) - VSCode extensions, debugging, snippets
 
 ## 2. Philosophy
 

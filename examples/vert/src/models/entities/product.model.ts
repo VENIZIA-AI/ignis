@@ -6,7 +6,7 @@ import {
   RelationTypes,
   TRelationConfig,
 } from '@venizia/ignis';
-import { index, integer, pgTable, text, unique } from 'drizzle-orm/pg-core';
+import { index, integer, pgTable, text, unique, varchar } from 'drizzle-orm/pg-core';
 import { SaleChannelProduct } from './sale-channel-product.model';
 
 // ----------------------------------------------------------------
@@ -27,6 +27,7 @@ export class Product extends BaseEntity<typeof Product.schema> {
       name: text('name').notNull(),
       description: text('description'),
       price: integer('price').notNull().default(0),
+      tags: varchar('tags', { length: 100 }).array(),
     },
     def => [unique('UQ_Product_code').on(def.code), index('IDX_Product_name').on(def.name)],
   );

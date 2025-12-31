@@ -120,7 +120,6 @@ Recommended ignore patterns:
 - `coverage` - Test coverage (if applicable)
 - `*.min.js` - Minified files (if applicable)
 
----
 
 ## TypeScript Configuration
 
@@ -187,7 +186,6 @@ Extends the base config with settings for standard packages:
 
 **Note:** Path-related options (`outDir`, `rootDir`, `baseUrl`, `paths`, `include`, `exclude`) must be defined in each package's tsconfig.json as they are resolved relative to the config file location.
 
----
 
 ## Project Structure
 
@@ -214,7 +212,6 @@ packages/dev-configs/
     └── prettier.js / .d.ts
 ```
 
----
 
 ## Integration Guide
 
@@ -284,7 +281,6 @@ node_modules
 }
 ```
 
----
 
 ## Building the Package
 

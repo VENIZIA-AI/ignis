@@ -9,7 +9,6 @@
 - [Types](#types)
 - [Utilities](#utilities)
 
----
 
 ## Interfaces
 
@@ -44,7 +43,6 @@ export class Application extends BaseApplication implements IBootableApplication
 }
 ```
 
----
 
 ### IBootOptions
 
@@ -88,7 +86,6 @@ const bootOptions: IBootOptions = {
 };
 ```
 
----
 
 ### IArtifactOptions
 
@@ -125,7 +122,6 @@ const customOptions: IArtifactOptions = {
 };
 ```
 
----
 
 ### IBooter
 
@@ -163,7 +159,6 @@ export class CustomBooter implements IBooter {
 }
 ```
 
----
 
 ### IBooterOptions
 
@@ -196,7 +191,6 @@ const options: IBooterOptions = {
 };
 ```
 
----
 
 ### IBootExecutionOptions
 
@@ -234,7 +228,6 @@ await bootstrapper.boot({
 });
 ```
 
----
 
 ### IBootstrapper
 
@@ -250,7 +243,6 @@ interface IBootstrapper {
 |--------|--------|-------------|
 | `boot(opts)` | `Promise<IBootReport>` | Execute boot process with options |
 
----
 
 ### IBootReport
 
@@ -262,7 +254,6 @@ interface IBootReport {}
 
 Currently an empty interface, reserved for future enhancements (timing, errors, artifact counts, etc.).
 
----
 
 ### IApplication
 
@@ -278,7 +269,6 @@ interface IApplication extends Container {
 |--------|--------|-------------|
 | `getProjectRoot()` | `string` | Get absolute path to project root |
 
----
 
 ## Classes
 
@@ -359,7 +349,6 @@ Generates boot completion report.
 private generateReport(): IBootReport
 ```
 
----
 
 ### BaseArtifactBooter
 
@@ -476,7 +465,6 @@ protected getPattern(): string
 | `discoveredFiles` | `string[]` | Array of discovered file paths |
 | `loadedClasses` | `TClass<any>[]` | Array of loaded class constructors |
 
----
 
 ### ControllerBooter
 
@@ -504,7 +492,6 @@ constructor(
 | Extensions | `['.controller.js']` |
 | Binding Key | `controllers.{ClassName}` |
 
----
 
 ### ServiceBooter
 
@@ -532,7 +519,6 @@ constructor(
 | Extensions | `['.service.js']` |
 | Binding Key | `services.{ClassName}` |
 
----
 
 ### RepositoryBooter
 
@@ -560,7 +546,6 @@ constructor(
 | Extensions | `['.repository.js']` |
 | Binding Key | `repositories.{ClassName}` |
 
----
 
 ### DatasourceBooter
 
@@ -588,7 +573,6 @@ constructor(
 | Extensions | `['.datasource.js']` |
 | Binding Key | `datasources.{ClassName}` |
 
----
 
 ## Types
 
@@ -629,7 +613,6 @@ Abstract constructor type.
 type TAbstractConstructor<T> = abstract new (...args: any[]) => T
 ```
 
----
 
 ## Utilities
 
@@ -661,7 +644,6 @@ const files = await discoverFiles({
 // ['/path/to/project/controllers/user.controller.js', ...]
 ```
 
----
 
 ### loadClasses()
 
@@ -694,7 +676,6 @@ const classes = await loadClasses({
 // [UserController, ProductController]
 ```
 
----
 
 ### isClass()
 
@@ -723,7 +704,6 @@ for (const exported of Object.values(module)) {
 }
 ```
 
----
 
 ## Constants
 
@@ -743,7 +723,6 @@ import { BOOT_PHASES } from '@venizia/ignis-boot';
 await bootstrapper.boot({ phases: BOOT_PHASES });
 ```
 
----
 
 ## Mixin Functions
 
@@ -779,7 +758,6 @@ const app = new MyApp();
 await app.boot();
 ```
 
----
 
 ## Related Documentation
 

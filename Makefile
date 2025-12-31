@@ -1,6 +1,7 @@
 .PHONY: all build build-all core dev-configs docs docs-mcp helpers inversion boot \
-        help install clean \
-        lint lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
+        help install clean setup-hooks \
+        lint lint-all lint-packages lint-examples \
+        lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
         update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
@@ -18,6 +19,14 @@ install:
 clean:
 	@echo "🧹 Cleaning all packages..."
 	@bun run --filter "*" clean
+
+# ============================================================================
+# GIT HOOKS
+# ============================================================================
+setup-hooks:
+	@echo "🔧 Setting up git hooks..."
+	@git config core.hooksPath .githooks
+	@echo "✅ Git hooks configured to use .githooks directory."
 
 # ============================================================================
 # BUILD TARGETS
@@ -93,9 +102,19 @@ update-boot:
 # ============================================================================
 # LINT TARGETS
 # ============================================================================
-lint:
+lint: lint-packages
+	@echo "✅ Linting completed."
+
+lint-all: lint-packages lint-examples
+	@echo "✅ All linting completed."
+
+lint-packages:
 	@echo "🔍 Linting all packages..."
-	@bun run --filter "*" lint
+	@bun run --filter "./packages/*" lint
+
+lint-examples:
+	@echo "🔍 Linting all examples..."
+	@bun run --filter "./examples/*" lint
 
 lint-dev-configs:
 	@echo "🔍 Linting @venizia/dev-configs..."
@@ -135,6 +154,7 @@ help:
 	@echo "  build-all     - Rebuilds all packages in the correct order."
 	@echo "  install       - Install all dependencies with bun."
 	@echo "  clean         - Clean build artifacts from all packages."
+	@echo "  setup-hooks   - Configure git to use .githooks directory."
 	@echo ""
 	@echo "Force Update (fetch latest from NPM):"
 	@echo "  update            - Force update all packages from NPM registry."
@@ -156,7 +176,10 @@ help:
 	@echo "  inversion     - Rebuilds @venizia/ignis-inversion."
 	@echo ""
 	@echo "Linting:"
-	@echo "  lint              - Lint all packages."
+	@echo "  lint              - Lint all packages (alias for lint-packages)."
+	@echo "  lint-all          - Lint all packages AND examples."
+	@echo "  lint-packages     - Lint packages/ directory only."
+	@echo "  lint-examples     - Lint examples/ directory only."
 	@echo "  lint-dev-configs  - Lint @venizia/dev-configs."
 	@echo "  lint-inversion    - Lint @venizia/ignis-inversion."
 	@echo "  lint-helpers      - Lint @venizia/ignis-helpers."

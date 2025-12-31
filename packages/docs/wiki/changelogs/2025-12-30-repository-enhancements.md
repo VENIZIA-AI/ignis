@@ -16,7 +16,6 @@ This release introduces hidden properties configuration for models, array-based 
 - **JSON Path Ordering**: Order by nested fields within JSON/JSONB columns
 - **Code Quality**: Refactored validation logic, improved caching patterns, consistent resolver pattern
 
----
 
 ## Hidden Properties
 
@@ -87,7 +86,6 @@ const post = await postRepo.findOne({
 // post.author excludes password and secret if User model has them configured
 ```
 
----
 
 ## Array Fields Format
 
@@ -108,7 +106,6 @@ Both formats produce the same result. The array format is more concise and easie
 type TFields<T> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
 ```
 
----
 
 ## JSON Path Ordering
 
@@ -145,7 +142,6 @@ order: ['data.items[2].name DESC']
 
 **Security:** Built-in SQL injection prevention via regex validation for path components.
 
----
 
 ## Code Quality Improvements
 
@@ -191,7 +187,6 @@ Fixed caching by initializing `_visibleColumns` to `null` as sentinel for "not c
 
 Added defensive check for `connector.query` in `getQueryInterface()`.
 
----
 
 ## Files Changed
 
@@ -213,7 +208,6 @@ Added defensive check for `connector.query` in `getQueryInterface()`.
 | `src/models/entities/user.model.ts` | Added hiddenProperties config |
 | `src/services/repository-test.service.ts` | Added 21 hidden properties test cases |
 
----
 
 ## No Breaking Changes
 

@@ -17,7 +17,6 @@ This release changes the string ID implementation from PostgreSQL `uuid` type to
 - **Consistent Naming**: Renamed `visibleColumns` to `visibleProperties` for consistency with `hiddenProperties`
 - **Removed 'uuid' Option**: Principal enricher now only supports `'number' | 'string'`
 
----
 
 ## String ID Changes
 
@@ -62,7 +61,6 @@ type TIdEnricherOptions = {
 };
 ```
 
----
 
 ## Naming Consistency
 
@@ -74,7 +72,6 @@ Renamed internal properties for consistency:
 | `getVisibleColumns()` | `getVisibleProperties()` |
 | `visibleColumns` getter/setter | `visibleProps` getter/setter |
 
----
 
 ## Principal Enricher Simplification
 
@@ -88,7 +85,6 @@ type IdType = 'number' | 'string' | 'uuid';
 type IdType = 'number' | 'string';
 ```
 
----
 
 ## Files Changed
 
@@ -104,7 +100,6 @@ type IdType = 'number' | 'string';
 | `src/components/static-asset/models/base.model.ts` | uuid() to text() |
 | `src/components/auth/models/entities/*.ts` | uuid() to text() for all auth models |
 
----
 
 ## Migration Guide
 

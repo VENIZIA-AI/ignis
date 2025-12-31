@@ -260,11 +260,6 @@ export class Application extends BaseApplication {
         key: RepositoryTestService.name,
       }),
     });
-    await testService.runRepositoryTests();
-    await testService.runTransactionTests();
-    await testService.runJsonOrderByTests();
-    await testService.runFieldSelectionTests();
-    await testService.runInclusionTests();
-    await testService.runHiddenPropertiesTests();
+    await testService.runAllTests();
   }
 }

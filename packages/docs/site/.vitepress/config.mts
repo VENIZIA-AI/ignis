@@ -47,6 +47,10 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: 'JSON Path Filtering & Array Operators',
+              link: '/changelogs/2025-12-31-json-path-filtering-array-operators',
+            },
+            {
               text: 'String ID with Custom Generator',
               link: '/changelogs/2025-12-31-string-id-custom-generator',
             },
@@ -134,7 +138,9 @@ const config = defineConfig({
           text: 'Get Started',
           items: [
             { text: 'Overview', link: '/get-started/' },
+            { text: 'Glossary', link: '/get-started/glossary' },
             { text: 'Prerequisites', link: '/get-started/prerequisites' },
+            { text: 'IDE Setup', link: '/get-started/ide-setup' },
             { text: 'Philosophy', link: '/get-started/philosophy' },
             { text: '5-Minute Quickstart ⚡', link: '/get-started/5-minute-quickstart' },
             { text: 'Complete Setup Guide', link: '/get-started/quickstart' },
@@ -223,6 +229,13 @@ const config = defineConfig({
       ],
       '/references': [
         {
+          text: 'Configuration',
+          collapsed: true,
+          items: [
+            { text: 'Environment Variables', link: '/references/configuration/environment-variables' },
+          ],
+        },
+        {
           text: 'Components',
           collapsed: true,
           items: [
@@ -255,7 +268,19 @@ const config = defineConfig({
             { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
             { text: 'Models & Enrichers', link: '/references/base/models' },
             { text: 'DataSources', link: '/references/base/datasources' },
-            { text: 'Repositories', link: '/references/base/repositories' },
+            {
+              text: 'Repositories',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/references/base/repositories/' },
+                { text: 'Filtering & Operators', link: '/references/base/repositories/filtering' },
+                { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
+                { text: 'JSON Path Filtering', link: '/references/base/repositories/json-filtering' },
+                { text: 'Array Operators', link: '/references/base/repositories/array-operators' },
+                { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
+              ],
+            },
+            { text: 'Filter System', link: '/references/base/filter-system' },
             { text: 'Services', link: '/references/base/services' },
           ],
         },

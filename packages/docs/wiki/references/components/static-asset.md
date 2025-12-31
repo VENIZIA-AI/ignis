@@ -264,7 +264,6 @@ this.bind({
 this.component(StaticAssetComponent);
 ```
 
----
 
 ## MetaLink: Database File Tracking
 
@@ -530,7 +529,6 @@ DELETE /uploads/buckets/user-uploads/objects/document.pdf
 - Deletes MetaLink record from database
 - Returns `{ "success": true }`
 
----
 
 ## Storage Helpers
 
@@ -573,7 +571,6 @@ app_data/storage/
 - Metadata stored in file stats
 - Stream-based file operations
 
----
 
 ### MinioHelper (S3-Compatible Storage)
 
@@ -603,7 +600,6 @@ const minioHelper = new MinioHelper({
 });
 ```
 
----
 
 ## IStorageHelper Interface
 
@@ -640,7 +636,6 @@ interface IStorageHelper {
 }
 ```
 
----
 
 ## API Endpoints
 
@@ -663,7 +658,6 @@ GET /{basePath}/buckets
 ]
 ```
 
----
 
 #### **Get Bucket by Name**
 
@@ -683,7 +677,6 @@ GET /{basePath}/buckets/:bucketName
 { "name": "my-bucket", "creationDate": "2025-01-01T00:00:00.000Z" }
 ```
 
----
 
 #### **Create Bucket**
 
@@ -699,7 +692,6 @@ POST /{basePath}/buckets/:bucketName
 { "name": "my-bucket", "creationDate": "2025-12-13T00:00:00.000Z" }
 ```
 
----
 
 #### **Delete Bucket**
 
@@ -715,7 +707,6 @@ DELETE /{basePath}/buckets/:bucketName
 { "success": true }
 ```
 
----
 
 #### **Upload Files**
 
@@ -777,7 +768,6 @@ const result = await response.json();
 console.log(result[0].metaLink); // Database record (if MetaLink enabled)
 ```
 
----
 
 #### **Get Object (Stream)**
 
@@ -799,7 +789,6 @@ GET /{basePath}/buckets/:bucketName/objects/:objectName
 - Content-Length: File size in bytes
 - X-Content-Type-Options: `nosniff`
 
----
 
 #### **Download Object**
 
@@ -822,7 +811,6 @@ const downloadUrl = `/assets/buckets/uploads/objects/${encodeURIComponent('docum
 window.open(downloadUrl, '_blank');
 ```
 
----
 
 #### **Delete Object**
 
@@ -839,7 +827,6 @@ DELETE /{basePath}/buckets/:bucketName/objects/:objectName
 { "success": true }
 ```
 
----
 
 #### **List Objects**
 
@@ -864,7 +851,6 @@ GET /{basePath}/buckets/:bucketName/objects
 ]
 ```
 
----
 
 #### **Delete Object**
 
@@ -905,7 +891,6 @@ await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectNa
 // MetaLink record deleted from database (if enabled)
 ```
 
----
 
 #### **Sync MetaLink** (MetaLink only)
 
@@ -996,7 +981,6 @@ for (const obj of objects) {
 }
 ```
 
----
 
 ## Security Features
 
@@ -1049,7 +1033,6 @@ X-Content-Type-Options: nosniff
 Content-Disposition: attachment; filename="..."
 ```
 
----
 
 ## Usage Examples
 
@@ -1146,7 +1129,6 @@ async function listFiles(bucketName: string, prefix?: string) {
 }
 ```
 
----
 
 ## Custom Storage Implementation
 
@@ -1188,7 +1170,6 @@ this.bind<TStaticAssetsComponentOptions>({
 });
 ```
 
----
 
 ## Troubleshooting
 
@@ -1243,7 +1224,6 @@ extra: {
 }
 ```
 
----
 
 ## Docker Setup for Development
 
@@ -1279,7 +1259,6 @@ docker-compose up -d
 http://localhost:9001
 ```
 
----
 
 ## Related Documentation
 

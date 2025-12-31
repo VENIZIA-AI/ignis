@@ -213,7 +213,6 @@ const [fullUser] = await connector
 For complete hidden properties documentation, see the [Models Reference](../../references/base/models.md#hidden-properties).
 :::
 
----
 
 ## 2. DataSources: Connecting to Your Database
 
@@ -314,7 +313,6 @@ export class Application extends BaseApplication {
 }
 ```
 
----
 
 ## 3. Repositories: The Data Access Layer
 
@@ -478,7 +476,6 @@ export class Application extends BaseApplication {
 }
 ```
 
----
 
 ## 4. Advanced Topics
 
@@ -500,7 +497,6 @@ export class UserManagementComponent extends BaseComponent {
 }
 ```
 
----
 
 ## 5. Transactions
 
@@ -568,7 +564,6 @@ async createInitialOrder(userId: string, opts?: { transaction?: ITransaction }) 
 }
 ```
 
----
 
 ## Quick Reference
 

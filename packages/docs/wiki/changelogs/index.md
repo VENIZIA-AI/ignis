@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2025-12-31 | [JSON Path Filtering & Array Operators](./2025-12-31-json-path-filtering-array-operators) | New Feature |
 | 2025-12-31 | [String ID with Custom Generator](./2025-12-31-string-id-custom-generator) | Enhancement |
 | 2025-12-30 | [Repository Enhancements](./2025-12-30-repository-enhancements) | Enhancement |
 | 2025-12-29 | [Snowflake UID Helper](./2025-12-29-snowflake-uid-helper) | New Feature |
