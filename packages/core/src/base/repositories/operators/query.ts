@@ -19,6 +19,51 @@ import {
 } from 'drizzle-orm';
 import { IQueryHandlerOptions } from '../common';
 
+/**
+ * Build PostgreSQL array comparison expressions with proper type handling.
+ *
+ * For string arrays: Cast both column and value to text[] for type compatibility.
+ * This handles varchar[], text[], char[] columns uniformly since PostgreSQL's
+ * array operators (@>, <@, &&) require matching types.
+ *
+ * For numeric/boolean arrays: No casting needed as PostgreSQL infers correctly.
+ */
+const buildPgArrayComparison = (opts: {
+  column: any;
+  value: any[];
+}): { columnExpr: string; arrayLiteral: string } => {
+  const { column, value } = opts;
+  const first = value[0];
+  const valueType = typeof first;
+
+  // Get column name from Drizzle column object
+  const columnName = column.name;
+
+  // Numbers: No casting needed, PostgreSQL infers integer[]/numeric[]
+  if (valueType === 'number') {
+    return {
+      columnExpr: `"${columnName}"`,
+      arrayLiteral: `ARRAY[${value.join(', ')}]`,
+    };
+  }
+
+  // Booleans: No casting needed, PostgreSQL infers boolean[]
+  if (valueType === 'boolean') {
+    return {
+      columnExpr: `"${columnName}"`,
+      arrayLiteral: `ARRAY[${value.join(', ')}]`,
+    };
+  }
+
+  // Strings: Cast BOTH column and value to text[] for compatibility
+  // This works with varchar[], text[], char[] etc.
+  const escapedValues = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
+  return {
+    columnExpr: `"${columnName}"::text[]`,
+    arrayLiteral: `ARRAY[${escapedValues}]::text[]`,
+  };
+};
+
 // --------------------------------------------------------------------------------------
 export class Sorts {
   static readonly DESC = 'desc';
@@ -260,50 +305,5 @@ export class QueryOperators {
     return this.SCHEME_SET.has(orgType);
   }
 }
-
-/**
- * Build PostgreSQL array comparison expressions with proper type handling.
- *
- * For string arrays: Cast both column and value to text[] for type compatibility.
- * This handles varchar[], text[], char[] columns uniformly since PostgreSQL's
- * array operators (@>, <@, &&) require matching types.
- *
- * For numeric/boolean arrays: No casting needed as PostgreSQL infers correctly.
- */
-const buildPgArrayComparison = (opts: {
-  column: any;
-  value: any[];
-}): { columnExpr: string; arrayLiteral: string } => {
-  const { column, value } = opts;
-  const first = value[0];
-  const valueType = typeof first;
-
-  // Get column name from Drizzle column object
-  const columnName = column.name;
-
-  // Numbers: No casting needed, PostgreSQL infers integer[]/numeric[]
-  if (valueType === 'number') {
-    return {
-      columnExpr: `"${columnName}"`,
-      arrayLiteral: `ARRAY[${value.join(', ')}]`,
-    };
-  }
-
-  // Booleans: No casting needed, PostgreSQL infers boolean[]
-  if (valueType === 'boolean') {
-    return {
-      columnExpr: `"${columnName}"`,
-      arrayLiteral: `ARRAY[${value.join(', ')}]`,
-    };
-  }
-
-  // Strings: Cast BOTH column and value to text[] for compatibility
-  // This works with varchar[], text[], char[] etc.
-  const escapedValues = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
-  return {
-    columnExpr: `"${columnName}"::text[]`,
-    arrayLiteral: `ARRAY[${escapedValues}]::text[]`,
-  };
-};
 
 export type TQueryOperator = TConstValue<typeof QueryOperators>;
