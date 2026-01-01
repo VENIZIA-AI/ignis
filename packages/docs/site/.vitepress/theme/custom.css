@@ -7,3 +7,73 @@
 .content-container {
   max-width: 100% !important;
 }
+
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #ff6b35 30%, #f7c59f);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #ff6b35aa 50%, #f7c59faa 50%);
+  --vp-home-hero-image-filter: blur(40px);
+}
+
+.VPHero .text {
+  font-size: 2rem !important;
+}
+
+.VPHero .VPImage {
+  max-width: 180px !important;
+  max-height: 180px !important;
+}
+
+@media (min-width: 640px) {
+  .VPHero .VPImage {
+    max-width: 200px !important;
+    max-height: 200px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .VPImage {
+    max-width: 240px !important;
+    max-height: 240px !important;
+  }
+}
+
+.use-ignis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+@media (min-width: 768px) {
+  .use-ignis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.use-ignis-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+}
+
+.use-ignis-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.use-ignis-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.use-ignis-card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  font-size: 0.95rem;
+}
+
+.use-ignis-card li:last-child {
+  border-bottom: none;
+}

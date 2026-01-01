@@ -100,6 +100,8 @@
   "dependencies": {
     "@mastra/core": "^0.24.6",
     "@mastra/mcp": "^0.14.4",
+    "cytoscape": "^3.33.1",
+    "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "^1.11.19",
     "debug": "^4.4.3",
     "fast-glob": "^3.3.3",
