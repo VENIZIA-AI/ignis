@@ -159,7 +159,7 @@ await repository.find({
 | `in`, `nin` | In list / not in list | `{ id: { in: [1, 2, 3] } }` |
 | `between` | Range | `{ age: { between: [18, 65] } }` |
 
-**Related:** [Filter System](../../references/base/filter-system) | [Repositories](../../references/base/repositories/)
+**Related:** [Filter System](../../references/base/filter-system/) | [Repositories](../../references/base/repositories/)
 
 
 ## HTTP & API Terms

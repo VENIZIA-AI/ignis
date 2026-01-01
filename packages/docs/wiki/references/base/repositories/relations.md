@@ -464,6 +464,6 @@ const comments = await commentRepo.find({
 
 ## Next Steps
 
-- [JSON Path Filtering](./json-filtering.md) - Query JSONB columns
-- [Array Operators](./array-operators.md) - PostgreSQL array queries
+- [JSON Path Filtering](../filter-system/json-filtering) - Query JSONB columns
+- [Array Operators](../filter-system/array-operators) - PostgreSQL array queries
 - [Advanced Features](./advanced.md) - Transactions, hidden props

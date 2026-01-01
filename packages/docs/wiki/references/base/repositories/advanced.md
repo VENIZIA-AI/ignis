@@ -465,7 +465,7 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 ## Next Steps
 
 - [Overview](./index.md) - Repository basics
-- [Filtering & Operators](./filtering.md) - Query operators
+- [Filter System](../filter-system/) - Query operators
 - [Relations & Includes](./relations.md) - Eager loading
-- [JSON Path Filtering](./json-filtering.md) - JSONB queries
-- [Array Operators](./array-operators.md) - PostgreSQL arrays
+- [JSON Path Filtering](../filter-system/json-filtering) - JSONB queries
+- [Array Operators](../filter-system/array-operators) - PostgreSQL arrays

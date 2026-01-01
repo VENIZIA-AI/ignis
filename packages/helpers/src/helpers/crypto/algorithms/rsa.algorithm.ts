@@ -20,7 +20,7 @@ export class RSA extends BaseCryptoAlgorithm<RSAAlgorithmType, IO> {
 
   generateDERKeyPair(opts?: { modulus: number }) {
     const keys = C.generateKeyPairSync('rsa', {
-      modulusLength: opts?.modulus ?? 1199,
+      modulusLength: opts?.modulus ?? 2048,
     });
 
     return {

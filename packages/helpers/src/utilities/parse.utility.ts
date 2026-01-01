@@ -97,16 +97,15 @@ export const float = (input: any, digit = 2) => {
 };
 
 // -------------------------------------------------------------------------
-export const toBoolean = (input: any) => {
+export const toBoolean = (input: any): boolean => {
   return (
-    (input !== '' &&
-      input !== 'false' &&
-      input !== '0' &&
-      input !== false &&
-      input !== 0 &&
-      input !== null &&
-      input !== undefined) ??
-    Boolean(input)
+    input !== '' &&
+    input !== 'false' &&
+    input !== '0' &&
+    input !== false &&
+    input !== 0 &&
+    input !== null &&
+    input !== undefined
   );
 };
 
@@ -144,7 +143,12 @@ export const toStringDecimal = (input: any, digit = 2, options = { useLocaleForm
 };
 
 // -------------------------------------------------------------------------
-export const getNumberValue = (input: string, method: 'int' | 'float' = 'int') => {
+export const getNumberValue = (
+  input: string,
+  opts?: { method?: 'int' | 'float'; locale?: 'us' | 'eu' },
+) => {
+  const { method = 'int', locale = 'us' } = opts ?? {};
+
   if (!input) {
     return 0;
   }
@@ -153,7 +157,15 @@ export const getNumberValue = (input: string, method: 'int' | 'float' = 'int') =
 
   switch (typeof input) {
     case 'string': {
-      raw = input.replace(/,|\./gi, '');
+      if (locale === 'eu') {
+        // EU format: dot is thousands separator, comma is decimal
+        // "1.234,56" → "1234.56"
+        raw = input.replace(/\./g, '').replace(/,/g, '.');
+      } else {
+        // US/International format: comma is thousands separator, dot is decimal
+        // "1,234.56" → "1234.56"
+        raw = input.replace(/,/g, '');
+      }
       break;
     }
     default: {

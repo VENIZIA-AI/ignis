@@ -91,7 +91,7 @@ export class MQTTClientHelper extends BaseHelper {
   subscribe(opts: { topics: Array<string> }) {
     return new Promise((resolve, reject) => {
       if (!this.client?.connected) {
-        reject(
+        return reject(
           getError({
             statusCode: 400,
             message: `[subscribe][${this.identifier}] MQTT Client is not available to subscribe topic!`,
@@ -102,7 +102,7 @@ export class MQTTClientHelper extends BaseHelper {
       const { topics } = opts;
       this.client.subscribe(topics, error => {
         if (error) {
-          reject(error);
+          return reject(error);
         }
 
         resolve(topics);
@@ -114,10 +114,10 @@ export class MQTTClientHelper extends BaseHelper {
   publish(opts: { topic: string; message: string | Buffer }) {
     return new Promise((resolve, reject) => {
       if (!this.client?.connected) {
-        reject(
+        return reject(
           getError({
             statusCode: 400,
-            message: `[publish][${this.identifier}] MQTT Client is not available to subscribe topic!`,
+            message: `[publish][${this.identifier}] MQTT Client is not available to publish message!`,
           }),
         );
       }
@@ -125,7 +125,7 @@ export class MQTTClientHelper extends BaseHelper {
       const { topic, message } = opts;
       this.client.publish(topic, message, error => {
         if (error) {
-          reject(error);
+          return reject(error);
         }
 
         resolve({ topic, message });

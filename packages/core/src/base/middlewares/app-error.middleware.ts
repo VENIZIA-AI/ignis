@@ -3,13 +3,13 @@ import { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 
 const formatZodError = (opts: {
-  env: string;
+  isProduction: boolean;
   requestId: string;
   url: string;
   path: string;
   error: Error | HTTPResponseError;
 }) => {
-  const { env, requestId, url, path, error } = opts;
+  const { isProduction, requestId, url, path, error } = opts;
   const statusCode = HTTP.ResultCodes.RS_4.UnprocessableEntity;
 
   let validationErrors = error;
@@ -28,7 +28,7 @@ const formatZodError = (opts: {
       details: {
         url,
         path,
-        stack: env !== Environment.PRODUCTION ? error.stack : undefined,
+        stack: !isProduction ? error.stack : undefined,
         cause: Array.isArray(validationErrors)
           ? validationErrors.map(el => ({
               path: el.path.join('.') || 'root',
@@ -58,6 +58,7 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
     );
 
     const env = context.env?.NODE_ENV || process.env.NODE_ENV;
+    const isProduction = env?.toLowerCase() === Environment.PRODUCTION;
 
     const statusCode =
       'status' in error
@@ -68,7 +69,7 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
 
     if (error.name === 'ZodError') {
       const rs = formatZodError({
-        env,
+        isProduction,
         requestId,
         url: context.req.url,
         path: context.req.path,
@@ -86,8 +87,8 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
         details: {
           url: context.req.url,
           path: context.req.path,
-          stack: env !== 'production' ? error.stack : undefined,
-          cause: env !== 'production' ? error.cause : undefined,
+          stack: !isProduction ? error.stack : undefined,
+          cause: !isProduction ? error.cause : undefined,
         },
       },
       statusCode as Parameters<typeof context.json>[1],

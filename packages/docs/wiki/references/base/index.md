@@ -63,7 +63,7 @@ Core classes that power every Ignis application - from the Application entry poi
 - [Models & Enrichers](./models.md) - `BaseEntity`, schema definitions, enrichers
 - [DataSources](./datasources.md) - Database connections, auto-discovery
 - [Repositories](./repositories/) - CRUD operations, filtering, relations
-- [Filter System](./filter-system.md) - Query filter types and operators
+- [Filter System](./filter-system/) - Query filter types and operators
 
 ## Class Hierarchy
 

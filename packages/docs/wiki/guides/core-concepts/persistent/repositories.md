@@ -81,7 +81,7 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
 
 ## Querying Data
 
-For advanced filtering with operators like `gt`, `lt`, `like`, `in`, `between`, and more, see [Filtering & Operators](../../../references/base/repositories/filtering).
+For advanced filtering with operators like `gt`, `lt`, `like`, `in`, `between`, and more, see [Filter System](../../../references/base/filter-system/).
 
 ```typescript
 const repo = this.get<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' });

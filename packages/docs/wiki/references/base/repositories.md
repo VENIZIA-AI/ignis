@@ -9,10 +9,10 @@ This documentation has been reorganized into focused guides for easier navigatio
 | Guide | Description |
 |-------|-------------|
 | [**Overview**](./repositories/) | Repository basics, methods, setup |
-| [**Filtering & Operators**](./repositories/filtering) | Where clauses, comparison, pattern matching |
+| [**Filter System**](./filter-system/) | Where clauses, comparison, pattern matching |
 | [**Relations & Includes**](./repositories/relations) | Eager loading, nested queries |
-| [**JSON Path Filtering**](./repositories/json-filtering) | Query JSONB columns |
-| [**Array Operators**](./repositories/array-operators) | PostgreSQL array queries |
+| [**JSON Path Filtering**](./filter-system/json-filtering) | Query JSONB columns |
+| [**Array Operators**](./filter-system/array-operators) | PostgreSQL array queries |
 | [**Advanced Features**](./repositories/advanced) | Transactions, hidden props, performance |
 
 ---

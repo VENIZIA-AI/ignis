@@ -8,6 +8,27 @@ const config = defineConfig({
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/ignis/logo.svg' }]],
+  vite: {
+    build: {
+      chunkSizeWarningLimit: 2000,
+      rollupOptions: {
+        output: {
+          manualChunks: (id) => {
+            if (id.includes('node_modules')) {
+              // Split search functionality
+              if (id.includes('minisearch') || id.includes('mark.js')) {
+                return 'search';
+              }
+              // Split Vue core
+              if (id.includes('@vue/')) {
+                return 'vue-vendor';
+              }
+            }
+          },
+        },
+      },
+    },
+  },
   themeConfig: {
     logo: '/logo.svg',
     search: {
@@ -31,103 +52,70 @@ const config = defineConfig({
           ],
         },
         {
+          text: 'History',
+          collapsed: false,
+          items: [
+            {
+              text: '2025-12-31',
+              collapsed: true,
+              items: [
+                { text: 'JSON Path Filtering & Array Operators', link: '/changelogs/2025-12-31-json-path-filtering-array-operators' },
+                { text: 'String ID with Custom Generator', link: '/changelogs/2025-12-31-string-id-custom-generator' },
+              ],
+            },
+            {
+              text: '2025-12-30',
+              collapsed: true,
+              items: [
+                { text: 'Repository Enhancements', link: '/changelogs/2025-12-30-repository-enhancements' },
+              ],
+            },
+            {
+              text: '2025-12-29',
+              collapsed: true,
+              items: [
+                { text: 'Snowflake UID Helper', link: '/changelogs/2025-12-29-snowflake-uid-helper' },
+                { text: 'Dynamic Binding Registration Fix', link: '/changelogs/2025-12-29-dynamic-binding-registration' },
+              ],
+            },
+            {
+              text: '2025-12-26',
+              collapsed: true,
+              items: [
+                { text: 'Transaction Support', link: '/changelogs/2025-12-26-transaction-support' },
+                { text: 'Nested Relations & Generic Types', link: '/changelogs/2025-12-26-nested-relations-and-generics' },
+              ],
+            },
+            {
+              text: '2025-12-18',
+              collapsed: true,
+              items: [
+                { text: 'Performance Optimizations', link: '/changelogs/2025-12-18-performance-optimizations' },
+                { text: 'Validation & Security', link: '/changelogs/2025-12-18-repository-validation-security' },
+              ],
+            },
+            {
+              text: '2025-12-17',
+              collapsed: true,
+              items: [
+                { text: 'Inversion of Control Refactor', link: '/changelogs/2025-12-17-refactor' },
+              ],
+            },
+            {
+              text: '2025-12-16',
+              collapsed: true,
+              items: [
+                { text: 'Model-Repository-DataSource Refactor', link: '/changelogs/2025-12-16-model-repo-datasource-refactor' },
+                { text: 'Initial Architecture', link: '/changelogs/2025-12-16-initial-architecture' },
+              ],
+            },
+          ],
+        },
+        {
           text: 'Planning',
           collapsed: true,
           items: [
-            {
-              text: 'Schema Migrator',
-              link: '/changelogs/planned-schema-migrator',
-            },
-          ],
-        },
-        {
-          text: '2025-12-31',
-          collapsed: false,
-          items: [
-            {
-              text: 'JSON Path Filtering & Array Operators',
-              link: '/changelogs/2025-12-31-json-path-filtering-array-operators',
-            },
-            {
-              text: 'String ID with Custom Generator',
-              link: '/changelogs/2025-12-31-string-id-custom-generator',
-            },
-          ],
-        },
-        {
-          text: '2025-12-30',
-          collapsed: false,
-          items: [
-            {
-              text: 'Repository Enhancements',
-              link: '/changelogs/2025-12-30-repository-enhancements',
-            },
-          ],
-        },
-        {
-          text: '2025-12-29',
-          collapsed: false,
-          items: [
-            {
-              text: 'Snowflake UID Helper',
-              link: '/changelogs/2025-12-29-snowflake-uid-helper',
-            },
-            {
-              text: 'Dynamic Binding Registration Fix',
-              link: '/changelogs/2025-12-29-dynamic-binding-registration',
-            },
-          ],
-        },
-        {
-          text: '2025-12-26',
-          collapsed: false,
-          items: [
-            {
-              text: 'Transaction Support',
-              link: '/changelogs/2025-12-26-transaction-support',
-            },
-            {
-              text: 'Nested Relations & Generic Types',
-              link: '/changelogs/2025-12-26-nested-relations-and-generics',
-            },
-          ],
-        },
-        {
-          text: '2025-12-18',
-          collapsed: false,
-          items: [
-            {
-              text: 'Performance Optimizations',
-              link: '/changelogs/2025-12-18-performance-optimizations',
-            },
-            {
-              text: 'Validation & Security',
-              link: '/changelogs/2025-12-18-repository-validation-security',
-            },
-          ],
-        },
-        {
-          text: '2025-12-17',
-          collapsed: true,
-          items: [
-            {
-              text: 'Inversion of Control Refactor',
-              link: '/changelogs/2025-12-17-refactor',
-            },
-          ],
-        },
-        {
-          text: '2025-12-16',
-          collapsed: true,
-          items: [
-            {
-              text: 'Model-Repository-DataSource Refactor',
-              link: '/changelogs/2025-12-16-model-repo-datasource-refactor',
-            },
-            {
-              text: 'Initial Architecture',
-              link: '/changelogs/2025-12-16-initial-architecture',
-            },
+            { text: 'Schema Migrator', link: '/changelogs/planned-schema-migrator' },
           ],
         },
       ],
@@ -272,14 +260,29 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/references/base/repositories/' },
-                { text: 'Filtering & Operators', link: '/references/base/repositories/filtering' },
                 { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
-                { text: 'JSON Path Filtering', link: '/references/base/repositories/json-filtering' },
-                { text: 'Array Operators', link: '/references/base/repositories/array-operators' },
                 { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
               ],
             },
-            { text: 'Filter System', link: '/references/base/filter-system' },
+            {
+              text: 'Filter System',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/references/base/filter-system/' },
+                { text: 'Comparison Operators', link: '/references/base/filter-system/comparison-operators' },
+                { text: 'Null Operators', link: '/references/base/filter-system/null-operators' },
+                { text: 'List Operators', link: '/references/base/filter-system/list-operators' },
+                { text: 'Range Operators', link: '/references/base/filter-system/range-operators' },
+                { text: 'Pattern Matching', link: '/references/base/filter-system/pattern-matching' },
+                { text: 'Logical Operators', link: '/references/base/filter-system/logical-operators' },
+                { text: 'JSON Filtering', link: '/references/base/filter-system/json-filtering' },
+                { text: 'Array Operators', link: '/references/base/filter-system/array-operators' },
+                { text: 'Fields, Order & Pagination', link: '/references/base/filter-system/fields-order-pagination' },
+                { text: 'Application Usage', link: '/references/base/filter-system/application-usage' },
+                { text: 'Use Cases', link: '/references/base/filter-system/use-cases' },
+                { text: 'Tips & Edge Cases', link: '/references/base/filter-system/tips' },
+              ],
+            },
             { text: 'Services', link: '/references/base/services' },
           ],
         },

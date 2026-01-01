@@ -44,7 +44,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     const protocol = this.getProtocol(url);
     if (protocol === 'https') {
       props.httpsAgent = new https.Agent({
-        rejectUnauthorized: false,
+        rejectUnauthorized: opts.rejectUnauthorized ?? false,
       });
     }
 

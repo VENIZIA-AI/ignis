@@ -59,8 +59,8 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 
 This documentation is split into focused guides:
 
-### [Filtering & Operators](./filtering.md)
-Learn how to query data with `where` clauses, comparison operators, pattern matching, and logical combinations.
+### [Filter System](/references/base/filter-system/)
+Complete reference for querying data - operators, JSON filtering, array operators, and query patterns.
 
 ```typescript
 // Preview
@@ -69,8 +69,11 @@ await repo.find({
     where: {
       status: 'active',
       age: { gte: 18 },
-      name: { like: '%john%' }
-    }
+      'metadata.priority': { gte: 3 },
+      tags: { contains: ['featured'] }
+    },
+    order: ['createdAt DESC'],
+    limit: 20
   }
 });
 ```
@@ -86,35 +89,6 @@ await repo.find({
       relation: 'posts',
       scope: { where: { published: true } }
     }]
-  }
-});
-```
-
-### [JSON Path Filtering](./json-filtering.md)
-Query nested fields within JSON/JSONB columns using dot notation.
-
-```typescript
-// Preview
-await repo.find({
-  filter: {
-    where: {
-      'metadata.priority': { gte: 3 },
-      'settings.theme': 'dark'
-    }
-  }
-});
-```
-
-### [Array Operators](./array-operators.md)
-PostgreSQL-specific operators for array columns: `contains`, `containedBy`, `overlaps`.
-
-```typescript
-// Preview
-await repo.find({
-  filter: {
-    where: {
-      tags: { contains: ['featured', 'sale'] }
-    }
   }
 });
 ```
@@ -220,8 +194,6 @@ await repo.deleteAll({ where: {}, options: { force: true } });
 
 ## Next Steps
 
-- **New to filtering?** Start with [Filtering & Operators](./filtering.md)
+- **New to filtering?** Start with [Filter System](/references/base/filter-system/)
 - **Need related data?** See [Relations & Includes](./relations.md)
-- **Working with JSON columns?** Check [JSON Path Filtering](./json-filtering.md)
-- **Using PostgreSQL arrays?** Read [Array Operators](./array-operators.md)
 - **Need transactions?** Go to [Advanced Features](./advanced.md)
