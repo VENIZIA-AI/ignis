@@ -26,7 +26,7 @@ IGNIS provides its own testing utilities built on `node:test`. These utilities (
 
 Before starting, ensure you have:
 - A working Ignis application (see [Building a CRUD API](./building-a-crud-api.md))
-- Basic understanding of [Controllers](./core-concepts/controllers.md) and [Repositories](./core-concepts/persistent.md)
+- Basic understanding of [Controllers](../core-concepts/controllers.md) and [Repositories](../core-concepts/persistent/)
 
 ## Quick Examples with Popular Frameworks
 

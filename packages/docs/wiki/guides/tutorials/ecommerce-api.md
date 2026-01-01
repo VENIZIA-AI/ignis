@@ -12,9 +12,9 @@ This tutorial guides you through building a complete e-commerce backend with pro
 
 ## Prerequisites
 
-- Completed [Building a CRUD API](./building-a-crud-api)
+- Completed [Building a CRUD API](./building-a-crud-api.md)
 - PostgreSQL database running
-- Basic understanding of [Dependency Injection](./core-concepts/dependency-injection)
+- Basic understanding of [Dependency Injection](../core-concepts/dependency-injection.md)
 
 ## 1. Project Setup
 
@@ -1393,5 +1393,5 @@ You've built a complete e-commerce API with:
 
 - Add user authentication with [Auth Component](/references/components/authentication)
 - Add order notifications with [Mail Component](/references/components/mail)
-- Add real-time updates with [Socket.IO](./realtime-chat)
+- Add real-time updates with [Socket.IO](./realtime-chat.md)
 - Deploy with [Deployment Guide](/best-practices/deployment-strategies)

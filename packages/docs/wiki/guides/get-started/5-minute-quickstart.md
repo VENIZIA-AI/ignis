@@ -213,7 +213,7 @@ Visit `http://localhost:3000/api/hello` in your browser!
 
 ## View API Docs
 
-Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI documentation!
+Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI documentation!
 
 ## What Just Happened?
 
@@ -258,9 +258,9 @@ All configs extend from `@venizia/dev-configs`, so you get updates automatically
 
 **Want more?**
 
-- **Add a database?** → [Building a CRUD API](./building-a-crud-api.md)
-- **Production setup?** → [Complete Setup Guide](./complete-installation) (ESLint, Prettier, etc.)
-- **Understand the architecture?** → [Core Concepts](./core-concepts/application.md)
+- **Add a database?** → [Building a CRUD API](../tutorials/building-a-crud-api.md)
+- **Production setup?** → [Complete Setup Guide](../tutorials/complete-installation.md) (ESLint, Prettier, etc.)
+- **Understand the architecture?** → [Core Concepts](../core-concepts/application/)
 
 **Quick additions:**
 

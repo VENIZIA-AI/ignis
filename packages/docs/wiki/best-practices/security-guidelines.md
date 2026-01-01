@@ -68,7 +68,7 @@ const SecureRoute = {
 };
 ```
 
-> **Deep Dive:** See [Authentication Component](../../references/components/authentication.md) for full setup guide.
+> **Deep Dive:** See [Authentication Component](../references/components/authentication.md) for full setup guide.
 
 **Access user in protected routes:**
 ```typescript
@@ -119,7 +119,7 @@ const [user] = await connector
   .where(eq(User.schema.email, email));
 ```
 
-> **Reference:** See [Hidden Properties](../../references/base/models.md#hidden-properties) for complete documentation.
+> **Reference:** See [Hidden Properties](../references/base/models.md#hidden-properties) for complete documentation.
 
 ## 5. File Upload Security
 
@@ -197,7 +197,7 @@ async uploadFile(c: Context) {
 - Generates unique filenames (prevents overwrites)
 - Returns file metadata (size, mimetype) for validation
 
-> **Reference:** See [Request Utility](../../references/utilities/request.md) for full API documentation.
+> **Reference:** See [Request Utility](../references/utilities/request.md) for full API documentation.
 
 ## 6. Secure Dependencies
 

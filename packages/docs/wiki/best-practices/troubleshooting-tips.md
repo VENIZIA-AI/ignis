@@ -97,7 +97,7 @@ cat .env | grep APP_ENV
 - Use `try-catch` blocks to catch and log errors
 - Check database queries with Drizzle's logging: `{ logger: true }`
 
-> **Deep Dive:** See [Logger Helper](../../references/helpers/logger.md) for advanced logging configuration.
+> **Deep Dive:** See [Logger Helper](../references/helpers/logger.md) for advanced logging configuration.
 
 ## 6. Request ID Tracking
 

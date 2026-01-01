@@ -484,5 +484,5 @@ this.component(SwaggerComponent, {
 ## See Also
 
 - [Architectural Patterns](./architectural-patterns.md) - Layered architecture details
-- [Core Concepts](../core-concepts/application.md) - Framework fundamentals
+- [Core Concepts](../guides/core-concepts/application/) - Framework fundamentals
 - [Performance Optimization](./performance-optimization.md) - Scaling techniques

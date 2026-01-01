@@ -12,7 +12,7 @@ This tutorial shows you how to build a real-time chat application with rooms, di
 
 ## Prerequisites
 
-- Completed [Building a CRUD API](./building-a-crud-api)
+- Completed [Building a CRUD API](./building-a-crud-api.md)
 - Understanding of [Socket.IO Component](/references/components/socket-io)
 - Redis for pub/sub (optional but recommended for scaling)
 

@@ -373,4 +373,4 @@ export class User extends BaseEntity<typeof User.schema> {
 - Hidden properties are **recursively excluded** from included relations
 - Use the connector directly when you need to access hidden data (e.g., password verification)
 
-> **Reference:** See [Hidden Properties](../../references/base/models.md#hidden-properties) for complete documentation.
+> **Reference:** See [Hidden Properties](../references/base/models.md#hidden-properties) for complete documentation.

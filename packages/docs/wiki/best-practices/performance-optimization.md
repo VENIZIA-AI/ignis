@@ -21,7 +21,7 @@ await executeWithPerformanceMeasure({
 
 Logs execution time automatically.
 
-> **Deep Dive:** See [Performance Utility](../../references/utilities/performance.md) for advanced profiling.
+> **Deep Dive:** See [Performance Utility](../references/utilities/performance.md) for advanced profiling.
 
 ## 2. Offload CPU-Intensive Tasks
 
@@ -32,7 +32,7 @@ Prevent blocking the event loop with Worker Threads:
 - Large file/data processing
 - Any synchronous task > 5ms
 
-> **Deep Dive:** See [Worker Thread Helper](../../references/helpers/worker-thread.md) for implementation guide.
+> **Deep Dive:** See [Worker Thread Helper](../references/helpers/worker-thread.md) for implementation guide.
 
 ## 3. Optimize Database Queries
 
@@ -127,7 +127,7 @@ Reduce database load with caching:
 
 | Cache Type | Use Case | Implementation |
 |-----------|----------|----------------|
-| **Redis** | Distributed cache, session storage | [Redis Helper](../../references/helpers/redis.md) |
+| **Redis** | Distributed cache, session storage | [Redis Helper](../references/helpers/redis.md) |
 | **In-Memory** | Single-process cache | `MemoryStorageHelper` |
 
 **Example:**

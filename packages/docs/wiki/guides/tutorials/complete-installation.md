@@ -2,7 +2,7 @@
 
 This guide walks you through creating a new web application with Ignis and setting up a professional development environment.
 
-> **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](./setup) before starting.
+> **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](../get-started/setup.md) before starting.
 
 ## 1. Initialize Your Project
 
@@ -39,7 +39,7 @@ bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
 - Shared TypeScript base configs
 - Consistent code style across all Ignis projects
 
-> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api).
+> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
 
 ## 3. Configure Development Tools
 
@@ -153,7 +153,7 @@ src/
     └── index.ts            # Utility functions
 ```
 
-> **Note:** For this guide, we only use `controllers/`. Other folders will be used in the [CRUD Tutorial](./building-a-crud-api) when you add database support.
+> **Note:** For this guide, we only use `controllers/`. Other folders will be used in the [CRUD Tutorial](./building-a-crud-api.md) when you add database support.
 
 ### Create Application Class
 
@@ -247,7 +247,7 @@ export class Application extends BaseApplication {
 | `preConfigure()` | **Register resources** | **Main hook** - register controllers, services, etc. |
 | `postConfigure()` | Post-initialization | Optional - seed data, background jobs |
 
-> **Deep Dive:** See [Application Class Reference](./core-concepts/application) for detailed lifecycle documentation.
+> **Deep Dive:** See [Application Class Reference](../core-concepts/application/) for detailed lifecycle documentation.
 
 ### Create Controller
 
@@ -317,7 +317,7 @@ export class HelloController extends BaseController {
 | `binding()` | Required override — use `bindRoute()` or `defineRoute()` for programmatic routes |
 | Zod schemas | Provide automatic validation and OpenAPI docs |
 
-> **Deep Dive:** See [Controllers Reference](./core-concepts/controllers) for advanced routing patterns and validation.
+> **Deep Dive:** See [Controllers Reference](../core-concepts/controllers.md) for advanced routing patterns and validation.
 
 ### Create Entry Point
 
@@ -363,7 +363,7 @@ Add common application scripts to your `package.json`:
 }
 ```
 
-> **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api) when you set up Drizzle ORM.
+> **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api.md) when you set up Drizzle ORM.
 
 Create a cleanup script at `scripts/clean.sh`:
 
@@ -399,7 +399,7 @@ Response:
 
 **View API Documentation:**
 
-Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI with your endpoints.
+Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI with your endpoints.
 
 Congratulations! You have successfully created and configured your first application with the `Ignis` framework.
 
@@ -409,8 +409,8 @@ Congratulations! You have successfully created and configured your first applica
 
 **Next steps:**
 
-1. **[Building a CRUD API](./building-a-crud-api)** - Add database, create full REST API with CRUD operations
-2. **[Core Concepts](./core-concepts/application)** - Deep dive into application architecture
+1. **[Building a CRUD API](./building-a-crud-api.md)** - Add database, create full REST API with CRUD operations
+2. **[Core Concepts](../core-concepts/application/)** - Deep dive into application architecture
 3. **[Best Practices](/best-practices/architectural-patterns)** - Learn recommended patterns and practices
 
 > **Deep Dive:** See [API Usage Examples](/best-practices/api-usage-examples) for more routing patterns and controller techniques.

@@ -115,7 +115,7 @@ Use the centralized TypeScript configs:
 - `strict: true` - Strict type checking with selective relaxations
 - `skipLibCheck: true` - Faster compilation
 
-See [`@venizia/dev-configs` documentation](../../references/src-details/dev-configs.md) for full details.
+See [`@venizia/dev-configs` documentation](../references/src-details/dev-configs.md) for full details.
 
 ## Directory Structure
 

@@ -153,5 +153,5 @@ sudo service postgresql start
 
 ## Next Steps
 
-- [5-Minute Quickstart](./5-minute-quickstart) — Build your first API
-- [Complete Installation](./complete-installation) — Full project setup
+- [5-Minute Quickstart](./5-minute-quickstart.md) — Build your first API
+- [Complete Installation](../tutorials/complete-installation.md) — Full project setup

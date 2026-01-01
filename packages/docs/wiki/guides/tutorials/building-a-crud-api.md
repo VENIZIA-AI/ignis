@@ -4,9 +4,9 @@ Build a complete, database-backed REST API for managing todos. This guide covers
 
 ## Prerequisites
 
-- ✅ Completed [Complete Installation](./complete-installation)
+- ✅ Completed [Complete Installation](./complete-installation.md)
 - ✅ PostgreSQL installed and running
-- ✅ Database created (see [Prerequisites](./setup))
+- ✅ Database created (see [Prerequisites](../get-started/setup.md))
 
 ## What You'll Build
 
@@ -164,7 +164,7 @@ APP_ENV_POSTGRES_DATABASE=todo_db
 
 **Replace these values:**
 - `your_password_here` - Your PostgreSQL password (or leave blank if no password)
-- `todo_db` - The database you created in [Prerequisites](./setup#database-setup)
+- `todo_db` - The database you created in [Prerequisites](../get-started/setup.md#database-setup)
 
 **Important:** Add `.env` to your `.gitignore`:
 ```bash
@@ -507,7 +507,7 @@ curl -X DELETE http://localhost:3000/api/todos/{id}
 ```
 
 **View API Documentation:**
-Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI.
+Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI.
 
 🎉 **Congratulations!** You've built a complete CRUD API with:
 - ✅ Type-safe database operations
@@ -661,21 +661,21 @@ Register in `application.ts`:
 this.service(TodoService);
 ```
 
-> **Deep Dive:** See [Services Reference](./core-concepts/services) for best practices and advanced patterns.
+> **Deep Dive:** See [Services Reference](../core-concepts/services.md) for best practices and advanced patterns.
 
 ## Continue Your Journey
 
 You now have a fully functional CRUD API! Here's what to explore next:
 
 **Core Concepts:**
-1. [Application Architecture](./core-concepts/application) - Understand the framework structure
-2. [Dependency Injection](./core-concepts/dependency-injection) - Master DI patterns
-3. [Components](./core-concepts/components) - Build reusable modules
+1. [Application Architecture](../core-concepts/application/) - Understand the framework structure
+2. [Dependency Injection](../core-concepts/dependency-injection.md) - Master DI patterns
+3. [Components](../core-concepts/components.md) - Build reusable modules
 
 **Add Features:**
 1. [Authentication](/references/components/authentication) - Add JWT authentication
 2. [Custom Routes](/best-practices/api-usage-examples.md) - Beyond CRUD operations
-3. [Relationships](./core-concepts/persistent#querying-with-relations) - Link todos to users
+3. [Relationships](../core-concepts/persistent/) - Link todos to users
 
 **Production:**
 1. [Deployment Strategies](/best-practices/deployment-strategies.md) - Deploy your API
