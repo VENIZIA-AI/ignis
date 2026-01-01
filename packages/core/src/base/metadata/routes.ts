@@ -56,63 +56,68 @@ export const api = <RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: R
  * GET route decorator with automatic type inference
  * Equivalent to @api but automatically sets method to 'get'
  */
-export const get = <
-  RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
->(opts: {
-  configs: Configs & { method: typeof HTTP.Methods.GET };
+export const get = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
+  configs: RC;
 }) => {
-  return api({ configs: { ...opts.configs, method: HTTP.Methods.GET } });
+  return api({
+    configs: { ...opts.configs, method: HTTP.Methods.GET } as RC & {
+      method: typeof HTTP.Methods.GET;
+    },
+  });
 };
 
 /**
  * POST route decorator with automatic type inference
  * Equivalent to @api but automatically sets method to 'post'
  */
-export const post = <
-  RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
->(opts: {
-  configs: Configs & { method: typeof HTTP.Methods.POST };
+export const post = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
+  configs: RC;
 }) => {
-  return api({ configs: { ...opts.configs, method: HTTP.Methods.POST } });
+  return api({
+    configs: { ...opts.configs, method: HTTP.Methods.POST } as RC & {
+      method: typeof HTTP.Methods.POST;
+    },
+  });
 };
 
 /**
  * PUT route decorator with automatic type inference
  * Equivalent to @api but automatically sets method to 'put'
  */
-export const put = <
-  RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
->(opts: {
-  configs: Configs & { method: typeof HTTP.Methods.PUT };
+export const put = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
+  configs: RC;
 }) => {
-  return api({ configs: { ...opts.configs, method: HTTP.Methods.PUT } });
+  return api({
+    configs: { ...opts.configs, method: HTTP.Methods.PUT } as RC & {
+      method: typeof HTTP.Methods.PUT;
+    },
+  });
 };
 
 /**
  * PATCH route decorator with automatic type inference
  * Equivalent to @api but automatically sets method to 'patch'
  */
-export const patch = <
-  RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
->(opts: {
-  configs: Configs & { method: typeof HTTP.Methods.PATCH };
+export const patch = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
+  configs: RC;
 }) => {
-  return api({ configs: { ...opts.configs, method: HTTP.Methods.PATCH } });
+  return api({
+    configs: { ...opts.configs, method: HTTP.Methods.PATCH } as RC & {
+      method: typeof HTTP.Methods.PATCH;
+    },
+  });
 };
 
 /**
  * DELETE route decorator with automatic type inference
  * Equivalent to @api but automatically sets method to 'delete'
  */
-export const del = <
-  RC extends TAuthRouteConfig<RouteConfig>,
-  Configs extends Omit<RC, 'method'> = Omit<RC, 'method'>,
->(opts: {
-  configs: Configs & { method: typeof HTTP.Methods.DELETE };
+export const del = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
+  configs: RC;
 }) => {
-  return api({ configs: { ...opts.configs, method: HTTP.Methods.DELETE } });
+  return api({
+    configs: { ...opts.configs, method: HTTP.Methods.DELETE } as RC & {
+      method: typeof HTTP.Methods.DELETE;
+    },
+  });
 };

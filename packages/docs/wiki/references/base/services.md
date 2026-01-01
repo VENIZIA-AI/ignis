@@ -68,17 +68,17 @@ export class UserService extends BaseService {
   // 2. Dependencies (like UserRepository) are injected
   constructor(
     @inject({ key: 'repositories.UserRepository' })
-    private userRepository: UserRepository,
+    private _userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
   }
 
   // 3. Method is called by a controller
-  async getUserProfile(userId: string): Promise<Partial<TUser>> {
-    this.logger.info(`Fetching profile for user ${userId}`);
+  async getUserProfile(opts: { userId: string }): Promise<Partial<TUser>> {
+    this.logger.info(`Fetching profile for user ${opts.userId}`);
 
     // 4. Orchestrates logic: calls the repository
-    const user = await this.userRepository.findById({ id: userId });
+    const user = await this._userRepository.findById({ id: opts.userId });
 
     if (!user) {
       throw getError({ message: 'User not found' });

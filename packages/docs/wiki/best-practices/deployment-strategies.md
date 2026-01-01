@@ -76,6 +76,86 @@ docker run -p 3000:3000 \
   my-ignis-app
 ```
 
+### Docker Compose (Full Stack)
+
+For complete development and staging environments with database:
+
+**docker-compose.yml:**
+```yaml
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - APP_ENV_APPLICATION_SECRET=${APP_SECRET}
+      - APP_ENV_JWT_SECRET=${JWT_SECRET}
+      - APP_ENV_POSTGRES_HOST=db
+      - APP_ENV_POSTGRES_PORT=5432
+      - APP_ENV_POSTGRES_USERNAME=ignis
+      - APP_ENV_POSTGRES_PASSWORD=${DB_PASSWORD}
+      - APP_ENV_POSTGRES_DATABASE=ignis_db
+      - APP_ENV_REDIS_HOST=redis
+      - APP_ENV_REDIS_PORT=6379
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health-check"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=ignis
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_DB=ignis_db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ignis -d ignis_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
+```
+
+**Deploy with docker-compose:**
+```bash
+# Create .env file with secrets
+echo "APP_SECRET=$(openssl rand -base64 32)" > .env
+echo "JWT_SECRET=$(openssl rand -base64 32)" >> .env
+echo "DB_PASSWORD=$(openssl rand -base64 24)" >> .env
+
+# Start all services
+docker-compose up -d
+
+# View logs
+docker-compose logs -f app
+
+# Scale app (for load testing)
+docker-compose up -d --scale app=3
+```
+
 ### Bun Single Executable (Alternative)
 
 Compile your app into a single standalone binary:
@@ -350,3 +430,269 @@ jobs:
 | `drizzle-orm` | Database queries, SQL injection | Version updates |
 | `jose` | JWT handling, crypto | Vulnerability patches |
 | `@venizia/ignis` | Framework core | Latest stable release |
+
+## 9. Cloud Platform Deployments
+
+### Railway
+
+Railway provides simple deployments with automatic builds:
+
+**railway.json:**
+```json
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile"
+  },
+  "deploy": {
+    "startCommand": "bun run server:prod",
+    "healthcheckPath": "/health-check",
+    "healthcheckTimeout": 30,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
+```
+
+```bash
+# Deploy to Railway
+railway login
+railway init
+railway up
+```
+
+### Fly.io
+
+**fly.toml:**
+```toml
+app = "my-ignis-app"
+primary_region = "sjc"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[http_service]
+  internal_port = 3000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[services]]
+  protocol = "tcp"
+  internal_port = 3000
+
+  [[services.ports]]
+    port = 80
+    handlers = ["http"]
+
+  [[services.ports]]
+    port = 443
+    handlers = ["tls", "http"]
+
+  [[services.http_checks]]
+    interval = 10000
+    grace_period = "5s"
+    method = "get"
+    path = "/health-check"
+    protocol = "http"
+    timeout = 2000
+```
+
+```bash
+# Deploy to Fly.io
+fly auth login
+fly launch
+fly deploy
+fly secrets set APP_ENV_APPLICATION_SECRET=xxx
+```
+
+### Render
+
+**render.yaml:**
+```yaml
+services:
+  - type: web
+    name: my-ignis-app
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: APP_ENV_APPLICATION_SECRET
+        generateValue: true
+      - key: APP_ENV_JWT_SECRET
+        generateValue: true
+    healthCheckPath: /health-check
+    autoDeploy: true
+
+databases:
+  - name: ignis-db
+    databaseName: ignis
+    user: ignis
+    plan: starter
+```
+
+### Kubernetes
+
+**k8s/deployment.yaml:**
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ignis-app
+  labels:
+    app: ignis
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: ignis
+  template:
+    metadata:
+      labels:
+        app: ignis
+    spec:
+      containers:
+        - name: ignis
+          image: my-ignis-app:latest
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: APP_ENV_APPLICATION_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ignis-secrets
+                  key: app-secret
+            - name: APP_ENV_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: ignis-secrets
+                  key: jwt-secret
+            - name: APP_ENV_POSTGRES_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: ignis-config
+                  key: db-host
+          livenessProbe:
+            httpGet:
+              path: /health-check
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health-check
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "200m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ignis-service
+spec:
+  selector:
+    app: ignis
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 3000
+  type: LoadBalancer
+```
+
+**Deploy to Kubernetes:**
+```bash
+# Create secrets
+kubectl create secret generic ignis-secrets \
+  --from-literal=app-secret=$(openssl rand -base64 32) \
+  --from-literal=jwt-secret=$(openssl rand -base64 32)
+
+# Create configmap
+kubectl create configmap ignis-config \
+  --from-literal=db-host=postgres-service
+
+# Apply deployment
+kubectl apply -f k8s/
+
+# Check status
+kubectl get pods -l app=ignis
+kubectl logs -l app=ignis -f
+```
+
+## 10. Monitoring & Observability
+
+### Health Check Endpoints
+
+Ignis provides built-in health checks:
+
+```typescript
+// In application.ts
+import { HealthCheckComponent } from '@venizia/ignis';
+
+this.component(HealthCheckComponent);
+```
+
+**Endpoints:**
+- `GET /health-check` - Basic liveness check
+- `GET /health-check/ready` - Readiness (includes DB connection)
+
+### Logging in Production
+
+Configure structured logging:
+
+```typescript
+import { LoggerFactory } from '@venizia/ignis-helpers';
+
+// Set log level via environment
+// APP_ENV_LOG_LEVEL=info (debug, info, warn, error)
+
+const logger = LoggerFactory.getLogger(['MyService']);
+logger.info('Service started', { port: 3000, env: 'production' });
+```
+
+### Metrics Collection
+
+Add Prometheus metrics endpoint:
+
+```typescript
+// src/controllers/metrics.controller.ts
+@controller({ path: '/metrics' })
+export class MetricsController extends BaseController {
+  @get({ configs: { path: '/' } })
+  getMetrics(c: Context) {
+    return c.text(`
+# HELP http_requests_total Total HTTP requests
+# TYPE http_requests_total counter
+http_requests_total{method="GET",status="200"} ${requestCount}
+
+# HELP process_uptime_seconds Process uptime
+# TYPE process_uptime_seconds gauge
+process_uptime_seconds ${process.uptime()}
+    `);
+  }
+}
+```
+
+## Summary
+
+| Deployment Method | Best For | Complexity |
+|-------------------|----------|------------|
+| **Docker** | General production | Low |
+| **Docker Compose** | Full stack with DB | Low |
+| **Bun Executable** | Simple servers | Very Low |
+| **Railway/Render** | Quick deployments | Very Low |
+| **Fly.io** | Edge deployments | Low |
+| **Kubernetes** | Enterprise scale | High |
+
+Choose based on your scale and operational requirements.

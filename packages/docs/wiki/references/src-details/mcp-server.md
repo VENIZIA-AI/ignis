@@ -1,6 +1,6 @@
 # MCP Docs Server: Deep Dive
 
-This document provides a detailed look into the architecture, features, and internal workings of the Ignis Documentation MCP Server. For a guide on how to use the server, see the [MCP Docs Server Quickstart](/get-started/mcp-docs-server).
+This document provides a detailed look into the architecture, features, and internal workings of the Ignis Documentation MCP Server. For a guide on how to use the server, see the [MCP Docs Server Quickstart](/guides/reference/mcp-docs-server).
 
 ---
 
@@ -202,7 +202,7 @@ The server exposes documentation as MCP resources for direct access:
 
 ```json
 {
-  "uri": "ignis://docs/get-started/intro.md",
+  "uri": "ignis://docs/guides/intro.md",
   "name": "Introduction",
   "description": "Getting Started - 450 words",
   "mimeType": "text/markdown"
@@ -531,7 +531,7 @@ export class MCPConfigs {
 
 ### For Developers
 
-1. **Document IDs**: Always use relative paths from wiki root (e.g., "get-started/intro.md")
+1. **Document IDs**: Always use relative paths from wiki root (e.g., "guides/intro.md")
 2. **Frontmatter**: Ensure all markdown files have `title` and `category` in frontmatter
 3. **Search Queries**: Use descriptive queries for better results (minimum 2 characters)
 4. **Result Limits**: Adjust limit parameter based on needs (default: 10, max: 50)

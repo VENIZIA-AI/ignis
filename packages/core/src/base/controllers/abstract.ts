@@ -1,7 +1,8 @@
 import { authenticate } from '@/components/auth';
+import { MetadataRegistry } from '@/helpers/inversion';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import { BaseHelper, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
   IController,
@@ -11,7 +12,6 @@ import {
   TRouteBindingOptions,
   TRouteDefinition,
 } from './common/types';
-import { MetadataRegistry } from '@/helpers/inversion';
 
 // -----------------------------------------------------------------------------
 export abstract class AbstractController<
@@ -25,11 +25,26 @@ export abstract class AbstractController<
 {
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
   definitions: Record<string, TAuthRouteConfig<RouteConfig>>;
+  path: string;
 
   // ------------------------------------------------------------------------------
   constructor(opts: IControllerOptions) {
     super(opts);
     const { isStrict = true } = opts;
+
+    // Resolve path: decorator metadata takes priority, then constructor option
+    const decoratorMetadata = MetadataRegistry.getInstance().getControllerMetadata({
+      target: new.target,
+    });
+    const resolvedPath = decoratorMetadata?.path ?? opts.path;
+
+    if (!resolvedPath) {
+      throw getError({
+        message: `[${new.target.name}] Controller path is required. Provide path via @controller decorator or constructor options.`,
+      });
+    }
+
+    this.path = resolvedPath;
 
     this.router = new OpenAPIHono<RouteEnv, RouteSchema, BasePath>({
       strict: isStrict,

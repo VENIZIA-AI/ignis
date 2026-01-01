@@ -242,7 +242,8 @@ import { Context } from 'hono';
 
 export class AuthenticationService extends BaseService implements IAuthService {
   constructor(
-    @inject({ key: 'services.JWTTokenService' }) private jwtService: JWTTokenService,
+    @inject({ key: 'services.JWTTokenService' })
+    private _jwtTokenService: JWTTokenService,
   ) {
     super({ scope: AuthenticationService.name });
   }
@@ -267,7 +268,7 @@ export class AuthenticationService extends BaseService implements IAuthService {
       // Add any other data you want in the token
     };
 
-    const token = await this.jwtService.generate({ payload });
+    const token = await this._jwtTokenService.generate({ payload });
     return { token };
   }
 

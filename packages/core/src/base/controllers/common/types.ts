@@ -113,6 +113,10 @@ export interface IController<
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IControllerOptions {
   scope: string;
-  path: string;
+  /**
+   * Controller base path. If not provided, will be read from @controller decorator.
+   * At least one of decorator path or constructor path must be provided.
+   */
+  path?: string;
   isStrict?: boolean;
 }

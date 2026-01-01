@@ -17,7 +17,7 @@ Documentation package housing guides, references, and MCP server for the Ignis f
 
 | Section | Content |
 |---------|---------|
-| `get-started/` | Tutorials, quickstart, core concepts, best practices |
+| `guides/` | Tutorials, quickstart, core concepts, best practices |
 | `references/` | API reference, components, helpers, base classes |
 | `.vitepress/` | Site configuration and theme |
 
@@ -61,7 +61,7 @@ This directory holds the actual documentation content and the VitePress configur
 | `.vitepress/`           | VitePress-specific configuration and theme files.                                                                              |
 | `.vitepress/config.mts` | The main configuration file for VitePress, defining the documentation's title, description, navigation, and sidebar structure. |
 | `.vitepress/theme/`     | Custom theme files for the VitePress documentation.                                                                            |
-| `get-started/`          | Guides and tutorials for getting started with `Ignis`.                                                                           |
+| `guides/`          | Guides and tutorials for getting started with `Ignis`.                                                                           |
 | `references/`           | Detailed reference documentation for various aspects of the framework.                                                         |
 | `index.md`              | The homepage content for the documentation site.                                                                               |
 | `logo.svg`              | The logo used in the documentation.                                                                                            |

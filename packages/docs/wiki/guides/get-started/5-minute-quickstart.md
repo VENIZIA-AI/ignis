@@ -2,7 +2,7 @@
 
 Build your first Ignis API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
 
-> **Prerequisites:** [Bun installed](./prerequisites.md#installation-quick-links) and basic TypeScript knowledge.
+> **Prerequisites:** [Bun installed](./setup) and basic TypeScript knowledge.
 
 ## Step 1: Create Project (30 seconds)
 
@@ -61,7 +61,7 @@ node_modules
 
 ## Step 3: Write Your API (2 minutes)
 
-Create `index.ts`:
+Create `src/index.ts`:
 
 ```typescript
 import { z } from "@hono/zod-openapi";
@@ -73,6 +73,7 @@ import {
   HTTP,
   IApplicationInfo,
   jsonContent,
+  SwaggerComponent,
 } from "@venizia/ignis";
 import { Context } from "hono";
 import appInfo from "./../package.json";
@@ -118,6 +119,7 @@ class App extends BaseApplication {
   }
 
   preConfigure() {
+    this.component(SwaggerComponent);
     this.controller(HelloController);
   }
 
@@ -173,8 +175,7 @@ Update `package.json` to add build scripts:
     "@venizia/dev-configs": "latest",
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
-    "tsc-alias": "^1.8.10",
-    "tsconfig-paths": "^4.2.0"
+    "tsc-alias": "^1.8.10"
   }
 }
 ```
@@ -199,7 +200,7 @@ echo "Cleaned build artifacts and logs"
 ## Step 4: Run It (30 seconds)
 
 ```bash
-bun run index.ts
+bun run src/index.ts
 ```
 
 Visit `http://localhost:3000/api/hello` in your browser!
@@ -210,16 +211,46 @@ Visit `http://localhost:3000/api/hello` in your browser!
 { "message": "Hello from Ignis!" }
 ```
 
-## What Just Happened?
-
-1. **`@controller`** - Registered a controller at `/api/hello`
-2. **`@get`** - Created a GET endpoint
-3. **Zod schema** - Auto-validates response and generates OpenAPI docs
-4. **`app.start()`** - Started HTTP server on port 3000
-
 ## View API Docs
 
-Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI documentation!
+Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI documentation!
+
+## What Just Happened?
+
+### Framework Patterns
+
+| Component | What It Does |
+|-----------|--------------|
+| `@controller` | Registers a class as an API controller at `/api/hello` |
+| `@get` | Defines a GET endpoint with OpenAPI metadata |
+| `Zod schema` | Validates request/response and auto-generates OpenAPI docs |
+| `BaseController` | Provides lifecycle hooks and route binding capabilities |
+| `BaseApplication` | Manages dependency injection, middleware, and server startup |
+| `SwaggerComponent` | Generates interactive API docs at `/doc/explorer` |
+| `app.start()` | Boots the DI container and starts HTTP server on port 3000 |
+
+### Why Development Configs?
+
+You might wonder why we set up TypeScript, ESLint, and Prettier configs in a "quickstart". Here's why:
+
+**Ignis is opinionated about code quality.** We believe clean, consistent code from day one prevents technical debt later. The `@venizia/dev-configs` package provides pre-configured settings that:
+
+| Config | Purpose |
+|--------|---------|
+| `tsconfig.json` | Strict TypeScript settings optimized for Ignis decorators and path aliases |
+| `eslint.config.mjs` | Catches common errors, enforces best practices, works with TypeScript |
+| `.prettierrc.mjs` | Consistent formatting across your team — no more style debates |
+
+**Benefits of starting with Ignis code style:**
+
+- **Consistency** — Same patterns across all Ignis projects
+- **IDE Support** — Better autocomplete, error detection, and refactoring
+- **Team Ready** — New developers can onboard faster with familiar structure
+- **CI/CD Friendly** — Lint and format checks work out of the box
+
+::: tip
+All configs extend from `@venizia/dev-configs`, so you get updates automatically. Customize by overriding specific rules in your local config files.
+:::
 
 ## Next Steps
 
@@ -228,7 +259,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 **Want more?**
 
 - **Add a database?** → [Building a CRUD API](./building-a-crud-api.md)
-- **Production setup?** → [Complete Setup Guide](./quickstart.md) (ESLint, Prettier, etc.)
+- **Production setup?** → [Complete Setup Guide](./complete-installation) (ESLint, Prettier, etc.)
 - **Understand the architecture?** → [Core Concepts](./core-concepts/application.md)
 
 **Quick additions:**

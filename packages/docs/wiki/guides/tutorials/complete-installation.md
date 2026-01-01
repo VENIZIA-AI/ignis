@@ -1,8 +1,8 @@
-# Quickstart Guide
+# Complete Installation
 
 This guide walks you through creating a new web application with Ignis and setting up a professional development environment.
 
-> **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](./prerequisites.md) before starting.
+> **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](./setup) before starting.
 
 ## 1. Initialize Your Project
 
@@ -30,7 +30,7 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis dotenv-
 ### Development Dependencies
 
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs tsc-alias tsconfig-paths
+bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
 ```
 
 **What `@venizia/dev-configs` provides:**
@@ -39,7 +39,7 @@ bun add -d typescript @types/bun @venizia/dev-configs tsc-alias tsconfig-paths
 - Shared TypeScript base configs
 - Consistent code style across all Ignis projects
 
-> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
+> **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api).
 
 ## 3. Configure Development Tools
 
@@ -108,7 +108,7 @@ export default eslintConfigs;
 > export default [...eslintConfigs, { rules: { 'no-console': 'warn' } }];
 > ```
 
-> **Deep Dive:** See [Code Style Standards](./best-practices/code-style-standards.md) for detailed configuration options.
+> **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards) for detailed configuration options.
 
 :::tip Coming from Express/Hono/Fastify?
 This setup might seem verbose compared to minimal frameworks. The trade-off: ~50 lines of config upfront gives you scalable architecture for 10-1000+ endpoints without spaghetti code. For quick prototypes (< 5 endpoints), use plain Hono instead.
@@ -119,24 +119,48 @@ This setup might seem verbose compared to minimal frameworks. The trade-off: ~50
 ### Create Project Structure
 
 ```bash
-mkdir -p src/controllers
+mkdir -p src/{common,components,configurations,controllers,datasources,helpers,models/{entities,requests,responses},repositories,services,utilities}
 ```
 
 Your structure will look like:
 ```
 src/
-├── application.ts
-├── index.ts
-└── controllers/
-    └── hello.controller.ts
+├── index.ts                # Entry point
+├── application.ts          # Application class
+├── common/
+│   └── index.ts            # Shared constants, types, bindings
+├── components/
+│   └── index.ts            # Reusable modules (auth, swagger, etc.)
+├── configurations/
+│   └── index.ts            # App configuration files
+├── controllers/
+│   ├── index.ts            # Export all controllers
+│   └── hello.controller.ts
+├── datasources/
+│   └── index.ts            # Database connections
+├── helpers/
+│   └── index.ts            # Helper functions and classes
+├── models/
+│   ├── index.ts            # Export all models
+│   ├── entities/           # Drizzle schema definitions
+│   ├── requests/           # Request DTOs (Zod schemas)
+│   └── responses/          # Response DTOs (Zod schemas)
+├── repositories/
+│   └── index.ts            # Data access layer
+├── services/
+│   └── index.ts            # Business logic
+└── utilities/
+    └── index.ts            # Utility functions
 ```
+
+> **Note:** For this guide, we only use `controllers/`. Other folders will be used in the [CRUD Tutorial](./building-a-crud-api) when you add database support.
 
 ### Create Application Class
 
 Create `src/application.ts` - this is where you configure and register all your application resources:
 
 ```typescript
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers/hello.controller';
 import packageJson from '../package.json';
 
@@ -150,7 +174,15 @@ export const appConfigs: IApplicationConfigs = {
 export class Application extends BaseApplication {
   // Required: Tell the framework about your app (used for API docs)
   override getAppInfo(): ValueOrPromise<IApplicationInfo> {
+    // Option 1: Read from package.json (recommended for consistency)
     return packageJson;
+
+    // Option 2: Static app info (if package.json doesn't have correct fields)
+    // return {
+    //   name: 'my-app',
+    //   version: '1.0.0',
+    //   description: 'My Ignis application',
+    // };
   }
 
   // Hook 1: Configure static file serving (e.g., serve images from /public)
@@ -158,20 +190,31 @@ export class Application extends BaseApplication {
     // Example: this.static({ folderPath: './public' })
   }
 
-  // Hook 2: Add global middlewares (CORS, compression, etc.)
-  setupMiddlewares(): ValueOrPromise<void> {
-    // Example: this.server.use(cors())
+  // Hook 2: Add global middlewares (CORS, etc.)
+  override async setupMiddlewares(): Promise<void> {
+    const server = this.getServer();
+    const { cors } = await import('hono/cors');
+
+    server.use('*', cors({
+      origin: '*',
+      allowMethods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
+      maxAge: 86_400,
+      credentials: true,
+    }));
   }
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
   preConfigure(): ValueOrPromise<void> {
+    // Register SwaggerComponent for API documentation at /doc/explorer
+    this.component(SwaggerComponent);
+
     // As your app grows, you'll add:
     // this.dataSource(PostgresDataSource);    // Database connection
     // this.repository(UserRepository);        // Data access layer
     // this.service(UserService);              // Business logic
     // this.component(AuthComponent);          // Auth setup
 
-    // For now, just register our controller
+    // Register our controller
     this.controller(HelloController);
   }
 
@@ -181,6 +224,17 @@ export class Application extends BaseApplication {
   }
 }
 ```
+
+::: info IApplicationInfo
+**Required fields in `package.json`:**
+- `name` — App name (shown in API docs title)
+- `version` — App version (shown in API docs)
+- `description` — App description (shown in API docs)
+
+**No proper `package.json`?** Use static app info instead (see Option 2 in code above).
+
+**Recommendation:** Read from `package.json` for consistency between app metadata and API docs.
+:::
 
 **Key takeaway:** You'll mostly work in `preConfigure()` when building your app. The other hooks are there when you need them.
 
@@ -193,7 +247,7 @@ export class Application extends BaseApplication {
 | `preConfigure()` | **Register resources** | **Main hook** - register controllers, services, etc. |
 | `postConfigure()` | Post-initialization | Optional - seed data, background jobs |
 
-> **Deep Dive:** See [Application Class Reference](./core-concepts/application.md) for detailed lifecycle documentation.
+> **Deep Dive:** See [Application Class Reference](./core-concepts/application) for detailed lifecycle documentation.
 
 ### Create Controller
 
@@ -203,7 +257,7 @@ Create `src/controllers/hello.controller.ts` - controllers handle HTTP requests 
 import {
   BaseController,
   controller,
-  get, // Import the 'get' decorator
+  api,
   HTTP,
   jsonContent,
 } from '@venizia/ignis';
@@ -220,9 +274,18 @@ export class HelloController extends BaseController {
     super({ scope: HelloController.name, path: BASE_PATH });
   }
 
-  // The @get decorator defines a GET route at /api/hello/
-  @get({
+  // Required: Override binding() to register routes or dependencies
+  override binding() {
+    // Option 1: Use bindRoute() or defineRoute() for programmatic route registration
+    // this.bindRoute({ method: 'get', path: '/programmatic', handler: this.myHandler });
+
+    // Option 2: Use @api decorator on methods (shown below) - recommended
+  }
+
+  // The @api decorator defines a route (prefer @api with method over @get/@post)
+  @api({
     configs: {
+      method: HTTP.Methods.GET,
       path: '/',
       // This 'responses' config does two things:
       // 1. Generates OpenAPI/Swagger documentation automatically
@@ -230,34 +293,31 @@ export class HelloController extends BaseController {
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
           description: 'A simple hello message',
-          schema: z.object({ message: z.string() }), // Zod schema for validation
+          schema: z.object({ message: z.string() }),
         }),
       },
     },
   })
   sayHello(c: Context) {
-    // This looks just like Hono! Because it IS Hono under the hood.
     return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  // You can add more routes here:
-  // @post({ configs: { ... } })
-  // createSomething(c: Context) { ... }
-
-  // For authenticated endpoints, add 'authStrategies' to the configs:
-  // @get({ configs: { path: '/secure', authStrategies: [Authentication.STRATEGY_JWT] } })
-  // secureMethod(c: Context) { /* ... */ }
-
-  // For database CRUD operations, use ControllerFactory (covered in the CRUD tutorial)
+  // For authenticated endpoints, add 'authStrategies':
+  // @api({ configs: { method: HTTP.Methods.GET, path: '/secure', authStrategies: [Authentication.STRATEGY_JWT] } })
 }
 ```
 
-**Controller Decorators:**
-- `@controller` - Registers the class as a controller with a base path
-- `@get`, `@post`, `@put`, `@patch`, `@del` - Define HTTP endpoints
-- Zod schemas provide automatic validation and OpenAPI docs
+**Controller Patterns:**
 
-> **Deep Dive:** See [Controllers Reference](./core-concepts/controllers.md) for advanced routing patterns and validation.
+| Pattern | Description |
+|---------|-------------|
+| `@controller` | Registers the class as a controller with a base path |
+| `@api` | Defines a route with `method` specified (recommended) |
+| `@get`, `@post`, etc. | Shorthand decorators (also work) |
+| `binding()` | Required override — use `bindRoute()` or `defineRoute()` for programmatic routes |
+| Zod schemas | Provide automatic validation and OpenAPI docs |
+
+> **Deep Dive:** See [Controllers Reference](./core-concepts/controllers) for advanced routing patterns and validation.
 
 ### Create Entry Point
 
@@ -296,16 +356,14 @@ Add common application scripts to your `package.json`:
     "prettier:fix": "bun run prettier:cli --write",
     "eslint": "eslint --report-unused-disable-directives .",
     "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
-    "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/my_app",
     "clean": "sh ./scripts/clean.sh",
     "rebuild": "bun run clean && bun run build",
-    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
-    "preserver:dev": "bun run rebuild",
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."
 }
 ```
+
+> **Note:** Database migration scripts (`migrate:dev`, `generate-migration:dev`) will be added in the [CRUD Tutorial](./building-a-crud-api) when you set up Drizzle ORM.
 
 Create a cleanup script at `scripts/clean.sh`:
 
@@ -339,6 +397,10 @@ Response:
 {"message":"Hello, World!"}
 ```
 
+**View API Documentation:**
+
+Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI with your endpoints.
+
 Congratulations! You have successfully created and configured your first application with the `Ignis` framework.
 
 ## Continue Your Journey
@@ -347,8 +409,8 @@ Congratulations! You have successfully created and configured your first applica
 
 **Next steps:**
 
-1. **[Building a CRUD API](./building-a-crud-api.md)** - Add database, create full REST API with CRUD operations
-2. **[Core Concepts](./core-concepts/application.md)** - Deep dive into application architecture
-3. **[Best Practices](./best-practices/architectural-patterns.md)** - Learn recommended patterns and practices
+1. **[Building a CRUD API](./building-a-crud-api)** - Add database, create full REST API with CRUD operations
+2. **[Core Concepts](./core-concepts/application)** - Deep dive into application architecture
+3. **[Best Practices](/best-practices/architectural-patterns)** - Learn recommended patterns and practices
 
-> **Deep Dive:** See [API Usage Examples](./best-practices/api-usage-examples.md) for more routing patterns and controller techniques.
+> **Deep Dive:** See [API Usage Examples](/best-practices/api-usage-examples) for more routing patterns and controller techniques.

@@ -170,3 +170,80 @@ You would then bind this provider in your application:
 this.bind<ThirdPartyApiClient>({ key: 'services.ApiClient' })
   .toProvider(ApiClientProvider);
 ```
+
+## Standalone Containers
+
+You can create independent DI containers using the `Container` class directly. These containers are **completely separate** from the application's context and do not share any bindings.
+
+### Creating an Independent Container
+
+```typescript
+import { Container, BindingScopes } from '@venizia/ignis-inversion';
+
+// Create a standalone container
+const container = new Container({ scope: 'MyCustomContainer' });
+
+// Bind dependencies
+container.bind({ key: 'config.apiKey' }).toValue('my-secret-key');
+container.bind({ key: 'services.Logger' }).toClass(LoggerService);
+container.bind({ key: 'services.Cache' })
+  .toClass(CacheService)
+  .setScope(BindingScopes.SINGLETON);
+
+// Resolve dependencies
+const logger = container.get<LoggerService>({ key: 'services.Logger' });
+const apiKey = container.getSync<string>({ key: 'config.apiKey' });
+```
+
+### Use Cases
+
+| Use Case | Description |
+|----------|-------------|
+| **Unit Testing** | Create isolated containers with mock dependencies for each test |
+| **Isolated Modules** | Build self-contained modules with their own dependency graph |
+| **Multi-Tenancy** | Separate containers per tenant with tenant-specific configurations |
+| **Worker Threads** | Independent containers for background workers |
+| **Plugin Systems** | Each plugin gets its own container to prevent conflicts |
+
+### Example: Testing with Isolated Container
+
+```typescript
+import { Container } from '@venizia/ignis-inversion';
+import { describe, it, expect, beforeEach } from 'bun:test';
+
+describe('UserService', () => {
+  let container: Container;
+
+  beforeEach(() => {
+    // Fresh container for each test
+    container = new Container({ scope: 'TestContainer' });
+
+    // Bind mock dependencies
+    container.bind({ key: 'repositories.UserRepository' }).toValue({
+      findById: async () => ({ id: '1', name: 'Test User' }),
+    });
+
+    container.bind({ key: 'services.UserService' }).toClass(UserService);
+  });
+
+  it('should find user by id', async () => {
+    const userService = container.get<UserService>({ key: 'services.UserService' });
+    const user = await userService.findById({ id: '1' });
+
+    expect(user.name).toBe('Test User');
+  });
+});
+```
+
+### Container vs Application
+
+| Aspect | `Application` (extends Container) | Standalone `Container` |
+|--------|-----------------------------------|------------------------|
+| **Purpose** | Full HTTP server with routing, middleware | Pure dependency injection |
+| **Bindings** | Shared across entire application | Isolated, no sharing |
+| **Lifecycle** | Managed by framework | You control it |
+| **Use Case** | Main application | Testing, isolated modules, workers |
+
+::: tip
+The `Application` class extends `Container`, so all container methods (`bind`, `get`, `getSync`) are available on your application instance. Standalone containers are useful when you need isolation from the main application context.
+:::

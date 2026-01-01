@@ -291,6 +291,6 @@ If you outgrow Ignis:
 
 Ready to get started?
 
-1. [Check Prerequisites](./prerequisites.md) - Install required tools
-2. [Quickstart Guide](./quickstart.md) - Build your first endpoint
+1. [Check Prerequisites](./setup.md) - Install required tools
+2. [Complete Installation](./complete-installation) - Build your first endpoint
 3. [CRUD Tutorial](./building-a-crud-api.md) - Build a complete API

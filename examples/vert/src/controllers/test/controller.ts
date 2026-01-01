@@ -16,7 +16,6 @@ export class TestController extends BaseController {
     super({
       ...opts,
       scope: TestController.name,
-      path: '/test',
     });
   }
 

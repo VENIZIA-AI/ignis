@@ -74,8 +74,8 @@ import { BaseController, controller, get, post, HTTP, jsonContent, jsonResponse,
 import { z } from '@hono/zod-openapi';
 
 // Define route configs as const for type inference
-const TEST_ROUTES = {
-  getData: {
+const TestRoutes = {
+  GET_DATA: {
     method: HTTP.Methods.GET,
     path: '/',
     responses: jsonResponse({
@@ -83,7 +83,7 @@ const TEST_ROUTES = {
       schema: z.object({ message: z.string(), method: z.string() }),
     }),
   },
-  createItem: {
+  CREATE_ITEM: {
     method: HTTP.Methods.POST,
     path: '/',
     request: {
@@ -105,18 +105,18 @@ export class MyItemsController extends BaseController {
     super({ scope: MyItemsController.name, path: '/my-items' });
   }
 
-  @get({ configs: TEST_ROUTES.getData })
-  getData(c: TRouteContext<typeof TEST_ROUTES.getData>) { // Return type is automatically inferred
+  @get({ configs: TestRoutes.GET_DATA })
+  getData(c: TRouteContext<typeof TestRoutes.GET_DATA>) { // Return type is automatically inferred
     // 'c' is fully typed here, including c.req.valid and c.json return type
     return c.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  @post({ configs: TEST_ROUTES.createItem })
-  createItem(c: TRouteContext<typeof TEST_ROUTES.createItem>) { // Return type is automatically inferred
-    // c.req.valid('json') is automatically typed based on createItem.request.body.content['application/json'].schema
+  @post({ configs: TestRoutes.CREATE_ITEM })
+  createItem(c: TRouteContext<typeof TestRoutes.CREATE_ITEM>) { // Return type is automatically inferred
+    // c.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json'].schema
     const body = c.req.valid('json');
 
-    // Return type is automatically validated against createItem.responses[200].content['application/json'].schema
+    // Return type is automatically validated against CREATE_ITEM.responses[200].content['application/json'].schema
     return c.json(
       {
         id: 'some-uuid',
@@ -409,7 +409,7 @@ import { jsonContent, put, TRouteContext, HTTP } from '@venizia/ignis';
 
 // ... inside a controller class
 
-const updateUserConfig = {
+const UpdateUserConfig = {
   path: '/:id',
   method: 'put',
   request: {
@@ -422,8 +422,8 @@ const updateUserConfig = {
   // ... responses
 } as const; // Use 'as const' for strict type inference
 
-@put({ configs: updateUserConfig })
-updateUser(c: TRouteContext<typeof updateUserConfig>) {
+@put({ configs: UpdateUserConfig })
+updateUser(c: TRouteContext<typeof UpdateUserConfig>) {
   // Access validated data from the request
   const { id } = c.req.valid('param');
   const { notify } = c.req.valid('query');

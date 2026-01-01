@@ -9,8 +9,8 @@ This reference provides an exhaustive guide for the Ignis filter system, coverin
 
 > [!NOTE]
 > This is an advanced reference document. If you're new to Ignis, start with:
-> - [5-Minute Quickstart](/get-started/5-minute-quickstart) - Get up and running
-> - [Building a CRUD API](/get-started/building-a-crud-api) - Learn the basics
+> - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Get up and running
+> - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
 > - [Repositories](/references/base/repositories) - Repository overview
 
 ## Table of Contents
@@ -176,7 +176,7 @@ import { Product, TProductSchema } from '@/models';
 export class ProductController extends BaseController {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
-    private productRepo: ProductRepository,
+    private _productRepo: ProductRepository,
   ) {
     super({ scope: 'ProductController', path: '/products' });
   }
@@ -195,7 +195,7 @@ export class ProductController extends BaseController {
         const { filter = {} } = context.req.valid('query');
 
         // Pass filter to repository
-        const results = await this.productRepo.find({ filter });
+        const results = await this._productRepo.find({ filter });
 
         return context.json(results);
       },
@@ -218,7 +218,7 @@ export class ProductController extends BaseController {
           limit: 10,
         };
 
-        const results = await this.productRepo.find({ filter });
+        const results = await this._productRepo.find({ filter });
         return context.json(results);
       },
     });
@@ -241,7 +241,7 @@ import { Product, TProductSchema } from '@/models';
 export class ProductService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
-    private productRepo: ProductRepository,
+    private _productRepo: ProductRepository,
   ) {}
 
   /**
@@ -257,7 +257,7 @@ export class ProductService {
       },
     };
 
-    return this.productRepo.find({ filter: enhancedFilter });
+    return this._productRepo.find({ filter: enhancedFilter });
   }
 
   /**
@@ -275,7 +275,7 @@ export class ProductService {
       },
     };
 
-    return this.productRepo.find({ filter: isolatedFilter });
+    return this._productRepo.find({ filter: isolatedFilter });
   }
 
   /**
@@ -315,7 +315,7 @@ export class ProductService {
       where.category = category;
     }
 
-    return this.productRepo.find({
+    return this._productRepo.find({
       filter: {
         where,
         order: ['createdAt DESC'],
@@ -341,11 +341,11 @@ export class ProductRepository extends DefaultCRUDRepository<TProductSchema> {
   /**
    * Custom method with internal filter logic
    */
-  async findActiveByCategory(category: string) {
+  async findActiveByCategory(opts: { category: string }) {
     return this.find({
       filter: {
         where: {
-          category,
+          category: opts.category,
           status: 'active',
           quantity: { gt: 0 },
         },

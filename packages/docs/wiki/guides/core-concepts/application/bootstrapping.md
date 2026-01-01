@@ -560,7 +560,7 @@ npx glob "your-pattern/**/*.controller.js"
 
 ## Related Documentation
 
-- [Boot Package Reference](/references/src-details/boot.md)
-- [Application Concepts](/get-started/core-concepts/application.md)
-- [Dependency Injection](/references/base/dependency-injection.md)
-- [Building a CRUD API](/get-started/building-a-crud-api.md)
+- [Boot Package Reference](../../../references/src-details/boot.md)
+- [Application Overview](./)
+- [Dependency Injection](../../../references/base/dependency-injection.md)
+- [Building a CRUD API](../../building-a-crud-api.md)

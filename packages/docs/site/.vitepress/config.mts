@@ -15,12 +15,10 @@ const config = defineConfig({
     },
 
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Get Started', link: '/get-started/' },
-      { text: 'Core Concepts', link: '/get-started/core-concepts/application' },
-      { text: 'Best Practices', link: '/get-started/best-practices/architectural-patterns' },
-      { text: 'Reference(s)', link: '/references/components/' },
-      { text: 'Change Log(s)', link: '/changelogs/' },
+      { text: 'Guide(s)', link: '/guides/' },
+      { text: 'API(s)', link: '/references/' },
+      { text: 'Best Practice(s)', link: '/best-practices/' },
+      { text: 'Changelog(s)', link: '/changelogs/' },
     ],
 
     sidebar: {
@@ -133,19 +131,43 @@ const config = defineConfig({
           ],
         },
       ],
-      '/get-started/': [
+      '/best-practices/': [
+        {
+          text: 'Best Practices',
+          items: [
+            { text: 'Overview', link: '/best-practices/' },
+            { text: 'Architectural Patterns', link: '/best-practices/architectural-patterns' },
+            { text: 'Architecture Decisions', link: '/best-practices/architecture-decisions' },
+            { text: 'Data Modeling', link: '/best-practices/data-modeling' },
+            { text: 'Performance Optimization', link: '/best-practices/performance-optimization' },
+            { text: 'Security Guidelines', link: '/best-practices/security-guidelines' },
+            { text: 'Code Style Standards', link: '/best-practices/code-style-standards' },
+            { text: 'Deployment Strategies', link: '/best-practices/deployment-strategies' },
+            { text: 'Common Pitfalls', link: '/best-practices/common-pitfalls' },
+            { text: 'Troubleshooting Tips', link: '/best-practices/troubleshooting-tips' },
+            { text: 'API Usage Examples', link: '/best-practices/api-usage-examples' },
+            { text: 'Contribution Workflow', link: '/best-practices/contribution-workflow' },
+          ],
+        },
+      ],
+      '/guides/': [
         {
           text: 'Get Started',
           items: [
-            { text: 'Overview', link: '/get-started/' },
-            { text: 'Glossary', link: '/get-started/glossary' },
-            { text: 'Prerequisites', link: '/get-started/prerequisites' },
-            { text: 'IDE Setup', link: '/get-started/ide-setup' },
-            { text: 'Philosophy', link: '/get-started/philosophy' },
-            { text: '5-Minute Quickstart ⚡', link: '/get-started/5-minute-quickstart' },
-            { text: 'Complete Setup Guide', link: '/get-started/quickstart' },
-            { text: 'Building a CRUD API', link: '/get-started/building-a-crud-api' },
-            { text: 'MCP Docs Server', link: '/get-started/mcp-docs-server' },
+            { text: 'Overview', link: '/guides/' },
+            { text: 'Philosophy', link: '/guides/get-started/philosophy' },
+            { text: 'Setup', link: '/guides/get-started/setup' },
+            { text: '5-Minute Quickstart', link: '/guides/get-started/5-minute-quickstart' },
+          ],
+        },
+        {
+          text: 'Tutorials',
+          items: [
+            { text: 'Complete Installation', link: '/guides/tutorials/complete-installation' },
+            { text: 'Building a CRUD API', link: '/guides/tutorials/building-a-crud-api' },
+            { text: 'E-commerce API', link: '/guides/tutorials/ecommerce-api' },
+            { text: 'Real-Time Chat', link: '/guides/tutorials/realtime-chat' },
+            { text: 'Testing', link: '/guides/tutorials/testing' },
           ],
         },
         {
@@ -153,85 +175,57 @@ const config = defineConfig({
           items: [
             {
               text: 'Application',
-              link: '/get-started/core-concepts/application',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/guides/core-concepts/application/' },
+                { text: 'Bootstrapping', link: '/guides/core-concepts/application/bootstrapping' },
+              ],
             },
-            {
-              text: 'Controllers',
-              link: '/get-started/core-concepts/controllers',
-            },
-            {
-              text: 'Dependency Injection',
-              link: '/get-started/core-concepts/dependency-injection',
-            },
+            { text: 'Controllers', link: '/guides/core-concepts/controllers' },
+            { text: 'Dependency Injection', link: '/guides/core-concepts/dependency-injection' },
             {
               text: 'Components',
-              link: '/get-started/core-concepts/components',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/guides/core-concepts/components' },
+                { text: 'Creating Components', link: '/guides/core-concepts/components-guide' },
+              ],
             },
-            {
-              text: 'Services',
-              link: '/get-started/core-concepts/services',
-            },
+            { text: 'Services', link: '/guides/core-concepts/services' },
             {
               text: 'Persistent Layer',
-              link: '/get-started/core-concepts/persistent',
-            },
-            {
-              text: 'Bootstrapping',
-              link: '/get-started/core-concepts/bootstrapping',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/guides/core-concepts/persistent/' },
+                { text: 'Models', link: '/guides/core-concepts/persistent/models' },
+                { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
+                { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
+                { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },
+              ],
             },
           ],
         },
         {
-          text: 'Best Practices',
+          text: 'Reference',
+          collapsed: true,
           items: [
-            {
-              text: 'Architectural Patterns',
-              link: '/get-started/best-practices/architectural-patterns',
-            },
-            {
-              text: 'Data Modeling',
-              link: '/get-started/best-practices/data-modeling',
-            },
-            {
-              text: 'Performance Optimization',
-              link: '/get-started/best-practices/performance-optimization',
-            },
-            {
-              text: 'Security Guidelines',
-              link: '/get-started/best-practices/security-guidelines',
-            },
-            {
-              text: 'Code Style Standards',
-              link: '/get-started/best-practices/code-style-standards',
-            },
-            {
-              text: 'Deployment Strategies',
-              link: '/get-started/best-practices/deployment-strategies',
-            },
-            {
-              text: 'Common Pitfalls',
-              link: '/get-started/best-practices/common-pitfalls',
-            },
-            {
-              text: 'Troubleshooting Tips',
-              link: '/get-started/best-practices/troubleshooting-tips',
-            },
-            {
-              text: 'API Usage Examples',
-              link: '/get-started/best-practices/api-usage-examples',
-            },
-            {
-              text: 'Contribution Workflow',
-              link: '/get-started/best-practices/contribution-workflow',
-            },
+            { text: 'Glossary', link: '/guides/reference/glossary' },
+            { text: 'MCP Docs Server', link: '/guides/reference/mcp-docs-server' },
           ],
         },
       ],
-      '/references': [
+      '/references/': [
+        {
+          text: 'API Reference',
+          items: [
+            { text: 'Overview', link: '/references/' },
+          ],
+        },
         {
           text: 'Configuration',
           collapsed: true,
           items: [
+            { text: 'Overview', link: '/references/configuration/' },
             { text: 'Environment Variables', link: '/references/configuration/environment-variables' },
           ],
         },
@@ -249,6 +243,10 @@ const config = defineConfig({
               link: '/references/components/health-check',
             },
             {
+              text: 'Mail',
+              link: '/references/components/mail',
+            },
+            {
               text: 'Request Tracker',
               link: '/references/components/request-tracker',
             },
@@ -261,6 +259,7 @@ const config = defineConfig({
           text: 'Base Abstractions',
           collapsed: true,
           items: [
+            { text: 'Overview', link: '/references/base/' },
             { text: 'Application', link: '/references/base/application' },
             { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
             { text: 'Components', link: '/references/base/components' },
@@ -301,6 +300,7 @@ const config = defineConfig({
             { text: 'Socket.IO', link: '/references/helpers/socket-io' },
             { text: 'Storage', link: '/references/helpers/storage' },
             { text: 'Testing', link: '/references/helpers/testing' },
+            { text: 'Types', link: '/references/helpers/types' },
             { text: 'UID', link: '/references/helpers/uid' },
             {
               text: 'Worker Thread',
@@ -327,6 +327,7 @@ const config = defineConfig({
           text: 'Framework Internals',
           collapsed: true,
           items: [
+            { text: 'Overview', link: '/references/src-details/' },
             { text: 'Core (@vez/ignis)', link: '/references/src-details/core' },
             { text: 'Boot (@vez/ignis-boot)', link: '/references/src-details/boot' },
             { text: 'Helpers (@vez/ignis-helpers)', link: '/references/src-details/helpers' },

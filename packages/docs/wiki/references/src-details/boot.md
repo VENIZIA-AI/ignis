@@ -80,7 +80,7 @@ import { inject } from '@venizia/ignis-inversion';
 export class CustomBooter extends BaseArtifactBooter {
   constructor(
     @inject({ key: '@app/project_root' }) root: string,
-    @inject({ key: '@app/instance' }) private app: IApplication,
+    @inject({ key: '@app/instance' }) private _app: IApplication,
     @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions,
   ) {
     super({ 
@@ -373,7 +373,7 @@ await app.start(); // Calls initialize() which triggers boot
 
 ## Related Documentation
 
-- [Bootstrapping Concepts](/get-started/core-concepts/bootstrapping.md)
-- [Application Guide](/get-started/core-concepts/application.md)
+- [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
+- [Application Guide](/guides/core-concepts/application/)
 - [Dependency Injection](/references/base/dependency-injection.md)
 - [Core Package](/references/src-details/core.md)

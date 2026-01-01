@@ -4,9 +4,9 @@ Build a complete, database-backed REST API for managing todos. This guide covers
 
 ## Prerequisites
 
-- ✅ Completed [Quickstart Guide](./quickstart.md)
+- ✅ Completed [Complete Installation](./complete-installation)
 - ✅ PostgreSQL installed and running
-- ✅ Database created (see [Prerequisites](./prerequisites.md))
+- ✅ Database created (see [Prerequisites](./setup))
 
 ## What You'll Build
 
@@ -28,63 +28,47 @@ Build a complete, database-backed REST API for managing todos. This guide covers
 Here's how a request flows through your application:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     HTTP Request                             │
-│              GET /api/todos/:id                              │
-└────────────────────┬────────────────────────────────────────┘
-                     │
-                     ▼
-           ┌──────────────────┐
-           │ TodoController   │  ← Handles HTTP, validates input
-           │                  │
-           │ @get('/api/...')│
-           └─────────┬────────┘
-                     │
-                     │ calls repository.findById()
-                     ▼
-           ┌──────────────────┐
-           │ TodoRepository   │  ← Type-safe data access
-           │                  │
-           │ findById(id)     │
-           └─────────┬────────┘
-                     │
-                     │ uses dataSource.connector
-                     ▼
-           ┌──────────────────┐
-           │PostgresDataSource│  ← Database connection
-           │                  │
-           │ Drizzle ORM      │
-           └─────────┬────────┘
-                     │
-                     │ executes SQL query
-                     ▼
-           ┌──────────────────┐
-           │   PostgreSQL     │  ← Actual database
-           │                  │
-           │   Todo table     │
-           └─────────┬────────┘
-                     │
-                     │ returns data
-                     ▼
-           ┌──────────────────┐
-           │   JSON Response  │
-           │                  │
-           │ { id, title,..} │
-           └──────────────────┘
+HTTP Request (GET /api/todos/:id)
+            │
+            ▼
+   ┌─────────────────┐
+   │ TodoController  │  ← Handles HTTP, validates input
+   └────────┬────────┘
+            │ calls repository.findById()
+            ▼
+   ┌─────────────────┐
+   │ TodoRepository  │  ← Type-safe data access
+   └────────┬────────┘
+            │ uses dataSource.connector
+            ▼
+   ┌─────────────────┐
+   │PostgresDataSource│ ← Database connection (Drizzle ORM)
+   └────────┬────────┘
+            │ executes SQL query
+            ▼
+   ┌─────────────────┐
+   │   PostgreSQL    │  ← Actual database
+   └────────┬────────┘
+            │ returns data
+            ▼
+      JSON Response
 ```
 
 **Key Points:**
-1. **Controller** - Entry point for HTTP requests
-2. **Repository** - Abstracts database operations (you could swap PostgreSQL for MySQL without changing controller)
-3. **DataSource** - Manages connection to database
-4. **Model** - Defines what the data looks like
 
-This separation makes code:
-- **Testable** - Mock repository in tests
-- **Maintainable** - Clear responsibility for each layer
-- **Flexible** - Change database without touching business logic
+| Layer | Responsibility |
+|-------|----------------|
+| **Controller** | Entry point for HTTP requests |
+| **Repository** | Abstracts database operations (swap PostgreSQL for MySQL without changing controller) |
+| **DataSource** | Manages connection to database |
+| **Model** | Defines what the data looks like |
 
-## Step 0: Install Database Dependencies
+**Benefits of this separation:**
+- **Testable** — Mock repository in tests
+- **Maintainable** — Clear responsibility for each layer
+- **Flexible** — Change database without touching business logic
+
+## Step 1: Install Database Dependencies
 
 ```bash
 # Add database packages
@@ -94,7 +78,7 @@ bun add drizzle-orm drizzle-zod pg lodash
 bun add -d drizzle-kit @types/pg @types/lodash
 ```
 
-## Step 1: Define the Model
+## Step 2: Define the Model
 
 Models combine Drizzle ORM schemas with Entity classes to define your data structure.
 
@@ -145,9 +129,9 @@ export class Todo extends BaseEntity<typeof Todo.schema> {
 - `generateIdColumnDefs()` - Adds `id` column (text with UUID default, or auto-incrementing number)
 - `generateTzColumnDefs()` - Adds `createdAt` and `modifiedAt` timestamps
 
-> **Deep Dive:** See [Models & Enrichers Reference](../references/base/models.md#schema-enrichers) for all available enrichers and options.
+> **Deep Dive:** See [Models & Enrichers Reference](/references/base/models#schema-enrichers) for all available enrichers and options.
 
-## Step 2: Configure Database Connection
+## Step 3: Configure Database Connection
 
 ### Understanding Environment Variables
 
@@ -157,8 +141,10 @@ Environment variables store configuration outside code (in `.env` files). Benefi
 // ❌ BAD: Hardcoded values
 const password = "secret123";  // In Git history forever!
 
-// ✅ GOOD: Environment variable
-const password = process.env.DB_PASSWORD;  // From .env file
+// ✅ GOOD: Environment variable with APP_ENV_ prefix
+const password = process.env.APP_ENV_DB_PASSWORD;
+// or
+const password = Bun.env.APP_ENV_DB_PASSWORD;
 ```
 
 Ignis uses `APP_ENV_` prefix to prevent conflicts with system variables.
@@ -178,7 +164,7 @@ APP_ENV_POSTGRES_DATABASE=todo_db
 
 **Replace these values:**
 - `your_password_here` - Your PostgreSQL password (or leave blank if no password)
-- `todo_db` - The database you created in [Prerequisites](./prerequisites.md#database-setup)
+- `todo_db` - The database you created in [Prerequisites](./setup#database-setup)
 
 **Important:** Add `.env` to your `.gitignore`:
 ```bash
@@ -257,9 +243,9 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 - Uses environment variables for connection config
 - Implements connection lifecycle methods (`connect()`, `disconnect()`)
 
-> **Deep Dive:** See [DataSources Reference](../references/base/datasources.md) for advanced configuration and multiple database support.
+> **Deep Dive:** See [DataSources Reference](/references/base/datasources) for advanced configuration and multiple database support.
 
-## Step 3: Create the Repository
+## Step 4: Create the Repository
 
 Repositories provide type-safe CRUD operations using `DefaultCRUDRepository`.
 
@@ -280,11 +266,22 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 ```
 
 **Available Methods:**
-`create()`, `find()`, `findOne()`, `findById()`, `updateById()`, `updateAll()`, `deleteById()`, `deleteAll()`, `count()`
 
-> **Deep Dive:** See [Repositories Reference](../references/base/repositories.md) for query options and advanced filtering.
+| Method | Description |
+|--------|-------------|
+| `create()` | Insert new record(s) |
+| `find()` | Query multiple records with filters |
+| `findOne()` | Get single record by filter |
+| `findById()` | Get record by ID |
+| `updateById()` | Update record by ID |
+| `updateAll()` | Update multiple records |
+| `deleteById()` | Delete record by ID |
+| `deleteAll()` | Delete multiple records |
+| `count()` | Count matching records |
 
-## Step 4: Create the Controller
+> **Deep Dive:** See [Repositories Reference](/references/base/repositories) for query options and advanced filtering.
+
+## Step 5: Create the Controller
 
 `ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 
@@ -344,15 +341,15 @@ export class TodoController extends _Controller {
 | DELETE | `/todos/:id` | Delete todo by ID (deleteById) |
 | DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
-> **Deep Dive:** See [ControllerFactory Reference](../references/base/controllers.md#controllerfactory) for customization options.
+> **Deep Dive:** See [ControllerFactory Reference](/references/base/controllers#controllerfactory) for customization options.
 
-## Step 5: Register Components
+## Step 6: Register Components
 
 Update `src/application.ts` to register all components:
 
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers/hello.controller';
 import packageJson from '../package.json';
 
@@ -377,13 +374,16 @@ export class Application extends BaseApplication {
   setupMiddlewares(): ValueOrPromise<void> {}
 
   preConfigure(): ValueOrPromise<void> {
-    // 1. Register datasource
+    // 1. Register SwaggerComponent for API docs
+    this.component(SwaggerComponent);
+
+    // 2. Register datasource
     this.dataSource(PostgresDataSource);
 
-    // 2. Register repository
+    // 3. Register repository
     this.repository(TodoRepository);
 
-    // 3. Register controllers
+    // 4. Register controllers
     this.controller(HelloController);
     this.controller(TodoController);
   }
@@ -392,7 +392,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-## Step 6: Run Database Migration
+## Step 7: Run Database Migration
 
 ### Understanding Database Migrations
 
@@ -435,9 +435,18 @@ export default defineConfig({
 });
 ```
 
-### Run the Migration
+### Add Migration Scripts
 
-Run the migration (using the script from [Quickstart](./quickstart.md#5-run-your-application)):
+Add these scripts to your `package.json`:
+
+```json
+"scripts": {
+  "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+  "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts"
+}
+```
+
+### Run the Migration
 
 ```bash
 bun run migrate:dev
@@ -466,7 +475,7 @@ psql -U postgres -d todo_db -c "\d Todo"
 
 You should see the `Todo` table structure with all your columns!
 
-## Step 7: Run and Test
+## Step 8: Run and Test
 
 Start your application:
 
@@ -498,7 +507,7 @@ curl -X DELETE http://localhost:3000/api/todos/{id}
 ```
 
 **View API Documentation:**
-Open `http://localhost:3000/docs` in your browser to see interactive Swagger UI.
+Open [http://localhost:3000/doc/explorer](http://localhost:3000/doc/explorer) to see interactive Swagger UI.
 
 🎉 **Congratulations!** You've built a complete CRUD API with:
 - ✅ Type-safe database operations
@@ -594,16 +603,19 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 - Use `ControllerFactory` for CRUD operations
 
 **Challenge checklist:**
-- [ ] Create `src/models/user.model.ts`
-- [ ] Create `src/repositories/user.repository.ts` (this auto-registers User with PostgresDataSource)
-- [ ] Create `src/controllers/user.controller.ts`
-- [ ] Register repository and controller in `application.ts`
-- [ ] Run migration: `bun run migrate:dev`
-- [ ] Test with curl
+
+| Step | Task |
+|:----:|------|
+| 1 | Create `src/models/user.model.ts` |
+| 2 | Create `src/repositories/user.repository.ts` (auto-registers User with PostgresDataSource) |
+| 3 | Create `src/controllers/user.controller.ts` |
+| 4 | Register repository and controller in `application.ts` |
+| 5 | Run migration: `bun run migrate:dev` |
+| 6 | Test with curl |
 
 **Hint:** Follow the exact same pattern as `Todo`. The only changes are the model name and fields!
 
-**Solution:** If you get stuck, check the [API Usage Examples](./best-practices/api-usage-examples.md) guide.
+**Solution:** If you get stuck, check the [API Usage Examples](/best-practices/api-usage-examples.md) guide.
 
 
 ## Next Steps
@@ -649,23 +661,23 @@ Register in `application.ts`:
 this.service(TodoService);
 ```
 
-> **Deep Dive:** See [Services Reference](./core-concepts/services.md) for best practices and advanced patterns.
+> **Deep Dive:** See [Services Reference](./core-concepts/services) for best practices and advanced patterns.
 
 ## Continue Your Journey
 
 You now have a fully functional CRUD API! Here's what to explore next:
 
 **Core Concepts:**
-1. [Application Architecture](./core-concepts/application.md) - Understand the framework structure
-2. [Dependency Injection](./core-concepts/dependency-injection.md) - Master DI patterns
-3. [Components](./core-concepts/components.md) - Build reusable modules
+1. [Application Architecture](./core-concepts/application) - Understand the framework structure
+2. [Dependency Injection](./core-concepts/dependency-injection) - Master DI patterns
+3. [Components](./core-concepts/components) - Build reusable modules
 
 **Add Features:**
-1. [Authentication](../references/components/authentication.md) - Add JWT authentication
-2. [Custom Routes](./best-practices/api-usage-examples.md) - Beyond CRUD operations
-3. [Relationships](./core-concepts/persistent.md#querying-with-relations) - Link todos to users
+1. [Authentication](/references/components/authentication) - Add JWT authentication
+2. [Custom Routes](/best-practices/api-usage-examples.md) - Beyond CRUD operations
+3. [Relationships](./core-concepts/persistent#querying-with-relations) - Link todos to users
 
 **Production:**
-1. [Deployment Strategies](./best-practices/deployment-strategies.md) - Deploy your API
-2. [Performance Optimization](./best-practices/performance-optimization.md) - Make it faster
-3. [Security Guidelines](./best-practices/security-guidelines.md) - Secure your API
+1. [Deployment Strategies](/best-practices/deployment-strategies.md) - Deploy your API
+2. [Performance Optimization](/best-practices/performance-optimization.md) - Make it faster
+3. [Security Guidelines](/best-practices/security-guidelines.md) - Secure your API

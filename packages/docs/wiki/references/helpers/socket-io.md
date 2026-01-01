@@ -40,14 +40,14 @@ import { SocketIOServerHelper, SocketIOBindingKeys, inject } from '@venizia/igni
 // ... in a service or controller
 
   @inject({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE })
-  private io: SocketIOServerHelper;
+  private _io: SocketIOServerHelper;
 
-  sendNotification(userId: string, message: string) {
-    this.io.send({
-      destination: userId, // Room or socket ID
+  sendNotification(opts: { userId: string; message: string }) {
+    this._io.send({
+      destination: opts.userId, // Room or socket ID
       payload: {
         topic: 'notification',
-        data: { message },
+        data: { message: opts.message },
       },
     });
   }

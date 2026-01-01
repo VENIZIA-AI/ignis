@@ -15,16 +15,7 @@ A single component can bundle everything needed for a specific domain—for exam
 
 ## Built-in Components
 
-`Ignis` comes with several built-in components, which you can explore in the [**Components Reference**](../../references/components/) section:
-
-| Component | Description |
-|-----------|-------------|
-| `AuthenticateComponent` | JWT-based authentication with token services |
-| `SwaggerComponent` | Interactive OpenAPI documentation |
-| `HealthCheckComponent` | Health check endpoints |
-| `RequestTrackerComponent` | Request logging and tracing |
-| `SocketIOComponent` | Real-time communication with Socket.IO |
-| `StaticAssetComponent` | File upload and storage management |
+Ignis includes ready-to-use components for common features like authentication, API documentation, health checks, and more. See the [**Built-in Components Reference**](../../references/components/) for the complete list with detailed documentation.
 
 ## Creating a Simple Component
 
@@ -33,7 +24,7 @@ import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, B
 
 // Define a service
 class NotificationService {
-  send(message: string) { /* ... */ }
+  send(opts: { message: string }) { /* ... */ }
 }
 
 // Define a controller
@@ -41,7 +32,7 @@ class NotificationService {
 class NotificationController extends BaseController {
   constructor(
     @inject({ key: 'services.NotificationService' })
-    private notificationService: NotificationService
+    private _notificationService: NotificationService
   ) {
     super({ scope: NotificationController.name });
   }
@@ -51,11 +42,11 @@ class NotificationController extends BaseController {
 export class NotificationComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE })
-    private application: BaseApplication,
+    private _application: BaseApplication,
   ) {
     super({
       scope: NotificationComponent.name,
-      initDefault: { enable: true, container: application },
+      initDefault: { enable: true, container: _application },
       bindings: {
         'services.NotificationService': Binding.bind({ key: 'services.NotificationService' })
           .toClass(NotificationService),
@@ -64,7 +55,7 @@ export class NotificationComponent extends BaseComponent {
   }
 
   override binding(): ValueOrPromise<void> {
-    this.application.controller(NotificationController);
+    this._application.controller(NotificationController);
   }
 }
 ```
@@ -108,7 +99,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-
 > **Next Steps:**
+> - [Creating Components Guide](./components-guide.md) - Step-by-step tutorial for building your own components
 > - [Components Reference](../../references/base/components.md) - Directory structure, keys, types, constants patterns
 > - [Built-in Components](../../references/components/) - Detailed documentation for each component

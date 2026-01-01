@@ -86,8 +86,8 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, HTTP } from '@venizia/ignis';
 
 // Define route configs as const for full type inference
-const USER_ROUTES = {
-  listUsers: {
+const UserRoutes = {
+  LIST_USERS: {
     path: '/',
     method: 'get',
     responses: jsonResponse({
@@ -95,7 +95,7 @@ const USER_ROUTES = {
       schema: z.array(z.object({ id: z.string(), name: z.string() })),
     }),
   },
-  getUser: {
+  GET_USER: {
     path: '/:id',
     method: 'get',
     request: {
@@ -106,7 +106,7 @@ const USER_ROUTES = {
       schema: z.object({ id: z.string(), name: z.string() }),
     }),
   },
-  createUser: {
+  CREATE_USER: {
     path: '/',
     method: 'post',
     authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
@@ -123,19 +123,19 @@ const USER_ROUTES = {
 
 // ... inside a controller class
 
-  @get({ configs: USER_ROUTES.listUsers })
-  getAllUsers(c: TRouteContext<typeof USER_ROUTES.listUsers>) { // Return type is automatically inferred
+  @get({ configs: UserRoutes.LIST_USERS })
+  getAllUsers(c: TRouteContext<typeof UserRoutes.LIST_USERS>) { // Return type is automatically inferred
     return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 
-  @get({ configs: USER_ROUTES.getUser })
-  getUserById(c: TRouteContext<typeof USER_ROUTES.getUser>) { // Return type is automatically inferred
+  @get({ configs: UserRoutes.GET_USER })
+  getUserById(c: TRouteContext<typeof UserRoutes.GET_USER>) { // Return type is automatically inferred
     const { id } = c.req.valid('param'); // id is typed as string
     return c.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  @post({ configs: USER_ROUTES.createUser })
-  createUser(c: TRouteContext<typeof USER_ROUTES.createUser>) { // Return type is automatically inferred
+  @post({ configs: UserRoutes.CREATE_USER })
+  createUser(c: TRouteContext<typeof UserRoutes.CREATE_USER>) { // Return type is automatically inferred
     const { name } = c.req.valid('json'); // name is typed as string
     const newUser = { id: '2', name };
     return c.json(newUser, HTTP.ResultCodes.RS_2.Created); // Return type is validated

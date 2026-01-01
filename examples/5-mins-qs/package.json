@@ -31,7 +31,6 @@
     "eslint": "^9.36.0",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.10",
-    "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.3"
   }
 }

@@ -161,8 +161,8 @@ DataSource is auto-injected - no constructor needed:
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   // Custom methods only - no boilerplate!
 
-  async findByEmail(email: string) {
-    return this.findOne({ filter: { where: { email } } });
+  async findByEmail(opts: { email: string }) {
+    return this.findOne({ filter: { where: { email: opts.email } } });
   }
 }
 ```

@@ -270,17 +270,17 @@ import { BaseService, inject, MailKeys, IMailService } from '@venizia/ignis';
 export class UserService extends BaseService {
   constructor(
     @inject({ key: MailKeys.MAIL_SERVICE })
-    private mailService: IMailService,
+    private _mailService: IMailService,
   ) {
     super({ scope: UserService.name });
   }
 
-  async sendWelcomeEmail(userEmail: string, userName: string) {
-    const result = await this.mailService.send({
-      to: userEmail,
+  async sendWelcomeEmail(opts: { userEmail: string; userName: string }) {
+    const result = await this._mailService.send({
+      to: opts.userEmail,
       subject: 'Welcome to Our App!',
-      html: `<h1>Welcome ${userName}!</h1><p>Thanks for joining us.</p>`,
-      text: `Welcome ${userName}! Thanks for joining us.`,
+      html: `<h1>Welcome ${opts.userName}!</h1><p>Thanks for joining us.</p>`,
+      text: `Welcome ${opts.userName}! Thanks for joining us.`,
     });
 
     if (result.success) {

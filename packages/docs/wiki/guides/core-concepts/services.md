@@ -36,12 +36,15 @@ export class ConfigurationService extends BaseService {
     super({ scope: ConfigurationService.name });
   }
 
-  async createConfigurationForUser(userId: string, data: Partial<TConfiguration>): Promise<TConfiguration> {
+  async createConfigurationForUser(opts: {
+    userId: string;
+    data: Partial<TConfiguration>;
+  }): Promise<TConfiguration> {
     // Call another service logic
-    await this.loggingService.audit(`Creating config for user: ${userId}`);
+    await this.loggingService.audit({ message: `Creating config for user: ${opts.userId}` });
 
     // Business logic: Check if the user exists
-    const user = await this.userRepository.findById({ id: userId });
+    const user = await this.userRepository.findById({ id: opts.userId });
 // ...
 ```
 

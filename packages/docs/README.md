@@ -145,7 +145,7 @@ bun add drizzle-orm drizzle-zod pg lodash
 
 **Development dependencies:**
 ```bash
-bun add -d typescript @types/bun @venizia/dev-configs tsc-alias tsconfig-paths
+bun add -d typescript @types/bun @venizia/dev-configs tsc-alias
 bun add -d drizzle-kit @types/pg @types/lodash
 ```
 

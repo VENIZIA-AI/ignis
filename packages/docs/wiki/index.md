@@ -1,48 +1,220 @@
 ---
-# https://vitepress.dev/reference/default-theme-home-page
 layout: home
 
 hero:
-  name: "🔥 IGNIS"
-  text: "A TypeScript Server Infrastructure with Hono"
-  tagline: Enterprise-grade architecture meets Hono's ultrafast performance. Build scalable REST APIs with TypeScript.
+  name: IGNIS
+  text: Enterprise APIs at Hono Speed
+  tagline: "Architecture that scales, performance that flies. Enterprise patterns, raw performance speed, DI Powered."
+  image:
+    src: /logo.svg
+    alt: IGNIS
   actions:
     - theme: brand
       text: Get Started
-      link: /get-started/
+      link: /guides/get-started/5-minute-quickstart
     - theme: alt
-      text: Quickstart
-      link: /get-started/quickstart
+      text: Why Ignis?
+      link: /guides/get-started/philosophy
     - theme: alt
-      text: Philosophy
-      link: /get-started/philosophy
+      text: GitHub
+      link: https://github.com/VENIZIA-AI/ignis
 
 features:
-  - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-zap"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
-    title: Ultrafast Hono Performance
-    details: Leverage Hono's speed for high-performance APIs and serverless environments, ensuring your applications are always responsive.
+  - icon: ⚡
+    title: 140k+ req/s
+    details: Built on Hono, one of the fastest web frameworks. Near-native performance on Bun, Node, and edge runtimes.
+    link: /guides/get-started/philosophy
+    linkText: See benchmarks
 
-  - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-git-branch"><line x1="6" y1="3" x2="6" y2="15"></line><path d="M18 6l-6 6-6-6"></path><path d="M12 18V6"></path><path d="M18 12l-6 6-6-6"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="6" r="3"></circle></svg>
-    title: Modular Package Architecture
-    details: Built as a monorepo with independent packages (@venizia/ignis, @venizia/ignis-helpers, @venizia/ignis-inversion, @venizia/dev-configs) for flexible, granular consumption.
+  - icon: 🏗️
+    title: Enterprise Architecture
+    details: Layered design with Controllers, Services, and Repositories. Clean separation of concerns out of the box.
+    link: /guides/core-concepts/application/
+    linkText: Learn more
 
-  - icon: <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-share-2"><circle cx="18" cy="6" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="18" r="3"></circle><line x1="8.59" y1="13.51" x2="15.42" y2="16.49"></line><line x1="15.41" y1="7.51" x2="8.59" y2="10.49"></line></svg>
-    title: Powerful Dependency Injection
-    details: Utilize a custom, lightweight DI container to promote loose coupling, enhanced testability, and flexible code organization.
+  - icon: 💉
+    title: Dependency Injection
+    details: Lightweight DI container with decorators. Testable, loosely coupled code without the boilerplate.
+    link: /guides/core-concepts/dependency-injection
+    linkText: See how
 
-  - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-layers"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
-    title: Clear Layered Architecture
-    details: Organize your code with a strict separation of concerns (Controllers, Services, Repositories) for maintainability and clarity.
+  - icon: 📝
+    title: Auto-Generated Docs
+    details: OpenAPI/Swagger from Zod schemas. Interactive API explorer included with zero config.
+    link: /references/components/swagger
+    linkText: View example
 
-  - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-book-open"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"></path><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"></path></svg>
-    title: Automated OpenAPI Documentation
-    details: Generate interactive Swagger UI documentation effortlessly from your Zod schemas, simplifying API consumption and understanding.
+  - icon: 🗃️
+    title: Type-Safe Database
+    details: Drizzle ORM integration with advanced filtering, relations, JSON queries, and transactions.
+    link: /references/base/repositories/
+    linkText: Explore
 
-  - icon: <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-tool"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-2.06 2.06A7.5 7.5 0 0 1 1.07 11.24a7.5 7.5 0 0 1 10.6-10.6z"></path></svg>
-    title: Rich & Extensible Ecosystem
-    details: Benefit from comprehensive built-in helpers for Authentication, Logging, Database interactions, Queues, Worker Threads, and more.
-
-footer:
-  message: Released under the MIT License.
-  copyright: Copyright © 2024-present VENIZIA-AI
+  - icon: 🧩
+    title: Batteries Included
+    details: Auth, WebSockets, Queues, Cron, Redis, S3, Email — ready-to-use components and helpers.
+    link: /references/
+    linkText: Browse all
 ---
+
+<style>
+:root {
+  --vp-home-hero-name-color: transparent;
+  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #ff6b35 30%, #f7c59f);
+  --vp-home-hero-image-background-image: linear-gradient(-45deg, #ff6b35aa 50%, #f7c59faa 50%);
+  --vp-home-hero-image-filter: blur(40px);
+}
+
+.VPHero .text {
+  font-size: 2rem !important;
+}
+
+.VPHero .VPImage {
+  max-width: 180px !important;
+  max-height: 180px !important;
+}
+
+@media (min-width: 640px) {
+  .VPHero .VPImage {
+    max-width: 200px !important;
+    max-height: 200px !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPHero .VPImage {
+    max-width: 240px !important;
+    max-height: 240px !important;
+  }
+}
+
+.use-ignis-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+@media (min-width: 768px) {
+  .use-ignis-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.use-ignis-card {
+  padding: 1.5rem;
+  border-radius: 12px;
+  background: var(--vp-c-bg-soft);
+}
+
+.use-ignis-card h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.1rem;
+}
+
+.use-ignis-card ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.use-ignis-card li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--vp-c-divider);
+  font-size: 0.95rem;
+}
+
+.use-ignis-card li:last-child {
+  border-bottom: none;
+}
+</style>
+
+## Quick Start
+
+```bash
+# Install
+bun add hono @hono/zod-openapi @venizia/ignis drizzle-orm
+
+# Create your first controller
+```
+
+```typescript
+import { BaseController, controller, get, HTTP, jsonContent } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+
+@controller({ path: '/hello' })
+class HelloController extends BaseController {
+  @get({
+    configs: {
+      path: '/',
+      responses: {
+        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+          schema: z.object({ message: z.string() }),
+        }),
+      },
+    },
+  })
+  sayHello(c) {
+    return c.json({ message: 'Hello from Ignis! 🔥' });
+  }
+}
+```
+
+<div class="tip custom-block" style="padding-top: 8px">
+
+Ready to build? Follow the [5-minute quickstart →](/guides/get-started/5-minute-quickstart)
+
+</div>
+
+## When to Use Ignis
+
+<div class="use-ignis-grid">
+
+<div class="use-ignis-card">
+<h3>✅ Perfect For</h3>
+<ul>
+<li><strong>SaaS backends</strong> — Multi-tenant, complex business logic</li>
+<li><strong>E-commerce APIs</strong> — Products, orders, payments</li>
+<li><strong>Enterprise apps</strong> — Teams need clear patterns</li>
+<li><strong>Growing projects</strong> — 10+ endpoints that need structure</li>
+<li><strong>REST APIs</strong> — Full CRUD with validation & docs</li>
+<li><strong>Real-time apps</strong> — WebSocket support built-in</li>
+</ul>
+</div>
+
+<div class="use-ignis-card">
+<h3>❌ Consider Alternatives</h3>
+<ul>
+<li><strong>Simple webhooks</strong> — Use plain Hono</li>
+<li><strong>3-5 endpoint APIs</strong> — Ignis adds overhead</li>
+<li><strong>Quick prototypes</strong> — Start with Hono first</li>
+<li><strong>Serverless functions</strong> — Hono alone is lighter</li>
+<li><strong>Static sites</strong> — Use Astro or Next.js</li>
+<li><strong>No TypeScript</strong> — Ignis requires TS</li>
+</ul>
+</div>
+
+</div>
+
+<div style="padding: 3rem 2rem; margin: 2rem 0; border-radius: 16px; background: var(--vp-c-bg-soft); text-align: center;">
+
+<p style="font-size: 0.9rem; color: var(--vp-c-text-2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 2px;">Powered by</p>
+
+<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem; margin-bottom: 1.5rem;">
+<a href="https://hono.dev" target="_blank" style="font-size: 1.2rem; font-weight: 500;">Hono</a>
+<a href="https://orm.drizzle.team" target="_blank" style="font-size: 1.2rem; font-weight: 500;">Drizzle ORM</a>
+<a href="https://zod.dev" target="_blank" style="font-size: 1.2rem; font-weight: 500;">Zod</a>
+<a href="https://www.typescriptlang.org" target="_blank" style="font-size: 1.2rem; font-weight: 500;">TypeScript</a>
+<a href="https://bun.sh" target="_blank" style="font-size: 1.2rem; font-weight: 500;">Bun</a>
+</div>
+
+<hr style="border: none; border-top: 1px solid var(--vp-c-divider); margin: 1.5rem 0;" />
+
+<p style="font-size: 0.9rem; color: var(--vp-c-text-2); margin-bottom: 1rem; text-transform: uppercase; letter-spacing: 2px;">Inspired by</p>
+
+<div style="display: flex; justify-content: center; flex-wrap: wrap; gap: 2rem;">
+<a href="https://spring.io/projects/spring-boot" target="_blank" style="font-size: 1.2rem; font-weight: 500;">Spring Boot</a>
+<a href="https://loopback.io/doc/en/lb4/" target="_blank" style="font-size: 1.2rem; font-weight: 500;">LoopBack 4</a>
+</div>
+
+</div>

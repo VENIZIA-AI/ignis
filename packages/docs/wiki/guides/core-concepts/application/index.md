@@ -2,7 +2,7 @@
 
 The Application class orchestrates your application's configuration, lifecycle, and resource registration (components, controllers, services).
 
-> **Deep Dive:** See [Application Reference](../../references/base/application.md) for technical details.
+> **Deep Dive:** See [Application Reference](../../../references/base/application.md) for technical details.
 
 ## Creating an Application
 
@@ -42,13 +42,10 @@ export class Application extends BaseApplication {
   }
   
   preConfigure(): ValueOrPromise<void> {
-    // Manual registration (traditional approach)
+    // Register your resources
     this.dataSource(MyDataSource);
     this.service(MyService);
     this.controller(MyController);
-    
-    // Or use boot system for auto-discovery (recommended for larger apps)
-    // See Bootstrapping section below
   }
   
   postConfigure(): ValueOrPromise<void> {
@@ -78,109 +75,39 @@ The `BaseApplication` class provides several **overridable hook methods** that a
 | :--- | :--- |
 | `getAppInfo()` | **Required.** Return application metadata, usually from `package.json`. Used for OpenAPI docs. |
 | `staticConfigure()` | Configure static file serving. |
-| `preConfigure()` | **Most Important Hook.** Set up application resources like components, controllers, services, and datasources. Can be skipped if using boot system. |
+| `preConfigure()` | **Most Important Hook.** Set up application resources like components, controllers, services, and datasources. Can be skipped if using [Bootstrapping](./bootstrapping). |
 | `postConfigure()` | Perform actions *after* all resources have been configured and instantiated. |
 | `setupMiddlewares()`| Add custom application-level middlewares to the Hono instance. |
 
-## Bootstrapping (Auto-discovery)
-
-The boot system provides automatic artifact discovery and loading, eliminating manual registration. When enabled, it scans your project directory and automatically loads controllers, services, repositories, and datasources.
-
-> **Detailed Guide:** See [Bootstrapping Concepts](./bootstrapping.md) for complete documentation.
-
-### Enabling Boot System
-
-Add `bootOptions` to your application config:
-
-```typescript
-export const appConfigs: IApplicationConfigs = {
-  host: process.env.APP_ENV_SERVER_HOST,
-  port: +(process.env.APP_ENV_SERVER_PORT ?? 3000),
-  // Enable boot system
-  bootOptions: {
-    datasources: { dirs: ['datasources'] },
-    repositories: { dirs: ['repositories'] },
-    services: { dirs: ['services'] },
-    controllers: { dirs: ['controllers'] }
-  }
-};
-```
-
-With boot enabled, you can skip manual registration in `preConfigure()`:
-
-```typescript
-export class Application extends BaseApplication {
-  // No need to register artifacts manually!
-  // Boot system handles it automatically
-  
-  preConfigure(): ValueOrPromise<void> {
-    // Only register things that need custom configuration
-    // Everything else is auto-discovered
-  }
-}
-```
-
-### Boot vs Manual Registration
-
-| Approach | Use Case | Pros | Cons |
-|----------|----------|------|------|
-| **Boot System** | Apps with 10+ artifacts per type | Auto-discovery, scalable, clean code | Requires file naming conventions |
-| **Manual Registration** | Small apps (< 5 artifacts) | Fine-grained control, explicit | Tedious, maintenance burden |
-
-### Project Structure for Boot
-
-Follow naming conventions for auto-discovery:
-
-```
-src/
-├── datasources/
-│   └── postgres.datasource.js
-├── repositories/
-│   ├── user.repository.js
-│   └── product.repository.js
-├── services/
-│   ├── auth.service.js
-│   └── user.service.js
-└── controllers/
-    ├── auth.controller.js
-    └── user.controller.js
-```
-
 ## Lifecycle Diagram
 
-This diagram shows the sequence of operations during application startup. The methods you can override are highlighted.
+This diagram shows the sequence of operations during application startup.
 
-```mermaid
-%%{init: { "flowchart": { "useMaxWidth": true } } }%%
-graph TD
-    A["start()"] --> B["initialize()"];
-    
-    subgraph "initialize() Sequence"
-        direction TB
-        B --> B0["boot() - if bootOptions configured"];
-        B0 --> B1["printStartUpInfo"];
-        B1 --> B2["validateEnvs"];
-        B2 --> B3["registerDefaultMiddlewares"];
-        B3 --> B4["staticConfigure()"];
-        B4 --> B5["preConfigure()"];
-        B5 --> B6["registerDataSources"];
-        B6 --> B7["registerComponents"];
-        B7 --> B8["registerControllers"];
-        B8 --> B9["postConfigure()"];
-    end
-
-    B9 --> C["setupMiddlewares()"];
-    C --> D["Mount Root Router"];
-    D --> E["Start HTTP Server"];
-
-    subgraph "Overridable Hooks"
-      style B4 fill:#ffc0cb,stroke:#333
-      style B5 fill:#ffc0cb,stroke:#333
-      style B9 fill:#ffc0cb,stroke:#333
-      style C fill:#ffc0cb,stroke:#333
-    end
-
-    classDef default fill:#fff,stroke:#333,stroke-width:2px;
+```
+start()
+  │
+  ▼
+initialize()
+  │
+  ├─► boot()                      (if bootOptions configured)
+  ├─► printStartUpInfo
+  ├─► validateEnvs
+  ├─► registerDefaultMiddlewares
+  ├─► staticConfigure()           ← Override hook
+  ├─► preConfigure()              ← Override hook
+  ├─► registerDataSources
+  ├─► registerComponents
+  ├─► registerControllers
+  └─► postConfigure()             ← Override hook
+  │
+  ▼
+setupMiddlewares()                ← Override hook
+  │
+  ▼
+Mount Root Router
+  │
+  ▼
+Start HTTP Server
 ```
 
 ## Configuration
@@ -197,7 +124,7 @@ Application configuration is passed to the `BaseApplication` constructor via an 
 | `path.isStrict`| `boolean`| `true` | If `true`, the router is strict about trailing slashes. |
 | `debug.showRoutes`| `boolean`| `false`| If `true`, prints all registered routes to the console on startup. |
 | `favicon` | `string` | `'🔥'` | An emoji to be used as the application's favicon. |
-| `bootOptions` | `IBootOptions` | `undefined` | Enable auto-discovery of artifacts. See [Bootstrapping](./bootstrapping.md). |
+| `bootOptions` | `IBootOptions` | `undefined` | Enable auto-discovery of artifacts. See [Bootstrapping](./bootstrapping). |
 
 ### Example Configuration
 
@@ -234,4 +161,4 @@ Register resources in `preConfigure()` to tell the DI container about your class
 4. Controllers (depend on Services)
 5. Components last
 
-> **Deep Dive:** See [Dependency Injection](./dependency-injection.md) for how registration and injection work together.
+> **Deep Dive:** See [Dependency Injection](../dependency-injection.md) for how registration and injection work together.

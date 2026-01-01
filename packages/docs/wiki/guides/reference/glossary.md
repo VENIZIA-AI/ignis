@@ -14,6 +14,7 @@ Quick reference for key terms in Ignis documentation.
 | **DataSource** | Database connection configuration (host, port, credentials) |
 | **Model/Entity** | Defines data structure and relationships using Drizzle schema |
 | **Component** | Reusable plugin that bundles related functionality |
+| **DI Container** | Central registry that stores and resolves dependencies. The `Application` class acts as the container. |
 
 ```typescript
 // Application registers everything
@@ -36,7 +37,7 @@ export class TodoController extends BaseController {
 export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 ```
 
-**Related:** [Application](./core-concepts/application.md) | [Controllers](./core-concepts/controllers.md) | [Services](./core-concepts/services.md) | [Repositories](../references/base/repositories.md)
+**Related:** [Application](../core-concepts/application/) | [Controllers](../core-concepts/controllers) | [Services](../core-concepts/services) | [Repositories](../../references/base/repositories/)
 
 
 ## TypeScript & Pattern Terms
@@ -91,7 +92,7 @@ class DefaultCRUDRepository<TSchema> { find(): TSchema[] { ... } }
 class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 ```
 
-**Related:** [Dependency Injection Guide](./core-concepts/dependency-injection.md)
+**Related:** [Dependency Injection Guide](../core-concepts/dependency-injection)
 
 
 ## Database Terms
@@ -158,7 +159,7 @@ await repository.find({
 | `in`, `nin` | In list / not in list | `{ id: { in: [1, 2, 3] } }` |
 | `between` | Range | `{ age: { between: [18, 65] } }` |
 
-**Related:** [Filter System](../references/base/filter-system) | [Repositories](../references/base/repositories/)
+**Related:** [Filter System](../../references/base/filter-system) | [Repositories](../../references/base/repositories/)
 
 
 ## HTTP & API Terms
@@ -205,9 +206,9 @@ APP_ENV_SERVER_PORT=3000
 const host = process.env.APP_ENV_POSTGRES_HOST;
 ```
 
-**Related:** [Environment Variables Reference](../references/configuration/environment-variables.md)
+**Related:** [Environment Variables Reference](../../references/configuration/environment-variables)
 
 
 ## See Also
 
-[5-Minute Quickstart](./5-minute-quickstart.md) | [Building a CRUD API](./building-a-crud-api.md) | [Repositories](../references/base/repositories/)
+[5-Minute Quickstart](../get-started/5-minute-quickstart) | [Building a CRUD API](../tutorials/building-a-crud-api) | [Repositories](../../references/base/repositories/)

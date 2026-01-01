@@ -111,12 +111,13 @@ import { UserService } from '../services/user.service';
 @controller({ path: '/users' })
 export class UserController extends BaseController {
   constructor(
-    @inject({ key: 'services.UserService' }) private userService: UserService
+    @inject({ key: 'services.UserService' })
+    private _userService: UserService
   ) {
     super({ scope: UserController.name, path: '/users' });
   }
 
-  // ... use this.userService
+  // ... use this._userService
 }
 ```
 
@@ -131,13 +132,13 @@ import { UserService } from '../services/user.service';
 @controller({ path: '/users' })
 export class UserController extends BaseController {
   @inject({ key: 'services.UserService' })
-  private userService: UserService;
+  private _userService: UserService;
 
   constructor() {
     super({ scope: UserController.name, path: '/users' });
   }
 
-  // ... use this.userService
+  // ... use this._userService
 }
 ```
 

@@ -142,7 +142,7 @@ bun add drizzle-orm drizzle-zod pg lodash
 
 ```bash
 bun add -d typescript @types/bun @venizia/dev-configs
-bun add -d tsc-alias tsconfig-paths
+bun add -d tsc-alias
 bun add -d drizzle-kit @types/pg @types/lodash
 ```
 

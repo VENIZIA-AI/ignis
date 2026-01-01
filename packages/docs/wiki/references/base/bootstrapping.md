@@ -761,7 +761,7 @@ await app.boot();
 
 ## Related Documentation
 
-- [Bootstrapping Concepts](/get-started/core-concepts/bootstrapping.md)
+- [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
 - [Boot Package Reference](/references/src-details/boot.md)
-- [Application Guide](/get-started/core-concepts/application.md)
+- [Application Guide](/guides/core-concepts/application/)
 - [Dependency Injection](/references/base/dependency-injection.md)
