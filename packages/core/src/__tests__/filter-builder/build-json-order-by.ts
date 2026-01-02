@@ -1,4 +1,4 @@
-import { DrizzleFilterBuilder } from '@/base/repositories/operators';
+import { FilterBuilder } from '@/base/repositories/operators';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
@@ -11,7 +11,7 @@ const testTable = pgTable('test_table', {
 });
 
 // Access private method for testing
-class TestableFilterBuilder extends DrizzleFilterBuilder {
+class TestableFilterBuilder extends FilterBuilder {
   public testBuildJsonOrderBy(opts: { key: string; direction: string; tableName: string }) {
     const columns = getTableColumns(testTable);
     return (this as any).buildJsonOrderBy({

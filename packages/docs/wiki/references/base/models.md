@@ -42,6 +42,7 @@ The `@model` decorator marks a class as a database entity and configures its beh
   skipMigrate?: boolean,
   settings?: {
     hiddenProperties?: string[],  // Properties to exclude from query results
+    defaultFilter?: TFilter,      // Filter applied to all repository queries
   }
 })
 ```
@@ -52,6 +53,7 @@ The `@model` decorator marks a class as a database entity and configures its beh
 | `tableName` | `string` | Optional custom table name (defaults to class name) |
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
+| `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
 
 ### Hidden Properties
 
@@ -111,6 +113,60 @@ const [fullUser] = await connector
   .where(eq(User.schema.id, '123'));
 // fullUser = { id: '123', email: 'john@example.com', password: 'hashed...', secret: '...' }
 ```
+
+### Default Filter
+
+Default filters are **automatically applied** to all repository queries for a model. This is useful for:
+
+- **Soft Delete**: Automatically exclude deleted records
+- **Multi-Tenancy**: Isolate data by tenant
+- **Active Records**: Filter to active/non-expired records
+- **Query Limits**: Prevent unbounded queries
+
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    defaultFilter: {
+      where: { isDeleted: false },  // Applied to all queries
+      limit: 100,                    // Prevents unbounded queries
+    },
+  },
+})
+export class Post extends BaseEntity<typeof Post.schema> {
+  static override schema = postTable;
+}
+```
+
+#### Behavior
+
+| Operation | Default Filter |
+|-----------|----------------|
+| `find()`, `findOne()`, `findById()` | Applied to WHERE clause |
+| `count()`, `existsWith()` | Applied to WHERE clause |
+| `updateById()`, `updateAll()` | Applied to WHERE clause |
+| `deleteById()`, `deleteAll()` | Applied to WHERE clause |
+| `create()`, `createAll()` | **Not applied** |
+
+#### Bypassing
+
+Use `skipDefaultFilter: true` to bypass:
+
+```typescript
+// Normal query - includes default filter
+await postRepo.find({ filter: {} });
+// WHERE isDeleted = false LIMIT 100
+
+// Admin query - bypass default filter
+await postRepo.find({
+  filter: {},
+  options: { skipDefaultFilter: true }
+});
+// No WHERE clause (includes deleted)
+```
+
+> [!TIP]
+> See [Default Filter](/references/base/filter-system/default-filter) for full documentation including merge strategies and common patterns.
 
 ### Definition Patterns
 

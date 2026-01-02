@@ -10,10 +10,12 @@ This documentation has been reorganized into focused guides for easier navigatio
 |-------|-------------|
 | [**Overview**](./repositories/) | Repository basics, methods, setup |
 | [**Filter System**](./filter-system/) | Where clauses, comparison, pattern matching |
+| [**Default Filter**](./filter-system/default-filter) | Automatic filter application |
 | [**Relations & Includes**](./repositories/relations) | Eager loading, nested queries |
 | [**JSON Path Filtering**](./filter-system/json-filtering) | Query JSONB columns |
 | [**Array Operators**](./filter-system/array-operators) | PostgreSQL array queries |
 | [**Advanced Features**](./repositories/advanced) | Transactions, hidden props, performance |
+| [**Repository Mixins**](./repositories/mixins) | Composable repository features |
 
 ---
 

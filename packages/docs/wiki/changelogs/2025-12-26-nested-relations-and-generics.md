@@ -13,7 +13,7 @@ This update introduces support for deeply nested relation queries in repositorie
 
 - **Nested Inclusions**: `include` filters now work recursively to any depth.
 - **Generic Repository Methods**: `find<R>`, `findOne<R>`, etc. now support custom return types.
-- **DrizzleFilterBuilder Decoupling**: Decoupled filter builder from MetadataRegistry for cleaner architecture.
+- **FilterBuilder Decoupling**: Decoupled filter builder from MetadataRegistry for cleaner architecture.
 
 ## New Features
 
@@ -21,7 +21,7 @@ This update introduces support for deeply nested relation queries in repositorie
 
 **File:** `packages/core/src/base/repositories/operators/filter.ts`
 
-**Problem:** Previously, the `DrizzleFilterBuilder` could only resolve relations for the root entity. Nested includes (e.g., `include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }]`) failed because it didn't know the schema of relation 'a'.
+**Problem:** Previously, the `FilterBuilder` could only resolve relations for the root entity. Nested includes (e.g., `include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }]`) failed because it didn't know the schema of relation 'a'.
 
 **Solution:** The builder now accepts a `relationResolver` function (injected from the Repository) which allows it to dynamically lookup schemas and relations for any entity during recursive traversal.
 

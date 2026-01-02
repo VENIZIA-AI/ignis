@@ -151,12 +151,15 @@ export abstract class BaseDataSource<
     let isActive = true;
 
     return {
+      isolationLevel,
       connector: drizzle({ client, schema: this.schema }),
+
+      // On-demand check transaction state
       get isActive() {
         return isActive;
       },
-      isolationLevel,
 
+      // COMMIT Action
       commit: async () => {
         if (!isActive) {
           throw getError({ message: '[Transaction][commit] Transaction already ended' });
@@ -164,12 +167,15 @@ export abstract class BaseDataSource<
 
         try {
           await client.query('COMMIT');
+        } catch (error) {
+          this.logger.error('[commit] Failed to COMMIT transaction | Error: %s', error);
         } finally {
           isActive = false;
           client.release();
         }
       },
 
+      // ROLLBACK Action
       rollback: async () => {
         if (!isActive) {
           throw getError({ message: '[Transaction][rollback] Transaction already ended' });
@@ -177,6 +183,8 @@ export abstract class BaseDataSource<
 
         try {
           await client.query('ROLLBACK');
+        } catch (error) {
+          this.logger.error('[commit] Failed to ROLLBACK transaction | Error: %s', error);
         } finally {
           isActive = false;
           client.release();

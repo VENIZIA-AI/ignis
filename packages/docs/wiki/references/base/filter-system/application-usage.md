@@ -29,7 +29,7 @@ How filters flow through the application layers.
                                  v
 +-----------------------------------------------------------------+
 |                     Repository Layer                             |
-|   - DrizzleFilterBuilder transforms Filter -> SQL                |
+|   - FilterBuilder transforms Filter -> SQL                       |
 |   - Executes query via Drizzle ORM                               |
 |   - Returns typed results                                        |
 +-----------------------------------------------------------------+

@@ -1,7 +1,7 @@
-import { DrizzleFilterBuilder } from '@/base/repositories/operators';
+import { FilterBuilder } from '@/base/repositories/operators';
 
 // Access private method for testing
-class TestableFilterBuilder extends DrizzleFilterBuilder {
+class TestableFilterBuilder extends FilterBuilder {
   public testParseJsonPath(key: string) {
     return (this as any).parseJsonPath(key);
   }

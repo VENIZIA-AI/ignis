@@ -273,10 +273,12 @@ export class QueryOperators {
     const { operators } = opts;
     let hasNumeric = false;
 
-    for (const [op, value] of Object.entries(operators)) {
+    for (const op in operators) {
       if (!this.NUMERIC_COMPARISON_OPERATORS.has(op)) {
         continue;
       }
+
+      const value = operators[op];
 
       // For 'between' and 'notBetween' operators: value must be an array of exactly 2 numbers
       if (op === this.BETWEEN || op === this.NOT_BETWEEN) {

@@ -223,9 +223,24 @@ export type TRepositoryLogOptions = {
 // ---------------------------------------------------------------------------
 // Transaction Support
 // ---------------------------------------------------------------------------
-export type TTransactionOption = {
+export interface IWithTransaction {
   transaction?: ITransaction;
-};
+}
+
+export interface IExtraOptions extends IWithTransaction {
+  /**
+   * If true, bypass the default filter configured in model settings.
+   * Use this when you need to query all records regardless of default filter constraints.
+   *
+   * @example
+   * // Bypass default filter: { where: { isDeleted: false } }
+   * repository.find({ filter: {}, options: { skipDefaultFilter: true } });
+   */
+  skipDefaultFilter?: boolean;
+}
+
+/** @deprecated Use IExtraOptions instead */
+export type TTransactionOption = IExtraOptions;
 
 // ---------------------------------------------------------------------------
 export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
@@ -240,7 +255,7 @@ export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWit
 export interface IReadableRepository<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<Schema> = TTableObject<Schema>,
-  ExtraOptions extends TTransactionOption = TTransactionOption,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends IRepository<Schema> {
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
 
@@ -266,7 +281,7 @@ export interface IPersistableRepository<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<Schema> = TTableObject<Schema>,
   PersistObject extends TTableInsert<Schema> = TTableInsert<Schema>,
-  ExtraOptions extends TTransactionOption = TTransactionOption,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends IReadableRepository<Schema, DataObject, ExtraOptions> {
   create(opts: {
     data: PersistObject;

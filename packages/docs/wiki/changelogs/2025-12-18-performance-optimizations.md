@@ -11,7 +11,7 @@ This update focuses on performance improvements for the repository layer, reduci
 
 ## Overview
 
-- **WeakMap Cache**: `DrizzleFilterBuilder` now caches `getTableColumns()` results.
+- **WeakMap Cache**: `FilterBuilder` now caches `getTableColumns()` results.
 - **Core API for Flat Queries**: `ReadableRepository` uses faster Drizzle Core API when possible.
 - **Static schemaFactory Singleton**: `BaseEntity` shares a single `schemaFactory` instance across all entities.
 - **Async/Await Refactor**: Removed redundant Promise wrappers from repository methods.
@@ -27,7 +27,7 @@ This update focuses on performance improvements for the repository layer, reduci
 **Solution:** Added static WeakMap cache that stores column metadata per schema.
 
 ```typescript
-export class DrizzleFilterBuilder extends BaseHelper {
+export class FilterBuilder extends BaseHelper {
   // Static cache shared across all instances
   private static columnCache = new WeakMap<
     TTableSchemaWithId,
@@ -35,10 +35,10 @@ export class DrizzleFilterBuilder extends BaseHelper {
   >();
 
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
-    let columns = DrizzleFilterBuilder.columnCache.get(schema);
+    let columns = FilterBuilder.columnCache.get(schema);
     if (!columns) {
       columns = getTableColumns(schema);
-      DrizzleFilterBuilder.columnCache.set(schema, columns);
+      FilterBuilder.columnCache.set(schema, columns);
     }
     return columns;
   }

@@ -3,11 +3,11 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { PgTable } from 'drizzle-orm/pg-core';
 import {
+  IExtraOptions,
   RepositoryOperationScopes,
   TCount,
   TFilter,
   TRepositoryLogOptions,
-  TTransactionOption,
   TWhere,
 } from '../common';
 import { AbstractRepository } from './base';
@@ -19,8 +19,12 @@ export class ReadableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
-  ExtraOptions extends TTransactionOption = TTransactionOption,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends AbstractRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
+  // ---------------------------------------------------------------------------
+  // Constructor
+  // ---------------------------------------------------------------------------
+
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, {
       entityClass: opts?.entityClass,
@@ -29,17 +33,26 @@ export class ReadableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Read Operations
+  // ---------------------------------------------------------------------------
+
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
   }): Promise<TCount> {
+    // Apply default filter's where condition
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: { where: opts.where },
+      skipDefaultFilter: opts.options?.skipDefaultFilter,
+    });
+
     const where = this.filterBuilder.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      where: opts.where,
+      where: mergedFilter.where ?? {},
     });
 
-    const connector = this.resolveConnector(opts.options?.transaction);
+    const connector = this.resolveConnector({ transaction: opts.options?.transaction });
     const count = await connector.$count(this.entity.schema, where);
     return { count };
   }
@@ -53,12 +66,15 @@ export class ReadableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Protected Query Helpers
+  // ---------------------------------------------------------------------------
+
   /**
    * Get the query interface for this entity from the connector.
    * Validates that the schema is properly registered.
    */
   protected getQueryInterface(opts?: { options?: ExtraOptions }) {
-    const connector = this.resolveConnector(opts?.options?.transaction);
+    const connector = this.resolveConnector({ transaction: opts?.options?.transaction });
 
     // Validate connector.query exists
     if (!connector.query) {
@@ -106,32 +122,38 @@ export class ReadableRepository<
     const { filter, isFindOne = false, options } = opts;
     const schema = this.entity.schema;
 
+    // Apply default filter
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: filter,
+      skipDefaultFilter: options?.skipDefaultFilter,
+    });
+
     // Build where clause
-    const where = filter.where
+    const where = mergedFilter.where
       ? this.filterBuilder.toWhere({
           tableName: this.entity.name,
           schema,
-          where: filter.where,
+          where: mergedFilter.where,
         })
       : undefined;
 
     // Build order by clause
-    const orderBy = filter.order
+    const orderBy = mergedFilter.order
       ? this.filterBuilder.toOrderBy({
           tableName: this.entity.name,
           schema,
-          order: filter.order,
+          order: mergedFilter.order,
         })
       : undefined;
 
     // Calculate limit and offset
-    const limit = isFindOne ? 1 : filter.limit;
-    const offset = filter.skip ?? filter.offset;
+    const limit = isFindOne ? 1 : mergedFilter.limit;
+    const offset = mergedFilter.skip ?? mergedFilter.offset;
 
     // Build query using Core API
     // Type assertion to PgTable is safe: EntitySchema extends TTableSchemaWithId which extends PgTable
     const table = schema as PgTable;
-    const connector = this.resolveConnector(options?.transaction);
+    const connector = this.resolveConnector({ transaction: options?.transaction });
 
     // Select only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
@@ -158,6 +180,10 @@ export class ReadableRepository<
     return query as Promise<Array<R>>;
   }
 
+  // ---------------------------------------------------------------------------
+  // Find Operations
+  // ---------------------------------------------------------------------------
+
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
@@ -167,8 +193,14 @@ export class ReadableRepository<
       return this.findWithCoreAPI<R>({ filter: opts.filter, options: opts.options });
     }
 
+    // Apply default filter for Query API path
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: opts.filter,
+      skipDefaultFilter: opts.options?.skipDefaultFilter,
+    });
+
     // Fall back to Query API for complex queries with relations/fields
-    const queryOptions = this.buildQuery({ filter: opts.filter });
+    const queryOptions = this.buildQuery({ filter: mergedFilter });
     const queryInterface = this.getQueryInterface({ options: opts.options });
     const results = await queryInterface.findMany(queryOptions);
     return results as Array<R>;
@@ -188,8 +220,14 @@ export class ReadableRepository<
       return results[0] ?? null;
     }
 
+    // Apply default filter for Query API path
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: opts.filter,
+      skipDefaultFilter: opts.options?.skipDefaultFilter,
+    });
+
     // Fall back to Query API for complex queries with relations/fields
-    const { limit: _limit, ...queryOptions } = this.buildQuery({ filter: opts.filter });
+    const { limit: _limit, ...queryOptions } = this.buildQuery({ filter: mergedFilter });
     const queryInterface = this.getQueryInterface({ options: opts.options });
     const result = await queryInterface.findFirst(queryOptions);
     return (result ?? null) as TNullable<R>;
@@ -210,16 +248,17 @@ export class ReadableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Disabled Write Operations (Read-Only Repository)
+  // ---------------------------------------------------------------------------
+
   override create(opts: {
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-
   override create(opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
-
   override create(_opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -233,12 +272,10 @@ export class ReadableRepository<
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-
   override createAll(opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: Array<EntitySchema['$inferSelect']> }>;
-
   override createAll(_opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -248,19 +285,16 @@ export class ReadableRepository<
     });
   }
 
-  // ---------------------------------------------------------------------------
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
-
   override updateById(_opts: {
     id: IdType;
     data: Partial<PersistObject>;
@@ -280,7 +314,6 @@ export class ReadableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -290,7 +323,6 @@ export class ReadableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<EntitySchema['$inferSelect']> }>;
-
   override updateAll(_opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -305,17 +337,14 @@ export class ReadableRepository<
     });
   }
 
-  // ---------------------------------------------------------------------------
   override deleteById(opts: {
     id: IdType;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-
   override deleteById(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: EntitySchema['$inferSelect'] }>;
-
   override deleteById(_opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };

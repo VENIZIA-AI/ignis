@@ -3,10 +3,10 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import {
+  IExtraOptions,
   RepositoryOperationScopes,
   TCount,
   TRepositoryLogOptions,
-  TTransactionOption,
   TWhere,
 } from '../common';
 import { ReadableRepository } from './readable';
@@ -18,15 +18,19 @@ export class PersistableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
-  ExtraOptions extends TTransactionOption = TTransactionOption,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
+  // ---------------------------------------------------------------------------
+  // Constructor
+  // ---------------------------------------------------------------------------
+
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, { entityClass: opts?.entityClass });
     this.operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
   // ---------------------------------------------------------------------------
-  // Validation Helpers
+  // Protected Helpers
   // ---------------------------------------------------------------------------
 
   /**
@@ -52,6 +56,10 @@ export class PersistableRepository<
     return isEmptyWhere;
   }
 
+  // ---------------------------------------------------------------------------
+  // Create Operations
+  // ---------------------------------------------------------------------------
+
   protected async _create<R = EntitySchema['$inferSelect']>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -62,7 +70,7 @@ export class PersistableRepository<
       this.logger.log(log.level ?? 'info', '[_create] Executing with opts: %j', opts);
     }
 
-    const connector = this.resolveConnector(transaction);
+    const connector = this.resolveConnector({ transaction });
     const query = connector.insert(this.entity.schema).values(opts.data);
 
     if (!shouldReturn) {
@@ -73,14 +81,11 @@ export class PersistableRepository<
 
     // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
-    const rs = visibleProps
-      ? ((await query.returning(visibleProps)) as unknown as Array<R>)
-      : ((await query.returning()) as unknown as Array<R>);
+    const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
     this.logger.debug('[_create] INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-    return { count: rs.length, data: rs };
+    return { count: rs.length, data: rs as Array<R> };
   }
 
-  // ---------------------------------------------------------------------------
   override create(opts: {
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
@@ -101,7 +106,6 @@ export class PersistableRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
-  // ---------------------------------------------------------------------------
   override createAll(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
@@ -122,6 +126,9 @@ export class PersistableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Update Operations
+  // ---------------------------------------------------------------------------
+
   protected async _update<R = EntitySchema['$inferSelect']>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -131,15 +138,28 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { shouldReturn = true, force = false, log, transaction } = opts?.options ?? {};
+    const {
+      shouldReturn = true,
+      force = false,
+      log,
+      transaction,
+      skipDefaultFilter,
+    } = opts?.options ?? {};
 
     if (log?.use) {
       this.logger.log(log.level ?? 'info', '[_update] Executing with opts: %j', opts);
     }
 
+    // Apply default filter's where condition
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: { where: opts.where },
+      skipDefaultFilter,
+    });
+    const mergedWhere = mergedFilter.where ?? opts.where;
+
     // Validate where condition (throws if empty without force)
     const isEmptyWhere = this.validateWhereCondition({
-      where: opts.where,
+      where: mergedWhere,
       force,
       operationName: '_update',
     });
@@ -147,7 +167,7 @@ export class PersistableRepository<
     const where = this.filterBuilder.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      where: opts.where,
+      where: mergedWhere,
     });
 
     if (isEmptyWhere) {
@@ -158,7 +178,7 @@ export class PersistableRepository<
       );
     }
 
-    const connector = this.resolveConnector(transaction);
+    const connector = this.resolveConnector({ transaction });
     const query = connector.update(this.entity.schema).set(opts.data).where(where);
 
     if (!shouldReturn) {
@@ -176,7 +196,6 @@ export class PersistableRepository<
     return { count: rs.length, data: rs };
   }
 
-  // ---------------------------------------------------------------------------
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
@@ -200,7 +219,6 @@ export class PersistableRepository<
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
-  // ---------------------------------------------------------------------------
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -232,6 +250,9 @@ export class PersistableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Delete Operations
+  // ---------------------------------------------------------------------------
+
   protected async _delete<R = EntitySchema['$inferSelect']>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -240,15 +261,28 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const { shouldReturn = true, force = false, log, transaction } = opts?.options ?? {};
+    const {
+      shouldReturn = true,
+      force = false,
+      log,
+      transaction,
+      skipDefaultFilter,
+    } = opts?.options ?? {};
 
     if (log?.use) {
       this.logger.log(log.level ?? 'info', '[_delete] Executing with opts: %j', opts);
     }
 
+    // Apply default filter's where condition
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: { where: opts.where },
+      skipDefaultFilter,
+    });
+    const mergedWhere = mergedFilter.where ?? opts.where;
+
     // Validate where condition (throws if empty without force)
     const isEmptyWhere = this.validateWhereCondition({
-      where: opts.where,
+      where: mergedWhere,
       force,
       operationName: '_delete',
     });
@@ -256,7 +290,7 @@ export class PersistableRepository<
     const where = this.filterBuilder.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
-      where: opts.where,
+      where: mergedWhere,
     });
 
     if (isEmptyWhere) {
@@ -266,7 +300,7 @@ export class PersistableRepository<
       );
     }
 
-    const connector = this.resolveConnector(transaction);
+    const connector = this.resolveConnector({ transaction });
     const query = connector.delete(this.entity.schema).where(where);
 
     if (!shouldReturn) {

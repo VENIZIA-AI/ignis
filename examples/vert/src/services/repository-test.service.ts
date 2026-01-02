@@ -4,6 +4,7 @@ import {
   ArrayOperatorTestService,
   ComprehensiveOperatorTestService,
   CrudTestService,
+  DefaultFilterTestService,
   FieldSelectionTestService,
   HiddenPropertiesTestService,
   InclusionTestService,
@@ -87,6 +88,13 @@ export class RepositoryTestService extends BaseService {
       }),
     })
     private readonly advancedFilterQueryTestService: AdvancedFilterQueryTestService,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: DefaultFilterTestService.name,
+      }),
+    })
+    private readonly defaultFilterTestService: DefaultFilterTestService,
   ) {
     super({ scope: RepositoryTestService.name });
   }
@@ -109,6 +117,7 @@ export class RepositoryTestService extends BaseService {
     await this.runHiddenPropertiesTests();
     await this.runComprehensiveOperatorTests();
     await this.runAdvancedFilterQueryTests();
+    await this.runDefaultFilterTests();
 
     this.logger.info('='.repeat(80));
     this.logger.info('[RepositoryTestService] All repository test suites completed!');
@@ -156,5 +165,9 @@ export class RepositoryTestService extends BaseService {
 
   async runAdvancedFilterQueryTests(): Promise<void> {
     await this.advancedFilterQueryTestService.run();
+  }
+
+  async runDefaultFilterTests(): Promise<void> {
+    await this.defaultFilterTestService.run();
   }
 }

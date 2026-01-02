@@ -1,12 +1,31 @@
 # Filter System
 
-Complete reference for the Ignis filter system - operators, JSON filtering, array operators, and query patterns.
+Complete reference for the Ignis filter system - operators, JSON filtering, array operators, default filters, and query patterns.
 
 > [!NOTE]
 > If you're new to Ignis, start with:
 > - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Get up and running
 > - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
 > - [Repositories](/references/base/repositories) - Repository overview
+
+
+## Documentation
+
+| Guide | Description |
+|-------|-------------|
+| [Comparison Operators](./comparison-operators.md) | Equality, range, null checks |
+| [Pattern Matching](./pattern-matching.md) | LIKE, ILIKE, regex |
+| [Logical Operators](./logical-operators.md) | AND, OR combinations |
+| [List Operators](./list-operators.md) | IN, NOT IN |
+| [Range Operators](./range-operators.md) | BETWEEN, NOT BETWEEN |
+| [Null Operators](./null-operators.md) | IS NULL, IS NOT NULL |
+| [Array Operators](./array-operators.md) | PostgreSQL array operations |
+| [JSON Filtering](./json-filtering.md) | JSON/JSONB path queries |
+| [Fields, Order, Pagination](./fields-order-pagination.md) | SELECT, ORDER BY, LIMIT |
+| [**Default Filter**](./default-filter.md) | Automatic filter application |
+| [Application Usage](./application-usage.md) | Filter flow in applications |
+| [Tips & Best Practices](./tips.md) | Performance and patterns |
+| [Use Cases](./use-cases.md) | Real-world examples |
 
 
 ## Filter Structure

@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-01-02',
+              collapsed: true,
+              items: [
+                { text: 'Default Filter & Repository Mixins', link: '/changelogs/2026-01-02-default-filter-and-repository-mixins' },
+              ],
+            },
+            {
               text: '2025-12-31',
               collapsed: true,
               items: [

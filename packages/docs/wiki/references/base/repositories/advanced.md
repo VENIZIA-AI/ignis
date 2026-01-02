@@ -448,6 +448,57 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 ```
 
 
+## Default Filter Bypass
+
+When models have a `defaultFilter` configured, you can bypass it for admin/maintenance operations:
+
+```typescript
+// Normal query - default filter applies
+await repo.find({
+  filter: { where: { status: 'active' } }
+});
+// WHERE isDeleted = false AND status = 'active' (if model has soft-delete default)
+
+// Admin query - bypass default filter
+await repo.find({
+  filter: { where: { status: 'active' } },
+  options: { skipDefaultFilter: true }
+});
+// WHERE status = 'active' (includes deleted records)
+```
+
+**Supported on all operations:**
+
+```typescript
+// Read operations
+await repo.find({ filter, options: { skipDefaultFilter: true } });
+await repo.findOne({ filter, options: { skipDefaultFilter: true } });
+await repo.count({ where, options: { skipDefaultFilter: true } });
+
+// Write operations
+await repo.updateAll({ where, data, options: { skipDefaultFilter: true } });
+await repo.deleteAll({ where, options: { skipDefaultFilter: true, force: true } });
+```
+
+**Combined with transactions:**
+
+```typescript
+const tx = await repo.beginTransaction();
+await repo.updateAll({
+  where: { status: 'archived' },
+  data: { isDeleted: true },
+  options: {
+    transaction: tx,
+    skipDefaultFilter: true
+  }
+});
+await tx.commit();
+```
+
+> [!TIP]
+> See [Default Filter](../filter-system/default-filter.md) for full documentation on configuring model default filters.
+
+
 ## Quick Reference
 
 | Feature | Code |
@@ -456,6 +507,7 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 | Use transaction | `options: { transaction: tx }` |
 | Commit | `await tx.commit()` |
 | Rollback | `await tx.rollback()` |
+| Bypass default filter | `options: { skipDefaultFilter: true }` |
 | Enable logging | `options: { log: { use: true, level: 'debug' } }` |
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |
@@ -466,6 +518,8 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
 
 - [Overview](./index.md) - Repository basics
 - [Filter System](../filter-system/) - Query operators
+- [Default Filter](../filter-system/default-filter.md) - Automatic filter configuration
+- [Repository Mixins](./mixins.md) - Composable features
 - [Relations & Includes](./relations.md) - Eager loading
 - [JSON Path Filtering](../filter-system/json-filtering) - JSONB queries
 - [Array Operators](../filter-system/array-operators) - PostgreSQL arrays

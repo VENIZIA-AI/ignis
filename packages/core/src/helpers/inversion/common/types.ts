@@ -1,6 +1,6 @@
 import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
 import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
-import { IRepository, TRepositoryOperationScope } from '@/base/repositories';
+import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import { RouteConfig } from '@hono/zod-openapi';
 import { TAuthStrategy, TClass, TValueOrResolver } from '@venizia/ignis-helpers';
 import {
@@ -51,6 +51,26 @@ export interface IModelSettings {
    * settings: { hiddenProperties: ['password', 'secret'] }
    */
   hiddenProperties?: string[];
+
+  /**
+   * Default filter applied to all repository operations (find, findOne, count, update, delete).
+   * User filters merge with defaultFilter (user values take precedence).
+   * Use `options.skipDefaultFilter: true` to bypass.
+   *
+   * Merge strategy:
+   * - `where`: Deep merge (user overrides matching keys)
+   * - `order`, `limit`, `offset`, `skip`, `fields`, `include`: User completely replaces default
+   *
+   * @example
+   * settings: {
+   *   defaultFilter: {
+   *     where: { isDeleted: false, status: 'active' },
+   *     order: ['createdAt DESC'],
+   *     limit: 100
+   *   }
+   * }
+   */
+  defaultFilter?: TFilter;
 }
 
 export interface IModelMetadata {

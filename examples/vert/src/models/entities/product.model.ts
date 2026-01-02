@@ -15,8 +15,20 @@ import { SaleChannelProduct } from './sale-channel-product.model';
  *
  * Demonstrates many-to-many relationship with SaleChannel through SaleChannelProduct.
  * - Product hasMany SaleChannelProduct
+ *
+ * Also demonstrates the default filter feature:
+ * - By default, only products with price > 0 are returned
+ * - Use skipDefaultFilter: true to bypass this filter
  */
-@model({ type: 'entity' })
+@model({
+  type: 'entity',
+  settings: {
+    defaultFilter: {
+      where: { price: { gt: 0 } },
+      limit: 100,
+    },
+  },
+})
 export class Product extends BaseEntity<typeof Product.schema> {
   static override schema = pgTable(
     'Product',

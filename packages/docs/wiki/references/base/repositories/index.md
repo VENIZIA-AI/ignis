@@ -60,7 +60,7 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 This documentation is split into focused guides:
 
 ### [Filter System](/references/base/filter-system/)
-Complete reference for querying data - operators, JSON filtering, array operators, and query patterns.
+Complete reference for querying data - operators, JSON filtering, array operators, default filters, and query patterns.
 
 ```typescript
 // Preview
@@ -94,7 +94,7 @@ await repo.find({
 ```
 
 ### [Advanced Features](./advanced.md)
-Transactions, hidden properties, performance optimization, and type inference.
+Transactions, hidden properties, default filter bypass, performance optimization, and type inference.
 
 ```typescript
 // Preview
@@ -106,6 +106,9 @@ try {
   await tx.rollback();
 }
 ```
+
+### [Repository Mixins](./mixins.md)
+Composable mixins for repository features - `DefaultFilterMixin` and `FieldsVisibilityMixin`.
 
 
 ## @repository Decorator
