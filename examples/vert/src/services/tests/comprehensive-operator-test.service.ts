@@ -282,7 +282,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
             nValue: -100,
             tValue: 'negative',
             description: 'Negative value record',
-            jValue: { priority: -5, balance: -1000.50 },
+            jValue: { priority: -5, balance: -1000.5 },
           },
         ],
       });
@@ -378,7 +378,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       const allGreater = results.every(r => r.nValue !== null && r.nValue > 30);
       if (allGreater && results.length === 4) {
         this.logger.info('[GT] PASSED | Found %d records with nValue > 30', results.length);
-        this.logger.info('[GT] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[GT] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
         this.logger.error('[GT] FAILED | Expected 4 records | Got: %d', results.length);
       }
@@ -425,7 +428,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       const allLess = results.every(r => r.nValue !== null && r.nValue < 30);
       if (allLess && results.length === 4) {
         this.logger.info('[LT] PASSED | Found %d records with nValue < 30', results.length);
-        this.logger.info('[LT] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[LT] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
         this.logger.error('[LT] FAILED | Expected 4 records | Got: %d', results.length);
       }
@@ -520,7 +526,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       const allNull = results.every(r => r.tValue === null);
       if (allNull && results.length >= 1) {
-        this.logger.info('[EQ-NULL] PASSED | eq(null) correctly becomes IS NULL | count: %d', results.length);
+        this.logger.info(
+          '[EQ-NULL] PASSED | eq(null) correctly becomes IS NULL | count: %d',
+          results.length,
+        );
       } else {
         this.logger.error('[EQ-NULL] FAILED | eq(null) not working correctly');
       }
@@ -544,9 +553,15 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       // (only COMP_NULL_1 has tValue = null)
       const allNotNull = results.every(r => r.tValue !== null);
       if (allNotNull && results.length === 10) {
-        this.logger.info('[NEQ-NULL] PASSED | neq(null) correctly becomes IS NOT NULL | count: %d', results.length);
+        this.logger.info(
+          '[NEQ-NULL] PASSED | neq(null) correctly becomes IS NOT NULL | count: %d',
+          results.length,
+        );
       } else {
-        this.logger.error('[NEQ-NULL] FAILED | Expected 10 records | got %d records', results.length);
+        this.logger.error(
+          '[NEQ-NULL] FAILED | Expected 10 records | got %d records',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[NEQ-NULL] FAILED | Error: %s', (error as Error).message);
@@ -572,7 +587,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 1 && results[0].tValue === 'beta') {
         this.logger.info('[LIKE] PASSED | Found record with tValue containing "eta"');
       } else {
-        this.logger.error('[LIKE] FAILED | Expected "beta" | Got: %j', results.map(r => r.tValue));
+        this.logger.error(
+          '[LIKE] FAILED | Expected "beta" | Got: %j',
+          results.map(r => r.tValue),
+        );
       }
     } catch (error) {
       this.logger.error('[LIKE] FAILED | Error: %s', (error as Error).message);
@@ -595,7 +613,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       const noneAlpha = results.every(r => !r.tValue?.includes('alpha'));
       if (noneAlpha && results.length >= 5) {
-        this.logger.info('[NLIKE] PASSED | Found %d records NOT containing "alpha"', results.length);
+        this.logger.info(
+          '[NLIKE] PASSED | Found %d records NOT containing "alpha"',
+          results.length,
+        );
       } else {
         this.logger.error('[NLIKE] FAILED | Some records contain "alpha"');
       }
@@ -619,7 +640,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 1 && results[0].tValue?.toLowerCase() === 'alpha') {
         this.logger.info('[ILIKE] PASSED | Case-insensitive match found "alpha"');
       } else {
-        this.logger.error('[ILIKE] FAILED | Expected "alpha" | Got: %j', results.map(r => r.tValue));
+        this.logger.error(
+          '[ILIKE] FAILED | Expected "alpha" | Got: %j',
+          results.map(r => r.tValue),
+        );
       }
     } catch (error) {
       this.logger.error('[ILIKE] FAILED | Error: %s', (error as Error).message);
@@ -628,7 +652,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_NotIlikeOperator(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[NILIKE] nilike operator (NOT case-insensitive): { tValue: { nilike: "%BETA%" } }');
+    this.logCase(
+      '[NILIKE] nilike operator (NOT case-insensitive): { tValue: { nilike: "%BETA%" } }',
+    );
 
     try {
       const results = await repo.find({
@@ -642,7 +668,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       const noneBeta = results.every(r => !r.tValue?.toLowerCase().includes('beta'));
       if (noneBeta && results.length >= 5) {
-        this.logger.info('[NILIKE] PASSED | Found %d records NOT containing "beta" (case-insensitive)', results.length);
+        this.logger.info(
+          '[NILIKE] PASSED | Found %d records NOT containing "beta" (case-insensitive)',
+          results.length,
+        );
       } else {
         this.logger.error('[NILIKE] FAILED | Some records contain "beta"');
       }
@@ -666,7 +695,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 1 && results[0].tValue === 'alpha') {
         this.logger.info('[REGEXP] PASSED | Regex ^a.* matched "alpha"');
       } else {
-        this.logger.error('[REGEXP] FAILED | Expected "alpha" | Got: %j', results.map(r => r.tValue));
+        this.logger.error(
+          '[REGEXP] FAILED | Expected "alpha" | Got: %j',
+          results.map(r => r.tValue),
+        );
       }
     } catch (error) {
       this.logger.error('[REGEXP] FAILED | Error: %s', (error as Error).message);
@@ -675,7 +707,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_IregexpOperator(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[IREGEXP] iregexp operator (case-insensitive regex): { tValue: { iregexp: "^GAMMA$" } }');
+    this.logCase(
+      '[IREGEXP] iregexp operator (case-insensitive regex): { tValue: { iregexp: "^GAMMA$" } }',
+    );
 
     try {
       const results = await repo.find({
@@ -688,7 +722,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 1 && results[0].tValue?.toLowerCase() === 'gamma') {
         this.logger.info('[IREGEXP] PASSED | Case-insensitive regex matched "gamma"');
       } else {
-        this.logger.error('[IREGEXP] FAILED | Expected "gamma" | Got: %j', results.map(r => r.tValue));
+        this.logger.error(
+          '[IREGEXP] FAILED | Expected "gamma" | Got: %j',
+          results.map(r => r.tValue),
+        );
       }
     } catch (error) {
       this.logger.error('[IREGEXP] FAILED | Error: %s', (error as Error).message);
@@ -768,13 +805,27 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       const noneInList = results.every(r => ![10, 20, 30, 40, 50].includes(r.nValue as number));
       const noNulls = results.every(r => r.nValue !== null);
       if (noneInList && noNulls && results.length === 4) {
-        this.logger.info('[NIN] PASSED | Found %d records NOT in [10,20,30,40,50] (NULLs excluded by SQL)', results.length);
-        this.logger.info('[NIN] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[NIN] PASSED | Found %d records NOT in [10,20,30,40,50] (NULLs excluded by SQL)',
+          results.length,
+        );
+        this.logger.info(
+          '[NIN] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else if (noneInList && results.length >= 4) {
-        this.logger.warn('[NIN] WARNING | Expected 4 records (NULLs excluded) | Got: %d', results.length);
-        this.logger.warn('[NIN] Values: %j', results.map(r => r.nValue));
+        this.logger.warn(
+          '[NIN] WARNING | Expected 4 records (NULLs excluded) | Got: %d',
+          results.length,
+        );
+        this.logger.warn(
+          '[NIN] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
-        this.logger.error('[NIN] FAILED | Some values are in the exclusion list or unexpected count');
+        this.logger.error(
+          '[NIN] FAILED | Some values are in the exclusion list or unexpected count',
+        );
       }
     } catch (error) {
       this.logger.error('[NIN] FAILED | Error: %s', (error as Error).message);
@@ -804,7 +855,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_NinEmptyArrayEdgeCase(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[NIN-EMPTY] nin with empty array should return everything: { nValue: { nin: [] } }');
+    this.logCase(
+      '[NIN-EMPTY] nin with empty array should return everything: { nValue: { nin: [] } }',
+    );
 
     try {
       const results = await repo.find({
@@ -815,7 +868,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       // Empty NIN means "not in nothing" = everything
       if (results.length >= 10) {
-        this.logger.info('[NIN-EMPTY] PASSED | Empty array NIN returns all %d records', results.length);
+        this.logger.info(
+          '[NIN-EMPTY] PASSED | Empty array NIN returns all %d records',
+          results.length,
+        );
       } else {
         this.logger.error('[NIN-EMPTY] FAILED | Expected >= 10 records | Got: %d', results.length);
       }
@@ -839,9 +895,15 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       const allInRange = results.every(r => r.nValue !== null && r.nValue >= 20 && r.nValue <= 40);
       if (allInRange && results.length === 3) {
         this.logger.info('[BETWEEN] PASSED | Found 3 records with nValue between 20 and 40');
-        this.logger.info('[BETWEEN] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[BETWEEN] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
-        this.logger.error('[BETWEEN] FAILED | Expected 3 records in range | Got: %d', results.length);
+        this.logger.error(
+          '[BETWEEN] FAILED | Expected 3 records in range | Got: %d',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[BETWEEN] FAILED | Error: %s', (error as Error).message);
@@ -866,11 +928,23 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       );
 
       if (allOutsideRange && results.length === 6) {
-        this.logger.info('[NOT-BETWEEN] PASSED | Found %d records outside range 20-40', results.length);
-        this.logger.info('[NOT-BETWEEN] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[NOT-BETWEEN] PASSED | Found %d records outside range 20-40',
+          results.length,
+        );
+        this.logger.info(
+          '[NOT-BETWEEN] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
-        this.logger.error('[NOT-BETWEEN] FAILED | Expected 6 records outside range | Got: %d', results.length);
-        this.logger.error('[NOT-BETWEEN] Values: %j', results.map(r => r.nValue));
+        this.logger.error(
+          '[NOT-BETWEEN] FAILED | Expected 6 records outside range | Got: %d',
+          results.length,
+        );
+        this.logger.error(
+          '[NOT-BETWEEN] Values: %j',
+          results.map(r => r.nValue),
+        );
       }
     } catch (error) {
       this.logger.error('[NOT-BETWEEN] FAILED | Error: %s', (error as Error).message);
@@ -896,7 +970,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       const allInRange = results.every(r => r.nValue !== null && r.nValue > 10 && r.nValue < 50);
       if (allInRange && results.length === 3) {
         this.logger.info('[MULTI-OP] PASSED | Found 3 records with 10 < nValue < 50');
-        this.logger.info('[MULTI-OP] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[MULTI-OP] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
         this.logger.error('[MULTI-OP] FAILED | Expected 3 records | Got: %d', results.length);
       }
@@ -934,7 +1011,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_NestedAndOr(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[NESTED] Nested AND/OR: { and: [{ nValue: 10 }, { or: [{ nValue: 20 }, { nValue: 30 }] }] }');
+    this.logCase(
+      '[NESTED] Nested AND/OR: { and: [{ nValue: 10 }, { or: [{ nValue: 20 }, { nValue: 30 }] }] }',
+    );
 
     try {
       const results = await repo.find({
@@ -989,7 +1068,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_OrWithMultipleConditions(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[OR-MULTI] OR with multiple conditions: { or: [{nValue: 10}, {nValue: 30}, {nValue: 50}] }');
+    this.logCase(
+      '[OR-MULTI] OR with multiple conditions: { or: [{nValue: 10}, {nValue: 30}, {nValue: 50}] }',
+    );
 
     try {
       const results = await repo.find({
@@ -1017,7 +1098,9 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
   private async test_AndWithOrInside(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[AND-OR] AND with OR inside: { tValue: { isn: null }, or: [{nValue: 10}, {nValue: 20}] }');
+    this.logCase(
+      '[AND-OR] AND with OR inside: { tValue: { isn: null }, or: [{nValue: 10}, {nValue: 20}] }',
+    );
 
     try {
       const results = await repo.find({
@@ -1064,7 +1147,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 1 && results[0].tValue === '') {
         this.logger.info('[EMPTY-STR] PASSED | Found record with empty string tValue');
       } else {
-        this.logger.error('[EMPTY-STR] FAILED | Expected 1 record with empty string | Got: %d', results.length);
+        this.logger.error(
+          '[EMPTY-STR] FAILED | Expected 1 record with empty string | Got: %d',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[EMPTY-STR] FAILED | Error: %s', (error as Error).message);
@@ -1087,7 +1173,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length >= 1 && results.some(r => r.tValue?.includes("'"))) {
         this.logger.info('[SPECIAL-LIKE] PASSED | Found record with single quote in value');
       } else {
-        this.logger.error('[SPECIAL-LIKE] FAILED | Expected record with quote | Got: %d', results.length);
+        this.logger.error(
+          '[SPECIAL-LIKE] FAILED | Expected record with quote | Got: %d',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[SPECIAL-LIKE] FAILED | Error: %s', (error as Error).message);
@@ -1129,8 +1218,14 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       // Should find -100
       const allNegative = results.every(r => r.nValue !== null && r.nValue < 0);
       if (allNegative && results.length >= 1) {
-        this.logger.info('[NEGATIVE] PASSED | Found %d records with negative nValue', results.length);
-        this.logger.info('[NEGATIVE] Values: %j', results.map(r => r.nValue));
+        this.logger.info(
+          '[NEGATIVE] PASSED | Found %d records with negative nValue',
+          results.length,
+        );
+        this.logger.info(
+          '[NEGATIVE] Values: %j',
+          results.map(r => r.nValue),
+        );
       } else {
         this.logger.error('[NEGATIVE] FAILED | Expected negative values');
       }
@@ -1153,7 +1248,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length >= 1 && results.every(r => r.nValue === 0)) {
         this.logger.info('[ZERO] PASSED | Found %d records with nValue = 0', results.length);
       } else {
-        this.logger.error('[ZERO] FAILED | Expected records with nValue = 0 | Got: %d', results.length);
+        this.logger.error(
+          '[ZERO] FAILED | Expected records with nValue = 0 | Got: %d',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[ZERO] FAILED | Error: %s', (error as Error).message);
@@ -1199,7 +1297,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       if (results.length === 0) {
         this.logger.info('[LIMIT-ZERO] PASSED | limit: 0 returns empty array');
       } else {
-        this.logger.warn('[LIMIT-ZERO] WARNING | limit: 0 may be ignored (returned %d records)', results.length);
+        this.logger.warn(
+          '[LIMIT-ZERO] WARNING | limit: 0 may be ignored (returned %d records)',
+          results.length,
+        );
       }
     } catch (error) {
       this.logger.error('[LIMIT-ZERO] FAILED | Error: %s', (error as Error).message);
@@ -1223,7 +1324,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       // Empty where should return all records (up to limit)
       if (results.length > 0) {
-        this.logger.info('[EMPTY-WHERE] PASSED | Empty where returns all records | count: %d', results.length);
+        this.logger.info(
+          '[EMPTY-WHERE] PASSED | Empty where returns all records | count: %d',
+          results.length,
+        );
       } else {
         this.logger.error('[EMPTY-WHERE] FAILED | Expected records | Got: 0');
       }
@@ -1248,7 +1352,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       // Should return all COMPREHENSIVE_TEST records (undefined is skipped)
       if (results.length >= 10) {
-        this.logger.info('[UNDEFINED] PASSED | undefined value skipped, returned %d records', results.length);
+        this.logger.info(
+          '[UNDEFINED] PASSED | undefined value skipped, returned %d records',
+          results.length,
+        );
       } else {
         this.logger.error('[UNDEFINED] FAILED | Expected >= 10 records | Got: %d', results.length);
       }
@@ -1274,7 +1381,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       // Should find records where jValue.priority is null
       if (results.length >= 1) {
-        this.logger.info('[JSON-NULL] PASSED | Found %d records with null jValue.priority', results.length);
+        this.logger.info(
+          '[JSON-NULL] PASSED | Found %d records with null jValue.priority',
+          results.length,
+        );
       } else {
         this.logger.warn('[JSON-NULL] WARNING | No records with null JSON priority found');
       }
@@ -1384,7 +1494,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       });
 
       // This tests if empty arrays in JSON can be queried
-      this.logger.info('[JSON-EMPTY-ARR] INFO | Query for empty array returned %d records', results.length);
+      this.logger.info(
+        '[JSON-EMPTY-ARR] INFO | Query for empty array returned %d records',
+        results.length,
+      );
       this.logger.info('[JSON-EMPTY-ARR] PASSED | Query executed without error');
     } catch (error) {
       this.logger.error('[JSON-EMPTY-ARR] FAILED | Error: %s', (error as Error).message);
@@ -1403,7 +1516,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
         },
       });
 
-      this.logger.info('[JSON-EMPTY-OBJ] INFO | Query for empty object returned %d records', results.length);
+      this.logger.info(
+        '[JSON-EMPTY-OBJ] INFO | Query for empty object returned %d records',
+        results.length,
+      );
       this.logger.info('[JSON-EMPTY-OBJ] PASSED | Query executed without error');
     } catch (error) {
       this.logger.error('[JSON-EMPTY-OBJ] FAILED | Error: %s', (error as Error).message);
@@ -1450,7 +1566,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       });
 
       // Should return 0 records, NOT execute SQL injection
-      this.logger.info('[SEC-SQL-VALUE] PASSED | SQL injection safely handled | results: %d', results.length);
+      this.logger.info(
+        '[SEC-SQL-VALUE] PASSED | SQL injection safely handled | results: %d',
+        results.length,
+      );
 
       // Verify table still exists
       const stillExists = await repo.count({ where: { group: 'COMPREHENSIVE_TEST' } });
@@ -1475,7 +1594,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
         },
       });
 
-      this.logger.info('[SEC-SQL-LIKE] PASSED | LIKE injection safely handled | results: %d', results.length);
+      this.logger.info(
+        '[SEC-SQL-LIKE] PASSED | LIKE injection safely handled | results: %d',
+        results.length,
+      );
 
       // Verify data intact
       const count = await repo.count({ where: { group: 'COMPREHENSIVE_TEST' } });
@@ -1492,7 +1614,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
     this.logCase('[SEC-SQL-ARRAY] SQL injection in array values');
 
     try {
-      const maliciousArray = ["normal", "'; DROP TABLE Configuration; --", "value"];
+      const maliciousArray = ['normal', "'; DROP TABLE Configuration; --", 'value'];
 
       const results = await repo.find({
         filter: {
@@ -1500,7 +1622,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
         },
       });
 
-      this.logger.info('[SEC-SQL-ARRAY] PASSED | Array injection safely handled | results: %d', results.length);
+      this.logger.info(
+        '[SEC-SQL-ARRAY] PASSED | Array injection safely handled | results: %d',
+        results.length,
+      );
     } catch (error) {
       this.logger.error('[SEC-SQL-ARRAY] ERROR | %s', (error as Error).message);
     }
@@ -1567,8 +1692,14 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       if (!hasOverlap && page1.length === 3 && page2.length === 3) {
         this.logger.info('[COMBO-PAGINATE] PASSED | Pagination works correctly');
-        this.logger.info('[COMBO-PAGINATE] Page 1 values: %j', page1.map(r => r.nValue));
-        this.logger.info('[COMBO-PAGINATE] Page 2 values: %j', page2.map(r => r.nValue));
+        this.logger.info(
+          '[COMBO-PAGINATE] Page 1 values: %j',
+          page1.map(r => r.nValue),
+        );
+        this.logger.info(
+          '[COMBO-PAGINATE] Page 2 values: %j',
+          page2.map(r => r.nValue),
+        );
       } else {
         this.logger.error('[COMBO-PAGINATE] FAILED | Pagination issue detected');
       }
@@ -1597,8 +1728,15 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       });
 
       if (results.length >= 1) {
-        this.logger.info('[COMBO-SEARCH] PASSED | Multi-criteria search returned %d records', results.length);
-        this.logger.info('[COMBO-SEARCH] First result: nValue=%s, tValue=%s', results[0].nValue, results[0].tValue);
+        this.logger.info(
+          '[COMBO-SEARCH] PASSED | Multi-criteria search returned %d records',
+          results.length,
+        );
+        this.logger.info(
+          '[COMBO-SEARCH] First result: nValue=%s, tValue=%s',
+          results[0].nValue,
+          results[0].tValue,
+        );
       } else {
         this.logger.warn('[COMBO-SEARCH] WARNING | No results for multi-criteria search');
       }
@@ -1626,7 +1764,10 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
 
       // All test data should be recent
       if (results.length >= 10) {
-        this.logger.info('[COMBO-DATE] PASSED | Date range query returned %d recent records', results.length);
+        this.logger.info(
+          '[COMBO-DATE] PASSED | Date range query returned %d recent records',
+          results.length,
+        );
       } else {
         this.logger.warn('[COMBO-DATE] WARNING | Date range returned fewer records than expected');
       }
@@ -1645,7 +1786,12 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       // Setup test products
       await repo.createAll({
         data: [
-          { code: `COMBO_A_${getUID()}`, name: 'Product A', price: 100, tags: [testTag, 'featured'] },
+          {
+            code: `COMBO_A_${getUID()}`,
+            name: 'Product A',
+            price: 100,
+            tags: [testTag, 'featured'],
+          },
           { code: `COMBO_B_${getUID()}`, name: 'Product B', price: 200, tags: [testTag, 'sale'] },
           { code: `COMBO_C_${getUID()}`, name: 'Product C', price: 300, tags: [testTag] },
         ],
@@ -1668,7 +1814,7 @@ export class ComprehensiveOperatorTestService extends BaseTestService {
       }
 
       // Cleanup
-      await repo.deleteAll({ where: { tags: { contains: [testTag] } } as any });
+      await repo.deleteAll({ where: { tags: { contains: [testTag] } } });
     } catch (error) {
       this.logger.error('[COMBO-PRODUCT] FAILED | Error: %s', (error as Error).message);
     }

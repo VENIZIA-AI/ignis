@@ -1,6 +1,17 @@
-# Repository Mixins
+---
+title: Repository Mixins
+description: Composable mixins for repository functionality
+difficulty: intermediate
+lastUpdated: 2026-01-02
+---
+
+# Repository Mixins <Badge type="tip" text="v0.0.5+" />
 
 Composable mixins that provide reusable functionality for repository classes.
+
+::: info Refactored in v0.0.5
+Repository mixins were extracted and refactored in v0.0.5 to provide better composition and reusability.
+:::
 
 **Files:** `packages/core/src/base/repositories/mixins/`
 
@@ -66,7 +77,7 @@ class MyRepository extends DefaultFilterMixin(BaseHelper) {
 ```typescript
 interface ApplyDefaultFilterOptions {
   userFilter?: TFilter;        // User-provided filter
-  skipDefaultFilter?: boolean; // If true, bypass default filter
+  shouldSkipDefaultFilter?: boolean; // If true, bypass default filter
 }
 ```
 
@@ -75,12 +86,12 @@ interface ApplyDefaultFilterOptions {
 ```typescript
 applyDefaultFilter<DataObject = any>(opts: {
   userFilter?: TFilter<DataObject>;
-  skipDefaultFilter?: boolean;
+  shouldSkipDefaultFilter?: boolean;
 }): TFilter<DataObject> {
-  const { userFilter, skipDefaultFilter } = opts;
+  const { userFilter, shouldSkipDefaultFilter } = opts;
 
   // Skip default filter if explicitly requested
-  if (skipDefaultFilter) {
+  if (shouldSkipDefaultFilter) {
     return userFilter ?? {};
   }
 
@@ -304,3 +315,17 @@ private _visibleProperties: Record<string, any> | null | undefined = null;
 - [Default Filter](../filter-system/default-filter.md) - Full default filter documentation
 - [Advanced Features](./advanced.md) - Hidden properties usage
 - [Repository Overview](./index.md) - Repository basics
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories Overview](./index) - Core repository operations
+  - [Models](/guides/core-concepts/persistent/models) - Entity definitions
+
+- **Related Topics:**
+  - [Default Filter](../filter-system/default-filter) - Automatic filtering
+  - [Advanced Features](./advanced) - Hidden properties and transactions
+  - [Relations & Includes](./relations) - Loading related data
+
+- **Best Practices:**
+  - [Data Modeling](/best-practices/data-modeling) - Soft delete patterns

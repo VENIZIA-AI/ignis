@@ -1,6 +1,17 @@
-# Default Filter
+---
+title: Default Filter
+description: Automatically apply filter conditions to all repository queries
+difficulty: intermediate
+lastUpdated: 2026-01-02
+---
+
+# Default Filter <Badge type="tip" text="v0.0.5+" />
 
 Automatically apply filter conditions to all repository queries at the model level.
+
+::: info Added in v0.0.5
+This feature was introduced in IGNIS v0.0.5 to support soft delete, multi-tenancy, and other automatic filtering patterns.
+:::
 
 > [!NOTE]
 > Default filters are ideal for:
@@ -169,7 +180,7 @@ const userFilter = {
 
 ## Bypassing Default Filter
 
-Use `skipDefaultFilter: true` to bypass the default filter:
+Use `shouldSkipDefaultFilter: true` to bypass the default filter:
 
 ```typescript
 // Normal query - default filter applies
@@ -181,29 +192,29 @@ await repo.find({
 // Admin query - bypass default filter
 await repo.find({
   filter: { where: { role: 'admin' } },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 // WHERE role = 'admin' (includes deleted records)
 ```
 
 ### Supported Operations
 
-`skipDefaultFilter` works with all repository methods:
+`shouldSkipDefaultFilter` works with all repository methods:
 
 ```typescript
 // Read operations
-await repo.find({ filter, options: { skipDefaultFilter: true } });
-await repo.findOne({ filter, options: { skipDefaultFilter: true } });
-await repo.findById({ id, options: { skipDefaultFilter: true } });
-await repo.count({ where, options: { skipDefaultFilter: true } });
+await repo.find({ filter, options: { shouldSkipDefaultFilter: true } });
+await repo.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
+await repo.findById({ id, options: { shouldSkipDefaultFilter: true } });
+await repo.count({ where, options: { shouldSkipDefaultFilter: true } });
 
 // Update operations
-await repo.updateById({ id, data, options: { skipDefaultFilter: true } });
-await repo.updateAll({ where, data, options: { skipDefaultFilter: true } });
+await repo.updateById({ id, data, options: { shouldSkipDefaultFilter: true } });
+await repo.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
 
 // Delete operations
-await repo.deleteById({ id, options: { skipDefaultFilter: true } });
-await repo.deleteAll({ where, options: { skipDefaultFilter: true, force: true } });
+await repo.deleteById({ id, options: { shouldSkipDefaultFilter: true } });
+await repo.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 ### Use Cases for Bypassing
@@ -240,7 +251,7 @@ await postRepo.find({ filter: {} });
 await postRepo.updateById({
   id: postId,
   data: { deletedAt: null },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 ```
 
@@ -264,7 +275,7 @@ await docRepo.find({ filter: { where: { type: 'invoice' } } });
 // Cross-tenant admin query
 await docRepo.find({
   filter: { where: { type: 'invoice' } },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 // WHERE type = 'invoice'
 ```
@@ -308,14 +319,14 @@ await logRepo.find({ filter: { limit: 50 } }); // LIMIT 50
 
 ## IExtraOptions Interface
 
-The `skipDefaultFilter` option is part of the `IExtraOptions` interface:
+The `shouldSkipDefaultFilter` option is part of the `IExtraOptions` interface:
 
 ```typescript
 interface IExtraOptions extends IWithTransaction {
   /**
    * If true, bypass the default filter configured in model settings.
    */
-  skipDefaultFilter?: boolean;
+  shouldSkipDefaultFilter?: boolean;
 }
 
 interface IWithTransaction {
@@ -329,13 +340,13 @@ This allows combining with transactions:
 const tx = await repo.beginTransaction();
 
 try {
-  // Both transaction and skipDefaultFilter
+  // Both transaction and shouldSkipDefaultFilter
   await repo.updateAll({
     where: { status: 'archived' },
     data: { isDeleted: true },
     options: {
       transaction: tx,
-      skipDefaultFilter: true,
+      shouldSkipDefaultFilter: true,
     }
   });
 
@@ -378,7 +389,7 @@ getDefaultFilter(): TFilter | undefined
 // Merge default filter with user filter
 applyDefaultFilter(opts: {
   userFilter?: TFilter;
-  skipDefaultFilter?: boolean;
+  shouldSkipDefaultFilter?: boolean;
 }): TFilter
 ```
 
@@ -404,8 +415,8 @@ const merged = filterBuilder.mergeFilter({
 | Want to... | Code |
 |------------|------|
 | Configure default filter | `@model({ settings: { defaultFilter: { ... } } })` |
-| Bypass default filter | `options: { skipDefaultFilter: true }` |
-| Combine with transaction | `options: { transaction: tx, skipDefaultFilter: true }` |
+| Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
+| Combine with transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
 | Check if model has default | `repo.hasDefaultFilter()` |
 | Get raw default filter | `repo.getDefaultFilter()` |
 

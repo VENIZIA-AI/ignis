@@ -1,3 +1,9 @@
+---
+title: Using Filters in Your Application
+description: How filters flow through application layers
+difficulty: intermediate
+---
+
 # Using Filters in Your Application
 
 How filters flow through the application layers.

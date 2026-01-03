@@ -4,7 +4,7 @@
  * Tests the default filter logic that:
  * 1. Allows models to define a default filter (e.g., { where: { isDeleted: false }, limit: 100 })
  * 2. Automatically applies the default filter to all queries
- * 3. Can be bypassed with `skipDefaultFilter: true` option
+ * 3. Can be bypassed with `shouldSkipDefaultFilter: true` option
  * 4. Merges user filters with default filter (user takes precedence)
  *
  * Test Categories:
@@ -1085,6 +1085,7 @@ describe('Default Filter Feature', () => {
         test('TC-045: should handle __proto__ in where key', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
           const userFilter: AnyFilter = {
+            // eslint-disable-next-line @typescript-eslint/naming-convention
             where: { __proto__: { polluted: true } },
           };
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
@@ -1117,6 +1118,7 @@ describe('Default Filter Feature', () => {
           const userFilter: AnyFilter = {
             where: {
               nested: {
+                // eslint-disable-next-line @typescript-eslint/naming-convention
                 __proto__: { hacked: true },
               },
             },
@@ -1490,7 +1492,7 @@ describe('Default Filter Feature', () => {
     });
 
     describe('applyDefaultFilter', () => {
-      test('TC-059: should return user filter when skipDefaultFilter is true', () => {
+      test('TC-059: should return user filter when shouldSkipDefaultFilter is true', () => {
         const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
           getModelEntry: () => ({
             metadata: { settings: { defaultFilter: { where: { isDeleted: false } } } },
@@ -1500,7 +1502,7 @@ describe('Default Filter Feature', () => {
         const userFilter: AnyFilter = { where: { status: 'active' } };
         const result = repository.applyDefaultFilter({
           userFilter,
-          skipDefaultFilter: true,
+          shouldSkipDefaultFilter: true,
         });
 
         expect(result).toEqual({ where: { status: 'active' } });
@@ -1510,7 +1512,7 @@ describe('Default Filter Feature', () => {
         mockGetInstance.mockRestore();
       });
 
-      test('TC-060: should return empty object when skipDefaultFilter is true and no user filter', () => {
+      test('TC-060: should return empty object when shouldSkipDefaultFilter is true and no user filter', () => {
         const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
           getModelEntry: () => ({
             metadata: { settings: { defaultFilter: { where: { isDeleted: false } } } },
@@ -1518,7 +1520,7 @@ describe('Default Filter Feature', () => {
         } as any);
 
         const result = repository.applyDefaultFilter({
-          skipDefaultFilter: true,
+          shouldSkipDefaultFilter: true,
         });
 
         expect(result).toEqual({});
@@ -1579,7 +1581,7 @@ describe('Default Filter Feature', () => {
         mockGetInstance.mockRestore();
       });
 
-      test('TC-064: should handle skipDefaultFilter with undefined value', () => {
+      test('TC-064: should handle shouldSkipDefaultFilter with undefined value', () => {
         const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
           getModelEntry: () => ({
             metadata: { settings: { defaultFilter: { where: { isDeleted: false } } } },
@@ -1589,7 +1591,7 @@ describe('Default Filter Feature', () => {
         const userFilter: AnyFilter = { where: { status: 'active' } };
         const result = repository.applyDefaultFilter({
           userFilter,
-          skipDefaultFilter: undefined, // Should not skip
+          shouldSkipDefaultFilter: undefined, // Should not skip
         });
 
         // Default filter should be merged
@@ -1599,7 +1601,7 @@ describe('Default Filter Feature', () => {
         mockGetInstance.mockRestore();
       });
 
-      test('TC-065: should handle skipDefaultFilter with false value', () => {
+      test('TC-065: should handle shouldSkipDefaultFilter with false value', () => {
         const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
           getModelEntry: () => ({
             metadata: { settings: { defaultFilter: { where: { isDeleted: false } } } },
@@ -1609,7 +1611,7 @@ describe('Default Filter Feature', () => {
         const userFilter: AnyFilter = { where: { status: 'active' } };
         const result = repository.applyDefaultFilter({
           userFilter,
-          skipDefaultFilter: false, // Explicit false, should not skip
+          shouldSkipDefaultFilter: false, // Explicit false, should not skip
         });
 
         // Default filter should be merged
@@ -1715,11 +1717,11 @@ describe('Default Filter Feature', () => {
       expect(result.order).toEqual(['createdAt DESC']);
     });
 
-    test('TC-069: Admin override pattern - skipDefaultFilter bypasses all restrictions', () => {
-      // When skipDefaultFilter is true, only user filter should apply
+    test('TC-069: Admin override pattern - shouldSkipDefaultFilter bypasses all restrictions', () => {
+      // When shouldSkipDefaultFilter is true, only user filter should apply
       // This is tested in applyDefaultFilter, but here we verify merge behavior
       const result = filterBuilder.mergeFilter({
-        defaultFilter: undefined, // Simulating skipDefaultFilter=true scenario
+        defaultFilter: undefined, // Simulating shouldSkipDefaultFilter=true scenario
         userFilter: { where: { isDeleted: true }, limit: 1000 },
       });
 

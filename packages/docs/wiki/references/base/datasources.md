@@ -1,3 +1,9 @@
+---
+title: DataSources Reference
+description: Technical reference for DataSource classes and database connections
+difficulty: intermediate
+---
+
 # Deep Dive: DataSources
 
 Technical reference for DataSource classes - managing database connections in Ignis.
@@ -338,3 +344,27 @@ try {
 > **Note:** For most use cases, prefer using `repository.beginTransaction()` which provides a higher-level API. See [Repositories Reference](./repositories.md#transactions) for details.
 
 This architecture ensures that datasources are configured consistently and that the fully-initialized Drizzle connector, aware of all schemas and relations, is available to repositories for querying.
+
+## See Also
+
+- **Related Concepts:**
+  - [DataSources Guide](/guides/core-concepts/persistent/datasources) - Creating DataSources tutorial
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Using DataSources for database access
+  - [Models](/guides/core-concepts/persistent/models) - Entity schemas loaded by DataSource
+  - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation database transactions
+
+- **References:**
+  - [Repositories API](/references/base/repositories/) - Data access layer
+  - [Environment Variables](/references/configuration/environment-variables) - Configuration management
+
+- **External Resources:**
+  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - ORM configuration
+  - [node-postgres Documentation](https://node-postgres.com/) - Connection pooling guide
+
+- **Best Practices:**
+  - [Performance Optimization](/best-practices/performance-optimization) - Connection pool tuning
+  - [Security Guidelines](/best-practices/security-guidelines) - Database credential management
+
+- **Tutorials:**
+  - [Complete Installation](/guides/tutorials/complete-installation) - Database setup
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - DataSource configuration

@@ -467,3 +467,20 @@ const comments = await commentRepo.find({
 - [JSON Path Filtering](../filter-system/json-filtering) - Query JSONB columns
 - [Array Operators](../filter-system/array-operators) - PostgreSQL array queries
 - [Advanced Features](./advanced.md) - Transactions, hidden props
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories Overview](./index) - Core repository operations
+  - [Models](/guides/core-concepts/persistent/models) - Defining model relationships
+
+- **Related Topics:**
+  - [Advanced Features](./advanced) - Hidden properties, transactions
+  - [Repository Mixins](./mixins) - Soft delete and auditing
+  - [Filter System](/references/base/filter-system/) - Query operators
+
+- **External Resources:**
+  - [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - Relation definition guide
+
+- **Tutorials:**
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Relations in practice

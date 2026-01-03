@@ -441,3 +441,22 @@ if (user) {
   console.log('User is not authenticated or not found in context.');
 }
 ```
+
+## See Also
+
+- **Related Concepts:**
+  - [Components Overview](/guides/core-concepts/components) - Component system basics
+  - [Controllers](/guides/core-concepts/controllers) - Protecting routes with auth
+
+- **Other Components:**
+  - [Components Index](./index) - All built-in components
+
+- **References:**
+  - [Middlewares](/references/base/middlewares) - Custom authentication middleware
+  - [Crypto Helper](/references/helpers/crypto) - Password hashing utilities
+
+- **Best Practices:**
+  - [Security Guidelines](/best-practices/security-guidelines) - Authentication best practices
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Adding authentication

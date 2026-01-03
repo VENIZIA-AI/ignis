@@ -1,3 +1,9 @@
+---
+title: Services Reference
+description: Technical reference for BaseService and business logic layer
+difficulty: beginner
+---
+
 # Deep Dive: Services
 
 Technical reference for `BaseService` - the foundation for business logic layers in Ignis.
@@ -95,3 +101,21 @@ export class UserService extends BaseService {
 ```
 
 By adhering to this pattern, you keep your code organized, testable, and maintainable. You can easily test `UserService` by providing a mock `UserRepository` without needing a real database connection.
+
+---
+
+## See Also
+
+- **Related References:**
+  - [Controllers](./controllers.md) - HTTP request handlers that call services
+  - [Repositories](./repositories/) - Data access layer used by services
+  - [Providers](./providers.md) - Factory pattern for runtime instantiation
+  - [Dependency Injection](./dependency-injection.md) - DI container and injection patterns
+
+- **Guides:**
+  - [Building Services](/guides/core-concepts/services.md)
+  - [Dependency Injection Guide](/guides/core-concepts/dependency-injection.md)
+
+- **Best Practices:**
+  - [Service Layer Patterns](/best-practices/architecture/service-patterns.md)
+  - [Testing Services](/best-practices/testing/unit-testing.md)

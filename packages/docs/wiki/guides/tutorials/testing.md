@@ -2,6 +2,8 @@
 
 This guide shows you how to write tests for your Ignis application.
 
+**⏱️ Time to Complete:** ~30 minutes
+
 ## Choose Your Test Framework
 
 **Ignis works with any test framework.** You can use whichever testing tool you prefer:

@@ -1,3 +1,9 @@
+---
+title: Fields, Ordering & Pagination
+description: Control field selection, sorting, and pagination
+difficulty: intermediate
+---
+
 # Fields, Ordering & Pagination
 
 Control which fields are returned, how results are sorted, and how to paginate.

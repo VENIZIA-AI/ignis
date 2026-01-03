@@ -9,6 +9,7 @@ Core classes that power every Ignis application - from the Application entry poi
 | `BaseApplication` | Application entry point, DI container | `AbstractApplication` |
 | `BaseController` | HTTP route handlers | - |
 | `BaseService` | Business logic layer | - |
+| `BaseProvider` | Factory pattern for runtime instantiation | `BaseHelper` |
 | `BaseComponent` | Pluggable feature modules | - |
 | `BaseDataSource` | Database connections | - |
 | `BaseEntity` | Model definitions | - |
@@ -53,10 +54,12 @@ Core classes that power every Ignis application - from the Application entry poi
 
 ### HTTP Layer
 - [Controllers](./controllers.md) - Route handlers, decorators, request/response handling
+- [Middlewares](./middlewares.md) - Built-in middlewares for error handling, logging, and request processing
 - [Services](./services.md) - Business logic, injectable services
 
 ### Dependency Injection
 - [Dependency Injection](./dependency-injection.md) - Container, bindings, `@inject` patterns
+- [Providers](./providers.md) - Factory pattern for configuration-driven instantiation
 - [Components](./components.md) - Pluggable modules, component lifecycle
 
 ### Data Layer
@@ -78,6 +81,7 @@ AbstractRepository
 │
 BaseController ──────► Your Controller
 BaseService ──────► Your Service
+BaseProvider ──────► Your Provider
 BaseComponent ──────► Your Component
 BaseDataSource ──────► Your DataSource
 BaseEntity ──────► Your Model

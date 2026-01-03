@@ -1,3 +1,9 @@
+---
+title: Use Case Gallery
+description: Real-world filter examples with corresponding SQL
+difficulty: intermediate
+---
+
 # Use Case Gallery
 
 Real-world examples of filter usage with corresponding SQL.

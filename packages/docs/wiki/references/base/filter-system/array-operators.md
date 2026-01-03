@@ -1,3 +1,9 @@
+---
+title: PostgreSQL Array Operators
+description: Operators for PostgreSQL array columns
+difficulty: intermediate
+---
+
 # PostgreSQL Array Operators
 
 Operators for PostgreSQL array columns (`varchar[]`, `text[]`, `integer[]`, etc.).

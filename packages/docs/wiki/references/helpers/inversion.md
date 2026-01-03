@@ -155,3 +155,22 @@ The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a s
 -   When the `Container` instantiates a class, it queries the `MetadataRegistry` to find out which dependencies need to be injected and where.
 
 You typically won't interact with the `MetadataRegistry` directly, but it's the underlying mechanism that makes the decorator-based DI and routing systems work seamlessly.
+
+## See Also
+
+- **Related Concepts:**
+  - [Dependency Injection Guide](/guides/core-concepts/dependency-injection) - DI fundamentals
+  - [Application](/guides/core-concepts/application/) - Application extends Container
+
+- **Other Helpers:**
+  - [Helpers Index](./index) - All available helpers
+
+- **References:**
+  - [Dependency Injection API](/references/base/dependency-injection) - Complete DI reference
+  - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts
+
+- **Tutorials:**
+  - [Testing](/guides/tutorials/testing) - Unit testing with DI
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - DI patterns

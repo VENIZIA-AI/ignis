@@ -439,3 +439,20 @@ updateUser(c: TRouteContext<typeof UpdateUserConfig>) {
 ```
 
 Using `TRouteContext` provides full type inference for `c.req.valid()`, so your editor will know that `id` is a string, `notify` is an optional string, and `userUpdateData` matches the body schema.
+
+## See Also
+
+- **Related Concepts:**
+  - [Application](/guides/core-concepts/application/) - Registering controllers
+  - [Services](/guides/core-concepts/services) - Business logic layer called by controllers
+  - [Dependency Injection](/guides/core-concepts/dependency-injection) - Injecting services into controllers
+
+- **References:**
+  - [BaseController API](/references/base/controllers) - Complete API reference
+  - [Middlewares](/references/base/middlewares) - Request interceptors
+  - [Swagger Component](/references/components/swagger) - Auto-generate API docs
+  - [Schema Utilities](/references/utilities/schema) - Request/response helpers
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Controller examples
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Advanced routing patterns

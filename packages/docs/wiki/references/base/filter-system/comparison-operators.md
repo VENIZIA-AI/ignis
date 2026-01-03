@@ -1,3 +1,9 @@
+---
+title: Comparison Operators
+description: Equality and comparison operators for filtering records
+difficulty: intermediate
+---
+
 # Comparison Operators
 
 Equality and comparison operators for filtering records.

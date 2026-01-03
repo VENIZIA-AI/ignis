@@ -1,3 +1,9 @@
+---
+title: Controllers Reference
+description: Technical reference for controller classes and API endpoints
+difficulty: beginner
+---
+
 # Deep Dive: Controllers
 
 Technical reference for controller classes - the foundation for creating API endpoints in Ignis.
@@ -142,7 +148,7 @@ const UserRoutes = {
   }
 ```
 
-**Example using shared `ROUTE_CONFIGS`:**
+**Example using shared `RouteConfigs`:**
 
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
@@ -150,8 +156,8 @@ For better organization, you can define all your route configurations in a const
 import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@venizia/ignis';
 import { z } from 'hono/zod-openapi';
 
-const HEALTH_CHECK_ROUTES = {
-  '/ping': {
+const RouteConfigs = {
+  PING: {
     method: HTTP.Methods.POST,
     path: '/ping',
     request: {
@@ -167,9 +173,9 @@ const HEALTH_CHECK_ROUTES = {
 
 @controller({ path: '/health' })
 export class HealthCheckController extends BaseController {
-  
-  @api({ configs: HEALTH_CHECK_ROUTES['/ping'] })
-  ping(c: TRouteContext<typeof HEALTH_CHECK_ROUTES['/ping']>) { // Return type is automatically inferred
+
+  @api({ configs: RouteConfigs.PING })
+  ping(c: TRouteContext<typeof RouteConfigs.PING>) { // Return type is automatically inferred
     const { message } = c.req.valid('json');
     return c.json({ pong: message }, HTTP.ResultCodes.RS_2.Ok);
   }
@@ -258,17 +264,17 @@ request: {
 The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
 
 ```typescript
-import { defineRouteConfigs, HTTP, jsonResponse, z } from '@venizia/ignis';
+import { defineRouteConfigs, HTTP, jsonResponse, jsonContent, z } from '@venizia/ignis';
 
-const ROUTE_CONFIGS = defineRouteConfigs({
-  '/': {
+const RouteConfigs = defineRouteConfigs({
+  ROOT: {
     method: HTTP.Methods.GET,
     path: '/',
     responses: jsonResponse({
       schema: z.object({ status: z.string() }),
     }),
   },
-  '/ping': {
+  PING: {
     method: HTTP.Methods.POST,
     path: '/ping',
     request: {
@@ -452,3 +458,28 @@ export class ConfigurationController extends _ConfigurationController {
 ```
 
 By leveraging these structured configuration options and the `ControllerFactory`, you ensure that your API is not only functional but also well-documented, easy to validate, and rapidly deployable for standard CRUD operations.
+
+---
+
+## See Also
+
+- **Related References:**
+  - [Services](./services.md) - Business logic layer called by controllers
+  - [Repositories](./repositories/) - Data access layer for CRUD operations
+  - [Middlewares](./middlewares.md) - Request/response middleware
+  - [Application](./application.md) - Application setup and controller mounting
+  - [Dependency Injection](./dependency-injection.md) - DI patterns and injection
+
+- **Guides:**
+  - [Building Your First API](/guides/getting-started/first-api.md)
+  - [Controllers Guide](/guides/core-concepts/controllers.md)
+  - [Routing and Decorators](/guides/core-concepts/routing.md)
+
+- **Best Practices:**
+  - [API Design Patterns](/best-practices/architecture/api-design.md)
+  - [Error Handling](/best-practices/architecture/error-handling.md)
+  - [Request Validation](/best-practices/security/input-validation.md)
+
+- **External Resources:**
+  - [OpenAPI Specification](https://swagger.io/specification/)
+  - [HTTP Methods](https://developer.mozilla.org/en-US/docs/Web/HTTP/Methods)

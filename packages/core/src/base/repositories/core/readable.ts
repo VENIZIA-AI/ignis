@@ -43,7 +43,7 @@ export class ReadableRepository<
     // Apply default filter's where condition
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
-      skipDefaultFilter: opts.options?.skipDefaultFilter,
+      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
     const where = this.filterBuilder.toWhere({
@@ -125,7 +125,7 @@ export class ReadableRepository<
     // Apply default filter
     const mergedFilter = this.applyDefaultFilter({
       userFilter: filter,
-      skipDefaultFilter: options?.skipDefaultFilter,
+      shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
     // Build where clause
@@ -196,7 +196,7 @@ export class ReadableRepository<
     // Apply default filter for Query API path
     const mergedFilter = this.applyDefaultFilter({
       userFilter: opts.filter,
-      skipDefaultFilter: opts.options?.skipDefaultFilter,
+      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
     // Fall back to Query API for complex queries with relations/fields
@@ -223,7 +223,7 @@ export class ReadableRepository<
     // Apply default filter for Query API path
     const mergedFilter = this.applyDefaultFilter({
       userFilter: opts.filter,
-      skipDefaultFilter: opts.options?.skipDefaultFilter,
+      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
     // Fall back to Query API for complex queries with relations/fields

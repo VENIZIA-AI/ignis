@@ -558,9 +558,22 @@ npx glob "your-pattern/**/*.controller.js"
 - Skip subdirectories if you have nested structure
 - Ignore boot errors (they indicate misconfiguration)
 
-## Related Documentation
+## See Also
 
-- [Boot Package Reference](../../../references/src-details/boot.md)
-- [Application Overview](./)
-- [Dependency Injection](../../../references/base/dependency-injection.md)
-- [Building a CRUD API](../../tutorials/building-a-crud-api.md)
+- **Related Concepts:**
+  - [Application Overview](./index) - Main application class
+  - [Controllers](/guides/core-concepts/controllers) - Auto-discovered controllers
+  - [Services](/guides/core-concepts/services) - Auto-discovered services
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Auto-discovered repositories
+
+- **References:**
+  - [Bootstrapping API](/references/base/bootstrapping) - Complete API reference
+  - [Boot Package](/references/src-details/boot) - Boot system internals
+  - [Dependency Injection](/references/base/dependency-injection) - DI container
+
+- **Tutorials:**
+  - [Complete Installation](/guides/tutorials/complete-installation) - Project structure
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Bootstrapping in action
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - Project organization patterns

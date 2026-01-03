@@ -83,3 +83,23 @@ This layered architecture makes your application:
 -   **More Organized:** Each layer has a clear and distinct responsibility.
 -   **Easier to Test:** You can test your business logic in isolation by providing mock repositories to your services, without needing a live database.
 -   **More Flexible:** You can change your database or data access implementation (e.g., switch from PostgreSQL to MySQL) by only changing the repository and datasource layer, with no changes to your business logic.
+
+## See Also
+
+- **Related Concepts:**
+  - [Controllers](/guides/core-concepts/controllers) - Call services to handle requests
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Data access layer used by services
+  - [Dependency Injection](/guides/core-concepts/dependency-injection) - Injecting dependencies into services
+
+- **References:**
+  - [BaseService API](/references/base/services) - Complete API reference
+  - [Providers](/references/base/providers) - Factory pattern for runtime instantiation
+  - [Logger Helper](/references/helpers/logger) - Logging in services
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - Service layer design
+  - [Testing](/guides/tutorials/testing) - Unit testing services
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Service examples
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Complex business logic

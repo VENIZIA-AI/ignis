@@ -491,3 +491,19 @@ export class MyComponent extends BaseComponent {
 | **Key method** | `binding()` - register all resources here |
 | **Configuration** | Use binding keys + `isBound()` check for overridable options |
 | **Registration** | `this.component(MyComponent)` in `preConfigure()` |
+
+## See Also
+
+- **Related Concepts:**
+  - [Components Overview](/guides/core-concepts/components) - What components are
+  - [Application](/guides/core-concepts/application/) - Registering components
+  - [Dependency Injection](/guides/core-concepts/dependency-injection) - Component bindings
+
+- **References:**
+  - [BaseComponent API](/references/base/components) - Complete API reference
+  - [Authentication Component](/references/components/authentication) - Real-world component example
+  - [Health Check Component](/references/components/health-check) - Simple component example
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - Component architecture patterns
+  - [Code Style Standards](/best-practices/code-style-standards) - Component coding standards

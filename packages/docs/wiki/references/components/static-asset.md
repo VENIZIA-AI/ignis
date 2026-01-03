@@ -1260,9 +1260,18 @@ http://localhost:9001
 ```
 
 
-## Related Documentation
+## See Also
 
-- [Storage Helpers](../helpers/storage.md) - DiskHelper, MinioHelper, BaseStorageHelper
-- [Request Utilities](../utilities/request.md) - `parseMultipartBody`, `createContentDispositionHeader`
-- [Components Overview](./index.md)
-- [Controllers](../base/controllers.md)
+- **Related Concepts:**
+  - [Components Overview](/guides/core-concepts/components) - Component system basics
+  - [Controllers](/guides/core-concepts/controllers) - File upload endpoints
+
+- **Other Components:**
+  - [Components Index](./index) - All built-in components
+
+- **References:**
+  - [Storage Helpers](/references/helpers/storage) - DiskHelper, MinIOHelper, BaseStorageHelper
+  - [Request Utilities](/references/utilities/request) - File upload utilities
+
+- **Best Practices:**
+  - [Security Guidelines](/best-practices/security-guidelines) - File upload security

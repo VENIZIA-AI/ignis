@@ -153,3 +153,27 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 ```
 
 > **Deep Dive:** See [BaseDataSource Reference](../../../references/base/datasources.md) for connection pooling and advanced configuration.
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Use DataSources for database access
+  - [Models](/guides/core-concepts/persistent/models) - Entity schemas loaded by DataSource
+  - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation database transactions
+  - [Application](/guides/core-concepts/application/) - Registering DataSources
+
+- **References:**
+  - [BaseDataSource API](/references/base/datasources) - Complete API reference
+  - [Environment Variables](/references/configuration/environment-variables) - Configuration management
+
+- **External Resources:**
+  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - ORM configuration
+  - [node-postgres Documentation](https://node-postgres.com/) - Connection pooling guide
+
+- **Best Practices:**
+  - [Performance Optimization](/best-practices/performance-optimization) - Connection pool tuning
+  - [Security Guidelines](/best-practices/security-guidelines) - Database credential management
+
+- **Tutorials:**
+  - [Complete Installation](/guides/tutorials/complete-installation) - Database setup
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - DataSource configuration

@@ -234,9 +234,9 @@ export interface IExtraOptions extends IWithTransaction {
    *
    * @example
    * // Bypass default filter: { where: { isDeleted: false } }
-   * repository.find({ filter: {}, options: { skipDefaultFilter: true } });
+   * repository.find({ filter: {}, options: { shouldSkipDefaultFilter: true } });
    */
-  skipDefaultFilter?: boolean;
+  shouldSkipDefaultFilter?: boolean;
 }
 
 /** @deprecated Use IExtraOptions instead */

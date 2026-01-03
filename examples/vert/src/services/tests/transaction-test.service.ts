@@ -484,7 +484,7 @@ export class TransactionTestService extends BaseTestService {
       // Create in product repository using same transaction
       await productRepo.create({
         data: { code: productCode, name: 'TX Test Product', price: 50 },
-        options: { transaction, skipDefaultFilter: true },
+        options: { transaction, shouldSkipDefaultFilter: true },
       });
 
       await transaction.commit();
@@ -493,7 +493,7 @@ export class TransactionTestService extends BaseTestService {
       const config = await configRepo.findOne({ filter: { where: { code: configCode } } });
       const product = await productRepo.findOne({
         filter: { where: { code: productCode } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (config && product) {
@@ -510,7 +510,7 @@ export class TransactionTestService extends BaseTestService {
       await configRepo.deleteAll({ where: { code: configCode } });
       await productRepo.deleteAll({
         where: { code: productCode },
-        options: { force: true, skipDefaultFilter: true },
+        options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
       await transaction.rollback();
@@ -769,7 +769,7 @@ export class TransactionTestService extends BaseTestService {
       // Create product
       const product = await productRepo.create({
         data: { code: productCode, name: 'TX Related Product', price: 100 },
-        options: { transaction, skipDefaultFilter: true },
+        options: { transaction, shouldSkipDefaultFilter: true },
       });
 
       // Create sale channel
@@ -795,7 +795,7 @@ export class TransactionTestService extends BaseTestService {
           where: { code: productCode },
           include: [{ relation: 'saleChannelProducts' }],
         },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const saleChannelProducts = (productWithRelations as any)?.saleChannelProducts;
@@ -807,7 +807,7 @@ export class TransactionTestService extends BaseTestService {
 
       // Cleanup
       await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { code: productCode }, options: { force: true, skipDefaultFilter: true } });
+      await productRepo.deleteAll({ where: { code: productCode }, options: { force: true, shouldSkipDefaultFilter: true } });
       await saleChannelRepo.deleteAll({ where: { code: channelCode }, options: { force: true } });
     } catch (error) {
       await transaction.rollback();

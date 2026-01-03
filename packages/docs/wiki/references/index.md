@@ -60,7 +60,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <span class="stage-num">2</span>
 <h4>Data Layer</h4>
 </div>
-<p><a href="./base/models">Models</a> → <a href="./base/datasources">DataSources</a> → <a href="./base/repositories/filtering">Filtering</a> → <a href="./base/repositories/relations">Relations</a></p>
+<p><a href="./base/models">Models</a> → <a href="./base/datasources">DataSources</a> → <a href="./base/filter-system/">Filtering</a> → <a href="./base/repositories/relations">Relations</a></p>
 <span class="stage-desc">Entities, database connections, and query building</span>
 </div>
 
@@ -80,6 +80,33 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 </div>
 <p><a href="./helpers/logger">Logging</a> → <a href="./helpers/redis">Caching</a> → <a href="./helpers/queue">Queues</a> → <a href="./helpers/cron">Scheduling</a></p>
 <span class="stage-desc">Background jobs, caching, and observability</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">5</span>
+<h4>Advanced Patterns</h4>
+</div>
+<p><a href="./base/dependency-injection">Dependency Injection</a> → <a href="./base/providers">Custom Providers</a> → <a href="./base/middlewares">Middlewares</a> → <a href="./base/components">Components</a></p>
+<span class="stage-desc">Advanced architecture patterns and customization</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">6</span>
+<h4>Production Ready</h4>
+</div>
+<p><a href="./base/middlewares">Error Handling</a> → <a href="./components/health-check">Health Checks</a> → <a href="./configuration/environment-variables">Configuration</a> → <a href="./base/bootstrapping">Auto-Discovery</a></p>
+<span class="stage-desc">Production deployment, monitoring, and reliability</span>
+</div>
+
+<div class="roadmap-stage">
+<div class="stage-header">
+<span class="stage-num">7</span>
+<h4>Testing & Quality</h4>
+</div>
+<p><a href="./helpers/testing">Unit Testing</a> → <a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
+<span class="stage-desc">Testing strategies, quality assurance, and code review</span>
 </div>
 
 </div>

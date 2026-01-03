@@ -1,3 +1,9 @@
+---
+title: Dependency Injection Reference
+description: Technical reference for the DI system in IGNIS
+difficulty: advanced
+---
+
 # Deep Dive: Dependency Injection
 
 Technical reference for the DI system in Ignis - managing resource lifecycles and dependency resolution.
@@ -17,6 +23,15 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 | **@inject** | Decorator marking injection points | Applied to constructor parameters/properties |
 | **MetadataRegistry** | Stores decorator metadata | Singleton accessed via `getInstance()` |
 | **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
+
+## Prerequisites
+
+Before reading this document, you should understand:
+
+- [TypeScript Decorators](https://www.typescriptlang.org/docs/handbook/decorators.html) - How decorators work in TypeScript
+- [IGNIS Application basics](./application.md) - Application lifecycle and initialization
+- [Services](./services.md) and [Controllers](./controllers.md) - Basic understanding of IGNIS architecture
+- Inversion of Control (IoC) pattern - [Martin Fowler's article](https://martinfowler.com/articles/injection.html)
 
 ## `Container` Class
 
@@ -175,3 +190,24 @@ class UserController {
 - **Type-safe**: Full TypeScript support throughout boot process
 
 > **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping) and [Boot Package Reference](/references/src-details/boot.md)
+
+## See Also
+
+- **Related Concepts:**
+  - [Dependency Injection Guide](/guides/core-concepts/dependency-injection) - DI fundamentals tutorial
+  - [Application](/guides/core-concepts/application/) - Application extends Container
+  - [Controllers](/guides/core-concepts/controllers) - Use DI for injecting services
+  - [Services](/guides/core-concepts/services) - Use DI for injecting repositories
+  - [Providers](/references/base/providers) - Factory pattern for dynamic injection
+
+- **References:**
+  - [Inversion Helper](/references/helpers/inversion) - DI container utilities
+  - [Bootstrapping API](/references/base/bootstrapping) - Auto-discovery and DI
+  - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
+
+- **Tutorials:**
+  - [Testing](/guides/tutorials/testing) - Unit testing with mocked dependencies
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - DI in practice
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - DI patterns and anti-patterns

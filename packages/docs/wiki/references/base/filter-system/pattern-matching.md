@@ -1,3 +1,9 @@
+---
+title: Pattern Matching Operators
+description: Operators for string pattern matching and regular expressions
+difficulty: intermediate
+---
+
 # Pattern Matching Operators
 
 Operators for string pattern matching and regular expressions.

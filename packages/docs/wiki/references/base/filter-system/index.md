@@ -1,3 +1,9 @@
+---
+title: Filter System Overview
+description: Complete reference for the IGNIS filter system
+difficulty: intermediate
+---
+
 # Filter System
 
 Complete reference for the Ignis filter system - operators, JSON filtering, array operators, default filters, and query patterns.
@@ -8,11 +14,20 @@ Complete reference for the Ignis filter system - operators, JSON filtering, arra
 > - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
 > - [Repositories](/references/base/repositories) - Repository overview
 
+## Prerequisites
+
+Before reading this document, you should understand:
+
+- [Repositories](../repositories/) - Basic repository operations (find, create, update, delete)
+- [Models](../models.md) - Entity definitions and schemas
+- SQL basics - Understanding of WHERE clauses and operators
+- TypeScript type system - Type safety and inference
 
 ## Documentation
 
 | Guide | Description |
 |-------|-------------|
+| [**⚡ Quick Reference**](./quick-reference.md) | **Single-page cheat sheet of all operators** |
 | [Comparison Operators](./comparison-operators.md) | Equality, range, null checks |
 | [Pattern Matching](./pattern-matching.md) | LIKE, ILIKE, regex |
 | [Logical Operators](./logical-operators.md) | AND, OR combinations |

@@ -2,6 +2,8 @@
 
 This tutorial shows you how to build a real-time chat application with rooms, direct messages, typing indicators, and presence using Socket.IO.
 
+**⏱️ Time to Complete:** ~75 minutes
+
 ## What You'll Build
 
 - Chat rooms (channels)

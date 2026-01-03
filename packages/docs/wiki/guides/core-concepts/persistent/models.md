@@ -216,3 +216,26 @@ export class MyModel extends BaseEntity<typeof MyModel.schema> {
 ```
 
 > **Deep Dive:** See [BaseEntity Reference](../../../references/base/models.md#baseentity-class) for advanced patterns.
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Data access layer using models
+  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
+  - [Persistent Layer Overview](/guides/core-concepts/persistent/) - Architecture overview
+
+- **References:**
+  - [Models & Enrichers API](/references/base/models) - Complete API reference
+  - [Relations](/references/base/repositories/relations) - Defining model relationships
+  - [Filter System](/references/base/filter-system/) - Querying models
+
+- **External Resources:**
+  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - Schema definition guide
+  - [PostgreSQL Data Types](https://www.postgresql.org/docs/current/datatype.html) - Column types reference
+
+- **Best Practices:**
+  - [Data Modeling](/best-practices/data-modeling) - Schema design patterns
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Model examples
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Models with relations

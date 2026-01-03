@@ -162,3 +162,19 @@ Register resources in `preConfigure()` to tell the DI container about your class
 5. Components last
 
 > **Deep Dive:** See [Dependency Injection](../dependency-injection.md) for how registration and injection work together.
+
+## See Also
+
+- **Related Concepts:**
+  - [Bootstrapping](./bootstrapping) - Auto-discovery of artifacts
+  - [Controllers](/guides/core-concepts/controllers) - Creating HTTP endpoints
+  - [Services](/guides/core-concepts/services) - Business logic layer
+  - [Dependency Injection](/guides/core-concepts/dependency-injection) - How DI works in IGNIS
+
+- **References:**
+  - [BaseApplication API](/references/base/application) - Complete API reference
+  - [Environment Variables](/references/configuration/environment-variables) - Configuration management
+
+- **Tutorials:**
+  - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Create your first app
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Complete application example

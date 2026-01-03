@@ -262,7 +262,10 @@ export class ArrayOperatorTestService extends BaseTestService {
         this.logger.info('[CASE 5] Products: %j', names);
       } else {
         this.logger.error('[CASE 5] FAILED | Expected 3 products | Got: %d', results.length);
-        this.logger.error('[CASE 5] Products: %j', results.map(r => ({ name: r.name, tags: r.tags })));
+        this.logger.error(
+          '[CASE 5] Products: %j',
+          results.map(r => ({ name: r.name, tags: r.tags })),
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
@@ -409,7 +412,12 @@ export class ArrayOperatorTestService extends BaseTestService {
       // Product A: price=100 (no), Product C: price=300 with featured ✓
       if (results.length === 1 && results[0].name === 'Product C') {
         this.logger.info('[CASE 10] PASSED | Found 1 product with price > 150 and featured');
-        this.logger.info('[CASE 10] Product: %s | Price: %d | Tags: %j', results[0].name, results[0].price, results[0].tags);
+        this.logger.info(
+          '[CASE 10] Product: %s | Price: %d | Tags: %j',
+          results[0].name,
+          results[0].price,
+          results[0].tags,
+        );
       } else {
         this.logger.error('[CASE 10] FAILED | Expected 1 product | Got: %d', results.length);
       }
@@ -430,10 +438,7 @@ export class ArrayOperatorTestService extends BaseTestService {
         filter: {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
-            or: [
-              { tags: { contains: ['electronics'] } },
-              { tags: { contains: ['furniture'] } },
-            ],
+            or: [{ tags: { contains: ['electronics'] } }, { tags: { contains: ['furniture'] } }],
           } as any,
         },
       });
@@ -487,7 +492,10 @@ export class ArrayOperatorTestService extends BaseTestService {
       if (found && found.tags?.length === 101) {
         this.logger.info('[CASE 13] PASSED | Found product with 101 tags');
       } else {
-        this.logger.error('[CASE 13] FAILED | Expected product with 101 tags | Got: %d', found?.tags?.length);
+        this.logger.error(
+          '[CASE 13] FAILED | Expected product with 101 tags | Got: %d',
+          found?.tags?.length,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
@@ -585,7 +593,10 @@ export class ArrayOperatorTestService extends BaseTestService {
       const dupCount = found?.tags?.filter(t => t === 'dup_tag').length || 0;
 
       if (dupCount === 3) {
-        this.logger.info('[CASE 15] PASSED | Array stores duplicate elements (count: %d)', dupCount);
+        this.logger.info(
+          '[CASE 15] PASSED | Array stores duplicate elements (count: %d)',
+          dupCount,
+        );
       } else if (dupCount === 1) {
         this.logger.info('[CASE 15] INFO | Array de-duplicates elements (count: %d)', dupCount);
       } else {
@@ -745,10 +756,7 @@ export class ArrayOperatorTestService extends BaseTestService {
           where: {
             description: 'ARRAY_OPERATOR_TEST',
             name: { like: 'Combo Product%' },
-            and: [
-              { tags: { contains: ['red'] } },
-              { tags: { overlaps: ['blue', 'purple'] } },
-            ],
+            and: [{ tags: { contains: ['red'] } }, { tags: { overlaps: ['blue', 'purple'] } }],
           } as any,
         },
       });
@@ -831,8 +839,11 @@ export class ArrayOperatorTestService extends BaseTestService {
       if (results.length <= 2) {
         this.logger.info('[CASE 20] PASSED | Array filter with limit: %d results', results.length);
         if (results.length > 0) {
-          this.logger.info('[CASE 20] First result (highest price): %s ($%d)',
-            results[0].name, results[0].price);
+          this.logger.info(
+            '[CASE 20] First result (highest price): %s ($%d)',
+            results[0].name,
+            results[0].price,
+          );
         }
       } else {
         this.logger.error('[CASE 20] FAILED | Limit not applied | Got: %d', results.length);

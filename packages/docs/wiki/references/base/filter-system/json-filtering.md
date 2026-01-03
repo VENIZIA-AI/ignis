@@ -1,3 +1,9 @@
+---
+title: JSON/JSONB Filtering
+description: Query nested fields within JSON/JSONB columns using dot notation
+difficulty: intermediate
+---
+
 # JSON/JSONB Filtering
 
 Query nested fields within JSON/JSONB columns using dot notation. This is a PostgreSQL-specific feature.

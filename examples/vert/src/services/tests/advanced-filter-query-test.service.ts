@@ -1,11 +1,10 @@
-
 import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
 import {
-  ConfigurationRepository,
-  ProductRepository,
-  SaleChannelProductRepository,
-  SaleChannelRepository,
-  UserRepository,
+    ConfigurationRepository,
+    ProductRepository,
+    SaleChannelProductRepository,
+    SaleChannelRepository,
+    UserRepository,
 } from '../../repositories';
 import { BaseTestService } from './base-test.service';
 
@@ -107,37 +106,37 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             name: 'Gaming Laptop X1',
             price: 1500,
             tags: ['electronics', 'gaming', 'computer'],
-            description: 'High performance gaming laptop'
+            description: 'High performance gaming laptop',
           },
           {
             code: `P_ADV_2_${getUID()}`,
             name: 'Office Mouse',
             price: 25,
             tags: ['electronics', 'accessory', 'office'],
-            description: 'Wireless mouse'
+            description: 'Wireless mouse',
           },
           {
             code: `P_ADV_3_${getUID()}`,
             name: 'Gaming Chair',
             price: 350,
             tags: ['furniture', 'gaming', 'office'],
-            description: 'Ergonomic chair'
+            description: 'Ergonomic chair',
           },
           {
             code: `P_ADV_4_${getUID()}`,
             name: 'Cheap Monitor',
             price: 120,
             tags: ['electronics', 'monitor', 'office'],
-            description: '1080p display'
+            description: '1080p display',
           },
           {
             code: `P_ADV_5_${getUID()}`,
             name: 'Pro Monitor',
             price: 800,
             tags: ['electronics', 'monitor', 'gaming'],
-            description: '4K display'
-          }
-        ]
+            description: '4K display',
+          },
+        ],
       });
 
       // 2. Configs for JSON/Logic scenarios
@@ -152,8 +151,8 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             jValue: {
               spec: { ram: 16, cpu: 'i7' },
               metadata: { created: '2025-01-01', region: 'us-east' },
-              tags: ['a', 'b', 'c']
-            }
+              tags: ['a', 'b', 'c'],
+            },
           },
           {
             code: `C_ADV_2_${getUID()}`,
@@ -164,8 +163,8 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             jValue: {
               spec: { ram: 32, cpu: 'i9' },
               metadata: { created: '2025-02-01', region: 'eu-west' },
-              tags: ['b', 'c', 'd']
-            }
+              tags: ['b', 'c', 'd'],
+            },
           },
           {
             code: `C_ADV_3_${getUID()}`,
@@ -176,10 +175,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             jValue: {
               spec: { ram: 8, cpu: 'i5' },
               metadata: { created: '2024-12-01', region: 'us-west' },
-              tags: ['x', 'y']
-            }
-          }
-        ]
+              tags: ['x', 'y'],
+            },
+          },
+        ],
       });
 
       this.logger.info('[SETUP] PASSED | Created advanced test data');
@@ -194,23 +193,20 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
 
   private async test_EcommerceProductSearch() {
     this.logCase('[SCENARIO] E-commerce Search: Price Range + Tag Overlap + Sort');
-    // Scenario: User wants "gaming" items (electronics or furniture) between $100 and $1000, 
+    // Scenario: User wants "gaming" items (electronics or furniture) between $100 and $1000,
     // sorted by price descending.
 
     try {
       const results = await this.productRepository.find({
         filter: {
           where: {
-            and: [
-              { price: { between: [100, 1000] } },
-              { tags: { contains: ['gaming'] } }
-            ]
+            and: [{ price: { between: [100, 1000] } }, { tags: { contains: ['gaming'] } }],
           },
-          order: ['price DESC']
-        } as any
+          order: ['price DESC'],
+        } as any,
       });
 
-      // Expected: 
+      // Expected:
       // - Gaming Laptop ($1500) -> Excluded (Price > 1000)
       // - Gaming Chair ($350) -> MATCH
       // - Pro Monitor ($800) -> MATCH
@@ -219,13 +215,14 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
 
       // Expected Order: Pro Monitor ($800), Gaming Chair ($350)
 
-      if (results.length === 2 &&
-        results[0].price === 800 &&
-        results[1].price === 350) {
+      if (results.length === 2 && results[0].price === 800 && results[1].price === 350) {
         this.logger.info('[SCENARIO] PASSED | Found correct products in correct order');
       } else {
         this.logger.error('[SCENARIO] FAILED | Expected Pro Monitor then Gaming Chair');
-        this.logger.error('Results: %j', results.map(r => ({ name: r.name, price: r.price })));
+        this.logger.error(
+          'Results: %j',
+          results.map(r => ({ name: r.name, price: r.price })),
+        );
       }
     } catch (e) {
       this.logger.error('[SCENARIO] FAILED | %s', (e as Error).message);
@@ -243,10 +240,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             group: 'ADVANCED_TEST',
             and: [
               { 'jValue.metadata.created': { gte: '2025-01-01' } },
-              { 'jValue.metadata.created': { lt: '2026-01-01' } }
-            ]
-          } as any
-        }
+              { 'jValue.metadata.created': { lt: '2026-01-01' } },
+            ],
+          } as any,
+        },
       });
 
       // Should match Config 1 (2025-01-01) and Config 2 (2025-02-01)
@@ -260,7 +257,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         }
       }
       this.logger.error('[SCENARIO] FAILED | Expected 2 records (2025)');
-      this.logger.error('Results: %j', results.map(r => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })));
+      this.logger.error(
+        'Results: %j',
+        results.map(r => ({ code: r.code, created: (r.jValue as any)?.metadata?.created })),
+      );
     } catch (e) {
       this.logger.error('[SCENARIO] FAILED | %s', (e as Error).message);
     }
@@ -281,10 +281,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
             group: 'ADVANCED_TEST',
             and: [
               { or: [{ nValue: { gt: 150 } }, { nValue: { lt: 50 } }] },
-              { or: [{ tValue: { like: '%pending' } }, { tValue: { like: '%archived' } }] }
-            ]
-          } as any
-        }
+              { or: [{ tValue: { like: '%pending' } }, { tValue: { like: '%archived' } }] },
+            ],
+          } as any,
+        },
       });
 
       // C1: n=100 (False OR False -> False) AND ... -> Excluded
@@ -295,7 +295,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         this.logger.info('[LOGIC] PASSED | Correctly handled (A OR B) AND (C OR D)');
       } else {
         this.logger.error('[LOGIC] FAILED | Expected 2 records, got %d', results.length);
-        this.logger.error('Results: %j', results.map(r => ({ n: r.nValue, t: r.tValue })));
+        this.logger.error(
+          'Results: %j',
+          results.map(r => ({ n: r.nValue, t: r.tValue })),
+        );
       }
     } catch (e) {
       this.logger.error('[LOGIC] FAILED | %s', (e as Error).message);
@@ -312,9 +315,9 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         filter: {
           where: {
             group: 'ADVANCED_TEST',
-            nValue: { nin: [100, 200] }
-          } as any
-        }
+            nValue: { nin: [100, 200] },
+          } as any,
+        },
       });
 
       // Should match C3 (300) only (from the 3 setup items)
@@ -342,19 +345,25 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         filter: {
           where: {
             group: 'ADVANCED_TEST',
-            ...nestedFilter
-          } as any
-        }
+            ...nestedFilter,
+          } as any,
+        },
       });
 
       // Should return all 3 records as nValue > 0 is true for all
       if (results.length === 3) {
         this.logger.info('[LOGIC] PASSED | Handled 15 levels of nested ANDs');
       } else {
-        this.logger.error('[LOGIC] FAILED | Recursion failed or lost data. Count: %d', results.length);
+        this.logger.error(
+          '[LOGIC] FAILED | Recursion failed or lost data. Count: %d',
+          results.length,
+        );
       }
     } catch (e) {
-      this.logger.error('[LOGIC] FAILED | Stack overflow or parser error: %s', (e as Error).message);
+      this.logger.error(
+        '[LOGIC] FAILED | Stack overflow or parser error: %s',
+        (e as Error).message,
+      );
     }
   }
 
@@ -369,12 +378,9 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
           where: {
             group: 'ADVANCED_TEST',
             nValue: 100,
-            or: [
-              { tValue: 'non_existent' },
-              { tValue: 'status_active' }
-            ]
-          } as any
-        }
+            or: [{ tValue: 'non_existent' }, { tValue: 'status_active' }],
+          } as any,
+        },
       });
 
       // Config 1 matches nValue=100 and tValue='status_active'
@@ -401,12 +407,16 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     // Let's create a quick link for P_ADV_1 to a new channel.
 
     try {
-      const channel = await this.saleChannelRepository.create({ data: { name: 'AdvChannel', code: `CH_${getUID()}` } });
-      const product = (await this.productRepository.find({ filter: { where: { code: { like: 'P_ADV_1%' } } } }))[0];
+      const channel = await this.saleChannelRepository.create({
+        data: { name: 'AdvChannel', code: `CH_${getUID()}` },
+      });
+      const product = (
+        await this.productRepository.find({ filter: { where: { code: { like: 'P_ADV_1%' } } } })
+      )[0];
 
       if (product && channel.data) {
         await this.saleChannelProductRepository.create({
-          data: { productId: product.id, saleChannelId: channel.data.id }
+          data: { productId: product.id, saleChannelId: channel.data.id },
         });
       }
 
@@ -414,22 +424,26 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
       const result = await this.productRepository.findById({
         id: product.id,
         filter: {
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{
-                relation: 'saleChannel',
-                scope: {
-                  where: { name: 'AdvChannel' }
-                }
-              }]
-            }
-          }]
-        }
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [
+                  {
+                    relation: 'saleChannel',
+                    scope: {
+                      where: { name: 'AdvChannel' },
+                    },
+                  },
+                ],
+              },
+            },
+          ],
+        },
       });
 
       // We expect 1 saleChannelProduct that has a loaded saleChannel
-      // NOTE: This depends on how the ORM handles scoped includes. 
+      // NOTE: This depends on how the ORM handles scoped includes.
       // Often, "where" on an include filters the *included* items, not the parent.
 
       if (!result) {
@@ -463,7 +477,7 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
   private async test_TypeCoercion_StringToNumber() {
     this.logCase('[TYPE] String passed to Number field');
     // nValue: "100" -> Should be cast to 100 or fail?
-    // Drizzle/Ignis usually allows implicit casting if the DB supports it, 
+    // Drizzle/Ignis usually allows implicit casting if the DB supports it,
     // or strict TypeORM/Schema validation might block it.
 
     try {
@@ -472,9 +486,9 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         filter: {
           where: {
             group: 'ADVANCED_TEST',
-            nValue: '100' // Sending string '100' for number column
-          } as any
-        }
+            nValue: '100', // Sending string '100' for number column
+          } as any,
+        },
       });
 
       if (results.length === 1) {
@@ -483,7 +497,10 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         this.logger.warn('[TYPE] NOTE | Strict type check rejected string "100" (or 0 results)');
       }
     } catch (e) {
-      this.logger.info('[TYPE] PASSED | Strict type validation prevented invalid type: %s', (e as Error).message);
+      this.logger.info(
+        '[TYPE] PASSED | Strict type validation prevented invalid type: %s',
+        (e as Error).message,
+      );
     }
   }
 
@@ -494,8 +511,8 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
     try {
       await this.configurationRepository.find({
         filter: {
-          where: { code: null }
-        } as any
+          where: { code: null },
+        } as any,
       });
       // If it runs returning 0, that's valid (WHERE code IS NULL -> find nothing).
       // If it throws "Invalid type", that's also valid.
@@ -522,9 +539,9 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         filter: {
           where: {
             group: 'ADVANCED_TEST',
-            nValue: { in: massiveArray }
-          }
-        }
+            nValue: { in: massiveArray },
+          },
+        },
       });
       const duration = Date.now() - start;
 
@@ -549,17 +566,22 @@ export class AdvancedFilterQueryTestService extends BaseTestService {
         filter: {
           where: {
             group: 'ADVANCED_TEST',
-            [maliciousKey]: 'value'
-          } as any
-        }
+            [maliciousKey]: 'value',
+          } as any,
+        },
       });
 
       // If we reach here, either it found nothing (Good) or found everything (Bad)
       // Actually, the key itself being dynamic usually fails "Column not found" or validation.
-      this.logger.info('[SECURITY] PASSED | System likely treated malicious key as invalid column or sanitized it');
+      this.logger.info(
+        '[SECURITY] PASSED | System likely treated malicious key as invalid column or sanitized it',
+      );
     } catch (e) {
       // Expected error: Invalid JSON path or Column not found
-      this.logger.info('[SECURITY] PASSED | Caught malicious/invalid path: %s', (e as Error).message);
+      this.logger.info(
+        '[SECURITY] PASSED | Caught malicious/invalid path: %s',
+        (e as Error).message,
+      );
     }
   }
 

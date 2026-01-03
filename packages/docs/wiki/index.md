@@ -62,18 +62,26 @@ features:
 ## Quick Start
 
 ```bash
-# Install
-bun add hono @hono/zod-openapi @venizia/ignis drizzle-orm
+# Install dependencies
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis
+bun add -d typescript @types/bun
 
-# Create your first controller
+# Create src/index.ts with your first API
 ```
 
 ```typescript
-import { BaseController, controller, get, HTTP, jsonContent } from '@venizia/ignis';
+import { BaseApplication, BaseController, controller, get, HTTP, jsonContent, SwaggerComponent } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
+// 1. Define your controller
 @controller({ path: '/hello' })
 class HelloController extends BaseController {
+  constructor() {
+    super({ scope: 'HelloController', path: '/hello' });
+  }
+
+  override binding() {} // Required: register additional routes or dependencies here
+
   @get({
     configs: {
       path: '/',
@@ -88,11 +96,40 @@ class HelloController extends BaseController {
     return c.json({ message: 'Hello from Ignis! 🔥' });
   }
 }
+
+// 2. Create and configure your application
+class App extends BaseApplication {
+  getAppInfo() {
+    return { name: 'my-app', version: '1.0.0', description: 'My Ignis App' };
+  }
+  staticConfigure() {}
+  preConfigure() {
+    this.component(SwaggerComponent);  // API docs at /doc/explorer
+    this.controller(HelloController);
+  }
+  postConfigure() {}
+  setupMiddlewares() {}
+}
+
+// 3. Start the server
+const app = new App({
+  scope: 'App',
+  config: { host: '0.0.0.0', port: 3000, path: { base: '/api' } },
+});
+app.start();
+```
+
+```bash
+# Run it
+bun run src/index.ts
+
+# Visit http://localhost:3000/api/hello
+# API docs at http://localhost:3000/doc/explorer
 ```
 
 <div class="tip custom-block" style="padding-top: 8px">
 
-Ready to build? Follow the [5-minute quickstart →](/guides/get-started/5-minute-quickstart)
+Ready for a step-by-step guide? Follow the [5-minute quickstart →](/guides/get-started/5-minute-quickstart)
 
 </div>
 

@@ -1,3 +1,9 @@
+---
+title: Repositories Reference
+description: Technical reference for repository classes and CRUD operations
+difficulty: intermediate
+---
+
 # Repositories
 
 ::: tip Documentation Reorganized

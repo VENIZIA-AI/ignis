@@ -1,3 +1,9 @@
+---
+title: Models & Enrichers Reference
+description: Technical reference for model architecture and schema enrichers
+difficulty: intermediate
+---
+
 # Deep Dive: Models and Enrichers
 
 Technical reference for model architecture and schema enrichers in Ignis.
@@ -150,7 +156,7 @@ export class Post extends BaseEntity<typeof Post.schema> {
 
 #### Bypassing
 
-Use `skipDefaultFilter: true` to bypass:
+Use `shouldSkipDefaultFilter: true` to bypass:
 
 ```typescript
 // Normal query - includes default filter
@@ -160,7 +166,7 @@ await postRepo.find({ filter: {} });
 // Admin query - bypass default filter
 await postRepo.find({
   filter: {},
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 // No WHERE clause (includes deleted)
 ```
@@ -953,3 +959,26 @@ try {
 - Recursively handles nested objects
 - Preserves array structures
 - Works seamlessly with Zod's other features (refinements, transforms, etc.)
+
+## See Also
+
+- **Related Concepts:**
+  - [Models Guide](/guides/core-concepts/persistent/models) - Creating models tutorial
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Using models in repositories
+  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
+
+- **References:**
+  - [Repositories API](/references/base/repositories/) - Data access layer
+  - [Relations](/references/base/repositories/relations) - Model relationships
+  - [Filter System](/references/base/filter-system/) - Querying models
+
+- **External Resources:**
+  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - Schema definition guide
+  - [PostgreSQL Data Types](https://www.postgresql.org/docs/current/datatype.html) - Column types
+
+- **Best Practices:**
+  - [Data Modeling](/best-practices/data-modeling) - Schema design patterns
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Model examples
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Models with relations

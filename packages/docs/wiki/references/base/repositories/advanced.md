@@ -1,7 +1,21 @@
+---
+title: Advanced Repository Features
+description: Transactions, hidden properties, and performance optimization
+difficulty: intermediate
+---
+
 # Advanced Repository Features
 
 Transactions, hidden properties, performance optimization, type inference, and debugging.
 
+## Prerequisites
+
+Before reading this document, you should understand:
+
+- [Basic Repository Operations](./index.md) - CRUD operations and basic filtering
+- [Filter System](../filter-system/) - Advanced query building
+- Database transactions - ACID properties and isolation levels
+- TypeScript advanced types - Utility types and type inference
 
 ## Transactions
 
@@ -462,7 +476,7 @@ await repo.find({
 // Admin query - bypass default filter
 await repo.find({
   filter: { where: { status: 'active' } },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 // WHERE status = 'active' (includes deleted records)
 ```
@@ -471,13 +485,13 @@ await repo.find({
 
 ```typescript
 // Read operations
-await repo.find({ filter, options: { skipDefaultFilter: true } });
-await repo.findOne({ filter, options: { skipDefaultFilter: true } });
-await repo.count({ where, options: { skipDefaultFilter: true } });
+await repo.find({ filter, options: { shouldSkipDefaultFilter: true } });
+await repo.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
+await repo.count({ where, options: { shouldSkipDefaultFilter: true } });
 
 // Write operations
-await repo.updateAll({ where, data, options: { skipDefaultFilter: true } });
-await repo.deleteAll({ where, options: { skipDefaultFilter: true, force: true } });
+await repo.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
+await repo.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 **Combined with transactions:**
@@ -489,7 +503,7 @@ await repo.updateAll({
   data: { isDeleted: true },
   options: {
     transaction: tx,
-    skipDefaultFilter: true
+    shouldSkipDefaultFilter: true
   }
 });
 await tx.commit();
@@ -507,7 +521,7 @@ await tx.commit();
 | Use transaction | `options: { transaction: tx }` |
 | Commit | `await tx.commit()` |
 | Rollback | `await tx.rollback()` |
-| Bypass default filter | `options: { skipDefaultFilter: true }` |
+| Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
 | Enable logging | `options: { log: { use: true, level: 'debug' } }` |
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |
@@ -523,3 +537,19 @@ await tx.commit();
 - [Relations & Includes](./relations.md) - Eager loading
 - [JSON Path Filtering](../filter-system/json-filtering) - JSONB queries
 - [Array Operators](../filter-system/array-operators) - PostgreSQL arrays
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories Overview](./index) - Core repository operations
+  - [Transactions](/guides/core-concepts/persistent/transactions) - Transaction guide
+  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
+
+- **Related Topics:**
+  - [Repository Mixins](./mixins) - Soft delete and auditing
+  - [Relations & Includes](./relations) - Loading related data
+  - [Filter System](/references/base/filter-system/) - Query operators
+
+- **Best Practices:**
+  - [Performance Optimization](/best-practices/performance-optimization) - Query optimization
+  - [Data Modeling](/best-practices/data-modeling) - Repository patterns

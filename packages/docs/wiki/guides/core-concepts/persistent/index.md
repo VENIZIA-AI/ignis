@@ -92,3 +92,28 @@ export class Application extends BaseApplication {
 4. **[Transactions](./transactions.md)** - Handle atomic operations
 
 > **Deep Dive:** See [Repository Reference](../../../references/base/repositories/) for advanced filtering, relations, and operators.
+
+## See Also
+
+- **Persistent Layer Topics:**
+  - [Models](./models) - Entity definitions and schemas
+  - [DataSources](./datasources) - Database connections
+  - [Repositories](./repositories) - Data access layer
+  - [Transactions](./transactions) - Atomic operations
+
+- **Related Concepts:**
+  - [Services](/guides/core-concepts/services) - Use repositories for business logic
+  - [Application](/guides/core-concepts/application/) - Registering persistent resources
+
+- **References:**
+  - [Models API](/references/base/models) - Complete models reference
+  - [DataSources API](/references/base/datasources) - Complete datasources reference
+  - [Repositories API](/references/base/repositories/) - Complete repositories reference
+  - [Filter System](/references/base/filter-system/) - Query operators
+
+- **External Resources:**
+  - [Drizzle ORM Documentation](https://orm.drizzle.team/) - ORM guide
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Complete persistence example
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Advanced persistence patterns

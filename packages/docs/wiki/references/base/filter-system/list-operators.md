@@ -1,3 +1,9 @@
+---
+title: List Operators
+description: Operators for matching values against arrays
+difficulty: intermediate
+---
+
 # List Operators
 
 Operators for matching values against arrays.

@@ -143,7 +143,7 @@ export class PersistableRepository<
       force = false,
       log,
       transaction,
-      skipDefaultFilter,
+      shouldSkipDefaultFilter,
     } = opts?.options ?? {};
 
     if (log?.use) {
@@ -153,7 +153,7 @@ export class PersistableRepository<
     // Apply default filter's where condition
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
-      skipDefaultFilter,
+      shouldSkipDefaultFilter,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -266,7 +266,7 @@ export class PersistableRepository<
       force = false,
       log,
       transaction,
-      skipDefaultFilter,
+      shouldSkipDefaultFilter,
     } = opts?.options ?? {};
 
     if (log?.use) {
@@ -276,7 +276,7 @@ export class PersistableRepository<
     // Apply default filter's where condition
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
-      skipDefaultFilter,
+      shouldSkipDefaultFilter,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
@@ -311,11 +311,9 @@ export class PersistableRepository<
 
     // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
-    const rs = visibleProps
-      ? ((await query.returning(visibleProps)) as unknown as Array<R>)
-      : ((await query.returning()) as unknown as Array<R>);
+    const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
     this.logger.debug('[_delete] DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-    return { count: rs.length, data: rs };
+    return { count: rs.length, data: rs as Array<R> };
   }
 
   override deleteById(opts: {

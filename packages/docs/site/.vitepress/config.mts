@@ -214,6 +214,7 @@ const config = defineConfig({
           text: 'API Reference',
           items: [
             { text: 'Overview', link: '/references/' },
+            { text: '⚡ Quick Reference', link: '/references/quick-reference' },
           ],
         },
         {
@@ -260,13 +261,16 @@ const config = defineConfig({
             { text: 'Components', link: '/references/base/components' },
             { text: 'Controllers', link: '/references/base/controllers' },
             { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
+            { text: 'Middlewares', link: '/references/base/middlewares' },
             { text: 'Models & Enrichers', link: '/references/base/models' },
+            { text: 'Providers', link: '/references/base/providers' },
             { text: 'DataSources', link: '/references/base/datasources' },
             {
               text: 'Repositories',
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/references/base/repositories/' },
+                { text: 'Mixins', link: '/references/base/repositories/mixins' },
                 { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
                 { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
               ],
@@ -276,6 +280,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'Overview', link: '/references/base/filter-system/' },
+                { text: '⚡ Quick Reference', link: '/references/base/filter-system/quick-reference' },
                 { text: 'Comparison Operators', link: '/references/base/filter-system/comparison-operators' },
                 { text: 'Null Operators', link: '/references/base/filter-system/null-operators' },
                 { text: 'List Operators', link: '/references/base/filter-system/list-operators' },
@@ -285,6 +290,7 @@ const config = defineConfig({
                 { text: 'JSON Filtering', link: '/references/base/filter-system/json-filtering' },
                 { text: 'Array Operators', link: '/references/base/filter-system/array-operators' },
                 { text: 'Fields, Order & Pagination', link: '/references/base/filter-system/fields-order-pagination' },
+                { text: 'Default Filter', link: '/references/base/filter-system/default-filter' },
                 { text: 'Application Usage', link: '/references/base/filter-system/application-usage' },
                 { text: 'Use Cases', link: '/references/base/filter-system/use-cases' },
                 { text: 'Tips & Edge Cases', link: '/references/base/filter-system/tips' },
@@ -325,12 +331,14 @@ const config = defineConfig({
             { text: 'Overview', link: '/references/utilities/' },
             { text: 'Crypto', link: '/references/utilities/crypto' },
             { text: 'Date', link: '/references/utilities/date' },
+            { text: 'JSX', link: '/references/utilities/jsx' },
             { text: 'Module', link: '/references/utilities/module' },
             { text: 'Parse', link: '/references/utilities/parse' },
             { text: 'Performance', link: '/references/utilities/performance' },
             { text: 'Promise', link: '/references/utilities/promise' },
             { text: 'Request', link: '/references/utilities/request' },
             { text: 'Schema', link: '/references/utilities/schema' },
+            { text: 'Statuses', link: '/references/utilities/statuses' },
           ],
         },
         {

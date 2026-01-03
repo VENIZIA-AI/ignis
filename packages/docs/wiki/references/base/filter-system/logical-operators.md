@@ -1,3 +1,9 @@
+---
+title: Logical Operators
+description: Combine multiple conditions with AND and OR logic
+difficulty: intermediate
+---
+
 # Logical Operators
 
 Combine multiple conditions with AND and OR logic.

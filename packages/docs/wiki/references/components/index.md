@@ -62,3 +62,25 @@ import { MyCustomComponent } from './components/my-custom.component';
 When the application starts, it will automatically call the `binding()` method of the registered component, setting up all the resources it provides.
 
 Using components is a great way to organize your application's features into modular, reusable pieces of code, keeping your main application class clean and focused on high-level configuration.
+
+## See Also
+
+- **Component Guides:**
+  - [Components Overview](/guides/core-concepts/components) - What components are
+  - [Creating Components](/guides/core-concepts/components-guide) - Build your own components
+
+- **Built-in Components:**
+  - [Authentication](./authentication) - JWT authentication
+  - [Health Check](./health-check) - Health check endpoints
+  - [Swagger](./swagger) - API documentation
+  - [Socket.IO](./socket-io) - WebSocket support
+  - [Mail](./mail) - Email functionality
+  - [Request Tracker](./request-tracker) - Request tracking
+  - [Static Asset](./static-asset) - Static file serving
+
+- **References:**
+  - [BaseComponent API](/references/base/components) - Component base class
+  - [Application](/references/base/application) - Registering components
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns

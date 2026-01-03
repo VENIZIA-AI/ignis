@@ -194,3 +194,26 @@ export class UserManagementComponent extends BaseComponent {
 ```
 
 > **Deep Dive:** See [Repository Reference](../../../references/base/repositories/) for filtering operators, relations, JSON path queries, and array operators.
+
+## See Also
+
+- **Related Concepts:**
+  - [Models](/guides/core-concepts/persistent/models) - Entity definitions used by repositories
+  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
+  - [Services](/guides/core-concepts/services) - Use repositories for data access
+  - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation consistency
+
+- **References:**
+  - [Repositories API](/references/base/repositories/) - Complete API reference
+  - [Filter System](/references/base/filter-system/) - Query operators and filtering
+  - [Relations & Includes](/references/base/repositories/relations) - Loading related data
+  - [Advanced Features](/references/base/repositories/advanced) - JSON queries, performance tuning
+  - [Repository Mixins](/references/base/repositories/mixins) - Soft delete and auditing
+
+- **Best Practices:**
+  - [Data Modeling](/best-practices/data-modeling) - Repository design patterns
+  - [Performance Optimization](/best-practices/performance-optimization) - Query optimization
+
+- **Tutorials:**
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Repository examples
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Advanced queries and relations

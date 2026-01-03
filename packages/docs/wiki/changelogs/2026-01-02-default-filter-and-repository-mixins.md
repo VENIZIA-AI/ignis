@@ -12,10 +12,10 @@ This release introduces **Default Filter** - a powerful feature that automatical
 ## Overview
 
 - **Default Filter**: Configure automatic filter conditions at the model level (e.g., soft delete, tenant isolation)
-- **Skip Default Filter**: Bypass default filters with `skipDefaultFilter: true` for admin/maintenance operations
+- **Skip Default Filter**: Bypass default filters with `shouldSkipDefaultFilter: true` for admin/maintenance operations
 - **Repository Mixins**: Extracted `DefaultFilterMixin` and `FieldsVisibilityMixin` for composable repository features
 - **FilterBuilder Enhancement**: Renamed `DrizzleFilterBuilder` to `FilterBuilder`, added `mergeFilter` method
-- **IExtraOptions Interface**: New interface replacing `TTransactionOption` with `skipDefaultFilter` support
+- **IExtraOptions Interface**: New interface replacing `TTransactionOption` with `shouldSkipDefaultFilter` support
 
 ## New Features
 
@@ -81,7 +81,7 @@ await userRepo.count({ where: { role: 'admin' } });
 
 **Problem:** Admin users or maintenance scripts sometimes need to query all records, including soft-deleted ones or records from all tenants.
 
-**Solution:** Pass `skipDefaultFilter: true` in the options to bypass the default filter:
+**Solution:** Pass `shouldSkipDefaultFilter: true` in the options to bypass the default filter:
 
 ```typescript
 // Normal query - default filter applies
@@ -91,20 +91,20 @@ await repo.find({ filter: { where: { role: 'admin' } } });
 // Admin query - bypass default filter
 await repo.find({
   filter: { where: { role: 'admin' } },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 // WHERE role = 'admin' (includes deleted records)
 
 // Works with all operations
-await repo.count({ where: {}, options: { skipDefaultFilter: true } });
+await repo.count({ where: {}, options: { shouldSkipDefaultFilter: true } });
 await repo.updateAll({
   where: { status: 'archived' },
   data: { isDeleted: true },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 await repo.deleteAll({
   where: { createdAt: { lt: '2020-01-01' } },
-  options: { skipDefaultFilter: true, force: true }
+  options: { shouldSkipDefaultFilter: true, force: true }
 });
 ```
 
@@ -131,7 +131,7 @@ export const DefaultFilterMixin = <T extends TMixinTarget<object>>(baseClass: T)
   abstract class Mixed extends baseClass {
     getDefaultFilter(): TFilter | undefined;
     hasDefaultFilter(): boolean;
-    applyDefaultFilter(opts: { userFilter?: TFilter; skipDefaultFilter?: boolean }): TFilter;
+    applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter;
   }
   return Mixed;
 };
@@ -182,7 +182,7 @@ export interface IExtraOptions extends IWithTransaction {
    * If true, bypass the default filter configured in model settings.
    * Use this when you need to query all records regardless of default filter constraints.
    */
-  skipDefaultFilter?: boolean;
+  shouldSkipDefaultFilter?: boolean;
 }
 
 // Base transaction interface
@@ -374,7 +374,7 @@ await postRepo.find({ filter: { where: { published: true } } });
 await postRepo.updateById({
   id: postId,
   data: { deletedAt: null },
-  options: { skipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true }
 });
 ```
 
@@ -415,4 +415,4 @@ export class Subscription extends BaseEntity<typeof Subscription.schema> {}
 
 - [Default Filter Guide](/references/base/filter-system/default-filter) - Full documentation
 - [Repository Mixins](/references/base/repositories/mixins) - Mixin architecture
-- [Advanced Repository Features](/references/base/repositories/advanced) - Updated with skipDefaultFilter
+- [Advanced Repository Features](/references/base/repositories/advanced) - Updated with shouldSkipDefaultFilter

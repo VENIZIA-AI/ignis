@@ -46,16 +46,16 @@ export const DefaultFilterMixin = <T extends TMixinTarget<object>>(baseClass: T)
 
     /**
      * Apply default filter to user-provided filter.
-     * Returns merged filter or user filter if skipDefaultFilter is true.
+     * Returns merged filter or user filter if shouldSkipDefaultFilter is true.
      */
     applyDefaultFilter<DataObject = any>(opts: {
       userFilter?: TFilter<DataObject>;
-      skipDefaultFilter?: boolean;
+      shouldSkipDefaultFilter?: boolean;
     }): TFilter<DataObject> {
-      const { userFilter, skipDefaultFilter } = opts;
+      const { userFilter, shouldSkipDefaultFilter } = opts;
 
       // Skip default filter if explicitly requested
-      if (skipDefaultFilter) {
+      if (shouldSkipDefaultFilter) {
         return userFilter ?? {};
       }
 

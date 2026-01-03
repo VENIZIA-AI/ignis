@@ -2,6 +2,8 @@
 
 This guide walks you through creating a new web application with Ignis and setting up a professional development environment.
 
+**⏱️ Time to Complete:** ~20 minutes
+
 > **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](../get-started/setup.md) before starting.
 
 ## 1. Initialize Your Project

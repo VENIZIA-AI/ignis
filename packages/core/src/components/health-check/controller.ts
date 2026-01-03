@@ -5,8 +5,8 @@ import { z } from '@hono/zod-openapi';
 import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import { HealthCheckRestPaths } from './common';
 
-const ROUTE_CONFIGS = {
-  [HealthCheckRestPaths.ROOT]: {
+const RouteConfigs = {
+  ROOT: {
     method: HTTP.Methods.GET,
     path: HealthCheckRestPaths.ROOT,
     responses: jsonResponse({
@@ -17,7 +17,7 @@ const ROUTE_CONFIGS = {
       description: 'Health check status',
     }),
   },
-  [HealthCheckRestPaths.PING]: {
+  PING: {
     method: HTTP.Methods.POST,
     path: HealthCheckRestPaths.PING,
     request: {
@@ -54,31 +54,31 @@ export class HealthCheckController extends BaseController {
     });
 
     // Note: This is optional declare internal controller route definitions
-    this.definitions = ROUTE_CONFIGS;
+    this.definitions = RouteConfigs;
   }
 
   override binding(): ValueOrPromise<void> {
     // Method 1: Using 'bindRoute' to create a controller route
-    this.bindRoute({ configs: ROUTE_CONFIGS['/'] }).to({
+    this.bindRoute({ configs: RouteConfigs.ROOT }).to({
       handler: context => {
         return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // Method 2: Using 'defineRoute' to create a controller route
-    this.defineRoute({
-      configs: ROUTE_CONFIGS['/'],
+    /* this.defineRoute({
+      configs: RouteConfigs.ROOT,
       handler: context => {
         return context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
       },
-    });
+    }); */
   }
 
   // Method 3: Using 'decorators' to create a controller route
   // Note: No need to manually type the context and return type!
   // The @api decorator automatically infers them from the route config
-  @api({ configs: ROUTE_CONFIGS[HealthCheckRestPaths.PING] })
-  pingPong(context: TRouteContext<(typeof ROUTE_CONFIGS)[typeof HealthCheckRestPaths.PING]>) {
+  @api({ configs: RouteConfigs.PING })
+  pingPong(context: TRouteContext<typeof RouteConfigs.PING>) {
     // context.req.valid('json') is automatically typed as { type?: string, message: string }
     const { message } = context.req.valid('json');
 

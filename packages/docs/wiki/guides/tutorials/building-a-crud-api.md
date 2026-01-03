@@ -2,6 +2,8 @@
 
 Build a complete, database-backed REST API for managing todos. This guide covers Models, DataSources, Repositories, and Controllers - the core building blocks of Ignis applications.
 
+**⏱️ Time to Complete:** ~45 minutes
+
 ## Prerequisites
 
 - ✅ Completed [Complete Installation](./complete-installation.md)
@@ -247,6 +249,14 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 
 ## Step 4: Create the Repository
 
+:::info What are Generic Types?
+Generic types in TypeScript are like placeholders that let you write reusable code that works with different types. The `<T>` syntax means "this class/function works with type T, which you'll specify later."
+
+Example: `DefaultCRUDRepository<typeof Todo.schema>` means "a repository that works specifically with the Todo schema type." This gives you type safety and autocomplete for your model's properties.
+
+[Learn more →](/guides/reference/glossary#generic-types)
+:::
+
 Repositories provide type-safe CRUD operations using `DefaultCRUDRepository`.
 
 Create `src/repositories/todo.repository.ts`:
@@ -282,6 +292,17 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 > **Deep Dive:** See [Repositories Reference](/references/base/repositories) for query options and advanced filtering.
 
 ## Step 5: Create the Controller
+
+:::info What is Dependency Injection?
+Dependency Injection (DI) is a design pattern where objects receive their dependencies from outside rather than creating them internally. Instead of `new Repository()` inside a controller, you declare "I need a Repository" using `@inject`, and the framework provides it automatically.
+
+**Benefits:**
+- **Testable** — Replace real services with mocks in tests
+- **Flexible** — Swap implementations without changing code
+- **Maintainable** — Dependencies are explicit and centralized
+
+[Learn more →](/guides/core-concepts/dependency-injection)
+:::
 
 `ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 

@@ -666,3 +666,22 @@ interface IMailTemplateEngine {
 6. **Use batch sending for bulk operations**: The `sendBatch` method with controlled concurrency prevents overwhelming your mail server.
 
 7. **Verify transport on startup**: Call `mailService.verify()` during application startup to ensure mail configuration is correct.
+
+## See Also
+
+- **Related Concepts:**
+  - [Components Overview](/guides/core-concepts/components) - Component system basics
+  - [Services](/guides/core-concepts/services) - Using mail service in business logic
+
+- **Other Components:**
+  - [Components Index](./index) - All built-in components
+
+- **References:**
+  - [Queue Helper](/references/helpers/queue) - Background job processing
+
+- **External Resources:**
+  - [Nodemailer Documentation](https://nodemailer.com/) - Email library
+  - [Handlebars Documentation](https://handlebarsjs.com/) - Template engine
+
+- **Best Practices:**
+  - [Security Guidelines](/best-practices/security-guidelines) - Email security

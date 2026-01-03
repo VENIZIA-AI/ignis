@@ -1,3 +1,9 @@
+---
+title: Pro Tips & Edge Cases
+description: Advanced tips and common edge cases for filters
+difficulty: intermediate
+---
+
 # Pro Tips & Edge Cases
 
 Advanced tips and common edge cases when working with filters.

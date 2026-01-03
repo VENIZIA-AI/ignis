@@ -2,6 +2,8 @@
 
 Build your first Ignis API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
 
+**⏱️ Time to Complete:** ~5 minutes
+
 > **Prerequisites:** [Bun installed](./setup) and basic TypeScript knowledge.
 
 ## Step 1: Create Project (30 seconds)
@@ -60,6 +62,18 @@ node_modules
 ```
 
 ## Step 3: Write Your API (2 minutes)
+
+:::info What is a Decorator?
+A decorator is a TypeScript feature that adds behavior to classes, methods, or properties. It's the `@something` syntax you see before definitions (like `@controller`, `@get`, `@inject`). Decorators in Ignis handle routing, dependency injection, and API documentation automatically.
+
+[Learn more →](/guides/reference/glossary#decorators)
+:::
+
+:::info What is Binding?
+"Binding" means registering a component (like a service or repository) with the application's dependency injection container. Think of it as telling the app: "Hey, this service exists and here's how to create it." Once bound, you can inject it anywhere using `@inject`.
+
+[Learn more →](/guides/core-concepts/dependency-injection)
+:::
 
 Create `src/index.ts`:
 

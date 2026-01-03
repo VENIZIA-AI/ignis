@@ -55,7 +55,7 @@ export interface IModelSettings {
   /**
    * Default filter applied to all repository operations (find, findOne, count, update, delete).
    * User filters merge with defaultFilter (user values take precedence).
-   * Use `options.skipDefaultFilter: true` to bypass.
+   * Use `options.shouldSkipDefaultFilter: true` to bypass.
    *
    * Merge strategy:
    * - `where`: Deep merge (user overrides matching keys)

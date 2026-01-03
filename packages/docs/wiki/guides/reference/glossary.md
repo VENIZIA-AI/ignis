@@ -27,9 +27,21 @@ export class Application extends BaseApplication {
 }
 
 // Controller handles HTTP
+const TodoRoutes = {
+  GET_ALL: {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
+  },
+} as const;
+
 @controller({ path: '/todos' })
 export class TodoController extends BaseController {
-  @get('/') async getAll() { return this.repository.find({}); }
+  @get({ configs: TodoRoutes.GET_ALL })
+  async getAll(c: TRouteContext<typeof TodoRoutes.GET_ALL>) {
+    const todos = await this.repository.find({});
+    return c.json(todos, HTTP.ResultCodes.RS_2.Ok);
+  }
 }
 
 // Repository handles database
@@ -175,11 +187,28 @@ await repository.find({
 | DELETE | `/todos/:id` | Delete |
 
 ```typescript
+const TodoRoutes = {
+  GET_ALL: { method: HTTP.Methods.GET, path: '/', responses: jsonResponse({ schema: z.array(z.any()) }) },
+  GET_BY_ID: { method: HTTP.Methods.GET, path: '/:id', request: { params: z.object({ id: z.string() }) }, responses: jsonResponse({ schema: z.any() }) },
+  CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: jsonContent({ schema: z.any() }) }, responses: jsonResponse({ schema: z.any() }) },
+} as const;
+
 @controller({ path: '/todos' })
 class TodoController {
-  @get('/') async getAll() { ... }
-  @get('/:id') async getById(@param('id') id: string) { ... }
-  @post('/') async create(@body() data: CreateTodoDto) { ... }
+  @get({ configs: TodoRoutes.GET_ALL })
+  async getAll(c: TRouteContext<typeof TodoRoutes.GET_ALL>) { ... }
+
+  @get({ configs: TodoRoutes.GET_BY_ID })
+  async getById(c: TRouteContext<typeof TodoRoutes.GET_BY_ID>) {
+    const { id } = c.req.valid('param');
+    ...
+  }
+
+  @post({ configs: TodoRoutes.CREATE })
+  async create(c: TRouteContext<typeof TodoRoutes.CREATE>) {
+    const data = c.req.valid('json');
+    ...
+  }
 }
 ```
 

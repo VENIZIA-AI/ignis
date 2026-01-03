@@ -1,3 +1,9 @@
+---
+title: Range Operators
+description: Operators for matching values within or outside a range
+difficulty: intermediate
+---
+
 # Range Operators
 
 Operators for matching values within or outside a range.

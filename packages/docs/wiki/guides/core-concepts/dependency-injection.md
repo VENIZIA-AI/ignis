@@ -247,3 +247,23 @@ describe('UserService', () => {
 ::: tip
 The `Application` class extends `Container`, so all container methods (`bind`, `get`, `getSync`) are available on your application instance. Standalone containers are useful when you need isolation from the main application context.
 :::
+
+## See Also
+
+- **Related Concepts:**
+  - [Application](/guides/core-concepts/application/) - Application extends Container
+  - [Controllers](/guides/core-concepts/controllers) - Use DI for injecting services
+  - [Services](/guides/core-concepts/services) - Use DI for injecting repositories
+  - [Providers](/references/base/providers) - Factory pattern for dynamic injection
+
+- **References:**
+  - [Dependency Injection API](/references/base/dependency-injection) - Complete API reference
+  - [Inversion Helper](/references/helpers/inversion) - DI container utilities
+  - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
+
+- **Tutorials:**
+  - [Testing](/guides/tutorials/testing) - Unit testing with mocked dependencies
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - DI in practice
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - DI patterns and anti-patterns

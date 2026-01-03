@@ -125,15 +125,15 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create products: one with price > 0, one with price = 0
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced Product', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free Product', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
-      // Find without skipDefaultFilter - should only return priced product
+      // Find without shouldSkipDefaultFilter - should only return priced product
       const results = await repo.find({
         filter: { where: { code: { like: `${testCode}%` } } },
       });
@@ -156,34 +156,34 @@ export class DefaultFilterTestService extends BaseTestService {
   }
 
   // ----------------------------------------------------------------
-  // CASE 2: skipDefaultFilter bypasses the default filter
+  // CASE 2: shouldSkipDefaultFilter bypasses the default filter
   // ----------------------------------------------------------------
   private async case2_SkipDefaultFilterBypass(): Promise<void> {
     const repo = this.productRepository;
-    this.logCase('[CASE 2] skipDefaultFilter should bypass default filter');
+    this.logCase('[CASE 2] shouldSkipDefaultFilter should bypass default filter');
 
     const testCode = `DF_TEST_${getUID()}`;
 
     try {
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced Product', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free Product', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
-      // Find WITH skipDefaultFilter - should return both products
+      // Find WITH shouldSkipDefaultFilter - should return both products
       const results = await repo.find({
         filter: { where: { code: { like: `${testCode}%` } } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (results.length === 2) {
         this.logger.info(
-          '[CASE 2] PASSED | skipDefaultFilter bypasses default filter | Found %d products',
+          '[CASE 2] PASSED | shouldSkipDefaultFilter bypasses default filter | Found %d products',
           results.length,
         );
       } else {
@@ -210,17 +210,17 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create products with different names and prices
       await repo.create({
         data: { code: `${testCode}_A`, name: 'Product A', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_B`, name: 'Product B', price: 200 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_C`, name: 'Product C', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Find with user filter (name = 'Product A')
@@ -254,7 +254,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free Product', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // User explicitly sets price filter to override default
@@ -266,7 +266,7 @@ export class DefaultFilterTestService extends BaseTestService {
             price: { eq: 0 }, // User explicitly wants price = 0
           },
         },
-        options: { skipDefaultFilter: true }, // Must skip to get price = 0
+        options: { shouldSkipDefaultFilter: true }, // Must skip to get price = 0
       });
 
       if (results.length === 1 && results[0].price === 0) {
@@ -291,7 +291,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Free Product', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // FindOne without skip - should return null (price = 0 excluded)
@@ -308,7 +308,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // FindOne with skip - should return the product
       const resultWithSkip = await repo.findOne({
         filter: { where: { code: testCode } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (resultWithSkip?.code === testCode) {
@@ -333,7 +333,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       const created = await repo.create({
         data: { code: testCode, name: 'Free Product', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const productId = created.data.id;
@@ -350,7 +350,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // FindById with skip - should return the product
       const resultWithSkip = await repo.findById({
         id: productId,
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (resultWithSkip?.id === productId) {
@@ -375,12 +375,12 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Count without skip - should be 1
@@ -397,7 +397,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Count with skip - should be 2
       const countWithSkip = await repo.count({
         where: { code: { like: `${testCode}%` } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (countWithSkip.count === 2) {
@@ -422,7 +422,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Free', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Exists without skip - should be false
@@ -439,7 +439,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Exists with skip - should be true
       const existsWithSkip = await repo.existsWith({
         where: { code: testCode },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (existsWithSkip) {
@@ -464,7 +464,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Free', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Find with empty where - default filter still applies
@@ -494,7 +494,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Test', description: null, price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Find with null in user filter
@@ -524,17 +524,17 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_50`, name: 'Low Price', price: 50 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_150`, name: 'Mid Price', price: 150 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_300`, name: 'High Price', price: 300 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // User filter: price < 200
@@ -590,7 +590,7 @@ export class DefaultFilterTestService extends BaseTestService {
       for (let i = 1; i <= 5; i++) {
         await repo.create({
           data: { code: `${testCode}_${i}`, name: `Product ${i}`, price: i * 10 },
-          options: { skipDefaultFilter: true },
+          options: { shouldSkipDefaultFilter: true },
         });
       }
 
@@ -624,12 +624,12 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_A`, name: 'Product A', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_B`, name: 'Product B', price: 200 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // User order: price DESC
@@ -710,7 +710,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create product with XSS payload in name
       await repo.create({
         data: { code: testCode, name: xssPayload, price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Retrieve and verify the payload is stored as-is (not executed)
@@ -771,7 +771,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: longString.substring(0, 255), description: longString, price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const found = await repo.findOne({
@@ -801,7 +801,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: specialChars, price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const found = await repo.findOne({
@@ -831,12 +831,12 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced', price: 100 },
-        options: { transaction, skipDefaultFilter: true },
+        options: { transaction, shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free', price: 0 },
-        options: { transaction, skipDefaultFilter: true },
+        options: { transaction, shouldSkipDefaultFilter: true },
       });
 
       // Find within transaction - default filter should apply
@@ -870,7 +870,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Product with Relations', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Find with include - default filter should still apply
@@ -904,12 +904,12 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create products with different prices
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // UpdateAll without skip - should only update priced product
@@ -927,7 +927,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Verify the free product was NOT updated
       const freeProduct = await repo.findOne({
         filter: { where: { code: `${testCode}_FREE` } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (freeProduct?.description !== 'Updated') {
@@ -952,12 +952,12 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: `${testCode}_PRICED`, name: 'Priced', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       await repo.create({
         data: { code: `${testCode}_FREE`, name: 'Free', price: 0 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // DeleteAll without skip - should only delete priced product
@@ -974,7 +974,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Verify the free product still exists
       const freeProduct = await repo.findOne({
         filter: { where: { code: `${testCode}_FREE` } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (freeProduct) {
@@ -982,7 +982,7 @@ export class DefaultFilterTestService extends BaseTestService {
         // Clean up the remaining product
         await repo.deleteAll({
           where: { code: `${testCode}_FREE` },
-          options: { force: true, skipDefaultFilter: true },
+          options: { force: true, shouldSkipDefaultFilter: true },
         });
       } else {
         this.logger.error('[CASE 22] FAILED | Free product should still exist');
@@ -1008,7 +1008,7 @@ export class DefaultFilterTestService extends BaseTestService {
           { code: `${testCode}_B`, name: 'Product B', price: 100 },
           { code: `${testCode}_C`, name: 'Product C', price: 0 }, // Excluded by default
         ],
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Complex query: (name = A OR name = B) AND (price > 0) <- default filter
@@ -1060,7 +1060,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Field Test', price: 100, description: 'Test Desc' },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Select only specific fields
@@ -1103,7 +1103,7 @@ export class DefaultFilterTestService extends BaseTestService {
           { code: `${testCode}_2`, name: 'Product 2', price: 200 },
           { code: `${testCode}_3`, name: 'Product 3', price: 0 }, // Excluded
         ],
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Run multiple concurrent queries
@@ -1141,7 +1141,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       const product = await productRepo.create({
         data: { code: testCode, name: 'Nested Test', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const channel = await saleChannelRepo.create({
@@ -1199,7 +1199,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       const created = await repo.create({
         data: { code: testCode, name: 'Update Test', price: 0 }, // price=0 excluded by default
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const productId = created.data.id;
@@ -1220,7 +1220,7 @@ export class DefaultFilterTestService extends BaseTestService {
       const updateWithSkip = await repo.updateById({
         id: productId,
         data: { name: 'Updated Name' },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (updateWithSkip.count === 1) {
@@ -1243,7 +1243,7 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       await repo.create({
         data: { code: testCode, name: 'Invariance Test', price: 100 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       const originalFilter = {
@@ -1284,7 +1284,7 @@ export class DefaultFilterTestService extends BaseTestService {
           { code: `${testCode}_A`, name: 'Product A', price: 100 },
           { code: `${testCode}_B`, name: 'Product B', price: 200 },
         ],
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Attempt SQL injection in order clause
@@ -1303,7 +1303,7 @@ export class DefaultFilterTestService extends BaseTestService {
               where: { code: { like: `${testCode}%` } },
               order: [maliciousOrder],
             },
-            options: { skipDefaultFilter: true },
+            options: { shouldSkipDefaultFilter: true },
           });
           // If no error, that's concerning but let's verify data integrity
         } catch (err) {
@@ -1315,7 +1315,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Verify table still exists and data intact
       const count = await repo.count({
         where: { code: { like: `${testCode}%` } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (count.count === 2) {
@@ -1327,7 +1327,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Cleanup
       await repo.deleteAll({
         where: { code: { like: `${testCode}%` } },
-        options: { force: true, skipDefaultFilter: true },
+        options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
       this.logger.error('[CASE 29] ERROR | %s', (error as Error).message);
@@ -1347,7 +1347,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create test data
       await repo.create({
         data: { code: testCode, name: 'Secure Product', price: 150 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Attempt SQL injection in fields array
@@ -1365,7 +1365,7 @@ export class DefaultFilterTestService extends BaseTestService {
               where: { code: testCode },
               fields: [maliciousField] as any,
             },
-            options: { skipDefaultFilter: true },
+            options: { shouldSkipDefaultFilter: true },
           });
           // If query succeeds, verify only safe columns returned
           if (results.length > 0) {
@@ -1381,7 +1381,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Verify data integrity
       const product = await repo.findOne({
         filter: { where: { code: testCode } },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (product) {
@@ -1393,7 +1393,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Cleanup
       await repo.deleteAll({
         where: { code: testCode },
-        options: { force: true, skipDefaultFilter: true },
+        options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
       this.logger.error('[CASE 30] ERROR | %s', (error as Error).message);
@@ -1413,7 +1413,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Create test data
       await repo.create({
         data: { code: testCode, name: 'Include Test Product', price: 200 },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       // Attempt SQL injection in relation name
@@ -1432,7 +1432,7 @@ export class DefaultFilterTestService extends BaseTestService {
               where: { code: testCode },
               include: [{ relation: maliciousRelation }],
             },
-            options: { skipDefaultFilter: true },
+            options: { shouldSkipDefaultFilter: true },
           });
           // Query might succeed with unknown relation being ignored
         } catch (err) {
@@ -1453,7 +1453,7 @@ export class DefaultFilterTestService extends BaseTestService {
               },
             }],
           },
-          options: { skipDefaultFilter: true },
+          options: { shouldSkipDefaultFilter: true },
         });
       } catch (err) {
         this.logger.info('[CASE 31] INFO | Scope where injection rejected');
@@ -1462,7 +1462,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Verify data integrity
       const count = await repo.count({
         where: { code: testCode },
-        options: { skipDefaultFilter: true },
+        options: { shouldSkipDefaultFilter: true },
       });
 
       if (count.count === 1) {
@@ -1474,7 +1474,7 @@ export class DefaultFilterTestService extends BaseTestService {
       // Cleanup
       await repo.deleteAll({
         where: { code: testCode },
-        options: { force: true, skipDefaultFilter: true },
+        options: { force: true, shouldSkipDefaultFilter: true },
       });
     } catch (error) {
       this.logger.error('[CASE 31] ERROR | %s', (error as Error).message);
@@ -1502,7 +1502,7 @@ export class DefaultFilterTestService extends BaseTestService {
       for (const prefix of prefixes) {
         await repo.deleteAll({
           where: { code: { like: prefix } },
-          options: { force: true, skipDefaultFilter: true },
+          options: { force: true, shouldSkipDefaultFilter: true },
         });
       }
 

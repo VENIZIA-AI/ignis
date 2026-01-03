@@ -1,3 +1,9 @@
+---
+title: Bootstrapping Reference
+description: Technical reference for application bootstrapping and initialization
+difficulty: advanced
+---
+
 # Bootstrapping API Reference
 
 > **API Reference**: Classes, interfaces, and utilities for application bootstrapping
@@ -9,6 +15,14 @@
 - [Types](#types)
 - [Utilities](#utilities)
 
+## Prerequisites
+
+Before reading this document, you should understand:
+
+- [IGNIS Application](./application.md) - Application lifecycle and initialization
+- [Dependency Injection](./dependency-injection.md) - DI container and bindings
+- [Controllers](./controllers.md), [Services](./services.md), and [Repositories](./repositories/) - Core abstractions
+- Convention-based programming patterns
 
 ## Interfaces
 
@@ -759,9 +773,21 @@ await app.boot();
 ```
 
 
-## Related Documentation
+---
 
-- [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
-- [Boot Package Reference](/references/src-details/boot.md)
-- [Application Guide](/guides/core-concepts/application/)
-- [Dependency Injection](/references/base/dependency-injection.md)
+## See Also
+
+- **Related References:**
+  - [Application](./application.md) - Application lifecycle and initialization
+  - [Dependency Injection](./dependency-injection.md) - DI container and bindings
+  - [Components](./components.md) - Pluggable modules and components
+  - [Boot Package](/references/src-details/boot.md) - Boot package implementation details
+
+- **Guides:**
+  - [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
+  - [Application Guide](/guides/core-concepts/application/)
+  - [Auto-Discovery](/guides/core-concepts/auto-discovery.md)
+
+- **Best Practices:**
+  - [Application Structure](/best-practices/architecture/project-structure.md)
+  - [Environment Configuration](/best-practices/configuration/environment.md)

@@ -1,3 +1,9 @@
+---
+title: Components Reference
+description: Technical reference for BaseComponent and pluggable modules
+difficulty: advanced
+---
+
 # Deep Dive: Components
 
 Technical reference for `BaseComponent`—the foundation for creating reusable, pluggable features in Ignis. Components are powerful containers that can group together multiple providers, services, controllers, repositories, and even entire mini-applications into a single, redistributable module.
@@ -555,3 +561,21 @@ export * from './common';
 export * from './component';
 export * from './controller';
 ```
+
+## See Also
+
+- **Related Concepts:**
+  - [Components Overview](/guides/core-concepts/components) - What components are
+  - [Creating Components](/guides/core-concepts/components-guide) - Build your own components
+  - [Application](/guides/core-concepts/application/) - Registering components
+  - [Dependency Injection](/guides/core-concepts/dependency-injection) - Component bindings
+
+- **Built-in Components:**
+  - [Authentication Component](/references/components/authentication) - JWT authentication
+  - [Health Check Component](/references/components/health-check) - Health endpoints
+  - [Swagger Component](/references/components/swagger) - API documentation
+  - [Socket.IO Component](/references/components/socket-io) - WebSocket support
+
+- **Best Practices:**
+  - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns
+  - [Code Style Standards](/best-practices/code-style-standards) - Component coding standards

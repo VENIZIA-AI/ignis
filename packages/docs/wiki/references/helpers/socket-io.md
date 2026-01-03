@@ -101,3 +101,22 @@ socketClient.subscribe({
   },
 });
 ```
+
+## See Also
+
+- **Related Concepts:**
+  - [Services](/guides/core-concepts/services) - Real-time communication in services
+
+- **Other Helpers:**
+  - [Helpers Index](./index) - All available helpers
+  - [Redis Helper](./redis) - For Socket.IO scaling with Redis adapter
+
+- **References:**
+  - [Socket.IO Component](/references/components/socket-io) - Full component setup
+
+- **External Resources:**
+  - [Socket.IO Documentation](https://socket.io/docs/) - Official Socket.IO docs
+  - [Socket.IO Redis Adapter](https://socket.io/docs/v4/redis-adapter/) - Scaling guide
+
+- **Tutorials:**
+  - [Real-Time Chat Application](/guides/tutorials/real-time-chat) - Socket.IO tutorial

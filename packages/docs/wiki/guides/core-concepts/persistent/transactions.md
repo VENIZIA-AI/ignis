@@ -145,3 +145,26 @@ export class OrderController extends BaseController {
 ```
 
 > **Deep Dive:** See [Repository Reference](../../../references/base/repositories/) for more transaction options and patterns.
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories](/guides/core-concepts/persistent/repositories) - Provide transaction API
+  - [Services](/guides/core-concepts/services) - Orchestrate transactional operations
+  - [Controllers](/guides/core-concepts/controllers) - Initiate transactions from HTTP handlers
+  - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
+
+- **References:**
+  - [Repositories API](/references/base/repositories/) - Transaction methods and options
+  - [BaseDataSource API](/references/base/datasources) - Connection and transaction management
+
+- **External Resources:**
+  - [PostgreSQL Transactions](https://www.postgresql.org/docs/current/tutorial-transactions.html) - Transaction fundamentals
+  - [Isolation Levels](https://www.postgresql.org/docs/current/transaction-iso.html) - Understanding isolation levels
+
+- **Best Practices:**
+  - [Data Modeling](/best-practices/data-modeling) - Transaction design patterns
+  - [Common Pitfalls](/best-practices/common-pitfalls) - Transaction anti-patterns
+
+- **Tutorials:**
+  - [E-commerce API](/guides/tutorials/ecommerce-api) - Order creation with transactions
