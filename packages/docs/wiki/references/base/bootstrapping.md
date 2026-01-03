@@ -786,8 +786,9 @@ await app.boot();
 - **Guides:**
   - [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
   - [Application Guide](/guides/core-concepts/application/)
-  - [Auto-Discovery](/guides/core-concepts/auto-discovery.md)
 
 - **Best Practices:**
-  - [Application Structure](/best-practices/architecture/project-structure.md)
-  - [Environment Configuration](/best-practices/configuration/environment.md)
+  - [Architectural Patterns](/best-practices/architectural-patterns)
+
+- **Configuration:**
+  - [Environment Variables](/references/configuration/environment-variables)

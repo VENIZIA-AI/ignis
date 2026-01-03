@@ -630,5 +630,5 @@ class UserRepository extends DefaultCRUDRepository<User> {
   - [Core Concepts](/guides/core-concepts/application/) - Architecture deep-dive
 
 - **Best Practices:**
-  - [Architecture Patterns](/best-practices/architecture/)
-  - [Security Guidelines](/best-practices/security/)
+  - [Architectural Patterns](/best-practices/architectural-patterns)
+  - [Security Guidelines](/best-practices/security-guidelines)

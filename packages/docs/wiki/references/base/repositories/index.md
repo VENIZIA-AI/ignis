@@ -207,7 +207,7 @@ await repo.deleteAll({ where: {}, options: { force: true } });
   - [Repositories Guide](/guides/core-concepts/persistent/repositories) - Creating repositories tutorial
   - [Models](/guides/core-concepts/persistent/models) - Entity definitions used by repositories
   - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
-  - [Services](/guides/core-concepts/persistent/services) - Use repositories for data access
+  - [Services](/guides/core-concepts/services) - Use repositories for data access
   - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation consistency
 
 - **Repository Topics:**

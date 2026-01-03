@@ -594,8 +594,10 @@ Error handlers log every error. For high error rates, consider:
   - [Dependency Injection](./dependency-injection.md) - DI container and providers
 
 - **Guides:**
-  - [Building Your First API](/guides/getting-started/first-api.md)
-  - [Error Handling Best Practices](/best-practices/architecture/error-handling.md)
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api)
+
+- **Best Practices:**
+  - [Troubleshooting Tips](/best-practices/troubleshooting-tips)
 
 - **External Resources:**
   - [Hono Middleware Documentation](https://hono.dev/docs/guides/middleware)

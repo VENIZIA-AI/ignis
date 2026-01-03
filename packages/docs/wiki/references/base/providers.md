@@ -724,8 +724,7 @@ export class ConfigProvider extends BaseProvider<Config> {
   - [Building Services](/guides/core-concepts/services.md)
 
 - **Best Practices:**
-  - [Dependency Injection Patterns](/best-practices/architecture/dependency-injection.md)
-  - [Service Layer Patterns](/best-practices/architecture/service-patterns.md)
+  - [Architectural Patterns](/best-practices/architectural-patterns)
 
 - **External Resources:**
   - [Factory Pattern](https://refactoring.guru/design-patterns/factory-method)

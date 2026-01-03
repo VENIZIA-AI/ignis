@@ -732,9 +732,9 @@ if (isTerminal) {
   - [Services](../base/services.md) - Business logic with status transitions
 
 - **Guides:**
-  - [Data Modeling](/guides/core-concepts/models.md)
-  - [Working with Repositories](/guides/core-concepts/repositories.md)
+  - [Data Modeling](/guides/core-concepts/persistent/models)
+  - [Working with Repositories](/guides/core-concepts/persistent/repositories)
 
 - **Best Practices:**
-  - [State Machine Patterns](/best-practices/architecture/state-machines.md)
-  - [Entity Lifecycle Management](/best-practices/architecture/entity-lifecycle.md)
+  - [Architectural Patterns](/best-practices/architectural-patterns)
+  - [Data Modeling Best Practices](/best-practices/data-modeling)

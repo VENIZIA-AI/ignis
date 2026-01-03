@@ -117,5 +117,5 @@ By adhering to this pattern, you keep your code organized, testable, and maintai
   - [Dependency Injection Guide](/guides/core-concepts/dependency-injection.md)
 
 - **Best Practices:**
-  - [Service Layer Patterns](/best-practices/architecture/service-patterns.md)
-  - [Testing Services](/best-practices/testing/unit-testing.md)
+  - [Architectural Patterns](/best-practices/architectural-patterns)
+  - [Testing Guide](/guides/tutorials/testing)

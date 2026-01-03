@@ -471,14 +471,13 @@ By leveraging these structured configuration options and the `ControllerFactory`
   - [Dependency Injection](./dependency-injection.md) - DI patterns and injection
 
 - **Guides:**
-  - [Building Your First API](/guides/getting-started/first-api.md)
-  - [Controllers Guide](/guides/core-concepts/controllers.md)
-  - [Routing and Decorators](/guides/core-concepts/routing.md)
+  - [Controllers Guide](/guides/core-concepts/controllers)
+  - [Building a CRUD API](/guides/tutorials/building-a-crud-api)
 
 - **Best Practices:**
-  - [API Design Patterns](/best-practices/architecture/api-design.md)
-  - [Error Handling](/best-practices/architecture/error-handling.md)
-  - [Request Validation](/best-practices/security/input-validation.md)
+  - [API Usage Examples](/best-practices/api-usage-examples)
+  - [Troubleshooting Tips](/best-practices/troubleshooting-tips)
+  - [Security Guidelines](/best-practices/security-guidelines)
 
 - **External Resources:**
   - [OpenAPI Specification](https://swagger.io/specification/)

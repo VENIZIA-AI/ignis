@@ -119,4 +119,4 @@ socketClient.subscribe({
   - [Socket.IO Redis Adapter](https://socket.io/docs/v4/redis-adapter/) - Scaling guide
 
 - **Tutorials:**
-  - [Real-Time Chat Application](/guides/tutorials/real-time-chat) - Socket.IO tutorial
+  - [Real-Time Chat Application](/guides/tutorials/realtime-chat) - Socket.IO tutorial
