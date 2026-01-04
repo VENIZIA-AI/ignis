@@ -8,6 +8,7 @@ import { Authentication } from './constants';
 
 // Extend Hono's context variables to include authentication-related data
 declare module 'hono' {
+  // eslint-disable-next-line @typescript-eslint/naming-convention
   interface ContextVariableMap<User extends IAuthUser = IAuthUser> {
     [Authentication.CURRENT_USER]: User;
     [Authentication.AUDIT_USER_ID]: IdType;
