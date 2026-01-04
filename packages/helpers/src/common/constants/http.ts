@@ -45,6 +45,16 @@ export class HTTP {
       NoContent: 204,
       ResetContent: 205,
       PartialContent: 206,
+      MultiStatus: 207,
+    },
+
+    // 3xx redirection – further action needs to be taken in order to complete the request
+    RS_3: {
+      MovedPermanently: 301,
+      Found: 302,
+      NotModified: 304,
+      TemporaryRedirect: 307,
+      PermanentRedirect: 308,
     },
 
     // 4xx client error – the request contains bad syntax or cannot be fulfilled
@@ -55,17 +65,39 @@ export class HTTP {
       Forbidden: 403,
       NotFound: 404,
       MethodNotAllowed: 405,
+      NotAcceptable: 406,
       RequestTimeout: 408,
+      Conflict: 409,
+      Gone: 410,
+      LengthRequired: 411,
+      PreconditionFailed: 412,
       ContentTooLarge: 413,
       URITooLong: 414,
       UnsupportedMediaType: 415,
+      RangeNotSatisfiable: 416,
+      ExpectationFailed: 417,
       UnprocessableEntity: 422,
+      Locked: 423,
+      FailedDependency: 424,
+      TooEarly: 425,
+      UpgradeRequired: 426,
+      PreconditionRequired: 428,
+      TooManyRequests: 429,
+      RequestHeaderFieldsTooLarge: 431,
+      UnavailableForLegalReasons: 451,
     },
 
     // 5xx server error – the server failed to fulfil an apparently valid request
     RS_5: {
       InternalServerError: 500,
       NotImplemented: 501,
+      BadGateway: 502,
+      ServiceUnavailable: 503,
+      GatewayTimeout: 504,
+      HTTPVersionNotSupported: 505,
+      InsufficientStorage: 507,
+      LoopDetected: 508,
+      NetworkAuthenticationRequired: 511,
     },
   } as const;
 }

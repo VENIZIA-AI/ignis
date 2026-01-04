@@ -1,6 +1,7 @@
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
 import {
+  Authentication,
   BindingKeys,
   BindingNamespaces,
   controller,
@@ -17,6 +18,7 @@ const _Controller = ControllerFactory.defineCrudController({
     basePath: BASE_PATH,
     isStrict: true,
   },
+  authStrategies: [Authentication.STRATEGY_JWT],
 
   // Define entity by direct declare entity class
   // entity: Configuration,

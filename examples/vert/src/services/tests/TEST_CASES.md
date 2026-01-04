@@ -11,7 +11,9 @@ This document lists all test cases implemented in the `examples/vert/src/service
 | InclusionTestService | 15 | Many-to-many relations |
 | ArrayOperatorTestService | 21 | PostgreSQL array operators |
 | DefaultFilterTestService | 31 | Default filter functionality |
-| **Total** | **106** | |
+| HiddenPropertiesTestService | 17 | Hidden properties filtering |
+| UserAuditTestService | 21 | User audit tracking (createdBy/modifiedBy) |
+| **Total** | **144** | |
 
 ---
 
@@ -193,6 +195,89 @@ Default filter (automatic query filtering) functionality.
 
 ---
 
+## 6. HiddenPropertiesTestService
+
+Tests for hidden properties filtering (password, secret fields excluded from responses).
+
+| Case | Name | Description |
+|------|------|-------------|
+| 1 | CreateReturnsHiddenExcluded | Create operation excludes hidden properties from response |
+| 2 | FindOperationsExcludeHidden | findOne, find, findById all exclude hidden properties |
+| 5 | UpdateByIdExcludesHidden | UpdateById excludes hidden properties from response |
+| 6 | DirectConnectorReturnsAll | Direct connector access returns hidden properties |
+| 7 | CreateAllExcludesHidden | Batch create excludes hidden properties |
+| 8 | UpdateAllExcludesHidden | Batch update excludes hidden properties |
+| 9 | HiddenWithInclusion | Hidden exclusion works with relation includes |
+| 10 | HiddenWithFieldSelection | Selected fields respected, hidden still excluded |
+| 11 | PartialHiddenFields | Only hidden fields excluded, non-hidden returned |
+| 12 | HiddenInTransaction | Hidden exclusion works within transactions |
+| 13 | FindWithFilterExcludesHidden | Hidden excluded with complex where filters |
+| 14 | CountOperationIgnoresHidden | Count works (hidden filtering N/A for counts) |
+| 15 | DeleteByIdExcludesHidden | Delete excludes hidden from returned data |
+| 16 | DeleteAllExcludesHidden | Batch delete excludes hidden from returned data |
+| 18 | MultipleUsersHiddenExcluded | Multiple records all have hidden excluded |
+| 19 | HiddenWithPagination | Pagination works with hidden exclusion |
+| 20 | Cleanup | Delete all test users |
+
+---
+
+## 7. UserAuditTestService
+
+Tests for automatic user audit tracking (createdBy/modifiedBy fields).
+
+### CREATE Operations
+
+| Case | Name | Description |
+|------|------|-------------|
+| 1 | CreateWithExplicitAuditFields | Create with explicit createdBy/modifiedBy values |
+| 2 | CreateWithoutContext_NullAuditFields | Without Hono context, audit fields are null |
+| 3 | CreateAll_BulkAuditFields | Batch create with different audit users for each record |
+
+### UPDATE Operations
+
+| Case | Name | Description |
+|------|------|-------------|
+| 4 | UpdateById_ModifiedByChanges | modifiedBy changes to updater on UpdateById |
+| 5 | UpdateById_CreatedByUnchanged | createdBy remains unchanged after update attempt |
+| 6 | UpdateAll_BulkModifiedByChanges | modifiedBy changes for all matching records in batch update |
+| 7 | UpdateWithDifferentUser | Multiple updates by different users tracked correctly |
+
+### Edge Cases
+
+| Case | Name | Description |
+|------|------|-------------|
+| 8 | NullToNonNullAuditFields | Update null audit fields to non-null values |
+| 9 | VerifyAuditFieldsStoredInDatabase | Audit fields correctly stored via direct DB query |
+| 10 | FilterByAuditFields | Filter/query records by createdBy and modifiedBy |
+
+### Transaction Behavior
+
+| Case | Name | Description |
+|------|------|-------------|
+| 11 | TransactionAuditTracking | Audit fields work correctly within transactions |
+| 12 | RollbackAuditTracking | Rollback restores original audit field values |
+
+### Advanced Scenarios
+
+| Case | Name | Description |
+|------|------|-------------|
+| 13 | ConcurrentUpdatesModifiedBy | Concurrent updates, last write wins for modifiedBy |
+| 14 | AuditFieldsWithRelations | Audit fields accessible with relation includes |
+| 15 | MultipleSequentialUpdates | Sequential updates by different users tracked |
+| 16 | AuditFieldsDataTypes | Valid User IDs stored correctly (FK constraint enforced) |
+| 17 | AuditFieldsInCountAndExists | Count and ExistsWith operations with audit filters |
+| 18 | DeleteReturnsAuditFields | Delete operations return records with audit fields |
+
+### Security Tests
+
+| Case | Name | Description |
+|------|------|-------------|
+| 19 | AuditFieldInjectionAttempt | Malicious inputs rejected by FK constraint |
+| 20 | EmptyStringVsNullAuditFields | Empty string rejected, null accepted (FK constraint aware) |
+| 21 | Cleanup | Delete all audit test data |
+
+---
+
 ## Test Categories
 
 ### Functional Coverage
@@ -203,6 +288,8 @@ Default filter (automatic query filtering) functionality.
 - **Relations**: One-to-Many, Many-to-Many, Nested Inclusions
 - **Array Operators**: PostgreSQL `@>`, `<@`, `&&` operators
 - **Default Filters**: Automatic query filtering with override
+- **Hidden Properties**: Password/secret field exclusion from responses
+- **User Audit**: Automatic createdBy/modifiedBy tracking with FK constraints
 
 ### Edge Cases
 

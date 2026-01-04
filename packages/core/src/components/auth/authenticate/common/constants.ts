@@ -14,7 +14,9 @@ export class Authentication {
 
   static readonly AUTHENTICATION_STRATEGY = 'authentication.strategy';
   static readonly SKIP_AUTHENTICATION = 'authentication.skip';
+
   static readonly CURRENT_USER = 'auth.current.user';
+  static readonly AUDIT_USER_ID = 'audit.user.id';
 }
 
 export class AuthenticationTokenTypes {

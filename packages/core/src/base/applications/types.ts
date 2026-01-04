@@ -98,6 +98,7 @@ export interface IApplicationConfigs {
   port?: number;
   path: { base: string; isStrict: boolean };
   favicon?: string;
+  asyncContext?: { enable: boolean };
   debug?: { shouldShowRoutes?: boolean };
   bootOptions?: IBootOptions;
   [key: string]: any;

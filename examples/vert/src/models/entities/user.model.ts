@@ -1,4 +1,10 @@
-import { BaseEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
+import {
+  BaseEntity,
+  extraUserColumns,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  model,
+} from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 // ----------------------------------------------------------------
@@ -9,8 +15,10 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
  * Relations can be added via static relations property.
  * No constructor needed - BaseEntity auto-discovers from static properties.
  *
- * Note: password and secret are configured as hidden properties
- * and will be excluded from all repository query results.
+ * Features:
+ * - User audit tracking: createdBy/modifiedBy automatically populated
+ * - Timestamps: createdAt/modifiedAt automatically managed
+ * - Hidden properties: password and secret excluded from queries
  */
 @model({
   type: 'entity',
@@ -21,7 +29,13 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateTzColumnDefs(),
     ...extraUserColumns({ idType: 'string' }),
+
+    // Authentication fields
+    username: text('username').notNull().unique(),
+    email: text('email').notNull().unique(),
+
     // Hidden properties - excluded from all repository queries
     password: text('password'),
     secret: text('secret'),

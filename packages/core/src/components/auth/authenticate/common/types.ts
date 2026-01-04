@@ -4,6 +4,15 @@ import { Context, Env, Input } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
 import { z } from '@hono/zod-openapi';
+import { Authentication } from './constants';
+
+// Extend Hono's context variables to include authentication-related data
+declare module 'hono' {
+  interface ContextVariableMap<User extends IAuthUser = IAuthUser> {
+    [Authentication.CURRENT_USER]: User;
+    [Authentication.AUDIT_USER_ID]: IdType;
+  }
+}
 
 export interface IJWTTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;

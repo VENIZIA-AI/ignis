@@ -12,6 +12,7 @@ import {
   JsonOrderByTestService,
   TransactionTestService,
 } from './tests';
+import { UserAuditTestService } from './tests/user-audit-test.service';
 
 // ----------------------------------------------------------------
 // Repository Test Service - Orchestrates all repository test suites
@@ -95,6 +96,13 @@ export class RepositoryTestService extends BaseService {
       }),
     })
     private readonly defaultFilterTestService: DefaultFilterTestService,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: UserAuditTestService.name,
+      }),
+    })
+    private readonly userAuditTestService: UserAuditTestService,
   ) {
     super({ scope: RepositoryTestService.name });
   }
@@ -118,6 +126,7 @@ export class RepositoryTestService extends BaseService {
     await this.runComprehensiveOperatorTests();
     await this.runAdvancedFilterQueryTests();
     await this.runDefaultFilterTests();
+    await this.runUserAuditTests();
 
     this.logger.info('='.repeat(80));
     this.logger.info('[RepositoryTestService] All repository test suites completed!');
@@ -169,5 +178,9 @@ export class RepositoryTestService extends BaseService {
 
   async runDefaultFilterTests(): Promise<void> {
     await this.defaultFilterTestService.run();
+  }
+
+  async runUserAuditTests(): Promise<void> {
+    await this.userAuditTestService.run();
   }
 }

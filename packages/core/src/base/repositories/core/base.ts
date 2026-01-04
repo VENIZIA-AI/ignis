@@ -1,5 +1,5 @@
 import { IDataSource, ITransaction, ITransactionOptions, TAnyConnector } from '@/base/datasources';
-import { BaseEntity, IdType, TTableInsert, TTableSchemaWithId } from '@/base/models';
+import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseHelper, getError, resolveValue, TClass, TNullable } from '@venizia/ignis-helpers';
 import {
@@ -43,13 +43,13 @@ import { FilterBuilder } from '../operators';
  * ```
  */
 export abstract class AbstractRepository<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  DataObject extends Schema['$inferSelect'] = Schema['$inferSelect'],
-  PersistObject extends TTableInsert<Schema> = TTableInsert<Schema>,
+  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
+  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IExtraOptions,
 >
   extends DefaultFilterMixin(FieldsVisibilityMixin(BaseHelper))
-  implements IPersistableRepository<Schema, DataObject, PersistObject, ExtraOptions>
+  implements IPersistableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions>
 {
   // ---------------------------------------------------------------------------
   // Properties
@@ -63,7 +63,7 @@ export abstract class AbstractRepository<
 
   // Lazy-resolved properties (resolved on first access)
   private _dataSource?: IDataSource;
-  private _entity?: BaseEntity<Schema>;
+  private _entity?: BaseEntity<EntitySchema>;
 
   // ---------------------------------------------------------------------------
   // Constructor
@@ -77,7 +77,7 @@ export abstract class AbstractRepository<
     ds?: IDataSource,
     opts?: {
       scope?: string;
-      entityClass?: TClass<BaseEntity<Schema>>;
+      entityClass?: TClass<BaseEntity<EntitySchema>>;
       operationScope?: TRepositoryOperationScope;
     },
   ) {
@@ -123,14 +123,14 @@ export abstract class AbstractRepository<
   /**
    * Get entity - auto-resolves from @repository metadata if not explicitly set
    */
-  get entity(): BaseEntity<Schema> {
+  get entity(): BaseEntity<EntitySchema> {
     if (!this._entity) {
       this._entity = this.resolveEntity();
     }
     return this._entity;
   }
 
-  set entity(value: BaseEntity<Schema>) {
+  set entity(value: BaseEntity<EntitySchema>) {
     this._entity = value;
   }
 
@@ -149,11 +149,11 @@ export abstract class AbstractRepository<
     this._dataSource = opts.dataSource;
   }
 
-  getEntity(): BaseEntity<Schema> {
+  getEntity(): BaseEntity<EntitySchema> {
     return this.entity;
   }
 
-  getEntitySchema(): Schema {
+  getEntitySchema(): EntitySchema {
     return this.entity.schema;
   }
 
@@ -210,7 +210,7 @@ export abstract class AbstractRepository<
   /**
    * Resolve entity from @repository metadata
    */
-  protected resolveEntity(): BaseEntity<Schema> {
+  protected resolveEntity(): BaseEntity<EntitySchema> {
     const registry = MetadataRegistry.getInstance();
     const binding = registry.getRepositoryBinding({
       name: this.constructor.name,
@@ -223,7 +223,7 @@ export abstract class AbstractRepository<
     }
 
     // Cast to TClass - at runtime this is always a class constructor
-    const ctor = resolveValue(binding.model) as TClass<BaseEntity<Schema>>;
+    const ctor = resolveValue(binding.model) as TClass<BaseEntity<EntitySchema>>;
     return new ctor();
   }
 
@@ -286,7 +286,7 @@ export abstract class AbstractRepository<
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
 
-  abstract create<R = Schema['$inferSelect']>(opts: {
+  abstract create<R = DataObject>(opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
@@ -296,7 +296,7 @@ export abstract class AbstractRepository<
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
 
-  abstract createAll<R = Schema['$inferSelect']>(opts: {
+  abstract createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: Array<R> }>;
@@ -311,7 +311,7 @@ export abstract class AbstractRepository<
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
 
-  abstract updateById<R = Schema['$inferSelect']>(opts: {
+  abstract updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
@@ -327,7 +327,7 @@ export abstract class AbstractRepository<
     };
   }): Promise<TCount & { data: null }>;
 
-  abstract updateAll<R = Schema['$inferSelect']>(opts: {
+  abstract updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -346,7 +346,7 @@ export abstract class AbstractRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  updateBy<R = Schema['$inferSelect']>(opts: {
+  updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -355,7 +355,7 @@ export abstract class AbstractRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<R> }>;
-  updateBy<R = Schema['$inferSelect']>(opts: {
+  updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -398,7 +398,7 @@ export abstract class AbstractRepository<
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
 
-  abstract deleteById<R = Schema['$inferSelect']>(opts: {
+  abstract deleteById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
@@ -412,7 +412,7 @@ export abstract class AbstractRepository<
     };
   }): Promise<TCount & { data: null }>;
 
-  abstract deleteAll<R = Schema['$inferSelect']>(opts: {
+  abstract deleteAll<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;
@@ -429,7 +429,7 @@ export abstract class AbstractRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  deleteBy<R = Schema['$inferSelect']>(opts: {
+  deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;
@@ -437,7 +437,7 @@ export abstract class AbstractRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<R> }>;
-  deleteBy<R = Schema['$inferSelect']>(opts: {
+  deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;

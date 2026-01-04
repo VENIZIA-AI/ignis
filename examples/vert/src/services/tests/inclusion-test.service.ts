@@ -328,7 +328,7 @@ export class InclusionTestService extends BaseTestService {
   }
 
   // ----------------------------------------------------------------
-  // CASE 6: Cleanup all test data
+  // CASE 6: Cleanup all test data (renamed to run last)
   // ----------------------------------------------------------------
   private async case6_Cleanup(): Promise<void> {
     const productRepo = this.productRepository;
@@ -337,25 +337,72 @@ export class InclusionTestService extends BaseTestService {
     this.logCase('[CASE 6] Cleanup all test data');
 
     try {
-      // Delete in correct order (junction table first due to foreign keys)
-      const deletedJunction = await saleChannelProductRepo.deleteAll({
-        where: {},
-        options: { force: true },
+      // Get test product IDs (only products with test names) to avoid deleting unrelated data
+      const testProducts = await productRepo.find({
+        filter: {
+          where: {
+            or: [
+              { name: 'Product A' },
+              { name: 'Product B' },
+              { name: 'Product C' },
+            ],
+          },
+          fields: ['id'],
+        },
+        options: { shouldSkipDefaultFilter: true },
       });
-      const deletedProducts = await productRepo.deleteAll({
-        where: {},
-        options: { force: true },
+      const testProductIds = testProducts.map(p => p.id);
+
+      // Get test channel IDs (only channels with test names)
+      const testChannels = await saleChannelRepo.find({
+        filter: {
+          where: {
+            or: [
+              { name: 'Online Store' },
+              { name: 'Retail Store' },
+              { name: 'Wholesale' },
+            ],
+          },
+          fields: ['id'],
+        },
       });
-      const deletedChannels = await saleChannelRepo.deleteAll({
-        where: {},
-        options: { force: true },
-      });
+      const testChannelIds = testChannels.map(c => c.id);
+
+      // Delete only junction records that reference our test products
+      let deletedJunctionCount = 0;
+      if (testProductIds.length > 0) {
+        const deletedJunction = await saleChannelProductRepo.deleteAll({
+          where: { productId: { inq: testProductIds } },
+          options: { force: true },
+        });
+        deletedJunctionCount = deletedJunction.count;
+      }
+
+      // Delete only test products
+      let deletedProductsCount = 0;
+      if (testProductIds.length > 0) {
+        const deletedProducts = await productRepo.deleteAll({
+          where: { id: { inq: testProductIds } },
+          options: { force: true, shouldSkipDefaultFilter: true },
+        });
+        deletedProductsCount = deletedProducts.count;
+      }
+
+      // Delete only test channels
+      let deletedChannelsCount = 0;
+      if (testChannelIds.length > 0) {
+        const deletedChannels = await saleChannelRepo.deleteAll({
+          where: { id: { inq: testChannelIds } },
+          options: { force: true },
+        });
+        deletedChannelsCount = deletedChannels.count;
+      }
 
       this.logger.info(
         '[CASE 6] PASSED | Cleaned up | Junction: %d | Products: %d | Channels: %d',
-        deletedJunction.count,
-        deletedProducts.count,
-        deletedChannels.count,
+        deletedJunctionCount,
+        deletedProductsCount,
+        deletedChannelsCount,
       );
     } catch (error) {
       this.logger.error('[CASE 6] FAILED | Error: %s', (error as Error).message);
@@ -497,8 +544,16 @@ export class InclusionTestService extends BaseTestService {
 
       const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts || [];
       if (saleChannelProducts.length === 3) {
-        this.logger.info('[CASE 8] PASSED | Scoped order returned 3 channels');
-        this.logger.info('[CASE 8] Channel names: %j', saleChannelProducts.map((s: any) => s.saleChannel?.name));
+        // Verify the order is actually DESC by saleChannelId
+        const ids = saleChannelProducts.map((s: any) => s.saleChannelId);
+        const isDescending = ids.every((id: string, i: number) => i === 0 || id <= ids[i - 1]);
+
+        if (isDescending) {
+          this.logger.info('[CASE 8] PASSED | Scoped order returned 3 channels in DESC order');
+          this.logger.info('[CASE 8] Channel IDs (DESC): %j', ids);
+        } else {
+          this.logger.error('[CASE 8] FAILED | Channels not in DESC order | IDs: %j', ids);
+        }
       } else {
         this.logger.error('[CASE 8] FAILED | Expected 3 ordered channels | got: %d', saleChannelProducts.length);
       }
@@ -621,8 +676,15 @@ export class InclusionTestService extends BaseTestService {
 
     try {
       // Create a user for creator/modifier relations
+      const uniqueId = getUID();
       const user = await userRepo.create({
-        data: { realm: `MULTI_REL_USER_${getUID()}`, password: 'test', secret: 'test' },
+        data: {
+          realm: `MULTI_REL_USER_${uniqueId}`,
+          username: `user_${uniqueId}`,
+          email: `user_${uniqueId}@test.com`,
+          password: 'test',
+          secret: 'test',
+        },
       });
 
       // Create configuration with creator and modifier (same user for simplicity)

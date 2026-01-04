@@ -60,7 +60,7 @@ export class PersistableRepository<
   // Create Operations
   // ---------------------------------------------------------------------------
 
-  protected async _create<R = EntitySchema['$inferSelect']>(opts: {
+  protected async _create<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
@@ -90,11 +90,11 @@ export class PersistableRepository<
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  override create<R = EntitySchema['$inferSelect']>(opts: {
+  override create<R = DataObject>(opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
-  override async create<R = EntitySchema['$inferSelect']>(opts: {
+  override async create<R = DataObject>(opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<R> }> {
@@ -110,11 +110,11 @@ export class PersistableRepository<
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  override createAll<R = EntitySchema['$inferSelect']>(opts: {
+  override createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: Array<R> }>;
-  override createAll<R = EntitySchema['$inferSelect']>(opts: {
+  override createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
@@ -129,7 +129,7 @@ export class PersistableRepository<
   // Update Operations
   // ---------------------------------------------------------------------------
 
-  protected async _update<R = EntitySchema['$inferSelect']>(opts: {
+  protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -201,12 +201,12 @@ export class PersistableRepository<
     data: Partial<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  override updateById<R = EntitySchema['$inferSelect']>(opts: {
+  override updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
-  override async updateById<R = EntitySchema['$inferSelect']>(opts: {
+  override async updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -228,7 +228,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  override updateAll<R = EntitySchema['$inferSelect']>(opts: {
+  override updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -237,7 +237,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<R> }>;
-  override updateAll<R = EntitySchema['$inferSelect']>(opts: {
+  override updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -253,7 +253,7 @@ export class PersistableRepository<
   // Delete Operations
   // ---------------------------------------------------------------------------
 
-  protected async _delete<R = EntitySchema['$inferSelect']>(opts: {
+  protected async _delete<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;
@@ -320,11 +320,11 @@ export class PersistableRepository<
     id: IdType;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  override deleteById<R = EntitySchema['$inferSelect']>(opts: {
+  override deleteById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
-  override async deleteById<R = EntitySchema['$inferSelect']>(opts: {
+  override async deleteById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: TNullable<R> }> {
@@ -343,7 +343,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  override deleteAll<R = EntitySchema['$inferSelect']>(opts: {
+  override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;
@@ -351,7 +351,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteAll<R = EntitySchema['$inferSelect']>(opts: {
+  override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;
@@ -371,7 +371,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  override deleteBy<R = EntitySchema['$inferSelect']>(opts: {
+  override deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;
@@ -379,7 +379,7 @@ export class PersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: Array<R> }>;
-  override deleteBy<R = EntitySchema['$inferSelect']>(opts: {
+  override deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;

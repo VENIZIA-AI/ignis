@@ -10,3 +10,4 @@ export * from './inclusion-test.service';
 export * from './json-filter-test.service';
 export * from './json-orderby-test.service';
 export * from './transaction-test.service';
+export * from './user-audit-test.service';

@@ -243,20 +243,20 @@ export interface IExtraOptions extends IWithTransaction {
 export type TTransactionOption = IExtraOptions;
 
 // ---------------------------------------------------------------------------
-export interface IRepository<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+export interface IRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> {
   dataSource: IDataSource;
-  entity: BaseEntity<Schema>;
+  entity: BaseEntity<EntitySchema>;
 
-  getEntity(): BaseEntity<Schema>;
-  getEntitySchema(): Schema;
+  getEntity(): BaseEntity<EntitySchema>;
+  getEntitySchema(): EntitySchema;
   getConnector(): IDataSource['connector'];
 }
 
 export interface IReadableRepository<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  DataObject extends TTableObject<Schema> = TTableObject<Schema>,
+  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
+  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   ExtraOptions extends IExtraOptions = IExtraOptions,
-> extends IRepository<Schema> {
+> extends IRepository<EntitySchema> {
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
 
   count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
@@ -278,16 +278,16 @@ export interface IReadableRepository<
 }
 
 export interface IPersistableRepository<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  DataObject extends TTableObject<Schema> = TTableObject<Schema>,
-  PersistObject extends TTableInsert<Schema> = TTableInsert<Schema>,
+  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
+  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IExtraOptions,
-> extends IReadableRepository<Schema, DataObject, ExtraOptions> {
+> extends IReadableRepository<EntitySchema, DataObject, ExtraOptions> {
   create(opts: {
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  create<R = Schema['$inferSelect']>(opts: {
+  create<R = DataObject>(opts: {
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
@@ -296,7 +296,7 @@ export interface IPersistableRepository<
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  createAll<R = Schema['$inferSelect']>(opts: {
+  createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: Array<R> }>;
@@ -306,7 +306,7 @@ export interface IPersistableRepository<
     data: Partial<PersistObject>;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  updateById<R = Schema['$inferSelect']>(opts: {
+  updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
@@ -321,7 +321,7 @@ export interface IPersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  updateAll<R = Schema['$inferSelect']>(opts: {
+  updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -340,7 +340,7 @@ export interface IPersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  updateBy<R = Schema['$inferSelect']>(opts: {
+  updateBy<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
@@ -354,7 +354,7 @@ export interface IPersistableRepository<
     id: IdType;
     options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: null }>;
-  deleteById<R = Schema['$inferSelect']>(opts: {
+  deleteById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
   }): Promise<TCount & { data: R }>;
@@ -367,7 +367,7 @@ export interface IPersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  deleteAll<R = Schema['$inferSelect']>(opts: {
+  deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;
@@ -384,7 +384,7 @@ export interface IPersistableRepository<
       log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: null }>;
-  deleteBy<R = Schema['$inferSelect']>(opts: {
+  deleteBy<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: true;

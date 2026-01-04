@@ -26,6 +26,7 @@ import {
   RuntimeModules,
   TClass,
 } from '@venizia/ignis-helpers';
+import { contextStorage } from 'hono/context-storage';
 import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
 import { BaseController } from '../controllers';
@@ -374,6 +375,10 @@ export abstract class BaseApplication
       description: 'Register default application server handler',
       task: () => {
         const server = this.getServer();
+
+        if (this.configs.asyncContext?.enable) {
+          server.use(contextStorage());
+        }
 
         // Assign requestId for every single request from client
         this.component(RequestTrackerComponent);

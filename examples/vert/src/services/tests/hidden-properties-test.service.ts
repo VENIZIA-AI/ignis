@@ -67,9 +67,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
 
     // Basic CRUD tests
     await this.case1_CreateUserWithHiddenFields();
-    await this.case2_FindOneExcludesHidden();
-    await this.case3_FindExcludesHidden();
-    await this.case4_FindByIdExcludesHidden();
+    await this.case2_FindOperationsExcludeHidden(); // Consolidated: findOne, find, findById
     await this.case5_UpdateByIdExcludesHidden();
 
     // Edge cases
@@ -85,8 +83,8 @@ export class HiddenPropertiesTestService extends BaseTestService {
     await this.case14_CountWithHiddenInWhere();
     await this.case15_ExistsWithHiddenInWhere();
     await this.case16_TransactionContextHidden();
-    await this.case17_FindByIdWithFilterFields();
-    await this.case18_MultipleHiddenFieldsPartialMatch();
+    // Case 17 removed - redundant with Case 11 (both test field selection with hidden)
+    await this.case18_MultipleUsersHiddenExcluded(); // Renamed for clarity
     await this.case19_UpdateOnlyHiddenFields();
     await this.case20_NullHiddenFieldValues();
 
@@ -107,10 +105,13 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 1] Create user with password and secret - verify hidden in response');
 
     try {
-      const testRealm = `HIDDEN_TEST_${getUID()}`;
+      const uniqueId = getUID();
+      const testRealm = `HIDDEN_TEST_${uniqueId}`;
       const created = await repo.create({
         data: {
           realm: testRealm,
+          username: `hidden_test_${uniqueId}`,
+          email: `hidden_test_${uniqueId}@test.com`,
           password: 'super_secret_password_123',
           secret: 'top_secret_token_456',
         },
@@ -140,130 +141,64 @@ export class HiddenPropertiesTestService extends BaseTestService {
   }
 
   // ----------------------------------------------------------------
-  // CASE 2: FindOne excludes hidden properties
+  // CASE 2: All find operations (findOne, find, findById) exclude hidden properties
+  // Consolidated from Cases 2, 3, 4 - they tested the same behavior
   // ----------------------------------------------------------------
-  private async case2_FindOneExcludesHidden(): Promise<void> {
+  private async case2_FindOperationsExcludeHidden(): Promise<void> {
     const repo = this.userRepository;
-    this.logCase('[CASE 2] FindOne should exclude hidden properties');
+    this.logCase('[CASE 2] All find operations should exclude hidden properties');
 
     try {
-      const user = await repo.findOne({
-        filter: {
-          where: { realm: { like: 'HIDDEN_TEST_%' } },
-        },
+      // Test findOne
+      const findOneUser = await repo.findOne({
+        filter: { where: { realm: { like: 'HIDDEN_TEST_%' } } },
       });
 
-      if (!user) {
+      if (!findOneUser) {
         this.logger.warn('[CASE 2] SKIPPED | No test user found');
         return;
       }
 
-      const userId = user.id;
-      const userKeys = Object.keys(user);
-      const hasPassword = userKeys.includes('password');
-      const hasSecret = userKeys.includes('secret');
+      const findOneKeys = Object.keys(findOneUser);
+      const findOneHasHidden = findOneKeys.includes('password') || findOneKeys.includes('secret');
 
-      if (hasPassword || hasSecret) {
-        this.logger.error(
-          '[CASE 2] FAILED | Hidden fields should NOT be in findOne response | hasPassword: %s | hasSecret: %s',
-          hasPassword,
-          hasSecret,
-        );
-      } else {
-        this.logger.info('[CASE 2] PASSED | Hidden fields excluded from findOne | id: %s', userId);
-        this.logger.info('[CASE 2] Response keys: %s', userKeys.join(', '));
-      }
-    } catch (error) {
-      this.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // CASE 3: Find (multiple) excludes hidden properties
-  // ----------------------------------------------------------------
-  private async case3_FindExcludesHidden(): Promise<void> {
-    const repo = this.userRepository;
-    this.logCase('[CASE 3] Find should exclude hidden properties from all results');
-
-    try {
-      const users = await repo.find({
-        filter: {
-          where: { realm: { like: 'HIDDEN_TEST_%' } },
-        },
-      });
-
-      if (users.length === 0) {
-        this.logger.warn('[CASE 3] SKIPPED | No test users found');
-        return;
-      }
-
-      let hasFailed = false;
-      for (const user of users) {
-        const hasPassword = 'password' in user;
-        const hasSecret = 'secret' in user;
-        if (hasPassword || hasSecret) {
-          hasFailed = true;
-          this.logger.error(
-            '[CASE 3] FAILED | User %s has hidden fields | hasPassword: %s | hasSecret: %s',
-            user.id,
-            hasPassword,
-            hasSecret,
-          );
-        }
-      }
-
-      if (!hasFailed) {
-        this.logger.info(
-          '[CASE 3] PASSED | Hidden fields excluded from all %d users',
-          users.length,
-        );
-        this.logger.info('[CASE 3] Sample keys: %s', Object.keys(users[0]).join(', '));
-      }
-    } catch (error) {
-      this.logger.error('[CASE 3] FAILED | Error: %s', (error as Error).message);
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // CASE 4: FindById excludes hidden properties
-  // ----------------------------------------------------------------
-  private async case4_FindByIdExcludesHidden(): Promise<void> {
-    const repo = this.userRepository;
-    this.logCase('[CASE 4] FindById should exclude hidden properties');
-
-    try {
-      const anyUser = await repo.findOne({
+      // Test find (multiple)
+      const findUsers = await repo.find({
         filter: { where: { realm: { like: 'HIDDEN_TEST_%' } } },
       });
 
-      if (!anyUser) {
-        this.logger.warn('[CASE 4] SKIPPED | No test user found');
-        return;
+      let findHasHidden = false;
+      for (const user of findUsers) {
+        if ('password' in user || 'secret' in user) {
+          findHasHidden = true;
+          break;
+        }
       }
 
-      const user = await repo.findById({ id: anyUser.id });
+      // Test findById
+      const findByIdUser = await repo.findById({ id: findOneUser.id });
+      const findByIdKeys = findByIdUser ? Object.keys(findByIdUser) : [];
+      const findByIdHasHidden = findByIdKeys.includes('password') || findByIdKeys.includes('secret');
 
-      if (!user) {
-        this.logger.error('[CASE 4] FAILED | User not found by ID: %s', anyUser.id);
-        return;
-      }
-
-      const userId = user.id;
-      const userKeys = Object.keys(user);
-      const hasPassword = userKeys.includes('password');
-      const hasSecret = userKeys.includes('secret');
-
-      if (hasPassword || hasSecret) {
+      // Report results
+      if (findOneHasHidden || findHasHidden || findByIdHasHidden) {
         this.logger.error(
-          '[CASE 4] FAILED | Hidden fields should NOT be in findById response | hasPassword: %s | hasSecret: %s',
-          hasPassword,
-          hasSecret,
+          '[CASE 2] FAILED | Hidden fields found | findOne: %s | find: %s | findById: %s',
+          findOneHasHidden,
+          findHasHidden,
+          findByIdHasHidden,
         );
       } else {
-        this.logger.info('[CASE 4] PASSED | Hidden fields excluded from findById | id: %s', userId);
+        this.logger.info(
+          '[CASE 2] PASSED | All find operations exclude hidden | findOne: %s users | find: %d users | findById: %s',
+          findOneUser.id,
+          findUsers.length,
+          findByIdUser?.id,
+        );
+        this.logger.info('[CASE 2] Sample keys: %s', findOneKeys.join(', '));
       }
     } catch (error) {
-      this.logger.error('[CASE 4] FAILED | Error: %s', (error as Error).message);
+      this.logger.error('[CASE 2] FAILED | Error: %s', (error as Error).message);
     }
   }
 
@@ -314,11 +249,11 @@ export class HiddenPropertiesTestService extends BaseTestService {
   }
 
   // ----------------------------------------------------------------
-  // CASE 6: Cleanup test data
+  // CASE 6: Cleanup test data (runs last in test sequence)
   // ----------------------------------------------------------------
   private async case6_Cleanup(): Promise<void> {
     const repo = this.userRepository;
-    this.logCase('[CASE 6] Cleanup hidden properties test data');
+    this.logCase('[CLEANUP] Cleanup hidden properties test data');
 
     try {
       const deleted = await repo.deleteAll({
@@ -405,15 +340,21 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 8] CreateAll should exclude hidden properties from response');
 
     try {
+      const uid1 = getUID();
+      const uid2 = getUID();
       const created = await repo.createAll({
         data: [
           {
-            realm: `HIDDEN_TEST_BATCH1_${getUID()}`,
+            realm: `HIDDEN_TEST_BATCH1_${uid1}`,
+            username: `batch1_${uid1}`,
+            email: `batch1_${uid1}@test.com`,
             password: 'batch_password_1',
             secret: 'batch_secret_1',
           },
           {
-            realm: `HIDDEN_TEST_BATCH2_${getUID()}`,
+            realm: `HIDDEN_TEST_BATCH2_${uid2}`,
+            username: `batch2_${uid2}`,
+            email: `batch2_${uid2}@test.com`,
             password: 'batch_password_2',
             secret: 'batch_secret_2',
           },
@@ -512,9 +453,12 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 10] DeleteById should exclude hidden properties from response');
 
     try {
+      const uniqueId = getUID();
       const created = await repo.create({
         data: {
-          realm: `HIDDEN_TEST_DELETE_${getUID()}`,
+          realm: `HIDDEN_TEST_DELETE_${uniqueId}`,
+          username: `delete_${uniqueId}`,
+          email: `delete_${uniqueId}@test.com`,
           password: 'delete_test_password',
           secret: 'delete_test_secret',
         },
@@ -611,13 +555,16 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 12] Verify hidden data is actually stored in DB');
 
     try {
-      const testPassword = `test_pw_${getUID()}`;
-      const testSecret = `test_secret_${getUID()}`;
-      const testRealm = `HIDDEN_TEST_VERIFY_${getUID()}`;
+      const uniqueId = getUID();
+      const testPassword = `test_pw_${uniqueId}`;
+      const testSecret = `test_secret_${uniqueId}`;
+      const testRealm = `HIDDEN_TEST_VERIFY_${uniqueId}`;
 
       await repo.create({
         data: {
           realm: testRealm,
+          username: `verify_${uniqueId}`,
+          email: `verify_${uniqueId}@test.com`,
           password: testPassword,
           secret: testSecret,
         },
@@ -665,12 +612,15 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 13] Where clause should be able to filter by hidden field');
 
     try {
-      const knownPassword = `unique_password_${getUID()}`;
-      const testRealm = `HIDDEN_TEST_WHERE_${getUID()}`;
+      const uniqueId = getUID();
+      const knownPassword = `unique_password_${uniqueId}`;
+      const testRealm = `HIDDEN_TEST_WHERE_${uniqueId}`;
 
       await repo.create({
         data: {
           realm: testRealm,
+          username: `where_${uniqueId}`,
+          email: `where_${uniqueId}@test.com`,
           password: knownPassword,
           secret: 'some_secret',
         },
@@ -720,14 +670,35 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 14] Count should work with hidden field in where clause');
 
     try {
-      const password1 = `count_pw_${getUID()}`;
-      const password2 = `count_pw_${getUID()}`;
+      const uid1 = getUID();
+      const uid2 = getUID();
+      const uid3 = getUID();
+      const password1 = `count_pw_${uid1}`;
+      const password2 = `count_pw_${uid3}`;
 
       await repo.createAll({
         data: [
-          { realm: `HIDDEN_TEST_COUNT1_${getUID()}`, password: password1, secret: 's1' },
-          { realm: `HIDDEN_TEST_COUNT2_${getUID()}`, password: password1, secret: 's2' },
-          { realm: `HIDDEN_TEST_COUNT3_${getUID()}`, password: password2, secret: 's3' },
+          {
+            realm: `HIDDEN_TEST_COUNT1_${uid1}`,
+            username: `count1_${uid1}`,
+            email: `count1_${uid1}@test.com`,
+            password: password1,
+            secret: 's1',
+          },
+          {
+            realm: `HIDDEN_TEST_COUNT2_${uid2}`,
+            username: `count2_${uid2}`,
+            email: `count2_${uid2}@test.com`,
+            password: password1,
+            secret: 's2',
+          },
+          {
+            realm: `HIDDEN_TEST_COUNT3_${uid3}`,
+            username: `count3_${uid3}`,
+            email: `count3_${uid3}@test.com`,
+            password: password2,
+            secret: 's3',
+          },
         ],
       });
 
@@ -807,9 +778,12 @@ export class HiddenPropertiesTestService extends BaseTestService {
     const transaction = await repo.beginTransaction();
 
     try {
+      const uniqueId = getUID();
       const created = await repo.create({
         data: {
-          realm: `HIDDEN_TEST_TX_${getUID()}`,
+          realm: `HIDDEN_TEST_TX_${uniqueId}`,
+          username: `tx_${uniqueId}`,
+          email: `tx_${uniqueId}@test.com`,
           password: 'tx_password',
           secret: 'tx_secret',
         },
@@ -869,74 +843,50 @@ export class HiddenPropertiesTestService extends BaseTestService {
     }
   }
 
+  // Case 17 removed - redundant with Case 11 (both test field selection with hidden properties)
+
   // ----------------------------------------------------------------
-  // CASE 17: FindById with filter.fields including hidden - should still exclude
+  // CASE 18: Multiple users with mixed null/non-null hidden values - verify ALL have hidden excluded
   // ----------------------------------------------------------------
-  private async case17_FindByIdWithFilterFields(): Promise<void> {
+  private async case18_MultipleUsersHiddenExcluded(): Promise<void> {
     const repo = this.userRepository;
-    this.logCase('[CASE 17] FindById with filter.fields should still exclude hidden');
+    this.logCase('[CASE 18] Verify ALL users (with mixed hidden values) have hidden excluded');
 
     try {
-      const anyUser = await repo.findOne({
-        filter: { where: { realm: { like: 'HIDDEN_TEST_%' } } },
-      });
-
-      if (!anyUser) {
-        this.logger.warn('[CASE 17] SKIPPED | No test user found');
-        return;
-      }
-
-      const user = await repo.findById({
-        id: anyUser.id,
-        filter: {
-          fields: ['id', 'realm', 'password', 'secret'],
-        },
-      });
-
-      if (!user) {
-        this.logger.error('[CASE 17] FAILED | User not found');
-        return;
-      }
-
-      const userKeys = Object.keys(user);
-      const hasPassword = userKeys.includes('password');
-      const hasSecret = userKeys.includes('secret');
-      const hasId = userKeys.includes('id');
-      const hasRealm = userKeys.includes('realm');
-
-      if (hasPassword || hasSecret) {
-        this.logger.error(
-          '[CASE 17] FAILED | FindById returned hidden fields | keys: %s',
-          userKeys.join(', '),
-        );
-      } else if (hasId && hasRealm) {
-        this.logger.info('[CASE 17] PASSED | FindById excludes hidden even with explicit fields');
-        this.logger.info(
-          '[CASE 17] Requested: [id, realm, password, secret] | Got: %s',
-          userKeys.join(', '),
-        );
-      } else {
-        this.logger.error('[CASE 17] FAILED | Missing expected fields');
-      }
-    } catch (error) {
-      this.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
-    }
-  }
-
-  // ----------------------------------------------------------------
-  // CASE 18: Multiple users - verify ALL have hidden excluded
-  // ----------------------------------------------------------------
-  private async case18_MultipleHiddenFieldsPartialMatch(): Promise<void> {
-    const repo = this.userRepository;
-    this.logCase('[CASE 18] Verify ALL users in result have hidden excluded');
-
-    try {
+      const uid1 = getUID();
+      const uid2 = getUID();
+      const uid3 = getUID();
+      const uid4 = getUID();
       await repo.createAll({
         data: [
-          { realm: `HIDDEN_TEST_MULTI1_${getUID()}`, password: 'pw1', secret: 'sec1' },
-          { realm: `HIDDEN_TEST_MULTI2_${getUID()}`, password: 'pw2', secret: null },
-          { realm: `HIDDEN_TEST_MULTI3_${getUID()}`, password: null, secret: 'sec3' },
-          { realm: `HIDDEN_TEST_MULTI4_${getUID()}`, password: null, secret: null },
+          {
+            realm: `HIDDEN_TEST_MULTI1_${uid1}`,
+            username: `multi1_${uid1}`,
+            email: `multi1_${uid1}@test.com`,
+            password: 'pw1',
+            secret: 'sec1',
+          },
+          {
+            realm: `HIDDEN_TEST_MULTI2_${uid2}`,
+            username: `multi2_${uid2}`,
+            email: `multi2_${uid2}@test.com`,
+            password: 'pw2',
+            secret: null,
+          },
+          {
+            realm: `HIDDEN_TEST_MULTI3_${uid3}`,
+            username: `multi3_${uid3}`,
+            email: `multi3_${uid3}@test.com`,
+            password: null,
+            secret: 'sec3',
+          },
+          {
+            realm: `HIDDEN_TEST_MULTI4_${uid4}`,
+            username: `multi4_${uid4}`,
+            email: `multi4_${uid4}@test.com`,
+            password: null,
+            secret: null,
+          },
         ],
       });
 
@@ -989,9 +939,12 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 19] Update ONLY hidden fields - should work but exclude from response');
 
     try {
+      const uniqueId = getUID();
       const created = await repo.create({
         data: {
-          realm: `HIDDEN_TEST_ONLYHIDDEN_${getUID()}`,
+          realm: `HIDDEN_TEST_ONLYHIDDEN_${uniqueId}`,
+          username: `onlyhidden_${uniqueId}`,
+          email: `onlyhidden_${uniqueId}@test.com`,
           password: 'original_password',
           secret: 'original_secret',
         },
@@ -1061,9 +1014,12 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 20] Handle null hidden field values correctly');
 
     try {
+      const uniqueId = getUID();
       const created = await repo.create({
         data: {
-          realm: `HIDDEN_TEST_NULL_${getUID()}`,
+          realm: `HIDDEN_TEST_NULL_${uniqueId}`,
+          username: `null_${uniqueId}`,
+          email: `null_${uniqueId}@test.com`,
           password: null,
           secret: null,
         },
@@ -1135,6 +1091,8 @@ export class HiddenPropertiesTestService extends BaseTestService {
         const created = await this.userRepository.create({
           data: {
             realm: testRealm,
+            username: 'hidden_relation_user',
+            email: 'hidden_relation@test.com',
             password: 'relation_test_password',
             secret: 'relation_test_secret',
           },

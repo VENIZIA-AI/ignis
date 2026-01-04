@@ -27,4 +27,12 @@ export class UserRepository extends PersistableRepository<typeof User.schema> {
   async findByRealm(realm: string) {
     return this.findOne({ filter: { where: { realm } } });
   }
+
+  async findByEmail(email: string) {
+    return this.findOne({ filter: { where: { email } } });
+  }
+
+  async findByUsername(username: string) {
+    return this.findOne({ filter: { where: { username } } });
+  }
 }

@@ -1,5 +1,7 @@
 import { getError } from '@venizia/ignis-helpers';
 import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import { tryGetContext } from 'hono/context-storage';
+import { Authentication } from '@/components/auth/authenticate/common';
 import { TColumnDefinitions } from '../common/types';
 
 type TUserAuditColumnOpts = {
@@ -19,18 +21,51 @@ export type TUserAuditEnricherResult<
   modifiedBy: PgIntegerBuilderInitial<string> | PgTextBuilderInitial<string, [string, ...string[]]>;
 };
 
+/**
+ * Get current user ID from Hono context storage.
+ * Returns null if context unavailable (background jobs, migrations, tests).
+ */
+const getCurrentUserId = <T>(): T | null => {
+  const context = tryGetContext();
+  if (!context) {
+    return null;
+  }
+
+  const userId = context.get(Authentication.AUDIT_USER_ID);
+  return (userId as T) ?? null;
+};
+
 const buildUserAuditColumn = (opts: {
   columnOpts: TUserAuditColumnOpts;
   columnField: 'createdBy' | 'modifiedBy';
 }) => {
   const { columnOpts, columnField } = opts;
+
   switch (columnOpts.dataType) {
     case 'number': {
-      return integer(columnOpts.columnName);
+      const col = integer(columnOpts.columnName).$type<number | null>();
+
+      if (columnField === 'createdBy') {
+        // Only set on creation
+        return col.$default(() => getCurrentUserId());
+      }
+
+      // Set on creation AND update
+      return col.$default(() => getCurrentUserId()).$onUpdate(() => getCurrentUserId());
     }
+
     case 'string': {
-      return text(columnOpts.columnName);
+      const col = text(columnOpts.columnName).$type<string | null>();
+
+      if (columnField === 'createdBy') {
+        // Only set on creation
+        return col.$default(() => getCurrentUserId());
+      }
+
+      // Set on creation AND update
+      return col.$default(() => getCurrentUserId()).$onUpdate(() => getCurrentUserId());
     }
+
     default: {
       throw getError({
         message: `[enrichUserAudit] Invalid dataType for '${columnField}' | value: ${(columnOpts as TUserAuditColumnOpts).dataType} | valid: ['number', 'string']`,

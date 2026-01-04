@@ -55,6 +55,7 @@ export abstract class AbstractApplication<
     this.configs = Object.assign({}, config, {
       host: config.host || process.env.HOST || process.env.APP_ENV_SERVER_HOST || 'localhost',
       port: config.port || int(process.env.PORT) || int(process.env.APP_ENV_SERVER_PORT) || 3000,
+      asyncContext: { enable: config?.asyncContext?.enable ?? true },
     });
 
     this.projectRoot = this.getProjectRoot();

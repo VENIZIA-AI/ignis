@@ -127,6 +127,10 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
       const user = await strategy.authenticate(context);
       context.set(Authentication.CURRENT_USER, user);
 
+      if (user?.userId) {
+        context.set(Authentication.AUDIT_USER_ID, user.userId);
+      }
+
       return next();
     });
 
