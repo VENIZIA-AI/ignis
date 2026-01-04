@@ -250,6 +250,31 @@ export abstract class AbstractRepository<
     return transaction.connector;
   }
 
+  /**
+   * Get the query interface for this entity from the connector.
+   * Validates that the schema is properly registered.
+   */
+  protected getQueryInterface(opts?: { options?: ExtraOptions }) {
+    const connector = this.resolveConnector({ transaction: opts?.options?.transaction });
+
+    // Validate connector.query exists
+    if (!connector.query) {
+      throw getError({
+        message: `[${this.constructor.name}] Connector query interface not available | Ensure datasource is properly configured with schema`,
+      });
+    }
+
+    const queryInterface = connector.query[this.entity.name];
+    if (!queryInterface) {
+      const availableKeys = Object.keys(connector.query);
+      throw getError({
+        message: `[${this.constructor.name}] Schema key mismatch | Entity name '${this.entity.name}' not found in connector.query | Available keys: [${availableKeys.join(', ')}] | Ensure the model's TABLE_NAME matches the schema registration key`,
+      });
+    }
+
+    return queryInterface;
+  }
+
   // ---------------------------------------------------------------------------
   // Abstract Methods - Read Operations
   // ---------------------------------------------------------------------------

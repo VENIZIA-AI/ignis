@@ -7,6 +7,7 @@ import { TColumnDefinitions } from '../common/types';
 type TUserAuditColumnOpts = {
   dataType: 'string' | 'number';
   columnName: string;
+  allowAnonymous?: boolean;
 };
 
 export type TUserAuditEnricherOptions = {
@@ -24,14 +25,28 @@ export type TUserAuditEnricherResult<
 /**
  * Get current user ID from Hono context storage.
  * Returns null if context unavailable (background jobs, migrations, tests).
+ *
+ * CAUTIONS: if using fire-and-forget promise, this could be run outside of async context => cannot detect AUDIT_USER_ID
  */
-const getCurrentUserId = <T>(): T | null => {
+const getCurrentUserId = <T>(opts: { allowAnonymous: boolean; columnField: string }): T | null => {
   const context = tryGetContext();
   if (!context) {
+    if (!opts.allowAnonymous) {
+      throw getError({
+        message: `[getCurrentUserId] Invalid request context to identify user | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous}`,
+      });
+    }
+
     return null;
   }
 
   const userId = context.get(Authentication.AUDIT_USER_ID);
+  if (!userId && !opts.allowAnonymous) {
+    throw getError({
+      message: `[getCurrentUserId] No AUDIT_USER_ID found iin request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
+    });
+  }
+
   return (userId as T) ?? null;
 };
 
@@ -47,11 +62,28 @@ const buildUserAuditColumn = (opts: {
 
       if (columnField === 'createdBy') {
         // Only set on creation
-        return col.$default(() => getCurrentUserId());
+        return col.$default(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        );
       }
 
       // Set on creation AND update
-      return col.$default(() => getCurrentUserId()).$onUpdate(() => getCurrentUserId());
+      return col
+        .$default(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        )
+        .$onUpdate(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        );
     }
 
     case 'string': {
@@ -59,11 +91,28 @@ const buildUserAuditColumn = (opts: {
 
       if (columnField === 'createdBy') {
         // Only set on creation
-        return col.$default(() => getCurrentUserId());
+        return col.$default(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        );
       }
 
       // Set on creation AND update
-      return col.$default(() => getCurrentUserId()).$onUpdate(() => getCurrentUserId());
+      return col
+        .$default(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        )
+        .$onUpdate(() =>
+          getCurrentUserId({
+            columnField,
+            allowAnonymous: columnOpts.allowAnonymous ?? true,
+          }),
+        );
     }
 
     default: {
@@ -76,19 +125,13 @@ const buildUserAuditColumn = (opts: {
 
 export const generateUserAuditColumnDefs = (opts?: TUserAuditEnricherOptions) => {
   const {
-    created = { dataType: 'number', columnName: 'created_by' },
-    modified = { dataType: 'number', columnName: 'modified_by' },
+    created = { dataType: 'number', columnName: 'created_by', allowAnonymous: true },
+    modified = { dataType: 'number', columnName: 'modified_by', allowAnonymous: true },
   } = opts ?? {};
 
   return {
-    createdBy: buildUserAuditColumn({
-      columnOpts: created,
-      columnField: 'createdBy',
-    }),
-    modifiedBy: buildUserAuditColumn({
-      columnOpts: modified,
-      columnField: 'modifiedBy',
-    }),
+    createdBy: buildUserAuditColumn({ columnOpts: created, columnField: 'createdBy' }),
+    modifiedBy: buildUserAuditColumn({ columnOpts: modified, columnField: 'modifiedBy' }),
   };
 };
 

@@ -70,31 +70,6 @@ export class ReadableRepository<
   // ---------------------------------------------------------------------------
 
   /**
-   * Get the query interface for this entity from the connector.
-   * Validates that the schema is properly registered.
-   */
-  protected getQueryInterface(opts?: { options?: ExtraOptions }) {
-    const connector = this.resolveConnector({ transaction: opts?.options?.transaction });
-
-    // Validate connector.query exists
-    if (!connector.query) {
-      throw getError({
-        message: `[${this.constructor.name}] Connector query interface not available | Ensure datasource is properly configured with schema`,
-      });
-    }
-
-    const queryInterface = connector.query[this.entity.name];
-    if (!queryInterface) {
-      const availableKeys = Object.keys(connector.query);
-      throw getError({
-        message: `[${this.constructor.name}] Schema key mismatch | Entity name '${this.entity.name}' not found in connector.query | Available keys: [${availableKeys.join(', ')}] | Ensure the model's TABLE_NAME matches the schema registration key`,
-      });
-    }
-
-    return queryInterface;
-  }
-
-  /**
    * Check if query can use Core API (faster for flat queries).
    * Core API is used when:
    * - No `include` (relations) - Core API doesn't support relations
@@ -190,7 +165,8 @@ export class ReadableRepository<
   }): Promise<Array<R>> {
     // Use Core API for flat queries (no relations, no field selection)
     if (this.canUseCoreAPI(opts.filter)) {
-      return this.findWithCoreAPI<R>({ filter: opts.filter, options: opts.options });
+      const rs = await this.findWithCoreAPI<R>({ filter: opts.filter, options: opts.options });
+      return rs;
     }
 
     // Apply default filter for Query API path
@@ -202,8 +178,8 @@ export class ReadableRepository<
     // Fall back to Query API for complex queries with relations/fields
     const queryOptions = this.buildQuery({ filter: mergedFilter });
     const queryInterface = this.getQueryInterface({ options: opts.options });
-    const results = await queryInterface.findMany(queryOptions);
-    return results as Array<R>;
+    const rs = await queryInterface.findMany(queryOptions);
+    return rs as Array<R>;
   }
 
   override async findOne<R = DataObject>(opts: {
