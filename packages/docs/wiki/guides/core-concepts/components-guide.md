@@ -506,4 +506,4 @@ export class MyComponent extends BaseComponent {
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component architecture patterns
-  - [Code Style Standards](/best-practices/code-style-standards) - Component coding standards
+  - [Code Style Standards](/best-practices/code-style-standards/) - Component coding standards

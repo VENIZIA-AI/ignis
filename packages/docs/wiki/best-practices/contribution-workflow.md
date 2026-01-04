@@ -125,7 +125,7 @@ git checkout -b feature/your-feature-name
 ### Step 2: Make Changes
 
 **Checklist:**
-- ✅ Follow [Code Style Standards](./code-style-standards.md)
+- ✅ Follow [Code Style Standards](./code-style-standards/)
 - ✅ Follow [Architectural Patterns](./architectural-patterns.md)
 - ✅ Add tests for new features/fixes
 - ✅ Update docs in `packages/docs/wiki` if needed

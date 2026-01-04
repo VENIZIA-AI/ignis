@@ -10,7 +10,7 @@ Production-ready patterns, security guidelines, and optimization strategies for 
 <p>Layered architecture, DI, components, lifecycle hooks</p>
 </a>
 
-<a href="./code-style-standards" class="guide-card">
+<a href="./code-style-standards/" class="guide-card">
 <span class="guide-icon">📝</span>
 <h3>Code Standards</h3>
 <p>Naming, types, patterns, ESLint, Prettier</p>
@@ -63,7 +63,7 @@ Production-ready patterns, security guidelines, and optimization strategies for 
 <span class="stage-num">1</span>
 <h4>Foundation</h4>
 </div>
-<p><a href="./architectural-patterns">Architecture</a> → <a href="./architecture-decisions">Decisions Guide</a> → <a href="./code-style-standards">Code Standards</a></p>
+<p><a href="./architectural-patterns">Architecture</a> → <a href="./architecture-decisions">Decisions Guide</a> → <a href="./code-style-standards/">Code Standards</a></p>
 <span class="stage-desc">Understand patterns and establish coding conventions</span>
 </div>
 
@@ -167,7 +167,7 @@ const data: any = await fetchData(); // Use proper types!
 
 | Guide | Description |
 |-------|-------------|
-| [Code Style Standards](./code-style-standards) | Naming conventions, types, ESLint, Prettier |
+| [Code Style Standards](./code-style-standards/) | Naming conventions, types, ESLint, Prettier |
 | [Data Modeling](./data-modeling) | Schema design, enrichers, relations, migrations |
 | [API Usage Examples](./api-usage-examples) | Routing, repositories, middleware, services |
 

@@ -110,7 +110,7 @@ export default eslintConfigs;
 > export default [...eslintConfigs, { rules: { 'no-console': 'warn' } }];
 > ```
 
-> **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards) for detailed configuration options.
+> **Deep Dive:** See [Code Style Standards](/best-practices/code-style-standards/) for detailed configuration options.
 
 :::tip Coming from Express/Hono/Fastify?
 This setup might seem verbose compared to minimal frameworks. The trade-off: ~50 lines of config upfront gives you scalable architecture for 10-1000+ endpoints without spaghetti code. For quick prototypes (< 5 endpoints), use plain Hono instead.

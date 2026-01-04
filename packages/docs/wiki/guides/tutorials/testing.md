@@ -704,7 +704,7 @@ class CreateAndUpdateAndDeleteHandler extends TestCaseHandler {
 ## Next Steps
 
 - [Testing Reference](../../references/helpers/testing.md) - Complete API documentation
-- [Best Practices](../../best-practices/code-style-standards.md) - Code quality standards
+- [Best Practices](../../best-practices/code-style-standards/) - Code quality standards
 - [Troubleshooting](../../best-practices/troubleshooting-tips.md) - Common issues
 
 ## Summary

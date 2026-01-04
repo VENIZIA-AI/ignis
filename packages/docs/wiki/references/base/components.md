@@ -578,4 +578,4 @@ export * from './controller';
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns
-  - [Code Style Standards](/best-practices/code-style-standards) - Component coding standards
+  - [Code Style Standards](/best-practices/code-style-standards/) - Component coding standards

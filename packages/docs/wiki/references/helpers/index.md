@@ -33,4 +33,4 @@ Reusable classes and functions providing common functionality - designed for eas
   - [Components](/references/components/) - Framework components
 
 - **Best Practices:**
-  - [Code Style Standards](/best-practices/code-style-standards) - Helper usage patterns
+  - [Code Style Standards](/best-practices/code-style-standards/) - Helper usage patterns
