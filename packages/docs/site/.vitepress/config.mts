@@ -131,16 +131,63 @@ const config = defineConfig({
           text: 'Best Practices',
           items: [
             { text: 'Overview', link: '/best-practices/' },
+          ],
+        },
+        {
+          text: 'Foundation',
+          collapsed: false,
+          items: [
             { text: 'Architectural Patterns', link: '/best-practices/architectural-patterns' },
             { text: 'Architecture Decisions', link: '/best-practices/architecture-decisions' },
+          ],
+        },
+        {
+          text: 'Development',
+          collapsed: false,
+          items: [
+            {
+              text: 'Code Style Standards',
+              collapsed: true,
+              items: [
+                { text: 'Overview', link: '/best-practices/code-style-standards/' },
+                { text: 'Tooling', link: '/best-practices/code-style-standards/tooling' },
+                { text: 'Naming Conventions', link: '/best-practices/code-style-standards/naming-conventions' },
+                { text: 'Type Safety', link: '/best-practices/code-style-standards/type-safety' },
+                { text: 'Function Patterns', link: '/best-practices/code-style-standards/function-patterns' },
+                { text: 'Route Definitions', link: '/best-practices/code-style-standards/route-definitions' },
+                { text: 'Constants & Config', link: '/best-practices/code-style-standards/constants-configuration' },
+                { text: 'Control Flow', link: '/best-practices/code-style-standards/control-flow' },
+                { text: 'Advanced Patterns', link: '/best-practices/code-style-standards/advanced-patterns' },
+                { text: 'Documentation (JSDoc)', link: '/best-practices/code-style-standards/documentation' },
+              ],
+            },
             { text: 'Data Modeling', link: '/best-practices/data-modeling' },
-            { text: 'Performance Optimization', link: '/best-practices/performance-optimization' },
-            { text: 'Security Guidelines', link: '/best-practices/security-guidelines' },
-            { text: 'Code Style Standards', link: '/best-practices/code-style-standards' },
-            { text: 'Deployment Strategies', link: '/best-practices/deployment-strategies' },
+            { text: 'API Usage Examples', link: '/best-practices/api-usage-examples' },
+          ],
+        },
+        {
+          text: 'Quality',
+          collapsed: false,
+          items: [
+            { text: 'Testing Strategies', link: '/best-practices/testing-strategies' },
+            { text: 'Error Handling', link: '/best-practices/error-handling' },
             { text: 'Common Pitfalls', link: '/best-practices/common-pitfalls' },
             { text: 'Troubleshooting Tips', link: '/best-practices/troubleshooting-tips' },
-            { text: 'API Usage Examples', link: '/best-practices/api-usage-examples' },
+          ],
+        },
+        {
+          text: 'Production',
+          collapsed: false,
+          items: [
+            { text: 'Security Guidelines', link: '/best-practices/security-guidelines' },
+            { text: 'Performance Optimization', link: '/best-practices/performance-optimization' },
+            { text: 'Deployment Strategies', link: '/best-practices/deployment-strategies' },
+          ],
+        },
+        {
+          text: 'Contributing',
+          collapsed: true,
+          items: [
             { text: 'Contribution Workflow', link: '/best-practices/contribution-workflow' },
           ],
         },

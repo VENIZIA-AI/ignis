@@ -146,7 +146,7 @@ Defines base classes and utilities for data models, often used with Drizzle ORM.
 | `enrichers/id.enricher.ts`         | Adds `id` column with number (serial) or string (UUID) types.                                                                                                       |
 | `enrichers/principal.enricher.ts`  | Adds polymorphic fields for associating with different principal types.                                                                                             |
 | `enrichers/tz.enricher.ts`         | Adds `createdAt` and `modifiedAt` timestamp columns.                                                                                                                |
-| `enrichers/user-audit.enricher.ts` | Adds `createdBy` and `modifiedBy` fields.                                                                                                                           |
+| `enrichers/user-audit.enricher.ts` | Adds `createdBy` and `modifiedBy` fields. Supports `allowAnonymous` option to require or allow anonymous user context.                                              |
 
 #### `base/providers`
 

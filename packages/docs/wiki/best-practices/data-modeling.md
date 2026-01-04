@@ -38,7 +38,7 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 | `generateIdColumnDefs` | Adds a Primary Key | `id` (text, number, or big-number) |
 | `generatePrincipalColumnDefs` | Adds polymorphic relation fields | `{discriminator}Id`, `{discriminator}Type` |
 | `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating) |
-| `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` |
+| `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
 | `generateDataTypeColumnDefs` | Adds generic value fields | `nValue` (number), `tValue` (text), `jValue` (json), etc. |
 | `extraUserColumns` | Comprehensive user fields | Combines audit, timestamps, status, and type fields |
 
@@ -374,3 +374,103 @@ export class User extends BaseEntity<typeof User.schema> {
 - Use the connector directly when you need to access hidden data (e.g., password verification)
 
 > **Reference:** See [Hidden Properties](../references/base/models.md#hidden-properties) for complete documentation.
+
+## 6. Database Migrations
+
+Drizzle Kit handles schema migrations. Follow these best practices for safe migrations.
+
+### Generate Migrations
+
+```bash
+# Generate migration from schema changes
+bun run db:generate
+
+# Apply migrations to database
+bun run db:migrate
+
+# Push schema directly (development only)
+bun run db:push
+```
+
+### Migration Best Practices
+
+| Practice | Description |
+|----------|-------------|
+| **One change per migration** | Keep migrations focused and reversible |
+| **Never edit applied migrations** | Create new migration instead |
+| **Test on staging first** | Always test migrations before production |
+| **Backup before migrate** | `pg_dump` before running in production |
+| **Use transactions** | Drizzle wraps migrations in transactions by default |
+
+### Safe Schema Changes
+
+**Adding columns (safe):**
+```typescript
+// Add with default value to avoid nulls in existing rows
+newField: text('new_field').default(''),
+
+// Or allow null initially, then backfill and set notNull
+newField: text('new_field'),  // Initially nullable
+```
+
+**Renaming columns (requires care):**
+```sql
+-- In custom migration SQL
+ALTER TABLE "User" RENAME COLUMN "old_name" TO "new_name";
+```
+
+**Dropping columns (dangerous):**
+```typescript
+// 1. First, remove all code references
+// 2. Deploy code changes
+// 3. Then drop in separate migration
+```
+
+### Custom Migration SQL
+
+For complex migrations, use custom SQL:
+
+```typescript
+// drizzle/migrations/0005_custom_migration.ts
+import { sql } from 'drizzle-orm';
+
+export async function up(db: DrizzleDB) {
+  // Add index for performance
+  await db.execute(sql`
+    CREATE INDEX CONCURRENTLY idx_user_email
+    ON "User" (email)
+    WHERE status = 'ACTIVE'
+  `);
+
+  // Backfill data
+  await db.execute(sql`
+    UPDATE "User"
+    SET normalized_email = LOWER(email)
+    WHERE normalized_email IS NULL
+  `);
+}
+
+export async function down(db: DrizzleDB) {
+  await db.execute(sql`DROP INDEX IF EXISTS idx_user_email`);
+}
+```
+
+### Migration Checklist
+
+| Step | Action |
+|------|--------|
+| 1 | Review generated SQL before applying |
+| 2 | Test migration on staging database |
+| 3 | Backup production database |
+| 4 | Run during low-traffic period |
+| 5 | Monitor for errors after migration |
+| 6 | Have rollback plan ready |
+
+> [!WARNING]
+> Never run migrations directly on production without testing. Use staging environments that mirror production data structure.
+
+## See Also
+
+- [API Usage Examples](./api-usage-examples) - Query patterns
+- [Performance Optimization](./performance-optimization) - Index design
+- [Common Pitfalls](./common-pitfalls) - Migration mistakes to avoid

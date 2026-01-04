@@ -194,3 +194,183 @@ try {
 
 > [!WARNING]
 > Higher isolation levels reduce concurrency. Use `READ COMMITTED` unless you have specific consistency requirements.
+
+## 7. Database Connection Pooling
+
+Connection pooling significantly improves performance by reusing database connections instead of creating new ones for each request.
+
+**Configure in DataSource:**
+
+```typescript
+import { Pool } from 'pg';
+import { drizzle } from 'drizzle-orm/node-postgres';
+
+export class PostgresDataSource extends AbstractDataSource {
+  override connect(): void {
+    const pool = new Pool({
+      host: this.settings.host,
+      port: this.settings.port,
+      user: this.settings.username,
+      password: this.settings.password,
+      database: this.settings.database,
+
+      // Connection pool settings
+      max: 20,                      // Maximum connections in pool
+      min: 5,                       // Minimum connections to maintain
+      idleTimeoutMillis: 30000,     // Close idle connections after 30s
+      connectionTimeoutMillis: 5000, // Fail if can't connect in 5s
+      maxUses: 7500,                // Close connection after 7500 queries
+    });
+
+    this.connector = drizzle({ client: pool, schema: this.schema });
+  }
+}
+```
+
+**Recommended Pool Sizes:**
+
+| Server RAM | Concurrent Users | Max Pool Size | Min Pool Size |
+|------------|------------------|---------------|---------------|
+| < 2GB | < 100 | 10 | 2 |
+| 2-4GB | 100-500 | 20 | 5 |
+| 4-8GB | 500-1000 | 30 | 10 |
+| > 8GB | > 1000 | 50+ | 15 |
+
+**Formula:** `max_connections = (number_of_cores * 2) + effective_spindle_count`
+
+For most applications: `max_connections = CPU_cores * 2 + 1`
+
+**Monitoring Pool Health:**
+
+```typescript
+// Log pool statistics periodically
+const pool = new Pool({ /* ... */ });
+
+setInterval(() => {
+  this.logger.info('[pool] Stats | total: %d | idle: %d | waiting: %d',
+    pool.totalCount,
+    pool.idleCount,
+    pool.waitingCount
+  );
+}, 60000); // Every minute
+```
+
+**Warning Signs:**
+- `waitingCount > 0` consistently → Increase `max`
+- `idleCount === totalCount` always → Decrease `max`
+- Connection timeouts → Check network, increase `connectionTimeoutMillis`
+
+## 8. Query Optimization Tips
+
+### Use Indexes Strategically
+
+```typescript
+// Create indexes on frequently queried columns
+export const User = pgTable('User', {
+  id: text('id').primaryKey(),
+  email: text('email').notNull().unique(),  // Implicit unique index
+  status: text('status').notNull(),
+  createdAt: timestamp('created_at').notNull(),
+}, (table) => ({
+  // Composite index for common query patterns
+  statusCreatedIdx: index('idx_user_status_created').on(table.status, table.createdAt),
+  // Partial index for active users only
+  activeEmailIdx: index('idx_active_email').on(table.email).where(eq(table.status, 'ACTIVE')),
+}));
+```
+
+### Avoid N+1 Queries
+
+```typescript
+// ❌ BAD - N+1 queries
+const users = await userRepo.find({ filter: { limit: 100 } });
+for (const user of users.data) {
+  user.posts = await postRepo.find({ filter: { where: { authorId: user.id } } });
+}
+
+// ✅ GOOD - Single query with relations
+const users = await userRepo.find({
+  filter: {
+    limit: 100,
+    include: [{ relation: 'posts' }],
+  },
+});
+```
+
+### Batch Operations
+
+```typescript
+// ❌ BAD - Many individual inserts
+for (const item of items) {
+  await repo.create({ data: item });
+}
+
+// ✅ GOOD - Batch insert
+await repo.createMany({ data: items });
+```
+
+## 9. Memory Management
+
+### Stream Large Datasets
+
+```typescript
+// ❌ BAD - Load all records into memory
+const allUsers = await userRepo.find({ filter: { limit: 100000 } });
+
+// ✅ GOOD - Process in batches
+const batchSize = 1000;
+let offset = 0;
+let hasMore = true;
+
+while (hasMore) {
+  const batch = await userRepo.find({
+    filter: { limit: batchSize, offset },
+  });
+
+  for (const user of batch.data) {
+    await processUser(user);
+  }
+
+  hasMore = batch.data.length === batchSize;
+  offset += batchSize;
+}
+```
+
+### Avoid Memory Leaks in Long-Running Processes
+
+```typescript
+// ❌ BAD - Growing array in long-running process
+const processedIds: string[] = [];
+// This array grows forever!
+
+// ✅ GOOD - Use Set with cleanup or external storage
+const processedIds = new Set<string>();
+
+// Periodically clear or use Redis
+setInterval(() => {
+  if (processedIds.size > 10000) {
+    processedIds.clear();
+  }
+}, 3600000); // Every hour
+```
+
+## Performance Checklist
+
+| Category | Check | Impact |
+|----------|-------|--------|
+| **Database** | Connection pooling configured | High |
+| **Database** | Indexes on WHERE/JOIN columns | High |
+| **Database** | Limit on all queries | High |
+| **Queries** | Using `fields` to select specific columns | Medium |
+| **Queries** | Relations limited to 2 levels | Medium |
+| **Queries** | Batch operations for bulk data | High |
+| **Memory** | Large datasets processed in batches | High |
+| **Caching** | Expensive queries cached | High |
+| **Workers** | CPU-intensive tasks offloaded | High |
+| **Monitoring** | Performance logging enabled | Low |
+
+## See Also
+
+- [Data Modeling](./data-modeling) - Schema design for performance
+- [Deployment Strategies](./deployment-strategies) - Production scaling
+- [Common Pitfalls](./common-pitfalls) - Performance mistakes to avoid

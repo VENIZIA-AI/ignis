@@ -43,7 +43,7 @@ const getCurrentUserId = <T>(opts: { allowAnonymous: boolean; columnField: strin
   const userId = context.get(Authentication.AUDIT_USER_ID);
   if (!userId && !opts.allowAnonymous) {
     throw getError({
-      message: `[getCurrentUserId] No AUDIT_USER_ID found iin request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
+      message: `[getCurrentUserId] No AUDIT_USER_ID found in request context | columnName: ${opts.columnField} | allowAnonymous: ${opts.allowAnonymous} | userId: ${userId}`,
     });
   }
 
@@ -55,64 +55,27 @@ const buildUserAuditColumn = (opts: {
   columnField: 'createdBy' | 'modifiedBy';
 }) => {
   const { columnOpts, columnField } = opts;
+  const allowAnonymous = columnOpts.allowAnonymous ?? true;
 
   switch (columnOpts.dataType) {
     case 'number': {
       const col = integer(columnOpts.columnName).$type<number | null>();
+      const userIdGetter = () => getCurrentUserId<number>({ columnField, allowAnonymous });
 
-      if (columnField === 'createdBy') {
-        // Only set on creation
-        return col.$default(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        );
-      }
-
-      // Set on creation AND update
-      return col
-        .$default(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        )
-        .$onUpdate(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        );
+      // createdBy: only set on creation | modifiedBy: set on creation AND update
+      return columnField === 'createdBy'
+        ? col.$default(userIdGetter)
+        : col.$default(userIdGetter).$onUpdate(userIdGetter);
     }
 
     case 'string': {
       const col = text(columnOpts.columnName).$type<string | null>();
+      const userIdGetter = () => getCurrentUserId<string>({ columnField, allowAnonymous });
 
-      if (columnField === 'createdBy') {
-        // Only set on creation
-        return col.$default(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        );
-      }
-
-      // Set on creation AND update
-      return col
-        .$default(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        )
-        .$onUpdate(() =>
-          getCurrentUserId({
-            columnField,
-            allowAnonymous: columnOpts.allowAnonymous ?? true,
-          }),
-        );
+      // createdBy: only set on creation | modifiedBy: set on creation AND update
+      return columnField === 'createdBy'
+        ? col.$default(userIdGetter)
+        : col.$default(userIdGetter).$onUpdate(userIdGetter);
     }
 
     default: {

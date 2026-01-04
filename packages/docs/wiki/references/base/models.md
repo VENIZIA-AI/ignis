@@ -709,6 +709,7 @@ generateUserAuditColumnDefs(opts?: TUserAuditEnricherOptions): {
 type TUserAuditColumnOpts = {
   dataType: 'string' | 'number';  // Required - type of user ID
   columnName: string;              // Column name in database
+  allowAnonymous?: boolean;        // Allow null user ID (default: true)
 };
 
 type TUserAuditEnricherOptions = {
@@ -718,8 +719,27 @@ type TUserAuditEnricherOptions = {
 ```
 
 **Default values:**
-- `created`: `{ dataType: 'number', columnName: 'created_by' }`
-- `modified`: `{ dataType: 'number', columnName: 'modified_by' }`
+- `created`: `{ dataType: 'number', columnName: 'created_by', allowAnonymous: true }`
+- `modified`: `{ dataType: 'number', columnName: 'modified_by', allowAnonymous: true }`
+
+#### `allowAnonymous` Behavior
+
+The `allowAnonymous` option controls whether the enricher requires an authenticated user context:
+
+| `allowAnonymous` | No Context | No User ID | Has User ID |
+|------------------|------------|------------|-------------|
+| `true` (default) | Returns `null` | Returns `null` | Returns user ID |
+| `false` | Throws error | Throws error | Returns user ID |
+
+**When to use `allowAnonymous: false`:**
+- Sensitive audit trails that must track the responsible user
+- Tables where anonymous operations should be forbidden
+- Compliance requirements that mandate user attribution
+
+**When to use `allowAnonymous: true` (default):**
+- Background jobs, migrations, or seed scripts without user context
+- System-generated records
+- Tables that allow both authenticated and anonymous operations
 
 #### Generated Columns
 
@@ -793,6 +813,24 @@ export const myTable = pgTable('MyTable', {
 // Generates:
 // createdBy: integer('author_id')
 // modifiedBy: integer('editor_id')
+```
+
+**Requiring authenticated user (allowAnonymous: false):**
+
+```typescript
+// For sensitive tables that must track the responsible user
+export const auditLogTable = pgTable('AuditLog', {
+  ...generateIdColumnDefs(),
+  ...generateUserAuditColumnDefs({
+    created: { dataType: 'number', columnName: 'created_by', allowAnonymous: false },
+    modified: { dataType: 'number', columnName: 'modified_by', allowAnonymous: false },
+  }),
+  action: text('action').notNull(),
+  details: text('details'),
+});
+
+// If no authenticated user context is available, throws:
+// Error: [getCurrentUserId] Invalid request context to identify user | columnName: createdBy | allowAnonymous: false
 ```
 
 

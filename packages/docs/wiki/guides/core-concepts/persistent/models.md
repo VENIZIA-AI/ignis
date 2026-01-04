@@ -141,6 +141,16 @@ static override schema = pgTable('User', {
 | `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
 | `extraUserColumns()` | Combines audit + status + type | Full-featured entities |
 
+:::note User Audit Options
+The `generateUserAuditColumnDefs` enricher supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
+```typescript
+...generateUserAuditColumnDefs({
+  created: { dataType: 'string', columnName: 'created_by', allowAnonymous: false },
+  modified: { dataType: 'string', columnName: 'modified_by', allowAnonymous: false },
+})
+```
+:::
+
 :::tip
 For a complete list of enrichers and options, see the [Schema Enrichers Reference](../../../references/base/models.md#schema-enrichers).
 :::

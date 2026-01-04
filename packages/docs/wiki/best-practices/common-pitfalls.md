@@ -54,8 +54,8 @@ export class Application extends BaseApplication {
   }),
 })
 
-// ❌ BAD - typo in string
-@inject({ key: 'repositories.ConfigurationRepositry' })
+// ❌ BAD - typo in string (note: "Repository" is misspelled)
+@inject({ key: 'repositories.ConfigurationRepository' })
 ```
 
 ## 3. Business Logic in Controllers
@@ -241,3 +241,164 @@ try {
   }
 }
 ```
+
+## 9. Circular Dependency Issues
+
+**Problem:** Application fails to start with `Cannot access 'X' before initialization` or similar errors.
+
+**Cause:** Two or more modules import each other directly, creating a circular reference that JavaScript cannot resolve.
+
+**Solution:** Use lazy imports or restructure your modules:
+
+```typescript
+// ❌ BAD - Direct import causes circular dependency
+import { UserService } from './user.service';
+
+@model({ type: 'entity' })
+export class Order extends BaseEntity<typeof Order.schema> {
+  static override relations = (): TRelationConfig[] => [
+    { schema: User.schema, ... }, // User imports Order, Order imports User
+  ];
+}
+
+// ✅ GOOD - Lazy import breaks the cycle
+@model({ type: 'entity' })
+export class Order extends BaseEntity<typeof Order.schema> {
+  static override relations = (): TRelationConfig[] => {
+    const { User } = require('./user.model'); // Lazy require
+    return [{ schema: User.schema, ... }];
+  };
+}
+```
+
+**Alternative:** Restructure to have a shared module that both import from.
+
+## 10. Transaction Not Rolling Back
+
+**Problem:** Errors occur but database changes are still persisted.
+
+**Cause:** Transaction not properly wrapped in try-catch, or rollback not called on error.
+
+**Solution:** Always wrap transactions in try-catch with explicit rollback:
+
+```typescript
+// ❌ BAD - No error handling
+const tx = await repo.beginTransaction();
+await repo.create({ data, options: { transaction: tx } });
+await tx.commit(); // If create fails, commit is never called but neither is rollback
+
+// ✅ GOOD - Proper transaction handling
+const tx = await repo.beginTransaction();
+try {
+  await repo.create({ data, options: { transaction: tx } });
+  await otherRepo.update({ data: other, options: { transaction: tx } });
+  await tx.commit();
+} catch (error) {
+  await tx.rollback();
+  throw error; // Re-throw to let caller handle
+}
+```
+
+## 11. Fire-and-Forget Promises Losing Context
+
+**Problem:** `getCurrentUserId()` or other context-dependent functions return `null` in background tasks.
+
+**Cause:** When you fire-and-forget a promise, it runs outside the original async context where the user was authenticated.
+
+**Solution:** Pass required context data explicitly to background tasks:
+
+```typescript
+// ❌ BAD - Context lost in fire-and-forget
+@post({ configs: RouteConfigs.CREATE_ORDER })
+async createOrder(c: Context) {
+  const data = c.req.valid('json');
+  const order = await this.orderService.create(data);
+
+  // Fire-and-forget: sendNotification runs outside request context
+  this.notificationService.sendOrderConfirmation(order.id);
+  // Inside sendOrderConfirmation, getCurrentUserId() returns null!
+
+  return c.json(order);
+}
+
+// ✅ GOOD - Pass user ID explicitly
+@post({ configs: RouteConfigs.CREATE_ORDER })
+async createOrder(c: Context) {
+  const data = c.req.valid('json');
+  const userId = c.get(Authentication.AUDIT_USER_ID);
+  const order = await this.orderService.create(data);
+
+  // Pass userId explicitly to background task
+  this.notificationService.sendOrderConfirmation(order.id, userId);
+
+  return c.json(order);
+}
+```
+
+> [!WARNING]
+> This is especially important when using `allowAnonymous: false` in user audit columns. The enricher will throw an error if it cannot find the user context.
+
+## 12. Incorrect Relation Configuration
+
+**Problem:** Relations return empty arrays or `null` unexpectedly.
+
+**Cause:** Mismatch between `fields` and `references` in relation metadata.
+
+**Solution:** Double-check that foreign keys point to the correct columns:
+
+```typescript
+// ❌ BAD - fields and references swapped
+static override relations = (): TRelationConfig[] => [
+  {
+    name: 'posts',
+    type: RelationTypes.MANY,
+    schema: Post.schema,
+    metadata: {
+      fields: [Post.schema.authorId],     // Wrong! This should be User.schema.id
+      references: [User.schema.id],        // Wrong! This should be Post.schema.authorId
+    },
+  },
+];
+
+// ✅ GOOD - Correct configuration
+// "User has many Posts where User.id = Post.authorId"
+static override relations = (): TRelationConfig[] => [
+  {
+    name: 'posts',
+    type: RelationTypes.MANY,
+    schema: Post.schema,
+    metadata: {
+      fields: [User.schema.id],            // Parent's key
+      references: [Post.schema.authorId],  // Child's foreign key
+    },
+  },
+];
+```
+
+**Rule of thumb:** `fields` is the key on the current entity, `references` is the key on the related entity.
+
+## 13. Overwriting Data with Partial Updates
+
+**Problem:** PATCH endpoint replaces entire record instead of merging fields.
+
+**Cause:** Using `create()` or full `update()` instead of partial update methods.
+
+**Solution:** Use `updateById()` which only updates provided fields:
+
+```typescript
+// ❌ BAD - Overwrites all fields (if using raw insert/update)
+await db.update(users).set(data).where(eq(users.id, id));
+// If data = { name: 'New' }, email and other fields might be set to undefined
+
+// ✅ GOOD - Repository updateById only updates provided fields
+await userRepository.updateById({
+  id: userId,
+  data: { name: 'New Name' }, // Only updates 'name', leaves other fields intact
+});
+```
+
+## See Also
+
+- [Troubleshooting Tips](./troubleshooting-tips) - Debug common issues
+- [Error Handling](./error-handling) - Proper error handling patterns
+- [Architecture Decisions](./architecture-decisions) - Avoid design mistakes

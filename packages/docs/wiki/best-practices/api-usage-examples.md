@@ -223,6 +223,7 @@ const deleted = await configurationRepository.deleteById({
   id: newRecord.data!.id,
   options: { shouldReturn: true }, // Option to return the deleted record
 });
+```
 
 ## Server-Side Rendering (JSX)
 
