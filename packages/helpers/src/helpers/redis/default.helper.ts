@@ -83,7 +83,7 @@ export class DefaultRedisHelper extends BaseHelper {
       const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
       if (!this.client || invalidStatuses.includes(this.client.status)) {
         this.logger.info(
-          '[disconnect] status: %s | Invalid redis status to invoke connect',
+          '[disconnect] status: %s | Invalid redis status to invoke disconnect',
           this.client.status,
         );
         resolve(false);
@@ -100,7 +100,7 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  async set(opts: { key: string; value: any; options?: { log: boolean } }) {
+  async set<T>(opts: { key: string; value: T; options?: { log: boolean } }): Promise<void> {
     const { key, value, options = { log: false } } = opts;
 
     if (!this.client) {
@@ -119,8 +119,11 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  async get(opts: { key: string; transform?: (input: string) => any }) {
-    const { key, transform = (input: string) => input } = opts;
+  async get<T = string>(opts: {
+    key: string;
+    transform?: (input: string) => T;
+  }): Promise<T | null> {
+    const { key, transform } = opts;
     if (!this.client) {
       this.logger.info('[get] No valid Redis connection!');
       return null;
@@ -131,7 +134,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return null;
     }
 
-    return transform(value);
+    return transform ? transform(value) : (value as unknown as T);
   }
 
   // ---------------------------------------------------------------------------------
@@ -154,7 +157,7 @@ export class DefaultRedisHelper extends BaseHelper {
   getObject(opts: { key: string }) {
     return this.get({
       ...opts,
-      transform: (cached: string) => JSON.parse(cached),
+      transform: (el: string) => JSON.parse(el),
     });
   }
 
@@ -162,19 +165,23 @@ export class DefaultRedisHelper extends BaseHelper {
   getObjects(opts: { keys: Array<string> }) {
     return this.mget({
       ...opts,
-      transform: (cached: string) => JSON.parse(cached),
+      transform: (el: string) => JSON.parse(el),
     });
   }
 
   // ---------------------------------------------------------------------------------
-  async hset(opts: { key: string; value: any; options?: { log: boolean } }) {
+  async hset<T extends Record<string, unknown>>(opts: {
+    key: string;
+    value: T;
+    options?: { log: boolean };
+  }): Promise<number> {
     if (!this.client) {
       this.logger.info('[hset] No valid Redis connection!');
-      return;
+      return 0;
     }
 
     const { key, value, options } = opts;
-    const rs = await this.client.hset(key, value);
+    const rs = await this.client.hset(key, value as Record<string, string | number | Buffer>);
 
     if (!options?.log) {
       return rs;
@@ -185,7 +192,11 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  hSet(opts: { key: string; value: any; options?: { log: boolean } }) {
+  hSet<T extends Record<string, unknown>>(opts: {
+    key: string;
+    value: T;
+    options?: { log: boolean };
+  }): Promise<number> {
     return this.hset(opts);
   }
 
@@ -211,17 +222,23 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  async mset(opts: { payload: Array<{ key: string; value: any }>; options?: { log: boolean } }) {
+  async mset<T>(opts: {
+    payload: Array<{ key: string; value: T }>;
+    options?: { log: boolean };
+  }): Promise<void> {
     if (!this.client) {
       this.logger.info('[set] No valid Redis connection!');
       return;
     }
 
     const { payload, options } = opts;
-    const serialized = payload?.reduce((current, el) => {
-      const { key, value } = el;
-      return { ...current, [key]: JSON.stringify(value) };
-    }, {});
+    const serialized = payload?.reduce(
+      (current, el) => {
+        const { key, value } = el;
+        return { ...current, [key]: JSON.stringify(value) };
+      },
+      {} as Record<string, string>,
+    );
     await this.client.mset(serialized);
 
     if (!options?.log) {
@@ -232,28 +249,37 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  mSet(opts: { payload: Array<{ key: string; value: any }>; options?: { log: boolean } }) {
+  mSet<T>(opts: {
+    payload: Array<{ key: string; value: T }>;
+    options?: { log: boolean };
+  }): Promise<void> {
     return this.mset(opts);
   }
 
   // ---------------------------------------------------------------------------------
-  async mget(opts: { keys: Array<string>; transform?: (input: string) => any }) {
-    const { keys, transform = (input: string) => input } = opts;
+  async mget<T = string>(opts: {
+    keys: Array<string>;
+    transform?: (input: string) => T;
+  }): Promise<(T | null)[]> {
+    const { keys, transform } = opts;
     if (!this.client) {
       this.logger.info('[get] No valid Redis connection!');
-      return null;
+      return [];
     }
 
     const values = await this.client.mget(keys);
     if (!values?.length) {
-      return null;
+      return [];
     }
 
-    return values?.map(el => (el ? transform(el) : el));
+    return values.map(el => (el ? (transform ? transform(el) : (el as unknown as T)) : null));
   }
 
   // ---------------------------------------------------------------------------------
-  mGet(opts: { keys: Array<string>; transform?: (input: string) => any }) {
+  mGet<T = string>(opts: {
+    keys: Array<string>;
+    transform?: (input: string) => T;
+  }): Promise<(T | null)[]> {
     return this.mget(opts);
   }
 
@@ -270,49 +296,55 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  jSet<T = any>(opts: { key: string; path: string; value: T }) {
+  jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null> {
     const { key, path, value } = opts;
-    return this.execute('JSON.SET', [key, path, JSON.stringify(value)]);
+    return this.execute<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
   }
 
   // ---------------------------------------------------------------------------------
-  jGet<T = any>(opts: { key: string; path?: string }) {
+  jGet<T>(opts: { key: string; path?: string }): Promise<T | null> {
     const { key, path = '$' } = opts;
-    return this.execute<T>('JSON.GET', [key, path]);
+    return this.execute<T | null>('JSON.GET', [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
-  jDelete(opts: { key: string; path?: string }) {
+  jDelete(opts: { key: string; path?: string }): Promise<number> {
     const { key, path = '$' } = opts;
     return this.execute<number>('JSON.DEL', [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
-  jNumberIncreaseBy(opts: { key: string; path: string; value: number }) {
+  jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null> {
     const { key, path, value } = opts;
-    return this.execute('JSON.NUMINCRBY', [key, path, value]);
+    return this.execute<string | null>('JSON.NUMINCRBY', [key, path, value]);
   }
 
   // ---------------------------------------------------------------------------------
-  jStringAppend(opts: { key: string; path: string; value: string }) {
+  jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null> {
     const { key, path, value } = opts;
-    return this.execute('JSON.STRAPPEND', [key, path, value]);
+    return this.execute<number[] | null>('JSON.STRAPPEND', [key, path, value]);
   }
 
   // ---------------------------------------------------------------------------------
-  jPush<T = any>(opts: { key: string; path: string; value: T }) {
+  jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null> {
     const { key, path, value } = opts;
-    return this.execute('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
+    return this.execute<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
   }
 
   // ---------------------------------------------------------------------------------
-  jPop<T = any>(opts: { key: string; path: string }) {
+  jPop<T>(opts: { key: string; path: string }): Promise<T | null> {
     const { key, path } = opts;
-    return this.execute<T>('JSON.ARRPOP', [key, path]);
+    return this.execute<T | null>('JSON.ARRPOP', [key, path]);
   }
 
   // ---------------------------------------------------------------------------------
-  execute<R = any>(command: string, parameters?: Array<string | number | Buffer>): Promise<R> {
+  execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R> {
+    if (!this.client) {
+      throw getError({
+        message: `[execute] Invalid client to execute | command: ${command}`,
+      });
+    }
+
     if (!parameters?.length) {
       return this.client.call(command) as Promise<R>;
     }
@@ -321,7 +353,11 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  async publish<T = any>(opts: { topics: Array<string>; payload: T; useCompress?: boolean }) {
+  async publish<T>(opts: {
+    topics: Array<string>;
+    payload: T;
+    useCompress?: boolean;
+  }): Promise<void> {
     const { topics, payload, useCompress = false } = opts;
 
     const validTopics = topics?.filter(topic => !isEmpty(topic));
@@ -342,7 +378,7 @@ export class DefaultRedisHelper extends BaseHelper {
 
     await Promise.all(
       validTopics.map(topic => {
-        let packet: any;
+        let packet: Buffer;
 
         if (useCompress) {
           packet = zlib.deflateSync(Buffer.from(JSON.stringify(payload)));

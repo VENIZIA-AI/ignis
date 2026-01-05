@@ -11,8 +11,32 @@ import {
 } from '../common';
 import { ReadableRepository } from './readable';
 
+// -----------------------------------------------------------------------------
+// Persistable Repository
+// -----------------------------------------------------------------------------
+
 /**
- * Persistable repository with full CRUD operations.
+ * Full CRUD repository implementation.
+ *
+ * Extends {@link ReadableRepository} with create, update, and delete operations.
+ * This class provides the complete set of database operations for entities.
+ *
+ * @template EntitySchema - The Drizzle table schema type with an 'id' column
+ * @template DataObject - The type of objects returned from queries
+ * @template PersistObject - The type for insert/update operations
+ * @template ExtraOptions - Additional options type extending IExtraOptions
+ *
+ * @example
+ * ```typescript
+ * @repository({ model: User, dataSource: PostgresDataSource })
+ * export class UserRepository extends PersistableRepository<typeof User.schema> {
+ *   async createWithDefaults(email: string) {
+ *     return this.create({
+ *       data: { email, role: 'user', isActive: true }
+ *     });
+ *   }
+ * }
+ * ```
  */
 export class PersistableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
@@ -24,9 +48,16 @@ export class PersistableRepository<
   // Constructor
   // ---------------------------------------------------------------------------
 
+  /**
+   * Creates a new persistable (read-write) repository instance.
+   *
+   * @param ds - Optional data source (auto-injected from @repository decorator)
+   * @param opts - Optional configuration
+   * @param opts.entityClass - Entity class if not using @repository decorator
+   */
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, { entityClass: opts?.entityClass });
-    this.operationScope = RepositoryOperationScopes.READ_WRITE;
+    this._operationScope = RepositoryOperationScopes.READ_WRITE;
   }
 
   // ---------------------------------------------------------------------------
@@ -34,11 +65,15 @@ export class PersistableRepository<
   // ---------------------------------------------------------------------------
 
   /**
-   * Validate where condition for bulk operations (update/delete).
-   * Throws error if empty where without force flag.
+   * Validates where condition for bulk operations (update/delete).
+   * Prevents accidental mass updates/deletes by requiring explicit force flag.
    *
    * @param opts - Validation options
-   * @returns true if where is empty (for logging purposes)
+   * @param opts.where - The where condition to validate
+   * @param opts.force - If true, allows empty where condition
+   * @param opts.operationName - Operation name for error message
+   * @returns True if where is empty (used for logging warnings)
+   * @throws Error if where is empty and force is not true
    */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
@@ -60,6 +95,15 @@ export class PersistableRepository<
   // Create Operations
   // ---------------------------------------------------------------------------
 
+  /**
+   * Internal create implementation for single or bulk inserts.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Create options
+   * @param opts.data - Array of records to insert
+   * @param opts.options - Extra options (transaction, logging, shouldReturn)
+   * @returns Promise with count and optionally the created records
+   */
   protected async _create<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -88,40 +132,38 @@ export class PersistableRepository<
 
   override create(opts: {
     data: PersistObject;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override create<R = DataObject>(opts: {
     data: PersistObject;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override async create<R = DataObject>(opts: {
     data: PersistObject;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    const options = {
-      shouldReturn: true,
-      ...opts.options,
-    } as ExtraOptions & { shouldReturn: boolean };
+    const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
+      shouldReturn: boolean;
+    };
     const rs = await this._create<R>({ data: [opts.data], options });
     return { count: rs.count, data: rs.data?.[0] ?? null };
   }
 
   override createAll(opts: {
     data: Array<PersistObject>;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
   override createAll<R = DataObject>(opts: {
     data: Array<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    const options = {
-      shouldReturn: true,
-      ...opts.options,
-    } as ExtraOptions & { shouldReturn: boolean };
+    const options = { shouldReturn: true, ...opts.options } as ExtraOptions & {
+      shouldReturn: boolean;
+    };
     return this._create<R>({ data: opts.data, options });
   }
 
@@ -129,13 +171,22 @@ export class PersistableRepository<
   // Update Operations
   // ---------------------------------------------------------------------------
 
+  /**
+   * Internal update implementation for single or bulk updates.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Update options
+   * @param opts.data - Partial data to update
+   * @param opts.where - Where condition for selecting records to update
+   * @param opts.options - Extra options (transaction, logging, shouldReturn, force)
+   * @returns Promise with count and optionally the updated records
+   */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
     options?: ExtraOptions & {
       shouldReturn?: boolean;
       force?: boolean;
-      log?: TRepositoryLogOptions;
     };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const {
@@ -199,20 +250,20 @@ export class PersistableRepository<
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override async updateById<R = DataObject>(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     const rs = await this._update<R>({
-      where: { id: opts.id } as any,
+      where: { id: opts.id },
       data: opts.data,
       options: opts.options,
     });
@@ -222,29 +273,17 @@ export class PersistableRepository<
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options: ExtraOptions & {
-      shouldReturn: false;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
   override updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: true;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
   override updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     return this._update<R>(opts);
   }
@@ -253,13 +292,18 @@ export class PersistableRepository<
   // Delete Operations
   // ---------------------------------------------------------------------------
 
+  /**
+   * Internal delete implementation for single or bulk deletes.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Delete options
+   * @param opts.where - Where condition for selecting records to delete
+   * @param opts.options - Extra options (transaction, logging, shouldReturn, force)
+   * @returns Promise with count and optionally the deleted records
+   */
   protected async _delete<R = DataObject>(opts: {
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const {
       shouldReturn = true,
@@ -318,18 +362,18 @@ export class PersistableRepository<
 
   override deleteById(opts: {
     id: IdType;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override deleteById<R = DataObject>(opts: {
     id: IdType;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
   override async deleteById<R = DataObject>(opts: {
     id: IdType;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
     const rs = await this._delete<R>({
-      where: { id: opts.id } as any,
+      where: { id: opts.id },
       options: opts.options,
     });
     return { count: rs.count, data: rs.data?.[0] ?? null };
@@ -337,27 +381,15 @@ export class PersistableRepository<
 
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
-    options: ExtraOptions & {
-      shouldReturn: false;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
   override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: true;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
   override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     // Provide default empty where object if undefined
     return this._delete<R>({ where: opts.where ?? {}, options: opts.options });
@@ -365,47 +397,27 @@ export class PersistableRepository<
 
   override deleteBy(opts: {
     where: TWhere<DataObject>;
-    options: ExtraOptions & {
-      shouldReturn: false;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
   override deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: true;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
   override deleteBy<R = DataObject>(opts: {
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     if (opts.options?.shouldReturn === false) {
       const strictOpts = opts as {
         where: TWhere<DataObject>;
-        options: ExtraOptions & {
-          shouldReturn: false;
-          force?: boolean;
-          log?: TRepositoryLogOptions;
-        };
+        options: ExtraOptions & { shouldReturn: false; force?: boolean };
       };
       return this.deleteAll(strictOpts);
     }
 
     const strictOpts = opts as {
       where: TWhere<DataObject>;
-      options?: ExtraOptions & {
-        shouldReturn?: true;
-        force?: boolean;
-        log?: TRepositoryLogOptions;
-      };
+      options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
     };
     return this.deleteAll<R>(strictOpts);
   }

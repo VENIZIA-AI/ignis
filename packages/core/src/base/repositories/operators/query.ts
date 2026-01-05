@@ -19,14 +19,24 @@ import {
 } from 'drizzle-orm';
 import { IQueryHandlerOptions } from '../common';
 
+// -----------------------------------------------------------------------------
+// PostgreSQL Array Helpers
+// -----------------------------------------------------------------------------
+
 /**
- * Build PostgreSQL array comparison expressions with proper type handling.
+ * Builds PostgreSQL array comparison expressions with proper type handling.
  *
- * For string arrays: Cast both column and value to text[] for type compatibility.
- * This handles varchar[], text[], char[] columns uniformly since PostgreSQL's
- * array operators (@>, <@, &&) require matching types.
+ * **Type Handling:**
+ * - **String arrays**: Casts both column and value to `text[]` for type compatibility.
+ *   This handles varchar[], text[], char[] columns uniformly.
+ * - **Numeric/boolean arrays**: No casting needed as PostgreSQL infers correctly.
  *
- * For numeric/boolean arrays: No casting needed as PostgreSQL infers correctly.
+ * @param opts - Build options
+ * @param opts.column - The Drizzle column object
+ * @param opts.value - The array value to compare against
+ * @returns Object with columnExpr and arrayLiteral for SQL construction
+ *
+ * @internal
  */
 const buildPgArrayComparison = (opts: {
   column: any;
@@ -64,19 +74,72 @@ const buildPgArrayComparison = (opts: {
   };
 };
 
-// --------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Sort Direction Constants
+// -----------------------------------------------------------------------------
+
+/**
+ * Sort direction constants for order by clauses.
+ *
+ * @example
+ * ```typescript
+ * // Check if a direction is valid
+ * Sorts.isValid('DESC'); // true
+ * Sorts.isValid('asc');  // true (case-insensitive)
+ *
+ * // Use in order strings
+ * const order = ['createdAt DESC', 'name ASC'];
+ * ```
+ */
 export class Sorts {
+  /** Descending sort order. */
   static readonly DESC = 'desc';
+
+  /** Ascending sort order. */
   static readonly ASC = 'asc';
 
+  /** Set of valid sort directions. */
   static readonly SCHEMA_SET = new Set([Sorts.ASC, Sorts.DESC]);
 
+  /**
+   * Validates if a string is a valid sort direction (case-insensitive).
+   *
+   * @param value - The direction string to validate
+   * @returns True if valid, false otherwise
+   */
   static isValid(value: string): boolean {
     return Sorts.SCHEMA_SET.has(value.toLowerCase());
   }
 }
 
-// --------------------------------------------------------------------------------------
+// -----------------------------------------------------------------------------
+// Query Operators
+// -----------------------------------------------------------------------------
+
+/**
+ * Query operators for building where conditions.
+ *
+ * Supports:
+ * - **Comparison**: eq, ne, neq, gt, gte, lt, lte
+ * - **Pattern matching**: like, nlike, ilike, nilike, regexp, iregexp
+ * - **Null checks**: is, isn (is not)
+ * - **Arrays**: in, inq, nin, between, notBetween
+ * - **PostgreSQL array columns**: contains, containedBy, overlaps
+ * - **Logical**: and, or, not
+ *
+ * @example
+ * ```typescript
+ * // Use operators in where conditions
+ * const where = {
+ *   age: { gte: 18, lt: 65 },
+ *   status: { in: ['active', 'pending'] },
+ *   name: { ilike: '%john%' }
+ * };
+ *
+ * // Validate operator
+ * QueryOperators.isValid('gte'); // true
+ * ```
+ */
 export class QueryOperators {
   static readonly EQ = 'eq';
   static readonly NE = 'ne';

@@ -27,23 +27,59 @@ import {
 } from '../common';
 import { QueryOperators, Sorts } from './query';
 
+// -----------------------------------------------------------------------------
+// Filter Builder
+// -----------------------------------------------------------------------------
+
+/**
+ * Converts filter objects into Drizzle ORM query options.
+ *
+ * The FilterBuilder handles:
+ * - Where clause conversion with support for operators and JSON paths
+ * - Field selection (columns)
+ * - Ordering/sorting with JSON path support
+ * - Relation inclusion with nested filtering
+ * - Hidden property exclusion
+ * - Default filter merging
+ *
+ * @example
+ * ```typescript
+ * const builder = new FilterBuilder();
+ *
+ * // Build query options from filter
+ * const options = builder.build({
+ *   tableName: 'users',
+ *   schema: UserSchema,
+ *   filter: {
+ *     where: { status: 'active', age: { gte: 18 } },
+ *     order: ['createdAt DESC'],
+ *     limit: 10
+ *   }
+ * });
+ * ```
+ */
 export class FilterBuilder extends BaseHelper {
   // ---------------------------------------------------------------------------
   // Static Properties
   // ---------------------------------------------------------------------------
 
+  /** Cache for table columns to avoid repeated calls to getTableColumns. */
   private static columnCache = new WeakMap<
     TTableSchemaWithId,
     ReturnType<typeof getTableColumns>
   >();
 
-  // Allows: identifiers with hyphens for kebab-case (e.g., user-id, meta_data) or array indices
+  /**
+   * Regex pattern for validating JSON path components.
+   * Allows identifiers with hyphens for kebab-case (e.g., user-id, meta_data) or array indices.
+   */
   private static readonly JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
 
   // ---------------------------------------------------------------------------
   // Constructor
   // ---------------------------------------------------------------------------
 
+  /** Creates a new FilterBuilder instance. */
   constructor() {
     super({ scope: FilterBuilder.name });
   }
@@ -53,16 +89,26 @@ export class FilterBuilder extends BaseHelper {
   // ---------------------------------------------------------------------------
 
   /**
-   * Merge default filter with user-provided filter.
+   * Merges a default filter with a user-provided filter.
    *
-   * Merge strategy:
-   * - where: Deep merge (user overrides matching keys)
+   * **Merge Strategy:**
+   * - `where`: Deep merge (user values override matching keys)
    * - All other fields: User completely replaces default (if provided)
    *
+   * @template T - The entity type
+   * @param opts - Merge options
+   * @param opts.defaultFilter - The default filter to apply
+   * @param opts.userFilter - The user-provided filter
+   * @returns The merged filter
+   *
    * @example
-   * // Default: { where: { isDeleted: false }, limit: 100, order: ['createdAt DESC'] }
-   * // User: { where: { status: 'active' }, limit: 10 }
-   * // Result: { where: { isDeleted: false, status: 'active' }, limit: 10, order: ['createdAt DESC'] }
+   * ```typescript
+   * const merged = builder.mergeFilter({
+   *   defaultFilter: { where: { isDeleted: false }, limit: 100 },
+   *   userFilter: { where: { status: 'active' }, limit: 10 }
+   * });
+   * // Result: { where: { isDeleted: false, status: 'active' }, limit: 10 }
+   * ```
    */
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
@@ -98,7 +144,10 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Resolve hidden properties for a schema from MetadataRegistry.
+   * Resolves hidden properties for a schema from MetadataRegistry.
+   *
+   * @param opts - Options containing the schema
+   * @returns Set of property names that should be hidden
    */
   resolveHiddenProperties(opts: { schema: TTableSchemaWithId }): Set<string> {
     const { schema } = opts;
@@ -115,7 +164,10 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Resolve relations for a schema from MetadataRegistry.
+   * Resolves relation configurations for a schema from MetadataRegistry.
+   *
+   * @param opts - Options containing the schema
+   * @returns Record mapping relation names to their configurations
    */
   resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig> {
     const { schema } = opts;
@@ -143,7 +195,14 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Build Drizzle query options from a filter object.
+   * Builds Drizzle query options from a filter object.
+   *
+   * @template Schema - The table schema type
+   * @param opts - Build options
+   * @param opts.tableName - Name of the table for error messages
+   * @param opts.schema - The Drizzle table schema
+   * @param opts.filter - The filter to convert
+   * @returns Drizzle-compatible query options
    */
   build<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
@@ -171,7 +230,10 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Convert fields to Drizzle columns format.
+   * Converts fields selection to Drizzle columns format.
+   *
+   * @param opts - Options containing fields selection
+   * @returns Record of column names to boolean (true = include)
    */
   toColumns(opts: { fields: TFields }): Record<string, boolean> {
     const { fields } = opts;
@@ -195,7 +257,15 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Convert where clause to Drizzle SQL condition.
+   * Converts a where clause to a Drizzle SQL condition.
+   * Supports regular columns, JSON paths, operators, and logical groups (AND/OR).
+   *
+   * @template Schema - The table schema type
+   * @param opts - Conversion options
+   * @param opts.tableName - Name of the table for error messages
+   * @param opts.schema - The Drizzle table schema
+   * @param opts.where - The where clause to convert
+   * @returns SQL condition or undefined if no conditions
    */
   toWhere<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
@@ -259,7 +329,15 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Convert order clause to Drizzle SQL order expressions.
+   * Converts an order clause to Drizzle SQL order expressions.
+   * Supports regular columns and JSON paths.
+   *
+   * @template Schema - The table schema type
+   * @param opts - Conversion options
+   * @param opts.tableName - Name of the table for error messages
+   * @param opts.schema - The Drizzle table schema
+   * @param opts.order - Array of order strings (e.g., ['createdAt DESC', 'name ASC'])
+   * @returns Array of SQL order expressions
    */
   toOrderBy<Schema extends TTableSchemaWithId>(opts: {
     tableName: string;
@@ -306,7 +384,13 @@ export class FilterBuilder extends BaseHelper {
   }
 
   /**
-   * Convert include clause to Drizzle with options.
+   * Converts an include clause to Drizzle 'with' options for relation loading.
+   * Handles nested filtering and hidden property exclusion.
+   *
+   * @param opts - Conversion options
+   * @param opts.include - Array of inclusion configurations
+   * @param opts.relations - Map of relation names to their configurations
+   * @returns Record mapping relation names to query options or true
    */
   toInclude(opts: {
     include: TInclusion[];
@@ -381,6 +465,7 @@ export class FilterBuilder extends BaseHelper {
   // Private Helpers - Column Cache
   // ---------------------------------------------------------------------------
 
+  /** Gets columns from cache or computes and caches them. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
     let columns = FilterBuilder.columnCache.get(schema);
     if (!columns) {
@@ -394,11 +479,13 @@ export class FilterBuilder extends BaseHelper {
   // Private Helpers - Type Checking
   // ---------------------------------------------------------------------------
 
+  /** Checks if a key represents a JSON path (contains '.' or '['). */
   private isJsonPath(opts: { key: string }): boolean {
     const { key } = opts;
     return key.includes('.') || key.includes('[');
   }
 
+  /** Checks if a value is a primitive (not an operator object). */
   private isPrimitiveValue(opts: { value: any }): boolean {
     const { value } = opts;
     return (
@@ -425,6 +512,7 @@ export class FilterBuilder extends BaseHelper {
   // Private Helpers - SQL Condition Builders
   // ---------------------------------------------------------------------------
 
+  /** Builds a SQL condition for a simple value (null, array, or equality). */
   private buildValueCondition(opts: { column: any; value: any }): SQL {
     const { column, value } = opts;
 
@@ -460,6 +548,7 @@ export class FilterBuilder extends BaseHelper {
     return conditions;
   }
 
+  /** Builds SQL conditions for logical groups (AND/OR). */
   private buildLogicalGroupCondition<Schema extends TTableSchemaWithId>(opts: {
     key: string;
     value: any;
@@ -483,6 +572,7 @@ export class FilterBuilder extends BaseHelper {
   // Private Helpers - JSON Path Handling
   // ---------------------------------------------------------------------------
 
+  /** Parses a JSON path string into column name and path components. */
   private parseJsonPath(key: string): { columnName: string; path: string[] } {
     const parts = key.split(/[.[\]]+/).filter(Boolean);
     const [columnName = key, ...path] = parts;

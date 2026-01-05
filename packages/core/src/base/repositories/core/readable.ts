@@ -2,18 +2,36 @@ import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { PgTable } from 'drizzle-orm/pg-core';
-import {
-  IExtraOptions,
-  RepositoryOperationScopes,
-  TCount,
-  TFilter,
-  TRepositoryLogOptions,
-  TWhere,
-} from '../common';
-import { AbstractRepository } from './base';
+import { IExtraOptions, RepositoryOperationScopes, TCount, TFilter, TWhere } from '../common';
+import { AbstractRepository } from './abstract';
+
+// -----------------------------------------------------------------------------
+// Readable Repository
+// -----------------------------------------------------------------------------
 
 /**
- * Read-only repository with dependency injection support.
+ * Read-only repository implementation.
+ *
+ * Provides read operations (find, findOne, findById, count, existsWith) while
+ * blocking write operations (create, update, delete) with an error.
+ *
+ * Use this class when you need a repository that should only read data,
+ * such as for reporting or analytics views.
+ *
+ * @template EntitySchema - The Drizzle table schema type with an 'id' column
+ * @template DataObject - The type of objects returned from queries
+ * @template PersistObject - The type for insert/update operations
+ * @template ExtraOptions - Additional options type extending IExtraOptions
+ *
+ * @example
+ * ```typescript
+ * @repository({ model: Report, dataSource: PostgresDataSource })
+ * export class ReportRepository extends ReadableRepository<typeof Report.schema> {
+ *   async getMonthlyStats() {
+ *     return this.find({ filter: { where: { type: 'monthly' } } });
+ *   }
+ * }
+ * ```
  */
 export class ReadableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
@@ -25,6 +43,13 @@ export class ReadableRepository<
   // Constructor
   // ---------------------------------------------------------------------------
 
+  /**
+   * Creates a new read-only repository instance.
+   *
+   * @param ds - Optional data source (auto-injected from @repository decorator)
+   * @param opts - Optional configuration
+   * @param opts.entityClass - Entity class if not using @repository decorator
+   */
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, {
       entityClass: opts?.entityClass,
@@ -36,6 +61,13 @@ export class ReadableRepository<
   // Read Operations
   // ---------------------------------------------------------------------------
 
+  /**
+   * Counts records matching the where condition.
+   * Applies default filter if configured.
+   *
+   * @param opts - Options containing where condition
+   * @returns Promise resolving to count result
+   */
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -70,10 +102,14 @@ export class ReadableRepository<
   // ---------------------------------------------------------------------------
 
   /**
-   * Check if query can use Core API (faster for flat queries).
-   * Core API is used when:
-   * - No `include` (relations) - Core API doesn't support relations
-   * - No `fields` selection - Core API field selection has different syntax
+   * Determines if a query can use the Drizzle Core API for better performance.
+   *
+   * Core API is ~15-20% faster but has limitations:
+   * - No relation inclusion support
+   * - Different field selection syntax
+   *
+   * @param filter - The filter to evaluate
+   * @returns True if Core API can be used, false if Query API is needed
    */
   protected canUseCoreAPI(filter: TFilter<DataObject>): boolean {
     const hasInclude = filter.include && filter.include.length > 0;
@@ -86,8 +122,16 @@ export class ReadableRepository<
   }
 
   /**
-   * Execute flat query using Drizzle Core API.
-   * ~15-20% faster than Query API for simple queries without relations.
+   * Executes a query using the Drizzle Core API (faster for flat queries).
+   *
+   * Performance: ~15-20% faster than Query API for simple queries without relations.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Query options
+   * @param opts.filter - Filter configuration
+   * @param opts.isFindOne - If true, limits to 1 result
+   * @param opts.options - Extra options (transaction, logging)
+   * @returns Promise resolving to array of results
    */
   protected async findWithCoreAPI<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
@@ -159,6 +203,14 @@ export class ReadableRepository<
   // Find Operations
   // ---------------------------------------------------------------------------
 
+  /**
+   * Finds all records matching the filter.
+   * Automatically selects Core API or Query API based on filter complexity.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing filter and extra options
+   * @returns Promise resolving to array of matching records
+   */
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
@@ -182,6 +234,14 @@ export class ReadableRepository<
     return rs as Array<R>;
   }
 
+  /**
+   * Finds the first record matching the filter.
+   * Automatically selects Core API or Query API based on filter complexity.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing filter and extra options
+   * @returns Promise resolving to the found record or null
+   */
   override async findOne<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
@@ -209,9 +269,17 @@ export class ReadableRepository<
     return (result ?? null) as TNullable<R>;
   }
 
+  /**
+   * Finds a record by its ID.
+   * Delegates to findOne with id in the where clause.
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing id and optional filter (without where)
+   * @returns Promise resolving to the found record or null
+   */
   override findById<R = DataObject>(opts: {
     id: IdType;
-    filter?: Exclude<TFilter<DataObject>, 'where'>;
+    filter?: Omit<TFilter<DataObject>, 'where'>;
     options?: ExtraOptions;
   }): Promise<TNullable<R>> {
     return this.findOne<R>({
@@ -227,17 +295,21 @@ export class ReadableRepository<
   // Disabled Write Operations (Read-Only Repository)
   // ---------------------------------------------------------------------------
 
+  /**
+   * Create is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override create(opts: {
     data: PersistObject;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override create(opts: {
     data: PersistObject;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: DataObject }>;
   override create(_opts: {
     data: PersistObject;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<DataObject> }> {
     throw getError({
       message: `[${this.create.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -246,15 +318,15 @@ export class ReadableRepository<
 
   override createAll(opts: {
     data: Array<PersistObject>;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
   override createAll(opts: {
     data: Array<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<DataObject> }>;
   override createAll(_opts: {
     data: Array<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
+    options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<DataObject>> }> {
     throw getError({
       message: `[${this.createAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
@@ -264,18 +336,18 @@ export class ReadableRepository<
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
-  override updateById(opts: {
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
+  override updateById<R = DataObject>(opts: {
     id: IdType;
-    data: Partial<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
+    data: Partial<R>;
+    options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: DataObject }>;
-  override updateById(_opts: {
+  override updateById<R = DataObject>(_opts: {
     id: IdType;
     data: Partial<PersistObject>;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: TNullable<DataObject> }> {
+    options?: ExtraOptions & { shouldReturn?: boolean };
+  }): Promise<TCount & { data: TNullable<R> }> {
     throw getError({
       message: `[${this.updateById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
     });
@@ -284,30 +356,18 @@ export class ReadableRepository<
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options: ExtraOptions & {
-      shouldReturn: false;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: null }>;
-  override updateAll(opts: {
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override updateAll<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: true;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: Array<DataObject> }>;
-  override updateAll(_opts: {
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override updateAll<R = DataObject>(_opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: TNullable<Array<DataObject>> }> {
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
     throw getError({
       message: `[${this.updateAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
     });
@@ -315,16 +375,16 @@ export class ReadableRepository<
 
   override deleteById(opts: {
     id: IdType;
-    options: ExtraOptions & { shouldReturn: false; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: null }>;
-  override deleteById(opts: {
+    options: ExtraOptions & { shouldReturn: false };
+  }): Promise<TCount & { data: undefined | null }>;
+  override deleteById<R = DataObject>(opts: {
     id: IdType;
-    options?: ExtraOptions & { shouldReturn?: true; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: DataObject }>;
-  override deleteById(_opts: {
+    options?: ExtraOptions & { shouldReturn?: true };
+  }): Promise<TCount & { data: R }>;
+  override deleteById<R = DataObject>(_opts: {
     id: IdType;
-    options?: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
-  }): Promise<TCount & { data: TNullable<DataObject> }> {
+    options?: ExtraOptions & { shouldReturn?: boolean };
+  }): Promise<TCount & { data: TNullable<R> }> {
     throw getError({
       message: `[${this.deleteById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
     });
@@ -332,28 +392,16 @@ export class ReadableRepository<
 
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
-    options: ExtraOptions & {
-      shouldReturn: false;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: null }>;
-  override deleteAll(opts: {
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override deleteAll<R = DataObject>(opts: {
     where?: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: true;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: Array<DataObject> }>;
-  override deleteAll(_opts: {
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override deleteAll<R = DataObject>(_opts: {
     where?: TWhere<DataObject>;
-    options?: ExtraOptions & {
-      shouldReturn?: boolean;
-      force?: boolean;
-      log?: TRepositoryLogOptions;
-    };
-  }): Promise<TCount & { data: TNullable<Array<DataObject>> }> {
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
     throw getError({
       message: `[${this.deleteAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
     });
