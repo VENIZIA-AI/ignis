@@ -27,10 +27,9 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       const t = performance.now();
       const { req } = context;
 
-
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
-      let forwardedIp = req.header('x-real-ip') ?? req.header['x-forwarded-for'] ?? 'N/A';
-     
+      const forwardedIp = req.header('x-real-ip') ?? req.header['x-forwarded-for'] ?? 'N/A';
+
       // console.log(getConnInfo(context));
 
       const requestUrl = decodeURIComponent(req.url)?.replace(/(?:\r\n|\r|\n| )/g, '');

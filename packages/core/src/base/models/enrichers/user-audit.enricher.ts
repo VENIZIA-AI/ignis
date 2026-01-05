@@ -55,12 +55,15 @@ const buildUserAuditColumn = (opts: {
   columnField: 'createdBy' | 'modifiedBy';
 }) => {
   const { columnOpts, columnField } = opts;
-  const allowAnonymous = columnOpts.allowAnonymous ?? true;
 
   switch (columnOpts.dataType) {
     case 'number': {
       const col = integer(columnOpts.columnName).$type<number | null>();
-      const userIdGetter = () => getCurrentUserId<number>({ columnField, allowAnonymous });
+      const userIdGetter = () =>
+        getCurrentUserId<number>({
+          columnField,
+          allowAnonymous: columnOpts.allowAnonymous ?? true,
+        });
 
       // createdBy: only set on creation | modifiedBy: set on creation AND update
       return columnField === 'createdBy'
@@ -70,7 +73,11 @@ const buildUserAuditColumn = (opts: {
 
     case 'string': {
       const col = text(columnOpts.columnName).$type<string | null>();
-      const userIdGetter = () => getCurrentUserId<string>({ columnField, allowAnonymous });
+      const userIdGetter = () =>
+        getCurrentUserId<string>({
+          columnField,
+          allowAnonymous: columnOpts.allowAnonymous ?? true,
+        });
 
       // createdBy: only set on creation | modifiedBy: set on creation AND update
       return columnField === 'createdBy'

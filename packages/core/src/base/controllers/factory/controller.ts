@@ -143,8 +143,8 @@ export class ControllerFactory extends BaseHelper {
           count: number;
           data?: TNullable<TTableObject<EntitySchema> | Array<TTableObject<EntitySchema>>>;
         },
-      >(opts: { context: RequestContext; responseData: ResponseData }) {
-        const { context, responseData } = opts;
+      >(_opts: { context: RequestContext; responseData: ResponseData }) {
+        const { context, responseData } = _opts;
         const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
         const useCountData = toBoolean(requestCountData);
 
