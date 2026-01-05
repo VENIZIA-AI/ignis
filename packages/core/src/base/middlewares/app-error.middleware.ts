@@ -43,8 +43,8 @@ const formatZodError = (opts: {
   };
 };
 
-export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
-  const { logger = console } = opts;
+export const appErrorHandler = (opts: { logger: ApplicationLogger; rootKey?: string }) => {
+  const { logger = console, rootKey = null } = opts;
 
   const mw: ErrorHandler = async (error, context) => {
     const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
@@ -79,18 +79,20 @@ export const appErrorHandler = (opts: { logger: ApplicationLogger }) => {
       return context.json(rs.response, rs.statusCode);
     }
 
-    return context.json(
-      {
-        message: error.message,
-        statusCode,
-        requestId,
-        details: {
-          url: context.req.url,
-          path: context.req.path,
-          stack: !isProduction ? error.stack : undefined,
-          cause: !isProduction ? error.cause : undefined,
-        },
+    const rs = {
+      message: error.message,
+      statusCode,
+      requestId,
+      details: {
+        url: context.req.url,
+        path: context.req.path,
+        stack: !isProduction ? error.stack : undefined,
+        cause: !isProduction ? error.cause : undefined,
       },
+    };
+
+    return context.json(
+      rootKey ? { [rootKey]: rs } : rs,
       statusCode as Parameters<typeof context.json>[1],
     );
   };

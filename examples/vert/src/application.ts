@@ -14,8 +14,8 @@ import {
   AuthenticationStrategyRegistry,
   BaseApplication,
   BaseMetaLinkModel,
-  BindingKeys,
-  BindingNamespaces,
+  // BindingKeys,
+  // BindingNamespaces,
   CoreBindings,
   DiskHelper,
   Environment,
@@ -43,7 +43,7 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
-import { RepositoryTestService } from './services';
+// import { RepositoryTestService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -53,6 +53,7 @@ export const beConfigs: IApplicationConfigs = {
     base: process.env.APP_ENV_SERVER_BASE_PATH!,
     isStrict: true,
   },
+  error: { rootKey: 'error' },
   debug: {
     shouldShowRoutes: process.env.NODE_ENV !== Environment.PRODUCTION,
   },
@@ -254,12 +255,12 @@ export class Application extends BaseApplication {
     );
 
     // Run all tests using the test service (repositories are injected via DI)
-    const testService = this.get<RepositoryTestService>({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: RepositoryTestService.name,
-      }),
-    });
-    await testService.runAllTests();
+    // const testService = this.get<RepositoryTestService>({
+    //   key: BindingKeys.build({
+    //     namespace: BindingNamespaces.SERVICE,
+    //     key: RepositoryTestService.name,
+    //   }),
+    // });
+    // await testService.runAllTests();
   }
 }

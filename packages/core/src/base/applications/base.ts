@@ -389,7 +389,13 @@ export abstract class BaseApplication
 
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
         server.notFound(notFoundHandler({ logger: this.logger }));
-        server.onError(appErrorHandler({ logger: this.logger }));
+
+        server.onError(
+          appErrorHandler({
+            logger: this.logger,
+            rootKey: this.configs.error?.rootKey ?? undefined,
+          }),
+        );
       },
     });
   }
