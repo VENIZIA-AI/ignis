@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.0.4-3",
+  "version": "0.0.4-4",
   "description": "Utility helpers for the Ignis Framework - logging, cron, Redis, queues, storage, and more",
   "keywords": [
     "ignis",
