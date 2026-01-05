@@ -389,6 +389,38 @@ export const CountSchema = z.object({ count: z.number().default(0) }).openapi({
 /** Type for count operation results. Inferred from {@link CountSchema}. */
 export type TCount = z.infer<typeof CountSchema>;
 
+/**
+ * Data range information for paginated queries.
+ * Follows HTTP Content-Range header standard format.
+ *
+ * @property start - The starting index (0-based, inclusive)
+ * @property end - The ending index (0-based, inclusive)
+ * @property total - The total number of records matching the query
+ * @property contentRange - Formatted Content-Range header string
+ *
+ * @example
+ * ```typescript
+ * // Query with limit: 10, skip: 20, total records: 100
+ * const range: TDataRange = {
+ *   start: 20,
+ *   end: 29,
+ *   total: 100,
+ *   contentRange: 'items 20-29/100'
+ * };
+ *
+ * // Use in HTTP response header
+ * res.setHeader('Content-Range', range.contentRange);
+ * ```
+ */
+export type TDataRange = {
+  /** Starting index (0-based, inclusive) */
+  start: number;
+  /** Ending index (0-based, inclusive) */
+  end: number;
+  /** Total number of records matching the query */
+  total: number;
+};
+
 // -----------------------------------------------------------------------------
 // Drizzle ORM Types
 // -----------------------------------------------------------------------------
@@ -586,12 +618,23 @@ export interface IReadableRepository<
   /**
    * Finds all records matching the filter.
    * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing filter and extra options with shouldQueryRange: true
+   * @returns Promise resolving to object with data array and range information
+   */
+  find<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options: ExtraOptions & { shouldQueryRange: true };
+  }): Promise<{ data: Array<R>; range: TDataRange }>;
+
+  /**
+   * Finds all records matching the filter.
+   * @template R - Return type (defaults to DataObject)
    * @param opts - Options containing filter and extra options
    * @returns Promise resolving to array of matching records
    */
   find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions;
+    options?: ExtraOptions & { shouldQueryRange?: false };
   }): Promise<Array<R>>;
 
   /**

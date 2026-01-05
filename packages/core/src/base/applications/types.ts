@@ -97,6 +97,7 @@ export interface IApplicationConfigs {
   host?: string;
   port?: number;
   path: { base: string; isStrict: boolean };
+  requestId?: { isStrict: boolean };
   favicon?: string;
   error?: { rootKey: string };
   asyncContext?: { enable: boolean };

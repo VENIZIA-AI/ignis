@@ -8,9 +8,17 @@ export class HTTP {
     CONTENT_ENCODING: 'content-encoding',
     CONTENT_LENGTH: 'content-length',
     CONTENT_TYPE: 'content-type',
+    CONTENT_RANGE: 'content-range',
     ETAG: 'etag',
+
     LAST_MODIFIED: 'last-modified',
+
     REQUEST_TRACING_ID: 'x-request-id',
+    REQUEST_DEVICE_INFO: 'x-device-info',
+    REQUEST_CHANNEL: 'x-request-channel',
+
+    REQUEST_COUNT_DATA: 'x-request-count',
+    RESPONSE_COUNT_DATA: 'x-response-count',
   } as const;
 
   static readonly HeaderValues = {

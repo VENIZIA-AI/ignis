@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-01-05 | [Range Queries & Content-Range Header](./2026-01-05-range-queries-content-range) | New Feature |
 | 2026-01-02 | [Default Filter & Repository Mixins](./2026-01-02-default-filter-and-repository-mixins) | New Feature |
 | 2025-12-31 | [JSON Path Filtering & Array Operators](./2025-12-31-json-path-filtering-array-operators) | New Feature |
 | 2025-12-31 | [String ID with Custom Generator](./2025-12-31-string-id-custom-generator) | Enhancement |

@@ -16,7 +16,6 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: {
     name: 'ConfigurationController',
     basePath: BASE_PATH,
-    isStrict: true,
   },
   authStrategies: [Authentication.STRATEGY_JWT],
 

@@ -39,6 +39,7 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 | Method | Description | Example |
 |--------|-------------|---------|
 | `find(opts)` | Find multiple records | `repo.find({ filter: { where: { status: 'active' } } })` |
+| `find(opts)` with range | Find with pagination range | `repo.find({ filter, options: { shouldQueryRange: true } })` |
 | `findOne(opts)` | Find single record | `repo.findOne({ filter: { where: { email } } })` |
 | `findById(opts)` | Find by primary key | `repo.findById({ id: '123' })` |
 | `count(opts)` | Count matching records | `repo.count({ where: { status: 'active' } })` |
@@ -186,6 +187,7 @@ await repo.deleteAll({ where: {}, options: { force: true } });
 | Want to... | Code |
 |------------|------|
 | Find all active | `repo.find({ filter: { where: { status: 'active' } } })` |
+| Find with range info | `repo.find({ filter, options: { shouldQueryRange: true } })` |
 | Find by ID | `repo.findById({ id: '123' })` |
 | Find with relations | `repo.find({ filter: { include: [{ relation: 'posts' }] } })` |
 | Create one | `repo.create({ data: { name: 'John' } })` |

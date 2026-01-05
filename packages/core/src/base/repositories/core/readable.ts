@@ -2,7 +2,14 @@ import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { PgTable } from 'drizzle-orm/pg-core';
-import { IExtraOptions, RepositoryOperationScopes, TCount, TFilter, TWhere } from '../common';
+import {
+  IExtraOptions,
+  RepositoryOperationScopes,
+  TCount,
+  TDataRange,
+  TFilter,
+  TWhere,
+} from '../common';
 import { AbstractRepository } from './abstract';
 
 // -----------------------------------------------------------------------------
@@ -55,46 +62,6 @@ export class ReadableRepository<
       entityClass: opts?.entityClass,
       operationScope: RepositoryOperationScopes.READ_ONLY,
     });
-  }
-
-  // ---------------------------------------------------------------------------
-  // Read Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Counts records matching the where condition.
-   * Applies default filter if configured.
-   *
-   * @param opts - Options containing where condition
-   * @returns Promise resolving to count result
-   */
-  override async count(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions;
-  }): Promise<TCount> {
-    // Apply default filter's where condition
-    const mergedFilter = this.applyDefaultFilter({
-      userFilter: { where: opts.where },
-      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
-    });
-
-    const where = this.filterBuilder.toWhere({
-      tableName: this.entity.name,
-      schema: this.entity.schema,
-      where: mergedFilter.where ?? {},
-    });
-
-    const connector = this.resolveConnector({ transaction: opts.options?.transaction });
-    const count = await connector.$count(this.entity.schema, where);
-    return { count };
-  }
-
-  override async existsWith(opts: {
-    where: TWhere<DataObject>;
-    options?: ExtraOptions;
-  }): Promise<boolean> {
-    const rs = await this.count(opts);
-    return rs.count > 0;
   }
 
   // ---------------------------------------------------------------------------
@@ -199,39 +166,99 @@ export class ReadableRepository<
     return query as Promise<Array<R>>;
   }
 
+  /**
+   * Executes a query using the Drizzle Query API (supports relations and field selection).
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Query options
+   * @param opts.filter - Filter configuration (should already have default filter applied)
+   * @param opts.options - Extra options (transaction, logging)
+   * @returns Promise resolving to array of results
+   */
+  protected async findWithQueryAPI<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options?: ExtraOptions;
+  }): Promise<Array<R>> {
+    const queryOptions = this.buildQuery({ filter: opts.filter });
+    const queryInterface = this.getQueryInterface({ options: opts.options });
+    return queryInterface.findMany(queryOptions) as unknown as Promise<Array<R>>;
+  }
+
   // ---------------------------------------------------------------------------
-  // Find Operations
+  // Public Read Operations - Find
   // ---------------------------------------------------------------------------
 
   /**
+   * Finds all records matching the filter with range information.
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing filter and extra options with shouldQueryRange: true
+   * @returns Promise resolving to object with data array and range information
+   */
+  override find<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options: ExtraOptions & { shouldQueryRange: true };
+  }): Promise<{ data: Array<R>; range: TDataRange }>;
+
+  /**
    * Finds all records matching the filter.
-   * Automatically selects Core API or Query API based on filter complexity.
-   *
    * @template R - Return type (defaults to DataObject)
    * @param opts - Options containing filter and extra options
    * @returns Promise resolving to array of matching records
    */
+  override find<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options?: ExtraOptions & { shouldQueryRange?: false };
+  }): Promise<Array<R>>;
+
+  /**
+   * Finds all records matching the filter.
+   * Automatically selects Core API or Query API based on filter complexity.
+   * When shouldQueryRange is true, also returns range information (from, to, total).
+   *
+   * @template R - Return type (defaults to DataObject)
+   * @param opts - Options containing filter and extra options
+   * @returns Promise resolving to array of matching records or object with data and range
+   */
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions;
-  }): Promise<Array<R>> {
-    // Use Core API for flat queries (no relations, no field selection)
-    if (this.canUseCoreAPI(opts.filter)) {
-      const rs = await this.findWithCoreAPI<R>({ filter: opts.filter, options: opts.options });
-      return rs;
-    }
+    options?: ExtraOptions & { shouldQueryRange?: boolean };
+  }): Promise<Array<R> | { data: Array<R>; range: TDataRange }> {
+    const { filter, options } = opts;
+    const shouldQueryRange = options?.shouldQueryRange === true;
 
-    // Apply default filter for Query API path
+    // Apply default filter once for all operations
     const mergedFilter = this.applyDefaultFilter({
-      userFilter: opts.filter,
-      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
+      userFilter: filter,
+      shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    // Fall back to Query API for complex queries with relations/fields
-    const queryOptions = this.buildQuery({ filter: mergedFilter });
-    const queryInterface = this.getQueryInterface({ options: opts.options });
-    const rs = await queryInterface.findMany(queryOptions);
-    return rs as Array<R>;
+    // Prevent double-application in delegated methods
+    const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
+
+    // Prepare data fetch based on filter complexity
+    const dataPromise = this.canUseCoreAPI(mergedFilter)
+      ? this.findWithCoreAPI<R>({ filter: mergedFilter, options: effectiveOptions })
+      : this.findWithQueryAPI<R>({ filter: mergedFilter, options: effectiveOptions });
+
+    // Return data directly if range not requested
+    if (!shouldQueryRange) {
+      return dataPromise;
+    }
+
+    // Run data fetch and count in parallel for better performance
+    const [data, { count: total }] = await Promise.all([
+      dataPromise,
+      this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions }),
+    ]);
+
+    // Build range following HTTP Content-Range standard (inclusive end index)
+    const start = mergedFilter.skip ?? mergedFilter.offset ?? 0;
+    const end = data.length > 0 ? start + data.length - 1 : start;
+
+    return {
+      data,
+      range: { start, end, total },
+    };
   }
 
   /**
@@ -292,6 +319,52 @@ export class ReadableRepository<
   }
 
   // ---------------------------------------------------------------------------
+  // Public Read Operations - Aggregate
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Counts records matching the where condition.
+   * Applies default filter if configured.
+   *
+   * @param opts - Options containing where condition
+   * @returns Promise resolving to count result
+   */
+  override async count(opts: {
+    where: TWhere<DataObject>;
+    options?: ExtraOptions;
+  }): Promise<TCount> {
+    // Apply default filter's where condition
+    const mergedFilter = this.applyDefaultFilter({
+      userFilter: { where: opts.where },
+      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
+    });
+
+    const where = this.filterBuilder.toWhere({
+      tableName: this.entity.name,
+      schema: this.entity.schema,
+      where: mergedFilter.where ?? {},
+    });
+
+    const connector = this.resolveConnector({ transaction: opts.options?.transaction });
+    const count = await connector.$count(this.entity.schema, where);
+    return { count };
+  }
+
+  /**
+   * Checks if any records exist matching the where condition.
+   *
+   * @param opts - Options containing where condition
+   * @returns Promise resolving to true if records exist, false otherwise
+   */
+  override async existsWith(opts: {
+    where: TWhere<DataObject>;
+    options?: ExtraOptions;
+  }): Promise<boolean> {
+    const rs = await this.count(opts);
+    return rs.count > 0;
+  }
+
+  // ---------------------------------------------------------------------------
   // Disabled Write Operations (Read-Only Repository)
   // ---------------------------------------------------------------------------
 
@@ -316,6 +389,10 @@ export class ReadableRepository<
     });
   }
 
+  /**
+   * CreateAll is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override createAll(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false };
@@ -333,6 +410,10 @@ export class ReadableRepository<
     });
   }
 
+  /**
+   * UpdateById is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
@@ -353,6 +434,10 @@ export class ReadableRepository<
     });
   }
 
+  /**
+   * UpdateAll is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -373,6 +458,10 @@ export class ReadableRepository<
     });
   }
 
+  /**
+   * DeleteById is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override deleteById(opts: {
     id: IdType;
     options: ExtraOptions & { shouldReturn: false };
@@ -390,6 +479,10 @@ export class ReadableRepository<
     });
   }
 
+  /**
+   * DeleteAll is disabled in read-only repository.
+   * @throws Error indicating operation is not allowed
+   */
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };

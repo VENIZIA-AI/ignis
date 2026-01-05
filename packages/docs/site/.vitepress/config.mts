@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-01-05',
+              collapsed: true,
+              items: [
+                { text: 'Range Queries & Content-Range Header', link: '/changelogs/2026-01-05-range-queries-content-range' },
+              ],
+            },
+            {
               text: '2026-01-02',
               collapsed: true,
               items: [

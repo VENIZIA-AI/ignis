@@ -10,13 +10,28 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     super({ scope: RequestSpyMiddleware.name });
   }
 
+  /* validateStrictCondition<RequestContext extends Context>(opts: { context: RequestContext }) {
+        const { context } = opts;
+
+        const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+        if (isStrict.requestId && !requestId) {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            message: '[validate] Malformed/Missing remote request ID!',
+          });
+        }
+      } */
+
   value() {
     return createMiddleware(async (context, next) => {
       const t = performance.now();
       const { req } = context;
 
+
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
-      const forwardedIp = req.header('x-real-ip') ?? req.header['x-forwarded-for'] ?? 'N/A';
+      let forwardedIp = req.header('x-real-ip') ?? req.header['x-forwarded-for'] ?? 'N/A';
+     
+      // console.log(getConnInfo(context));
 
       const requestUrl = decodeURIComponent(req.url)?.replace(/(?:\r\n|\r|\n| )/g, '');
       const remark = {

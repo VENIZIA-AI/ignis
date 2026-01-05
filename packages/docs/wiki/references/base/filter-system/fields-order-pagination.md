@@ -140,6 +140,72 @@ const filter = {
 ```
 
 
+## Range Queries (Content-Range Header)
+
+When building paginated APIs, you often need to return the total count alongside the data for pagination UI. Use `shouldQueryRange: true` to get range information following the HTTP Content-Range standard.
+
+### Basic Usage
+
+```typescript
+const result = await repo.find({
+  filter: { limit: 10, skip: 20 },
+  options: { shouldQueryRange: true }
+});
+
+// Result structure:
+// {
+//   data: [...],  // Array of records
+//   range: {
+//     start: 20,   // Starting index (inclusive)
+//     end: 29,     // Ending index (inclusive)
+//     total: 100   // Total matching records
+//   }
+// }
+```
+
+### Setting HTTP Headers
+
+Use the range information to set standard HTTP headers:
+
+```typescript
+const { data, range } = await repo.find({
+  filter: { limit: 10, skip: 20, where: { status: 'active' } },
+  options: { shouldQueryRange: true }
+});
+
+// Format: "records start-end/total"
+const contentRange = data.length > 0
+  ? `records ${range.start}-${range.end}/${range.total}`
+  : `records */${range.total}`;
+
+res.setHeader('Content-Range', contentRange);
+// → "records 20-29/100"
+```
+
+### TDataRange Type
+
+```typescript
+type TDataRange = {
+  start: number;  // Starting index (0-based, inclusive)
+  end: number;    // Ending index (0-based, inclusive)
+  total: number;  // Total count matching the query
+};
+```
+
+### Content-Range Format Reference
+
+| Scenario | Content-Range Header |
+|----------|---------------------|
+| Items 0-9 of 100 | `records 0-9/100` |
+| Items 20-29 of 100 | `records 20-29/100` |
+| No items found | `records */0` |
+| Last page (items 90-99) | `records 90-99/100` |
+
+### Performance Note
+
+When `shouldQueryRange: true`, the repository executes the data query and count query **in parallel** using `Promise.all` for optimal performance.
+
+
 ## Combined Example
 
 ```typescript
@@ -152,4 +218,22 @@ await repo.find({
     skip: 0
   }
 });
+```
+
+### With Range Information
+
+```typescript
+const { data, range } = await repo.find({
+  filter: {
+    where: { status: 'active' },
+    fields: ['id', 'name', 'price', 'createdAt'],
+    order: ['price ASC', 'createdAt DESC'],
+    limit: 20,
+    skip: 0
+  },
+  options: { shouldQueryRange: true }
+});
+
+console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
+// → "Showing 0-19 of 150"
 ```

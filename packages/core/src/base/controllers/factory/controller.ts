@@ -1,5 +1,11 @@
-import { BaseEntity, getIdType, SchemaTypes, TTableSchemaWithId } from '@/base/models';
-import { AbstractRepository, DEFAULT_LIMIT } from '@/base/repositories';
+import {
+  BaseEntity,
+  getIdType,
+  SchemaTypes,
+  TTableObject,
+  TTableSchemaWithId,
+} from '@/base/models';
+import { AbstractRepository } from '@/base/repositories';
 import {
   BaseHelper,
   executeWithPerformanceMeasure,
@@ -7,11 +13,13 @@ import {
   HTTP,
   TAuthStrategy,
   TClass,
+  TNullable,
+  toBoolean,
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { isClass } from '@venizia/ignis-inversion';
-import { Env, Schema } from 'hono';
+import { Context, Env, Schema } from 'hono';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs, TRoutesConfig } from './definition';
 
@@ -22,8 +30,10 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
     name: string;
     basePath: string;
     readonly?: boolean;
-    isStrict?: boolean;
-    defaultLimit?: number;
+    isStrict?: {
+      path?: boolean;
+      requestSchema?: boolean;
+    };
   };
   /**
    * Auth strategies applied to all routes (unless overridden per-route)
@@ -81,8 +91,7 @@ export class ControllerFactory extends BaseHelper {
     const {
       name,
       basePath = 'unknown_path',
-      isStrict = true,
-      defaultLimit = DEFAULT_LIMIT,
+      isStrict = { path: true, requestSchema: true },
     } = controller;
     if (!basePath || basePath === 'unknown_path') {
       throw getError({
@@ -101,7 +110,7 @@ export class ControllerFactory extends BaseHelper {
 
     // 2. Define required CRU (Create - Retrieve - Update) schema
     const routeDefinitions = defineControllerRouteConfigs({
-      isStrict,
+      isStrict: isStrict.requestSchema ?? true,
       idType: getIdType({ entity: entityInstance.schema }),
       authStrategies,
       routes,
@@ -120,14 +129,32 @@ export class ControllerFactory extends BaseHelper {
       ConfigurableOptions
     > {
       repository: AbstractRepository<EntitySchema>;
-      defaultLimit: number;
 
       constructor(repository: AbstractRepository<EntitySchema>) {
-        super({ scope: name, path: basePath, isStrict });
+        super({ scope: name, path: basePath, isStrict: isStrict.path ?? true });
         this.repository = repository;
 
-        this.defaultLimit = defaultLimit;
         this.definitions = routeDefinitions;
+      }
+
+      normalizeCountData<
+        RequestContext extends Context,
+        ResponseData extends {
+          count: number;
+          data?: TNullable<TTableObject<EntitySchema> | Array<TTableObject<EntitySchema>>>;
+        },
+      >(opts: { context: RequestContext; responseData: ResponseData }) {
+        const { context, responseData } = opts;
+        const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
+        const useCountData = toBoolean(requestCountData);
+
+        context.header(HTTP.Headers.RESPONSE_COUNT_DATA, responseData.count.toString());
+
+        if (useCountData) {
+          return responseData;
+        }
+
+        return responseData.data;
       }
 
       override binding(): ValueOrPromise<void> {
@@ -167,8 +194,24 @@ export class ControllerFactory extends BaseHelper {
               scope: 'find',
               description: 'execute find',
               args: filter,
-              task: () => {
-                return this.repository.find({ filter });
+              task: async () => {
+                const _rs = await this.repository.find({
+                  filter,
+                  options: { shouldQueryRange: true },
+                });
+
+                const { data, range } = _rs;
+
+                const { start, end, total } = range;
+                context.header(
+                  HTTP.Headers.CONTENT_RANGE,
+                  data.length > 0 ? `records ${start}-${end}/${total}` : `records */${total}`,
+                );
+                context.header(
+                  HTTP.Headers.RESPONSE_COUNT_DATA,
+                  (data.length > 0 ? end - start + 1 : 0).toString(),
+                );
+                return data;
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -190,8 +233,10 @@ export class ControllerFactory extends BaseHelper {
               scope: 'find',
               description: 'execute findById',
               args: filter,
-              task: () => {
-                return this.repository.findById({ id, filter });
+              task: async () => {
+                const _rs = await this.repository.findById({ id, filter });
+                context.header(HTTP.Headers.RESPONSE_COUNT_DATA, (_rs ? 1 : 0).toString());
+                return _rs;
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -212,8 +257,10 @@ export class ControllerFactory extends BaseHelper {
               scope: 'findOne',
               description: 'execute findOne',
               args: filter,
-              task: () => {
-                return this.repository.findOne({ filter });
+              task: async () => {
+                const _rs = await this.repository.findOne({ filter });
+                context.header(HTTP.Headers.RESPONSE_COUNT_DATA, (_rs ? 1 : 0).toString());
+                return _rs;
               },
             });
 
@@ -235,8 +282,9 @@ export class ControllerFactory extends BaseHelper {
               scope: 'create',
               description: 'execute create',
               args: data,
-              task: () => {
-                return this.repository.create({ data });
+              task: async () => {
+                const _rs = await this.repository.create({ data });
+                return this.normalizeCountData({ context, responseData: _rs });
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -258,8 +306,9 @@ export class ControllerFactory extends BaseHelper {
               scope: 'updateById',
               description: 'execute updateById',
               args: { id, data },
-              task: () => {
-                return this.repository.updateById({ id, data });
+              task: async () => {
+                const _rs = await this.repository.updateById({ id, data });
+                return this.normalizeCountData({ context, responseData: _rs });
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -281,8 +330,9 @@ export class ControllerFactory extends BaseHelper {
               scope: 'updateBy',
               description: 'execute updateBy',
               args: { where, data },
-              task: () => {
-                return this.repository.updateBy({ where, data });
+              task: async () => {
+                const _rs = await this.repository.updateBy({ where, data });
+                return this.normalizeCountData({ context, responseData: _rs });
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -303,8 +353,9 @@ export class ControllerFactory extends BaseHelper {
               scope: 'deleteById',
               description: 'execute deleteById',
               args: { id },
-              task: () => {
-                return this.repository.deleteById({ id });
+              task: async () => {
+                const _rs = await this.repository.deleteById({ id });
+                return this.normalizeCountData({ context, responseData: _rs });
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
@@ -325,8 +376,9 @@ export class ControllerFactory extends BaseHelper {
               scope: 'deleteBy',
               description: 'execute deleteBy',
               args: { where },
-              task: () => {
-                return this.repository.deleteBy({ where });
+              task: async () => {
+                const _rs = await this.repository.deleteBy({ where });
+                return this.normalizeCountData({ context, responseData: _rs });
               },
             });
             return context.json(rs, HTTP.ResultCodes.RS_2.Ok);

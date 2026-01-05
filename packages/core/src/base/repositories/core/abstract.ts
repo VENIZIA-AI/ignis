@@ -7,6 +7,7 @@ import {
   IPersistableRepository,
   RepositoryOperationScopes,
   TCount,
+  TDataRange,
   TDrizzleQueryOptions,
   TFilter,
   TRepositoryLogOptions,
@@ -380,12 +381,21 @@ export abstract class AbstractRepository<
   }): Promise<boolean>;
 
   /**
+   * Finds all records matching the filter with range information.
+   * Must be implemented by subclasses.
+   */
+  abstract find<R = DataObject>(opts: {
+    filter: TFilter<DataObject>;
+    options: ExtraOptions & { shouldQueryRange: true };
+  }): Promise<{ data: Array<R>; range: TDataRange }>;
+
+  /**
    * Finds all records matching the filter.
    * Must be implemented by subclasses.
    */
   abstract find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions;
+    options?: ExtraOptions & { shouldQueryRange?: false };
   }): Promise<R[]>;
 
   /**
