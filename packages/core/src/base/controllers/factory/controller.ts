@@ -273,11 +273,11 @@ export class ControllerFactory extends BaseHelper {
       /**
        * Handles GET /count - Returns count of records matching the filter.
        *
-       * @param opts - Request options containing the Hono context
+       * @param _opts - Request options containing the Hono context
        * @returns JSON response with count
        */
-      async count(opts: { context: TRouteContext<typeof routeDefinitions.COUNT, RouteEnv> }) {
-        const { context } = opts;
+      async count(_opts: { context: TRouteContext<typeof routeDefinitions.COUNT, RouteEnv> }) {
+        const { context } = _opts;
         const { where } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -302,8 +302,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with data array and range information
        */
-      async find(opts: { context: TRouteContext<typeof routeDefinitions.FIND, RouteEnv> }) {
-        const { context } = opts;
+      async find(_opts: { context: TRouteContext<typeof routeDefinitions.FIND, RouteEnv> }) {
+        const { context } = _opts;
         const { filter = {} } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -347,10 +347,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findById(opts: {
+      async findById(_opts: {
         context: TRouteContext<typeof routeDefinitions.FIND_BY_ID, RouteEnv>;
       }) {
-        const { context } = opts;
+        const { context } = _opts;
         const { id } = context.req.valid('param');
         const { filter } = context.req.valid('query');
 
@@ -383,8 +383,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findOne(opts: { context: TRouteContext<typeof routeDefinitions.FIND_ONE, RouteEnv> }) {
-        const { context } = opts;
+      async findOne(_opts: { context: TRouteContext<typeof routeDefinitions.FIND_ONE, RouteEnv> }) {
+        const { context } = _opts;
         const { filter = {} } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -416,8 +416,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with request body
        * @returns JSON response with created record and count
        */
-      async create(opts: { context: TRouteContext<typeof routeDefinitions.CREATE, RouteEnv> }) {
-        const { context } = opts;
+      async create(_opts: { context: TRouteContext<typeof routeDefinitions.CREATE, RouteEnv> }) {
+        const { context } = _opts;
         const data = context.req.valid('json');
 
         const rs = await executeWithPerformanceMeasure({
@@ -449,10 +449,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param and body
        * @returns JSON response with updated record and count
        */
-      async updateById(opts: {
+      async updateById(_opts: {
         context: TRouteContext<typeof routeDefinitions.UPDATE_BY_ID, RouteEnv>;
       }) {
-        const { context } = opts;
+        const { context } = _opts;
         const { id } = context.req.valid('param');
         const data = context.req.valid('json');
 
@@ -485,10 +485,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query and body
        * @returns JSON response with updated records array and count
        */
-      async updateBy(opts: {
+      async updateBy(_opts: {
         context: TRouteContext<typeof routeDefinitions.UPDATE_BY, RouteEnv>;
       }) {
-        const { context } = opts;
+        const { context } = _opts;
         const { where } = context.req.valid('query');
         const data = context.req.valid('json');
 
@@ -521,10 +521,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param
        * @returns JSON response with deleted record and count
        */
-      async deleteById(opts: {
+      async deleteById(_opts: {
         context: TRouteContext<typeof routeDefinitions.DELETE_BY_ID, RouteEnv>;
       }) {
-        const { context } = opts;
+        const { context } = _opts;
         const { id } = context.req.valid('param');
 
         const rs = await executeWithPerformanceMeasure({
@@ -556,10 +556,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query
        * @returns JSON response with deleted records array and count
        */
-      async deleteBy(opts: {
+      async deleteBy(_opts: {
         context: TRouteContext<typeof routeDefinitions.DELETE_BY, RouteEnv>;
       }) {
-        const { context } = opts;
+        const { context } = _opts;
         const { where } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({

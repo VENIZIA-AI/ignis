@@ -114,19 +114,6 @@ type TJsonResponseOpts<T extends z.ZodType, H extends TResponseHeaders | undefin
   headers?: H;
 };
 
-type TResponseContent<T extends z.ZodType> = {
-  description: string;
-  content: { 'application/json': { schema: T } };
-  required?: boolean;
-};
-
-type TResponseWithHeaders<
-  ContentSchema extends z.ZodType,
-  HeaderSchema extends TResponseHeaders | undefined,
-> = HeaderSchema extends TResponseHeaders
-  ? TResponseContent<ContentSchema> & { headers: HeaderSchema }
-  : TResponseContent<ContentSchema>;
-
 export const jsonResponse = <
   ContentSchema extends z.ZodType,
   HeaderSchema extends TResponseHeaders | undefined = undefined,
@@ -139,12 +126,7 @@ export const jsonResponse = <
     schema: opts.schema,
   });
 
-  const successResponse = opts.headers
-    ? ({ ...baseResponse, headers: opts.headers } as TResponseWithHeaders<
-        ContentSchema,
-        HeaderSchema
-      >)
-    : (baseResponse as TResponseWithHeaders<ContentSchema, HeaderSchema>);
+  const successResponse = opts.headers ? { ...baseResponse, headers: opts.headers } : baseResponse;
 
   return {
     [HTTP.ResultCodes.RS_2.Ok]: successResponse,
