@@ -29,7 +29,7 @@ export const StaticAssetDefinitions = {
   },
   GET_BUCKET_BY_NAME: {
     method: 'get',
-    path: '/buckets/:bucketName',
+    path: '/buckets/{bucketName}',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -52,7 +52,7 @@ export const StaticAssetDefinitions = {
   },
   CREATE_BUCKET: {
     method: 'post',
-    path: '/buckets/:bucketName',
+    path: '/buckets/{bucketName}',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -75,7 +75,7 @@ export const StaticAssetDefinitions = {
   },
   GET_OBJECT_BY_NAME: {
     method: 'get',
-    path: '/buckets/:bucketName/objects/:objectName',
+    path: '/buckets/{bucketName}/objects/{objectName}',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -111,7 +111,7 @@ export const StaticAssetDefinitions = {
   },
   DOWNLOAD_OBJECT_BY_NAME: {
     method: 'get',
-    path: '/buckets/:bucketName/objects/:objectName/download',
+    path: '/buckets/{bucketName}/objects/{objectName}/download',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -147,7 +147,7 @@ export const StaticAssetDefinitions = {
   },
   UPLOAD: {
     method: 'post',
-    path: '/buckets/:bucketName/upload',
+    path: '/buckets/{bucketName}/upload',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -184,7 +184,7 @@ export const StaticAssetDefinitions = {
   },
   DELETE_BUCKET: {
     method: 'delete',
-    path: '/buckets/:bucketName',
+    path: '/buckets/{bucketName}',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -204,7 +204,7 @@ export const StaticAssetDefinitions = {
   },
   DELETE_OBJECT: {
     method: 'delete',
-    path: '/buckets/:bucketName/objects/:objectName',
+    path: '/buckets/{bucketName}/objects/{objectName}',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -231,7 +231,7 @@ export const StaticAssetDefinitions = {
   },
   LIST_OBJECTS: {
     method: 'get',
-    path: '/buckets/:bucketName/objects',
+    path: '/buckets/{bucketName}/objects',
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -292,7 +292,7 @@ export const StaticAssetDefinitions = {
   },
   RECREATE_METALINK: {
     method: 'put',
-    path: '/buckets/:bucketName/objects/:objectName/meta-links',
+    path: '/buckets/{bucketName}/objects/{objectName}/meta-links',
     request: {
       params: z.object({
         bucketName: z.string().openapi({

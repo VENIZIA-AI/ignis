@@ -43,6 +43,16 @@ const formatZodError = (opts: {
   };
 };
 
+/**
+ * Creates an error handling middleware for the application.
+ * This middleware catches errors, logs them, and formats the response for the client.
+ * It also handles `ZodError` specifically for validation errors.
+ *
+ * @param opts - Options for the error handler.
+ * @param opts.logger - The application logger instance. Defaults to `console`.
+ * @param opts.rootKey - Optional: A key to wrap the error response in.
+ * @returns An `ErrorHandler` middleware function.
+ */
 export const appErrorHandler = (opts: { logger: ApplicationLogger; rootKey?: string }) => {
   const { logger = console, rootKey = null } = opts;
 

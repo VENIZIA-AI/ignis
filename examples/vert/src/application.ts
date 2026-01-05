@@ -14,8 +14,6 @@ import {
   AuthenticationStrategyRegistry,
   BaseApplication,
   BaseMetaLinkModel,
-  // BindingKeys,
-  // BindingNamespaces,
   CoreBindings,
   DiskHelper,
   Environment,
@@ -195,6 +193,18 @@ export class Application extends BaseApplication {
     });
     this.component(HealthCheckComponent);
 
+    // this.bind<ISwaggerOptions>({
+    //   key: SwaggerBindingKeys.SWAGGER_OPTIONS,
+    // }).toValue({
+    //   restOptions: {
+    //     base: { path: '/doc' },
+    //     doc: { path: '/openapi.json' },
+    //     ui: { path: '/explorer', type: 'swagger' }, // Use Swagger UI
+    //   },
+    //   explorer: {
+    //     openapi: '3.0.0',
+    //   },
+    // });
     this.component(SwaggerComponent);
 
     this.bind<TStaticAssetsComponentOptions>({

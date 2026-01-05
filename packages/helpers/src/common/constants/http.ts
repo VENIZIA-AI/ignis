@@ -19,6 +19,8 @@ export class HTTP {
 
     REQUEST_COUNT_DATA: 'x-request-count',
     RESPONSE_COUNT_DATA: 'x-response-count',
+
+    RESPONSE_FORMAT: 'x-response-format',
   } as const;
 
   static readonly HeaderValues = {

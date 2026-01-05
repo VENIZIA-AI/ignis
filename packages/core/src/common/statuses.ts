@@ -1,4 +1,8 @@
 // -----------------------------------------------------------------------------
+/**
+ * Defines a comprehensive set of application statuses, categorized into different schemes.
+ * Provides utility methods to check the status against these schemes.
+ */
 export class Statuses {
   // 0xx - Initial
   static readonly UNKNOWN = '000_UNKNOWN';
@@ -136,6 +140,9 @@ export class Statuses {
 }
 
 // -----------------------------------------------------------------------------
+/**
+ * Defines statuses specifically for database migrations.
+ */
 export class MigrationStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly SUCCESS = Statuses.SUCCESS;
@@ -149,6 +156,9 @@ export class MigrationStatuses {
 }
 
 // -----------------------------------------------------------------------------
+/**
+ * Defines a common set of statuses that can be reused across different entities.
+ */
 export class CommonStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly ACTIVATED = Statuses.ACTIVATED;
@@ -170,12 +180,21 @@ export class CommonStatuses {
 }
 
 // -----------------------------------------------------------------------------
+/**
+ * Defines statuses specific to users, inheriting from `CommonStatuses`.
+ */
 export class UserStatuses extends CommonStatuses {}
 
 // -----------------------------------------------------------------------------
+/**
+ * Defines statuses specific to roles, inheriting from `CommonStatuses`.
+ */
 export class RoleStatuses extends CommonStatuses {}
 
 // -----------------------------------------------------------------------------
+/**
+ * Defines different types of users within the application.
+ */
 export class UserTypes {
   static readonly SYSTEM = 'SYSTEM';
   static readonly LINKED = 'LINKED';

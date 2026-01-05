@@ -3,6 +3,10 @@ import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import { MiddlewareHandler } from 'hono/types';
 
+/**
+ * `RequestSpyMiddleware` is a middleware that logs incoming and outgoing request information.
+ * It extends `BaseHelper` and implements `IProvider<MiddlewareHandler>` to provide a Hono middleware.
+ */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';
 
@@ -22,6 +26,12 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         }
       } */
 
+  /**
+   * Returns a Hono middleware handler that logs request details at the start and end of a request.
+   * It captures request ID, forwarded IP, URL, method, path, query, and body, and logs the request duration.
+   *
+   * @returns A `MiddlewareHandler` function.
+   */
   value() {
     return createMiddleware(async (context, next) => {
       const t = performance.now();

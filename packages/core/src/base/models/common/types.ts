@@ -97,17 +97,57 @@ export const jsonContent = <T extends z.ZodType>(opts: {
   };
 };
 
-export const jsonResponse = <T extends z.ZodType>(opts: {
+// -------------------------------------------------------------------------
+/** OpenAPI Header Object format */
+type THeaderObject = {
+  description?: string;
+  schema: { type: string; examples?: Array<string> };
+};
+
+/** Map of header names to Header Objects */
+type TResponseHeaders = Record<string, THeaderObject>;
+
+type TJsonResponseOpts<T extends z.ZodType, H extends TResponseHeaders | undefined> = {
   schema: T;
   description?: string;
   required?: boolean;
-}) => {
+  headers?: H;
+};
+
+type TResponseContent<T extends z.ZodType> = {
+  description: string;
+  content: { 'application/json': { schema: T } };
+  required?: boolean;
+};
+
+type TResponseWithHeaders<
+  ContentSchema extends z.ZodType,
+  HeaderSchema extends TResponseHeaders | undefined,
+> = HeaderSchema extends TResponseHeaders
+  ? TResponseContent<ContentSchema> & { headers: HeaderSchema }
+  : TResponseContent<ContentSchema>;
+
+export const jsonResponse = <
+  ContentSchema extends z.ZodType,
+  HeaderSchema extends TResponseHeaders | undefined = undefined,
+>(
+  opts: TJsonResponseOpts<ContentSchema, HeaderSchema>,
+) => {
+  const baseResponse = jsonContent({
+    required: opts.required,
+    description: opts.description ?? 'Success Response',
+    schema: opts.schema,
+  });
+
+  const successResponse = opts.headers
+    ? ({ ...baseResponse, headers: opts.headers } as TResponseWithHeaders<
+        ContentSchema,
+        HeaderSchema
+      >)
+    : (baseResponse as TResponseWithHeaders<ContentSchema, HeaderSchema>);
+
   return {
-    [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-      required: opts.required,
-      description: opts.description ?? 'Success Response',
-      schema: opts.schema,
-    }),
+    [HTTP.ResultCodes.RS_2.Ok]: successResponse,
     ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
   };
 };
