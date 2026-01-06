@@ -7,7 +7,7 @@ import {
   TSignInResponseSchema,
   TSignUpRequestSchema,
   TSignUpResponseSchema,
-} from '@/schemas';
+} from '@/models';
 import { UserRepository } from '@/repositories';
 import {
   BaseService,

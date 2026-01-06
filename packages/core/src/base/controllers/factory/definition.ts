@@ -1,7 +1,8 @@
 import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models';
 import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories';
 import { RouteConfig, z } from '@hono/zod-openapi';
-import { HTTP, TAuthStrategy } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
+import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import { RestPaths, TAuthRouteConfig } from '../common';
 
 /**

@@ -2,7 +2,8 @@ import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
 import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
 import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import { RouteConfig } from '@hono/zod-openapi';
-import { TAuthStrategy, TClass, TValueOrResolver } from '@venizia/ignis-helpers';
+import { TClass, TValueOrResolver } from '@venizia/ignis-helpers';
+import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import {
   IInjectMetadata as _IInjectMetadata,
   IPropertyMetadata as _IPropertyMetadata,

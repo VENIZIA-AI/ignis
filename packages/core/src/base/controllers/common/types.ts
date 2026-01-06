@@ -1,6 +1,7 @@
 import type { RouteConfig, RouteHandler } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { IConfigurable, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import { Env, Schema } from 'hono';
 
 /**
@@ -79,13 +80,15 @@ export type TRouteBindingOptions<
  * const config: TAuthRouteConfig<RouteConfig> = {
  *   path: '/protected',
  *   method: 'get',
- *   authStrategies: ['jwt', 'api-key'],
+ *   authStrategies: ['jwt', 'basic'],
+ *   authMode: 'any', // 'any' = fallback (default), 'all' = all must pass
  *   responses: { 200: { ... } }
  * };
  * ```
  */
 export type TAuthRouteConfig<RC extends RouteConfig> = RC & {
   authStrategies?: readonly TAuthStrategy[];
+  authMode?: TAuthMode;
 };
 
 /**

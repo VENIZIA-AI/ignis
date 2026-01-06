@@ -1,6 +1,6 @@
 # Authentication Component
 
-JWT-based authentication and authorization system for Ignis applications.
+JWT and Basic authentication system for Ignis applications with multi-strategy support.
 
 ## Quick Reference
 
@@ -9,7 +9,9 @@ JWT-based authentication and authorization system for Ignis applications.
 | **AuthenticateComponent** | Main component registering auth services and controllers |
 | **AuthenticationStrategyRegistry** | Singleton managing available auth strategies |
 | **JWTAuthenticationStrategy** | JWT verification using `JWTTokenService` |
-| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens (safely handles undefined/null) |
+| **BasicAuthenticationStrategy** | Basic HTTP authentication using `BasicTokenService` |
+| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens |
+| **BasicTokenService** | Extract and verify Basic auth credentials |
 | **IAuthService** | Interface for custom auth implementation (sign-in, sign-up) |
 | **defineAuthController** | Factory function for creating custom auth controllers |
 
@@ -17,8 +19,8 @@ JWT-based authentication and authorization system for Ignis applications.
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `APP_ENV_APPLICATION_SECRET` | Encrypt JWT payload | ✅ Yes |
-| `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | ✅ Yes |
+| `APP_ENV_APPLICATION_SECRET` | Encrypt JWT payload | Required for JWT |
+| `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | Required for JWT |
 | `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Optional |
 
 ### Authentication Options Configuration
@@ -31,17 +33,38 @@ JWT-based authentication and authorization system for Ignis applications.
 | `restOptions.controllerOpts.serviceKey` | `string` | Dependency injection key for auth service (default: `services.AuthenticationService`) |
 | `restOptions.controllerOpts.requireAuthenticatedSignUp` | `boolean` | Whether sign-up requires authentication (default: `false`) |
 | `restOptions.controllerOpts.payload` | `object` | Custom Zod schemas for request/response payloads |
-| `alwaysAllowPaths` | `string[]` | Array of paths that bypass authentication |
-| `tokenOptions` | `IJWTTokenServiceOptions` | JWT token configuration |
+| `jwtOptions` | `IJWTTokenServiceOptions` | JWT token configuration (optional, required for JWT auth) |
+| `basicOptions` | `IBasicTokenServiceOptions` | Basic auth configuration (optional, required for Basic auth) |
+
+::: warning IMPORTANT
+At least one of `jwtOptions` or `basicOptions` must be provided. If neither is configured, the component will throw an error.
+:::
+
+### Route Configuration Options
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `authStrategies` | `TAuthStrategy[]` | Array of strategy names to use (e.g., `['jwt']`, `['jwt', 'basic']`) |
+| `authMode` | `'any' \| 'all'` | How to handle multiple strategies (default: `'any'`) |
+| `skipAuth` | `boolean` | Skip authentication for this route (default: `false`) |
+
+### Auth Modes
+
+| Mode | Behavior |
+|------|----------|
+| `'any'` | First successful strategy wins (fallback mode) |
+| `'all'` | All strategies must pass (MFA mode) |
 
 ## Architecture Components
 
 -   **`AuthenticateComponent`**: Registers all necessary services and optionally the authentication controller
 -   **`AuthenticationStrategyRegistry`**: Singleton managing authentication strategies
 -   **`JWTAuthenticationStrategy`**: JWT strategy implementation using `JWTTokenService`
--   **`JWTTokenService`**: Generates, verifies, encrypts/decrypts JWT payloads (handles undefined/null values safely)
+-   **`BasicAuthenticationStrategy`**: Basic HTTP auth strategy using `BasicTokenService`
+-   **`JWTTokenService`**: Generates, verifies, encrypts/decrypts JWT payloads
+-   **`BasicTokenService`**: Extracts and verifies Basic auth credentials
 -   **`defineAuthController`**: Factory function to create customizable authentication controller
--   **Protected Routes**: Use `authStrategies` in route configs to secure endpoints
+-   **Protected Routes**: Use `authStrategies` and `authMode` in route configs to secure endpoints
 
 ## Implementation Details
 
@@ -60,7 +83,7 @@ Configure the authentication feature using environment variables:
 -   `APP_ENV_JWT_EXPIRES_IN`: The JWT expiration time in seconds.
 
 ::: danger SECURITY NOTE
-Both `APP_ENV_APPLICATION_SECRET` and `APP_ENV_JWT_SECRET` are **mandatory**. For security purposes, you must set these to strong, unique secret values. The application will fail to start if these environment variables are missing or left empty.
+Both `APP_ENV_APPLICATION_SECRET` and `APP_ENV_JWT_SECRET` are **mandatory** when using JWT authentication. For security purposes, you must set these to strong, unique secret values.
 :::
 
 **Example `.env` file:**
@@ -75,157 +98,204 @@ APP_ENV_JWT_EXPIRES_IN=86400
 
 #### 1. Registering the Authentication Component
 
-In `src/application.ts`, register the `AuthenticateComponent` and the `JWTAuthenticationStrategy`. You also need to provide an `AuthenticationService`.
+In `src/application.ts`, register the `AuthenticateComponent` and authentication strategies.
 
-**Basic Setup (without built-in auth controller):**
+**JWT Only Setup:**
 
 ```typescript
 // src/application.ts
 import {
   AuthenticateComponent,
+  AuthenticateBindingKeys,
   Authentication,
   AuthenticationStrategyRegistry,
+  IAuthenticateOptions,
   JWTAuthenticationStrategy,
   BaseApplication,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { AuthenticationService } from './services'; // Your custom auth service
+import { AuthenticationService } from './services';
 
 export class Application extends BaseApplication {
-  // ...
-
   registerAuth() {
     this.service(AuthenticationService);
-    this.component(AuthenticateComponent, {
+    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
       restOptions: {
-        useAuthController: false, // Default: controller not registered
+        useAuthController: false,
       },
-      alwaysAllowPaths: [],
-      tokenOptions: {
+      jwtOptions: {
         applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
         jwtSecret: process.env.APP_ENV_JWT_SECRET,
         getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
       },
     });
+    this.component(AuthenticateComponent);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
+      strategies: [
+        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+      ],
     });
   }
 
   preConfigure(): ValueOrPromise<void> {
-    // ...
     this.registerAuth();
-    // ...
   }
 }
 ```
 
-**Advanced Setup (with built-in auth controller):**
+**Basic Auth Only Setup:**
 
 ```typescript
 import {
   AuthenticateComponent,
+  AuthenticateBindingKeys,
   Authentication,
   AuthenticationStrategyRegistry,
-  JWTAuthenticationStrategy,
+  BasicAuthenticationStrategy,
+  IAuthenticateOptions,
   BaseApplication,
-  ValueOrPromise,
 } from '@venizia/ignis';
-import { z } from '@hono/zod-openapi';
-import { AuthenticationService } from './services';
 
 export class Application extends BaseApplication {
-  // ...
-
   registerAuth() {
-    this.service(AuthenticationService);
-    this.component(AuthenticateComponent, {
-      restOptions: {
-        useAuthController: true, // Enable built-in auth controller
-        controllerOpts: {
-          restPath: '/auth', // Base path for auth endpoints
-          serviceKey: 'services.AuthenticationService', // Default service key
-          requireAuthenticatedSignUp: false, // Whether sign-up requires authentication
-          payload: {
-            signIn: {
-              request: { 
-                schema: z.object({
-                  identifier: z.object({
-                    type: z.string(),
-                    value: z.string(),
-                  }),
-                  credential: z.object({
-                    type: z.string(),
-                    value: z.string(),
-                  }),
-                })
-              },
-              response: { 
-                schema: z.object({
-                  token: z.string(),
-                })
-              },
-            },
-            signUp: {
-              request: { 
-                schema: z.object({
-                  username: z.string(),
-                  email: z.string().email(),
-                  password: z.string().min(8),
-                })
-              },
-              response: { 
-                schema: z.object({
-                  token: z.string(),
-                  userId: z.string(),
-                })
-              },
-            },
-            changePassword: {
-              request: { 
-                schema: z.object({
-                  oldPassword: z.string(),
-                  newPassword: z.string().min(8),
-                })
-              },
-              response: { 
-                schema: z.object({
-                  success: z.boolean(),
-                })
-              },
-            },
-          },
+    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
+      basicOptions: {
+        verifyCredentials: async (opts) => {
+          const { credentials, context } = opts;
+          // Your verification logic here
+          const user = await this.userRepo.findByUsername(credentials.username);
+          if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
+            return { userId: user.id, roles: user.roles };
+          }
+          return null;
         },
       },
-      alwaysAllowPaths: [],
-      tokenOptions: {
-        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-        jwtSecret: process.env.APP_ENV_JWT_SECRET,
-        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
-      },
     });
+    this.component(AuthenticateComponent);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
+      strategies: [
+        { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
+      ],
     });
-  }
-
-  preConfigure(): ValueOrPromise<void> {
-    // ...
-    this.registerAuth();
-    // ...
   }
 }
 ```
 
-#### 2. Implementing an AuthenticationService
+**Combined JWT + Basic Auth Setup (with fallback):**
 
-The `AuthenticateComponent` depends on a service that implements the `IAuthService` interface. You need to provide your own implementation for this service, which will contain your application's specific logic for user authentication.
+```typescript
+import {
+  AuthenticateComponent,
+  AuthenticateBindingKeys,
+  Authentication,
+  AuthenticationStrategyRegistry,
+  BasicAuthenticationStrategy,
+  JWTAuthenticationStrategy,
+  IAuthenticateOptions,
+  BaseApplication,
+} from '@venizia/ignis';
 
-Here is a minimal example of what this service might look like:
+export class Application extends BaseApplication {
+  registerAuth() {
+    this.service(AuthenticationService);
+    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
+      restOptions: {
+        useAuthController: true,
+        controllerOpts: {
+          restPath: '/auth',
+          payload: {
+            signIn: {
+              request: { schema: SignInRequestSchema },
+              response: { schema: SignInResponseSchema },
+            },
+            signUp: {
+              request: { schema: SignUpRequestSchema },
+              response: { schema: SignUpResponseSchema },
+            },
+          },
+        },
+      },
+      jwtOptions: {
+        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+        jwtSecret: process.env.APP_ENV_JWT_SECRET,
+        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+      },
+      basicOptions: {
+        verifyCredentials: async (opts) => {
+          const authenticateService = this.get<AuthenticationService>({
+            key: BindingKeys.build({
+              namespace: BindingNamespaces.SERVICE,
+              key: AuthenticationService.name,
+            }),
+          });
+          return authenticateService.signIn(opts.context, {
+            identifier: { scheme: 'username', value: opts.credentials.username },
+            credential: { scheme: 'basic', value: opts.credentials.password },
+          });
+        },
+      },
+    });
+    this.component(AuthenticateComponent);
+
+    // Register multiple strategies at once
+    AuthenticationStrategyRegistry.getInstance().register({
+      container: this,
+      strategies: [
+        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+        { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
+      ],
+    });
+  }
+}
+```
+
+#### 2. Basic Authentication Verification Function
+
+The `verifyCredentials` function receives an options object with credentials and context:
+
+```typescript
+type TBasicAuthVerifyFn = (opts: {
+  credentials: { username: string; password: string };
+  context: Context;
+}) => Promise<IAuthUser | null>;
+```
+
+Example implementation:
+
+```typescript
+basicOptions: {
+  verifyCredentials: async (opts) => {
+    const { credentials, context } = opts;
+
+    // Look up user by username
+    const user = await userRepo.findByUsername(credentials.username);
+
+    if (!user) {
+      return null; // User not found
+    }
+
+    // Verify password
+    const isValid = await bcrypt.compare(credentials.password, user.passwordHash);
+
+    if (!isValid) {
+      return null; // Invalid password
+    }
+
+    // Return user info (must include userId)
+    return {
+      userId: user.id,
+      roles: user.roles,
+      // ... any additional fields
+    };
+  },
+}
+```
+
+#### 3. Implementing an AuthenticationService
+
+The `AuthenticateComponent` depends on a service that implements the `IAuthService` interface.
 
 ```typescript
 // src/services/authentication.service.ts
@@ -251,21 +321,16 @@ export class AuthenticationService extends BaseService implements IAuthService {
   async signIn(context: Context, opts: TSignInRequest): Promise<{ token: string }> {
     const { identifier, credential } = opts;
 
-    // --- Your custom logic here ---
-    // 1. Find the user by identifier (e.g., username or email).
-    // 2. Verify the credential (e.g., check the password).
-    // 3. If valid, create a JWT payload.
-    const user = { id: 'user-id-from-db', roles: [] }; // Dummy user
+    // Your custom logic here
+    const user = await this.userRepo.findByIdentifier(identifier);
 
-    if (identifier.value !== 'test_username' || credential.value !== 'test_password') {
+    if (!user || !await this.verifyCredential(credential, user)) {
       throw getError({ message: 'Invalid credentials' });
     }
-    // --- End of custom logic ---
 
     const payload: IJWTTokenPayload = {
       userId: user.id,
       roles: user.roles,
-      // Add any other data you want in the token
     };
 
     const token = await this._jwtTokenService.generate({ payload });
@@ -274,172 +339,108 @@ export class AuthenticationService extends BaseService implements IAuthService {
 
   async signUp(context: Context, opts: any): Promise<any> {
     // Implement your sign-up logic
-    throw getError({ message: 'Method not implemented.' });
   }
 
   async changePassword(context: Context, opts: any): Promise<any> {
     // Implement your change password logic
-    throw getError({ message: 'Method not implemented.' });
-  }
-}
-```
-
-This service is then registered in `application.ts` as shown in the previous step. It injects the `JWTTokenService` (provided by the `AuthenticateComponent`) to generate a token upon successful sign-in.
-
-#### 3. Custom Authentication Controller (Optional)
-
-If you need more control over the authentication endpoints, you can create a custom controller using the `defineAuthController` factory function.
-
-```typescript
-// src/controllers/custom-auth.controller.ts
-import { defineAuthController } from '@venizia/ignis';
-import { z } from '@hono/zod-openapi';
-
-export const CustomAuthController = defineAuthController({
-  restPath: '/api/auth',
-  serviceKey: 'services.AuthenticationService',
-  requireAuthenticatedSignUp: true, // Require authentication for sign-up
-  payload: {
-    signIn: {
-      request: {
-        schema: z.object({
-          email: z.string().email(),
-          password: z.string(),
-        }),
-      },
-      response: {
-        schema: z.object({
-          token: z.string(),
-          expiresIn: z.number(),
-        }),
-      },
-    },
-    signUp: {
-      request: {
-        schema: z.object({
-          email: z.string().email(),
-          password: z.string().min(8),
-          firstName: z.string(),
-          lastName: z.string(),
-        }),
-      },
-      response: {
-        schema: z.object({
-          token: z.string(),
-          userId: z.string(),
-        }),
-      },
-    },
-    changePassword: {
-      request: {
-        schema: z.object({
-          currentPassword: z.string(),
-          newPassword: z.string().min(8),
-        }),
-      },
-      response: {
-        schema: z.object({
-          success: z.boolean(),
-          message: z.string().optional(),
-        }),
-      },
-    },
-  },
-});
-```
-
-Then register it in your application:
-
-```typescript
-// src/application.ts
-import { CustomAuthController } from './controllers/custom-auth.controller';
-
-export class Application extends BaseApplication {
-  registerAuth() {
-    this.service(AuthenticationService);
-    this.component(AuthenticateComponent, {
-      restOptions: { useAuthController: false }, // Disable built-in controller
-      // ... other options
-    });
-    
-    // Register your custom controller
-    this.controller(CustomAuthController);
-    
-    AuthenticationStrategyRegistry.getInstance().register({
-      container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
-    });
   }
 }
 ```
 
 #### 4. Securing Routes
 
-In your controllers, use decorator-based routing (`@get`, `@post`, etc.) with the `authStrategies` property in the `configs` object to protect endpoints. This will automatically run the necessary authentication middlewares and attach the authenticated user to the Hono `Context`, which can then be accessed type-safely using `TRouteContext`.
+Use `authStrategies` and `authMode` in route configurations:
+
+**Single Strategy:**
 
 ```typescript
-// src/controllers/test.controller.ts
-import {
-  Authentication,
-  BaseController,
-  controller,
-  get, // Or @api, @post, etc.
-  HTTP,
-  jsonResponse,
-  IJWTTokenPayload,
-  TRouteContext, // Import TRouteContext for type safety
-} from '@venizia/ignis';
-import { z } from '@hono/zod-openapi';
-
 const SECURE_ROUTE_CONFIG = {
   path: '/secure-data',
   method: HTTP.Methods.GET,
   authStrategies: [Authentication.STRATEGY_JWT],
   responses: jsonResponse({
-      description: 'Test message content',
-      schema: z.object({ message: z.string() }),
+    description: 'Protected data',
+    schema: z.object({ message: z.string() }),
   }),
 } as const;
+```
 
-@controller({ path: '/test' })
-export class TestController extends BaseController {
-  constructor() {
-    super({
-      scope: TestController.name,
-      path: '/test',
-    });
-  }
+**Multiple Strategies with Fallback (any mode):**
 
-  @get({ configs: SECURE_ROUTE_CONFIG })
-  secureData(c: TRouteContext<typeof SECURE_ROUTE_CONFIG>) {
-    // 'c' is fully typed here, including c.get and c.json return type
-    const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-    return c.json(
-      { message: `Hello, ${user?.userId || 'guest'} from protected data` },
-      HTTP.ResultCodes.RS_2.Ok,
-    );
-  }
-}
+```typescript
+const FALLBACK_AUTH_CONFIG = {
+  path: '/api/data',
+  method: HTTP.Methods.GET,
+  authStrategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC],
+  authMode: 'any', // First successful strategy wins (default)
+  responses: jsonResponse({
+    description: 'Data accessible via JWT or Basic auth',
+    schema: z.object({ data: z.any() }),
+  }),
+} as const;
+```
+
+**Multiple Strategies with MFA (all mode):**
+
+```typescript
+const MFA_CONFIG = {
+  path: '/admin/sensitive',
+  method: HTTP.Methods.POST,
+  authStrategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_MFA],
+  authMode: 'all', // All strategies must pass
+  responses: jsonResponse({
+    description: 'Requires both JWT and MFA',
+    schema: z.object({ success: z.boolean() }),
+  }),
+} as const;
+```
+
+**Skipping Authentication:**
+
+```typescript
+const PUBLIC_ROUTE_CONFIG = {
+  path: '/public',
+  method: HTTP.Methods.GET,
+  skipAuth: true, // Bypass authentication even if controller has default auth
+  responses: jsonResponse({
+    description: 'Public endpoint',
+    schema: z.object({ message: z.string() }),
+  }),
+} as const;
 ```
 
 #### 5. Accessing the Current User in Context
 
-After a route has been processed, the authenticated user's payload is available directly on the Hono `Context` object, using the `Authentication.CURRENT_USER` key.
+After authentication, the user payload is available on the Hono `Context`:
 
 ```typescript
 import { Context } from 'hono';
 import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
 
-// Inside a route handler or a custom middleware
+// Inside a route handler
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
 
 if (user) {
   console.log('Authenticated user ID:', user.userId);
-  // You can also access roles, email, etc. from the user object
-} else {
-  console.log('User is not authenticated or not found in context.');
+  console.log('User roles:', user.roles);
 }
+```
+
+#### 6. Dynamic Skip Authentication
+
+Use `Authentication.SKIP_AUTHENTICATION` to dynamically skip auth in middleware:
+
+```typescript
+import { Authentication } from '@venizia/ignis';
+import { createMiddleware } from 'hono/factory';
+
+const conditionalAuthMiddleware = createMiddleware(async (c, next) => {
+  // Skip auth for certain conditions
+  if (c.req.header('X-API-Key') === 'valid-api-key') {
+    c.set(Authentication.SKIP_AUTHENTICATION, true);
+  }
+  return next();
+});
 ```
 
 ## See Also

@@ -24,3 +24,8 @@ export class AuthenticationTokenTypes {
   static readonly TYPE_ACCESS_TOKEN = '100_ACCESS_TOKEN';
   static readonly TYPE_REFRESH_TOKEN = '200_REFRESH_TOKEN';
 }
+
+export class AuthenticationModes {
+  static readonly ANY = 'any';
+  static readonly ALL = 'all';
+}

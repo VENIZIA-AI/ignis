@@ -13,10 +13,7 @@ import { DefaultCRUDRepository, repository } from '@venizia/ignis';
  * - Auto-resolves PostgresDataSource from @repository metadata
  * - Auto-builds relations from Configuration.relations static property
  */
-@repository({
-  model: Configuration,
-  dataSource: PostgresDataSource,
-})
+@repository({ model: Configuration, dataSource: PostgresDataSource })
 export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {
   // No constructor needed!
 

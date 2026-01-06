@@ -1,8 +1,8 @@
-import { authenticate } from '@/components/auth';
+import { authenticate, TAuthMode, TAuthStrategy } from '@/components/auth';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
-import { BaseHelper, getError, TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
   IController,
@@ -173,10 +173,13 @@ export abstract class AbstractController<
   getRouteConfigs<RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: RC }) {
     const { configs } = opts;
 
-    const { authStrategies = [], ...restConfig } = configs;
+    const { authStrategies = [], authMode = 'any', ...restConfig } = configs;
 
     const security = authStrategies.map(strategy => ({ [strategy]: [] }));
-    const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
+    const mws =
+      authStrategies.length > 0
+        ? [authenticate({ strategies: authStrategies as string[], mode: authMode })]
+        : [];
 
     if (restConfig.middleware) {
       const extraMws = Array.isArray(restConfig.middleware)
@@ -213,15 +216,18 @@ export abstract class AbstractController<
    * @param opts - Object containing the route configuration
    * @returns Processed route configuration with HTML response schema
    */
-  getJSXRouteConfigs<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
-    configs: RC;
-  }) {
+  getJSXRouteConfigs<
+    RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy>; authMode?: TAuthMode },
+  >(opts: { configs: RC }) {
     const { configs } = opts;
 
-    const { authStrategies = [], ...restConfig } = configs;
+    const { authStrategies = [], authMode = 'any', ...restConfig } = configs;
 
     const security = authStrategies.map(strategy => ({ [strategy]: [] }));
-    const mws = authStrategies?.map(strategy => authenticate({ strategy })) ?? [];
+    const mws =
+      authStrategies.length > 0
+        ? [authenticate({ strategies: authStrategies as string[], mode: authMode })]
+        : [];
 
     const extraMws =
       restConfig.middleware && Array.isArray(restConfig.middleware)

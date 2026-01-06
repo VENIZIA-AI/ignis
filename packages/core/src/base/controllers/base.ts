@@ -1,5 +1,6 @@
 import { Hook, RouteConfig } from '@hono/zod-openapi';
-import { TAuthStrategy, ValueOrPromise } from '@venizia/ignis-helpers';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
+import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {

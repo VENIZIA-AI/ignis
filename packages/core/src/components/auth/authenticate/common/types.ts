@@ -1,10 +1,10 @@
 import { IdType } from '@/base/models';
-import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
+import { AESAlgorithmType, AnyObject, TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Context, Env, Input } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
 import { z } from '@hono/zod-openapi';
-import { Authentication } from './constants';
+import { Authentication, AuthenticationModes } from './constants';
 
 // Extend Hono's context variables to include authentication-related data
 declare module 'hono' {
@@ -15,6 +15,11 @@ declare module 'hono' {
   }
 }
 
+// --------------------------------------------------------------------------------------------------------
+export type TAuthStrategy = 'jwt' | 'basic';
+export type TAuthMode = TConstValue<typeof AuthenticationModes>;
+
+// --------------------------------------------------------------------------------------------------------
 export interface IJWTTokenServiceOptions {
   aesAlgorithm?: AESAlgorithmType;
   headerAlgorithm?: string;
@@ -43,6 +48,46 @@ export type TDefineAuthControllerOpts = {
   };
 };
 
+// --------------------------------------------------------------------------------------------------------
+// Basic Authentication Types
+// --------------------------------------------------------------------------------------------------------
+
+/**
+ * Callback function to verify basic authentication credentials.
+ * Implement this to look up user and verify password.
+ *
+ * @param credentials - The extracted username and password
+ * @param context - The Hono request context (for accessing repos, services, etc.)
+ * @returns IAuthUser if valid, null if invalid
+ *
+ * @example
+ * ```typescript
+ * const verifyCredentials: TBasicAuthVerifyFn = async (creds, ctx) => {
+ *   const user = await userRepo.findByUsername(creds.username);
+ *   if (user && await bcrypt.compare(creds.password, user.passwordHash)) {
+ *     return { userId: user.id, roles: user.roles };
+ *   }
+ *   return null;
+ * };
+ * ```
+ */
+export type TBasicAuthVerifyFn = (opts: {
+  credentials: { username: string; password: string };
+  context: Context;
+}) => Promise<IAuthUser | null>;
+
+export interface IBasicTokenServiceOptions {
+  /**
+   * Function to verify username/password and return user info.
+   * Should return IAuthUser if valid, null if invalid.
+   */
+  verifyCredentials: TBasicAuthVerifyFn;
+}
+
+// --------------------------------------------------------------------------------------------------------
+// Authenticate Options
+// --------------------------------------------------------------------------------------------------------
+
 export interface IAuthenticateOptions {
   restOptions?: {} & (
     | { useAuthController?: false | undefined }
@@ -51,8 +96,8 @@ export interface IAuthenticateOptions {
         controllerOpts: TDefineAuthControllerOpts;
       }
   );
-  alwaysAllowPaths: Array<string>;
-  tokenOptions: IJWTTokenServiceOptions;
+  jwtOptions?: IJWTTokenServiceOptions;
+  basicOptions?: IBasicTokenServiceOptions;
 }
 
 export interface IAuthUser {

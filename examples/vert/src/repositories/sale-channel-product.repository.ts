@@ -7,10 +7,7 @@ import { DefaultCRUDRepository, repository } from '@venizia/ignis';
  *
  * Manages the many-to-many relationship between Product and SaleChannel.
  */
-@repository({
-  model: SaleChannelProduct,
-  dataSource: PostgresDataSource,
-})
+@repository({ model: SaleChannelProduct, dataSource: PostgresDataSource })
 export class SaleChannelProductRepository extends DefaultCRUDRepository<
   typeof SaleChannelProduct.schema
 > {

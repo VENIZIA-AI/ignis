@@ -17,7 +17,7 @@ const _Controller = ControllerFactory.defineCrudController({
     name: 'ConfigurationController',
     basePath: BASE_PATH,
   },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authStrategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC],
 
   // Define entity by direct declare entity class
   // entity: Configuration,

@@ -1,13 +1,14 @@
 import { BindingScopes, Container } from '@/helpers/inversion';
 import { BaseHelper, getError, HTTP, TClass } from '@venizia/ignis-helpers';
-import { MiddlewareHandler } from 'hono';
+import { Context, MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import isEmpty from 'lodash/isEmpty';
 import {
-  AuthenticateBindingKeys,
   Authentication,
-  IAuthenticateOptions,
+  AuthenticationModes,
   IAuthenticationStrategy,
+  IAuthUser,
+  TAuthMode,
 } from '../common';
 
 export class AuthenticationStrategyRegistry extends BaseHelper {
@@ -55,24 +56,27 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   // ------------------------------------------------------------------------------
   register(opts: {
     container: Container;
-    strategy: TClass<IAuthenticationStrategy>;
-    name: string;
+    strategies: { strategy: TClass<IAuthenticationStrategy>; name: string }[];
   }) {
-    const { container, name, strategy: strategyClass } = opts;
+    const { container, strategies } = opts;
 
-    this.strategies.set(name, { container, strategyClass });
-    container
-      .bind({
-        key: [Authentication.AUTHENTICATION_STRATEGY, name].join('.'),
-      })
-      .toClass(strategyClass)
-      .setScope(BindingScopes.SINGLETON);
+    for (const { strategy, name } of strategies) {
+      this.strategies.set(name, { container, strategyClass: strategy });
+      container
+        .bind({
+          key: [Authentication.AUTHENTICATION_STRATEGY, name].join('.'),
+        })
+        .toClass(strategy)
+        .setScope(BindingScopes.SINGLETON);
+    }
 
     return this;
   }
 
   // ------------------------------------------------------------------------------
-  authenticate(opts: { strategy: string }): MiddlewareHandler {
+  authenticate(opts: { strategies: string[]; mode?: TAuthMode }): MiddlewareHandler {
+    const { strategies, mode = 'any' } = opts;
+
     const mw = createMiddleware(async (context, next) => {
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
       if (isSkipAuthenticate) {
@@ -86,58 +90,93 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
         return next();
       }
 
-      const { strategy: strategyName } = opts;
-      const strategyMetadata = this.strategies.get(strategyName);
-      if (!strategyMetadata) {
-        throw getError({
-          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          message: `[authenticate] strategy: ${strategyName} | Authentication Strategy Metadata NOT FOUND`,
-        });
+      switch (mode) {
+        case AuthenticationModes.ANY: {
+          // FALLBACK MODE: first success wins
+          const errors: Error[] = [];
+          for (const strategyName of strategies) {
+            try {
+              const user = await this.executeStrategy(context, strategyName);
+              context.set(Authentication.CURRENT_USER, user);
+              if (user?.userId) {
+                context.set(Authentication.AUDIT_USER_ID, user.userId);
+              }
+              return next();
+            } catch (error) {
+              this.logger.debug('[authenticate] Strategy %s failed, trying next...', strategyName);
+              errors.push(error as Error);
+            }
+          }
+
+          // All strategies failed
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+            message: `Authentication failed. Tried strategies: ${strategies.join(', ')}`,
+          });
+        }
+        case AuthenticationModes.ALL: {
+          // ALL MODE: all strategies must pass
+          let authUser: IAuthUser | null = null;
+          for (const strategyName of strategies) {
+            const user = await this.executeStrategy(context, strategyName);
+            authUser = user;
+          }
+
+          if (authUser && authUser?.userId) {
+            context.set(Authentication.CURRENT_USER, authUser);
+            context.set(Authentication.AUDIT_USER_ID, authUser.userId);
+          } else {
+            this.logger.error(
+              '[authenticate] Failed to identify authenticated user | user: %j | userId: %s',
+              authUser,
+              authUser?.userId,
+            );
+            throw getError({
+              statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+              message: 'Failed to identify authenticated user!',
+            });
+          }
+
+          return next();
+        }
+        default: {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+            message: `Invalid authentication mode | mode: ${mode}`,
+          });
+        }
       }
-
-      const { container } = strategyMetadata;
-
-      const requestPath = context.req.path;
-      const authenticateOptions = container.get<IAuthenticateOptions>({
-        key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
-      });
-
-      if (!authenticateOptions) {
-        throw getError({
-          message: '[authenticate][mw] Failed to authenticate rquest | Invalid authenticateOptions',
-        });
-      }
-
-      const alwaysAllowPaths = new Set(authenticateOptions.alwaysAllowPaths);
-      if (alwaysAllowPaths.has(requestPath)) {
-        return next();
-      }
-
-      const strategy = container.get<IAuthenticationStrategy>({
-        key: [Authentication.AUTHENTICATION_STRATEGY, strategyName].join('.'),
-      });
-
-      if (!strategy) {
-        throw getError({
-          statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-          message: `[authenticate] strategy: ${strategyName} | Authentication Strategy NOT FOUND`,
-        });
-      }
-
-      const user = await strategy.authenticate(context);
-      context.set(Authentication.CURRENT_USER, user);
-
-      if (user?.userId) {
-        context.set(Authentication.AUDIT_USER_ID, user.userId);
-      }
-
-      return next();
     });
 
     return mw;
   }
+
+  // ------------------------------------------------------------------------------
+  private executeStrategy(context: Context, strategyName: string): Promise<IAuthUser> {
+    const strategyMetadata = this.strategies.get(strategyName);
+    if (!strategyMetadata) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[executeStrategy] Strategy not found: ${strategyName}`,
+      });
+    }
+
+    const { container } = strategyMetadata;
+    const strategy = container.get<IAuthenticationStrategy>({
+      key: [Authentication.AUTHENTICATION_STRATEGY, strategyName].join('.'),
+    });
+
+    if (!strategy) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: `[executeStrategy] strategy: ${strategyName} | Authentication Strategy NOT FOUND`,
+      });
+    }
+
+    return strategy.authenticate(context);
+  }
 }
 
-export const authenticate = (opts: { strategy: string }) => {
+export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) => {
   return AuthenticationStrategyRegistry.getInstance().authenticate(opts);
 };

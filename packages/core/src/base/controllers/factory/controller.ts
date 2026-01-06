@@ -12,13 +12,13 @@ import {
   executeWithPerformanceMeasure,
   getError,
   HTTP,
-  TAuthStrategy,
   TClass,
   TNullable,
   toBoolean,
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
+import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import { isClass } from '@venizia/ignis-inversion';
 import { Context, Env, Schema } from 'hono';
 import { BaseController } from '../base';

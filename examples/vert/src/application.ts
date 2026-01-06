@@ -5,7 +5,7 @@ import {
   SignInResponseSchema,
   SignUpRequestSchema,
   SignUpResponseSchema,
-} from '@/schemas';
+} from '@/models';
 import {
   applicationEnvironment,
   AuthenticateBindingKeys,
@@ -14,6 +14,8 @@ import {
   AuthenticationStrategyRegistry,
   BaseApplication,
   BaseMetaLinkModel,
+  BindingKeys,
+  BindingNamespaces,
   CoreBindings,
   DiskHelper,
   Environment,
@@ -27,6 +29,7 @@ import {
   IHealthCheckOptions,
   IMiddlewareConfigs,
   int,
+  BasicAuthenticationStrategy,
   JWTAuthenticationStrategy,
   MinioHelper,
   StaticAssetComponent,
@@ -41,7 +44,7 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
-// import { RepositoryTestService } from './services';
+import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -133,7 +136,6 @@ export class Application extends BaseApplication {
   // --------------------------------------------------------------------------------
   registerAuth() {
     this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
-      alwaysAllowPaths: [],
       restOptions: {
         useAuthController: true,
         controllerOpts: {
@@ -154,7 +156,7 @@ export class Application extends BaseApplication {
           },
         },
       },
-      tokenOptions: {
+      jwtOptions: {
         applicationSecret: applicationEnvironment.get<string>(
           EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
         ),
@@ -172,12 +174,28 @@ export class Application extends BaseApplication {
           return parseInt(jwtExpiresIn);
         },
       },
+      basicOptions: {
+        verifyCredentials: async opts => {
+          const authenticateService = this.get<AuthenticationService>({
+            key: BindingKeys.build({
+              namespace: BindingNamespaces.SERVICE,
+              key: AuthenticationService.name,
+            }),
+          });
+          return authenticateService.signIn(opts.context, {
+            identifier: { scheme: 'username', value: opts.credentials.username },
+            credential: { scheme: 'basic', value: opts.credentials.password },
+          });
+        },
+      },
     });
     this.component(AuthenticateComponent);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
+      strategies: [
+        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+        { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
+      ],
     });
   }
 

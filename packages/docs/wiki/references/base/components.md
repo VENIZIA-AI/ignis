@@ -120,8 +120,8 @@ import { AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
 
 // Options interface for the component
 export interface IAuthenticateOptions {
-  alwaysAllowPaths: Array<string>;
-  tokenOptions: IJWTTokenServiceOptions;
+  jwtOptions?: IJWTTokenServiceOptions;
+  basicOptions?: IBasicTokenServiceOptions;
   restOptions?: {
     useAuthController?: boolean;
     controllerOpts?: TDefineAuthControllerOpts;
@@ -307,16 +307,13 @@ export class HealthCheckComponent extends BaseComponent {
 ```typescript
 // src/components/auth/authenticate/component.ts
 import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise, getError } from '@venizia/ignis';
-import { AuthenticateBindingKeys, IAuthenticateOptions, IJWTTokenServiceOptions } from './common';
-import { JWTTokenService } from './services';
+import { AuthenticateBindingKeys, IAuthenticateOptions, IBasicTokenServiceOptions, IJWTTokenServiceOptions } from './common';
+import { BasicTokenService, JWTTokenService } from './services';
 import { defineAuthController } from './controllers';
 
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
-  alwaysAllowPaths: [],
-  tokenOptions: {
-    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET ?? '',
-    jwtSecret: process.env.APP_ENV_JWT_SECRET ?? '',
-    getTokenExpiresFn: () => parseInt(process.env.APP_ENV_JWT_EXPIRES_IN ?? '86400'),
+  restOptions: {
+    useAuthController: false,
   },
 };
 
@@ -336,37 +333,58 @@ export class AuthenticateComponent extends BaseComponent {
     });
   }
 
-  // Split complex logic into private methods
-  private defineAuth(): void {
+  // Validate at least one auth option is provided
+  private validateOptions(opts: IAuthenticateOptions): void {
+    if (!opts.jwtOptions && !opts.basicOptions) {
+      throw getError({
+        message: '[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided',
+      });
+    }
+  }
+
+  // Configure JWT authentication if jwtOptions is provided
+  private defineJWTAuth(opts: IAuthenticateOptions): void {
+    if (!opts.jwtOptions) return;
+
+    this.application
+      .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
+      .toValue(opts.jwtOptions);
+    this.application.service(JWTTokenService);
+  }
+
+  // Configure Basic authentication if basicOptions is provided
+  private defineBasicAuth(opts: IAuthenticateOptions): void {
+    if (!opts.basicOptions) return;
+
+    this.application
+      .bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
+      .toValue(opts.basicOptions);
+    this.application.service(BasicTokenService);
+  }
+
+  // Configure auth controllers if enabled
+  private defineControllers(opts: IAuthenticateOptions): void {
+    if (!opts.restOptions?.useAuthController) return;
+
+    // Auth controller requires JWT for token generation
+    if (!opts.jwtOptions) {
+      throw getError({
+        message: '[defineControllers] Auth controller requires jwtOptions to be configured',
+      });
+    }
+
+    this.application.controller(defineAuthController(opts.restOptions.controllerOpts));
+  }
+
+  override binding(): ValueOrPromise<void> {
     const options = this.application.get<IAuthenticateOptions>({
       key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
     });
 
-    // Validate required configuration
-    if (!options?.tokenOptions.jwtSecret) {
-      throw getError({
-        message: '[defineAuth] Missing required jwtSecret configuration',
-      });
-    }
-
-    // Bind service options
-    this.application
-      .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-      .toValue(options.tokenOptions);
-
-    // Register service
-    this.application.service(JWTTokenService);
-
-    // Conditionally register controller
-    if (options.restOptions?.useAuthController) {
-      this.application.controller(
-        defineAuthController(options.restOptions.controllerOpts),
-      );
-    }
-  }
-
-  override binding(): ValueOrPromise<void> {
-    this.defineAuth();
+    this.validateOptions(options);
+    this.defineJWTAuth(options);
+    this.defineBasicAuth(options);
+    this.defineControllers(options);
   }
 }
 ```

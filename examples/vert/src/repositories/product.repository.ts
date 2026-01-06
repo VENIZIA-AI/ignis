@@ -7,10 +7,7 @@ import { DefaultCRUDRepository, repository } from '@venizia/ignis';
  *
  * Uses @repository decorator to bind to model and datasource.
  */
-@repository({
-  model: Product,
-  dataSource: PostgresDataSource,
-})
+@repository({ model: Product, dataSource: PostgresDataSource })
 export class ProductRepository extends DefaultCRUDRepository<typeof Product.schema> {
   async findByCode(code: string) {
     return this.findOne({ filter: { where: { code } } });
