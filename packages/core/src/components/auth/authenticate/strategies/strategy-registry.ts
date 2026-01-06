@@ -101,7 +101,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
               if (user?.userId) {
                 context.set(Authentication.AUDIT_USER_ID, user.userId);
               }
-              return next();
+              return await next();
             } catch (error) {
               this.logger.debug('[authenticate] Strategy %s failed, trying next...', strategyName);
               errors.push(error as Error);
@@ -122,7 +122,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
             authUser = user;
           }
 
-          if (authUser && authUser?.userId) {
+          if (authUser?.userId) {
             context.set(Authentication.CURRENT_USER, authUser);
             context.set(Authentication.AUDIT_USER_ID, authUser.userId);
           } else {

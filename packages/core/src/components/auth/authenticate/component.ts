@@ -100,7 +100,9 @@ export class AuthenticateComponent extends BaseComponent {
     const { basicOptions } = opts;
 
     if (!basicOptions) {
-      this.logger.debug('[defineBasicAuth] basicOptions not provided, skipping Basic configuration');
+      this.logger.debug(
+        '[defineBasicAuth] basicOptions not provided, skipping Basic configuration',
+      );
       return;
     }
 
