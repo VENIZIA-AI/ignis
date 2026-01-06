@@ -23,7 +23,7 @@ import { isClass } from '@venizia/ignis-inversion';
 import { Context, Env, Schema } from 'hono';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';
-import { TRouteContext,  TRoutesConfig } from '../common';
+import { TRouteContext, TRoutesConfig } from '../common';
 
 /**
  * Configuration options for creating a CRUD controller via {@link ControllerFactory.defineCrudController}.
