@@ -56,6 +56,20 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-01-07',
+              collapsed: true,
+              items: [
+                { text: 'Controller Route Customization', link: '/changelogs/2026-01-07-controller-route-customization' },
+              ],
+            },
+            {
+              text: '2026-01-06',
+              collapsed: true,
+              items: [
+                { text: 'Basic Authentication Strategy', link: '/changelogs/2026-01-06-basic-authentication' },
+              ],
+            },
+            {
               text: '2026-01-05',
               collapsed: true,
               items: [

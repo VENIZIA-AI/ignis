@@ -24,3 +24,6 @@ export const requiredString = (opts?: { min?: number; max?: number; fixed?: numb
 export const AnyObjectSchema = z.object().catchall(z.any()).openapi({
   description: 'Unknown schema',
 });
+
+export type TAnyObjectSchema = z.ZodObject<z.ZodRawShape>;
+export type TInferSchema<T extends z.ZodTypeAny> = z.infer<T>;

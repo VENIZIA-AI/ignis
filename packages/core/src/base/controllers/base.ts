@@ -21,6 +21,7 @@ import {
  * @typeParam RouteSchema - Combined schema type for all routes
  * @typeParam BasePath - Base path prefix for the router
  * @typeParam ConfigurableOptions - Options passed during configuration
+ * @typeParam Definitions - Route definitions map type for strongly-typed method overrides
  *
  * @example
  * ```typescript
@@ -55,7 +56,11 @@ export abstract class BaseController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
-> extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions> {
+  Definitions extends Record<string, TAuthRouteConfig<RouteConfig>> = Record<
+    string,
+    TAuthRouteConfig<RouteConfig>
+  >,
+> extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions, Definitions> {
   /**
    * Creates a fluent binding for registering a route.
    *

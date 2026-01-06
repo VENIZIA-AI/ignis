@@ -22,13 +22,14 @@ import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import { isClass } from '@venizia/ignis-inversion';
 import { Context, Env, Schema } from 'hono';
 import { BaseController } from '../base';
-import { defineControllerRouteConfigs, TRoutesConfig } from './definition';
-import { TRouteContext } from '../common';
+import { defineControllerRouteConfigs } from './definition';
+import { TRouteContext,  TRoutesConfig } from '../common';
 
 /**
  * Configuration options for creating a CRUD controller via {@link ControllerFactory.defineCrudController}.
  *
  * @typeParam EntitySchema - The Drizzle table schema type with an ID column
+ * @typeParam Routes - The routes configuration type (inferred from routes option)
  *
  * @example
  * ```typescript
@@ -47,7 +48,10 @@ import { TRouteContext } from '../common';
  * });
  * ```
  */
-export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId> {
+export interface ICrudControllerOptions<
+  EntitySchema extends TTableSchemaWithId,
+  Routes extends TRoutesConfig = TRoutesConfig,
+> {
   /** Entity class or resolver function returning the entity class */
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
 
@@ -57,17 +61,11 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
   };
 
   controller: {
-    /** Controller class name (used for logging and OpenAPI tags) */
     name: string;
-    /** Base path for all routes (e.g., '/users') */
     basePath: string;
-    /** If true, only read operations are available (no create/update/delete) */
     readonly?: boolean;
-    /** Strictness configuration for path and request schema validation */
     isStrict?: {
-      /** Strict path matching (default: true) */
       path?: boolean;
-      /** Require request schemas (default: true) */
       requestSchema?: boolean;
     };
   };
@@ -107,7 +105,7 @@ export interface ICrudControllerOptions<EntitySchema extends TTableSchemaWithId>
    *   create: { schema: CustomCreateResponseSchema, requestBody: CustomCreateBodySchema },
    * }
    */
-  routes?: TRoutesConfig;
+  routes?: Routes;
 }
 
 /**
@@ -159,7 +157,7 @@ export class ControllerFactory extends BaseHelper {
    * @typeParam RouteSchema - Combined route schema type
    * @typeParam BasePath - Base path type
    * @typeParam ConfigurableOptions - Controller configuration options type
-   * @param opts - Controller configuration options
+   * @param defOpts - Controller configuration options
    * @returns A controller class constructor
    *
    * @example
@@ -173,12 +171,13 @@ export class ControllerFactory extends BaseHelper {
    */
   static defineCrudController<
     EntitySchema extends TTableSchemaWithId,
+    Routes extends TRoutesConfig = TRoutesConfig,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
-  >(opts: ICrudControllerOptions<EntitySchema>) {
-    const { controller, entity, authStrategies, routes } = opts;
+  >(defOpts: ICrudControllerOptions<EntitySchema, Routes>) {
+    const { controller, entity, authStrategies, routes } = defOpts;
 
     const {
       name,
@@ -218,7 +217,8 @@ export class ControllerFactory extends BaseHelper {
       RouteEnv,
       RouteSchema,
       BasePath,
-      ConfigurableOptions
+      ConfigurableOptions,
+      typeof routeDefinitions
     > {
       /** Repository instance for database operations */
       repository: AbstractRepository<EntitySchema>;
@@ -246,7 +246,7 @@ export class ControllerFactory extends BaseHelper {
        * @typeParam ResponseSchema - The response data type
        * @typeParam RequestContext - Hono context type
        * @typeParam ResponseData - Full response shape with count and data
-       * @param _opts - Context and response data
+       * @param opts - Context and response data
        * @returns Normalized response (full or data-only)
        */
       normalizeCountData<
@@ -256,8 +256,8 @@ export class ControllerFactory extends BaseHelper {
           count: number;
           data?: TNullable<ResponseSchema>;
         } = { count: number; data?: TNullable<ResponseSchema> },
-      >(_opts: { context: RequestContext; responseData: ResponseData }) {
-        const { context, responseData } = _opts;
+      >(opts: { context: RequestContext; responseData: ResponseData }) {
+        const { context, responseData } = opts;
         const requestCountData = context.req.header(HTTP.Headers.REQUEST_COUNT_DATA) ?? 'true';
         const useCountData = toBoolean(requestCountData);
 
@@ -273,11 +273,11 @@ export class ControllerFactory extends BaseHelper {
       /**
        * Handles GET /count - Returns count of records matching the filter.
        *
-       * @param _opts - Request options containing the Hono context
+       * @param opts - Request options containing the Hono context
        * @returns JSON response with count
        */
-      async count(_opts: { context: TRouteContext<typeof routeDefinitions.COUNT, RouteEnv> }) {
-        const { context } = _opts;
+      async count(opts: { context: TRouteContext<typeof routeDefinitions.COUNT, RouteEnv> }) {
+        const { context } = opts;
         const { where } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -302,8 +302,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with data array and range information
        */
-      async find(_opts: { context: TRouteContext<typeof routeDefinitions.FIND, RouteEnv> }) {
-        const { context } = _opts;
+      async find(opts: { context: TRouteContext<typeof routeDefinitions.FIND, RouteEnv> }) {
+        const { context } = opts;
         const { filter = {} } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -347,10 +347,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findById(_opts: {
+      async findById(opts: {
         context: TRouteContext<typeof routeDefinitions.FIND_BY_ID, RouteEnv>;
       }) {
-        const { context } = _opts;
+        const { context } = opts;
         const { id } = context.req.valid('param');
         const { filter } = context.req.valid('query');
 
@@ -383,8 +383,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findOne(_opts: { context: TRouteContext<typeof routeDefinitions.FIND_ONE, RouteEnv> }) {
-        const { context } = _opts;
+      async findOne(opts: { context: TRouteContext<typeof routeDefinitions.FIND_ONE, RouteEnv> }) {
+        const { context } = opts;
         const { filter = {} } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({
@@ -416,8 +416,8 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with request body
        * @returns JSON response with created record and count
        */
-      async create(_opts: { context: TRouteContext<typeof routeDefinitions.CREATE, RouteEnv> }) {
-        const { context } = _opts;
+      async create(opts: { context: TRouteContext<typeof routeDefinitions.CREATE, RouteEnv> }) {
+        const { context } = opts;
         const data = context.req.valid('json');
 
         const rs = await executeWithPerformanceMeasure({
@@ -449,10 +449,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param and body
        * @returns JSON response with updated record and count
        */
-      async updateById(_opts: {
+      async updateById(opts: {
         context: TRouteContext<typeof routeDefinitions.UPDATE_BY_ID, RouteEnv>;
       }) {
-        const { context } = _opts;
+        const { context } = opts;
         const { id } = context.req.valid('param');
         const data = context.req.valid('json');
 
@@ -485,10 +485,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query and body
        * @returns JSON response with updated records array and count
        */
-      async updateBy(_opts: {
+      async updateBy(opts: {
         context: TRouteContext<typeof routeDefinitions.UPDATE_BY, RouteEnv>;
       }) {
-        const { context } = _opts;
+        const { context } = opts;
         const { where } = context.req.valid('query');
         const data = context.req.valid('json');
 
@@ -521,10 +521,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param
        * @returns JSON response with deleted record and count
        */
-      async deleteById(_opts: {
+      async deleteById(opts: {
         context: TRouteContext<typeof routeDefinitions.DELETE_BY_ID, RouteEnv>;
       }) {
-        const { context } = _opts;
+        const { context } = opts;
         const { id } = context.req.valid('param');
 
         const rs = await executeWithPerformanceMeasure({
@@ -556,10 +556,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query
        * @returns JSON response with deleted records array and count
        */
-      async deleteBy(_opts: {
+      async deleteBy(opts: {
         context: TRouteContext<typeof routeDefinitions.DELETE_BY, RouteEnv>;
       }) {
-        const { context } = _opts;
+        const { context } = opts;
         const { where } = context.req.valid('query');
 
         const rs = await executeWithPerformanceMeasure({

@@ -30,6 +30,7 @@ import {
  * @typeParam RouteSchema - Combined schema type for all routes
  * @typeParam BasePath - Base path prefix for the router
  * @typeParam ConfigurableOptions - Options passed during configuration
+ * @typeParam Definitions - Route definitions map type for strongly-typed method overrides
  *
  * @example
  * ```typescript
@@ -51,6 +52,10 @@ export abstract class AbstractController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
+  Definitions extends Record<string, TAuthRouteConfig<RouteConfig>> = Record<
+    string,
+    TAuthRouteConfig<RouteConfig>
+  >,
 >
   extends BaseHelper
   implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
@@ -58,8 +63,24 @@ export abstract class AbstractController<
   /** The OpenAPIHono router instance managing all routes for this controller */
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
 
-  /** Route definitions map, keyed by route identifier (e.g., 'FIND', 'CREATE') */
-  definitions: Record<string, TAuthRouteConfig<RouteConfig>>;
+  /**
+   * Route definitions map, keyed by route identifier (e.g., 'FIND', 'CREATE').
+   * Use with {@link THandlerContext} to type overridden handler methods.
+   *
+   * @example
+   * ```typescript
+   * // Extract definitions type from the controller class
+   * type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
+   *
+   * // Override a CRUD method with proper typing:
+   * override async create(_opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
+   *   const { context } = _opts;
+   *   const data = context.req.valid('json'); // Properly typed!
+   *   return super.create(_opts);
+   * }
+   * ```
+   */
+  definitions: Definitions;
 
   /** The base path for all routes in this controller */
   path: string;

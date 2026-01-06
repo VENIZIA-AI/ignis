@@ -101,7 +101,9 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
               if (user?.userId) {
                 context.set(Authentication.AUDIT_USER_ID, user.userId);
               }
-              return await next();
+
+              await next();
+              return;
             } catch (error) {
               this.logger.debug('[authenticate] Strategy %s failed, trying next...', strategyName);
               errors.push(error as Error);

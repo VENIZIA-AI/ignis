@@ -329,29 +329,42 @@ This factory method returns a `BaseController` class that is already set up with
 
 ### Routes Configuration
 
-The `routes` option provides a unified way to configure both schema overrides and authentication for each endpoint:
+The `routes` option provides a unified way to configure request/response schemas and authentication for each endpoint:
 
 ```typescript
 type TRouteAuthConfig =
   | { skipAuth: true }
   | { skipAuth?: false; authStrategies: Array<TAuthStrategy> };
 
-type TReadRouteConfig = TRouteAuthConfig & { schema?: z.ZodObject };
-type TWriteRouteConfig = TReadRouteConfig & { requestBody?: z.ZodObject };
-type TDeleteRouteConfig = TRouteAuthConfig & { schema?: z.ZodObject };
+type TRequestConfig = {
+  query?: z.ZodObject;    // Custom query parameters
+  headers?: z.ZodObject;  // Custom headers
+  params?: z.ZodObject;   // Custom path parameters
+  body?: z.ZodObject;     // Custom request body (write routes only)
+};
+
+type TResponseConfig = {
+  schema?: z.ZodObject;   // Custom response body schema
+  headers?: z.ZodObject;  // Custom response headers
+};
+
+type TBaseRouteConfig = TRouteAuthConfig & {
+  request?: TRequestConfig;
+  response?: TResponseConfig;
+};
 ```
 
-| Route | Type | Description |
+| Route | Customizable Components | Description |
 | :--- | :--- | :--- |
-| `count` | `TReadRouteConfig` | Config for count endpoint |
-| `find` | `TReadRouteConfig` | Config for find endpoint |
-| `findOne` | `TReadRouteConfig` | Config for findOne endpoint |
-| `findById` | `TReadRouteConfig` | Config for findById endpoint |
-| `create` | `TWriteRouteConfig` | Config for create endpoint (supports `requestBody`) |
-| `updateById` | `TWriteRouteConfig` | Config for updateById endpoint (supports `requestBody`) |
-| `updateBy` | `TWriteRouteConfig` | Config for updateBy endpoint (supports `requestBody`) |
-| `deleteById` | `TDeleteRouteConfig` | Config for deleteById endpoint |
-| `deleteBy` | `TDeleteRouteConfig` | Config for deleteBy endpoint |
+| `count` | query, headers, response | Config for count endpoint |
+| `find` | query, headers, response | Config for find endpoint |
+| `findOne` | query, headers, response | Config for findOne endpoint |
+| `findById` | query, headers, params, response | Config for findById endpoint |
+| `create` | headers, body, response | Config for create endpoint |
+| `updateById` | headers, params, body, response | Config for updateById endpoint |
+| `updateBy` | query, headers, body, response | Config for updateBy endpoint |
+| `deleteById` | headers, params, response | Config for deleteById endpoint |
+| `deleteBy` | query, headers, response | Config for deleteBy endpoint |
 
 ### Auth Resolution Priority
 
@@ -397,17 +410,70 @@ const ArticleController = ControllerFactory.defineCrudController({
   },
 });
 
-// 4. Custom schema with auth configuration
+// 4. Custom request/response schemas with auth configuration
 const OrderController = ControllerFactory.defineCrudController({
   entity: OrderEntity,
   repository: { name: 'OrderRepository' },
   controller: { name: 'OrderController', basePath: '/orders' },
   authStrategies: ['jwt'],
   routes: {
-    find: { schema: CustomOrderListSchema, skipAuth: true },
+    find: {
+      skipAuth: true,
+      response: { schema: CustomOrderListSchema },
+    },
     create: {
-      schema: CustomOrderResponseSchema,
-      requestBody: CustomOrderCreateSchema,
+      request: { body: CustomOrderCreateSchema },
+      response: { schema: CustomOrderResponseSchema },
+    },
+  },
+});
+```
+
+### Route Customization Examples
+
+```typescript
+import { z } from '@hono/zod-openapi';
+
+// Custom request body for create
+const CreateUserSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  role: z.enum(['admin', 'user']).default('user'),
+});
+
+// Custom response schema (omit sensitive fields)
+const PublicUserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  createdAt: z.string(),
+});
+
+const UserController = ControllerFactory.defineCrudController({
+  entity: UserEntity,
+  repository: { name: 'UserRepository' },
+  controller: { name: 'UserController', basePath: '/users' },
+  authStrategies: ['jwt'],
+  routes: {
+    // Public read endpoints
+    find: {
+      skipAuth: true,
+      response: { schema: z.array(PublicUserSchema) },
+    },
+    findById: {
+      skipAuth: true,
+      response: { schema: PublicUserSchema },
+    },
+
+    // Custom create with custom body and response
+    create: {
+      request: { body: CreateUserSchema },
+      response: { schema: PublicUserSchema },
+    },
+
+    // Delete requires JWT auth (uses default schema)
+    deleteById: {
+      authStrategies: ['jwt'],
     },
   },
 });
@@ -458,6 +524,137 @@ export class ConfigurationController extends _ConfigurationController {
 ```
 
 By leveraging these structured configuration options and the `ControllerFactory`, you ensure that your API is not only functional but also well-documented, easy to validate, and rapidly deployable for standard CRUD operations.
+
+### Overriding CRUD Methods with Strong Typing
+
+When extending a generated CRUD controller, you can override methods with full type safety using the helper types `THandlerContext` and `TInferSchema`.
+
+#### Helper Types
+
+| Type | Purpose |
+| :--- | :--- |
+| `THandlerContext<Definitions, Key>` | Extracts the strongly-typed Hono context for a specific route |
+| `TInferSchema<ZodSchema>` | Extracts TypeScript type from a Zod schema |
+
+#### Example: Full Controller Override Pattern
+
+```typescript
+import { Configuration } from '@/models';
+import { ConfigurationRepository } from '@/repositories';
+import {
+  Authentication,
+  BindingKeys,
+  BindingNamespaces,
+  controller,
+  ControllerFactory,
+  inject,
+  THandlerContext,
+  TInferSchema,
+} from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+
+const BASE_PATH = '/configurations';
+
+// Custom request body schema
+const CreateConfigurationSchema = z.object({
+  code: z.string().min(1).max(100),
+  description: z.string().max(500).optional(),
+  group: z.string().min(1).max(50),
+});
+
+// Custom response schema
+const CreateResponseSchema = z.object({
+  id: z.string(),
+  code: z.string(),
+  message: z.string(),
+});
+
+// Define the CRUD controller with custom schemas
+const _Controller = ControllerFactory.defineCrudController({
+  repository: { name: ConfigurationRepository.name },
+  controller: { name: 'ConfigurationController', basePath: BASE_PATH },
+  authStrategies: [Authentication.STRATEGY_JWT],
+  entity: () => Configuration,
+  routes: {
+    count: { skipAuth: true },
+    create: {
+      request: { body: CreateConfigurationSchema },
+      response: { schema: CreateResponseSchema },
+    },
+  },
+});
+
+// Extract definitions type for method overrides
+type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
+
+@controller({ path: BASE_PATH })
+export class ConfigurationController extends _Controller {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: ConfigurationRepository.name,
+      }),
+    })
+    repository: ConfigurationRepository,
+  ) {
+    super(repository);
+  }
+
+  // Override with full type safety
+  override async create(opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
+    const { context } = opts;
+
+    // Get typed request body using TInferSchema
+    const data = context.req.valid('json') as TInferSchema<typeof CreateConfigurationSchema>;
+
+    // Access typed properties
+    this.logger.info('[create] code: %s, group: %s', data.code, data.group);
+
+    // Custom business logic here...
+
+    // Call parent or return custom response
+    return super.create(opts);
+  }
+
+  // Override updateById
+  override async updateById(opts: { context: THandlerContext<TRouteDefinitions, 'UPDATE_BY_ID'> }) {
+    const { context } = opts;
+    const { id } = context.req.valid('param');
+    const data = context.req.valid('json');
+
+    this.logger.info('[updateById] id: %s', id);
+
+    return super.updateById(opts);
+  }
+
+  // Override deleteById with audit logging
+  override async deleteById(opts: { context: THandlerContext<TRouteDefinitions, 'DELETE_BY_ID'> }) {
+    const { context } = opts;
+    const { id } = context.req.valid('param');
+
+    this.logger.warn('[deleteById] Deleting id: %s', id);
+
+    return super.deleteById(opts);
+  }
+}
+```
+
+#### Available Route Keys
+
+Use these keys with `THandlerContext`:
+
+| Key | Method | Path |
+| :--- | :--- | :--- |
+| `'COUNT'` | GET | /count |
+| `'FIND'` | GET | / |
+| `'FIND_BY_ID'` | GET | /:id |
+| `'FIND_ONE'` | GET | /find-one |
+| `'CREATE'` | POST | / |
+| `'UPDATE_BY_ID'` | PATCH | /:id |
+| `'UPDATE_BY'` | PATCH | / |
+| `'DELETE_BY_ID'` | DELETE | /:id |
+| `'DELETE_BY'` | DELETE | / |
 
 ---
 
