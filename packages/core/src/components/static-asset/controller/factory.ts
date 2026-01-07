@@ -19,6 +19,12 @@ import { StaticAssetDefinitions } from './base.definition';
 import { BaseController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
 
+// Type definitions for route params/query (avoids heavy RouteHandler inference)
+type TBucketParams = { bucketName: string };
+type TObjectParams = { bucketName: string; objectName: string };
+type TPrincipalQuery = { principalType?: string; principalId?: string };
+type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
+
 export interface IAssetControllerOptions {
   controller: {
     name: string;
@@ -67,7 +73,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.GET_BUCKET_BY_NAME,
         }).to({
           handler: async ctx => {
-            const { bucketName } = ctx.req.valid('param');
+            const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -86,7 +92,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.GET_OBJECT_BY_NAME,
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid('param');
+            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -130,7 +136,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid('param');
+            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
             if (!helper.isValidName(bucketName)) {
               throw getError({
                 message: 'Invalid bucket name',
@@ -178,7 +184,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.CREATE_BUCKET,
         }).to({
           handler: async ctx => {
-            const { bucketName } = ctx.req.valid('param');
+            const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -197,8 +203,8 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.UPLOAD,
         }).to({
           handler: async ctx => {
-            const { bucketName } = ctx.req.valid('param');
-            const { principalType, principalId } = ctx.req.valid('query');
+            const { bucketName } = ctx.req.valid<TBucketParams>('param');
+            const { principalType, principalId } = ctx.req.valid<TPrincipalQuery>('query');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -284,7 +290,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.DELETE_BUCKET,
         }).to({
           handler: async ctx => {
-            const { bucketName } = ctx.req.valid('param');
+            const { bucketName } = ctx.req.valid<TBucketParams>('param');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -305,7 +311,7 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.DELETE_OBJECT,
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid('param');
+            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -359,8 +365,8 @@ export class AssetControllerFactory extends BaseHelper {
           configs: StaticAssetDefinitions.LIST_OBJECTS,
         }).to({
           handler: async ctx => {
-            const { bucketName } = ctx.req.valid('param');
-            const { prefix, recursive, maxKeys } = ctx.req.valid('query');
+            const { bucketName } = ctx.req.valid<TBucketParams>('param');
+            const { prefix, recursive, maxKeys } = ctx.req.valid<TListQuery>('query');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -386,7 +392,7 @@ export class AssetControllerFactory extends BaseHelper {
             configs: StaticAssetDefinitions.RECREATE_METALINK,
           }).to({
             handler: async ctx => {
-              const { bucketName, objectName } = ctx.req.valid('param');
+              const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
 
               if (!helper.isValidName(bucketName)) {
                 throw getError({

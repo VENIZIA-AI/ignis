@@ -1,7 +1,8 @@
+import { TContext } from '@/base/controllers';
 import { inject } from '@/base/metadata';
 import { BaseService } from '@/base/services';
 import { AES, getError, HTTP, int } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import { Env } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
 import { Authentication } from '../common/constants';
 import {
@@ -11,7 +12,7 @@ import {
   TGetTokenExpiresFn,
 } from './../common';
 
-export class JWTTokenService extends BaseService {
+export class JWTTokenService<E extends Env = Env> extends BaseService {
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([
     'iss',
     'sub',
@@ -64,7 +65,7 @@ export class JWTTokenService extends BaseService {
   }
 
   // --------------------------------------------------------------------------------------
-  extractCredentials(context: Context): { type: string; token: string } {
+  extractCredentials(context: TContext<string, E>): { type: string; token: string } {
     const request = context.req;
 
     const authHeaderValue = request.header('Authorization');

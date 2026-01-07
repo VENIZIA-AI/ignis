@@ -3,7 +3,7 @@ import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
 import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import { RouteConfig } from '@hono/zod-openapi';
 import { TClass, TValueOrResolver } from '@venizia/ignis-helpers';
-import { TAuthStrategy } from '@/components/auth/authenticate/common';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import {
   IInjectMetadata as _IInjectMetadata,
   IPropertyMetadata as _IPropertyMetadata,
@@ -15,7 +15,7 @@ import { relations as defineRelations } from 'drizzle-orm';
 // Metadata
 // ----------------------------------------------------------------------------------------------------------------------------------------
 export type TRouteMetadata = RouteConfig & {
-  authStrategies?: readonly TAuthStrategy[];
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
 };
 
 export interface IControllerMetadata {

@@ -1,7 +1,6 @@
-import { RouteConfig } from '@hono/zod-openapi';
-import { TAuthRouteConfig, TRouteContext, TRouteResponse } from '../controllers';
 import { IControllerMetadata, MetadataRegistry } from '@/helpers/inversion';
 import { HTTP } from '@venizia/ignis-helpers';
+import { IAuthenticateRouteConfig as IAuthenticateRouteConfig } from '../controllers';
 
 // --------------------------------------------------------------------------------------------
 export const controller = (metadata: IControllerMetadata): ClassDecorator => {
@@ -12,10 +11,10 @@ export const controller = (metadata: IControllerMetadata): ClassDecorator => {
 
 // --------------------------------------------------------------------------------------------
 /**
- * Decorator for defining API routes with automatic type inference
- * The decorated method will be type-checked against the route config:
- * - Parameter must be TRouteContext<RC>
- * - Return type must be TRouteResponse<RC>
+ * Decorator for defining API routes.
+ *
+ * Registers the route configuration with the metadata registry.
+ * Use `valid<T>('target')` for explicit typing of validated request data.
  *
  * @example
  * ```typescript
@@ -28,95 +27,80 @@ export const controller = (metadata: IControllerMetadata): ClassDecorator => {
  *
  * class MyController extends BaseController {
  *   @api({ configs: config })
- *   pingPong(context) { // context is automatically typed as TRouteContext<typeof config>
- *     const { message } = context.req.valid('json'); // typed as { message: string }
- *     return context.json({ reply: message }, 200); // return type is validated
+ *   pingPong(context: TTypedContext) {
+ *     const { message } = context.req.valid<{ message: string }>('json');
+ *     return context.json({ reply: message }, 200);
  *   }
  * }
  * ```
  */
-export const api = <RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: RC }) => {
-  return function <T extends (context: TRouteContext<RC>) => TRouteResponse<RC>>(
+export const api = <RouteConfig extends IAuthenticateRouteConfig>(opts: {
+  configs: RouteConfig;
+}) => {
+  return function (
     target: any,
     propertyKey: string | symbol,
-    descriptor: TypedPropertyDescriptor<T>,
-  ): TypedPropertyDescriptor<T> | void {
+    _descriptor: PropertyDescriptor,
+  ): void {
     MetadataRegistry.getInstance().addRoute({
       target,
       methodName: propertyKey,
       configs: opts.configs,
     });
-
-    return descriptor;
   };
 };
 
 // --------------------------------------------------------------------------------------------
-/**
- * GET route decorator with automatic type inference
- * Equivalent to @api but automatically sets method to 'get'
- */
-export const get = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
-  configs: RC;
+/** GET route decorator. Equivalent to @api but automatically sets method to 'get'. */
+export const get = <RouteConfig extends Omit<IAuthenticateRouteConfig, 'method'>>(opts: {
+  configs: RouteConfig;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.GET } as RC & {
+    configs: { ...opts.configs, method: HTTP.Methods.GET } as RouteConfig & {
       method: typeof HTTP.Methods.GET;
     },
   });
 };
 
-/**
- * POST route decorator with automatic type inference
- * Equivalent to @api but automatically sets method to 'post'
- */
-export const post = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
-  configs: RC;
+/** POST route decorator. Equivalent to @api but automatically sets method to 'post'. */
+export const post = <RouteConfig extends Omit<IAuthenticateRouteConfig, 'method'>>(opts: {
+  configs: RouteConfig;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.POST } as RC & {
+    configs: { ...opts.configs, method: HTTP.Methods.POST } as RouteConfig & {
       method: typeof HTTP.Methods.POST;
     },
   });
 };
 
-/**
- * PUT route decorator with automatic type inference
- * Equivalent to @api but automatically sets method to 'put'
- */
-export const put = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
-  configs: RC;
+/** PUT route decorator. Equivalent to @api but automatically sets method to 'put'. */
+export const put = <RouteConfig extends Omit<IAuthenticateRouteConfig, 'method'>>(opts: {
+  configs: RouteConfig;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.PUT } as RC & {
+    configs: { ...opts.configs, method: HTTP.Methods.PUT } as RouteConfig & {
       method: typeof HTTP.Methods.PUT;
     },
   });
 };
 
-/**
- * PATCH route decorator with automatic type inference
- * Equivalent to @api but automatically sets method to 'patch'
- */
-export const patch = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
-  configs: RC;
+/** PATCH route decorator. Equivalent to @api but automatically sets method to 'patch'. */
+export const patch = <RouteConfig extends Omit<IAuthenticateRouteConfig, 'method'>>(opts: {
+  configs: RouteConfig;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.PATCH } as RC & {
+    configs: { ...opts.configs, method: HTTP.Methods.PATCH } as RouteConfig & {
       method: typeof HTTP.Methods.PATCH;
     },
   });
 };
 
-/**
- * DELETE route decorator with automatic type inference
- * Equivalent to @api but automatically sets method to 'delete'
- */
-export const del = <RC extends Omit<TAuthRouteConfig<RouteConfig>, 'method'>>(opts: {
-  configs: RC;
+/** DELETE route decorator. Equivalent to @api but automatically sets method to 'delete'. */
+export const del = <RouteConfig extends Omit<IAuthenticateRouteConfig, 'method'>>(opts: {
+  configs: RouteConfig;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.DELETE } as RC & {
+    configs: { ...opts.configs, method: HTTP.Methods.DELETE } as RouteConfig & {
       method: typeof HTTP.Methods.DELETE;
     },
   });

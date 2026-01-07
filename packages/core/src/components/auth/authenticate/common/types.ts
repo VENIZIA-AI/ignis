@@ -1,7 +1,8 @@
 import { IdType } from '@/base/models';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import { TContext } from '@/base/controllers';
 import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Context, Env, Input } from 'hono';
+import { Env } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
 import { Authentication } from './constants';
@@ -52,7 +53,7 @@ export interface IJWTTokenServiceOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
 }
 
-export interface IBasicTokenServiceOptions {
+export interface IBasicTokenServiceOptions<E extends Env = Env> {
   /**
    * Callback function to verify basic authentication credentials.
    * Implement this to look up user and verify password.
@@ -74,7 +75,7 @@ export interface IBasicTokenServiceOptions {
    */
   verifyCredentials: (opts: {
     credentials: { username: string; password: string };
-    context: Context;
+    context: TContext<string, E>;
   }) => Promise<IAuthUser | null>;
 }
 
@@ -110,13 +111,9 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 
 export type TGetTokenExpiresFn = () => ValueOrPromise<number>;
 
-export interface IAuthenticationStrategy<
-  E extends Env = any,
-  P extends string = any,
-  I extends Input = {},
-> {
+export interface IAuthenticationStrategy<E extends Env = Env> {
   name: string;
-  authenticate(context: Context<E, P, I>): Promise<IAuthUser>;
+  authenticate(context: TContext<string, E>): Promise<IAuthUser>;
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -134,8 +131,8 @@ export interface IAuthService<
   UIRQ = AnyObject,
   UIRS = AnyObject,
 > {
-  signIn(context: Context, opts: SIRQ): Promise<SIRS>;
-  signUp(context: Context, opts: SURQ): Promise<SURS>;
-  changePassword(context: Context, opts: CPRQ): Promise<CPRS>;
-  getUserInformation?(context: Context, opts: UIRQ): Promise<UIRS>;
+  signIn(context: TContext, opts: SIRQ): Promise<SIRS>;
+  signUp(context: TContext, opts: SURQ): Promise<SURS>;
+  changePassword(context: TContext, opts: CPRQ): Promise<CPRS>;
+  getUserInformation?(context: TContext, opts: UIRQ): Promise<UIRS>;
 }

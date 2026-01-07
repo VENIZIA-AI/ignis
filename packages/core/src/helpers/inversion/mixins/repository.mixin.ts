@@ -1,4 +1,4 @@
-import { IDataSource } from '@/base';
+import { IDataSource } from '@/base/datasources';
 import { BaseEntity, TTableSchemaWithId } from '@/base/models';
 import { createRelations, TRelationConfig } from '@/base/repositories';
 import { resolveValue, TClass, TMixinTarget } from '@venizia/ignis-helpers';

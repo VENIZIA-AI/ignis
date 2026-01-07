@@ -87,7 +87,9 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         configs: {
           path: '/sign-up',
           method: 'post',
-          authStrategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
+          authenticate: {
+            strategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
+          },
           request: {
             body: jsonContent({
               description: 'Sign-up request body',
@@ -122,7 +124,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             schema: payload?.changePassword?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
-          authStrategies: [Authentication.STRATEGY_JWT],
+          authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
         handler: async context => {
           const body = await context.req.json();
@@ -141,7 +143,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
               schema: JWTTokenPayloadSchema,
             }),
           },
-          authStrategies: [Authentication.STRATEGY_JWT],
+          authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
         handler: context => {
           const currentUser = context.get(Authentication.CURRENT_USER as never) as IJWTTokenPayload;

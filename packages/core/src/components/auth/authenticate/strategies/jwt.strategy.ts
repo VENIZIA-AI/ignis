@@ -1,25 +1,22 @@
+import { TContext } from '@/base/controllers';
 import { inject } from '@/base/metadata';
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { Context, Env, Input } from 'hono';
+import { Env } from 'hono';
 import { IAuthUser, IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common/constants';
 import { JWTTokenService } from '../services';
 
-export class JWTAuthenticationStrategy<
-  E extends Env = any,
-  P extends string = any,
-  I extends Input = {},
->
+export class JWTAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
-  implements IAuthenticationStrategy<E, P, I>
+  implements IAuthenticationStrategy<E>
 {
   name = Authentication.STRATEGY_JWT;
 
-  constructor(@inject({ key: 'services.JWTTokenService' }) private service: JWTTokenService) {
+  constructor(@inject({ key: 'services.JWTTokenService' }) private service: JWTTokenService<E>) {
     super({ scope: JWTAuthenticationStrategy.name });
   }
 
-  authenticate(context: Context): Promise<IAuthUser> {
+  authenticate(context: TContext<string, E>): Promise<IAuthUser> {
     const token = this.service.extractCredentials(context);
     return this.service.verify(token);
   }

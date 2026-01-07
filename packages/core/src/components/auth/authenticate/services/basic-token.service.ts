@@ -1,7 +1,8 @@
+import { TContext } from '@/base';
 import { inject } from '@/base/metadata';
 import { BaseService } from '@/base/services';
 import { getError, HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
+import { Env } from 'hono';
 import { Authentication } from '../common/constants';
 import { AuthenticateBindingKeys, IAuthUser, IBasicTokenServiceOptions } from '../common';
 
@@ -27,12 +28,12 @@ import { AuthenticateBindingKeys, IAuthUser, IBasicTokenServiceOptions } from '.
  * this.service(BasicTokenService);
  * ```
  */
-export class BasicTokenService extends BaseService {
-  private verifyCredentials: IBasicTokenServiceOptions['verifyCredentials'];
+export class BasicTokenService<E extends Env = Env> extends BaseService {
+  private verifyCredentials: IBasicTokenServiceOptions<E>['verifyCredentials'];
 
   constructor(
     @inject({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-    protected options: IBasicTokenServiceOptions,
+    protected options: IBasicTokenServiceOptions<E>,
   ) {
     super({ scope: BasicTokenService.name });
 
@@ -56,7 +57,7 @@ export class BasicTokenService extends BaseService {
    * @returns The extracted username and password
    * @throws 401 Unauthorized if header is missing, invalid schema, or invalid format
    */
-  extractCredentials(context: Context): { username: string; password: string } {
+  extractCredentials(context: TContext<string, E>): { username: string; password: string } {
     const authHeaderValue = context.req.header('Authorization');
 
     if (!authHeaderValue) {
@@ -119,7 +120,7 @@ export class BasicTokenService extends BaseService {
    */
   async verify(opts: {
     credentials: { username: string; password: string };
-    context: Context;
+    context: TContext<string, E>;
   }): Promise<IAuthUser> {
     const user = await this.verifyCredentials(opts);
 

@@ -1,16 +1,16 @@
-import { authenticate, TAuthMode, TAuthStrategy } from '@/components/auth';
+import { authenticate as authenticateFn, AuthenticationModes } from '@/components/auth';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { htmlResponse } from '@/utilities/jsx.utility';
-import { createRoute, Hook, OpenAPIHono, RouteConfig } from '@hono/zod-openapi';
+import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
   IController,
   IControllerOptions,
-  TAuthRouteConfig,
-  TLazyRouteHandler,
-  TRouteBindingOptions,
-  TRouteDefinition,
+  IAuthenticateRouteConfig,
+  IBindRouteOptions,
+  IDefineRouteOptions,
+  TRouteHandler,
 } from './common/types';
 
 // -----------------------------------------------------------------------------
@@ -52,9 +52,9 @@ export abstract class AbstractController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
-  Definitions extends Record<string, TAuthRouteConfig<RouteConfig>> = Record<
+  Definitions extends Record<string, IAuthenticateRouteConfig> = Record<
     string,
-    TAuthRouteConfig<RouteConfig>
+    IAuthenticateRouteConfig
   >,
 >
   extends BaseHelper
@@ -65,17 +65,13 @@ export abstract class AbstractController<
 
   /**
    * Route definitions map, keyed by route identifier (e.g., 'FIND', 'CREATE').
-   * Use with {@link THandlerContext} to type overridden handler methods.
    *
    * @example
    * ```typescript
-   * // Extract definitions type from the controller class
-   * type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
-   *
-   * // Override a CRUD method with proper typing:
-   * override async create(_opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
+   * // Override a CRUD method with explicit typing:
+   * override async create(_opts: { context: TTypedContext }) {
    *   const { context } = _opts;
-   *   const data = context.req.valid('json'); // Properly typed!
+   *   const data = context.req.valid<{ name: string }>('json');
    *   return super.create(_opts);
    * }
    * ```
@@ -182,25 +178,23 @@ export abstract class AbstractController<
    * Processes route configuration, adding authentication middleware and OpenAPI metadata.
    *
    * Transforms a route config by:
-   * - Converting `authStrategies` to OpenAPI security requirements
-   * - Creating authentication middleware for each strategy
+   * - Converting `authenticate.strategies` to OpenAPI security requirements
+   * - Creating authentication middleware based on strategies and mode
    * - Adding the controller scope to route tags
    * - Merging any existing middleware
    *
-   * @typeParam RC - The route configuration type
+   * @typeParam RouteConfig - The route configuration type
    * @param opts - Object containing the route configuration
    * @returns Processed route configuration ready for registration
    */
-  getRouteConfigs<RC extends TAuthRouteConfig<RouteConfig>>(opts: { configs: RC }) {
+  getRouteConfigs<RouteConfig extends IAuthenticateRouteConfig>(opts: { configs: RouteConfig }) {
     const { configs } = opts;
 
-    const { authStrategies = [], authMode = 'any', ...restConfig } = configs;
+    const { authenticate = {}, ...restConfig } = configs;
+    const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
-    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
-    const mws =
-      authStrategies.length > 0
-        ? [authenticate({ strategies: authStrategies as string[], mode: authMode })]
-        : [];
+    const security = strategies.map(strategy => ({ [strategy]: [] }));
+    const mws = strategies.length > 0 ? [authenticateFn({ strategies, mode })] : [];
 
     if (restConfig.middleware) {
       const extraMws = Array.isArray(restConfig.middleware)
@@ -218,7 +212,7 @@ export abstract class AbstractController<
 
     const { tags = [] } = configs;
 
-    return createRoute<string, RC>(
+    return createRoute<string, RouteConfig>(
       Object.assign({}, configs, {
         middleware: mws,
         tags: [...tags, this.scope],
@@ -233,22 +227,18 @@ export abstract class AbstractController<
    * Similar to {@link getRouteConfigs} but automatically adds HTML response
    * schema for JSX rendering. Use with {@link BaseController.defineJSXRoute}.
    *
-   * @typeParam RC - The route configuration type
+   * @typeParam RouteConfig - The route configuration type
    * @param opts - Object containing the route configuration
    * @returns Processed route configuration with HTML response schema
    */
-  getJSXRouteConfigs<
-    RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy>; authMode?: TAuthMode },
-  >(opts: { configs: RC }) {
+  getJSXRouteConfigs<RouteConfig extends IAuthenticateRouteConfig>(opts: { configs: RouteConfig }) {
     const { configs } = opts;
 
-    const { authStrategies = [], authMode = 'any', ...restConfig } = configs;
+    const { authenticate = {}, ...restConfig } = configs;
+    const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
-    const security = authStrategies.map(strategy => ({ [strategy]: [] }));
-    const mws =
-      authStrategies.length > 0
-        ? [authenticate({ strategies: authStrategies as string[], mode: authMode })]
-        : [];
+    const security = strategies.map(strategy => ({ [strategy]: [] }));
+    const mws = strategies.length > 0 ? [authenticateFn({ strategies, mode })] : [];
 
     const extraMws =
       restConfig.middleware && Array.isArray(restConfig.middleware)
@@ -260,7 +250,7 @@ export abstract class AbstractController<
     }
     const { responses, tags = [] } = configs;
 
-    return createRoute<string, RC>(
+    return createRoute<string, RouteConfig>(
       Object.assign({}, configs, {
         responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
@@ -297,9 +287,9 @@ export abstract class AbstractController<
    * @param opts - Object containing route configuration
    * @returns Binding options with `to()` method for attaching the handler
    */
-  abstract bindRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
-    configs: RC;
-  }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath>;
+  abstract bindRoute<RouteConfig extends IAuthenticateRouteConfig>(opts: {
+    configs: RouteConfig;
+  }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 
   /**
    * Defines and registers a route with its handler in a single call.
@@ -307,9 +297,9 @@ export abstract class AbstractController<
    * @param opts - Object containing route config, handler, and optional hook
    * @returns The registered route definition
    */
-  abstract defineRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
-    configs: RC;
-    handler: TLazyRouteHandler<RC, RouteEnv>;
+  abstract defineRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+    configs: RouteConfig;
+    handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
-  }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath>;
+  }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }

@@ -1,4 +1,4 @@
-import { BaseArtifactBooter } from '@/base';
+import { BaseArtifactBooter } from '@/base/base-artifact-booter';
 import { IApplication, IBootOptions } from '@/common';
 import { BindingKeys, inject } from '@venizia/ignis-inversion';
 

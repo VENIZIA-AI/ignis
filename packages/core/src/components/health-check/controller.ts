@@ -75,12 +75,10 @@ export class HealthCheckController extends BaseController {
   }
 
   // Method 3: Using 'decorators' to create a controller route
-  // Note: No need to manually type the context and return type!
-  // The @api decorator automatically infers them from the route config
+  // Use explicit type assertions for validated request data
   @api({ configs: RouteConfigs.PING })
-  pingPong(context: TRouteContext<typeof RouteConfigs.PING>) {
-    // context.req.valid('json') is automatically typed as { type?: string, message: string }
-    const { message } = context.req.valid('json');
+  pingPong(context: TRouteContext) {
+    const { message } = context.req.valid<{ type?: string; message: string }>('json');
 
     // Return type is automatically validated against the response schema
     return context.json(

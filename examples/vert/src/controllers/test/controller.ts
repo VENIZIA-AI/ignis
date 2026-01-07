@@ -8,7 +8,7 @@ import {
   TRouteContext,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { ROUTE_CONFIGS } from './definitions';
+import { RouteConfigs, TRoute5Body } from './definitions';
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {
@@ -22,7 +22,7 @@ export class TestController extends BaseController {
   override binding(): ValueOrPromise<void> {
     // Example 1: Using 'defineRoute' to define a controller endpoint
     this.defineRoute({
-      configs: ROUTE_CONFIGS['/1'],
+      configs: RouteConfigs['/1'],
       handler: context => {
         return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -30,7 +30,7 @@ export class TestController extends BaseController {
 
     // Example 2: Using 'defineRoute' to define a authenticated controller endpoint
     this.defineRoute({
-      configs: ROUTE_CONFIGS['/2'],
+      configs: RouteConfigs['/2'],
       handler: context => {
         return context.json({ message: 'Hello 2' }, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -38,7 +38,7 @@ export class TestController extends BaseController {
 
     // Example 3: Using 'bindRoute' to define a controller endpoint
     this.bindRoute({
-      configs: ROUTE_CONFIGS['/3'],
+      configs: RouteConfigs['/3'],
     }).to({
       handler: context => {
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
@@ -48,8 +48,8 @@ export class TestController extends BaseController {
 
   // Example 4: Using '@get' decorator with automatic type inference
   // No need to manually type context - it's automatically inferred from ROUTE_CONFIGS.decoratorGet
-  @get({ configs: ROUTE_CONFIGS['/4'] })
-  getWithDecorator(context: TRouteContext<(typeof ROUTE_CONFIGS)['/4']>) {
+  @get({ configs: RouteConfigs['/4'] })
+  getWithDecorator(context: TRouteContext) {
     // context is fully typed - try hovering over it in your IDE!
     // Return type is also validated against the response schema
     return context.json(
@@ -60,10 +60,10 @@ export class TestController extends BaseController {
 
   // Example 5: Using '@post' decorator with request body validation
   // Both request and response are fully type-safe!
-  @post({ configs: ROUTE_CONFIGS['/5'] })
-  createWithDecorator(context: TRouteContext<(typeof ROUTE_CONFIGS)['/5']>) {
+  @post({ configs: RouteConfigs['/5'] })
+  createWithDecorator(context: TRouteContext) {
     // context.req.valid('json') is automatically typed as { name: string, age: number }
-    const body = context.req.valid('json');
+    const body = context.req.valid<TRoute5Body>('json');
 
     // TypeScript will validate that the response matches the schema:
     // { id: string, name: string, age: number }

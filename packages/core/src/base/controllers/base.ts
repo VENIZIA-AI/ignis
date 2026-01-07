@@ -1,13 +1,12 @@
-import { Hook, RouteConfig } from '@hono/zod-openapi';
+import { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { TAuthStrategy } from '@/components/auth/authenticate/common';
 import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {
-  TAuthRouteConfig,
-  TLazyRouteHandler,
-  TRouteBindingOptions,
-  TRouteDefinition,
+  IAuthenticateRouteConfig,
+  IBindRouteOptions,
+  IDefineRouteOptions,
+  TRouteHandler,
 } from './common/types';
 
 /**
@@ -32,7 +31,7 @@ import {
  *       configs: {
  *         path: '/',
  *         method: 'get',
- *         authStrategies: ['jwt'],
+ *         authenticate: { strategies: ['jwt'] },
  *         responses: { 200: jsonResponse({ schema: UserSchema }) }
  *       },
  *       handler: async (c) => {
@@ -56,18 +55,25 @@ export abstract class BaseController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
-  Definitions extends Record<string, TAuthRouteConfig<RouteConfig>> = Record<
+  Definitions extends Record<string, IAuthenticateRouteConfig> = Record<
     string,
-    TAuthRouteConfig<RouteConfig>
+    IAuthenticateRouteConfig
   >,
 > extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions, Definitions> {
+  /**
+   * Helper method to cast to Hono OpenAPI Handler
+   */
+  toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
+    return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
+  }
+
   /**
    * Creates a fluent binding for registering a route.
    *
    * Returns an object with a `to()` method for attaching the handler.
    * Useful for conditional binding or when you need access to the binding object.
    *
-   * @typeParam RC - The route configuration type
+   * @typeParam RouteConfig - The route configuration type
    * @param opts - Object containing route configuration
    * @returns Binding options with `to()` method
    *
@@ -77,17 +83,17 @@ export abstract class BaseController<
    * binding.to({ handler: myHandler });
    * ```
    */
-  bindRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
-    configs: RC;
-  }): TRouteBindingOptions<RC, RouteEnv, RouteSchema, BasePath> {
-    const routeConfigs = this.getRouteConfigs<RC>({ configs: opts.configs });
+  bindRoute<RouteConfig extends IAuthenticateRouteConfig>(opts: {
+    configs: RouteConfig;
+  }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
+    const routeConfigs = this.getRouteConfigs<RouteConfig>({ configs: opts.configs });
 
     return {
       configs: routeConfigs,
       to: ({ handler }) => {
         return {
           configs: routeConfigs,
-          route: this.router.openapi(routeConfigs, handler),
+          route: this.router.openapi(routeConfigs, this.toHonoHandler({ handler })),
         };
       },
     };
@@ -101,7 +107,7 @@ export abstract class BaseController<
    * - Adds OpenAPI security requirements
    * - Tags the route with the controller scope
    *
-   * @typeParam RC - The route configuration type
+   * @typeParam RouteConfig - The route configuration type
    * @param opts - Object containing route config, handler, and optional hook
    * @returns The registered route definition
    *
@@ -111,7 +117,7 @@ export abstract class BaseController<
    *   configs: {
    *     path: '/users',
    *     method: 'get',
-   *     authStrategies: ['jwt'],
+   *     authenticate: { strategies: ['jwt'] },
    *     responses: { 200: jsonResponse({ schema: z.array(UserSchema) }) }
    *   },
    *   handler: async (c) => {
@@ -121,16 +127,20 @@ export abstract class BaseController<
    * });
    * ```
    */
-  defineRoute<RC extends TAuthRouteConfig<RouteConfig>>(opts: {
-    configs: RC;
-    handler: TLazyRouteHandler<RC, RouteEnv>;
+  defineRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+    configs: RouteConfig;
+    handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
-  }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
-    const routeConfigs = this.getRouteConfigs<RC>({ configs: opts.configs });
+  }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
+    const routeConfigs = this.getRouteConfigs<RouteConfig>({ configs: opts.configs });
 
     return {
       configs: routeConfigs,
-      route: this.router.openapi(routeConfigs, opts.handler, opts.hook),
+      route: this.router.openapi(
+        routeConfigs,
+        this.toHonoHandler<ResponseType>({ handler: opts.handler }),
+        opts.hook,
+      ),
     };
   }
 
@@ -159,16 +169,17 @@ export abstract class BaseController<
    * @param opts - Route configuration and handler
    * @returns Route definition
    */
-  defineJSXRoute<RC extends RouteConfig & { authStrategies?: Array<TAuthStrategy> }>(opts: {
-    configs: RC;
-    handler: TLazyRouteHandler<RC, RouteEnv>;
+  defineJSXRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+    configs: RouteConfig;
+    handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
-  }): TRouteDefinition<RC, RouteEnv, RouteSchema, BasePath> {
-    const routeConfigs = this.getJSXRouteConfigs<RC>({ configs: opts.configs });
+  }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
+    const routeConfigs = this.getJSXRouteConfigs<RouteConfig>({ configs: opts.configs });
 
     return {
       configs: routeConfigs,
-      route: this.router.openapi(routeConfigs, opts.handler, opts.hook),
+      // Cast handler: TTypedContext is a type overlay compatible at runtime
+      route: this.router.openapi(routeConfigs, opts.handler as any, opts.hook),
     };
   }
 }

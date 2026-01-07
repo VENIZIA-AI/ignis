@@ -1,6 +1,6 @@
 import { BindingScopes, Container } from '@/helpers/inversion';
 import { BaseHelper, getError, HTTP, TClass } from '@venizia/ignis-helpers';
-import { Context, MiddlewareHandler } from 'hono';
+import { Context, Env, MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import isEmpty from 'lodash/isEmpty';
 import {
@@ -9,16 +9,17 @@ import {
   IAuthenticationStrategy,
   IAuthUser,
   TAuthMode,
+  TAuthStrategy,
 } from '../common';
 
-export class AuthenticationStrategyRegistry extends BaseHelper {
+export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHelper {
   private static instance: AuthenticationStrategyRegistry;
 
   private strategies: Map<
     string,
     {
       container: Container;
-      strategyClass: TClass<IAuthenticationStrategy>;
+      strategyClass: TClass<IAuthenticationStrategy<E>>;
     }
   >;
 
@@ -56,7 +57,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   // ------------------------------------------------------------------------------
   register(opts: {
     container: Container;
-    strategies: { strategy: TClass<IAuthenticationStrategy>; name: string }[];
+    strategies: { strategy: TClass<IAuthenticationStrategy<E>>; name: string }[];
   }) {
     const { container, strategies } = opts;
 
@@ -96,7 +97,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
           const errors: Error[] = [];
           for (const strategyName of strategies) {
             try {
-              const user = await this.executeStrategy(context, strategyName);
+              const user = await this.executeStrategy({ context, strategyName });
               context.set(Authentication.CURRENT_USER, user);
               if (user?.userId) {
                 context.set(Authentication.AUDIT_USER_ID, user.userId);
@@ -120,7 +121,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
           // ALL MODE: all strategies must pass
           let authUser: IAuthUser | null = null;
           for (const strategyName of strategies) {
-            const user = await this.executeStrategy(context, strategyName);
+            const user = await this.executeStrategy({ context, strategyName });
             authUser = user;
           }
 
@@ -154,8 +155,10 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   }
 
   // ------------------------------------------------------------------------------
-  private executeStrategy(context: Context, strategyName: string): Promise<IAuthUser> {
+  private executeStrategy(opts: { context: Context<E>; strategyName: string }): Promise<IAuthUser> {
+    const { context, strategyName } = opts;
     const strategyMetadata = this.strategies.get(strategyName);
+
     if (!strategyMetadata) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -164,7 +167,7 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
     }
 
     const { container } = strategyMetadata;
-    const strategy = container.get<IAuthenticationStrategy>({
+    const strategy = container.get<IAuthenticationStrategy<E>>({
       key: [Authentication.AUTHENTICATION_STRATEGY, strategyName].join('.'),
     });
 
@@ -179,6 +182,6 @@ export class AuthenticationStrategyRegistry extends BaseHelper {
   }
 }
 
-export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) => {
+export const authenticate = (opts: { strategies: TAuthStrategy[]; mode?: TAuthMode }) => {
   return AuthenticationStrategyRegistry.getInstance().authenticate(opts);
 };

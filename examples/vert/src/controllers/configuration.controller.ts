@@ -7,8 +7,8 @@ import {
   controller,
   ControllerFactory,
   inject,
-  THandlerContext,
   TInferSchema,
+  TRouteContext,
 } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
@@ -40,7 +40,8 @@ const CreateConfigurationSchema = z
       .min(1)
       .max(50)
       .openapi({ description: 'Configuration group', example: 'appearance' }),
-  }).strict()
+  })
+  .strict()
   .openapi({ description: 'Request body for creating a new configuration' });
 
 // -----------------------------------------------------------------------------
@@ -53,7 +54,7 @@ const _Controller = ControllerFactory.defineCrudController({
     name: 'ConfigurationController',
     basePath: BASE_PATH,
   },
-  authStrategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC] },
   entity: () => Configuration,
 
   // ---------------------------------------------------------------------------
@@ -71,7 +72,7 @@ const _Controller = ControllerFactory.defineCrudController({
     // CREATE - custom request body
     // -------------------------------------------------------------------------
     create: {
-      authStrategies: [Authentication.STRATEGY_BASIC],
+      authenticate: { strategies: [Authentication.STRATEGY_BASIC] },
       request: {
         body: CreateConfigurationSchema,
       },
@@ -84,15 +85,13 @@ const _Controller = ControllerFactory.defineCrudController({
     // DELETE_BY_ID - Requires JWT auth
     // -------------------------------------------------------------------------
     deleteById: {
-      authStrategies: [Authentication.STRATEGY_JWT],
+      authenticate: { strategies: [Authentication.STRATEGY_JWT] },
     },
   },
 });
 
-// -----------------------------------------------------------------------------
-// Extract Definitions Type for Method Overrides
-// -----------------------------------------------------------------------------
-type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
+// Infered route definition type
+// type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
 
 // -----------------------------------------------------------------------------
 // Controller Implementation
@@ -123,12 +122,9 @@ export class ConfigurationController extends _Controller {
    * - Validate business rules
    * - Transform data before saving
    */
-  override async create(opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
+  override async create(opts: { context: TRouteContext }) {
     const { context } = opts;
-
-    // Get validated request body with explicit type from the custom schema
-    // TInferSchema extracts the type from Zod schema for strong typing
-    const data = context.req.valid('json') as TInferSchema<typeof CreateConfigurationSchema>;
+    const data = context.req.valid<TInferSchema<typeof CreateConfigurationSchema>>('json');
 
     this.logger.info(
       '[create] Creating configuration | code: %s | group: %s | desc: %s',
@@ -152,10 +148,11 @@ export class ConfigurationController extends _Controller {
   /**
    * Override updateById to add custom business logic.
    */
-  override async updateById(opts: { context: THandlerContext<TRouteDefinitions, 'UPDATE_BY_ID'> }) {
+  override async updateById(opts: { context: TRouteContext }) {
     const { context } = opts;
-    const { id } = context.req.valid('param');
-    const data = context.req.valid('json');
+    const { id } = context.req.valid<{ id: string }>('param');
+    const data = context.req.valid<// specify JSON Type here
+    any>('json');
 
     this.logger.info('[updateById] Updating configuration | id: %s | data: %j', id, data);
 
@@ -170,9 +167,9 @@ export class ConfigurationController extends _Controller {
   /**
    * Override deleteById to add audit logging or implement soft delete.
    */
-  override async deleteById(opts: { context: THandlerContext<TRouteDefinitions, 'DELETE_BY_ID'> }) {
+  override async deleteById(opts: { context: TRouteContext }) {
     const { context } = opts;
-    const { id } = context.req.valid('param');
+    const { id } = context.req.valid<{ id: string }>('param');
 
     this.logger.warn('[deleteById] Deleting configuration | id: %s', id);
 

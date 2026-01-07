@@ -1,79 +1,17 @@
 import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models';
 import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories';
-import { RouteConfig, z } from '@hono/zod-openapi';
+import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers';
-import { TAuthStrategy } from '@/components/auth/authenticate/common';
-import { RestPaths, TAuthRouteConfig, TResponseHeaders, TRoutesConfig } from '../common';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
+import {
+  commonResponseHeaders,
+  RestPaths,
+  trackableHeaders,
+  ICustomizableRoutes,
+  defaultRequestHeaders,
+  findResponseHeaders,
+} from '../common';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
-
-/**
- * Type-safe wrapper for defining route configurations.
- */
-export const defineRouteConfigs = <RC extends TAuthRouteConfig<RouteConfig>>(configs: RC) => {
-  return configs;
-};
-
-// -----------------------------------------------------------------------------
-// Default Headers
-// -----------------------------------------------------------------------------
-
-// Default request headers
-export const trackableHeaders = z.object({
-  [HTTP.Headers.REQUEST_TRACING_ID]: z.string().optional().openapi({
-    description: 'Optional request ID',
-  }),
-  [HTTP.Headers.REQUEST_CHANNEL]: z
-    .string()
-    .optional()
-    .openapi({
-      description: 'Optional request channel',
-      examples: ['channel-1', 'web', 'spos'],
-    }),
-  [HTTP.Headers.REQUEST_DEVICE_INFO]: z
-    .string()
-    .optional()
-    .openapi({
-      description: 'Optional request device info',
-      examples: ['dev-1', 'device-abc', 'd-unique-id'],
-    }),
-});
-
-export const countableHeaders = z.object({
-  [HTTP.Headers.REQUEST_COUNT_DATA]: z
-    .string()
-    .optional()
-    .openapi({
-      description:
-        'Controls response format. When "true" (default): returns {count, data}. When "false": returns data only.',
-      examples: ['true', '1', 'false', '0'],
-    }),
-});
-
-export const defaultRequestHeaders = trackableHeaders.extend(countableHeaders.shape);
-
-// Default response headers (OpenAPI Header Object format)
-export const commonResponseHeaders: TResponseHeaders = {
-  [HTTP.Headers.REQUEST_TRACING_ID]: {
-    description: 'Echo of the request tracing ID',
-    schema: { type: 'string' },
-  },
-  [HTTP.Headers.RESPONSE_COUNT_DATA]: {
-    description: 'Number of records in response',
-    schema: { type: 'string', examples: ['1', '10', '100'] },
-  },
-  [HTTP.Headers.RESPONSE_FORMAT]: {
-    description: 'Response format indicator',
-    schema: { type: 'string', examples: ['array', 'object'] },
-  },
-};
-
-export const findResponseHeaders: TResponseHeaders = {
-  ...commonResponseHeaders,
-  [HTTP.Headers.CONTENT_RANGE]: {
-    description: 'Content range for pagination (e.g., "records 0-24/100")',
-    schema: { type: 'string', examples: ['records 0-24/100', 'records 25-49/100'] },
-  },
-};
 
 /**
  * Creates conditional count response schema.
@@ -92,8 +30,10 @@ export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) 
 // -----------------------------------------------------------------------------
 // Route Config Resolvers
 // -----------------------------------------------------------------------------
-
-export const resolveCountConfig = (opts: { config: TRoutesConfig['count']; isStrict: boolean }) => {
+export const resolveCountConfig = (opts: {
+  config: ICustomizableRoutes['count'];
+  isStrict: boolean;
+}) => {
   const { config, isStrict } = opts;
   const defaultQuery = z
     .object({
@@ -102,6 +42,7 @@ export const resolveCountConfig = (opts: { config: TRoutesConfig['count']; isStr
         : z.optional(WhereSchema).openapi({ description: 'Filter conditions' }),
     })
     .openapi({ description: 'Count query params' });
+
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -116,7 +57,7 @@ export const resolveCountConfig = (opts: { config: TRoutesConfig['count']; isStr
 };
 
 export const resolveFindConfig = <FindSchema extends TAnyObjectSchema>(opts: {
-  config: TRoutesConfig['find'];
+  config: ICustomizableRoutes['find'];
   selectSchema: FindSchema;
 }) => {
   const { config, selectSchema } = opts;
@@ -138,7 +79,7 @@ export const resolveFindConfig = <FindSchema extends TAnyObjectSchema>(opts: {
 
 export const resolveFindByIdConfig = <FindByIdSchema extends TAnyObjectSchema>(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: TRoutesConfig['findById'];
+  config: ICustomizableRoutes['findById'];
   selectSchema: FindByIdSchema;
 }) => {
   const { config, selectSchema, idType } = opts;
@@ -160,7 +101,7 @@ export const resolveFindByIdConfig = <FindByIdSchema extends TAnyObjectSchema>(o
 };
 
 export const resolveFindOneConfig = <FindOneSchema extends TAnyObjectSchema>(opts: {
-  config: TRoutesConfig['findOne'];
+  config: ICustomizableRoutes['findOne'];
   selectSchema: FindOneSchema;
 }) => {
   const { config, selectSchema } = opts;
@@ -184,7 +125,7 @@ export const resolveCreateConfig = <
   SelectSchema extends TAnyObjectSchema,
   CreateSchema extends TAnyObjectSchema,
 >(opts: {
-  config: TRoutesConfig['create'];
+  config: ICustomizableRoutes['create'];
   selectSchema: SelectSchema;
   createSchema: CreateSchema;
 }) => {
@@ -207,7 +148,7 @@ const resolveUpdateByIdConfig = <
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: TRoutesConfig['updateById'];
+  config: ICustomizableRoutes['updateById'];
   selectSchema: SelectSchema;
   updateSchema: UpdateSchema;
 }) => {
@@ -230,7 +171,7 @@ const resolveUpdateByConfig = <
   SelectSchema extends TAnyObjectSchema,
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
-  config: TRoutesConfig['updateBy'];
+  config: ICustomizableRoutes['updateBy'];
   selectSchema: SelectSchema;
   updateSchema: UpdateSchema;
 }) => {
@@ -254,7 +195,7 @@ const resolveUpdateByConfig = <
 
 const resolveDeleteByIdConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: TRoutesConfig['deleteById'];
+  config: ICustomizableRoutes['deleteById'];
   selectSchema: SelectSchema;
 }) => {
   const { config, selectSchema, idType } = opts;
@@ -272,7 +213,7 @@ const resolveDeleteByIdConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
 };
 
 const resolveDeleteByConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
-  config: TRoutesConfig['deleteBy'];
+  config: ICustomizableRoutes['deleteBy'];
   selectSchema: SelectSchema;
 }) => {
   const { config, selectSchema } = opts;
@@ -301,14 +242,14 @@ const resolveDeleteByConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
  * Generic over Routes to preserve custom schema types for proper type inference.
  */
 export const defineControllerRouteConfigs = <
-  Routes extends TRoutesConfig,
+  Routes extends ICustomizableRoutes,
   SelectSchema extends TAnyObjectSchema,
   CreateSchema extends TAnyObjectSchema,
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
   isStrict: boolean;
   idType: ReturnType<typeof getIdType>;
-  authStrategies?: Array<TAuthStrategy>;
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   schema: {
     select: SelectSchema;
     create: CreateSchema;
@@ -319,29 +260,36 @@ export const defineControllerRouteConfigs = <
   const {
     isStrict,
     idType,
-    authStrategies = [],
+    authenticate: controllerAuth = {},
     schema: { select: selectSchema, create: createSchema, update: updateSchema },
     routes,
   } = opts;
+  const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
   // Type-safe routes access (Routes may be undefined)
   const routesConfig = (routes ?? {}) as Routes;
 
+  type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
   /**
-   * Resolves auth strategies for a specific route.
+   * Resolves authentication config for a specific route.
+   * Priority: endpoint config > controller config
    */
-  const resolveRouteAuth = (routeKey: keyof TRoutesConfig): Array<TAuthStrategy> => {
+  const resolveRouteAuth = (routeKey: keyof ICustomizableRoutes): TAuthenticateConfig => {
     const endpointConfig = routesConfig[routeKey];
 
     if (endpointConfig?.skipAuth) {
-      return [];
+      return { strategies: [] };
     }
 
-    if (endpointConfig?.authStrategies) {
-      return endpointConfig.authStrategies;
+    if (endpointConfig?.authenticate) {
+      return {
+        strategies: endpointConfig.authenticate.strategies ?? defaultStrategies,
+        mode: endpointConfig.authenticate.mode ?? defaultMode,
+      };
     }
 
-    return authStrategies;
+    return { strategies: defaultStrategies, mode: defaultMode };
   };
 
   // -------------------------------------------------------------------------
@@ -374,47 +322,47 @@ export const defineControllerRouteConfigs = <
   // Define route configurations
   // -------------------------------------------------------------------------
   const rs = {
-    COUNT: defineRouteConfigs({
+    COUNT: {
       method: HTTP.Methods.GET,
       path: RestPaths.COUNT,
       description: 'Count records matching where condition',
-      authStrategies: resolveRouteAuth('count'),
+      authenticate: resolveRouteAuth('count'),
       request: count.request,
       responses: jsonResponse(count.response),
-    }),
+    },
 
-    FIND: defineRouteConfigs({
+    FIND: {
       method: HTTP.Methods.GET,
       path: RestPaths.ROOT,
       description: 'Find records with filter, pagination, sorting, and relations',
-      authStrategies: resolveRouteAuth('find'),
+      authenticate: resolveRouteAuth('find'),
       request: find.request,
       responses: jsonResponse(find.response),
-    }),
+    },
 
-    FIND_BY_ID: defineRouteConfigs({
+    FIND_BY_ID: {
       method: HTTP.Methods.GET,
       path: '/{id}',
       description: 'Find single record by ID',
-      authStrategies: resolveRouteAuth('findById'),
+      authenticate: resolveRouteAuth('findById'),
       request: findById.request,
       responses: jsonResponse(findById.response),
-    }),
+    },
 
-    FIND_ONE: defineRouteConfigs({
+    FIND_ONE: {
       method: HTTP.Methods.GET,
       path: RestPaths.FIND_ONE,
       description: 'Find first record matching filter',
-      authStrategies: resolveRouteAuth('findOne'),
+      authenticate: resolveRouteAuth('findOne'),
       request: findOne.request,
       responses: jsonResponse(findOne.response),
-    }),
+    },
 
-    CREATE: defineRouteConfigs({
+    CREATE: {
       method: HTTP.Methods.POST,
       path: RestPaths.ROOT,
       description: 'Create new record',
-      authStrategies: resolveRouteAuth('create'),
+      authenticate: resolveRouteAuth('create'),
       request: {
         body: jsonContent({
           description: 'Record data (required fields must be provided)',
@@ -424,13 +372,13 @@ export const defineControllerRouteConfigs = <
         headers: create.request.headers,
       },
       responses: jsonResponse(create.response),
-    }),
+    },
 
-    UPDATE_BY_ID: defineRouteConfigs({
+    UPDATE_BY_ID: {
       method: HTTP.Methods.PATCH,
       path: '/{id}',
       description: 'Partial update record by ID',
-      authStrategies: resolveRouteAuth('updateById'),
+      authenticate: resolveRouteAuth('updateById'),
       request: {
         params: updateById.request.params,
         body: jsonContent({
@@ -440,13 +388,13 @@ export const defineControllerRouteConfigs = <
         headers: updateById.request.headers,
       },
       responses: jsonResponse(updateById.response),
-    }),
+    },
 
-    UPDATE_BY: defineRouteConfigs({
+    UPDATE_BY: {
       method: HTTP.Methods.PATCH,
       path: RestPaths.ROOT,
       description: 'Bulk update records matching where condition',
-      authStrategies: resolveRouteAuth('updateBy'),
+      authenticate: resolveRouteAuth('updateBy'),
       request: {
         query: updateBy.request.query,
         body: jsonContent({
@@ -456,25 +404,25 @@ export const defineControllerRouteConfigs = <
         headers: updateBy.request.headers,
       },
       responses: jsonResponse(updateBy.response),
-    }),
+    },
 
-    DELETE_BY_ID: defineRouteConfigs({
+    DELETE_BY_ID: {
       method: HTTP.Methods.DELETE,
       path: '/{id}',
       description: 'Delete record by ID (irreversible)',
-      authStrategies: resolveRouteAuth('deleteById'),
+      authenticate: resolveRouteAuth('deleteById'),
       request: deleteById.request,
       responses: jsonResponse(deleteById.response),
-    }),
+    },
 
-    DELETE_BY: defineRouteConfigs({
+    DELETE_BY: {
       method: HTTP.Methods.DELETE,
       path: RestPaths.ROOT,
       description: 'Bulk delete records matching where condition (irreversible)',
-      authStrategies: resolveRouteAuth('deleteBy'),
+      authenticate: resolveRouteAuth('deleteBy'),
       request: deleteBy.request,
       responses: jsonResponse(deleteBy.response),
-    }),
+    },
   } as const;
 
   return rs;

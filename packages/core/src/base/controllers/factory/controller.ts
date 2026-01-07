@@ -18,12 +18,13 @@ import {
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
-import { TAuthStrategy } from '@/components/auth/authenticate/common';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import { isClass } from '@venizia/ignis-inversion';
-import { Context, Env, Schema } from 'hono';
+import { Env, Schema } from 'hono';
+import { z } from '@hono/zod-openapi';
 import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';
-import { TRouteContext, TRoutesConfig } from '../common';
+import { ICustomizableRoutes, TRouteContext } from '../common';
 
 /**
  * Configuration options for creating a CRUD controller via {@link ControllerFactory.defineCrudController}.
@@ -40,7 +41,7 @@ import { TRouteContext, TRoutesConfig } from '../common';
  *     name: 'UserController',
  *     basePath: '/users'
  *   },
- *   authStrategies: ['jwt'],
+ *   authenticate: { strategies: ['jwt'] },
  *   routes: {
  *     find: { skipAuth: true },
  *     findById: { skipAuth: true }
@@ -50,7 +51,7 @@ import { TRouteContext, TRoutesConfig } from '../common';
  */
 export interface ICrudControllerOptions<
   EntitySchema extends TTableSchemaWithId,
-  Routes extends TRoutesConfig = TRoutesConfig,
+  Routes extends ICustomizableRoutes = ICustomizableRoutes,
 > {
   /** Entity class or resolver function returning the entity class */
   entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
@@ -70,19 +71,19 @@ export interface ICrudControllerOptions<
     };
   };
   /**
-   * Auth strategies applied to all routes (unless overridden per-route)
+   * Authentication config applied to all routes (unless overridden per-route)
    *
    * @example
    * // Apply JWT auth to all routes
-   * authStrategies: ['jwt']
+   * authenticate: { strategies: ['jwt'] }
    */
-  authStrategies?: Array<TAuthStrategy>;
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /**
    * Per-route configuration combining schema and auth
    *
    * @example
    * // JWT auth on all, skip for public read endpoints
-   * authStrategies: ['jwt'],
+   * authenticate: { strategies: ['jwt'] },
    * routes: {
    *   find: { skipAuth: true },
    *   findById: { skipAuth: true },
@@ -92,14 +93,14 @@ export interface ICrudControllerOptions<
    * @example
    * // No controller auth, require JWT only for writes
    * routes: {
-   *   create: { authStrategies: ['jwt'] },
-   *   updateById: { authStrategies: ['jwt'], requestBody: CustomUpdateSchema },
-   *   deleteById: { authStrategies: ['jwt'] },
+   *   create: { authenticate: { strategies: ['jwt'] } },
+   *   updateById: { authenticate: { strategies: ['jwt'] }, requestBody: CustomUpdateSchema },
+   *   deleteById: { authenticate: { strategies: ['jwt'] } },
    * }
    *
    * @example
    * // Custom response schema with auth
-   * authStrategies: ['jwt'],
+   * authenticate: { strategies: ['jwt'] },
    * routes: {
    *   find: { schema: CustomFindResponseSchema, skipAuth: true },
    *   create: { schema: CustomCreateResponseSchema, requestBody: CustomCreateBodySchema },
@@ -122,7 +123,7 @@ export interface ICrudControllerOptions<
  *   entity: UserEntity,
  *   repository: { name: 'UserRepository' },
  *   controller: { name: 'UserController', basePath: '/users' },
- *   authStrategies: ['jwt'],
+ *   authenticate: { strategies: ['jwt'] },
  *   routes: {
  *     find: { skipAuth: true },
  *     findById: { skipAuth: true }
@@ -171,13 +172,13 @@ export class ControllerFactory extends BaseHelper {
    */
   static defineCrudController<
     EntitySchema extends TTableSchemaWithId,
-    Routes extends TRoutesConfig = TRoutesConfig,
+    Routes extends ICustomizableRoutes = ICustomizableRoutes,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
   >(defOpts: ICrudControllerOptions<EntitySchema, Routes>) {
-    const { controller, entity, authStrategies, routes } = defOpts;
+    const { controller, entity, authenticate, routes } = defOpts;
 
     const {
       name,
@@ -203,7 +204,7 @@ export class ControllerFactory extends BaseHelper {
     const routeDefinitions = defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
       idType: getIdType({ entity: entityInstance.schema }),
-      authStrategies,
+      authenticate,
       routes,
       schema: {
         select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
@@ -211,6 +212,26 @@ export class ControllerFactory extends BaseHelper {
         update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
       },
     });
+
+    // Pre-computed request types using z.infer for explicit typing
+    type TCountQuery = z.infer<typeof routeDefinitions.COUNT.request.query>;
+    type TFindQuery = z.infer<typeof routeDefinitions.FIND.request.query>;
+    type TFindByIdQuery = z.infer<typeof routeDefinitions.FIND_BY_ID.request.query>;
+    type TFindByIdParams = z.infer<typeof routeDefinitions.FIND_BY_ID.request.params>;
+    type TFindOneQuery = z.infer<typeof routeDefinitions.FIND_ONE.request.query>;
+    type TCreateBody = z.infer<
+      (typeof routeDefinitions.CREATE.request.body.content)['application/json']['schema']
+    >;
+    type TUpdateByIdParams = z.infer<typeof routeDefinitions.UPDATE_BY_ID.request.params>;
+    type TUpdateByIdBody = z.infer<
+      (typeof routeDefinitions.UPDATE_BY_ID.request.body.content)['application/json']['schema']
+    >;
+    type TUpdateByQuery = z.infer<typeof routeDefinitions.UPDATE_BY.request.query>;
+    type TUpdateByBody = z.infer<
+      (typeof routeDefinitions.UPDATE_BY.request.body.content)['application/json']['schema']
+    >;
+    type TDeleteByIdParams = z.infer<typeof routeDefinitions.DELETE_BY_ID.request.params>;
+    type TDeleteByQuery = z.infer<typeof routeDefinitions.DELETE_BY.request.query>;
 
     // 3. Define class
     const _controller = class extends BaseController<
@@ -251,7 +272,7 @@ export class ControllerFactory extends BaseHelper {
        */
       normalizeCountData<
         ResponseSchema extends AnyType,
-        RequestContext extends Context = Context,
+        RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>,
         ResponseData extends {
           count: number;
           data?: TNullable<ResponseSchema>;
@@ -276,9 +297,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with count
        */
-      async count(opts: { context: TRouteContext<typeof routeDefinitions.COUNT, RouteEnv> }) {
+      async count(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { where } = context.req.valid('query');
+        const { where } = context.req.valid<TCountQuery>('query');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -302,9 +323,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with data array and range information
        */
-      async find(opts: { context: TRouteContext<typeof routeDefinitions.FIND, RouteEnv> }) {
+      async find(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { filter = {} } = context.req.valid('query');
+        const { filter = {} } = context.req.valid<TFindQuery>('query');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -347,12 +368,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findById(opts: {
-        context: TRouteContext<typeof routeDefinitions.FIND_BY_ID, RouteEnv>;
-      }) {
+      async findById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { id } = context.req.valid('param');
-        const { filter } = context.req.valid('query');
+        const { id } = context.req.valid<TFindByIdParams>('param');
+        const { filter } = context.req.valid<TFindByIdQuery>('query');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -383,9 +402,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context
        * @returns JSON response with the found record or null
        */
-      async findOne(opts: { context: TRouteContext<typeof routeDefinitions.FIND_ONE, RouteEnv> }) {
+      async findOne(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { filter = {} } = context.req.valid('query');
+        const { filter = {} } = context.req.valid<TFindOneQuery>('query');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -416,9 +435,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with request body
        * @returns JSON response with created record and count
        */
-      async create(opts: { context: TRouteContext<typeof routeDefinitions.CREATE, RouteEnv> }) {
+      async create(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const data = context.req.valid('json');
+        const data = context.req.valid<TCreateBody>('json');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -449,12 +468,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param and body
        * @returns JSON response with updated record and count
        */
-      async updateById(opts: {
-        context: TRouteContext<typeof routeDefinitions.UPDATE_BY_ID, RouteEnv>;
-      }) {
+      async updateById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { id } = context.req.valid('param');
-        const data = context.req.valid('json');
+        const { id } = context.req.valid<TUpdateByIdParams>('param');
+        const data = context.req.valid<TUpdateByIdBody>('json');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -485,12 +502,10 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query and body
        * @returns JSON response with updated records array and count
        */
-      async updateBy(opts: {
-        context: TRouteContext<typeof routeDefinitions.UPDATE_BY, RouteEnv>;
-      }) {
+      async updateBy(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { where } = context.req.valid('query');
-        const data = context.req.valid('json');
+        const { where } = context.req.valid<TUpdateByQuery>('query');
+        const data = context.req.valid<TUpdateByBody>('json');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -521,11 +536,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with ID param
        * @returns JSON response with deleted record and count
        */
-      async deleteById(opts: {
-        context: TRouteContext<typeof routeDefinitions.DELETE_BY_ID, RouteEnv>;
-      }) {
+      async deleteById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { id } = context.req.valid('param');
+        const { id } = context.req.valid<TDeleteByIdParams>('param');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
@@ -556,11 +569,9 @@ export class ControllerFactory extends BaseHelper {
        * @param opts - Request options containing the Hono context with where query
        * @returns JSON response with deleted records array and count
        */
-      async deleteBy(opts: {
-        context: TRouteContext<typeof routeDefinitions.DELETE_BY, RouteEnv>;
-      }) {
+      async deleteBy(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
-        const { where } = context.req.valid('query');
+        const { where } = context.req.valid<TDeleteByQuery>('query');
 
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,

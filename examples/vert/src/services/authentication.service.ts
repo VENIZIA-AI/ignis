@@ -16,10 +16,10 @@ import {
   IAuthService,
   inject,
   JWTTokenService,
+  TContext,
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
-import { Context } from 'hono';
 import { hash, compare, genSalt } from 'bcrypt';
 import { User } from '@/models';
 import { eq } from 'drizzle-orm';
@@ -47,7 +47,7 @@ export class AuthenticationService
     super({ scope: AuthenticationService.name });
   }
 
-  async signUp(_context: Context, opts: TSignUpRequestSchema): Promise<TSignUpResponseSchema> {
+  async signUp(_context: TContext, opts: TSignUpRequestSchema): Promise<TSignUpResponseSchema> {
     this.logger.info('SignUp called | username: %s', opts.username);
 
     // Check if user already exists
@@ -80,7 +80,7 @@ export class AuthenticationService
     return { message: 'User registered successfully' };
   }
 
-  async signIn(_context: Context, opts: TSignInRequestSchema): Promise<TSignInResponseSchema> {
+  async signIn(_context: TContext, opts: TSignInRequestSchema): Promise<TSignInResponseSchema> {
     this.logger.info('SignIn called | identifier: %j', opts.identifier);
 
     // Find user by username/email
@@ -146,7 +146,7 @@ export class AuthenticationService
   }
 
   async changePassword(
-    _context: Context,
+    _context: TContext,
     opts: TChangePasswordRequestSchema,
   ): Promise<TChangePasswordResponseSchema> {
     this.logger.info('ChangePassword called | userId: %s', opts.userId);
@@ -195,7 +195,7 @@ export class AuthenticationService
   }
 
   async getUserInformation(
-    _context: Context,
+    _context: TContext,
     _opts: TGetUserInformationRequestSchema,
   ): Promise<TGetUserInformationResponseSchema> {
     this.logger.info('GetUserInformation called');

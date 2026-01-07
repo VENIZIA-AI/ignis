@@ -1,6 +1,7 @@
+import { TContext } from '@/base/controllers';
 import { inject } from '@/base/metadata';
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { Context, Env, Input } from 'hono';
+import { Env } from 'hono';
 import { IAuthUser, IAuthenticationStrategy } from '../common';
 import { Authentication } from '../common/constants';
 import { BasicTokenService } from '../services';
@@ -22,26 +23,24 @@ import { BasicTokenService } from '../services';
  * });
  *
  * // Use in routes
- * authStrategies: ['basic']
+ * authenticate: { strategies: ['basic'] }
  * // Or with JWT fallback
- * authStrategies: ['jwt', 'basic'], authMode: 'any'
+ * authenticate: { strategies: ['jwt', 'basic'], mode: 'any' }
  * ```
  */
-export class BasicAuthenticationStrategy<
-  E extends Env = any,
-  P extends string = any,
-  I extends Input = {},
->
+export class BasicAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
-  implements IAuthenticationStrategy<E, P, I>
+  implements IAuthenticationStrategy<E>
 {
   name = Authentication.STRATEGY_BASIC;
 
-  constructor(@inject({ key: 'services.BasicTokenService' }) private service: BasicTokenService) {
+  constructor(
+    @inject({ key: 'services.BasicTokenService' }) private service: BasicTokenService<E>,
+  ) {
     super({ scope: BasicAuthenticationStrategy.name });
   }
 
-  async authenticate(context: Context): Promise<IAuthUser> {
+  async authenticate(context: TContext<string, E>): Promise<IAuthUser> {
     const credentials = this.service.extractCredentials(context);
     return this.service.verify({ credentials, context });
   }
