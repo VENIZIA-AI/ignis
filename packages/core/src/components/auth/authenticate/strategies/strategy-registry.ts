@@ -9,7 +9,6 @@ import {
   IAuthenticationStrategy,
   IAuthUser,
   TAuthMode,
-  TAuthStrategy,
 } from '../common';
 
 export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHelper {
@@ -182,6 +181,6 @@ export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHel
   }
 }
 
-export const authenticate = (opts: { strategies: TAuthStrategy[]; mode?: TAuthMode }) => {
+export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) => {
   return AuthenticationStrategyRegistry.getInstance().authenticate(opts);
 };
