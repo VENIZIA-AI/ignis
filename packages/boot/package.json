@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.0.2-5",
+  "version": "0.0.2-6",
   "description": "Automated bootstrapping system with artifact auto-discovery for Ignis Framework",
   "keywords": [
     "ignis",
