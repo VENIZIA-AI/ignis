@@ -48,16 +48,20 @@ Use the correct status code for each error type:
 
 | Code | Constant | Use When |
 |------|----------|----------|
-| 400 | `RS_4.BadRequest` | Invalid input format, missing required fields |
+| 400 | `RS_4.BadRequest` | Invalid input format, missing required fields, database constraint violations (auto-handled) |
 | 401 | `RS_4.Unauthorized` | Missing or invalid authentication |
 | 403 | `RS_4.Forbidden` | Authenticated but insufficient permissions |
 | 404 | `RS_4.NotFound` | Resource does not exist |
-| 409 | `RS_4.Conflict` | Resource already exists (duplicate) |
+| 409 | `RS_4.Conflict` | Resource already exists (custom duplicate handling) |
 | 422 | `RS_4.UnprocessableEntity` | Validation failed (Zod errors) |
 | 429 | `RS_4.TooManyRequests` | Rate limit exceeded |
 | 500 | `RS_5.InternalServerError` | Unexpected server error |
 | 502 | `RS_5.BadGateway` | External service failed |
 | 503 | `RS_5.ServiceUnavailable` | Service temporarily down |
+
+:::tip Automatic Database Error Handling
+Database constraint violations (unique, foreign key, not null, check) are automatically converted to HTTP 400 by the global error middleware. You don't need to catch these errors manually.
+:::
 
 ## 3. Error Handling Patterns
 
@@ -143,25 +147,34 @@ export class UserController extends BaseController {
 
 ### Repository Layer Errors
 
-Repositories typically throw for constraint violations:
+Database constraint violations (unique, foreign key, not null, check) are **automatically handled** by the global error middleware. They return HTTP 400 with a human-readable message:
+
+```json
+{
+  "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
+  "statusCode": 400,
+  "requestId": "abc123"
+}
+```
+
+You don't need to wrap repository calls in try-catch for constraint errors. If you need custom error messages, you can still handle them explicitly:
 
 ```typescript
 import { BaseRepository, getError, HTTP } from '@venizia/ignis';
 
 export class UserRepository extends BaseRepository<typeof User.schema> {
-  async createWithUniqueEmail(data: TCreateUser): Promise<TCreateResult<TUser>> {
+  async createWithCustomError(data: TCreateUser): Promise<TCreateResult<TUser>> {
     try {
       return await this.create({ data });
     } catch (error) {
-      // Handle PostgreSQL unique constraint violation
-      if (error.code === '23505') {
+      // Custom message for specific constraint
+      if (error.cause?.code === '23505' && error.cause?.constraint === 'UQ_User_email') {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.Conflict,
-          message: 'Email already exists',
-          details: { constraint: error.constraint },
+          message: 'This email is already registered. Please use a different email or login.',
         });
       }
-      throw error; // Re-throw unknown errors
+      throw error; // Re-throw for automatic handling
     }
   }
 }

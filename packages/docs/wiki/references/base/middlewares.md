@@ -51,9 +51,10 @@ The error handler middleware catches all unhandled errors in your application an
 
 - **Automatic Error Formatting**: Converts all errors to structured JSON responses
 - **ZodError Support**: Special handling for Zod validation errors with detailed field-level messages
+- **Database Error Handling**: Automatically returns 400 for database constraint violations (unique, foreign key, not null, etc.)
 - **Environment-Aware**: Hides stack traces and error causes in production
 - **Request Tracking**: Includes `requestId` for debugging and tracing
-- **Status Code Detection**: Automatically extracts HTTP status codes from errors
+- **Status Code Detection**: Automatically extracts `statusCode` from errors
 
 #### Usage
 
@@ -109,6 +110,37 @@ app.onError(appErrorHandler({
   }
 }
 ```
+
+**Database Constraint Error:**
+
+Database constraint violations (unique, foreign key, not null, check) are automatically detected and returned as 400 Bad Request with a human-readable message:
+
+```json
+{
+  "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
+  "statusCode": 400,
+  "requestId": "abc123",
+  "details": {
+    "url": "http://localhost:3000/api/users",
+    "path": "/api/users",
+    "stack": "...",  // development only
+    "cause": { ... }  // development only
+  }
+}
+```
+
+**Supported PostgreSQL Error Codes:**
+
+| Code | Error Type |
+|------|------------|
+| 23505 | Unique constraint violation |
+| 23503 | Foreign key constraint violation |
+| 23502 | Not null constraint violation |
+| 23514 | Check constraint violation |
+| 23P01 | Exclusion constraint violation |
+| 22P02 | Invalid text representation |
+| 22003 | Numeric value out of range |
+| 22001 | String data too long |
 
 #### API Reference
 

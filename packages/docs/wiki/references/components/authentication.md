@@ -23,21 +23,29 @@ JWT and Basic authentication system for Ignis applications with multi-strategy s
 | `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | Required for JWT |
 | `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Optional |
 
-### Authentication Options Configuration
+### Binding Keys
+
+The authentication component uses **separate binding keys** for each configuration type:
+
+| Binding Key | Type | Description |
+|-------------|------|-------------|
+| `AuthenticateBindingKeys.REST_OPTIONS` | `TAuthenticationRestOptions` | REST controller configuration |
+| `AuthenticateBindingKeys.JWT_OPTIONS` | `IJWTTokenServiceOptions` | JWT token configuration |
+| `AuthenticateBindingKeys.BASIC_OPTIONS` | `IBasicTokenServiceOptions` | Basic auth configuration |
+
+### REST Options Configuration
 
 | Option | Type | Description |
 |--------|------|-------------|
-| `restOptions.useAuthController` | `boolean` | Enable/disable built-in auth controller (default: `false`) |
-| `restOptions.controllerOpts` | `TDefineAuthControllerOpts` | Configuration for built-in auth controller (required if `useAuthController` is `true`) |
-| `restOptions.controllerOpts.restPath` | `string` | Base path for auth endpoints (default: `/auth`) |
-| `restOptions.controllerOpts.serviceKey` | `string` | Dependency injection key for auth service (default: `services.AuthenticationService`) |
-| `restOptions.controllerOpts.requireAuthenticatedSignUp` | `boolean` | Whether sign-up requires authentication (default: `false`) |
-| `restOptions.controllerOpts.payload` | `object` | Custom Zod schemas for request/response payloads |
-| `jwtOptions` | `IJWTTokenServiceOptions` | JWT token configuration (optional, required for JWT auth) |
-| `basicOptions` | `IBasicTokenServiceOptions` | Basic auth configuration (optional, required for Basic auth) |
+| `useAuthController` | `boolean` | Enable/disable built-in auth controller (default: `false`) |
+| `controllerOpts` | `TDefineAuthControllerOpts` | Configuration for built-in auth controller (required if `useAuthController` is `true`) |
+| `controllerOpts.restPath` | `string` | Base path for auth endpoints (default: `/auth`) |
+| `controllerOpts.serviceKey` | `string` | Dependency injection key for auth service |
+| `controllerOpts.requireAuthenticatedSignUp` | `boolean` | Whether sign-up requires authentication (default: `false`) |
+| `controllerOpts.payload` | `object` | Custom Zod schemas for request/response payloads |
 
 ::: warning IMPORTANT
-At least one of `jwtOptions` or `basicOptions` must be provided. If neither is configured, the component will throw an error.
+At least one of `JWT_OPTIONS` or `BASIC_OPTIONS` must be bound. If neither is configured, the component will throw an error.
 :::
 
 ### Route Configuration Options
@@ -109,7 +117,7 @@ import {
   AuthenticateBindingKeys,
   Authentication,
   AuthenticationStrategyRegistry,
-  IAuthenticateOptions,
+  IJWTTokenServiceOptions,
   JWTAuthenticationStrategy,
   BaseApplication,
   ValueOrPromise,
@@ -119,16 +127,14 @@ import { AuthenticationService } from './services';
 export class Application extends BaseApplication {
   registerAuth() {
     this.service(AuthenticationService);
-    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
-      restOptions: {
-        useAuthController: false,
-      },
-      jwtOptions: {
-        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-        jwtSecret: process.env.APP_ENV_JWT_SECRET,
-        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
-      },
+
+    // Bind JWT options
+    this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+      applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+      jwtSecret: process.env.APP_ENV_JWT_SECRET,
+      getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
     });
+
     this.component(AuthenticateComponent);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
@@ -153,25 +159,25 @@ import {
   Authentication,
   AuthenticationStrategyRegistry,
   BasicAuthenticationStrategy,
-  IAuthenticateOptions,
+  IBasicTokenServiceOptions,
   BaseApplication,
 } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
   registerAuth() {
-    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
-      basicOptions: {
-        verifyCredentials: async (opts) => {
-          const { credentials, context } = opts;
-          // Your verification logic here
-          const user = await this.userRepo.findByUsername(credentials.username);
-          if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
-            return { userId: user.id, roles: user.roles };
-          }
-          return null;
-        },
+    // Bind Basic auth options
+    this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+      verifyCredentials: async (opts) => {
+        const { credentials, context } = opts;
+        // Your verification logic here
+        const user = await this.userRepo.findByUsername(credentials.username);
+        if (user && await bcrypt.compare(credentials.password, user.passwordHash)) {
+          return { userId: user.id, roles: user.roles };
+        }
+        return null;
       },
     });
+
     this.component(AuthenticateComponent);
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
@@ -193,50 +199,57 @@ import {
   AuthenticationStrategyRegistry,
   BasicAuthenticationStrategy,
   JWTAuthenticationStrategy,
-  IAuthenticateOptions,
+  IJWTTokenServiceOptions,
+  IBasicTokenServiceOptions,
+  TAuthenticationRestOptions,
   BaseApplication,
 } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
   registerAuth() {
     this.service(AuthenticationService);
-    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
-      restOptions: {
-        useAuthController: true,
-        controllerOpts: {
-          restPath: '/auth',
-          payload: {
-            signIn: {
-              request: { schema: SignInRequestSchema },
-              response: { schema: SignInResponseSchema },
-            },
-            signUp: {
-              request: { schema: SignUpRequestSchema },
-              response: { schema: SignUpResponseSchema },
-            },
+
+    // Bind REST options (for auth controller)
+    this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
+      useAuthController: true,
+      controllerOpts: {
+        restPath: '/auth',
+        payload: {
+          signIn: {
+            request: { schema: SignInRequestSchema },
+            response: { schema: SignInResponseSchema },
+          },
+          signUp: {
+            request: { schema: SignUpRequestSchema },
+            response: { schema: SignUpResponseSchema },
           },
         },
       },
-      jwtOptions: {
-        applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-        jwtSecret: process.env.APP_ENV_JWT_SECRET,
-        getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
-      },
-      basicOptions: {
-        verifyCredentials: async (opts) => {
-          const authenticateService = this.get<AuthenticationService>({
-            key: BindingKeys.build({
-              namespace: BindingNamespaces.SERVICE,
-              key: AuthenticationService.name,
-            }),
-          });
-          return authenticateService.signIn(opts.context, {
-            identifier: { scheme: 'username', value: opts.credentials.username },
-            credential: { scheme: 'basic', value: opts.credentials.password },
-          });
-        },
+    });
+
+    // Bind JWT options
+    this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+      applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+      jwtSecret: process.env.APP_ENV_JWT_SECRET,
+      getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    });
+
+    // Bind Basic auth options
+    this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+      verifyCredentials: async (opts) => {
+        const authenticateService = this.get<AuthenticationService>({
+          key: BindingKeys.build({
+            namespace: BindingNamespaces.SERVICE,
+            key: AuthenticationService.name,
+          }),
+        });
+        return authenticateService.signIn(opts.context, {
+          identifier: { scheme: 'username', value: opts.credentials.username },
+          credential: { scheme: 'basic', value: opts.credentials.password },
+        });
       },
     });
+
     this.component(AuthenticateComponent);
 
     // Register multiple strategies at once
