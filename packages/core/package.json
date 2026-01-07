@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.0.5-24",
+  "version": "0.0.5-25",
   "description": "JS/TS Server Infrastructure with Hono Framework",
   "keywords": [
     "hono",
@@ -98,7 +98,7 @@
   "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
-    "@venizia/ignis-boot": "^0.0.2-5",
+    "@venizia/ignis-boot": "^0.0.2-6",
     "@venizia/ignis-helpers": "^0.0.4-7",
     "@venizia/ignis-inversion": "^0.0.3-0",
     "lodash": "^4.17.21",
