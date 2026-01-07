@@ -25,7 +25,6 @@ import {
   HTTP,
   IApplicationConfigs,
   IApplicationInfo,
-  IAuthenticateOptions,
   IHealthCheckOptions,
   IMiddlewareConfigs,
   int,
@@ -38,6 +37,9 @@ import {
   SwaggerComponent,
   TStaticAssetsComponentOptions,
   ValueOrPromise,
+  TAuthenticationRestOptions,
+  IJWTTokenServiceOptions,
+  IBasicTokenServiceOptions,
 } from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
@@ -135,61 +137,63 @@ export class Application extends BaseApplication {
 
   // --------------------------------------------------------------------------------
   registerAuth() {
-    this.bind<IAuthenticateOptions>({ key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS }).toValue({
-      restOptions: {
-        useAuthController: true,
-        controllerOpts: {
-          restPath: '/auth',
-          payload: {
-            signIn: {
-              request: { schema: SignInRequestSchema },
-              response: { schema: SignInResponseSchema },
-            },
-            signUp: {
-              request: { schema: SignUpRequestSchema },
-              response: { schema: SignUpResponseSchema },
-            },
-            changePassword: {
-              request: { schema: ChangePasswordRequestSchema },
-              response: { schema: ChangePasswordResponseSchema },
-            },
+    this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
+      useAuthController: true,
+      controllerOpts: {
+        restPath: '/auth',
+        payload: {
+          signIn: {
+            request: { schema: SignInRequestSchema },
+            response: { schema: SignInResponseSchema },
+          },
+          signUp: {
+            request: { schema: SignUpRequestSchema },
+            response: { schema: SignUpResponseSchema },
+          },
+          changePassword: {
+            request: { schema: ChangePasswordRequestSchema },
+            response: { schema: ChangePasswordResponseSchema },
           },
         },
       },
-      jwtOptions: {
-        applicationSecret: applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
-        ),
-        jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
-        getTokenExpiresFn: () => {
-          const jwtExpiresIn = applicationEnvironment.get<string>(
-            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-          );
-          if (!jwtExpiresIn) {
-            throw getError({
-              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
-            });
-          }
+    });
 
-          return parseInt(jwtExpiresIn);
-        },
-      },
-      basicOptions: {
-        verifyCredentials: async opts => {
-          const authenticateService = this.get<AuthenticationService>({
-            key: BindingKeys.build({
-              namespace: BindingNamespaces.SERVICE,
-              key: AuthenticationService.name,
-            }),
+    this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+      applicationSecret: applicationEnvironment.get<string>(
+        EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
+      ),
+      jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
+      getTokenExpiresFn: () => {
+        const jwtExpiresIn = applicationEnvironment.get<string>(
+          EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
+        );
+        if (!jwtExpiresIn) {
+          throw getError({
+            message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
           });
-          return authenticateService.signIn(opts.context, {
-            identifier: { scheme: 'username', value: opts.credentials.username },
-            credential: { scheme: 'basic', value: opts.credentials.password },
-          });
-        },
+        }
+
+        return parseInt(jwtExpiresIn);
       },
     });
+
+    this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+      verifyCredentials: async opts => {
+        const authenticateService = this.get<AuthenticationService>({
+          key: BindingKeys.build({
+            namespace: BindingNamespaces.SERVICE,
+            key: AuthenticationService.name,
+          }),
+        });
+        return authenticateService.signIn(opts.context, {
+          identifier: { scheme: 'username', value: opts.credentials.username },
+          credential: { scheme: 'basic', value: opts.credentials.password },
+        });
+      },
+    });
+
     this.component(AuthenticateComponent);
+
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [

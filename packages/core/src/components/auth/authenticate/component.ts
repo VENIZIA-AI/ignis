@@ -7,6 +7,7 @@ import {
   IAuthenticateOptions,
   IBasicTokenServiceOptions,
   IJWTTokenServiceOptions,
+  TAuthenticationRestOptions,
 } from './common';
 import { BasicTokenService, JWTTokenService } from './services';
 import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
@@ -14,12 +15,6 @@ import { defineAuthController } from './controllers';
 import { Binding } from '@/helpers/inversion';
 
 const DEFAULT_SECRET = 'unknown_secret';
-
-const DEFAULT_OPTIONS: IAuthenticateOptions = {
-  restOptions: {
-    useAuthController: false,
-  },
-};
 
 export class AuthenticateComponent extends BaseComponent {
   constructor(
@@ -29,9 +24,15 @@ export class AuthenticateComponent extends BaseComponent {
       scope: AuthenticateComponent.name,
       initDefault: { enable: true, container: application },
       bindings: {
-        [AuthenticateBindingKeys.AUTHENTICATE_OPTIONS]: Binding.bind<IAuthenticateOptions>({
-          key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
-        }).toValue(DEFAULT_OPTIONS),
+        [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind<TAuthenticationRestOptions>({
+          key: AuthenticateBindingKeys.REST_OPTIONS,
+        }).toValue({ useAuthController: false }),
+        /* [AuthenticateBindingKeys.JWT_OPTIONS]: Binding.bind<IJWTTokenServiceOptions>({
+          key: AuthenticateBindingKeys.JWT_OPTIONS,
+        }).toValue({}),
+        [AuthenticateBindingKeys.BASIC_OPTIONS]: Binding.bind<IBasicTokenServiceOptions>({
+          key: AuthenticateBindingKeys.BASIC_OPTIONS,
+        }).toValue({}), */
       },
     });
   }
@@ -153,9 +154,20 @@ export class AuthenticateComponent extends BaseComponent {
 
   // ---------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
-    const authenticateOptions = this.application.get<IAuthenticateOptions>({
-      key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
-    });
+    const authenticateOptions: IAuthenticateOptions = {
+      restOptions: this.application.get<TAuthenticationRestOptions>({
+        key: AuthenticateBindingKeys.REST_OPTIONS,
+        isOptional: true,
+      }),
+      jwtOptions: this.application.get<IJWTTokenServiceOptions>({
+        key: AuthenticateBindingKeys.JWT_OPTIONS,
+        isOptional: true,
+      }),
+      basicOptions: this.application.get<IBasicTokenServiceOptions>({
+        key: AuthenticateBindingKeys.BASIC_OPTIONS,
+        isOptional: true,
+      }),
+    };
 
     // Validate at least one auth option is provided
     this.validateOptions(authenticateOptions);

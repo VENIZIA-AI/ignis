@@ -1,3 +1,19 @@
+import { TConstValue } from '@/helpers';
+
+// --------------------------------------------------------------------------------------------------------
+export class AuthenticateStrategy {
+  static readonly BASIC = 'basic';
+  static readonly JWT = 'jwt';
+
+  static readonly SCHEME_SET = new Set([this.BASIC, this.JWT]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+export type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
+
+// --------------------------------------------------------------------------------------------------------
 export class Authentication {
   static readonly ACCESS_TOKEN_SECRET = 'token.secret';
   static readonly ACCESS_TOKEN_EXPIRES_IN = 86_400;
@@ -5,8 +21,8 @@ export class Authentication {
   static readonly REFRESH_TOKEN_EXPIRES_IN = 86_400;
 
   // Strategy
-  static readonly STRATEGY_BASIC = 'basic';
-  static readonly STRATEGY_JWT = 'jwt';
+  static readonly STRATEGY_BASIC = AuthenticateStrategy.BASIC;
+  static readonly STRATEGY_JWT = AuthenticateStrategy.JWT;
 
   // Token type
   static readonly TYPE_BASIC = 'Basic';
@@ -19,13 +35,17 @@ export class Authentication {
   static readonly AUDIT_USER_ID = 'audit.user.id';
 }
 
+// --------------------------------------------------------------------------------------------------------
 export class AuthenticationTokenTypes {
   static readonly TYPE_AUTHORIZATION_CODE = '000_AUTHORIZATION_CODE';
   static readonly TYPE_ACCESS_TOKEN = '100_ACCESS_TOKEN';
   static readonly TYPE_REFRESH_TOKEN = '200_REFRESH_TOKEN';
 }
 
+// --------------------------------------------------------------------------------------------------------
 export class AuthenticationModes {
   static readonly ANY = 'any';
   static readonly ALL = 'all';
 }
+
+export type TAuthMode = TConstValue<typeof AuthenticationModes>;

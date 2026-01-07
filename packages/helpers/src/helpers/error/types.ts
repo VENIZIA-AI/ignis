@@ -12,7 +12,7 @@ export const ErrorSchema = z
     description: 'Error Schema',
     example: {
       name: 'ErrorName',
-      statusCode: '4xx | 5xx',
+      statusCode: '4xx | 5xx | ...',
       messageCode: 'app.example.error_code',
       message: 'Example Message',
     },

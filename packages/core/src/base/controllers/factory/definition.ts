@@ -80,7 +80,7 @@ export const findResponseHeaders: TResponseHeaders = {
  */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
   return z.union([
-    z.object({ count: CountSchema, data: dataSchema }).openapi({
+    CountSchema.extend({ data: dataSchema }).openapi({
       description: 'Response with count (when x-request-count header is "true" or omitted)',
     }),
     dataSchema.openapi({

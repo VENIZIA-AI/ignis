@@ -52,7 +52,7 @@
     "skipLibCheck": true,
 
     /* Output */
-    "pretty": true,
+    // "pretty": true,
     "noEmitOnError": true
   },
   "exclude": [
