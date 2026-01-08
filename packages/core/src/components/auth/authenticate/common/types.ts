@@ -75,7 +75,7 @@ export interface IBasicTokenServiceOptions<E extends Env = Env> {
    */
   verifyCredentials: (opts: {
     credentials: { username: string; password: string };
-    context: TContext<string, E>;
+    context: TContext<E, string>;
   }) => Promise<IAuthUser | null>;
 }
 
@@ -113,11 +113,12 @@ export type TGetTokenExpiresFn = () => ValueOrPromise<number>;
 
 export interface IAuthenticationStrategy<E extends Env = Env> {
   name: string;
-  authenticate(context: TContext<string, E>): Promise<IAuthUser>;
+  authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
 // --------------------------------------------------------------------------------------------------------
 export interface IAuthService<
+  E extends Env = Env,
   // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
   SIRS = AnyObject,
@@ -131,8 +132,8 @@ export interface IAuthService<
   UIRQ = AnyObject,
   UIRS = AnyObject,
 > {
-  signIn(context: TContext, opts: SIRQ): Promise<SIRS>;
-  signUp(context: TContext, opts: SURQ): Promise<SURS>;
-  changePassword(context: TContext, opts: CPRQ): Promise<CPRS>;
-  getUserInformation?(context: TContext, opts: UIRQ): Promise<UIRS>;
+  signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
+  signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
+  changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
+  getUserInformation?(context: TContext<E>, opts: UIRQ): Promise<UIRS>;
 }

@@ -1,6 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import {
-  Authentication,
+  AuthenticateStrategy,
   HTTP,
   IAuthenticateRouteConfig,
   jsonContent,
@@ -8,7 +8,7 @@ import {
 } from '@venizia/ignis';
 
 const route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
-export type TRoute5Body = z.infer<typeof route5BodySchema>
+export type TRoute5Body = z.infer<typeof route5BodySchema>;
 
 // Define route configs as const for type inference
 export const RouteConfigs: Record<string, IAuthenticateRouteConfig> = {
@@ -25,7 +25,7 @@ export const RouteConfigs: Record<string, IAuthenticateRouteConfig> = {
   ['/2']: {
     path: '/2',
     method: 'get',
-    authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+    authenticate: { strategies: [AuthenticateStrategy.JWT] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
         description: 'Test message content 1',
@@ -36,6 +36,7 @@ export const RouteConfigs: Record<string, IAuthenticateRouteConfig> = {
   ['/3']: {
     path: '/3',
     method: 'get',
+    authenticate: { strategies: [AuthenticateStrategy.BASIC] },
     responses: {
       [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
         description: 'Test message content 3',

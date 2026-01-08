@@ -47,6 +47,7 @@ import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
 import { AuthenticationService } from './services';
+import { TestController } from './controllers';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -277,6 +278,8 @@ export class Application extends BaseApplication {
       },
     });
     this.component(StaticAssetComponent);
+
+    this.controller(TestController)
   }
 
   // --------------------------------------------------------------------------------

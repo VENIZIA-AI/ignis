@@ -40,7 +40,7 @@ export class BasicAuthenticationStrategy<E extends Env = Env>
     super({ scope: BasicAuthenticationStrategy.name });
   }
 
-  async authenticate(context: TContext<string, E>): Promise<IAuthUser> {
+  async authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const credentials = this.service.extractCredentials(context);
     return this.service.verify({ credentials, context });
   }

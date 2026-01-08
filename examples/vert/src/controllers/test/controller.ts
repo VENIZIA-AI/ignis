@@ -1,4 +1,5 @@
 import {
+  Authentication,
   BaseController,
   controller,
   get,
@@ -41,6 +42,7 @@ export class TestController extends BaseController {
       configs: RouteConfigs['/3'],
     }).to({
       handler: context => {
+        console.log(context.get(Authentication.CURRENT_USER));
         return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });

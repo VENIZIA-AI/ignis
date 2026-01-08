@@ -65,7 +65,7 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
   }
 
   // --------------------------------------------------------------------------------------
-  extractCredentials(context: TContext<string, E>): { type: string; token: string } {
+  extractCredentials(context: TContext<E, string>): { type: string; token: string } {
     const request = context.req;
 
     const authHeaderValue = request.header('Authorization');

@@ -16,7 +16,7 @@ export class JWTAuthenticationStrategy<E extends Env = Env>
     super({ scope: JWTAuthenticationStrategy.name });
   }
 
-  authenticate(context: TContext<string, E>): Promise<IAuthUser> {
+  authenticate(context: TContext<E, string>): Promise<IAuthUser> {
     const token = this.service.extractCredentials(context);
     return this.service.verify(token);
   }

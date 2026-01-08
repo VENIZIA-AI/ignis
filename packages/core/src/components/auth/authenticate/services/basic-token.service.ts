@@ -57,7 +57,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
    * @returns The extracted username and password
    * @throws 401 Unauthorized if header is missing, invalid schema, or invalid format
    */
-  extractCredentials(context: TContext<string, E>): { username: string; password: string } {
+  extractCredentials(context: TContext<E, string>): { username: string; password: string } {
     const authHeaderValue = context.req.header('Authorization');
 
     if (!authHeaderValue) {
@@ -120,7 +120,7 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
    */
   async verify(opts: {
     credentials: { username: string; password: string };
-    context: TContext<string, E>;
+    context: TContext<E, string>;
   }): Promise<IAuthUser> {
     const user = await this.verifyCredentials(opts);
 

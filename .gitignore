@@ -79,6 +79,7 @@ Desktop.ini
 .gemini/
 **/*/.gemini
 .prompts/
+GEMINI.md
 
 # Miscellaneous
 # Other temporary files, archives, and caches.

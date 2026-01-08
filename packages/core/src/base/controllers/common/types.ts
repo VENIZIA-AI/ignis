@@ -46,7 +46,7 @@ export interface IValidRequestProps<
  * ```
  */
 
-export type TContext<ValidTargetKey extends string = string, RouteEnv extends Env = Env> = Omit<
+export type TContext<RouteEnv extends Env = Env, ValidTargetKey extends string = string> = Omit<
   Context<RouteEnv>,
   'req'
 > & {
@@ -56,16 +56,16 @@ export type TContext<ValidTargetKey extends string = string, RouteEnv extends En
 };
 
 export type TRouteContext<RouteEnv extends Env = Env> = TContext<
-  keyof IValidRequestProps,
-  RouteEnv
+  RouteEnv,
+  keyof IValidRequestProps
 >;
 
 /**
  * Type assertion function to cast middleware context to TContext.
  * Safe at runtime because TContext is structurally identical to Context.
  */
-export const asTypedContext = <E extends Env>(context: unknown): TContext<string, E> => {
-  return context as TContext<string, E>;
+export const asTypedContext = <E extends Env>(context: unknown): TContext<E, string> => {
+  return context as TContext<E, string>;
 };
 
 /**

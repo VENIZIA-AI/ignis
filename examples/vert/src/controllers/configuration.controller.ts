@@ -124,6 +124,11 @@ export class ConfigurationController extends _Controller {
    */
   override async create(opts: { context: TRouteContext }) {
     const { context } = opts;
+
+    const currentUser = context.get(Authentication.CURRENT_USER);
+
+    this.logger.debug('[create] currentUser: %s', currentUser);
+
     const data = context.req.valid<TInferSchema<typeof CreateConfigurationSchema>>('json');
 
     this.logger.info(
