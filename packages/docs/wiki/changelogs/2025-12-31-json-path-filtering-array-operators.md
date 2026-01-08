@@ -209,6 +209,6 @@ All changes are additive enhancements. Existing filter queries work unchanged.
 ## Documentation
 
 Full documentation with examples available at:
-- [Repositories - JSON Path Filtering](/references/base/repositories#json-path-filtering)
-- [Repositories - Array Column Operators](/references/base/repositories#array-column-operators-postgresql)
-- [Repositories - Query Operators](/references/base/repositories#query-operators)
+- [Repositories - JSON Path Filtering](/references/base/repositories/#json-path-filtering)
+- [Repositories - Array Column Operators](/references/base/repositories/#array-column-operators-postgresql)
+- [Repositories - Query Operators](/references/base/repositories/#query-operators)

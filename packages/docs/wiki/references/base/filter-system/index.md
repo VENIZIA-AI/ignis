@@ -12,7 +12,7 @@ Complete reference for the Ignis filter system - operators, JSON filtering, arra
 > If you're new to Ignis, start with:
 > - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Get up and running
 > - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
-> - [Repositories](/references/base/repositories) - Repository overview
+> - [Repositories](/references/base/repositories/) - Repository overview
 
 ## Prerequisites
 

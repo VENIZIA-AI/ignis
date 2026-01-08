@@ -289,7 +289,7 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 | `deleteAll()` | Delete multiple records |
 | `count()` | Count matching records |
 
-> **Deep Dive:** See [Repositories Reference](/references/base/repositories) for query options and advanced filtering.
+> **Deep Dive:** See [Repositories Reference](/references/base/repositories/) for query options and advanced filtering.
 
 ## Step 5: Create the Controller
 
