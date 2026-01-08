@@ -1,18 +1,17 @@
 ---
 title: Controller Route Customization
-description: Enhanced request/response customization for CRUD controllers with typed method overrides
+description: Enhanced request/response customization for CRUD controllers
 ---
 
 # Changelog - 2026-01-07
 
 ## Controller Factory Route Customization
 
-This release enhances the Controller Factory with comprehensive request/response schema customization and introduces helper types for strongly-typed method overrides.
+This release enhances the Controller Factory with comprehensive request/response schema customization.
 
 ## Overview
 
 - **Route Customization**: New `request` and `response` configuration for all CRUD routes
-- **Helper Types**: Added `THandlerContext` and `TInferSchema` for typed method overrides
 - **Generic Definitions**: Controllers now preserve route definition types for better IDE support
 - **Compact Descriptions**: OpenAPI route descriptions made more concise
 - **Response Metadata**: Added meaningful response descriptions for API explorers
@@ -66,35 +65,6 @@ routes: {
 | UPDATE_BY | ✅ | ✅ | - | ✅ | ✅ |
 | DELETE_BY_ID | - | ✅ | ✅ | - | ✅ |
 | DELETE_BY | ✅ | ✅ | - | - | ✅ |
-
-### Helper Types for Method Overrides
-
-**File:** `packages/core/src/base/controllers/common/types.ts`
-
-**Problem:** When overriding CRUD methods, the context type was not strongly typed.
-
-**Solution:** New helper types for extracting context types from route definitions:
-
-```typescript
-// Extract definitions type from controller
-type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
-
-// Use THandlerContext for typed method overrides
-override async create(opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
-  const { context } = opts;
-
-  // Use TInferSchema for typed request body
-  const data = context.req.valid('json') as TInferSchema<typeof CreateSchema>;
-
-  // data.code, data.name are now strongly typed!
-  return super.create(opts);
-}
-```
-
-**Available Route Keys:**
-- `'COUNT'`, `'FIND'`, `'FIND_BY_ID'`, `'FIND_ONE'`
-- `'CREATE'`, `'UPDATE_BY_ID'`, `'UPDATE_BY'`
-- `'DELETE_BY_ID'`, `'DELETE_BY'`
 
 ### Generic Controller Definitions
 
@@ -161,7 +131,7 @@ Added meaningful response descriptions for OpenAPI:
 |------|---------|
 | `src/base/controllers/abstract.ts` | Added `Definitions` generic parameter |
 | `src/base/controllers/base.ts` | Added `Definitions` generic parameter |
-| `src/base/controllers/common/types.ts` | Added `THandlerContext`, `TInferSchema`, route config types |
+| `src/base/controllers/common/types.ts` | Added route config types |
 | `src/base/controllers/factory/controller.ts` | Made `ICrudControllerOptions` generic, added type casts |
 | `src/base/controllers/factory/definition.ts` | Updated route configs, compact descriptions, response metadata |
 
@@ -195,15 +165,26 @@ routes: {
 }
 ```
 
-### Step 2: Use Helper Types for Method Overrides
+### Step 2: Method Overrides
+
+When overriding controller methods, use `TRouteContext` for typed arguments. You can manually type the request body using `context.req.valid<T>('json')` or infer it from your Zod schema.
 
 ```typescript
-// Extract definitions type
-type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
+import { TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 
-// Use THandlerContext in method signature
-override async create(opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
-  const data = context.req.valid('json') as TInferSchema<typeof CreateSchema>;
-  // ...
+// Infer type from your schema
+type CreateBody = z.infer<typeof CreateSchema>;
+
+// Override method
+override async create(opts: { context: TRouteContext }) {
+  const { context } = opts;
+  
+  // Use explicit generic for strict typing
+  const data = context.req.valid<CreateBody>('json');
+  
+  // ... custom logic
+  
+  return super.create(opts);
 }
 ```

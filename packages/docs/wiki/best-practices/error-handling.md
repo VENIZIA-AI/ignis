@@ -124,8 +124,8 @@ import { BaseController, controller, get, post } from '@venizia/ignis';
 export class UserController extends BaseController {
 
   @post({ configs: RouteConfigs.CREATE_USER })
-  async createUser(c: Context) {
-    const data = c.req.valid('json');
+  async createUser(c: TRouteContext) {
+    const data = c.req.valid<{ name: string; email: string }>('json');
 
     // Service throws appropriate errors
     const user = await this.userService.createUser(data);
@@ -134,8 +134,8 @@ export class UserController extends BaseController {
   }
 
   @get({ configs: RouteConfigs.GET_USER })
-  async getUser(c: Context) {
-    const { id } = c.req.valid('param');
+  async getUser(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
 
     // Service throws 404 if not found
     const user = await this.userService.getUserOrFail(id);

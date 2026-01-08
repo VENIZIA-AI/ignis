@@ -120,8 +120,8 @@ export class OrderController extends BaseController {
   }
 
   @post({ configs: OrderRoutes.CREATE })
-  async createOrder(c: TRouteContext<typeof OrderRoutes.CREATE>) {
-    const body = c.req.valid('json');
+  async createOrder(c: TRouteContext) {
+    const body = c.req.valid<{ order: any; items: any[] }>('json'); // Use explicit types for better safety
 
     const tx = await this._orderRepository.beginTransaction({
       isolationLevel: 'SERIALIZABLE',

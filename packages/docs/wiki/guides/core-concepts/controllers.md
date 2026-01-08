@@ -106,17 +106,18 @@ export class MyItemsController extends BaseController {
   }
 
   @get({ configs: TestRoutes.GET_DATA })
-  getData(c: TRouteContext<typeof TestRoutes.GET_DATA>) { // Return type is automatically inferred
+  getData(c: TRouteContext) {
     // 'c' is fully typed here, including c.req.valid and c.json return type
     return c.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: TestRoutes.CREATE_ITEM })
-  createItem(c: TRouteContext<typeof TestRoutes.CREATE_ITEM>) { // Return type is automatically inferred
-    // c.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json'].schema
-    const body = c.req.valid('json');
+  createItem(c: TRouteContext) {
+    // c.req.valid('json') is automatically typed based on CREATE_ITEM.request.body.content['application/json']['schema']
+    // You can also provide an explicit type for stricter checking:
+    const body = c.req.valid<{ name: string; value: number }>('json');
 
-    // Return type is automatically validated against CREATE_ITEM.responses[200].content['application/json'].schema
+    // Return type is automatically validated against CREATE_ITEM.responses[200].content['application/json']['schema']
     return c.json(
       {
         id: 'some-uuid',
@@ -176,7 +177,7 @@ const GetUsersRoute = {
 
 this.defineRoute({
   configs: GetUsersRoute,
-  handler: (c: TRouteContext<typeof GetUsersRoute>) => { // Return type is automatically inferred
+  handler: (c: TRouteContext) => {
     return c.json([{ id: 1, name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   },
 });
@@ -203,8 +204,8 @@ const GetUserByIdRoute = {
 this.bindRoute({
   configs: GetUserByIdRoute,
 }).to({
-  handler: (c: TRouteContext<typeof GetUserByIdRoute>) => { // Return type is automatically inferred
-    const { id } = c.req.valid('param');  // Use valid() for type-safe validated params
+  handler: (c: TRouteContext) => {
+    const { id } = c.req.valid<{ id: string }>('param');  // Use valid<T>() for type-safe validated params
     return c.json({ id: id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   },
 });
@@ -423,11 +424,11 @@ const UpdateUserConfig = {
 } as const; // Use 'as const' for strict type inference
 
 @put({ configs: UpdateUserConfig })
-updateUser(c: TRouteContext<typeof UpdateUserConfig>) {
-  // Access validated data from the request
-  const { id } = c.req.valid('param');
-  const { notify } = c.req.valid('query');
-  const userUpdateData = c.req.valid('json'); // for body
+updateUser(c: TRouteContext) {
+  // Access validated data from the request with explicit types
+  const { id } = c.req.valid<{ id: string }>('param');
+  const { notify } = c.req.valid<{ notify?: string }>('query');
+  const userUpdateData = c.req.valid<{ name: string; email: string }>('json'); // for body
 
   console.log(`Updating user ${id} with data:`, userUpdateData);
   if (notify) {
@@ -438,7 +439,7 @@ updateUser(c: TRouteContext<typeof UpdateUserConfig>) {
 }
 ```
 
-Using `TRouteContext` provides full type inference for `c.req.valid()`, so your editor will know that `id` is a string, `notify` is an optional string, and `userUpdateData` matches the body schema.
+Using `TRouteContext` provides a typed context object. By using `c.req.valid<T>()`, you ensure that the data you are accessing matches your expectations and provides autocomplete in your editor.
 
 ## See Also
 

@@ -44,13 +44,13 @@ export const RouteConfigs = {
 export class UserController extends BaseController {
 
   @api({ configs: RouteConfigs.GET_USERS })
-  list(context: TRouteContext<typeof RouteConfigs.GET_USERS>) {
+  list(context: TRouteContext) {
     return context.json({ users: [] }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @api({ configs: RouteConfigs.GET_USER_BY_ID })
-  getById(context: TRouteContext<typeof RouteConfigs.GET_USER_BY_ID>) {
-    const { id } = context.req.valid('param');
+  getById(context: TRouteContext) {
+    const { id } = context.req.valid<{ id: string }>('param');
     return context.json({ id, name: 'User' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }

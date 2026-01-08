@@ -203,8 +203,8 @@ const EmailRoutes = {
 
 export class EmailController extends BaseController {
   @get({ configs: EmailRoutes.PREVIEW })
-  async previewTemplate(c: TRouteContext<typeof EmailRoutes.PREVIEW>) {
-    const { templateId } = c.req.valid('param');
+  async previewTemplate(c: TRouteContext) {
+    const { templateId } = c.req.valid<{ templateId: string }>('param');
     const template = await this.emailService.getTemplate(templateId);
 
     return c.html(
@@ -241,8 +241,8 @@ const DocsRoutes = {
 
 export class DocsController extends BaseController {
   @get({ configs: DocsRoutes.GET_SECTION })
-  async getDocumentation(c: TRouteContext<typeof DocsRoutes.GET_SECTION>) {
-    const { section } = c.req.valid('param');
+  async getDocumentation(c: TRouteContext) {
+    const { section } = c.req.valid<{ section: string }>('param');
     const content = await this.docsService.getSection(section);
 
     return c.html(
@@ -348,8 +348,8 @@ const ProfileConfig = {
 } as const;
 
 @get({ configs: ProfileConfig })
-async getUserProfile(c: TRouteContext<typeof ProfileConfig>) {
-  const { userId } = c.req.valid('param');
+async getUserProfile(c: TRouteContext) {
+  const { userId } = c.req.valid<{ userId: string }>('param');
   const user = await this.userService.getUser(userId);
   return c.html(<UserProfile user={user} />);
 }
@@ -363,8 +363,8 @@ const BadConfig = {
 } as const;
 
 @get({ configs: BadConfig })
-async getUser(c: TRouteContext<typeof BadConfig>) {
-  const { userId } = c.req.valid('param');
+async getUser(c: TRouteContext) {
+  const { userId } = c.req.valid<{ userId: string }>('param');
   return { id: userId, name: 'John' }; // Should use jsonResponse
 }
 ```
@@ -381,7 +381,7 @@ const SettingsConfig = {
 } as const;
 
 @get({ configs: SettingsConfig })
-async getSettings(c: TRouteContext<typeof SettingsConfig>) {
+async getSettings(c: TRouteContext) {
   return c.html(<SettingsPage />);
 }
 ```
@@ -399,8 +399,8 @@ const ArticleConfig = {
 } as const;
 
 @get({ configs: ArticleConfig })
-async getArticle(c: TRouteContext<typeof ArticleConfig>) {
-  const { id } = c.req.valid('param');
+async getArticle(c: TRouteContext) {
+  const { id } = c.req.valid<{ id: string }>('param');
   const article = await this.articleService.findById(id);
 
   if (!article) {
@@ -423,8 +423,8 @@ const BlogConfig = {
 } as const;
 
 @get({ configs: BlogConfig })
-async getBlogPost(c: TRouteContext<typeof BlogConfig>) {
-  const { slug } = c.req.valid('param');
+async getBlogPost(c: TRouteContext) {
+  const { slug } = c.req.valid<{ slug: string }>('param');
   const post = await this.blogService.getBySlug(slug);
 
   return c.html(

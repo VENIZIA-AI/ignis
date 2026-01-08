@@ -55,6 +55,7 @@
     "LICENSE.md",
     "dist/mcp-server",
     "wiki",
+    "!wiki/changelogs",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {

@@ -38,7 +38,7 @@ const TodoRoutes = {
 @controller({ path: '/todos' })
 export class TodoController extends BaseController {
   @get({ configs: TodoRoutes.GET_ALL })
-  async getAll(c: TRouteContext<typeof TodoRoutes.GET_ALL>) {
+  async getAll(c: TRouteContext) {
     const todos = await this.repository.find({});
     return c.json(todos, HTTP.ResultCodes.RS_2.Ok);
   }
@@ -196,16 +196,16 @@ const TodoRoutes = {
 @controller({ path: '/todos' })
 class TodoController {
   @get({ configs: TodoRoutes.GET_ALL })
-  async getAll(c: TRouteContext<typeof TodoRoutes.GET_ALL>) { ... }
+  async getAll(c: TRouteContext) { ... }
 
   @get({ configs: TodoRoutes.GET_BY_ID })
-  async getById(c: TRouteContext<typeof TodoRoutes.GET_BY_ID>) {
-    const { id } = c.req.valid('param');
+  async getById(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
     ...
   }
 
   @post({ configs: TodoRoutes.CREATE })
-  async create(c: TRouteContext<typeof TodoRoutes.CREATE>) {
+  async create(c: TRouteContext) {
     const data = c.req.valid('json');
     ...
   }

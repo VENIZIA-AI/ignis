@@ -125,7 +125,7 @@ APP_ENV_POSTGRES_DATABASE=db
 
 ## 5. Not Using `as const` for Route Definitions
 
-**Pitfall:** When using the decorator-based routing with a shared `RouteConfigs` object, you forget to add `as const` to the object definition. TypeScript will infer the types too broadly, and you will lose the benefits of type-safe contexts (`TRouteContext`).
+**Pitfall:** When using the decorator-based routing with a shared `RouteConfigs` object, you forget to add `as const` to the object definition. TypeScript will infer the types too broadly.
 
 **Solution:** Always use `as const` when exporting a shared route configuration object.
 
@@ -136,7 +136,7 @@ export const RouteConfigs = {
   GET_USER_BY_ID: { /* ... */ },
 } as const; // <-- This is crucial!
 ```
-This ensures that `TRouteContext<typeof RouteConfigs.GET_USERS>` has the precise types for request body, params, and response.
+This ensures that the route configuration object is treated as a readonly literal, which is important for type safety throughout your application.
 
 ## 6. Bulk Operations Without WHERE Clause
 

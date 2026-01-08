@@ -1073,16 +1073,16 @@ export class ChatController extends BaseController {
   override binding() {}
 
   @get({ configs: ChatRoutes.GET_ROOMS })
-  async getRooms(c: TRouteContext<ChatRoutes['GET_ROOMS']>) {
+  async getRooms(c: TRouteContext) {
     const userId = c.get('userId');
     const rooms = await this._chatService.getUserRooms({ userId });
     return c.json(rooms);
   }
 
   @post({ configs: ChatRoutes.CREATE_ROOM })
-  async createRoom(c: TRouteContext<ChatRoutes['CREATE_ROOM']>) {
+  async createRoom(c: TRouteContext) {
     const userId = c.get('userId');
-    const data = c.req.valid('json');
+    const data = c.req.valid<{ name: string; description?: string; isPrivate: boolean }>('json');
 
     const room = await this._chatService.createRoom({
       ...data,
@@ -1093,9 +1093,9 @@ export class ChatController extends BaseController {
   }
 
   @get({ configs: ChatRoutes.GET_MESSAGES })
-  async getMessages(c: TRouteContext<ChatRoutes['GET_MESSAGES']>) {
-    const { roomId } = c.req.valid('param');
-    const { limit, before } = c.req.valid('query');
+  async getMessages(c: TRouteContext) {
+    const { roomId } = c.req.valid<{ roomId: string }>('param');
+    const { limit, before } = c.req.valid<{ limit?: string; before?: string }>('query');
 
     const messages = await this._chatService.getMessages({
       roomId,
@@ -1107,17 +1107,17 @@ export class ChatController extends BaseController {
   }
 
   @get({ configs: ChatRoutes.GET_CONVERSATIONS })
-  async getConversations(c: TRouteContext<ChatRoutes['GET_CONVERSATIONS']>) {
+  async getConversations(c: TRouteContext) {
     const userId = c.get('userId');
     const conversations = await this._chatService.getConversations({ userId });
     return c.json(conversations);
   }
 
   @get({ configs: ChatRoutes.GET_DIRECT_MESSAGES })
-  async getDirectMessages(c: TRouteContext<ChatRoutes['GET_DIRECT_MESSAGES']>) {
+  async getDirectMessages(c: TRouteContext) {
     const currentUserId = c.get('userId');
-    const { userId: otherUserId } = c.req.valid('param');
-    const { limit, before } = c.req.valid('query');
+    const { userId: otherUserId } = c.req.valid<{ userId: string }>('param');
+    const { limit, before } = c.req.valid<{ limit?: string; before?: string }>('query');
 
     const messages = await this._chatService.getDirectMessages({
       userId1: currentUserId,

@@ -179,8 +179,8 @@ const GetUserConfig = {
 } as const;
 
 @get({ configs: GetUserConfig })
-async getUser(c: TRouteContext<typeof GetUserConfig>) {
-  const { id } = c.req.valid('param');
+async getUser(c: TRouteContext) {
+  const { id } = c.req.valid<{ id: string }>('param');
   const user = await this.userRepository.findById(id);
   if (!user) {
     throw new NotFoundError(`User ${id} not found`);
@@ -352,7 +352,7 @@ const ExampleConfig = {
 
 // In a controller
 @get({ configs: ExampleConfig })
-async example(c: TRouteContext<typeof ExampleConfig>) {
+async example(c: TRouteContext) {
   const requestId = c.get(RequestSpyMiddleware.REQUEST_ID_KEY);
   console.log('Request ID:', requestId);
   return c.json({ requestId }, HTTP.ResultCodes.RS_2.Ok);

@@ -42,7 +42,7 @@ export const RouteConfigs = {
 } as const;
 ```
 
-Then, use the decorators in your controller class. The `TRouteContext` type provides a fully typed context, including request parameters, body, and response types.
+Then, use the decorators in your controller class.
 
 **`src/controllers/test/controller.ts`**
 ```typescript
@@ -61,15 +61,15 @@ export class TestController extends BaseController {
   // ...
 
   @get({ configs: RouteConfigs.GET_TEST })
-  getWithDecorator(context: TRouteContext<typeof RouteConfigs.GET_TEST>) {
+  getWithDecorator(context: TRouteContext) {
     // context is fully typed!
     return context.json({ message: 'Hello from decorator', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: RouteConfigs.CREATE_ITEM })
-  createWithDecorator(context: TRouteContext<typeof RouteConfigs.CREATE_ITEM>) {
-    // context.req.valid('json') is automatically typed as { name: string, age: number }
-    const body = context.req.valid('json');
+  createWithDecorator(context: TRouteContext) {
+    // context.req.valid('json') can be explicitly typed
+    const body = context.req.valid<{ name: string; age: number }>('json');
 
     // The response is validated against the schema
     return context.json(
@@ -424,8 +424,8 @@ export class UserController extends BaseController {
   }
 
   @get({ configs: RouteConfigs.GET_USER_WITH_ORDERS })
-  async getUserWithOrders(c: TRouteContext<typeof RouteConfigs.GET_USER_WITH_ORDERS>) {
-    const { id } = c.req.valid('param');
+  async getUserWithOrders(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
     const result = await this.userService.getUserWithOrders(id);
 
     if (!result) {
@@ -520,8 +520,8 @@ throw getError({
 
 ```typescript
 @get({ configs: RouteConfigs.GET_USER })
-async getUser(c: TRouteContext<typeof RouteConfigs.GET_USER>) {
-  const { id } = c.req.valid('param');
+async getUser(c: TRouteContext) {
+  const { id } = c.req.valid<{ id: string }>('param');
 
   const user = await this.userRepository.findById({ id });
 

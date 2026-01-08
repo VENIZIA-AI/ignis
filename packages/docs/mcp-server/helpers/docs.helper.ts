@@ -36,7 +36,7 @@ export class DocsHelper {
       const files = await fg('**/*.md', {
         cwd: Paths.WIKI,
         absolute: true,
-        ignore: ['node_modules'],
+        ignore: ['node_modules', 'changelogs/**'],
       });
 
       if (files.length === 0) {

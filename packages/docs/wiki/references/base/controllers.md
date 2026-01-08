@@ -70,7 +70,7 @@ const MyRouteConfig = {
 export class MyFeatureController extends BaseController {
 
   @api({ configs: MyRouteConfig })
-  getData(c: TRouteContext<typeof MyRouteConfig>) { // Return type is automatically inferred and validated
+  getData(c: TRouteContext) {
     return c.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -86,12 +86,12 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 - `@patch(opts)`
 - `@del(opts)`
 
-**Example using `@get` and `@post` with type inference:**
+**Example using `@get` and `@post`:**
 
 ```typescript
 import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, HTTP } from '@venizia/ignis';
 
-// Define route configs as const for full type inference
+// Define route configs as const
 const UserRoutes = {
   LIST_USERS: {
     path: '/',
@@ -125,26 +125,26 @@ const UserRoutes = {
       schema: z.object({ id: z.string(), name: z.string() }),
     }),
   },
-} as const; // Crucial for type inference!
+} as const;
 
 // ... inside a controller class
 
   @get({ configs: UserRoutes.LIST_USERS })
-  getAllUsers(c: TRouteContext<typeof UserRoutes.LIST_USERS>) { // Return type is automatically inferred
+  getAllUsers(c: TRouteContext) {
     return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 
   @get({ configs: UserRoutes.GET_USER })
-  getUserById(c: TRouteContext<typeof UserRoutes.GET_USER>) { // Return type is automatically inferred
-    const { id } = c.req.valid('param'); // id is typed as string
+  getUserById(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param'); // Explicitly typed
     return c.json({ id, name: 'John Doe' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @post({ configs: UserRoutes.CREATE_USER })
-  createUser(c: TRouteContext<typeof UserRoutes.CREATE_USER>) { // Return type is automatically inferred
-    const { name } = c.req.valid('json'); // name is typed as string
+  createUser(c: TRouteContext) {
+    const { name } = c.req.valid<{ name: string }>('json'); // Explicitly typed
     const newUser = { id: '2', name };
-    return c.json(newUser, HTTP.ResultCodes.RS_2.Created); // Return type is validated
+    return c.json(newUser, HTTP.ResultCodes.RS_2.Created);
   }
 ```
 
@@ -175,8 +175,8 @@ const RouteConfigs = {
 export class HealthCheckController extends BaseController {
 
   @api({ configs: RouteConfigs.PING })
-  ping(c: TRouteContext<typeof RouteConfigs.PING>) { // Return type is automatically inferred
-    const { message } = c.req.valid('json');
+  ping(c: TRouteContext) {
+    const { message } = c.req.valid<{ message: string }>('json');
     return c.json({ pong: message }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -527,14 +527,7 @@ By leveraging these structured configuration options and the `ControllerFactory`
 
 ### Overriding CRUD Methods with Strong Typing
 
-When extending a generated CRUD controller, you can override methods with full type safety using the helper types `THandlerContext` and `TInferSchema`.
-
-#### Helper Types
-
-| Type | Purpose |
-| :--- | :--- |
-| `THandlerContext<Definitions, Key>` | Extracts the strongly-typed Hono context for a specific route |
-| `TInferSchema<ZodSchema>` | Extracts TypeScript type from a Zod schema |
+When extending a generated CRUD controller, you can override methods using `TRouteContext` and explicit type arguments for validation.
 
 #### Example: Full Controller Override Pattern
 
@@ -548,8 +541,7 @@ import {
   controller,
   ControllerFactory,
   inject,
-  THandlerContext,
-  TInferSchema,
+  TRouteContext,
 } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
@@ -561,6 +553,9 @@ const CreateConfigurationSchema = z.object({
   description: z.string().max(500).optional(),
   group: z.string().min(1).max(50),
 });
+
+// Infer type for usage
+type TCreateConfiguration = z.infer<typeof CreateConfigurationSchema>;
 
 // Custom response schema
 const CreateResponseSchema = z.object({
@@ -584,9 +579,6 @@ const _Controller = ControllerFactory.defineCrudController({
   },
 });
 
-// Extract definitions type for method overrides
-type TRouteDefinitions = InstanceType<typeof _Controller>['definitions'];
-
 @controller({ path: BASE_PATH })
 export class ConfigurationController extends _Controller {
   constructor(
@@ -602,11 +594,11 @@ export class ConfigurationController extends _Controller {
   }
 
   // Override with full type safety
-  override async create(opts: { context: THandlerContext<TRouteDefinitions, 'CREATE'> }) {
+  override async create(opts: { context: TRouteContext }) {
     const { context } = opts;
 
-    // Get typed request body using TInferSchema
-    const data = context.req.valid('json') as TInferSchema<typeof CreateConfigurationSchema>;
+    // Get typed request body using generic validation
+    const data = context.req.valid<TCreateConfiguration>('json');
 
     // Access typed properties
     this.logger.info('[create] code: %s, group: %s', data.code, data.group);
@@ -618,20 +610,20 @@ export class ConfigurationController extends _Controller {
   }
 
   // Override updateById
-  override async updateById(opts: { context: THandlerContext<TRouteDefinitions, 'UPDATE_BY_ID'> }) {
+  override async updateById(opts: { context: TRouteContext }) {
     const { context } = opts;
-    const { id } = context.req.valid('param');
-    const data = context.req.valid('json');
-
+    // Explicitly type parameters if needed, or rely on schema validation
+    const { id } = context.req.valid<{ id: string }>('param');
+    
     this.logger.info('[updateById] id: %s', id);
 
     return super.updateById(opts);
   }
 
   // Override deleteById with audit logging
-  override async deleteById(opts: { context: THandlerContext<TRouteDefinitions, 'DELETE_BY_ID'> }) {
+  override async deleteById(opts: { context: TRouteContext }) {
     const { context } = opts;
-    const { id } = context.req.valid('param');
+    const { id } = context.req.valid<{ id: string }>('param');
 
     this.logger.warn('[deleteById] Deleting id: %s', id);
 
@@ -639,22 +631,6 @@ export class ConfigurationController extends _Controller {
   }
 }
 ```
-
-#### Available Route Keys
-
-Use these keys with `THandlerContext`:
-
-| Key | Method | Path |
-| :--- | :--- | :--- |
-| `'COUNT'` | GET | /count |
-| `'FIND'` | GET | / |
-| `'FIND_BY_ID'` | GET | /:id |
-| `'FIND_ONE'` | GET | /find-one |
-| `'CREATE'` | POST | / |
-| `'UPDATE_BY_ID'` | PATCH | /:id |
-| `'UPDATE_BY'` | PATCH | / |
-| `'DELETE_BY_ID'` | DELETE | /:id |
-| `'DELETE_BY'` | DELETE | / |
 
 ---
 

@@ -979,8 +979,8 @@ export class ProductController extends BaseController {
   override binding() {}
 
   @get({ configs: ProductRoutes.LIST })
-  async listProducts(c: TRouteContext<ProductRoutes['LIST']>) {
-    const { category, limit, offset } = c.req.valid('query');
+  async listProducts(c: TRouteContext) {
+    const { category, limit, offset } = c.req.valid<{ category?: string; limit?: string; offset?: string }>('query');
 
     const products = await this._productService.getActiveProducts({
       categoryId: category,
@@ -992,8 +992,8 @@ export class ProductController extends BaseController {
   }
 
   @get({ configs: ProductRoutes.GET_BY_ID })
-  async getProduct(c: TRouteContext<ProductRoutes['GET_BY_ID']>) {
-    const { id } = c.req.valid('param');
+  async getProduct(c: TRouteContext) {
+    const { id } = c.req.valid<{ id: string }>('param');
     const product = await this._productService.getProductById({ id });
     return c.json(product);
   }
@@ -1094,7 +1094,7 @@ export class CartController extends BaseController {
   override binding() {}
 
   @get({ configs: CartRoutes.GET })
-  async getCart(c: TRouteContext<CartRoutes['GET']>) {
+  async getCart(c: TRouteContext) {
     const sessionId = c.req.header('X-Session-ID') ?? 'guest';
     const cart = await this._cartService.getOrCreateCart({ sessionId });
     const cartWithItems = await this._cartService.getCartWithItems({ cartId: cart.id });
@@ -1102,9 +1102,9 @@ export class CartController extends BaseController {
   }
 
   @post({ configs: CartRoutes.ADD_ITEM })
-  async addToCart(c: TRouteContext<CartRoutes['ADD_ITEM']>) {
+  async addToCart(c: TRouteContext) {
     const sessionId = c.req.header('X-Session-ID') ?? 'guest';
-    const { productId, quantity } = c.req.valid('json');
+    const { productId, quantity } = c.req.valid<{ productId: string; quantity: number }>('json');
 
     const cart = await this._cartService.getOrCreateCart({ sessionId });
     await this._cartService.addItem({ cartId: cart.id, productId, quantity });
@@ -1114,10 +1114,10 @@ export class CartController extends BaseController {
   }
 
   @put({ configs: CartRoutes.UPDATE_ITEM })
-  async updateCartItem(c: TRouteContext<CartRoutes['UPDATE_ITEM']>) {
+  async updateCartItem(c: TRouteContext) {
     const sessionId = c.req.header('X-Session-ID') ?? 'guest';
-    const { productId } = c.req.valid('param');
-    const { quantity } = c.req.valid('json');
+    const { productId } = c.req.valid<{ productId: string }>('param');
+    const { quantity } = c.req.valid<{ quantity: number }>('json');
 
     const cart = await this._cartService.getOrCreateCart({ sessionId });
     await this._cartService.updateItemQuantity({ cartId: cart.id, productId, quantity });
@@ -1127,9 +1127,9 @@ export class CartController extends BaseController {
   }
 
   @del({ configs: CartRoutes.REMOVE_ITEM })
-  async removeFromCart(c: TRouteContext<CartRoutes['REMOVE_ITEM']>) {
+  async removeFromCart(c: TRouteContext) {
     const sessionId = c.req.header('X-Session-ID') ?? 'guest';
-    const { productId } = c.req.valid('param');
+    const { productId } = c.req.valid<{ productId: string }>('param');
 
     const cart = await this._cartService.getOrCreateCart({ sessionId });
     await this._cartService.removeItem({ cartId: cart.id, productId });
@@ -1234,24 +1234,24 @@ export class OrderController extends BaseController {
   override binding() {}
 
   @post({ configs: OrderRoutes.CREATE })
-  async createOrder(c: TRouteContext<OrderRoutes['CREATE']>) {
-    const body = c.req.valid('json');
+  async createOrder(c: TRouteContext) {
+    const body = c.req.valid<any>('json'); // Use explicit type if available
     const result = await this._orderService.createOrder({ input: body });
     return c.json(result, HTTP.ResultCodes.RS_2.Created);
   }
 
   @post({ configs: OrderRoutes.CONFIRM })
-  async confirmOrder(c: TRouteContext<OrderRoutes['CONFIRM']>) {
-    const { id: orderId } = c.req.valid('param');
-    const { paymentIntentId } = c.req.valid('json');
+  async confirmOrder(c: TRouteContext) {
+    const { id: orderId } = c.req.valid<{ id: string }>('param');
+    const { paymentIntentId } = c.req.valid<{ paymentIntentId: string }>('json');
 
     const order = await this._orderService.confirmPayment({ orderId, paymentIntentId });
     return c.json(order);
   }
 
   @get({ configs: OrderRoutes.GET_BY_ID })
-  async getOrder(c: TRouteContext<OrderRoutes['GET_BY_ID']>) {
-    const { id: orderId } = c.req.valid('param');
+  async getOrder(c: TRouteContext) {
+    const { id: orderId } = c.req.valid<{ id: string }>('param');
     const order = await this._orderService.getOrderById({ orderId });
     return c.json(order);
   }

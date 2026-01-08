@@ -169,8 +169,8 @@ export class NotificationController extends BaseController {
   }
 
   @post({ configs: NotificationRoutes.SEND })
-  async send(c: TRouteContext<typeof NotificationRoutes.SEND>) {
-    const body = c.req.valid('json');
+  async send(c: TRouteContext) {
+    const body = c.req.valid<{ userId: string; message: string }>('json');
     const result = await this._notificationService.send({
       userId: body.userId,
       message: body.message,

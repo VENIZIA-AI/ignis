@@ -126,14 +126,14 @@ export class HealthCheckController extends BaseController {
   }
 
   @api({ configs: ROUTE_CONFIGS['/'] })
-  checkHealth(c: TRouteContext<typeof ROUTE_CONFIGS['/']>) {
+  checkHealth(c: TRouteContext) {
     return c.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
   @api({ configs: ROUTE_CONFIGS['/ping'] })
-  pingPong(c: TRouteContext<typeof ROUTE_CONFIGS['/ping']>) {
-    // context.req.valid('json') is automatically typed as { type?: string, message: string }
-    const { message } = c.req.valid('json');
+  pingPong(c: TRouteContext) {
+    // context.req.valid('json') can be typed explicitly or inferred as unknown
+    const { message } = c.req.valid<{ message: string }>('json');
 
     // Return type is automatically validated against the response schema
     return c.json(
