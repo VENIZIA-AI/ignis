@@ -15,7 +15,7 @@ import {
 /**
  * Represents a parsed JSON path update.
  */
-interface TJsonPathUpdate {
+interface IJsonPathUpdate {
   columnName: string;
   path: string[];
   value: any;
@@ -24,7 +24,7 @@ interface TJsonPathUpdate {
 /**
  * Represents grouped updates for a single JSON column.
  */
-interface TColumnUpdates {
+interface IColumnUpdates {
   column: any;
   updates: Array<{ path: string[]; value: any }>;
 }
@@ -32,7 +32,7 @@ interface TColumnUpdates {
 /**
  * Result of transforming update data for Drizzle.
  */
-export interface TTransformedUpdateData {
+export interface ITransformedUpdateData {
   /** Regular field updates (non-JSON-path keys) */
   regularFields: Record<string, any>;
   /** SQL expressions for JSON path updates, keyed by column name */
@@ -103,7 +103,7 @@ export class UpdateBuilder extends BaseHelper {
     tableName: string;
     schema: Schema;
     data: Record<string, any>;
-  }): TTransformedUpdateData {
+  }): ITransformedUpdateData {
     const { tableName, schema, data } = opts;
     const columns = this.getColumns(schema);
 
@@ -114,7 +114,7 @@ export class UpdateBuilder extends BaseHelper {
     }
 
     const regularFields: Record<string, any> = {};
-    const jsonPathUpdates: TJsonPathUpdate[] = [];
+    const jsonPathUpdates: IJsonPathUpdate[] = [];
 
     // Separate regular fields from JSON path updates
     for (const key in data) {
@@ -201,7 +201,7 @@ export class UpdateBuilder extends BaseHelper {
    * @param opts.transformed - The result from transform()
    * @returns Object suitable for Drizzle's .set() method
    */
-  toUpdateData(opts: { transformed: TTransformedUpdateData }): Record<string, any> {
+  toUpdateData(opts: { transformed: ITransformedUpdateData }): Record<string, any> {
     const { regularFields, jsonExpressions } = opts.transformed;
     return { ...regularFields, ...jsonExpressions };
   }
@@ -225,10 +225,10 @@ export class UpdateBuilder extends BaseHelper {
    * This allows us to chain multiple jsonb_set calls for the same column.
    */
   private groupUpdatesByColumn(opts: {
-    jsonPathUpdates: TJsonPathUpdate[];
+    jsonPathUpdates: IJsonPathUpdate[];
     columns: ReturnType<typeof getTableColumns>;
-  }): Map<string, TColumnUpdates> {
-    const grouped = new Map<string, TColumnUpdates>();
+  }): Map<string, IColumnUpdates> {
+    const grouped = new Map<string, IColumnUpdates>();
 
     for (const update of opts.jsonPathUpdates) {
       if (!grouped.has(update.columnName)) {
