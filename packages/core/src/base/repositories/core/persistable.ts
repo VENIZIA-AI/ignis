@@ -9,6 +9,7 @@ import {
   TRepositoryLogOptions,
   TWhere,
 } from '../common';
+import { UpdateBuilder } from '../operators/update';
 import { ReadableRepository } from './readable';
 
 // -----------------------------------------------------------------------------
@@ -45,6 +46,13 @@ export class PersistableRepository<
   ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
   // ---------------------------------------------------------------------------
+  // Properties
+  // ---------------------------------------------------------------------------
+
+  /** Builder for transforming update data with JSON path support. */
+  protected _updateBuilder: UpdateBuilder;
+
+  // ---------------------------------------------------------------------------
   // Constructor
   // ---------------------------------------------------------------------------
 
@@ -58,6 +66,16 @@ export class PersistableRepository<
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, { entityClass: opts?.entityClass });
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
+    this._updateBuilder = new UpdateBuilder();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Accessors
+  // ---------------------------------------------------------------------------
+
+  /** Returns the update builder instance. */
+  get updateBuilder() {
+    return this._updateBuilder;
   }
 
   // ---------------------------------------------------------------------------
@@ -229,8 +247,16 @@ export class PersistableRepository<
       );
     }
 
+    // Transform data to handle JSON path updates (e.g., 'metadata.settings.theme': 'dark')
+    const transformed = this._updateBuilder.transform({
+      tableName: this.entity.name,
+      schema: this.entity.schema,
+      data: opts.data,
+    });
+    const updateData = this._updateBuilder.toUpdateData({ transformed });
+
     const connector = this.resolveConnector({ transaction });
-    const query = connector.update(this.entity.schema).set(opts.data).where(where);
+    const query = connector.update(this.entity.schema).set(updateData).where(where);
 
     if (!shouldReturn) {
       const rs = await query;

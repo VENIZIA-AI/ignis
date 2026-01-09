@@ -214,7 +214,7 @@ await repo.deleteAll({ where: {}, options: { force: true } });
 
 - **Repository Topics:**
   - [Relations & Includes](./relations) - Loading related data
-  - [Advanced Features](./advanced) - JSON queries, performance tuning, transactions
+  - [Advanced Features](./advanced) - JSON updates, transactions, performance tuning
   - [Repository Mixins](./mixins) - Soft delete and auditing
 
 - **Filtering:**

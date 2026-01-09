@@ -513,6 +513,89 @@ await tx.commit();
 > See [Default Filter](../filter-system/default-filter.md) for full documentation on configuring model default filters.
 
 
+## Nested JSON Updates
+
+Repositories support updating specific fields within `json` or `jsonb` columns without overwriting the entire object. This is achieved using **JSON Path Notation** in the update data.
+
+### Basic Usage
+
+Use dot notation keys to target nested properties:
+
+```typescript
+// Assume 'metadata' is a JSONB column
+// Current value: { theme: 'light', notifications: { email: true } }
+
+await repo.updateById({
+  id: '123',
+  data: {
+    // Update only the theme, preserving other fields
+    'metadata.theme': 'dark'
+  }
+});
+
+// New value: { theme: 'dark', notifications: { email: true } }
+```
+
+### Supported Features
+
+- **Deep Nesting:** Update properties at any depth (e.g., `settings.display.font.size`).
+- **Array Access:** Update array elements by index (e.g., `tags[0]`).
+- **Auto-Creation:** Creates missing intermediate keys automatically.
+- **Type Safety:** Validates that the target column is a JSON type.
+- **Multiple Updates:** Chain multiple updates to the same or different columns.
+
+### Examples
+
+#### Deeply Nested Updates
+
+```typescript
+await repo.updateById({
+  id: '123',
+  data: {
+    'metadata.settings.display.fontSize': 16,
+    'metadata.settings.display.showSidebar': true
+  }
+});
+```
+
+#### Array Element Updates
+
+```typescript
+await repo.updateById({
+  id: '123',
+  data: {
+    // Set the first address as primary
+    'metadata.addresses[0].primary': true
+  }
+});
+```
+
+#### Mixed Updates (Regular + JSON)
+
+You can mix regular column updates with JSON path updates:
+
+```typescript
+await repo.updateById({
+  id: '123',
+  data: {
+    status: 'active',           // Regular column
+    'metadata.lastLogin': now,  // JSON path
+    'preferences.lang': 'en'    // Another JSON path
+  }
+});
+```
+
+### Security & Validation
+
+The framework validates JSON paths to prevent SQL injection:
+- **Allowed Characters:** Alphanumeric, underscores `_`, hyphens `-`, and brackets `[]`.
+- **Validation:** Invalid paths (e.g., containing SQL commands or special characters) throw an error before reaching the database.
+- **Values:** Values are safely serialized and parameterized.
+
+> [!NOTE]
+> This feature uses PostgreSQL's `jsonb_set` function. It is only available for columns defined as `json` or `jsonb`.
+
+
 ## Quick Reference
 
 | Feature | Code |

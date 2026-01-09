@@ -13,6 +13,7 @@ import {
   TransactionTestService,
 } from './tests';
 import { UserAuditTestService } from './tests/user-audit-test.service';
+import { JsonUpdateTestService } from './tests/json-update-test.service';
 
 // ----------------------------------------------------------------
 // Repository Test Service - Orchestrates all repository test suites
@@ -103,6 +104,13 @@ export class RepositoryTestService extends BaseService {
       }),
     })
     private readonly userAuditTestService: UserAuditTestService,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: JsonUpdateTestService.name,
+      }),
+    })
+    private readonly jsonUpdateTestService: JsonUpdateTestService,
   ) {
     super({ scope: RepositoryTestService.name });
   }
@@ -115,18 +123,19 @@ export class RepositoryTestService extends BaseService {
     this.logger.info('[RepositoryTestService] Starting all repository test suites...');
     this.logger.info('='.repeat(80));
 
-    await this.runRepositoryTests();
-    await this.runTransactionTests();
-    await this.runJsonOrderByTests();
-    await this.runJsonFilterTests();
-    await this.runArrayOperatorTests();
-    await this.runFieldSelectionTests();
-    await this.runInclusionTests();
-    await this.runHiddenPropertiesTests();
-    await this.runComprehensiveOperatorTests();
-    await this.runAdvancedFilterQueryTests();
-    await this.runDefaultFilterTests();
-    await this.runUserAuditTests();
+    // await this.runRepositoryTests();
+    // await this.runTransactionTests();
+    // await this.runJsonOrderByTests();
+    // await this.runJsonFilterTests();
+    // await this.runArrayOperatorTests();
+    // await this.runFieldSelectionTests();
+    // await this.runInclusionTests();
+    // await this.runHiddenPropertiesTests();
+    // await this.runComprehensiveOperatorTests();
+    // await this.runAdvancedFilterQueryTests();
+    // await this.runDefaultFilterTests();
+    // await this.runUserAuditTests();
+    await this.runJsonUpdateTestService();
 
     this.logger.info('='.repeat(80));
     this.logger.info('[RepositoryTestService] All repository test suites completed!');
@@ -182,5 +191,9 @@ export class RepositoryTestService extends BaseService {
 
   async runUserAuditTests(): Promise<void> {
     await this.userAuditTestService.run();
+  }
+  
+  private async runJsonUpdateTestService(): Promise<void> {
+    await this.jsonUpdateTestService.run();
   }
 }

@@ -25,6 +25,12 @@ import {
   TRelationConfig,
   TWhere,
 } from '../common';
+import {
+  isJsonPath,
+  parseJsonPath,
+  validateJsonColumnType,
+  validateJsonPathComponents,
+} from './json-utils';
 import { QueryOperators, Sorts } from './query';
 
 // -----------------------------------------------------------------------------
@@ -68,12 +74,6 @@ export class FilterBuilder extends BaseHelper {
     TTableSchemaWithId,
     ReturnType<typeof getTableColumns>
   >();
-
-  /**
-   * Regex pattern for validating JSON path components.
-   * Allows identifiers with hyphens for kebab-case (e.g., user-id, meta_data) or array indices.
-   */
-  private static readonly JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
 
   // ---------------------------------------------------------------------------
   // Constructor
@@ -160,6 +160,26 @@ export class FilterBuilder extends BaseHelper {
       return new Set(modelEntry?.metadata?.settings?.hiddenProperties ?? []);
     } catch {
       return new Set();
+    }
+  }
+
+  /**
+   * Resolves default filter for a schema from MetadataRegistry.
+   *
+   * @param opts - Options containing the schema
+   * @returns The default filter or undefined if not configured
+   */
+  resolveDefaultFilter(opts: { schema: TTableSchemaWithId }): TFilter | undefined {
+    const { schema } = opts;
+
+    try {
+      const tableName = getTableConfig(schema).name;
+      const registry = MetadataRegistry.getInstance();
+      const modelEntry = registry.getModelEntry({ name: tableName });
+
+      return modelEntry?.metadata?.settings?.defaultFilter;
+    } catch {
+      return undefined;
     }
   }
 
@@ -300,7 +320,7 @@ export class FilterBuilder extends BaseHelper {
       }
 
       // JSON path (contains '.' or '[')
-      if (this.isJsonPath({ key })) {
+      if (isJsonPath({ key })) {
         conditions.push(...this.buildJsonWhereCondition({ key, value, columns, tableName }));
         continue;
       }
@@ -362,7 +382,7 @@ export class FilterBuilder extends BaseHelper {
       }
 
       // JSON path
-      if (this.isJsonPath({ key })) {
+      if (isJsonPath({ key })) {
         return this.buildJsonOrderBy({
           key,
           direction: direction as TConstValue<typeof Sorts>,
@@ -385,7 +405,7 @@ export class FilterBuilder extends BaseHelper {
 
   /**
    * Converts an include clause to Drizzle 'with' options for relation loading.
-   * Handles nested filtering and hidden property exclusion.
+   * Handles nested filtering, default filter application, and hidden property exclusion.
    *
    * @param opts - Conversion options
    * @param opts.include - Array of inclusion configurations
@@ -402,6 +422,7 @@ export class FilterBuilder extends BaseHelper {
     for (const inc of include) {
       const relationName = typeof inc === 'string' ? inc : inc.relation;
       const scope = typeof inc === 'string' ? undefined : inc.scope;
+      const shouldSkipDefaultFilter = typeof inc === 'string' ? false : inc.shouldSkipDefaultFilter;
 
       if (!relationName) {
         throw getError({
@@ -418,17 +439,26 @@ export class FilterBuilder extends BaseHelper {
 
       const hiddenProps = this.resolveHiddenProperties({ schema: relationConfig.schema });
 
-      // No scope and no hidden properties → simple true
-      if (!scope && hiddenProps.size === 0) {
+      // Get default filter for the relation's model (unless explicitly skipped)
+      const defaultFilter = shouldSkipDefaultFilter
+        ? undefined
+        : this.resolveDefaultFilter({ schema: relationConfig.schema });
+
+      // Merge default filter with user scope
+      const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scope });
+
+      // No effective filter and no hidden properties → simple true
+      const hasNoEffectiveFilter = isEmpty(mergedScope) || Object.keys(mergedScope).length === 0;
+      if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
       }
 
-      // Build nested query (recursively uses stored resolvers)
+      // Build nested query with merged scope
       const nestedQuery = this.build<TTableSchemaWithId>({
         tableName: relationName,
         schema: relationConfig.schema,
-        filter: scope ?? {},
+        filter: mergedScope,
       });
 
       // Apply hidden properties exclusion
@@ -478,12 +508,6 @@ export class FilterBuilder extends BaseHelper {
   // ---------------------------------------------------------------------------
   // Private Helpers - Type Checking
   // ---------------------------------------------------------------------------
-
-  /** Checks if a key represents a JSON path (contains '.' or '['). */
-  private isJsonPath(opts: { key: string }): boolean {
-    const { key } = opts;
-    return key.includes('.') || key.includes('[');
-  }
 
   /** Checks if a value is a primitive (not an operator object). */
   private isPrimitiveValue(opts: { value: any }): boolean {
@@ -571,14 +595,6 @@ export class FilterBuilder extends BaseHelper {
   // ---------------------------------------------------------------------------
   // Private Helpers - JSON Path Handling
   // ---------------------------------------------------------------------------
-
-  /** Parses a JSON path string into column name and path components. */
-  private parseJsonPath(key: string): { columnName: string; path: string[] } {
-    const parts = key.split(/[.[\]]+/).filter(Boolean);
-    const [columnName = key, ...path] = parts;
-    return { columnName, path };
-  }
-
   private validateJsonColumn(opts: {
     key: string;
     columns: ReturnType<typeof getTableColumns>;
@@ -587,7 +603,7 @@ export class FilterBuilder extends BaseHelper {
   }): { column: ReturnType<typeof getTableColumns>[string]; path: string[] } {
     const { key, columns, tableName, methodName } = opts;
 
-    const parsed = this.parseJsonPath(key);
+    const parsed = parseJsonPath(key);
 
     const column = columns[parsed.columnName];
     if (!column) {
@@ -596,20 +612,18 @@ export class FilterBuilder extends BaseHelper {
       });
     }
 
-    const dataType = column.dataType.toLowerCase();
-    if (dataType !== 'json' && dataType !== 'jsonb') {
-      throw getError({
-        message: `[FilterBuilder][${methodName}] Table: ${tableName} | Column '${parsed.columnName}' is not JSON/JSONB type | dataType: '${column.dataType}'`,
-      });
-    }
+    validateJsonColumnType({
+      column,
+      columnName: parsed.columnName,
+      tableName,
+      methodName: `FilterBuilder.${methodName}`,
+    });
 
-    for (const part of parsed.path) {
-      if (!FilterBuilder.JSON_PATH_PATTERN.test(part)) {
-        throw getError({
-          message: `[FilterBuilder][${methodName}] Table: ${tableName} | Invalid JSON path component: '${part}'`,
-        });
-      }
-    }
+    validateJsonPathComponents({
+      path: parsed.path,
+      tableName,
+      methodName: `FilterBuilder.${methodName}`,
+    });
 
     return { column, path: parsed.path };
   }

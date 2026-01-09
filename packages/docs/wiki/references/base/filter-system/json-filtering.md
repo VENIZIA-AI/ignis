@@ -193,5 +193,7 @@ CREATE INDEX idx_metadata_gin ON "Product" USING GIN ("metadata");
 // This is safe - no errors, just no matches
 { where: { 'metadata.nonexistent.field': 'value' } }
 // SQL: "metadata" #>> '{nonexistent,field}' = 'value'
-// Result: No rows (NULL != 'value')
-```
+## See Also
+
+- [Nested JSON Updates](../repositories/advanced.md#nested-json-updates) - Updating JSON fields
+

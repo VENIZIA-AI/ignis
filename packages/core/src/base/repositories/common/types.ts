@@ -262,6 +262,10 @@ export const InclusionSchema = z
         .lazy(() => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
         .optional()
         .openapi({ description: 'Model relation filter' }),
+      shouldSkipDefaultFilter: z
+        .boolean()
+        .optional()
+        .openapi({ description: 'Skip the default filter for this relation' }),
     }),
   )
   .optional()
@@ -278,8 +282,9 @@ export const InclusionSchema = z
  *
  * @property relation - The name of the relation to include
  * @property scope - Optional filter to apply to the related entities
+ * @property shouldSkipDefaultFilter - If true, skip the default filter for this relation
  */
-export type TInclusion = { relation: string; scope?: TFilter };
+export type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean };
 
 // -----------------------------------------------------------------------------
 // Main Filter Schema
@@ -371,6 +376,39 @@ export type TFilter<T = any> = {
   limit?: number;
   offset?: number;
   skip?: number;
+};
+
+// -----------------------------------------------------------------------------
+// Update Data Types
+// -----------------------------------------------------------------------------
+
+/**
+ * Update data supporting both regular fields and JSON path updates.
+ * Allows nested JSON/JSONB field updates using dot notation.
+ *
+ * @template T - The base entity type
+ *
+ * @example
+ * ```typescript
+ * // Regular update
+ * const data: TUpdateData<User> = { name: 'John' };
+ *
+ * // JSON path update (nested field)
+ * const data: TUpdateData<User> = { 'metadata.theme': 'dark' };
+ *
+ * // Nested path with array index
+ * const data: TUpdateData<User> = { 'settings.items[0].enabled': true };
+ *
+ * // Mixed regular and JSON path updates
+ * const data: TUpdateData<User> = {
+ *   name: 'John',
+ *   'metadata.theme': 'dark',
+ *   'metadata.settings.notifications': true
+ * };
+ * ```
+ */
+export type TUpdateData<T = any> = Partial<T> & {
+  [jsonPath: string]: any;
 };
 
 // -----------------------------------------------------------------------------
