@@ -25,9 +25,9 @@ export const JSON_PATH_PATTERN = /^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/;
  * isJsonPath('tags[0]') // true
  * isJsonPath('regular_field') // false
  */
-export function isJsonPath(opts: { key: string }): boolean {
+export const isJsonPath = (opts: { key: string }): boolean => {
   return opts.key.includes('.') || opts.key.includes('[');
-}
+};
 
 /**
  * Parses a JSON path string into column name and path components.
@@ -42,11 +42,11 @@ export function isJsonPath(opts: { key: string }): boolean {
  * parseJsonPath('config.user-id')
  * // => { columnName: 'config', path: ['user-id'] }
  */
-export function parseJsonPath(key: string): { columnName: string; path: string[] } {
-  const parts = key.split(/[.[\]]+/).filter(Boolean);
-  const [columnName = key, ...path] = parts;
+export const parseJsonPath = (opts: { key: string }): { columnName: string; path: string[] } => {
+  const parts = opts.key.split(/[.[\]]+/).filter(Boolean);
+  const [columnName = opts.key, ...path] = parts;
   return { columnName, path };
-}
+};
 
 // -----------------------------------------------------------------------------
 // Validation Utilities
@@ -57,11 +57,11 @@ export function parseJsonPath(key: string): { columnName: string; path: string[]
  *
  * @throws Error if any path component is invalid
  */
-export function validateJsonPathComponents(opts: {
+export const validateJsonPathComponents = (opts: {
   path: string[];
   tableName: string;
   methodName: string;
-}): void {
+}): void => {
   const { path, tableName, methodName } = opts;
 
   for (const part of path) {
@@ -71,19 +71,19 @@ export function validateJsonPathComponents(opts: {
       });
     }
   }
-}
+};
 
 /**
  * Validates that a column is JSON/JSONB type.
  *
  * @throws Error if column is not JSON/JSONB type
  */
-export function validateJsonColumnType(opts: {
+export const validateJsonColumnType = (opts: {
   column: { dataType: string };
   columnName: string;
   tableName: string;
   methodName: string;
-}): void {
+}): void => {
   const { column, columnName, tableName, methodName } = opts;
 
   const dataType = column.dataType.toLowerCase();
@@ -92,4 +92,4 @@ export function validateJsonColumnType(opts: {
       message: `[${methodName}] Table: ${tableName} | Column '${columnName}' is not JSON/JSONB type | dataType: '${column.dataType}'`,
     });
   }
-}
+};
