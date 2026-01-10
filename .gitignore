@@ -79,7 +79,12 @@ Desktop.ini
 .gemini/
 **/*/.gemini
 .prompts/
+
 GEMINI.md
+**/*/GEMINI.md
+
+CLAUDE.md
+**/*/CLAUDE.md
 
 # Miscellaneous
 # Other temporary files, archives, and caches.

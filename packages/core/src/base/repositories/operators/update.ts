@@ -1,6 +1,7 @@
 import { TTableSchemaWithId } from '@/base/models';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import { getTableColumns, sql, SQL } from 'drizzle-orm';
+import { sql, SQL } from 'drizzle-orm';
+import { getCachedColumns, TTableColumns } from '../common';
 import {
   isJsonPath,
   parseJsonPath,
@@ -72,12 +73,6 @@ export interface ITransformedUpdateData {
  * ```
  */
 export class UpdateBuilder extends BaseHelper {
-  /** Cache for table columns to avoid repeated calls to getTableColumns. */
-  private static columnCache = new WeakMap<
-    TTableSchemaWithId,
-    ReturnType<typeof getTableColumns>
-  >();
-
   constructor() {
     super({ scope: UpdateBuilder.name });
   }
@@ -137,7 +132,7 @@ export class UpdateBuilder extends BaseHelper {
       }
 
       // JSON path update - parse and validate
-      const parsed = parseJsonPath(key);
+      const parsed = parseJsonPath({ key });
       const column = columns[parsed.columnName];
 
       if (!column) {
@@ -210,14 +205,9 @@ export class UpdateBuilder extends BaseHelper {
   // Private Helpers
   // ---------------------------------------------------------------------------
 
-  /** Gets columns from cache or computes and caches them. */
+  /** Gets columns using shared cache utility. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
-    let columns = UpdateBuilder.columnCache.get(schema);
-    if (!columns) {
-      columns = getTableColumns(schema);
-      UpdateBuilder.columnCache.set(schema, columns);
-    }
-    return columns;
+    return getCachedColumns(schema);
   }
 
   /**
@@ -226,7 +216,7 @@ export class UpdateBuilder extends BaseHelper {
    */
   private groupUpdatesByColumn(opts: {
     jsonPathUpdates: IJsonPathUpdate[];
-    columns: ReturnType<typeof getTableColumns>;
+    columns: TTableColumns;
   }): Map<string, IColumnUpdates> {
     const grouped = new Map<string, IColumnUpdates>();
 

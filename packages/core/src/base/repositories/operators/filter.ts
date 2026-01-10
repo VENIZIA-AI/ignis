@@ -1,28 +1,19 @@
 import { TTableObject, TTableSchemaWithId } from '@/base/models';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseHelper, getError, resolveValue, TConstValue } from '@venizia/ignis-helpers';
-import {
-  and,
-  asc,
-  desc,
-  eq,
-  getTableColumns,
-  inArray,
-  isNull,
-  or,
-  sql,
-  type SQL,
-} from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import isEmpty from 'lodash/isEmpty';
 import merge from 'lodash/merge';
 import set from 'lodash/set';
 import {
+  getCachedColumns,
   TDrizzleQueryOptions,
   TFields,
   TFilter,
   TInclusion,
   TRelationConfig,
+  TTableColumns,
   TWhere,
 } from '../common';
 import {
@@ -65,16 +56,6 @@ import { QueryOperators, Sorts } from './query';
  * ```
  */
 export class FilterBuilder extends BaseHelper {
-  // ---------------------------------------------------------------------------
-  // Static Properties
-  // ---------------------------------------------------------------------------
-
-  /** Cache for table columns to avoid repeated calls to getTableColumns. */
-  private static columnCache = new WeakMap<
-    TTableSchemaWithId,
-    ReturnType<typeof getTableColumns>
-  >();
-
   // ---------------------------------------------------------------------------
   // Constructor
   // ---------------------------------------------------------------------------
@@ -474,7 +455,7 @@ export class FilterBuilder extends BaseHelper {
           }
         } else {
           // No fields specified - build from schema columns
-          const cols = getTableColumns(relationConfig.schema);
+          const cols = getCachedColumns(relationConfig.schema);
           for (const key in cols) {
             if (!hiddenProps.has(key)) {
               filteredColumns[key] = true;
@@ -492,17 +473,12 @@ export class FilterBuilder extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------
-  // Private Helpers - Column Cache
+  // Private Helpers - Column Access
   // ---------------------------------------------------------------------------
 
-  /** Gets columns from cache or computes and caches them. */
+  /** Gets columns using shared cache utility. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
-    let columns = FilterBuilder.columnCache.get(schema);
-    if (!columns) {
-      columns = getTableColumns(schema);
-      FilterBuilder.columnCache.set(schema, columns);
-    }
-    return columns;
+    return getCachedColumns(schema);
   }
 
   // ---------------------------------------------------------------------------
@@ -597,13 +573,13 @@ export class FilterBuilder extends BaseHelper {
   // ---------------------------------------------------------------------------
   private validateJsonColumn(opts: {
     key: string;
-    columns: ReturnType<typeof getTableColumns>;
+    columns: TTableColumns;
     tableName: string;
     methodName: string;
-  }): { column: ReturnType<typeof getTableColumns>[string]; path: string[] } {
+  }): { column: TTableColumns[string]; path: string[] } {
     const { key, columns, tableName, methodName } = opts;
 
-    const parsed = parseJsonPath(key);
+    const parsed = parseJsonPath({ key });
 
     const column = columns[parsed.columnName];
     if (!column) {
@@ -631,7 +607,7 @@ export class FilterBuilder extends BaseHelper {
   private buildJsonWhereCondition(opts: {
     key: string;
     value: any;
-    columns: ReturnType<typeof getTableColumns>;
+    columns: TTableColumns;
     tableName: string;
   }): SQL[] {
     const { key, value, columns, tableName } = opts;
@@ -662,7 +638,7 @@ export class FilterBuilder extends BaseHelper {
   private buildJsonOrderBy(opts: {
     key: string;
     direction: TConstValue<typeof Sorts>;
-    columns: ReturnType<typeof getTableColumns>;
+    columns: TTableColumns;
     tableName: string;
   }): SQL {
     const { key, direction, columns, tableName } = opts;
