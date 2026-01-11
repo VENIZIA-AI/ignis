@@ -38,10 +38,9 @@ export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplicatio
           for (const binding of bindings) {
             const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
             if (!instance) {
-              this.logger.debug(
-                '[registerComponents] No binding instance | Ignore registering component | key: %s',
-                binding.key,
-              );
+              this.logger
+                .for(this.registerComponents.name)
+                .debug('No binding instance | Ignore registering component | key: %s', binding.key);
               continue;
             }
 

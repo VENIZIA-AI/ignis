@@ -128,10 +128,9 @@ export class BaseNetworkTcpServer<
     });
 
     this.server.listen(this.listenOptions, () => {
-      this.logger.info(
-        '[configure] TCP Socket Server is now listening | Options: %j',
-        this.listenOptions,
-      );
+      this.logger
+        .for(this.configure.name)
+        .info('TCP Socket Server is now listening | Options: %j', this.listenOptions);
 
       this.onServerReady?.({ server: this.server });
     });
@@ -147,14 +146,16 @@ export class BaseNetworkTcpServer<
     });
 
     socket.on('error', (error: Error) => {
-      this.logger.error('[onClientConnect][error] ID: %s | Error: %s', id, error);
+      this.logger.for('onClientConnect').error('Socket Error | ID: %s | Error: %s', id, error);
 
       this.onClientError?.({ id, socket, error });
       socket.end();
     });
 
     socket.on('close', (hasError: boolean) => {
-      this.logger.info('[onClientConnect][close] ID: %s | hasError: %s', id, hasError);
+      this.logger
+        .for('onClientConnect')
+        .info('Socket Closed | ID: %s | hasError: %s', id, hasError);
 
       this.onClientClose?.({ id, socket });
       this.clients = omit(this.clients, [id]);
@@ -177,12 +178,14 @@ export class BaseNetworkTcpServer<
       },
     };
 
-    this.logger.info(
-      '[onClientConnect] New TCP SocketClient | Client: %s | authenticateOptions: %s %s',
-      `${id} - ${socket.remoteAddress} - ${socket.remotePort} - ${socket.remoteFamily}`,
-      this.authenticateOptions.required,
-      this.authenticateOptions.duration,
-    );
+    this.logger
+      .for('onClientConnect')
+      .info(
+        'New TCP SocketClient | Client: %s | authenticateOptions: %s %s',
+        `${id} - ${socket.remoteAddress} - ${socket.remotePort} - ${socket.remoteFamily}`,
+        this.authenticateOptions.required,
+        this.authenticateOptions.duration,
+      );
 
     this.onClientConnected?.({ id, socket });
 
@@ -225,7 +228,7 @@ export class BaseNetworkTcpServer<
 
     const client = this.getClient({ id });
     if (!client) {
-      this.logger.error('[authenticateClient][%s] Client %s NOT FOUND', id);
+      this.logger.for('authenticateClient').error('Client NOT FOUND | ID: %s', id);
       return;
     }
 
@@ -252,22 +255,24 @@ export class BaseNetworkTcpServer<
     const client = this.getClient({ id: clientId });
 
     if (!client) {
-      this.logger.error('[emit][%s] Client %s NOT FOUND', clientId);
+      this.logger.for(this.emit.name).error('Client NOT FOUND | ID: %s', clientId);
       return;
     }
 
     const { socket } = client;
     if (!socket.writable) {
-      this.logger.error('[emit][%s] Client %s NOT WRITABLE', clientId);
+      this.logger.for(this.emit.name).error('Client NOT WRITABLE | ID: %s', clientId);
       return;
     }
 
     if (!payload?.length) {
-      this.logger.info(
-        '[emit][%s] Client %s | Invalid payload to write to TCP Socket!',
-        this.identifier,
-        clientId,
-      );
+      this.logger
+        .for(this.emit.name)
+        .info(
+          '[%s] Client %s | Invalid payload to write to TCP Socket!',
+          this.identifier,
+          clientId,
+        );
       return;
     }
 

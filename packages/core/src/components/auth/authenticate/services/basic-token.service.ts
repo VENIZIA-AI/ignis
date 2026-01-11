@@ -101,7 +101,9 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
 
       return { username, password };
     } catch (error) {
-      this.logger.debug('[extractCredentials] Failed to decode credentials | Error: %s', error);
+      this.logger
+        .for(this.extractCredentials.name)
+        .debug('Failed to decode credentials | Error: %s', error);
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Unauthorized! Invalid base64 credentials format',
@@ -125,7 +127,9 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
     const user = await this.verifyCredentials(opts);
 
     if (!user) {
-      this.logger.debug('[verify] Invalid credentials for username: %s', opts.credentials.username);
+      this.logger
+        .for(this.verify.name)
+        .debug('Invalid credentials for username: %s', opts.credentials.username);
 
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,

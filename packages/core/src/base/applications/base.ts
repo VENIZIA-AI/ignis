@@ -87,7 +87,9 @@ export abstract class BaseApplication
     while (bindings.length > 0) {
       const binding = bindings.shift();
       if (!binding) {
-        this.logger.debug('[registerDynamicBindings] Empty binding | namespace: %s', namespace);
+        this.logger
+          .for(this.registerDynamicBindings.name)
+          .debug('Empty binding | namespace: %s', namespace);
         continue;
       }
 
@@ -97,11 +99,9 @@ export abstract class BaseApplication
 
       const instance = this.get<T>({ key: binding.key, isOptional: false });
       if (!instance) {
-        this.logger.debug(
-          '[registerDynamicBindings] No binding instance | namespace: %s | key: %s',
-          namespace,
-          binding.key,
-        );
+        this.logger
+          .for(this.registerDynamicBindings.name)
+          .debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
         configured.add(binding.key);
         continue;
       }
@@ -309,7 +309,7 @@ export abstract class BaseApplication
           const { serveStatic } = require('@hono/node-server/serve-static');
           server.use(restPath, serveStatic({ root: folderPath }));
         } catch (error) {
-          this.logger.error('[static] Failed to serve static file | Error: %s', error);
+          this.logger.for(this.static.name).error('Failed to serve static file | Error: %s', error);
           throw getError({
             message: `[static] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
           });
@@ -323,48 +323,47 @@ export abstract class BaseApplication
       }
     }
 
-    this.logger.debug(
-      '[static] Registered static files | runtime: %s | path: %s | folder: %s',
-      this.server.runtime,
-      restPath,
-      folderPath,
-    );
+    this.logger
+      .for(this.static.name)
+      .debug(
+        'Registered static files | runtime: %s | path: %s | folder: %s',
+        this.server.runtime,
+        restPath,
+        folderPath,
+      );
     return this;
   }
 
   // ------------------------------------------------------------------------------
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
-    this.logger.info(
-      '[%s] ------------------------------------------------------------------------',
-      scope,
-    );
-    this.logger.info(
-      '[%s] Starting application... | Name: %s | Env: %s | Runtime: %s',
-      scope,
-      APP_ENV_APPLICATION_NAME,
-      NODE_ENV,
-      this.server.runtime,
-    );
-    this.logger.info(
-      '[%s] AllowEmptyEnv: %s | Prefix: %s',
-      scope,
-      ALLOW_EMPTY_ENV_VALUE,
-      APPLICATION_ENV_PREFIX,
-    );
-    this.logger.info('[%s] RunMode: %s', scope, RUN_MODE);
-    this.logger.info('[%s] Timezone: %s', scope, APP_ENV_APPLICATION_TIMEZONE);
-    this.logger.info('[%s] LogPath: %s', scope, APP_ENV_LOGGER_FOLDER_PATH);
-    this.logger.info(
-      '[%s] Datasource | Migration: %s | Authorize: %s',
-      scope,
-      APP_ENV_DS_MIGRATION,
-      APP_ENV_DS_AUTHORIZE,
-    );
-    this.logger.info(
-      '[%s] ------------------------------------------------------------------------',
-      scope,
-    );
+    this.logger
+      .for(scope)
+      .info('------------------------------------------------------------------------');
+    this.logger
+      .for(scope)
+      .info(
+        'Starting application... | Name: %s | Env: %s | Runtime: %s',
+        APP_ENV_APPLICATION_NAME,
+        NODE_ENV,
+        this.server.runtime,
+      );
+    this.logger
+      .for(scope)
+      .info('AllowEmptyEnv: %s | Prefix: %s', ALLOW_EMPTY_ENV_VALUE, APPLICATION_ENV_PREFIX);
+    this.logger.for(scope).info('RunMode: %s', RUN_MODE);
+    this.logger.for(scope).info('Timezone: %s', APP_ENV_APPLICATION_TIMEZONE);
+    this.logger.for(scope).info('LogPath: %s', APP_ENV_LOGGER_FOLDER_PATH);
+    this.logger
+      .for(scope)
+      .info(
+        'Datasource | Migration: %s | Authorize: %s',
+        APP_ENV_DS_MIGRATION,
+        APP_ENV_DS_AUTHORIZE,
+      );
+    this.logger
+      .for(scope)
+      .info('------------------------------------------------------------------------');
   }
 
   // ------------------------------------------------------------------------------

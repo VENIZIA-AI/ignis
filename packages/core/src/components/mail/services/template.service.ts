@@ -7,12 +7,12 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
 
   constructor() {
     super({ scope: TemplateEngineService.name });
-    this.logger.info('[constructor] Template engine initialized');
+    this.logger.for(this.constructor.name).info('Template engine initialized');
   }
 
   registerTemplate(opts: { name: string; content: string; options?: Partial<ITemplate> }): void {
     const { name, content, options } = opts;
-    this.logger.info('[registerTemplate] Registering template: %s', name);
+    this.logger.for(this.registerTemplate.name).info('Registering template: %s', name);
 
     const template: ITemplate = {
       name,
@@ -49,7 +49,7 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
         });
       }
 
-      this.logger.debug('[render] Rendering template: %s', templateName);
+      this.logger.for(this.render.name).debug('Rendering template: %s', templateName);
 
       content = template.content;
     }
@@ -71,12 +71,12 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
   }
 
   removeTemplate(name: string): boolean {
-    this.logger.info('[removeTemplate] Removing template: %s', name);
+    this.logger.for(this.removeTemplate.name).info('Removing template: %s', name);
     return this.templates.delete(name);
   }
 
   clearTemplates(): void {
-    this.logger.info('[clearTemplates] Clearing all templates');
+    this.logger.for(this.clearTemplates.name).info('Clearing all templates');
     this.templates.clear();
   }
 
@@ -105,10 +105,9 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
     const isValid = missingKeys.length === 0;
 
     if (!isValid) {
-      this.logger.warn(
-        '[validateTemplateData] Template validation failed | Missing keys: %s',
-        missingKeys.join(', '),
-      );
+      this.logger
+        .for(this.validateTemplateData.name)
+        .warn('Template validation failed | Missing keys: %s', missingKeys.join(', '));
     }
 
     return { isValid, missingKeys, allKeys };
@@ -135,7 +134,9 @@ export class TemplateEngineService extends BaseService implements IMailTemplateE
       const value = this.getNestedValue(data, trimmedKey);
 
       if (value === undefined || value === null) {
-        this.logger.warn('[renderSimpleTemplate] Missing value for key: %s', trimmedKey);
+        this.logger
+          .for(this.renderSimpleTemplate.name)
+          .warn('Missing value for key: %s', trimmedKey);
         return match;
       }
 

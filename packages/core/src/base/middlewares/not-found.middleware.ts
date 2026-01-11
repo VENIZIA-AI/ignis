@@ -1,4 +1,4 @@
-import { ApplicationLogger, HTTP } from '@venizia/ignis-helpers';
+import { Logger, HTTP } from '@venizia/ignis-helpers';
 import { NotFoundHandler } from 'hono/types';
 
 /**
@@ -9,7 +9,7 @@ import { NotFoundHandler } from 'hono/types';
  * @param opts.logger - The application logger instance. Defaults to `console`.
  * @returns A `NotFoundHandler` middleware function.
  */
-export const notFoundHandler = (opts: { logger?: ApplicationLogger }) => {
+export const notFoundHandler = (opts: { logger?: Logger }) => {
   const { logger = console } = opts;
 
   const mw: NotFoundHandler = async context => {

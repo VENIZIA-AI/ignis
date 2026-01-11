@@ -32,7 +32,9 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     const { phases = BOOT_PHASES, booters } = opts;
 
     await this.discoverBooters();
-    this.logger.debug(`[boot] Starting boot | Number of booters: %d`, this.booters.length);
+    this.logger
+      .for(this.boot.name)
+      .debug(`Starting boot | Number of booters: %d`, this.booters.length);
     for (const phase of phases) {
       await this.runPhase({ phase, booterNames: booters });
     }
@@ -45,7 +47,7 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
 
     for (const binding of booterBindings) {
       this.booters.push(binding.getValue(this.application));
-      this.logger.debug(`[discoverBooters] Discovered booter: %s`, binding.key);
+      this.logger.for(this.discoverBooters.name).debug(`Discovered booter: %s`, binding.key);
     }
   }
 
@@ -53,33 +55,35 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private async runPhase(opts: { phase: TBootPhase; booterNames?: string[] }): Promise<void> {
     const { phase } = opts; // TODO: booterNames filtering can be implemented later
     this.phaseStartTimings.set(phase, performance.now());
-    this.logger.debug(`[runPhase] Starting phase: %s`, phase.toUpperCase());
+    this.logger.for(this.runPhase.name).debug(`Starting phase: %s`, phase.toUpperCase());
 
     for (const booter of this.booters) {
       const phaseMethod = booter[phase];
       if (!phaseMethod) {
-        this.logger.debug(
-          `[runPhase] SKIP not implemented booter | Phase: %s | Booter: %s`,
-          phase,
-          booter.constructor.name,
-        );
+        this.logger
+          .for(this.runPhase.name)
+          .debug(
+            `SKIP not implemented booter | Phase: %s | Booter: %s`,
+            phase,
+            booter.constructor.name,
+          );
         continue;
       }
       if (typeof phaseMethod !== 'function') {
-        this.logger.debug(
-          `[runPhase] SKIP not a function booter | Phase: %s | Booter: %s`,
-          phase,
-          booter.constructor.name,
-        );
+        this.logger
+          .for(this.runPhase.name)
+          .debug(
+            `SKIP not a function booter | Phase: %s | Booter: %s`,
+            phase,
+            booter.constructor.name,
+          );
         continue;
       }
 
       try {
-        this.logger.debug(
-          `[runPhase] Running | Phase: %s | Booter: %s`,
-          phase,
-          booter.constructor.name,
-        );
+        this.logger
+          .for(this.runPhase.name)
+          .debug(`Running | Phase: %s | Booter: %s`, phase, booter.constructor.name);
         await phaseMethod.call(booter);
       } catch (error) {
         const errorMessage = (error as Error)?.message || String(error);
@@ -95,17 +99,15 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     const end = this.phaseEndTimings.get(phase) ?? 0;
     const duration = end - start;
 
-    this.logger.debug(
-      `[DEBUG][runPhase] Completed phase: %s | Took: %d ms`,
-      phase.toUpperCase(),
-      duration,
-    );
+    this.logger
+      .for(this.runPhase.name)
+      .debug(`Completed phase: %s | Took: %d ms`, phase.toUpperCase(), duration);
   }
 
   // --------------------------------------------------------------------------------
   private generateReport(): IBootReport {
     const report: IBootReport = {};
-    this.logger.debug(`[generateReport] Boot report: %j`, report);
+    this.logger.for(this.generateReport.name).debug(`Boot report: %j`, report);
 
     return report;
   }

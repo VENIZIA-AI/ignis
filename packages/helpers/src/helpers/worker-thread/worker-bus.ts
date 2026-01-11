@@ -34,13 +34,13 @@ export class BaseWorkerMessageBusHandlerHelper<
     this.onExit = opts?.onExit
       ? opts.onExit
       : (_opts: { exitCode: string | number }) => {
-          this.logger.warn('[onExit] worker EXITED | exitCode: %s', _opts.exitCode);
+          this.logger.for(this.onExit.name).warn('worker EXITED | exitCode: %s', _opts.exitCode);
         };
 
     this.onError = opts?.onError
       ? opts.onError
       : (_opts: { error: Error }) => {
-          this.logger.error('[onError] worker error: %s', _opts.error);
+          this.logger.for(this.onError.name).error('worker error: %s', _opts.error);
         };
   }
 }
@@ -107,7 +107,9 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     transferList: readonly Transferable[] | undefined;
   }): ValueOrPromise<void> {
     if (!this.port) {
-      this.logger.error('[postMessage] Failed to post message to main | Invalid parentPort!');
+      this.logger
+        .for(this.postMessage.name)
+        .error('Failed to post message to main | Invalid parentPort!');
       return;
     }
 

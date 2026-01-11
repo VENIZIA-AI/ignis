@@ -32,9 +32,11 @@ export class MailComponent extends BaseComponent {
   // --------------------------------------------------------------------------------
   override binding(): void | Promise<void> {
     if (!this.application.isBound({ key: MailKeys.MAIL_OPTIONS })) {
-      this.logger.error(
-        '[binding] Mail options not configured. Please bind MailKeys.MAIL_OPTIONS before adding MailComponent.',
-      );
+      this.logger
+        .for(this.binding.name)
+        .error(
+          'Mail options not configured. Please bind MailKeys.MAIL_OPTIONS before adding MailComponent.',
+        );
 
       throw getError({
         message: 'Mail options not configured',
@@ -47,7 +49,7 @@ export class MailComponent extends BaseComponent {
 
     this.createAndBindInstances();
 
-    this.logger.info('[binding] Mail component initialized successfully');
+    this.logger.for(this.binding.name).info('Mail component initialized successfully');
   }
 
   // --------------------------------------------------------------------------------
@@ -95,7 +97,7 @@ export class MailComponent extends BaseComponent {
     });
     const mailOptions = this.application.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
-    this.logger.info('[createAndBindInstances] Mail Options: %j', mailOptions);
+    this.logger.for(this.createAndBindInstances.name).info('Mail Options: %j', mailOptions);
     const mailTransportInstance = transportGetter(mailOptions);
     this.application.bind({ key: MailKeys.MAIL_TRANSPORT_INSTANCE }).toValue(mailTransportInstance);
 
@@ -107,7 +109,9 @@ export class MailComponent extends BaseComponent {
       key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
     });
 
-    this.logger.info('[createAndBindInstances] Mail Queue Executor Config: %j', queueConf);
+    this.logger
+      .for(this.createAndBindInstances.name)
+      .info('Mail Queue Executor Config: %j', queueConf);
     const queueExecutorInstance = queueGetter(queueConf);
     this.application
       .bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })

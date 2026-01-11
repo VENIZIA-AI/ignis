@@ -26,7 +26,7 @@ export class ServiceBooter extends BaseArtifactBooter {
     for (const cls of this.loadedClasses) {
       const key = BindingKeys.build({ namespace: 'services', key: cls.name });
       this.application.bind({ key }).toClass(cls).setTags('services');
-      this.logger.debug('[bind] Bound key: %s', key);
+      this.logger.for(this.bind.name).debug('Bound key: %s', key);
     }
   }
 }

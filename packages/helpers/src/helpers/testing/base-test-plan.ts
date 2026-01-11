@@ -1,10 +1,10 @@
-import { ApplicationLogger, LoggerFactory } from '@/helpers/logger';
+import { Logger, LoggerFactory } from '@/helpers/logger';
 import { MemoryStorageHelper } from '@/helpers/storage';
 import { it } from 'node:test';
 import { ITestCase, ITestHooks, ITestPlan, ITestPlanOptions } from './common';
 
 export abstract class BaseTestPlan<R extends object> implements ITestPlan<R> {
-  private logger: ApplicationLogger;
+  private logger: Logger;
   private registry: MemoryStorageHelper<R>;
   private hooks: ITestHooks<R>;
   private testCases: Array<ITestCase<R>>;
@@ -68,10 +68,12 @@ export abstract class BaseTestPlan<R extends object> implements ITestPlan<R> {
   }
 
   execute() {
-    this.logger.info('[run] START RUNNING TEST CASE | Total test cases: %s', this.testCases.length);
+    this.logger
+      .for('run')
+      .info('START RUNNING TEST CASE | Total test cases: %s', this.testCases.length);
 
     if (!this.testCases.length) {
-      this.logger.info('[run] Not found test case(s)');
+      this.logger.for('run').info('Not found test case(s)');
       return;
     }
 
@@ -81,7 +83,9 @@ export abstract class BaseTestPlan<R extends object> implements ITestPlan<R> {
           return testCase.run();
         });
       } catch (error) {
-        this.logger.error('[%s] Failed to finish test case | error: %s', testCase.name, error);
+        this.logger
+          .for(testCase.name ?? 'unknown')
+          .error('Failed to finish test case | error: %s', error);
       }
     }
   }

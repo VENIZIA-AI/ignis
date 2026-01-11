@@ -121,7 +121,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
   configureQueue() {
     if (!this.queueName) {
-      this.logger.error('[configureQueue][%s] Invalid queue name', this.identifier);
+      this.logger
+        .for(this.configureQueue.name)
+        .error('Invalid queue name | ID: %s', this.identifier);
       return;
     }
 
@@ -136,7 +138,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
   configureWorker() {
     if (!this.queueName) {
-      this.logger.error('[configureWorkers][%s] Invalid worker name', this.identifier);
+      this.logger
+        .for(this.configureWorker.name)
+        .error('Invalid worker name | ID: %s', this.identifier);
       return;
     }
 
@@ -149,14 +153,16 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
         }
 
         const { id, name, data } = job;
-        this.logger.info(
-          '[onWorkerData][%s] queue: %s | id: %s | name: %s | data: %j',
-          this.identifier,
-          this.queueName,
-          id,
-          name,
-          data,
-        );
+        this.logger
+          .for('onWorkerData')
+          .info(
+            'queue: %s | id: %s | name: %s | data: %j | ID: %s',
+            this.queueName,
+            id,
+            name,
+            data,
+            this.identifier,
+          );
       },
       {
         connection: this.redisConnection.getClient().duplicate(),
@@ -171,12 +177,14 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           // Do something after processing completed job
         })
         .catch(error => {
-          this.logger.error(
-            '[Worker][%s][completed] queue: %s | Error while processing completed job! Error: %s',
-            this.identifier,
-            this.queueName,
-            error,
-          );
+          this.logger
+            .for('worker-completed')
+            .error(
+              'queue: %s | Error while processing completed job! Error: %s | ID: %s',
+              this.queueName,
+              error,
+              this.identifier,
+            );
         });
     });
 
@@ -186,22 +194,26 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           // Do something after processing failed job
         })
         .catch(error => {
-          this.logger.error(
-            '[Worker][%s][failed] queue: %s | Error while processing completed job! Error: %s',
-            this.identifier,
-            this.queueName,
-            error,
-          );
+          this.logger
+            .for('worker-failed')
+            .error(
+              'queue: %s | Error while processing completed job! Error: %s | ID: %s',
+              this.queueName,
+              error,
+              this.identifier,
+            );
         });
     });
   }
 
   configure() {
     if (!this.role) {
-      this.logger.error(
-        '[configure][%s] Invalid client role to configure | Valid roles: [queue|worker]',
-        this.identifier,
-      );
+      this.logger
+        .for(this.configure.name)
+        .error(
+          'Invalid client role to configure | Valid roles: [queue|worker] | ID: %s',
+          this.identifier,
+        );
       return;
     }
 
@@ -221,9 +233,13 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     try {
       await this.worker?.close();
       await this.queue?.close();
-      this.logger.info('[close][%s] BullMQ helper closed successfully', this.identifier);
+      this.logger
+        .for(this.close.name)
+        .info('BullMQ helper closed successfully | ID: %s', this.identifier);
     } catch (error) {
-      this.logger.error('[close][%s] Error closing BullMQ helper: %s', this.identifier, error);
+      this.logger
+        .for(this.close.name)
+        .error('Error closing BullMQ helper: %s | ID: %s', error, this.identifier);
       throw error;
     }
   }

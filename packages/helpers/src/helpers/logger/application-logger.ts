@@ -1,102 +1,108 @@
-import { getError } from '@/helpers/error';
-import { toBoolean } from '@/utilities';
-import isEmpty from 'lodash/isEmpty';
+import { toBoolean } from '@/utilities/parse.utility';
 import winston from 'winston';
 import { applicationLogger } from './default-logger';
 import { TLogLevel } from './types';
 import { Environment } from '../env';
 
+// Pre-computed at module load - ZERO runtime cost
 const extraLogEnvs =
   (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
-const isDebug = toBoolean(process.env.DEBUG);
+const isDebugEnabled = toBoolean(process.env.DEBUG);
+const CURRENT_ENV = process.env.NODE_ENV;
+const shouldLogDebug = isDebugEnabled && (!CURRENT_ENV || LOG_ENVIRONMENTS.has(CURRENT_ENV));
 
 export class Logger {
-  private readonly environment: string | undefined = process.env.NODE_ENV;
+  // Cache: same scope = same logger instance
+  private static cache = new Map<string, Logger>();
 
-  private scopes: string[] = [];
-  private customLogger?: winston.Logger;
+  // Pre-formatted prefix with brackets - computed once at construction
+  private readonly _formattedPrefix: string;
+  private readonly _logger: winston.Logger;
 
-  constructor(opts?: { customLogger?: winston.Logger }) {
-    this.customLogger = opts?.customLogger;
+  private constructor(scope: string, logger: winston.Logger) {
+    this._formattedPrefix = `[${scope}] `;
+    this._logger = logger;
   }
 
   // ---------------------------------------------------------------------
-  private getLogger() {
-    return this.customLogger ?? applicationLogger;
-  }
-
-  // ---------------------------------------------------------------------
-  private _enhanceMessage(parts: string[], message: string) {
-    const enhanced = parts?.reduce((prevState = '', current: string) => {
-      if (isEmpty(prevState)) {
-        return current;
+  /**
+   * Get or create a logger for a scope. Cached globally.
+   * @example
+   * const logger = Logger.get('UserService');
+   * logger.info('message'); // [UserService] message
+   */
+  static get(scope: string, customLogger?: winston.Logger): Logger {
+    // Fast path: default logger (most common case)
+    if (!customLogger) {
+      let cached = this.cache.get(scope);
+      if (cached) {
+        return cached;
       }
 
-      return prevState.concat(`-${current}`);
-    }, '');
+      cached = new Logger(scope, applicationLogger);
+      this.cache.set(scope, cached);
+      return cached;
+    }
 
-    return `[${enhanced}]${message}`;
+    // Slow path: custom logger
+    const cacheKey = scope + ':custom';
+    let cached = this.cache.get(cacheKey);
+
+    if (!cached) {
+      cached = new Logger(scope, customLogger);
+      this.cache.set(cacheKey, cached);
+    }
+
+    return cached;
   }
 
   // ---------------------------------------------------------------------
-  withScope(scope: string) {
-    if (this.scopes.length < 2) {
-      this.scopes.push(scope);
-      return this;
-    }
-
-    while (this.scopes.length > 2) {
-      this.scopes.pop();
-    }
-
-    this.scopes[1] = scope;
-    return this;
+  /**
+   * Get a method-scoped logger. Cached globally.
+   * @example
+   * Logger.get('UserService').for('createUser').info('done');
+   * // [UserService-createUser] done
+   */
+  for(methodName: string): Logger {
+    // Extract scope from formatted prefix (remove [ and ] )
+    const scope = this._formattedPrefix.slice(1, -2);
+    return Logger.get(scope + '-' + methodName);
   }
 
   // ---------------------------------------------------------------------
-  log(level: TLogLevel, message: string, ...args: any[]) {
-    const logger = this.getLogger();
-    if (!logger) {
-      throw getError({ message: `[doLog] Level: ${level} | Invalid logger instance!` });
-    }
+  // Inlined log methods - direct calls for minimal overhead
 
-    const enhanced = this._enhanceMessage(this.scopes, message);
-    logger.log(level, enhanced, ...args);
-  }
-
-  // ---------------------------------------------------------------------
   debug(message: string, ...args: any[]) {
-    if (this.environment && !LOG_ENVIRONMENTS.has(this.environment)) {
+    if (!shouldLogDebug) {
       return;
     }
-
-    if (!isDebug) {
-      return;
-    }
-
-    this.log('debug', message, ...args);
+    this._logger.debug(this._formattedPrefix + message, ...args);
   }
 
-  // ---------------------------------------------------------------------
   info(message: string, ...args: any[]) {
-    this.log('info', message, ...args);
+    this._logger.info(this._formattedPrefix + message, ...args);
   }
 
-  // ---------------------------------------------------------------------
   warn(message: string, ...args: any[]) {
-    this.log('warn', message, ...args);
+    this._logger.warn(this._formattedPrefix + message, ...args);
   }
 
-  // ---------------------------------------------------------------------
   error(message: string, ...args: any[]) {
-    this.log('error', message, ...args);
+    this._logger.error(this._formattedPrefix + message, ...args);
   }
 
-  // ---------------------------------------------------------------------
   emerg(message: string, ...args: any[]) {
-    this.log('emerg', message, ...args);
+    this._logger.emerg(this._formattedPrefix + message, ...args);
+  }
+
+  // Generic log method (kept for flexibility, but prefer specific methods)
+  log(level: TLogLevel, message: string, ...args: any[]) {
+    this._logger.log(level, this._formattedPrefix + message, ...args);
   }
 }
 
-export class ApplicationLogger extends Logger {}
+// Backward compatibility - export both value and type
+export const ApplicationLogger = Logger;
+// eslint-disable-next-line @typescript-eslint/naming-convention
+export type ApplicationLogger = Logger;

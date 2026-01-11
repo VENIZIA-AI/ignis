@@ -18,25 +18,25 @@ export class AuthenticationService
   }
 
   signIn(context: Context, opts: TSignInRequest): Promise<AnyObject> {
-    this.logger.info('[signIn] Start sign in');
+    this.logger.for('signIn').info(' Start sign in');
     console.log(context, opts);
     return Promise.resolve(opts);
   }
 
   signUp(context: Context, opts: TSignUpRequest): Promise<AnyObject> {
-    this.logger.info('[signUp] Start sign up');
+    this.logger.for('signUp').info(' Start sign up');
     console.log(context, opts);
     return Promise.resolve(opts);
   }
 
   changePassword(context: Context, opts: TChangePasswordRequest): Promise<AnyObject> {
-    this.logger.info('[changePassword] Start change password');
+    this.logger.for('changePassword').info(' Start change password');
     console.log(context, opts);
     return Promise.resolve(opts);
   }
 
   getUserInformation?(context: Context, opts: AnyObject): Promise<AnyObject> {
-    this.logger.info('[get] Start get user info');
+    this.logger.for('get').info(' Start get user info');
     console.log(context, opts);
     return Promise.resolve(opts);
   }

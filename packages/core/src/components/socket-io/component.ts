@@ -69,7 +69,7 @@ export class SocketIOComponent extends BaseComponent {
         message: '[binding] Invalid application to bind AuthenticateComponent',
       });
     }
-    this.logger.info('[binding] Binding authenticate for application...');
+    this.logger.for(this.binding.name).info('Binding authenticate for application...');
 
     const extraServerOptions =
       this.application.get<Partial<ServerOptions>>({
@@ -77,7 +77,7 @@ export class SocketIOComponent extends BaseComponent {
         isOptional: true,
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
-    this.logger.debug('[binding] Socket.IO Server Options: %j', this.serverOptions);
+    this.logger.for(this.binding.name).debug('Socket.IO Server Options: %j', this.serverOptions);
 
     const redisConnection = this.application.get<DefaultRedisHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,

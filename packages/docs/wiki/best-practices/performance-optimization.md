@@ -354,6 +354,44 @@ setInterval(() => {
 }, 3600000); // Every hour
 ```
 
+## 10. High-Frequency Logging
+
+For performance-critical applications like HFT systems, use `HfLogger` instead of standard logging.
+
+### Standard Logger vs HfLogger
+
+| Feature | Standard Logger | HfLogger |
+|---------|-----------------|----------|
+| Latency | ~1-10 microseconds | ~100-300 nanoseconds |
+| Allocation | Per-call string formatting | Zero in hot path |
+| Use case | General application | Trading, real-time systems |
+
+### HfLogger Usage
+
+```typescript
+import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
+
+// At initialization (once):
+const logger = HfLogger.get('OrderEngine');
+const MSG_ORDER_SENT = HfLogger.encodeMessage('Order sent');
+const MSG_ORDER_FILLED = HfLogger.encodeMessage('Order filled');
+
+// Start background flusher
+const flusher = new HfLogFlusher();
+flusher.start(100); // Flush every 100ms
+
+// In hot path (~100-300ns, zero allocation):
+logger.log('info', MSG_ORDER_SENT);
+logger.log('info', MSG_ORDER_FILLED);
+```
+
+**Key points:**
+- Pre-encode messages at initialization, not in hot path
+- Use background flushing to avoid I/O blocking
+- HfLogger uses a lock-free ring buffer (64K entries, 16MB)
+
+> **Deep Dive:** See [Logger Helper](../references/helpers/logger.md) for complete HfLogger API.
+
 ## Performance Checklist
 
 | Category | Check | Impact |
@@ -367,6 +405,7 @@ setInterval(() => {
 | **Memory** | Large datasets processed in batches | High |
 | **Caching** | Expensive queries cached | High |
 | **Workers** | CPU-intensive tasks offloaded | High |
+| **Logging** | HfLogger for hot paths (HFT) | High |
 | **Monitoring** | Performance logging enabled | Low |
 
 ## See Also

@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-01-11',
+              collapsed: true,
+              items: [
+                { text: 'Logger Optimization & HfLogger', link: '/changelogs/2026-01-11-logger-optimization-hf-logger' },
+              ],
+            },
+            {
               text: '2026-01-07',
               collapsed: true,
               items: [

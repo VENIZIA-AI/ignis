@@ -90,45 +90,37 @@ export class NetworkUdpClient extends BaseHelper {
   }
 
   handleConnected() {
-    this.logger.info(
-      '[handleConnected][%s] Successfully bind connection | Options: %j',
-      this.identifier,
-      {
+    this.logger
+      .for(this.handleConnected.name)
+      .info('[%s] Successfully bind connection | Options: %j', this.identifier, {
         host: this.host,
         port: this.port,
         multicastAddress: this.multicastAddress,
-      },
-    );
+      });
   }
 
   handleData(opts: { identifier: string; message: string | Buffer; remoteInfo: dgram.RemoteInfo }) {
-    this.logger.info(
-      '[handleData][%s][%s:%d][<==] Raw: %s',
-      this.identifier,
-      this.host,
-      this.port,
-      {
+    this.logger
+      .for(this.handleData.name)
+      .info('[%s][%s:%d][<==] Raw: %s', this.identifier, this.host, this.port, {
         message: opts.message,
         remoteInfo: opts.remoteInfo,
-      },
-    );
+      });
   }
 
   handleClosed() {
-    this.logger.info(
-      '[handleClosed][%s] Closed connection UDP Server | Options: %j',
-      this.identifier,
-      {
+    this.logger
+      .for(this.handleClosed.name)
+      .info('[%s] Closed connection UDP Server | Options: %j', this.identifier, {
         host: this.host,
         port: this.port,
         multicastAddress: this.multicastAddress,
-      },
-    );
+      });
   }
 
   handleError(opts: { identifier: string; error: Error }) {
-    this.logger.error(
-      '[handleError][%s] Connection error | Options: %j | Error: %s',
+    this.logger.for(this.handleError.name).error(
+      '[%s] Connection error | Options: %j | Error: %s',
       this.identifier,
       {
         host: this.host,
@@ -140,22 +132,28 @@ export class NetworkUdpClient extends BaseHelper {
 
   connect() {
     if (this.client) {
-      this.logger.info('[connect][%s] UdpClient is already initialized!', this.identifier);
+      this.logger
+        .for(this.connect.name)
+        .info('[%s] UdpClient is already initialized!', this.identifier);
       return;
     }
 
     if (!this.port) {
-      this.logger.info('[connect][%s] Cannot init UDP Client with null options', this.identifier);
+      this.logger
+        .for(this.connect.name)
+        .info('[%s] Cannot init UDP Client with null options', this.identifier);
       return;
     }
 
-    this.logger.info(
-      '[connect][%s] New network udp client | Host: %s | Port: %s | multicastAddress: %j',
-      this.identifier,
-      this.host,
-      this.port,
-      this.multicastAddress,
-    );
+    this.logger
+      .for(this.connect.name)
+      .info(
+        '[%s] New network udp client | Host: %s | Port: %s | multicastAddress: %j',
+        this.identifier,
+        this.host,
+        this.port,
+        this.multicastAddress,
+      );
 
     this.client = dgram.createSocket({ type: 'udp4', reuseAddr: this.reuseAddr });
     this.client.on('close', () => {
@@ -188,14 +186,16 @@ export class NetworkUdpClient extends BaseHelper {
 
   disconnect() {
     if (!this.client) {
-      this.logger.info('[disconnect][%s] UdpClient is not initialized yet!', this.identifier);
+      this.logger
+        .for(this.disconnect.name)
+        .info('[%s] UdpClient is not initialized yet!', this.identifier);
       return;
     }
 
     this.client?.close();
 
     this.client = null;
-    this.logger.info('[disconnect][%s] UdpClient is destroyed!', this.identifier);
+    this.logger.for(this.disconnect.name).info('UdpClient is destroyed! | ID: %s', this.identifier);
   }
 
   isConnected() {

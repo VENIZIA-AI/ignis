@@ -1,16 +1,52 @@
 import { Defaults } from '@/common/constants';
+import { TConstValue } from '@/common/types';
 import { int } from '@/utilities/parse.utility';
 import path from 'node:path';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
 import { DgramTransport, IDgramTransportOptions } from './transports';
+import { getError } from '@venizia/ignis-inversion';
 
 const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? './';
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
+const LOGGER_FORMAT = process.env.APP_ENV_LOGGER_FORMAT ?? 'text';
+
+// File rotation defaults (can be overridden via env or options)
+const LOGGER_FILE_FREQUENCY = process.env.APP_ENV_LOGGER_FILE_FREQUENCY ?? '1h';
+const LOGGER_FILE_MAX_SIZE = process.env.APP_ENV_LOGGER_FILE_MAX_SIZE ?? '100m';
+const LOGGER_FILE_MAX_FILES = process.env.APP_ENV_LOGGER_FILE_MAX_FILES ?? '5d';
+const LOGGER_FILE_DATE_PATTERN = process.env.APP_ENV_LOGGER_FILE_DATE_PATTERN ?? 'YYYYMMDD_HH';
+
 const f = winston.format;
 
 // -------------------------------------------------------------------------------------------
-export const defineCustomLoggerFormatter = (opts: { label: string }) => {
+export class LoggerFormats {
+  static readonly JSON = 'json';
+  static readonly TEXT = 'text';
+
+  static readonly SCHEME_SET = new Set([this.JSON, this.TEXT]);
+
+  static isValid(orgType: string): boolean {
+    return this.SCHEME_SET.has(orgType);
+  }
+}
+
+export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
+
+// -------------------------------------------------------------------------------------------
+export const defineJsonLoggerFormatter = (opts: { label: string }) => {
+  return f.combine(
+    f.label({ label: opts.label }),
+    f.timestamp(),
+    f.splat(),
+    f.errors({ stack: true }),
+    f.json(),
+    f.colorize(),
+  );
+};
+
+// -------------------------------------------------------------------------------------------
+export const definePrettyLoggerFormatter = (opts: { label: string }) => {
   return f.combine(
     f.simple(),
     f.label({ label: opts.label }),
@@ -26,24 +62,54 @@ export const defineCustomLoggerFormatter = (opts: { label: string }) => {
 };
 
 // -------------------------------------------------------------------------------------------
-export const applicationLogFormatter = defineCustomLoggerFormatter({ label: LOGGER_PREFIX });
+export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat }) => {
+  const format = opts.format ?? (LOGGER_FORMAT as TLoggerFormat);
+
+  switch (format) {
+    case LoggerFormats.JSON: {
+      return defineJsonLoggerFormatter({ label: opts.label });
+    }
+    case LoggerFormats.TEXT: {
+      return definePrettyLoggerFormatter({ label: opts.label });
+    }
+    default: {
+      throw getError({
+        message: `[defineLogger] Invalid logger format | format: ${format} | valids: ${[...LoggerFormats.SCHEME_SET]}`,
+      });
+    }
+  }
+};
 
 // -------------------------------------------------------------------------------------------
-export const defineCustomLogger = (opts: {
+export const applicationLogFormatter = defineLogFormatter({ label: LOGGER_PREFIX });
+
+// -------------------------------------------------------------------------------------------
+export interface IFileTransportOptions {
+  prefix: string;
+  folder: string;
+  frequency?: string;
+  maxSize?: string;
+  maxFiles?: string;
+  datePattern?: string;
+}
+
+export interface ICustomLoggerOptions {
   logLevels?: { [name: string | symbol]: number };
   logColors?: { [name: string | symbol]: string };
   loggerFormatter?: ReturnType<typeof winston.format.combine>;
   transports: {
     info: {
-      file?: { prefix: string; folder: string };
+      file?: IFileTransportOptions;
       dgram?: Partial<IDgramTransportOptions>;
     };
     error: {
-      file?: { prefix: string; folder: string };
+      file?: IFileTransportOptions;
       dgram?: Partial<IDgramTransportOptions>;
     };
   };
-}) => {
+}
+
+export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
   const {
     logLevels = {
       error: 0,
@@ -82,15 +148,13 @@ export const defineCustomLogger = (opts: {
 
   // File configure
   if (infoTransportOptions.file) {
+    const fileOpts = infoTransportOptions.file;
     const transport = new winston.transports.DailyRotateFile({
-      frequency: '1h',
-      maxSize: '100m',
-      maxFiles: '5d',
-      datePattern: 'YYYYMMDD_HH',
-      filename: path.join(
-        infoTransportOptions.file.folder,
-        `/${infoTransportOptions.file.prefix}-info-%DATE%.log`,
-      ),
+      frequency: fileOpts.frequency ?? LOGGER_FILE_FREQUENCY,
+      maxSize: fileOpts.maxSize ?? LOGGER_FILE_MAX_SIZE,
+      maxFiles: fileOpts.maxFiles ?? LOGGER_FILE_MAX_FILES,
+      datePattern: fileOpts.datePattern ?? LOGGER_FILE_DATE_PATTERN,
+      filename: path.join(fileOpts.folder, `/${fileOpts.prefix}-info-%DATE%.log`),
       level: 'info',
     });
 
@@ -98,15 +162,13 @@ export const defineCustomLogger = (opts: {
   }
 
   if (errorTransportOptions.file) {
+    const fileOpts = errorTransportOptions.file;
     const transport = new winston.transports.DailyRotateFile({
-      frequency: '1h',
-      maxSize: '100m',
-      maxFiles: '5d',
-      datePattern: 'YYYYMMDD_HH',
-      filename: path.join(
-        errorTransportOptions.file.folder,
-        `/${errorTransportOptions.file.prefix}-error-%DATE%.log`,
-      ),
+      frequency: fileOpts.frequency ?? LOGGER_FILE_FREQUENCY,
+      maxSize: fileOpts.maxSize ?? LOGGER_FILE_MAX_SIZE,
+      maxFiles: fileOpts.maxFiles ?? LOGGER_FILE_MAX_FILES,
+      datePattern: fileOpts.datePattern ?? LOGGER_FILE_DATE_PATTERN,
+      filename: path.join(fileOpts.folder, `/${fileOpts.prefix}-error-%DATE%.log`),
       level: 'error',
     });
 

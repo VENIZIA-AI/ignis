@@ -48,36 +48,37 @@ export class WorkerPoolHelper extends BaseHelper {
     }
 
     if (this.registry.size === this.numberOfCPUs && !this.ignoreMaxWarning) {
-      this.logger.warn(
-        '[register] SKIP register worker | Pool size reached maximum number of cores | CPUs: %s | ignoreMaxWarning: %s',
-        this.numberOfCPUs,
-        this.ignoreMaxWarning,
-      );
+      this.logger
+        .for(this.register.name)
+        .warn(
+          'SKIP register worker | Pool size reached maximum number of cores | CPUs: %s | ignoreMaxWarning: %s',
+          this.numberOfCPUs,
+          this.ignoreMaxWarning,
+        );
       return;
     }
 
     const { key, worker } = opts;
     if (this.registry.has(key)) {
-      this.logger.error(
-        '[register] SKIP register worker | Worker key existed in pool | key: %s',
-        key,
-      );
+      this.logger
+        .for(this.register.name)
+        .error('SKIP register worker | Worker key existed in pool | key: %s', key);
       return;
     }
 
     this.registry.set(key, worker);
-    this.logger.info(
-      '[register] Successfully register worker | key: %s | poolSize: %s',
-      key,
-      this.registry.size,
-    );
+    this.logger
+      .for(this.register.name)
+      .info('Successfully register worker | key: %s | poolSize: %s', key, this.registry.size);
   }
 
   async unregister(opts: { key: string }) {
     const { key } = opts;
 
     if (!this.has({ key })) {
-      this.logger.warn('[unregister] SKIP unregister worker | Worker not existed | key: %s', key);
+      this.logger
+        .for(this.unregister.name)
+        .warn('SKIP unregister worker | Worker not existed | key: %s', key);
       return;
     }
 
@@ -87,10 +88,8 @@ export class WorkerPoolHelper extends BaseHelper {
     }
 
     this.registry.delete(key);
-    this.logger.info(
-      '[unregister] Successfully unregister worker | key: %s | poolSize: %s',
-      key,
-      this.registry.size,
-    );
+    this.logger
+      .for(this.unregister.name)
+      .info('Successfully unregister worker | key: %s | poolSize: %s', key, this.registry.size);
   }
 }

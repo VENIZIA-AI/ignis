@@ -48,7 +48,7 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
       });
     }
 
-    logger?.info('[send] URL: %s | Props: %o', url, props);
+    logger?.for(this.send.name).info('URL: %s | Props: %o', url, props);
     return this.worker.request<T>(props);
   }
 }

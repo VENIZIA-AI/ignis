@@ -21,7 +21,9 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
   value(_container: Container): TGetMailTransportFn {
     return (options: TMailOptions) => {
-      this.logger.info('[value] Creating mail transport for provider: %s', options.provider);
+      this.logger
+        .for(this.value.name)
+        .info('Creating mail transport for provider: %s', options.provider);
 
       switch (options.provider) {
         case MailProviders.NODEMAILER: {
@@ -49,7 +51,9 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
   private createNodemailerTransport(options: TMailOptions): NodemailerTransportHelper {
     if (this.isNodemailerOptions(options)) {
-      this.logger.info('[createNodemailerTransport] Initializing Nodemailer transport');
+      this.logger
+        .for(this.createNodemailerTransport.name)
+        .info('Initializing Nodemailer transport');
       return new NodemailerTransportHelper(options.config);
     }
 
@@ -62,7 +66,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
   private createMailgunTransport(options: TMailOptions): MailgunTransportHelper {
     if (this.isMailgunOptions(options)) {
-      this.logger.info('[createMailgunTransport] Initializing Mailgun transport');
+      this.logger.for(this.createMailgunTransport.name).info('Initializing Mailgun transport');
       return new MailgunTransportHelper(options.config);
     }
 
@@ -99,7 +103,7 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
       });
     }
 
-    this.logger.info('[createCustomTransport] Using custom mail transport');
+    this.logger.for(this.createCustomTransport.name).info('Using custom mail transport');
     return options.config;
   }
 

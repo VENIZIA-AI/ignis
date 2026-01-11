@@ -48,7 +48,9 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
     const t = performance.now();
 
     const configureOptions = opts ?? {};
-    this.logger.info('[binding] START | Binding component | Options: %j', configureOptions);
+    this.logger
+      .for(this.binding.name)
+      .info('START | Binding component | Options: %j', configureOptions);
 
     if (this.initDefault?.enable) {
       this.initDefaultBindings({ container: this.initDefault.container });
@@ -56,6 +58,8 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
     await this.binding();
 
-    this.logger.info('[binding] DONE | Binding component | Took: %s (ms)', performance.now() - t);
+    this.logger
+      .for(this.binding.name)
+      .info('DONE | Binding component | Took: %s (ms)', performance.now() - t);
   }
 }

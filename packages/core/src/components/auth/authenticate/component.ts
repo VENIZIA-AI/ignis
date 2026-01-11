@@ -59,7 +59,9 @@ export class AuthenticateComponent extends BaseComponent {
     const { jwtOptions } = opts;
 
     if (!jwtOptions) {
-      this.logger.debug('[defineJWTAuth] jwtOptions not provided, skipping JWT configuration');
+      this.logger
+        .for(this.defineJWTAuth.name)
+        .debug('jwtOptions not provided, skipping JWT configuration');
       return;
     }
 
@@ -90,7 +92,7 @@ export class AuthenticateComponent extends BaseComponent {
       .toValue(jwtOptions);
     this.application.service(JWTTokenService);
 
-    this.logger.info('[defineJWTAuth] JWT authentication configured');
+    this.logger.for(this.defineJWTAuth.name).info('JWT authentication configured');
   }
 
   // ---------------------------------------------------------------------------
@@ -101,9 +103,9 @@ export class AuthenticateComponent extends BaseComponent {
     const { basicOptions } = opts;
 
     if (!basicOptions) {
-      this.logger.debug(
-        '[defineBasicAuth] basicOptions not provided, skipping Basic configuration',
-      );
+      this.logger
+        .for(this.defineBasicAuth.name)
+        .debug('basicOptions not provided, skipping Basic configuration');
       return;
     }
 
@@ -119,7 +121,7 @@ export class AuthenticateComponent extends BaseComponent {
       .toValue(basicOptions);
     this.application.service(BasicTokenService);
 
-    this.logger.info('[defineBasicAuth] Basic authentication configured');
+    this.logger.for(this.defineBasicAuth.name).info('Basic authentication configured');
   }
 
   // ---------------------------------------------------------------------------
@@ -130,7 +132,7 @@ export class AuthenticateComponent extends BaseComponent {
     const { restOptions } = opts;
 
     if (!restOptions?.useAuthController) {
-      this.logger.debug('[defineControllers] Auth controller disabled');
+      this.logger.for(this.defineControllers.name).debug('Auth controller disabled');
       return;
     }
 
@@ -144,7 +146,7 @@ export class AuthenticateComponent extends BaseComponent {
     const AuthController = defineAuthController(restOptions.controllerOpts);
     this.application.controller(AuthController);
 
-    this.logger.info('[defineControllers] Auth controller registered');
+    this.logger.for(this.defineControllers.name).info('Auth controller registered');
   }
 
   // ---------------------------------------------------------------------------

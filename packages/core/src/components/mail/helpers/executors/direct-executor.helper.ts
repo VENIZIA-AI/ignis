@@ -32,7 +32,9 @@ export class DirectMailExecutorHelper extends BaseHelper implements IMailQueueEx
       throw getError({ message: 'Processor not set. Call setProcessor() first.' });
     }
 
-    this.logger.info('[enqueueVerificationEmail] Executing immediately (no queue) for: %s', email);
+    this.logger
+      .for(this.enqueueVerificationEmail.name)
+      .info('Executing immediately (no queue) for: %s', email);
     const result = await this.processor(email);
 
     return {

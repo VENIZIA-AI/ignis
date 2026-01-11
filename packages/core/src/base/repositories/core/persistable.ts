@@ -129,7 +129,7 @@ export class PersistableRepository<
     const { shouldReturn = true, log, transaction } = opts.options ?? {};
 
     if (log?.use) {
-      this.logger.log(log.level ?? 'info', '[_create] Executing with opts: %j', opts);
+      this.logger.for('_create').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
     const connector = this.resolveConnector({ transaction });
@@ -137,14 +137,16 @@ export class PersistableRepository<
 
     if (!shouldReturn) {
       const rs = await query;
-      this.logger.debug('[_create] INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+      this.logger
+        .for('_create')
+        .debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
       return { count: rs.rowCount ?? 0, data: null };
     }
 
     // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
-    this.logger.debug('[_create] INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+    this.logger.for('_create').debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs as Array<R> };
   }
 
@@ -216,7 +218,7 @@ export class PersistableRepository<
     } = opts?.options ?? {};
 
     if (log?.use) {
-      this.logger.log(log.level ?? 'info', '[_update] Executing with opts: %j', opts);
+      this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
     // Apply default filter's where condition
@@ -240,11 +242,13 @@ export class PersistableRepository<
     });
 
     if (isEmptyWhere) {
-      this.logger.warn(
-        '[_update] Entity: %s | Performing update with empty condition | data: %j',
-        this.entity.name,
-        opts.data,
-      );
+      this.logger
+        .for('_update')
+        .warn(
+          'Entity: %s | Performing update with empty condition | data: %j',
+          this.entity.name,
+          opts.data,
+        );
     }
 
     // Transform data to handle JSON path updates (e.g., 'metadata.settings.theme': 'dark')
@@ -260,7 +264,9 @@ export class PersistableRepository<
 
     if (!shouldReturn) {
       const rs = await query;
-      this.logger.debug('[_update] UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+      this.logger
+        .for('_update')
+        .debug('UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
@@ -269,7 +275,7 @@ export class PersistableRepository<
     const rs = visibleProps
       ? ((await query.returning(visibleProps)) as Array<R>)
       : ((await query.returning()) as Array<R>);
-    this.logger.debug('[_update] UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+    this.logger.for('_update').debug('UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs };
   }
 
@@ -340,7 +346,7 @@ export class PersistableRepository<
     } = opts?.options ?? {};
 
     if (log?.use) {
-      this.logger.log(log.level ?? 'info', '[_delete] Executing with opts: %j', opts);
+      this.logger.for('_delete').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
     // Apply default filter's where condition
@@ -364,10 +370,9 @@ export class PersistableRepository<
     });
 
     if (isEmptyWhere) {
-      this.logger.warn(
-        '[_delete] Entity: %s | Performing delete with empty condition',
-        this.entity.name,
-      );
+      this.logger
+        .for('_delete')
+        .warn('Entity: %s | Performing delete with empty condition', this.entity.name);
     }
 
     const connector = this.resolveConnector({ transaction });
@@ -375,14 +380,16 @@ export class PersistableRepository<
 
     if (!shouldReturn) {
       const rs = await query;
-      this.logger.debug('[_delete] DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+      this.logger
+        .for('_delete')
+        .debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
     // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
-    this.logger.debug('[_delete] DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
+    this.logger.for('_delete').debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
     return { count: rs.length, data: rs as Array<R> };
   }
 

@@ -16,7 +16,9 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
 
   value(_container: Container): TGetMailQueueExecutorFn {
     return (config: IMailQueueExecutorConfig) => {
-      this.logger.info('[value] Creating mail queue executor of type: %s', config.type);
+      this.logger
+        .for(this.value.name)
+        .info('Creating mail queue executor of type: %s', config.type);
       switch (config.type) {
         case MailQueueExecutorTypes.DIRECT: {
           return new DirectMailExecutorHelper();

@@ -221,11 +221,13 @@ export class DiskHelper extends BaseStorageHelper {
 
       await fsp.writeFile(objectPath, buffer);
 
-      this.logger.info(
-        '[upload] Uploaded: %j | Took: %s (ms)',
-        { normalizeName, normalizeLink, mimeType, encoding, size },
-        performance.now() - t,
-      );
+      this.logger
+        .for(this.upload.name)
+        .info(
+          'Uploaded: %j | Took: %s (ms)',
+          { normalizeName, normalizeLink, mimeType, encoding, size },
+          performance.now() - t,
+        );
 
       return {
         bucketName: bucket,

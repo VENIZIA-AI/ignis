@@ -35,7 +35,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
         headers: message.headers,
       };
 
-      this.logger.debug('[send] Sending email with nodemailer to: %s', mailOptions.to);
+      this.logger.for(this.send.name).debug('Sending email with nodemailer to: %s', mailOptions.to);
       const info = await this.transporter.sendMail(mailOptions);
 
       return {
@@ -44,7 +44,7 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
         response: info.response,
       };
     } catch (error) {
-      this.logger.error('[send] Nodemailer send failed: %s', error);
+      this.logger.for(this.send.name).error('Nodemailer send failed: %s', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -54,18 +54,18 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
 
   async verify(): Promise<boolean> {
     try {
-      this.logger.info('[verify] Verifying SMTP connection');
+      this.logger.for(this.verify.name).info('Verifying SMTP connection');
       await this.transporter.verify();
-      this.logger.info('[verify] SMTP connection verified successfully');
+      this.logger.for(this.verify.name).info('SMTP connection verified successfully');
       return true;
     } catch (error) {
-      this.logger.error('[verify] SMTP verification failed: %s', error);
+      this.logger.for(this.verify.name).error('SMTP verification failed: %s', error);
       return false;
     }
   }
 
   async close(): Promise<void> {
-    this.logger.info('[close] Closing nodemailer transport');
+    this.logger.for(this.close.name).info('Closing nodemailer transport');
     this.transporter.close();
   }
 }

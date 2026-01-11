@@ -75,9 +75,30 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 ## 5. General Debugging Tips
 
 **Enable detailed logging:**
+```bash
+# Enable debug mode via environment variable
+DEBUG=true
+```
+
+**Use method-scoped logging with `.for()`:**
 ```typescript
-// Increase log verbosity
-LoggerFactory.setLevel('debug');
+class UserService {
+  private logger = Logger.get('UserService');
+
+  async createUser(data: CreateUserDto) {
+    this.logger.for('createUser').info('Creating user: %j', data);
+    // Output: [UserService-createUser] Creating user: {...}
+
+    try {
+      const user = await this.userRepo.create({ data });
+      this.logger.for('createUser').info('User created: %s', user.id);
+      return user;
+    } catch (error) {
+      this.logger.for('createUser').error('Failed: %s', error);
+      throw error;
+    }
+  }
+}
 ```
 
 **Common debugging commands:**
@@ -93,7 +114,7 @@ cat .env | grep APP_ENV
 ```
 
 **Useful debugging patterns:**
-- Add `console.log()` in route handlers to trace execution
+- Use `logger.for('methodName')` to trace execution with method context
 - Use `try-catch` blocks to catch and log errors
 - Check database queries with Drizzle's logging: `{ logger: true }`
 

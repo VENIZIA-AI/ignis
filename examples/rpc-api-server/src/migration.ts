@@ -7,7 +7,7 @@ const migration = () => {
   const logger = LoggerFactory.getLogger([migration.name]);
 
   const envKeys = applicationEnvironment.keys();
-  logger.info('[migration] envKeys: %s', envKeys, process.env);
+  logger.for('migration').info(' envKeys: %s', envKeys, process.env);
 
   const databaseConfigs = {
     host: process.env.APP_ENV_POSTGRES_HOST ?? '0.0.0.0',
@@ -18,7 +18,7 @@ const migration = () => {
     ssl: false,
   };
 
-  logger.info('[migration] databaseConfigs: %j', databaseConfigs);
+  logger.for('migration').info(' databaseConfigs: %j', databaseConfigs);
 
   return defineConfig({
     dialect: 'postgresql',

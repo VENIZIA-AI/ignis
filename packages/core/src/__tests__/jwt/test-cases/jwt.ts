@@ -32,7 +32,7 @@ export class TestCase001 extends TestCaseHandler<{}, IArg> {
     });
 
     const token = await jwtTokenService.generate({ payload });
-    this.logger.info('[execute] Token: %s', token);
+    this.logger.for(this.execute.name).info('Token: %s', token);
 
     return { token };
   }

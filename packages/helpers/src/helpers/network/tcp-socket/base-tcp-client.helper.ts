@@ -87,31 +87,29 @@ export class BaseNetworkTcpClient<
   }
 
   handleConnected() {
-    this.logger.info(
-      '[handleConnected][%s] Connected to TCP Server | Options: %j',
-      this.identifier,
-      this.options,
-    );
+    this.logger
+      .for(this.handleConnected.name)
+      .info('[%s] Connected to TCP Server | Options: %j', this.identifier, this.options);
     this.retry.currentReconnect = 0;
   }
 
   handleData(_opts: { identifier: string; message: string | Buffer }) {}
 
   handleClosed() {
-    this.logger.info(
-      '[handleClosed][%s] Closed connection TCP Server | Options: %j',
-      this.identifier,
-      this.options,
-    );
+    this.logger
+      .for(this.handleClosed.name)
+      .info('[%s] Closed connection TCP Server | Options: %j', this.identifier, this.options);
   }
 
   handleError(error: any) {
-    this.logger.error(
-      '[handleError][%s] Connection error | Options: %j | Error: %s',
-      this.identifier,
-      this.options,
-      error,
-    );
+    this.logger
+      .for(this.handleError.name)
+      .error(
+        '[%s] Connection error | Options: %j | Error: %s',
+        this.identifier,
+        this.options,
+        error,
+      );
 
     if (!this.reconnect || this.retry.currentReconnect >= this.retry.maxReconnect) {
       return;
@@ -119,11 +117,13 @@ export class BaseNetworkTcpClient<
 
     const { currentReconnect, maxReconnect } = this.retry;
     if (maxReconnect > -1 && currentReconnect >= maxReconnect) {
-      this.logger.info(
-        '[handleData] Exceeded max retry to reconnect! Max: %d | Current: %d',
-        maxReconnect,
-        currentReconnect,
-      );
+      this.logger
+        .for(this.handleData.name)
+        .info(
+          'Exceeded max retry to reconnect! Max: %d | Current: %d',
+          maxReconnect,
+          currentReconnect,
+        );
       return;
     }
 
@@ -131,11 +131,13 @@ export class BaseNetworkTcpClient<
       this.client?.destroy();
       this.client = null;
 
-      this.logger.info(
-        '[handleClosed][%s] Retrying to establish TCP Connection | Options: %j',
-        this.identifier,
-        this.options,
-      );
+      this.logger
+        .for(this.handleClosed.name)
+        .info(
+          '[%s] Retrying to establish TCP Connection | Options: %j',
+          this.identifier,
+          this.options,
+        );
 
       this.connect({ resetReconnectCounter: false });
       this.retry.currentReconnect++;
@@ -144,20 +146,22 @@ export class BaseNetworkTcpClient<
 
   connect(opts: { resetReconnectCounter: boolean }) {
     if (this.isConnected()) {
-      this.logger.info('[connect][%s] NetworkTcpClient is already initialized!', this.identifier);
+      this.logger
+        .for(this.connect.name)
+        .info('[%s] NetworkTcpClient is already initialized!', this.identifier);
       return;
     }
 
     if (isEmpty(this.options)) {
-      this.logger.info('[connect][%s] Cannot init TCP Client with null options', this.identifier);
+      this.logger
+        .for(this.connect.name)
+        .info('[%s] Cannot init TCP Client with null options', this.identifier);
       return;
     }
 
-    this.logger.info(
-      '[connect][%s] New network tcp client | Options: %s',
-      this.identifier,
-      this.options,
-    );
+    this.logger
+      .for(this.connect.name)
+      .info('[%s] New network tcp client | Options: %s', this.identifier, this.options);
 
     if (opts?.resetReconnectCounter) {
       this.retry.currentReconnect = 0;
@@ -170,7 +174,7 @@ export class BaseNetworkTcpClient<
 
     this.client = this.createClientFn(this.options, () => {
       if (!this.client) {
-        this.logger.error('[createClientFn] Failed to initialize socket client!');
+        this.logger.for(this.createClientFn.name).error('Failed to initialize socket client!');
         return;
       }
 
@@ -200,10 +204,9 @@ export class BaseNetworkTcpClient<
 
   disconnect() {
     if (!this.client) {
-      this.logger.info(
-        '[disconnect][%s] NetworkTcpClient is not initialized yet!',
-        this.identifier,
-      );
+      this.logger
+        .for(this.disconnect.name)
+        .info('[%s] NetworkTcpClient is not initialized yet!', this.identifier);
       return;
     }
 
@@ -212,7 +215,9 @@ export class BaseNetworkTcpClient<
 
     clearTimeout(this.reconnectTimeout);
     this.reconnectTimeout = null;
-    this.logger.info('[disconnect][%s] NetworkTcpClient is destroyed!', this.identifier);
+    this.logger
+      .for(this.disconnect.name)
+      .info('[%s] NetworkTcpClient is destroyed!', this.identifier);
   }
 
   forceReconnect() {
@@ -226,13 +231,17 @@ export class BaseNetworkTcpClient<
 
   emit(opts: { payload: Buffer | string }) {
     if (!this.client) {
-      this.logger.info('[emit][%s] TPC Client is not configured yet!', this.identifier);
+      this.logger
+        .for(this.emit.name)
+        .info('[%s] TPC Client is not configured yet!', this.identifier);
       return;
     }
 
     const { payload } = opts;
     if (!payload?.length) {
-      this.logger.info('[emit][%s] Invalid payload to write to TCP Socket!', this.identifier);
+      this.logger
+        .for(this.emit.name)
+        .info('[%s] Invalid payload to write to TCP Socket!', this.identifier);
       return;
     }
 

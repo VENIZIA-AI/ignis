@@ -119,9 +119,9 @@ export class RepositoryTestService extends BaseService {
   // Run all repository test suites
   // ----------------------------------------------------------------
   async runAllTests(): Promise<void> {
-    this.logger.info('='.repeat(80));
-    this.logger.info('[RepositoryTestService] Starting all repository test suites...');
-    this.logger.info('='.repeat(80));
+    this.logger.for('runAllTests').info('='.repeat(80));
+    this.logger.for('runAllTests').info(' Starting all repository test suites...');
+    this.logger.for('runAllTests').info('='.repeat(80));
 
     // await this.runRepositoryTests();
     // await this.runTransactionTests();
@@ -137,9 +137,9 @@ export class RepositoryTestService extends BaseService {
     // await this.runUserAuditTests();
     await this.runJsonUpdateTestService();
 
-    this.logger.info('='.repeat(80));
-    this.logger.info('[RepositoryTestService] All repository test suites completed!');
-    this.logger.info('='.repeat(80));
+    this.logger.for('runAllTests').info('='.repeat(80));
+    this.logger.for('runAllTests').info(' All repository test suites completed!');
+    this.logger.for('runAllTests').info('='.repeat(80));
   }
 
   // ----------------------------------------------------------------

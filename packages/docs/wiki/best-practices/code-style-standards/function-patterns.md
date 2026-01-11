@@ -109,14 +109,17 @@ export class UserController extends BaseController {
 
 ## Performance Logging Pattern
 
-Use `performance.now()` for timing critical operations:
+Use `performance.now()` for timing critical operations with method-scoped logging:
 
 ```typescript
-const t = performance.now();
+async syncData() {
+  const t = performance.now();
+  this.logger.for('syncData').info('START | Syncing data...');
 
-// ... operation to measure ...
+  // ... operation to measure ...
 
-this.logger.info('[methodName] DONE | Took: %s (ms)', performance.now() - t);
+  this.logger.for('syncData').info('DONE | Took: %s (ms)', performance.now() - t);
+}
 ```
 
 **With the helper utility:**
@@ -125,7 +128,7 @@ this.logger.info('[methodName] DONE | Took: %s (ms)', performance.now() - t);
 import { executeWithPerformanceMeasure } from '@venizia/ignis';
 
 await executeWithPerformanceMeasure({
-  logger: this.logger,
+  logger: this.logger.for('syncData'),
   scope: 'DataSync',
   description: 'Sync user records',
   task: async () => {
@@ -133,6 +136,29 @@ await executeWithPerformanceMeasure({
   },
 });
 // Logs: [DataSync] Sync user records | Took: 1234.56 (ms)
+```
+
+**Method-scoped logging pattern:**
+
+```typescript
+class UserService {
+  private logger = Logger.get('UserService');
+
+  async createUser(data: CreateUserDto) {
+    // Use .for() to add method context to all logs
+    this.logger.for('createUser').info('Creating user: %j', data);
+    // Output: [UserService-createUser] Creating user: {...}
+
+    try {
+      const user = await this.userRepo.create({ data });
+      this.logger.for('createUser').info('User created: %s', user.id);
+      return user;
+    } catch (error) {
+      this.logger.for('createUser').error('Failed: %s', error);
+      throw error;
+    }
+  }
+}
 ```
 
 ## See Also

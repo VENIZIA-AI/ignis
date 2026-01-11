@@ -96,13 +96,15 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
   protected async handleMessage() {
     const current = this.getElementAt(0);
     if (!current) {
-      this.logger.warn('[handleMessage] current: %j | Invalid current message to handle!', current);
+      this.logger
+        .for(this.handleMessage.name)
+        .warn('current: %j | Invalid current message to handle!', current);
       return;
     }
 
     const { isLocked, payload } = current;
     if (isLocked) {
-      this.logger.info('[handle] Skip LOCKED message | Payload: %j', payload);
+      this.logger.for('handle').info('Skip LOCKED message | Payload: %j', payload);
       return;
     }
 
@@ -143,9 +145,9 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
 
   private *_messageListener() {
     if (!this.onMessage) {
-      this.logger.warn(
-        '[_messageListener] Queue has no onMessage listener | Skip initializing message iterator!',
-      );
+      this.logger
+        .for('_messageListener')
+        .warn('Queue has no onMessage listener | Skip initializing message iterator!');
       return;
     }
 
@@ -156,10 +158,12 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
 
   nextMessage() {
     if (this.state !== QueueStatuses.WAITING) {
-      this.logger.warn(
-        '[nextMessage] SKIP request next message | Invalid queue state to request next message | currentState: %s',
-        this.state,
-      );
+      this.logger
+        .for(this.nextMessage.name)
+        .warn(
+          'SKIP request next message | Invalid queue state to request next message | currentState: %s',
+          this.state,
+        );
       return;
     }
 
@@ -168,11 +172,13 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
 
   async enqueue(payload: TElementPayload) {
     if (this.isSettleRequested || this.state === QueueStatuses.SETTLED) {
-      this.logger.error(
-        '[enqueue] isSettled: %s | currentState: %s | Queue was SETTLED | No more element acceptable',
-        this.isSettleRequested,
-        this.state,
-      );
+      this.logger
+        .for(this.enqueue.name)
+        .error(
+          'isSettled: %s | currentState: %s | Queue was SETTLED | No more element acceptable',
+          this.isSettleRequested,
+          this.state,
+        );
       return;
     }
 
@@ -206,11 +212,13 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
 
   lock() {
     if (this.state >= QueueStatuses.LOCKED) {
-      this.logger.error(
-        '[lock] isSettled | currentState: %s | Invalid queue state to request lock queue!',
-        this.isSettleRequested,
-        this.state,
-      );
+      this.logger
+        .for(this.lock.name)
+        .error(
+          'isSettled | currentState: %s | Invalid queue state to request lock queue!',
+          this.isSettleRequested,
+          this.state,
+        );
       return;
     }
 
@@ -221,11 +229,13 @@ export class QueueHelper<TElementPayload> extends BaseHelper {
 
   unlock(opts: { shouldProcessNextElement?: boolean }) {
     if (this.state > QueueStatuses.LOCKED) {
-      this.logger.error(
-        '[unlock] isSettled | currentState: %s | Invalid queue state to request unlock queue!',
-        this.isSettleRequested,
-        this.state,
-      );
+      this.logger
+        .for(this.unlock.name)
+        .error(
+          'isSettled | currentState: %s | Invalid queue state to request unlock queue!',
+          this.isSettleRequested,
+          this.state,
+        );
       return;
     }
 

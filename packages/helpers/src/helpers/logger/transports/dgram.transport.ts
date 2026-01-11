@@ -1,5 +1,3 @@
-import { HTTP } from '@/common';
-import { getError } from '@/helpers/error';
 import dgram from 'node:dgram';
 import Transport from 'winston-transport';
 
@@ -54,10 +52,7 @@ export class DgramTransport extends Transport {
       this.client?.close();
       this.client = null;
 
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[DgramTransport][error] Error: ${error.message}`,
-      });
+      console.error('[dgram][error] Error: ', error);
     });
   }
 
@@ -74,7 +69,7 @@ export class DgramTransport extends Transport {
       timestamp?: string;
       [extra: symbol]: any;
     },
-    callback: Function,
+    callback: () => void,
   ) {
     setImmediate(() => {
       this.emit('logged', opts);

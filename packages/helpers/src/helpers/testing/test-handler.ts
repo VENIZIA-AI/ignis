@@ -1,7 +1,7 @@
 import { ValueOrPromise } from '@/common';
 import { getError } from '@/helpers/error';
 import assert from 'node:assert';
-import { ApplicationLogger, LoggerFactory } from '../logger';
+import { Logger, LoggerFactory } from '../logger';
 import {
   ITestCaseHandler,
   ITestCaseInput,
@@ -26,7 +26,7 @@ export abstract class BaseTestCaseHandler<
   R extends object = {},
   I extends ITestCaseInput = {},
 > implements ITestCaseHandler<R, I> {
-  protected logger: ApplicationLogger;
+  protected logger: Logger;
 
   context: ITestContext<R>;
   args: I | null;
@@ -72,7 +72,7 @@ export abstract class TestCaseHandler<
       const executeRs = await this.execute();
       validateRs = await this.validate(executeRs);
     } catch (error) {
-      this.logger.error('[_execute] Failed to execute test handler | Error: %s', error);
+      this.logger.for('_execute').error('Failed to execute test handler | Error: %s', error);
     }
 
     assert.equal(validateRs, TestCaseDecisions.SUCCESS);

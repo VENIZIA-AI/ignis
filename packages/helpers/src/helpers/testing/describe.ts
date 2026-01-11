@@ -1,11 +1,11 @@
 import { getError } from '@/helpers/error';
 import { after, afterEach, before, beforeEach, describe } from 'node:test';
-import { ApplicationLogger, LoggerFactory } from '../logger';
+import { Logger, LoggerFactory } from '../logger';
 import { ITestPlan } from './common';
 
 export class TestDescribe<R extends object> {
   testPlan: ITestPlan<R>;
-  logger: ApplicationLogger;
+  logger: Logger;
 
   constructor(opts: { testPlan: ITestPlan<R> }) {
     this.testPlan = opts.testPlan;
@@ -43,7 +43,9 @@ export class TestDescribe<R extends object> {
         await hook?.(this.testPlan);
       });
 
-      this.logger.info('[run][%s] START executing test plan!', this.testPlan.scope);
+      this.logger
+        .for(this.run.name)
+        .info('START executing test plan! | Scope: %s', this.testPlan.scope);
       this.testPlan.execute();
     };
 

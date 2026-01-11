@@ -52,24 +52,28 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         body: req.parseBody(),
       };
 
-      this.logger.info(
-        '[spy][%s] START\t| Handling Request | forwardedIp: %s | path: %s | method: %s',
-        requestId,
-        forwardedIp,
-        remark.path,
-        remark.method,
-      );
+      this.logger
+        .for('spy')
+        .info(
+          '[%s] START\t| Handling Request | forwardedIp: %s | path: %s | method: %s',
+          requestId,
+          forwardedIp,
+          remark.path,
+          remark.method,
+        );
 
       await next();
 
-      this.logger.info(
-        '[spy][%s] DONE\t| Handling Request | forwardedIp: %s | path: %s | method: %s | Took: %s (ms)',
-        requestId,
-        forwardedIp,
-        remark.path,
-        remark.method,
-        performance.now() - t,
-      );
+      this.logger
+        .for('spy')
+        .info(
+          '[%s] DONE\t| Handling Request | forwardedIp: %s | path: %s | method: %s | Took: %s (ms)',
+          requestId,
+          forwardedIp,
+          remark.path,
+          remark.method,
+          performance.now() - t,
+        );
     });
   }
 }

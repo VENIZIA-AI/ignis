@@ -50,7 +50,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.info('[online] Worker ONLINE');
+    this.logger.for(this.onOnline.name).info('Worker ONLINE');
   }
 
   override onExit(opts: { code: string | number }): ValueOrPromise<void> {
@@ -59,7 +59,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.warn('[onExit] Worker EXIT | Code: %s', opts.code);
+    this.logger.for(this.onExit.name).warn('Worker EXIT | Code: %s', opts.code);
   }
 
   override onError(opts: { error: Error }): ValueOrPromise<void> {
@@ -68,7 +68,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error('[onError] Worker ERROR | Error: %s', opts.error);
+    this.logger.for(this.onError.name).error('Worker ERROR | Error: %s', opts.error);
   }
 
   override onMessage(opts: { message: MessageType }): ValueOrPromise<void> {
@@ -77,7 +77,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error('[onMessage] Worker MESSAGE | message: %j', opts.message);
+    this.logger.for(this.onMessage.name).error('Worker MESSAGE | message: %j', opts.message);
   }
 
   override onMessageError(opts: { error: Error }): ValueOrPromise<void> {
@@ -86,7 +86,7 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
       return;
     }
 
-    this.logger.error('[onMessageError] Worker MESSAGE_ERROR | Error: %s', opts.error);
+    this.logger.for(this.onMessageError.name).error('Worker MESSAGE_ERROR | Error: %s', opts.error);
   }
 
   binding() {
@@ -154,7 +154,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
     const { key, bus } = opts;
     if (this.buses[key]) {
-      this.logger.warn('[bindWorkerBus] Worker Bus existed | key: %s', key);
+      this.logger.for(this.bindWorkerBus.name).warn('Worker Bus existed | key: %s', key);
       return;
     }
 
@@ -168,7 +168,7 @@ export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
 
     const { key } = opts;
     if (!(key in this.buses)) {
-      this.logger.warn('[unbindWorkerBus] Worker Bus not existed | key: %s', key);
+      this.logger.for(this.unbindWorkerBus.name).warn('Worker Bus not existed | key: %s', key);
       return;
     }
 

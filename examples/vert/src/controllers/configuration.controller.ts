@@ -127,7 +127,7 @@ export class ConfigurationController extends _Controller {
 
     const currentUser = context.get(Authentication.CURRENT_USER);
 
-    this.logger.debug('[create] currentUser: %s', currentUser);
+    this.logger.for('create').debug(' currentUser: %s', currentUser);
 
     const data = context.req.valid<TInferSchema<typeof CreateConfigurationSchema>>('json');
 
@@ -159,7 +159,7 @@ export class ConfigurationController extends _Controller {
     const data = context.req.valid<// specify JSON Type here
     any>('json');
 
-    this.logger.info('[updateById] Updating configuration | id: %s | data: %j', id, data);
+    this.logger.for('updateById').info(' Updating configuration | id: %s | data: %j', id, data);
 
     // Add custom logic here if needed
 
@@ -176,7 +176,7 @@ export class ConfigurationController extends _Controller {
     const { context } = opts;
     const { id } = context.req.valid<{ id: string }>('param');
 
-    this.logger.warn('[deleteById] Deleting configuration | id: %s', id);
+    this.logger.for('deleteById').warn(' Deleting configuration | id: %s', id);
 
     // Example: Implement soft delete instead of hard delete
     // const result = await this.repository.updateById({

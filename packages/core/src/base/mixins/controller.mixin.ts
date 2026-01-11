@@ -52,10 +52,12 @@ export const ControllerMixin = <T extends TMixinTarget<AbstractApplication>>(bas
 
             const instance = this.get<BaseController>({ key: binding.key, isOptional: false });
             if (!instance) {
-              this.logger.debug(
-                '[registerControllers] No binding instance | Ignore registering controller | key: %s',
-                binding.key,
-              );
+              this.logger
+                .for(this.registerControllers.name)
+                .debug(
+                  'No binding instance | Ignore registering controller | key: %s',
+                  binding.key,
+                );
               continue;
             }
 

@@ -59,7 +59,7 @@ export abstract class AbstractApplication<
     });
 
     this.projectRoot = this.getProjectRoot();
-    this.logger.info(' Project root: %s', this.projectRoot);
+    this.logger.for('constructor').info('Project root: %s', this.projectRoot);
 
     const honoServer = new OpenAPIHono<AppEnv, AppSchema, BasePath>({
       strict: this.configs.strictPath ?? true,
@@ -151,21 +151,19 @@ export abstract class AbstractApplication<
       return;
     }
 
-    this.logger.info('[inspectRoutes] START | Inspect all application route(s)');
+    this.logger.for(this.inspectRoutes.name).info('START | Inspect all application route(s)');
     showApplicationRoutes(this.getServer());
-    this.logger.info(
-      '[start] DONE | Inspect all application route(s) | Took: %s (ms)',
-      performance.now() - t,
-    );
+    this.logger
+      .for(this.start.name)
+      .info('DONE | Inspect all application route(s) | Took: %s (ms)', performance.now() - t);
   }
 
   protected validateEnvs() {
     const t = performance.now();
     const envKeys = applicationEnvironment.keys();
-    this.logger.info(
-      '[initialize] Envs: %s | START Validating application environments...',
-      envKeys.length,
-    );
+    this.logger
+      .for(this.initialize.name)
+      .info('Envs: %s | START Validating application environments...', envKeys.length);
 
     for (const argKey of envKeys) {
       const argValue = applicationEnvironment.get<string | number>(argKey);
@@ -179,11 +177,13 @@ export abstract class AbstractApplication<
       });
     }
 
-    this.logger.info(
-      '[validateEnvs] Envs: %s | DONE Validating application environments | Took: %s (ms)',
-      envKeys.length,
-      performance.now() - t,
-    );
+    this.logger
+      .for(this.validateEnvs.name)
+      .info(
+        'Envs: %s | DONE Validating application environments | Took: %s (ms)',
+        envKeys.length,
+        performance.now() - t,
+      );
   }
 
   // ------------------------------------------------------------------------------
@@ -212,11 +212,15 @@ export abstract class AbstractApplication<
           this.server.instance = rs;
           this.inspectRoutes();
 
-          this.logger.info('[start] Server STARTED | Address: %s', this.getServerAddress());
-          this.logger.info(
-            '[start] Log folder: %s',
-            path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-          );
+          this.logger
+            .for(this.start.name)
+            .info('Server STARTED | Address: %s', this.getServerAddress());
+          this.logger
+            .for(this.start.name)
+            .info(
+              'Log folder: %s',
+              path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
+            );
 
           resolve(rs);
         })
@@ -243,22 +247,24 @@ export abstract class AbstractApplication<
           const { serve } = module;
           const rs = serve({ fetch: server.fetch, port, hostname: host }, info => {
             this.inspectRoutes();
-            this.logger.info(
-              '[start] Server STARTED | Address: %s | Info: %j',
-              this.getServerAddress(),
-              info,
-            );
-            this.logger.info(
-              '[start] Log folder: %s',
-              path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
-            );
+            this.logger
+              .for(this.start.name)
+              .info('Server STARTED | Address: %s | Info: %j', this.getServerAddress(), info);
+            this.logger
+              .for(this.start.name)
+              .info(
+                'Log folder: %s',
+                path.resolve(process.env.APP_ENV_LOGGER_FOLDER_PATH ?? '').toString(),
+              );
           });
 
           this.server.instance = rs;
           resolve(rs);
         })
         .catch(error => {
-          this.logger.error('[start] Failed to import @hono/node-server | Error: %s', error);
+          this.logger
+            .for(this.start.name)
+            .error('Failed to import @hono/node-server | Error: %s', error);
           reject(
             getError({
               message: `[start] @hono/node-server is required for Node.js runtime. Please install '@hono/node-server'`,
@@ -299,7 +305,7 @@ export abstract class AbstractApplication<
   }
 
   stop() {
-    this.logger.info('[stop] Server STOPPED');
+    this.logger.for(this.stop.name).info('Server STOPPED');
     switch (this.server.runtime) {
       case RuntimeModules.BUN: {
         this.server.instance?.stop();

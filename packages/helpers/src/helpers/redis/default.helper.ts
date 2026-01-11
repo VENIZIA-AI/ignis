@@ -21,22 +21,22 @@ export class DefaultRedisHelper extends BaseHelper {
     const { onInitialized, onConnected, onReady, onError } = opts;
 
     this.client.on('connect', () => {
-      this.logger.info('[%s][connect] Redis CONNECTED', this.name);
+      this.logger.for('connect').info('Redis CONNECTED | Name: %s', this.name);
       onConnected?.({ name: this.name, helper: this });
     });
 
     this.client.on('ready', () => {
-      this.logger.info('[%s][ready] Redis READY', this.name);
+      this.logger.for('ready').info('Redis READY | Name: %s', this.name);
       onReady?.({ name: this.name, helper: this });
     });
 
     this.client.on('error', (error: Error) => {
-      this.logger.error('[%s][error] Redis ERROR | Error: %s', this.name, error);
+      this.logger.for('error').error('Redis ERROR | Name: %s | Error: %s', this.name, error);
       onError?.({ name: this.name, helper: this, error });
     });
 
     this.client.on('reconnecting', () => {
-      this.logger.warn('[%s][reconnecting] Redis client RECONNECTING', this.name);
+      this.logger.for('reconnecting').warn('Redis client RECONNECTING | Name: %s', this.name);
     });
 
     onInitialized?.({ name: this.name, helper: this });
@@ -59,10 +59,9 @@ export class DefaultRedisHelper extends BaseHelper {
       ];
 
       if (!this.client || invalidStatuses.includes(this.client.status)) {
-        this.logger.info(
-          '[connect] status: %s | Invalid redis status to invoke connect',
-          this.client.status,
-        );
+        this.logger
+          .for(this.connect.name)
+          .info('status: %s | Invalid redis status to invoke connect', this.client.status);
 
         resolve(false);
         return;
@@ -82,10 +81,9 @@ export class DefaultRedisHelper extends BaseHelper {
     return new Promise<boolean>((resolve, reject) => {
       const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
       if (!this.client || invalidStatuses.includes(this.client.status)) {
-        this.logger.info(
-          '[disconnect] status: %s | Invalid redis status to invoke disconnect',
-          this.client.status,
-        );
+        this.logger
+          .for(this.disconnect.name)
+          .info('status: %s | Invalid redis status to invoke disconnect', this.client.status);
         resolve(false);
         return;
       }
@@ -104,7 +102,7 @@ export class DefaultRedisHelper extends BaseHelper {
     const { key, value, options = { log: false } } = opts;
 
     if (!this.client) {
-      this.logger.info('[set] No valid Redis connection!');
+      this.logger.for(this.set.name).info('No valid Redis connection!');
       return;
     }
 
@@ -115,7 +113,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return;
     }
 
-    this.logger.info(`[set] Set key: ${key} | value: ${serialized}`);
+    this.logger.for(this.set.name).info(`Set key: ${key} | value: ${serialized}`);
   }
 
   // ---------------------------------------------------------------------------------
@@ -125,7 +123,7 @@ export class DefaultRedisHelper extends BaseHelper {
   }): Promise<T | null> {
     const { key, transform } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.for(this.get.name).info('No valid Redis connection!');
       return null;
     }
 
@@ -176,7 +174,7 @@ export class DefaultRedisHelper extends BaseHelper {
     options?: { log: boolean };
   }): Promise<number> {
     if (!this.client) {
-      this.logger.info('[hset] No valid Redis connection!');
+      this.logger.for(this.hset.name).info('No valid Redis connection!');
       return 0;
     }
 
@@ -187,7 +185,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return rs;
     }
 
-    this.logger.info('[hset] Result: %j', rs);
+    this.logger.for(this.hset.name).info('Result: %j', rs);
     return rs;
   }
 
@@ -204,7 +202,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async hgetall(opts: { key: string; transform?: <T, R>(input: T) => R }) {
     const { key, transform } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.for(this.get.name).info('No valid Redis connection!');
       return null;
     }
 
@@ -227,7 +225,7 @@ export class DefaultRedisHelper extends BaseHelper {
     options?: { log: boolean };
   }): Promise<void> {
     if (!this.client) {
-      this.logger.info('[set] No valid Redis connection!');
+      this.logger.for(this.set.name).info('No valid Redis connection!');
       return;
     }
 
@@ -245,7 +243,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return;
     }
 
-    this.logger.info('[mset] Payload: %j', serialized);
+    this.logger.for(this.mset.name).info('Payload: %j', serialized);
   }
 
   // ---------------------------------------------------------------------------------
@@ -263,7 +261,7 @@ export class DefaultRedisHelper extends BaseHelper {
   }): Promise<(T | null)[]> {
     const { keys, transform } = opts;
     if (!this.client) {
-      this.logger.info('[get] No valid Redis connection!');
+      this.logger.for(this.get.name).info('No valid Redis connection!');
       return [];
     }
 
@@ -287,7 +285,7 @@ export class DefaultRedisHelper extends BaseHelper {
   async keys(opts: { key: string }) {
     const { key } = opts;
     if (!this.client) {
-      this.logger.info('[keys] No valid Redis connection!');
+      this.logger.for(this.keys.name).info('No valid Redis connection!');
       return [];
     }
 
@@ -362,17 +360,17 @@ export class DefaultRedisHelper extends BaseHelper {
 
     const validTopics = topics?.filter(topic => !isEmpty(topic));
     if (!validTopics?.length) {
-      this.logger.error('[publish] No topic(s) to publish!');
+      this.logger.for(this.publish.name).error('No topic(s) to publish!');
       return;
     }
 
     if (!payload) {
-      this.logger.error('[publish] Invalid payload to publish!');
+      this.logger.for(this.publish.name).error('Invalid payload to publish!');
       return;
     }
 
     if (!this.client) {
-      this.logger.error('[publish] No valid Redis connection!');
+      this.logger.for(this.publish.name).error('No valid Redis connection!');
       return;
     }
 
@@ -396,12 +394,12 @@ export class DefaultRedisHelper extends BaseHelper {
     const { topic } = opts;
 
     if (!topic || isEmpty(topic)) {
-      this.logger.error('[subscribe] No topic to subscribe!');
+      this.logger.for(this.subscribe.name).error('No topic to subscribe!');
       return;
     }
 
     if (!this.client) {
-      this.logger.error('[subscribe] No valid Redis connection!');
+      this.logger.for(this.subscribe.name).error('No valid Redis connection!');
       return;
     }
 
@@ -413,11 +411,9 @@ export class DefaultRedisHelper extends BaseHelper {
         });
       }
 
-      this.logger.info(
-        '[subscribe] Subscribed to %s channel(s). Listening to channel: %s',
-        count,
-        topic,
-      );
+      this.logger
+        .for(this.subscribe.name)
+        .info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
     });
   }
 }

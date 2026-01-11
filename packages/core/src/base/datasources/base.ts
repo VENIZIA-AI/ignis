@@ -110,7 +110,7 @@ export abstract class BaseDataSource<
     const metadata = registry.getDataSourceMetadata({ target: this.constructor });
 
     if (metadata?.autoDiscovery === false) {
-      this.logger.debug('[discoverSchema] Auto-discovery disabled for %s', this.name);
+      this.logger.for(this.discoverSchema.name).debug('Auto-discovery disabled for %s', this.name);
       return {} as Schema;
     }
 
@@ -119,12 +119,14 @@ export abstract class BaseDataSource<
     });
 
     const models = Object.keys(schema);
-    this.logger.debug(
-      '[discoverSchema][%s] Detected %s model(s) | Model(s): %j',
-      this.name,
-      models.length,
-      models,
-    );
+    this.logger
+      .for(this.discoverSchema.name)
+      .debug(
+        'Detected model(s) | Name: %s | Count: %s | Models: %j',
+        this.name,
+        models.length,
+        models,
+      );
 
     return { ...schema, ...relations } as Schema;
   }
@@ -168,7 +170,7 @@ export abstract class BaseDataSource<
         try {
           await client.query('COMMIT');
         } catch (error) {
-          this.logger.error('[commit] Failed to COMMIT transaction | Error: %s', error);
+          this.logger.for('commit').error('Failed to COMMIT transaction | Error: %s', error);
         } finally {
           isActive = false;
           client.release();
@@ -184,7 +186,7 @@ export abstract class BaseDataSource<
         try {
           await client.query('ROLLBACK');
         } catch (error) {
-          this.logger.error('[commit] Failed to ROLLBACK transaction | Error: %s', error);
+          this.logger.for('rollback').error('Failed to ROLLBACK transaction | Error: %s', error);
         } finally {
           isActive = false;
           client.release();

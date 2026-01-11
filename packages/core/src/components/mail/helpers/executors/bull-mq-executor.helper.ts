@@ -68,19 +68,23 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
           role: 'queue',
         });
 
-        this.logger.info(
-          '[constructor] BullMQ queue executor initialized (queue enabled) | Identifier: %s | Mode: %s',
-          this.queueIdentifier,
-          this.mode,
-        );
+        this.logger
+          .for(this.constructor.name)
+          .info(
+            'BullMQ queue executor initialized (queue enabled) | Identifier: %s | Mode: %s',
+            this.queueIdentifier,
+            this.mode,
+          );
         break;
       }
       default: {
-        this.logger.info(
-          '[constructor] BullMQ queue executor initialized (worker-only mode) | Identifier: %s | Mode: %s',
-          this.queueIdentifier,
-          this.mode,
-        );
+        this.logger
+          .for(this.constructor.name)
+          .info(
+            'BullMQ queue executor initialized (worker-only mode) | Identifier: %s | Mode: %s',
+            this.queueIdentifier,
+            this.mode,
+          );
 
         break;
       }
@@ -103,9 +107,9 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     this.processor = processor;
 
     if (this.mode === BullMQExecutorModes.QUEUE_ONLY) {
-      this.logger.warn(
-        '[setProcessor] Skipping worker creation in queue-only mode. Workers will not be started.',
-      );
+      this.logger
+        .for(this.setProcessor.name)
+        .warn('Skipping worker creation in queue-only mode. Workers will not be started.');
       return;
     }
 
@@ -123,12 +127,14 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       });
     }
 
-    this.logger.info(
-      '[setProcessor] Processor registered | Mode: %s | Workers: %d | Concurrency per worker: %d',
-      this.mode,
-      numberOfWorkers,
-      concurrencyPerWorker,
-    );
+    this.logger
+      .for(this.setProcessor.name)
+      .info(
+        'Processor registered | Mode: %s | Workers: %d | Concurrency per worker: %d',
+        this.mode,
+        numberOfWorkers,
+        concurrencyPerWorker,
+      );
   }
 
   addWorker(opts: { workerIdentifier: string; concurrency?: number; lockDuration?: number }): void {
@@ -150,24 +156,28 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       onWorkerData: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
         const maxAttempts = job.data.options?.attempts ?? 3;
 
-        this.logger.info(
-          '[onWorkerData] Processing job | Worker: %s | jobId: %s | email: %s | attempt: %d/%d',
-          workerIdentifier,
-          job.data.id,
-          job.data.email,
-          job.attemptsMade + 1,
-          maxAttempts,
-        );
+        this.logger
+          .for('onWorkerData')
+          .info(
+            'Processing job | Worker: %s | jobId: %s | email: %s | attempt: %d/%d',
+            workerIdentifier,
+            job.data.id,
+            job.data.email,
+            job.attemptsMade + 1,
+            maxAttempts,
+          );
 
         return this.processor?.(job.data.email);
       },
       onWorkerDataCompleted: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
-        this.logger.info(
-          '[onWorkerDataCompleted] Job completed | Worker: %s | jobId: %s | email: %s',
-          workerIdentifier,
-          job.data.id,
-          job.data.email,
-        );
+        this.logger
+          .for('onWorkerDataCompleted')
+          .info(
+            'Job completed | Worker: %s | jobId: %s | email: %s',
+            workerIdentifier,
+            job.data.id,
+            job.data.email,
+          );
       },
       onWorkerDataFail: async (
         job: Job<IQueueJobPayload, IMailProcessorResult> | undefined,
@@ -175,49 +185,53 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       ) => {
         if (job) {
           const maxAttempts = job.data.options?.attempts ?? 3;
-          this.logger.error(
-            '[onWorkerDataFail] Job failed | Worker: %s | jobId: %s | email: %s | attempt: %d/%d | error: %s',
-            workerIdentifier,
-            job.data.id,
-            job.data.email,
-            job.attemptsMade,
-            maxAttempts,
-            error.message,
-          );
+          this.logger
+            .for('onWorkerDataFail')
+            .error(
+              'Job failed | Worker: %s | jobId: %s | email: %s | attempt: %d/%d | error: %s',
+              workerIdentifier,
+              job.data.id,
+              job.data.email,
+              job.attemptsMade,
+              maxAttempts,
+              error.message,
+            );
         } else {
-          this.logger.error(
-            '[onWorkerDataFail] Worker error (no job) | Worker: %s | error: %s',
-            workerIdentifier,
-            error.message,
-          );
+          this.logger
+            .for('onWorkerDataFail')
+            .error(
+              'Worker error (no job) | Worker: %s | error: %s',
+              workerIdentifier,
+              error.message,
+            );
         }
       },
     });
 
     this.workerHelpers.push(workerHelper);
 
-    this.logger.info(
-      '[addWorker] Worker added | Identifier: %s | Concurrency: %d | Total workers: %d',
-      workerIdentifier,
-      concurrency,
-      this.workerHelpers.length,
-    );
+    this.logger
+      .for(this.addWorker.name)
+      .info(
+        'Worker added | Identifier: %s | Concurrency: %d | Total workers: %d',
+        workerIdentifier,
+        concurrency,
+        this.workerHelpers.length,
+      );
   }
 
   async removeWorker(index: number): Promise<boolean> {
     if (index < 0 || index >= this.workerHelpers.length) {
-      this.logger.warn('[removeWorker] Invalid worker index: %d', index);
+      this.logger.for(this.removeWorker.name).warn('Invalid worker index: %d', index);
       return false;
     }
 
     await this.workerHelpers[index].worker.close();
     this.workerHelpers.splice(index, 1);
 
-    this.logger.info(
-      '[removeWorker] Worker removed | Index: %d | Remaining workers: %d',
-      index,
-      this.workerHelpers.length,
-    );
+    this.logger
+      .for(this.removeWorker.name)
+      .info('Worker removed | Index: %d | Remaining workers: %d', index, this.workerHelpers.length);
 
     return true;
   }
@@ -228,7 +242,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.workerHelpers = [];
 
-    this.logger.info('[clearWorkers] All workers cleared | Count: %d', count);
+    this.logger.for(this.clearWorkers.name).info('All workers cleared | Count: %d', count);
   }
 
   getWorkerCount(): number {
@@ -268,12 +282,14 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       scheduledAt: Date.now() + (options?.delay ?? 0),
     };
 
-    this.logger.info(
-      '[enqueueVerificationEmail] Queuing email to BullMQ/Redis | jobId: %s | email: %s | mode: %s',
-      jobId,
-      email,
-      this.mode,
-    );
+    this.logger
+      .for(this.enqueueVerificationEmail.name)
+      .info(
+        'Queuing email to BullMQ/Redis | jobId: %s | email: %s | mode: %s',
+        jobId,
+        email,
+        this.mode,
+      );
 
     const bullJob = await this.queueHelper.queue.add('send-verification-email', job, {
       priority: options?.priority,

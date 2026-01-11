@@ -48,7 +48,9 @@ export class UIProviderFactory extends MemoryStorageHelper<{
 
   register(opts: { type: string }): void {
     if (this.isBound(opts.type)) {
-      this.logger.warn('[register] Skip registering BOUNDED Document UI | type: %s', opts.type);
+      this.logger
+        .for(this.register.name)
+        .warn('Skip registering BOUNDED Document UI | type: %s', opts.type);
       return;
     }
 

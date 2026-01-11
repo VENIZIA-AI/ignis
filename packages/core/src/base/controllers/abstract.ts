@@ -162,15 +162,16 @@ export abstract class AbstractController<
     const t = performance.now();
 
     const configureOptions = opts ?? {};
-    this.logger.info('[configure] START | Binding controller | Options: %j', configureOptions);
+    this.logger
+      .for(this.configure.name)
+      .info('START | Binding controller | Options: %j', configureOptions);
 
     await this.binding();
     this.registerRoutesFromRegistry();
 
-    this.logger.info(
-      '[configure] DONE | Binding controller | Took: %s (ms)',
-      performance.now() - t,
-    );
+    this.logger
+      .for(this.configure.name)
+      .info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
     return this.router;
   }
 

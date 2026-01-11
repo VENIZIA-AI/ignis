@@ -23,10 +23,9 @@ export class MailService extends BaseService implements IMailService {
     protected templateEngine?: IMailTemplateEngine,
   ) {
     super({ scope: MailService.name });
-    this.logger.info(
-      '[constructor] Mail service initialized with provider: %s',
-      this.options.provider,
-    );
+    this.logger
+      .for(this.constructor.name)
+      .info('Mail service initialized with provider: %s', this.options.provider);
   }
 
   async send(message: IMailMessage): Promise<IMailSendResult> {
@@ -38,18 +37,20 @@ export class MailService extends BaseService implements IMailService {
         from: message.from ?? this.getDefaultFrom(),
       };
 
-      this.logger.debug('[send] Sending email to: %s', emailMessage.to);
+      this.logger.for(this.send.name).debug('Sending email to: %s', emailMessage.to);
       const result = await this.transport.send(emailMessage);
 
       if (result.success) {
-        this.logger.debug('[send] Email sent successfully. MessageId: %s', result.messageId);
+        this.logger
+          .for(this.send.name)
+          .debug('Email sent successfully. MessageId: %s', result.messageId);
       } else {
-        this.logger.debug('[send] Email send failed: %s', result.error);
+        this.logger.for(this.send.name).debug('Email send failed: %s', result.error);
       }
 
       return result;
     } catch (error) {
-      this.logger.error('[send] Error sending email: %s', error);
+      this.logger.for(this.send.name).error('Error sending email: %s', error);
       throw getError({
         statusCode: 500,
         messageCode: MailErrorCodes.SEND_FAILED,
@@ -64,11 +65,9 @@ export class MailService extends BaseService implements IMailService {
   ): Promise<IMailSendResult[]> {
     try {
       const concurrency = options?.concurrency ?? MailDefaults.BATCH_CONCURRENCY;
-      this.logger.info(
-        '[sendBatch] Sending batch of %d emails with concurrency: %d',
-        messages.length,
-        concurrency,
-      );
+      this.logger
+        .for(this.sendBatch.name)
+        .info('Sending batch of %d emails with concurrency: %d', messages.length, concurrency);
 
       const tasks = messages.map(message => async () => {
         try {
@@ -87,15 +86,17 @@ export class MailService extends BaseService implements IMailService {
       });
 
       const successCount = results.filter(r => r.success).length;
-      this.logger.info(
-        '[sendBatch] Batch send completed. Success: %d, Failed: %d',
-        successCount,
-        results.length - successCount,
-      );
+      this.logger
+        .for(this.sendBatch.name)
+        .info(
+          'Batch send completed. Success: %d, Failed: %d',
+          successCount,
+          results.length - successCount,
+        );
 
       return results;
     } catch (error) {
-      this.logger.error('[sendBatch] Error sending batch emails: %s', error);
+      this.logger.for(this.sendBatch.name).error('Error sending batch emails: %s', error);
       throw getError({
         statusCode: 500,
         messageCode: MailErrorCodes.BATCH_SEND_FAILED,
@@ -121,7 +122,7 @@ export class MailService extends BaseService implements IMailService {
         });
       }
 
-      this.logger.debug('[sendTemplate] Rendering template: %s', templateName);
+      this.logger.for(this.sendTemplate.name).debug('Rendering template: %s', templateName);
       const html = this.templateEngine.render({
         templateName,
         data,
@@ -147,19 +148,19 @@ export class MailService extends BaseService implements IMailService {
 
       return await this.send(message);
     } catch (error) {
-      this.logger.error('[sendTemplate] Error sending template email: %s', error);
+      this.logger.for(this.sendTemplate.name).error('Error sending template email: %s', error);
       throw error;
     }
   }
 
   async verify(): Promise<boolean> {
     try {
-      this.logger.debug('[verify] Verifying mail transport connection');
+      this.logger.for(this.verify.name).debug('Verifying mail transport connection');
       const isValid = await this.transport.verify();
-      this.logger.debug('[verify] Verification result: %s', isValid);
+      this.logger.for(this.verify.name).debug('Verification result: %s', isValid);
       return isValid;
     } catch (error) {
-      this.logger.error('[verify] Verification failed: %s', error);
+      this.logger.for(this.verify.name).error('Verification failed: %s', error);
       throw getError({
         statusCode: 500,
         messageCode: MailErrorCodes.VERIFICATION_FAILED,

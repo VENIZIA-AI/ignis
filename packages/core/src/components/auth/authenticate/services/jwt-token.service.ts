@@ -141,11 +141,9 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
   // --------------------------------------------------------------------------------------
   decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
     const { payload, protectedHeader } = opts.result;
-    this.logger.debug(
-      '[decryptPayload] JWT Token | payload: %j | header: %j',
-      payload,
-      protectedHeader,
-    );
+    this.logger
+      .for(this.decryptPayload.name)
+      .debug('JWT Token | payload: %j | header: %j', payload, protectedHeader);
 
     const rs: any = {};
     for (const key in payload) {
@@ -178,7 +176,7 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
   async verify(opts: { type: string; token: string }) {
     const { token } = opts;
     if (!token) {
-      this.logger.error('[verify] Missing token for validating request!');
+      this.logger.for(this.verify.name).error('Missing token for validating request!');
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: '[verify] Invalid request token!',
@@ -189,7 +187,7 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
       const decodedToken = await jwtVerify<IJWTTokenPayload>(token, this.jwtSecret, {});
       return this.decryptPayload({ result: decodedToken });
     } catch (error) {
-      this.logger.error('[verify] Failed to verify token | Error: %s', error);
+      this.logger.for(this.verify.name).error('Failed to verify token | Error: %s', error);
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: `[verify] Failed to verify token | Message: ${error.message}`,
@@ -231,7 +229,7 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
       const rs = await signer.sign(this.jwtSecret);
       return rs;
     } catch (error) {
-      this.logger.error('[generate] Failed to generate token | Error: %s', error);
+      this.logger.for(this.generate.name).error('Failed to generate token | Error: %s', error);
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
         message: `[generate] Failed to generate token | Error: ${error.message}`,

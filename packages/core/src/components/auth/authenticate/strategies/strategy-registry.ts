@@ -81,7 +81,9 @@ export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHel
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
       if (isSkipAuthenticate) {
         const path = context.req.path;
-        this.logger.debug('[authenticate] SKIP checking authentication | action: %s', path);
+        this.logger
+          .for(this.authenticate.name)
+          .debug('SKIP checking authentication | action: %s', path);
         return next();
       }
 
@@ -105,7 +107,9 @@ export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHel
               await next();
               return;
             } catch (error) {
-              this.logger.debug('[authenticate] Strategy %s failed, trying next...', strategyName);
+              this.logger
+                .for(this.authenticate.name)
+                .debug('Strategy %s failed, trying next...', strategyName);
               errors.push(error as Error);
             }
           }
@@ -128,11 +132,13 @@ export class AuthenticationStrategyRegistry<E extends Env = Env> extends BaseHel
             context.set(Authentication.CURRENT_USER, authUser);
             context.set(Authentication.AUDIT_USER_ID, authUser.userId);
           } else {
-            this.logger.error(
-              '[authenticate] Failed to identify authenticated user | user: %j | userId: %s',
-              authUser,
-              authUser?.userId,
-            );
+            this.logger
+              .for(this.authenticate.name)
+              .error(
+                'Failed to identify authenticated user | user: %j | userId: %s',
+                authUser,
+                authUser?.userId,
+              );
             throw getError({
               statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
               message: 'Failed to identify authenticated user!',

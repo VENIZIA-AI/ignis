@@ -113,20 +113,20 @@ export class Application extends BaseApplication {
       const { enable = false, path: mwPath, module, ...mwOptions } = mwDef;
 
       if (!enable) {
-        this.logger.debug(
-          '[setupMiddlewares] Skip setup middleware | name: %s | enable: %s',
-          name,
-          enable,
-        );
+        this.logger
+          .for(this.setupMiddlewares.name)
+          .debug('Skip setup middleware | name: %s | enable: %s', name, enable);
         continue;
       }
 
-      this.logger.debug(
-        '[setupMiddlewares] Setting up middleware | name: %s | enable: %s | opts: %j',
-        name,
-        enable,
-        mwOptions,
-      );
+      this.logger
+        .for(this.setupMiddlewares.name)
+        .debug(
+          '[setupMiddlewares] Setting up middleware | name: %s | enable: %s | opts: %j',
+          name,
+          enable,
+          mwOptions,
+        );
       if (!isEmpty(mwPath)) {
         server.use(mwPath, module?.[name]?.(mwOptions));
         continue;
@@ -279,7 +279,7 @@ export class Application extends BaseApplication {
     });
     this.component(StaticAssetComponent);
 
-    this.controller(TestController)
+    this.controller(TestController);
   }
 
   // --------------------------------------------------------------------------------

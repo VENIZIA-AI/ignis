@@ -64,7 +64,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
       ...this.artifactOptions,
     };
 
-    this.logger.debug(`[configure] Configured: %j`, this.artifactOptions);
+    this.logger.for(this.configure.name).debug(`Configured: %j`, this.artifactOptions);
   }
 
   // --------------------------------------------------------------------------------
@@ -74,12 +74,14 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     try {
       this.discoveredFiles = []; // Reset discovered files
       this.discoveredFiles = await discoverFiles({ root: this.root, pattern });
-      this.logger.debug(
-        `[discover] Root: %s | Using pattern: %s | Discovered file: %j`,
-        this.root,
-        pattern,
-        this.discoveredFiles,
-      );
+      this.logger
+        .for(this.discover.name)
+        .debug(
+          `Root: %s | Using pattern: %s | Discovered file: %j`,
+          this.root,
+          pattern,
+          this.discoveredFiles,
+        );
     } catch (error) {
       throw getError({
         message: `[discover] Failed to discover files using pattern: ${pattern} | Error: ${(error as Error)?.message}`,
@@ -90,7 +92,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   // --------------------------------------------------------------------------------
   async load(): Promise<void> {
     if (!this.discoveredFiles.length) {
-      this.logger.debug(`[load] No files discovered to load.`);
+      this.logger.for(this.load.name).debug(`No files discovered to load.`);
       return;
     }
 

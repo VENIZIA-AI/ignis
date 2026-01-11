@@ -57,7 +57,9 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       requestUrl = urlParts.join();
     }
 
-    logger?.info('[send] URL: %s | Props: %o | Timeout: %s', url, requestConfigs, timeout);
+    logger
+      ?.for(this.send.name)
+      .info('URL: %s | Props: %o | Timeout: %s', url, requestConfigs, timeout);
 
     try {
       return await fetch(requestUrl, requestConfigs);

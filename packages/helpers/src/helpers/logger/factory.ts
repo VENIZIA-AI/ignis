@@ -1,9 +1,15 @@
-import { ApplicationLogger, Logger } from './application-logger';
+import { Logger } from './application-logger';
 
 export class LoggerFactory {
-  static getLogger(scopes: string[], customLogger?: Logger): Logger {
-    const logger = customLogger ?? new ApplicationLogger();
-    logger.withScope(scopes.join('-'));
-    return logger;
+  /**
+   * Get a cached logger for the given scope.
+   * Same scope always returns the same logger instance.
+   * @example
+   * const logger = LoggerFactory.getLogger(['UserService']);
+   * logger.info('message'); // [UserService] message
+   * logger.for('createUser').info('done'); // [UserService-createUser] done
+   */
+  static getLogger(scopes: string[]): Logger {
+    return Logger.get(scopes.join('-'));
   }
 }

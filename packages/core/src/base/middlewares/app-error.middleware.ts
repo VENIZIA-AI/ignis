@@ -1,4 +1,4 @@
-import { ApplicationLogger, Environment, HTTP } from '@venizia/ignis-helpers';
+import { Logger, Environment, HTTP } from '@venizia/ignis-helpers';
 import { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 
@@ -119,7 +119,7 @@ const formatZodError = (opts: {
  * @param opts.rootKey - Optional: A key to wrap the error response in.
  * @returns An `ErrorHandler` middleware function.
  */
-export const appErrorHandler = (opts: { logger: ApplicationLogger; rootKey?: string }) => {
+export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
   const { logger = console, rootKey = null } = opts;
 
   const mw: ErrorHandler = async (error, context) => {

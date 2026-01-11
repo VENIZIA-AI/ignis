@@ -43,11 +43,9 @@ export class MQTTClientHelper extends BaseHelper {
   // -------------------------------------------------------------------------------
   configure() {
     if (this.client) {
-      this.logger.info(
-        '[configure][%s] MQTT Client already established! Client: %j',
-        this.identifier,
-        this.client,
-      );
+      this.logger
+        .for(this.configure.name)
+        .info('[%s] MQTT Client already established! Client: %j', this.identifier, this.client);
       return;
     }
 
@@ -58,12 +56,14 @@ export class MQTTClientHelper extends BaseHelper {
       });
     }
 
-    this.logger.info(
-      '[configure][%s] Start configuring mqtt client | Url: %s | Options: %j',
-      this.identifier,
-      this.url,
-      this.options,
-    );
+    this.logger
+      .for(this.configure.name)
+      .info(
+        '[%s] Start configuring mqtt client | Url: %s | Options: %j',
+        this.identifier,
+        this.url,
+        this.options,
+      );
     this.client = mqtt.connect(this.url, this.options);
 
     this.client.on('connect', () => {

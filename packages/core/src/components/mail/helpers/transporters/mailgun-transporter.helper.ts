@@ -68,7 +68,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
         });
       }
 
-      this.logger.debug('[send] Sending email with Mailgun to: %s', mailgunMessage.to);
+      this.logger.for(this.send.name).debug('Sending email with Mailgun to: %s', mailgunMessage.to);
       const result: AnyType = await this.client.create(this.domain, mailgunMessage);
 
       return {
@@ -77,7 +77,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
         response: result,
       };
     } catch (error) {
-      this.logger.error('[send] Mailgun send failed: %s', error);
+      this.logger.for(this.send.name).error('Mailgun send failed: %s', error);
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -87,7 +87,7 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
   async verify(): Promise<boolean> {
     try {
-      this.logger.info('[verify] Verifying Mailgun API connection');
+      this.logger.for(this.verify.name).info('Verifying Mailgun API connection');
       // Mailgun doesn't have a dedicated verify endpoint
       // We'll make a lightweight API call to check if credentials work
       await this.client.create(this.domain, {
@@ -98,10 +98,10 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
         'o:testmode': 'yes', // Use test mode to avoid actually sending
       });
 
-      this.logger.info('[verify] Mailgun API connection verified successfully');
+      this.logger.for(this.verify.name).info('Mailgun API connection verified successfully');
       return true;
     } catch (error) {
-      this.logger.error('[verify] Mailgun API verification failed: %s', error);
+      this.logger.for(this.verify.name).error('Mailgun API verification failed: %s', error);
       return false;
     }
   }

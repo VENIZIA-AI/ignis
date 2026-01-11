@@ -91,12 +91,14 @@ export class SnowflakeUidHelper extends BaseHelper {
     this.validateEpoch(epoch);
     this.epoch = epoch;
 
-    this.logger.info(
-      '[constructor] Initialized | workerId: %d | epoch: %s | epochDate: %s',
-      workerId,
-      epoch.toString(),
-      new Date(Number(epoch)).toISOString(),
-    );
+    this.logger
+      .for(this.constructor.name)
+      .info(
+        'Initialized | workerId: %d | epoch: %s | epochDate: %s',
+        workerId,
+        epoch.toString(),
+        new Date(Number(epoch)).toISOString(),
+      );
   }
 
   /**
@@ -118,7 +120,9 @@ export class SnowflakeUidHelper extends BaseHelper {
     // Handle clock going backward
     if (timestamp < this.lastTimestamp) {
       const diff = this.lastTimestamp - timestamp;
-      this.logger.warn('[nextSnowflake] Clock moved backward | diff: %d ms', Number(diff));
+      this.logger
+        .for(this.nextSnowflake.name)
+        .warn('Clock moved backward | diff: %d ms', Number(diff));
 
       // Wait for clock to catch up (max 100ms)
       if (diff <= SnowflakeConfig.MAX_CLOCK_BACKWARD_MS) {
@@ -295,10 +299,12 @@ export class SnowflakeUidHelper extends BaseHelper {
     const remainingYears = Number(remainingMs) / (365.25 * 24 * 60 * 60 * 1000);
     const expiryDate = new Date(Number(this.epoch + SnowflakeConfig.MAX_TIMESTAMP_MS));
 
-    this.logger.warn(
-      '[checkExpiryWarning] Snowflake ID sequence approaching expiry | remainingYears: %.2f | expiryDate: %s | action: Plan migration to new epoch',
-      remainingYears,
-      expiryDate.toISOString(),
-    );
+    this.logger
+      .for(this.checkExpiryWarning.name)
+      .warn(
+        'Snowflake ID sequence approaching expiry | remainingYears: %.2f | expiryDate: %s | action: Plan migration to new epoch',
+        remainingYears,
+        expiryDate.toISOString(),
+      );
   }
 }

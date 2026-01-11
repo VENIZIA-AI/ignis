@@ -60,7 +60,7 @@ export class CronHelper extends BaseHelper {
 
   start() {
     if (!this.instance) {
-      this.logger.error('[CronHelper][start] Invalid cron instance to start cronjob!');
+      this.logger.for('start').error(' Invalid cron instance to start cronjob!');
       return;
     }
 

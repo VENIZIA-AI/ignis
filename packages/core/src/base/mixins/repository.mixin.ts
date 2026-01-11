@@ -55,10 +55,12 @@ export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(bas
           for (const binding of bindings) {
             const instance = this.get<IConfigurable>({ key: binding.key, isOptional: false });
             if (!instance) {
-              this.logger.debug(
-                '[registerDataSources] No binding instance | Ignore registering datasource | key: %s',
-                binding.key,
-              );
+              this.logger
+                .for(this.registerDataSources.name)
+                .debug(
+                  'No binding instance | Ignore registering datasource | key: %s',
+                  binding.key,
+                );
               continue;
             }
 

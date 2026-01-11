@@ -269,11 +269,9 @@ export class AssetControllerFactory extends BaseHelper {
                   metaLink: createdMetaLink?.data,
                 });
               } catch (error) {
-                this.logger.error(
-                  '[UPLOAD] Failed to create MetaLink for %s: %o',
-                  uploadResult.objectName,
-                  error,
-                );
+                this.logger
+                  .for('UPLOAD')
+                  .error('Failed to create MetaLink for %s: %o', uploadResult.objectName, error);
                 results.push({
                   ...uploadResult,
                   metaLink: null,
@@ -341,19 +339,14 @@ export class AssetControllerFactory extends BaseHelper {
                 },
               })
               .then(() => {
-                this.logger.info(
-                  '[DELETE_OBJECT] Successfully to delete MetaLink for %s/%s',
-                  bucketName,
-                  objectName,
-                );
+                this.logger
+                  .for('DELETE_OBJECT')
+                  .info('Successfully to delete MetaLink for %s/%s', bucketName, objectName);
               })
               .catch(error => {
-                this.logger.error(
-                  '[DELETE_OBJECT] Failed to delete MetaLink for %s/%s: %o',
-                  bucketName,
-                  objectName,
-                  error,
-                );
+                this.logger
+                  .for('DELETE_OBJECT')
+                  .error('Failed to delete MetaLink for %s/%s: %o', bucketName, objectName, error);
               });
 
             return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);

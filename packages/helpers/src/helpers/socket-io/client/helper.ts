@@ -21,11 +21,9 @@ export class SocketIOClientHelper extends BaseHelper {
   // -----------------------------------------------------------------
   configure() {
     if (this.client) {
-      this.logger.info(
-        '[configure][%s] SocketIO Client already established! Client: %j',
-        this.identifier,
-        this.client,
-      );
+      this.logger
+        .for(this.configure.name)
+        .info('[%s] SocketIO Client already established! Client: %j', this.identifier, this.client);
       return;
     }
 
@@ -42,25 +40,27 @@ export class SocketIOClientHelper extends BaseHelper {
     const { events: eventHandlers, ignoreDuplicate = false } = opts;
 
     const eventNames = Object.keys(eventHandlers);
-    this.logger.info('[subscribe][%s] Handling events: %j', this.identifier, eventNames);
+    this.logger
+      .for(this.subscribe.name)
+      .info('[%s] Handling events: %j', this.identifier, eventNames);
 
     for (const eventName of eventNames) {
       const handler = eventHandlers[eventName];
       if (!handler) {
-        this.logger.info(
-          '[subscribe][%s] Ignore handling event %s because of no handler!',
-          this.identifier,
-          eventName,
-        );
+        this.logger
+          .for(this.subscribe.name)
+          .info('[%s] Ignore handling event %s because of no handler!', this.identifier, eventName);
         continue;
       }
 
       if (ignoreDuplicate && this.client.hasListeners(eventName)) {
-        this.logger.info(
-          '[subscribe][%s] Ignore handling event %s because of duplicate handler!',
-          this.identifier,
-          eventName,
-        );
+        this.logger
+          .for(this.subscribe.name)
+          .info(
+            '[%s] Ignore handling event %s because of duplicate handler!',
+            this.identifier,
+            eventName,
+          );
         continue;
       }
 
@@ -73,7 +73,9 @@ export class SocketIOClientHelper extends BaseHelper {
   // -----------------------------------------------------------------
   unsubscribe(opts: { events: Array<string> }) {
     const { events: eventNames } = opts;
-    this.logger.info('[unsubscribe][%s] Handling events: %j', this.identifier, eventNames);
+    this.logger
+      .for(this.unsubscribe.name)
+      .info('[%s] Handling events: %j', this.identifier, eventNames);
     for (const eventName of eventNames) {
       if (!this.client?.hasListeners(eventName)) {
         continue;
@@ -86,7 +88,9 @@ export class SocketIOClientHelper extends BaseHelper {
   // -----------------------------------------------------------------
   connect() {
     if (!this.client) {
-      this.logger.info('[connect][%s] Invalid client to connect!', this.identifier);
+      this.logger
+        .for(this.connect.name)
+        .info('Invalid client to connect! | ID: %s', this.identifier);
       return;
     }
 
@@ -96,7 +100,9 @@ export class SocketIOClientHelper extends BaseHelper {
   // -----------------------------------------------------------------
   disconnect() {
     if (!this.client) {
-      this.logger.info('[disconnect][%s] Invalid client to disconnect!', this.identifier);
+      this.logger
+        .for(this.disconnect.name)
+        .info('[%s] Invalid client to disconnect!', this.identifier);
       return;
     }
 
@@ -119,6 +125,8 @@ export class SocketIOClientHelper extends BaseHelper {
       return;
     }
 
-    this.logger.info('[emit][%s] Topic: %s | Message: %j', this.identifier, topic, message);
+    this.logger
+      .for(this.emit.name)
+      .info('[%s] Topic: %s | Message: %j', this.identifier, topic, message);
   }
 }

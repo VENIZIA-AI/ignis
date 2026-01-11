@@ -32,18 +32,20 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
         await this.processJob(queueElement.payload);
       },
       onDataEnqueue: ({ queueElement }) => {
-        this.logger.info(
-          '[onDataEnqueue] Job enqueued | jobId: %s | email: %s',
-          queueElement.payload.id,
-          queueElement.payload.email,
-        );
+        this.logger
+          .for('onDataEnqueue')
+          .info(
+            'Job enqueued | jobId: %s | email: %s',
+            queueElement.payload.id,
+            queueElement.payload.email,
+          );
       },
       onStateChange: ({ from, to }) => {
-        this.logger.debug('[onStateChange] Queue state changed | from: %s | to: %s', from, to);
+        this.logger.for('onStateChange').debug('Queue state changed | from: %s | to: %s', from, to);
       },
     });
 
-    this.logger.info('[constructor] Internal queue executor initialized');
+    this.logger.for(this.constructor.name).info('Internal queue executor initialized');
   }
 
   setProcessor(
@@ -55,7 +57,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     }>,
   ): void {
     this.processor = processor;
-    this.logger.info('[setProcessor] Processor registered');
+    this.logger.for(this.setProcessor.name).info('Processor registered');
   }
 
   async enqueueVerificationEmail(
@@ -75,11 +77,9 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       scheduledAt: Date.now() + (options?.delay ?? 0),
     };
 
-    this.logger.info(
-      '[enqueueVerificationEmail] Queuing email | jobId: %s | email: %s',
-      jobId,
-      email,
-    );
+    this.logger
+      .for(this.enqueueVerificationEmail.name)
+      .info('Queuing email | jobId: %s | email: %s', jobId, email);
 
     if (options?.delay && options.delay > 0) {
       const timeout = setTimeout(() => {
@@ -89,11 +89,9 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
       this.delayedJobs.set(jobId, timeout);
 
-      this.logger.info(
-        '[enqueueVerificationEmail] Job scheduled with delay | jobId: %s | delay: %dms',
-        jobId,
-        options.delay,
-      );
+      this.logger
+        .for(this.enqueueVerificationEmail.name)
+        .info('Job scheduled with delay | jobId: %s | delay: %dms', jobId, options.delay);
     } else {
       await this.queue.enqueue(job);
     }
@@ -107,23 +105,25 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
   private async processJob(job: IQueueJobPayload): Promise<void> {
     if (!this.processor) {
-      this.logger.error('[processJob] Processor not set | jobId: %s', job.id);
+      this.logger.for(this.processJob.name).error('Processor not set | jobId: %s', job.id);
       return;
     }
 
     const maxAttempts = job.options?.attempts ?? 3;
 
-    this.logger.info(
-      '[processJob] Processing job | jobId: %s | email: %s | attempt: %d/%d',
-      job.id,
-      job.email,
-      job.attempts + 1,
-      maxAttempts,
-    );
+    this.logger
+      .for(this.processJob.name)
+      .info(
+        'Processing job | jobId: %s | email: %s | attempt: %d/%d',
+        job.id,
+        job.email,
+        job.attempts + 1,
+        maxAttempts,
+      );
 
     try {
       await this.processor(job.email);
-      this.logger.info('[processJob] Job completed successfully | jobId: %s', job.id);
+      this.logger.for(this.processJob.name).info('Job completed successfully | jobId: %s', job.id);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : error;
       job.attempts++;
@@ -131,14 +131,16 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       if (job.attempts < maxAttempts) {
         const backoffDelay = this.calculateBackoff(job);
 
-        this.logger.warn(
-          '[processJob] Job failed, retrying | jobId: %s | attempt: %d/%d | retryIn: %dms | error: %s',
-          job.id,
-          job.attempts,
-          maxAttempts,
-          backoffDelay,
-          errorMsg,
-        );
+        this.logger
+          .for(this.processJob.name)
+          .warn(
+            'Job failed, retrying | jobId: %s | attempt: %d/%d | retryIn: %dms | error: %s',
+            job.id,
+            job.attempts,
+            maxAttempts,
+            backoffDelay,
+            errorMsg,
+          );
 
         // Re-enqueue with delay
         const timeout = setTimeout(() => {
@@ -148,12 +150,14 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
         this.delayedJobs.set(job.id, timeout);
       } else {
-        this.logger.error(
-          '[processJob] Job failed permanently after %d attempts | jobId: %s | error: %s',
-          maxAttempts,
-          job.id,
-          errorMsg,
-        );
+        this.logger
+          .for(this.processJob.name)
+          .error(
+            'Job failed permanently after %d attempts | jobId: %s | error: %s',
+            maxAttempts,
+            job.id,
+            errorMsg,
+          );
       }
     }
   }
