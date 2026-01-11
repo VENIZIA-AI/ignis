@@ -2,30 +2,25 @@ import { BaseHelper } from '@/helpers/base';
 import { AnyObject } from '@/common/types';
 import { getError } from '@/helpers/error';
 import isEmpty from 'lodash/isEmpty';
+import { AxiosRequestConfig } from 'axios';
 import { IFetchable, IRequestOptions } from './fetcher';
-import { AxiosFetcher, IAxiosRequestOptions } from './fetcher/axios-fetcher';
+import { AxiosFetcher } from './fetcher/axios-fetcher';
 import { NodeFetcher } from './fetcher/node-fetcher';
 import { TFetcherResponse, TFetcherVariant } from './types';
 
 // -----------------------------------------------------------------------------
-export interface IFetcherRequestOptions<T extends TFetcherVariant> {
+export interface IAxiosNetworkRequestOptions {
   name: string;
-  variant: TFetcherVariant;
-  networkOptions: {
+  networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
     baseUrl?: string;
-    headers?: AnyObject;
-    timeout?: number;
-    [extra: symbol | string]: any;
   };
-  fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
 }
 
-export interface IAxiosNetworkOptions extends IFetcherRequestOptions<'axios'> {
-  variant: 'axios';
-}
-
-export interface INodeFetchNetworkOptions extends IFetcherRequestOptions<'node-fetch'> {
-  variant: 'node-fetch';
+export interface INodeFetchNetworkRequestOptions {
+  name: string;
+  networkOptions: RequestInit & {
+    baseUrl?: string;
+  };
 }
 
 // -----------------------------------------------------------------------------
@@ -33,13 +28,13 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;
   protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
 
-  constructor(opts: IFetcherRequestOptions<T>) {
+  constructor(opts: {
+    name: string;
+    baseUrl?: string;
+    fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
+  }) {
     super({ scope: opts.name, identifier: opts.name });
-
-    const { networkOptions } = opts;
-    const { baseUrl = '' } = networkOptions;
-
-    this.baseUrl = baseUrl;
+    this.baseUrl = opts.baseUrl ?? '';
     this.fetcher = opts.fetcher;
   }
 
@@ -89,24 +84,29 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
 
 // -----------------------------------------------------------------------------
 export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
-  constructor(opts: Omit<IAxiosNetworkOptions, 'fetcher' | 'variant'>) {
+  constructor(opts: IAxiosNetworkRequestOptions) {
     const { name, networkOptions } = opts;
-    const { headers = {}, baseUrl, timeout = 60 * 1000, ...rest } = networkOptions;
+    const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    const defaultConfigs: Partial<IAxiosRequestOptions> = {
+    // Build headers with user values taking precedence
+    const mergedHeaders: AnyObject = {
+      ['content-type']: 'application/json; charset=utf-8',
+      ...headers,
+    };
+
+    // User options override defaults
+    const defaultConfigs: AxiosRequestConfig = {
+      withCredentials: true,
+      validateStatus: (status: number) => status < 500,
+      timeout: timeout ?? 60 * 1000,
       ...rest,
       baseURL: baseUrl,
-      withCredentials: true,
-      headers: Object.assign({}, headers, {
-        ['content-type']: headers['content-type'] ?? 'application/json; charset=utf-8',
-      }),
-      validateStatus: (status: number) => status < 500,
-      timeout,
+      headers: mergedHeaders,
     };
 
     super({
-      ...opts,
-      variant: 'axios',
+      name,
+      baseUrl,
       fetcher: new AxiosFetcher({ name, defaultConfigs }),
     });
   }
@@ -114,20 +114,26 @@ export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
 
 // -----------------------------------------------------------------------------
 export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
-  constructor(opts: Omit<INodeFetchNetworkOptions, 'fetcher' | 'variant'>) {
+  constructor(opts: INodeFetchNetworkRequestOptions) {
     const { name, networkOptions } = opts;
-    const { headers = {}, ...rest } = networkOptions;
+    const { headers, baseUrl, ...rest } = networkOptions;
+
+    // Build headers with user values taking precedence
+    const userHeaders =
+      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
+    const mergedHeaders: AnyObject = {
+      ['content-type']: 'application/json; charset=utf-8',
+      ...userHeaders,
+    };
 
     const defaultConfigs: Partial<RequestInit> = {
       ...rest,
-      headers: Object.assign({}, headers, {
-        ['content-type']: headers['content-type'] ?? 'application/json; charset=utf-8',
-      }),
+      headers: mergedHeaders,
     };
 
     super({
-      ...opts,
-      variant: 'node-fetch',
+      name,
+      baseUrl,
       fetcher: new NodeFetcher({ name, defaultConfigs }),
     });
   }

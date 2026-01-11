@@ -116,7 +116,7 @@ export class NetworkUdpClient extends BaseHelper {
 
   handleClosed() {
     this.logger.info(
-      '[handleClosed][%s] Closed connection TCP Server | Options: %j',
+      '[handleClosed][%s] Closed connection UDP Server | Options: %j',
       this.identifier,
       {
         host: this.host,
