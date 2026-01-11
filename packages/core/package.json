@@ -99,7 +99,7 @@
   "license": "MIT",
   "dependencies": {
     "@venizia/ignis-boot": "^0.0.2-6",
-    "@venizia/ignis-helpers": "^0.0.4-7",
+    "@venizia/ignis-helpers": "^0.0.5-1",
     "@venizia/ignis-inversion": "^0.0.3-0",
     "lodash": "^4.17.21",
     "reflect-metadata": "^0.2.2"
