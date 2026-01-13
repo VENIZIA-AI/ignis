@@ -7,7 +7,6 @@ import {
   int,
   RuntimeModules,
   toBoolean,
-  TRuntimeModule,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
@@ -70,7 +69,7 @@ export abstract class AbstractApplication<
 
     this.server = {
       hono: honoServer,
-      runtime: this.detectRuntimeModule(),
+      runtime: RuntimeModules.detect(),
     };
   }
 
@@ -133,14 +132,6 @@ export abstract class AbstractApplication<
     this.bind<typeof this.rootRouter>({
       key: CoreBindings.APPLICATION_ROOT_ROUTER,
     }).toProvider(_ => this.rootRouter);
-  }
-
-  protected detectRuntimeModule(): TRuntimeModule {
-    if (typeof Bun !== 'undefined') {
-      return RuntimeModules.BUN;
-    }
-
-    return RuntimeModules.NODE;
   }
 
   protected inspectRoutes() {

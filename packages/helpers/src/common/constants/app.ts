@@ -12,6 +12,31 @@ export class Defaults {
 export class RuntimeModules {
   static readonly NODE = 'node';
   static readonly BUN = 'bun';
+
+  /**
+   * Detects the current runtime environment.
+   * @returns 'bun' if running in Bun, 'node' otherwise
+   */
+  static detect(): TRuntimeModule {
+    if (typeof Bun !== 'undefined') {
+      return RuntimeModules.BUN;
+    }
+    return RuntimeModules.NODE;
+  }
+
+  /**
+   * Checks if currently running in Bun runtime.
+   */
+  static isBun(): boolean {
+    return RuntimeModules.detect() === RuntimeModules.BUN;
+  }
+
+  /**
+   * Checks if currently running in Node.js runtime.
+   */
+  static isNode(): boolean {
+    return RuntimeModules.detect() === RuntimeModules.NODE;
+  }
 }
 export type TRuntimeModule = TConstValue<typeof RuntimeModules>;
 

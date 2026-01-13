@@ -375,9 +375,18 @@ export abstract class BaseApplication
       task: () => {
         const server = this.getServer();
 
+        server.onError(
+          appErrorHandler({
+            logger: this.logger,
+            rootKey: this.configs.error?.rootKey ?? undefined,
+          }),
+        );
+
         if (this.configs.asyncContext?.enable) {
           server.use(contextStorage());
         }
+
+        server.notFound(notFoundHandler({ logger: this.logger }));
 
         // Assign requestId for every single request from client
         this.component(RequestTrackerComponent);
@@ -387,14 +396,6 @@ export abstract class BaseApplication
         server.use(requestNormalize());
 
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
-        server.notFound(notFoundHandler({ logger: this.logger }));
-
-        server.onError(
-          appErrorHandler({
-            logger: this.logger,
-            rootKey: this.configs.error?.rootKey ?? undefined,
-          }),
-        );
       },
     });
   }

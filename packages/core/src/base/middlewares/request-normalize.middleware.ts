@@ -1,4 +1,4 @@
-import { HTTP } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
@@ -32,7 +32,14 @@ export const requestNormalize = (): MiddlewareHandler => {
           break;
         }
 
-        await context.req.json();
+        try {
+          await context.req.json();
+        } catch {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            message: 'Malformed JSON payload',
+          });
+        }
       }
     }
 

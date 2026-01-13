@@ -30,6 +30,19 @@ const DATABASE_CLIENT_ERROR_MESSAGES: Record<string, string> = {
 };
 
 /**
+ * Extended error type for database errors with additional properties.
+ */
+interface IDatabaseError extends Error {
+  code?: string;
+  cause?: {
+    code?: string;
+    detail?: string;
+    table?: string;
+    constraint?: string;
+  };
+}
+
+/**
  * Checks if error is a database constraint error that should return 400.
  * Returns a formatted, human-readable message.
  */
@@ -37,9 +50,9 @@ const isDatabaseClientError = (opts: {
   error: Error;
 }): { isClientError: boolean; message?: string } => {
   const { error } = opts;
-  const errorAny = error as any;
-  const cause = errorAny.cause;
-  const code = errorAny.code || cause?.code;
+  const dbError = error as IDatabaseError;
+  const cause = dbError.cause;
+  const code = dbError.code || cause?.code;
 
   if (code && DATABASE_CLIENT_ERROR_MESSAGES[code]) {
     const baseMessage = DATABASE_CLIENT_ERROR_MESSAGES[code];
