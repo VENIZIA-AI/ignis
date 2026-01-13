@@ -18,7 +18,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
   private isDebugMode: boolean;
 
   constructor() {
-    super({ scope: RequestSpyMiddleware.name });
+    super({ scope: 'SpyMW' });
     const env = process.env.NODE_ENV?.toLowerCase();
     this.isDebugMode = env !== Environment.PRODUCTION;
   }
@@ -66,29 +66,37 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
       if (this.isDebugMode) {
         const body = await this.parseBody({ req });
-        this.logger
-          .for('spy')
-          .info(
-            '[%s][%s][=>] %s %s | query: %j | body: %j',
-            requestId,
-            clientIp,
-            method,
-            path,
-            query,
-            body,
-          );
+        this.logger.info(
+          '[%s][%s][=>] %s %s | query: %j | body: %j',
+          requestId,
+          clientIp,
+          method.padEnd(8, ' '),
+          path,
+          query,
+          body,
+        );
       } else {
-        this.logger
-          .for('spy')
-          .info('[%s][%s][=>] %s %s | query: %j', requestId, clientIp, method, path, query);
+        this.logger.info(
+          '[%s][%s][=>] %s %s | query: %j',
+          requestId,
+          clientIp,
+          method.padEnd(8, ' '),
+          path,
+          query,
+        );
       }
 
       await next();
 
       const duration = (performance.now() - t).toFixed(2);
-      this.logger
-        .for('spy')
-        .info('[%s][%s][<=] %s %s | Took: %s (ms)', requestId, clientIp, method, path, duration);
+      this.logger.info(
+        '[%s][%s][<=] %s %s | Took: %s (ms)',
+        requestId,
+        clientIp,
+        method.padEnd(8, ' '),
+        path,
+        duration,
+      );
     });
   }
 }
