@@ -7,7 +7,7 @@ lastUpdated: 2026-01-03
 
 # Middlewares Reference
 
-IGNIS provides a collection of built-in middlewares for common application needs including error handling, request logging, request normalization, and favicon serving.
+IGNIS provides a collection of built-in middlewares for common application needs including error handling, request logging, and favicon serving.
 
 **Files:**
 - `packages/core/src/base/middlewares/*.ts`
@@ -24,16 +24,14 @@ IGNIS provides a collection of built-in middlewares for common application needs
 |------------|---------|-------------|
 | `appErrorHandler` | Catches and formats application errors | `logger` |
 | `notFoundHandler` | Handles 404 Not Found responses | `logger` |
-| `requestNormalize` | Pre-parses JSON request bodies | None |
-| `RequestSpyMiddleware` | Logs request lifecycle and timing | None |
+| `RequestSpyMiddleware` | Logs request lifecycle, timing, and parses request body | None |
 | `emojiFavicon` | Serves an emoji as favicon | `icon` |
 
 ## Table of Contents
 
 - [Error Handler (`appErrorHandler`)](#error-handler-apporerrorhandler)
 - [Not Found Handler (`notFoundHandler`)](#not-found-handler-notfoundhandler)
-- [Request Normalizer (`requestNormalize`)](#request-normalizer-requestnormalize)
-- [Request Spy (Debug)](#request-spy-debug)
+- [Request Spy (`RequestSpyMiddleware`)](#request-spy-requestspymiddleware)
 - [Emoji Favicon](#emoji-favicon)
 - [Creating Custom Middleware](#creating-custom-middleware)
 - [Middleware Order & Priority](#middleware-order--priority)
@@ -237,65 +235,23 @@ app.notFound(notFoundHandler({
 
 ---
 
-### Request Normalizer (`requestNormalize`)
+### Request Spy (`RequestSpyMiddleware`)
 
-Pre-parses JSON request bodies to ensure consistent request handling and prevent common parsing issues.
-
-**File:** `packages/core/src/base/middlewares/request-normalize.middleware.ts`
-
-#### How It Works
-
-1. **Skip for GET/OPTIONS**: No normalization for read-only requests
-2. **Check Content-Length**: Skip if no body is present (`Content-Length: 0`)
-3. **Check Content-Type**: Only process `application/json` requests
-4. **Pre-parse JSON**: Calls `context.req.json()` to cache the parsed body
-
-#### Benefits
-
-- Prevents multiple body parsing attempts
-- Ensures body is available for all subsequent middleware/handlers
-- Catches JSON parsing errors early in the request lifecycle
-
-#### Usage
-
-```typescript
-import { requestNormalize } from '@venizia/ignis';
-
-const app = new IgnisApplication({
-  // ...
-});
-
-// Register as early middleware
-app.use(requestNormalize());
-```
-
-:::tip Why Pre-parse?
-Hono's request body can only be read once. This middleware ensures the body is parsed and cached early, making it available to all downstream handlers.
-:::
-
-#### API Reference
-
-##### `requestNormalize()`
-
-**Parameters:** None
-
-**Returns:** `MiddlewareHandler` - Hono middleware function
-
----
-
-### Request Spy (Debug)
-
-Logs detailed information about each request including timing, IP address, method, path, and query parameters.
+Logs detailed information about each request including timing, IP address, method, path, query parameters, and request body. Also handles request body parsing for JSON, form data, and text content types.
 
 **File:** `packages/core/src/base/middlewares/request-spy.middleware.ts`
 
 #### Features
 
-- Request lifecycle logging (START/DONE)
+- Request lifecycle logging (incoming/outgoing)
 - Performance timing tracking
 - IP address extraction (supports `x-real-ip` and `x-forwarded-for` headers)
 - Request ID tracking
-- Query and body parameter logging
+- Query and body parameter logging (body only logged in non-production)
+- **Request body parsing**: Automatically parses and caches request bodies:
+  - `application/json` → `req.json()`
+  - `multipart/form-data`, `application/x-www-form-urlencoded` → `req.parseBody()`
+  - Other content types (text, html, xml) → `req.text()`
 
 #### Usage
 
@@ -511,43 +467,39 @@ app.use(cors());
 // 2. Request ID generation
 app.use(requestId());
 
-// 3. Request spy/logging
+// 3. Request spy/logging (also handles body parsing)
 const requestSpy = new RequestSpyMiddleware();
 app.use(requestSpy.value());
 
-// 4. Request normalization
-app.use(requestNormalize());
-
-// 5. Security middleware (helmet, etc.)
+// 4. Security middleware (helmet, etc.)
 app.use(helmet());
 
-// 6. Rate limiting
+// 5. Rate limiting
 app.use(rateLimit());
 
-// 7. Authentication
+// 6. Authentication
 app.use('/api/*', authenticate());
 
-// 8. Favicon (can be early or late)
+// 7. Favicon (can be early or late)
 app.use(emojiFavicon({ icon: '🚀' }));
 
-// 9. Application routes
+// 8. Application routes
 app.mountControllers();
 
-// 10. Error handler (LAST in chain)
+// 9. Error handler (LAST in chain)
 app.onError(appErrorHandler({ logger: app.logger }));
 
-// 11. Not found handler (AFTER error handler)
+// 10. Not found handler (AFTER error handler)
 app.notFound(notFoundHandler({ logger: app.logger }));
 ```
 
 ### Key Principles
 
 1. **Request ID First**: Generate request ID before logging
-2. **Logging Early**: Log requests before normalization/parsing
-3. **Normalization Before Business Logic**: Parse bodies before they're needed
-4. **Security Middleware Before Routes**: Protect routes with security checks
-5. **Error Handler Last**: Catch all errors from previous middleware
-6. **404 Handler After Error Handler**: Ensure unhandled routes return 404
+2. **Request Spy Early**: Log and parse request bodies before business logic
+3. **Security Middleware Before Routes**: Protect routes with security checks
+4. **Error Handler Last**: Catch all errors from previous middleware
+5. **404 Handler After Error Handler**: Ensure unhandled routes return 404
 
 :::warning Order Matters
 Placing error handler before routes will prevent it from catching route errors. Always register error handlers last.
@@ -584,7 +536,7 @@ app.use('/api/public/*', rateLimitMiddleware());
 const apiMiddleware = (): MiddlewareHandler => {
   return createMiddleware(async (context, next) => {
     // Run multiple middleware in sequence
-    await requestNormalize()(context, async () => {
+    await rateLimit()(context, async () => {
       await authenticate()(context, next);
     });
   });

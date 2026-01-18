@@ -104,8 +104,7 @@ A collection of essential, low-level middlewares used by the application.
 | `app-error.middleware.ts`         | Global error handling middleware that catches `ApplicationError` instances and formats responses consistently. |
 | `emoji-favicon.middleware.ts`     | Serves a simple emoji favicon for the application.                                                             |
 | `not-found.middleware.ts`         | Handles 404 Not Found errors.                                                                                  |
-| `request-normalize.middleware.ts` | Normalizes incoming requests, particularly for parsing JSON bodies.                                            |
-| `request-spy.middleware.ts`       | Logs incoming requests and adds a unique request ID for tracing.                                               |
+| `request-spy.middleware.ts`       | Logs incoming requests, parses request body, and adds a unique request ID for tracing.                         |
 
 #### `base/mixins`
 

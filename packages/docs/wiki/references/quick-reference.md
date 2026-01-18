@@ -515,17 +515,13 @@ if (Statuses.isCompleted(order.status)) {
 import {
   appErrorHandler,
   notFoundHandler,
-  requestNormalize,
   RequestSpyMiddleware,
   emojiFavicon,
 } from '@venizia/ignis';
 
 const app = new MyApp();
 
-// Request normalization
-app.use(requestNormalize());
-
-// Request logging
+// Request logging and body parsing
 const requestSpy = new RequestSpyMiddleware();
 app.use(requestSpy.value());
 

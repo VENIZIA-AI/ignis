@@ -23,12 +23,44 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     this.isDebugMode = env !== Environment.PRODUCTION;
   }
 
-  async parseBody(opts: { req: TContext['req'] }) {
-    const { req } = opts;
+  /**
+   * Parses request body based on Content-Type header.
+   * - application/json → req.json()
+   * - multipart/form-data, application/x-www-form-urlencoded → req.parseBody()
+   * - Other content types (text, html, xml, etc.) → req.text()
+   */
+  async parseBody(opts: { req: TContext['req'] }): Promise<unknown> {
+    const contentType = opts.req.header(HTTP.Headers.CONTENT_TYPE);
+
+    // No Content-Type header means no body
+    if (!contentType) {
+      return null;
+    }
+
+    const contentLength = opts.req.header(HTTP.Headers.CONTENT_LENGTH);
+    if (!contentLength || contentLength === '0') {
+      return null;
+    }
 
     try {
-      const body = await req.parseBody();
-      return body;
+      // JSON body
+      if (contentType.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
+        const rs = await opts.req.json();
+        return rs;
+      }
+
+      // Form data (multipart or urlencoded)
+      if (
+        contentType.includes(HTTP.HeaderValues.MULTIPART_FORM_DATA) ||
+        contentType.includes(HTTP.HeaderValues.APPLICATION_FORM_URLENCODED)
+      ) {
+        const rs = await opts.req.parseBody();
+        return rs;
+      }
+
+      // Everything else (text, html, xml, etc.) - read as text
+      const rs = await opts.req.text();
+      return rs;
     } catch {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -63,9 +95,9 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       const path = req.path ?? '/';
       const clientIp = incomingIp ?? forwardedIp;
       const query = req.query() ?? {};
+      const body = await this.parseBody(context);
 
       if (this.isDebugMode) {
-        const body = await this.parseBody({ req });
         this.logger.info(
           '[%s][%s][=>] %s %s | query: %j | body: %j',
           requestId,
