@@ -143,6 +143,7 @@ Positive terminal states indicating successful completion.
 | `SUCCESS` | `'302_SUCCESS'` | Successfully completed |
 | `COMPLETED` | `'303_COMPLETED'` | Fully completed |
 | `SETTLED` | `'304_SETTLED'` | Finalized or settled |
+| `CONFIRMED` | `'305_CONFIRMED'` | Confirmed by user or system |
 
 **Example Usage:**
 ```typescript
@@ -181,6 +182,7 @@ Negative but reversible states - the entity can be reactivated.
 | `ARCHIVED` | `'405_ARCHIVED'` | Archived for record keeping |
 | `PAUSED` | `'406_PAUSED'` | Paused, can be resumed |
 | `REVOKED` | `'407_REVOKED'` | Permission or access revoked |
+| `REFUNDED` | `'408_REFUNDED'` | Payment or transaction refunded |
 
 **Example Usage:**
 ```typescript
@@ -252,8 +254,8 @@ The `Statuses` class provides static sets for grouping related statuses.
 | Initial | `INITIAL_SCHEME_SET` | `UNKNOWN`, `DRAFT` |
 | Pending | `PENDING_SCHEME_SET` | `NEW`, `QUEUED`, `SCHEDULED`, `PENDING`, `IN_REVIEW` |
 | Active | `ACTIVE_SCHEME_SET` | `ENABLED`, `ACTIVATED`, `RUNNING`, `PROCESSING`, `SENT`, `RECEIVED` |
-| Completed | `COMPLETED_SCHEME_SET` | `PARTIAL`, `APPROVED`, `SUCCESS`, `COMPLETED`, `SETTLED` |
-| Inactive | `INACTIVE_SCHEME_SET` | `DISABLED`, `DEACTIVATED`, `SUSPENDED`, `BLOCKED`, `CLOSED`, `ARCHIVED`, `PAUSED`, `REVOKED` |
+| Completed | `COMPLETED_SCHEME_SET` | `PARTIAL`, `APPROVED`, `SUCCESS`, `COMPLETED`, `SETTLED`, `CONFIRMED` |
+| Inactive | `INACTIVE_SCHEME_SET` | `DISABLED`, `DEACTIVATED`, `SUSPENDED`, `BLOCKED`, `CLOSED`, `ARCHIVED`, `PAUSED`, `REVOKED`, `REFUNDED` |
 | Failed | `FAILED_SCHEME_SET` | `FAIL`, `EXPIRED`, `TIMEOUT`, `SKIPPED`, `ABORTED`, `CANCELLED`, `DELETED`, `REJECTED` |
 | All | `SCHEME_SET` | All statuses combined |
 

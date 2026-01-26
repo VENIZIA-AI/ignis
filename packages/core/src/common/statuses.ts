@@ -29,6 +29,7 @@ export class Statuses {
   static readonly SUCCESS = '302_SUCCESS';
   static readonly COMPLETED = '303_COMPLETED';
   static readonly SETTLED = '304_SETTLED';
+  static readonly CONFIRMED = '305_CONFIRMED';
 
   // 4xx - Inactive (negative, reversible)
   static readonly DISABLED = '400_DISABLED';
@@ -39,6 +40,7 @@ export class Statuses {
   static readonly ARCHIVED = '405_ARCHIVED';
   static readonly PAUSED = '406_PAUSED';
   static readonly REVOKED = '407_REVOKED';
+  static readonly REFUNDED = '408_REFUNDED';
 
   // 5xx - Failed/Error (negative terminal, final)
   static readonly FAIL = '500_FAIL';
@@ -76,6 +78,7 @@ export class Statuses {
     this.PARTIAL,
     this.SETTLED,
     this.APPROVED,
+    this.CONFIRMED,
   ]);
 
   static readonly INACTIVE_SCHEME_SET = new Set([
@@ -87,6 +90,7 @@ export class Statuses {
     this.ARCHIVED,
     this.PAUSED,
     this.REVOKED,
+    this.REFUNDED,
   ]);
 
   static readonly FAILED_SCHEME_SET = new Set([
