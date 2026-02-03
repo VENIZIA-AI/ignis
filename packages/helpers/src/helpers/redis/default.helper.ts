@@ -99,10 +99,11 @@ export class DefaultRedisHelper extends BaseHelper {
 
   // ---------------------------------------------------------------------------------
   async set<T>(opts: { key: string; value: T; options?: { log: boolean } }): Promise<void> {
+    const logger = this.logger.for(this.set.name);
     const { key, value, options = { log: false } } = opts;
 
     if (!this.client) {
-      this.logger.for(this.set.name).info('No valid Redis connection!');
+      logger.for(this.set.name).info('No valid Redis connection!');
       return;
     }
 
@@ -113,7 +114,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return;
     }
 
-    this.logger.for(this.set.name).info(`Set key: ${key} | value: ${serialized}`);
+    logger.for(this.set.name).info(`Set key: ${key} | value: ${serialized}`);
   }
 
   // ---------------------------------------------------------------------------------
@@ -173,8 +174,9 @@ export class DefaultRedisHelper extends BaseHelper {
     value: T;
     options?: { log: boolean };
   }): Promise<number> {
+    const logger = this.logger.for(this.hset.name);
     if (!this.client) {
-      this.logger.for(this.hset.name).info('No valid Redis connection!');
+      logger.for(this.hset.name).info('No valid Redis connection!');
       return 0;
     }
 
@@ -185,7 +187,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return rs;
     }
 
-    this.logger.for(this.hset.name).info('Result: %j', rs);
+    logger.for(this.hset.name).info('Result: %j', rs);
     return rs;
   }
 
@@ -224,8 +226,9 @@ export class DefaultRedisHelper extends BaseHelper {
     payload: Array<{ key: string; value: T }>;
     options?: { log: boolean };
   }): Promise<void> {
+    const logger = this.logger.for(this.mset.name);
     if (!this.client) {
-      this.logger.for(this.set.name).info('No valid Redis connection!');
+      logger.for(this.set.name).info('No valid Redis connection!');
       return;
     }
 
@@ -243,7 +246,7 @@ export class DefaultRedisHelper extends BaseHelper {
       return;
     }
 
-    this.logger.for(this.mset.name).info('Payload: %j', serialized);
+    logger.for(this.mset.name).info('Payload: %j', serialized);
   }
 
   // ---------------------------------------------------------------------------------
@@ -356,21 +359,22 @@ export class DefaultRedisHelper extends BaseHelper {
     payload: T;
     useCompress?: boolean;
   }): Promise<void> {
+    const logger = this.logger.for(this.publish.name);
     const { topics, payload, useCompress = false } = opts;
 
     const validTopics = topics?.filter(topic => !isEmpty(topic));
     if (!validTopics?.length) {
-      this.logger.for(this.publish.name).error('No topic(s) to publish!');
+      logger.for(this.publish.name).error('No topic(s) to publish!');
       return;
     }
 
     if (!payload) {
-      this.logger.for(this.publish.name).error('Invalid payload to publish!');
+      logger.for(this.publish.name).error('Invalid payload to publish!');
       return;
     }
 
     if (!this.client) {
-      this.logger.for(this.publish.name).error('No valid Redis connection!');
+      logger.for(this.publish.name).error('No valid Redis connection!');
       return;
     }
 
@@ -391,15 +395,16 @@ export class DefaultRedisHelper extends BaseHelper {
 
   // ---------------------------------------------------------------------------------
   subscribe(opts: { topic: string }) {
+    const logger = this.logger.for(this.subscribe.name);
     const { topic } = opts;
 
     if (!topic || isEmpty(topic)) {
-      this.logger.for(this.subscribe.name).error('No topic to subscribe!');
+      logger.for(this.subscribe.name).error('No topic to subscribe!');
       return;
     }
 
     if (!this.client) {
-      this.logger.for(this.subscribe.name).error('No valid Redis connection!');
+      logger.for(this.subscribe.name).error('No valid Redis connection!');
       return;
     }
 
@@ -411,9 +416,36 @@ export class DefaultRedisHelper extends BaseHelper {
         });
       }
 
-      this.logger
+      logger
         .for(this.subscribe.name)
         .info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
+    });
+  }
+
+  // ---------------------------------------------------------------------------------
+  unsubscribe(opts: { topic: string }) {
+    const logger = this.logger.for(this.unsubscribe.name);
+    const { topic } = opts;
+
+    if (!topic || isEmpty(topic)) {
+      logger.for(this.unsubscribe.name).error('No topic to unsubscribe!');
+      return;
+    }
+
+    if (!this.client) {
+      logger.for(this.unsubscribe.name).error('No valid Redis connection!');
+      return;
+    }
+
+    this.client.unsubscribe(topic, (error, count) => {
+      if (error) {
+        throw getError({
+          statusCode: 500,
+          message: `[unsubscribe] Failed to unsubscribe from topic: ${topic}`,
+        });
+      }
+
+      logger.for(this.unsubscribe.name).info('Unsubscribed from %s channel(s).', count);
     });
   }
 }
