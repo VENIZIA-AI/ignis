@@ -163,7 +163,10 @@ export class SocketIOClientHelper extends BaseHelper {
   }
 
   // Keep batch subscribe for convenience
-  subscribeMany(opts: { events: Record<string, TSocketIOEventHandler>; ignoreDuplicate?: boolean }) {
+  subscribeMany(opts: {
+    events: Record<string, TSocketIOEventHandler>;
+    ignoreDuplicate?: boolean;
+  }) {
     const { events, ignoreDuplicate } = opts;
 
     for (const event in events) {

@@ -498,9 +498,11 @@ export class SocketIOServerHelper extends BaseHelper {
 
           joinLogger.info('Joining rooms | id: %s | rooms: %j', id, allowedRooms);
 
-          return Promise.all(allowedRooms.map((room: string) => socket.join(room))).then(() => {
-            joinLogger.info('Joined rooms | id: %s | rooms: %s', id, allowedRooms);
-          });
+          for (const room of allowedRooms) {
+            socket.join(room);
+          }
+
+          joinLogger.info('Joined rooms | id: %s | rooms: %s', id, allowedRooms);
         })
         .catch(error => {
           joinLogger.error(
