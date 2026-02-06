@@ -1,6 +1,6 @@
 {
   "name": "@venizia/dev-configs",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "description": "Shared development configurations for Venizia packages",
   "keywords": [
     "venizia",
