@@ -252,6 +252,19 @@ export class Container extends BaseHelper {
     return undefined;
   }
 
+  gets<T extends unknown[]>(opts: {
+    bindings: {
+      [K in keyof T]: {
+        key: string | symbol | { namespace: string; key: string };
+        isOptional?: boolean;
+      };
+    };
+  }): { [K in keyof T]: T[K] | undefined } {
+    return opts.bindings.map(opt => this.get({ ...opt, isOptional: true })) as {
+      [K in keyof T]: T[K] | undefined;
+    };
+  }
+
   resolve<T>(cls: TClass<T>): T {
     return this.instantiate(cls);
   }
