@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-02-06 | [Socket.IO Integration Fix](./2026-02-06-socket-io-integration-fix) | Bug Fix, New Feature, Breaking Change |
 | 2026-01-11 | [Logger Optimization & HfLogger](./2026-01-11-logger-optimization-hf-logger) | Enhancement, New Feature |
 | 2026-01-07 | [Controller Route Customization](./2026-01-07-controller-route-customization) | New Feature |
 | 2026-01-06 | [Basic Authentication Strategy](./2026-01-06-basic-authentication) | New Feature |

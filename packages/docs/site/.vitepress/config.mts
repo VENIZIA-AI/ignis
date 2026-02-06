@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-06',
+              collapsed: true,
+              items: [
+                { text: 'Socket.IO Integration Fix', link: '/changelogs/2026-02-06-socket-io-integration-fix' },
+              ],
+            },
+            {
               text: '2026-01-11',
               collapsed: true,
               items: [

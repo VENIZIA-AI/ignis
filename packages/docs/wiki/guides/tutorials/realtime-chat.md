@@ -1,10 +1,8 @@
 # Building a Real-Time Chat Application
 
-This tutorial shows you how to build a real-time chat application with rooms, direct messages, typing indicators, and presence using Socket.IO.
+This tutorial shows you how to build a real-time chat application with rooms, direct messages, typing indicators, and presence using Socket.IO — powered by the `SocketIOComponent` and `SocketIOServerHelper`.
 
-**⏱️ Time to Complete:** ~75 minutes
-
-## What You'll Build
+**What You'll Build:**
 
 - Chat rooms (channels)
 - Direct messages between users
@@ -16,7 +14,8 @@ This tutorial shows you how to build a real-time chat application with rooms, di
 
 - Completed [Building a CRUD API](./building-a-crud-api.md)
 - Understanding of [Socket.IO Component](/references/components/socket-io)
-- Redis for pub/sub (optional but recommended for scaling)
+- Understanding of [Socket.IO Helper](/references/helpers/socket-io)
+- Redis for pub/sub (required by `SocketIOServerHelper`)
 
 ## 1. Project Setup
 
@@ -27,9 +26,15 @@ bun init -y
 
 # Install dependencies
 bun add hono @hono/zod-openapi @venizia/ignis dotenv-flow
-bun add drizzle-orm drizzle-zod pg socket.io
+bun add drizzle-orm drizzle-zod pg
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
+
+# For Bun runtime — Socket.IO engine
+bun add @socket.io/bun-engine
 ```
+
+> [!NOTE]
+> You do **not** need to install `socket.io` directly. It is included as a dependency of `@venizia/ignis-helpers`. For the client side, install `socket.io-client` separately.
 
 ## 2. Database Models
 
@@ -431,94 +436,270 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
 }
 ```
 
-## 5. Socket.IO Events
+## 5. Chat Service
 
-Define your event types:
-
-```typescript
-// src/types/socket.types.ts
-
-// Client -> Server events
-export interface ClientToServerEvents {
-  // Rooms
-  'room:join': (roomId: string) => void;
-  'room:leave': (roomId: string) => void;
-
-  // Messages
-  'message:send': (data: { roomId: string; content: string; type?: string }) => void;
-  'message:edit': (data: { messageId: string; content: string }) => void;
-  'message:delete': (data: { messageId: string }) => void;
-
-  // Direct messages
-  'dm:send': (data: { receiverId: string; content: string }) => void;
-
-  // Typing
-  'typing:start': (roomId: string) => void;
-  'typing:stop': (roomId: string) => void;
-
-  // Presence
-  'presence:update': (status: 'online' | 'away' | 'busy') => void;
-}
-
-// Server -> Client events
-export interface ServerToClientEvents {
-  // Messages
-  'message:new': (message: Message) => void;
-  'message:edited': (message: Message) => void;
-  'message:deleted': (data: { messageId: string; roomId: string }) => void;
-
-  // Direct messages
-  'dm:new': (message: DirectMessage) => void;
-
-  // Typing
-  'typing:update': (data: { roomId: string; userId: string; isTyping: boolean }) => void;
-
-  // Presence
-  'presence:changed': (data: { userId: string; status: string; lastSeenAt?: Date }) => void;
-
-  // Room
-  'room:user-joined': (data: { roomId: string; user: User }) => void;
-  'room:user-left': (data: { roomId: string; userId: string }) => void;
-
-  // Errors
-  'error': (error: { code: string; message: string }) => void;
-}
-
-export interface InterServerEvents {
-  ping: () => void;
-}
-
-export interface SocketData {
-  userId: string;
-  username: string;
-}
-```
-
-## 6. Chat Service
+The `ChatService` handles business logic for rooms, messages, and presence. It also registers Socket.IO event handlers on each authenticated client via the `clientConnectedFn` callback.
 
 ```typescript
 // src/services/chat.service.ts
-import { injectable, inject } from '@venizia/ignis';
-import { BaseService } from '@venizia/ignis';
+import {
+  BaseApplication,
+  BaseService,
+  CoreBindings,
+  inject,
+  SocketIOBindingKeys,
+  SocketIOServerHelper,
+  BindingKeys,
+  BindingNamespaces,
+} from '@venizia/ignis';
+import { ISocketIOClient, getError } from '@venizia/ignis-helpers';
+import { Socket } from 'socket.io';
 import { MessageRepository } from '../repositories/message.repository';
 import { RoomRepository } from '../repositories/room.repository';
 import { UserRepository } from '../repositories/user.repository';
-import { getError } from '@venizia/ignis-helpers';
 
-@injectable()
 export class ChatService extends BaseService {
+  private _socketIOHelper: SocketIOServerHelper | null = null;
+  private _typingTimeouts: Map<string, NodeJS.Timeout> = new Map();
+
   constructor(
-    @inject('repositories.MessageRepository')
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE })
+    private application: BaseApplication,
+
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: 'MessageRepository',
+      }),
+    })
     private _messageRepo: MessageRepository,
-    @inject('repositories.RoomRepository')
+
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: 'RoomRepository',
+      }),
+    })
     private _roomRepo: RoomRepository,
-    @inject('repositories.UserRepository')
+
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: 'UserRepository',
+      }),
+    })
     private _userRepo: UserRepository,
   ) {
     super({ scope: ChatService.name });
   }
 
+  // ---------------------------------------------------------------------------
+  // SocketIOServerHelper — lazy getter (bound after server starts via post-start hook)
+  // ---------------------------------------------------------------------------
+  private get socketIOHelper(): SocketIOServerHelper {
+    if (!this._socketIOHelper) {
+      this._socketIOHelper =
+        this.application.get<SocketIOServerHelper>({
+          key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
+          isOptional: true,
+        }) ?? null;
+    }
+
+    if (!this._socketIOHelper) {
+      throw new Error('[ChatService] SocketIO not initialized. Server must be started first.');
+    }
+
+    return this._socketIOHelper;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Socket event handlers — called from clientConnectedFn after authentication
+  // ---------------------------------------------------------------------------
+  registerClientHandlers(opts: { socket: Socket }) {
+    const logger = this.logger.for(this.registerClientHandlers.name);
+    const { socket } = opts;
+    const socketId = socket.id;
+
+    logger.info('Registering chat handlers | socketId: %s', socketId);
+
+    // --- Set user online (using socket ID as user identifier for simplicity) ---
+    this.broadcastPresence({ userId: socketId, status: 'online' });
+
+    // --- Room handlers ---
+    socket.on('room:join', async (data: { roomId: string; userId: string }) => {
+      try {
+        await this.joinRoom({ roomId: data.roomId, userId: data.userId });
+
+        // Also join the Socket.IO room for real-time delivery
+        socket.join(`room:${data.roomId}`);
+
+        // Notify room members
+        this.socketIOHelper.send({
+          destination: `room:${data.roomId}`,
+          payload: {
+            topic: 'room:user-joined',
+            data: { roomId: data.roomId, userId: data.userId },
+          },
+        });
+
+        logger.info('User joined room | userId: %s | roomId: %s', data.userId, data.roomId);
+      } catch (error) {
+        this.socketIOHelper.send({
+          destination: socketId,
+          payload: {
+            topic: 'error',
+            data: { code: 'JOIN_FAILED', message: (error as Error).message },
+          },
+        });
+      }
+    });
+
+    socket.on('room:leave', (data: { roomId: string; userId: string }) => {
+      socket.leave(`room:${data.roomId}`);
+
+      this.socketIOHelper.send({
+        destination: `room:${data.roomId}`,
+        payload: {
+          topic: 'room:user-left',
+          data: { roomId: data.roomId, userId: data.userId },
+        },
+      });
+
+      logger.info('User left room | userId: %s | roomId: %s', data.userId, data.roomId);
+    });
+
+    // --- Message handlers ---
+    socket.on(
+      'message:send',
+      async (data: { roomId: string; content: string; type?: string; userId: string }) => {
+        try {
+          const message = await this.sendMessage({
+            roomId: data.roomId,
+            senderId: data.userId,
+            content: data.content,
+            type: data.type,
+          });
+
+          // Broadcast to room
+          this.socketIOHelper.send({
+            destination: `room:${data.roomId}`,
+            payload: { topic: 'message:new', data: message },
+          });
+
+          // Clear typing indicator
+          this.clearTyping({ socketId, roomId: data.roomId });
+        } catch (error) {
+          this.socketIOHelper.send({
+            destination: socketId,
+            payload: {
+              topic: 'error',
+              data: { code: 'SEND_FAILED', message: (error as Error).message },
+            },
+          });
+        }
+      },
+    );
+
+    socket.on('message:edit', async (data: { messageId: string; content: string; userId: string }) => {
+      try {
+        const message = await this.editMessage({
+          messageId: data.messageId,
+          userId: data.userId,
+          content: data.content,
+        });
+
+        this.socketIOHelper.send({
+          destination: `room:${message.roomId}`,
+          payload: { topic: 'message:edited', data: message },
+        });
+      } catch (error) {
+        this.socketIOHelper.send({
+          destination: socketId,
+          payload: {
+            topic: 'error',
+            data: { code: 'EDIT_FAILED', message: (error as Error).message },
+          },
+        });
+      }
+    });
+
+    socket.on('message:delete', async (data: { messageId: string; userId: string }) => {
+      try {
+        const message = await this.deleteMessage({
+          messageId: data.messageId,
+          userId: data.userId,
+        });
+
+        this.socketIOHelper.send({
+          destination: `room:${message.roomId}`,
+          payload: {
+            topic: 'message:deleted',
+            data: { messageId: data.messageId, roomId: message.roomId },
+          },
+        });
+      } catch (error) {
+        this.socketIOHelper.send({
+          destination: socketId,
+          payload: {
+            topic: 'error',
+            data: { code: 'DELETE_FAILED', message: (error as Error).message },
+          },
+        });
+      }
+    });
+
+    // --- Direct message handlers ---
+    socket.on('dm:send', async (data: { receiverId: string; content: string; userId: string }) => {
+      try {
+        const message = await this.sendDirectMessage({
+          senderId: data.userId,
+          receiverId: data.receiverId,
+          content: data.content,
+        });
+
+        // Send to receiver
+        this.socketIOHelper.send({
+          destination: data.receiverId,
+          payload: { topic: 'dm:new', data: message },
+        });
+
+        // Send back to sender
+        this.socketIOHelper.send({
+          destination: socketId,
+          payload: { topic: 'dm:new', data: message },
+        });
+      } catch (error) {
+        this.socketIOHelper.send({
+          destination: socketId,
+          payload: {
+            topic: 'error',
+            data: { code: 'DM_FAILED', message: (error as Error).message },
+          },
+        });
+      }
+    });
+
+    // --- Typing handlers ---
+    socket.on('typing:start', (data: { roomId: string }) => {
+      this.handleTyping({ socketId, roomId: data.roomId, isTyping: true });
+    });
+
+    socket.on('typing:stop', (data: { roomId: string }) => {
+      this.handleTyping({ socketId, roomId: data.roomId, isTyping: false });
+    });
+
+    // --- Disconnect ---
+    socket.on('disconnect', () => {
+      logger.info('User disconnected | socketId: %s', socketId);
+      this.broadcastPresence({ userId: socketId, status: 'offline' });
+    });
+
+    logger.info('Chat handlers registered | socketId: %s', socketId);
+  }
+
+  // ---------------------------------------------------------------------------
   // Room operations
+  // ---------------------------------------------------------------------------
   async createRoom(opts: { name: string; description?: string; isPrivate?: boolean; createdBy: string }) {
     const room = await this._roomRepo.create(opts);
 
@@ -534,14 +715,12 @@ export class ChatService extends BaseService {
       throw getError({ statusCode: 404, message: 'Room not found' });
     }
 
-    // Check if private room requires invitation
     if (room.isPrivate) {
       const isMember = await this._roomRepo.isMember({ roomId: opts.roomId, userId: opts.userId });
       if (!isMember) {
         throw getError({ statusCode: 403, message: 'Cannot join private room' });
       }
     } else {
-      // Auto-join public rooms
       await this._roomRepo.addMember({ roomId: opts.roomId, userId: opts.userId, role: 'member' });
     }
 
@@ -556,9 +735,10 @@ export class ChatService extends BaseService {
     return this._roomRepo.findByUser({ userId: opts.userId });
   }
 
+  // ---------------------------------------------------------------------------
   // Message operations
+  // ---------------------------------------------------------------------------
   async sendMessage(opts: { roomId: string; senderId: string; content: string; type?: string }) {
-    // Verify user is member of room
     const isMember = await this._roomRepo.isMember({ roomId: opts.roomId, userId: opts.senderId });
     if (!isMember) {
       throw getError({ statusCode: 403, message: 'Not a member of this room' });
@@ -571,7 +751,6 @@ export class ChatService extends BaseService {
       type: opts.type ?? 'text',
     });
 
-    // Get sender info for the response
     const sender = await this._userRepo.findById(opts.senderId);
 
     return {
@@ -610,7 +789,6 @@ export class ChatService extends BaseService {
     }
 
     if (message.senderId !== opts.userId) {
-      // Check if user is room admin
       const member = await this._roomRepo.getMember({ roomId: message.roomId, userId: opts.userId });
       if (!member || member.role !== 'admin') {
         throw getError({ statusCode: 403, message: 'Cannot delete this message' });
@@ -629,7 +807,6 @@ export class ChatService extends BaseService {
     };
 
     if (opts.before) {
-      // Cursor-based pagination
       const beforeMessage = await this._messageRepo.findById(opts.before);
       if (beforeMessage) {
         where.createdAt = { lt: beforeMessage.createdAt };
@@ -643,7 +820,9 @@ export class ChatService extends BaseService {
     });
   }
 
+  // ---------------------------------------------------------------------------
   // Direct message operations
+  // ---------------------------------------------------------------------------
   async sendDirectMessage(opts: { senderId: string; receiverId: string; content: string }) {
     return this._messageRepo.createDirectMessage(opts);
   }
@@ -661,7 +840,9 @@ export class ChatService extends BaseService {
     return this._messageRepo.findConversations({ userId: opts.userId });
   }
 
+  // ---------------------------------------------------------------------------
   // Presence operations
+  // ---------------------------------------------------------------------------
   async setOnline(opts: { userId: string }) {
     await this._userRepo.updateById(opts.userId, {
       isOnline: true,
@@ -680,182 +861,36 @@ export class ChatService extends BaseService {
     const members = await this._roomRepo.getMembers({ roomId: opts.roomId });
     return members.filter(m => m.user.isOnline);
   }
-}
-```
 
-## 7. Socket.IO Handler
+  // ---------------------------------------------------------------------------
+  // Typing indicator helpers
+  // ---------------------------------------------------------------------------
+  private handleTyping(opts: { socketId: string; roomId: string; isTyping: boolean }) {
+    const key = `${opts.roomId}:${opts.socketId}`;
 
-```typescript
-// src/socket/chat.handler.ts
-import { Server, Socket } from 'socket.io';
-import { ChatService } from '../services/chat.service';
-import { RedisHelper, LoggerFactory } from '@venizia/ignis-helpers';
-import {
-  ClientToServerEvents,
-  ServerToClientEvents,
-  InterServerEvents,
-  SocketData,
-} from '../types/socket.types';
-
-type ChatSocket = Socket<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
-type ChatServer = Server<ClientToServerEvents, ServerToClientEvents, InterServerEvents, SocketData>;
-
-export class ChatSocketHandler {
-  private _logger = LoggerFactory.getLogger(['ChatSocketHandler']);
-  private _typingTimeouts: Map<string, NodeJS.Timeout> = new Map();
-
-  constructor(
-    private _io: ChatServer,
-    private _chatService: ChatService,
-  ) {}
-
-  setupHandlers(socket: ChatSocket) {
-    const userId = socket.data.userId;
-    const username = socket.data.username;
-
-    this._logger.info('User connected', { userId, username, socketId: socket.id });
-
-    // Set user online
-    this._chatService.setOnline({ userId });
-    this.broadcastPresence({ userId, status: 'online' });
-
-    // Room handlers
-    socket.on('room:join', async (roomId) => {
-      try {
-        await this._chatService.joinRoom({ roomId, userId });
-        socket.join(`room:${roomId}`);
-
-        // Notify room members
-        socket.to(`room:${roomId}`).emit('room:user-joined', {
-          roomId,
-          user: { id: userId, username },
-        });
-
-        this._logger.info('User joined room', { userId, roomId });
-      } catch (error) {
-        socket.emit('error', { code: 'JOIN_FAILED', message: error.message });
-      }
-    });
-
-    socket.on('room:leave', async (roomId) => {
-      socket.leave(`room:${roomId}`);
-      socket.to(`room:${roomId}`).emit('room:user-left', { roomId, userId });
-      this._logger.info('User left room', { userId, roomId });
-    });
-
-    // Message handlers
-    socket.on('message:send', async (data) => {
-      try {
-        const message = await this._chatService.sendMessage({
-          roomId: data.roomId,
-          senderId: userId,
-          content: data.content,
-          type: data.type,
-        });
-
-        // Broadcast to room
-        this._io.to(`room:${data.roomId}`).emit('message:new', message);
-
-        // Clear typing indicator
-        this.clearTyping({ socket, roomId: data.roomId });
-      } catch (error) {
-        socket.emit('error', { code: 'SEND_FAILED', message: error.message });
-      }
-    });
-
-    socket.on('message:edit', async (data) => {
-      try {
-        const message = await this._chatService.editMessage({
-          messageId: data.messageId,
-          userId,
-          content: data.content,
-        });
-        this._io.to(`room:${message.roomId}`).emit('message:edited', message);
-      } catch (error) {
-        socket.emit('error', { code: 'EDIT_FAILED', message: error.message });
-      }
-    });
-
-    socket.on('message:delete', async (data) => {
-      try {
-        const message = await this._chatService.deleteMessage({ messageId: data.messageId, userId });
-        this._io.to(`room:${message.roomId}`).emit('message:deleted', {
-          messageId: data.messageId,
-          roomId: message.roomId,
-        });
-      } catch (error) {
-        socket.emit('error', { code: 'DELETE_FAILED', message: error.message });
-      }
-    });
-
-    // Direct message handlers
-    socket.on('dm:send', async (data) => {
-      try {
-        const message = await this._chatService.sendDirectMessage({
-          senderId: userId,
-          receiverId: data.receiverId,
-          content: data.content,
-        });
-
-        // Send to receiver (if online)
-        this._io.to(`user:${data.receiverId}`).emit('dm:new', message);
-
-        // Send back to sender
-        socket.emit('dm:new', message);
-      } catch (error) {
-        socket.emit('error', { code: 'DM_FAILED', message: error.message });
-      }
-    });
-
-    // Typing handlers
-    socket.on('typing:start', (roomId) => {
-      this.handleTyping({ socket, roomId, isTyping: true });
-    });
-
-    socket.on('typing:stop', (roomId) => {
-      this.handleTyping({ socket, roomId, isTyping: false });
-    });
-
-    // Presence handlers
-    socket.on('presence:update', (status) => {
-      this.broadcastPresence({ userId, status });
-    });
-
-    // Disconnect
-    socket.on('disconnect', () => {
-      this._logger.info('User disconnected', { userId, socketId: socket.id });
-      this._chatService.setOffline({ userId });
-      this.broadcastPresence({ userId, status: 'offline' });
-    });
-
-    // Join user's personal room for DMs
-    socket.join(`user:${userId}`);
-  }
-
-  private handleTyping(opts: { socket: ChatSocket; roomId: string; isTyping: boolean }) {
-    const userId = opts.socket.data.userId;
-    const key = `${opts.roomId}:${userId}`;
-
-    // Clear existing timeout
     const existingTimeout = this._typingTimeouts.get(key);
     if (existingTimeout) {
       clearTimeout(existingTimeout);
     }
 
-    // Broadcast typing status
-    opts.socket.to(`room:${opts.roomId}`).emit('typing:update', {
-      roomId: opts.roomId,
-      userId,
-      isTyping: opts.isTyping,
+    // Broadcast typing status to room
+    this.socketIOHelper.send({
+      destination: `room:${opts.roomId}`,
+      payload: {
+        topic: 'typing:update',
+        data: { roomId: opts.roomId, userId: opts.socketId, isTyping: opts.isTyping },
+      },
     });
 
     if (opts.isTyping) {
       // Auto-stop typing after 3 seconds
       const timeout = setTimeout(() => {
-        opts.socket.to(`room:${opts.roomId}`).emit('typing:update', {
-          roomId: opts.roomId,
-          userId,
-          isTyping: false,
+        this.socketIOHelper.send({
+          destination: `room:${opts.roomId}`,
+          payload: {
+            topic: 'typing:update',
+            data: { roomId: opts.roomId, userId: opts.socketId, isTyping: false },
+          },
         });
         this._typingTimeouts.delete(key);
       }, 3000);
@@ -864,47 +899,66 @@ export class ChatSocketHandler {
     }
   }
 
-  private clearTyping(opts: { socket: ChatSocket; roomId: string }) {
-    const userId = opts.socket.data.userId;
-    const key = `${opts.roomId}:${userId}`;
-
+  private clearTyping(opts: { socketId: string; roomId: string }) {
+    const key = `${opts.roomId}:${opts.socketId}`;
     const timeout = this._typingTimeouts.get(key);
+
     if (timeout) {
       clearTimeout(timeout);
       this._typingTimeouts.delete(key);
     }
 
-    opts.socket.to(`room:${opts.roomId}`).emit('typing:update', {
-      roomId: opts.roomId,
-      userId,
-      isTyping: false,
+    this.socketIOHelper.send({
+      destination: `room:${opts.roomId}`,
+      payload: {
+        topic: 'typing:update',
+        data: { roomId: opts.roomId, userId: opts.socketId, isTyping: false },
+      },
     });
   }
 
   private broadcastPresence(opts: { userId: string; status: string }) {
-    this._io.emit('presence:changed', {
-      userId: opts.userId,
-      status: opts.status,
-      lastSeenAt: new Date(),
+    this.socketIOHelper.send({
+      payload: {
+        topic: 'presence:changed',
+        data: { userId: opts.userId, status: opts.status, lastSeenAt: new Date().toISOString() },
+      },
     });
   }
 }
 ```
 
-## 8. Application Setup
+> [!IMPORTANT]
+> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Socket.IO Component](/references/components/socket-io#step-3-use-in-servicescontrollers) for details.
+
+## 6. Application Setup
+
+The application binds Redis, authentication, and the client connected handler via `SocketIOBindingKeys`, then registers `SocketIOComponent`. No manual Socket.IO server creation needed.
 
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationInfo, SocketIOComponent } from '@venizia/ignis';
-import { EnvHelper } from '@venizia/ignis-helpers';
-import { Server } from 'socket.io';
-import { ChatSocketHandler } from './socket/chat.handler';
+import {
+  applicationEnvironment,
+  BaseApplication,
+  BindingKeys,
+  BindingNamespaces,
+  IApplicationConfigs,
+  IApplicationInfo,
+  ISocketIOServerBaseOptions,
+  RedisHelper,
+  SocketIOBindingKeys,
+  SocketIOComponent,
+  SocketIOServerHelper,
+  ValueOrPromise,
+} from '@venizia/ignis';
 import { ChatService } from './services/chat.service';
-import { verifyToken } from './middleware/auth';
+import { ChatController } from './controllers/chat.controller';
+import { UserRepository } from './repositories/user.repository';
+import { RoomRepository, RoomMemberRepository } from './repositories/room.repository';
+import { MessageRepository, DirectMessageRepository } from './repositories/message.repository';
 
 export class ChatApp extends BaseApplication {
-  private _io: Server;
-  private _chatHandler: ChatSocketHandler;
+  private redisHelper: RedisHelper;
 
   getAppInfo(): IApplicationInfo {
     return { name: 'chat-api', version: '1.0.0' };
@@ -912,61 +966,161 @@ export class ChatApp extends BaseApplication {
 
   staticConfigure() {}
 
-  preConfigure() {
-    // Register services and repositories
+  preConfigure(): ValueOrPromise<void> {
+    // Register repositories
+    this.repository(UserRepository);
+    this.repository(RoomRepository);
+    this.repository(RoomMemberRepository);
+    this.repository(MessageRepository);
+    this.repository(DirectMessageRepository);
+
+    // Register services
     this.service(ChatService);
-    // ... other bindings
 
-    // Add Socket.IO component
-    this.component(SocketIOComponent);
-  }
+    // Register controllers
+    this.controller(ChatController);
 
-  postConfigure() {
+    // Setup Socket.IO
     this.setupSocketIO();
   }
 
-  setupMiddlewares() {}
+  postConfigure(): ValueOrPromise<void> {}
 
+  setupMiddlewares(): ValueOrPromise<void> {}
+
+  // ---------------------------------------------------------------------------
   private setupSocketIO() {
-    const httpServer = this.getHttpServer();
+    // 1. Redis connection — SocketIOServerHelper creates 3 duplicate connections
+    //    for adapter (pub/sub) and emitter automatically
+    this.redisHelper = new RedisHelper({
+      name: 'chat-redis',
+      host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
+      port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
+      password: process.env.APP_ENV_REDIS_PASSWORD,
+      autoConnect: false,
+    });
 
-    this._io = new Server(httpServer, {
+    this.bind<RedisHelper>({
+      key: SocketIOBindingKeys.REDIS_CONNECTION,
+    }).toValue(this.redisHelper);
+
+    // 2. Authentication handler — called when a client emits 'authenticate'
+    //    Receives the Socket.IO handshake (headers, query, auth object)
+    const authenticateFn: ISocketIOServerBaseOptions['authenticateFn'] = handshake => {
+      const token =
+        handshake.headers.authorization?.replace('Bearer ', '') ??
+        handshake.auth?.token;
+
+      if (!token) {
+        return false;
+      }
+
+      // Implement your JWT/session verification here
+      // For example: return verifyJWT(token);
+      return true;
+    };
+
+    this.bind<ISocketIOServerBaseOptions['authenticateFn']>({
+      key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
+    }).toValue(authenticateFn);
+
+    // 3. Client connected handler — called AFTER successful authentication
+    //    This is where you register custom event handlers on each socket
+    const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
+      const chatService = this.get<ChatService>({
+        key: BindingKeys.build({
+          namespace: BindingNamespaces.SERVICE,
+          key: ChatService.name,
+        }),
+      });
+
+      chatService.registerClientHandlers({ socket });
+    };
+
+    this.bind<ISocketIOServerBaseOptions['clientConnectedFn']>({
+      key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
+    }).toValue(clientConnectedFn);
+
+    // 4. (Optional) Custom server options — override defaults
+    this.bind({
+      key: SocketIOBindingKeys.SERVER_OPTIONS,
+    }).toValue({
+      identifier: 'chat-socket-server',
+      path: '/io',
       cors: {
-        origin: EnvHelper.get('APP_ENV_CORS_ORIGIN') ?? '*',
+        origin: process.env.APP_ENV_CORS_ORIGIN ?? '*',
         methods: ['GET', 'POST'],
+        credentials: true,
       },
     });
 
-    // Authentication middleware
-    this._io.use(async (socket, next) => {
-      try {
-        const token = socket.handshake.auth.token;
-        if (!token) {
-          return next(new Error('Authentication required'));
-        }
+    // 5. Register the component — that's it!
+    //    SocketIOComponent handles:
+    //    - Runtime detection (Node.js / Bun)
+    //    - Post-start hook to create SocketIOServerHelper after server starts
+    //    - Redis adapter + emitter setup (automatic)
+    //    - Binding SocketIOServerHelper to SOCKET_IO_INSTANCE
+    this.component(SocketIOComponent);
+  }
 
-        const user = await verifyToken(token);
-        socket.data.userId = user.id;
-        socket.data.username = user.username;
-        next();
-      } catch (error) {
-        next(new Error('Invalid token'));
-      }
+  // ---------------------------------------------------------------------------
+  override async stop(): Promise<void> {
+    this.logger.info('[stop] Shutting down chat application...');
+
+    // 1. Shutdown Socket.IO (disconnects all clients, closes IO server, quits Redis)
+    const socketIOHelper = this.get<SocketIOServerHelper>({
+      key: SocketIOBindingKeys.SOCKET_IO_INSTANCE,
+      isOptional: true,
     });
 
-    // Get chat service from container
-    const chatService = this.container.get<ChatService>('services.ChatService');
-    this._chatHandler = new ChatSocketHandler(this._io, chatService);
+    if (socketIOHelper) {
+      await socketIOHelper.shutdown();
+    }
 
-    // Handle connections
-    this._io.on('connection', (socket) => {
-      this._chatHandler.setupHandlers(socket);
-    });
+    // 2. Disconnect Redis helper
+    if (this.redisHelper) {
+      await this.redisHelper.disconnect();
+    }
+
+    await super.stop();
   }
 }
 ```
 
-## 9. REST API for Chat History
+### How It Works
+
+```
+Application Lifecycle
+═════════════════════
+
+preConfigure()
+  ├── Register repositories, services, controllers
+  └── setupSocketIO()
+        ├── Bind RedisHelper → REDIS_CONNECTION
+        ├── Bind authenticateFn → AUTHENTICATE_HANDLER
+        ├── Bind clientConnectedFn → CLIENT_CONNECTED_HANDLER
+        ├── Bind server options → SERVER_OPTIONS
+        └── this.component(SocketIOComponent)
+
+initialize()
+  └── SocketIOComponent.binding()
+        ├── resolveBindings() — reads all bound values
+        ├── RuntimeModules.detect() — auto-detect Node.js or Bun
+        └── registerPostStartHook('socket-io-initialize')
+
+start()
+  ├── startBunModule() / startNodeModule() — server starts
+  └── executePostStartHooks()
+        └── 'socket-io-initialize'
+              ├── Create SocketIOServerHelper (with Redis adapter + emitter)
+              ├── Bind to SOCKET_IO_INSTANCE
+              └── Wire into server (runtime-specific)
+
+Client connects → 'authenticate' event → authenticateFn() → 'authenticated'
+  └── clientConnectedFn({ socket }) → chatService.registerClientHandlers({ socket })
+```
+
+## 7. REST API for Chat History
 
 ```typescript
 // src/controllers/chat.controller.ts
@@ -974,164 +1128,144 @@ import { z } from '@hono/zod-openapi';
 import {
   BaseController,
   controller,
-  get,
-  post,
   inject,
-  HTTP,
-  jsonContent,
+  jsonResponse,
   TRouteContext,
+  BindingKeys,
+  BindingNamespaces,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { ChatService } from '../services/chat.service';
 
 const ChatRoutes = {
   GET_ROOMS: {
     method: HTTP.Methods.GET,
     path: '/rooms',
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'User rooms',
-        schema: z.array(z.any()),
-      }),
-    },
+    responses: jsonResponse({
+      description: 'User rooms',
+      schema: z.array(z.any()),
+    }),
   },
   CREATE_ROOM: {
     method: HTTP.Methods.POST,
     path: '/rooms',
-    request: {
-      body: jsonContent({
-        schema: z.object({
-          name: z.string().min(1).max(100),
-          description: z.string().optional(),
-          isPrivate: z.boolean().default(false),
-        }),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
-        description: 'Created room',
-        schema: z.any(),
-      }),
-    },
+    responses: jsonResponse({
+      description: 'Created room',
+      schema: z.any(),
+    }),
   },
   GET_MESSAGES: {
     method: HTTP.Methods.GET,
-    path: '/rooms/:roomId/messages',
-    request: {
-      params: z.object({ roomId: z.string().uuid() }),
-      query: z.object({
-        limit: z.string().optional(),
-        before: z.string().optional(),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Room messages',
-        schema: z.array(z.any()),
-      }),
-    },
+    path: '/rooms/{roomId}/messages',
+    responses: jsonResponse({
+      description: 'Room messages',
+      schema: z.array(z.any()),
+    }),
   },
   GET_CONVERSATIONS: {
     method: HTTP.Methods.GET,
     path: '/conversations',
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'User conversations',
-        schema: z.array(z.any()),
-      }),
-    },
+    responses: jsonResponse({
+      description: 'User conversations',
+      schema: z.array(z.any()),
+    }),
   },
   GET_DIRECT_MESSAGES: {
     method: HTTP.Methods.GET,
-    path: '/dm/:userId',
-    request: {
-      params: z.object({ userId: z.string().uuid() }),
-      query: z.object({
-        limit: z.string().optional(),
-        before: z.string().optional(),
-      }),
-    },
-    responses: {
-      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-        description: 'Direct messages',
-        schema: z.array(z.any()),
-      }),
-    },
+    path: '/dm/{userId}',
+    responses: jsonResponse({
+      description: 'Direct messages',
+      schema: z.array(z.any()),
+    }),
   },
 } as const;
-
-type ChatRoutes = typeof ChatRoutes;
 
 @controller({ path: '/chat' })
 export class ChatController extends BaseController {
   constructor(
-    @inject('services.ChatService')
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: 'ChatService',
+      }),
+    })
     private _chatService: ChatService,
   ) {
-    super({ scope: ChatController.name, path: '/chat' });
+    super({ scope: ChatController.name });
+    this.definitions = ChatRoutes;
   }
 
-  override binding() {}
-
-  @get({ configs: ChatRoutes.GET_ROOMS })
-  async getRooms(c: TRouteContext) {
-    const userId = c.get('userId');
-    const rooms = await this._chatService.getUserRooms({ userId });
-    return c.json(rooms);
-  }
-
-  @post({ configs: ChatRoutes.CREATE_ROOM })
-  async createRoom(c: TRouteContext) {
-    const userId = c.get('userId');
-    const data = c.req.valid<{ name: string; description?: string; isPrivate: boolean }>('json');
-
-    const room = await this._chatService.createRoom({
-      ...data,
-      createdBy: userId,
+  override binding() {
+    // GET /chat/rooms
+    this.bindRoute({ configs: ChatRoutes.GET_ROOMS }).to({
+      handler: async (c: TRouteContext) => {
+        const userId = c.get('userId');
+        const rooms = await this._chatService.getUserRooms({ userId });
+        return c.json(rooms, HTTP.ResultCodes.RS_2.Ok);
+      },
     });
 
-    return c.json(room, HTTP.ResultCodes.RS_2.Created);
-  }
-
-  @get({ configs: ChatRoutes.GET_MESSAGES })
-  async getMessages(c: TRouteContext) {
-    const { roomId } = c.req.valid<{ roomId: string }>('param');
-    const { limit, before } = c.req.valid<{ limit?: string; before?: string }>('query');
-
-    const messages = await this._chatService.getMessages({
-      roomId,
-      limit: limit ? parseInt(limit) : undefined,
-      before,
+    // POST /chat/rooms
+    this.bindRoute({ configs: ChatRoutes.CREATE_ROOM }).to({
+      handler: async (c: TRouteContext) => {
+        const userId = c.get('userId');
+        const data = await c.req.json<{ name: string; description?: string; isPrivate: boolean }>();
+        const room = await this._chatService.createRoom({ ...data, createdBy: userId });
+        return c.json(room, HTTP.ResultCodes.RS_2.Created);
+      },
     });
 
-    return c.json(messages);
-  }
+    // GET /chat/rooms/:roomId/messages
+    this.bindRoute({ configs: ChatRoutes.GET_MESSAGES }).to({
+      handler: async (c: TRouteContext) => {
+        const roomId = c.req.param('roomId');
+        const limit = c.req.query('limit');
+        const before = c.req.query('before');
 
-  @get({ configs: ChatRoutes.GET_CONVERSATIONS })
-  async getConversations(c: TRouteContext) {
-    const userId = c.get('userId');
-    const conversations = await this._chatService.getConversations({ userId });
-    return c.json(conversations);
-  }
+        const messages = await this._chatService.getMessages({
+          roomId,
+          limit: limit ? parseInt(limit) : undefined,
+          before: before ?? undefined,
+        });
 
-  @get({ configs: ChatRoutes.GET_DIRECT_MESSAGES })
-  async getDirectMessages(c: TRouteContext) {
-    const currentUserId = c.get('userId');
-    const { userId: otherUserId } = c.req.valid<{ userId: string }>('param');
-    const { limit, before } = c.req.valid<{ limit?: string; before?: string }>('query');
-
-    const messages = await this._chatService.getDirectMessages({
-      userId1: currentUserId,
-      userId2: otherUserId,
-      limit: limit ? parseInt(limit) : undefined,
-      before,
+        return c.json(messages, HTTP.ResultCodes.RS_2.Ok);
+      },
     });
 
-    return c.json(messages);
+    // GET /chat/conversations
+    this.bindRoute({ configs: ChatRoutes.GET_CONVERSATIONS }).to({
+      handler: async (c: TRouteContext) => {
+        const userId = c.get('userId');
+        const conversations = await this._chatService.getConversations({ userId });
+        return c.json(conversations, HTTP.ResultCodes.RS_2.Ok);
+      },
+    });
+
+    // GET /chat/dm/:userId
+    this.bindRoute({ configs: ChatRoutes.GET_DIRECT_MESSAGES }).to({
+      handler: async (c: TRouteContext) => {
+        const currentUserId = c.get('userId');
+        const otherUserId = c.req.param('userId');
+        const limit = c.req.query('limit');
+        const before = c.req.query('before');
+
+        const messages = await this._chatService.getDirectMessages({
+          userId1: currentUserId,
+          userId2: otherUserId,
+          limit: limit ? parseInt(limit) : undefined,
+          before: before ?? undefined,
+        });
+
+        return c.json(messages, HTTP.ResultCodes.RS_2.Ok);
+      },
+    });
   }
 }
 ```
 
-## 10. Client Usage
+## 8. Client Usage
+
+Clients must follow the `SocketIOServerHelper` authentication flow: **connect** → **emit `authenticate`** → **receive `authenticated`** — then they're ready to send and receive events.
 
 ### JavaScript Client Example
 
@@ -1139,72 +1273,118 @@ export class ChatController extends BaseController {
 // client/chat-client.ts
 import { io, Socket } from 'socket.io-client';
 
-interface Message {
-  id: string;
-  content: string;
-  senderId: string;
-  sender: { username: string; avatar?: string };
-  createdAt: string;
-}
+const SERVER_URL = 'http://localhost:3000';
+const SOCKET_PATH = '/io';
 
 class ChatClient {
   private _socket: Socket;
+  private _authenticated = false;
 
-  constructor(opts: { serverUrl: string; token: string }) {
-    this._socket = io(opts.serverUrl, {
-      auth: { token: opts.token },
+  constructor(opts: { token: string }) {
+    this._socket = io(SERVER_URL, {
+      path: SOCKET_PATH,
+      transports: ['websocket', 'polling'],
+      extraHeaders: {
+        Authorization: `Bearer ${opts.token}`,
+      },
     });
 
-    this.setupListeners();
+    this.setupLifecycle();
   }
 
-  private setupListeners() {
+  // ---------------------------------------------------------------------------
+  // Connection lifecycle — follows SocketIOServerHelper's auth flow
+  // ---------------------------------------------------------------------------
+  private setupLifecycle() {
+    // Step 1: Connected — now send authenticate event
     this._socket.on('connect', () => {
-      console.log('Connected to chat server');
+      console.log('Connected | id:', this._socket.id);
+      this._socket.emit('authenticate');
     });
 
-    this._socket.on('message:new', (message: Message) => {
+    // Step 2: Authenticated — ready to use
+    this._socket.on('authenticated', (data: { id: string; time: string }) => {
+      console.log('Authenticated | id:', data.id);
+      this._authenticated = true;
+      this.setupEventHandlers();
+    });
+
+    // Authentication failed
+    this._socket.on('unauthenticated', (data: { message: string }) => {
+      console.error('Authentication failed:', data.message);
+      this._authenticated = false;
+    });
+
+    // Keep-alive ping from server (every 30s)
+    this._socket.on('ping', () => {
+      // Server is checking we're alive — no action needed
+    });
+
+    this._socket.on('disconnect', (reason: string) => {
+      console.log('Disconnected:', reason);
+      this._authenticated = false;
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Custom event handlers — registered after authentication
+  // ---------------------------------------------------------------------------
+  private setupEventHandlers() {
+    this._socket.on('message:new', (message) => {
       console.log('New message:', message);
-      // Update UI
+    });
+
+    this._socket.on('dm:new', (message) => {
+      console.log('Direct message:', message);
     });
 
     this._socket.on('typing:update', (data) => {
-      console.log(`User ${data.userId} is ${data.isTyping ? 'typing' : 'stopped typing'}`);
-      // Show/hide typing indicator
+      const action = data.isTyping ? 'typing' : 'stopped typing';
+      console.log(`User ${data.userId} is ${action} in room ${data.roomId}`);
     });
 
     this._socket.on('presence:changed', (data) => {
       console.log(`User ${data.userId} is now ${data.status}`);
-      // Update online status
+    });
+
+    this._socket.on('room:user-joined', (data) => {
+      console.log(`User ${data.userId} joined room ${data.roomId}`);
+    });
+
+    this._socket.on('room:user-left', (data) => {
+      console.log(`User ${data.userId} left room ${data.roomId}`);
     });
 
     this._socket.on('error', (error) => {
-      console.error('Socket error:', error);
+      console.error('Error:', error);
     });
   }
 
-  joinRoom(opts: { roomId: string }) {
-    this._socket.emit('room:join', opts.roomId);
+  // ---------------------------------------------------------------------------
+  // Public API
+  // ---------------------------------------------------------------------------
+  joinRoom(opts: { roomId: string; userId: string }) {
+    this._socket.emit('room:join', opts);
   }
 
-  leaveRoom(opts: { roomId: string }) {
-    this._socket.emit('room:leave', opts.roomId);
+  leaveRoom(opts: { roomId: string; userId: string }) {
+    this._socket.emit('room:leave', opts);
   }
 
-  sendMessage(opts: { roomId: string; content: string }) {
-    this._socket.emit('message:send', { roomId: opts.roomId, content: opts.content });
+  sendMessage(opts: { roomId: string; content: string; userId: string }) {
+    this._socket.emit('message:send', opts);
   }
 
-  sendDirectMessage(opts: { receiverId: string; content: string }) {
-    this._socket.emit('dm:send', { receiverId: opts.receiverId, content: opts.content });
+  sendDirectMessage(opts: { receiverId: string; content: string; userId: string }) {
+    this._socket.emit('dm:send', opts);
   }
 
   startTyping(opts: { roomId: string }) {
-    this._socket.emit('typing:start', opts.roomId);
+    this._socket.emit('typing:start', opts);
   }
 
   stopTyping(opts: { roomId: string }) {
-    this._socket.emit('typing:stop', opts.roomId);
+    this._socket.emit('typing:stop', opts);
   }
 
   disconnect() {
@@ -1213,49 +1393,133 @@ class ChatClient {
 }
 
 // Usage
-const chat = new ChatClient({ serverUrl: 'http://localhost:3000', token: 'your-jwt-token' });
+const chat = new ChatClient({ token: 'your-jwt-token' });
 
-chat.joinRoom({ roomId: 'room-uuid' });
-chat.sendMessage({ roomId: 'room-uuid', content: 'Hello everyone!' });
+// After 'authenticated' event fires, you can use:
+// chat.joinRoom({ roomId: 'room-uuid', userId: 'user-uuid' });
+// chat.sendMessage({ roomId: 'room-uuid', content: 'Hello everyone!', userId: 'user-uuid' });
 ```
 
-## 11. Scaling with Redis
+### Using `SocketIOClientHelper`
 
-For production, use Redis for Socket.IO adapter:
+For server-to-server or microservice communication, use the built-in `SocketIOClientHelper`:
 
 ```typescript
-// src/application.ts
-import { createAdapter } from '@socket.io/redis-adapter';
-import { createClient } from 'redis';
-import { EnvHelper } from '@venizia/ignis-helpers';
+import { SocketIOClientHelper } from '@venizia/ignis-helpers';
 
-private async setupSocketIO() {
-  const pubClient = createClient({ url: EnvHelper.get('APP_ENV_REDIS_URL') });
-  const subClient = pubClient.duplicate();
+const client = new SocketIOClientHelper({
+  identifier: 'chat-service-client',
+  host: 'http://localhost:3000',
+  options: {
+    path: '/io',
+    extraHeaders: {
+      Authorization: 'Bearer service-token',
+    },
+  },
+  onConnected: () => {
+    client.authenticate();
+  },
+  onAuthenticated: () => {
+    console.log('Ready!');
 
-  await Promise.all([pubClient.connect(), subClient.connect()]);
+    // Subscribe to events
+    client.subscribe({
+      event: 'message:new',
+      handler: (data) => console.log('New message:', data),
+    });
 
-  this._io.adapter(createAdapter(pubClient, subClient));
+    // Emit events
+    client.emit({
+      topic: 'message:send',
+      data: { roomId: 'general', content: 'Hello from service!', userId: 'service-user' },
+    });
 
-  // ... rest of setup
-}
+    // Join rooms
+    client.joinRooms({ rooms: ['room:general'] });
+  },
+});
+```
+
+## 9. Scaling with Redis
+
+Redis scaling is **built-in** and **automatic** when using `SocketIOComponent`. You do not need to set up the Redis adapter manually.
+
+### How It Works
+
+When you bind a `RedisHelper` to `SocketIOBindingKeys.REDIS_CONNECTION`, the `SocketIOServerHelper` automatically:
+
+1. Creates 3 duplicate Redis connections from your helper
+2. Sets up `@socket.io/redis-adapter` for cross-instance pub/sub
+3. Sets up `@socket.io/redis-emitter` for message broadcasting
+
+```
+Process A                     Redis                     Process B
+┌─────────────┐           ┌──────────┐           ┌─────────────┐
+│ SocketIO     │──pub────► │          │ ◄──pub────│ SocketIO     │
+│ ServerHelper │◄──sub──── │  Pub/Sub │ ──sub────►│ ServerHelper │
+│              │           │          │           │              │
+│ Emitter      │──emit───► │ Streams  │ ◄──emit───│ Emitter      │
+└─────────────┘           └──────────┘           └─────────────┘
+```
+
+### Multi-Instance Deployment
+
+Run multiple instances behind a load balancer — Redis keeps them in sync:
+
+```bash
+# Instance 1
+APP_ENV_SERVER_PORT=3001 bun run start
+
+# Instance 2
+APP_ENV_SERVER_PORT=3002 bun run start
+
+# Both instances share Socket.IO state via Redis
+# Clients on Instance 1 can receive messages from Instance 2
+```
+
+All calls to `socketIOHelper.send()` go through the Redis emitter, so messages reach clients regardless of which server instance they're connected to.
+
+### Redis Configuration
+
+The only thing you need is a `RedisHelper` bound to the correct key (already done in the application setup):
+
+```typescript
+this.redisHelper = new RedisHelper({
+  name: 'chat-redis',
+  host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
+  port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
+  password: process.env.APP_ENV_REDIS_PASSWORD,
+  autoConnect: false,
+});
+
+this.bind<RedisHelper>({
+  key: SocketIOBindingKeys.REDIS_CONNECTION,
+}).toValue(this.redisHelper);
 ```
 
 ## Summary
 
 | Feature | Implementation |
 |---------|---------------|
-| Rooms | Socket.IO rooms + database |
-| Direct Messages | Personal rooms + database |
-| Typing Indicators | Socket events with auto-timeout |
-| Presence | Online status tracking |
-| History | REST API with pagination |
-| Scaling | Redis adapter for pub/sub |
+| Rooms | `SocketIOServerHelper` rooms + database persistence |
+| Direct Messages | `socketIOHelper.send({ destination: receiverId })` + database |
+| Typing Indicators | Custom socket events with auto-timeout (3s) |
+| Presence | `socketIOHelper.send()` broadcast on connect/disconnect |
+| History | REST API with cursor-based pagination |
+| Authentication | `SocketIOServerHelper` built-in flow (connect → authenticate → authenticated) |
+| Scaling | Redis adapter/emitter — automatic via `RedisHelper` binding |
+| Runtime | Auto-detected (Node.js or Bun) by `SocketIOComponent` |
 
 ## Next Steps
 
-- Add file/image sharing with [Storage Helper](../../references/helpers/storage.md)
+- Add file/image sharing with [Storage Helper](/references/helpers/storage)
 - Add push notifications
 - Implement read receipts
 - Add message reactions
-- Deploy with [Deployment Guide](../../best-practices/deployment-strategies.md)
+- Deploy with [Deployment Guide](/best-practices/deployment-strategies)
+
+## See Also
+
+- [Socket.IO Component](/references/components/socket-io) — Component reference
+- [Socket.IO Helper](/references/helpers/socket-io) — Server + Client helper API
+- [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) — Working example with automated test client

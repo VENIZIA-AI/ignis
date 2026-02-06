@@ -79,6 +79,33 @@
         "vite": "^7.0.0",
       },
     },
+    "examples/socket-io-test": {
+      "name": "@nx/socket-io-test",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hono/zod-openapi": "^1.1.5",
+        "@socket.io/bun-engine": "^0.1.0",
+        "@venizia/ignis": "workspace:*",
+        "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-helpers": "workspace:*",
+        "@venizia/ignis-inversion": "workspace:*",
+        "dotenv-flow": "^4.1.0",
+        "hono": "^4.11.0",
+        "ioredis": "^5.6.1",
+        "lodash": "^4.17.21",
+        "socket.io": "^4.8.3",
+        "socket.io-client": "^4.8.3",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.4",
+        "@types/lodash": "^4.17.21",
+        "@venizia/dev-configs": "workspace:*",
+        "eslint": "^9.39.2",
+        "prettier": "^3.7.4",
+        "tsc-alias": "^1.8.16",
+        "typescript": "~5.9.3",
+      },
+    },
     "examples/vert": {
       "name": "@nx/vert",
       "version": "0.0.0",
@@ -113,9 +140,9 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.0.3-1",
+      "version": "0.0.3-2",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.0.5-2",
+        "@venizia/ignis-helpers": "^0.0.5-3",
         "@venizia/ignis-inversion": "^0.0.3-0",
         "glob": "^13.0.0",
         "lodash": "^4.17.21",
@@ -133,10 +160,10 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.6-4",
+      "version": "0.0.6-5",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.0.3-1",
-        "@venizia/ignis-helpers": "^0.0.5-2",
+        "@venizia/ignis-boot": "^0.0.3-2",
+        "@venizia/ignis-helpers": "^0.0.5-3",
         "@venizia/ignis-inversion": "^0.0.3-0",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
@@ -145,6 +172,7 @@
         "@asteasolutions/zod-to-openapi": "^8.4.0",
         "@hono/node-server": "^1.19.8",
         "@hono/swagger-ui": "^0.5.2",
+        "@socket.io/bun-engine": "^0.1.0",
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
         "@types/nodemailer": "^7.0.4",
@@ -163,6 +191,7 @@
         "@hono/swagger-ui": "^0.5.2",
         "@hono/zod-openapi": "^1.1.5",
         "@scalar/hono-api-reference": "^0.9.32",
+        "@socket.io/bun-engine": "^0.1.0",
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
         "bullmq": "^5.66.2",
@@ -181,6 +210,7 @@
         "@hono/node-server",
         "@hono/swagger-ui",
         "@scalar/hono-api-reference",
+        "@socket.io/bun-engine",
         "@socket.io/redis-adapter",
         "@socket.io/redis-emitter",
         "mailgun.js",
@@ -250,7 +280,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.5-2",
+      "version": "0.0.5-3",
       "dependencies": {
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
@@ -684,6 +714,8 @@
     "@nodelib/fs.walk": ["@nodelib/fs.walk@1.2.8", "", { "dependencies": { "@nodelib/fs.scandir": "2.1.5", "fastq": "^1.6.0" } }, "sha512-oGB+UxlgWcgQkgwo8GcEGwemoTFt3FIO9ababBmaGwXIoBKZ+GTy0pP185beGg7Llih/NSHSV2XAs1lnznocSg=="],
 
     "@nx/rpc-api-server": ["@nx/rpc-api-server@workspace:examples/rpc-api-server"],
+
+    "@nx/socket-io-test": ["@nx/socket-io-test@workspace:examples/socket-io-test"],
 
     "@nx/vert": ["@nx/vert@workspace:examples/vert"],
 
@@ -1122,6 +1154,8 @@
     "@smithy/uuid": ["@smithy/uuid@1.1.0", "", { "dependencies": { "tslib": "^2.6.2" } }, "sha512-4aUIteuyxtBUhVdiQqcDhKFitwfd9hqoSDYY2KRXiWtgoWJ9Bmise+KfEPDiVHWeJepvF8xJO9/9+WDIciMFFw=="],
 
     "@so-ric/colorspace": ["@so-ric/colorspace@1.1.6", "", { "dependencies": { "color": "^5.0.2", "text-hex": "1.0.x" } }, "sha512-/KiKkpHNOBgkFJwu9sh48LkHSMYGyuTcSFK/qMBdnOAlrRJzRSXAOFB5qwzaVQuDl8wAvHVMkaASQDReTahxuw=="],
+
+    "@socket.io/bun-engine": ["@socket.io/bun-engine@0.1.0", "", { "peerDependencies": { "typescript": "^5" } }, "sha512-B1z6GuAxZlfvjgaa3BHZBOfqHJNfnpebTw15p+Un1HuBL4YM7wUxO9sJa7K4NDTe7XbUBeqLIwTDA5tOOjffog=="],
 
     "@socket.io/component-emitter": ["@socket.io/component-emitter@3.1.2", "", {}, "sha512-9BCxFwvbGg/RsZK9tjXd8s4UcwR0MWeFQ1XEKIQVVvAGJyINdrqKMcTRyLoK8Rse1GjzLV9cwjWV1olXRWEXVA=="],
 

@@ -1,4 +1,4 @@
-import { BaseApplication } from '@/base/applications';
+import { BaseApplication, TBunServerInstance } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
@@ -7,7 +7,11 @@ import {
   DefaultRedisHelper,
   getError,
   HTTP,
+  RuntimeModules,
   SocketIOServerHelper,
+  TSocketIOAuthenticateFn,
+  TSocketIOClientConnectedFn,
+  TSocketIOValidateRoomFn,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { ServerOptions } from 'socket.io';
@@ -47,37 +51,42 @@ export class SocketIOComponent extends BaseComponent {
     super({ scope: SocketIOComponent.name });
 
     this.bindings = {
+      // Server Options
       [SocketIOBindingKeys.SERVER_OPTIONS]: Binding.bind<Partial<ServerOptions>>({
         key: SocketIOBindingKeys.SERVER_OPTIONS,
       }).toValue(DEFAULT_SERVER_OPTIONS),
+
+      // Redis Connection
       [SocketIOBindingKeys.REDIS_CONNECTION]: Binding.bind<DefaultRedisHelper | null>({
         key: SocketIOBindingKeys.REDIS_CONNECTION,
       }).toValue(null),
-      [SocketIOBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind<
-        SocketIOServerHelper['authenticateFn'] | null
-      >({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(null),
-      [SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER]: Binding.bind<
-        SocketIOServerHelper['onClientConnected'] | null
-      >({ key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER }).toValue(null),
+
+      // Authentication Handler
+      [SocketIOBindingKeys.AUTHENTICATE_HANDLER]: Binding.bind<TSocketIOAuthenticateFn | null>({
+        key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
+      }).toValue(null),
+
+      // Validate Room Handler
+      [SocketIOBindingKeys.VALIDATE_ROOM_HANDLER]: Binding.bind<TSocketIOValidateRoomFn | null>({
+        key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
+      }).toValue(null),
+
+      // Client Connected Handler
+      [SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER]:
+        Binding.bind<TSocketIOClientConnectedFn | null>({
+          key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
+        }).toValue(null),
     };
   }
 
-  override binding(): ValueOrPromise<void> {
-    if (!this.application) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: '[binding] Invalid application to bind AuthenticateComponent',
-      });
-    }
-    this.logger.for(this.binding.name).info('Binding authenticate for application...');
-
+  // --------------------------------------------------------------------------
+  private resolveBindings() {
     const extraServerOptions =
       this.application.get<Partial<ServerOptions>>({
         key: SocketIOBindingKeys.SERVER_OPTIONS,
         isOptional: true,
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
-    this.logger.for(this.binding.name).debug('Socket.IO Server Options: %j', this.serverOptions);
 
     const redisConnection = this.application.get<DefaultRedisHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
@@ -85,11 +94,11 @@ export class SocketIOComponent extends BaseComponent {
     if (!(redisConnection instanceof DefaultRedisHelper)) {
       throw getError({
         message:
-          '[SocketIOComponent][binding] Invaid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!',
+          '[SocketIOComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!',
       });
     }
 
-    const authenticateFn = this.application.get<SocketIOServerHelper['authenticateFn']>({
+    const authenticateFn = this.application.get<TSocketIOAuthenticateFn>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     });
     if (!authenticateFn) {
@@ -98,29 +107,181 @@ export class SocketIOComponent extends BaseComponent {
       });
     }
 
-    let clientConnectedFn: any = null;
+    let validateRoomFn: TSocketIOValidateRoomFn | undefined;
+    if (this.application.isBound({ key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER })) {
+      validateRoomFn = this.application.get<TSocketIOValidateRoomFn>({
+        key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
+      });
+    }
+
+    let clientConnectedFn: TSocketIOClientConnectedFn | undefined;
     if (this.application.isBound({ key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER })) {
-      clientConnectedFn = this.application.get<SocketIOServerHelper['onClientConnected']>({
+      clientConnectedFn = this.application.get<TSocketIOClientConnectedFn>({
         key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
       });
     }
 
-    const httpServer = this.application.getServerInstance();
-    if (!httpServer) {
+    return { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn };
+  }
+
+  // --------------------------------------------------------------------------
+  private registerBunHook(opts: {
+    redisConnection: DefaultRedisHelper;
+    authenticateFn: TSocketIOAuthenticateFn;
+    validateRoomFn?: TSocketIOValidateRoomFn;
+    clientConnectedFn?: TSocketIOClientConnectedFn;
+  }) {
+    const { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn } = opts;
+    const serverOptions = this.serverOptions;
+
+    this.application.registerPostStartHook({
+      identifier: 'socket-io-initialize',
+      hook: async () => {
+        const { Server: BunEngine } = await import('@socket.io/bun-engine');
+
+        // Extract cors fields explicitly to bridge socket.io/bun-engine type differences
+        const corsConfig = typeof serverOptions.cors === 'object' ? serverOptions.cors : undefined;
+        const engine = new BunEngine({
+          path: serverOptions.path ?? '/socket.io/',
+          ...(corsConfig && {
+            cors: {
+              origin: corsConfig.origin as string | RegExp | (string | RegExp)[] | undefined,
+              methods: corsConfig.methods,
+              credentials: corsConfig.credentials,
+              allowedHeaders: corsConfig.allowedHeaders,
+              exposedHeaders: corsConfig.exposedHeaders,
+              maxAge: corsConfig.maxAge,
+            },
+          }),
+        });
+
+        const socketIOHelper = new SocketIOServerHelper({
+          runtime: RuntimeModules.BUN,
+          identifier: serverOptions.identifier!,
+          engine,
+          serverOptions,
+          redisConnection,
+          authenticateFn,
+          validateRoomFn,
+          clientConnectedFn,
+        });
+        await socketIOHelper.configure();
+
+        this.application
+          .bind({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE })
+          .toValue(socketIOHelper);
+
+        // Wire engine into the running Bun server via reload
+        const serverInstance = this.application.getServerInstance<TBunServerInstance>();
+        const honoServer = this.application.getServer();
+        const engineHandler = engine.handler();
+        const enginePath = serverOptions.path ?? '/socket.io/';
+
+        serverInstance!.reload({
+          fetch: (req, server) => {
+            const url = new URL(req.url);
+
+            if (!url.pathname.startsWith(enginePath)) {
+              return honoServer.fetch(req, server);
+            }
+
+            const response = engine.handleRequest(req, server);
+            if (response) {
+              return response;
+            }
+
+            return new Response(null, { status: 404 });
+          },
+          websocket: engineHandler.websocket,
+        });
+
+        this.logger.for(this.registerBunHook.name).info('SocketIO initialized for Bun runtime');
+      },
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  private registerNodeHook(opts: {
+    redisConnection: DefaultRedisHelper;
+    authenticateFn: TSocketIOAuthenticateFn;
+    validateRoomFn?: TSocketIOValidateRoomFn;
+    clientConnectedFn?: TSocketIOClientConnectedFn;
+  }) {
+    const { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn } = opts;
+    const serverOptions = this.serverOptions;
+
+    this.application.registerPostStartHook({
+      identifier: 'socket-io-initialize',
+      hook: async () => {
+        const httpServer = this.application.getServerInstance();
+        if (!httpServer) {
+          throw getError({
+            message: '[SocketIOComponent] HTTP server not available for Node.js runtime!',
+          });
+        }
+
+        const socketIOHelper = new SocketIOServerHelper({
+          runtime: RuntimeModules.NODE,
+          identifier: serverOptions.identifier!,
+          server: httpServer,
+          serverOptions,
+          redisConnection,
+          authenticateFn,
+          validateRoomFn,
+          clientConnectedFn,
+        });
+        await socketIOHelper.configure();
+
+        this.application
+          .bind({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE })
+          .toValue(socketIOHelper);
+
+        this.logger
+          .for(this.registerNodeHook.name)
+          .info('SocketIO initialized for Node.js runtime');
+      },
+    });
+  }
+
+  // --------------------------------------------------------------------------
+  override binding(): ValueOrPromise<void> {
+    if (!this.application) {
       throw getError({
-        message: '[DANGER][SocketIOComponent] Invalid http server to setup io socket server!',
+        statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+        message: '[binding] Invalid application to bind SocketIOComponent',
       });
     }
 
-    this.application.bind({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE }).toValue(
-      new SocketIOServerHelper({
-        identifier: this.serverOptions.identifier!,
-        server: httpServer,
-        serverOptions: this.serverOptions,
-        redisConnection,
-        authenticateFn,
-        clientConnectedFn,
-      }),
-    );
+    this.logger.for(this.binding.name).info('Binding SocketIO for application...');
+
+    const { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn } =
+      this.resolveBindings();
+    this.logger.for(this.binding.name).debug('Socket.IO Server Options: %j', this.serverOptions);
+
+    const runtime = RuntimeModules.detect();
+
+    switch (runtime) {
+      case RuntimeModules.BUN: {
+        this.registerBunHook({
+          redisConnection,
+          authenticateFn,
+          validateRoomFn,
+          clientConnectedFn,
+        });
+        break;
+      }
+      case RuntimeModules.NODE: {
+        this.registerNodeHook({
+          redisConnection,
+          authenticateFn,
+          validateRoomFn,
+          clientConnectedFn,
+        });
+        break;
+      }
+      default: {
+        throw getError({ message: `[SocketIOComponent] Unsupported runtime: ${runtime}` });
+      }
+    }
   }
 }

@@ -5,5 +5,6 @@ export class SocketIOBindingKeys {
   static readonly REDIS_CONNECTION = '@app/socket-io/redis-connection';
 
   static readonly AUTHENTICATE_HANDLER = '@app/socket-io/authenticate-handler';
+  static readonly VALIDATE_ROOM_HANDLER = '@app/socket-io/validate-room-handler';
   static readonly CLIENT_CONNECTED_HANDLER = '@app/socket-io/client-connected-handler';
 }

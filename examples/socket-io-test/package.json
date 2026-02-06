@@ -1,0 +1,53 @@
+{
+  "name": "@nx/socket-io-test",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Socket.IO Test Application",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "bun run clean && bun run build",
+    "preserver:dev": "bun run rebuild",
+    "server:dev": "NODE_ENV=development bun .",
+    "server:prod": "NODE_ENV=production bun ."
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@hono/zod-openapi": "^1.1.5",
+    "@socket.io/bun-engine": "^0.1.0",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
+    "dotenv-flow": "^4.1.0",
+    "hono": "^4.11.0",
+    "ioredis": "^5.6.1",
+    "lodash": "^4.17.21",
+    "socket.io": "^4.8.3",
+    "socket.io-client": "^4.8.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.4",
+    "@types/lodash": "^4.17.21",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "^9.39.2",
+    "prettier": "^3.7.4",
+    "tsc-alias": "^1.8.16",
+    "typescript": "~5.9.3"
+  }
+}
