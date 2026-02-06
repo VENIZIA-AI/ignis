@@ -1,9 +1,11 @@
-import { IncomingHttpHeaders } from 'node:http';
-import { ParsedUrlQuery } from 'node:querystring';
-import { SocketOptions } from 'socket.io-client';
-import { Server as HTTPServer } from 'node:http';
-import { Socket as IOSocket, ServerOptions } from 'socket.io';
+import { RuntimeModules } from '@/common/constants';
+import { TConstValue, ValueOrPromise } from '@/common/types';
 import { DefaultRedisHelper } from '@/helpers/redis';
+import { Server as HTTPServer, IncomingHttpHeaders } from 'node:http';
+import { ParsedUrlQuery } from 'node:querystring';
+import { Socket as IOSocket, ServerOptions } from 'socket.io';
+import { SocketOptions } from 'socket.io-client';
+import { SocketIOClientStates } from './constants';
 
 export interface IHandshake {
   headers: IncomingHttpHeaders;
@@ -20,6 +22,17 @@ export interface IHandshake {
 }
 
 // ------------------------------------------------------------
+export type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>;
+
+export interface ISocketIOClient {
+  id: string;
+  socket: IOSocket;
+  state: TSocketIOClientState;
+  interval?: NodeJS.Timeout;
+  authenticateTimeout: NodeJS.Timeout;
+}
+
+// ------------------------------------------------------------
 export interface IOptions extends SocketOptions {
   path: string;
   extraHeaders: Record<string | symbol | number, any>;
@@ -29,18 +42,39 @@ export interface ISocketIOClientOptions {
   identifier: string;
   host: string;
   options: IOptions;
+
+  // Lifecycle callbacks
+  onConnected?: () => ValueOrPromise<void>;
+  onDisconnected?: (reason: string) => ValueOrPromise<void>;
+  onError?: (error: Error) => ValueOrPromise<void>;
+  onAuthenticated?: () => ValueOrPromise<void>;
+  onUnauthenticated?: (message: string) => ValueOrPromise<void>;
 }
 
 // ------------------------------------------------------------
-export interface ISocketIOServerOptions {
+export type TEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+
+// ------------------------------------------------------------
+export interface ISocketIOServerBaseOptions {
   identifier: string;
-  server: HTTPServer;
   serverOptions: Partial<ServerOptions>;
 
   redisConnection: DefaultRedisHelper;
 
-  authenticateFn: (args: IHandshake) => Promise<boolean>;
-  clientConnectedFn: (opts: { socket: IOSocket }) => Promise<void>;
+  authenticateFn: (args: IHandshake) => ValueOrPromise<boolean>;
+  clientConnectedFn?: (opts: { socket: IOSocket }) => ValueOrPromise<void>;
   authenticateTimeout?: number;
   defaultRooms?: string[];
 }
+
+export interface ISocketIOServerNodeOptions extends ISocketIOServerBaseOptions {
+  runtime: typeof RuntimeModules.NODE;
+  server: HTTPServer;
+}
+
+export interface ISocketIOServerBunOptions extends ISocketIOServerBaseOptions {
+  runtime: typeof RuntimeModules.BUN;
+  engine: any; // @socket.io/bun-engine Server instance — typed as any since it's an optional peer dep
+}
+
+export type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServerBunOptions;

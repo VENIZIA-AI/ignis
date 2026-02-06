@@ -1,12 +1,28 @@
+import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
 import { io, type Socket } from 'socket.io-client';
-import { IOptions, ISocketIOClientOptions } from '../common';
+import {
+  IOptions,
+  ISocketIOClientOptions,
+  SocketIOClientStates,
+  SocketIOConstants,
+  TEventHandler,
+  TSocketIOClientState,
+} from '../common';
 
 export class SocketIOClientHelper extends BaseHelper {
   private host: string;
   private options: IOptions;
   private client: Socket;
+  private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
+
+  // Lifecycle callbacks
+  private onConnected?: () => ValueOrPromise<void>;
+  private onDisconnected?: (reason: string) => ValueOrPromise<void>;
+  private onError?: (error: Error) => ValueOrPromise<void>;
+  private onAuthenticated?: () => ValueOrPromise<void>;
+  private onUnauthenticated?: (message: string) => ValueOrPromise<void>;
 
   constructor(opts: ISocketIOClientOptions) {
     super({ scope: opts.identifier });
@@ -15,19 +31,81 @@ export class SocketIOClientHelper extends BaseHelper {
     this.host = opts.host;
     this.options = opts.options;
 
+    // Store lifecycle callbacks
+    this.onConnected = opts.onConnected;
+    this.onDisconnected = opts.onDisconnected;
+    this.onError = opts.onError;
+    this.onAuthenticated = opts.onAuthenticated;
+    this.onUnauthenticated = opts.onUnauthenticated;
+
     this.configure();
   }
 
   // -----------------------------------------------------------------
+  getState(): TSocketIOClientState {
+    return this.state;
+  }
+
+  // -----------------------------------------------------------------
   configure() {
+    const logger = this.logger.for(this.configure.name);
+
     if (this.client) {
-      this.logger
-        .for(this.configure.name)
-        .info('[%s] SocketIO Client already established! Client: %j', this.identifier, this.client);
+      logger.info('SocketIO Client already established | id: %s', this.identifier);
       return;
     }
 
     this.client = io(this.host, this.options);
+
+    // Register connection lifecycle handlers
+    this.client.on(SocketIOConstants.EVENT_CONNECT, () => {
+      logger.info('Connected | id: %s', this.identifier);
+
+      Promise.resolve(this.onConnected?.()).catch(error => {
+        logger.error('onConnected callback error | error: %s', error);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_DISCONNECT, (reason: string) => {
+      logger.info('Disconnected | id: %s | reason: %s', this.identifier, reason);
+      this.state = SocketIOClientStates.UNAUTHORIZED;
+
+      Promise.resolve(this.onDisconnected?.(reason)).catch(error => {
+        logger.error('onDisconnected callback error | error: %s', error);
+      });
+    });
+
+    this.client.on('connect_error', (error: Error) => {
+      logger.error('Connection error | id: %s | error: %s', this.identifier, error);
+
+      Promise.resolve(this.onError?.(error)).catch(err => {
+        logger.error('onError callback error | error: %s', err);
+      });
+    });
+
+    // Handle server authentication responses
+    this.client.on(SocketIOConstants.EVENT_AUTHENTICATED, (data: unknown) => {
+      logger.info('Authenticated | id: %s | data: %j', this.identifier, data);
+      this.state = SocketIOClientStates.AUTHENTICATED;
+
+      Promise.resolve(this.onAuthenticated?.()).catch(error => {
+        logger.error('onAuthenticated callback error | error: %s', error);
+      });
+    });
+
+    this.client.on(SocketIOConstants.EVENT_UNAUTHENTICATE, (data: { message?: string }) => {
+      logger.warn('Unauthenticated | id: %s | data: %j', this.identifier, data);
+      this.state = SocketIOClientStates.UNAUTHORIZED;
+
+      Promise.resolve(this.onUnauthenticated?.(data?.message ?? '')).catch(error => {
+        logger.error('onUnauthenticated callback error | error: %s', error);
+      });
+    });
+
+    // Handle ping from server
+    this.client.on(SocketIOConstants.EVENT_PING, () => {
+      logger.debug('Ping received | id: %s', this.identifier);
+    });
   }
 
   // -----------------------------------------------------------------
@@ -36,61 +114,99 @@ export class SocketIOClientHelper extends BaseHelper {
   }
 
   // -----------------------------------------------------------------
-  subscribe(opts: { events: Record<string, (...props: any) => void>; ignoreDuplicate?: boolean }) {
-    const { events: eventHandlers, ignoreDuplicate = false } = opts;
+  authenticate() {
+    const logger = this.logger.for(this.authenticate.name);
 
-    const eventNames = Object.keys(eventHandlers);
-    this.logger
-      .for(this.subscribe.name)
-      .info('[%s] Handling events: %j', this.identifier, eventNames);
+    if (!this.client?.connected) {
+      logger.warn('Cannot authenticate | id: %s | reason: not connected', this.identifier);
+      return;
+    }
 
-    for (const eventName of eventNames) {
-      const handler = eventHandlers[eventName];
-      if (!handler) {
-        this.logger
-          .for(this.subscribe.name)
-          .info('[%s] Ignore handling event %s because of no handler!', this.identifier, eventName);
-        continue;
-      }
+    if (this.state !== SocketIOClientStates.UNAUTHORIZED) {
+      logger.warn('Cannot authenticate | id: %s | currentState: %s', this.identifier, this.state);
+      return;
+    }
 
-      if (ignoreDuplicate && this.client.hasListeners(eventName)) {
-        this.logger
-          .for(this.subscribe.name)
-          .info(
-            '[%s] Ignore handling event %s because of duplicate handler!',
-            this.identifier,
-            eventName,
-          );
-        continue;
-      }
+    this.state = SocketIOClientStates.AUTHENTICATING;
+    this.client.emit(SocketIOConstants.EVENT_AUTHENTICATE);
+    logger.info('Authentication requested | id: %s', this.identifier);
+  }
 
-      this.client.on(eventName, (...props: any[]) => {
-        handler(this.client, ...props);
+  // -----------------------------------------------------------------
+  subscribe<T = unknown>(opts: {
+    event: string;
+    handler: TEventHandler<T>;
+    ignoreDuplicate?: boolean;
+  }) {
+    const logger = this.logger.for(this.subscribe.name);
+    const { event, handler, ignoreDuplicate = true } = opts;
+
+    if (!handler) {
+      logger.warn('No handler provided | event: %s', event);
+      return;
+    }
+
+    if (ignoreDuplicate && this.client.hasListeners(event)) {
+      logger.info('Handler already exists | event: %s', event);
+      return;
+    }
+
+    // Wrap handler in try-catch for error safety
+    const wrappedHandler = (data: T) => {
+      Promise.resolve(handler(data)).catch(error => {
+        logger.error('Handler error | event: %s | error: %s', event, error);
+      });
+    };
+
+    this.client.on(event, wrappedHandler);
+    logger.info('Subscribed | event: %s', event);
+  }
+
+  // Keep batch subscribe for convenience
+  subscribeMany(opts: { events: Record<string, TEventHandler>; ignoreDuplicate?: boolean }) {
+    const { events, ignoreDuplicate } = opts;
+
+    for (const event in events) {
+      this.subscribe({
+        event,
+        handler: events[event],
+        ignoreDuplicate,
       });
     }
   }
 
   // -----------------------------------------------------------------
-  unsubscribe(opts: { events: Array<string> }) {
-    const { events: eventNames } = opts;
-    this.logger
-      .for(this.unsubscribe.name)
-      .info('[%s] Handling events: %j', this.identifier, eventNames);
-    for (const eventName of eventNames) {
-      if (!this.client?.hasListeners(eventName)) {
-        continue;
-      }
+  unsubscribe(opts: { event: string; handler?: TEventHandler }) {
+    const logger = this.logger.for(this.unsubscribe.name);
+    const { event, handler } = opts;
 
-      this.client.off(eventName);
+    if (!this.client?.hasListeners(event)) {
+      logger.info('No listeners to remove | event: %s', event);
+      return;
+    }
+
+    if (handler) {
+      this.client.off(event, handler as (...args: unknown[]) => void);
+      logger.info('Removed specific handler | event: %s', event);
+      return;
+    }
+
+    this.client.off(event);
+    logger.info('Removed all handlers | event: %s', event);
+  }
+
+  unsubscribeMany(opts: { events: string[] }) {
+    for (const event of opts.events) {
+      this.unsubscribe({ event });
     }
   }
 
   // -----------------------------------------------------------------
   connect() {
+    const logger = this.logger.for(this.connect.name);
+
     if (!this.client) {
-      this.logger
-        .for(this.connect.name)
-        .info('Invalid client to connect! | ID: %s', this.identifier);
+      logger.info('Invalid client to connect | id: %s', this.identifier);
       return;
     }
 
@@ -99,10 +215,10 @@ export class SocketIOClientHelper extends BaseHelper {
 
   // -----------------------------------------------------------------
   disconnect() {
+    const logger = this.logger.for(this.disconnect.name);
+
     if (!this.client) {
-      this.logger
-        .for(this.disconnect.name)
-        .info('[%s] Invalid client to disconnect!', this.identifier);
+      logger.info('Invalid client to disconnect | id: %s', this.identifier);
       return;
     }
 
@@ -110,23 +226,78 @@ export class SocketIOClientHelper extends BaseHelper {
   }
 
   // -----------------------------------------------------------------
-  emit(opts: { topic: string; message: string; doLog?: boolean }) {
+  emit<T = unknown>(opts: { topic: string; data: T; doLog?: boolean; cb?: () => void }) {
+    const logger = this.logger.for(this.emit.name);
+    const { topic, data, doLog = false, cb } = opts;
+
     if (!this.client?.connected) {
       throw getError({
         statusCode: 400,
-        message: `[emit] Invalid socket client state to emit!`,
+        message: 'Invalid socket client state to emit',
       });
     }
 
-    const { topic, message, doLog = false } = opts;
-    this.client.emit(topic, message);
+    if (!topic) {
+      throw getError({
+        statusCode: 400,
+        message: 'Topic is required to emit',
+      });
+    }
 
-    if (!doLog) {
+    this.client.emit(topic, data);
+
+    if (cb) {
+      setImmediate(cb);
+    }
+
+    if (doLog) {
+      logger.info('Emitted | topic: %s | data: %j', topic, data);
+    }
+  }
+
+  // -----------------------------------------------------------------
+  joinRooms(opts: { rooms: string[] }) {
+    const logger = this.logger.for(this.joinRooms.name);
+    const { rooms } = opts;
+
+    if (!this.client?.connected) {
+      logger.warn('Cannot join rooms | id: %s | reason: not connected', this.identifier);
       return;
     }
 
-    this.logger
-      .for(this.emit.name)
-      .info('[%s] Topic: %s | Message: %j', this.identifier, topic, message);
+    this.client.emit(SocketIOConstants.EVENT_JOIN, { rooms });
+    logger.info('Join rooms requested | id: %s | rooms: %j', this.identifier, rooms);
+  }
+
+  // -----------------------------------------------------------------
+  leaveRooms(opts: { rooms: string[] }) {
+    const logger = this.logger.for(this.leaveRooms.name);
+    const { rooms } = opts;
+
+    if (!this.client?.connected) {
+      logger.warn('Cannot leave rooms | id: %s | reason: not connected', this.identifier);
+      return;
+    }
+
+    this.client.emit(SocketIOConstants.EVENT_LEAVE, { rooms });
+    logger.info('Leave rooms requested | id: %s | rooms: %j', this.identifier, rooms);
+  }
+
+  // -----------------------------------------------------------------
+  shutdown() {
+    const logger = this.logger.for(this.shutdown.name);
+    logger.info('Shutting down SocketIO client | id: %s', this.identifier);
+
+    if (this.client) {
+      // Remove all listeners to prevent memory leaks
+      this.client.removeAllListeners();
+
+      if (this.client.connected) {
+        this.client.disconnect();
+      }
+    }
+
+    this.state = SocketIOClientStates.UNAUTHORIZED;
+    logger.info('SocketIO client shutdown complete | id: %s', this.identifier);
   }
 }
