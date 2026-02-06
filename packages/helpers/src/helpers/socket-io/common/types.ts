@@ -52,19 +52,23 @@ export interface ISocketIOClientOptions {
 }
 
 // ------------------------------------------------------------
-export type TEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+export type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+export type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
+export type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>;
+export type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
 
 // ------------------------------------------------------------
 export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
-
   redisConnection: DefaultRedisHelper;
-
-  authenticateFn: (args: IHandshake) => ValueOrPromise<boolean>;
-  clientConnectedFn?: (opts: { socket: IOSocket }) => ValueOrPromise<void>;
-  authenticateTimeout?: number;
   defaultRooms?: string[];
+  authenticateTimeout?: number;
+  pingInterval?: number;
+
+  authenticateFn: TSocketIOAuthenticateFn;
+  validateRoomFn?: TSocketIOValidateRoomFn;
+  clientConnectedFn?: TSocketIOClientConnectedFn;
 }
 
 export interface ISocketIOServerNodeOptions extends ISocketIOServerBaseOptions {

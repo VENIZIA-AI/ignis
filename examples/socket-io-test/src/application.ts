@@ -12,13 +12,15 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  ISocketIOServerBaseOptions,
   int,
   RedisHelper,
   SocketIOBindingKeys,
   SocketIOComponent,
   SocketIOServerHelper,
   SwaggerComponent,
+  TSocketIOAuthenticateFn,
+  TSocketIOClientConnectedFn,
+  TSocketIOValidateRoomFn,
   ValueOrPromise,
 } from '@venizia/ignis';
 import isEmpty from 'lodash/isEmpty';
@@ -136,7 +138,7 @@ export class Application extends BaseApplication {
     }).toValue(this.redisHelper);
 
     // Authenticate handler
-    const authenticateFn: ISocketIOServerBaseOptions['authenticateFn'] = handshake => {
+    const authenticateFn: TSocketIOAuthenticateFn = handshake => {
       const logger = this.logger.for('authenticateFn');
       logger.info('Authenticating client | headers: %j', handshake.headers);
 
@@ -152,12 +154,21 @@ export class Application extends BaseApplication {
       return true;
     };
 
-    this.bind<ISocketIOServerBaseOptions['authenticateFn']>({
+    this.bind<TSocketIOAuthenticateFn>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     }).toValue(authenticateFn);
 
+    // Validate room handler — allow all rooms for testing
+    const validateRoomFn: TSocketIOValidateRoomFn = ({ rooms }) => {
+      return rooms;
+    };
+
+    this.bind<TSocketIOValidateRoomFn>({
+      key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
+    }).toValue(validateRoomFn);
+
     // Client connected handler
-    const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
+    const clientConnectedFn: TSocketIOClientConnectedFn = ({ socket }) => {
       this.logger.for('clientConnectedFn').info('Client connected | id: %s', socket.id);
 
       const socketEventService = this.get<SocketEventService>({
@@ -170,7 +181,7 @@ export class Application extends BaseApplication {
       socketEventService.registerClientHandlers({ socket });
     };
 
-    this.bind<ISocketIOServerBaseOptions['clientConnectedFn']>({
+    this.bind<TSocketIOClientConnectedFn>({
       key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
     }).toValue(clientConnectedFn);
 

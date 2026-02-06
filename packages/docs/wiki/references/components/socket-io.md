@@ -18,8 +18,9 @@ Real-time, bidirectional, event-based communication using Socket.IO — with aut
 |------------|----------|------|----------|---------|
 | `@app/socket-io/server-options` | `SocketIOBindingKeys.SERVER_OPTIONS` | `Partial<IServerOptions>` | No | See [Default Options](#default-server-options) |
 | `@app/socket-io/redis-connection` | `SocketIOBindingKeys.REDIS_CONNECTION` | `RedisHelper` / `DefaultRedisHelper` | **Yes** | `null` |
-| `@app/socket-io/authenticate-handler` | `SocketIOBindingKeys.AUTHENTICATE_HANDLER` | `(args: IHandshake) => ValueOrPromise<boolean>` | **Yes** | `null` |
-| `@app/socket-io/client-connected-handler` | `SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER` | `(opts: { socket: IOSocket }) => ValueOrPromise<void>` | No | `null` |
+| `@app/socket-io/authenticate-handler` | `SocketIOBindingKeys.AUTHENTICATE_HANDLER` | `TSocketIOAuthenticateFn` | **Yes** | `null` |
+| `@app/socket-io/validate-room-handler` | `SocketIOBindingKeys.VALIDATE_ROOM_HANDLER` | `TSocketIOValidateRoomFn` | No | `null` |
+| `@app/socket-io/client-connected-handler` | `SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER` | `TSocketIOClientConnectedFn` | No | `null` |
 | `@app/socket-io/instance` | `SocketIOBindingKeys.SOCKET_IO_INSTANCE` | `SocketIOServerHelper` | — | *Set by component* |
 
 > [!NOTE]
@@ -46,6 +47,7 @@ Real-time, bidirectional, event-based communication using Socket.IO — with aut
                         │    │     ├── SERVER_OPTIONS               │
                         │    │     ├── REDIS_CONNECTION             │
                         │    │     ├── AUTHENTICATE_HANDLER         │
+                        │    │     ├── VALIDATE_ROOM_HANDLER        │
                         │    │     └── CLIENT_CONNECTED_HANDLER     │
                         │    │                                      │
                         │    └── RuntimeModules.detect()            │
@@ -54,6 +56,7 @@ Real-time, bidirectional, event-based communication using Socket.IO — with aut
                         │                                          │
                         │  (Post-start hooks execute after server) │
                         │    ├── Creates SocketIOServerHelper       │
+                        │    ├── await socketIOHelper.configure()   │
                         │    ├── Binds to SOCKET_IO_INSTANCE        │
                         │    └── Wires into server (runtime-specific)│
                         └──────────────────────────────────────────┘
@@ -126,7 +129,9 @@ import {
   SocketIOComponent,
   SocketIOBindingKeys,
   RedisHelper,
-  ISocketIOServerBaseOptions,
+  TSocketIOAuthenticateFn,
+  TSocketIOValidateRoomFn,
+  TSocketIOClientConnectedFn,
   ValueOrPromise,
 } from '@venizia/ignis';
 
@@ -153,27 +158,38 @@ export class Application extends BaseApplication {
     }).toValue(this.redisHelper);
 
     // 2. Authentication handler (required)
-    const authenticateFn: ISocketIOServerBaseOptions['authenticateFn'] = handshake => {
+    const authenticateFn: TSocketIOAuthenticateFn = handshake => {
       const token = handshake.headers.authorization;
       // Implement your auth logic — JWT verification, session check, etc.
       return !!token;
     };
 
-    this.bind<ISocketIOServerBaseOptions['authenticateFn']>({
+    this.bind<TSocketIOAuthenticateFn>({
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     }).toValue(authenticateFn);
 
-    // 3. Client connected handler (optional)
-    const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
+    // 3. Room validation handler (optional — joins rejected without this)
+    const validateRoomFn: TSocketIOValidateRoomFn = ({ socket, rooms }) => {
+      // Return the rooms that the client is allowed to join
+      const allowedRooms = rooms.filter(room => room.startsWith('public-'));
+      return allowedRooms;
+    };
+
+    this.bind<TSocketIOValidateRoomFn>({
+      key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
+    }).toValue(validateRoomFn);
+
+    // 4. Client connected handler (optional)
+    const clientConnectedFn: TSocketIOClientConnectedFn = ({ socket }) => {
       console.log('Client connected:', socket.id);
       // Register custom event handlers on the socket
     };
 
-    this.bind<ISocketIOServerBaseOptions['clientConnectedFn']>({
+    this.bind<TSocketIOClientConnectedFn>({
       key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
     }).toValue(clientConnectedFn);
 
-    // 4. Register the component — that's it!
+    // 5. Register the component — that's it!
     this.component(SocketIOComponent);
   }
 }
@@ -327,6 +343,7 @@ Reads all binding keys from the DI container and validates required ones:
 | `SERVER_OPTIONS` | Optional, merged with defaults | — |
 | `REDIS_CONNECTION` | Must be `instanceof DefaultRedisHelper` | `"Invalid instance of redisConnection"` |
 | `AUTHENTICATE_HANDLER` | Must be a function (non-null) | `"Invalid authenticateFn"` |
+| `VALIDATE_ROOM_HANDLER` | Optional, checked via `isBound()` | — |
 | `CLIENT_CONNECTED_HANDLER` | Optional, checked via `isBound()` | — |
 
 ### `registerBunHook()`
@@ -336,8 +353,9 @@ Registers a post-start hook that:
 1. Dynamically imports `@socket.io/bun-engine`
 2. Creates a `BunEngine` instance with CORS config bridging
 3. Creates `SocketIOServerHelper` with `runtime: RuntimeModules.BUN`
-4. Binds the helper to `SOCKET_IO_INSTANCE`
-5. Calls `serverInstance.reload()` to wire the engine's `fetch` and `websocket` handlers into the running Bun server
+4. Awaits `socketIOHelper.configure()` which waits for all Redis connections to be ready before initializing the adapter and emitter
+5. Binds the helper to `SOCKET_IO_INSTANCE`
+6. Calls `serverInstance.reload()` to wire the engine's `fetch` and `websocket` handlers into the running Bun server
 
 **CORS type bridging**: Socket.IO and `@socket.io/bun-engine` have slightly different CORS type definitions. The component extracts individual fields explicitly to avoid type mismatches without using `as any`.
 
@@ -347,7 +365,8 @@ Registers a post-start hook that:
 
 1. Gets the HTTP server instance via `getServerInstance()`
 2. Creates `SocketIOServerHelper` with `runtime: RuntimeModules.NODE`
-3. Binds the helper to `SOCKET_IO_INSTANCE`
+3. Awaits `socketIOHelper.configure()` which waits for all Redis connections to be ready before initializing the adapter and emitter
+4. Binds the helper to `SOCKET_IO_INSTANCE`
 
 Node mode is simpler because Socket.IO natively attaches to `node:http.Server`.
 

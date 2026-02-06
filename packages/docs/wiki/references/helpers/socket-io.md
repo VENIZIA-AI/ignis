@@ -29,7 +29,10 @@ import {
   ISocketIOClient,
   SocketIOConstants,
   SocketIOClientStates,
-  TEventHandler,
+  TSocketIOEventHandler,
+  TSocketIOAuthenticateFn,
+  TSocketIOValidateRoomFn,
+  TSocketIOClientConnectedFn,
 } from '@venizia/ignis-helpers';
 ```
 
@@ -60,9 +63,11 @@ type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServerBunOpt
 | `identifier` | `string` | Yes | — | Unique name for this Socket.IO server instance |
 | `serverOptions` | `Partial<ServerOptions>` | Yes | — | Socket.IO server configuration (path, cors, etc.) |
 | `redisConnection` | `DefaultRedisHelper` | Yes | — | Redis helper for adapter + emitter. Creates 3 duplicate connections internally |
-| `authenticateFn` | `(args: IHandshake) => ValueOrPromise<boolean>` | Yes | — | Called when client emits `authenticate`. Return `true` to accept |
-| `clientConnectedFn` | `(opts: { socket: IOSocket }) => ValueOrPromise<void>` | No | — | Called after successful authentication |
+| `authenticateFn` | `TSocketIOAuthenticateFn` | Yes | — | Called when client emits `authenticate`. Return `true` to accept |
+| `clientConnectedFn` | `TSocketIOClientConnectedFn` | No | — | Called after successful authentication |
+| `validateRoomFn` | `TSocketIOValidateRoomFn` | No | — | Called when client requests to join rooms. Return allowed room names. Joins rejected if not provided |
 | `authenticateTimeout` | `number` | No | `10000` (10s) | Milliseconds before unauthenticated clients are disconnected |
+| `pingInterval` | `number` | No | `30000` (30s) | Milliseconds between keep-alive pings to authenticated clients |
 | `defaultRooms` | `string[]` | No | `['io-default', 'io-notification']` | Rooms clients auto-join after authentication |
 
 **Node.js-specific options** (`runtime: RuntimeModules.NODE`):
@@ -220,19 +225,12 @@ helper.disconnect({ socket: clientSocket });
 
 ### `getEngine(): any`
 
-Returns the `@socket.io/bun-engine` instance (Bun runtime only). Returns `undefined` for Node.js runtime.
+Returns the `@socket.io/bun-engine` instance (Bun runtime only). **Throws** if called on a non-Bun runtime.
 
 ```typescript
 const engine = helper.getEngine();
 // Use for Bun-specific operations
-```
-
-### `close(): Promise<void>`
-
-Closes the Socket.IO server (stops accepting new connections).
-
-```typescript
-await helper.close();
+// Throws an error if runtime is not Bun
 ```
 
 ### `shutdown(): Promise<void>`
@@ -287,7 +285,7 @@ Client                          Server (SocketIOServerHelper)
   │                                │      ├── Send initial ping
   │                                │      ├── Join default rooms
   │                                │      ├── Register join/leave handlers
-  │                                │      ├── Start 30s ping interval
+  │                                │      ├── Start ping interval (configurable via `pingInterval`)
   │  ◄── "authenticated" ──────── │      ├── Emit "authenticated" with { id, time }
   │                                │      └── Call clientConnectedFn({ socket })
   │                                │
@@ -324,7 +322,7 @@ Each connected client is tracked with:
 | `id` | `string` | Socket ID |
 | `socket` | `IOSocket` | Raw Socket.IO socket |
 | `state` | `TSocketIOClientState` | Authentication state |
-| `interval` | `NodeJS.Timeout?` | 30-second ping interval (set after auth) |
+| `interval` | `NodeJS.Timeout?` | Ping interval (configurable via `pingInterval`) |
 | `authenticateTimeout` | `NodeJS.Timeout` | Timeout to disconnect unauthenticated clients |
 
 ### Client States
@@ -361,6 +359,25 @@ After authentication, clients can join and leave rooms:
 | `leave` | Client → Server | `{ rooms: string[] }` | Leave one or more rooms |
 
 These handlers are registered automatically in `onClientAuthenticated()`.
+
+### Room Validation
+
+Client room join requests are validated using the `validateRoomFn` callback. If no `validateRoomFn` is configured, **all join requests are rejected** for security.
+
+```typescript
+const helper = new SocketIOServerHelper({
+  // ...
+  validateRoomFn: ({ socket, rooms }) => {
+    // Only allow rooms prefixed with 'public-' or the user's own room
+    const userId = socket.handshake.auth.userId;
+    return rooms.filter(room =>
+      room.startsWith('public-') || room === `user-${userId}`
+    );
+  },
+});
+```
+
+The function receives the socket and requested rooms, and must return the subset of rooms the client is allowed to join.
 
 ### Default Rooms
 
@@ -444,7 +461,7 @@ Events emitted via `helper.send()` use the **emitter** (not direct socket), so t
 | `authenticate` | `SocketIOConstants.EVENT_AUTHENTICATE` | Client → Server | Client requests authentication |
 | `authenticated` | `SocketIOConstants.EVENT_AUTHENTICATED` | Server → Client | Authentication succeeded |
 | `unauthenticated` | `SocketIOConstants.EVENT_UNAUTHENTICATE` | Server → Client | Authentication failed |
-| `ping` | `SocketIOConstants.EVENT_PING` | Server → Client | Keep-alive ping (every 30s after auth) |
+| `ping` | `SocketIOConstants.EVENT_PING` | Server → Client | Server → Client keep-alive (interval configurable via `pingInterval`) |
 | `join` | `SocketIOConstants.EVENT_JOIN` | Client → Server | Request to join rooms |
 | `leave` | `SocketIOConstants.EVENT_LEAVE` | Client → Server | Request to leave rooms |
 
@@ -455,7 +472,12 @@ Events emitted via `helper.send()` use the **emitter** (not direct socket), so t
 The `configure()` method sets up the IO server based on runtime:
 
 ```
-configure()
+configure()  [async]
+  │
+  ├── Register error handlers on redisPub, redisSub, redisEmitter
+  │
+  ├── Await all Redis connections ready
+  │     └── Promise.all([waitForRedisReady(pub), waitForRedisReady(sub), waitForRedisReady(emitter)])
   │
   ├── Runtime check
   │     ├── NODE: new IOServer(httpServer, serverOptions)
@@ -465,8 +487,7 @@ configure()
   │     └── io.adapter(createAdapter(redisPub, redisSub))
   │
   ├── Redis Emitter
-  │     ├── new Emitter(redisEmitter)
-  │     └── Register error handler on redisEmitter
+  │     └── new Emitter(redisEmitter)
   │
   └── Connection handler
         └── io.on('connection', socket => onClientConnect({ socket }))
@@ -591,7 +612,7 @@ Subscribe to a single event with duplicate protection.
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `opts.event` | `string` | — | Event name |
-| `opts.handler` | `TEventHandler<T>` | — | Event handler (errors are caught internally) |
+| `opts.handler` | `TSocketIOEventHandler<T>` | — | Event handler (errors are caught internally) |
 | `opts.ignoreDuplicate` | `boolean` | `true` | Skip if handler already exists for this event |
 
 ```typescript
@@ -624,7 +645,7 @@ Remove event listener(s).
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `opts.event` | `string` | Event name |
-| `opts.handler` | `TEventHandler` (optional) | Specific handler to remove. If omitted, removes all handlers |
+| `opts.handler` | `TSocketIOEventHandler` (optional) | Specific handler to remove. If omitted, removes all handlers |
 
 ```typescript
 // Remove specific handler
@@ -739,7 +760,7 @@ client.shutdown();
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `EVENT_PING` | `'ping'` | Server → Client keep-alive |
+| `EVENT_PING` | `'ping'` | Server → Client keep-alive (interval configurable via `pingInterval`) |
 | `EVENT_CONNECT` | `'connection'` | Server-side connection event |
 | `EVENT_DISCONNECT` | `'disconnect'` | Disconnection event |
 | `EVENT_JOIN` | `'join'` | Room join request |
@@ -777,9 +798,11 @@ interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
   redisConnection: DefaultRedisHelper;
-  authenticateFn: (args: IHandshake) => ValueOrPromise<boolean>;
-  clientConnectedFn?: (opts: { socket: IOSocket }) => ValueOrPromise<void>;
+  authenticateFn: TSocketIOAuthenticateFn;
+  clientConnectedFn?: TSocketIOClientConnectedFn;
+  validateRoomFn?: TSocketIOValidateRoomFn;
   authenticateTimeout?: number;
+  pingInterval?: number;
   defaultRooms?: string[];
 }
 
@@ -839,10 +862,28 @@ interface ISocketIOClientOptions {
 }
 ```
 
-### `TEventHandler`
+### `TSocketIOAuthenticateFn`
 
 ```typescript
-type TEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
+type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
+```
+
+### `TSocketIOValidateRoomFn`
+
+```typescript
+type TSocketIOValidateRoomFn = (opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>;
+```
+
+### `TSocketIOClientConnectedFn`
+
+```typescript
+type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
+```
+
+### `TSocketIOEventHandler`
+
+```typescript
+type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
 ```
 
 ---

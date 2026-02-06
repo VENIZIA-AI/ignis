@@ -7,7 +7,7 @@ import {
   ISocketIOClientOptions,
   SocketIOClientStates,
   SocketIOConstants,
-  TEventHandler,
+  TSocketIOEventHandler,
   TSocketIOClientState,
 } from '../common';
 
@@ -135,7 +135,7 @@ export class SocketIOClientHelper extends BaseHelper {
   // -----------------------------------------------------------------
   subscribe<T = unknown>(opts: {
     event: string;
-    handler: TEventHandler<T>;
+    handler: TSocketIOEventHandler<T>;
     ignoreDuplicate?: boolean;
   }) {
     const logger = this.logger.for(this.subscribe.name);
@@ -163,7 +163,7 @@ export class SocketIOClientHelper extends BaseHelper {
   }
 
   // Keep batch subscribe for convenience
-  subscribeMany(opts: { events: Record<string, TEventHandler>; ignoreDuplicate?: boolean }) {
+  subscribeMany(opts: { events: Record<string, TSocketIOEventHandler>; ignoreDuplicate?: boolean }) {
     const { events, ignoreDuplicate } = opts;
 
     for (const event in events) {
@@ -176,7 +176,7 @@ export class SocketIOClientHelper extends BaseHelper {
   }
 
   // -----------------------------------------------------------------
-  unsubscribe(opts: { event: string; handler?: TEventHandler }) {
+  unsubscribe(opts: { event: string; handler?: TSocketIOEventHandler }) {
     const logger = this.logger.for(this.unsubscribe.name);
     const { event, handler } = opts;
 

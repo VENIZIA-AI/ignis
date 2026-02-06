@@ -17,6 +17,12 @@ The `SocketIOComponent` was broken in two ways: (1) it called `getServerInstance
 - **Generic `getServerInstance()`**: Type-safe server instance access with runtime-specific type parameter
 - **`@socket.io/bun-engine` Support**: Optional peer dependency for Bun runtime Socket.IO
 - **Socket.IO Test Example**: Complete reimplementation with REST + WebSocket simulation endpoints
+- **Async `configure()`**: Redis connections awaited before adapter/emitter initialization
+- **Room Validation**: New `validateRoomFn` callback — joins rejected without it
+- **Type Aliases**: `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`, `TSocketIOEventHandler`
+- **Redis Error Handlers**: All 3 Redis connections now have `.on('error')` handlers
+- **Ping Fix**: Uses local `socket.emit()` instead of Redis emitter
+- **Helper Reorganized**: Clear section structure with consistent separators
 
 ## Breaking Changes
 
@@ -37,7 +43,19 @@ import { ISocketIOServerOptions } from '@venizia/ignis-helpers';
 import { TSocketIOServerOptions } from '@venizia/ignis-helpers';
 ```
 
-### 2. `SocketIOServerHelper` Constructor Signature Changed
+### 2. `TEventHandler` Renamed to `TSocketIOEventHandler`
+
+**Before:**
+```typescript
+import { TEventHandler } from '@venizia/ignis-helpers';
+```
+
+**After:**
+```typescript
+import { TSocketIOEventHandler } from '@venizia/ignis-helpers';
+```
+
+### 3. `SocketIOServerHelper` Constructor Signature Changed
 
 The constructor now accepts a discriminated union based on `runtime` instead of a flat options object with `server`.
 
@@ -169,9 +187,11 @@ export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
   redisConnection: DefaultRedisHelper;
-  authenticateFn: (args: IHandshake) => ValueOrPromise<boolean>;
-  clientConnectedFn?: (opts: { socket: IOSocket }) => ValueOrPromise<void>;
+  authenticateFn: TSocketIOAuthenticateFn;
+  validateRoomFn?: TSocketIOValidateRoomFn;
+  clientConnectedFn?: TSocketIOClientConnectedFn;
   authenticateTimeout?: number;
+  pingInterval?: number;
   defaultRooms?: string[];
 }
 
@@ -202,16 +222,16 @@ export type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServe
 
 ```typescript
 override binding(): ValueOrPromise<void> {
-  const { redisConnection, authenticateFn, clientConnectedFn } = this.resolveBindings();
+  const { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn } = this.resolveBindings();
   const runtime = RuntimeModules.detect();
 
   switch (runtime) {
     case RuntimeModules.BUN: {
-      this.registerBunHook({ redisConnection, authenticateFn, clientConnectedFn });
+      this.registerBunHook({ redisConnection, authenticateFn, validateRoomFn, clientConnectedFn });
       break;
     }
     case RuntimeModules.NODE: {
-      this.registerNodeHook({ redisConnection, authenticateFn, clientConnectedFn });
+      this.registerNodeHook({ redisConnection, authenticateFn, validateRoomFn, clientConnectedFn });
       break;
     }
     default: {
@@ -312,6 +332,80 @@ Run with `bun client.ts`. Creates two clients and runs all test cases automatica
 14. Send to room (REST — verify listener gets it)
 15. Broadcast (REST — verify both clients receive)
 
+## Bug Fixes & Improvements (Review Pass)
+
+### 1. Ping Uses Local Socket Instead of Redis Emitter
+
+**Problem:** Server pings were sent via `this.send()` which routes through the Redis emitter — unnecessary overhead for a keep-alive that only targets the local socket.
+
+**Fix:** Changed to `socket.emit(SocketIOConstants.EVENT_PING, ...)` for direct local delivery.
+
+### 2. Redis Error Handlers on All Connections
+
+**Problem:** The three duplicated Redis connections (`redisPub`, `redisSub`, `redisEmitter`) had no `.on('error')` handlers. Unhandled Redis errors could crash the process.
+
+**Fix:** Error handlers are now registered on all three connections before awaiting readiness.
+
+### 3. `configure()` Now Async — Awaits Redis Readiness
+
+**Problem:** `configure()` was synchronous and called in the constructor. Redis `duplicate()` connections might not be ready when the adapter/emitter tries to use them.
+
+**Fix:** `configure()` is now `async` and uses `waitForRedisReady()` with `Promise.all()` to ensure all three Redis connections are ready before initializing the IO server, adapter, and emitter. Removed `this.configure()` from constructor — both component hooks now call `await socketIOHelper.configure()`.
+
+### 4. Room Join Requires `validateRoomFn`
+
+**Problem:** Any authenticated client could join arbitrary rooms by emitting the `join` event, creating a security concern at scale.
+
+**Fix:** Added `validateRoomFn` callback (`TSocketIOValidateRoomFn`). If not provided, all join requests are rejected. The function receives `{ socket, rooms }` and returns the allowed subset.
+
+New binding key: `SocketIOBindingKeys.VALIDATE_ROOM_HANDLER`
+
+### 5. `getEngine()` Throws on Non-Bun Runtime
+
+**Problem:** `getEngine()` previously returned `undefined` silently on Node.js runtime, which could cause confusing errors downstream.
+
+**Fix:** Now throws a descriptive error if called on a non-Bun runtime.
+
+### 6. Configurable Ping Interval
+
+**Problem:** Ping interval was hardcoded to 30 seconds with no way to customize it.
+
+**Fix:** Added `pingInterval` option to `ISocketIOServerBaseOptions` (default: `30000`ms).
+
+### 7. Extracted Type Aliases
+
+New type aliases for better developer experience:
+
+| Type | Signature |
+|------|-----------|
+| `TSocketIOAuthenticateFn` | `(args: IHandshake) => ValueOrPromise<boolean>` |
+| `TSocketIOValidateRoomFn` | `(opts: { socket: IOSocket; rooms: string[] }) => ValueOrPromise<string[]>` |
+| `TSocketIOClientConnectedFn` | `(opts: { socket: IOSocket }) => ValueOrPromise<void>` |
+| `TSocketIOEventHandler<T>` | `(data: T) => ValueOrPromise<void>` (renamed from `TEventHandler`) |
+
+### 8. `close()` Made Private
+
+The `close()` method is now private. Use `shutdown()` for graceful cleanup (which calls `close()` internally).
+
+### 9. Bun Fetch Handler Returns 404 Fallback
+
+**Problem:** In the Bun hook, `engine.handleRequest()` could return `undefined`, causing the fetch handler to return nothing.
+
+**Fix:** Added `return new Response(null, { status: 404 })` fallback after `engine.handleRequest()`.
+
+### 10. Server Helper Reorganized
+
+The `SocketIOServerHelper` file was reorganized into clear sections with consistent separators:
+
+- **Fields** — grouped by concern (Runtime & Server, Socket.IO, Redis, Callbacks, Options)
+- **Constructor** — with extracted `setRuntime()` and `initRedisClients()` methods
+- **Public Accessors** — `getIOServer()`, `getEngine()`, `getClients()`, `on()`
+- **Configuration** — async `configure()` with `waitForRedisReady()` and `initIOServer()`
+- **Connection Lifecycle** — `onClientConnect()`, `registerAuthHandler()`, `onClientAuthenticated()`, `registerRoomHandlers()`
+- **Client Actions** — `ping()`, `disconnect()`
+- **Messaging** — `send()`
+- **Shutdown** — private `close()`, public `shutdown()`
+
 ## Dependencies
 
 ### `@socket.io/bun-engine`
@@ -339,15 +433,17 @@ Only required when using `SocketIOComponent` with Bun runtime. Dynamically impor
 
 | File | Changes |
 |------|---------|
-| `src/helpers/socket-io/common/types.ts` | Added `ISocketIOServerBaseOptions`, `ISocketIOServerNodeOptions`, `ISocketIOServerBunOptions` interfaces; added `TSocketIOServerOptions` discriminated union; added `RuntimeModules` import |
-| `src/helpers/socket-io/server/helper.ts` | Added `runtime: TRuntimeModule`, `server?: HTTPServer`, `bunEngine?: any` fields; switch/case constructor validation; switch/case `configure()` for Node vs Bun; added `getEngine()` method |
+| `src/helpers/socket-io/common/types.ts` | Added `ISocketIOServerBaseOptions`, `ISocketIOServerNodeOptions`, `ISocketIOServerBunOptions` interfaces; added `TSocketIOServerOptions` discriminated union; added `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`, `TSocketIOEventHandler` type aliases; added `validateRoomFn` and `pingInterval` fields |
+| `src/helpers/socket-io/server/helper.ts` | Complete reorganization; async `configure()` with `waitForRedisReady()`; Redis error handlers on all 3 connections; room validation via `validateRoomFn`; ping uses local `socket.emit()`; `getEngine()` throws on non-Bun; `close()` made private; configurable `pingInterval` |
+| `src/helpers/socket-io/client/helper.ts` | Renamed `TEventHandler` → `TSocketIOEventHandler` |
 
 ### Core Package (`packages/core`)
 
 | File | Changes |
 |------|---------|
 | `src/base/applications/abstract.ts` | Added `postStartHooks` registry, `registerPostStartHook()`, `executePostStartHooks()`; generic `getServerInstance<T>()`; call hooks at end of `start()` |
-| `src/components/socket-io/component.ts` | Complete rewrite: split into `resolveBindings()`, `registerBunHook()`, `registerNodeHook()`; runtime detection via `RuntimeModules.detect()`; post-start hook pattern; CORS type bridging for bun-engine |
+| `src/components/socket-io/component.ts` | Complete rewrite: split into `resolveBindings()`, `registerBunHook()`, `registerNodeHook()`; runtime detection via `RuntimeModules.detect()`; post-start hook pattern; CORS type bridging for bun-engine; uses new type aliases; both hooks `await configure()`; added `VALIDATE_ROOM_HANDLER` binding; Bun fetch returns 404 fallback |
+| `src/components/socket-io/keys.ts` | Added `VALIDATE_ROOM_HANDLER` binding key |
 | `package.json` | Added `@socket.io/bun-engine` as optional peer dep and dev dep |
 
 ### Socket.IO Test Example (`examples/socket-io-test`)
@@ -401,7 +497,33 @@ bun add @socket.io/bun-engine
 
 No code changes needed — the component auto-detects runtime and dynamically imports the engine.
 
-### Step 4: Remove Manual Socket.IO Workarounds
+### Step 4: Add `validateRoomFn` If Using Room Joins
+
+If your clients use the `join` event to join rooms, you **must** now provide a `validateRoomFn`. Without it, all join requests are silently rejected.
+
+```typescript
+this.bind<TSocketIOValidateRoomFn>({
+  key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
+}).toValue(({ socket, rooms }) => {
+  // Return allowed rooms — empty array rejects all
+  return rooms;
+});
+```
+
+### Step 5: Update Type Imports
+
+If you reference callback types directly:
+
+```typescript
+// Before
+import { ISocketIOServerBaseOptions } from '@venizia/ignis-helpers';
+type AuthFn = ISocketIOServerBaseOptions['authenticateFn'];
+
+// After
+import { TSocketIOAuthenticateFn } from '@venizia/ignis-helpers';
+```
+
+### Step 6: Remove Manual Socket.IO Workarounds
 
 If you had a custom `override start()` to initialize Socket.IO after the server starts, you can remove it. `SocketIOComponent` now handles this automatically via post-start hooks.
 
