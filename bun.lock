@@ -140,7 +140,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.0.3-2",
+      "version": "0.0.3",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.0.5-3",
         "@venizia/ignis-inversion": "^0.0.3-0",
@@ -160,7 +160,7 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.6-5",
+      "version": "0.0.6",
       "dependencies": {
         "@venizia/ignis-boot": "^0.0.3-2",
         "@venizia/ignis-helpers": "^0.0.5-3",
@@ -222,7 +222,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.0.5",
+      "version": "0.0.6",
       "dependencies": {
         "@minimaltech/eslint-node": "^0.2.1",
         "eslint-plugin-unicorn": "^62.0.0",
@@ -246,7 +246,7 @@
     },
     "packages/docs": {
       "name": "@venizia/ignis-docs",
-      "version": "0.0.5-0",
+      "version": "0.0.5",
       "bin": {
         "ignis-docs-mcp": "./dist/mcp-server/index.js",
       },
@@ -280,7 +280,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.5-3",
+      "version": "0.0.5",
       "dependencies": {
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
@@ -315,7 +315,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.0.3",
+      "version": "0.0.5",
       "dependencies": {
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
