@@ -1,12 +1,14 @@
 #!/bin/bash
 
-# Usage: ./force-update.sh [latest|next]
+# Usage: ./force-update.sh [latest|next|highest]
 # Default: latest
+# - latest/next: Use npm dist-tag to resolve version
+# - highest: Use the highest released version (sorted by semver)
 
 TAG="${1:-latest}"
 
-if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ]; then
-  echo "ERROR | Invalid tag: $TAG (must be 'latest' or 'next')"
+if [ "$TAG" != "latest" ] && [ "$TAG" != "next" ] && [ "$TAG" != "highest" ]; then
+  echo "ERROR | Invalid tag: $TAG (must be 'latest', 'next', or 'highest')"
   exit 1
 fi
 
@@ -18,8 +20,13 @@ PACKAGES="@venizia/dev-configs @venizia/ignis-inversion @venizia/ignis-helpers"
 for pkg in $PACKAGES; do
   echo "[$pkg] Fetching $TAG version..."
 
-  # Get version for specific tag from npm registry
-  VERSION=$(npm view "$pkg" dist-tags."$TAG" 2>/dev/null)
+  if [ "$TAG" = "highest" ]; then
+    # Get the highest released version by semver sort
+    VERSION=$(npm view "$pkg" versions --json 2>/dev/null | grep '"' | tail -1 | tr -d ' ",' )
+  else
+    # Get version for specific dist-tag from npm registry
+    VERSION=$(npm view "$pkg" dist-tags."$TAG" 2>/dev/null)
+  fi
 
   if [ -z "$VERSION" ]; then
     echo "[$pkg] Could not fetch version, SKIP..."

@@ -254,7 +254,7 @@ describe('SocketIOClientHelper', () => {
 
   describe('Connection Lifecycle', () => {
     test('should connect to server', async () => {
-      let connected = false;
+      let isConnected = false;
 
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
@@ -264,11 +264,11 @@ describe('SocketIOClientHelper', () => {
           extraHeaders: {},
         } as any,
         onConnected: () => {
-          connected = true;
+          isConnected = true;
         },
       });
 
-      await waitFor(() => connected, { timeout: 3000 });
+      await waitFor(() => isConnected, { timeout: 3000 });
       expect(client.getSocketClient().connected).toBe(true);
 
       client.shutdown();
@@ -381,11 +381,11 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should emit authenticate event to server', async () => {
-      let serverReceivedAuth = false;
+      let didServerReceiveAuth = false;
 
       ioServer.on('connection', socket => {
         socket.on(SocketIOConstants.EVENT_AUTHENTICATE, () => {
-          serverReceivedAuth = true;
+          didServerReceiveAuth = true;
         });
       });
 
@@ -402,8 +402,8 @@ describe('SocketIOClientHelper', () => {
 
       client.authenticate();
 
-      await waitFor(() => serverReceivedAuth, { timeout: 3000 });
-      expect(serverReceivedAuth).toBe(true);
+      await waitFor(() => didServerReceiveAuth, { timeout: 3000 });
+      expect(didServerReceiveAuth).toBe(true);
 
       client.shutdown();
     });
@@ -415,7 +415,7 @@ describe('SocketIOClientHelper', () => {
         });
       });
 
-      let authenticated = false;
+      let isAuthenticated = false;
 
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
@@ -425,7 +425,7 @@ describe('SocketIOClientHelper', () => {
           extraHeaders: {},
         } as any,
         onAuthenticated: () => {
-          authenticated = true;
+          isAuthenticated = true;
         },
       });
 
@@ -433,7 +433,7 @@ describe('SocketIOClientHelper', () => {
 
       client.authenticate();
 
-      await waitFor(() => authenticated, { timeout: 3000 });
+      await waitFor(() => isAuthenticated, { timeout: 3000 });
       expect(client.getState()).toBe(SocketIOClientStates.AUTHENTICATED);
 
       client.shutdown();
@@ -796,7 +796,7 @@ describe('SocketIOClientHelper', () => {
     });
 
     test('should execute callback after emit', async () => {
-      let callbackExecuted = false;
+      let didCallbackExecute = false;
 
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
@@ -813,12 +813,12 @@ describe('SocketIOClientHelper', () => {
         topic: 'test',
         data: {},
         cb: () => {
-          callbackExecuted = true;
+          didCallbackExecute = true;
         },
       });
 
       await wait(50);
-      expect(callbackExecuted).toBe(true);
+      expect(didCallbackExecute).toBe(true);
 
       client.shutdown();
     });
@@ -988,7 +988,7 @@ describe('SocketIOClientHelper', () => {
 
   describe('Ping Handling', () => {
     test('should receive ping events from server', async () => {
-      let pingReceived = false;
+      let didReceivePing = false;
 
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
@@ -1004,7 +1004,7 @@ describe('SocketIOClientHelper', () => {
       client.subscribe({
         event: SocketIOConstants.EVENT_PING,
         handler: () => {
-          pingReceived = true;
+          didReceivePing = true;
         },
         ignoreDuplicate: false,
       });
@@ -1013,8 +1013,8 @@ describe('SocketIOClientHelper', () => {
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit(SocketIOConstants.EVENT_PING, { time: new Date().toISOString() });
 
-      await waitFor(() => pingReceived, { timeout: 3000 });
-      expect(pingReceived).toBe(true);
+      await waitFor(() => didReceivePing, { timeout: 3000 });
+      expect(didReceivePing).toBe(true);
 
       client.shutdown();
     });

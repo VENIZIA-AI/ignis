@@ -113,12 +113,7 @@ jobs:
         run: bun install
 
       - name: Force update package
-        run: |
-          case $BUILD_MODE in
-            patch|minor|major) NPM_TAG="latest" ;;
-            *)                 NPM_TAG="next" ;;
-          esac
-          bun run --filter "$PACKAGE_NAME" force-update "$NPM_TAG"
+        run: bun run --filter "$PACKAGE_NAME" force-update "highest"
 
       # =========================================================================
       # BUILD, LINT & VALIDATE (uses Makefile dependency chain)
