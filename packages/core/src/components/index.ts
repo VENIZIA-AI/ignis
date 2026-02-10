@@ -5,3 +5,4 @@ export * from './request-tracker';
 export * from './socket-io';
 export * from './static-asset';
 export * from './swagger';
+export * from './websocket';

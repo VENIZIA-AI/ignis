@@ -138,12 +138,36 @@
         "typescript": "~5.9.3",
       },
     },
+    "examples/websocket-test": {
+      "name": "@nx/websocket-test",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hono/zod-openapi": "^1.1.5",
+        "@venizia/ignis": "workspace:*",
+        "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-helpers": "workspace:*",
+        "@venizia/ignis-inversion": "workspace:*",
+        "dotenv-flow": "^4.1.0",
+        "hono": "^4.11.0",
+        "ioredis": "^5.6.1",
+        "lodash": "^4.17.21",
+      },
+      "devDependencies": {
+        "@types/bun": "^1.3.4",
+        "@types/lodash": "^4.17.21",
+        "@venizia/dev-configs": "workspace:*",
+        "eslint": "^9.39.2",
+        "prettier": "^3.7.4",
+        "tsc-alias": "^1.8.16",
+        "typescript": "~5.9.3",
+      },
+    },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
       "version": "0.0.3",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.0.5-3",
-        "@venizia/ignis-inversion": "^0.0.3-0",
+        "@venizia/ignis-helpers": "^0.0.5",
+        "@venizia/ignis-inversion": "^0.0.5",
         "glob": "^13.0.0",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
@@ -151,7 +175,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "@types/lodash": "^4.17.21",
-        "@venizia/dev-configs": "^0.0.5-0",
+        "@venizia/dev-configs": "^0.0.6",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -162,9 +186,9 @@
       "name": "@venizia/ignis",
       "version": "0.0.6",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.0.3-2",
-        "@venizia/ignis-helpers": "^0.0.5-3",
-        "@venizia/ignis-inversion": "^0.0.3-0",
+        "@venizia/ignis-boot": "^0.0.3",
+        "@venizia/ignis-helpers": "^0.0.5",
+        "@venizia/ignis-inversion": "^0.0.5",
         "lodash": "^4.17.21",
         "reflect-metadata": "^0.2.2",
       },
@@ -177,7 +201,7 @@
         "@types/lodash": "^4.17.20",
         "@types/nodemailer": "^7.0.4",
         "@types/pg": "^8.15.6",
-        "@venizia/dev-configs": "^0.0.5-0",
+        "@venizia/dev-configs": "^0.0.6",
         "drizzle-kit": "^0.31.7",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
@@ -284,7 +308,7 @@
       "dependencies": {
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
-        "@venizia/ignis-inversion": "^0.0.3-0",
+        "@venizia/ignis-inversion": "^0.0.5",
         "axios": "^1.12.2",
         "bullmq": "^5.63.1",
         "cron": "^4.3.3",
@@ -306,7 +330,7 @@
         "@hono/zod-openapi": "^1.1.5",
         "@types/bun": "^1.3.4",
         "@types/lodash": "^4.17.20",
-        "@venizia/dev-configs": "^0.0.5-0",
+        "@venizia/dev-configs": "^0.0.6",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -324,7 +348,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.2",
         "@types/lodash": "^4.17.21",
-        "@venizia/dev-configs": "^0.0.5",
+        "@venizia/dev-configs": "^0.0.6",
         "eslint": "^9.36.0",
         "prettier": "^3.6.2",
         "tsc-alias": "^1.8.16",
@@ -718,6 +742,8 @@
     "@nx/socket-io-test": ["@nx/socket-io-test@workspace:examples/socket-io-test"],
 
     "@nx/vert": ["@nx/vert@workspace:examples/vert"],
+
+    "@nx/websocket-test": ["@nx/websocket-test@workspace:examples/websocket-test"],
 
     "@openrouter/ai-sdk-provider-v5": ["@openrouter/ai-sdk-provider@1.2.3", "", { "dependencies": { "@openrouter/sdk": "^0.1.8" }, "peerDependencies": { "ai": "^5.0.0", "zod": "^3.24.1 || ^v4" } }, "sha512-a6Nc8dPRHakRH9966YJ/HZJhLOds7DuPTscNZDoAr+Aw+tEFUlacSJMvb/b3gukn74mgbuaJRji9YOn62ipfVg=="],
 

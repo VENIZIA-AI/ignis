@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-10',
+              collapsed: true,
+              items: [
+                { text: 'WebSocket Heartbeat & Payload Limit', link: '/changelogs/2026-02-10-websocket-heartbeat-payload' },
+              ],
+            },
+            {
               text: '2026-02-06',
               collapsed: true,
               items: [
@@ -329,6 +336,7 @@ const config = defineConfig({
               link: '/references/components/request-tracker',
             },
             { text: 'Socket.IO', link: '/references/components/socket-io' },
+            { text: 'WebSocket', link: '/references/components/websocket' },
             { text: 'Static Asset', link: '/references/components/static-asset' },
             { text: 'Swagger', link: '/references/components/swagger' },
           ],
@@ -396,6 +404,7 @@ const config = defineConfig({
             { text: 'Queue', link: '/references/helpers/queue' },
             { text: 'Redis', link: '/references/helpers/redis' },
             { text: 'Socket.IO', link: '/references/helpers/socket-io' },
+            { text: 'WebSocket', link: '/references/helpers/websocket' },
             { text: 'Storage', link: '/references/helpers/storage' },
             { text: 'Testing', link: '/references/helpers/testing' },
             { text: 'Types', link: '/references/helpers/types' },

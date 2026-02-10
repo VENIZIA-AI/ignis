@@ -27,7 +27,7 @@ import {
   SocketIOConstants,
   SocketIOClientStates,
 } from '@venizia/ignis-helpers';
-import { SocketIOBindingKeys } from '@/components/socket-io/keys';
+import { SocketIOBindingKeys } from '@/components/socket-io/common/keys';
 
 // =============================================================================
 // Test Utilities

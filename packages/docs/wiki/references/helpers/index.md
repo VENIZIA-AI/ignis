@@ -17,6 +17,7 @@ Reusable classes and functions providing common functionality - designed for eas
 | [Queue](./queue.md) | Message queues | BullMQ, MQTT support |
 | [Redis](./redis.md) | Redis operations | Single/cluster, key-value, hashes, JSON, pub/sub |
 | [Socket.IO](./socket-io.md) | Real-time communication | Socket.IO client/server helpers |
+| [WebSocket](./websocket.md) | Real-time communication | Bun native WebSocket server/emitter, Redis scaling |
 | [Storage](./storage.md) | File storage | In-memory, Minio object storage |
 | [Testing](./testing.md) | Test utilities | Test plan runner, base test classes |
 | [UID](./uid.md) | Unique ID generation | Snowflake IDs, Base62 encoding |

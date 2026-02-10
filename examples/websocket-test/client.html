@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ignis WebSocket Test Client</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d27;
+      --surface2: #242838;
+      --border: #2e3348;
+      --text: #e1e4ed;
+      --text-muted: #8b8fa3;
+      --accent: #6c7bf7;
+      --accent-hover: #8b97ff;
+      --green: #4ade80;
+      --red: #f87171;
+      --yellow: #fbbf24;
+      --cyan: #22d3ee;
+      --orange: #fb923c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'SF Mono', 'Cascadia Code', 'Fira Code', 'JetBrains Mono', monospace;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .app {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      grid-template-rows: auto 1fr;
+      height: 100vh;
+      gap: 1px;
+      background: var(--border);
+    }
+
+    .header {
+      grid-column: 1 / -1;
+      background: var(--surface);
+      padding: 12px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent);
+    }
+
+    .header .status {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--red);
+    }
+
+    .status-dot.authenticating { background: var(--yellow); }
+    .status-dot.connected { background: var(--green); }
+
+    .sidebar {
+      background: var(--surface);
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .panel {
+      background: var(--surface);
+      padding: 16px;
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .form-group {
+      margin-bottom: 10px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      border-color: var(--accent);
+    }
+
+    textarea { resize: vertical; min-height: 60px; }
+
+    button {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 7px 14px;
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+      width: 100%;
+    }
+
+    button:hover { background: var(--accent-hover); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    button.danger { background: var(--red); }
+    button.danger:hover { background: #ef4444; }
+
+    button.success { background: #16a34a; }
+    button.success:hover { background: #15803d; }
+
+    .btn-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .btn-row button { flex: 1; }
+
+    .main {
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-toolbar {
+      background: var(--surface);
+      padding: 8px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .log-toolbar .filters {
+      display: flex;
+      gap: 4px;
+    }
+
+    .filter-btn {
+      background: var(--surface2);
+      width: auto;
+      padding: 4px 10px;
+      font-size: 11px;
+      font-weight: 500;
+      border-radius: 3px;
+    }
+
+    .filter-btn.active { background: var(--accent); }
+
+    .log-container {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 16px;
+    }
+
+    .log-entry {
+      padding: 4px 0;
+      display: flex;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      font-size: 12px;
+    }
+
+    .log-entry:last-child { border-bottom: none; }
+
+    .log-time {
+      color: var(--text-muted);
+      flex-shrink: 0;
+      font-size: 11px;
+      min-width: 80px;
+    }
+
+    .log-dir {
+      flex-shrink: 0;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 2px;
+      min-width: 32px;
+      text-align: center;
+    }
+
+    .log-dir.in { background: #16a34a33; color: var(--green); }
+    .log-dir.out { background: #6c7bf733; color: var(--accent); }
+    .log-dir.sys { background: #fbbf2433; color: var(--yellow); }
+    .log-dir.err { background: #f8717133; color: var(--red); }
+
+    .log-event {
+      color: var(--cyan);
+      flex-shrink: 0;
+      font-weight: 600;
+      min-width: 100px;
+    }
+
+    .log-data {
+      color: var(--text);
+      word-break: break-all;
+      white-space: pre-wrap;
+    }
+
+    .client-info {
+      background: var(--surface2);
+      border-radius: 4px;
+      padding: 8px 10px;
+      font-size: 11px;
+      margin-bottom: 10px;
+    }
+
+    .client-info div {
+      display: flex;
+      justify-content: space-between;
+      padding: 2px 0;
+    }
+
+    .client-info .label { color: var(--text-muted); }
+    .client-info .value { color: var(--text); font-weight: 600; }
+
+    .rooms-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 6px;
+    }
+
+    .room-tag {
+      background: var(--surface2);
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--cyan);
+      border: 1px solid var(--border);
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 0 -16px;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      margin-bottom: 10px;
+    }
+
+    .stat {
+      background: var(--surface2);
+      padding: 8px;
+      border-radius: 4px;
+      text-align: center;
+    }
+
+    .stat .num {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .stat .lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <!-- Header -->
+    <div class="header">
+      <h1>Ignis WebSocket Test Client</h1>
+      <div class="status">
+        <span id="statusText">Disconnected</span>
+        <div class="status-dot" id="statusDot"></div>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <!-- Connection -->
+      <div class="panel">
+        <div class="panel-title">Connection</div>
+        <div class="form-group">
+          <label>Server URL</label>
+          <input type="text" id="serverUrl" value="ws://localhost:3000/ws" placeholder="ws://localhost:3000/ws">
+        </div>
+        <div class="form-group">
+          <label>Auth Token (optional)</label>
+          <input type="text" id="authToken" value="test-token-123" placeholder="Authorization token">
+        </div>
+        <div class="btn-row">
+          <button id="connectBtn" class="success" onclick="connect()">Connect</button>
+          <button id="authBtn" onclick="authenticate()" disabled>Authenticate</button>
+          <button id="heartbeatBtn" onclick="sendHeartbeat()" disabled>Heartbeat</button>
+          <button id="disconnectBtn" class="danger" onclick="disconnect()" disabled>Disconnect</button>
+        </div>
+      </div>
+
+      <!-- Client Info -->
+      <div class="panel" id="clientInfoPanel" style="display: none;">
+        <div class="panel-title">Client Info</div>
+        <div class="client-info" id="clientInfo"></div>
+        <div class="stats">
+          <div class="stat">
+            <div class="num" id="statSent">0</div>
+            <div class="lbl">Sent</div>
+          </div>
+          <div class="stat">
+            <div class="num" id="statRecv">0</div>
+            <div class="lbl">Received</div>
+          </div>
+        </div>
+        <div class="panel-title">Rooms</div>
+        <div class="rooms-list" id="roomsList"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Send Message -->
+      <div class="panel">
+        <div class="panel-title">Send Message</div>
+        <div class="form-group">
+          <label>Event Name</label>
+          <input type="text" id="sendEvent" value="echo" placeholder="e.g. echo, chat:message">
+        </div>
+        <div class="form-group">
+          <label>Data (JSON)</label>
+          <textarea id="sendData" placeholder='{"message": "hello"}'></textarea>
+        </div>
+        <button onclick="sendMessage()" id="sendBtn" disabled>Send</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Room Management -->
+      <div class="panel">
+        <div class="panel-title">Room Management</div>
+        <div class="form-group">
+          <label>Room Names (comma-separated)</label>
+          <input type="text" id="roomInput" value="test-room" placeholder="room1, room2">
+        </div>
+        <div class="btn-row">
+          <button onclick="joinRooms()" id="joinBtn" disabled>Join</button>
+          <button onclick="leaveRooms()" id="leaveBtn" class="danger" disabled>Leave</button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Chat -->
+      <div class="panel">
+        <div class="panel-title">Chat (via socket event)</div>
+        <div class="form-group">
+          <label>Room (empty = broadcast)</label>
+          <input type="text" id="chatRoom" placeholder="Leave empty to broadcast">
+        </div>
+        <div class="form-group">
+          <label>Message</label>
+          <input type="text" id="chatMessage" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendChat()">
+        </div>
+        <button onclick="sendChat()" id="chatBtn" disabled>Send Chat</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Get Clients -->
+      <div class="panel">
+        <div class="panel-title">Query</div>
+        <div class="btn-row">
+          <button onclick="getClients()" id="queryClientsBtn" disabled>Get Clients</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Log Area -->
+    <div class="main">
+      <div class="log-toolbar">
+        <div class="filters">
+          <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+          <button class="filter-btn" onclick="setFilter('in', this)">Incoming</button>
+          <button class="filter-btn" onclick="setFilter('out', this)">Outgoing</button>
+          <button class="filter-btn" onclick="setFilter('sys', this)">System</button>
+          <button class="filter-btn" onclick="setFilter('err', this)">Errors</button>
+        </div>
+        <button style="width: auto; background: var(--surface2);" onclick="clearLog()">Clear</button>
+      </div>
+      <div class="log-container" id="logContainer"></div>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // State
+    // =========================================================================
+    let ws = null;
+    let clientId = null;
+    let userId = null;
+    let authState = 'disconnected'; // disconnected | connected | authenticated
+    let rooms = new Set();
+    let sentCount = 0;
+    let recvCount = 0;
+    let currentFilter = 'all';
+
+    // =========================================================================
+    // Connection
+    // =========================================================================
+    function connect() {
+      const url = document.getElementById('serverUrl').value.trim();
+      if (!url) return;
+
+      log('sys', 'connect', `Connecting to ${url}...`);
+
+      try {
+        // Auth happens post-connection via 'authenticate' event (Socket.IO pattern)
+        ws = new WebSocket(url);
+      } catch (err) {
+        log('err', 'connect', `Failed: ${err.message}`);
+        return;
+      }
+
+      ws.onopen = () => {
+        log('sys', 'open', 'WebSocket connected (unauthorized) — click Authenticate to proceed');
+        authState = 'connected';
+        updateConnectionState();
+      };
+
+      ws.onmessage = (event) => {
+        recvCount++;
+        updateStats();
+
+        let parsed;
+        try {
+          parsed = JSON.parse(event.data);
+        } catch {
+          log('err', 'parse', `Failed to parse message`);
+          return;
+        }
+
+        const eventName = parsed.event || '???';
+        const data = parsed.data;
+
+        // Handle system events
+        switch (eventName) {
+          case 'connected':
+            // Server sends 'connected' after successful authentication
+            clientId = data?.id;
+            userId = data?.userId;
+            authState = 'authenticated';
+            log('sys', 'authenticated', `Client ID: ${clientId} | User ID: ${userId || 'anonymous'}`);
+            updateConnectionState();
+            updateClientInfo();
+
+            break;
+
+          case 'error':
+            log('err', 'server-error', JSON.stringify(data, null, 2));
+            break;
+
+          default:
+            log('in', eventName, JSON.stringify(data, null, 2));
+        }
+      };
+
+      ws.onclose = (event) => {
+        const closeReasons = {
+          4001: 'Authentication timeout',
+          4002: 'Heartbeat timeout',
+          4003: 'Authentication failed',
+        };
+        const reason = closeReasons[event.code] || event.reason || 'none';
+        log('sys', 'close', `Code: ${event.code} | Reason: ${reason}`);
+        authState = 'disconnected';
+
+        updateConnectionState();
+        clientId = null;
+        userId = null;
+        rooms.clear();
+        updateClientInfo();
+      };
+
+      ws.onerror = (event) => {
+        log('err', 'error', 'WebSocket error (check console)');
+        console.error('WebSocket error:', event);
+      };
+    }
+
+    function authenticate() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      const token = document.getElementById('authToken').value.trim();
+      const authPayload = { event: 'authenticate', data: { token } };
+      ws.send(JSON.stringify(authPayload));
+      sentCount++;
+      updateStats();
+      log('out', 'authenticate', JSON.stringify(authPayload.data));
+    }
+
+    function disconnect() {
+      if (ws) {
+
+        ws.close(1000, 'Client requested disconnect');
+      }
+    }
+
+    function sendHeartbeat() {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify({ event: 'heartbeat' }));
+      sentCount++;
+      updateStats();
+      log('out', 'heartbeat', 'Manual heartbeat sent');
+    }
+
+    function updateConnectionState() {
+      const dot = document.getElementById('statusDot');
+      const text = document.getElementById('statusText');
+      const connectBtn = document.getElementById('connectBtn');
+      const disconnectBtn = document.getElementById('disconnectBtn');
+      const infoPanel = document.getElementById('clientInfoPanel');
+
+      const isConnected = authState !== 'disconnected';
+      const isAuthenticated = authState === 'authenticated';
+
+      // Status dot: red = disconnected, yellow = connected (unauthorized), green = authenticated
+      dot.className = 'status-dot';
+      if (isAuthenticated) {
+        dot.classList.add('connected');
+      } else if (isConnected) {
+        dot.classList.add('authenticating');
+      }
+
+      const labels = {
+        disconnected: 'Disconnected',
+        connected: 'Unauthorized',
+        authenticated: 'Authenticated',
+      };
+      text.textContent = labels[authState];
+
+      connectBtn.disabled = isConnected;
+      disconnectBtn.disabled = !isConnected;
+
+      // Auth button: enabled only when connected but not yet authenticated
+      document.getElementById('authBtn').disabled = !(isConnected && !isAuthenticated);
+
+      // Action buttons only enabled after authenticated
+      const actionBtns = ['sendBtn', 'joinBtn', 'leaveBtn', 'chatBtn', 'queryClientsBtn', 'heartbeatBtn'];
+      actionBtns.forEach(id => {
+        document.getElementById(id).disabled = !isAuthenticated;
+      });
+
+      infoPanel.style.display = isConnected ? 'block' : 'none';
+    }
+
+    // =========================================================================
+    // Send
+    // =========================================================================
+    function sendRaw(obj) {
+      if (!ws || ws.readyState !== WebSocket.OPEN) return;
+      ws.send(JSON.stringify(obj));
+      sentCount++;
+      updateStats();
+    }
+
+    function sendMessage() {
+      const event = document.getElementById('sendEvent').value.trim();
+      if (!event) return;
+
+      let data;
+      const rawData = document.getElementById('sendData').value.trim();
+      try {
+        data = rawData ? JSON.parse(rawData) : {};
+      } catch {
+        log('err', 'send', 'Invalid JSON in data field');
+        return;
+      }
+
+      const msg = { event, data };
+      sendRaw(msg);
+      log('out', event, JSON.stringify(data, null, 2));
+    }
+
+    // =========================================================================
+    // Room Management
+    // =========================================================================
+    function joinRooms() {
+      const input = document.getElementById('roomInput').value.trim();
+      if (!input) return;
+
+      const roomNames = input.split(',').map(r => r.trim()).filter(Boolean);
+      const msg = { event: 'join', data: { rooms: roomNames } };
+      sendRaw(msg);
+      log('out', 'join', `Requesting to join: ${roomNames.join(', ')}`);
+
+      // Optimistically add rooms (server may reject via validateRoomFn)
+      roomNames.forEach(r => rooms.add(r));
+      updateClientInfo();
+    }
+
+    function leaveRooms() {
+      const input = document.getElementById('roomInput').value.trim();
+      if (!input) return;
+
+      const roomNames = input.split(',').map(r => r.trim()).filter(Boolean);
+      const msg = { event: 'leave', data: { rooms: roomNames } };
+      sendRaw(msg);
+      log('out', 'leave', `Leaving: ${roomNames.join(', ')}`);
+
+      roomNames.forEach(r => rooms.delete(r));
+      updateClientInfo();
+    }
+
+    // =========================================================================
+    // Chat
+    // =========================================================================
+    function sendChat() {
+      const room = document.getElementById('chatRoom').value.trim();
+      const message = document.getElementById('chatMessage').value.trim();
+      if (!message) return;
+
+      const data = room ? { room, message } : { message };
+      const msg = { event: 'chat:message', data };
+      sendRaw(msg);
+      log('out', 'chat:message', JSON.stringify(data));
+      document.getElementById('chatMessage').value = '';
+    }
+
+    // =========================================================================
+    // Query
+    // =========================================================================
+    function getClients() {
+      sendRaw({ event: 'get-clients', data: {} });
+      log('out', 'get-clients', 'Requesting client list...');
+    }
+
+    // =========================================================================
+    // UI Updates
+    // =========================================================================
+    function updateClientInfo() {
+      const container = document.getElementById('clientInfo');
+      if (authState === 'disconnected') {
+        container.innerHTML = '<div><span class="label">Not connected</span></div>';
+        document.getElementById('roomsList').innerHTML = '';
+        return;
+      }
+
+      const stateColors = {
+        connected: 'var(--yellow)',
+        authenticated: 'var(--green)',
+      };
+      container.innerHTML = `
+        <div><span class="label">Client ID</span><span class="value">${clientId || 'pending...'}</span></div>
+        <div><span class="label">User ID</span><span class="value">${userId || 'N/A'}</span></div>
+        <div><span class="label">State</span><span class="value" style="color: ${stateColors[authState] || 'var(--red)'}">${authState}</span></div>
+      `;
+
+      const roomsList = document.getElementById('roomsList');
+      const allRooms = ['ws-default', 'ws-notification', ...rooms];
+      roomsList.innerHTML = allRooms.map(r => `<span class="room-tag">${r}</span>`).join('');
+    }
+
+    function updateStats() {
+      document.getElementById('statSent').textContent = sentCount;
+      document.getElementById('statRecv').textContent = recvCount;
+    }
+
+    // =========================================================================
+    // Logging
+    // =========================================================================
+    function log(dir, event, data) {
+      const container = document.getElementById('logContainer');
+      const now = new Date();
+      const time = now.toLocaleTimeString('en-US', { hour12: false }) + '.' + String(now.getMilliseconds()).padStart(3, '0');
+
+      const entry = document.createElement('div');
+      entry.className = 'log-entry';
+      entry.dataset.dir = dir;
+
+      const dirLabel = { in: 'IN', out: 'OUT', sys: 'SYS', err: 'ERR' }[dir] || dir.toUpperCase();
+
+      entry.innerHTML = `
+        <span class="log-time">${time}</span>
+        <span class="log-dir ${dir}">${dirLabel}</span>
+        <span class="log-event">${event}</span>
+        <span class="log-data">${escapeHtml(data || '')}</span>
+      `;
+
+      // Apply filter
+      if (currentFilter !== 'all' && dir !== currentFilter) {
+        entry.style.display = 'none';
+      }
+
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    function clearLog() {
+      document.getElementById('logContainer').innerHTML = '';
+    }
+
+    function setFilter(filter, btn) {
+      currentFilter = filter;
+
+      // Update button states
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      // Apply filter to existing entries
+      document.querySelectorAll('.log-entry').forEach(entry => {
+        if (filter === 'all' || entry.dataset.dir === filter) {
+          entry.style.display = '';
+        } else {
+          entry.style.display = 'none';
+        }
+      });
+    }
+
+    // =========================================================================
+    // Init
+    // =========================================================================
+    log('sys', 'init', 'WebSocket Test Client ready. Click Connect to start.');
+  </script>
+</body>
+</html>

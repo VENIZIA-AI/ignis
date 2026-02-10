@@ -11,6 +11,7 @@ Reusable, pluggable modules that group together related features. A component ca
 | [Mail](./mail.md) | Email sending system | Multiple transports, templating, queue-based processing |
 | [Request Tracker](./request-tracker.md) | Request logging | Request ID generation, timing, structured logging |
 | [Socket.IO](./socket-io.md) | Real-time communication | WebSocket support, Redis adapter, event-based |
+| [WebSocket](./websocket.md) | Real-time communication | Bun native WebSocket, Redis Pub/Sub, heartbeat |
 | [Static Asset](./static-asset.md) | File management | Upload/download files, MinIO & local filesystem support |
 | [Swagger](./swagger.md) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
 
@@ -73,7 +74,8 @@ Using components is a great way to organize your application's features into mod
   - [Authentication](./authentication) - JWT authentication
   - [Health Check](./health-check) - Health check endpoints
   - [Swagger](./swagger) - API documentation
-  - [Socket.IO](./socket-io) - WebSocket support
+  - [Socket.IO](./socket-io) - Socket.IO WebSocket support
+  - [WebSocket](./websocket) - Bun native WebSocket
   - [Mail](./mail) - Email functionality
   - [Request Tracker](./request-tracker) - Request tracking
   - [Static Asset](./static-asset) - Static file serving
