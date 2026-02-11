@@ -11,6 +11,7 @@ export class WebSocketEvents {
   static readonly LEAVE = 'leave';
   static readonly ERROR = 'error';
   static readonly HEARTBEAT = 'heartbeat';
+  static readonly ENCRYPTED = 'encrypted';
 
   static readonly SCHEME_SET = new Set([
     this.AUTHENTICATE,
@@ -20,6 +21,7 @@ export class WebSocketEvents {
     this.LEAVE,
     this.ERROR,
     this.HEARTBEAT,
+    this.ENCRYPTED,
   ]);
 
   static isValid(input: string): input is TWebSocketEvent {

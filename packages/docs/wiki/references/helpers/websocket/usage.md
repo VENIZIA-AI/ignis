@@ -119,7 +119,7 @@ Client                          Server (WebSocketServerHelper)
   |                                |    |
   |                                |    |-- [requireEncryption = true?]
   |                                |    |     +-- Call handshakeFn({ clientId, userId, data })
-  |                                |    |     |   Return { serverPublicKey } or null/false
+  |                                |    |     |   Return { serverPublicKey, salt } or null/false
   |                                |    |     |
   |                                |    |     +-- handshake success:
   |                                |    |     |     enableClientEncryption({ clientId })
@@ -133,8 +133,9 @@ Client                          Server (WebSocketServerHelper)
   |                                |    |-- Subscribe to broadcast topic (skipped if encrypted)
   |                                |    |-- Join default rooms
   | <-- { event: 'connected',      |    |-- Send 'connected' event with { id, userId, time,
-  |       data: { id, userId,      |    |     serverPublicKey? }
-  |       serverPublicKey? } } --- |    +-- Call clientConnectedFn()
+  |       data: { id, userId,      |    |     serverPublicKey?, salt? }
+  |       serverPublicKey?,        |    +-- Call clientConnectedFn()
+  |       salt? } } -------------- |
   |                                |
   |                                |  -- authenticateFn returns null/false --
   | <-- { event: 'error',          |    |-- Send error event
@@ -161,6 +162,7 @@ Each connected client is tracked with:
 | `lastActivity` | `number` | Timestamp of last message received |
 | `metadata` | `MetadataType?` | Custom metadata from `authenticateFn` result (uses `MetadataType` generic) |
 | `serverPublicKey` | `string?` | Server's ECDH public key (set during handshake, separate from metadata) |
+| `salt` | `string?` | HKDF salt used during ECDH key derivation (set during handshake, sent to client in `connected` event) |
 
 ### Client States
 
@@ -622,13 +624,16 @@ const helper = new WebSocketServerHelper({
     if (!clientPublicKeyB64) return null; // Reject -- no public key
 
     const peerKey = await ecdh.importPublicKey({ rawKeyB64: clientPublicKeyB64 });
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const saltB64 = Buffer.from(salt).toString('base64');
     const aesKey = await ecdh.deriveAESKey({
       privateKey: serverKeyPair.keyPair.privateKey,
       peerPublicKey: peerKey,
+      salt,
     });
 
     clientKeys.set(clientId, aesKey);
-    return { serverPublicKey: serverKeyPair.publicKeyB64 };
+    return { serverPublicKey: serverKeyPair.publicKeyB64, salt: saltB64 };
   },
   outboundTransformer: async ({ client, event, data }) => {
     if (!client.encrypted) return null;
@@ -649,9 +654,9 @@ const helper = new WebSocketServerHelper({
 2. Server calls `authenticateFn(data)` -- validates token
 3. If auth succeeds and `requireEncryption` is `true`:
    - Server calls `handshakeFn({ clientId, userId, data })` with the same auth payload
-   - If `handshakeFn` returns `{ serverPublicKey }` -- encryption is enabled, `enableClientEncryption()` is called automatically
+   - If `handshakeFn` returns `{ serverPublicKey, salt }` -- encryption is enabled, `enableClientEncryption()` is called automatically
    - If `handshakeFn` returns `null`/`false` -- client is rejected with close code `4004`
-4. The `connected` event includes `serverPublicKey` so the client can derive the shared secret
+4. The `connected` event includes `serverPublicKey` and `salt` so the client can derive the same shared secret
 
 > [!IMPORTANT]
 > When `requireEncryption` is `true`, `handshakeFn` **must** be provided. If it's missing, the server will log an error and close the client with code `4004`.
@@ -736,13 +741,16 @@ const helper = new WebSocketServerHelper({
     if (!clientPubKeyB64) return null; // Reject -- client didn't send a public key
 
     const peerKey = await ecdh.importPublicKey({ rawKeyB64: clientPubKeyB64 });
+    const salt = crypto.getRandomValues(new Uint8Array(32));
+    const saltB64 = Buffer.from(salt).toString('base64');
     const aesKey = await ecdh.deriveAESKey({
       privateKey: serverKeyPair.keyPair.privateKey,
       peerPublicKey: peerKey,
+      salt,
     });
 
     clientKeys.set(clientId, aesKey);
-    return { serverPublicKey: serverKeyPair.publicKeyB64 };
+    return { serverPublicKey: serverKeyPair.publicKeyB64, salt: saltB64 };
   },
   clientDisconnectedFn: ({ clientId }) => {
     clientKeys.delete(clientId);
@@ -784,7 +792,9 @@ ws.onmessage = (event) => {
   const msg = JSON.parse(event.data);
   if (msg.event === 'connected') {
     // msg.data.serverPublicKey contains the server's ECDH public key
-    const sharedSecret = deriveSharedSecret(clientPrivateKey, msg.data.serverPublicKey);
+    // msg.data.salt contains the HKDF salt used during key derivation
+    const salt = Uint8Array.from(atob(msg.data.salt), c => c.charCodeAt(0));
+    const sharedSecret = deriveAESKey(clientPrivateKey, msg.data.serverPublicKey, salt);
     // Now all subsequent messages from the server are encrypted
   }
 };

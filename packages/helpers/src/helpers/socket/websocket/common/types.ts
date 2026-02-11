@@ -88,6 +88,7 @@ export interface IWebSocketClient<
   lastActivity: number;
   metadata?: MetadataType;
   serverPublicKey?: string;
+  salt?: string;
   authTimer?: ReturnType<typeof setTimeout>;
 }
 
@@ -118,7 +119,7 @@ export type TWebSocketHandshakeFn<
   clientId: string;
   userId?: string;
   data: AuthDataType;
-}) => ValueOrPromise<{ serverPublicKey: string } | null | false>;
+}) => ValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
 
 export type TWebSocketValidateRoomFn = (opts: {
   clientId: string;

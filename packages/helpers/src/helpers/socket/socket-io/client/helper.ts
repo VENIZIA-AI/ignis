@@ -58,7 +58,8 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client = io(this.host, this.options);
 
     // Register connection lifecycle handlers
-    this.client.on(SocketIOConstants.EVENT_CONNECT, () => {
+    // NOTE: Socket.IO client fires 'connect', NOT 'connection' (which is server-side only)
+    this.client.on('connect', () => {
       logger.info('Connected | id: %s', this.identifier);
 
       Promise.resolve(this.onConnected?.()).catch(error => {
@@ -151,11 +152,15 @@ export class SocketIOClientHelper extends BaseHelper {
       return;
     }
 
-    // Wrap handler in try-catch for error safety
+    // Wrap handler in try-catch for error safety (catches both sync throws and async rejections)
     const wrappedHandler = (data: T) => {
-      Promise.resolve(handler(data)).catch(error => {
+      try {
+        Promise.resolve(handler(data)).catch(error => {
+          logger.error('Handler error | event: %s | error: %s', event, error);
+        });
+      } catch (error) {
         logger.error('Handler error | event: %s | error: %s', event, error);
-      });
+      }
     };
 
     this.client.on(event, wrappedHandler);

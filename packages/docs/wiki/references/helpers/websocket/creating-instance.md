@@ -29,7 +29,7 @@ new WebSocketServerHelper<AuthDataType, MetadataType>(opts: IWebSocketServerOpti
 | `outboundTransformer` | `TWebSocketOutboundTransformer` | No | -- | Intercepts outbound messages before `socket.send()`. When set, enables per-client encryption support |
 | `encryptedBatchLimit` | `number` | No | `10` | Max concurrent encryption operations for `sendToRoom()` / `broadcast()`. Uses [`executePromiseWithLimit`](/references/utilities/promise) |
 | `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete ECDH handshake during authentication or get disconnected (close code `4004`) |
-| `handshakeFn` | `TWebSocketHandshakeFn` | No* | -- | Key exchange callback invoked during auth when `requireEncryption` is `true`. Receives auth payload, returns `{ serverPublicKey }` on success. *Required when `requireEncryption` is `true` |
+| `handshakeFn` | `TWebSocketHandshakeFn` | No* | -- | Key exchange callback invoked during auth when `requireEncryption` is `true`. Receives auth payload, returns `{ serverPublicKey, salt }` on success. *Required when `requireEncryption` is `true` |
 
 ### Example
 

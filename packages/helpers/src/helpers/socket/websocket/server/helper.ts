@@ -740,6 +740,7 @@ export class WebSocketServerHelper<
           // Handshake succeeded — enable encryption
           this.enableClientEncryption({ clientId });
           client.serverPublicKey = handshakeResult.serverPublicKey;
+          client.salt = handshakeResult.salt;
         }
 
         // Index by userId
@@ -769,6 +770,7 @@ export class WebSocketServerHelper<
         };
         if (client.encrypted && client.serverPublicKey) {
           connectedData.serverPublicKey = client.serverPublicKey;
+          connectedData.salt = client.salt;
         }
         this.sendToClient({
           clientId,
@@ -1201,19 +1203,19 @@ export class WebSocketServerHelper<
       this.heartbeatTimer = null;
     }
 
-    // Trigger disconnect callbacks before clearing state
-    const clientIds = [...this.clients.keys()];
-    for (const clientId of clientIds) {
-      this.onClientDisconnect({ clientId });
-    }
-
-    // Close any remaining sockets (onClientDisconnect removes from map, but close the socket too)
+    // Close all sockets first (before onClientDisconnect removes them from the map)
     for (const [clientId, client] of this.clients) {
       try {
         client.socket.close(1001, 'Server shutting down');
       } catch (_error) {
         logger.error('Client may already be disconnected | clientId: %s', clientId);
       }
+    }
+
+    // Trigger disconnect callbacks (clears auth timers, removes from indexes, invokes user callback)
+    const clientIds = [...this.clients.keys()];
+    for (const clientId of clientIds) {
+      this.onClientDisconnect({ clientId });
     }
 
     this.clients.clear();

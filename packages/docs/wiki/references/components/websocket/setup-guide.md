@@ -120,9 +120,11 @@ export class Application extends BaseApplication {
     const handshakeFn: TWebSocketHandshakeFn = async ({ clientId, data }) => {
       const clientPubKey = data.publicKey as string;
       if (!clientPubKey) return null; // Reject — no public key provided
-      const aesKey = await deriveSharedSecret(clientPubKey);
+      const salt = crypto.getRandomValues(new Uint8Array(32));
+      const saltB64 = Buffer.from(salt).toString('base64');
+      const aesKey = await deriveSharedSecret(clientPubKey, salt);
       storeClientKey(clientId, aesKey);
-      return { serverPublicKey: serverPublicKeyB64 };
+      return { serverPublicKey: serverPublicKeyB64, salt: saltB64 };
     };
 
     this.bind<TWebSocketHandshakeFn>({

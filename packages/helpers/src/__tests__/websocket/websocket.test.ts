@@ -180,9 +180,9 @@ describe('WebSocketEvents', () => {
     expect(WebSocketEvents.HEARTBEAT).toBe('heartbeat');
   });
 
-  test('should have a SCHEME_SET with all 7 events', () => {
+  test('should have a SCHEME_SET with all 8 events', () => {
     expect(WebSocketEvents.SCHEME_SET).toBeInstanceOf(Set);
-    expect(WebSocketEvents.SCHEME_SET.size).toBe(7);
+    expect(WebSocketEvents.SCHEME_SET.size).toBe(8);
     expect(WebSocketEvents.SCHEME_SET.has('authenticate')).toBe(true);
     expect(WebSocketEvents.SCHEME_SET.has('connected')).toBe(true);
     expect(WebSocketEvents.SCHEME_SET.has('disconnect')).toBe(true);
@@ -190,6 +190,7 @@ describe('WebSocketEvents', () => {
     expect(WebSocketEvents.SCHEME_SET.has('leave')).toBe(true);
     expect(WebSocketEvents.SCHEME_SET.has('error')).toBe(true);
     expect(WebSocketEvents.SCHEME_SET.has('heartbeat')).toBe(true);
+    expect(WebSocketEvents.SCHEME_SET.has('encrypted')).toBe(true);
   });
 
   describe('isValid()', () => {
@@ -981,7 +982,7 @@ describe('WebSocketServerHelper', () => {
       expect(handler.sendPings).toBe(WebSocketDefaults.SEND_PINGS);
       expect(handler.idleTimeout).toBe(WebSocketDefaults.IDLE_TIMEOUT);
       expect(handler.perMessageDeflate).toBeUndefined();
-      expect(handler.maxPayloadLength).toBeUndefined();
+      expect(handler.maxPayloadLength).toBe(WebSocketDefaults.MAX_PAYLOAD_LENGTH);
     });
   });
 
@@ -1399,8 +1400,8 @@ describe('WebSocketServerHelper', () => {
       helper.joinRoom({ clientId: 'client-1', room: 'room-c' });
 
       const client = helper.getClients({ id: 'client-1' }) as any;
-      // Default rooms (2) + 3 custom rooms
-      expect(client.rooms.size).toBe(5);
+      // clientId room (1) + default rooms (2) + 3 custom rooms
+      expect(client.rooms.size).toBe(6);
     });
   });
 
@@ -2017,15 +2018,15 @@ describe('WebSocketServerHelper', () => {
       }
 
       const client = helper.getClients({ id: 'client-1' }) as any;
-      // 2 default rooms + 50 custom rooms
-      expect(client.rooms.size).toBe(52);
+      // clientId room (1) + 2 default rooms + 50 custom rooms
+      expect(client.rooms.size).toBe(53);
 
       for (let i = 0; i < 50; i++) {
         helper.leaveRoom({ clientId: 'client-1', room: `room-${i}` });
       }
 
-      // Only default rooms remain
-      expect(client.rooms.size).toBe(2);
+      // clientId room (1) + default rooms (2) remain
+      expect(client.rooms.size).toBe(3);
     });
 
     test('should handle message with null data', async () => {

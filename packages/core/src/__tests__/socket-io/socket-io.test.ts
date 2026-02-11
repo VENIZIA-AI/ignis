@@ -1216,9 +1216,10 @@ describe('SocketIOClientHelper - Edge Cases', () => {
         } as any,
       });
 
-      await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
+      await waitFor(() => client.getSocketClient().connected, { timeout: 5000 });
       client.shutdown();
-      await wait(20);
+      // Wait for server-side disconnect to propagate
+      await waitFor(() => ioServer.sockets.sockets.size === 0, { timeout: 5000 });
     }
 
     // All clients should be disconnected

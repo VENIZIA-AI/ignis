@@ -241,6 +241,7 @@ interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record
   lastActivity: number;
   metadata?: MetadataType;
   serverPublicKey?: string;
+  salt?: string;
 }
 ```
 
@@ -281,7 +282,7 @@ interface IWebSocketServerOptions<
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
   outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
-  handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;   // Required when requireEncryption is true
+  handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;   // Required when requireEncryption is true — must return { serverPublicKey, salt }
 }
 ```
 
@@ -306,14 +307,14 @@ type TWebSocketAuthenticateFn<
 ) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
 
 // Handshake -- ECDH key exchange during authentication
-// Return { serverPublicKey } on success, null/false to reject
+// Return { serverPublicKey, salt } on success, null/false to reject
 type TWebSocketHandshakeFn<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
 > = (opts: {
   clientId: string;
   userId?: string;
   data: AuthDataType;
-}) => ValueOrPromise<{ serverPublicKey: string } | null | false>;
+}) => ValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
 
 // Room validation -- return allowed subset of requested rooms
 type TWebSocketValidateRoomFn = (opts: {
