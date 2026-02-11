@@ -244,7 +244,11 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-025: encrypt/decrypt JSON payload', () => {
-        const payload = JSON.stringify({ userId: 1, role: 'admin', permissions: ['read', 'write'] });
+        const payload = JSON.stringify({
+          userId: 1,
+          role: 'admin',
+          permissions: ['read', 'write'],
+        });
         const encrypted = aes.encrypt({ message: payload, secret: SECRET_32 });
         const decrypted = aes.decrypt({ message: encrypted, secret: SECRET_32 });
         expect(JSON.parse(decrypted)).toEqual(JSON.parse(payload));
@@ -602,7 +606,7 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-059: withAlgorithm accepts custom hkdfInfo', () => {
-        const ecdh = ECDH.withAlgorithm({ hkdfInfo: 'custom-info' });
+        const ecdh = ECDH.withAlgorithm({ algorithm: 'ecdh-p256', hkdfInfo: 'custom-info' });
         expect(ecdh).toBeInstanceOf(ECDH);
         expect(ecdh.algorithm).toBe('ecdh-p256');
       });
@@ -666,7 +670,7 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-065: importPublicKey with invalid base64 should throw', async () => {
-        await expect(ecdh.importPublicKey({ rawKeyB64: 'not-valid-key' })).rejects.toThrow();
+        expect(ecdh.importPublicKey({ rawKeyB64: 'not-valid-key' })).rejects.toThrow();
       });
     });
 
@@ -776,7 +780,7 @@ describe('Crypto Algorithms', () => {
         });
 
         const encrypted = await ecdh.encrypt({ message: 'wrong key test', secret: sharedKey });
-        await expect(ecdh.decrypt({ message: encrypted, secret: wrongKey })).rejects.toThrow();
+        expect(ecdh.decrypt({ message: encrypted, secret: wrongKey })).rejects.toThrow();
       });
 
       test('TC-072: decrypt tampered ciphertext should throw', async () => {
@@ -790,7 +794,7 @@ describe('Crypto Algorithms', () => {
           ct: ctBuf.toString('base64'),
         };
 
-        await expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
+        expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
       });
 
       test('TC-073: encrypt/decrypt empty string', async () => {
@@ -861,8 +865,8 @@ describe('Crypto Algorithms', () => {
       });
 
       test('TC-078: different hkdfInfo produces incompatible keys', async () => {
-        const ecdh1 = ECDH.withAlgorithm({ hkdfInfo: 'app-1' });
-        const ecdh2 = ECDH.withAlgorithm({ hkdfInfo: 'app-2' });
+        const ecdh1 = ECDH.withAlgorithm({ algorithm: 'ecdh-p256', hkdfInfo: 'app-1' });
+        const ecdh2 = ECDH.withAlgorithm({ algorithm: 'ecdh-p256', hkdfInfo: 'app-2' });
 
         const alice = await ecdh1.generateKeyPair();
         const bob = await ecdh1.generateKeyPair();
@@ -888,7 +892,7 @@ describe('Crypto Algorithms', () => {
 
         // Encrypt with key1, try decrypt with key2 — should fail
         const encrypted = await ecdh1.encrypt({ message: 'hkdf test', secret: key1 });
-        await expect(ecdh2.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
+        expect(ecdh2.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
 
         // But key1 and bobKey1 (same hkdfInfo) should work
         const decrypted = await ecdh1.decrypt({ message: encrypted, secret: bobKey1 });
@@ -906,7 +910,6 @@ describe('Crypto Algorithms', () => {
         const alicePub = await ecdh.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
 
         // Eve tries to derive a key with Alice's public key
-        const evePub = await ecdh.importPublicKey({ rawKeyB64: eve.publicKeyB64 });
         const eveKey = await ecdh.deriveAESKey({
           privateKey: eve.keyPair.privateKey,
           peerPublicKey: alicePub,
@@ -920,7 +923,7 @@ describe('Crypto Algorithms', () => {
         const encrypted = await ecdh.encrypt({ message: 'secret for bob', secret: aliceKey });
 
         // Eve cannot decrypt
-        await expect(ecdh.decrypt({ message: encrypted, secret: eveKey })).rejects.toThrow();
+        expect(ecdh.decrypt({ message: encrypted, secret: eveKey })).rejects.toThrow();
       });
     });
   });
