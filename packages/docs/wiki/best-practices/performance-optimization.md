@@ -32,7 +32,7 @@ Prevent blocking the event loop with Worker Threads:
 - Large file/data processing
 - Any synchronous task > 5ms
 
-> **Deep Dive:** See [Worker Thread Helper](../references/helpers/worker-thread.md) for implementation guide.
+> **Deep Dive:** See [Worker Thread Helper](../references/helpers/worker-thread/) for implementation guide.
 
 ## 3. Optimize Database Queries
 
@@ -127,7 +127,7 @@ Reduce database load with caching:
 
 | Cache Type | Use Case | Implementation |
 |-----------|----------|----------------|
-| **Redis** | Distributed cache, session storage | [Redis Helper](../references/helpers/redis.md) |
+| **Redis** | Distributed cache, session storage | [Redis Helper](../references/helpers/redis/) |
 | **In-Memory** | Single-process cache | `MemoryStorageHelper` |
 
 **Example:**
@@ -390,7 +390,7 @@ logger.log('info', MSG_ORDER_FILLED);
 - Use background flushing to avoid I/O blocking
 - HfLogger uses a lock-free ring buffer (64K entries, 16MB)
 
-> **Deep Dive:** See [Logger Helper](../references/helpers/logger.md) for complete HfLogger API.
+> **Deep Dive:** See [Logger Helper](../references/helpers/logger/) for complete HfLogger API.
 
 ## Performance Checklist
 

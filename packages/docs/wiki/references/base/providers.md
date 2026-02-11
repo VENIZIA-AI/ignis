@@ -49,7 +49,6 @@ A **Provider** is a class that implements the Factory pattern, responsible for c
 - **Multi-Tenant**: Provide tenant-specific instances
 - **Feature Flags**: Enable/disable features at runtime
 
----
 
 ## BaseProvider Class
 
@@ -99,7 +98,6 @@ The `value` method is where you implement your factory logic.
 - Create and configure instances based on logic
 - Return factories for deferred instantiation
 
----
 
 ## Provider vs Service
 
@@ -185,7 +183,6 @@ class OrderService extends BaseService {
 - **Need to implement business logic?** → Use a Service
 :::
 
----
 
 ## Creating Custom Providers
 
@@ -297,7 +294,6 @@ export class DatabaseProvider extends BaseProvider<Database> {
 }
 ```
 
----
 
 ## Provider Lifecycle
 
@@ -354,7 +350,6 @@ export class FactoryDatabaseProvider extends BaseProvider<Database> {
 }
 ```
 
----
 
 ## Real-World Examples
 
@@ -498,7 +493,6 @@ const requestSpy = new RequestSpyMiddleware();
 app.use(requestSpy.value());
 ```
 
----
 
 ## Common Patterns
 
@@ -589,7 +583,6 @@ export class CacheProvider extends BaseProvider<ICache> {
 }
 ```
 
----
 
 ## Common Pitfalls
 
@@ -664,7 +657,6 @@ value(container: Container): IMailTransport {
 }
 ```
 
----
 
 ## Performance Considerations
 
@@ -710,7 +702,6 @@ export class ConfigProvider extends BaseProvider<Config> {
 }
 ```
 
----
 
 ## See Also
 

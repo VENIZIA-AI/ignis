@@ -22,7 +22,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [Comparison Operators Guide](./comparison-operators.md)
 
----
 
 ## Range Operators
 
@@ -33,7 +32,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [Range Operators Guide](./range-operators.md)
 
----
 
 ## List Operators
 
@@ -44,7 +42,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [List Operators Guide](./list-operators.md)
 
----
 
 ## Pattern Matching Operators
 
@@ -65,7 +62,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [Pattern Matching Guide](./pattern-matching.md)
 
----
 
 ## Null Check Operators
 
@@ -83,7 +79,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [Null Operators Guide](./null-operators.md)
 
----
 
 ## Logical Operators
 
@@ -106,7 +101,6 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 **See:** [Logical Operators Guide](./logical-operators.md)
 
----
 
 ## PostgreSQL Array Operators
 
@@ -122,7 +116,6 @@ These operators work with PostgreSQL array columns (`varchar[]`, `text[]`, `inte
 
 **See:** [Array Operators Guide](./array-operators.md)
 
----
 
 ## JSON/JSONB Operators (PostgreSQL)
 
@@ -166,7 +159,6 @@ All comparison operators work with JSON path queries:
 
 **See:** [JSON Filtering Guide](./json-filtering.md)
 
----
 
 ## Fields, Ordering & Pagination
 
@@ -211,7 +203,6 @@ const users = await userRepo.find({
 
 **See:** [Fields, Ordering & Pagination Guide](./fields-order-pagination.md)
 
----
 
 ## Default Filters
 
@@ -250,7 +241,6 @@ await userRepo.find({
 
 **See:** [Default Filter Guide](./default-filter.md)
 
----
 
 ## Common Filter Patterns
 
@@ -314,7 +304,6 @@ await userRepo.find({
 }
 ```
 
----
 
 ## Operator Precedence
 
@@ -339,7 +328,6 @@ Use explicit parentheses (via nested `and`/`or`) for clarity:
 }
 ```
 
----
 
 ## Type Safety
 
@@ -371,7 +359,6 @@ await userRepo.find({
 });
 ```
 
----
 
 ## Performance Tips
 
@@ -407,7 +394,6 @@ await userRepo.find({
    }
    ```
 
----
 
 ## See Also
 

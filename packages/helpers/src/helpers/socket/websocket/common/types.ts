@@ -74,7 +74,9 @@ export interface IRedisSocketMessage<DataType = unknown> {
 // -------------------------------------------------------------------------------------------------------------
 export type TWebSocketClientState = TConstValue<typeof WebSocketClientStates>;
 
-export interface IWebSocketClient<MetadataType = Record<string, unknown>> {
+export interface IWebSocketClient<
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
   id: string;
   userId?: string;
   socket: IWebSocket;
@@ -85,45 +87,48 @@ export interface IWebSocketClient<MetadataType = Record<string, unknown>> {
   connectedAt: number;
   lastActivity: number;
   metadata?: MetadataType;
+  serverPublicKey?: string;
   authTimer?: ReturnType<typeof setTimeout>;
 }
 
 // -------------------------------------------------------------------------------------------------------------
 // WebSocket Data (attached during server.upgrade)
 // -------------------------------------------------------------------------------------------------------------
-export interface IWebSocketData<MetadataType = Record<string, unknown>> {
+export interface IWebSocketData<
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
   clientId: string;
   userId?: string;
   metadata?: MetadataType;
 }
 
 // -------------------------------------------------------------------------------------------------------------
-// Authentication (post-connection, Socket.IO pattern)
-// -------------------------------------------------------------------------------------------------------------
-
-/**
- * User-provided function to authenticate WebSocket clients after connection.
- * Called when client sends { event: 'authenticate', data: { token, ... } }.
- * Return object with userId (or other metadata) on success, or null/false to reject.
- */
-export type TWebSocketAuthenticateFn = (
-  data: Record<string, unknown>,
-) => ValueOrPromise<{ userId?: string; metadata?: Record<string, unknown> } | null | false>;
-
-// -------------------------------------------------------------------------------------------------------------
 // Callback Types
 // -------------------------------------------------------------------------------------------------------------
+export type TWebSocketAuthenticateFn<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = (
+  opts: AuthDataType,
+) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+
+export type TWebSocketHandshakeFn<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+> = (opts: {
+  clientId: string;
+  userId?: string;
+  data: AuthDataType;
+}) => ValueOrPromise<{ serverPublicKey: string } | null | false>;
+
 export type TWebSocketValidateRoomFn = (opts: {
   clientId: string;
   userId?: string;
   rooms: string[];
 }) => ValueOrPromise<string[]>;
 
-export type TWebSocketClientConnectedFn = (opts: {
-  clientId: string;
-  userId?: string;
-  metadata?: Record<string, unknown>;
-}) => ValueOrPromise<void>;
+export type TWebSocketClientConnectedFn<
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = (opts: { clientId: string; userId?: string; metadata?: MetadataType }) => ValueOrPromise<void>;
 
 export type TWebSocketClientDisconnectedFn = (opts: {
   clientId: string;
@@ -136,28 +141,22 @@ export type TWebSocketMessageHandler = (opts: {
   message: IWebSocketMessage;
 }) => ValueOrPromise<void>;
 
-export type TWebSocketOutboundTransformer<DataType = unknown> = (opts: {
-  client: IWebSocketClient;
+export type TWebSocketOutboundTransformer<
+  DataType = unknown,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = (opts: {
+  client: IWebSocketClient<MetadataType>;
   event: string;
   data: DataType;
 }) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
 
-/**
- * User-provided function to perform key exchange during authentication.
- * Called after authenticateFn succeeds when requireEncryption is true.
- * Receives the same auth payload (which should contain the client's public key).
- * Return { serverPublicKey } on success, or null/false to reject the connection.
- */
-export type TWebSocketHandshakeFn = (opts: {
-  clientId: string;
-  userId?: string;
-  data: Record<string, unknown>;
-}) => ValueOrPromise<{ serverPublicKey: string } | null | false>;
-
 // -------------------------------------------------------------------------------------------------------------
 // Server Options (Bun only)
 // -------------------------------------------------------------------------------------------------------------
-export interface IWebSocketServerOptions {
+export interface IWebSocketServerOptions<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> {
   identifier: string;
   path?: string; // Default: '/ws'
   redisConnection: DefaultRedisHelper;
@@ -171,13 +170,13 @@ export interface IWebSocketServerOptions {
   requireEncryption?: boolean; // Default: false — when true, clients must complete handshake during auth or get rejected (4004)
 
   // Hooks
-  authenticateFn: TWebSocketAuthenticateFn;
+  authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   validateRoomFn?: TWebSocketValidateRoomFn;
-  clientConnectedFn?: TWebSocketClientConnectedFn;
+  clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
-  outboundTransformer?: TWebSocketOutboundTransformer;
-  handshakeFn?: TWebSocketHandshakeFn; // Required when requireEncryption is true
+  outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
+  handshakeFn?: TWebSocketHandshakeFn<AuthDataType>; // Required when requireEncryption is true
 }
 
 // -------------------------------------------------------------------------------------------------------------

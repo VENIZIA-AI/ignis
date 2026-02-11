@@ -68,7 +68,7 @@ const SecureRoute = {
 };
 ```
 
-> **Deep Dive:** See [Authentication Component](../references/components/authentication.md) for full setup guide.
+> **Deep Dive:** See [Authentication Component](../references/components/authentication/) for full setup guide.
 
 **Access user in protected routes:**
 ```typescript
@@ -462,6 +462,6 @@ Before deploying to production, verify:
 
 ## See Also
 
-- [Authentication Component](../references/components/authentication) - JWT setup and configuration
+- [Authentication Component](../references/components/authentication/) - JWT setup and configuration
 - [Common Pitfalls](./common-pitfalls) - Security-related mistakes to avoid
 - [Deployment Strategies](./deployment-strategies) - Secure deployment practices

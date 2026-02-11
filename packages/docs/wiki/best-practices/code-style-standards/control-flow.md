@@ -241,5 +241,5 @@ import { QueryBuilder } from '../query';
 ## See Also
 
 - [Error Handling](../error-handling) - Comprehensive error patterns
-- [Logging Reference](../../references/helpers/logger) - Logger API
+- [Logging Reference](../../references/helpers/logger/) - Logger API
 - [Function Patterns](./function-patterns) - Method organization

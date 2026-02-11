@@ -773,8 +773,6 @@ await app.boot();
 ```
 
 
----
-
 ## See Also
 
 - **Related References:**

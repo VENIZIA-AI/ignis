@@ -30,7 +30,10 @@ import {
 type TRedisClient = Redis | Cluster;
 
 // -------------------------------------------------------------------------------------------------------------
-export class WebSocketServerHelper extends BaseHelper {
+export class WebSocketServerHelper<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> extends BaseHelper {
   // --- Server ---
   private path: string;
   private server: IBunServer;
@@ -38,7 +41,7 @@ export class WebSocketServerHelper extends BaseHelper {
   // --- Connections ---
   private serverId: string;
 
-  private clients: Map<string, IWebSocketClient> = new Map();
+  private clients: Map<string, IWebSocketClient<MetadataType>> = new Map();
   private users: Map<string, Set<string>> = new Map(); // userId -> Set<clientId>
   private rooms: Map<string, Set<string>> = new Map(); // room -> Set<clientId>
 
@@ -47,13 +50,13 @@ export class WebSocketServerHelper extends BaseHelper {
   private redisSub: TRedisClient;
 
   // --- Callbacks ---
-  private authenticateFn: TWebSocketAuthenticateFn;
+  private authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   private validateRoomFn?: TWebSocketValidateRoomFn;
-  private onClientConnected?: TWebSocketClientConnectedFn;
+  private onClientConnected?: TWebSocketClientConnectedFn<MetadataType>;
   private onClientDisconnected?: TWebSocketClientDisconnectedFn;
   private messageHandler?: TWebSocketMessageHandler;
-  private outboundTransformer?: TWebSocketOutboundTransformer;
-  private handshakeFn?: TWebSocketHandshakeFn;
+  private outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
+  private handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
 
   // --- Options ---
   private defaultRooms: string[];
@@ -68,7 +71,7 @@ export class WebSocketServerHelper extends BaseHelper {
   // -------------------------------------------------------------------------------------------------------------
   // Constructor
   // -------------------------------------------------------------------------------------------------------------
-  constructor(opts: IWebSocketServerOptions) {
+  constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>) {
     super({ scope: opts.identifier });
 
     this.identifier = opts.identifier;
@@ -105,7 +108,9 @@ export class WebSocketServerHelper extends BaseHelper {
     this.initRedisClients(opts.redisConnection);
   }
 
-  private initRedisClients(redisConnection: IWebSocketServerOptions['redisConnection']) {
+  private initRedisClients(
+    redisConnection: IWebSocketServerOptions<AuthDataType, MetadataType>['redisConnection'],
+  ) {
     if (!redisConnection) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
@@ -121,7 +126,9 @@ export class WebSocketServerHelper extends BaseHelper {
   // -------------------------------------------------------------------------------------------------------------
   // Public Accessors
   // -------------------------------------------------------------------------------------------------------------
-  getClients(opts?: { id?: string }): IWebSocketClient | Map<string, IWebSocketClient> | undefined {
+  getClients(opts?: {
+    id?: string;
+  }): IWebSocketClient<MetadataType> | Map<string, IWebSocketClient<MetadataType>> | undefined {
     const { id } = opts ?? {};
     if (id) {
       return this.clients.get(id);
@@ -129,13 +136,13 @@ export class WebSocketServerHelper extends BaseHelper {
     return this.clients;
   }
 
-  getClientsByUser(opts: { userId: string }): IWebSocketClient[] {
+  getClientsByUser(opts: { userId: string }): IWebSocketClient<MetadataType>[] {
     const clientIds = this.users.get(opts.userId);
     if (!clientIds) {
       return [];
     }
 
-    const clients: IWebSocketClient[] = [];
+    const clients: IWebSocketClient<MetadataType>[] = [];
     for (const clientId of clientIds) {
       const client = this.clients.get(clientId);
       if (client) {
@@ -145,13 +152,13 @@ export class WebSocketServerHelper extends BaseHelper {
     return clients;
   }
 
-  getClientsByRoom(opts: { room: string }): IWebSocketClient[] {
+  getClientsByRoom(opts: { room: string }): IWebSocketClient<MetadataType>[] {
     const clientIds = this.rooms.get(opts.room);
     if (!clientIds) {
       return [];
     }
 
-    const clients: IWebSocketClient[] = [];
+    const clients: IWebSocketClient<MetadataType>[] = [];
     for (const clientId of clientIds) {
       const client = this.clients.get(clientId);
       if (client) {
@@ -426,7 +433,7 @@ export class WebSocketServerHelper extends BaseHelper {
     const now = Date.now();
 
     // Create client entry — unauthorized until authenticate event
-    const client: IWebSocketClient = {
+    const client: IWebSocketClient<MetadataType> = {
       id: clientId,
       socket,
       state: WebSocketClientStates.UNAUTHORIZED,
@@ -670,7 +677,7 @@ export class WebSocketServerHelper extends BaseHelper {
     }, this.authTimeout * 3);
 
     Promise.resolve()
-      .then(() => this.authenticateFn((payload ?? {}) as Record<string, unknown>))
+      .then(() => this.authenticateFn((payload ?? {}) as AuthDataType))
       .then(async result => {
         // Re-validate client still exists (may have disconnected during async auth)
         if (!this.clients.has(clientId)) {
@@ -709,7 +716,7 @@ export class WebSocketServerHelper extends BaseHelper {
             this.handshakeFn({
               clientId,
               userId: client.userId,
-              data: (payload ?? {}) as Record<string, unknown>,
+              data: (payload ?? {}) as AuthDataType,
             }),
           );
 
@@ -732,10 +739,7 @@ export class WebSocketServerHelper extends BaseHelper {
 
           // Handshake succeeded — enable encryption
           this.enableClientEncryption({ clientId });
-          client.metadata = {
-            ...client.metadata,
-            serverPublicKey: handshakeResult.serverPublicKey,
-          };
+          client.serverPublicKey = handshakeResult.serverPublicKey;
         }
 
         // Index by userId
@@ -763,8 +767,8 @@ export class WebSocketServerHelper extends BaseHelper {
           userId: client.userId,
           time: new Date().toISOString(),
         };
-        if (client.encrypted && client.metadata?.serverPublicKey) {
-          connectedData.serverPublicKey = client.metadata.serverPublicKey;
+        if (client.encrypted && client.serverPublicKey) {
+          connectedData.serverPublicKey = client.serverPublicKey;
         }
         this.sendToClient({
           clientId,
@@ -952,7 +956,7 @@ export class WebSocketServerHelper extends BaseHelper {
   }
 
   private deliverToSocket(opts: {
-    client: IWebSocketClient;
+    client: IWebSocketClient<MetadataType>;
     payload: string;
     doLog?: boolean;
     event?: string;

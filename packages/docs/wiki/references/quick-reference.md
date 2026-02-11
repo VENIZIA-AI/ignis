@@ -119,7 +119,6 @@ class User extends BaseEntity {
 - `static tableName` - Database table name
 - `static schema` - Drizzle schema definition
 
----
 
 ## Route Decorators
 
@@ -170,7 +169,6 @@ class UserController extends BaseController {
 }
 ```
 
----
 
 ## Filter Operators
 
@@ -239,7 +237,6 @@ class UserController extends BaseController {
 |----------|-------------|---------|
 | `jsonPath` | Query JSON field | `{ metadata: { jsonPath: '$.user.name', eq: 'John' } }` |
 
----
 
 ## Common Filters
 
@@ -292,7 +289,6 @@ const users = await userRepo.find({
 });
 ```
 
----
 
 ## Dependency Injection
 
@@ -329,7 +325,6 @@ class UserController extends BaseController {
 const userService = app.get<UserService>('services.UserService');
 ```
 
----
 
 ## Common Imports
 
@@ -412,7 +407,6 @@ import {
 } from '@venizia/ignis-inversion';
 ```
 
----
 
 ## OpenAPI/Swagger
 
@@ -458,7 +452,6 @@ async getDashboard() {
 }
 ```
 
----
 
 ## Status Codes
 
@@ -507,7 +500,6 @@ if (Statuses.isCompleted(order.status)) {
 | `CANCELLED` | `'505_CANCELLED'` | Failed |
 | `DELETED` | `'506_DELETED'` | Failed |
 
----
 
 ## Middlewares
 
@@ -537,7 +529,6 @@ app.onError(appErrorHandler({ logger: app.logger }));
 app.notFound(notFoundHandler({ logger: app.logger }));
 ```
 
----
 
 ## Environment Variables
 
@@ -559,7 +550,6 @@ const port = EnvHelper.get('PORT', '3000');
 const apiKey = EnvHelper.getRequired('API_KEY');
 ```
 
----
 
 ## Common Patterns
 
@@ -613,7 +603,6 @@ class UserRepository extends DefaultCRUDRepository<User> {
 }
 ```
 
----
 
 ## See Also
 

@@ -187,7 +187,6 @@ async getUser(c: TRouteContext) {
 }
 ```
 
----
 
 ### Not Found Handler (`notFoundHandler`)
 
@@ -233,7 +232,6 @@ app.notFound(notFoundHandler({
 
 **Returns:** `NotFoundHandler` - Hono not found handler function
 
----
 
 ### Request Spy (`RequestSpyMiddleware`)
 
@@ -319,7 +317,6 @@ async example(c: TRouteContext) {
 Request spy logs every request detail. Consider disabling or reducing verbosity in production environments with high traffic.
 :::
 
----
 
 ### Emoji Favicon
 
@@ -372,7 +369,6 @@ app.use(emojiFavicon({ icon: '🌟' })); // Star
 SVG favicons are supported in all modern browsers. Fallback to a traditional `.ico` file if you need to support legacy browsers.
 :::
 
----
 
 ## Creating Custom Middleware
 
@@ -450,7 +446,6 @@ const myMiddleware = app.get(MyMiddleware);
 app.use(myMiddleware.value());
 ```
 
----
 
 ## Middleware Order & Priority
 
@@ -505,7 +500,6 @@ app.notFound(notFoundHandler({ logger: app.logger }));
 Placing error handler before routes will prevent it from catching route errors. Always register error handlers last.
 :::
 
----
 
 ## Common Patterns
 
@@ -543,7 +537,6 @@ const apiMiddleware = (): MiddlewareHandler => {
 };
 ```
 
----
 
 ## Performance Considerations
 
@@ -568,7 +561,6 @@ Error handlers log every error. For high error rates, consider:
 - Error aggregation services (Sentry, Rollbar)
 - Rate-limited logging
 
----
 
 ## See Also
 

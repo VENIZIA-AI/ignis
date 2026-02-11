@@ -241,7 +241,6 @@ await productRepository.update(productId, {
 });
 ```
 
----
 
 ## Status Groups
 
@@ -278,7 +277,6 @@ const activeJobs = jobs.filter(job =>
 const canRetry = !Statuses.FAILED_SCHEME_SET.has(task.status);
 ```
 
----
 
 ## Validation Methods
 
@@ -330,7 +328,6 @@ const activeUsers = users.filter(user => Statuses.isActive(user.status));
 const pendingOrders = orders.filter(order => Statuses.isPending(order.status));
 ```
 
----
 
 ## Specialized Status Classes
 
@@ -452,7 +449,6 @@ const oauthUser = await userRepository.create({
 });
 ```
 
----
 
 ## Usage Examples
 
@@ -606,7 +602,6 @@ class TaskService extends BaseService {
 }
 ```
 
----
 
 ## Binding Namespaces
 
@@ -659,7 +654,6 @@ const app = container.get(CoreBindings.APPLICATION_INSTANCE);
 const config = container.get(CoreBindings.APPLICATION_CONFIG);
 ```
 
----
 
 ## Best Practices
 
@@ -724,7 +718,6 @@ if (isTerminal) {
 }
 ```
 
----
 
 ## See Also
 

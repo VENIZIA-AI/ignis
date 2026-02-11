@@ -6,22 +6,22 @@ Reusable classes and functions providing common functionality - designed for eas
 
 | Helper | Purpose | Key Features |
 |--------|---------|--------------|
-| [Common Types](./types.md) | Utility types | Nullable, resolvers, class types |
-| [Cron](./cron.md) | Job scheduling | Cron expressions, task management |
-| [Crypto](./crypto.md) | Cryptographic operations | AES/RSA/ECDH encryption, key exchange, hashing |
-| [Environment](./env.md) | Environment variables | Centralized config access |
-| [Error](./error.md) | Error handling | `ApplicationError`, consistent responses |
-| [Inversion](./inversion.md) | Dependency injection | DI container implementation |
-| [Logger](./logger.md) | Logging | Winston-based, multiple transports, scopes |
-| [Network](./network.md) | Network requests | HTTP, TCP, UDP helpers |
-| [Queue](./queue.md) | Message queues | BullMQ, MQTT support |
-| [Redis](./redis.md) | Redis operations | Single/cluster, key-value, hashes, JSON, pub/sub |
-| [Socket.IO](./socket-io.md) | Real-time communication | Socket.IO client/server helpers |
-| [WebSocket](./websocket.md) | Real-time communication | Bun native WebSocket server/emitter, Redis scaling |
-| [Storage](./storage.md) | File storage | In-memory, Minio object storage |
-| [Testing](./testing.md) | Test utilities | Test plan runner, base test classes |
-| [UID](./uid.md) | Unique ID generation | Snowflake IDs, Base62 encoding |
-| [Worker Thread](./worker-thread.md) | Worker threads | Node.js worker management |
+| [Common Types](./types/) | Utility types | Nullable, resolvers, class types |
+| [Cron](./cron/) | Job scheduling | Cron expressions, task management |
+| [Crypto](./crypto/) | Cryptographic operations | AES/RSA/ECDH encryption, key exchange, hashing |
+| [Environment](./env/) | Environment variables | Centralized config access |
+| [Error](./error/) | Error handling | `ApplicationError`, consistent responses |
+| [Inversion](./inversion/) | Dependency injection | DI container implementation |
+| [Logger](./logger/) | Logging | Winston-based, multiple transports, scopes |
+| [Network](./network/) | Network requests | HTTP, TCP, UDP helpers |
+| [Queue](./queue/) | Message queues | BullMQ, MQTT support |
+| [Redis](./redis/) | Redis operations | Single/cluster, key-value, hashes, JSON, pub/sub |
+| [Socket.IO](./socket-io/) | Real-time communication | Socket.IO client/server helpers |
+| [WebSocket](./websocket/) | Real-time communication | Bun native WebSocket server/emitter, Redis scaling |
+| [Storage](./storage/) | File storage | In-memory, Minio object storage |
+| [Testing](./testing/) | Test utilities | Test plan runner, base test classes |
+| [UID](./uid/) | Unique ID generation | Snowflake IDs, Base62 encoding |
+| [Worker Thread](./worker-thread/) | Worker threads | Node.js worker management |
 
 ## See Also
 

@@ -1393,7 +1393,7 @@ You've built a complete e-commerce API with:
 
 ## Next Steps
 
-- Add user authentication with [Auth Component](/references/components/authentication)
-- Add order notifications with [Mail Component](/references/components/mail)
+- Add user authentication with [Auth Component](/references/components/authentication/)
+- Add order notifications with [Mail Component](/references/components/mail/)
 - Add real-time updates with [Socket.IO](./realtime-chat.md)
 - Deploy with [Deployment Guide](/best-practices/deployment-strategies)

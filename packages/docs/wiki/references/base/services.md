@@ -102,7 +102,6 @@ export class UserService extends BaseService {
 
 By adhering to this pattern, you keep your code organized, testable, and maintainable. You can easily test `UserService` by providing a mock `UserRepository` without needing a real database connection.
 
----
 
 ## See Also
 

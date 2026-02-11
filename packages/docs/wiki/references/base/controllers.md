@@ -632,7 +632,6 @@ export class ConfigurationController extends _Controller {
 }
 ```
 
----
 
 ## See Also
 

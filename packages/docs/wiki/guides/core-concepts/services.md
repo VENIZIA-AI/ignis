@@ -94,7 +94,7 @@ This layered architecture makes your application:
 - **References:**
   - [BaseService API](/references/base/services) - Complete API reference
   - [Providers](/references/base/providers) - Factory pattern for runtime instantiation
-  - [Logger Helper](/references/helpers/logger) - Logging in services
+  - [Logger Helper](/references/helpers/logger/) - Logging in services
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Service layer design

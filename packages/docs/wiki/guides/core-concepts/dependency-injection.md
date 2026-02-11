@@ -258,7 +258,7 @@ The `Application` class extends `Container`, so all container methods (`bind`, `
 
 - **References:**
   - [Dependency Injection API](/references/base/dependency-injection) - Complete API reference
-  - [Inversion Helper](/references/helpers/inversion) - DI container utilities
+  - [Inversion Helper](/references/helpers/inversion/) - DI container utilities
   - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
 
 - **Tutorials:**

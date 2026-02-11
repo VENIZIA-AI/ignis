@@ -13,8 +13,8 @@ This tutorial shows you how to build a real-time chat application with rooms, di
 ## Prerequisites
 
 - Completed [Building a CRUD API](./building-a-crud-api.md)
-- Understanding of [Socket.IO Component](/references/components/socket-io)
-- Understanding of [Socket.IO Helper](/references/helpers/socket-io)
+- Understanding of [Socket.IO Component](/references/components/socket-io/)
+- Understanding of [Socket.IO Helper](/references/helpers/socket-io/)
 - Redis for pub/sub (required by `SocketIOServerHelper`)
 
 ## 1. Project Setup
@@ -929,7 +929,7 @@ export class ChatService extends BaseService {
 ```
 
 > [!IMPORTANT]
-> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Socket.IO Component](/references/components/socket-io#step-3-use-in-servicescontrollers) for details.
+> **Lazy getter pattern**: `SocketIOServerHelper` is bound via a post-start hook, so it's not available during DI construction. The `private get socketIOHelper()` getter resolves it lazily on first access. See [Socket.IO Component](/references/components/socket-io/#step-3-use-in-servicescontrollers) for details.
 
 ## 6. Application Setup
 
@@ -1512,7 +1512,7 @@ this.bind<RedisHelper>({
 
 ## Next Steps
 
-- Add file/image sharing with [Storage Helper](/references/helpers/storage)
+- Add file/image sharing with [Storage Helper](/references/helpers/storage/)
 - Add push notifications
 - Implement read receipts
 - Add message reactions
@@ -1520,6 +1520,6 @@ this.bind<RedisHelper>({
 
 ## See Also
 
-- [Socket.IO Component](/references/components/socket-io) — Component reference
-- [Socket.IO Helper](/references/helpers/socket-io) — Server + Client helper API
+- [Socket.IO Component](/references/components/socket-io/) — Component reference
+- [Socket.IO Helper](/references/helpers/socket-io/) — Server + Client helper API
 - [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) — Working example with automated test client

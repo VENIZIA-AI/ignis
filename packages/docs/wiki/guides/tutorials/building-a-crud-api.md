@@ -694,7 +694,7 @@ You now have a fully functional CRUD API! Here's what to explore next:
 3. [Components](../core-concepts/components.md) - Build reusable modules
 
 **Add Features:**
-1. [Authentication](/references/components/authentication) - Add JWT authentication
+1. [Authentication](/references/components/authentication/) - Add JWT authentication
 2. [Custom Routes](/best-practices/api-usage-examples.md) - Beyond CRUD operations
 3. [Relationships](../core-concepts/persistent/) - Link todos to users
 

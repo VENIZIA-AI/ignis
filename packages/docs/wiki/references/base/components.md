@@ -589,10 +589,10 @@ export * from './controller';
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - Component bindings
 
 - **Built-in Components:**
-  - [Authentication Component](/references/components/authentication) - JWT authentication
-  - [Health Check Component](/references/components/health-check) - Health endpoints
-  - [Swagger Component](/references/components/swagger) - API documentation
-  - [Socket.IO Component](/references/components/socket-io) - WebSocket support
+  - [Authentication Component](/references/components/authentication/) - JWT authentication
+  - [Health Check Component](/references/components/health-check/) - Health endpoints
+  - [Swagger Component](/references/components/swagger/) - API documentation
+  - [Socket.IO Component](/references/components/socket-io/) - WebSocket support
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns

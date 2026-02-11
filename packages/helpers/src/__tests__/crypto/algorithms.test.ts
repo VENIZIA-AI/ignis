@@ -685,18 +685,20 @@ describe('Crypto Algorithms', () => {
         ecdh = ECDH.withAlgorithm();
       });
 
-      test('TC-066: deriveAESKey produces a CryptoKey for AES-GCM', async () => {
+      test('TC-066: deriveAESKey produces a CryptoKey and salt', async () => {
         const alice = await ecdh.generateKeyPair();
         const bob = await ecdh.generateKeyPair();
 
         const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
-        const key = await ecdh.deriveAESKey({
+        const { key, salt } = await ecdh.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPub,
         });
 
         expect(key).toBeDefined();
         expect(key.type).toBe('secret');
+        expect(typeof salt).toBe('string');
+        expect(salt.length).toBeGreaterThan(0);
       });
 
       test('TC-067: symmetric derivation — Alice→Bob and Bob→Alice produce same key', async () => {
@@ -706,13 +708,14 @@ describe('Crypto Algorithms', () => {
         const bobPubImported = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
         const alicePubImported = await ecdh.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
 
-        const keyAB = await ecdh.deriveAESKey({
+        const { key: keyAB, salt } = await ecdh.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPubImported,
         });
-        const keyBA = await ecdh.deriveAESKey({
+        const { key: keyBA } = await ecdh.deriveAESKey({
           privateKey: bob.keyPair.privateKey,
           peerPublicKey: alicePubImported,
+          salt,
         });
 
         // Encrypt with one, decrypt with the other to prove equivalence
@@ -736,10 +739,11 @@ describe('Crypto Algorithms', () => {
         const alice = await ecdh.generateKeyPair();
         const bob = await ecdh.generateKeyPair();
         const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
-        sharedKey = await ecdh.deriveAESKey({
+        const derived = await ecdh.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPub,
         });
+        sharedKey = derived.key;
       });
 
       test('TC-068: encrypt/decrypt roundtrip', async () => {
@@ -774,7 +778,7 @@ describe('Crypto Algorithms', () => {
         const charlie = await ecdh.generateKeyPair();
         const dave = await ecdh.generateKeyPair();
         const davePub = await ecdh.importPublicKey({ rawKeyB64: dave.publicKeyB64 });
-        const wrongKey = await ecdh.deriveAESKey({
+        const { key: wrongKey } = await ecdh.deriveAESKey({
           privateKey: charlie.keyPair.privateKey,
           peerPublicKey: davePub,
         });
@@ -841,14 +845,15 @@ describe('Crypto Algorithms', () => {
         const alicePubForBob = await ecdh.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
         const bobPubForAlice = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
 
-        // 3. Derive shared keys
-        const aliceKey = await ecdh.deriveAESKey({
+        // 3. Derive shared keys (initiator generates salt, responder uses it)
+        const { key: aliceKey, salt } = await ecdh.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPubForAlice,
         });
-        const bobKey = await ecdh.deriveAESKey({
+        const { key: bobKey } = await ecdh.deriveAESKey({
           privateKey: bob.keyPair.privateKey,
           peerPublicKey: alicePubForBob,
+          salt,
         });
 
         // 4. Alice sends to Bob
@@ -876,25 +881,27 @@ describe('Crypto Algorithms', () => {
         const bobPub2 = await ecdh2.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
         const alicePub1 = await ecdh1.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
 
-        // Derive with different hkdfInfo
-        const key1 = await ecdh1.deriveAESKey({
+        // Derive with different hkdfInfo but same salt
+        const { key: key1, salt: salt1 } = await ecdh1.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPub1,
         });
-        const key2 = await ecdh2.deriveAESKey({
+        const { key: key2 } = await ecdh2.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPub2,
+          salt: salt1,
         });
-        const bobKey1 = await ecdh1.deriveAESKey({
+        const { key: bobKey1 } = await ecdh1.deriveAESKey({
           privateKey: bob.keyPair.privateKey,
           peerPublicKey: alicePub1,
+          salt: salt1,
         });
 
-        // Encrypt with key1, try decrypt with key2 — should fail
+        // Encrypt with key1, try decrypt with key2 — should fail (different hkdfInfo)
         const encrypted = await ecdh1.encrypt({ message: 'hkdf test', secret: key1 });
         expect(ecdh2.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
 
-        // But key1 and bobKey1 (same hkdfInfo) should work
+        // But key1 and bobKey1 (same hkdfInfo + same salt) should work
         const decrypted = await ecdh1.decrypt({ message: encrypted, secret: bobKey1 });
         expect(decrypted).toBe('hkdf test');
       });
@@ -910,13 +917,13 @@ describe('Crypto Algorithms', () => {
         const alicePub = await ecdh.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
 
         // Eve tries to derive a key with Alice's public key
-        const eveKey = await ecdh.deriveAESKey({
+        const { key: eveKey } = await ecdh.deriveAESKey({
           privateKey: eve.keyPair.privateKey,
           peerPublicKey: alicePub,
         });
 
         // Alice encrypts for Bob
-        const aliceKey = await ecdh.deriveAESKey({
+        const { key: aliceKey } = await ecdh.deriveAESKey({
           privateKey: alice.keyPair.privateKey,
           peerPublicKey: bobPub,
         });
@@ -924,6 +931,161 @@ describe('Crypto Algorithms', () => {
 
         // Eve cannot decrypt
         expect(ecdh.decrypt({ message: encrypted, secret: eveKey })).rejects.toThrow();
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Salt-based Key Derivation
+    // -------------------------------------------------------------------------
+
+    describe('Salt-based Key Derivation', () => {
+      let ecdh: ECDH;
+
+      beforeAll(() => {
+        ecdh = ECDH.withAlgorithm();
+      });
+
+      test('TC-080: salt roundtrip — initiator salt used by responder yields same key', async () => {
+        const alice = await ecdh.generateKeyPair();
+        const bob = await ecdh.generateKeyPair();
+        const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
+        const alicePub = await ecdh.importPublicKey({ rawKeyB64: alice.publicKeyB64 });
+
+        // Initiator generates salt
+        const { key: aliceKey, salt } = await ecdh.deriveAESKey({
+          privateKey: alice.keyPair.privateKey,
+          peerPublicKey: bobPub,
+        });
+
+        // Responder uses the same salt
+        const { key: bobKey } = await ecdh.deriveAESKey({
+          privateKey: bob.keyPair.privateKey,
+          peerPublicKey: alicePub,
+          salt,
+        });
+
+        const plaintext = 'salt roundtrip test';
+        const encrypted = await ecdh.encrypt({ message: plaintext, secret: aliceKey });
+        const decrypted = await ecdh.decrypt({ message: encrypted, secret: bobKey });
+        expect(decrypted).toBe(plaintext);
+      });
+
+      test('TC-081: different salt produces incompatible keys (same key pair)', async () => {
+        const alice = await ecdh.generateKeyPair();
+        const bob = await ecdh.generateKeyPair();
+        const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
+
+        // Two derivations without shared salt → random salts → different keys
+        const { key: key1 } = await ecdh.deriveAESKey({
+          privateKey: alice.keyPair.privateKey,
+          peerPublicKey: bobPub,
+        });
+        const { key: key2 } = await ecdh.deriveAESKey({
+          privateKey: alice.keyPair.privateKey,
+          peerPublicKey: bobPub,
+        });
+
+        const encrypted = await ecdh.encrypt({ message: 'salt isolation', secret: key1 });
+        expect(ecdh.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // AAD (Additional Authenticated Data)
+    // -------------------------------------------------------------------------
+
+    describe('AAD (Additional Authenticated Data)', () => {
+      let ecdh: ECDH;
+      let sharedKey: CryptoKey;
+
+      beforeAll(async () => {
+        ecdh = ECDH.withAlgorithm();
+        const alice = await ecdh.generateKeyPair();
+        const bob = await ecdh.generateKeyPair();
+        const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
+        const derived = await ecdh.deriveAESKey({
+          privateKey: alice.keyPair.privateKey,
+          peerPublicKey: bobPub,
+        });
+        sharedKey = derived.key;
+      });
+
+      test('TC-082: encrypt with AAD, decrypt with matching AAD succeeds', async () => {
+        const encrypted = await ecdh.encrypt({
+          message: 'aad test',
+          secret: sharedKey,
+          opts: { additionalData: 'context-A' },
+        });
+        const decrypted = await ecdh.decrypt({
+          message: encrypted,
+          secret: sharedKey,
+          opts: { additionalData: 'context-A' },
+        });
+        expect(decrypted).toBe('aad test');
+      });
+
+      test('TC-083: decrypt without AAD when encrypted with AAD throws', async () => {
+        const encrypted = await ecdh.encrypt({
+          message: 'aad required',
+          secret: sharedKey,
+          opts: { additionalData: 'context-A' },
+        });
+        expect(ecdh.decrypt({ message: encrypted, secret: sharedKey })).rejects.toThrow();
+      });
+
+      test('TC-084: decrypt with wrong AAD throws', async () => {
+        const encrypted = await ecdh.encrypt({
+          message: 'wrong aad',
+          secret: sharedKey,
+          opts: { additionalData: 'context-A' },
+        });
+        expect(
+          ecdh.decrypt({
+            message: encrypted,
+            secret: sharedKey,
+            opts: { additionalData: 'context-B' },
+          }),
+        ).rejects.toThrow();
+      });
+    });
+
+    // -------------------------------------------------------------------------
+    // Base64 Validation & IV Tampering
+    // -------------------------------------------------------------------------
+
+    describe('Input Validation', () => {
+      let ecdh: ECDH;
+      let sharedKey: CryptoKey;
+
+      beforeAll(async () => {
+        ecdh = ECDH.withAlgorithm();
+        const alice = await ecdh.generateKeyPair();
+        const bob = await ecdh.generateKeyPair();
+        const bobPub = await ecdh.importPublicKey({ rawKeyB64: bob.publicKeyB64 });
+        const derived = await ecdh.deriveAESKey({
+          privateKey: alice.keyPair.privateKey,
+          peerPublicKey: bobPub,
+        });
+        sharedKey = derived.key;
+      });
+
+      test('TC-085: importPublicKey with malformed base64 throws validation error', async () => {
+        expect(ecdh.importPublicKey({ rawKeyB64: '!!invalid!!' })).rejects.toThrow(
+          'Invalid base64',
+        );
+      });
+
+      test('TC-086: tampered IV causes decrypt to throw', async () => {
+        const encrypted = await ecdh.encrypt({ message: 'iv tamper test', secret: sharedKey });
+
+        const ivBuf = Buffer.from(encrypted.iv, 'base64');
+        ivBuf[0] ^= 0xff;
+        const tampered: IECDHEncryptedPayload = {
+          iv: ivBuf.toString('base64'),
+          ct: encrypted.ct,
+        };
+
+        expect(ecdh.decrypt({ message: tampered, secret: sharedKey })).rejects.toThrow();
       });
     });
   });

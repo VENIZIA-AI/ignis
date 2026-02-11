@@ -141,7 +141,6 @@ export class HealthController extends BaseController {
 | **Service** | Single app | Medium | Internal |
 | **Inline** | Single controller | None | None |
 
----
 
 ## 3. Repository Method Design
 
@@ -203,7 +202,6 @@ export class OrderRepository extends BaseRepository<Order> {
 }
 ```
 
----
 
 ## 4. Error Handling Strategy
 
@@ -277,7 +275,6 @@ Controller (catches, formats for API response)
 Client (receives formatted error)
 ```
 
----
 
 ## 5. Scaling Decisions
 
@@ -334,7 +331,6 @@ class NotificationService {
 | Data | Shared database OK | Need data isolation |
 | Complexity | Keep simple | Worth the overhead |
 
----
 
 ## 6. Data Access Patterns
 
@@ -384,7 +380,6 @@ const nearby = await db.execute(sql`
 `);
 ```
 
----
 
 ## 7. Configuration Strategy
 
@@ -429,7 +424,6 @@ this.component(SwaggerComponent, {
 });
 ```
 
----
 
 ## 8. Testing Strategy
 
@@ -454,7 +448,6 @@ this.component(SwaggerComponent, {
   --------------
 ```
 
----
 
 ## Quick Reference
 
@@ -479,7 +472,6 @@ this.component(SwaggerComponent, {
 | Premature optimization | Start simple, optimize when needed |
 | Over-engineering | YAGNI - build what you need now |
 
----
 
 ## See Also
 

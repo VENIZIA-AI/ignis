@@ -86,7 +86,6 @@ const pageContent = htmlContent({
 // }
 ```
 
----
 
 ## htmlResponse()
 
@@ -152,7 +151,6 @@ this.defineRoute({
 });
 ```
 
----
 
 ## Usage Examples
 
@@ -311,7 +309,6 @@ export class AdminController extends BaseController {
 }
 ```
 
----
 
 ## Comparison with JSON Utilities
 
@@ -332,7 +329,6 @@ export class AdminController extends BaseController {
 | **Error Type** | `application/json` (4xx/5xx) | `application/json` (4xx/5xx) |
 | **Use Case** | Web pages | REST APIs |
 
----
 
 ## Best Practices
 
@@ -447,7 +443,6 @@ async getBlogPost(c: TRouteContext) {
 }
 ```
 
----
 
 ## Integration with Hono JSX
 
@@ -506,7 +501,6 @@ async getHome() {
 }
 ```
 
----
 
 ## Common Pitfalls
 
@@ -562,14 +556,13 @@ async getUsers() {
 }
 ```
 
----
 
 ## See Also
 
 - **Related References:**
   - [Schema Utility](./schema.md) - JSON content and response helpers
   - [Controllers](../base/controllers.md) - Defining routes and handlers
-  - [OpenAPI Component](../components/swagger.md) - API documentation
+  - [OpenAPI Component](../components/swagger/) - API documentation
 
 - **External Resources:**
   - [Hono JSX Documentation](https://hono.dev/guides/jsx)

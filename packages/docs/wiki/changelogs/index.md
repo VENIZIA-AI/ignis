@@ -17,6 +17,8 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-02-11 | [WebSocket Generic Type Parameters](./2026-02-11-websocket-generic-types) | Enhancement |
+| 2026-02-11 | [WebSocket Encrypted Delivery](./2026-02-11-websocket-encrypted-delivery) | New Feature |
 | 2026-02-11 | [Crypto Algorithm Refactor & ECDH](./2026-02-11-crypto-refactor-ecdh) | Refactor, New Feature, Breaking Change |
 | 2026-02-10 | [WebSocket Heartbeat & Payload Limit](./2026-02-10-websocket-heartbeat-payload) | New Feature, Enhancement |
 | 2026-02-06 | [Socket.IO Integration Fix](./2026-02-06-socket-io-integration-fix) | Bug Fix, New Feature, Breaking Change |

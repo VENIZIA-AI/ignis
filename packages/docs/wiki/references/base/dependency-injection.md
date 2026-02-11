@@ -201,7 +201,7 @@ class UserController {
   - [Providers](/references/base/providers) - Factory pattern for dynamic injection
 
 - **References:**
-  - [Inversion Helper](/references/helpers/inversion) - DI container utilities
+  - [Inversion Helper](/references/helpers/inversion/) - DI container utilities
   - [Bootstrapping API](/references/base/bootstrapping) - Auto-discovery and DI
   - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
 
