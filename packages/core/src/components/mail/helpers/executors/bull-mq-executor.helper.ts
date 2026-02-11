@@ -1,11 +1,11 @@
 import {
   BaseHelper,
-  BullMQHelper,
   getError,
   IRedisHelperOptions,
   RedisHelper,
   TConstValue,
 } from '@/helpers';
+import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import {
   BullMQExecutorModes,
   IMailProcessorResult,

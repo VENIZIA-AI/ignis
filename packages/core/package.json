@@ -53,6 +53,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./socket-io": {
+      "types": "./dist/components/socket-io/index.d.ts",
+      "default": "./dist/components/socket-io/index.js"
+    },
+    "./mail": {
+      "types": "./dist/components/mail/index.d.ts",
+      "default": "./dist/components/mail/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

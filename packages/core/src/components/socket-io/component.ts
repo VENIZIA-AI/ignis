@@ -8,12 +8,14 @@ import {
   getError,
   HTTP,
   RuntimeModules,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers';
+import {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 import type { ServerOptions } from 'socket.io';
 import {
   SocketIOBindingKeys,

@@ -1,9 +1,9 @@
+import type { DefaultRedisHelper } from '@venizia/ignis-helpers';
 import type {
-  DefaultRedisHelper,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 import type { ServerOptions } from 'socket.io';
 
 export interface IServerOptions extends ServerOptions {

@@ -1,6 +1,5 @@
 export * from './base';
 
-export * from './cron';
 export * from './crypto';
 export * from './env';
 export * from './error';

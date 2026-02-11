@@ -1,8 +1,10 @@
 export * from './auth';
 export * from './health-check';
-export * from './mail';
+// Excluded from barrel — import from @venizia/ignis/mail directly
+// export * from './mail';
 export * from './request-tracker';
-export * from './socket-io';
+// Excluded from barrel — import from @venizia/ignis/socket-io directly
+// export * from './socket-io';
 export * from './static-asset';
 export * from './swagger';
 export * from './websocket';

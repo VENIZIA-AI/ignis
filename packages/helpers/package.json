@@ -44,6 +44,30 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./socket-io": {
+      "types": "./dist/helpers/socket/socket-io/index.d.ts",
+      "default": "./dist/helpers/socket/socket-io/index.js"
+    },
+    "./bullmq": {
+      "types": "./dist/helpers/queue/bullmq/index.d.ts",
+      "default": "./dist/helpers/queue/bullmq/index.js"
+    },
+    "./mqtt": {
+      "types": "./dist/helpers/queue/mqtt/index.d.ts",
+      "default": "./dist/helpers/queue/mqtt/index.js"
+    },
+    "./minio": {
+      "types": "./dist/helpers/storage/minio/index.d.ts",
+      "default": "./dist/helpers/storage/minio/index.js"
+    },
+    "./axios": {
+      "types": "./dist/helpers/network/http-request/fetcher/axios-fetcher.d.ts",
+      "default": "./dist/helpers/network/http-request/fetcher/axios-fetcher.js"
+    },
+    "./cron": {
+      "types": "./dist/helpers/cron/index.d.ts",
+      "default": "./dist/helpers/cron/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -89,31 +113,48 @@
   "homepage": "https://venizia-ai.github.io/ignis",
   "license": "MIT",
   "dependencies": {
-    "@socket.io/redis-adapter": "^8.3.0",
-    "@socket.io/redis-emitter": "^5.1.0",
     "@venizia/ignis-inversion": "^0.0.5",
-    "axios": "^1.12.2",
     "drizzle-orm": "^0.45.1",
-    "bullmq": "^5.63.1",
-    "cron": "^4.3.3",
     "dayjs": "^1.11.18",
     "hono": "^4.10.7",
     "ioredis": "^5.9.1",
     "lodash": "^4.17.21",
-    "minio": "^8.0.6",
-    "mqtt": "^5.14.1",
     "reflect-metadata": "^0.2.2",
-    "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
     "winston-transport": "^4.9.0"
+  },
+  "peerDependencies": {
+    "@socket.io/redis-adapter": "^8.3.0",
+    "@socket.io/redis-emitter": "^5.1.0",
+    "axios": "^1.12.2",
+    "bullmq": "^5.63.1",
+    "cron": "^4.3.3",
+    "minio": "^8.0.6",
+    "mqtt": "^5.14.1",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
       "optional": true
     },
     "@socket.io/redis-emitter": {
+      "optional": true
+    },
+    "axios": {
+      "optional": true
+    },
+    "bullmq": {
+      "optional": true
+    },
+    "cron": {
+      "optional": true
+    },
+    "minio": {
+      "optional": true
+    },
+    "mqtt": {
       "optional": true
     },
     "socket.io": {

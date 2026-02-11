@@ -1,6 +1,7 @@
 import { BaseEntity } from '@/base/models';
 import { DefaultCRUDRepository } from '@/base/repositories';
-import { AnyType, DiskHelper, MinioHelper } from '@venizia/ignis-helpers';
+import { AnyType, DiskHelper } from '@venizia/ignis-helpers';
+import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import { TMetaLinkSchema } from '../models';
 import { StaticAssetStorageTypes } from './constants';
 
