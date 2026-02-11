@@ -35,6 +35,8 @@ import {
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
   TWebSocketMessageHandler,
+  TWebSocketOutboundTransformer,
+  TWebSocketHandshakeFn,
   TWebSocketClientState,
   WebSocketEvents,
   WebSocketChannels,
@@ -79,6 +81,10 @@ new WebSocketServerHelper(opts: IWebSocketServerOptions)
 | `clientConnectedFn` | `TWebSocketClientConnectedFn` | No | -- | Called after successful authentication |
 | `clientDisconnectedFn` | `TWebSocketClientDisconnectedFn` | No | -- | Called when a client disconnects |
 | `messageHandler` | `TWebSocketMessageHandler` | No | -- | Called for non-system events from authenticated clients |
+| `outboundTransformer` | `TWebSocketOutboundTransformer` | No | -- | Intercepts outbound messages before `socket.send()`. When set, enables per-client encryption support |
+| `encryptedBatchLimit` | `number` | No | `10` | Max concurrent encryption operations for `sendToRoom()` / `broadcast()`. Uses [`executePromiseWithLimit`](/references/utilities/promise) |
+| `requireEncryption` | `boolean` | No | `false` | When `true`, clients must complete ECDH handshake during authentication or get disconnected (close code `4004`) |
+| `handshakeFn` | `TWebSocketHandshakeFn` | No* | -- | Key exchange callback invoked during auth when `requireEncryption` is `true`. Receives auth payload, returns `{ serverPublicKey }` on success. *Required when `requireEncryption` is `true` |
 
 ### Constructor Example
 
@@ -107,6 +113,12 @@ const helper = new WebSocketServerHelper({
   },
   messageHandler: ({ clientId, userId, message }) => {
     console.log('Custom event:', message.event, message.data);
+  },
+  // Optional: outbound transformer for per-client encryption
+  outboundTransformer: async ({ client, event, data }) => {
+    if (!client.encrypted) return null; // null = use default { event, data }
+    const encrypted = await encryptForClient(client, JSON.stringify({ event, data }));
+    return { event: 'encrypted', data: encrypted };
   },
 });
 
@@ -211,6 +223,22 @@ Programmatically remove a client from a room.
 helper.leaveRoom({ clientId: 'abc-123', room: 'game-lobby' });
 ```
 
+### `enableClientEncryption(opts): void`
+
+Enable encryption for a client. Unsubscribes the client from all Bun native topics so `server.publish()` won't reach them -- messages are delivered individually through the `outboundTransformer` instead.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `opts.clientId` | `string` | Client ID to enable encryption for |
+
+```typescript
+// Typically called after ECDH key exchange completes
+helper.enableClientEncryption({ clientId: 'abc-123' });
+```
+
+> [!IMPORTANT]
+> After encryption is enabled, the client's `encrypted` flag is set to `true` and it is unsubscribed from all Bun native pub/sub topics (broadcast + rooms). This is **irreversible** for the lifetime of the connection. All subsequent messages are delivered individually through the outbound transformer.
+
 ### `sendToClient(opts): void`
 
 Send a message directly to a specific client (local delivery only).
@@ -250,7 +278,15 @@ helper.sendToUser({
 
 ### `sendToRoom(opts): void`
 
-Send a message to all clients in a room (local delivery only). Uses Bun native pub/sub for O(1) fan-out when no exclusions are needed.
+Send a message to all clients in a room (local delivery only).
+
+**Delivery strategy** depends on whether an `outboundTransformer` is configured:
+
+| Condition | Strategy |
+|-----------|----------|
+| No `outboundTransformer` | Bun native pub/sub O(1) C++ fan-out |
+| `outboundTransformer` set | Iterates all room clients individually via `executePromiseWithLimit` (max `encryptedBatchLimit` concurrent) |
+| `exclude` provided | Always iterates clients individually (can't exclude from Bun pub/sub) |
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -269,7 +305,15 @@ helper.sendToRoom({
 
 ### `broadcast(opts): void`
 
-Send a message to all authenticated clients on this instance (local delivery only). Uses Bun native pub/sub via the broadcast topic for O(1) fan-out.
+Send a message to all authenticated clients on this instance (local delivery only).
+
+**Delivery strategy** follows the same pattern as [`sendToRoom`](#sendtoroom-opts-void):
+
+| Condition | Strategy |
+|-----------|----------|
+| No `outboundTransformer` | Bun native pub/sub O(1) C++ fan-out via broadcast topic |
+| `outboundTransformer` set | Iterates all authenticated clients individually with concurrency limit |
+| `exclude` provided | Always iterates clients individually |
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
@@ -354,11 +398,25 @@ Client                          Server (WebSocketServerHelper)
   |                                |
   |                                |  -- authenticateFn returns { userId } --
   |                                |    |-- Set state: AUTHENTICATED
+  |                                |    |
+  |                                |    |-- [requireEncryption = true?]
+  |                                |    |     +-- Call handshakeFn({ clientId, userId, data })
+  |                                |    |     |   Return { serverPublicKey } or null/false
+  |                                |    |     |
+  |                                |    |     +-- handshake success:
+  |                                |    |     |     enableClientEncryption({ clientId })
+  |                                |    |     |     Store serverPublicKey in metadata
+  |                                |    |     |
+  |                                |    |     +-- handshake failure/rejected:
+  |                                |    |           Send error event
+  |                                |    |           Close with code 4004
+  |                                |    |
   |                                |    |-- Index by userId
-  |                                |    |-- Subscribe to broadcast topic
-  |                                |    |-- Join default rooms (ws-default, ws-notification)
-  | <-- { event: 'connected',      |    |-- Send 'connected' event with { id, userId, time }
-  |       data: { id, userId } } - |    +-- Call clientConnectedFn()
+  |                                |    |-- Subscribe to broadcast topic (skipped if encrypted)
+  |                                |    |-- Join default rooms
+  | <-- { event: 'connected',      |    |-- Send 'connected' event with { id, userId, time,
+  |       data: { id, userId,      |    |     serverPublicKey? }
+  |       serverPublicKey? } } --- |    +-- Call clientConnectedFn()
   |                                |
   |                                |  -- authenticateFn returns null/false --
   | <-- { event: 'error',          |    |-- Send error event
@@ -380,6 +438,7 @@ Each connected client is tracked with:
 | `state` | `TWebSocketClientState` | Authentication state |
 | `rooms` | `Set<string>` | Rooms the client has joined |
 | `backpressured` | `boolean` | Whether the socket has backpressure |
+| `encrypted` | `boolean` | Whether encryption is enabled (unsubscribed from Bun topics) |
 | `connectedAt` | `number` | Timestamp of connection (`Date.now()`) |
 | `lastActivity` | `number` | Timestamp of last message received |
 | `metadata` | `Record<string, unknown>?` | Custom metadata from `authenticateFn` result |
@@ -467,6 +526,240 @@ const clients = helper.getClientsByRoom({ room: 'game-lobby' });
 
 ---
 
+## Encryption & Outbound Transformer
+
+The WebSocket helper supports **per-client encryption** via an outbound transformer -- a callback that intercepts every outbound message before `socket.send()`. Combined with `enableClientEncryption()`, this enables end-to-end encrypted communication using ECDH key exchange.
+
+### How It Works
+
+```
+                                outboundTransformer configured?
+                                          |
+                             +------------+------------+
+                             |                         |
+                            No                        Yes
+                             |                         |
+                    Bun native pub/sub         Iterate all clients
+                    O(1) C++ fan-out           individually with
+                    (fastest path)             concurrency limit
+                                                       |
+                                               client.encrypted?
+                                                  |         |
+                                                 Yes        No
+                                                  |         |
+                                           Run transformer  Plain delivery
+                                           (encrypt data)   { event, data }
+```
+
+### Outbound Transformer
+
+The `outboundTransformer` callback receives the client, event, and data. Return a transformed `{ event, data }` object, or `null` to use the original payload.
+
+```typescript
+const helper = new WebSocketServerHelper({
+  // ...
+  outboundTransformer: async ({ client, event, data }) => {
+    if (!client.encrypted) {
+      return null; // Not encrypted — use original { event, data }
+    }
+
+    // Encrypt the payload using the client's derived AES key
+    const aesKey = clientKeys.get(client.id);
+    const encrypted = await ecdh.encrypt({
+      message: JSON.stringify({ event, data }),
+      secret: aesKey,
+    });
+
+    return { event: 'encrypted', data: encrypted };
+  },
+});
+```
+
+> [!IMPORTANT]
+> When an `outboundTransformer` is configured, **Bun native pub/sub is disabled** for `sendToRoom()` and `broadcast()`. All clients are iterated individually so the transformer runs per-client. This trades O(1) fan-out for per-client encryption capability.
+
+### Enforced Encryption (`requireEncryption`)
+
+When `requireEncryption` is `true`, the server **requires** clients to complete an ECDH key exchange during authentication. If the `handshakeFn` rejects or isn't configured, the client is disconnected with close code `4004`.
+
+```typescript
+const helper = new WebSocketServerHelper({
+  // ...
+  requireEncryption: true,
+  handshakeFn: async ({ clientId, userId, data }) => {
+    const clientPublicKeyB64 = data.publicKey as string;
+    if (!clientPublicKeyB64) return null; // Reject — no public key
+
+    const peerKey = await ecdh.importPublicKey({ rawKeyB64: clientPublicKeyB64 });
+    const aesKey = await ecdh.deriveAESKey({
+      privateKey: serverKeyPair.keyPair.privateKey,
+      peerPublicKey: peerKey,
+    });
+
+    clientKeys.set(clientId, aesKey);
+    return { serverPublicKey: serverKeyPair.publicKeyB64 };
+  },
+  outboundTransformer: async ({ client, event, data }) => {
+    if (!client.encrypted) return null;
+    const aesKey = clientKeys.get(client.id);
+    if (!aesKey) return null;
+    const encrypted = await ecdh.encrypt({
+      message: JSON.stringify({ event, data }),
+      secret: aesKey,
+    });
+    return { event: 'encrypted', data: encrypted };
+  },
+});
+```
+
+**How it works during authentication:**
+
+1. Client sends `{ event: 'authenticate', data: { token: '...', publicKey: '...' } }`
+2. Server calls `authenticateFn(data)` — validates token
+3. If auth succeeds and `requireEncryption` is `true`:
+   - Server calls `handshakeFn({ clientId, userId, data })` with the same auth payload
+   - If `handshakeFn` returns `{ serverPublicKey }` — encryption is enabled, `enableClientEncryption()` is called automatically
+   - If `handshakeFn` returns `null`/`false` — client is rejected with close code `4004`
+4. The `connected` event includes `serverPublicKey` so the client can derive the shared secret
+
+> [!IMPORTANT]
+> When `requireEncryption` is `true`, `handshakeFn` **must** be provided. If it's missing, the server will log an error and close the client with code `4004`.
+
+### Manual Client Encryption (without `requireEncryption`)
+
+If encryption is optional, call `enableClientEncryption()` manually after a key exchange in your `messageHandler`:
+
+```typescript
+messageHandler: async ({ clientId, message }) => {
+  if (message.event === 'handshake') {
+    // Client sends their ECDH public key
+    const peerKey = await ecdh.importPublicKey({ rawKeyB64: message.data.publicKey });
+    const aesKey = await ecdh.deriveAESKey({
+      privateKey: serverKeyPair.privateKey,
+      peerPublicKey: peerKey,
+    });
+
+    // Store the derived key for this client
+    clientKeys.set(clientId, aesKey);
+
+    // Enable encryption — unsubscribes from Bun topics
+    helper.enableClientEncryption({ clientId });
+
+    // Confirm to client
+    helper.sendToClient({
+      clientId,
+      event: 'handshake-complete',
+      data: { publicKey: serverKeyPair.publicKeyB64 },
+    });
+  }
+};
+```
+
+### Delivery Model
+
+The delivery strategy is **conditional** -- the presence of `outboundTransformer` determines the path:
+
+| Method | No transformer | Transformer configured |
+|--------|---------------|----------------------|
+| `sendToClient()` | Direct `socket.send()` | Transformer runs if `client.encrypted`, then `socket.send()` |
+| `sendToRoom()` | Bun `server.publish()` (O(1)) | Iterates all room clients via `executePromiseWithLimit` |
+| `broadcast()` | Bun `server.publish()` (O(1)) | Iterates all authenticated clients via `executePromiseWithLimit` |
+| `sendToRoom({ exclude })` | Iterates clients | Iterates clients (same -- can't exclude from pub/sub) |
+
+### Concurrency Control
+
+When iterating clients individually, `sendToRoom()` and `broadcast()` use [`executePromiseWithLimit`](/references/utilities/promise) to prevent unbounded promise storms with many clients:
+
+```typescript
+// Default: 10 concurrent encryption operations
+const helper = new WebSocketServerHelper({
+  // ...
+  encryptedBatchLimit: 20, // Tune based on encryption cost and CPU cores
+});
+```
+
+The `encryptedBatchLimit` (default: `10`) controls the sliding window -- starts `N` tasks, and as each completes, the next one begins. This bounds CPU usage for expensive operations like ECDH-derived AES-GCM encryption.
+
+### Complete ECDH + WebSocket Example (Enforced Encryption)
+
+```typescript
+import { ECDH, WebSocketServerHelper } from '@venizia/ignis-helpers';
+
+const ecdh = ECDH.withAlgorithm();
+const serverKeyPair = await ecdh.generateKeyPair();
+const clientKeys = new Map<string, CryptoKey>();
+
+const helper = new WebSocketServerHelper({
+  identifier: 'encrypted-ws',
+  server: bunServer,
+  redisConnection: redis,
+  requireEncryption: true,
+  encryptedBatchLimit: 10,
+  authenticateFn: async (data) => {
+    const user = await verifyJWT(data.token as string);
+    return user ? { userId: user.id } : null;
+  },
+  // Key exchange runs during auth — client must include publicKey in auth payload
+  handshakeFn: async ({ clientId, data }) => {
+    const clientPubKeyB64 = data.publicKey as string;
+    if (!clientPubKeyB64) return null; // Reject — client didn't send a public key
+
+    const peerKey = await ecdh.importPublicKey({ rawKeyB64: clientPubKeyB64 });
+    const aesKey = await ecdh.deriveAESKey({
+      privateKey: serverKeyPair.keyPair.privateKey,
+      peerPublicKey: peerKey,
+    });
+
+    clientKeys.set(clientId, aesKey);
+    return { serverPublicKey: serverKeyPair.publicKeyB64 };
+  },
+  clientDisconnectedFn: ({ clientId }) => {
+    clientKeys.delete(clientId);
+  },
+  outboundTransformer: async ({ client, event, data }) => {
+    if (!client.encrypted) return null;
+
+    const aesKey = clientKeys.get(client.id);
+    if (!aesKey) return null;
+
+    const encrypted = await ecdh.encrypt({
+      message: JSON.stringify({ event, data }),
+      secret: aesKey,
+    });
+    return { event: 'encrypted', data: encrypted };
+  },
+});
+
+await helper.configure();
+```
+
+**Client-side flow:**
+```javascript
+const ws = new WebSocket('wss://example.com/ws');
+
+ws.onopen = () => {
+  // Send auth + public key in a single message
+  ws.send(JSON.stringify({
+    event: 'authenticate',
+    data: {
+      token: 'my-jwt-token',
+      publicKey: clientPublicKeyB64, // ECDH P-256 public key
+    },
+  }));
+};
+
+ws.onmessage = (event) => {
+  const msg = JSON.parse(event.data);
+  if (msg.event === 'connected') {
+    // msg.data.serverPublicKey contains the server's ECDH public key
+    const sharedSecret = deriveSharedSecret(clientPrivateKey, msg.data.serverPublicKey);
+    // Now all subsequent messages from the server are encrypted
+  }
+};
+```
+
+---
+
 ## Heartbeat
 
 The WebSocket helper uses a **passive heartbeat** model. The server does not send pings to clients. Instead, clients must periodically send `{ event: 'heartbeat' }` messages to keep their connection alive.
@@ -503,6 +796,7 @@ ws.onclose = () => clearInterval(heartbeatInterval);
 | `4001` | Authentication timeout | Client did not authenticate within `authTimeout` (5s) |
 | `4002` | Heartbeat timeout | No activity for `heartbeatTimeout` (90s) |
 | `4003` | Authentication failed | `authenticateFn` returned `null`/`false` or threw |
+| `4004` | Encryption required | `requireEncryption` is `true` and `handshakeFn` rejected or was not configured |
 | `1001` | Going away | Server shutting down gracefully |
 
 ---
@@ -830,6 +1124,7 @@ WebSocketEvents.SCHEME_SET;             // Set { 'authenticate', 'connected', 'd
 | `AUTH_TIMEOUT` | `5000` (5s) | Authentication timeout |
 | `HEARTBEAT_INTERVAL` | `30000` (30s) | Heartbeat sweep interval |
 | `HEARTBEAT_TIMEOUT` | `90000` (90s) | Heartbeat inactivity threshold |
+| `ENCRYPTED_BATCH_LIMIT` | `10` | Max concurrent encryption operations for room/broadcast delivery |
 
 ### `WebSocketMessageTypes`
 
@@ -967,6 +1262,7 @@ interface IWebSocketClient<MetadataType = Record<string, unknown>> {
   state: TWebSocketClientState;
   rooms: Set<string>;
   backpressured: boolean;
+  encrypted: boolean;
   connectedAt: number;
   lastActivity: number;
   metadata?: MetadataType;
@@ -998,12 +1294,16 @@ interface IWebSocketServerOptions {
   authTimeout?: number;
   heartbeatInterval?: number;
   heartbeatTimeout?: number;
+  encryptedBatchLimit?: number;   // Default: 10
+  requireEncryption?: boolean;    // Default: false
 
   authenticateFn: TWebSocketAuthenticateFn;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn;
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
+  outboundTransformer?: TWebSocketOutboundTransformer;
+  handshakeFn?: TWebSocketHandshakeFn;   // Required when requireEncryption is true
 }
 ```
 
@@ -1050,6 +1350,22 @@ type TWebSocketMessageHandler = (opts: {
   userId?: string;
   message: IWebSocketMessage;
 }) => ValueOrPromise<void>;
+
+// Outbound transformer — intercepts messages before socket.send()
+// Return transformed { event, data } or null to use original payload
+type TWebSocketOutboundTransformer<DataType = unknown> = (opts: {
+  client: IWebSocketClient;
+  event: string;
+  data: DataType;
+}) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
+
+// Handshake — ECDH key exchange during authentication
+// Return { serverPublicKey } on success, null/false to reject
+type TWebSocketHandshakeFn = (opts: {
+  clientId: string;
+  userId?: string;
+  data: Record<string, unknown>;
+}) => ValueOrPromise<{ serverPublicKey: string } | null | false>;
 ```
 
 ---
@@ -1070,6 +1386,7 @@ type TWebSocketMessageHandler = (opts: {
 | **Max Payload** | 128KB default | Configurable via Socket.IO `maxHttpBufferSize` |
 | **Polling Fallback** | None -- pure WebSocket only | HTTP long-polling fallback |
 | **Message Format** | JSON envelope: `{ event, data, id? }` | Socket.IO binary protocol |
+| **Encryption** | Built-in outbound transformer + ECDH support | Manual (middleware/plugin) |
 | **Emitter** | `WebSocketEmitter` (1 Redis connection) | `@socket.io/redis-emitter` |
 | **Client Library** | Browser-native `WebSocket` API | `socket.io-client` |
 
@@ -1083,6 +1400,7 @@ type TWebSocketMessageHandler = (opts: {
 - **Other Helpers:**
   - [Helpers Index](./index) -- All available helpers
   - [Redis Helper](./redis) -- `RedisHelper` used for WebSocket cross-instance messaging
+  - [Crypto Helper](./crypto) -- ECDH key exchange for WebSocket encryption
   - [Socket.IO Helper](./socket-io) -- Alternative real-time helper with Node.js support
 
 - **References:**

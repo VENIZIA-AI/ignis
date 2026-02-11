@@ -23,7 +23,12 @@ Bun-native real-time, bidirectional communication using pure WebSocket -- with R
 | `@app/websocket/client-connected-handler` | `WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | `null` |
 | `@app/websocket/client-disconnected-handler` | `WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER` | `TWebSocketClientDisconnectedFn` | No | `null` |
 | `@app/websocket/message-handler` | `WebSocketBindingKeys.MESSAGE_HANDLER` | `TWebSocketMessageHandler` | No | `null` |
+| `@app/websocket/outbound-transformer` | `WebSocketBindingKeys.OUTBOUND_TRANSFORMER` | `TWebSocketOutboundTransformer` | No | `null` |
+| `@app/websocket/handshake-handler` | `WebSocketBindingKeys.HANDSHAKE_HANDLER` | `TWebSocketHandshakeFn` | No* | `null` |
 | `@app/websocket/instance` | `WebSocketBindingKeys.WEBSOCKET_INSTANCE` | `WebSocketServerHelper` | -- | *Set by component* |
+
+> [!NOTE]
+> `HANDSHAKE_HANDLER` is required when `IServerOptions.requireEncryption` is `true`. It performs ECDH key exchange during authentication.
 
 > [!NOTE]
 > `WEBSOCKET_INSTANCE` is **not** set by you -- the component creates and binds it automatically after the server starts. Inject it in services/controllers to interact with WebSocket.
@@ -57,7 +62,9 @@ Bun-native real-time, bidirectional communication using pure WebSocket -- with R
                         |    |     |-- VALIDATE_ROOM_HANDLER           |
                         |    |     |-- CLIENT_CONNECTED_HANDLER        |
                         |    |     |-- CLIENT_DISCONNECTED_HANDLER     |
-                        |    |     +-- MESSAGE_HANDLER                 |
+                        |    |     |-- MESSAGE_HANDLER                 |
+                        |    |     |-- OUTBOUND_TRANSFORMER            |
+                        |    |     +-- HANDSHAKE_HANDLER               |
                         |    |                                         |
                         |    +-- registerBunHook(resolved)             |
                         |                                              |
@@ -159,6 +166,8 @@ import {
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
   TWebSocketMessageHandler,
+  TWebSocketOutboundTransformer,
+  TWebSocketHandshakeFn,
   ValueOrPromise,
 } from '@venizia/ignis';
 
@@ -235,7 +244,40 @@ export class Application extends BaseApplication {
       key: WebSocketBindingKeys.MESSAGE_HANDLER,
     }).toValue(messageHandler);
 
-    // 7. Register the component
+    // 7. Outbound transformer (optional -- for per-client encryption)
+    const outboundTransformer: TWebSocketOutboundTransformer = async ({ client, event, data }) => {
+      if (!client.encrypted) return null;
+      // Encrypt using client's derived AES key (from ECDH handshake)
+      const encrypted = await encryptForClient(client.id, JSON.stringify({ event, data }));
+      return { event: 'encrypted', data: encrypted };
+    };
+
+    this.bind<TWebSocketOutboundTransformer>({
+      key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
+    }).toValue(outboundTransformer);
+
+    // 8. Handshake handler (optional — required when requireEncryption is true)
+    const handshakeFn: TWebSocketHandshakeFn = async ({ clientId, data }) => {
+      const clientPubKey = data.publicKey as string;
+      if (!clientPubKey) return null; // Reject — no public key provided
+      const aesKey = await deriveSharedSecret(clientPubKey);
+      storeClientKey(clientId, aesKey);
+      return { serverPublicKey: serverPublicKeyB64 };
+    };
+
+    this.bind<TWebSocketHandshakeFn>({
+      key: WebSocketBindingKeys.HANDSHAKE_HANDLER,
+    }).toValue(handshakeFn);
+
+    // 9. Server options — enable requireEncryption
+    this.bind<Partial<IServerOptions>>({
+      key: WebSocketBindingKeys.SERVER_OPTIONS,
+    }).toValue({
+      identifier: 'my-app-websocket',
+      requireEncryption: true,
+    });
+
+    // 10. Register the component
     this.component(WebSocketComponent);
   }
 }
@@ -351,6 +393,7 @@ const DEFAULT_SERVER_OPTIONS: IServerOptions = {
 | `serverOptions` | `undefined` | Falls back to helper defaults (`sendPings: true`, `idleTimeout: 60`) |
 | `heartbeatInterval` | `undefined` | Falls back to `30000` (30s) |
 | `heartbeatTimeout` | `undefined` | Falls back to `90000` (90s) |
+| `requireEncryption` | `undefined` | Falls back to `false` — when `true`, clients must complete ECDH handshake during auth |
 
 ### `IServerOptions`
 
@@ -362,6 +405,7 @@ interface IServerOptions {
   serverOptions?: IBunWebSocketConfig;
   heartbeatInterval?: number;
   heartbeatTimeout?: number;
+  requireEncryption?: boolean;
 }
 ```
 
@@ -403,6 +447,8 @@ Reads all binding keys from the DI container and validates required ones:
 | `CLIENT_CONNECTED_HANDLER` | Optional | -- |
 | `CLIENT_DISCONNECTED_HANDLER` | Optional | -- |
 | `MESSAGE_HANDLER` | Optional | -- |
+| `OUTBOUND_TRANSFORMER` | Optional | -- |
+| `HANDSHAKE_HANDLER` | Optional (required if `requireEncryption`) | -- |
 
 ### `registerBunHook()`
 
@@ -586,6 +632,7 @@ setInterval(() => {
 
 - **References:**
   - [WebSocket Helper](/references/helpers/websocket) -- Full `WebSocketServerHelper` + `WebSocketEmitter` API reference
+  - [Crypto Helper](/references/helpers/crypto) -- ECDH key exchange for per-client encryption
 
 - **External Resources:**
   - [Bun WebSocket API](https://bun.sh/docs/api/websockets) -- Official Bun WebSocket documentation

@@ -4,7 +4,9 @@ import type {
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
+  TWebSocketHandshakeFn,
   TWebSocketMessageHandler,
+  TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
 } from '@venizia/ignis-helpers';
 import { WebSocketDefaults } from '@venizia/ignis-helpers';
@@ -16,6 +18,7 @@ export interface IServerOptions {
   serverOptions?: IBunWebSocketConfig;
   heartbeatInterval?: number;
   heartbeatTimeout?: number;
+  requireEncryption?: boolean;
 }
 
 export const DEFAULT_SERVER_OPTIONS: IServerOptions = {
@@ -30,4 +33,6 @@ export interface IResolvedBindings {
   clientConnectedFn?: TWebSocketClientConnectedFn;
   clientDisconnectedFn?: TWebSocketClientDisconnectedFn;
   messageHandler?: TWebSocketMessageHandler;
+  outboundTransformer?: TWebSocketOutboundTransformer;
+  handshakeFn?: TWebSocketHandshakeFn;
 }

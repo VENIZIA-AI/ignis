@@ -1,21 +1,24 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
+import { executePromiseWithLimit } from '@/utilities';
 import { Cluster, Redis } from 'ioredis';
 import {
   IBunServer,
   IBunWebSocketConfig,
   IBunWebSocketHandler,
-  IWebSocket,
   IRedisSocketMessage,
+  IWebSocket,
   IWebSocketClient,
+  IWebSocketData,
   IWebSocketMessage,
   IWebSocketServerOptions,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
-  IWebSocketData,
   TWebSocketMessageHandler,
+  TWebSocketHandshakeFn,
+  TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
   WebSocketChannels,
   WebSocketClientStates,
@@ -49,6 +52,8 @@ export class WebSocketServerHelper extends BaseHelper {
   private onClientConnected?: TWebSocketClientConnectedFn;
   private onClientDisconnected?: TWebSocketClientDisconnectedFn;
   private messageHandler?: TWebSocketMessageHandler;
+  private outboundTransformer?: TWebSocketOutboundTransformer;
+  private handshakeFn?: TWebSocketHandshakeFn;
 
   // --- Options ---
   private defaultRooms: string[];
@@ -57,6 +62,8 @@ export class WebSocketServerHelper extends BaseHelper {
   private heartbeatInterval: number;
   private heartbeatTimeout: number;
   private heartbeatTimer: ReturnType<typeof setInterval> | null = null;
+  private encryptedBatchLimit: number;
+  private requireEncryption: boolean;
 
   // -------------------------------------------------------------------------------------------------------------
   // Constructor
@@ -75,6 +82,8 @@ export class WebSocketServerHelper extends BaseHelper {
     this.onClientConnected = opts.clientConnectedFn;
     this.onClientDisconnected = opts.clientDisconnectedFn;
     this.messageHandler = opts.messageHandler;
+    this.outboundTransformer = opts.outboundTransformer;
+    this.handshakeFn = opts.handshakeFn;
 
     // Store options with defaults
     this.defaultRooms = opts.defaultRooms ?? [
@@ -90,6 +99,8 @@ export class WebSocketServerHelper extends BaseHelper {
     this.authTimeout = opts.authTimeout ?? WebSocketDefaults.AUTH_TIMEOUT;
     this.heartbeatInterval = opts.heartbeatInterval ?? WebSocketDefaults.HEARTBEAT_INTERVAL;
     this.heartbeatTimeout = opts.heartbeatTimeout ?? WebSocketDefaults.HEARTBEAT_TIMEOUT;
+    this.encryptedBatchLimit = opts.encryptedBatchLimit ?? WebSocketDefaults.ENCRYPTED_BATCH_LIMIT;
+    this.requireEncryption = opts.requireEncryption ?? false;
 
     this.initRedisClients(opts.redisConnection);
   }
@@ -421,6 +432,7 @@ export class WebSocketServerHelper extends BaseHelper {
       state: WebSocketClientStates.UNAUTHORIZED,
       rooms: new Set(),
       backpressured: false,
+      encrypted: false,
       connectedAt: now,
       lastActivity: now,
     };
@@ -579,8 +591,10 @@ export class WebSocketServerHelper extends BaseHelper {
     this.rooms.get(room)!.add(clientId);
     client.rooms.add(room);
 
-    // Bun native pub/sub
-    client.socket.subscribe(room);
+    // Bun native pub/sub — encrypted clients are unsubscribed (delivered manually via transformer)
+    if (!client.encrypted) {
+      client.socket.subscribe(room);
+    }
   }
 
   leaveRoom(opts: { clientId: string; room: string }) {
@@ -603,6 +617,26 @@ export class WebSocketServerHelper extends BaseHelper {
     client.socket.unsubscribe(room);
   }
 
+  /**
+   * Enable encryption for a client. Unsubscribes from all Bun native topics
+   * so `server.publish()` won't reach them — messages are delivered manually
+   * through the outbound transformer instead.
+   */
+  enableClientEncryption(opts: { clientId: string }) {
+    const client = this.clients.get(opts.clientId);
+    if (!client || client.encrypted) {
+      return;
+    }
+
+    client.encrypted = true;
+
+    // Unsubscribe from Bun native topics to prevent double delivery
+    client.socket.unsubscribe(WebSocketDefaults.BROADCAST_TOPIC);
+    for (const room of client.rooms) {
+      client.socket.unsubscribe(room);
+    }
+  }
+
   private handleAuthenticate(opts: { clientId: string; payload: unknown }) {
     const logger = this.logger.for('handleAuthenticate');
     const { clientId, payload } = opts;
@@ -623,15 +657,27 @@ export class WebSocketServerHelper extends BaseHelper {
 
     client.state = WebSocketClientStates.AUTHENTICATING;
 
-    // Clear auth timeout — authentication is in progress
+    // Replace auth timeout with a longer in-progress timeout (prevents DoS via hanging authenticateFn)
     if (client.authTimer) {
       clearTimeout(client.authTimer);
-      client.authTimer = undefined;
     }
+    client.authTimer = setTimeout(() => {
+      const c = this.clients.get(clientId);
+      if (c?.state === WebSocketClientStates.AUTHENTICATING) {
+        logger.warn('Auth in-progress timeout | id: %s', clientId);
+        c.socket.close(4001, 'Authentication timeout');
+      }
+    }, this.authTimeout * 3);
 
     Promise.resolve()
       .then(() => this.authenticateFn((payload ?? {}) as Record<string, unknown>))
-      .then(result => {
+      .then(async result => {
+        // Re-validate client still exists (may have disconnected during async auth)
+        if (!this.clients.has(clientId)) {
+          logger.warn('Client disconnected during authentication | id: %s', clientId);
+          return;
+        }
+
         if (!result) {
           logger.info('Authentication rejected | id: %s', clientId);
           this.sendToClient({
@@ -648,6 +694,50 @@ export class WebSocketServerHelper extends BaseHelper {
         client.metadata = result.metadata;
         client.state = WebSocketClientStates.AUTHENTICATED;
 
+        // Handshake — if requireEncryption is true, run handshakeFn before finalizing
+        if (this.requireEncryption) {
+          if (!this.handshakeFn) {
+            logger.error(
+              'requireEncryption is true but no handshakeFn configured | id: %s',
+              clientId,
+            );
+            client.socket.close(4004, 'Encryption required');
+            return;
+          }
+
+          const handshakeResult = await Promise.resolve(
+            this.handshakeFn({
+              clientId,
+              userId: client.userId,
+              data: (payload ?? {}) as Record<string, unknown>,
+            }),
+          );
+
+          // Re-validate client still exists (may have disconnected during async handshake)
+          if (!this.clients.has(clientId)) {
+            logger.warn('Client disconnected during handshake | id: %s', clientId);
+            return;
+          }
+
+          if (!handshakeResult) {
+            logger.info('Handshake rejected | id: %s', clientId);
+            this.sendToClient({
+              clientId,
+              event: WebSocketEvents.ERROR,
+              data: { message: 'Encryption handshake failed' },
+            });
+            client.socket.close(4004, 'Encryption required');
+            return;
+          }
+
+          // Handshake succeeded — enable encryption
+          this.enableClientEncryption({ clientId });
+          client.metadata = {
+            ...client.metadata,
+            serverPublicKey: handshakeResult.serverPublicKey,
+          };
+        }
+
         // Index by userId
         if (client.userId) {
           if (!this.users.has(client.userId)) {
@@ -656,8 +746,10 @@ export class WebSocketServerHelper extends BaseHelper {
           this.users.get(client.userId)!.add(clientId);
         }
 
-        // Subscribe to broadcast topic
-        client.socket.subscribe(WebSocketDefaults.BROADCAST_TOPIC);
+        // Subscribe to broadcast topic (skipped if already encrypted — enableClientEncryption handles topics)
+        if (!client.encrypted) {
+          client.socket.subscribe(WebSocketDefaults.BROADCAST_TOPIC);
+        }
 
         // Join default rooms
         this.joinRoom({ clientId, room: clientId });
@@ -666,17 +758,26 @@ export class WebSocketServerHelper extends BaseHelper {
         }
 
         // Notify client of successful authentication
+        const connectedData: Record<string, unknown> = {
+          id: clientId,
+          userId: client.userId,
+          time: new Date().toISOString(),
+        };
+        if (client.encrypted && client.metadata?.serverPublicKey) {
+          connectedData.serverPublicKey = client.metadata.serverPublicKey;
+        }
         this.sendToClient({
           clientId,
           event: WebSocketEvents.CONNECTED,
-          data: {
-            id: clientId,
-            userId: client.userId,
-            time: new Date().toISOString(),
-          },
+          data: connectedData,
         });
 
-        logger.info('Authenticated | id: %s | userId: %s', clientId, client.userId ?? 'anonymous');
+        logger.info(
+          'Authenticated | id: %s | userId: %s | encrypted: %s',
+          clientId,
+          client.userId ?? 'anonymous',
+          client.encrypted,
+        );
 
         // Invoke user callback
         Promise.resolve(
@@ -774,18 +875,29 @@ export class WebSocketServerHelper extends BaseHelper {
     const logger = this.logger.for('handleLeave');
     const { clientId, payload } = opts;
 
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return;
+    }
+
     const { rooms = [] } = (payload as { rooms?: string[] }) || {};
     if (!rooms?.length) {
       return;
     }
 
-    logger.info('Leaving rooms | id: %s | rooms: %j', clientId, rooms);
+    // Only leave rooms the client has actually joined — prevents unsubscribing from internal topics
+    const validRooms = rooms.filter(r => client.rooms.has(r));
+    if (!validRooms.length) {
+      return;
+    }
 
-    for (const room of rooms) {
+    logger.info('Leaving rooms | id: %s | rooms: %j', clientId, validRooms);
+
+    for (const room of validRooms) {
       this.leaveRoom({ clientId, room });
     }
 
-    logger.info('Left rooms | id: %s | rooms: %j', clientId, rooms);
+    logger.info('Left rooms | id: %s | rooms: %j', clientId, validRooms);
   }
 
   // -------------------------------------------------------------------------------------------------------------
@@ -799,25 +911,73 @@ export class WebSocketServerHelper extends BaseHelper {
       return;
     }
 
-    const payload = JSON.stringify({ event, data });
+    // Async path — transformer intercepts before socket.send()
+    if (this.outboundTransformer && client.encrypted) {
+      Promise.resolve(this.outboundTransformer({ client, event, data }))
+        .then(transformed => {
+          const msg = transformed ?? { event, data };
+          this.deliverToSocket({ client, payload: JSON.stringify(msg), doLog, event, data });
+        })
+        .catch(error => {
+          logger.error('Outbound transformer error | id: %s | error: %s', clientId, error);
+        });
+      return;
+    }
+
+    // Sync path (unchanged, zero overhead when no transformer)
+    this.deliverToSocket({ client, payload: JSON.stringify({ event, data }), doLog, event, data });
+  }
+
+  private async sendToClientAsync(opts: { clientId: string; event: string; data: unknown }) {
+    const { clientId, event, data } = opts;
+    const client = this.clients.get(clientId);
+    if (!client) {
+      return Promise.resolve();
+    }
+
+    if (!this.outboundTransformer || !client.encrypted) {
+      this.deliverToSocket({ client, payload: JSON.stringify({ event, data }), event, data });
+      return Promise.resolve();
+    }
+
+    try {
+      const transformed = await Promise.resolve(this.outboundTransformer({ client, event, data }));
+      const msg = transformed ?? { event, data };
+      this.deliverToSocket({ client, payload: JSON.stringify(msg), event, data });
+    } catch (error) {
+      this.logger
+        .for(this.sendToClientAsync.name)
+        .error('Outbound transformer error | id: %s | error: %s', clientId, error);
+    }
+  }
+
+  private deliverToSocket(opts: {
+    client: IWebSocketClient;
+    payload: string;
+    doLog?: boolean;
+    event?: string;
+    data?: unknown;
+  }) {
+    const logger = this.logger.for(this.deliverToSocket.name);
+    const { client, payload, doLog, event, data } = opts;
 
     try {
       const result = client.socket.send(payload);
 
       if (result === 0) {
-        logger.warn('Message dropped (socket closed) | id: %s', clientId);
+        logger.warn('Message dropped (socket closed) | id: %s', client.id);
       }
 
       if (result === -1) {
         client.backpressured = true;
-        logger.warn('Backpressure detected | id: %s', clientId);
+        logger.warn('Backpressure detected | id: %s', client.id);
       }
     } catch (error) {
-      logger.error('Failed to send | id: %s | error: %s', clientId, error);
+      logger.error('Failed to send | id: %s | error: %s', client.id, error);
     }
 
     if (doLog) {
-      logger.info('Message sent | id: %s | event: %s | data: %j', clientId, event, data);
+      logger.info('Message sent | id: %s | event: %s | data: %j', client.id, event, data);
     }
   }
 
@@ -836,46 +996,84 @@ export class WebSocketServerHelper extends BaseHelper {
   sendToRoom(opts: { room: string; event: string; data: unknown; exclude?: string[] }) {
     const { room, event, data, exclude } = opts;
 
-    const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
+    // When exclude is present, must iterate — can't exclude from Bun native pub/sub
+    if (exclude?.length) {
+      const excludeSet = new Set(exclude);
+      const roomClientIds = this.rooms.get(room);
+      if (!roomClientIds) {
+        return;
+      }
 
-    // Fast path: Bun native pub/sub — O(1) topic lookup, C++ fan-out
-    if (!exclude?.length) {
+      for (const clientId of roomClientIds) {
+        if (excludeSet.has(clientId)) {
+          continue;
+        }
+        this.sendToClient({ clientId, event, data });
+      }
+      return;
+    }
+
+    // No encryption — Bun native pub/sub O(1) C++ fan-out
+    if (!this.outboundTransformer) {
+      const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(room, payload);
       return;
     }
 
-    // Slow path: iterate room members, skip excluded clients
-    const excludeSet = new Set(exclude);
+    // Encryption enabled — iterate all clients individually with concurrency limit
     const roomClientIds = this.rooms.get(room);
     if (!roomClientIds) {
       return;
     }
 
+    const tasks: Array<() => Promise<void>> = [];
     for (const clientId of roomClientIds) {
-      if (excludeSet.has(clientId)) {
-        continue;
-      }
-      this.sendToClient({ clientId, event, data });
+      tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
+    }
+
+    if (tasks.length) {
+      executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit });
     }
   }
 
   broadcast(opts: { event: string; data: unknown; exclude?: string[] }) {
     const { event, data, exclude } = opts;
 
-    // Fast path: Bun native pub/sub via broadcast topic — O(1) C++ fan-out
-    if (!exclude?.length) {
+    // When exclude is present, must iterate — can't exclude from Bun native pub/sub
+    if (exclude?.length) {
+      const excludeSet = new Set(exclude);
+      for (const [clientId, client] of this.clients) {
+        if (excludeSet.has(clientId)) {
+          continue;
+        }
+        // Only broadcast to authenticated clients (consistent with non-exclude path which uses BROADCAST_TOPIC)
+        if (client.state !== WebSocketClientStates.AUTHENTICATED) {
+          continue;
+        }
+
+        this.sendToClient({ clientId, event, data });
+      }
+      return;
+    }
+
+    // No encryption — Bun native pub/sub O(1) C++ fan-out
+    if (!this.outboundTransformer) {
       const payload = JSON.stringify({ event, data } satisfies IWebSocketMessage);
       this.server.publish(WebSocketDefaults.BROADCAST_TOPIC, payload);
       return;
     }
 
-    // Slow path: iterate with exclusion
-    const excludeSet = new Set(exclude);
-    for (const [clientId] of this.clients) {
-      if (excludeSet.has(clientId)) {
+    // Encryption enabled — iterate all clients individually with concurrency limit
+    const tasks: Array<() => Promise<void>> = [];
+    for (const [clientId, client] of this.clients) {
+      if (client.state !== WebSocketClientStates.AUTHENTICATED) {
         continue;
       }
-      this.sendToClient({ clientId, event, data });
+      tasks.push(() => this.sendToClientAsync({ clientId, event, data }));
+    }
+
+    if (tasks.length) {
+      executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit });
     }
   }
 
@@ -959,6 +1157,10 @@ export class WebSocketServerHelper extends BaseHelper {
     const now = Date.now();
     const timeout = this.heartbeatTimeout;
 
+    if (!this.clients.size) {
+      return;
+    }
+
     // Sweep stale authenticated clients
     for (const [clientId, client] of this.clients) {
       if (client.state !== WebSocketClientStates.AUTHENTICATED) {
@@ -995,7 +1197,13 @@ export class WebSocketServerHelper extends BaseHelper {
       this.heartbeatTimer = null;
     }
 
-    // Disconnect all clients
+    // Trigger disconnect callbacks before clearing state
+    const clientIds = [...this.clients.keys()];
+    for (const clientId of clientIds) {
+      this.onClientDisconnect({ clientId });
+    }
+
+    // Close any remaining sockets (onClientDisconnect removes from map, but close the socket too)
     for (const [clientId, client] of this.clients) {
       try {
         client.socket.close(1001, 'Server shutting down');

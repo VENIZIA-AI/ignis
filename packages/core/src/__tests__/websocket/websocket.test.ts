@@ -90,10 +90,10 @@ describe('WebSocketBindingKeys', () => {
     expect(uniqueKeys.size).toBe(keys.length);
   });
 
-  test('should have exactly 8 binding keys', () => {
+  test('should have exactly 10 binding keys', () => {
     const keys = Object.getOwnPropertyNames(WebSocketBindingKeys).filter(
       k => !['length', 'prototype', 'name'].includes(k),
     );
-    expect(keys).toHaveLength(8);
+    expect(keys).toHaveLength(10);
   });
 });

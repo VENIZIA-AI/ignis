@@ -59,6 +59,7 @@ const config = defineConfig({
               text: '2026-02-11',
               collapsed: true,
               items: [
+                { text: 'WebSocket Encrypted Delivery', link: '/changelogs/2026-02-11-websocket-encrypted-delivery' },
                 { text: 'Crypto Algorithm Refactor & ECDH', link: '/changelogs/2026-02-11-crypto-refactor-ecdh' },
               ],
             },

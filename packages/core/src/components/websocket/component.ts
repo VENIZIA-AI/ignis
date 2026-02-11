@@ -13,6 +13,8 @@ import {
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
   TWebSocketMessageHandler,
+  TWebSocketHandshakeFn,
+  TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
   ValueOrPromise,
   WebSocketDefaults,
@@ -67,6 +69,15 @@ export class WebSocketComponent extends BaseComponent {
         [WebSocketBindingKeys.MESSAGE_HANDLER]: Binding.bind<TWebSocketMessageHandler | null>({
           key: WebSocketBindingKeys.MESSAGE_HANDLER,
         }).toValue(null),
+
+        [WebSocketBindingKeys.OUTBOUND_TRANSFORMER]:
+          Binding.bind<TWebSocketOutboundTransformer | null>({
+            key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
+          }).toValue(null),
+
+        [WebSocketBindingKeys.HANDSHAKE_HANDLER]: Binding.bind<TWebSocketHandshakeFn | null>({
+          key: WebSocketBindingKeys.HANDSHAKE_HANDLER,
+        }).toValue(null),
       },
     });
   }
@@ -115,6 +126,14 @@ export class WebSocketComponent extends BaseComponent {
       this.application.get<TWebSocketMessageHandler | null>({
         key: WebSocketBindingKeys.MESSAGE_HANDLER,
       }) ?? undefined;
+    const outboundTransformer =
+      this.application.get<TWebSocketOutboundTransformer | null>({
+        key: WebSocketBindingKeys.OUTBOUND_TRANSFORMER,
+      }) ?? undefined;
+    const handshakeFn =
+      this.application.get<TWebSocketHandshakeFn | null>({
+        key: WebSocketBindingKeys.HANDSHAKE_HANDLER,
+      }) ?? undefined;
 
     return {
       redisConnection,
@@ -123,6 +142,8 @@ export class WebSocketComponent extends BaseComponent {
       clientConnectedFn,
       clientDisconnectedFn,
       messageHandler,
+      outboundTransformer,
+      handshakeFn,
     };
   }
 
@@ -135,6 +156,8 @@ export class WebSocketComponent extends BaseComponent {
       clientConnectedFn,
       clientDisconnectedFn,
       messageHandler,
+      outboundTransformer,
+      handshakeFn,
     } = opts;
     const serverOptions = this.serverOptions;
 
@@ -166,6 +189,9 @@ export class WebSocketComponent extends BaseComponent {
           clientConnectedFn,
           clientDisconnectedFn,
           messageHandler,
+          outboundTransformer,
+          handshakeFn,
+          requireEncryption: serverOptions.requireEncryption,
         } satisfies IWebSocketServerOptions);
         await wsHelper.configure();
 

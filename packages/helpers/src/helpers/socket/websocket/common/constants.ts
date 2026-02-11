@@ -82,6 +82,7 @@ export class WebSocketDefaults {
   static readonly AUTH_TIMEOUT = 5_000; // 5 seconds to authenticate or get disconnected
   static readonly HEARTBEAT_INTERVAL = 30_000; // 30s between heartbeats
   static readonly HEARTBEAT_TIMEOUT = 90_000; // 3x interval — disconnect after 3 missed heartbeats
+  static readonly ENCRYPTED_BATCH_LIMIT = 10; // Max concurrent encryption operations
 }
 
 // -------------------------------------------------------------------------------------------------------------
