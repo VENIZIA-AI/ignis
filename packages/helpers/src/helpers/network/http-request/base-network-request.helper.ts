@@ -1,27 +1,8 @@
 import { BaseHelper } from '@/helpers/base';
-import { AnyObject } from '@/common/types';
 import { getError } from '@/helpers/error';
 import isEmpty from 'lodash/isEmpty';
-import { AxiosRequestConfig } from 'axios';
-import { IFetchable, IRequestOptions } from './fetcher';
-import { AxiosFetcher } from './fetcher/axios-fetcher';
-import { NodeFetcher } from './fetcher/node-fetcher';
+import { IFetchable, IRequestOptions } from './fetcher/base-fetcher';
 import { TFetcherResponse, TFetcherVariant } from './types';
-
-// -----------------------------------------------------------------------------
-export interface IAxiosNetworkRequestOptions {
-  name: string;
-  networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
-    baseUrl?: string;
-  };
-}
-
-export interface INodeFetchNetworkRequestOptions {
-  name: string;
-  networkOptions: RequestInit & {
-    baseUrl?: string;
-  };
-}
 
 // -----------------------------------------------------------------------------
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
@@ -79,62 +60,5 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
 
   getWorker() {
     return this.fetcher.getWorker();
-  }
-}
-
-// -----------------------------------------------------------------------------
-export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
-  constructor(opts: IAxiosNetworkRequestOptions) {
-    const { name, networkOptions } = opts;
-    const { headers, baseUrl, timeout, ...rest } = networkOptions;
-
-    // Build headers with user values taking precedence
-    const mergedHeaders: AnyObject = {
-      ['content-type']: 'application/json; charset=utf-8',
-      ...headers,
-    };
-
-    // User options override defaults
-    const defaultConfigs: AxiosRequestConfig = {
-      withCredentials: true,
-      validateStatus: (status: number) => status < 500,
-      timeout: timeout ?? 60 * 1000,
-      ...rest,
-      baseURL: baseUrl,
-      headers: mergedHeaders,
-    };
-
-    super({
-      name,
-      baseUrl,
-      fetcher: new AxiosFetcher({ name, defaultConfigs }),
-    });
-  }
-}
-
-// -----------------------------------------------------------------------------
-export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
-  constructor(opts: INodeFetchNetworkRequestOptions) {
-    const { name, networkOptions } = opts;
-    const { headers, baseUrl, ...rest } = networkOptions;
-
-    // Build headers with user values taking precedence
-    const userHeaders =
-      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
-    const mergedHeaders: AnyObject = {
-      ['content-type']: 'application/json; charset=utf-8',
-      ...userHeaders,
-    };
-
-    const defaultConfigs: Partial<RequestInit> = {
-      ...rest,
-      headers: mergedHeaders,
-    };
-
-    super({
-      name,
-      baseUrl,
-      fetcher: new NodeFetcher({ name, defaultConfigs }),
-    });
   }
 }

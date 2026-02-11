@@ -3,6 +3,7 @@ import axios, { AxiosRequestConfig } from 'axios';
 import https from 'node:https';
 import { stringify } from 'node:querystring';
 import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
+import { BaseNetworkRequest } from '../base-network-request.helper';
 
 export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOptions {
   url: string;
@@ -50,5 +51,43 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
 
     logger?.for(this.send.name).info('URL: %s | Props: %o', url, props);
     return this.worker.request<T>(props);
+  }
+}
+
+// -----------------------------------------------------------------------------
+export interface IAxiosNetworkRequestOptions {
+  name: string;
+  networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
+    baseUrl?: string;
+  };
+}
+
+// -----------------------------------------------------------------------------
+export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
+  constructor(opts: IAxiosNetworkRequestOptions) {
+    const { name, networkOptions } = opts;
+    const { headers, baseUrl, timeout, ...rest } = networkOptions;
+
+    // Build headers with user values taking precedence
+    const mergedHeaders: AnyObject = {
+      ['content-type']: 'application/json; charset=utf-8',
+      ...headers,
+    };
+
+    // User options override defaults
+    const defaultConfigs: AxiosRequestConfig = {
+      withCredentials: true,
+      validateStatus: (status: number) => status < 500,
+      timeout: timeout ?? 60 * 1000,
+      ...rest,
+      baseURL: baseUrl,
+      headers: mergedHeaders,
+    };
+
+    super({
+      name,
+      baseUrl,
+      fetcher: new AxiosFetcher({ name, defaultConfigs }),
+    });
   }
 }

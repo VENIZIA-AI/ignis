@@ -1,5 +1,7 @@
+import { AnyObject } from '@/common/types';
 import { stringify } from 'node:querystring';
 import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
+import { BaseNetworkRequest } from '../base-network-request.helper';
 
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
@@ -68,5 +70,40 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
         clearTimeout(timeoutId);
       }
     }
+  }
+}
+
+// -----------------------------------------------------------------------------
+export interface INodeFetchNetworkRequestOptions {
+  name: string;
+  networkOptions: RequestInit & {
+    baseUrl?: string;
+  };
+}
+
+// -----------------------------------------------------------------------------
+export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
+  constructor(opts: INodeFetchNetworkRequestOptions) {
+    const { name, networkOptions } = opts;
+    const { headers, baseUrl, ...rest } = networkOptions;
+
+    // Build headers with user values taking precedence
+    const userHeaders =
+      headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
+    const mergedHeaders: AnyObject = {
+      ['content-type']: 'application/json; charset=utf-8',
+      ...userHeaders,
+    };
+
+    const defaultConfigs: Partial<RequestInit> = {
+      ...rest,
+      headers: mergedHeaders,
+    };
+
+    super({
+      name,
+      baseUrl,
+      fetcher: new NodeFetcher({ name, defaultConfigs }),
+    });
   }
 }

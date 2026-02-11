@@ -140,6 +140,9 @@
     "@hono/swagger-ui": {
       "optional": true
     },
+    "@scalar/hono-api-reference": {
+      "optional": true
+    },
     "@socket.io/bun-engine": {
       "optional": true
     },
@@ -149,22 +152,22 @@
     "@socket.io/redis-emitter": {
       "optional": true
     },
-    "socket.io": {
-      "optional": true
-    },
-    "socket.io-client": {
-      "optional": true
-    },
-    "@scalar/hono-api-reference": {
-      "optional": true
-    },
-    "nodemailer": {
+    "bullmq": {
       "optional": true
     },
     "mailgun.js": {
       "optional": true
     },
+    "nodemailer": {
+      "optional": true
+    },
     "pg": {
+      "optional": true
+    },
+    "socket.io": {
+      "optional": true
+    },
+    "socket.io-client": {
       "optional": true
     }
   },
