@@ -6,7 +6,8 @@ export async function createBunEngine(opts: {
   serverOptions: Partial<ServerOptions>;
 }): Promise<{ engine: any; engineHandler: any }> {
   const { serverOptions } = opts;
-  const { Server: BunEngine } = await import('@socket.io/bun-engine');
+  const modId = '@socket.io/bun-engine';
+  const { Server: BunEngine } = await import(modId);
 
   // Extract cors fields explicitly to bridge socket.io/bun-engine type differences
   const corsConfig = typeof serverOptions.cors === 'object' ? serverOptions.cors : undefined;
