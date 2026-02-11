@@ -1,7 +1,7 @@
 import C from 'node:crypto';
 import { BaseCryptoAlgorithm } from './base.algorithm';
 
-interface IO {
+interface IRSAExtraOptions {
   inputEncoding?: { key: C.Encoding; message: C.Encoding };
   outputEncoding?: C.Encoding;
   doThrow?: boolean;
@@ -9,7 +9,15 @@ interface IO {
 
 export type RSAAlgorithmType = 'rsa';
 
-export class RSA extends BaseCryptoAlgorithm<RSAAlgorithmType, IO> {
+export class RSA extends BaseCryptoAlgorithm<
+  RSAAlgorithmType,
+  string,
+  string,
+  string,
+  string,
+  string,
+  IRSAExtraOptions
+> {
   constructor(opts: { algorithm: RSAAlgorithmType }) {
     super({ scope: RSA.name, ...opts });
   }
@@ -29,12 +37,13 @@ export class RSA extends BaseCryptoAlgorithm<RSAAlgorithmType, IO> {
     };
   }
 
-  encrypt(message: string, pubKey: string, opts?: IO) {
+  encrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }) {
+    const { message, secret: pubKey } = opts;
     const {
       inputEncoding = { key: 'base64', message: 'utf-8' },
       outputEncoding = 'base64',
       doThrow = true,
-    } = opts ?? {};
+    } = opts.opts ?? {};
 
     try {
       const k = C.createPublicKey({
@@ -53,12 +62,13 @@ export class RSA extends BaseCryptoAlgorithm<RSAAlgorithmType, IO> {
     }
   }
 
-  decrypt(message: string, privKey: string, opts?: IO) {
+  decrypt(opts: { message: string; secret: string; opts?: IRSAExtraOptions }) {
+    const { message, secret: privKey } = opts;
     const {
       inputEncoding = { key: 'base64', message: 'base64' },
       outputEncoding = 'utf-8',
       doThrow = true,
-    } = opts ?? {};
+    } = opts.opts ?? {};
 
     try {
       const k = C.createPrivateKey({

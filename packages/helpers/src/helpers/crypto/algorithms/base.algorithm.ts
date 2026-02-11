@@ -3,21 +3,60 @@ import { getError } from '@/helpers/error';
 import { int } from '@/utilities';
 import { DEFAULT_CIPHER_BITS, DEFAULT_PAD_END, ICryptoAlgorithm } from '../common';
 
-export abstract class AbstractCryptoAlgorithm<AL extends string, IO>
+export abstract class AbstractCryptoAlgorithm<
+  AlgorithmType extends string,
+  EncryptInputType = unknown,
+  DecryptInputType = unknown,
+  SecretKeyType = unknown,
+  EncryptReturnType = unknown,
+  DecryptReturnType = unknown,
+  ExtraOptions = unknown,
+>
   extends BaseHelper
-  implements ICryptoAlgorithm<AL, IO>
+  implements
+    ICryptoAlgorithm<
+      AlgorithmType,
+      EncryptInputType,
+      DecryptInputType,
+      SecretKeyType,
+      EncryptReturnType,
+      DecryptReturnType,
+      ExtraOptions
+    >
 {
-  algorithm: AL;
+  algorithm: AlgorithmType;
 
-  abstract encrypt(message: string, secret: string, opts?: IO | undefined): string;
-  abstract decrypt(message: string, secret: string, opts?: IO | undefined): string;
+  abstract encrypt(opts: {
+    message: EncryptInputType;
+    secret: SecretKeyType;
+    opts?: ExtraOptions;
+  }): EncryptReturnType;
+
+  abstract decrypt(opts: {
+    message: DecryptInputType;
+    secret: SecretKeyType;
+    opts?: ExtraOptions;
+  }): DecryptReturnType;
 }
 
-export abstract class BaseCryptoAlgorithm<AL extends string, IO> extends AbstractCryptoAlgorithm<
-  AL,
-  IO
+export abstract class BaseCryptoAlgorithm<
+  AlgorithmType extends string,
+  EncryptInputType = unknown,
+  DecryptInputType = unknown,
+  SecretKeyType = unknown,
+  EncryptReturnType = unknown,
+  DecryptReturnType = unknown,
+  ExtraOptions = unknown,
+> extends AbstractCryptoAlgorithm<
+  AlgorithmType,
+  EncryptInputType,
+  DecryptInputType,
+  SecretKeyType,
+  EncryptReturnType,
+  DecryptReturnType,
+  ExtraOptions
 > {
-  constructor(opts: { scope: string; algorithm: AL }) {
+  constructor(opts: { scope: string; algorithm: AlgorithmType }) {
     super({
       scope: opts.scope ?? opts.algorithm ?? BaseCryptoAlgorithm.name,
       identifier: opts.algorithm,
@@ -27,7 +66,7 @@ export abstract class BaseCryptoAlgorithm<AL extends string, IO> extends Abstrac
     this.algorithm = opts.algorithm;
   }
 
-  validateAlgorithmName(opts: { algorithm: AL }) {
+  validateAlgorithmName(opts: { algorithm: AlgorithmType }) {
     const { algorithm } = opts;
 
     if (!algorithm) {

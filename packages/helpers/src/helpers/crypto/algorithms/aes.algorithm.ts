@@ -5,7 +5,7 @@ import { BaseCryptoAlgorithm } from './base.algorithm';
 
 const DEFAULT_LENGTH = 16;
 
-interface IO {
+interface IAESExtraOptions {
   iv?: Buffer;
   inputEncoding?: C.Encoding;
   outputEncoding?: C.Encoding;
@@ -14,7 +14,15 @@ interface IO {
 
 export type AESAlgorithmType = 'aes-256-cbc' | 'aes-256-gcm';
 
-export class AES extends BaseCryptoAlgorithm<AESAlgorithmType, IO> {
+export class AES extends BaseCryptoAlgorithm<
+  AESAlgorithmType,
+  string,
+  string,
+  string,
+  string,
+  string,
+  IAESExtraOptions
+> {
   constructor(opts: { algorithm: AESAlgorithmType }) {
     super({ scope: AES.name, ...opts });
   }
@@ -23,13 +31,14 @@ export class AES extends BaseCryptoAlgorithm<AESAlgorithmType, IO> {
     return new AES({ algorithm });
   }
 
-  encrypt(message: string, secret: string, opts?: IO) {
+  encrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+    const { message, secret } = opts;
     const {
       iv = C.randomBytes(DEFAULT_LENGTH),
       inputEncoding = 'utf-8',
       outputEncoding = 'base64',
       doThrow = true,
-    } = opts ?? {};
+    } = opts.opts ?? {};
 
     try {
       const secretKey = this.normalizeSecretKey({
@@ -65,23 +74,26 @@ export class AES extends BaseCryptoAlgorithm<AESAlgorithmType, IO> {
     }
   }
 
-  encryptFile(absolutePath: string, secret: string): string {
+  encryptFile(opts: { absolutePath: string; secret: string }): string {
+    const { absolutePath, secret } = opts;
+
     if (!absolutePath || isEmpty(absolutePath)) {
       return '';
     }
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const encrypted = this.encrypt(fileContent, secret);
+    const encrypted = this.encrypt({ message: fileContent, secret });
     return encrypted;
   }
 
-  decrypt(message: string, secret: string, opts?: IO) {
-    const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts ?? {};
+  decrypt(opts: { message: string; secret: string; opts?: IAESExtraOptions }) {
+    const { message, secret } = opts;
+    const { inputEncoding = 'base64', outputEncoding = 'utf-8', doThrow = true } = opts.opts ?? {};
 
     try {
       const iv =
-        opts?.iv ??
+        opts.opts?.iv ??
         Buffer.from(message, inputEncoding).subarray(0, DEFAULT_LENGTH) ??
         Buffer.alloc(DEFAULT_LENGTH, 0);
       let messageIndex = iv.length;
@@ -120,14 +132,16 @@ export class AES extends BaseCryptoAlgorithm<AESAlgorithmType, IO> {
     }
   }
 
-  decryptFile(absolutePath: string, secret: string) {
+  decryptFile(opts: { absolutePath: string; secret: string }) {
+    const { absolutePath, secret } = opts;
+
     if (!absolutePath || isEmpty(absolutePath)) {
       return '';
     }
 
     const buffer = fs.readFileSync(absolutePath);
     const fileContent = buffer?.toString('utf-8');
-    const decrypted = this.decrypt(fileContent, secret);
+    const decrypted = this.decrypt({ message: fileContent, secret });
     return decrypted;
   }
 }
