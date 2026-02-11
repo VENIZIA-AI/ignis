@@ -114,7 +114,10 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
         continue;
       }
 
-      const encryptedKey = this.aes.encrypt({ message: key, secret: this.options.applicationSecret });
+      const encryptedKey = this.aes.encrypt({
+        message: key,
+        secret: this.options.applicationSecret,
+      });
       switch (key) {
         case 'roles': {
           rs[encryptedKey] = this.aes.encrypt({
@@ -129,7 +132,10 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
           break;
         }
         default: {
-          rs[encryptedKey] = this.aes.encrypt({ message: `${value}`, secret: this.options.applicationSecret });
+          rs[encryptedKey] = this.aes.encrypt({
+            message: `${value}`,
+            secret: this.options.applicationSecret,
+          });
           break;
         }
       }
@@ -152,8 +158,14 @@ export class JWTTokenService<E extends Env = Env> extends BaseService {
         continue;
       }
 
-      const decryptedKey = this.aes.decrypt({ message: key, secret: this.options.applicationSecret });
-      const decryptedValue = this.aes.decrypt({ message: payload[key], secret: this.options.applicationSecret });
+      const decryptedKey = this.aes.decrypt({
+        message: key,
+        secret: this.options.applicationSecret,
+      });
+      const decryptedValue = this.aes.decrypt({
+        message: payload[key],
+        secret: this.options.applicationSecret,
+      });
 
       switch (decryptedKey) {
         case 'roles': {

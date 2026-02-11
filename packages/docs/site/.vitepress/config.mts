@@ -56,6 +56,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-11',
+              collapsed: true,
+              items: [
+                { text: 'Crypto Algorithm Refactor & ECDH', link: '/changelogs/2026-02-11-crypto-refactor-ecdh' },
+              ],
+            },
+            {
               text: '2026-02-10',
               collapsed: true,
               items: [

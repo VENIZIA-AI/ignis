@@ -8,7 +8,7 @@ Reusable classes and functions providing common functionality - designed for eas
 |--------|---------|--------------|
 | [Common Types](./types.md) | Utility types | Nullable, resolvers, class types |
 | [Cron](./cron.md) | Job scheduling | Cron expressions, task management |
-| [Crypto](./crypto.md) | Cryptographic operations | Hashing, AES/RSA encryption/decryption |
+| [Crypto](./crypto.md) | Cryptographic operations | AES/RSA/ECDH encryption, key exchange, hashing |
 | [Environment](./env.md) | Environment variables | Centralized config access |
 | [Error](./error.md) | Error handling | `ApplicationError`, consistent responses |
 | [Inversion](./inversion.md) | Dependency injection | DI container implementation |
