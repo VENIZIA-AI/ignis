@@ -3,8 +3,8 @@ import { TConstValue, ValueOrPromise } from '@/common/types';
 import { DefaultRedisHelper } from '@/helpers/redis';
 import { Server as HTTPServer, IncomingHttpHeaders } from 'node:http';
 import { ParsedUrlQuery } from 'node:querystring';
-import { Socket as IOSocket, ServerOptions } from 'socket.io';
-import { SocketOptions } from 'socket.io-client';
+import type { Socket as IOSocket, ServerOptions } from 'socket.io';
+import type { SocketOptions } from 'socket.io-client';
 import { SocketIOClientStates } from './constants';
 
 export interface IHandshake {

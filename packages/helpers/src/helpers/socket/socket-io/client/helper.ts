@@ -1,7 +1,7 @@
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
-import { io, type Socket } from 'socket.io-client';
+import type { Socket } from 'socket.io-client';
 import {
   IOptions,
   ISocketIOClientOptions,
@@ -55,6 +55,8 @@ export class SocketIOClientHelper extends BaseHelper {
       return;
     }
 
+    const modId = 'socket.io-client';
+    const { io } = require(modId);
     this.client = io(this.host, this.options);
 
     // Register connection lifecycle handlers

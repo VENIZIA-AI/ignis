@@ -26,7 +26,8 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
 
     this.domain = config.domain;
 
-    const Mailgun = require('mailgun.js');
+    const modId = 'mailgun.js';
+    const Mailgun = require(modId);
     const mailgun = new Mailgun(FormData);
     const client = mailgun.client(config);
 

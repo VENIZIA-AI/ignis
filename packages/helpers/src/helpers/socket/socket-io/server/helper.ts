@@ -3,12 +3,11 @@ import { RuntimeModules, TRuntimeModule } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/helpers/base';
 import { getError } from '@/helpers/error';
-import { createAdapter } from '@socket.io/redis-adapter';
-import { Emitter } from '@socket.io/redis-emitter';
+import type { Emitter } from '@socket.io/redis-emitter';
 import { Cluster, Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
 import { Server as HTTPServer } from 'node:http';
-import { Server as IOServer, Socket as IOSocket, ServerOptions } from 'socket.io';
+import type { Server as IOServer, Socket as IOSocket, ServerOptions } from 'socket.io';
 import {
   IHandshake,
   ISocketIOClient,
@@ -216,12 +215,16 @@ export class SocketIOServerHelper extends BaseHelper {
     logger.info('All Redis connections ready');
 
     // Initialize IO server based on runtime
-    this.initIOServer();
+    await this.initIOServer();
 
     // Setup Redis adapter & emitter
+    const adapterModId = '@socket.io/redis-adapter';
+    const { createAdapter } = await import(adapterModId);
     this.io.adapter(createAdapter(this.redisPub, this.redisSub));
     logger.info('SocketIO Server initialized Redis Adapter');
 
+    const emitterModId = '@socket.io/redis-emitter';
+    const { Emitter } = await import(emitterModId);
     this.emitter = new Emitter(this.redisEmitter);
     logger.info('SocketIO Server initialized Redis Emitter');
 
@@ -237,7 +240,10 @@ export class SocketIOServerHelper extends BaseHelper {
     );
   }
 
-  private initIOServer() {
+  private async initIOServer() {
+    const modId = 'socket.io';
+    const { Server } = await import(modId);
+
     switch (this.runtime) {
       case RuntimeModules.NODE: {
         if (!this.server) {
@@ -246,7 +252,7 @@ export class SocketIOServerHelper extends BaseHelper {
             message: '[DANGER] Invalid HTTP server instance to init Socket.io server!',
           });
         }
-        this.io = new IOServer(this.server, this.serverOptions);
+        this.io = new Server(this.server, this.serverOptions);
         break;
       }
       case RuntimeModules.BUN: {
@@ -256,7 +262,7 @@ export class SocketIOServerHelper extends BaseHelper {
             message: '[DANGER] Invalid @socket.io/bun-engine instance to init Socket.io server!',
           });
         }
-        this.io = new IOServer();
+        this.io = new Server();
         this.io.bind(this.bunEngine);
         break;
       }
