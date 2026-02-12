@@ -189,7 +189,7 @@ class UserController {
 - **Extensible**: Custom booters integrate seamlessly via tags
 - **Type-safe**: Full TypeScript support throughout boot process
 
-> **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping) and [Boot Package Reference](/references/src-details/boot.md)
+> **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
 
 ## See Also
 

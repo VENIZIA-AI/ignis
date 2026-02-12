@@ -2,7 +2,7 @@
 
 This guide shows you how to write tests for your Ignis application.
 
-**⏱️ Time to Complete:** ~30 minutes
+**Time to Complete:** ~30 minutes
 
 ## Choose Your Test Framework
 
@@ -20,9 +20,8 @@ This guide shows you how to write tests for your Ignis application.
 
 Since Ignis is just a TypeScript/JavaScript application framework, you can test it with any tool that supports TypeScript.
 
-::: tip IGNIS Testing Extension
-IGNIS provides its own testing utilities built on `node:test`. These utilities (`TestPlan`, `TestCase`, `TestCaseHandler`) offer a structured approach for organizing tests with lifecycle hooks and shared context. This is optional — use it if you prefer this pattern, or use your favorite test framework directly.
-:::
+> [!TIP] IGNIS Testing Extension
+> IGNIS provides its own testing utilities built on `node:test`. These utilities (`TestPlan`, `TestCase`, `TestCaseHandler`) offer a structured approach for organizing tests with lifecycle hooks and shared context. This is optional — use it if you prefer this pattern, or use your favorite test framework directly.
 
 ## Prerequisites
 

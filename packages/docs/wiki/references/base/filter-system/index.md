@@ -27,7 +27,7 @@ Before reading this document, you should understand:
 
 | Guide | Description |
 |-------|-------------|
-| [**⚡ Quick Reference**](./quick-reference.md) | **Single-page cheat sheet of all operators** |
+| [**Quick Reference**](./quick-reference.md) | **Single-page cheat sheet of all operators** |
 | [Comparison Operators](./comparison-operators.md) | Equality, range, null checks |
 | [Pattern Matching](./pattern-matching.md) | LIKE, ILIKE, regex |
 | [Logical Operators](./logical-operators.md) | AND, OR combinations |

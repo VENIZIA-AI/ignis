@@ -224,7 +224,7 @@ await repo.find({
   }
 });
 
-// ⚠️ Dangerous - could return millions of rows
+// Dangerous - could return millions of rows
 await repo.find({
   filter: { where: { status: 'active' } }
 });

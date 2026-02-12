@@ -66,10 +66,10 @@ export class Application extends BaseApplication {
 ```
 
 **Benefits:**
-- ✅ **Convention-based** - Follow naming patterns, framework does the rest
-- ✅ **Scalable** - Add 100 controllers without changing application code
-- ✅ **Clean** - No constructor bloat
-- ✅ **Team-friendly** - No merge conflicts on registration
+- **Convention-based** - Follow naming patterns, framework does the rest
+- **Scalable** - Add 100 controllers without changing application code
+- **Clean** - No constructor bloat
+- **Team-friendly** - No merge conflicts on registration
 
 ## How It Works
 
@@ -542,7 +542,7 @@ npx glob "your-pattern/**/*.controller.js"
 
 ## Best Practices
 
-### ✅ DO
+### DO
 
 - Follow naming conventions consistently
 - Use boot system for applications with > 5 artifacts per type
@@ -550,7 +550,7 @@ npx glob "your-pattern/**/*.controller.js"
 - Keep boot options in config file
 - Use debug logging during development
 
-### ❌ DON'T
+### DON'T
 
 - Mix manual and auto registration (choose one approach)
 - Use boot for tiny applications (< 5 total artifacts)
@@ -568,7 +568,6 @@ npx glob "your-pattern/**/*.controller.js"
 
 - **References:**
   - [Bootstrapping API](/references/base/bootstrapping) - Complete API reference
-  - [Boot Package](/references/src-details/boot) - Boot system internals
   - [Dependency Injection](/references/base/dependency-injection) - DI container
 
 - **Tutorials:**

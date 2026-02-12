@@ -9,9 +9,8 @@ lastUpdated: 2026-01-02
 
 Composable mixins that provide reusable functionality for repository classes.
 
-::: info Refactored in v0.0.5
-Repository mixins were extracted and refactored in v0.0.5 to provide better composition and reusability.
-:::
+> [!NOTE] Refactored in v0.0.5
+> Repository mixins were extracted and refactored in v0.0.5 to provide better composition and reusability.
 
 **Files:** `packages/core/src/base/repositories/mixins/`
 

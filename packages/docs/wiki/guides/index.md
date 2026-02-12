@@ -5,37 +5,31 @@ Welcome to Ignis — a TypeScript framework that combines enterprise architectur
 <div class="guide-cards">
 
 <a href="./get-started/setup" class="guide-card">
-<span class="guide-icon">🛠️</span>
 <h3>Setup</h3>
 <p>Install Bun, PostgreSQL, and configure your IDE</p>
 </a>
 
 <a href="./get-started/5-minute-quickstart" class="guide-card highlight">
-<span class="guide-icon">⚡</span>
 <h3>5-Min Quickstart</h3>
 <p>Your first endpoint in 5 minutes</p>
 </a>
 
 <a href="./tutorials/complete-installation" class="guide-card">
-<span class="guide-icon">📦</span>
 <h3>Full Installation</h3>
 <p>Production-ready project setup</p>
 </a>
 
 <a href="./tutorials/building-a-crud-api" class="guide-card">
-<span class="guide-icon">🗄️</span>
 <h3>Build a CRUD API</h3>
 <p>Complete Todo API with database</p>
 </a>
 
 <a href="./tutorials/testing" class="guide-card">
-<span class="guide-icon">🧪</span>
 <h3>Testing</h3>
 <p>Write tests for your application</p>
 </a>
 
 <a href="./get-started/philosophy" class="guide-card">
-<span class="guide-icon">💡</span>
 <h3>Philosophy</h3>
 <p>Why Ignis? Design decisions explained</p>
 </a>
@@ -84,6 +78,5 @@ Welcome to Ignis — a TypeScript framework that combines enterprise architectur
 
 </div>
 
-::: tip New to backend development?
-Check out our [Glossary](./reference/glossary) for explanations of key terms like Controllers, Repositories, and Dependency Injection.
-:::
+> [!TIP] New to backend development?
+> Check out our [Glossary](./reference/glossary) for explanations of key terms like Controllers, Repositories, and Dependency Injection.

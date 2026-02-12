@@ -502,7 +502,7 @@ export class MyComponent extends BaseComponent {
 - **References:**
   - [BaseComponent API](/references/base/components) - Complete API reference
   - [Authentication Component](/references/components/authentication/) - Real-world component example
-  - [Health Check Component](/references/components/health-check/) - Simple component example
+  - [Health Check Component](/references/components/health-check) - Simple component example
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component architecture patterns

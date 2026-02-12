@@ -2,7 +2,7 @@
 
 Build your first Ignis API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
 
-**⏱️ Time to Complete:** ~5 minutes
+**Time to Complete:** ~5 minutes
 
 > **Prerequisites:** [Bun installed](./setup) and basic TypeScript knowledge.
 
@@ -262,13 +262,12 @@ You might wonder why we set up TypeScript, ESLint, and Prettier configs in a "qu
 - **Team Ready** — New developers can onboard faster with familiar structure
 - **CI/CD Friendly** — Lint and format checks work out of the box
 
-::: tip
-All configs extend from `@venizia/dev-configs`, so you get updates automatically. Customize by overriding specific rules in your local config files.
-:::
+> [!TIP]
+> All configs extend from `@venizia/dev-configs`, so you get updates automatically. Customize by overriding specific rules in your local config files.
 
 ## Next Steps
 
-✅ **You have a working API!**
+**You have a working API!**
 
 **Want more?**
 

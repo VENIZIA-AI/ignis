@@ -20,38 +20,32 @@ hero:
       link: https://github.com/VENIZIA-AI/ignis
 
 features:
-  - icon: ⚡
-    title: 140k+ req/s
+  - title: 140k+ req/s
     details: Built on Hono, one of the fastest web frameworks. Near-native performance on Bun, Node, and edge runtimes.
     link: /guides/get-started/philosophy
     linkText: See benchmarks
 
-  - icon: 🏗️
-    title: Enterprise Architecture
+  - title: Enterprise Architecture
     details: Layered design with Controllers, Services, and Repositories. Clean separation of concerns out of the box.
     link: /guides/core-concepts/application/
     linkText: Learn more
 
-  - icon: 💉
-    title: Dependency Injection
+  - title: Dependency Injection
     details: Lightweight DI container with decorators. Testable, loosely coupled code without the boilerplate.
     link: /guides/core-concepts/dependency-injection
     linkText: See how
 
-  - icon: 📝
-    title: Auto-Generated Docs
+  - title: Auto-Generated Docs
     details: OpenAPI/Swagger from Zod schemas. Interactive API explorer included with zero config.
     link: /references/components/swagger
     linkText: View example
 
-  - icon: 🗃️
-    title: Type-Safe Database
+  - title: Type-Safe Database
     details: Drizzle ORM integration with advanced filtering, relations, JSON queries, and transactions.
     link: /references/base/repositories/
     linkText: Explore
 
-  - icon: 🧩
-    title: Batteries Included
+  - title: Batteries Included
     details: Auth, WebSockets, Queues, Cron, Redis, S3, Email — ready-to-use components and helpers.
     link: /references/
     linkText: Browse all
@@ -138,7 +132,7 @@ Ready for a step-by-step guide? Follow the [5-minute quickstart →](/guides/get
 <div class="use-ignis-grid">
 
 <div class="use-ignis-card">
-<h3>✅ Perfect For</h3>
+<h3>Perfect For</h3>
 <ul>
 <li><strong>SaaS backends</strong> — Multi-tenant, complex business logic</li>
 <li><strong>E-commerce APIs</strong> — Products, orders, payments</li>
@@ -150,7 +144,7 @@ Ready for a step-by-step guide? Follow the [5-minute quickstart →](/guides/get
 </div>
 
 <div class="use-ignis-card">
-<h3>❌ Consider Alternatives</h3>
+<h3>Consider Alternatives</h3>
 <ul>
 <li><strong>Simple webhooks</strong> — Use plain Hono</li>
 <li><strong>3-5 endpoint APIs</strong> — Ignis adds overhead</li>
