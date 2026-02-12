@@ -451,7 +451,7 @@ Using `TRouteContext` provides a typed context object. By using `c.req.valid<T>(
 - **References:**
   - [BaseController API](/references/base/controllers) - Complete API reference
   - [Middlewares](/references/base/middlewares) - Request interceptors
-  - [Swagger Component](/references/components/swagger/) - Auto-generate API docs
+  - [Swagger Component](/references/components/swagger) - Auto-generate API docs
   - [Schema Utilities](/references/utilities/schema) - Request/response helpers
 
 - **Tutorials:**

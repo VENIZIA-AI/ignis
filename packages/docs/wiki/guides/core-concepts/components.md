@@ -114,8 +114,8 @@ export class Application extends BaseApplication {
 - **References:**
   - [BaseComponent API](/references/base/components) - Complete API reference
   - [Authentication Component](/references/components/authentication/) - JWT authentication
-  - [Health Check Component](/references/components/health-check/) - Health endpoints
-  - [Swagger Component](/references/components/swagger/) - API documentation
+  - [Health Check Component](/references/components/health-check) - Health endpoints
+  - [Swagger Component](/references/components/swagger) - API documentation
   - [Socket.IO Component](/references/components/socket-io/) - WebSocket support
 
 - **Best Practices:**

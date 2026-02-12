@@ -562,7 +562,7 @@ async getUsers() {
 - **Related References:**
   - [Schema Utility](./schema.md) - JSON content and response helpers
   - [Controllers](../base/controllers.md) - Defining routes and handlers
-  - [OpenAPI Component](../components/swagger/) - API documentation
+  - [OpenAPI Component](../components/swagger) - API documentation
 
 - **External Resources:**
   - [Hono JSX Documentation](https://hono.dev/guides/jsx)

@@ -380,13 +380,6 @@ import {
 
   // Queues
   QueueHelper,
-  BullMQHelper,
-
-  // Cron
-  CronHelper,
-
-  // Storage
-  MinIOHelper,
 
   // Crypto
   hash,
@@ -395,6 +388,9 @@ import {
   // HTTP
   HTTP,
 } from '@venizia/ignis-helpers';
+import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
+import { CronHelper } from '@venizia/ignis-helpers/cron';
+import { MinIOHelper } from '@venizia/ignis-helpers/minio';
 ```
 
 ### Dependency Injection

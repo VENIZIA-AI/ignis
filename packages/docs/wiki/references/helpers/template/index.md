@@ -2,32 +2,41 @@
 
 Guide for writing consistent, professional helper reference docs for Ignis.
 
+## Tiers
+
+| Tier | Structure | When to Use |
+|------|-----------|-------------|
+| **Tier 1 -- Single Page** | One `index.md` in a directory | Most helpers. Simple to medium complexity, single concern |
+| **Tier 2 -- Two Pages** | `index.md` (setup + usage) + `api.md` (API reference) | Helpers with multiple sub-helpers, complex internals, or 800+ lines of source-verified content |
+
+### Tier Assignment
+
+| Helper | Tier | Rationale |
+|--------|------|-----------|
+| Cron, Env, Error, UID, Types | 1 | Simple wrappers or single-concern utilities |
+| Crypto, Redis, Inversion, Logger | 1 | Medium complexity but single concern |
+| Testing, Worker-Thread, Queue | 1 | Manageable scope, small variants |
+| Network | 2 | 4 protocol families (HTTP, TCP, TLS, UDP) |
+| Storage | 2 | 3 backends + base abstraction |
+| Socket.IO | 2 | Server + Client helpers, Redis integration |
+| WebSocket | 2 | Largest helper, Server + Emitter, complex internals |
+
 ## Principles
 
-- **Usage-first** — Show working code early, not abstract API tables
-- **Integrate examples** — Don't split "API Reference" and "Usage Examples" into separate sections
-- **Collapse verbose content** — Full interfaces, advanced methods, and internals go in `::: details` blocks
-- **Scannable top-level** — Tables, short code blocks, and callouts; details below
-- **Earn your section** — Remove any section that doesn't apply
-
-## Section Order
-
-| # | Section | Required | Purpose |
-|---|---------|----------|---------|
-| 1 | [Quick Reference](./quick-reference) | Yes | At-a-glance: classes, operations, specs |
-| 2 | [Creating an Instance](./creating-instance) | Yes | Constructor with minimal example |
-| 3 | [Usage Patterns](./usage-patterns) | Yes | Core body: feature areas with code |
-| 4 | [API Summary](./api-summary) | No | Consolidated method table (large helpers only) |
-| 5 | [Troubleshooting](./troubleshooting) | Yes | 2-5 common errors with fixes |
-| 6 | [See Also](./see-also) | Yes | Categorized links |
+- **Usage-first** -- Show working code early, not abstract API tables
+- **No `::: details` containers** -- Use `####` sub-headings for collapsed-style content
+- **Scannable** -- Tables, short code blocks, and callouts at top level
+- **Source-verified** -- All content sourced from actual source code, no inventing
+- **Earn your section** -- Remove any section that does not apply
+- **No emojis** -- Plain text only
 
 ## Callout Standard
 
-Use **GitHub-style only** — never mix with `::: tip` or `::: warning`:
+Use **GitHub-style only**:
 
 ```markdown
 > [!NOTE]
-> Informational — behavior clarification
+> Informational -- behavior clarification
 
 > [!TIP]
 > Suggestion or best practice
@@ -39,18 +48,19 @@ Use **GitHub-style only** — never mix with `::: tip` or `::: warning`:
 > Critical functionality impact
 ```
 
-## Collapsible Strategy
+## Templates
 
-**Always collapse** (`::: details`):
-- Import Paths
-- Constructor options interface (when more than 5 options)
-- Full type definitions
-- Advanced/rarely-used methods
-- Internal implementation details
-- API summary table
+| Template | Purpose |
+|----------|---------|
+| [Single Page](./single-page) | Tier 1 template -- one file per helper |
 
-**Always visible**:
-- Quick Reference tables
-- Constructor code example
-- Primary usage examples per feature area
-- Troubleshooting entries
+Tier 2 follows the same two-page pattern as [Component Tier 2](../components/template/).
+
+## Source Paths
+
+| Package | Path |
+|---------|------|
+| Helpers | `packages/helpers/src/helpers/{name}/` |
+| Inversion | `packages/inversion/src/` |
+| Common types | `packages/helpers/src/common/types.ts` |
+| Utilities | `packages/helpers/src/utilities/` |
