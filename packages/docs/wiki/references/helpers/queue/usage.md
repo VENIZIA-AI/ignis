@@ -219,6 +219,121 @@ await mqttClient.publish({ topic: 'sensors/raw', message: Buffer.from([0x01, 0x0
 > [!NOTE]
 > Both `subscribe()` and `publish()` reject with an `ApplicationError` (status 400) if the MQTT client is not connected. Ensure the connection is established before calling these methods.
 
+## Kafka Queue
+
+The `KafkaHelper` suite provides robust producer, consumer, and admin implementations using `kafkajs`.
+
+### Setup
+
+All Kafka helpers require a `Kafka` instance:
+
+```typescript
+import { Kafka } from 'kafkajs';
+
+const kafka = new Kafka({
+  clientId: 'my-app',
+  brokers: ['localhost:9092'],
+  // ssl: true,
+  // sasl: { ... }
+});
+```
+
+### Creating a Consumer
+
+The `KafkaConsumerHelper` manages message consumption, including offset management and batch processing.
+
+```typescript
+import { KafkaConsumerHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+
+const consumer = new KafkaConsumerHelper({
+  kafka,
+  identifier: 'user-events-consumer',
+  role: KafkaHelperRoles.ROLE_CONSUMER,
+  consumerConfig: {
+    groupId: 'user-service-group',
+  },
+  autoCommit: true, // default: false
+  onMessage: async ({ topic, partition, message }) => {
+    console.log({
+      topic,
+      partition,
+      offset: message.offset,
+      value: message.value?.toString(),
+    });
+  },
+  // Optional: Handle batches
+  // onBatch: async ({ batch }) => { ... }
+});
+
+await consumer.connectConsumer();
+await consumer.subscribeToTopics(['user.created', 'user.updated']);
+
+// Start processing
+await consumer.runConsumer();
+```
+
+> [!NOTE]
+> You must implement either `onMessage` or `onBatch`. If `autoCommit` is false (recommend), you should manually commit offsets using `commitOffsets()` if you are managing flow control manually, though `consumer.run` handles commit for `onMessage` automatically if successful.
+
+### Creating a Producer
+
+The `KafkaProducerHelper` handles message publishing with automatic serialization.
+
+```typescript
+import { KafkaProducerHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+
+const producer = new KafkaProducerHelper({
+  kafka,
+  identifier: 'user-events-producer',
+  role: KafkaHelperRoles.ROLE_PRODUCER,
+  producerConfig: {
+    allowAutoTopicCreation: true,
+  },
+});
+
+await producer.connectProducer();
+
+// Send single/multiple messages to a topic
+await producer.sendMessages({
+  topic: 'user.created',
+  messages: [
+    { key: 'user-1', value: { id: 1, name: 'Alice' } },
+    { key: 'user-2', value: { id: 2, name: 'Bob' } },
+  ],
+});
+```
+
+### Admin Operations
+
+The `KafkaAdminHelper` allows for programmatic management of topics and partitions.
+
+```typescript
+import { KafkaAdminHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+
+const admin = new KafkaAdminHelper({
+  kafka,
+  identifier: 'cluster-admin',
+  role: KafkaHelperRoles.ROLE_ADMIN,
+});
+
+await admin.connectAdmin();
+
+// Create a new topic
+await admin.createTopics({
+  topics: [{
+    topic: 'new-topic',
+    numPartitions: 3,
+    replicationFactor: 1
+  }],
+});
+
+// List all topics
+const topics = await admin.listTopics();
+console.log(topics);
+
+await admin.disconnectAdmin();
+```
+
 ## In-Memory Queue
 
 The `QueueHelper` provides a generator-based, in-memory queue with a built-in state machine for managing sequential tasks within a single process. It automatically processes enqueued items one at a time.
