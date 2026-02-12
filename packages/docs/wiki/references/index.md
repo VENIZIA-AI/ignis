@@ -5,37 +5,31 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <div class="guide-cards">
 
 <a href="./base/" class="guide-card highlight">
-<span class="guide-icon">🏗️</span>
 <h3>Base Abstractions</h3>
 <p>Application, Controller, Service, Repository, Model</p>
 </a>
 
 <a href="./components/" class="guide-card">
-<span class="guide-icon">🧩</span>
 <h3>Components</h3>
 <p>Auth, Mail, Socket.IO, Swagger, Health Check</p>
 </a>
 
 <a href="./helpers/" class="guide-card">
-<span class="guide-icon">🛠️</span>
 <h3>Helpers</h3>
 <p>Logger, Redis, Queue, Storage, Cron, Crypto</p>
 </a>
 
 <a href="./utilities/" class="guide-card">
-<span class="guide-icon">⚙️</span>
 <h3>Utilities</h3>
 <p>Date, Parse, Promise, Schema, Performance</p>
 </a>
 
 <a href="./configuration/" class="guide-card">
-<span class="guide-icon">📝</span>
 <h3>Configuration</h3>
 <p>Environment variables and settings</p>
 </a>
 
 <a href="./src-details/" class="guide-card">
-<span class="guide-icon">📦</span>
 <h3>Framework Internals</h3>
 <p>Package structure and architecture</p>
 </a>
@@ -111,9 +105,8 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 
 </div>
 
-::: tip Looking for tutorials?
-Check out the [Getting Started Guide](/guides/) for step-by-step tutorials and the [Core Concepts](/guides/core-concepts/application/) for architectural explanations.
-:::
+> [!TIP] Looking for tutorials?
+> Check out the [Getting Started Guide](/guides/) for step-by-step tutorials and the [Core Concepts](/guides/core-concepts/application/) for architectural explanations.
 
 ## Quick Examples
 

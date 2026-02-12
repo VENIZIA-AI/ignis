@@ -107,4 +107,3 @@ import { QueryBuilder } from './query';
 
 - [Architectural Patterns](../architectural-patterns) - High-level design
 - [Common Pitfalls](../common-pitfalls) - Mistakes to avoid
-- [@venizia/dev-configs Reference](../../references/src-details/dev-configs) - Full tooling docs

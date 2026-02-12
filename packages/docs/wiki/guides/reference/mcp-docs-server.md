@@ -342,7 +342,7 @@ npx @venizia/ignis-docs
 
 #### 5. Use with Gemini (if supported)
 
-**⚠️ Note:** MCP support in Gemini CLI is limited. Alternative approaches:
+**Note:** MCP support in Gemini CLI is limited. Alternative approaches:
 
 **Option A: Use Google AI Python SDK with custom MCP wrapper**
 
@@ -359,13 +359,13 @@ npx @venizia/ignis-docs
 
 #### Troubleshooting
 
-**❌ "Command not found: gemini"**
+**"Command not found: gemini"**
 
 - Google doesn't have an official "gemini" CLI command
 - Use `gcloud ai` or Python SDK instead
 - Consider using Claude Code CLI for better MCP support
 
-**❌ MCP server not loading**
+**MCP server not loading**
 
 - Gemini CLI MCP support is experimental
 - Check if your Gemini CLI version supports MCP:
@@ -374,7 +374,7 @@ npx @venizia/ignis-docs
   gemini mcp list  # If this command doesn't exist, MCP isn't supported
   ```
 
-**✅ Recommended Alternative:**
+**Recommended Alternative:**
 Use Claude Code CLI (see setup above) - it has full MCP support and works reliably.
 
 ## VS Code Setup
@@ -655,7 +655,7 @@ Use absolute paths in your config:
 
 Before troubleshooting, run these quick tests:
 
-**✅ Test 1: MCP server runs**
+**Test 1: MCP server runs**
 
 ```bash
 npx @venizia/ignis-docs
@@ -663,14 +663,14 @@ npx @venizia/ignis-docs
 # Press Ctrl+C to stop
 ```
 
-**✅ Test 2: Config file exists and is valid JSON**
+**Test 2: Config file exists and is valid JSON**
 
 ```bash
 # Claude Code:
 cat ~/.config/claude-code/config.json | python -m json.tool
 ```
 
-**✅ Test 3: AI tool recognizes MCP server**
+**Test 3: AI tool recognizes MCP server**
 
 - Restart your AI tool COMPLETELY (quit and reopen)
 - Ask: `Can you search the Ignis docs for "controller"?`
@@ -679,7 +679,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 
 ### Common Issues and Solutions
 
-#### ❌ Issue #1: "Command not found: ignis-docs-mcp"
+#### Issue #1: "Command not found: ignis-docs-mcp"
 
 **When it happens:** Starting AI tool or running `ignis-docs-mcp` manually
 
@@ -723,7 +723,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #2: AI assistant doesn't use MCP tools
+#### Issue #2: AI assistant doesn't use MCP tools
 
 **When it happens:** AI responds normally but never uses `searchDocs` or other tools
 
@@ -781,7 +781,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #3: "Module not found" errors
+#### Issue #3: "Module not found" errors
 
 **When it happens:** MCP server starts but crashes immediately
 
@@ -814,7 +814,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
    ```
 
 
-#### ❌ Issue #4: First search takes 10+ seconds
+#### Issue #4: First search takes 10+ seconds
 
 **When it happens:** First query is slow, subsequent queries are fast
 
@@ -826,7 +826,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Not an error - just one-time startup cost.**
 
 
-#### ❌ Issue #5: Config file doesn't exist
+#### Issue #5: Config file doesn't exist
 
 **When it happens:** `cat ~/.config/claude-code/config.json` says "No such file"
 
@@ -848,7 +848,7 @@ EOF
 ```
 
 
-### 🐛 Advanced Troubleshooting
+### Advanced Troubleshooting
 
 If none of the above worked:
 

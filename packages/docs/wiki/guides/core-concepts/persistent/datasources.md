@@ -2,9 +2,8 @@
 
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
-::: info PostgreSQL First
-IGNIS currently focuses on **PostgreSQL** as the primary database. Support for other database systems (MySQL, SQLite, etc.) is planned for future releases.
-:::
+> [!NOTE] PostgreSQL First
+> IGNIS currently focuses on **PostgreSQL** as the primary database. Support for other database systems (MySQL, SQLite, etc.) is planned for future releases.
 
 ## Creating a DataSource
 
@@ -106,8 +105,8 @@ export class Application extends BaseApplication {
 | Driver | Package | Status |
 |--------|---------|--------|
 | `node-postgres` | `pg` | ✅ Supported |
-| `mysql2` | `mysql2` | 🔜 Planned |
-| `better-sqlite3` | `better-sqlite3` | 🔜 Planned |
+| `mysql2` | `mysql2` | Planned |
+| `better-sqlite3` | `better-sqlite3` | Planned |
 
 ## DataSource Template
 

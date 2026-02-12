@@ -2,7 +2,7 @@
 
 This guide walks you through creating a new web application with Ignis and setting up a professional development environment.
 
-**⏱️ Time to Complete:** ~20 minutes
+**Time to Complete:** ~20 minutes
 
 > **Prerequisites:** Ensure you have [Bun installed and basic TypeScript knowledge](../get-started/setup.md) before starting.
 
@@ -227,16 +227,15 @@ export class Application extends BaseApplication {
 }
 ```
 
-::: info IApplicationInfo
-**Required fields in `package.json`:**
-- `name` — App name (shown in API docs title)
-- `version` — App version (shown in API docs)
-- `description` — App description (shown in API docs)
-
-**No proper `package.json`?** Use static app info instead (see Option 2 in code above).
-
-**Recommendation:** Read from `package.json` for consistency between app metadata and API docs.
-:::
+> [!NOTE] IApplicationInfo
+> **Required fields in `package.json`:**
+> - `name` — App name (shown in API docs title)
+> - `version` — App version (shown in API docs)
+> - `description` — App description (shown in API docs)
+>
+> **No proper `package.json`?** Use static app info instead (see Option 2 in code above).
+>
+> **Recommendation:** Read from `package.json` for consistency between app metadata and API docs.
 
 **Key takeaway:** You'll mostly work in `preConfigure()` when building your app. The other hooks are there when you need them.
 
@@ -407,7 +406,7 @@ Congratulations! You have successfully created and configured your first applica
 
 ## Continue Your Journey
 
-✅ You now have a working Ignis application!
+You now have a working Ignis application!
 
 **Next steps:**
 

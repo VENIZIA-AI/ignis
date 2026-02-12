@@ -119,8 +119,6 @@ Use the centralized TypeScript configs:
 | `strict` | `true` | Strict type checking |
 | `skipLibCheck` | `true` | Faster compilation |
 
-See [`@venizia/dev-configs` documentation](../../references/src-details/dev-configs) for full details.
-
 ## IDE Integration
 
 ### VS Code
@@ -152,4 +150,3 @@ See [`@venizia/dev-configs` documentation](../../references/src-details/dev-conf
 
 - [Naming Conventions](./naming-conventions) - File and class naming
 - [Type Safety](./type-safety) - TypeScript best practices
-- [@venizia/dev-configs Reference](../../references/src-details/dev-configs) - Full documentation

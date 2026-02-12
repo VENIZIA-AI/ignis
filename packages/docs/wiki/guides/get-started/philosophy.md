@@ -4,7 +4,6 @@ Ignis combines the structured, enterprise-grade development experience of **Loop
 
 <div class="philosophy-hero">
 <div class="hero-content">
-<span class="hero-icon">🔥</span>
 <div class="hero-text">
 <strong>Enterprise patterns. Hono performance. Modern simplicity.</strong>
 <span>The framework for developers who want structure without the weight.</span>
@@ -20,7 +19,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 
 <div class="landscape-card minimal">
 <div class="card-header">
-<span class="card-icon">⚡</span>
 <h3>Express, Hono, Fastify, Koa</h3>
 <span class="card-badge">Minimal</span>
 </div>
@@ -36,7 +34,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 
 <div class="landscape-card balanced">
 <div class="card-header">
-<span class="card-icon">🔥</span>
 <h3>Ignis, Ts.ED</h3>
 <span class="card-badge">Balanced</span>
 </div>
@@ -52,7 +49,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 
 <div class="landscape-card enterprise">
 <div class="card-header">
-<span class="card-icon">🏢</span>
 <h3>NestJS, LoopBack 4, AdonisJS</h3>
 <span class="card-badge">Enterprise</span>
 </div>
@@ -164,9 +160,9 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <thead>
 <tr>
 <th>Aspect</th>
-<th><span class="header-icon">⚡</span> Minimal (Hono/Express)</th>
-<th><span class="header-icon">🏢</span> Enterprise (NestJS/LoopBack)</th>
-<th class="highlight-col"><span class="header-icon">🔥</span> Ignis</th>
+<th>Minimal (Hono/Express)</th>
+<th>Enterprise (NestJS/LoopBack)</th>
+<th class="highlight-col">Ignis</th>
 </tr>
 </thead>
 <tbody>
@@ -223,9 +219,9 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <thead>
 <tr>
 <th>Feature</th>
-<th><span class="header-icon">⚡</span> Minimal</th>
-<th><span class="header-icon">🏢</span> Enterprise</th>
-<th class="highlight-col"><span class="header-icon">🔥</span> Ignis</th>
+<th>Minimal</th>
+<th>Enterprise</th>
+<th class="highlight-col">Ignis</th>
 </tr>
 </thead>
 <tbody>
@@ -276,9 +272,9 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <thead>
 <tr>
 <th>Aspect</th>
-<th><span class="header-icon">⚡</span> Hono</th>
-<th><span class="header-icon">🏢</span> NestJS</th>
-<th class="highlight-col"><span class="header-icon">🔥</span> Ignis</th>
+<th>Hono</th>
+<th>NestJS</th>
+<th class="highlight-col">Ignis</th>
 </tr>
 </thead>
 <tbody>
@@ -339,7 +335,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <div class="synthesis">
 
 <div class="synthesis-box source">
-<div class="synthesis-icon">🏗️</div>
 <h4>LoopBack 4</h4>
 <ul>
 <li>DI Container</li>
@@ -352,7 +347,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <div class="synthesis-operator">+</div>
 
 <div class="synthesis-box source">
-<div class="synthesis-icon">⚡</div>
 <h4>Hono</h4>
 <ul>
 <li>Blazing Speed</li>
@@ -365,7 +359,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <div class="synthesis-operator">=</div>
 
 <div class="synthesis-box result">
-<div class="synthesis-icon">🔥</div>
 <h4>Ignis</h4>
 <ul>
 <li>DI + Speed</li>
@@ -382,7 +375,7 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <div class="excel-section">
 
 <div class="excel-card minimal">
-<h3>⚡ Minimal Frameworks</h3>
+<h3>Minimal Frameworks</h3>
 <p class="excel-subtitle">Hono, Express, Fastify</p>
 <div class="excel-pros">
 <h4>Strengths</h4>
@@ -407,7 +400,7 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 </div>
 
 <div class="excel-card ignis">
-<h3>🔥 Ignis</h3>
+<h3>Ignis</h3>
 <p class="excel-subtitle">The balanced choice</p>
 <div class="excel-pros">
 <h4>Strengths</h4>
@@ -432,7 +425,7 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 </div>
 
 <div class="excel-card enterprise">
-<h3>🏢 Enterprise Frameworks</h3>
+<h3>Enterprise Frameworks</h3>
 <p class="excel-subtitle">NestJS, LoopBack, AdonisJS</p>
 <div class="excel-pros">
 <h4>Strengths</h4>
@@ -536,25 +529,21 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 <div class="perfect-grid">
 
 <div class="perfect-card">
-<span class="perfect-icon">🛒</span>
 <h4>Production APIs</h4>
 <p>10-100+ endpoints with enterprise patterns. Controllers, services, repositories — all built-in and ready.</p>
 </div>
 
 <div class="perfect-card">
-<span class="perfect-icon">👥</span>
 <h4>Teams of Any Size</h4>
 <p>Solo developers to large teams. Consistent patterns, DI for testing, scales with your needs.</p>
 </div>
 
 <div class="perfect-card">
-<span class="perfect-icon">🚀</span>
 <h4>Performance-Critical Apps</h4>
 <p>Hono's speed with enterprise structure. ~140k req/s with full DI, validation, and OpenAPI.</p>
 </div>
 
 <div class="perfect-card">
-<span class="perfect-icon">⚡</span>
 <h4>Modern Bun Projects</h4>
 <p>ESM native, Bun optimized. Build to single executable file for easy deployment.</p>
 </div>
@@ -644,7 +633,6 @@ When building REST APIs with Node.js/Bun, developers choose from three categorie
 </div>
 
 <div class="cta-card">
-<span class="cta-icon">🔥</span>
 <p><strong>IGNIS</strong> is ideal for developers who want enterprise patterns with modern performance. Start building today with structure that scales.</p>
 </div>
 

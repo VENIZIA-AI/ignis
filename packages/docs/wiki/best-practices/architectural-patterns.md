@@ -2,8 +2,6 @@
 
 Ignis promotes separation of concerns, dependency injection, and modularity for scalable, maintainable applications.
 
-> **Deep Dive:** See [Core Framework Reference](../references/src-details/core.md) for implementation details.
-
 ## 1. Layered Architecture
 
 Each layer has a single responsibility. Ignis supports **two architectural approaches**:

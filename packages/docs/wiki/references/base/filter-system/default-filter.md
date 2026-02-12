@@ -9,9 +9,8 @@ lastUpdated: 2026-01-02
 
 Automatically apply filter conditions to all repository queries at the model level.
 
-::: info Added in v0.0.5
-This feature was introduced in IGNIS v0.0.5 to support soft delete, multi-tenancy, and other automatic filtering patterns.
-:::
+> [!NOTE] Added in v0.0.5
+> This feature was introduced in IGNIS v0.0.5 to support soft delete, multi-tenancy, and other automatic filtering patterns.
 
 > [!NOTE]
 > Default filters are ideal for:

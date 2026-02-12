@@ -4,7 +4,7 @@ Dependency Injection (DI) enables loosely coupled, testable code by automaticall
 
 > **Deep Dive:** See [DI Reference](../../references/base/dependency-injection.md) for technical details on Container, Binding, and `@inject`.
 
-> **Standalone Package:** The core DI container is available as the standalone `@venizia/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](../../references/src-details/inversion.md) for details.
+> **Standalone Package:** The core DI container is available as the standalone `@venizia/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](/references/helpers/inversion/) for details.
 
 ## Core Concepts
 
@@ -244,9 +244,8 @@ describe('UserService', () => {
 | **Lifecycle** | Managed by framework | You control it |
 | **Use Case** | Main application | Testing, isolated modules, workers |
 
-::: tip
-The `Application` class extends `Container`, so all container methods (`bind`, `get`, `getSync`) are available on your application instance. Standalone containers are useful when you need isolation from the main application context.
-:::
+> [!TIP]
+> The `Application` class extends `Container`, so all container methods (`bind`, `get`, `getSync`) are available on your application instance. Standalone containers are useful when you need isolation from the main application context.
 
 ## See Also
 

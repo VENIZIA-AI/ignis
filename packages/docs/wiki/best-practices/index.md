@@ -5,49 +5,41 @@ Production-ready patterns, security guidelines, and optimization strategies for 
 <div class="guide-cards">
 
 <a href="./architectural-patterns" class="guide-card highlight">
-<span class="guide-icon">🏗️</span>
 <h3>Architecture</h3>
 <p>Layered architecture, DI, components, lifecycle hooks</p>
 </a>
 
 <a href="./code-style-standards/" class="guide-card">
-<span class="guide-icon">📝</span>
 <h3>Code Standards</h3>
 <p>Naming, types, patterns, ESLint, Prettier</p>
 </a>
 
 <a href="./security-guidelines" class="guide-card highlight">
-<span class="guide-icon">🔒</span>
 <h3>Security</h3>
 <p>Auth, validation, secrets, CORS, rate limiting</p>
 </a>
 
 <a href="./data-modeling" class="guide-card">
-<span class="guide-icon">🗄️</span>
 <h3>Data Modeling</h3>
 <p>Schemas, enrichers, relations, migrations</p>
 </a>
 
 <a href="./testing-strategies" class="guide-card">
-<span class="guide-icon">🧪</span>
 <h3>Testing</h3>
 <p>Unit tests, integration tests, mocking</p>
 </a>
 
 <a href="./performance-optimization" class="guide-card">
-<span class="guide-icon">⚡</span>
 <h3>Performance</h3>
 <p>Query optimization, caching, pooling</p>
 </a>
 
 <a href="./error-handling" class="guide-card">
-<span class="guide-icon">🚨</span>
 <h3>Error Handling</h3>
 <p>Error patterns, logging, user-friendly messages</p>
 </a>
 
 <a href="./deployment-strategies" class="guide-card">
-<span class="guide-icon">🚀</span>
 <h3>Deployment</h3>
 <p>Docker, Kubernetes, cloud platforms, CI/CD</p>
 </a>
@@ -194,13 +186,11 @@ const data: any = await fetchData(); // Use proper types!
 |-------|-------------|
 | [Contribution Workflow](./contribution-workflow) | Git workflow, PR guidelines, code review |
 
-::: tip New to Ignis?
-Start with the [Getting Started Guide](/guides/) for tutorials, then return here for production-ready patterns.
-:::
+> [!TIP] New to Ignis?
+> Start with the [Getting Started Guide](/guides/) for tutorials, then return here for production-ready patterns.
 
-::: warning Production Deployment?
-Before deploying, review the [Security Guidelines](./security-guidelines) and [Deployment Strategies](./deployment-strategies) thoroughly.
-:::
+> [!WARNING] Production Deployment?
+> Before deploying, review the [Security Guidelines](./security-guidelines) and [Deployment Strategies](./deployment-strategies) thoroughly.
 
 ## See Also
 

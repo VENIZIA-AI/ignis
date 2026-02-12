@@ -2,7 +2,7 @@
 
 This tutorial guides you through building a complete e-commerce backend with products, orders, cart, and payments. You'll learn advanced patterns for real-world applications.
 
-**⏱️ Time to Complete:** ~2 hours
+**Time to Complete:** ~2 hours
 
 ## What You'll Build
 

@@ -17,8 +17,8 @@ feature/*, fix/*, docs/* (your work)
 ```
 
 **Important:**
-- ✅ Create PRs to `develop` branch
-- ❌ Do NOT create PRs to `main` branch
+- Create PRs to `develop` branch
+- Do NOT create PRs to `main` branch
 - `main` only accepts merges from `develop`
 - Releases are tagged in git (e.g., `v1.0.0`)
 
@@ -125,10 +125,10 @@ git checkout -b feature/your-feature-name
 ### Step 2: Make Changes
 
 **Checklist:**
-- ✅ Follow [Code Style Standards](./code-style-standards/)
-- ✅ Follow [Architectural Patterns](./architectural-patterns.md)
-- ✅ Add tests for new features/fixes
-- ✅ Update docs in `packages/docs/wiki` if needed
+- Follow [Code Style Standards](./code-style-standards/)
+- Follow [Architectural Patterns](./architectural-patterns.md)
+- Add tests for new features/fixes
+- Update docs in `packages/docs/wiki` if needed
 
 ### Step 3: Commit
 
@@ -183,11 +183,11 @@ git push origin feature/your-feature-name
 | **Breaking changes** | Clearly mark and explain |
 
 **PR Checklist:**
-- ✅ All tests pass
-- ✅ Code is linted and formatted
-- ✅ Documentation updated
-- ✅ Commit messages follow conventions
-- ✅ Branch is up-to-date with `main`
+- All tests pass
+- Code is linted and formatted
+- Documentation updated
+- Commit messages follow conventions
+- Branch is up-to-date with `main`
 
 ## 4. Review Process
 
@@ -205,4 +205,4 @@ git commit -m "fix: address review feedback"
 git push origin feature/your-feature-name
 ```
 
-**Thank you for contributing to Ignis! 🎉**
+**Thank you for contributing to Ignis!**
