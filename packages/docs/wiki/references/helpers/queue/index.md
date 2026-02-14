@@ -1,6 +1,6 @@
 # Queue
 
-Message queuing and asynchronous task management with BullMQ, MQTT, and in-memory solutions.
+Message queuing and asynchronous task management with BullMQ, MQTT, Kafka, and in-memory solutions.
 
 ## Quick Reference
 
@@ -8,6 +8,7 @@ Message queuing and asynchronous task management with BullMQ, MQTT, and in-memor
 |-------|---------|-----------------|----------|
 | **BullMQHelper** | `BaseHelper` | `bullmq` (^5.63.1) | Redis-backed job queue -- background processing, task scheduling |
 | **MQTTClientHelper** | `BaseHelper` | `mqtt` (^5.14.1) | MQTT broker messaging -- real-time events, IoT |
+| **KafkaHelper** | `BaseHelper` | `kafkajs` (^2.2.4) | Kafka producer/consumer -- event streaming, high throughput |
 | **QueueHelper** | `BaseHelper` | None | In-memory generator queue -- sequential tasks, single process |
 
 #### Common Operations
@@ -16,6 +17,7 @@ Message queuing and asynchronous task management with BullMQ, MQTT, and in-memor
 |--------|---------------------|-------------------|
 | **BullMQ** | Create with `role: 'worker'` | `queue.add(name, data)` via the exposed BullMQ `Queue` instance |
 | **MQTT** | `subscribe({ topics })` | `publish({ topic, message })` |
+| **Kafka** | `runConsumer()` | `sendMessages({ topic, messages })` |
 | **In-Memory** | `new QueueHelper({ onMessage })` | `enqueue(payload)` |
 
 #### Import Paths
@@ -32,11 +34,14 @@ import type { TBullQueueRole } from '@venizia/ignis-helpers/bullmq';
 // MQTT (separate export path)
 import { MQTTClientHelper } from '@venizia/ignis-helpers/mqtt';
 import type { IMQTTClientOptions } from '@venizia/ignis-helpers/mqtt';
+
+// Kafka (separate export path)
+import { KafkaConsumerHelper, KafkaProducerHelper, KafkaAdminHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
 ```
 
 ## Creating an Instance
 
-All three queue helpers extend `BaseHelper`, providing scoped logging via `this.logger`.
+All queue helpers extend `BaseHelper`, providing scoped logging via `this.logger`.
 
 ### BullMQHelper
 
@@ -129,6 +134,47 @@ const mqttClient = new MQTTClientHelper({
 | `onDisconnect` | `() => void` | `undefined` | Callback fired on disconnection. |
 | `onError` | `(error: Error) => void` | `undefined` | Callback fired on client errors. |
 | `onClose` | `(error?: Error) => void` | `undefined` | Callback fired when the connection is closed. |
+
+### KafkaHelper
+
+The `KafkaHelper` suite provides producer, consumer, and admin implementations using `kafkajs`.
+
+#### KafkaConsumerHelper
+
+Manages message consumption, offset management, and batch processing.
+
+```typescript
+import { KafkaConsumerHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+import { Kafka } from 'kafkajs';
+
+const kafka = new Kafka({ clientId: 'my-app', brokers: ['localhost:9092'] });
+
+const consumer = new KafkaConsumerHelper({
+  kafka,
+  identifier: 'user-events-consumer',
+  role: KafkaHelperRoles.ROLE_CONSUMER,
+  consumerConfig: { groupId: 'user-service-group' },
+  autoCommit: true,
+  onMessage: async ({ topic, partition, message }) => {
+    console.log({ topic, value: message.value?.toString() });
+  },
+});
+```
+
+#### KafkaProducerHelper
+
+Handles message publishing with automatic serialization.
+
+```typescript
+import { KafkaProducerHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+
+const producer = new KafkaProducerHelper({
+  kafka,
+  identifier: 'user-events-producer',
+  role: KafkaHelperRoles.ROLE_PRODUCER,
+  producerConfig: { allowAutoTopicCreation: true },
+});
+```
 
 ### QueueHelper
 
@@ -248,17 +294,11 @@ import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 const cluster = new Cluster(
   [
     { host: 'node1.redis.example.com', port: 6379 },
-    { host: 'node2.redis.example.com', port: 6379 },
-    { host: 'node3.redis.example.com', port: 6379 },
+    // ...
   ],
   {
     maxRetriesPerRequest: null,  // Required by BullMQ
-    enableReadyCheck: true,
-    scaleReads: 'slave',
-    redisOptions: {
-      password: 'your-password',
-      tls: {},
-    },
+    // ...
   }
 );
 
@@ -273,9 +313,7 @@ const worker = BullMQHelper.newInstance({
   identifier: 'cluster-worker',
   role: 'worker',
   redisConnection: redisHelper,
-  onWorkerData: async (job) => {
-    // process job
-  },
+  onWorkerData: async (job) => { /* ... */ },
 });
 ```
 
@@ -332,6 +370,63 @@ const client = new MQTTClientHelper({
     console.log('Connection closed');
   },
 });
+```
+
+### Kafka -- Producer Usage
+
+```typescript
+await producer.connectProducer();
+
+// Send single/multiple messages to a topic
+await producer.sendMessages({
+  topic: 'user.created',
+  messages: [
+    { key: 'user-1', value: { id: 1, name: 'Alice' } },
+    { key: 'user-2', value: { id: 2, name: 'Bob' } },
+  ],
+});
+```
+
+### Kafka -- Consumer Usage
+
+```typescript
+await consumer.connectConsumer();
+await consumer.subscribeToTopics(['user.created', 'user.updated']);
+
+// Start processing
+await consumer.runConsumer();
+```
+
+> [!NOTE]
+> You must implement either `onMessage` or `onBatch`. If `autoCommit` is false (recommended), you should manually commit offsets using `commitOffsets()` if you are managing flow control manually, though `consumer.run` handles commit for `onMessage` automatically if successful.
+
+### Kafka -- Admin Usage
+
+```typescript
+import { KafkaAdminHelper, KafkaHelperRoles } from '@venizia/ignis-helpers';
+
+const admin = new KafkaAdminHelper({
+  kafka,
+  identifier: 'cluster-admin',
+  role: KafkaHelperRoles.ROLE_ADMIN,
+});
+
+await admin.connectAdmin();
+
+// Create a new topic
+await admin.createTopics({
+  topics: [{
+    topic: 'new-topic',
+    numPartitions: 3,
+    replicationFactor: 1
+  }],
+});
+
+// List all topics
+const topics = await admin.listTopics();
+console.log(topics);
+
+await admin.disconnectAdmin();
 ```
 
 ### In-Memory Queue -- Enqueueing and Processing
@@ -471,6 +566,44 @@ queue.close();
 | `subscribe(opts)` | `Promise<string[]>` | Subscribe to one or more topics. `opts: { topics: string[] }` |
 | `publish(opts)` | `Promise<{ topic, message }>` | Publish a message to a topic. `opts: { topic: string; message: string \| Buffer }` |
 
+### KafkaHelper
+
+**Consumer (`KafkaConsumerHelper`):**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `connectConsumer()` | `Promise<void>` | Connect to the Kafka broker |
+| `subscribeToTopics(topics)` | `Promise<void>` | Subscribe to one or more topics |
+| `runConsumer()` | `Promise<void>` | Start the consumer loop (calls `onMessage` or `onBatch`) |
+| `pauseConsumer(topics)` | `void` | Pause consumption for specific topics/partitions |
+| `resumeConsumer(topics)` | `void` | Resume consumption for specific topics/partitions |
+| `seek(topic, partition, offset)` | `void` | Seek to a specific offset |
+| `commitOffsets(offsets)` | `Promise<void>` | Manually commit offsets |
+| `disconnectConsumer()` | `Promise<void>` | Disconnect and close the consumer |
+
+**Producer (`KafkaProducerHelper`):**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `connectProducer()` | `Promise<void>` | Connect producer to the broker |
+| `sendMessages(record)` | `Promise<RecordMetadata[]>` | Send messages to a topic |
+| `sendBatch(batch)` | `Promise<RecordMetadata[]>` | Send a batch of messages to multiple topics |
+| `disconnectProducer()` | `Promise<void>` | Disconnect the producer |
+
+**Admin (`KafkaAdminHelper`):**
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `createTopics(opts)` | `Promise<boolean>` | Create new topics |
+| `deleteTopics(opts)` | `Promise<void>` | Delete topics |
+| `createPartitions(opts)` | `Promise<void>` | Increase partition count for topics |
+| `listTopics()` | `Promise<string[]>` | List all topic names |
+| `fetchTopicMetadata(opts)` | `Promise<ITopicMetadata[]>` | Get metadata for topics |
+| `fetchTopicOffsets(topic)` | `Promise<Array>` | Get high/low watermarks for a topic |
+| `listGroups()` | `Promise<Array>` | List all consumer groups |
+| `describeGroups(groupIds)` | `Promise<GroupDescriptions>` | Get consumer group details |
+| `resetOffsets(opts)` | `Promise<void>` | Reset consumer group offsets |
+
 ### QueueHelper
 
 | Method | Returns | Description |
@@ -587,3 +720,4 @@ const newQueue = new QueueHelper<string>({
 - **External Resources:**
   - [BullMQ Documentation](https://docs.bullmq.io/) -- BullMQ queue library
   - [MQTT.js](https://github.com/mqttjs/MQTT.js) -- MQTT client library
+  - [KafkaJS](https://kafka.js.org/) -- Kafka client library
