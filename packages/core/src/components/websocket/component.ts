@@ -7,7 +7,6 @@ import {
   DefaultRedisHelper,
   getError,
   HTTP,
-  IWebSocketServerOptions,
   RuntimeModules,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
@@ -192,7 +191,7 @@ export class WebSocketComponent extends BaseComponent {
           outboundTransformer,
           handshakeFn,
           requireEncryption: serverOptions.requireEncryption,
-        } satisfies IWebSocketServerOptions);
+        });
         await wsHelper.configure();
 
         this.application.bind({ key: WebSocketBindingKeys.WEBSOCKET_INSTANCE }).toValue(wsHelper);
