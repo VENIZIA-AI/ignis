@@ -68,6 +68,10 @@
       "types": "./dist/helpers/cron/index.d.ts",
       "default": "./dist/helpers/cron/index.js"
     },
+    "./kafka": {
+      "types": "./dist/helpers/queue/kafka/index.d.ts",
+      "default": "./dist/helpers/queue/kafka/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -133,7 +137,8 @@
     "minio": "^8.0.6",
     "mqtt": "^5.14.1",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "@platformatic/kafka": "^1.26.0"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
@@ -162,10 +167,14 @@
     },
     "socket.io-client": {
       "optional": true
+    },
+    "@platformatic/kafka": {
+      "optional": true
     }
   },
   "devDependencies": {
     "@hono/zod-openapi": "^1.1.5",
+    "@platformatic/kafka": "^1.26.0",
     "@types/bun": "^1.3.4",
     "@types/lodash": "^4.17.20",
     "@venizia/dev-configs": "^0.0.6",
