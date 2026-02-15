@@ -26,6 +26,8 @@ export interface IKafkaProducerOptions<
   autocreateTopics?: boolean;
   serializers?: Partial<Serializers<Key, Value, HeaderKey, HeaderValue>>;
   onError?: (opts: { error: Error }) => void;
+  onConnected?: () => void;
+  onDisconnected?: () => void;
 }
 
 export interface IKafkaProduceMessage {
@@ -62,6 +64,12 @@ export interface IKafkaConsumerOptions<
   mode?: 'latest' | 'earliest' | 'committed';
   onMessage?: (opts: { message: IKafkaConsumedMessage }) => ValueOrPromise<void>;
   onError?: (opts: { error: Error }) => void;
+  onConnected?: () => void;
+  onDisconnected?: () => void;
+  onGroupJoin?: (opts: { groupId: string; memberId: string }) => void;
+  onGroupLeave?: () => void;
+  onRebalance?: () => void;
+  onLag?: (opts: { offsets: Map<string, bigint[]> }) => void;
 }
 
 export interface IKafkaConsumedMessage {
@@ -80,6 +88,8 @@ export interface IKafkaConsumedMessage {
 // -------------------------------------------------------------------------------------------------------------
 export interface IKafkaAdminOptions extends IKafkaConnectionOptions {
   identifier?: string;
+  onConnected?: () => void;
+  onDisconnected?: () => void;
 }
 
 export interface IKafkaCreateTopicsOptions {
@@ -94,4 +104,68 @@ export interface IKafkaDeleteTopicsOptions {
 
 export interface IKafkaListTopicsOptions {
   includeInternals?: boolean;
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// Consumer: Manual Commit
+// -------------------------------------------------------------------------------------------------------------
+export interface IKafkaCommitOptions {
+  offsets: Array<{ topic: string; partition: number; offset: bigint; leaderEpoch: number }>;
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// Admin: Consumer Group Operations
+// -------------------------------------------------------------------------------------------------------------
+export interface IKafkaListGroupsOptions {
+  states?: string[];
+}
+
+export interface IKafkaDescribeGroupsOptions {
+  groups: string[];
+}
+
+export interface IKafkaDeleteGroupsOptions {
+  groups: string[];
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// Admin: Offset Management
+// -------------------------------------------------------------------------------------------------------------
+export interface IKafkaListGroupOffsetsOptions {
+  groups: string[];
+}
+
+export interface IKafkaAlterGroupOffsetsOptions {
+  groupId: string;
+  topics: Array<{ name: string; partitionOffsets: Array<{ partition: number; offset: bigint }> }>;
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// Admin: Partition Management
+// -------------------------------------------------------------------------------------------------------------
+export interface IKafkaCreatePartitionsOptions {
+  topics: Array<{ name: string; count: number }>;
+  validateOnly?: boolean;
+}
+
+// -------------------------------------------------------------------------------------------------------------
+// Admin: Config Management
+// -------------------------------------------------------------------------------------------------------------
+export interface IKafkaDescribeConfigsOptions {
+  resources: Array<{
+    resourceType: number;
+    resourceName: string;
+    configurationKeys?: string[];
+  }>;
+  includeSynonyms?: boolean;
+  includeDocumentation?: boolean;
+}
+
+export interface IKafkaAlterConfigsOptions {
+  resources: Array<{
+    resourceType: number;
+    resourceName: string;
+    configs: Array<{ name: string; value: string }>;
+  }>;
+  validateOnly?: boolean;
 }

@@ -69,8 +69,8 @@
       "default": "./dist/helpers/cron/index.js"
     },
     "./kafka": {
-      "types": "./dist/helpers/queue/kafka/index.d.ts",
-      "default": "./dist/helpers/queue/kafka/index.js"
+      "types": "./dist/helpers/queue/.kafka/index.d.ts",
+      "default": "./dist/helpers/queue/.kafka/index.js"
     },
     "./package.json": "./package.json"
   },

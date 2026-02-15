@@ -18,3 +18,16 @@ export class KafkaAcks {
     return this.SCHEME_SET.has(value);
   }
 }
+
+export class KafkaConfigResourceTypes {
+  static readonly UNKNOWN = 0;
+  static readonly TOPIC = 2;
+  static readonly BROKER = 4;
+  static readonly BROKER_LOGGER = 8;
+
+  static readonly SCHEME_SET = new Set([this.UNKNOWN, this.TOPIC, this.BROKER, this.BROKER_LOGGER]);
+
+  static isValid(value: number): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}

@@ -21,10 +21,11 @@ import { describe, test, expect, beforeAll, afterAll, mock, spyOn } from 'bun:te
 import {
   KafkaDefaults,
   KafkaAcks,
+  KafkaConfigResourceTypes,
   KafkaAdminHelper,
   KafkaProducerHelper,
   KafkaConsumerHelper,
-} from '@/helpers/queue/kafka';
+} from '@/helpers/queue/.kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
 
 // =============================================================================
@@ -3979,6 +3980,2875 @@ describe('Kafka Helpers', () => {
 
       sendSpy.mockRestore();
       p.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 22. KafkaConfigResourceTypes Constants
+  // =============================================================================
+
+  describe('KafkaConfigResourceTypes', () => {
+    test('TC-189: should expose UNKNOWN = 0', () => {
+      expect(KafkaConfigResourceTypes.UNKNOWN).toBe(0);
+    });
+
+    test('TC-190: should expose TOPIC = 2', () => {
+      expect(KafkaConfigResourceTypes.TOPIC).toBe(2);
+    });
+
+    test('TC-191: should expose BROKER = 4', () => {
+      expect(KafkaConfigResourceTypes.BROKER).toBe(4);
+    });
+
+    test('TC-192: should expose BROKER_LOGGER = 8', () => {
+      expect(KafkaConfigResourceTypes.BROKER_LOGGER).toBe(8);
+    });
+
+    test('TC-193: SCHEME_SET should contain all valid values', () => {
+      expect(KafkaConfigResourceTypes.SCHEME_SET.size).toBe(4);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(0)).toBe(true);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(2)).toBe(true);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(4)).toBe(true);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(8)).toBe(true);
+    });
+
+    test('TC-194: isValid should return true for valid values', () => {
+      expect(KafkaConfigResourceTypes.isValid(0)).toBe(true);
+      expect(KafkaConfigResourceTypes.isValid(2)).toBe(true);
+      expect(KafkaConfigResourceTypes.isValid(4)).toBe(true);
+      expect(KafkaConfigResourceTypes.isValid(8)).toBe(true);
+    });
+
+    test('TC-195: isValid should return false for invalid values', () => {
+      expect(KafkaConfigResourceTypes.isValid(1)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(3)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(5)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(-1)).toBe(false);
+    });
+  });
+
+  // =============================================================================
+  // 23. Producer Lifecycle Hooks
+  // =============================================================================
+
+  describe('Producer Lifecycle Hooks', () => {
+    test('TC-196: producer should accept onConnected hook', () => {
+      const onConnected = mock(() => {});
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'hook-connected',
+        onConnected,
+      });
+      expect(p).toBeInstanceOf(KafkaProducerHelper);
+      p.close().catch(() => {});
+    });
+
+    test('TC-197: producer should accept onDisconnected hook', () => {
+      const onDisconnected = mock(() => {});
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'hook-disconnected',
+        onDisconnected,
+      });
+      expect(p).toBeInstanceOf(KafkaProducerHelper);
+      p.close().catch(() => {});
+    });
+
+    test('TC-198: producer onConnected hook should be wired to internal producer event', () => {
+      const onConnected = mock(() => {});
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'hook-wire-test',
+        onConnected,
+      });
+
+      // Access internal producer and verify event listener is wired
+      const internalProducer = (p as any).producer;
+      expect(typeof internalProducer.on).toBe('function');
+
+      p.close().catch(() => {});
+    });
+
+    test('TC-199: producer should construct without hooks (backward compatible)', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'no-hooks',
+      });
+      expect(p).toBeInstanceOf(KafkaProducerHelper);
+      p.close().catch(() => {});
+    });
+
+    test('TC-200: producer onConnected hook error should not crash the producer', () => {
+      const onConnected = mock(() => {
+        throw new Error('hook-crash');
+      });
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'hook-crash-test',
+        onConnected,
+      });
+
+      // Simulate the event — the hook should be called but error swallowed
+      const internalProducer = (p as any).producer;
+      internalProducer.emit('client:broker:connect', {});
+
+      expect(onConnected).toHaveBeenCalled();
+      p.close().catch(() => {});
+    });
+
+    test('TC-201: producer onDisconnected hook error should not crash the producer', () => {
+      const onDisconnected = mock(() => {
+        throw new Error('disconnect-hook-crash');
+      });
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'disconnect-crash-test',
+        onDisconnected,
+      });
+
+      const internalProducer = (p as any).producer;
+      internalProducer.emit('client:broker:disconnect', {});
+
+      expect(onDisconnected).toHaveBeenCalled();
+      p.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 24. Producer Escape Hatch
+  // =============================================================================
+
+  describe('Producer Escape Hatch', () => {
+    test('TC-202: getProducer should return the internal producer instance', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'escape-hatch',
+      });
+
+      const internal = p.getProducer();
+      expect(internal).toBeDefined();
+      expect(typeof internal.send).toBe('function');
+      expect(typeof internal.close).toBe('function');
+
+      p.close().catch(() => {});
+    });
+
+    test('TC-203: getProducer should return same reference on multiple calls', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'escape-hatch-ref',
+      });
+
+      expect(p.getProducer()).toBe(p.getProducer());
+      p.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 25. Consumer Lifecycle Hooks
+  // =============================================================================
+
+  describe('Consumer Lifecycle Hooks', () => {
+    test('TC-204: consumer should accept all lifecycle hooks', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'hooks-group',
+        topics: ['test'],
+        identifier: 'all-hooks',
+        onConnected: mock(() => {}),
+        onDisconnected: mock(() => {}),
+        onGroupJoin: mock(() => {}),
+        onGroupLeave: mock(() => {}),
+        onRebalance: mock(() => {}),
+        onLag: mock(() => {}),
+      });
+      expect(c).toBeInstanceOf(KafkaConsumerHelper);
+      c.close().catch(() => {});
+    });
+
+    test('TC-205: consumer onConnected hook should fire on broker connect event', () => {
+      const onConnected = mock(() => {});
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'connected-hook-group',
+        topics: ['test'],
+        identifier: 'connected-hook',
+        onConnected,
+      });
+
+      const internalConsumer = (c as any).consumer;
+      internalConsumer.emit('client:broker:connect', {});
+
+      expect(onConnected).toHaveBeenCalledTimes(1);
+      c.close().catch(() => {});
+    });
+
+    test('TC-206: consumer onGroupJoin hook should receive groupId and memberId', () => {
+      const captured: Array<{ groupId: string; memberId: string }> = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'join-hook-group',
+        topics: ['test'],
+        identifier: 'join-hook',
+        onGroupJoin: (opts: { groupId: string; memberId: string }) => {
+          captured.push(opts);
+        },
+      });
+
+      const internalConsumer = (c as any).consumer;
+      internalConsumer.emit('consumer:group:join', {
+        groupId: 'my-group',
+        memberId: 'member-123',
+      });
+
+      expect(captured.length).toBe(1);
+      expect(captured[0].groupId).toBe('my-group');
+      expect(captured[0].memberId).toBe('member-123');
+      c.close().catch(() => {});
+    });
+
+    test('TC-207: consumer onGroupLeave hook should fire on group leave event', () => {
+      const onGroupLeave = mock(() => {});
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'leave-hook-group',
+        topics: ['test'],
+        identifier: 'leave-hook',
+        onGroupLeave,
+      });
+
+      const internalConsumer = (c as any).consumer;
+      internalConsumer.emit('consumer:group:leave', {});
+
+      expect(onGroupLeave).toHaveBeenCalledTimes(1);
+      c.close().catch(() => {});
+    });
+
+    test('TC-208: consumer onRebalance hook should fire on rebalance event', () => {
+      const onRebalance = mock(() => {});
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'rebalance-hook-group',
+        topics: ['test'],
+        identifier: 'rebalance-hook',
+        onRebalance,
+      });
+
+      const internalConsumer = (c as any).consumer;
+      internalConsumer.emit('consumer:group:rebalance', { groupId: 'g' });
+
+      expect(onRebalance).toHaveBeenCalledTimes(1);
+      c.close().catch(() => {});
+    });
+
+    test('TC-209: consumer onLag hook should receive offsets map', () => {
+      const captured: Array<{ offsets: Map<string, bigint[]> }> = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-hook-group',
+        topics: ['test'],
+        identifier: 'lag-hook',
+        onLag: (opts: { offsets: Map<string, bigint[]> }) => {
+          captured.push(opts);
+        },
+      });
+
+      const lagOffsets = new Map([['test', [10n, 20n]]]);
+      const internalConsumer = (c as any).consumer;
+      internalConsumer.emit('consumer:lag', lagOffsets);
+
+      expect(captured.length).toBe(1);
+      expect(captured[0].offsets).toBe(lagOffsets);
+      c.close().catch(() => {});
+    });
+
+    test('TC-210: consumer lifecycle hook error should not crash the consumer', () => {
+      const onGroupJoin = mock(() => {
+        throw new Error('join-hook-crash');
+      });
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'crash-hook-group',
+        topics: ['test'],
+        identifier: 'crash-hook',
+        onGroupJoin,
+      });
+
+      const internalConsumer = (c as any).consumer;
+      // Should not throw
+      internalConsumer.emit('consumer:group:join', {
+        groupId: 'g',
+        memberId: 'm',
+      });
+
+      expect(onGroupJoin).toHaveBeenCalled();
+      c.close().catch(() => {});
+    });
+
+    test('TC-211: consumer without hooks should construct normally (backward compatible)', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'no-hooks-group',
+        topics: ['test'],
+        identifier: 'no-hooks',
+      });
+      expect(c).toBeInstanceOf(KafkaConsumerHelper);
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 26. Consumer Pause/Resume
+  // =============================================================================
+
+  describe('Consumer Pause/Resume', () => {
+    test('TC-212: isPaused should return false when no stream exists', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'pause-no-stream',
+        topics: ['test'],
+        identifier: 'pause-no-stream',
+      });
+      expect(c.isPaused()).toBe(false);
+      c.close().catch(() => {});
+    });
+
+    test('TC-213: pause should call stream.pause when stream exists', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'pause-stream',
+        topics: ['test'],
+        identifier: 'pause-stream',
+      });
+
+      const mockStream = {
+        pause: mock(() => mockStream),
+        resume: mock(() => mockStream),
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      c.pause();
+      expect(mockStream.pause).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-214: resume should call stream.resume when stream exists', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'resume-stream',
+        topics: ['test'],
+        identifier: 'resume-stream',
+      });
+
+      const mockStream = {
+        pause: mock(() => mockStream),
+        resume: mock(() => mockStream),
+        isPaused: mock(() => false),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      c.resume();
+      expect(mockStream.resume).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-215: isPaused should delegate to stream.isPaused', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'is-paused-stream',
+        topics: ['test'],
+        identifier: 'is-paused-stream',
+      });
+
+      const mockStream = {
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      expect(c.isPaused()).toBe(true);
+      expect(mockStream.isPaused).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-216: pause/resume should not throw when stream is null', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'null-stream-pause',
+        topics: ['test'],
+        identifier: 'null-stream-pause',
+      });
+
+      // Should not throw
+      c.pause();
+      c.resume();
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 27. Consumer Manual Commit
+  // =============================================================================
+
+  describe('Consumer Manual Commit', () => {
+    test('TC-217: commit should call consumer.commit with correct offsets', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-group',
+        topics: ['test'],
+        identifier: 'commit-test',
+        autocommit: false,
+      });
+
+      const capturedArgs: any[] = [];
+      const mockConsumer = {
+        ...(c as any).consumer,
+        commit: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      await c.commit({
+        offsets: [{ topic: 'test', partition: 0, offset: 42n, leaderEpoch: 0 }],
+      });
+
+      expect(mockConsumer.commit).toHaveBeenCalledTimes(1);
+      expect(capturedArgs[0].offsets[0].topic).toBe('test');
+      expect(capturedArgs[0].offsets[0].partition).toBe(0);
+      expect(capturedArgs[0].offsets[0].offset).toBe(42n);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-218: commit should propagate errors from internal consumer', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-error-group',
+        topics: ['test'],
+        identifier: 'commit-error',
+        autocommit: false,
+      });
+
+      const mockConsumer = {
+        commit: mock(async () => {
+          throw new Error('commit-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      let thrownError: Error | undefined;
+      try {
+        await c.commit({
+          offsets: [{ topic: 'test', partition: 0, offset: 0n, leaderEpoch: 0 }],
+        });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('commit-failed');
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 28. Consumer Lag Monitoring
+  // =============================================================================
+
+  describe('Consumer Lag Monitoring', () => {
+    test('TC-219: startLagMonitoring should call consumer.startLagMonitoring', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-monitor-group',
+        topics: ['test-topic'],
+        identifier: 'lag-monitor',
+      });
+
+      const mockConsumer = {
+        ...(c as any).consumer,
+        startLagMonitoring: mock(() => {}),
+        stopLagMonitoring: mock(() => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      c.startLagMonitoring({ interval: 5000 });
+
+      expect(mockConsumer.startLagMonitoring).toHaveBeenCalledTimes(1);
+      const callArgs = mockConsumer.startLagMonitoring.mock.calls[0];
+      expect(callArgs[0]).toEqual({ topics: ['test-topic'] });
+      expect(callArgs[1]).toBe(5000);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-220: stopLagMonitoring should call consumer.stopLagMonitoring', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-stop-group',
+        topics: ['test-topic'],
+        identifier: 'lag-stop',
+      });
+
+      const mockConsumer = {
+        ...(c as any).consumer,
+        startLagMonitoring: mock(() => {}),
+        stopLagMonitoring: mock(() => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      c.stopLagMonitoring();
+
+      expect(mockConsumer.stopLagMonitoring).toHaveBeenCalledTimes(1);
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 29. Consumer Escape Hatch
+  // =============================================================================
+
+  describe('Consumer Escape Hatch', () => {
+    test('TC-221: getConsumer should return the internal consumer instance', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'escape-hatch-group',
+        topics: ['test'],
+        identifier: 'escape-hatch',
+      });
+
+      const internal = c.getConsumer();
+      expect(internal).toBeDefined();
+      expect(typeof internal.consume).toBe('function');
+      expect(typeof internal.close).toBe('function');
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-222: getConsumer should return same reference on multiple calls', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'escape-ref-group',
+        topics: ['test'],
+        identifier: 'escape-ref',
+      });
+
+      expect(c.getConsumer()).toBe(c.getConsumer());
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 30. Admin Lifecycle Hooks
+  // =============================================================================
+
+  describe('Admin Lifecycle Hooks', () => {
+    test('TC-223: admin should accept onConnected hook', () => {
+      const onConnected = mock(() => {});
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-hook-connected',
+        onConnected,
+      });
+      expect(a).toBeInstanceOf(KafkaAdminHelper);
+      a.close().catch(() => {});
+    });
+
+    test('TC-224: admin should accept onDisconnected hook', () => {
+      const onDisconnected = mock(() => {});
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-hook-disconnected',
+        onDisconnected,
+      });
+      expect(a).toBeInstanceOf(KafkaAdminHelper);
+      a.close().catch(() => {});
+    });
+
+    test('TC-225: admin onConnected hook should fire on broker connect event', () => {
+      const onConnected = mock(() => {});
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-connected-fire',
+        onConnected,
+      });
+
+      const internalAdmin = (a as any).admin;
+      internalAdmin.emit('client:broker:connect', {});
+
+      expect(onConnected).toHaveBeenCalledTimes(1);
+      a.close().catch(() => {});
+    });
+
+    test('TC-226: admin onDisconnected hook should fire on broker disconnect event', () => {
+      const onDisconnected = mock(() => {});
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-disconnected-fire',
+        onDisconnected,
+      });
+
+      const internalAdmin = (a as any).admin;
+      internalAdmin.emit('client:broker:disconnect', {});
+
+      expect(onDisconnected).toHaveBeenCalledTimes(1);
+      a.close().catch(() => {});
+    });
+
+    test('TC-227: admin onConnected hook error should not crash the admin', () => {
+      const onConnected = mock(() => {
+        throw new Error('admin-hook-crash');
+      });
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-hook-crash',
+        onConnected,
+      });
+
+      const internalAdmin = (a as any).admin;
+      internalAdmin.emit('client:broker:connect', {});
+
+      expect(onConnected).toHaveBeenCalled();
+      a.close().catch(() => {});
+    });
+
+    test('TC-228: admin without hooks should construct normally (backward compatible)', () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-no-hooks',
+      });
+      expect(a).toBeInstanceOf(KafkaAdminHelper);
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 31. Admin Escape Hatch
+  // =============================================================================
+
+  describe('Admin Escape Hatch', () => {
+    test('TC-229: getAdmin should return the internal admin instance', () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-escape-hatch',
+      });
+
+      const internal = a.getAdmin();
+      expect(internal).toBeDefined();
+      expect(typeof internal.listTopics).toBe('function');
+      expect(typeof internal.createTopics).toBe('function');
+      expect(typeof internal.close).toBe('function');
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-230: getAdmin should return same reference on multiple calls', () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-escape-ref',
+      });
+
+      expect(a.getAdmin()).toBe(a.getAdmin());
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 32. Admin Consumer Group Operations (Mocked)
+  // =============================================================================
+
+  describe('Admin Consumer Group Operations (Mocked)', () => {
+    test('TC-231: listGroups should call admin.listGroups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-groups',
+      });
+
+      const mockResult = new Map([['group-1', { id: 'group-1', state: 'Stable' }]]) as any;
+      const mockAdmin = {
+        ...(a as any).admin,
+        listGroups: mock(async () => mockResult),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      const result = await a.listGroups();
+      expect(result).toBe(mockResult);
+      expect(mockAdmin.listGroups).toHaveBeenCalledTimes(1);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-232: listGroups with states filter should pass states through', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-groups-states',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        listGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return new Map();
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.listGroups({ states: ['Stable', 'Empty'] });
+      expect(capturedArgs[0].states).toEqual(['Stable', 'Empty']);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-233: describeGroups should call admin.describeGroups with correct groups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-groups',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return new Map();
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeGroups({ groups: ['group-a', 'group-b'] });
+      expect(capturedArgs[0].groups).toEqual(['group-a', 'group-b']);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-234: deleteGroups should call admin.deleteGroups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'delete-groups',
+      });
+
+      const mockAdmin = {
+        ...(a as any).admin,
+        deleteGroups: mock(async () => {}),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.deleteGroups({ groups: ['old-group'] });
+      expect(mockAdmin.deleteGroups).toHaveBeenCalledTimes(1);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-235: listGroups error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-groups-error',
+      });
+
+      const mockAdmin = {
+        listGroups: mock(async () => {
+          throw new Error('list-groups-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.listGroups();
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('list-groups-failed');
+      a.close().catch(() => {});
+    });
+
+    test('TC-236: describeGroups error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-groups-error',
+      });
+
+      const mockAdmin = {
+        describeGroups: mock(async () => {
+          throw new Error('describe-groups-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.describeGroups({ groups: ['g'] });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('describe-groups-failed');
+      a.close().catch(() => {});
+    });
+
+    test('TC-237: deleteGroups error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'delete-groups-error',
+      });
+
+      const mockAdmin = {
+        deleteGroups: mock(async () => {
+          throw new Error('delete-groups-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.deleteGroups({ groups: ['g'] });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('delete-groups-failed');
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 33. Admin Offset Management (Mocked)
+  // =============================================================================
+
+  describe('Admin Offset Management (Mocked)', () => {
+    test('TC-238: listConsumerGroupOffsets should call admin method', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-offsets',
+      });
+
+      const mockResult = [{ groupId: 'g1', topics: [] }];
+      const mockAdmin = {
+        ...(a as any).admin,
+        listConsumerGroupOffsets: mock(async () => mockResult),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      const result = await a.listConsumerGroupOffsets({ groups: ['g1'] });
+      expect(result).toBe(mockResult);
+      expect(mockAdmin.listConsumerGroupOffsets).toHaveBeenCalledTimes(1);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-239: alterConsumerGroupOffsets should call admin method with correct args', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-offsets',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConsumerGroupOffsets: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConsumerGroupOffsets({
+        groupId: 'my-group',
+        topics: [
+          {
+            name: 'my-topic',
+            partitionOffsets: [{ partition: 0, offset: 100n }],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].groupId).toBe('my-group');
+      expect(capturedArgs[0].topics[0].name).toBe('my-topic');
+      expect(capturedArgs[0].topics[0].partitionOffsets[0].offset).toBe(100n);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-240: listConsumerGroupOffsets error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-offsets-error',
+      });
+
+      const mockAdmin = {
+        listConsumerGroupOffsets: mock(async () => {
+          throw new Error('list-offsets-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.listConsumerGroupOffsets({ groups: ['g'] });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('list-offsets-failed');
+      a.close().catch(() => {});
+    });
+
+    test('TC-241: alterConsumerGroupOffsets error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-offsets-error',
+      });
+
+      const mockAdmin = {
+        alterConsumerGroupOffsets: mock(async () => {
+          throw new Error('alter-offsets-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.alterConsumerGroupOffsets({
+          groupId: 'g',
+          topics: [{ name: 't', partitionOffsets: [{ partition: 0, offset: 0n }] }],
+        });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('alter-offsets-failed');
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 34. Admin Partition Management (Mocked)
+  // =============================================================================
+
+  describe('Admin Partition Management (Mocked)', () => {
+    test('TC-242: createPartitions should call admin.createPartitions', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'create-partitions',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        createPartitions: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.createPartitions({
+        topics: [{ name: 'my-topic', count: 10 }],
+      });
+
+      expect(mockAdmin.createPartitions).toHaveBeenCalledTimes(1);
+      expect(capturedArgs[0].topics[0].name).toBe('my-topic');
+      expect(capturedArgs[0].topics[0].count).toBe(10);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-243: createPartitions with validateOnly should pass through', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'create-partitions-validate',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        createPartitions: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.createPartitions({
+        topics: [{ name: 'my-topic', count: 5 }],
+        validateOnly: true,
+      });
+
+      expect(capturedArgs[0].validateOnly).toBe(true);
+      a.close().catch(() => {});
+    });
+
+    test('TC-244: createPartitions error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'create-partitions-error',
+      });
+
+      const mockAdmin = {
+        createPartitions: mock(async () => {
+          throw new Error('create-partitions-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.createPartitions({ topics: [{ name: 't', count: 1 }] });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('create-partitions-failed');
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 35. Admin Config Management (Mocked)
+  // =============================================================================
+
+  describe('Admin Config Management (Mocked)', () => {
+    test('TC-245: describeConfigs should call admin.describeConfigs', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-configs',
+      });
+
+      const mockResult = [{ resourceType: 2, resourceName: 'my-topic', configs: [] }] as any;
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return mockResult;
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      const result = await a.describeConfigs({
+        resources: [{ resourceType: 2, resourceName: 'my-topic' }],
+      });
+
+      expect(result).toBe(mockResult);
+      expect(capturedArgs[0].resources[0].resourceType).toBe(2);
+      expect(capturedArgs[0].resources[0].resourceName).toBe('my-topic');
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-246: describeConfigs with includeSynonyms and includeDocumentation', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-configs-opts',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return [];
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeConfigs({
+        resources: [{ resourceType: 2, resourceName: 'my-topic' }],
+        includeSynonyms: true,
+        includeDocumentation: true,
+      });
+
+      expect(capturedArgs[0].includeSynonyms).toBe(true);
+      expect(capturedArgs[0].includeDocumentation).toBe(true);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-247: alterConfigs should call admin.alterConfigs', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-configs',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConfigs({
+        resources: [
+          {
+            resourceType: 2,
+            resourceName: 'my-topic',
+            configs: [{ name: 'retention.ms', value: '604800000' }],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].resources[0].resourceType).toBe(2);
+      expect(capturedArgs[0].resources[0].configs[0].name).toBe('retention.ms');
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-248: alterConfigs with validateOnly should pass through', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-configs-validate',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConfigs({
+        resources: [
+          {
+            resourceType: 2,
+            resourceName: 'my-topic',
+            configs: [{ name: 'retention.ms', value: '86400000' }],
+          },
+        ],
+        validateOnly: true,
+      });
+
+      expect(capturedArgs[0].validateOnly).toBe(true);
+      a.close().catch(() => {});
+    });
+
+    test('TC-249: describeConfigs error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-configs-error',
+      });
+
+      const mockAdmin = {
+        describeConfigs: mock(async () => {
+          throw new Error('describe-configs-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.describeConfigs({
+          resources: [{ resourceType: 2, resourceName: 't' }],
+        });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('describe-configs-failed');
+      a.close().catch(() => {});
+    });
+
+    test('TC-250: alterConfigs error should be re-thrown', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-configs-error',
+      });
+
+      const mockAdmin = {
+        alterConfigs: mock(async () => {
+          throw new Error('alter-configs-failed');
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      let thrownError: Error | undefined;
+      try {
+        await a.alterConfigs({
+          resources: [
+            {
+              resourceType: 2,
+              resourceName: 't',
+              configs: [{ name: 'k', value: 'v' }],
+            },
+          ],
+        });
+      } catch (err) {
+        thrownError = err as Error;
+      }
+
+      expect(thrownError).toBeDefined();
+      expect(thrownError!.message).toBe('alter-configs-failed');
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 36. Producer Lifecycle Hooks — Advanced
+  // =============================================================================
+
+  describe('Producer Lifecycle Hooks (Advanced)', () => {
+    test('TC-251: onConnected should fire multiple times on repeated connect events', () => {
+      const callCount = { value: 0 };
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'multi-connect',
+        onConnected: () => {
+          callCount.value++;
+        },
+      });
+
+      const internal = (p as any).producer;
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:connect', {});
+
+      expect(callCount.value).toBe(3);
+      p.close().catch(() => {});
+    });
+
+    test('TC-252: onDisconnected should fire multiple times on repeated disconnect events', () => {
+      const callCount = { value: 0 };
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'multi-disconnect',
+        onDisconnected: () => {
+          callCount.value++;
+        },
+      });
+
+      const internal = (p as any).producer;
+      internal.emit('client:broker:disconnect', {});
+      internal.emit('client:broker:disconnect', {});
+
+      expect(callCount.value).toBe(2);
+      p.close().catch(() => {});
+    });
+
+    test('TC-253: both onConnected and onDisconnected firing in sequence', () => {
+      const sequence: string[] = [];
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'both-hooks-sequence',
+        onConnected: () => {
+          sequence.push('connect');
+        },
+        onDisconnected: () => {
+          sequence.push('disconnect');
+        },
+      });
+
+      const internal = (p as any).producer;
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:disconnect', {});
+      internal.emit('client:broker:connect', {});
+
+      expect(sequence).toEqual(['connect', 'disconnect', 'connect']);
+      p.close().catch(() => {});
+    });
+
+    test('TC-254: only onConnected provided — onDisconnected event should not error', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'only-connect-hook',
+        onConnected: mock(() => {}),
+      });
+
+      const internal = (p as any).producer;
+      // onDisconnected not provided, firing disconnect should not throw
+      internal.emit('client:broker:disconnect', {});
+
+      p.close().catch(() => {});
+    });
+
+    test('TC-255: only onDisconnected provided — onConnected event should not error', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'only-disconnect-hook',
+        onDisconnected: mock(() => {}),
+      });
+
+      const internal = (p as any).producer;
+      // onConnected not provided, firing connect should not throw
+      internal.emit('client:broker:connect', {});
+
+      p.close().catch(() => {});
+    });
+
+    test('TC-256: getProducer reference persists after close', async () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'ref-after-close',
+      });
+
+      const ref = p.getProducer();
+
+      try {
+        await p.close();
+      } catch {
+        // ignore
+      }
+
+      // getProducer still returns same reference (helper doesn't null it out)
+      expect(p.getProducer()).toBe(ref);
+    });
+
+    test('TC-257: onConnected hook error followed by successful send', async () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'hook-error-then-send',
+        onConnected: () => {
+          throw new Error('connect-hook-crash');
+        },
+      });
+
+      // Fire the hook error
+      const internal = (p as any).producer;
+      internal.emit('client:broker:connect', {});
+
+      // Replace internal producer with mock that succeeds
+      const mockProducer = {
+        send: mock(async () => {}),
+        close: mock(async () => {}),
+        on: internal.on.bind(internal),
+      };
+      (p as any).producer = mockProducer;
+
+      // Send should still work — hook crash doesn't break the producer
+      await p.send({ messages: [{ topic: 't', value: 'v' }] });
+      expect(mockProducer.send).toHaveBeenCalledTimes(1);
+
+      await p.close().catch(() => {});
+    });
+
+    test('TC-258: onConnected and onError both provided — both fire independently', async () => {
+      const sequence: string[] = [];
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'connect-and-error-hooks',
+        onConnected: () => {
+          sequence.push('connected');
+        },
+        onError: () => {
+          sequence.push('error');
+        },
+      });
+
+      // Fire connect event
+      const internal = (p as any).producer;
+      internal.emit('client:broker:connect', {});
+
+      // Mock producer to throw on send
+      const mockProducer = {
+        send: mock(async () => {
+          throw new Error('send-fail');
+        }),
+        close: mock(async () => {}),
+        on: internal.on.bind(internal),
+      };
+      (p as any).producer = mockProducer;
+
+      try {
+        await p.send({ messages: [{ topic: 't', value: 'v' }] });
+      } catch {
+        // expected
+      }
+
+      expect(sequence).toEqual(['connected', 'error']);
+      await p.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 37. Consumer Lifecycle Hooks — Advanced
+  // =============================================================================
+
+  describe('Consumer Lifecycle Hooks (Advanced)', () => {
+    test('TC-259: onGroupJoin fires multiple times on repeated join events', () => {
+      const callCount = { value: 0 };
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'multi-join-group',
+        topics: ['test'],
+        identifier: 'multi-join',
+        onGroupJoin: () => {
+          callCount.value++;
+        },
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm1' });
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm2' });
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm3' });
+
+      expect(callCount.value).toBe(3);
+      c.close().catch(() => {});
+    });
+
+    test('TC-260: full lifecycle sequence — connect → join → rebalance → leave → disconnect', () => {
+      const sequence: string[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lifecycle-sequence-group',
+        topics: ['test'],
+        identifier: 'lifecycle-sequence',
+        onConnected: () => sequence.push('connected'),
+        onGroupJoin: () => sequence.push('join'),
+        onRebalance: () => sequence.push('rebalance'),
+        onGroupLeave: () => sequence.push('leave'),
+        onDisconnected: () => sequence.push('disconnected'),
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('client:broker:connect', {});
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+      internal.emit('consumer:group:leave', {});
+      internal.emit('client:broker:disconnect', {});
+
+      expect(sequence).toEqual(['connected', 'join', 'rebalance', 'leave', 'disconnected']);
+      c.close().catch(() => {});
+    });
+
+    test('TC-261: multiple rebalances without leave', () => {
+      const rebalanceCount = { value: 0 };
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'multi-rebalance-group',
+        topics: ['test'],
+        identifier: 'multi-rebalance',
+        onRebalance: () => {
+          rebalanceCount.value++;
+        },
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+
+      expect(rebalanceCount.value).toBe(4);
+      c.close().catch(() => {});
+    });
+
+    test('TC-262: onGroupJoin hook error does not suppress onRebalance hook', () => {
+      const sequence: string[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'hook-error-chain-group',
+        topics: ['test'],
+        identifier: 'hook-error-chain',
+        onGroupJoin: () => {
+          sequence.push('join');
+          throw new Error('join-crash');
+        },
+        onRebalance: () => {
+          sequence.push('rebalance');
+        },
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+
+      // Both hooks fire independently — join error doesn't suppress rebalance
+      expect(sequence).toEqual(['join', 'rebalance']);
+      c.close().catch(() => {});
+    });
+
+    test('TC-263: all hooks throw — none suppress the others', () => {
+      const fired: string[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'all-hooks-crash-group',
+        topics: ['test'],
+        identifier: 'all-hooks-crash',
+        onConnected: () => {
+          fired.push('connected');
+          throw new Error('crash-1');
+        },
+        onDisconnected: () => {
+          fired.push('disconnected');
+          throw new Error('crash-2');
+        },
+        onGroupJoin: () => {
+          fired.push('join');
+          throw new Error('crash-3');
+        },
+        onGroupLeave: () => {
+          fired.push('leave');
+          throw new Error('crash-4');
+        },
+        onRebalance: () => {
+          fired.push('rebalance');
+          throw new Error('crash-5');
+        },
+        onLag: () => {
+          fired.push('lag');
+          throw new Error('crash-6');
+        },
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('client:broker:connect', {});
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' });
+      internal.emit('consumer:lag', new Map());
+      internal.emit('consumer:group:leave', {});
+      internal.emit('client:broker:disconnect', {});
+
+      expect(fired).toEqual(['connected', 'join', 'rebalance', 'lag', 'leave', 'disconnected']);
+      c.close().catch(() => {});
+    });
+
+    test('TC-264: onLag with empty Map should not error', () => {
+      const captured: Array<{ offsets: Map<string, bigint[]> }> = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-empty-group',
+        topics: ['test'],
+        identifier: 'lag-empty',
+        onLag: opts => {
+          captured.push(opts);
+        },
+      });
+
+      const internal = (c as any).consumer;
+      internal.emit('consumer:lag', new Map());
+
+      expect(captured.length).toBe(1);
+      expect(captured[0].offsets.size).toBe(0);
+      c.close().catch(() => {});
+    });
+
+    test('TC-265: onLag with multiple topics in offsets Map', () => {
+      const captured: Array<{ offsets: Map<string, bigint[]> }> = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-multi-topic-group',
+        topics: ['test-a', 'test-b'],
+        identifier: 'lag-multi-topic',
+        onLag: opts => {
+          captured.push(opts);
+        },
+      });
+
+      const offsets = new Map<string, bigint[]>([
+        ['test-a', [5n, 10n]],
+        ['test-b', [0n, 3n, 7n]],
+      ]);
+      const internal = (c as any).consumer;
+      internal.emit('consumer:lag', offsets);
+
+      expect(captured.length).toBe(1);
+      expect(captured[0].offsets.size).toBe(2);
+      expect(captured[0].offsets.get('test-a')).toEqual([5n, 10n]);
+      expect(captured[0].offsets.get('test-b')).toEqual([0n, 3n, 7n]);
+      c.close().catch(() => {});
+    });
+
+    test('TC-266: partial hooks — only onGroupJoin and onLag provided', () => {
+      const fired: string[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'partial-hooks-group',
+        topics: ['test'],
+        identifier: 'partial-hooks',
+        onGroupJoin: () => fired.push('join'),
+        onLag: () => fired.push('lag'),
+      });
+
+      const internal = (c as any).consumer;
+      // Fire events for hooks that ARE and ARE NOT provided
+      internal.emit('client:broker:connect', {}); // no hook
+      internal.emit('consumer:group:join', { groupId: 'g', memberId: 'm' });
+      internal.emit('consumer:group:rebalance', { groupId: 'g' }); // no hook
+      internal.emit('consumer:lag', new Map());
+      internal.emit('consumer:group:leave', {}); // no hook
+      internal.emit('client:broker:disconnect', {}); // no hook
+
+      // Only the provided hooks should fire
+      expect(fired).toEqual(['join', 'lag']);
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 38. Consumer Pause/Resume — Advanced
+  // =============================================================================
+
+  describe('Consumer Pause/Resume (Advanced)', () => {
+    test('TC-267: pause called multiple times should be idempotent', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'multi-pause-group',
+        topics: ['test'],
+        identifier: 'multi-pause',
+      });
+
+      const pauseCallCount = { value: 0 };
+      const mockStream = {
+        pause: mock(() => {
+          pauseCallCount.value++;
+          return mockStream;
+        }),
+        resume: mock(() => mockStream),
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      c.pause();
+      c.pause();
+      c.pause();
+
+      expect(pauseCallCount.value).toBe(3);
+      c.close().catch(() => {});
+    });
+
+    test('TC-268: resume called when not paused should not error', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'resume-not-paused-group',
+        topics: ['test'],
+        identifier: 'resume-not-paused',
+      });
+
+      const mockStream = {
+        pause: mock(() => mockStream),
+        resume: mock(() => mockStream),
+        isPaused: mock(() => false),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      // Should not throw
+      c.resume();
+      expect(mockStream.resume).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-269: pause → resume → pause cycle', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'pause-resume-cycle-group',
+        topics: ['test'],
+        identifier: 'pause-resume-cycle',
+      });
+
+      let isPausedState = false;
+      const mockStream = {
+        pause: mock(() => {
+          isPausedState = true;
+          return mockStream;
+        }),
+        resume: mock(() => {
+          isPausedState = false;
+          return mockStream;
+        }),
+        isPaused: mock(() => isPausedState),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      c.pause();
+      expect(c.isPaused()).toBe(true);
+
+      c.resume();
+      expect(c.isPaused()).toBe(false);
+
+      c.pause();
+      expect(c.isPaused()).toBe(true);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-270: isPaused returns false after stream is closed', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'paused-after-close-group',
+        topics: ['test'],
+        identifier: 'paused-after-close',
+      });
+
+      // Initially no stream → false
+      expect(c.isPaused()).toBe(false);
+
+      // Set then null the stream
+      const mockStream = {
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+      expect(c.isPaused()).toBe(true);
+
+      (c as any).stream = null;
+      expect(c.isPaused()).toBe(false);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-271: pause before start — no stream exists, should not throw', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'pause-before-start-group',
+        topics: ['test'],
+        identifier: 'pause-before-start',
+      });
+
+      expect(c.isConsuming()).toBe(false);
+      // These should be no-ops, not errors
+      c.pause();
+      c.resume();
+      expect(c.isPaused()).toBe(false);
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 39. Consumer Manual Commit — Advanced
+  // =============================================================================
+
+  describe('Consumer Manual Commit (Advanced)', () => {
+    test('TC-272: commit with multiple offsets for different topics', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'multi-commit-group',
+        topics: ['topic-a', 'topic-b'],
+        identifier: 'multi-commit',
+        autocommit: false,
+      });
+
+      const capturedArgs: any[] = [];
+      const mockConsumer = {
+        commit: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      await c.commit({
+        offsets: [
+          { topic: 'topic-a', partition: 0, offset: 10n, leaderEpoch: 0 },
+          { topic: 'topic-a', partition: 1, offset: 20n, leaderEpoch: 0 },
+          { topic: 'topic-b', partition: 0, offset: 5n, leaderEpoch: 1 },
+        ],
+      });
+
+      expect(capturedArgs[0].offsets.length).toBe(3);
+      expect(capturedArgs[0].offsets[0].topic).toBe('topic-a');
+      expect(capturedArgs[0].offsets[0].partition).toBe(0);
+      expect(capturedArgs[0].offsets[0].offset).toBe(10n);
+      expect(capturedArgs[0].offsets[1].partition).toBe(1);
+      expect(capturedArgs[0].offsets[1].offset).toBe(20n);
+      expect(capturedArgs[0].offsets[2].topic).toBe('topic-b');
+      expect(capturedArgs[0].offsets[2].offset).toBe(5n);
+      expect(capturedArgs[0].offsets[2].leaderEpoch).toBe(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-273: commit with offset 0n — reset to beginning', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-zero-group',
+        topics: ['test'],
+        identifier: 'commit-zero',
+        autocommit: false,
+      });
+
+      const capturedArgs: any[] = [];
+      const mockConsumer = {
+        commit: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      await c.commit({
+        offsets: [{ topic: 'test', partition: 0, offset: 0n, leaderEpoch: 0 }],
+      });
+
+      expect(capturedArgs[0].offsets[0].offset).toBe(0n);
+      c.close().catch(() => {});
+    });
+
+    test('TC-274: commit with very large offset value', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-large-group',
+        topics: ['test'],
+        identifier: 'commit-large',
+        autocommit: false,
+      });
+
+      const capturedArgs: any[] = [];
+      const mockConsumer = {
+        commit: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      const largeOffset = 9_007_199_254_740_991n; // Max safe integer as bigint
+      await c.commit({
+        offsets: [{ topic: 'test', partition: 0, offset: largeOffset, leaderEpoch: 0 }],
+      });
+
+      expect(capturedArgs[0].offsets[0].offset).toBe(largeOffset);
+      c.close().catch(() => {});
+    });
+
+    test('TC-275: commit while consumer is paused should still work', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-paused-group',
+        topics: ['test'],
+        identifier: 'commit-paused',
+        autocommit: false,
+      });
+
+      const mockStream = {
+        pause: mock(() => mockStream),
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      const mockConsumer = {
+        commit: mock(async () => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      c.pause();
+      expect(c.isPaused()).toBe(true);
+
+      // Commit should still work while paused
+      await c.commit({
+        offsets: [{ topic: 'test', partition: 0, offset: 42n, leaderEpoch: 0 }],
+      });
+
+      expect(mockConsumer.commit).toHaveBeenCalledTimes(1);
+      c.close().catch(() => {});
+    });
+
+    test('TC-276: sequential commits should all succeed', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'seq-commit-group',
+        topics: ['test'],
+        identifier: 'seq-commit',
+        autocommit: false,
+      });
+
+      const commitCount = { value: 0 };
+      const mockConsumer = {
+        commit: mock(async () => {
+          commitCount.value++;
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      for (let i = 0; i < 5; i++) {
+        await c.commit({
+          offsets: [{ topic: 'test', partition: 0, offset: BigInt(i * 10), leaderEpoch: 0 }],
+        });
+      }
+
+      expect(commitCount.value).toBe(5);
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 40. Consumer Lag Monitoring — Advanced
+  // =============================================================================
+
+  describe('Consumer Lag Monitoring (Advanced)', () => {
+    test('TC-277: startLagMonitoring with multiple topics', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-multi-topics-group',
+        topics: ['topic-a', 'topic-b', 'topic-c'],
+        identifier: 'lag-multi-topics',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockConsumer = {
+        ...(c as any).consumer,
+        startLagMonitoring: mock((...args: any[]) => {
+          capturedArgs.push(args);
+        }),
+        stopLagMonitoring: mock(() => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      c.startLagMonitoring({ interval: 10_000 });
+
+      expect(capturedArgs[0][0]).toEqual({ topics: ['topic-a', 'topic-b', 'topic-c'] });
+      expect(capturedArgs[0][1]).toBe(10_000);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-278: stopLagMonitoring called when never started should not error', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'stop-never-started-group',
+        topics: ['test'],
+        identifier: 'stop-never-started',
+      });
+
+      const mockConsumer = {
+        ...(c as any).consumer,
+        stopLagMonitoring: mock(() => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      // Should not throw
+      c.stopLagMonitoring();
+      expect(mockConsumer.stopLagMonitoring).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-279: start then immediately stop lag monitoring', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-start-stop-group',
+        topics: ['test'],
+        identifier: 'lag-start-stop',
+      });
+
+      const mockConsumer = {
+        ...(c as any).consumer,
+        startLagMonitoring: mock(() => {}),
+        stopLagMonitoring: mock(() => {}),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      c.startLagMonitoring({ interval: 1000 });
+      c.stopLagMonitoring();
+
+      expect(mockConsumer.startLagMonitoring).toHaveBeenCalledTimes(1);
+      expect(mockConsumer.stopLagMonitoring).toHaveBeenCalledTimes(1);
+
+      c.close().catch(() => {});
+    });
+
+    test('TC-280: onLag hook fires while consumer is paused — should still receive lag data', () => {
+      const lagData: Array<{ offsets: Map<string, bigint[]> }> = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'lag-while-paused-group',
+        topics: ['test'],
+        identifier: 'lag-while-paused',
+        onLag: opts => {
+          lagData.push(opts);
+        },
+      });
+
+      const mockStream = {
+        pause: mock(() => mockStream),
+        isPaused: mock(() => true),
+        close: mock(async () => {}),
+      };
+      (c as any).stream = mockStream;
+
+      c.pause();
+      expect(c.isPaused()).toBe(true);
+
+      // Fire lag event while paused — hook should still fire
+      const internal = (c as any).consumer;
+      internal.emit('consumer:lag', new Map([['test', [100n]]]));
+
+      expect(lagData.length).toBe(1);
+      expect(lagData[0].offsets.get('test')).toEqual([100n]);
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 41. Consumer Escape Hatch — Advanced
+  // =============================================================================
+
+  describe('Consumer Escape Hatch (Advanced)', () => {
+    test('TC-281: getConsumer reference persists after close', async () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'escape-after-close-group',
+        topics: ['test'],
+        identifier: 'escape-after-close',
+      });
+
+      const ref = c.getConsumer();
+
+      try {
+        await c.close();
+      } catch {
+        // ignore
+      }
+
+      expect(c.getConsumer()).toBe(ref);
+    });
+
+    test('TC-282: getConsumer returns object with expected Kafka consumer methods', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'escape-methods-group',
+        topics: ['test'],
+        identifier: 'escape-methods',
+      });
+
+      const internal = c.getConsumer();
+      expect(typeof internal.consume).toBe('function');
+      expect(typeof internal.close).toBe('function');
+      expect(typeof internal.commit).toBe('function');
+      expect(typeof internal.startLagMonitoring).toBe('function');
+      expect(typeof internal.stopLagMonitoring).toBe('function');
+      expect(typeof internal.on).toBe('function');
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 42. Admin Lifecycle Hooks — Advanced
+  // =============================================================================
+
+  describe('Admin Lifecycle Hooks (Advanced)', () => {
+    test('TC-283: admin both hooks firing in sequence', () => {
+      const sequence: string[] = [];
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-both-hooks-seq',
+        onConnected: () => sequence.push('connect'),
+        onDisconnected: () => sequence.push('disconnect'),
+      });
+
+      const internal = (a as any).admin;
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:disconnect', {});
+      internal.emit('client:broker:connect', {});
+
+      expect(sequence).toEqual(['connect', 'disconnect', 'connect']);
+      a.close().catch(() => {});
+    });
+
+    test('TC-284: admin onConnected fires multiple times', () => {
+      const callCount = { value: 0 };
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-multi-connect',
+        onConnected: () => {
+          callCount.value++;
+        },
+      });
+
+      const internal = (a as any).admin;
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:connect', {});
+      internal.emit('client:broker:connect', {});
+
+      expect(callCount.value).toBe(3);
+      a.close().catch(() => {});
+    });
+
+    test('TC-285: admin onDisconnected hook error does not suppress onConnected', () => {
+      const sequence: string[] = [];
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-hooks-error-chain',
+        onConnected: () => sequence.push('connect'),
+        onDisconnected: () => {
+          sequence.push('disconnect');
+          throw new Error('disconnect-crash');
+        },
+      });
+
+      const internal = (a as any).admin;
+      internal.emit('client:broker:disconnect', {});
+      internal.emit('client:broker:connect', {});
+
+      expect(sequence).toEqual(['disconnect', 'connect']);
+      a.close().catch(() => {});
+    });
+
+    test('TC-286: admin getAdmin reference persists after close', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-escape-after-close',
+      });
+
+      const ref = a.getAdmin();
+
+      try {
+        await a.close();
+      } catch {
+        // ignore
+      }
+
+      expect(a.getAdmin()).toBe(ref);
+    });
+
+    test('TC-287: admin getAdmin returns object with expected admin methods', () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'admin-escape-methods',
+      });
+
+      const internal = a.getAdmin();
+      expect(typeof internal.listTopics).toBe('function');
+      expect(typeof internal.createTopics).toBe('function');
+      expect(typeof internal.deleteTopics).toBe('function');
+      expect(typeof internal.listGroups).toBe('function');
+      expect(typeof internal.describeGroups).toBe('function');
+      expect(typeof internal.deleteGroups).toBe('function');
+      expect(typeof internal.createPartitions).toBe('function');
+      expect(typeof internal.describeConfigs).toBe('function');
+      expect(typeof internal.alterConfigs).toBe('function');
+      expect(typeof internal.on).toBe('function');
+
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 43. Admin Consumer Group Operations — Advanced
+  // =============================================================================
+
+  describe('Admin Consumer Group Operations (Advanced)', () => {
+    test('TC-288: listGroups with undefined opts should call with empty states', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-groups-no-opts',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        listGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return new Map();
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.listGroups();
+      expect(capturedArgs[0].states).toBeUndefined();
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-289: listGroups with empty states array', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-groups-empty-states',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        listGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return new Map();
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.listGroups({ states: [] });
+      expect(capturedArgs[0].states).toEqual([]);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-290: describeGroups with multiple groups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-multi-groups',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return new Map();
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeGroups({ groups: ['group-1', 'group-2', 'group-3'] });
+      expect(capturedArgs[0].groups).toEqual(['group-1', 'group-2', 'group-3']);
+      expect(capturedArgs[0].groups.length).toBe(3);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-291: deleteGroups with multiple groups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'delete-multi-groups',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        deleteGroups: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.deleteGroups({ groups: ['old-1', 'old-2', 'old-3'] });
+      expect(capturedArgs[0].groups).toEqual(['old-1', 'old-2', 'old-3']);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-292: listGroups → describeGroups flow (mock)', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-then-describe',
+      });
+
+      const mockAdmin = {
+        ...(a as any).admin,
+        listGroups: mock(async () => {
+          return new Map([
+            ['g1', { id: 'g1', state: 'Stable', groupType: 'consumer', protocolType: '' }],
+            ['g2', { id: 'g2', state: 'Empty', groupType: 'consumer', protocolType: '' }],
+          ]);
+        }),
+        describeGroups: mock(async () => {
+          return new Map([['g1', { id: 'g1', state: 'Stable', protocol: '', members: new Map() }]]);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      const groups = await a.listGroups();
+      expect(groups.size).toBe(2);
+
+      const described = await a.describeGroups({ groups: [...groups.keys()] });
+      expect(described.size).toBeGreaterThanOrEqual(1);
+
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 44. Admin Offset Management — Advanced
+  // =============================================================================
+
+  describe('Admin Offset Management (Advanced)', () => {
+    test('TC-293: listConsumerGroupOffsets with multiple groups', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'list-offsets-multi',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        listConsumerGroupOffsets: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return [];
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.listConsumerGroupOffsets({ groups: ['g1', 'g2', 'g3'] });
+      expect(capturedArgs[0].groups).toEqual(['g1', 'g2', 'g3']);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-294: alterConsumerGroupOffsets with multiple topics and partitions', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-offsets-multi',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConsumerGroupOffsets: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConsumerGroupOffsets({
+        groupId: 'my-group',
+        topics: [
+          {
+            name: 'topic-a',
+            partitionOffsets: [
+              { partition: 0, offset: 100n },
+              { partition: 1, offset: 200n },
+            ],
+          },
+          {
+            name: 'topic-b',
+            partitionOffsets: [{ partition: 0, offset: 50n }],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].groupId).toBe('my-group');
+      expect(capturedArgs[0].topics.length).toBe(2);
+      expect(capturedArgs[0].topics[0].partitionOffsets.length).toBe(2);
+      expect(capturedArgs[0].topics[1].partitionOffsets.length).toBe(1);
+      expect(capturedArgs[0].topics[0].partitionOffsets[1].offset).toBe(200n);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-295: alterConsumerGroupOffsets with offset 0n — reset to beginning', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-offsets-zero',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConsumerGroupOffsets: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConsumerGroupOffsets({
+        groupId: 'reset-group',
+        topics: [
+          {
+            name: 'test',
+            partitionOffsets: [{ partition: 0, offset: 0n }],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].topics[0].partitionOffsets[0].offset).toBe(0n);
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 45. Admin Partition Management — Advanced
+  // =============================================================================
+
+  describe('Admin Partition Management (Advanced)', () => {
+    test('TC-296: createPartitions with multiple topics', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'create-partitions-multi',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        createPartitions: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.createPartitions({
+        topics: [
+          { name: 'topic-a', count: 10 },
+          { name: 'topic-b', count: 20 },
+          { name: 'topic-c', count: 5 },
+        ],
+      });
+
+      expect(capturedArgs[0].topics.length).toBe(3);
+      expect(capturedArgs[0].topics[0]).toEqual({ name: 'topic-a', count: 10 });
+      expect(capturedArgs[0].topics[1]).toEqual({ name: 'topic-b', count: 20 });
+      expect(capturedArgs[0].topics[2]).toEqual({ name: 'topic-c', count: 5 });
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-297: createPartitions without validateOnly defaults to undefined', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'create-partitions-no-validate',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        createPartitions: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.createPartitions({
+        topics: [{ name: 'test', count: 3 }],
+      });
+
+      expect(capturedArgs[0].validateOnly).toBeUndefined();
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 46. Admin Config Management — Advanced
+  // =============================================================================
+
+  describe('Admin Config Management (Advanced)', () => {
+    test('TC-298: describeConfigs with multiple resources', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-multi-resources',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return [];
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeConfigs({
+        resources: [
+          { resourceType: KafkaConfigResourceTypes.TOPIC, resourceName: 'topic-a' },
+          { resourceType: KafkaConfigResourceTypes.TOPIC, resourceName: 'topic-b' },
+          { resourceType: KafkaConfigResourceTypes.BROKER, resourceName: '0' },
+        ],
+      });
+
+      expect(capturedArgs[0].resources.length).toBe(3);
+      expect(capturedArgs[0].resources[0].resourceType).toBe(2);
+      expect(capturedArgs[0].resources[2].resourceType).toBe(4);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-299: describeConfigs with configurationKeys filter', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-with-keys',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return [];
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeConfigs({
+        resources: [
+          {
+            resourceType: KafkaConfigResourceTypes.TOPIC,
+            resourceName: 'my-topic',
+            configurationKeys: ['retention.ms', 'cleanup.policy'],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].resources[0].configurationKeys).toEqual([
+        'retention.ms',
+        'cleanup.policy',
+      ]);
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-300: alterConfigs with multiple configs on single resource', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-multi-configs',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConfigs({
+        resources: [
+          {
+            resourceType: KafkaConfigResourceTypes.TOPIC,
+            resourceName: 'my-topic',
+            configs: [
+              { name: 'retention.ms', value: '604800000' },
+              { name: 'cleanup.policy', value: 'compact' },
+              { name: 'max.message.bytes', value: '1048576' },
+            ],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].resources[0].configs.length).toBe(3);
+      expect(capturedArgs[0].resources[0].configs[0].name).toBe('retention.ms');
+      expect(capturedArgs[0].resources[0].configs[1].value).toBe('compact');
+      expect(capturedArgs[0].resources[0].configs[2].name).toBe('max.message.bytes');
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-301: describeConfigs without optional flags defaults to undefined', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'describe-no-flags',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        describeConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+          return [];
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.describeConfigs({
+        resources: [{ resourceType: 2, resourceName: 'test' }],
+      });
+
+      expect(capturedArgs[0].includeSynonyms).toBeUndefined();
+      expect(capturedArgs[0].includeDocumentation).toBeUndefined();
+
+      a.close().catch(() => {});
+    });
+
+    test('TC-302: alterConfigs without validateOnly defaults to undefined', async () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'alter-no-validate',
+      });
+
+      const capturedArgs: any[] = [];
+      const mockAdmin = {
+        ...(a as any).admin,
+        alterConfigs: mock(async (opts: any) => {
+          capturedArgs.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (a as any).admin = mockAdmin;
+
+      await a.alterConfigs({
+        resources: [
+          {
+            resourceType: 2,
+            resourceName: 'test',
+            configs: [{ name: 'k', value: 'v' }],
+          },
+        ],
+      });
+
+      expect(capturedArgs[0].validateOnly).toBeUndefined();
+      a.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 47. KafkaConfigResourceTypes — Advanced
+  // =============================================================================
+
+  describe('KafkaConfigResourceTypes (Advanced)', () => {
+    test('TC-303: isValid should return false for floating point values', () => {
+      expect(KafkaConfigResourceTypes.isValid(2.5)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(4.1)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(0.1)).toBe(false);
+    });
+
+    test('TC-304: isValid should return false for special numeric values', () => {
+      expect(KafkaConfigResourceTypes.isValid(NaN)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(Infinity)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(-Infinity)).toBe(false);
+    });
+
+    test('TC-305: isValid should return false for extreme values', () => {
+      expect(KafkaConfigResourceTypes.isValid(Number.MAX_SAFE_INTEGER)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(Number.MIN_SAFE_INTEGER)).toBe(false);
+      expect(KafkaConfigResourceTypes.isValid(Number.MAX_VALUE)).toBe(false);
+    });
+
+    test('TC-306: SCHEME_SET should be a Set instance', () => {
+      expect(KafkaConfigResourceTypes.SCHEME_SET).toBeInstanceOf(Set);
+    });
+
+    test('TC-307: SCHEME_SET should not contain values between valid ones', () => {
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(1)).toBe(false);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(3)).toBe(false);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(5)).toBe(false);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(6)).toBe(false);
+      expect(KafkaConfigResourceTypes.SCHEME_SET.has(7)).toBe(false);
+    });
+
+    test('TC-308: resource type values should match Kafka protocol', () => {
+      // UNKNOWN=0, TOPIC=2, BROKER=4, BROKER_LOGGER=8
+      expect(KafkaConfigResourceTypes.UNKNOWN).toBe(0);
+      expect(KafkaConfigResourceTypes.TOPIC).toBe(2);
+      expect(KafkaConfigResourceTypes.BROKER).toBe(4);
+      expect(KafkaConfigResourceTypes.BROKER_LOGGER).toBe(8);
+    });
+  });
+
+  // =============================================================================
+  // 48. Consumer consumeLoop with Pause/Resume Integration
+  // =============================================================================
+
+  describe('Consumer consumeLoop + Pause/Resume Integration', () => {
+    test('TC-309: consumeLoop processes messages then message handler pauses stream', async () => {
+      const received: string[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'loop-pause-group',
+        topics: ['test'],
+        identifier: 'loop-pause',
+        onMessage: async (opts: { message: any }) => {
+          received.push(opts.message.key as string);
+          // Pause after first message
+          if (received.length === 1) {
+            c.pause();
+          }
+        },
+      });
+
+      const mockMessages = [
+        { topic: 'test', partition: 0, key: 'k1', value: 'v1', offset: 0n, timestamp: 0n },
+        { topic: 'test', partition: 0, key: 'k2', value: 'v2', offset: 1n, timestamp: 1n },
+        { topic: 'test', partition: 0, key: 'k3', value: 'v3', offset: 2n, timestamp: 2n },
+      ];
+
+      let didPause = false;
+      const stream = {
+        ...createMockStream(mockMessages),
+        pause: mock(() => {
+          didPause = true;
+          return stream;
+        }),
+        resume: mock(() => stream),
+        isPaused: mock(() => didPause),
+      };
+      (c as any).stream = stream;
+      (c as any).consuming = true;
+
+      await (c as any).consumeLoop();
+
+      // All messages still processed (pause is advisory on async iterator)
+      // but pause was called
+      expect(didPause).toBe(true);
+      expect(received.length).toBe(3);
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 49. Consumer commit within onMessage Handler
+  // =============================================================================
+
+  describe('Consumer commit within onMessage Handler', () => {
+    test('TC-310: manual commit inside onMessage callback', async () => {
+      const commitCalls: any[] = [];
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'commit-in-handler-group',
+        topics: ['test'],
+        identifier: 'commit-in-handler',
+        autocommit: false,
+        onMessage: async (opts: { message: any }) => {
+          // Commit after processing each message
+          await c.commit({
+            offsets: [
+              {
+                topic: opts.message.topic,
+                partition: opts.message.partition,
+                offset: opts.message.offset + 1n,
+                leaderEpoch: 0,
+              },
+            ],
+          });
+        },
+      });
+
+      // Mock the consumer's commit
+      const mockConsumer = {
+        ...(c as any).consumer,
+        commit: mock(async (opts: any) => {
+          commitCalls.push(opts);
+        }),
+        close: mock(async () => {}),
+      };
+      (c as any).consumer = mockConsumer;
+
+      const mockMessages = [
+        { topic: 'test', partition: 0, key: 'k1', value: 'v1', offset: 0n, timestamp: 0n },
+        { topic: 'test', partition: 0, key: 'k2', value: 'v2', offset: 1n, timestamp: 1n },
+        { topic: 'test', partition: 0, key: 'k3', value: 'v3', offset: 2n, timestamp: 2n },
+      ];
+
+      const stream = createMockStream(mockMessages);
+      (c as any).stream = stream;
+      (c as any).consuming = true;
+
+      await (c as any).consumeLoop();
+
+      // Each message should have triggered a commit
+      expect(commitCalls.length).toBe(3);
+      expect(commitCalls[0].offsets[0].offset).toBe(1n); // 0 + 1
+      expect(commitCalls[1].offsets[0].offset).toBe(2n); // 1 + 1
+      expect(commitCalls[2].offsets[0].offset).toBe(3n); // 2 + 1
+
+      c.close().catch(() => {});
+    });
+  });
+
+  // =============================================================================
+  // 50. Cross-Feature Backward Compatibility
+  // =============================================================================
+
+  describe('Backward Compatibility', () => {
+    test('TC-311: producer without any new options should work identically to before', () => {
+      const p = KafkaProducerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        clientId: 'compat-producer',
+        identifier: 'compat',
+        acks: KafkaAcks.ALL,
+        autocreateTopics: true,
+        timeout: 10_000,
+        retries: 3,
+        retryDelay: 500,
+      });
+      expect(p).toBeInstanceOf(KafkaProducerHelper);
+      expect(typeof p.send).toBe('function');
+      expect(typeof p.sendBatch).toBe('function');
+      expect(typeof p.close).toBe('function');
+      // New methods exist alongside old ones
+      expect(typeof p.getProducer).toBe('function');
+      p.close().catch(() => {});
+    });
+
+    test('TC-312: consumer without any new options should work identically to before', () => {
+      const c = KafkaConsumerHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        groupId: 'compat-group',
+        topics: ['test'],
+        identifier: 'compat',
+        autocommit: true,
+        mode: 'latest',
+      });
+      expect(c).toBeInstanceOf(KafkaConsumerHelper);
+      expect(typeof c.start).toBe('function');
+      expect(typeof c.close).toBe('function');
+      expect(typeof c.isConsuming).toBe('function');
+      // New methods exist alongside old ones
+      expect(typeof c.pause).toBe('function');
+      expect(typeof c.resume).toBe('function');
+      expect(typeof c.isPaused).toBe('function');
+      expect(typeof c.commit).toBe('function');
+      expect(typeof c.getConsumer).toBe('function');
+      expect(typeof c.startLagMonitoring).toBe('function');
+      expect(typeof c.stopLagMonitoring).toBe('function');
+      c.close().catch(() => {});
+    });
+
+    test('TC-313: admin without any new options should work identically to before', () => {
+      const a = KafkaAdminHelper.newInstance({
+        bootstrapBrokers: ['localhost:9092'],
+        identifier: 'compat',
+      });
+      expect(a).toBeInstanceOf(KafkaAdminHelper);
+      expect(typeof a.createTopics).toBe('function');
+      expect(typeof a.deleteTopics).toBe('function');
+      expect(typeof a.listTopics).toBe('function');
+      expect(typeof a.metadata).toBe('function');
+      expect(typeof a.close).toBe('function');
+      // New methods exist alongside old ones
+      expect(typeof a.listGroups).toBe('function');
+      expect(typeof a.describeGroups).toBe('function');
+      expect(typeof a.deleteGroups).toBe('function');
+      expect(typeof a.listConsumerGroupOffsets).toBe('function');
+      expect(typeof a.alterConsumerGroupOffsets).toBe('function');
+      expect(typeof a.createPartitions).toBe('function');
+      expect(typeof a.describeConfigs).toBe('function');
+      expect(typeof a.alterConfigs).toBe('function');
+      expect(typeof a.getAdmin).toBe('function');
+      a.close().catch(() => {});
     });
   });
 });

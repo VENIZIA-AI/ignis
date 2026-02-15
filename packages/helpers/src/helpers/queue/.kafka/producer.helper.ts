@@ -32,7 +32,36 @@ export class KafkaProducerHelper<
       ...(opts.serializers ? { serializers: opts.serializers } : {}),
     });
 
+    this.wireLifecycleHooks(opts);
     this.logger.for('constructor').info('Producer initialized | ID: %s', this.identifier);
+  }
+
+  private wireLifecycleHooks(
+    opts: IKafkaProducerOptions<Key, Value, HeaderKey, HeaderValue>,
+  ): void {
+    if (opts.onConnected) {
+      this.producer.on('client:broker:connect', () => {
+        try {
+          opts.onConnected!();
+        } catch (err) {
+          this.logger
+            .for('onConnected')
+            .error('Lifecycle hook error: %s | ID: %s', err, this.identifier);
+        }
+      });
+    }
+
+    if (opts.onDisconnected) {
+      this.producer.on('client:broker:disconnect', () => {
+        try {
+          opts.onDisconnected!();
+        } catch (err) {
+          this.logger
+            .for('onDisconnected')
+            .error('Lifecycle hook error: %s | ID: %s', err, this.identifier);
+        }
+      });
+    }
   }
 
   static newInstance<K = unknown, V = unknown, HK = unknown, HV = unknown>(
@@ -73,6 +102,10 @@ export class KafkaProducerHelper<
     }
 
     await this.send({ messages: allMessages, acks: opts.acks });
+  }
+
+  getProducer(): Producer<Key, Value, HeaderKey, HeaderValue> {
+    return this.producer;
   }
 
   async close(): Promise<void> {
