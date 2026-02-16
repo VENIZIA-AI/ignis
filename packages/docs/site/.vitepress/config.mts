@@ -469,6 +469,7 @@ const config = defineConfig({
                 { text: 'API Reference', link: '/references/helpers/network/api' },
               ],
             },
+            { text: 'Kafka (Experimental)', link: '/references/helpers/kafka/' },
             { text: 'Queue', link: '/references/helpers/queue/' },
             { text: 'Redis', link: '/references/helpers/redis/' },
             {

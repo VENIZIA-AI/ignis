@@ -14,6 +14,7 @@ Reusable classes and functions providing common functionality - designed for eas
 | [Inversion](./inversion/) | Dependency injection | DI container implementation |
 | [Logger](./logger/) | Logging | Winston-based, multiple transports, scopes |
 | [Network](./network/) | Network requests | HTTP, TCP, UDP helpers |
+| Kafka <Badge type="warning" text="Experimental" /> | Event streaming | Apache Kafka producer/consumer |
 | [Queue](./queue/) | Message queues | BullMQ, MQTT support |
 | [Redis](./redis/) | Redis operations | Single/cluster, key-value, hashes, JSON, pub/sub |
 | [Socket.IO](./socket-io/) | Real-time communication | Socket.IO client/server helpers |
