@@ -1,11 +1,7 @@
-import {
-  BaseEntity,
-  getIdType,
-  SchemaTypes,
-  TTableObject,
-  TTableSchemaWithId,
-} from '@/base/models';
-import { AbstractRepository } from '@/base/repositories';
+import { BaseEntity } from '@/base/models/base';
+import { SchemaTypes } from '@/base/models/common/constants';
+import { getIdType, TTableObject, TTableSchemaWithId } from '@/base/models/common/types';
+import { AbstractRepository } from '@/base/repositories/core/abstract';
 import {
   AnyType,
   BaseHelper,
@@ -18,7 +14,8 @@ import {
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
+import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
 import { z } from '@hono/zod-openapi';
@@ -43,8 +40,8 @@ import { ICustomizableRoutes, TRouteContext } from '../common';
  *   },
  *   authenticate: { strategies: ['jwt'] },
  *   routes: {
- *     find: { skipAuth: true },
- *     findById: { skipAuth: true }
+ *     find: { authenticate: { skip: true } },
+ *     findById: { authenticate: { skip: true } }
  *   }
  * });
  * ```
@@ -79,15 +76,23 @@ export interface ICrudControllerOptions<
    */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /**
+   * Authorization config applied to all routes (unless overridden per-route)
+   *
+   * @example
+   * // Apply authorization to all routes
+   * authorize: { action: 'manage', resource: 'User' }
+   */
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+  /**
    * Per-route configuration combining schema and auth
    *
    * @example
    * // JWT auth on all, skip for public read endpoints
    * authenticate: { strategies: ['jwt'] },
    * routes: {
-   *   find: { skipAuth: true },
-   *   findById: { skipAuth: true },
-   *   count: { skipAuth: true },
+   *   find: { authenticate: { skip: true } },
+   *   findById: { authenticate: { skip: true } },
+   *   count: { authenticate: { skip: true } },
    * }
    *
    * @example
@@ -102,7 +107,7 @@ export interface ICrudControllerOptions<
    * // Custom response schema with auth
    * authenticate: { strategies: ['jwt'] },
    * routes: {
-   *   find: { schema: CustomFindResponseSchema, skipAuth: true },
+   *   find: { authenticate: { skip: true }, schema: CustomFindResponseSchema },
    *   create: { schema: CustomCreateResponseSchema, requestBody: CustomCreateBodySchema },
    * }
    */
@@ -125,8 +130,8 @@ export interface ICrudControllerOptions<
  *   controller: { name: 'UserController', basePath: '/users' },
  *   authenticate: { strategies: ['jwt'] },
  *   routes: {
- *     find: { skipAuth: true },
- *     findById: { skipAuth: true }
+ *     find: { authenticate: { skip: true } },
+ *     findById: { authenticate: { skip: true } }
  *   }
  * });
  *
@@ -178,7 +183,7 @@ export class ControllerFactory extends BaseHelper {
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
   >(defOpts: ICrudControllerOptions<EntitySchema, Routes>) {
-    const { controller, entity, authenticate, routes } = defOpts;
+    const { controller, entity, authenticate, authorize, routes } = defOpts;
 
     const {
       name,
@@ -205,6 +210,7 @@ export class ControllerFactory extends BaseHelper {
       isStrict: isStrict.requestSchema ?? true,
       idType: getIdType({ entity: entityInstance.schema }),
       authenticate,
+      authorize,
       routes,
       schema: {
         select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),

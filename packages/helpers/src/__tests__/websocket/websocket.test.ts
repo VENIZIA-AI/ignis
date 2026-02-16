@@ -30,9 +30,9 @@ import {
   WebSocketClientStates,
   WebSocketServerHelper,
   WebSocketEmitter,
-} from '@/helpers/socket/websocket';
-import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/helpers/socket/websocket';
-import { DefaultRedisHelper } from '@/helpers/redis';
+} from '@/modules/socket/websocket';
+import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
+import { DefaultRedisHelper } from '@/modules/redis';
 
 // =============================================================================
 // Test Utilities

@@ -1,4 +1,4 @@
-import { UserStatuses, UserTypes } from '@/common';
+import { UserStatuses, UserTypes } from '@/common/statuses';
 import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------

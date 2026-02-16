@@ -45,32 +45,32 @@
       "default": "./dist/index.js"
     },
     "./socket-io": {
-      "types": "./dist/helpers/socket/socket-io/index.d.ts",
-      "default": "./dist/helpers/socket/socket-io/index.js"
+      "types": "./dist/modules/socket/socket-io/index.d.ts",
+      "default": "./dist/modules/socket/socket-io/index.js"
     },
     "./bullmq": {
-      "types": "./dist/helpers/queue/bullmq/index.d.ts",
-      "default": "./dist/helpers/queue/bullmq/index.js"
+      "types": "./dist/modules/queue/bullmq/index.d.ts",
+      "default": "./dist/modules/queue/bullmq/index.js"
     },
     "./mqtt": {
-      "types": "./dist/helpers/queue/mqtt/index.d.ts",
-      "default": "./dist/helpers/queue/mqtt/index.js"
+      "types": "./dist/modules/queue/mqtt/index.d.ts",
+      "default": "./dist/modules/queue/mqtt/index.js"
     },
     "./minio": {
-      "types": "./dist/helpers/storage/minio/index.d.ts",
-      "default": "./dist/helpers/storage/minio/index.js"
+      "types": "./dist/modules/storage/minio/index.d.ts",
+      "default": "./dist/modules/storage/minio/index.js"
     },
     "./axios": {
-      "types": "./dist/helpers/network/http-request/fetcher/axios-fetcher.d.ts",
-      "default": "./dist/helpers/network/http-request/fetcher/axios-fetcher.js"
+      "types": "./dist/modules/network/http-request/fetcher/axios-fetcher.d.ts",
+      "default": "./dist/modules/network/http-request/fetcher/axios-fetcher.js"
     },
     "./cron": {
-      "types": "./dist/helpers/cron/index.d.ts",
-      "default": "./dist/helpers/cron/index.js"
+      "types": "./dist/modules/cron/index.d.ts",
+      "default": "./dist/modules/cron/index.js"
     },
     "./kafka": {
-      "types": "./dist/helpers/queue/.kafka/index.d.ts",
-      "default": "./dist/helpers/queue/.kafka/index.js"
+      "types": "./dist/modules/queue/.kafka/index.d.ts",
+      "default": "./dist/modules/queue/.kafka/index.js"
     },
     "./package.json": "./package.json"
   },

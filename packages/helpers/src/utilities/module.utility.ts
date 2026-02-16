@@ -1,5 +1,5 @@
-import { LoggerFactory } from '@/helpers/logger';
-import { getError } from '@/helpers/error';
+import { LoggerFactory } from '@/modules/logger';
+import { getError } from '@/modules/error';
 
 const logger = LoggerFactory.getLogger(['ModuleUtility']);
 

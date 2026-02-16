@@ -377,12 +377,14 @@ When resolving authentication for a route, the following priority applies:
 ### Authentication Examples
 
 ```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
+
 // 1. JWT auth on ALL routes
 const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
 });
 
 // 2. JWT auth on all, but skip for public read endpoints
@@ -390,7 +392,7 @@ const ProductController = ControllerFactory.defineCrudController({
   entity: ProductEntity,
   repository: { name: 'ProductRepository' },
   controller: { name: 'ProductController', basePath: '/products' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     find: { skipAuth: true },
     findById: { skipAuth: true },
@@ -404,9 +406,9 @@ const ArticleController = ControllerFactory.defineCrudController({
   repository: { name: 'ArticleRepository' },
   controller: { name: 'ArticleController', basePath: '/articles' },
   routes: {
-    create: { authStrategies: ['jwt'] },
-    updateById: { authStrategies: ['jwt'] },
-    deleteById: { authStrategies: ['jwt'] },
+    create: { authStrategies: [Authentication.STRATEGY_JWT] },
+    updateById: { authStrategies: [Authentication.STRATEGY_JWT] },
+    deleteById: { authStrategies: [Authentication.STRATEGY_JWT] },
   },
 });
 
@@ -415,7 +417,7 @@ const OrderController = ControllerFactory.defineCrudController({
   entity: OrderEntity,
   repository: { name: 'OrderRepository' },
   controller: { name: 'OrderController', basePath: '/orders' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     find: {
       skipAuth: true,
@@ -432,6 +434,7 @@ const OrderController = ControllerFactory.defineCrudController({
 ### Route Customization Examples
 
 ```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 // Custom request body for create
@@ -453,7 +456,7 @@ const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     // Public read endpoints
     find: {
@@ -473,7 +476,7 @@ const UserController = ControllerFactory.defineCrudController({
 
     // Delete requires JWT auth (uses default schema)
     deleteById: {
-      authStrategies: ['jwt'],
+      authStrategies: [Authentication.STRATEGY_JWT],
     },
   },
 });

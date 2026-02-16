@@ -1,7 +1,8 @@
-import { BaseController } from '@/base/controllers';
-import { controller, inject } from '@/base/metadata';
-import { jsonContent, jsonResponse } from '@/base/models';
-import { AnyObjectSchema } from '@/utilities';
+import { BaseController } from '@/base/controllers/base';
+import { inject } from '@/base/metadata/injectors';
+import { controller } from '@/base/metadata/routes';
+import { jsonContent, jsonResponse } from '@/base/models/common/types';
+import { AnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import {

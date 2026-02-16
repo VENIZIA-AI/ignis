@@ -1,5 +1,8 @@
-import { authenticate as authenticateFn, AuthenticationModes } from '@/components/auth';
-import { MetadataRegistry } from '@/helpers/inversion';
+import { AuthenticationModes } from '@/components/auth/authenticate/common/constants';
+import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
+import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
+import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
@@ -7,7 +10,7 @@ import { Env, Schema } from 'hono';
 import {
   IController,
   IControllerOptions,
-  IAuthenticateRouteConfig,
+  IAuthRouteConfig,
   IBindRouteOptions,
   IDefineRouteOptions,
   TRouteHandler,
@@ -52,10 +55,7 @@ export abstract class AbstractController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
-  Definitions extends Record<string, IAuthenticateRouteConfig> = Record<
-    string,
-    IAuthenticateRouteConfig
-  >,
+  Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>,
 >
   extends BaseHelper
   implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
@@ -160,18 +160,15 @@ export abstract class AbstractController<
     opts?: ConfigurableOptions,
   ): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
     const t = performance.now();
+    const logger = this.logger.for(this.configure.name);
 
     const configureOptions = opts ?? {};
-    this.logger
-      .for(this.configure.name)
-      .info('START | Binding controller | Options: %j', configureOptions);
+    logger.info('START | Binding controller | Options: %j', configureOptions);
 
     await this.binding();
     this.registerRoutesFromRegistry();
 
-    this.logger
-      .for(this.configure.name)
-      .info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
+    logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
     return this.router;
   }
 
@@ -179,7 +176,7 @@ export abstract class AbstractController<
    * Processes route configuration, adding authentication middleware and OpenAPI metadata.
    *
    * Transforms a route config by:
-   * - Converting `authenticate.strategies` to OpenAPI security requirements
+   * - Converting `authenticate.strategies` to OpenAPI security specs
    * - Creating authentication middleware based on strategies and mode
    * - Adding the controller scope to route tags
    * - Merging any existing middleware
@@ -188,37 +185,49 @@ export abstract class AbstractController<
    * @param opts - Object containing the route configuration
    * @returns Processed route configuration ready for registration
    */
-  getRouteConfigs<RouteConfig extends IAuthenticateRouteConfig>(opts: { configs: RouteConfig }) {
+  getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
     const { configs } = opts;
 
-    const { authenticate = {}, ...restConfig } = configs;
+    const { authenticate = {}, authorize, ...restConfig } = configs;
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
-    const security = strategies.map(strategy => ({ [strategy]: [] }));
-    const mws = strategies.length > 0 ? [authenticateFn({ strategies, mode })] : [];
+    const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
+    const mws: ReturnType<typeof authenticateFn>[] = [];
 
+    // Inject authenticate middleware
+    if (strategies.length > 0) {
+      mws.push(authenticateFn({ strategies, mode }));
+    }
+
+    // Inject authorize middleware AFTER authenticate
+    if (authorize) {
+      const specs: IAuthorizationSpec[] = Array.isArray(authorize) ? authorize : [authorize];
+      for (const spec of specs) {
+        mws.push(authorizeFn({ spec }));
+      }
+    }
+
+    // Inject custom middleware
     if (restConfig.middleware) {
       const extraMws = Array.isArray(restConfig.middleware)
         ? restConfig.middleware
         : [restConfig.middleware];
 
       for (const mw of extraMws) {
-        if (!mw) {
-          continue;
+        if (mw) {
+          mws.push(mw);
         }
-
-        mws.push(mw);
       }
     }
 
-    const { tags = [] } = configs;
+    const { tags = [] } = restConfig;
 
     return createRoute<string, RouteConfig>(
-      Object.assign({}, configs, {
+      Object.assign({}, restConfig, {
         middleware: mws,
         tags: [...tags, this.scope],
         security,
-      }),
+      }) as unknown as RouteConfig,
     );
   }
 
@@ -232,31 +241,49 @@ export abstract class AbstractController<
    * @param opts - Object containing the route configuration
    * @returns Processed route configuration with HTML response schema
    */
-  getJSXRouteConfigs<RouteConfig extends IAuthenticateRouteConfig>(opts: { configs: RouteConfig }) {
+  getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
     const { configs } = opts;
 
-    const { authenticate = {}, ...restConfig } = configs;
+    const { authenticate = {}, authorize, ...restConfig } = configs;
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
-    const security = strategies.map(strategy => ({ [strategy]: [] }));
-    const mws = strategies.length > 0 ? [authenticateFn({ strategies, mode })] : [];
+    const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
+    const mws: ReturnType<typeof authenticateFn>[] = [];
 
-    const extraMws =
-      restConfig.middleware && Array.isArray(restConfig.middleware)
+    // Inject authenticate middleware
+    if (strategies.length > 0) {
+      mws.push(authenticateFn({ strategies, mode }));
+    }
+
+    // Inject authorize middleware AFTER authenticate
+    if (authorize) {
+      const specs: IAuthorizationSpec[] = Array.isArray(authorize) ? authorize : [authorize];
+      for (const spec of specs) {
+        mws.push(authorizeFn({ spec }));
+      }
+    }
+
+    // Inject custom middleware
+    if (restConfig.middleware) {
+      const extraMws = Array.isArray(restConfig.middleware)
         ? restConfig.middleware
         : [restConfig.middleware];
 
-    for (const mw of extraMws) {
-      mws.push(mw);
+      for (const mw of extraMws) {
+        if (mw) {
+          mws.push(mw);
+        }
+      }
     }
-    const { responses, tags = [] } = configs;
+
+    const { responses, tags = [] } = restConfig;
 
     return createRoute<string, RouteConfig>(
-      Object.assign({}, configs, {
+      Object.assign({}, restConfig, {
         responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
         security,
-      }),
+      }) as unknown as RouteConfig,
     );
   }
 
@@ -288,7 +315,7 @@ export abstract class AbstractController<
    * @param opts - Object containing route configuration
    * @returns Binding options with `to()` method for attaching the handler
    */
-  abstract bindRoute<RouteConfig extends IAuthenticateRouteConfig>(opts: {
+  abstract bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
   }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 
@@ -298,7 +325,7 @@ export abstract class AbstractController<
    * @param opts - Object containing route config, handler, and optional hook
    * @returns The registered route definition
    */
-  abstract defineRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+  abstract defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
     configs: RouteConfig;
     handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;

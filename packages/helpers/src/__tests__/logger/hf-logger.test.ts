@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect, beforeEach, spyOn, afterEach } from 'bun:test';
-import { HfLogger, HfLogFlusher } from '@/helpers/logger';
+import { HfLogger, HfLogFlusher } from '@/modules/logger';
 
 // =============================================================================
 // Test Suite: HfLogger

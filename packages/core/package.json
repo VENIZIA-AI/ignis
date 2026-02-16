@@ -169,6 +169,9 @@
     },
     "socket.io-client": {
       "optional": true
+    },
+    "casbin": {
+      "optional": true
     }
   },
   "devDependencies": {

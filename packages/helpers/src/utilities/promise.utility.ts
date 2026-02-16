@@ -1,5 +1,5 @@
 import { ValueOrPromise } from '@/common';
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 
 export type TTask<T> = (...args: any[]) => Promise<T>;
 

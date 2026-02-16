@@ -1,4 +1,4 @@
-import { TConstValue } from '@/helpers';
+import { TConstValue } from '@venizia/ignis-helpers';
 
 // --------------------------------------------------------------------------------------------------------
 export class AuthenticateStrategy {
@@ -46,6 +46,12 @@ export class AuthenticationTokenTypes {
 export class AuthenticationModes {
   static readonly ANY = 'any';
   static readonly ALL = 'all';
+
+  static readonly SCHEME_SET = new Set([this.ANY, this.ALL]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
 }
 
 export type TAuthMode = TConstValue<typeof AuthenticationModes>;

@@ -1,4 +1,5 @@
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
+import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
@@ -123,14 +124,14 @@ export interface IBindRouteOptions<
 }
 
 /**
- * Route configuration extended with authentication strategies.
+ * Route configuration extended with authentication and authorization.
  *
- * Adds optional `authenticate` array to standard route config for
- * declarative authentication configuration.
- * ```
+ * Adds optional `authenticate` and `authorize` fields to standard route config
+ * for declarative auth configuration on individual routes.
  */
-export interface IAuthenticateRouteConfig extends HonoRouteConfig {
+export interface IAuthRouteConfig extends HonoRouteConfig {
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
 
 // -----------------------------------------------------------------------------
@@ -181,20 +182,20 @@ export interface IController<
    * @param opts - Object containing route configuration
    * @returns Binding options with a `to()` method for attaching the handler
    */
-  bindRoute<RouteConfig extends IAuthenticateRouteConfig>(opts: {
+  bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
   }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 
   /**
    * Defines and registers a route with its handler in a single call.
    *
-   * Preferred method for most use cases. Applies authentication middleware
-   * automatically based on `authenticate.strategies` in the config.
+   * Preferred method for most use cases. Applies authentication and authorization
+   * middleware automatically based on config.
    *
    * @param opts - Object containing route config, handler, and optional hook
    * @returns The registered route definition
    */
-  defineRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+  defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
     configs: RouteConfig;
     handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
@@ -236,19 +237,51 @@ export interface IControllerOptions {
 // -----------------------------------------------------------------------------
 
 /**
- * Per-route authentication configuration.
+ * Per-route authentication configuration (scoped under `authenticate`).
+ *
+ * - `{ skip: true }` — skip authentication for this route
+ * - `{ strategies, mode }` — override controller-level authentication
+ */
+export type TRouteAuthenticateConfig =
+  | { skip: true }
+  | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
+/**
+ * Per-route authorization configuration (scoped under `authorize`).
+ *
+ * - `{ skip: true }` — skip authorization for this route
+ * - `IAuthorizationSpec` — single requirement
+ * - `IAuthorizationSpec[]` — multiple requirements (all must pass)
+ */
+export type TRouteAuthorizeConfig = { skip: true } | IAuthorizationSpec | IAuthorizationSpec[];
+
+/**
+ * Per-route auth configuration for CRUD factory routes.
  *
  * Priority (endpoint config takes precedence over controller):
- * 1. If endpoint has `skipAuth: true` -> no auth
- * 2. If endpoint has `authenticate.strategies` -> use these (overrides controller)
- * 3. Otherwise -> use controller-level authenticate.strategies
+ * 1. If endpoint has `authenticate: { skip: true }` -> no auth (also skips authorize)
+ * 2. If endpoint has `authenticate: { strategies, mode }` -> use these (overrides controller)
+ * 3. Otherwise -> use controller-level authenticate
+ *
+ * @example
+ * ```typescript
+ * // Skip auth for public read endpoints
+ * find: { authenticate: { skip: true } }
+ *
+ * // Override auth strategy for a specific route
+ * create: { authenticate: { strategies: ['jwt'], mode: 'required' } }
+ *
+ * // Skip only authorization (keep authentication)
+ * updateById: { authorize: { skip: true } }
+ *
+ * // Override authorization for a specific route
+ * deleteById: { authorize: { action: 'delete', resource: 'User' } }
+ * ```
  */
-export type TRouteAuthConfig =
-  | { skipAuth: true; authenticate?: never }
-  | {
-      skipAuth?: false;
-      authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
-    };
+export type TRouteAuthConfig = {
+  authenticate?: TRouteAuthenticateConfig;
+  authorize?: TRouteAuthorizeConfig;
+};
 
 // -----------------------------------------------------------------------------
 // Common Config Types
@@ -280,7 +313,7 @@ export type TCustomizableRouteConfig = TRouteAuthConfig & {
  * Per-route configuration for CRUD controller endpoints.
  *
  * Each route supports full customization of:
- * - Authentication (skipAuth, authenticate)
+ * - Authentication (authenticate: { skip } or { strategies, mode })
  * - Request (query, params, body, headers)
  * - Response (schema, headers)
  *

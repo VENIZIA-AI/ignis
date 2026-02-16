@@ -1,16 +1,16 @@
-import { TContext } from '@/base/controllers';
-import { inject } from '@/base/metadata';
-import { BaseService } from '@/base/services';
+import { TContext } from '@/base/controllers/common/types';
+import { inject } from '@/base/metadata/injectors';
+import { BaseService } from '@/base/services/base';
 import { AES, getError, HTTP, int } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 import { JWTPayload, jwtVerify, JWTVerifyResult, SignJWT } from 'jose';
-import { Authentication } from '../common/constants';
 import {
+  Authentication,
   AuthenticateBindingKeys,
   IJWTTokenPayload,
   IJWTTokenServiceOptions,
   TGetTokenExpiresFn,
-} from './../common';
+} from '../common';
 
 export class JWTTokenService<E extends Env = Env> extends BaseService {
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([

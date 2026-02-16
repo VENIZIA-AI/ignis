@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-16',
+              collapsed: true,
+              items: [
+                { text: 'Authorization System & Auth Refactor', link: '/changelogs/2026-02-16-authorization-system' },
+              ],
+            },
+            {
               text: '2026-02-11',
               collapsed: true,
               items: [
@@ -338,6 +345,16 @@ const config = defineConfig({
                 { text: 'Usage & Examples', link: '/references/components/authentication/usage' },
                 { text: 'API Reference', link: '/references/components/authentication/api' },
                 { text: 'Error Reference', link: '/references/components/authentication/errors' },
+              ],
+            },
+            {
+              text: 'Authorization (Experimental)',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/authorization/' },
+                { text: 'Usage & Examples', link: '/references/components/authorization/usage' },
+                { text: 'API Reference', link: '/references/components/authorization/api' },
+                { text: 'Error Reference', link: '/references/components/authorization/errors' },
               ],
             },
             { text: 'Health Check', link: '/references/components/health-check' },

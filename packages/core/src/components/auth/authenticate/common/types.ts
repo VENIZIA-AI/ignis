@@ -1,11 +1,11 @@
-import { IdType } from '@/base/models';
+import { TContext } from '@/base/controllers/common/types';
+import { IdType } from '@/base/models/common/types';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
-import { TContext } from '@/base/controllers';
 import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+import { Env, type MiddlewareHandler } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
-import { Authentication } from './constants';
+import { Authentication, type TAuthMode } from './constants';
 
 // Extend Hono's context variables to include authentication-related data
 declare module 'hono' {
@@ -115,6 +115,15 @@ export interface IAuthenticationStrategy<E extends Env = Env> {
   name: string;
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
+
+// --------------------------------------------------------------------------------------------------------
+// Authenticate Function
+// --------------------------------------------------------------------------------------------------------
+
+export type TAuthenticateFn = (opts: {
+  strategies: string[];
+  mode?: TAuthMode;
+}) => MiddlewareHandler;
 
 // --------------------------------------------------------------------------------------------------------
 export interface IAuthService<

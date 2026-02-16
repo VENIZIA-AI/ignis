@@ -1,4 +1,4 @@
-import { RoleStatuses } from '@/common';
+import { RoleStatuses } from '@/common/statuses';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 // -------------------------------------------------------------------------------------------

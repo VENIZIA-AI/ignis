@@ -1,4 +1,4 @@
-import { HTTP } from '@/helpers';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 import { TResponseHeaders } from './types';
 

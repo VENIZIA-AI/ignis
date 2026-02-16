@@ -1,4 +1,4 @@
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 import fs from 'node:fs';
 import path from 'node:path';
 

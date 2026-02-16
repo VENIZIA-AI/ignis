@@ -1,7 +1,9 @@
-import { BaseApplication } from '@/base/applications';
-import { BaseComponent } from '@/base/components';
-import { inject } from '@/base/metadata';
+import { BaseApplication } from '@/base/applications/base';
+import { BaseComponent } from '@/base/components/base';
+import { inject } from '@/base/metadata/injectors';
 import { CoreBindings } from '@/common/bindings';
+import { Binding } from '@venizia/ignis-inversion';
+import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   AuthenticateBindingKeys,
   IAuthenticateOptions,
@@ -10,9 +12,7 @@ import {
   TAuthenticationRestOptions,
 } from './common';
 import { BasicTokenService, JWTTokenService } from './services';
-import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { defineAuthController } from './controllers';
-import { Binding } from '@/helpers/inversion';
 
 const DEFAULT_SECRET = 'unknown_secret';
 

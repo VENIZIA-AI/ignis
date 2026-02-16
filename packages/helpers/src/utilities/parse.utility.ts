@@ -1,6 +1,6 @@
 import get from 'lodash/get';
 import round from 'lodash/round';
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 
 // -------------------------------------------------------------------------
 const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {

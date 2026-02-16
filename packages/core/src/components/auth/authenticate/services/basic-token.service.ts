@@ -1,10 +1,14 @@
-import { TContext } from '@/base';
-import { inject } from '@/base/metadata';
-import { BaseService } from '@/base/services';
+import { TContext } from '@/base/controllers/common/types';
+import { inject } from '@/base/metadata/injectors';
+import { BaseService } from '@/base/services/base';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
-import { Authentication } from '../common/constants';
-import { AuthenticateBindingKeys, IAuthUser, IBasicTokenServiceOptions } from '../common';
+import {
+  Authentication,
+  AuthenticateBindingKeys,
+  IAuthUser,
+  IBasicTokenServiceOptions,
+} from '../common';
 
 /**
  * Service for handling Basic Authentication.

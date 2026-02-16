@@ -1,4 +1,4 @@
-import { generatePrincipalColumnDefs } from '@/base/models';
+import { generatePrincipalColumnDefs } from '@/base/models/enrichers/principal.enricher';
 import { getError } from '@venizia/ignis-helpers';
 import { NotNull } from 'drizzle-orm';
 import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';

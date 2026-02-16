@@ -25,7 +25,7 @@ import {
   KafkaAdminHelper,
   KafkaProducerHelper,
   KafkaConsumerHelper,
-} from '@/helpers/queue/.kafka';
+} from '@/modules/queue/.kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
 
 // =============================================================================

@@ -238,6 +238,7 @@
         "@socket.io/redis-adapter",
         "@socket.io/redis-emitter",
         "bullmq",
+        "casbin",
         "mailgun.js",
         "nodemailer",
         "pg",
@@ -330,6 +331,7 @@
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
+        "@platformatic/kafka": "^1.26.0",
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
         "axios": "^1.12.2",
@@ -341,6 +343,7 @@
         "socket.io-client": "^4.8.1",
       },
       "optionalPeers": [
+        "@platformatic/kafka",
         "@socket.io/redis-adapter",
         "@socket.io/redis-emitter",
         "axios",

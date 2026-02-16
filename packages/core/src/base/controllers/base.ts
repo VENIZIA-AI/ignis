@@ -3,7 +3,7 @@ import { ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import { AbstractController } from './abstract';
 import {
-  IAuthenticateRouteConfig,
+  IAuthRouteConfig,
   IBindRouteOptions,
   IDefineRouteOptions,
   TRouteHandler,
@@ -55,10 +55,7 @@ export abstract class BaseController<
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
-  Definitions extends Record<string, IAuthenticateRouteConfig> = Record<
-    string,
-    IAuthenticateRouteConfig
-  >,
+  Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>,
 > extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions, Definitions> {
   /**
    * Helper method to cast to Hono OpenAPI Handler
@@ -83,7 +80,7 @@ export abstract class BaseController<
    * binding.to({ handler: myHandler });
    * ```
    */
-  bindRoute<RouteConfig extends IAuthenticateRouteConfig>(opts: {
+  bindRoute<RouteConfig extends IAuthRouteConfig>(opts: {
     configs: RouteConfig;
   }): IBindRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath> {
     const routeConfigs = this.getRouteConfigs<RouteConfig>({ configs: opts.configs });
@@ -127,7 +124,7 @@ export abstract class BaseController<
    * });
    * ```
    */
-  defineRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+  defineRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
     configs: RouteConfig;
     handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
@@ -169,7 +166,7 @@ export abstract class BaseController<
    * @param opts - Route configuration and handler
    * @returns Route definition
    */
-  defineJSXRoute<RouteConfig extends IAuthenticateRouteConfig, ResponseType = unknown>(opts: {
+  defineJSXRoute<RouteConfig extends IAuthRouteConfig, ResponseType = unknown>(opts: {
     configs: RouteConfig;
     handler: TRouteHandler<ResponseType, RouteEnv>;
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;

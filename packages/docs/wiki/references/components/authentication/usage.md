@@ -23,7 +23,7 @@ const FALLBACK_AUTH_CONFIG = {
   path: '/api/data',
   method: HTTP.Methods.GET,
   authStrategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC],
-  authMode: 'any',
+  authMode: AuthenticationModes.ANY,
   responses: jsonResponse({
     description: 'Data accessible via JWT or Basic auth',
     schema: z.object({ data: z.any() }),
@@ -47,12 +47,12 @@ const PUBLIC_ROUTE_CONFIG = {
 The `authenticate()` function is a convenience wrapper around `AuthenticationStrategyRegistry.getInstance().authenticate()`. It returns a Hono `MiddlewareHandler` suitable for direct middleware usage:
 
 ```typescript
-import { authenticate, Authentication } from '@venizia/ignis';
+import { authenticate, Authentication, AuthenticationModes } from '@venizia/ignis';
 
 // Use as Hono middleware directly
 const authMiddleware = authenticate({
   strategies: [Authentication.STRATEGY_JWT],
-  mode: 'any',
+  mode: AuthenticationModes.ANY,
 });
 
 // Apply to a Hono route

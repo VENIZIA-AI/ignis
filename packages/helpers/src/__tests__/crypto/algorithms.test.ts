@@ -15,8 +15,8 @@ import C from 'node:crypto';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { AES, RSA, ECDH } from '@/helpers/crypto/algorithms';
-import type { IECDHEncryptedPayload } from '@/helpers/crypto/algorithms';
+import { AES, RSA, ECDH } from '@/modules/crypto/algorithms';
+import type { IECDHEncryptedPayload } from '@/modules/crypto/algorithms';
 
 // =============================================================================
 // Helpers
