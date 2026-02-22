@@ -1,7 +1,7 @@
 import { MCPConfigs } from '@/mcp-server/common';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { Logger } from '@/mcp-server/helpers';
 
 // ----------------------------------------------------------------------------
@@ -220,13 +220,13 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
     }
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

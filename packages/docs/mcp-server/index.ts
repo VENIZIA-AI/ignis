@@ -64,6 +64,7 @@ const mcpReosources = {
 };
 
 const mcpServer = new MCPServer({
+  id: MCPConfigs.server.name,
   name: MCPConfigs.server.name,
   version: MCPConfigs.server.version,
 

@@ -1,14 +1,5 @@
-import { createTool } from '@mastra/core/tools';
+import type { Tool } from '@mastra/core/tools';
 import type { z } from 'zod';
-
-// ============================================================================
-// TYPES
-// ============================================================================
-
-/**
- * The tool type returned by createTool.
- */
-export type TMastraTool = ReturnType<typeof createTool>;
 
 // ============================================================================
 // BASE TOOL CLASS
@@ -43,7 +34,7 @@ export type TMastraTool = ReturnType<typeof createTool>;
  *       description: this.description,
  *       inputSchema: this.inputSchema,
  *       outputSchema: this.outputSchema,
- *       execute: async ({ context }) => this.execute(context),
+ *       execute: async input => this.execute(input),
  *     });
  *   }
  * }
@@ -99,10 +90,10 @@ export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema ext
    *     description: this.description,
    *     inputSchema: this.inputSchema,
    *     outputSchema: this.outputSchema,
-   *     execute: async ({ context }) => this.execute(context),
+   *     execute: async input => this.execute(input),
    *   });
    * }
    * ```
    */
-  abstract getTool(): TMastraTool;
+  abstract getTool(): Tool<z.infer<TInputSchema>, z.infer<TOutputSchema>>;
 }

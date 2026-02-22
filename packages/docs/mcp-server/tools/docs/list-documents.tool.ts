@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createTool } from '@mastra/core/tools';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
 
 // ----------------------------------------------------------------------------
@@ -114,13 +114,13 @@ export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSche
     };
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

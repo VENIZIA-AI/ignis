@@ -23,14 +23,14 @@
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
     "@venizia/ignis": "latest",
-    "hono": "^4.4.12"
+    "hono": "^4.12.1"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@venizia/dev-configs": "latest",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
+    "eslint": "^9.39.3",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.10",
-    "typescript": "^5.5.3"
+    "typescript": "^5.9.3"
   }
 }

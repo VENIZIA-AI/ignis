@@ -76,12 +76,7 @@ Desktop.ini
 .local/
 .claude/
 **/*/.claude
-.gemini/
-**/*/.gemini
 .prompts/
-
-GEMINI.md
-**/*/GEMINI.md
 
 CLAUDE.md
 CLAUDE.*.md

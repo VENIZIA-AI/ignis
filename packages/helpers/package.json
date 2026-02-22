@@ -1,44 +1,95 @@
 {
   "name": "@venizia/ignis-helpers",
   "version": "0.0.6-8",
-  "description": "Utility helpers for the Ignis Framework - logging, cron, Redis, queues, storage, and more",
+  "description": "Production-ready TypeScript utility library with 14+ modules: Winston logging with daily rotation, Redis single/cluster with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Memory object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation (4M IDs/sec), cron scheduling, Socket.IO/WebSocket real-time communication, TCP/TLS/UDP networking, HTTP clients, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies for optimal tree-shaking and bundle size.",
   "keywords": [
-    "ignis",
-    "helpers",
-    "utilities",
-    "library",
-    "utils",
-    "tools",
-    "common",
-    "shared",
-    "logging",
-    "logger",
-    "log-management",
-    "winston",
-    "cron",
-    "cronjob",
-    "scheduler",
-    "redis",
-    "ioredis",
-    "queue",
-    "message-queue",
-    "bullmq",
-    "storage",
-    "object-storage",
-    "file-storage",
-    "minio",
-    "s3",
+    "aes",
+    "aes-256",
     "aws-s3",
-    "mqtt",
-    "pub-sub",
-    "socket.io",
-    "real-time",
-    "websockets",
-    "venizia",
+    "axios",
+    "base62",
+    "bullmq",
     "bun",
+    "cron",
+    "cron-scheduler",
+    "cronjob",
+    "crypto",
+    "cryptography",
+    "disk-storage",
+    "ecdh",
+    "encryption",
+    "env",
+    "environment",
+    "event-driven",
+    "file-storage",
+    "file-upload",
+    "helpers",
+    "http-client",
+    "ignis",
+    "ioredis",
+    "job-queue",
+    "kafka",
+    "library",
+    "log-management",
+    "log-rotation",
+    "logger",
+    "logging",
+    "message-queue",
+    "minio",
+    "mqtt",
+    "network",
     "nodejs",
-    "typescript"
+    "object-storage",
+    "production-ready",
+    "pub-sub",
+    "pubsub",
+    "queue",
+    "real-time",
+    "redis",
+    "redis-cluster",
+    "rsa",
+    "s3",
+    "s3-compatible",
+    "scheduler",
+    "snowflake",
+    "snowflake-id",
+    "socket.io",
+    "storage",
+    "sub-path-exports",
+    "tcp",
+    "thread-pool",
+    "tls",
+    "tools",
+    "tree-shaking",
+    "typescript",
+    "udp",
+    "uid",
+    "unique-id",
+    "utilities",
+    "utils",
+    "venizia",
+    "websocket",
+    "winston",
+    "worker-thread"
   ],
+  "homepage": "https://venizia-ai.github.io/ignis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/helpers"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -86,9 +137,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "engines": {
-    "bun": ">=1.3"
-  },
+  "sideEffects": false,
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
@@ -101,28 +150,13 @@
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/helpers"
-  },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "bugs": {
-    "url": "https://github.com/VENIZIA-AI/ignis/issues"
-  },
-  "homepage": "https://venizia-ai.github.io/ignis",
-  "license": "MIT",
   "dependencies": {
     "@venizia/ignis-inversion": "^0.0.5",
     "drizzle-orm": "^0.45.1",
-    "dayjs": "^1.11.18",
-    "hono": "^4.10.7",
-    "ioredis": "^5.9.1",
-    "lodash": "^4.17.21",
+    "dayjs": "^1.11.19",
+    "hono": "^4.12.1",
+    "ioredis": "5.9.2",
+    "lodash": "^4.17.23",
     "reflect-metadata": "^0.2.2",
     "winston": "^3.17.0",
     "winston-daily-rotate-file": "^5.0.0",
@@ -131,14 +165,14 @@
   "peerDependencies": {
     "@socket.io/redis-adapter": "^8.3.0",
     "@socket.io/redis-emitter": "^5.1.0",
-    "axios": "^1.12.2",
-    "bullmq": "^5.63.1",
+    "axios": "^1.13.5",
+    "bullmq": "^5.70.0",
     "cron": "^4.3.3",
     "minio": "^8.0.6",
-    "mqtt": "^5.14.1",
+    "mqtt": "^5.15.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "@platformatic/kafka": "^1.26.0"
+    "@platformatic/kafka": "^1.27.0"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
@@ -173,15 +207,14 @@
     }
   },
   "devDependencies": {
-    "@hono/zod-openapi": "^1.1.5",
-    "@platformatic/kafka": "^1.26.0",
-    "@types/bun": "^1.3.4",
-    "@types/lodash": "^4.17.20",
+    "@hono/zod-openapi": "^1.2.2",
+    "@platformatic/kafka": "^1.27.0",
+    "@types/bun": "^1.3.9",
+    "@types/lodash": "^4.17.23",
     "@venizia/dev-configs": "^0.0.6",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
+    "eslint": "^9.39.3",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3"
-  },
-  "sideEffects": false
+  }
 }

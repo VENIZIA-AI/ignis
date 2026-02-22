@@ -28,25 +28,25 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@hono/zod-openapi": "^1.1.5",
+    "@hono/zod-openapi": "^1.2.2",
     "@socket.io/bun-engine": "^0.1.0",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "@venizia/ignis-inversion": "workspace:*",
     "dotenv-flow": "^4.1.0",
-    "hono": "^4.11.0",
-    "ioredis": "^5.6.1",
-    "lodash": "^4.17.21",
+    "hono": "^4.12.1",
+    "ioredis": "^5.9.1",
+    "lodash": "^4.17.23",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@types/bun": "^1.3.4",
-    "@types/lodash": "^4.17.21",
+    "@types/bun": "^1.3.9",
+    "@types/lodash": "^4.17.23",
     "@venizia/dev-configs": "workspace:*",
-    "eslint": "^9.39.2",
-    "prettier": "^3.7.4",
+    "eslint": "^9.39.3",
+    "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
     "typescript": "~5.9.3"
   }

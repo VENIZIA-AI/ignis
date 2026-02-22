@@ -1,29 +1,64 @@
 {
   "name": "@venizia/dev-configs",
   "version": "0.0.6",
-  "description": "Shared development configurations for Venizia packages",
+  "description": "Shareable development configurations for TypeScript projects: ESLint v9 flat config (with unicorn plugin), Prettier formatting, and TypeScript compiler options with critical decorator support (experimentalDecorators, emitDecoratorMetadata, useDefineForClassFields). Single source of truth for consistent code style, type checking, and build settings across monorepo packages. 3-line consumption pattern per config.",
   "keywords": [
-    "venizia",
-    "vez",
-    "ignis",
-    "dev-configs",
+    "build-tools",
+    "bun",
+    "code-quality",
+    "code-style",
+    "compiler-options",
     "configurations",
-    "settings",
-    "shared-config",
+    "decorator",
+    "decorator-support",
+    "dev-configs",
+    "dev-tools",
+    "development",
+    "emit-decorator-metadata",
     "eslint",
     "eslint-config",
+    "eslint-flat-config",
+    "eslint-plugin-unicorn",
+    "eslint-v9",
+    "experimental-decorators",
+    "format",
+    "formatter",
+    "ignis",
+    "lint",
+    "linter",
+    "monorepo",
+    "monorepo-config",
+    "nodejs",
     "prettier",
     "prettier-config",
-    "typescript",
+    "settings",
+    "shareable-config",
+    "shared-config",
     "tsconfig",
     "tsconfig-base",
-    "code-style",
-    "linter",
-    "formatter",
-    "build-tools",
-    "dev-tools",
-    "development"
+    "tsconfig-shared",
+    "typescript",
+    "typescript-config",
+    "venizia"
   ],
+  "homepage": "https://venizia-ai.github.io/ignis",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
+    "directory": "packages/dev-configs"
+  },
+  "bugs": {
+    "url": "https://github.com/VENIZIA-AI/ignis/issues"
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3"
+  },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -43,9 +78,6 @@
   "publishConfig": {
     "access": "public"
   },
-  "engines": {
-    "bun": ">=1.3"
-  },
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
@@ -58,24 +90,9 @@
     "rebuild": "sh ./scripts/rebuild.sh no-version",
     "prepublishOnly": "bun run rebuild"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/dev-configs"
-  },
-  "author": {
-    "name": "VENIZIA AI Developer",
-    "email": "developer@venizia.ai",
-    "url": "https://venizia.ai"
-  },
-  "bugs": {
-    "url": "https://github.com/VENIZIA-AI/ignis/issues"
-  },
-  "homepage": "https://venizia-ai.github.io/ignis",
-  "license": "MIT",
   "dependencies": {
     "@minimaltech/eslint-node": "^0.2.1",
-    "eslint-plugin-unicorn": "^62.0.0"
+    "eslint-plugin-unicorn": "^63.0.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0",
@@ -94,9 +111,9 @@
     }
   },
   "devDependencies": {
-    "@types/bun": "^1.3.4",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
+    "@types/bun": "^1.3.9",
+    "eslint": "^9.39.3",
+    "prettier": "^3.8.1",
     "typescript": "^5.9.3"
   }
 }
