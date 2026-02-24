@@ -9,6 +9,6 @@
       "@/*": ["./*"]
     }
   },
-  "include": ["src", "src/helpers/queue/.kafka/**/*.ts", "src/__tests__/.kafka/**/*.ts", "./*.config.*", ".prettierrc.*"],
+  "include": ["src", "./*.config.*", ".prettierrc.*"],
   "exclude": ["node_modules", "dist", "app_data"]
 }
