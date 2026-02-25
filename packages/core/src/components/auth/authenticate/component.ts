@@ -27,36 +27,45 @@ export class AuthenticateComponent extends BaseComponent {
         [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind<TAuthenticationRestOptions>({
           key: AuthenticateBindingKeys.REST_OPTIONS,
         }).toValue({ useAuthController: false }),
-        /* [AuthenticateBindingKeys.JWT_OPTIONS]: Binding.bind<IJWTTokenServiceOptions>({
-          key: AuthenticateBindingKeys.JWT_OPTIONS,
-        }).toValue({}),
-        [AuthenticateBindingKeys.BASIC_OPTIONS]: Binding.bind<IBasicTokenServiceOptions>({
-          key: AuthenticateBindingKeys.BASIC_OPTIONS,
-        }).toValue({}), */
       },
     });
   }
 
   // ---------------------------------------------------------------------------
-  /**
-   * Validate that at least one auth option (jwtOptions or basicOptions) is provided.
-   * @throws Error if neither option is provided
-   */
-  private validateOptions(opts: IAuthenticateOptions): void {
-    if (!opts.jwtOptions && !opts.basicOptions) {
+  override binding(): ValueOrPromise<void> {
+    const options: IAuthenticateOptions = {
+      restOptions: this.application.get<TAuthenticationRestOptions>({
+        key: AuthenticateBindingKeys.REST_OPTIONS,
+        isOptional: true,
+      }),
+      jwtOptions: this.application.get<IJWTTokenServiceOptions>({
+        key: AuthenticateBindingKeys.JWT_OPTIONS,
+        isOptional: true,
+      }),
+      basicOptions: this.application.get<IBasicTokenServiceOptions>({
+        key: AuthenticateBindingKeys.BASIC_OPTIONS,
+        isOptional: true,
+      }),
+    };
+
+    if (!options.jwtOptions && !options.basicOptions) {
       throw getError({
         message:
           '[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided',
       });
     }
+
+    // Configure each auth method
+    this.defineJWTAuth({ options });
+    this.defineBasicAuth({ options });
+    this.defineControllers({ options });
+
+    this.defineOAuth2();
   }
 
   // ---------------------------------------------------------------------------
-  /**
-   * Configure JWT authentication if jwtOptions is provided.
-   */
-  private defineJWTAuth(opts: IAuthenticateOptions): void {
-    const { jwtOptions } = opts;
+  private defineJWTAuth(opts: { options: IAuthenticateOptions }): void {
+    const { jwtOptions } = opts.options;
 
     if (!jwtOptions) {
       this.logger
@@ -96,11 +105,8 @@ export class AuthenticateComponent extends BaseComponent {
   }
 
   // ---------------------------------------------------------------------------
-  /**
-   * Configure Basic authentication if basicOptions is provided.
-   */
-  private defineBasicAuth(opts: IAuthenticateOptions): void {
-    const { basicOptions } = opts;
+  private defineBasicAuth(opts: { options: IAuthenticateOptions }): void {
+    const { basicOptions } = opts.options;
 
     if (!basicOptions) {
       this.logger
@@ -125,11 +131,8 @@ export class AuthenticateComponent extends BaseComponent {
   }
 
   // ---------------------------------------------------------------------------
-  /**
-   * Configure auth controllers if enabled.
-   */
-  private defineControllers(opts: IAuthenticateOptions): void {
-    const { restOptions } = opts;
+  private defineControllers(opts: { options: IAuthenticateOptions }): void {
+    const { restOptions, jwtOptions } = opts.options;
 
     if (!restOptions?.useAuthController) {
       this.logger.for(this.defineControllers.name).debug('Auth controller disabled');
@@ -137,7 +140,7 @@ export class AuthenticateComponent extends BaseComponent {
     }
 
     // Auth controller requires JWT for token generation
-    if (!opts.jwtOptions) {
+    if (!jwtOptions) {
       throw getError({
         message: '[defineControllers] Auth controller requires jwtOptions to be configured',
       });
@@ -152,33 +155,5 @@ export class AuthenticateComponent extends BaseComponent {
   // ---------------------------------------------------------------------------
   defineOAuth2() {
     // TODO Implement OAuth2
-  }
-
-  // ---------------------------------------------------------------------------
-  override binding(): ValueOrPromise<void> {
-    const authenticateOptions: IAuthenticateOptions = {
-      restOptions: this.application.get<TAuthenticationRestOptions>({
-        key: AuthenticateBindingKeys.REST_OPTIONS,
-        isOptional: true,
-      }),
-      jwtOptions: this.application.get<IJWTTokenServiceOptions>({
-        key: AuthenticateBindingKeys.JWT_OPTIONS,
-        isOptional: true,
-      }),
-      basicOptions: this.application.get<IBasicTokenServiceOptions>({
-        key: AuthenticateBindingKeys.BASIC_OPTIONS,
-        isOptional: true,
-      }),
-    };
-
-    // Validate at least one auth option is provided
-    this.validateOptions(authenticateOptions);
-
-    // Configure each auth method
-    this.defineJWTAuth(authenticateOptions);
-    this.defineBasicAuth(authenticateOptions);
-    this.defineControllers(authenticateOptions);
-
-    this.defineOAuth2();
   }
 }

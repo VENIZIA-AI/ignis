@@ -32,8 +32,14 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   }
 
   // ---------------------------------------------------------------------------
+  override reset(): void {
+    super.reset();
+    this.configuredEnforcers.clear();
+  }
+
+  // ---------------------------------------------------------------------------
   protected getBindingPrefix(): string {
-    return Authorization.AUTHORIZATION_ENFORCER;
+    return Authorization.ENFORCER;
   }
 
   // ---------------------------------------------------------------------------
@@ -62,7 +68,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   async resolveAndConfigureEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
     const enforcer = this.resolveEnforcer(opts);
 
-    if (!this.configuredEnforcers.has(opts.name) && enforcer.configure) {
+    if (!this.configuredEnforcers.has(opts.name)) {
       await enforcer.configure();
       this.configuredEnforcers.add(opts.name);
     }

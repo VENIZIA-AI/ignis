@@ -3,9 +3,9 @@ import { AuthorizationRole } from '../models/authorization-role.model';
 
 // --------------------------------------------------------------------------------------------------------
 export class Authorization {
-  static readonly ABILITIES = 'authorization.abilities';
+  static readonly RULES = 'authorization.rules';
   static readonly SKIP_AUTHORIZATION = 'authorization.skip';
-  static readonly AUTHORIZATION_ENFORCER = 'authorization.enforcer';
+  static readonly ENFORCER = 'authorization.enforcer';
 }
 
 // --------------------------------------------------------------------------------------------------------
@@ -15,7 +15,6 @@ export class AuthorizationActions {
   static readonly UPDATE = 'update';
   static readonly DELETE = 'delete';
   static readonly EXECUTE = 'execute';
-  static readonly MANAGE = 'manage';
 
   static readonly SCHEME_SET = new Set([
     this.CREATE,
@@ -23,7 +22,6 @@ export class AuthorizationActions {
     this.UPDATE,
     this.DELETE,
     this.EXECUTE,
-    this.MANAGE,
   ]);
 
   static isValid(input: string): boolean {
@@ -43,11 +41,29 @@ export class AuthorizationDecisions {
   static isValid(input: string): boolean {
     return this.SCHEME_SET.has(input);
   }
+
+  static isAllow(input: string | number): boolean {
+    if (typeof input === 'number') {
+      return input > 0;
+    }
+    return input.toLowerCase() === this.ALLOW;
+  }
+
+  static isDeny(input: string | number): boolean {
+    if (typeof input === 'number') {
+      return input < 0;
+    }
+    return input.toLowerCase() === this.DENY;
+  }
+
+  static isAbstain(input: string | number): boolean {
+    if (typeof input === 'number') {
+      return input === 0;
+    }
+    return input.toLowerCase() === this.ABSTAIN;
+  }
 }
 export type TAuthorizationDecision = TConstValue<typeof AuthorizationDecisions>;
-export type TPermissionEffect =
-  | typeof AuthorizationDecisions.ALLOW
-  | typeof AuthorizationDecisions.DENY;
 
 // --------------------------------------------------------------------------------------------------------
 export class AuthorizationRoles {

@@ -153,8 +153,8 @@ export class DefaultRedisHelper extends BaseHelper {
   }
 
   // ---------------------------------------------------------------------------------
-  getObject(opts: { key: string }) {
-    return this.get({
+  getObject<T>(opts: { key: string }) {
+    return this.get<T>({
       ...opts,
       transform: (el: string) => JSON.parse(el),
     });

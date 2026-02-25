@@ -57,6 +57,10 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
       .setScope(BindingScopes.SINGLETON);
   }
 
+  reset(): void {
+    this.descriptors.clear();
+  }
+
   protected resolveDescriptor(opts: { name: string }): TItem {
     const { name } = opts;
     const metadata = this.descriptors.get(name);

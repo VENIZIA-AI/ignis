@@ -1,8 +1,9 @@
 import { TContext } from '@/base/controllers/common/types';
-import { TClass, ValueOrPromise } from '@venizia/ignis-helpers';
+import { type DefaultRedisHelper, type ValueOrPromise } from '@venizia/ignis-helpers';
+import { type Adapter } from 'casbin';
 import { Env, type MiddlewareHandler } from 'hono';
 import { IAuthUser } from '../../authenticate';
-import { Authorization, TAuthorizationDecision, TPermissionEffect } from './constants';
+import { TAuthorizationDecision } from './constants';
 
 // --------------------------------------------------------------------------------------------------------
 // Foundational Types
@@ -18,88 +19,112 @@ export interface IAuthorizationRole {
  * Key-value conditions for attribute-based access control.
  * Values are compared with strict equality (`===`).
  *
- * @typeParam T - Value type for condition entries. Defaults to primitive types.
+ * @typeParam KeyType - Key type for condition entries. Defaults to `string | symbol`.
+ * @typeParam ValueType - Value type for condition entries. Defaults to primitive types.
  *
  * @example
  * ```typescript
  * // Default — accepts primitives
  * conditions: { ownerId: currentUser.userId, level: 3 }
  *
- * // Narrowed — string-only conditions
- * const filter: TAuthorizationConditions<string> = { department: 'engineering' }
+ * // Narrowed — string keys, string values
+ * const filter: TAuthorizationConditions<string, string> = { department: 'engineering' }
  * ```
  */
-export type TAuthorizationConditions<T = string | number | boolean | null> = Record<string, T>;
+export type TAuthorizationConditions<
+  KeyType extends string | symbol = string | symbol,
+  ValueType = string | number | boolean | null,
+> = Record<KeyType, ValueType>;
 
 // --------------------------------------------------------------------------------------------------------
-// Permission Evaluation
+// Authorization Comparable
 // --------------------------------------------------------------------------------------------------------
 
-export interface IPermissionRule {
-  action: string;
-  resource: string;
-  effect: TPermissionEffect;
+export interface IAuthorizationComparable<TElement = string, TCompareResult = number> {
+  value: TElement;
+  compare(other: TElement): TCompareResult;
+  isEqual(other: TElement): boolean;
+}
+
+// --------------------------------------------------------------------------------------------------------
+// Authorization Evaluation
+// --------------------------------------------------------------------------------------------------------
+
+export interface IAuthorizationRequest<TAction = string, TResource = string> {
+  action: TAction;
+  resource: TResource;
   conditions?: TAuthorizationConditions;
 }
 
-export interface IAbilityBuilder {
-  allow(opts: { action: string; resource: string; conditions?: TAuthorizationConditions }): void;
-  deny(opts: { action: string; resource: string; conditions?: TAuthorizationConditions }): void;
-  build(): IPermissionRule[];
-}
-
 /**
- * Authorization enforcer that builds abilities and evaluates permissions.
+ * Authorization enforcer that builds rules and evaluates authorization requests.
  *
- * @typeParam TAbilities - The abilities type produced by `buildAbilities` and consumed by `evaluate`.
- *   - `DefaultAuthorizationEnforcer` → `IPermissionRule[]`
+ * @typeParam E - Hono `Env` type for typed context access (default: `Env`).
+ * @typeParam TAction - Action type (default: `string`). Use `IAuthorizationComparable` for custom comparison.
+ * @typeParam TResource - Resource type (default: `string`). Use `IAuthorizationComparable` for custom comparison.
+ * @typeParam TRules - The rules type produced by `buildRules` and consumed by `evaluate`.
  *   - `CasbinAuthorizationEnforcer` → `IAuthUser`
- *
- * The default (`unknown`) allows the registry and options to work polymorphically.
- * Concrete enforcers should specify their abilities type for full type safety.
+ * @typeParam TBuildRulesReturn - Return type of `buildRules` (default: `ValueOrPromise<TRules>`).
+ * @typeParam TEvaluateReturn - Return type of `evaluate` (default: `ValueOrPromise<TAuthorizationDecision>`).
  *
  * @example
  * ```typescript
- * class MyEnforcer implements IAuthorizationEnforcer<IPermissionRule[]> { ... }
+ * class MyEnforcer implements IAuthorizationEnforcer<Env, string, string, unknown> { ... }
  * ```
  */
-export interface IAuthorizationEnforcer<TAbilities = unknown> {
+export interface IAuthorizationEnforcer<
+  E extends Env = Env,
+  TAction = string,
+  TResource = string,
+  TRules = unknown,
+  TBuildRulesReturn = ValueOrPromise<TRules>,
+  TEvaluateReturn = ValueOrPromise<TAuthorizationDecision>,
+> {
   name: string;
-  configure?(): ValueOrPromise<void>;
-  buildAbilities(opts: { user: IAuthUser; context: TContext }): ValueOrPromise<TAbilities>;
+
+  configure(): ValueOrPromise<void>;
+
+  buildRules(opts: {
+    user: { principalType: string } & IAuthUser;
+    context: TContext<E, string>;
+  }): TBuildRulesReturn;
+
   evaluate(opts: {
-    abilities: TAbilities;
-    action: string;
-    resource: string;
-    conditions?: TAuthorizationConditions;
-  }): boolean;
+    rules: TRules;
+    request: IAuthorizationRequest<TAction, TResource>;
+    context: TContext<E, string>;
+  }): TEvaluateReturn;
 }
 
 // --------------------------------------------------------------------------------------------------------
 // Route-level Declaration
 // --------------------------------------------------------------------------------------------------------
 
-export type TAuthorizationVoter<E extends Env = Env> = (opts: {
+export type TAuthorizationVoter<
+  E extends Env = Env,
+  TAction = string,
+  TResource = string,
+> = (opts: {
   user: IAuthUser;
-  action: string;
-  resource: string;
+  action: TAction;
+  resource: TResource;
   context: TContext<E, string>;
 }) => ValueOrPromise<TAuthorizationDecision>;
 
-export interface IAuthorizationSpec<E extends Env = Env> {
-  action: string;
-  resource: string;
+export interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = string> {
+  action: TAction;
+  resource: TResource;
   conditions?: TAuthorizationConditions;
   allowedRoles?: string[];
-  voters?: TAuthorizationVoter<E>[];
+  voters?: TAuthorizationVoter<E, TAction, TResource>[];
 }
 
 // --------------------------------------------------------------------------------------------------------
 // Authorize Function
 // --------------------------------------------------------------------------------------------------------
 
-export type TAuthorizeFn = (opts: {
-  spec: IAuthorizationSpec;
+export type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = string> = (opts: {
+  spec: IAuthorizationSpec<E, TAction, TResource>;
   enforcerName?: string;
 }) => MiddlewareHandler;
 
@@ -107,41 +132,57 @@ export type TAuthorizeFn = (opts: {
 // Component-level Configuration
 // --------------------------------------------------------------------------------------------------------
 
-export interface IAuthorizeOptions {
-  enforcer: TClass<IAuthorizationEnforcer>;
-  defaultDecision?: TAuthorizationDecision;
-  alwaysAllowRoles?: string[];
+export interface ICommonEnforcerOptions {
+  name: string;
+}
 
-  defineAbilitiesFor?: (opts: { user: IAuthUser; builder: IAbilityBuilder }) => void;
-
-  loadPermissions?: (opts: {
-    user: IAuthUser;
-    context: TContext;
-  }) => ValueOrPromise<IPermissionRule[]>;
-
-  normalizePayloadFn?: (opts: { user: IAuthUser; action: string; resource: string }) => {
-    subject: string;
-    resource: string;
-    action: string;
-  };
-
-  casbinOptions?: {
-    model: string;
-    /** Casbin adapter instance (e.g. `FileAdapter`, `SequelizeAdapter`). Requires `casbin` peer dep. */
-    adapter?: unknown;
-    useFilteredPolicy?: boolean;
+export interface ICasbinEnforcerCachedMemory {
+  driver: 'in-memory';
+  options: {
+    expiresIn: number;
   };
 }
 
-// --------------------------------------------------------------------------------------------------------
-// Hono Context Augmentation
-// --------------------------------------------------------------------------------------------------------
+export interface ICasbinEnforcerCachedRedis {
+  driver: 'redis';
+  options: {
+    connection: DefaultRedisHelper;
+    expiresIn: number;
+    keyFn: (opts: { user: { principalType: string } & IAuthUser }) => ValueOrPromise<string>;
+  };
+}
 
-declare module 'hono' {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  interface ContextVariableMap {
-    /** Cached abilities built by the enforcer's `buildAbilities()`. Type depends on enforcer. */
-    [Authorization.ABILITIES]: unknown;
-    [Authorization.SKIP_AUTHORIZATION]: boolean;
-  }
+export interface ICasbinEnforcerOptions<
+  E extends Env = Env,
+  TAction = string,
+  TResource = string,
+  TAdapter = Adapter,
+> extends ICommonEnforcerOptions {
+  model: string;
+  cached:
+    | { use: false }
+    | (ICasbinEnforcerCachedMemory & { use: true })
+    | (ICasbinEnforcerCachedRedis & { use: true });
+  adapter?: TAdapter;
+  useFilteredPolicy?: boolean;
+  normalizePayloadFn?(opts: {
+    user: IAuthUser;
+    action: TAction;
+    resource: TResource;
+    context: TContext<E, string>;
+  }): {
+    subject: string;
+    resource: string;
+    action: string;
+    domain?: string;
+  };
+}
+
+export interface IAuthorizeOptions<E extends Env = Env, TAction = string, TResource = string> {
+  defaultDecision: TAuthorizationDecision;
+  alwaysAllowRoles?: string[];
+
+  enforcers?: {
+    casbin?: ICasbinEnforcerOptions<E, TAction, TResource>;
+  };
 }

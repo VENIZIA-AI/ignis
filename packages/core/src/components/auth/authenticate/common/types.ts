@@ -5,21 +5,12 @@ import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-help
 import { Env, type MiddlewareHandler } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
-import { Authentication, type TAuthMode } from './constants';
-
-// Extend Hono's context variables to include authentication-related data
-declare module 'hono' {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  interface ContextVariableMap<User extends IAuthUser = IAuthUser> {
-    [Authentication.CURRENT_USER]: User;
-    [Authentication.AUDIT_USER_ID]: IdType;
-  }
-}
+import { type TAuthMode } from './constants';
 
 // --------------------------------------------------------------------------------------------------------
 export type TDefineAuthControllerOpts = {
   restPath?: string;
-  serviceKey?: string;
+  serviceKey: string;
   requireAuthenticatedSignUp?: boolean;
   payload?: {
     signIn?: {

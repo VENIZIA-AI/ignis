@@ -1,4 +1,4 @@
-import { TContext } from '@/base/controllers/common/types';
+import { asTypedContext } from '@/base/controllers/common/types';
 import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
 import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
@@ -26,6 +26,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
   private createAuthorizeMiddleware(opts: { spec: IAuthorizationSpec; enforcerName?: string }) {
     const { spec, enforcerName } = opts;
     const registry = AuthorizationEnforcerRegistry.getInstance();
+    const options = registry.resolveOptions();
 
     return createMiddleware(async (context, next) => {
       // 1. Check skip flag
@@ -41,13 +42,12 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
       if (!user) {
         throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.Forbidden,
+          statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
           message: 'Authorization failed: No authenticated user found',
         });
       }
 
-      // 3. Check alwaysAllowRoles (from options)
-      const options = registry.resolveOptions();
+      // 3. Check alwaysAllowRoles (from pre-resolved options)
       if (options?.alwaysAllowRoles?.length) {
         const userRoles = this.extractUserRoles({ user });
         if (userRoles.some(r => options.alwaysAllowRoles!.includes(r))) {
@@ -76,7 +76,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
             user,
             action: spec.action,
             resource: spec.resource,
-            context: context as unknown as TContext,
+            context: asTypedContext(context),
           });
 
           if (decision === AuthorizationDecisions.DENY) {
@@ -99,25 +99,28 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveAndConfigureEnforcer({ name: resolvedName });
 
-      // 7. Build or retrieve cached abilities
-      let abilities = context.get(Authorization.ABILITIES);
-      if (!abilities) {
-        abilities = await enforcer.buildAbilities({
-          user,
-          context: context as unknown as TContext,
+      // 7. Build or retrieve cached rules
+      let rules = context.get(Authorization.RULES);
+      if (!rules) {
+        rules = await enforcer.buildRules({
+          user: user as { principalType: string } & IAuthUser,
+          context: asTypedContext(context),
         });
-        context.set(Authorization.ABILITIES, abilities);
+        context.set(Authorization.RULES, rules);
       }
 
       // 8. Evaluate permission via enforcer
-      const isAllowed = enforcer.evaluate({
-        abilities,
-        action: spec.action,
-        resource: spec.resource,
-        conditions: spec.conditions,
+      const decision = await enforcer.evaluate({
+        rules,
+        request: {
+          action: spec.action,
+          resource: spec.resource,
+          conditions: spec.conditions,
+        },
+        context: asTypedContext(context),
       });
 
-      if (!isAllowed) {
+      if (decision !== AuthorizationDecisions.ALLOW) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.Forbidden,
           message: `Authorization denied | action: ${spec.action} | resource: ${spec.resource}`,
@@ -131,7 +134,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
   // ---------------------------------------------------------------------------
   private extractUserRoles(opts: { user: IAuthUser }): string[] {
     const { user } = opts;
-    const roles = (user as Record<string, unknown>).roles;
+    const roles = user.roles;
 
     if (!Array.isArray(roles)) {
       return [];
