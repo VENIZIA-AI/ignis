@@ -37,9 +37,6 @@ describe('AuthorizeComponent Lifecycle', () => {
       const authorizeOptions: IAuthorizeOptions = {
         defaultDecision: 'deny',
         alwaysAllowRoles: ['superadmin', 'root'],
-        enforcers: {
-          casbin: { name: 'casbin', model: '', cached: { use: false } },
-        },
       };
 
       container
@@ -57,52 +54,38 @@ describe('AuthorizeComponent Lifecycle', () => {
       expect(roles).toEqual(['superadmin', 'root']);
     });
 
-    test('should store casbin normalizePayloadFn in enforcer options', () => {
+    test('should store casbin normalizePayloadFn in per-enforcer options binding', () => {
+      const container = new Container({ scope: 'component-test-fn' });
+
       const normalizePayloadFn = ({ user, action, resource }: any) => ({
         subject: `user_${user.userId}`,
         resource,
         action,
       });
 
-      const authorizeOptions: IAuthorizeOptions = {
-        defaultDecision: 'deny',
-        enforcers: {
-          casbin: {
-            name: 'casbin',
-            model: '',
-            cached: { use: false },
-            normalizePayloadFn,
-          },
-        },
+      const enforcerOptions = {
+        model: '',
+        cached: { use: false },
+        normalizePayloadFn,
       };
 
-      // normalizePayloadFn is now accessed directly from enforcers.casbin
-      const fn = authorizeOptions.enforcers?.casbin?.normalizePayloadFn;
-      expect(fn).toBeDefined();
-      const rs = fn!({
+      // Enforcer options are now bound to a per-enforcer key
+      container
+        .bind({ key: AuthorizeBindingKeys.enforcerOptions('casbin') })
+        .toValue(enforcerOptions);
+
+      const resolved = container.get<typeof enforcerOptions>({
+        key: AuthorizeBindingKeys.enforcerOptions('casbin'),
+      });
+      expect(resolved.normalizePayloadFn).toBeDefined();
+
+      const rs = resolved.normalizePayloadFn!({
         user: { userId: '42' },
         action: 'read',
         resource: 'User',
         context: {} as any,
       });
       expect(rs.subject).toBe('user_42');
-    });
-  });
-
-  describe('component with missing enforcers', () => {
-    test('should throw when no enforcers are configured', () => {
-      // AuthorizeComponent checks: if (!opts.enforcers?.casbin) { throw ... }
-      const authorizeOptions = {
-        // enforcers intentionally empty
-        defaultDecision: 'deny',
-        enforcers: {},
-      } as IAuthorizeOptions;
-
-      expect(() => {
-        if (!authorizeOptions.enforcers?.casbin) {
-          throw new Error('[AuthorizeComponent] Casbin enforcer must be configured');
-        }
-      }).toThrow('Casbin enforcer must be configured');
     });
   });
 });

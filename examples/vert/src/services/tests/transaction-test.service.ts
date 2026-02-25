@@ -499,11 +499,7 @@ export class TransactionTestService extends BaseTestService {
       if (config && product) {
         this.logger.info('[CASE 11] PASSED | Both repos committed in same transaction');
       } else {
-        this.logger.error(
-          '[CASE 11] FAILED | config: %j | product: %j',
-          !!config,
-          !!product,
-        );
+        this.logger.error('[CASE 11] FAILED | config: %j | product: %j', !!config, !!product);
       }
 
       // Cleanup
@@ -593,8 +589,16 @@ export class TransactionTestService extends BaseTestService {
           );
         }
       } catch (error) {
-        try { await tx1.rollback(); } catch (_e) { /* ignore */ }
-        try { await tx2.rollback(); } catch (_e) { /* ignore */ }
+        try {
+          await tx1.rollback();
+        } catch (_e) {
+          /* ignore */
+        }
+        try {
+          await tx2.rollback();
+        } catch (_e) {
+          /* ignore */
+        }
         throw error;
       }
 
@@ -730,7 +734,10 @@ export class TransactionTestService extends BaseTestService {
       });
 
       if (withinTx.length !== 3) {
-        this.logger.error('[CASE 16] FAILED | Expected 3 records within tx | got: %d', withinTx.length);
+        this.logger.error(
+          '[CASE 16] FAILED | Expected 3 records within tx | got: %d',
+          withinTx.length,
+        );
         await transaction.rollback();
         return;
       }
@@ -743,11 +750,18 @@ export class TransactionTestService extends BaseTestService {
       if (afterRollback.length === 0) {
         this.logger.info('[CASE 16] PASSED | No data persisted after rollback');
       } else {
-        this.logger.error('[CASE 16] FAILED | %d records found after rollback', afterRollback.length);
+        this.logger.error(
+          '[CASE 16] FAILED | %d records found after rollback',
+          afterRollback.length,
+        );
         await repo.deleteAll({ where: { group } });
       }
     } catch (error) {
-      try { await transaction.rollback(); } catch (_e) { /* ignore */ }
+      try {
+        await transaction.rollback();
+      } catch (_e) {
+        /* ignore */
+      }
       this.logger.error('[CASE 16] FAILED with error: %o', error);
     }
   }
@@ -802,12 +816,21 @@ export class TransactionTestService extends BaseTestService {
       if (saleChannelProducts?.length === 1) {
         this.logger.info('[CASE 17] PASSED | All related entities committed together');
       } else {
-        this.logger.error('[CASE 17] FAILED | Relations not correct | got: %d', saleChannelProducts?.length);
+        this.logger.error(
+          '[CASE 17] FAILED | Relations not correct | got: %d',
+          saleChannelProducts?.length,
+        );
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { code: productCode }, options: { force: true, shouldSkipDefaultFilter: true } });
+      await junctionRepo.deleteAll({
+        where: { productId: product.data.id },
+        options: { force: true },
+      });
+      await productRepo.deleteAll({
+        where: { code: productCode },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
       await saleChannelRepo.deleteAll({ where: { code: channelCode }, options: { force: true } });
     } catch (error) {
       await transaction.rollback();
@@ -882,16 +905,30 @@ export class TransactionTestService extends BaseTestService {
 
       if (countInTx.count === 2 && existsInTx && countOutside.count === 0 && !existsOutside) {
         this.logger.info('[CASE 19] PASSED | Count/Exists work correctly in transaction context');
-        this.logger.info('[CASE 19] In TX: count=%d exists=%s | Outside: count=%d exists=%s',
-          countInTx.count, existsInTx, countOutside.count, existsOutside);
+        this.logger.info(
+          '[CASE 19] In TX: count=%d exists=%s | Outside: count=%d exists=%s',
+          countInTx.count,
+          existsInTx,
+          countOutside.count,
+          existsOutside,
+        );
       } else {
-        this.logger.error('[CASE 19] FAILED | countInTx=%d existsInTx=%s countOut=%d existsOut=%s',
-          countInTx.count, existsInTx, countOutside.count, existsOutside);
+        this.logger.error(
+          '[CASE 19] FAILED | countInTx=%d existsInTx=%s countOut=%d existsOut=%s',
+          countInTx.count,
+          existsInTx,
+          countOutside.count,
+          existsOutside,
+        );
       }
 
       await transaction.rollback();
     } catch (error) {
-      try { await transaction.rollback(); } catch (_e) { /* ignore */ }
+      try {
+        await transaction.rollback();
+      } catch (_e) {
+        /* ignore */
+      }
       this.logger.error('[CASE 19] FAILED with error: %o', error);
     }
   }
@@ -980,7 +1017,11 @@ export class TransactionTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      try { await transaction.rollback(); } catch (_e) { /* ignore */ }
+      try {
+        await transaction.rollback();
+      } catch (_e) {
+        /* ignore */
+      }
       this.logger.error('[CASE 20] FAILED with error: %o', error);
       await repo.deleteAll({ where: { group } }).catch(() => {});
     }

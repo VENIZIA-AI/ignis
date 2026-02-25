@@ -178,7 +178,8 @@ export class HiddenPropertiesTestService extends BaseTestService {
       // Test findById
       const findByIdUser = await repo.findById({ id: findOneUser.id });
       const findByIdKeys = findByIdUser ? Object.keys(findByIdUser) : [];
-      const findByIdHasHidden = findByIdKeys.includes('password') || findByIdKeys.includes('secret');
+      const findByIdHasHidden =
+        findByIdKeys.includes('password') || findByIdKeys.includes('secret');
 
       // Report results
       if (findOneHasHidden || findHasHidden || findByIdHasHidden) {

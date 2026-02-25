@@ -8,6 +8,7 @@ import {
   TSignUpRequestSchema,
   TSignUpResponseSchema,
 } from '@/models';
+import { Organization, PolicyDefinition, Role, User } from '@/models';
 import { UserRepository } from '@/repositories';
 import {
   BaseService,
@@ -21,8 +22,7 @@ import {
   UserTypes,
 } from '@venizia/ignis';
 import { hash, compare, genSalt } from 'bcrypt';
-import { User } from '@/models';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';
 
 export class AuthenticationService
@@ -115,7 +115,7 @@ export class AuthenticationService
 
     const userWithPassword = usersWithPassword[0];
 
-    if (!userWithPassword || !userWithPassword.password) {
+    if (!userWithPassword?.password) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Invalid credentials',
@@ -131,13 +131,19 @@ export class AuthenticationService
       });
     }
 
-    // Generate JWT token
+    // Query user roles and organization from PolicyDefinition
+    const userRoles = await this.getUserRoles({ userId: user.id as string });
+    const userOrg = await this.getUserOrganization({ userId: user.id as string });
+
+    // Generate JWT token with roles + organization
     const token = await this.jwtTokenService.generate({
       payload: {
         userId: user.id,
         email: user.email,
         username: user.username,
-        roles: [], // Add roles if available
+        principalType: 'user',
+        roles: userRoles,
+        organizationId: userOrg?.id ?? null, // Organization.id for domain-scoped RBAC
       },
     });
 
@@ -145,7 +151,7 @@ export class AuthenticationService
 
     return {
       userId: user.id as any, // Type assertion needed as schema expects number
-      roles: [],
+      roles: userRoles.map(r => r.identifier),
       token: {
         value: token,
         type: 'Bearer',
@@ -168,7 +174,7 @@ export class AuthenticationService
 
     const userWithPassword = usersWithPassword[0];
 
-    if (!userWithPassword || !userWithPassword.password) {
+    if (!userWithPassword?.password) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.NotFound,
         message: 'User not found',
@@ -209,5 +215,50 @@ export class AuthenticationService
     this.logger.info('GetUserInformation called');
     // Implement based on your needs
     return {};
+  }
+
+  // --------------------------------------------------------------------------------
+  // Private helpers for role/organization resolution
+  // --------------------------------------------------------------------------------
+
+  private async getUserRoles(opts: { userId: string }) {
+    const rows = await this.userRepository
+      .getConnector()
+      .select({
+        id: Role.schema.id,
+        identifier: Role.schema.identifier,
+        priority: Role.schema.priority,
+      })
+      .from(PolicyDefinition.schema)
+      .innerJoin(Role.schema, eq(PolicyDefinition.schema.targetId, Role.schema.id))
+      .where(
+        and(
+          eq(PolicyDefinition.schema.subjectType, 'user'),
+          eq(PolicyDefinition.schema.subjectId, opts.userId),
+          eq(PolicyDefinition.schema.targetType, 'role'),
+        ),
+      );
+    return rows;
+  }
+
+  private async getUserOrganization(opts: { userId: string }) {
+    const rows = await this.userRepository
+      .getConnector()
+      .select({
+        id: Organization.schema.id,
+        identifier: Organization.schema.identifier,
+        name: Organization.schema.name,
+      })
+      .from(PolicyDefinition.schema)
+      .innerJoin(Organization.schema, eq(PolicyDefinition.schema.domain, Organization.schema.id))
+      .where(
+        and(
+          eq(PolicyDefinition.schema.subjectType, 'user'),
+          eq(PolicyDefinition.schema.subjectId, opts.userId),
+          eq(PolicyDefinition.schema.targetType, 'role'),
+        ),
+      )
+      .limit(1);
+    return rows[0] ?? null;
   }
 }

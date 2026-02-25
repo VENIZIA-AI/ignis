@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'bun:test';
+import { AuthorizationEnforcerTypes } from '@/components/auth/authorize/common/constants';
 import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { AuthorizationEnforcerRegistry } from '@/components/auth/authorize/enforcers/enforcer-registry';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
@@ -36,12 +37,17 @@ describe('AuthorizationEnforcerRegistry', () => {
       // Bind the options that TestAuthorizationEnforcer needs
       container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
         defaultDecision: 'deny',
-        enforcers: { casbin: { name: 'test', model: '', cached: { use: false } } },
       });
 
       registry.register({
         container,
-        enforcers: [{ enforcer: TestAuthorizationEnforcer as any, name: 'test' }],
+        enforcers: [
+          {
+            enforcer: TestAuthorizationEnforcer as any,
+            name: 'test',
+            type: AuthorizationEnforcerTypes.CUSTOM,
+          },
+        ],
       });
 
       // Verify the enforcer was bound in the container
@@ -51,21 +57,26 @@ describe('AuthorizationEnforcerRegistry', () => {
       expect(isBound).toBe(true);
     });
 
-    test('should resolve a registered enforcer from container', () => {
+    test('should resolve a registered enforcer from container', async () => {
       const registry = createFreshRegistry();
       const container = new Container({ scope: 'test' });
 
       container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
         defaultDecision: 'deny',
-        enforcers: { casbin: { name: 'test', model: '', cached: { use: false } } },
       });
 
       registry.register({
         container,
-        enforcers: [{ enforcer: TestAuthorizationEnforcer as any, name: 'test' }],
+        enforcers: [
+          {
+            enforcer: TestAuthorizationEnforcer as any,
+            name: 'test',
+            type: AuthorizationEnforcerTypes.CUSTOM,
+          },
+        ],
       });
 
-      const enforcer = registry.resolveEnforcer({ name: 'test' });
+      const enforcer = await registry.resolveEnforcer({ name: 'test' });
       expect(enforcer).toBeDefined();
       expect(enforcer.name).toBe('test');
     });
@@ -76,7 +87,6 @@ describe('AuthorizationEnforcerRegistry', () => {
 
       container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
         defaultDecision: 'deny',
-        enforcers: { casbin: { name: 'test', model: '', cached: { use: false } } },
       });
 
       // Create a custom enforcer class
@@ -87,8 +97,16 @@ describe('AuthorizationEnforcerRegistry', () => {
       registry.register({
         container,
         enforcers: [
-          { enforcer: TestAuthorizationEnforcer as any, name: 'test' },
-          { enforcer: CustomEnforcer as any, name: 'custom' },
+          {
+            enforcer: TestAuthorizationEnforcer as any,
+            name: 'test',
+            type: AuthorizationEnforcerTypes.CUSTOM,
+          },
+          {
+            enforcer: CustomEnforcer as any,
+            name: 'custom',
+            type: AuthorizationEnforcerTypes.CUSTOM,
+          },
         ],
       });
 

@@ -1,10 +1,4 @@
-import {
-  BindingKeys,
-  BindingNamespaces,
-  DataTypes,
-  getUID,
-  inject,
-} from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../models/entities';
 import {
@@ -316,8 +310,11 @@ export class UserAuditTestService extends BaseTestService {
         ],
       });
 
-      if (created.count !== 3 || !created.data || created.data.length !== 3) {
-        this.logger.error('[CASE 3] FAILED | Expected 3 records created | count: %d', created.count);
+      if (created.count !== 3 || created.data?.length !== 3) {
+        this.logger.error(
+          '[CASE 3] FAILED | Expected 3 records created | count: %d',
+          created.count,
+        );
         return;
       }
 
@@ -541,9 +538,30 @@ export class UserAuditTestService extends BaseTestService {
       // Create multiple records
       await repo.createAll({
         data: [
-          { code: `${group}_1`, group, dataType: DataTypes.NUMBER, nValue: 100, createdBy: originalUser, modifiedBy: originalUser },
-          { code: `${group}_2`, group, dataType: DataTypes.NUMBER, nValue: 200, createdBy: originalUser, modifiedBy: originalUser },
-          { code: `${group}_3`, group, dataType: DataTypes.NUMBER, nValue: 300, createdBy: originalUser, modifiedBy: originalUser },
+          {
+            code: `${group}_1`,
+            group,
+            dataType: DataTypes.NUMBER,
+            nValue: 100,
+            createdBy: originalUser,
+            modifiedBy: originalUser,
+          },
+          {
+            code: `${group}_2`,
+            group,
+            dataType: DataTypes.NUMBER,
+            nValue: 200,
+            createdBy: originalUser,
+            modifiedBy: originalUser,
+          },
+          {
+            code: `${group}_3`,
+            group,
+            dataType: DataTypes.NUMBER,
+            nValue: 300,
+            createdBy: originalUser,
+            modifiedBy: originalUser,
+          },
         ],
       });
 
@@ -642,7 +660,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Verify regular user's update
-      let connector = repo.getConnector();
+      const connector = repo.getConnector();
       let [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -847,10 +865,34 @@ export class UserAuditTestService extends BaseTestService {
       // Create records with different creators
       await repo.createAll({
         data: [
-          { code: `${group}_1`, group, dataType: DataTypes.TEXT, createdBy: userA, modifiedBy: userA },
-          { code: `${group}_2`, group, dataType: DataTypes.TEXT, createdBy: userA, modifiedBy: userB },
-          { code: `${group}_3`, group, dataType: DataTypes.TEXT, createdBy: userB, modifiedBy: userB },
-          { code: `${group}_4`, group, dataType: DataTypes.TEXT, createdBy: userC, modifiedBy: userA },
+          {
+            code: `${group}_1`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userA,
+            modifiedBy: userA,
+          },
+          {
+            code: `${group}_2`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userA,
+            modifiedBy: userB,
+          },
+          {
+            code: `${group}_3`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userB,
+            modifiedBy: userB,
+          },
+          {
+            code: `${group}_4`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userC,
+            modifiedBy: userA,
+          },
         ],
       });
 
@@ -894,9 +936,15 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       if (countByCreator.count === 1) {
-        this.logger.info('[CASE 10] PASSED | Count by createdBy | userB created %d records', countByCreator.count);
+        this.logger.info(
+          '[CASE 10] PASSED | Count by createdBy | userB created %d records',
+          countByCreator.count,
+        );
       } else {
-        this.logger.error('[CASE 10] FAILED | Count by createdBy | expected 1 | got %d', countByCreator.count);
+        this.logger.error(
+          '[CASE 10] FAILED | Count by createdBy | expected 1 | got %d',
+          countByCreator.count,
+        );
       }
 
       // Cleanup
@@ -1121,10 +1169,12 @@ export class UserAuditTestService extends BaseTestService {
 
       // Launch concurrent updates with different users
       const updatePromises = users.map((user, idx) =>
-        repo.updateById({
-          id: recordId,
-          data: { nValue: (idx + 1) * 100, modifiedBy: user },
-        }).catch(err => ({ error: err })),
+        repo
+          .updateById({
+            id: recordId,
+            data: { nValue: (idx + 1) * 100, modifiedBy: user },
+          })
+          .catch(err => ({ error: err })),
       );
 
       await Promise.all(updatePromises);
@@ -1434,18 +1484,42 @@ export class UserAuditTestService extends BaseTestService {
       // Create test data
       await repo.createAll({
         data: [
-          { code: `${group}_1`, group, dataType: DataTypes.TEXT, createdBy: userA, modifiedBy: userA },
-          { code: `${group}_2`, group, dataType: DataTypes.TEXT, createdBy: userA, modifiedBy: userB },
-          { code: `${group}_3`, group, dataType: DataTypes.TEXT, createdBy: userB, modifiedBy: userB },
+          {
+            code: `${group}_1`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userA,
+            modifiedBy: userA,
+          },
+          {
+            code: `${group}_2`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userA,
+            modifiedBy: userB,
+          },
+          {
+            code: `${group}_3`,
+            group,
+            dataType: DataTypes.TEXT,
+            createdBy: userB,
+            modifiedBy: userB,
+          },
         ],
       });
 
       // Count by createdBy
       const countCreatedByA = await repo.count({ where: { group, createdBy: userA } });
       if (countCreatedByA.count === 2) {
-        this.logger.info('[CASE 17] PASSED | Count by createdBy | userA: %d', countCreatedByA.count);
+        this.logger.info(
+          '[CASE 17] PASSED | Count by createdBy | userA: %d',
+          countCreatedByA.count,
+        );
       } else {
-        this.logger.error('[CASE 17] FAILED | Count by createdBy | expected 2 | got %d', countCreatedByA.count);
+        this.logger.error(
+          '[CASE 17] FAILED | Count by createdBy | expected 2 | got %d',
+          countCreatedByA.count,
+        );
       }
 
       // ExistsWith by modifiedBy

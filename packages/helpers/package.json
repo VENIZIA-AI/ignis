@@ -155,7 +155,7 @@
     "drizzle-orm": "^0.45.1",
     "dayjs": "^1.11.19",
     "hono": "^4.12.1",
-    "ioredis": "5.9.2",
+    "ioredis": "5.9.3",
     "lodash": "^4.17.23",
     "reflect-metadata": "^0.2.2",
     "winston": "^3.17.0",

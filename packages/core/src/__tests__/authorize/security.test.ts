@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'bun:test';
+import { AuthorizationEnforcerTypes } from '@/components/auth/authorize/common/constants';
 import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { authorize } from '@/components/auth/authorize/middlewares';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
@@ -36,12 +37,17 @@ describe('Security Tests', () => {
     container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
       defaultDecision: 'deny',
       alwaysAllowRoles: opts?.alwaysAllowRoles,
-      enforcers: { casbin: { name: 'test', model: '', cached: { use: false } } },
     });
 
     registry.register({
       container,
-      enforcers: [{ enforcer: TestAuthorizationEnforcer as any, name: 'test' }],
+      enforcers: [
+        {
+          enforcer: TestAuthorizationEnforcer as any,
+          name: 'test',
+          type: AuthorizationEnforcerTypes.CUSTOM,
+        },
+      ],
     });
 
     return { registry, container };

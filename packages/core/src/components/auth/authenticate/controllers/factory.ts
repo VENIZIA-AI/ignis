@@ -68,7 +68,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
             }),
           },
           responses: jsonResponse({
-            schema: payload?.signIn?.request?.schema ?? AnyObjectSchema,
+            schema: payload?.signIn?.response?.schema ?? AnyObjectSchema,
             description: 'Success Response',
           }),
         },

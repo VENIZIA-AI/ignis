@@ -1,11 +1,13 @@
 import { Container } from '@/helpers/inversion/container';
-import { TClass } from '@venizia/ignis-helpers';
+import { getError, TClass } from '@venizia/ignis-helpers';
 import { AbstractAuthRegistry } from '../../base';
 import {
   Authorization,
+  AuthorizationEnforcerTypes,
   AuthorizeBindingKeys,
   IAuthorizationEnforcer,
   IAuthorizeOptions,
+  ICasbinEnforcerOptions,
 } from '../common';
 
 // --------------------------------------------------------------------------------------------------------
@@ -45,12 +47,45 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   // ---------------------------------------------------------------------------
   register(opts: {
     container: Container;
-    enforcers: { enforcer: TClass<IAuthorizationEnforcer>; name: string }[];
+    enforcers: Array<
+      | {
+          enforcer: TClass<IAuthorizationEnforcer>;
+          name: string;
+          type: typeof AuthorizationEnforcerTypes.CASBIN;
+          options?: ICasbinEnforcerOptions;
+        }
+      | {
+          enforcer: TClass<IAuthorizationEnforcer>;
+          name: string;
+          type: typeof AuthorizationEnforcerTypes.CUSTOM;
+          options?: unknown;
+        }
+    >;
   }) {
     const { container, enforcers } = opts;
 
-    for (const { enforcer, name } of enforcers) {
+    // Validate no duplicate names in this batch
+    const names = enforcers.map(e => e.name);
+    const duplicateNames = names.filter((n, i) => names.indexOf(n) !== i);
+    if (duplicateNames.length) {
+      throw getError({
+        message: `[AuthorizationEnforcerRegistry] Duplicate enforcer name(s): ${[...new Set(duplicateNames)].join(', ')}`,
+      });
+    }
+
+    for (const { enforcer, name, options } of enforcers) {
+      // Validate name not already registered
+      if (this.descriptors.has(name)) {
+        throw getError({
+          message: `[AuthorizationEnforcerRegistry] Enforcer already registered: ${name}`,
+        });
+      }
+
       this.registerDescriptor({ container, target: enforcer, name });
+
+      if (options) {
+        container.bind({ key: AuthorizeBindingKeys.enforcerOptions(name) }).toValue(options);
+      }
     }
 
     return this;
@@ -61,12 +96,8 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return this.getDefaultName();
   }
 
-  resolveEnforcer(opts: { name: string }): IAuthorizationEnforcer {
-    return this.resolveDescriptor(opts);
-  }
-
-  async resolveAndConfigureEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
-    const enforcer = this.resolveEnforcer(opts);
+  async resolveEnforcer(opts: { name: string }): Promise<IAuthorizationEnforcer> {
+    const enforcer = this.resolveDescriptor(opts);
 
     if (!this.configuredEnforcers.has(opts.name)) {
       await enforcer.configure();

@@ -1,23 +1,27 @@
 ---
 title: Authorization System & Auth Module Refactor
-description: Enforcer-based authorization with RBAC, ABAC, voters, Casbin integration, and comprehensive auth module restructuring
+description: Enforcer-based authorization with RBAC, voters, Casbin integration, filtered adapters, and comprehensive auth module restructuring
 ---
 
-# Changelog - 2026-02-16
+# Changelog - 2026-02-16 (Updated 2026-02-25)
 
 ## Authorization System & Auth Module Refactor
 
-This release introduces a complete authorization system alongside a major restructuring of the authentication module. The authorization system supports both built-in RBAC/ABAC and optional Casbin integration, following the same registry-based architecture as authentication.
+This release introduces a complete authorization system alongside a major restructuring of the authentication module. The authorization system supports Casbin integration and custom enforcers, following the same registry-based architecture as authentication.
+
+> [!NOTE]
+> **2026-02-25 Update:** Major refactoring -- removed `DefaultAuthorizationEnforcer` and `AbilityBuilder`, moved enforcer options to co-locate with registry registration, added `BaseFilteredAdapter` and `DrizzleCasbinAdapter`, introduced `CasbinRuleVariants` constants, simplified `IAuthorizeOptions`, merged authorization flow from 8 steps to 7.
 
 ## Overview
 
-- **Authorization System**: Enforcer-based authorization with deny-first semantics, voter pattern, ability caching, and role shortcuts
-- **Default Enforcer**: Zero-dependency RBAC/ABAC enforcer with `AbilityBuilder` for static rules and `loadPermissions` for DB-driven rules
-- **Casbin Enforcer**: Optional integration with the `casbin` library for policy-engine-based authorization
+- **Authorization System**: Enforcer-based authorization with voter pattern, rules caching, and role shortcuts
+- **Casbin Enforcer**: Integration with the `casbin` library for policy-engine-based authorization (optional peer dep)
+- **Filtered Adapters**: `BaseFilteredAdapter` (template method) + `DrizzleCasbinAdapter` (raw SQL via Drizzle) for loading user-scoped policies
+- **Registry-based Registration**: Enforcer class, name, type, and options co-located in `AuthorizationEnforcerRegistry.register()`
 - **Auth Module Restructure**: Consistent file organization across authenticate and authorize modules
 - **Import Cleanup**: Replaced barrel `@/` imports with specific file paths to prevent circular dependencies
 - **Helpers Rename**: `packages/helpers/src/helpers/` renamed to `packages/helpers/src/modules/`
-- **Terminology Update**: `requirement` renamed to `spec` throughout the authorization module
+- **Terminology Update**: `requirement` renamed to `spec`, `abilities` renamed to `rules` throughout the authorization module
 
 ## Breaking Changes
 
@@ -85,55 +89,65 @@ authorize({ spec: { action: AuthorizationActions.READ, resource: 'Article' } })
 
 **Problem:** Ignis had authentication but no authorization. Developers needed to implement their own permission checking logic.
 
-**Solution:** A pluggable enforcer-based authorization system that integrates seamlessly with the existing authentication middleware chain.
+**Solution:** A pluggable enforcer-based authorization system that integrates seamlessly with the existing authentication middleware chain. Setup is a three-step process: bind global options, register the component, then register enforcers via the registry.
 
 ```typescript
 import {
   AuthorizeComponent,
   AuthorizeBindingKeys,
-  DefaultAuthorizationEnforcer,
-  AuthorizationActions,
-  AuthorizationDecisions,
-  AuthorizationRoles,
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
+  CasbinAuthorizationEnforcer,
+  CasbinEnforcerModelDrivers,
+  DrizzleCasbinAdapter,
   IAuthorizeOptions,
 } from '@venizia/ignis';
 
-// Configure authorization
+// Step 1: Global options (simplified — no enforcer-specific config)
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: DefaultAuthorizationEnforcer,
-  defaultDecision: AuthorizationDecisions.DENY,
-  alwaysAllowRoles: [AuthorizationRoles.SUPER_ADMIN.name],
-  defineAbilitiesFor: ({ user, builder }) => {
-    builder.allow({ action: AuthorizationActions.READ, resource: 'Article' });
-    builder.allow({ action: AuthorizationActions.CREATE, resource: 'Article' });
-    builder.deny({ action: AuthorizationActions.DELETE, resource: 'Article' });
-  },
+  defaultDecision: 'deny',
+  alwaysAllowRoles: ['999_super-admin'],
 });
 
+// Step 2: Register component
 this.component(AuthorizeComponent);
+
+// Step 3: Register enforcer(s) with co-located options
+AuthorizationEnforcerRegistry.getInstance().register({
+  container: this,
+  enforcers: [{
+    enforcer: CasbinAuthorizationEnforcer,
+    name: 'casbin',
+    type: AuthorizationEnforcerTypes.CASBIN,
+    options: {
+      model: { driver: CasbinEnforcerModelDrivers.FILE, definition: './security/model.conf' },
+      adapter: new DrizzleCasbinAdapter({ dataSource, entities: { ... } }),
+      cached: { use: false },
+    },
+  }],
+});
 ```
 
 **Benefits:**
-- Deny-first semantics (deny always takes precedence over allow)
 - Role-based shortcuts (`alwaysAllowRoles`, `allowedRoles`)
 - Voter pattern for custom authorization logic
-- ABAC via condition matching
-- Ability caching per-request on Hono context
+- Rules caching per-request on Hono context
 - CRUD factory integration with per-route overrides
 - Casbin integration as optional peer dependency
+- Filtered adapter pattern for loading user-scoped policies
+- Registry-based enforcer registration with co-located options
 
-### Authorization Middleware Pipeline (8 Steps)
+### Authorization Middleware Pipeline (7 Steps)
 
 | Step | Action | Short-circuits? |
 |------|--------|-----------------|
 | 1 | Check `SKIP_AUTHORIZATION` flag | Yes |
-| 2 | Get authenticated user | Yes (403) |
-| 3 | Check global `alwaysAllowRoles` | Yes |
-| 4 | Check per-route `allowedRoles` | Yes |
-| 5 | Execute voters | Yes (DENY/ALLOW) |
-| 6 | Resolve enforcer | No |
-| 7 | Build/cache abilities | No |
-| 8 | Evaluate via enforcer | Yes (403) |
+| 2 | Get authenticated user | Yes (401) |
+| 3 | Check role-based shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Yes |
+| 4 | Execute voters | Yes (DENY/ALLOW) |
+| 5 | Resolve enforcer | No |
+| 6 | Build/cache rules | No |
+| 7 | Evaluate via enforcer | Yes (403) |
 
 ### CRUD Factory Authorization Support
 
@@ -190,8 +204,9 @@ auth/
 │   ├── strategies/      # JWT, Basic strategies + registry
 │   └── index.ts
 ├── authorize/
-│   ├── common/          # Constants, keys, types
-│   ├── enforcers/       # Default, Casbin enforcers + registry
+│   ├── adapters/        # BaseFilteredAdapter, DrizzleCasbinAdapter
+│   ├── common/          # Constants (CasbinRuleVariants, etc.), keys, types
+│   ├── enforcers/       # CasbinAuthorizationEnforcer + registry
 │   ├── middlewares/      # authorize() middleware
 │   ├── models/          # AuthorizationRole
 │   ├── providers/       # AuthorizationProvider
@@ -233,14 +248,15 @@ authorize/providers/    → authorize/middlewares/authorize.middleware.ts
 
 | File | Changes |
 |------|---------|
-| `src/components/auth/authorize/common/constants.ts` | Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationRoles constants |
-| `src/components/auth/authorize/common/keys.ts` | AuthorizeBindingKeys binding key constants |
-| `src/components/auth/authorize/common/types.ts` | IAuthorizationEnforcer, IAuthorizationSpec, IAuthorizeOptions, TAuthorizationVoter, IPermissionRule, IAbilityBuilder, TAuthorizeFn |
+| `src/components/auth/authorize/common/constants.ts` | Authorization, AuthorizationActions, AuthorizationDecisions, AuthorizationRoles, AuthorizationEnforcerTypes, CasbinEnforcerCachedDrivers, CasbinEnforcerModelDrivers, CasbinRuleVariants constants |
+| `src/components/auth/authorize/common/keys.ts` | AuthorizeBindingKeys (OPTIONS, ALWAYS_ALLOW_ROLES, enforcerOptions(name)) |
+| `src/components/auth/authorize/common/types.ts` | IAuthorizationEnforcer, IAuthorizationSpec, IAuthorizeOptions, ICasbinEnforcerOptions, TAuthorizationVoter, TAuthorizeFn |
 | `src/components/auth/authorize/common/index.ts` | Barrel export for common |
-| `src/components/auth/authorize/component.ts` | AuthorizeComponent -- registers enforcer and bindings |
-| `src/components/auth/authorize/enforcers/enforcer-registry.ts` | AuthorizationEnforcerRegistry singleton |
-| `src/components/auth/authorize/enforcers/default.enforcer.ts` | DefaultAuthorizationEnforcer + AbilityBuilder |
-| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | CasbinAuthorizationEnforcer (optional peer dep) |
+| `src/components/auth/authorize/adapters/base-filtered.ts` | BaseFilteredAdapter -- abstract template method pattern for casbin FilteredAdapter |
+| `src/components/auth/authorize/adapters/drizzle-casbin.ts` | DrizzleCasbinAdapter -- Drizzle-based read-only FilteredAdapter with raw SQL |
+| `src/components/auth/authorize/component.ts` | AuthorizeComponent -- validates options, binds alwaysAllowRoles |
+| `src/components/auth/authorize/enforcers/enforcer-registry.ts` | AuthorizationEnforcerRegistry singleton with type-discriminated register() |
+| `src/components/auth/authorize/enforcers/casbin.enforcer.ts` | CasbinAuthorizationEnforcer (optional peer dep, injects options from registry) |
 | `src/components/auth/authorize/middlewares/authorize.middleware.ts` | authorize() standalone function |
 | `src/components/auth/authorize/providers/authorization.provider.ts` | AuthorizationProvider -- middleware factory |
 | `src/components/auth/authorize/models/authorization-role.model.ts` | AuthorizationRole value object |
@@ -293,29 +309,41 @@ import { IAuthRouteConfig } from '@venizia/ignis';
 
 ### Step 2: Add Authorization (Optional)
 
-If you want authorization, bind options and register the component:
+If you want authorization, follow the three-step setup:
 
 ```typescript
 import {
   AuthorizeBindingKeys,
   AuthorizeComponent,
-  DefaultAuthorizationEnforcer,
-  AuthorizationDecisions,
-  AuthorizationRoles,
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
+  CasbinAuthorizationEnforcer,
+  CasbinEnforcerModelDrivers,
   IAuthorizeOptions,
 } from '@venizia/ignis';
 
-// In preConfigure():
+// Step 1: Bind global options (simplified — no enforcer-specific config)
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: DefaultAuthorizationEnforcer,
-  defaultDecision: AuthorizationDecisions.DENY,
-  alwaysAllowRoles: [AuthorizationRoles.SUPER_ADMIN.name],
-  defineAbilitiesFor: ({ user, builder }) => {
-    // Define your rules
-  },
+  defaultDecision: 'deny',
+  alwaysAllowRoles: ['999_super-admin'],
 });
 
+// Step 2: Register component
 this.component(AuthorizeComponent);
+
+// Step 3: Register enforcer(s) with co-located options
+AuthorizationEnforcerRegistry.getInstance().register({
+  container: this,
+  enforcers: [{
+    enforcer: CasbinAuthorizationEnforcer,
+    name: 'casbin',
+    type: AuthorizationEnforcerTypes.CASBIN,
+    options: {
+      model: { driver: CasbinEnforcerModelDrivers.FILE, definition: './security/model.conf' },
+      cached: { use: false },
+    },
+  }],
+});
 ```
 
 ### Step 3: Add Authorization to Routes

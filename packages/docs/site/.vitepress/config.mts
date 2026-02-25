@@ -348,7 +348,7 @@ const config = defineConfig({
               ],
             },
             {
-              text: 'Authorization (Experimental)',
+              text: 'Authorization',
               collapsed: true,
               items: [
                 { text: 'Setup & Configuration', link: '/references/components/authorization/' },

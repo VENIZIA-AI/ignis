@@ -9,7 +9,7 @@
     "bun": ">=1.3"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json && cp -r src/security dist/",
     "clean": "sh ./scripts/clean.sh",
     "compile:linux": "bun build --compile --minify --sourcemap --target=bun-linux-x64 ./src/index.ts --outfile ./dist/vert",
     "eslint": "eslint --report-unused-disable-directives .",
@@ -18,9 +18,12 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
-    "migrate:dev": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
-    "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
+    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+    "migrate:push": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
+    "migrate:generate": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
     "preserver:dev": "bun run rebuild",
+    "seed:authz": "NODE_ENV=development bun run scripts/seed-authz-test-data.ts",
+    "test:authz": "bash scripts/test-authorization.sh",
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."
   },
@@ -42,6 +45,7 @@
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.12.1",
+    "ioredis": "5.9.3",
     "lodash": "^4.17.23",
     "pg": "^8.18.0",
     "rxjs": "^7.8.2"

@@ -3,7 +3,11 @@ import { type DefaultRedisHelper, type ValueOrPromise } from '@venizia/ignis-hel
 import { type Adapter } from 'casbin';
 import { Env, type MiddlewareHandler } from 'hono';
 import { IAuthUser } from '../../authenticate';
-import { TAuthorizationDecision } from './constants';
+import {
+  CasbinEnforcerCachedDrivers,
+  CasbinEnforcerModelDrivers,
+  TAuthorizationDecision,
+} from './constants';
 
 // --------------------------------------------------------------------------------------------------------
 // Foundational Types
@@ -132,19 +136,15 @@ export type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = stri
 // Component-level Configuration
 // --------------------------------------------------------------------------------------------------------
 
-export interface ICommonEnforcerOptions {
-  name: string;
-}
-
 export interface ICasbinEnforcerCachedMemory {
-  driver: 'in-memory';
+  driver: typeof CasbinEnforcerCachedDrivers.IN_MEMORY;
   options: {
     expiresIn: number;
   };
 }
 
 export interface ICasbinEnforcerCachedRedis {
-  driver: 'redis';
+  driver: typeof CasbinEnforcerCachedDrivers.REDIS;
   options: {
     connection: DefaultRedisHelper;
     expiresIn: number;
@@ -157,14 +157,15 @@ export interface ICasbinEnforcerOptions<
   TAction = string,
   TResource = string,
   TAdapter = Adapter,
-> extends ICommonEnforcerOptions {
-  model: string;
+> {
+  model:
+    | { driver: typeof CasbinEnforcerModelDrivers.FILE; definition: string }
+    | { driver: typeof CasbinEnforcerModelDrivers.TEXT; definition: string };
   cached:
     | { use: false }
     | (ICasbinEnforcerCachedMemory & { use: true })
     | (ICasbinEnforcerCachedRedis & { use: true });
   adapter?: TAdapter;
-  useFilteredPolicy?: boolean;
   normalizePayloadFn?(opts: {
     user: IAuthUser;
     action: TAction;
@@ -178,11 +179,7 @@ export interface ICasbinEnforcerOptions<
   };
 }
 
-export interface IAuthorizeOptions<E extends Env = Env, TAction = string, TResource = string> {
+export interface IAuthorizeOptions {
   defaultDecision: TAuthorizationDecision;
   alwaysAllowRoles?: string[];
-
-  enforcers?: {
-    casbin?: ICasbinEnforcerOptions<E, TAction, TResource>;
-  };
 }

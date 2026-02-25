@@ -25,16 +25,16 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
   // ---------------------------------------------------------------------------
   private createAuthorizeMiddleware(opts: { spec: IAuthorizationSpec; enforcerName?: string }) {
     const { spec, enforcerName } = opts;
-    const registry = AuthorizationEnforcerRegistry.getInstance();
-    const options = registry.resolveOptions();
+    const logger = this.logger.for(this.createAuthorizeMiddleware.name);
 
     return createMiddleware(async (context, next) => {
+      const registry = AuthorizationEnforcerRegistry.getInstance();
+      const options = registry.resolveOptions();
+
       // 1. Check skip flag
       const isSkipAuthorize = context.get(Authorization.SKIP_AUTHORIZATION);
       if (isSkipAuthorize) {
-        this.logger
-          .for(this.createAuthorizeMiddleware.name)
-          .debug('SKIP checking authorization | path: %s', context.req.path);
+        logger.warn('SKIP checking authorization | path: %s', context.req.path);
         return next();
       }
 
@@ -47,29 +47,29 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         });
       }
 
-      // 3. Check alwaysAllowRoles (from pre-resolved options)
-      if (options?.alwaysAllowRoles?.length) {
+      // 3. Check role-based shortcuts (alwaysAllowRoles + per-route allowedRoles)
+      const needsRoleCheck = options?.alwaysAllowRoles?.length || spec.allowedRoles?.length;
+      if (needsRoleCheck) {
         const userRoles = this.extractUserRoles({ user });
-        if (userRoles.some(r => options.alwaysAllowRoles!.includes(r))) {
-          this.logger
-            .for(this.createAuthorizeMiddleware.name)
-            .debug('User has always-allow role, skipping authorization');
+
+        if (
+          options?.alwaysAllowRoles?.length &&
+          userRoles.some(r => options.alwaysAllowRoles!.includes(r))
+        ) {
+          logger.warn(
+            'SKIP checking authorization | User has always-allow role | userRoles: %s',
+            userRoles,
+          );
+          return next();
+        }
+
+        if (spec.allowedRoles?.length && userRoles.some(r => spec.allowedRoles!.includes(r))) {
+          logger.warn('GRANT access | User has allowed role for route | userRoles: %s', userRoles);
           return next();
         }
       }
 
-      // 4. Check per-route allowedRoles
-      if (spec.allowedRoles?.length) {
-        const userRoles = this.extractUserRoles({ user });
-        if (userRoles.some(r => spec.allowedRoles!.includes(r))) {
-          this.logger
-            .for(this.createAuthorizeMiddleware.name)
-            .debug('User has allowed role for route, granting access');
-          return next();
-        }
-      }
-
-      // 5. Execute voters
+      // 4. Execute voters
       if (spec.voters?.length) {
         for (const voter of spec.voters) {
           const decision = await voter({
@@ -95,13 +95,21 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      // 6. Resolve enforcer
+      // 5. Resolve enforcer
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
-      const enforcer = await registry.resolveAndConfigureEnforcer({ name: resolvedName });
+      const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-      // 7. Build or retrieve cached rules
+      // 6. Build or retrieve cached rules
       let rules = context.get(Authorization.RULES);
       if (!rules) {
+        if (!user.principalType) {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+            message:
+              'Authorization failed: user.principalType is required for enforcer-based authorization',
+          });
+        }
+
         rules = await enforcer.buildRules({
           user: user as { principalType: string } & IAuthUser,
           context: asTypedContext(context),
@@ -109,8 +117,8 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         context.set(Authorization.RULES, rules);
       }
 
-      // 8. Evaluate permission via enforcer
-      const decision = await enforcer.evaluate({
+      // 7. Evaluate permission via enforcer
+      let decision = await enforcer.evaluate({
         rules,
         request: {
           action: spec.action,
@@ -119,6 +127,10 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         },
         context: asTypedContext(context),
       });
+
+      if (decision === AuthorizationDecisions.ABSTAIN) {
+        decision = options?.defaultDecision ?? AuthorizationDecisions.DENY;
+      }
 
       if (decision !== AuthorizationDecisions.ALLOW) {
         throw getError({

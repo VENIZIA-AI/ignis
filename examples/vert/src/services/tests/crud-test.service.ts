@@ -735,10 +735,7 @@ export class CrudTestService extends BaseTestService {
       if (countAll.count === 5) {
         this.logger.info('[case14_CountOperation] PASSED | Count all: %d', countAll.count);
       } else {
-        this.logger.error(
-          '[case14_CountOperation] FAILED | Expected 5 | got: %d',
-          countAll.count,
-        );
+        this.logger.error('[case14_CountOperation] FAILED | Expected 5 | got: %d', countAll.count);
       }
 
       // Count with additional filter
@@ -764,10 +761,7 @@ export class CrudTestService extends BaseTestService {
       if (countNone.count === 0) {
         this.logger.info('[case14_CountOperation] PASSED | Count with no matches: 0');
       } else {
-        this.logger.error(
-          '[case14_CountOperation] FAILED | Expected 0 | got: %d',
-          countNone.count,
-        );
+        this.logger.error('[case14_CountOperation] FAILED | Expected 0 | got: %d', countNone.count);
       }
 
       await repo.deleteAll({ where: { group } });
@@ -880,14 +874,16 @@ export class CrudTestService extends BaseTestService {
       // Test 2: Race condition with duplicate codes (tests unique constraint handling)
       const duplicateCode = `RACE_DUP_${getUID()}`;
       const racePromises = Array.from({ length: 5 }, () =>
-        repo.create({
-          data: {
-            code: duplicateCode,
-            group: `${group}_RACE`,
-            dataType: DataTypes.NUMBER,
-            nValue: 100,
-          },
-        }).catch(err => ({ error: err, count: 0 })),
+        repo
+          .create({
+            data: {
+              code: duplicateCode,
+              group: `${group}_RACE`,
+              dataType: DataTypes.NUMBER,
+              nValue: 100,
+            },
+          })
+          .catch(err => ({ error: err, count: 0 })),
       );
 
       const raceResults = await Promise.all(racePromises);
@@ -1057,20 +1053,27 @@ export class CrudTestService extends BaseTestService {
           { code: `${group}_SMALL`, group, dataType: DataTypes.NUMBER, nValue: smallDecimal },
           { code: `${group}_LARGE`, group, dataType: DataTypes.NUMBER, nValue: largeDecimal },
           { code: `${group}_NEGATIVE`, group, dataType: DataTypes.NUMBER, nValue: negativeDecimal },
-          { code: `${group}_SCIENTIFIC`, group, dataType: DataTypes.NUMBER, nValue: scientificNotation },
+          {
+            code: `${group}_SCIENTIFIC`,
+            group,
+            dataType: DataTypes.NUMBER,
+            nValue: scientificNotation,
+          },
           { code: `${group}_ZERO_POINT`, group, dataType: DataTypes.NUMBER, nValue: 0.0 },
         ],
       });
 
       // Helper for relative tolerance comparison (handles very small numbers correctly)
       const isCloseEnough = (actual: number, expected: number): boolean => {
-        if (expected === 0) return Math.abs(actual) < 1e-15;
+        if (expected === 0) {
+          return Math.abs(actual) < 1e-15;
+        }
         return Math.abs((actual - expected) / expected) < 1e-10; // 0.00000001% relative error
       };
 
       // Verify PI with floating point precision
       const piRecord = await repo.findOne({ filter: { where: { code: `${group}_PI` } } });
-      if (piRecord && piRecord.nValue !== null && isCloseEnough(piRecord.nValue, pi)) {
+      if (piRecord?.nValue !== null && isCloseEnough(piRecord.nValue, pi)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | PI value: %d (precision maintained)',
           piRecord.nValue,
@@ -1085,7 +1088,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify very small decimal
       const smallRecord = await repo.findOne({ filter: { where: { code: `${group}_SMALL` } } });
-      if (smallRecord && smallRecord.nValue !== null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
+      if (smallRecord?.nValue !== null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Small decimal: %d',
           smallRecord.nValue,
@@ -1100,7 +1103,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify large decimal
       const largeRecord = await repo.findOne({ filter: { where: { code: `${group}_LARGE` } } });
-      if (largeRecord && largeRecord.nValue !== null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
+      if (largeRecord?.nValue !== null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Large decimal: %d',
           largeRecord.nValue,
@@ -1115,7 +1118,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify negative decimal
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
-      if (negRecord && negRecord.nValue !== null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
+      if (negRecord?.nValue !== null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Negative decimal: %d',
           negRecord.nValue,
@@ -1130,7 +1133,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify scientific notation
       const sciRecord = await repo.findOne({ filter: { where: { code: `${group}_SCIENTIFIC` } } });
-      if (sciRecord && sciRecord.nValue !== null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
+      if (sciRecord?.nValue !== null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Scientific notation: %d',
           sciRecord.nValue,
@@ -1169,7 +1172,11 @@ export class CrudTestService extends BaseTestService {
       });
 
       const updatedRecord = await repo.findById({ id: recordToUpdate!.id });
-      if (updatedRecord && updatedRecord.nValue !== null && Math.abs(updatedRecord.nValue - newValue) < 1e-10) {
+      if (
+        updatedRecord &&
+        updatedRecord.nValue !== null &&
+        Math.abs(updatedRecord.nValue - newValue) < 1e-10
+      ) {
         this.logger.info(
           "[case19_DoublePrecisionValues] PASSED | Updated to Euler's number: %d",
           updatedRecord.nValue,

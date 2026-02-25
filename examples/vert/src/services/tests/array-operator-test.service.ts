@@ -904,7 +904,7 @@ export class ArrayOperatorTestService extends BaseTestService {
 
       const nullProductInResults = resultsWithExistingTag.find(r => r.name === 'Null Tags Product');
       const productsWithElectronics = resultsWithExistingTag.filter(
-        r => r.tags && r.tags.includes('electronics'),
+        r => r.tags?.includes('electronics'),
       );
 
       // Verify: products with 'electronics' should be found, but null-tags product should NOT

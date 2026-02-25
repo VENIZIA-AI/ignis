@@ -2,6 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import {
   Authorization,
   AuthorizationDecisions,
+  AuthorizationEnforcerTypes,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
 import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
@@ -57,9 +58,6 @@ describe('Enforcer Registry Middleware Flow', () => {
     const authorizeOptions: IAuthorizeOptions = {
       defaultDecision: opts.options?.defaultDecision ?? 'deny',
       alwaysAllowRoles: opts.options?.alwaysAllowRoles,
-      enforcers: {
-        casbin: { name: 'test', model: '', cached: { use: false } },
-      },
     };
 
     container
@@ -68,7 +66,13 @@ describe('Enforcer Registry Middleware Flow', () => {
 
     registry.register({
       container,
-      enforcers: [{ enforcer: TestAuthorizationEnforcer as any, name: 'test' }],
+      enforcers: [
+        {
+          enforcer: TestAuthorizationEnforcer as any,
+          name: 'test',
+          type: AuthorizationEnforcerTypes.CUSTOM,
+        },
+      ],
     });
 
     const middleware = authorize({
@@ -772,12 +776,17 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
         defaultDecision: 'deny',
-        enforcers: { casbin: { name: 'test', model: '', cached: { use: false } } },
       });
 
       registry.register({
         container,
-        enforcers: [{ enforcer: TestAuthorizationEnforcer as any, name: 'test' }],
+        enforcers: [
+          {
+            enforcer: TestAuthorizationEnforcer as any,
+            name: 'test',
+            type: AuthorizationEnforcerTypes.CUSTOM,
+          },
+        ],
       });
 
       const middleware = authorize({

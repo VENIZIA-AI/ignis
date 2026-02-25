@@ -12,12 +12,19 @@ import {
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
+  AuthorizeBindingKeys,
+  AuthorizeComponent,
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
+  CasbinEnforcerModelDrivers,
   BaseApplication,
   BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
+  CasbinAuthorizationEnforcer,
   CoreBindings,
   DiskHelper,
+  DrizzleCasbinAdapter,
   Environment,
   getError,
   HealthCheckBindingKeys,
@@ -25,6 +32,7 @@ import {
   HTTP,
   IApplicationConfigs,
   IApplicationInfo,
+  IAuthorizeOptions,
   IHealthCheckOptions,
   IMiddlewareConfigs,
   int,
@@ -40,14 +48,18 @@ import {
   IJWTTokenServiceOptions,
   IBasicTokenServiceOptions,
 } from '@venizia/ignis';
+import { DefaultRedisHelper } from '@venizia/ignis-helpers';
 import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
+import { PostgresDataSource } from './datasources/postgres.datasource';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
 import { AuthenticationService } from './services';
-import { TestController } from './controllers';
+import { AuthorizationExampleController, TestController } from './controllers';
+import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -142,6 +154,10 @@ export class Application extends BaseApplication {
       useAuthController: true,
       controllerOpts: {
         restPath: '/auth',
+        serviceKey: BindingKeys.build({
+          namespace: BindingNamespaces.SERVICE,
+          key: AuthenticationService.name,
+        }),
         payload: {
           signIn: {
             request: { schema: SignInRequestSchema },
@@ -280,6 +296,81 @@ export class Application extends BaseApplication {
     this.component(StaticAssetComponent);
 
     this.controller(TestController);
+    this.controller(AuthorizationExampleController);
+  }
+
+  // --------------------------------------------------------------------------------
+  async registerAuthorization() {
+    const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
+
+    const adapter = new DrizzleCasbinAdapter({
+      dataSource,
+      entities: {
+        permission: { tableName: Permission.name, principalType: Permission.name },
+        role: { tableName: Role.name, principalType: Role.name },
+        policyDefinition: {
+          tableName: PolicyDefinition.name,
+          principalType: PolicyDefinition.name,
+        },
+        domain: { principalType: Organization.name },
+      },
+    });
+
+    // Redis connection for authorization cache
+    const redisClient = new Redis({
+      host: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT)),
+      password:
+        applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD) || undefined,
+      db: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) || '8'),
+      maxRetriesPerRequest: null,
+    });
+
+    const redisHelper = new DefaultRedisHelper({
+      scope: 'AuthorizationRedis',
+      identifier: 'authorization-cache',
+      client: redisClient,
+    });
+
+    this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+      defaultDecision: 'deny',
+      alwaysAllowRoles: ['999_super-admin'],
+    });
+
+    this.component(AuthorizeComponent);
+
+    AuthorizationEnforcerRegistry.getInstance().register({
+      container: this,
+      enforcers: [
+        {
+          enforcer: CasbinAuthorizationEnforcer,
+          name: 'casbin',
+          type: AuthorizationEnforcerTypes.CASBIN,
+          options: {
+            model: {
+              driver: CasbinEnforcerModelDrivers.FILE,
+              definition: path.resolve(__dirname, './security/rbac_with_domains_deny.conf'),
+            },
+            adapter,
+            cached: {
+              use: true,
+              driver: 'redis',
+              options: {
+                connection: redisHelper,
+                expiresIn: 5 * 60 * 1000, // 5 minutes TTL
+                keyFn: ({ user }: any) => `authz:policies:${user.userId}`,
+              },
+            },
+            normalizePayloadFn: ({ user, action, resource }: any) => ({
+              subject: `user_${user.userId}`,
+              domain: `${Organization.name}_${user.organizationId}`,
+              resource,
+              action,
+            }),
+          },
+        },
+      ],
+    });
   }
 
   // --------------------------------------------------------------------------------
@@ -289,13 +380,6 @@ export class Application extends BaseApplication {
       Array.from(this.bindings.keys()),
     );
 
-    // Run all tests using the test service (repositories are injected via DI)
-    // const testService = this.get<RepositoryTestService>({
-    //   key: BindingKeys.build({
-    //     namespace: BindingNamespaces.SERVICE,
-    //     key: RepositoryTestService.name,
-    //   }),
-    // });
-    // await testService.runAllTests();
+    await this.registerAuthorization();
   }
 }

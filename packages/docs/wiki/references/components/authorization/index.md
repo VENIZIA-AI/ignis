@@ -1,6 +1,6 @@
-# Authorization -- Setup & Configuration <Badge type="warning" text="Experimental" />
+# Authorization -- Setup & Configuration
 
-> Enforcer-based authorization with RBAC, ABAC, voters, and optional Casbin integration
+> Enforcer-based authorization with RBAC, voters, and Casbin integration
 
 ## Quick Reference
 
@@ -14,54 +14,130 @@
 
 | Component | Purpose |
 |-----------|---------|
-| **AuthorizeComponent** | Main component registering enforcer and authorization bindings |
+| **AuthorizeComponent** | Main component validating authorization options and binding global config |
 | **AuthorizationEnforcerRegistry** | Singleton managing registered enforcers (mirrors `AuthenticationStrategyRegistry`) |
-| **DefaultAuthorizationEnforcer** | Built-in zero-dependency RBAC/ABAC enforcer |
 | **CasbinAuthorizationEnforcer** | Casbin-backed enforcer (optional `casbin` peer dep) |
 | **AuthorizationProvider** | IProvider producing the `authorize()` middleware factory |
 | **authorize** | Standalone function wrapping `AuthorizationProvider.value()` |
 | **AuthorizationRole** | Value object for role identity with priority-based comparison |
-| **AbilityBuilder** | Fluent API for defining allow/deny permission rules |
+| **BaseFilteredAdapter** | Abstract casbin `FilteredAdapter` with template method pattern for query hooks |
+| **DrizzleCasbinAdapter** | Drizzle-based read-only `FilteredAdapter` using raw SQL queries |
+| **StringAuthorizationAction** | `IAuthorizationComparable` implementation for string actions (includes `WILDCARD = '*'`) |
+| **StringAuthorizationResource** | `IAuthorizationComparable` implementation for string resources |
+| **AbstractAuthRegistry** | Shared base class for authentication strategy registry and authorization enforcer registry |
 
-### Authorization Flow (8 Steps)
+### Authorization Flow (7 Steps)
+
+```mermaid
+flowchart TD
+    R([Request]) --> S1{"1. SKIP_AUTHORIZATION?"}
+    S1 -->|Yes| Pass1([next])
+    S1 -->|No| S2{"2. User on context?"}
+    S2 -->|No| E401[/401/]
+    S2 -->|Yes| S3{"3. Role shortcuts match?"}
+    S3 -->|alwaysAllowRoles| Pass2([next])
+    S3 -->|allowedRoles| Pass3([next])
+    S3 -->|No match| S4{"4. Voters?"}
+    S4 -->|DENY| E403a[/403/]
+    S4 -->|ALLOW| Pass4([next])
+    S4 -->|ABSTAIN| S5["5. Resolve enforcer"]
+    S5 --> S6["6. Build/cache rules"]
+    S6 --> S7{"7. Evaluate"}
+    S7 -->|ALLOW| Pass5([next])
+    S7 -->|DENY/ABSTAIN| E403b[/403/]
+```
 
 | Step | Action | Short-circuits? |
 |------|--------|-----------------|
 | 1 | Check `Authorization.SKIP_AUTHORIZATION` flag | Yes -- skip all |
-| 2 | Get authenticated user from context | Yes -- 403 if missing |
-| 3 | Check `alwaysAllowRoles` (global) | Yes -- allow if matched |
-| 4 | Check `allowedRoles` (per-route) | Yes -- allow if matched |
-| 5 | Execute `voters` (per-route) | Yes -- DENY/ALLOW short-circuits |
-| 6 | Resolve enforcer (by name or default) | No |
-| 7 | Build or retrieve cached abilities | No |
-| 8 | Evaluate permission via enforcer | Yes -- 403 if denied |
+| 2 | Get authenticated user from context | Yes -- 401 if missing |
+| 3 | Check role-based shortcuts (`alwaysAllowRoles` + `allowedRoles`) | Yes -- allow if matched |
+| 4 | Execute `voters` (per-route) | Yes -- DENY/ALLOW short-circuits |
+| 5 | Resolve enforcer (by name or default) | No |
+| 6 | Build or retrieve cached rules | No |
+| 7 | Evaluate permission via enforcer | Yes -- 403 if denied |
+
+> [!NOTE]
+> Step 3 merges the global `alwaysAllowRoles` check and the per-route `allowedRoles` check into a single step. User roles are extracted once and checked against both lists.
 
 ### Authorization Constants
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `Authorization.ABILITIES` | `'authorization.abilities'` | Context key for cached abilities |
+| `Authorization.RULES` | `'authorization.rules'` | Context key for cached rules |
 | `Authorization.SKIP_AUTHORIZATION` | `'authorization.skip'` | Context key to dynamically skip authorization |
-| `Authorization.AUTHORIZATION_ENFORCER` | `'authorization.enforcer'` | Binding key prefix for enforcers |
+| `Authorization.ENFORCER` | `'authorization.enforcer'` | Binding key prefix for enforcers |
 
 ### Authorization Actions
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `AuthorizationActions.CREATE` | `'create'` | Create action |
-| `AuthorizationActions.READ` | `'read'` | Read action |
-| `AuthorizationActions.UPDATE` | `'update'` | Update action |
-| `AuthorizationActions.DELETE` | `'delete'` | Delete action |
-| `AuthorizationActions.EXECUTE` | `'execute'` | Execute action |
-| `AuthorizationActions.MANAGE` | `'manage'` | Wildcard -- matches all actions |
+| Constant | Value |
+|----------|-------|
+| `AuthorizationActions.CREATE` | `'create'` |
+| `AuthorizationActions.READ` | `'read'` |
+| `AuthorizationActions.UPDATE` | `'update'` |
+| `AuthorizationActions.DELETE` | `'delete'` |
+| `AuthorizationActions.EXECUTE` | `'execute'` |
+
+`AuthorizationActions.SCHEME_SET` contains all valid actions. `AuthorizationActions.isValid(input)` checks membership.
 
 ### Authorization Decisions
 
 | Constant | Value | Description |
 |----------|-------|-------------|
 | `AuthorizationDecisions.ALLOW` | `'allow'` | Grant access |
-| `AuthorizationDecisions.DENY` | `'deny'` | Deny access (takes precedence over allow) |
+| `AuthorizationDecisions.DENY` | `'deny'` | Deny access |
 | `AuthorizationDecisions.ABSTAIN` | `'abstain'` | No opinion -- fall through to next check |
+
+`AuthorizationDecisions` also provides comparison helpers that accept both strings and numbers:
+
+| Method | String check | Number check |
+|--------|-------------|--------------|
+| `isAllow(input)` | `input.toLowerCase() === 'allow'` | `input > 0` |
+| `isDeny(input)` | `input.toLowerCase() === 'deny'` | `input < 0` |
+| `isAbstain(input)` | `input.toLowerCase() === 'abstain'` | `input === 0` |
+
+`AuthorizationDecisions.SCHEME_SET` contains all valid decisions. `AuthorizationDecisions.isValid(input)` checks membership.
+
+### Authorization Enforcer Types
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `AuthorizationEnforcerTypes.CASBIN` | `'casbin'` | Casbin-backed enforcer |
+| `AuthorizationEnforcerTypes.CUSTOM` | `'custom'` | Custom enforcer implementation |
+
+`AuthorizationEnforcerTypes.SCHEME_SET` contains all valid types. `AuthorizationEnforcerTypes.isValid(input)` checks membership.
+
+### Casbin Enforcer Model Drivers
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CasbinEnforcerModelDrivers.FILE` | `'file'` | Load model from `.conf` file path |
+| `CasbinEnforcerModelDrivers.TEXT` | `'text'` | Load model from inline string |
+
+`CasbinEnforcerModelDrivers.SCHEME_SET` contains all valid drivers. `CasbinEnforcerModelDrivers.isValid(input)` checks membership.
+
+### Casbin Enforcer Cached Drivers
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CasbinEnforcerCachedDrivers.IN_MEMORY` | `'in-memory'` | In-memory cache with periodic invalidation |
+| `CasbinEnforcerCachedDrivers.REDIS` | `'redis'` | Redis-backed cache with TTL |
+
+`CasbinEnforcerCachedDrivers.SCHEME_SET` contains all valid drivers. `CasbinEnforcerCachedDrivers.isValid(input)` checks membership.
+
+### Casbin Rule Variants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CasbinRuleVariants.POLICY` | `'policy'` | Database variant column value for permission rules |
+| `CasbinRuleVariants.GROUP` | `'group'` | Database variant column value for role assignments |
+| `CasbinRuleVariants.P` | `'p'` | Casbin line prefix for policy rules |
+| `CasbinRuleVariants.G` | `'g'` | Casbin line prefix for grouping rules |
+
+`CasbinRuleVariants.SCHEME_SET` contains `POLICY` and `GROUP` (the DB variants). `CasbinRuleVariants.isValid(input)` checks membership against the DB variants.
+
+> [!NOTE]
+> All constant classes follow the same pattern: static readonly values + `SCHEME_SET: Set<string>` + `isValid(input): boolean`. Each class also has a companion type alias generated via `TConstValue<typeof ClassName>` (e.g., `TAuthorizationAction`, `TAuthorizationDecision`, `TCasbinRuleVariant`).
 
 ### Built-in Roles
 
@@ -73,321 +149,511 @@
 | `AuthorizationRoles.GUEST` | `'001_guest'` | 1 | Guest user |
 | `AuthorizationRoles.UNKNOWN_USER` | `'000_unknown-user'` | 0 | Unauthenticated fallback |
 
-#### Import Paths
+Each built-in role is an `AuthorizationRole` instance. `AuthorizationRoles.SCHEME_SET` contains identifier strings. `AuthorizationRoles.isValid(input)` checks membership.
+
+### Import Paths
 
 ```typescript
+// Classes & functions
 import {
+  // Component & middleware
   AuthorizeComponent,
-  AuthorizeBindingKeys,
+  AuthorizationProvider,
+  authorize,
+
+  // Registry
+  AuthorizationEnforcerRegistry,
+
+  // Enforcers
+  CasbinAuthorizationEnforcer,
+
+  // Adapters
+  BaseFilteredAdapter,
+  DrizzleCasbinAdapter,
+
+  // Models
+  AuthorizationRole,
+  StringAuthorizationAction,
+  StringAuthorizationResource,
+
+  // Constants
   Authorization,
   AuthorizationActions,
   AuthorizationDecisions,
   AuthorizationRoles,
-  AuthorizationEnforcerRegistry,
-  DefaultAuthorizationEnforcer,
-  CasbinAuthorizationEnforcer,
-  AuthorizationProvider,
-  AuthorizationRole,
-  AbilityBuilder,
-  authorize,
+  AuthorizationEnforcerTypes,
+  CasbinEnforcerModelDrivers,
+  CasbinEnforcerCachedDrivers,
+  CasbinRuleVariants,
+
+  // Binding keys
+  AuthorizeBindingKeys,
 } from '@venizia/ignis';
 
+// Types & interfaces
 import type {
+  // Core interfaces
   IAuthorizeOptions,
-  IAuthorizationSpec,
   IAuthorizationEnforcer,
+  IAuthorizationSpec,
+  IAuthorizationRequest,
   IAuthorizationRole,
-  IPermissionRule,
-  IAbilityBuilder,
+  IAuthorizationComparable,
+
+  // Casbin options
+  ICasbinEnforcerOptions,
+  ICasbinEnforcerCachedMemory,
+  ICasbinEnforcerCachedRedis,
+
+  // Adapter types
+  IBaseFilteredAdapterEntities,
+  ICasbinPolicyFilter,
+  TBasePolicyRow,
+  IDrizzleCasbinEntities,
+  IDrizzleCasbinAdapterOptions,
+
+  // Function & utility types
+  TAuthorizeFn,
+  TAuthorizationVoter,
   TAuthorizationConditions,
+  TRegistryDescriptor,
+
+  // Value types (from TConstValue)
   TAuthorizationAction,
   TAuthorizationDecision,
-  TPermissionEffect,
-  TAuthorizationVoter,
-  TAuthorizeFn,
+  TAuthorizationEnforcerType,
+  TCasbinEnforcerCachedDriver,
+  TCasbinEnforcerModelDriver,
+  TCasbinRuleVariant,
 } from '@venizia/ignis';
 ```
 
 ## Setup
 
-### Step 1: Bind Configuration
+Authorization setup is a **three-step process**: bind global options, register the component, then register enforcers via the registry.
 
-Bind `IAuthorizeOptions` in your application's `preConfigure()`.
+```mermaid
+flowchart LR
+    subgraph Step1["Step 1"]
+        A["bind IAuthorizeOptions<br/>to AuthorizeBindingKeys.OPTIONS"]
+    end
+    subgraph Step2["Step 2"]
+        B["this.component(AuthorizeComponent)<br/>validates options + binds alwaysAllowRoles"]
+    end
+    subgraph Step3["Step 3"]
+        C["AuthorizationEnforcerRegistry.register()<br/>class + name + type + options"]
+    end
+    A --> B --> C
+```
 
-### Default Enforcer (Static Rules)
+### Step 1: Bind Global Options
+
+Bind `IAuthorizeOptions` to configure global authorization behavior. This interface is minimal -- it only contains global settings, not enforcer-specific configuration.
 
 ```typescript
 import {
   AuthorizeBindingKeys,
-  DefaultAuthorizationEnforcer,
-  AuthorizationActions,
   AuthorizationDecisions,
-  AuthorizationRoles,
   IAuthorizeOptions,
 } from '@venizia/ignis';
 
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: DefaultAuthorizationEnforcer,
   defaultDecision: AuthorizationDecisions.DENY,
-  alwaysAllowRoles: [AuthorizationRoles.SUPER_ADMIN.name],
-  defineAbilitiesFor: ({ user, builder }) => {
-    const roles = (user as any).roles ?? [];
-    const roleNames = roles.map((r: any) => r.identifier ?? r.name ?? '');
-
-    if (roleNames.includes(AuthorizationRoles.ADMIN.name)) {
-      builder.allow({ action: AuthorizationActions.MANAGE, resource: 'all' });
-    } else {
-      builder.allow({ action: AuthorizationActions.READ, resource: 'Article' });
-      builder.allow({ action: AuthorizationActions.CREATE, resource: 'Comment' });
-      builder.deny({ action: AuthorizationActions.DELETE, resource: 'Article' });
-    }
-  },
+  alwaysAllowRoles: ['999_super-admin'],
 });
 ```
 
-### Default Enforcer (DB-Driven Rules)
+### Step 2: Register the Component
 
 ```typescript
-import {
-  AuthorizeBindingKeys,
-  DefaultAuthorizationEnforcer,
-  AuthorizationDecisions,
-  AuthorizationRoles,
-  IAuthorizeOptions,
-} from '@venizia/ignis';
+import { AuthorizeComponent } from '@venizia/ignis';
 
-this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: DefaultAuthorizationEnforcer,
-  defaultDecision: AuthorizationDecisions.DENY,
-  alwaysAllowRoles: [AuthorizationRoles.SUPER_ADMIN.name],
-  loadPermissions: async ({ user, context }) => {
-    const permissionService = this.get<PermissionService>({
-      key: 'services.PermissionService',
-    });
-    return permissionService.getPermissionsForUser({ userId: user.userId });
-  },
-});
+this.component(AuthorizeComponent);
 ```
 
-### Casbin Enforcer
+The component validates that `IAuthorizeOptions` is bound and extracts `alwaysAllowRoles` into a separate binding (`AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES`) for downstream consumers.
+
+### Step 3: Register Enforcers via Registry
+
+Enforcer registration is separate from global options. Each enforcer is registered with its **class**, **name**, **type**, and **options** -- all co-located in one call.
+
+#### Casbin Enforcer (Recommended)
 
 ```typescript
 import {
-  AuthorizeBindingKeys,
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
   CasbinAuthorizationEnforcer,
-  AuthorizationRoles,
-  IAuthorizeOptions,
+  CasbinEnforcerModelDrivers,
+  DrizzleCasbinAdapter,
 } from '@venizia/ignis';
+import path from 'node:path';
 
-this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: CasbinAuthorizationEnforcer,
-  alwaysAllowRoles: [AuthorizationRoles.SUPER_ADMIN.name],
-  casbinOptions: {
-    model: '/path/to/model.conf',
-    adapter: new FileAdapter('/path/to/policy.csv'),
-    useFilteredPolicy: true,
+// Create adapter (Drizzle example)
+const adapter = new DrizzleCasbinAdapter({
+  dataSource,
+  entities: {
+    permission: { tableName: 'Permission', principalType: 'Permission' },
+    role: { tableName: 'Role', principalType: 'Role' },
+    policyDefinition: { tableName: 'PolicyDefinition', principalType: 'PolicyDefinition' },
+    domain: { principalType: 'Organization' },
   },
-  normalizePayloadFn: ({ user, action, resource }) => ({
-    subject: `user_${user.userId}`,
-    resource,
-    action,
-  }),
+});
+
+AuthorizationEnforcerRegistry.getInstance().register({
+  container: this,
+  enforcers: [{
+    enforcer: CasbinAuthorizationEnforcer,
+    name: 'casbin',
+    type: AuthorizationEnforcerTypes.CASBIN,
+    options: {
+      model: {
+        driver: CasbinEnforcerModelDrivers.FILE,
+        definition: path.resolve(__dirname, './security/rbac_with_domains_deny.conf'),
+      },
+      adapter,
+      cached: {
+        use: true,
+        driver: 'redis',
+        options: {
+          connection: redisHelper,
+          expiresIn: 5 * 60 * 1000, // 5 minutes
+          keyFn: ({ user }) => `authz:policies:${user.userId}`,
+        },
+      },
+      normalizePayloadFn: ({ user, action, resource }) => ({
+        subject: `user_${user.userId}`,
+        domain: `Organization_${user.organizationId}`,
+        resource,
+        action,
+      }),
+    },
+  }],
 });
 ```
 
-### Step 2: Register Component
+#### Custom Enforcer
+
+```typescript
+AuthorizationEnforcerRegistry.getInstance().register({
+  container: this,
+  enforcers: [{
+    enforcer: MyCustomEnforcer,
+    name: 'my-custom',
+    type: AuthorizationEnforcerTypes.CUSTOM,
+    options: { /* your enforcer-specific options */ },
+  }],
+});
+```
+
+### Full Setup Example
 
 ```typescript
 import {
   AuthorizeComponent,
+  AuthorizeBindingKeys,
   AuthorizationEnforcerRegistry,
-  DefaultAuthorizationEnforcer,
+  AuthorizationEnforcerTypes,
+  CasbinAuthorizationEnforcer,
+  CasbinEnforcerModelDrivers,
+  DrizzleCasbinAdapter,
   BaseApplication,
-  ValueOrPromise,
+  IAuthorizeOptions,
 } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
-  preConfigure(): ValueOrPromise<void> {
-    // Step 1: Bind options (see above)
+  async registerAuthorization() {
+    // Step 1: Global options
+    this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+      defaultDecision: 'deny',
+      alwaysAllowRoles: ['999_super-admin'],
+    });
 
-    // Step 2: Register the component
+    // Step 2: Register component
     this.component(AuthorizeComponent);
+
+    // Step 3: Register enforcer(s) with co-located options
+    const adapter = new DrizzleCasbinAdapter({ dataSource, entities: { ... } });
+
+    AuthorizationEnforcerRegistry.getInstance().register({
+      container: this,
+      enforcers: [{
+        enforcer: CasbinAuthorizationEnforcer,
+        name: 'casbin',
+        type: AuthorizationEnforcerTypes.CASBIN,
+        options: {
+          model: {
+            driver: CasbinEnforcerModelDrivers.FILE,
+            definition: path.resolve(__dirname, './security/rbac_model.conf'),
+          },
+          adapter,
+          cached: { use: false },
+        },
+      }],
+    });
   }
 }
 ```
 
-> [!NOTE]
-> Unlike authentication, you don't need to manually call `AuthorizationEnforcerRegistry.register()` -- the `AuthorizeComponent` handles enforcer registration automatically during its `binding()` phase based on the `enforcer` class in your options.
-
 > [!IMPORTANT]
 > Authorization depends on authentication. Register `AuthenticateComponent` **before** `AuthorizeComponent` so that `Authentication.CURRENT_USER` is populated before authorization checks run.
+
+> [!NOTE]
+> Enforcer-specific options (model, adapter, cached, normalizePayloadFn) are co-located with the enforcer registration in `AuthorizationEnforcerRegistry.register()`, not inside `IAuthorizeOptions`. This keeps enforcer configuration next to the enforcer class.
 
 ## Configuration
 
 ### IAuthorizeOptions
 
+Global authorization settings. Bound to the container before registering `AuthorizeComponent`.
+
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `enforcer` | `TClass<IAuthorizationEnforcer>` | -- | **Required.** Enforcer class to use |
-| `defaultDecision` | `TAuthorizationDecision` | `undefined` | Default when no rules match (`'allow'` or `'deny'`) |
+| `defaultDecision` | `TAuthorizationDecision` | -- | **Required.** Decision when enforcer returns `ABSTAIN` (`'allow'`, `'deny'`, or `'abstain'`) |
 | `alwaysAllowRoles` | `string[]` | `[]` | Roles that bypass all authorization checks (global) |
-| `defineAbilitiesFor` | `(opts) => void` | -- | Static ability builder callback (Default enforcer) |
-| `loadPermissions` | `(opts) => Promise<IPermissionRule[]>` | -- | DB-driven permission loader (Default enforcer) |
-| `normalizePayloadFn` | `(opts) => { subject, resource, action }` | -- | Normalize subject/resource/action before evaluation |
-| `casbinOptions` | `object` | -- | Casbin-specific configuration (Casbin enforcer only) |
-
-> [!WARNING]
-> When using the Default enforcer, provide either `defineAbilitiesFor` (static rules) or `loadPermissions` (DB-driven rules). If neither is provided, the enforcer logs a warning and returns an empty ability set, which means the `defaultDecision` determines all outcomes.
-
-#### IAuthorizeOptions -- Full Interface
 
 ```typescript
 interface IAuthorizeOptions {
-  enforcer: TClass<IAuthorizationEnforcer>;
-  defaultDecision?: TAuthorizationDecision;
+  defaultDecision: TAuthorizationDecision;
   alwaysAllowRoles?: string[];
+}
+```
 
-  defineAbilitiesFor?: (opts: { user: IAuthUser; builder: IAbilityBuilder }) => void;
+### ICasbinEnforcerOptions
 
-  loadPermissions?: (opts: {
+Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistry.register()`.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `model` | `{ driver, definition }` | -- | **Required.** Casbin model definition (file path or inline text) |
+| `cached` | `{ use: false } \| { use: true, driver, options }` | -- | **Required.** Caching configuration |
+| `adapter` | `Adapter` | -- | Casbin adapter instance (e.g., `DrizzleCasbinAdapter`) |
+| `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | -- | Normalize subject/resource/action before evaluation |
+
+```typescript
+interface ICasbinEnforcerOptions<
+  E extends Env = Env,
+  TAction = string,
+  TResource = string,
+  TAdapter = Adapter,
+> {
+  model:
+    | { driver: 'file'; definition: string }
+    | { driver: 'text'; definition: string };
+
+  cached:
+    | { use: false }
+    | { use: true; driver: 'in-memory'; options: { expiresIn: number } }
+    | { use: true; driver: 'redis'; options: {
+        connection: DefaultRedisHelper;
+        expiresIn: number;
+        keyFn: (opts: { user: { principalType: string } & IAuthUser }) => ValueOrPromise<string>;
+      } };
+
+  adapter?: TAdapter;
+
+  normalizePayloadFn?(opts: {
     user: IAuthUser;
-    context: TContext;
-  }) => ValueOrPromise<IPermissionRule[]>;
-
-  normalizePayloadFn?: (opts: { user: IAuthUser; action: string; resource: string }) => {
+    action: TAction;
+    resource: TResource;
+    context: TContext<E, string>;
+  }): {
     subject: string;
     resource: string;
     action: string;
-  };
-
-  casbinOptions?: {
-    model: string;
-    adapter?: unknown;
-    useFilteredPolicy?: boolean;
+    domain?: string;
   };
 }
 ```
 
-### Casbin Options
+> [!NOTE]
+> `cached.options.expiresIn` must be >= 10,000 ms (10 seconds). Values below this threshold cause a validation error (`MIN_EXPIRES_IN = 10_000`).
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `model` | `string` | -- | Path to Casbin model `.conf` file |
-| `adapter` | `unknown` | -- | Casbin adapter instance (e.g., `FileAdapter`, `SequelizeAdapter`) |
-| `useFilteredPolicy` | `boolean` | `false` | Load only policies relevant to the current user |
+#### Cache Configuration Types
+
+The `cached` field is a discriminated union:
+
+```typescript
+// No caching
+interface { use: false }
+
+// In-memory cache (CachedEnforcer with periodic invalidation timer)
+interface ICasbinEnforcerCachedMemory {
+  driver: 'in-memory';
+  options: { expiresIn: number };
+}
+
+// Redis cache (store/retrieve policy lines from Redis)
+interface ICasbinEnforcerCachedRedis {
+  driver: 'redis';
+  options: {
+    connection: DefaultRedisHelper;
+    expiresIn: number;
+    keyFn: (opts: { user: { principalType: string } & IAuthUser }) => ValueOrPromise<string>;
+  };
+}
+```
 
 ### IAuthorizationSpec (Route-level)
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `action` | `string` | -- | **Required.** Action being performed (e.g., `'read'`, `'create'`) |
-| `resource` | `string` | -- | **Required.** Resource being accessed (e.g., `'Article'`, `'User'`) |
+| `action` | `TAction` | -- | **Required.** Action being performed (e.g., `'read'`, `'create'`) |
+| `resource` | `TResource` | -- | **Required.** Resource being accessed (e.g., `'Article'`, `'User'`) |
 | `conditions` | `TAuthorizationConditions` | -- | Key-value conditions for ABAC (strict equality) |
 | `allowedRoles` | `string[]` | -- | Roles that bypass enforcer for this specific route |
 | `voters` | `TAuthorizationVoter[]` | -- | Custom voter functions for this specific route |
 
-#### IAuthorizationSpec -- Full Interface
-
 ```typescript
-interface IAuthorizationSpec<E extends Env = Env> {
-  action: string;
-  resource: string;
+interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = string> {
+  action: TAction;
+  resource: TResource;
   conditions?: TAuthorizationConditions;
   allowedRoles?: string[];
-  voters?: TAuthorizationVoter<E>[];
+  voters?: TAuthorizationVoter<E, TAction, TResource>[];
 }
 ```
 
-### IPermissionRule
+> [!NOTE]
+> `TAction` and `TResource` default to `string` but can accept `IAuthorizationComparable` implementations (e.g., `StringAuthorizationAction`) for custom comparison logic.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `action` | `string` | Action this rule applies to |
-| `resource` | `string` | Resource this rule applies to |
-| `effect` | `TPermissionEffect` | `'allow'` or `'deny'` |
-| `conditions` | `TAuthorizationConditions` | Optional ABAC conditions |
+### TAuthorizationConditions
 
-#### IPermissionRule -- Full Interface
+Key-value conditions for attribute-based access control. Values are compared with strict equality (`===`).
 
 ```typescript
-interface IPermissionRule {
-  action: string;
-  resource: string;
-  effect: TPermissionEffect;
-  conditions?: TAuthorizationConditions;
-}
+type TAuthorizationConditions<
+  KeyType extends string | symbol = string | symbol,
+  ValueType = string | number | boolean | null,
+> = Record<KeyType, ValueType>;
+```
+
+### TAuthorizationVoter
+
+Function type for voter callbacks:
+
+```typescript
+type TAuthorizationVoter<
+  E extends Env = Env,
+  TAction = string,
+  TResource = string,
+> = (opts: {
+  user: IAuthUser;
+  action: TAction;
+  resource: TResource;
+  context: TContext<E, string>;
+}) => ValueOrPromise<TAuthorizationDecision>;
+```
+
+### TAuthorizeFn
+
+Function type for the `authorize()` middleware factory:
+
+```typescript
+type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = string> = (opts: {
+  spec: IAuthorizationSpec<E, TAction, TResource>;
+  enforcerName?: string;
+}) => MiddlewareHandler;
 ```
 
 ## Binding Keys
 
-| Key | Constant | Type | Required | Default |
-|-----|----------|------|----------|---------|
-| `@app/authorize/options` | `AuthorizeBindingKeys.OPTIONS` | `IAuthorizeOptions` | Yes | -- |
-| `@app/authorize/enforcer` | `AuthorizeBindingKeys.ENFORCER` | `string` | No | -- |
-| `@app/authorize/always-allow-roles` | `AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES` | `string[]` | No | -- |
-| `@app/authorize/normalize-payload-fn` | `AuthorizeBindingKeys.NORMALIZE_PAYLOAD_FN` | `Function` | No | -- |
+| Key | Constant | Type | Description |
+|-----|----------|------|-------------|
+| `@app/authorize/options` | `AuthorizeBindingKeys.OPTIONS` | `IAuthorizeOptions` | Global authorization options |
+| `@app/authorize/always-allow-roles` | `AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES` | `string[]` | Auto-bound by component if present in options |
+| `@app/authorize/enforcers/{name}/options` | `AuthorizeBindingKeys.enforcerOptions(name)` | `ICasbinEnforcerOptions \| unknown` | Per-enforcer options, auto-bound by registry |
+
+```typescript
+class AuthorizeBindingKeys {
+  static readonly OPTIONS = '@app/authorize/options';
+  static readonly ALWAYS_ALLOW_ROLES = '@app/authorize/always-allow-roles';
+
+  static enforcerOptions(name: string): string {
+    return `@app/authorize/enforcers/${name}/options`;
+  }
+}
+```
 
 > [!NOTE]
-> `ALWAYS_ALLOW_ROLES` and `NORMALIZE_PAYLOAD_FN` are automatically bound by the component if present in the options. You rarely need to bind them manually.
+> `AuthorizeBindingKeys.enforcerOptions(name)` is called automatically by `AuthorizationEnforcerRegistry.register()` when `options` is provided. The `CasbinAuthorizationEnforcer` injects its options from `AuthorizeBindingKeys.enforcerOptions('casbin')`.
 
-### Context Variables
+## Context Variables
 
-These values are set on the Hono `Context` during authorization and can be accessed via `context.get()`:
+The authorization module extends Hono's `ContextVariableMap` for type-safe context access. The full augmentation is defined in `auth/context-variables.ts` and covers both authentication and authorization:
+
+```typescript
+declare module 'hono' {
+  interface ContextVariableMap {
+    // Authentication
+    [Authentication.CURRENT_USER]: IAuthUser;
+    [Authentication.AUDIT_USER_ID]: IdType;
+    [Authentication.SKIP_AUTHENTICATION]: boolean;
+
+    // Authorization
+    [Authorization.RULES]: unknown;
+    [Authorization.SKIP_AUTHORIZATION]: boolean;
+  }
+}
+```
+
+### Authorization-Specific Variables
 
 | Key | Constant | Type | Description |
 |-----|----------|------|-------------|
-| `authorization.abilities` | `Authorization.ABILITIES` | `unknown` | Cached abilities built by the enforcer. Type depends on enforcer. |
-| `authorization.skip` | `Authorization.SKIP_AUTHORIZATION` | `boolean` | Set to `true` to dynamically skip authorization |
+| `'authorization.rules'` | `Authorization.RULES` | `unknown` | Cached rules built by the enforcer. Type depends on enforcer implementation. |
+| `'authorization.skip'` | `Authorization.SKIP_AUTHORIZATION` | `boolean` | Set to `true` to dynamically skip authorization for this request. |
 
-### Utility Classes
+### Authentication Variables Used by Authorization
 
-#### AuthorizationActions
+| Key | Constant | Type | Used for |
+|-----|----------|------|----------|
+| `'authentication.currentUser'` | `Authentication.CURRENT_USER` | `IAuthUser` | Read in step 2 to get authenticated user |
+| `'authentication.auditUserId'` | `Authentication.AUDIT_USER_ID` | `IdType` | Available for audit logging |
 
-```typescript
-class AuthorizationActions {
-  static readonly CREATE = 'create';
-  static readonly READ = 'read';
-  static readonly UPDATE = 'update';
-  static readonly DELETE = 'delete';
-  static readonly EXECUTE = 'execute';
-  static readonly MANAGE = 'manage';
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(input: string): boolean;
-}
-type TAuthorizationAction = TConstValue<typeof AuthorizationActions>;
-```
+### IAuthUser Interface
 
-#### AuthorizationDecisions
+The `IAuthUser` interface (from the authenticate module) is the user object available during authorization:
 
 ```typescript
-class AuthorizationDecisions {
-  static readonly ALLOW = 'allow';
-  static readonly DENY = 'deny';
-  static readonly ABSTAIN = 'abstain';
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(input: string): boolean;
+interface IAuthUser {
+  userId: IdType;  // IdType = number | string | bigint
+  [extra: string | symbol]: any;
 }
-type TAuthorizationDecision = TConstValue<typeof AuthorizationDecisions>;
-type TPermissionEffect = 'allow' | 'deny';
 ```
 
-#### AuthorizationRoles
+The authorization middleware accesses `user.roles` (for role extraction) and `user.principalType` (for enforcer-based evaluation) via the index signature.
+
+### IJWTTokenPayload Interface
+
+When using JWT authentication, the full token payload extends `IAuthUser`:
 
 ```typescript
-class AuthorizationRoles {
-  static readonly SUPER_ADMIN: AuthorizationRole; // 999_super-admin
-  static readonly ADMIN: AuthorizationRole;        // 900_admin
-  static readonly USER: AuthorizationRole;         // 010_user
-  static readonly GUEST: AuthorizationRole;        // 001_guest
-  static readonly UNKNOWN_USER: AuthorizationRole; // 000_unknown-user
-  static readonly SCHEME_SET: Set<string>;
-  static isValid(input: string): boolean;
+interface IJWTTokenPayload extends JWTPayload, IAuthUser {
+  userId: IdType;
+  roles: { id: IdType; identifier: string; priority: number }[];
+  clientId?: string;
+  provider?: string;
+  email?: string;
+  name?: string;
+  [extra: string | symbol]: any;
 }
 ```
+
+> [!NOTE]
+> `IdType = number | string | bigint` is defined in `@/base/models/common/types`.
 
 ## Relationship with Authentication
 
 Authorization runs **after** authentication in the middleware chain. The `AbstractController.getRouteConfigs()` method ensures the correct ordering:
+
+```mermaid
+flowchart LR
+    Req([Request]) --> Auth["1. authenticate()<br/>JWT / Basic"]
+    Auth --> Authz["2. authorize()<br/>enforcer-based"]
+    Authz --> Custom["3. Custom middleware"]
+    Custom --> Handler([Route Handler])
+```
 
 1. Authentication middleware is injected first (from `authenticate` config)
 2. Authorization middleware is injected second (from `authorize` config)
@@ -430,8 +696,8 @@ ControllerFactory.defineCrudController({
 
 ## See Also
 
-- [Usage & Examples](./usage) -- Securing routes, voters, ABAC patterns, and CRUD integration
-- [API Reference](./api) -- Architecture, enforcer internals, provider, and registry
+- [Usage & Examples](./usage) -- Securing routes, voters, patterns, and CRUD integration
+- [API Reference](./api) -- Architecture, enforcer internals, provider, registry, and adapters
 - [Error Reference](./errors) -- Error messages and troubleshooting
 
 - **Related Components:**

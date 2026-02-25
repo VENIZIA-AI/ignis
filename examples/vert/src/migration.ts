@@ -23,7 +23,7 @@ const migration = () => {
   return defineConfig({
     dialect: 'postgresql',
     out: './migration',
-    schema: './src/models/entities',
+    schema: './dist/migration-schema.js',
     dbCredentials: databaseConfigs,
   });
 };

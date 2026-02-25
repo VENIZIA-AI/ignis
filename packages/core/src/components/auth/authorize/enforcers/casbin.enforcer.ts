@@ -9,11 +9,14 @@ import { Env } from 'hono';
 import { IAuthUser } from '../../authenticate';
 import {
   AuthorizationDecisions,
+  AuthorizationEnforcerTypes,
   AuthorizeBindingKeys,
+  CasbinEnforcerCachedDrivers,
+  CasbinEnforcerModelDrivers,
+  CasbinRuleVariants,
   IAuthorizationEnforcer,
-  IAuthorizeOptions,
-  ICasbinEnforcerCachedMemory,
   ICasbinEnforcerCachedRedis,
+  ICasbinEnforcerOptions,
   type IAuthorizationComparable,
   type IAuthorizationRequest,
   type TAuthorizationDecision,
@@ -31,20 +34,23 @@ export class CasbinAuthorizationEnforcer<
   extends BaseHelper
   implements IAuthorizationEnforcer<E, TAction, TResource, IAuthUser>
 {
-  name = 'casbin';
+  name = CasbinAuthorizationEnforcer.name;
   private readonly MIN_EXPIRES_IN = 10_000;
 
   private enforcer: TNullable<CasbinEnforcerType | CasbinCachedEnforcerType> = null;
   private inMemoryInvalidationTimer: TNullable<NodeJS.Timeout> = null;
 
   constructor(
-    @inject({ key: AuthorizeBindingKeys.OPTIONS })
-    private options: IAuthorizeOptions<E, TAction, TResource>,
+    @inject({ key: AuthorizeBindingKeys.enforcerOptions(AuthorizationEnforcerTypes.CASBIN) })
+    private options: ICasbinEnforcerOptions<E, TAction, TResource>,
   ) {
     super({ scope: CasbinAuthorizationEnforcer.name });
   }
 
   // ---------------------------------------------------------------------------
+  // Lifecycle
+  // ---------------------------------------------------------------------------
+
   async configure(): Promise<void> {
     let casbin: typeof import('casbin');
 
@@ -56,41 +62,21 @@ export class CasbinAuthorizationEnforcer<
       });
     }
 
-    const casbinOptions = this.options.enforcers?.casbin;
-    if (!casbinOptions) {
+    if (!this.options.model) {
       throw getError({
-        message: '[CasbinAuthorizationEnforcer] options.enforcers.casbin is required.',
+        message: '[CasbinAuthorizationEnforcer] options.model is required.',
       });
     }
 
-    if (!casbinOptions.model) {
-      throw getError({
-        message: '[CasbinAuthorizationEnforcer] options.enforcers.casbin.model is required.',
-      });
-    }
+    const model = this.resolveModel({ casbin, model: this.options.model });
+    const { cached } = this.options;
 
-    const { cached } = casbinOptions;
-    const common = { casbin, model: casbinOptions.model, adapter: casbinOptions.adapter };
-
-    if (!cached.use) {
-      this.enforcer = await casbin.newEnforcer(common.model, common.adapter);
-    } else {
-      switch (cached.driver) {
-        case 'in-memory': {
-          await this.configureInMemoryCache({ ...common, cached });
-          break;
-        }
-        case 'redis': {
-          await this.configureRedisCache({ ...common, cached });
-          break;
-        }
-        default: {
-          throw getError({
-            message: '[configure] Invalid cached.driver | Valids: [in-memory, redis]',
-          });
-        }
-      }
-    }
+    this.enforcer = await this.resolveCasbinEnforcer({
+      casbin,
+      model,
+      adapter: this.options.adapter,
+      cached,
+    });
 
     this.logger
       .for(this.configure.name)
@@ -101,55 +87,19 @@ export class CasbinAuthorizationEnforcer<
       );
   }
 
-  // ---------------------------------------------------------------------------
-  private async configureInMemoryCache(opts: {
-    casbin: typeof import('casbin');
-    model: string;
-    adapter?: unknown;
-    cached: ICasbinEnforcerCachedMemory;
-  }): Promise<void> {
-    const { casbin, model, adapter, cached } = opts;
-    const { expiresIn } = cached.options;
-
-    this.validateExpiresIn({ expiresIn });
-
-    this.enforcer = await casbin.newCachedEnforcer(model, adapter);
-
-    this.inMemoryInvalidationTimer = setInterval(() => {
-      if (!this.enforcer) {
-        return;
-      }
-
-      (this.enforcer as CasbinCachedEnforcerType).invalidateCache();
-
-      this.logger.info('[configureInMemoryCache] Enforcer cache INVALIDATED | name: %s', this.name);
-    }, expiresIn);
-  }
-
-  // ---------------------------------------------------------------------------
-  private async configureRedisCache(opts: {
-    casbin: typeof import('casbin');
-    model: string;
-    adapter?: unknown;
-    cached: ICasbinEnforcerCachedRedis;
-  }): Promise<void> {
-    const { casbin, model, adapter, cached } = opts;
-    const { expiresIn } = cached.options;
-
-    this.validateExpiresIn({ expiresIn });
-    this.enforcer = await casbin.newEnforcer(model, adapter);
-  }
-
-  // ---------------------------------------------------------------------------
-  private validateExpiresIn(opts: { expiresIn: number }): void {
-    if (opts.expiresIn < this.MIN_EXPIRES_IN) {
-      throw getError({
-        message: `[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= ${this.MIN_EXPIRES_IN} (ms) | Received: ${opts.expiresIn}`,
-      });
+  destroy() {
+    if (!this.inMemoryInvalidationTimer) {
+      return;
     }
+
+    clearInterval(this.inMemoryInvalidationTimer);
+    this.inMemoryInvalidationTimer = null;
   }
 
   // ---------------------------------------------------------------------------
+  // IAuthorizationEnforcer — public API
+  // ---------------------------------------------------------------------------
+
   async buildRules(opts: {
     user: { principalType: string } & IAuthUser;
     context: TContext<E, string>;
@@ -162,19 +112,13 @@ export class CasbinAuthorizationEnforcer<
       });
     }
 
-    if (!this.options.enforcers?.casbin?.useFilteredPolicy) {
-      throw getError({
-        message: '[CasbinAuthorizationEnforcer] useFilteredPolicy must be enabled to build rules.',
-      });
-    }
-
     if (!this.enforcer.loadFilteredPolicy) {
       throw getError({
         message: '[CasbinAuthorizationEnforcer] Adapter does not support loadFilteredPolicy.',
       });
     }
 
-    const cached = this.options.enforcers.casbin.cached;
+    const cached = this.options.cached;
 
     if (!cached.use) {
       await this.loadPoliciesFromAdapter({ user });
@@ -182,106 +126,23 @@ export class CasbinAuthorizationEnforcer<
     }
 
     switch (cached.driver) {
-      case 'in-memory': {
+      case CasbinEnforcerCachedDrivers.IN_MEMORY: {
         await this.loadPoliciesFromAdapter({ user });
         break;
       }
-      case 'redis': {
+      case CasbinEnforcerCachedDrivers.REDIS: {
         await this.loadPoliciesWithRedisCache({ user, cached });
         break;
       }
       default: {
         throw getError({
-          message: '[buildRules] Invalid cached.driver | Valids: [in-memory, redis]',
+          message: `[buildRules] Invalid cached.driver | Valids: [${CasbinEnforcerCachedDrivers.IN_MEMORY}, ${CasbinEnforcerCachedDrivers.REDIS}]`,
         });
       }
     }
     return user;
   }
 
-  // ---------------------------------------------------------------------------
-  private async loadPoliciesFromAdapter(opts: { user: { principalType: string } & IAuthUser }) {
-    if (!this.enforcer) {
-      throw getError({
-        message:
-          '[loadPoliciesFromAdapter] Invalid state of enforcer | Enforcer is not initialized!',
-      });
-    }
-
-    await this.enforcer.loadFilteredPolicy({
-      principalType: opts.user.principalType,
-      principalValue: opts.user.userId,
-    });
-  }
-
-  // ---------------------------------------------------------------------------
-  private async loadPoliciesWithRedisCache(opts: {
-    user: { principalType: string } & IAuthUser;
-    cached: ICasbinEnforcerCachedRedis;
-  }) {
-    const logger = this.logger.for(this.loadPoliciesWithRedisCache.name);
-    const {
-      user,
-      cached: { options },
-    } = opts;
-
-    const cacheKey = await options.keyFn({ user });
-
-    if (!cacheKey) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-        message:
-          '[loadPoliciesWithRedisCache] Invalid cachedKey to start validate user authorization!',
-      });
-    }
-
-    const redisClient = options.connection.client;
-
-    // Cache hit — load lines directly into model
-    const cachedData = await redisClient.get(cacheKey);
-    if (cachedData) {
-      await this.loadPolicyLinesIntoModel({ lines: JSON.parse(cachedData) });
-      logger.info('Loaded CACHED Policies into model | user: %s', user.userId);
-      return;
-    }
-
-    // Cache miss — load from adapter, extract lines, cache in Redis
-    await this.loadPoliciesFromAdapter({ user });
-    const lines = this.extractPolicyLines();
-    await redisClient.set(cacheKey, JSON.stringify(lines), 'PX', options.expiresIn);
-    logger.info('Loaded ADAPTER + CACHED Policies into model | user: %s', user.userId);
-  }
-
-  // ---------------------------------------------------------------------------
-  private async extractPolicyLines() {
-    if (!this.enforcer) {
-      throw getError({
-        message: '[extractPolicyLines] Invalid state of enforcer | Enforcer is not initialized!',
-      });
-    }
-
-    const pRules = await this.enforcer.getPolicy();
-    const ps = pRules.map(r => ['p', ...r].join(', '));
-
-    const gRules = await this.enforcer.getGroupingPolicy();
-    const gs = gRules.map(r => ['g', ...r].join(', '));
-
-    return [...ps, ...gs];
-  }
-
-  // ---------------------------------------------------------------------------
-  private async loadPolicyLinesIntoModel(opts: { lines: string[] }): Promise<void> {
-    const { Helper } = await import('casbin');
-
-    const model = this.enforcer!.getModel();
-    model.clearPolicy();
-
-    for (const line of opts.lines) {
-      Helper.loadPolicyLine(line, model);
-    }
-  }
-
-  // ---------------------------------------------------------------------------
   async evaluate(opts: {
     rules: IAuthUser;
     request: IAuthorizationRequest<TAction, TResource>;
@@ -300,12 +161,12 @@ export class CasbinAuthorizationEnforcer<
     }
 
     const { rules: user, request, context } = opts;
-    const normalizePayloadFn = this.options.enforcers?.casbin?.normalizePayloadFn;
+    const normalizePayloadFn = this.options.normalizePayloadFn;
 
     let isAllowed: boolean;
 
     if (!normalizePayloadFn) {
-      const subject = `user_${user.userId}`;
+      const subject = `${user.principalType}_${user.userId}`;
       isAllowed = this.enforcer.enforceSync(subject, request.resource, request.action);
       return isAllowed ? AuthorizationDecisions.ALLOW : AuthorizationDecisions.DENY;
     }
@@ -336,12 +197,169 @@ export class CasbinAuthorizationEnforcer<
     return isAllowed ? AuthorizationDecisions.ALLOW : AuthorizationDecisions.DENY;
   }
 
-  destroy() {
-    if (!this.inMemoryInvalidationTimer) {
+  // ---------------------------------------------------------------------------
+  // Enforcer & model resolvers
+  // ---------------------------------------------------------------------------
+
+  protected async resolveCasbinEnforcer(opts: {
+    casbin: typeof import('casbin');
+    model: import('casbin').Model;
+    adapter?: unknown;
+    cached: ICasbinEnforcerOptions['cached'];
+  }): Promise<CasbinEnforcerType | CasbinCachedEnforcerType> {
+    const { casbin, model, adapter, cached } = opts;
+
+    if (!cached.use) {
+      return casbin.newEnforcer(model, adapter);
+    }
+
+    switch (cached.driver) {
+      case CasbinEnforcerCachedDrivers.IN_MEMORY: {
+        this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
+
+        const enforcer = await casbin.newCachedEnforcer(model, adapter);
+
+        this.inMemoryInvalidationTimer = setInterval(() => {
+          enforcer.invalidateCache();
+          this.logger.info(
+            '[resolveCasbinEnforcer] Enforcer cache INVALIDATED | name: %s',
+            this.name,
+          );
+        }, cached.options.expiresIn);
+
+        return enforcer;
+      }
+      case CasbinEnforcerCachedDrivers.REDIS: {
+        this.validateExpiresIn({ expiresIn: cached.options.expiresIn });
+        return casbin.newEnforcer(model, adapter);
+      }
+      default: {
+        throw getError({
+          message: `[resolveCasbinEnforcer] Invalid cached.driver | Valids: [${CasbinEnforcerCachedDrivers.IN_MEMORY}, ${CasbinEnforcerCachedDrivers.REDIS}]`,
+        });
+      }
+    }
+  }
+
+  protected resolveModel(opts: {
+    casbin: typeof import('casbin');
+    model: ICasbinEnforcerOptions['model'];
+  }) {
+    const { casbin, model } = opts;
+
+    switch (model.driver) {
+      case CasbinEnforcerModelDrivers.FILE: {
+        return casbin.newModelFromFile(model.definition);
+      }
+      case CasbinEnforcerModelDrivers.TEXT: {
+        return casbin.newModelFromString(model.definition);
+      }
+      default: {
+        throw getError({
+          message: `[resolveModel] Invalid model.driver | Valids: [${CasbinEnforcerModelDrivers.FILE}, ${CasbinEnforcerModelDrivers.TEXT}]`,
+        });
+      }
+    }
+  }
+
+  protected validateExpiresIn(opts: { expiresIn: number }): void {
+    if (opts.expiresIn >= this.MIN_EXPIRES_IN) {
       return;
     }
 
-    clearInterval(this.inMemoryInvalidationTimer);
-    this.inMemoryInvalidationTimer = null;
+    throw getError({
+      message: `[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= ${this.MIN_EXPIRES_IN} (ms) | Received: ${opts.expiresIn}`,
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Policy loading internals
+  // ---------------------------------------------------------------------------
+
+  protected async loadPoliciesFromAdapter(opts: { user: { principalType: string } & IAuthUser }) {
+    if (!this.enforcer) {
+      throw getError({
+        message:
+          '[loadPoliciesFromAdapter] Invalid state of enforcer | Enforcer is not initialized!',
+      });
+    }
+
+    await this.enforcer.loadFilteredPolicy({
+      principalType: opts.user.principalType,
+      principalValue: opts.user.userId,
+    });
+  }
+
+  protected async loadPoliciesWithRedisCache(opts: {
+    user: { principalType: string } & IAuthUser;
+    cached: ICasbinEnforcerCachedRedis;
+  }) {
+    const logger = this.logger.for(this.loadPoliciesWithRedisCache.name);
+    const {
+      user,
+      cached: { options },
+    } = opts;
+
+    const cacheKey = await options.keyFn({ user });
+
+    if (!cacheKey) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message:
+          '[loadPoliciesWithRedisCache] Invalid cachedKey to start validate user authorization!',
+      });
+    }
+
+    const redisClient = options.connection.client;
+
+    // Cache hit — load lines directly into model
+    const cachedData = await redisClient.get(cacheKey);
+    if (cachedData) {
+      const lines = JSON.parse(cachedData);
+      await this.loadPolicyLinesIntoModel({ lines });
+      logger.info('Loaded CACHED Policies into model | user: %s', user.userId);
+      return;
+    }
+
+    // Cache miss — load from adapter, extract lines, cache in Redis
+    await this.loadPoliciesFromAdapter({ user });
+    const lines = await this.extractPolicyLines();
+    await redisClient.set(cacheKey, JSON.stringify(lines), 'PX', options.expiresIn);
+    logger.info('Loaded ADAPTER + CACHED Policies into model | user: %s', user.userId);
+  }
+
+  protected async extractPolicyLines() {
+    if (!this.enforcer) {
+      throw getError({
+        message: '[extractPolicyLines] Invalid state of enforcer | Enforcer is not initialized!',
+      });
+    }
+
+    const pRules = await this.enforcer.getPolicy();
+    const ps = pRules.map(r => [CasbinRuleVariants.P, ...r].join(', '));
+
+    const gRules = await this.enforcer.getGroupingPolicy();
+    const gs = gRules.map(r => [CasbinRuleVariants.G, ...r].join(', '));
+
+    return [...ps, ...gs];
+  }
+
+  protected async loadPolicyLinesIntoModel(opts: { lines: string[] }): Promise<void> {
+    if (!this.enforcer) {
+      throw getError({
+        message: '[loadPolicyLinesIntoModel] Enforcer not initialized. Call configure() first.',
+      });
+    }
+
+    const { Helper } = await import('casbin');
+
+    const model = this.enforcer.getModel();
+    model.clearPolicy();
+
+    for (const line of opts.lines) {
+      Helper.loadPolicyLine(line, model);
+    }
+
+    await this.enforcer.buildRoleLinks();
   }
 }

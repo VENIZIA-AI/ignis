@@ -100,3 +100,64 @@ export class AuthorizationRoles {
     return this.SCHEME_SET.has(input);
   }
 }
+
+// --------------------------------------------------------------------------------------------------------
+export class AuthorizationEnforcerTypes {
+  static readonly CASBIN = 'casbin';
+  static readonly CUSTOM = 'custom';
+
+  static readonly SCHEME_SET = new Set([this.CASBIN, this.CUSTOM]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TAuthorizationEnforcerType = TConstValue<typeof AuthorizationEnforcerTypes>;
+
+// --------------------------------------------------------------------------------------------------------
+export class CasbinEnforcerCachedDrivers {
+  static readonly IN_MEMORY = 'in-memory';
+  static readonly REDIS = 'redis';
+
+  static readonly SCHEME_SET = new Set([this.IN_MEMORY, this.REDIS]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TCasbinEnforcerCachedDriver = TConstValue<typeof CasbinEnforcerCachedDrivers>;
+
+// --------------------------------------------------------------------------------------------------------
+export class CasbinEnforcerModelDrivers {
+  static readonly FILE = 'file';
+  static readonly TEXT = 'text';
+
+  static readonly SCHEME_SET = new Set([this.FILE, this.TEXT]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TCasbinEnforcerModelDriver = TConstValue<typeof CasbinEnforcerModelDrivers>;
+
+// --------------------------------------------------------------------------------------------------------
+export class CasbinRuleVariants {
+  static readonly POLICY = 'policy';
+  static readonly GROUP = 'group';
+
+  /** Casbin line prefix for policy rules. */
+  static readonly P = 'p';
+  /** Casbin line prefix for grouping rules. */
+  static readonly G = 'g';
+
+  static readonly SCHEME_SET = new Set([this.POLICY, this.GROUP]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TCasbinRuleVariant = TConstValue<typeof CasbinRuleVariants>;
