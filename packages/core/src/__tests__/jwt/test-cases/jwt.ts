@@ -1,4 +1,4 @@
-import { IJWTTokenPayload, JWTTokenService } from '@/components/auth';
+import { IJWTTokenPayload, JWSTokenService } from '@/components/auth';
 import {
   getError,
   TestCaseDecisions,
@@ -23,7 +23,7 @@ export class TestCase001 extends TestCaseHandler<{}, IArg> {
     }
 
     const { payload, jwtSecret, applicationSecret, jwtExpiresIn } = this.args;
-    const jwtTokenService = new JWTTokenService({
+    const jwsTokenService = new JWSTokenService({
       jwtSecret,
       applicationSecret,
       getTokenExpiresFn: () => {
@@ -31,7 +31,7 @@ export class TestCase001 extends TestCaseHandler<{}, IArg> {
       },
     });
 
-    const token = await jwtTokenService.generate({ payload });
+    const token = await jwsTokenService.generate({ payload });
     this.logger.for(this.execute.name).info('Token: %s', token);
 
     return { token };

@@ -12,15 +12,14 @@ import { Organization, PolicyDefinition, Role, User } from '@/models';
 import { UserRepository } from '@/repositories';
 import {
   BaseService,
-  getError,
   IAuthService,
   inject,
-  JWTTokenService,
+  JWKSIssuerTokenService,
   TContext,
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
-import { HTTP } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 import { hash, compare, genSalt } from 'bcrypt';
 import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';
@@ -43,8 +42,8 @@ export class AuthenticationService
   constructor(
     @inject({ key: 'repositories.UserRepository' })
     private userRepository: UserRepository,
-    @inject({ key: 'services.JWTTokenService' })
-    private jwtTokenService: JWTTokenService,
+    @inject({ key: 'services.JWKSIssuerTokenService' })
+    private jwksTokenService: JWKSIssuerTokenService,
   ) {
     super({ scope: AuthenticationService.name });
   }
@@ -136,7 +135,7 @@ export class AuthenticationService
     const userOrg = await this.getUserOrganization({ userId: user.id as string });
 
     // Generate JWT token with roles + organization
-    const token = await this.jwtTokenService.generate({
+    const token = await this.jwksTokenService.generate({
       payload: {
         userId: user.id,
         email: user.email,

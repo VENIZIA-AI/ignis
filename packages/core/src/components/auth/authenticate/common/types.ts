@@ -5,7 +5,13 @@ import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-help
 import { Env, type MiddlewareHandler } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
-import { type TAuthMode } from './constants';
+import {
+  type TAuthMode,
+  type TJWKSKeyDriver,
+  type TJWKSKeyFormat,
+  JOSEStandards,
+  JWKSModes,
+} from './constants';
 
 // --------------------------------------------------------------------------------------------------------
 export type TDefineAuthControllerOpts = {
@@ -36,15 +42,55 @@ export type TAuthenticationRestOptions = {} & (
     }
 );
 
-export interface IJWTTokenServiceOptions {
-  aesAlgorithm?: AESAlgorithmType;
+export interface IJWSTokenServiceOptions {
   headerAlgorithm?: string;
   jwtSecret: string;
-  applicationSecret: string;
   getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
 }
 
-export interface IBasicTokenServiceOptions<E extends Env = Env> {
+// --------------------------------------------------------------------------------------------------------
+// JWKS Options (Asymmetric JWT)
+// --------------------------------------------------------------------------------------------------------
+export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
+
+export interface IJWKSIssuerOptions {
+  mode: typeof JWKSModes.ISSUER;
+  algorithm: TJWKSAlgorithm;
+  rest?: { path: string };
+  keys: {
+    driver: TJWKSKeyDriver;
+    format: TJWKSKeyFormat;
+    private: string; // Key content (text) or file path (file) — PEM or JWK based on format
+    public: string; // Key content (text) or file path (file) — PEM or JWK based on format
+  };
+  kid: string;
+  getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+}
+
+export interface IJWKSVerifierOptions {
+  mode: typeof JWKSModes.VERIFIER;
+  jwksUrl: string;
+  cacheTtlMs?: number; // Default: 43_200_000 (12h)
+  cooldownMs?: number; // Default: 30_000 (30s)
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+}
+
+export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
+
+// --------------------------------------------------------------------------------------------------------
+// Discriminated union for JWT_OPTIONS — standard field for clean TypeScript narrowing
+// --------------------------------------------------------------------------------------------------------
+
+export type TJWTTokenServiceOptions =
+  | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
+  | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
+
+export type TBasicTokenServiceOptions<E extends Env = Env> = {
   /**
    * Callback function to verify basic authentication credentials.
    * Implement this to look up user and verify password.
@@ -68,7 +114,7 @@ export interface IBasicTokenServiceOptions<E extends Env = Env> {
     credentials: { username: string; password: string };
     context: TContext<E, string>;
   }) => Promise<IAuthUser | null>;
-}
+};
 
 // --------------------------------------------------------------------------------------------------------
 // Authenticate Options
@@ -76,8 +122,8 @@ export interface IBasicTokenServiceOptions<E extends Env = Env> {
 
 export interface IAuthenticateOptions {
   restOptions?: TAuthenticationRestOptions;
-  jwtOptions?: IJWTTokenServiceOptions;
-  basicOptions?: IBasicTokenServiceOptions;
+  jwtOptions?: TJWTTokenServiceOptions;
+  basicOptions?: TBasicTokenServiceOptions;
 }
 
 // --------------------------------------------------------------------------------------------------------

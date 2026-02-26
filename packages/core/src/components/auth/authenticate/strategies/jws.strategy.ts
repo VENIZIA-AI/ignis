@@ -4,25 +4,26 @@ import { BindingNamespaces } from '@/common/bindings';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { BindingKeys } from '@venizia/ignis-inversion';
 import { Env } from 'hono';
-import { Authentication, IAuthUser, IAuthenticationStrategy } from '../common';
-import { JWTTokenService } from '../services';
+import { Authentication, IAuthUser, IAuthenticationStrategy, JOSEStandards } from '../common';
+import { JWSTokenService } from '../services';
 
-export class JWTAuthenticationStrategy<E extends Env = Env>
+export class JWSAuthenticationStrategy<E extends Env = Env>
   extends BaseHelper
   implements IAuthenticationStrategy<E>
 {
   name = Authentication.STRATEGY_JWT;
+  standard = JOSEStandards.JWS;
 
   constructor(
     @inject({
       key: BindingKeys.build({
         namespace: BindingNamespaces.SERVICE,
-        key: JWTTokenService.name,
+        key: JWSTokenService.name,
       }),
     })
-    private service: JWTTokenService<E>,
+    private service: JWSTokenService<E>,
   ) {
-    super({ scope: JWTAuthenticationStrategy.name });
+    super({ scope: JWSAuthenticationStrategy.name });
   }
 
   authenticate(context: TContext<E, string>): Promise<IAuthUser> {

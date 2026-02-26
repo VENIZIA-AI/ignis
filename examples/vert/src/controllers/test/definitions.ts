@@ -1,11 +1,11 @@
 import { z } from '@hono/zod-openapi';
 import {
   AuthenticateStrategy,
-  HTTP,
   IAuthRouteConfig,
   jsonContent,
   jsonResponse,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
 export type TRoute5Body = z.infer<typeof route5BodySchema>;

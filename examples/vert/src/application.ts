@@ -7,9 +7,9 @@ import {
   SignUpResponseSchema,
 } from '@/models';
 import {
+  Authentication,
   AuthenticateBindingKeys,
   AuthenticateComponent,
-  Authentication,
   AuthenticationStrategyRegistry,
   AuthorizeBindingKeys,
   AuthorizeComponent,
@@ -23,7 +23,6 @@ import {
   CasbinAuthorizationEnforcer,
   CoreBindings,
   DrizzleCasbinAdapter,
-  getError,
   HealthCheckBindingKeys,
   HealthCheckComponent,
   IApplicationConfigs,
@@ -31,8 +30,12 @@ import {
   IAuthorizeOptions,
   IHealthCheckOptions,
   IMiddlewareConfigs,
+  JOSEStandards,
+  JWKSIssuerAuthenticationStrategy,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  JWKSModes,
   BasicAuthenticationStrategy,
-  JWTAuthenticationStrategy,
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
   StaticAssetStorageTypes,
@@ -40,10 +43,19 @@ import {
   TStaticAssetsComponentOptions,
   ValueOrPromise,
   TAuthenticationRestOptions,
-  IJWTTokenServiceOptions,
-  IBasicTokenServiceOptions,
+  TJWTTokenServiceOptions,
+  TBasicTokenServiceOptions,
+  TJWKSKeyDriver,
+  TJWKSKeyFormat,
 } from '@venizia/ignis';
-import { applicationEnvironment, DiskHelper, Environment, HTTP, int } from '@venizia/ignis-helpers';
+import {
+  applicationEnvironment,
+  DiskHelper,
+  Environment,
+  getError,
+  HTTP,
+  int,
+} from '@venizia/ignis-helpers';
 import { DefaultRedisHelper } from '@venizia/ignis-helpers';
 import { MinioHelper } from '@venizia/ignis-helpers/minio';
 import { Redis } from 'ioredis';
@@ -53,6 +65,7 @@ import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
+import { UserRepository } from './repositories/user.repository';
 import { AuthenticationService } from './services';
 import { AuthorizationExampleController, TestController } from './controllers';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
@@ -146,6 +159,11 @@ export class Application extends BaseApplication {
 
   // --------------------------------------------------------------------------------
   registerAuth() {
+    // Manual registration (booter can't discover .ts files when running from source)
+    this.dataSource(PostgresDataSource);
+    this.repository(UserRepository);
+    this.service(AuthenticationService);
+
     this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
       useAuthController: true,
       controllerOpts: {
@@ -171,26 +189,40 @@ export class Application extends BaseApplication {
       },
     });
 
-    this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-      applicationSecret: applicationEnvironment.get<string>(
-        EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
-      ),
-      jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
-      getTokenExpiresFn: () => {
-        const jwtExpiresIn = applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-        );
-        if (!jwtExpiresIn) {
-          throw getError({
-            message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
-          });
-        }
+    this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+      standard: JOSEStandards.JWKS,
+      options: {
+        mode: JWKSModes.ISSUER,
+        algorithm: applicationEnvironment.get<string>(
+          EnvironmentKeys.APP_ENV_JWKS_ALGORITHM,
+        ) as 'ES256',
+        keys: {
+          driver: applicationEnvironment.get<TJWKSKeyDriver>(
+            EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER,
+          ),
+          format: applicationEnvironment.get<TJWKSKeyFormat>(
+            EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT,
+          ),
+          private: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
+          public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
+        },
+        kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
+        getTokenExpiresFn: () => {
+          const jwtExpiresIn = applicationEnvironment.get<string>(
+            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
+          );
+          if (!jwtExpiresIn) {
+            throw getError({
+              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
+            });
+          }
 
-        return parseInt(jwtExpiresIn);
+          return parseInt(jwtExpiresIn);
+        },
       },
     });
 
-    this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+    this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
       verifyCredentials: async opts => {
         const authenticateService = this.get<AuthenticationService>({
           key: BindingKeys.build({
@@ -207,10 +239,11 @@ export class Application extends BaseApplication {
 
     this.component(AuthenticateComponent);
 
+    // Register authentication strategies
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [
-        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+        { name: Authentication.STRATEGY_JWT, strategy: JWKSIssuerAuthenticationStrategy },
         { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
       ],
     });
@@ -242,54 +275,35 @@ export class Application extends BaseApplication {
     // });
     this.component(SwaggerComponent);
 
-    this.bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-    }).toValue({
-      // MinIO storage for user uploads and media
-      staticAsset: {
-        controller: {
-          name: 'AssetController',
-          basePath: '/assets',
-          isStrict: true,
-        },
-        storage: StaticAssetStorageTypes.MINIO,
-        helper: new MinioHelper({
-          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
-          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
-          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
-          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
-          useSSL: false,
-        }),
-        useMetaLink: true,
-        metaLink: {
-          model: BaseMetaLinkModel,
-          repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
-        },
-        extra: {
-          parseMultipartBody: {
-            storage: 'memory',
-          },
-        },
-      },
-      // Local disk storage for temporary files and cache
-      staticResource: {
-        controller: {
-          name: 'ResourceController',
-          basePath: '/resources',
-          isStrict: true,
-        },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new DiskHelper({
-          basePath: './app_data/resources',
-        }),
-        extra: {
-          parseMultipartBody: {
-            storage: 'memory',
-          },
-        },
-      },
-    });
-    this.component(StaticAssetComponent);
+    // TODO: Fix MetaLinkRepository ordering — temporarily disabled for JWKS testing
+    // this.bind<TStaticAssetsComponentOptions>({
+    //   key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    // }).toValue({
+    //   staticAsset: {
+    //     controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
+    //     storage: StaticAssetStorageTypes.MINIO,
+    //     helper: new MinioHelper({
+    //       endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
+    //       port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
+    //       accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
+    //       secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
+    //       useSSL: false,
+    //     }),
+    //     useMetaLink: true,
+    //     metaLink: {
+    //       model: BaseMetaLinkModel,
+    //       repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
+    //     },
+    //     extra: { parseMultipartBody: { storage: 'memory' } },
+    //   },
+    //   staticResource: {
+    //     controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
+    //     storage: StaticAssetStorageTypes.DISK,
+    //     helper: new DiskHelper({ basePath: './app_data/resources' }),
+    //     extra: { parseMultipartBody: { storage: 'memory' } },
+    //   },
+    // });
+    // this.component(StaticAssetComponent);
 
     this.controller(TestController);
     this.controller(AuthorizationExampleController);

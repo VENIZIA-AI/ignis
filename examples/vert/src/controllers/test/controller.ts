@@ -3,12 +3,12 @@ import {
   BaseController,
   controller,
   get,
-  HTTP,
   IControllerOptions,
   post,
   TRouteContext,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs, TRoute5Body } from './definitions';
 
 @controller({ path: '/test' })

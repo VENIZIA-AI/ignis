@@ -1,18 +1,31 @@
 import { BaseApplication } from '@/base/applications/base';
 import { BaseComponent } from '@/base/components/base';
 import { inject } from '@/base/metadata/injectors';
+import { controller } from '@/base/metadata/routes';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@venizia/ignis-inversion';
 import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   AuthenticateBindingKeys,
   IAuthenticateOptions,
-  IBasicTokenServiceOptions,
-  IJWTTokenServiceOptions,
+  TBasicTokenServiceOptions,
+  IJWKSIssuerOptions,
+  IJWKSVerifierOptions,
+  IJWSTokenServiceOptions,
+  JOSEStandards,
+  JWKSKeyFormats,
+  JWKSModes,
   TAuthenticationRestOptions,
+  TJWKSTokenServiceOptions,
+  TJWTTokenServiceOptions,
 } from './common';
-import { BasicTokenService, JWTTokenService } from './services';
-import { defineAuthController } from './controllers';
+import {
+  BasicTokenService,
+  JWSTokenService,
+  JWKSIssuerTokenService,
+  JWKSVerifierTokenService,
+} from './services';
+import { defineAuthController, JWKSController } from './controllers';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
@@ -33,80 +46,159 @@ export class AuthenticateComponent extends BaseComponent {
 
   // ---------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
-    const options: IAuthenticateOptions = {
-      restOptions: this.application.get<TAuthenticationRestOptions>({
-        key: AuthenticateBindingKeys.REST_OPTIONS,
-        isOptional: true,
-      }),
-      jwtOptions: this.application.get<IJWTTokenServiceOptions>({
-        key: AuthenticateBindingKeys.JWT_OPTIONS,
-        isOptional: true,
-      }),
-      basicOptions: this.application.get<IBasicTokenServiceOptions>({
-        key: AuthenticateBindingKeys.BASIC_OPTIONS,
-        isOptional: true,
-      }),
-    };
+    const jwtOptions = this.application.get<TJWTTokenServiceOptions>({
+      key: AuthenticateBindingKeys.JWT_OPTIONS,
+      isOptional: true,
+    });
+    const basicOptions = this.application.get<TBasicTokenServiceOptions>({
+      key: AuthenticateBindingKeys.BASIC_OPTIONS,
+      isOptional: true,
+    });
+    const restOptions = this.application.get<TAuthenticationRestOptions>({
+      key: AuthenticateBindingKeys.REST_OPTIONS,
+      isOptional: true,
+    });
 
-    if (!options.jwtOptions && !options.basicOptions) {
+    if (!jwtOptions && !basicOptions) {
       throw getError({
         message:
           '[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided',
       });
     }
 
-    // Configure each auth method
-    this.defineJWTAuth({ options });
-    this.defineBasicAuth({ options });
+    const options: IAuthenticateOptions = { restOptions, jwtOptions, basicOptions };
+
+    // Configure JWT auth based on discriminated union
+    if (jwtOptions) {
+      switch (jwtOptions.standard) {
+        case JOSEStandards.JWS: {
+          this.defineJWSAuth({ options: jwtOptions.options });
+          break;
+        }
+        case JOSEStandards.JWKS: {
+          this.defineJWKSAuth({ options: jwtOptions.options });
+          break;
+        }
+        default: {
+          throw getError({
+            message: `[AuthenticateComponent] Unknown JOSE standard: ${(jwtOptions as any).standard}`,
+          });
+        }
+      }
+    }
+
+    // Configure Basic auth
+    this.defineBasicAuth({ basicOptions });
+
+    // Configure controllers
     this.defineControllers({ options });
 
     this.defineOAuth2();
   }
 
   // ---------------------------------------------------------------------------
-  private defineJWTAuth(opts: { options: IAuthenticateOptions }): void {
-    const { jwtOptions } = opts.options;
+  private defineJWSAuth(opts: { options: IJWSTokenServiceOptions }): void {
+    const { options: jwsOptions } = opts;
 
-    if (!jwtOptions) {
-      this.logger
-        .for(this.defineJWTAuth.name)
-        .debug('jwtOptions not provided, skipping JWT configuration');
-      return;
-    }
+    const { jwtSecret, getTokenExpiresFn } = jwsOptions;
 
-    const { jwtSecret, applicationSecret, getTokenExpiresFn } = jwtOptions;
-
-    // Validate JWT secrets
+    // Validate JWS secrets
     if (!jwtSecret || jwtSecret === DEFAULT_SECRET) {
       throw getError({
-        message: `[defineJWTAuth] Invalid jwtSecret | Provided: ${jwtSecret}`,
-      });
-    }
-
-    if (!applicationSecret || applicationSecret === DEFAULT_SECRET) {
-      throw getError({
-        message: `[defineJWTAuth] Invalid applicationSecret | Provided: ${applicationSecret}`,
+        message: `[defineJWSAuth] Invalid jwtSecret | Provided: ${jwtSecret}`,
       });
     }
 
     if (!getTokenExpiresFn) {
       throw getError({
-        message: '[defineJWTAuth] getTokenExpiresFn is required',
+        message: '[defineJWSAuth] getTokenExpiresFn is required',
       });
     }
 
-    // Bind JWT options and register service
+    // Bind JWS options and register service
     this.application
-      .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-      .toValue(jwtOptions);
-    this.application.service(JWTTokenService);
+      .bind<IJWSTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
+      .toValue(jwsOptions);
+    this.application.service(JWSTokenService);
 
-    this.logger.for(this.defineJWTAuth.name).info('JWT authentication configured');
+    this.logger.for(this.defineJWSAuth.name).info('JWS authentication configured');
   }
 
   // ---------------------------------------------------------------------------
-  private defineBasicAuth(opts: { options: IAuthenticateOptions }): void {
-    const { basicOptions } = opts.options;
+  private defineJWKSAuth(opts: { options: TJWKSTokenServiceOptions }): void {
+    const { options: jwksOptions } = opts;
+
+    switch (jwksOptions.mode) {
+      case JWKSModes.ISSUER: {
+        const issuerOpts = jwksOptions as IJWKSIssuerOptions;
+
+        if (!issuerOpts.keys?.private || !issuerOpts.keys?.public) {
+          throw getError({
+            message: '[defineJWKSAuth] keys.private and keys.public are required for issuer mode',
+          });
+        }
+
+        if (!issuerOpts.keys?.format || !JWKSKeyFormats.isValid(issuerOpts.keys.format)) {
+          throw getError({
+            message: `[defineJWKSAuth] keys.format is required and must be one of: ${[...JWKSKeyFormats.SCHEME_SET].join(', ')}`,
+          });
+        }
+
+        if (!issuerOpts.kid) {
+          throw getError({ message: '[defineJWKSAuth] kid is required for issuer mode' });
+        }
+
+        if (!issuerOpts.getTokenExpiresFn) {
+          throw getError({
+            message: '[defineJWKSAuth] getTokenExpiresFn is required for issuer mode',
+          });
+        }
+
+        this.application
+          .bind<IJWKSIssuerOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
+          .toValue(issuerOpts);
+        this.application.service(JWKSIssuerTokenService);
+
+        // Register JWKS controller for /certs endpoint
+        Reflect.decorate(
+          [controller({ path: issuerOpts?.rest?.path ?? '/certs' })],
+          JWKSController,
+        );
+        this.application.controller(JWKSController);
+
+        this.logger
+          .for(this.defineJWKSAuth.name)
+          .info('JWKS issuer configured with /certs endpoint');
+        break;
+      }
+
+      case JWKSModes.VERIFIER: {
+        const verifierOpts = jwksOptions as IJWKSVerifierOptions;
+
+        if (!verifierOpts.jwksUrl) {
+          throw getError({ message: '[defineJWKSAuth] jwksUrl is required for verifier mode' });
+        }
+
+        this.application
+          .bind<IJWKSVerifierOptions>({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
+          .toValue(verifierOpts);
+        this.application.service(JWKSVerifierTokenService);
+
+        this.logger.for(this.defineJWKSAuth.name).info('JWKS verifier configured');
+        break;
+      }
+
+      default: {
+        throw getError({
+          message: `[defineJWKSAuth] Invalid JWKS mode: ${(jwksOptions as any).mode}`,
+        });
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  private defineBasicAuth(opts: { basicOptions?: TBasicTokenServiceOptions }): void {
+    const { basicOptions } = opts;
 
     if (!basicOptions) {
       this.logger
@@ -123,7 +215,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     // Bind Basic options and register service
     this.application
-      .bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
+      .bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
       .toValue(basicOptions);
     this.application.service(BasicTokenService);
 

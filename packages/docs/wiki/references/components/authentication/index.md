@@ -1,6 +1,6 @@
 # Authentication -- Setup & Configuration
 
-> JWT and Basic HTTP authentication with AES-encrypted payloads, multi-strategy support, and built-in auth controller
+> JWT authentication with JWS (symmetric) and JWKS (asymmetric) standards, optional AES-encrypted payloads, Basic HTTP authentication, multi-strategy support, and built-in auth controller
 
 ## Quick Reference
 
@@ -16,21 +16,44 @@
 |-----------|---------|
 | **AuthenticateComponent** | Main component registering auth services and controllers |
 | **AuthenticationStrategyRegistry** | Singleton managing available auth strategies |
-| **JWTAuthenticationStrategy** | JWT verification using `JWTTokenService` |
+| **JWSAuthenticationStrategy** | JWT verification using symmetric `JWSTokenService` (HS256) |
+| **JWKSIssuerAuthenticationStrategy** | JWT verification using asymmetric `JWKSIssuerTokenService` (ES256/RS256/EdDSA) |
+| **JWKSVerifierAuthenticationStrategy** | JWT verification via remote JWKS URL |
 | **BasicAuthenticationStrategy** | Basic HTTP authentication using `BasicTokenService` |
-| **JWTTokenService** | Generate, verify, encrypt/decrypt JWT tokens |
+| **AbstractBearerTokenService** | Base class for all Bearer token services (JWS, JWKS Issuer, JWKS Verifier) |
+| **JWSTokenService** | Symmetric JWT — sign, verify, optional AES encrypt/decrypt |
+| **JWKSIssuerTokenService** | Asymmetric JWT — sign with private key, verify with public key, serve JWKS endpoint |
+| **JWKSVerifierTokenService** | Asymmetric JWT — verify-only via remote JWKS URL |
 | **BasicTokenService** | Extract and verify Basic auth credentials |
+| **JWKSController** | Serves `/.well-known/jwks.json`-style endpoint at `/certs` |
 | **IAuthService** | Interface for custom auth implementation (sign-in, sign-up) |
 | **defineAuthController** | Factory function for creating custom auth controllers |
-| **authenticate** | Standalone function wrapping `AuthenticationStrategyRegistry.getInstance().authenticate()` |
+| **AbstractJWKSTokenService** | Base class for JWKS services with lazy initialization and retry-on-failure |
+| **authenticate** | Standalone middleware function using `AuthenticationProvider` to create auth middleware |
+
+### JOSE Standards
+
+The authentication module supports two JOSE (JSON Object Signing and Encryption) standards:
+
+| Standard | Class | Use Case | Signing | Key Type |
+|----------|-------|----------|---------|----------|
+| **JWS** | `JWSTokenService` | Single-service apps where the same service signs and verifies | HS256 (symmetric) | Shared secret (`jwtSecret`) |
+| **JWKS (Issuer)** | `JWKSIssuerTokenService` | Multi-service / microservice architectures where one service issues tokens | ES256 / RS256 / EdDSA (asymmetric) | Private key (sign) + Public key (verify) |
+| **JWKS (Verifier)** | `JWKSVerifierTokenService` | Services that only verify tokens issued by another service | N/A (verify-only) | Remote JWKS URL |
 
 ### Environment Variables
 
 | Variable | Purpose | Required |
 |----------|---------|----------|
-| `APP_ENV_APPLICATION_SECRET` | Encrypt JWT payload | Required for JWT |
-| `APP_ENV_JWT_SECRET` | Sign and verify JWT signature | Required for JWT |
-| `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Optional |
+| `APP_ENV_JWT_SECRET` | Sign and verify JWT signature (JWS only) | Required for JWS |
+| `APP_ENV_APPLICATION_SECRET` | AES-encrypt JWT payload fields | Optional |
+| `APP_ENV_JWT_EXPIRES_IN` | Token expiration (seconds) | Required |
+| `APP_ENV_JWKS_ALGORITHM` | JWKS signing algorithm (e.g., `ES256`) | Required for JWKS |
+| `APP_ENV_JWKS_KEY_DRIVER` | Key source: `text` or `file` | Required for JWKS |
+| `APP_ENV_JWKS_KEY_FORMAT` | Key format: `pem` or `jwk` | Required for JWKS |
+| `APP_ENV_JWKS_PRIVATE_KEY` | Private key content or file path | Required for JWKS Issuer |
+| `APP_ENV_JWKS_PUBLIC_KEY` | Public key content or file path | Required for JWKS Issuer |
+| `APP_ENV_JWKS_KID` | Key ID for JWKS endpoint | Required for JWKS Issuer |
 
 ### Auth Modes
 
@@ -51,10 +74,6 @@
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `Authentication.ACCESS_TOKEN_SECRET` | `'token.secret'` | Default access token secret key |
-| `Authentication.ACCESS_TOKEN_EXPIRES_IN` | `86400` | Default access token expiration (seconds, 24h) |
-| `Authentication.REFRESH_TOKEN_SECRET` | `'refresh.secret'` | Default refresh token secret key |
-| `Authentication.REFRESH_TOKEN_EXPIRES_IN` | `86400` | Default refresh token expiration (seconds, 24h) |
 | `Authentication.AUTHENTICATION_STRATEGY` | `'authentication.strategy'` | Namespace prefix for strategy binding keys |
 | `Authentication.STRATEGY_JWT` | `'jwt'` | JWT strategy name |
 | `Authentication.STRATEGY_BASIC` | `'basic'` | Basic strategy name |
@@ -64,36 +83,89 @@
 | `Authentication.CURRENT_USER` | `'auth.current.user'` | Context key for the authenticated user payload |
 | `Authentication.AUDIT_USER_ID` | `'audit.user.id'` | Context key for the authenticated user ID |
 
+### JWKS Constants
+
+| Class | Constant | Value | Description |
+|-------|----------|-------|-------------|
+| `JOSEStandards` | `JWS` | `'JWS'` | Symmetric JWT standard |
+| `JOSEStandards` | `JWKS` | `'JWKS'` | Asymmetric JWT standard |
+| `JWKSModes` | `ISSUER` | `'issuer'` | Issuer mode (sign + verify + serve JWKS) |
+| `JWKSModes` | `VERIFIER` | `'verifier'` | Verifier mode (verify-only via remote JWKS) |
+| `JWKSKeyDrivers` | `TEXT` | `'text'` | Key provided as inline text |
+| `JWKSKeyDrivers` | `FILE` | `'file'` | Key loaded from file path |
+| `JWKSKeyFormats` | `PEM` | `'pem'` | PEM-encoded key format |
+| `JWKSKeyFormats` | `JWK` | `'jwk'` | JSON Web Key format |
+
+Each constants class also provides:
+- `SCHEME_SET: Set<string>` — set of all valid values
+- `isValid(input: string): boolean` — check if a value is recognized
+
 #### Import Paths
+
 ```typescript
 import {
+  // Component + Registry
   AuthenticateComponent,
   AuthenticateBindingKeys,
   Authentication,
   AuthenticationModes,
   AuthenticationTokenTypes,
   AuthenticationStrategyRegistry,
-  JWTAuthenticationStrategy,
+
+  // JOSE Standards + Constants
+  JOSEStandards,
+  JWKSModes,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+
+  // Strategies
+  JWSAuthenticationStrategy,
+  JWKSIssuerAuthenticationStrategy,
+  JWKSVerifierAuthenticationStrategy,
   BasicAuthenticationStrategy,
-  JWTTokenService,
+
+  // Services
+  AbstractBearerTokenService,
+  JWSTokenService,
+  JWKSIssuerTokenService,
+  JWKSVerifierTokenService,
   BasicTokenService,
+
+  // Controllers
   defineAuthController,
+  JWKSController,
   authenticate,
 } from '@venizia/ignis';
 
 import type {
+  // Option types
   TAuthenticationRestOptions,
-  IJWTTokenServiceOptions,
-  IBasicTokenServiceOptions,
+  TJWTTokenServiceOptions,
+  IJWSTokenServiceOptions,
+  IJWKSIssuerOptions,
+  IJWKSVerifierOptions,
+  TJWKSTokenServiceOptions,
+  TBasicTokenServiceOptions,
   IAuthenticateOptions,
+
+  // User + payload types
   IAuthUser,
   IJWTTokenPayload,
   IAuthService,
   IAuthenticationStrategy,
+
+  // Controller types
   TDefineAuthControllerOpts,
+
+  // Utility types
   TAuthStrategy,
   TAuthMode,
   TGetTokenExpiresFn,
+  TJWKSAlgorithm,
+  TJWKSKeyDriver,
+  TJWKSKeyFormat,
+  TJOSEStandard,
+  TJWKSMode,
 } from '@venizia/ignis';
 ```
 
@@ -128,34 +200,135 @@ import {
 } from '@venizia/ignis';
 ```
 
+## Component Binding Lifecycle
+
+```mermaid
+flowchart TD
+    A["preConfigure()"] --> B["Bind JWT_OPTIONS / BASIC_OPTIONS / REST_OPTIONS"]
+    B --> C["this.component(AuthenticateComponent)"]
+    C --> D["AuthenticateComponent.binding()"]
+    D --> E{"jwtOptions.standard?"}
+    E -->|"JWS"| F["defineJWSAuth()"]
+    E -->|"JWKS"| G["defineJWKSAuth()"]
+    E -->|"none"| H["Skip JWT"]
+    F --> I["Register JWSTokenService"]
+    G --> J{"mode?"}
+    J -->|"issuer"| K["Register JWKSIssuerTokenService + JWKSController"]
+    J -->|"verifier"| L["Register JWKSVerifierTokenService"]
+    D --> M["defineBasicAuth()"]
+    M --> N["Register BasicTokenService"]
+    D --> O["defineControllers()"]
+    O --> P["Register AuthController (factory-built)"]
+    C --> Q["Manual strategy registration"]
+    Q --> R["AuthenticationStrategyRegistry.register()"]
+
+    style E fill:#fff3cd,stroke:#ffc107
+    style J fill:#fff3cd,stroke:#ffc107
+```
+
 ## Setup
 
 ### Step 1: Bind Configuration
 
-Bind at least one of `JWT_OPTIONS` or `BASIC_OPTIONS` in your application's `preConfigure()`.
+Bind JWT options using the discriminated union `TJWTTokenServiceOptions`, which requires a `standard` field to select the JOSE standard.
 
-### JWT Only (Primary Setup)
+### JWS (Symmetric JWT) Setup
 
 ```typescript
 import {
   AuthenticateBindingKeys,
-  IJWTTokenServiceOptions,
+  JOSEStandards,
+  TJWTTokenServiceOptions,
 } from '@venizia/ignis';
 
-// Bind JWT options
-this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-  applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-  jwtSecret: process.env.APP_ENV_JWT_SECRET,
-  getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWS,
+  options: {
+    jwtSecret: process.env.APP_ENV_JWT_SECRET,
+    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // Optional — enables AES payload encryption
+    getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+  },
 });
 ```
 
-**Example `.env` file:**
+**Example `.env` file (JWS):**
 
 ```
-APP_ENV_APPLICATION_SECRET=your-strong-application-secret
 APP_ENV_JWT_SECRET=your-strong-jwt-secret
+APP_ENV_APPLICATION_SECRET=your-strong-application-secret
 APP_ENV_JWT_EXPIRES_IN=86400
+```
+
+> [!NOTE]
+> `applicationSecret` is optional. When provided, all custom JWT claim keys and values are AES-encrypted. When omitted, payloads are stored in plaintext (standard JWT behavior).
+
+### JWKS Issuer (Asymmetric JWT) Setup
+
+```typescript
+import {
+  AuthenticateBindingKeys,
+  JOSEStandards,
+  JWKSModes,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  TJWTTokenServiceOptions,
+} from '@venizia/ignis';
+
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWKS,
+  options: {
+    mode: JWKSModes.ISSUER,
+    algorithm: 'ES256',
+    keys: {
+      driver: JWKSKeyDrivers.FILE,     // or JWKSKeyDrivers.TEXT
+      format: JWKSKeyFormats.PEM,       // or JWKSKeyFormats.JWK
+      private: './keys/private.pem',
+      public: './keys/public.pem',
+    },
+    kid: 'my-key-id-1',
+    getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+    // Optional AES payload encryption
+    aesAlgorithm: 'aes-256-cbc',
+    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+  },
+});
+```
+
+**Example `.env` file (JWKS Issuer):**
+
+```
+APP_ENV_JWKS_ALGORITHM=ES256
+APP_ENV_JWKS_KEY_DRIVER=file
+APP_ENV_JWKS_KEY_FORMAT=pem
+APP_ENV_JWKS_PRIVATE_KEY=./keys/private.pem
+APP_ENV_JWKS_PUBLIC_KEY=./keys/public.pem
+APP_ENV_JWKS_KID=my-key-id-1
+APP_ENV_JWT_EXPIRES_IN=86400
+APP_ENV_APPLICATION_SECRET=your-strong-application-secret
+```
+
+### JWKS Verifier (Remote Verification) Setup
+
+```typescript
+import {
+  AuthenticateBindingKeys,
+  JOSEStandards,
+  JWKSModes,
+  TJWTTokenServiceOptions,
+} from '@venizia/ignis';
+
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWKS,
+  options: {
+    mode: JWKSModes.VERIFIER,
+    jwksUrl: 'https://auth-service.example.com/certs',
+    cacheTtlMs: 43_200_000,  // Cache JWKS for 12 hours (default)
+    cooldownMs: 30_000,       // Wait 30s between JWKS refreshes (default)
+    // Optional AES payload decryption (must match issuer's applicationSecret)
+    aesAlgorithm: 'aes-256-cbc',
+    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
+  },
+});
 ```
 
 ### Basic Auth Only (Alternative Setup)
@@ -163,11 +336,10 @@ APP_ENV_JWT_EXPIRES_IN=86400
 ```typescript
 import {
   AuthenticateBindingKeys,
-  IBasicTokenServiceOptions,
+  TBasicTokenServiceOptions,
 } from '@venizia/ignis';
 
-// Bind Basic auth options
-this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
   verifyCredentials: async (opts) => {
     const { credentials, context } = opts;
     const user = await userRepo.findByUsername(credentials.username);
@@ -179,14 +351,20 @@ this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTION
 });
 ```
 
-### Combined JWT + Basic with Auth Controller (Full Setup)
+### Combined JWKS + Basic with Auth Controller (Full Setup)
 
 ```typescript
 import {
   AuthenticateBindingKeys,
-  IJWTTokenServiceOptions,
-  IBasicTokenServiceOptions,
+  JOSEStandards,
+  JWKSModes,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  TJWTTokenServiceOptions,
+  TBasicTokenServiceOptions,
   TAuthenticationRestOptions,
+  BindingKeys,
+  BindingNamespaces,
 } from '@venizia/ignis';
 
 // Bind REST options (enables auth controller)
@@ -194,6 +372,10 @@ this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTION
   useAuthController: true,
   controllerOpts: {
     restPath: '/auth',
+    serviceKey: BindingKeys.build({
+      namespace: BindingNamespaces.SERVICE,
+      key: AuthenticationService.name,
+    }),
     payload: {
       signIn: {
         request: { schema: SignInRequestSchema },
@@ -203,19 +385,33 @@ this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTION
         request: { schema: SignUpRequestSchema },
         response: { schema: SignUpResponseSchema },
       },
+      changePassword: {
+        request: { schema: ChangePasswordRequestSchema },
+        response: { schema: ChangePasswordResponseSchema },
+      },
     },
   },
 });
 
-// Bind JWT options
-this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-  applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-  jwtSecret: process.env.APP_ENV_JWT_SECRET,
-  getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+// Bind JWT options (JWKS issuer mode)
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWKS,
+  options: {
+    mode: JWKSModes.ISSUER,
+    algorithm: 'ES256',
+    keys: {
+      driver: JWKSKeyDrivers.FILE,
+      format: JWKSKeyFormats.PEM,
+      private: './keys/private.pem',
+      public: './keys/public.pem',
+    },
+    kid: 'my-key-id-1',
+    getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
+  },
 });
 
 // Bind Basic auth options
-this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
   verifyCredentials: async (opts) => {
     const authenticateService = this.get<AuthenticationService>({
       key: BindingKeys.build({
@@ -231,14 +427,14 @@ this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTION
 });
 ```
 
-### Step 2: Register Component
+### Step 2: Register Component and Strategies
 
 ```typescript
 import {
   AuthenticateComponent,
   Authentication,
   AuthenticationStrategyRegistry,
-  JWTAuthenticationStrategy,
+  JWKSIssuerAuthenticationStrategy,
   BasicAuthenticationStrategy,
   BaseApplication,
   ValueOrPromise,
@@ -254,11 +450,11 @@ export class Application extends BaseApplication {
     // Register component
     this.component(AuthenticateComponent);
 
-    // Register strategies
+    // Register strategies manually AFTER the component
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [
-        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+        { name: Authentication.STRATEGY_JWT, strategy: JWKSIssuerAuthenticationStrategy },
         { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
       ],
     });
@@ -266,45 +462,134 @@ export class Application extends BaseApplication {
 }
 ```
 
+> [!IMPORTANT]
+> Strategies are NOT auto-registered by `AuthenticateComponent`. You must manually register them after calling `this.component(AuthenticateComponent)`. This gives you full control over which strategies are available.
+
 > [!NOTE]
-> Only register the strategies you need. JWT-only setups can omit `BasicAuthenticationStrategy` and vice versa.
+> Choose the strategy class matching your JOSE standard:
+> - JWS: `JWSAuthenticationStrategy`
+> - JWKS Issuer: `JWKSIssuerAuthenticationStrategy`
+> - JWKS Verifier: `JWKSVerifierAuthenticationStrategy`
 
 ## Configuration
 
-### JWT Options
+### TJWTTokenServiceOptions (Discriminated Union)
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `jwtSecret` | `string` | -- | Secret for signing and verifying JWT signature |
-| `applicationSecret` | `string` | -- | Secret for AES-encrypting JWT payload fields |
-| `getTokenExpiresFn` | `() => ValueOrPromise<number>` | -- | Function returning token expiration in seconds |
-| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | AES algorithm for payload encryption |
-| `headerAlgorithm` | `string` | `'HS256'` | JWT signing algorithm |
+```mermaid
+flowchart LR
+    T["TJWTTokenServiceOptions"] --> S{"standard"}
+    S -->|"'JWS'"| JWS["IJWSTokenServiceOptions"]
+    S -->|"'JWKS'"| JWKS["TJWKSTokenServiceOptions"]
+    JWKS --> M{"mode"}
+    M -->|"'issuer'"| ISS["IJWKSIssuerOptions"]
+    M -->|"'verifier'"| VER["IJWKSVerifierOptions"]
 
-> [!WARNING]
-> Both `applicationSecret` and `jwtSecret` are mandatory when using JWT authentication. They must be strong, unique secret values. The component will throw an error if either is missing or set to `'unknown_secret'`. Additionally, the error message from `defineJWTAuth` **includes the actual provided secret value** in the error output (e.g., <code v-pre>[defineJWTAuth] Invalid jwtSecret | Provided: {{jwtSecret}}</code>), so ensure these errors are never exposed to end users.
-
-> [!NOTE]
-> The `getTokenExpiresFn` is called on every token generation, not just once. This allows dynamic expiration (e.g., shorter tokens for mobile, longer for admin).
-
-**Example `.env` file:**
-
-```
-APP_ENV_APPLICATION_SECRET=your-strong-application-secret
-APP_ENV_JWT_SECRET=your-strong-jwt-secret
-APP_ENV_JWT_EXPIRES_IN=86400
+    style S fill:#e8f4fd,stroke:#0d6efd
+    style M fill:#e8f4fd,stroke:#0d6efd
 ```
 
-#### IJWTTokenServiceOptions -- Full Interface
+The top-level JWT options use a discriminated union on the `standard` field:
+
 ```typescript
-interface IJWTTokenServiceOptions {
-  jwtSecret: string;
-  applicationSecret: string;
-  getTokenExpiresFn: () => ValueOrPromise<number>;
-  aesAlgorithm?: AESAlgorithmType;
+type TJWTTokenServiceOptions =
+  | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
+  | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
+```
+
+This enables clean TypeScript narrowing — once you set `standard: JOSEStandards.JWS`, the `options` field is typed as `IJWSTokenServiceOptions`; with `standard: JOSEStandards.JWKS`, it becomes `TJWKSTokenServiceOptions`.
+
+### JWS Options (IJWSTokenServiceOptions)
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `jwtSecret` | `string` | -- | Yes | Secret for signing and verifying JWT signature |
+| `getTokenExpiresFn` | `TGetTokenExpiresFn` | -- | Yes | Function returning token expiration in seconds |
+| `applicationSecret` | `string` | -- | No | Secret for AES-encrypting JWT payload fields |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
+| `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
+
+```typescript
+interface IJWSTokenServiceOptions {
   headerAlgorithm?: string;
+  jwtSecret: string;
+  getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
 }
 ```
+
+> [!WARNING]
+> `jwtSecret` is mandatory. The component will throw an error if it is missing or set to `'unknown_secret'`. The error message from `defineJWSAuth` **includes the actual provided secret value** in the error output, so ensure these errors are never exposed to end users.
+
+> [!NOTE]
+> `applicationSecret` is optional. When provided, custom JWT payload fields are AES-encrypted (keys and values). When omitted, the JWT payload is stored in standard plaintext. Standard JWT fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted.
+
+### JWKS Issuer Options (IJWKSIssuerOptions)
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `mode` | `typeof JWKSModes.ISSUER` | -- | Yes | Must be `'issuer'` |
+| `algorithm` | `TJWKSAlgorithm` | -- | Yes | Signing algorithm: `'ES256'`, `'RS256'`, or `'EdDSA'` |
+| `keys.driver` | `TJWKSKeyDriver` | -- | Yes | Key source: `'text'` (inline) or `'file'` (file path) |
+| `keys.format` | `TJWKSKeyFormat` | -- | Yes | Key format: `'pem'` or `'jwk'` |
+| `keys.private` | `string` | -- | Yes | Private key content (text) or file path (file) |
+| `keys.public` | `string` | -- | Yes | Public key content (text) or file path (file) |
+| `kid` | `string` | -- | Yes | Key ID exposed in the JWKS endpoint |
+| `getTokenExpiresFn` | `TGetTokenExpiresFn` | -- | Yes | Function returning token expiration in seconds |
+| `rest` | `{ path: string }` | `{ path: '/certs' }` | No | Custom path for the JWKS endpoint |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
+| `applicationSecret` | `string` | -- | No | Secret for AES-encrypting JWT payload fields |
+
+```typescript
+interface IJWKSIssuerOptions {
+  mode: typeof JWKSModes.ISSUER;
+  algorithm: TJWKSAlgorithm;
+  rest?: { path: string };
+  keys: {
+    driver: TJWKSKeyDriver;
+    format: TJWKSKeyFormat;
+    private: string;
+    public: string;
+  };
+  kid: string;
+  getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+}
+```
+
+### JWKS Verifier Options (IJWKSVerifierOptions)
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `mode` | `typeof JWKSModes.VERIFIER` | -- | Yes | Must be `'verifier'` |
+| `jwksUrl` | `string` | -- | Yes | URL of the remote JWKS endpoint |
+| `cacheTtlMs` | `number` | `43_200_000` (12h) | No | How long to cache the JWKS response |
+| `cooldownMs` | `number` | `30_000` (30s) | No | Minimum time between JWKS refreshes |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
+| `applicationSecret` | `string` | -- | No | Secret for AES-decrypting JWT payload fields |
+
+```typescript
+interface IJWKSVerifierOptions {
+  mode: typeof JWKSModes.VERIFIER;
+  jwksUrl: string;
+  cacheTtlMs?: number;
+  cooldownMs?: number;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+}
+```
+
+> [!IMPORTANT]
+> In verifier mode, the `applicationSecret` must match the issuer's secret exactly. If the issuer encrypts payloads with AES, the verifier must use the same `applicationSecret` to decrypt them.
+
+### JWKS Token Service Options (Union)
+
+```typescript
+type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
+```
+
+This union is discriminated on the `mode` field (`'issuer'` vs `'verifier'`).
 
 ### Basic Auth Options
 
@@ -321,14 +606,14 @@ type TBasicAuthVerifyFn<E extends Env = Env> = (opts: {
 }) => Promise<IAuthUser | null>;
 ```
 
-#### IBasicTokenServiceOptions -- Full Interface
+#### TBasicTokenServiceOptions -- Full Interface
 ```typescript
-interface IBasicTokenServiceOptions<E extends Env = Env> {
+type TBasicTokenServiceOptions<E extends Env = Env> = {
   verifyCredentials: (opts: {
     credentials: { username: string; password: string };
     context: TContext<E, string>;
   }) => Promise<IAuthUser | null>;
-}
+};
 ```
 
 ### REST Options
@@ -358,7 +643,7 @@ type TAuthenticationRestOptions = {} & (
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `restPath` | `string` | `'/auth'` | Base path for auth endpoints |
-| `serviceKey` | `string` | `'services.AuthenticationService'` | DI key for the auth service |
+| `serviceKey` | `string` | -- | DI key for the auth service (required) |
 | `requireAuthenticatedSignUp` | `boolean` | `false` | Whether sign-up requires JWT authentication |
 | `payload` | `object` | `{}` | Custom Zod schemas for request/response payloads |
 
@@ -366,7 +651,7 @@ type TAuthenticationRestOptions = {} & (
 ```typescript
 type TDefineAuthControllerOpts = {
   restPath?: string;
-  serviceKey?: string;
+  serviceKey: string;
   requireAuthenticatedSignUp?: boolean;
   payload?: {
     signIn?: {
@@ -387,13 +672,29 @@ type TDefineAuthControllerOpts = {
 
 ### Route Configuration Options
 
-These options are used in route configs to control per-route authentication:
+Per-route authentication is configured via the `authenticate` field on route configs, using `TRouteAuthenticateConfig`:
+
+```typescript
+type TRouteAuthenticateConfig =
+  | { skip: true }
+  | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `authStrategies` | `TAuthStrategy[]` | -- | Array of strategy names (e.g., `['jwt']`, `['jwt', 'basic']`) |
-| `authMode` | `'any' \| 'all'` | `'any'` | How to handle multiple strategies |
-| `skipAuth` | `boolean` | `false` | Skip authentication for this route |
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Array of strategy names (e.g., `['jwt']`, `['jwt', 'basic']`) |
+| `authenticate.mode` | `'any' \| 'all'` | `'any'` | How to handle multiple strategies |
+| `authenticate.skip` | `true` | -- | Skip authentication for this route |
+
+Example route config:
+```typescript
+const SECURE_ROUTE = {
+  path: '/data',
+  method: HTTP.Methods.GET,
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+  responses: jsonResponse({ description: 'Protected', schema: z.object({ data: z.any() }) }),
+} as const;
+```
 
 ### IAuthUser Interface
 
@@ -482,11 +783,15 @@ interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
 | `@app/authenticate/rest-options` | `AuthenticateBindingKeys.REST_OPTIONS` | `TAuthenticationRestOptions` | No | <code v-pre>{ useAuthController: false }</code> |
-| `@app/authenticate/jwt-options` | `AuthenticateBindingKeys.JWT_OPTIONS` | `IJWTTokenServiceOptions` | Conditional | -- |
-| `@app/authenticate/basic-options` | `AuthenticateBindingKeys.BASIC_OPTIONS` | `IBasicTokenServiceOptions` | Conditional | -- |
+| `@app/authenticate/jwt-options` | `AuthenticateBindingKeys.JWT_OPTIONS` | `TJWTTokenServiceOptions` | Conditional | -- |
+| `@app/authenticate/jwks-options` | `AuthenticateBindingKeys.JWKS_OPTIONS` | `IJWKSIssuerOptions \| IJWKSVerifierOptions` | Internal | Bound by the component |
+| `@app/authenticate/basic-options` | `AuthenticateBindingKeys.BASIC_OPTIONS` | `TBasicTokenServiceOptions` | Conditional | -- |
 
 > [!IMPORTANT]
 > At least one of `JWT_OPTIONS` or `BASIC_OPTIONS` must be bound. If neither is configured, the component will throw an error during `binding()`.
+
+> [!NOTE]
+> `JWKS_OPTIONS` is bound internally by the component when `standard: JOSEStandards.JWKS` is configured. You do not need to bind it manually. The component extracts the JWKS options from the discriminated union and re-binds them to `JWKS_OPTIONS` so that the JWKS services can resolve them via `@inject`.
 
 ### Context Variables
 

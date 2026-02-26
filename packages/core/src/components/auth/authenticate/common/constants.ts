@@ -14,12 +14,21 @@ export class AuthenticateStrategy {
 export type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
 
 // --------------------------------------------------------------------------------------------------------
-export class Authentication {
-  static readonly ACCESS_TOKEN_SECRET = 'token.secret';
-  static readonly ACCESS_TOKEN_EXPIRES_IN = 86_400;
-  static readonly REFRESH_TOKEN_SECRET = 'refresh.secret';
-  static readonly REFRESH_TOKEN_EXPIRES_IN = 86_400;
+export class JOSEStandards {
+  static readonly JWS = 'JWS';
+  static readonly JWKS = 'JWKS';
 
+  static readonly SCHEME_SET = new Set([this.JWS, this.JWKS]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TJOSEStandard = TConstValue<typeof JOSEStandards>;
+
+// --------------------------------------------------------------------------------------------------------
+export class Authentication {
   // Strategy
   static readonly STRATEGY_BASIC = AuthenticateStrategy.BASIC;
   static readonly STRATEGY_JWT = AuthenticateStrategy.JWT;
@@ -55,3 +64,45 @@ export class AuthenticationModes {
 }
 
 export type TAuthMode = TConstValue<typeof AuthenticationModes>;
+
+// --------------------------------------------------------------------------------------------------------
+export class JWKSModes {
+  static readonly ISSUER = 'issuer';
+  static readonly VERIFIER = 'verifier';
+
+  static readonly SCHEME_SET = new Set([this.ISSUER, this.VERIFIER]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TJWKSMode = TConstValue<typeof JWKSModes>;
+
+// --------------------------------------------------------------------------------------------------------
+export class JWKSKeyDrivers {
+  static readonly TEXT = 'text';
+  static readonly FILE = 'file';
+
+  static readonly SCHEME_SET = new Set([this.TEXT, this.FILE]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TJWKSKeyDriver = TConstValue<typeof JWKSKeyDrivers>;
+
+// --------------------------------------------------------------------------------------------------------
+export class JWKSKeyFormats {
+  static readonly PEM = 'pem';
+  static readonly JWK = 'jwk';
+
+  static readonly SCHEME_SET = new Set([this.PEM, this.JWK]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TJWKSKeyFormat = TConstValue<typeof JWKSKeyFormats>;

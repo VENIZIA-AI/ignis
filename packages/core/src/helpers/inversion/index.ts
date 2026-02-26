@@ -4,12 +4,12 @@ export {
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
-  IProvider,
   isClass,
   isClassProvider,
   isClassConstructor,
-  TBindingScope,
-  TBindingValueType,
+  type IProvider,
+  type TBindingScope,
+  type TBindingValueType,
   type IBindingTag,
 } from '@venizia/ignis-inversion';
 

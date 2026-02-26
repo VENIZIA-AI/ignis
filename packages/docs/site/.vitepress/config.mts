@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-27',
+              collapsed: true,
+              items: [
+                { text: 'JWKS Authentication & Service Hierarchy Refactor', link: '/changelogs/2026-02-27-jwks-authentication' },
+              ],
+            },
+            {
               text: '2026-02-26',
               collapsed: true,
               items: [

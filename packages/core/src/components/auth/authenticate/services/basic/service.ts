@@ -7,8 +7,8 @@ import {
   Authentication,
   AuthenticateBindingKeys,
   IAuthUser,
-  IBasicTokenServiceOptions,
-} from '../common';
+  TBasicTokenServiceOptions,
+} from '../../common';
 
 /**
  * Service for handling Basic Authentication.
@@ -19,7 +19,7 @@ import {
  * @example
  * ```typescript
  * // Register with options
- * this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
+ * this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
  *   .toValue({
  *     verifyCredentials: async (creds, ctx) => {
  *       const user = await userRepo.findByUsername(creds.username);
@@ -33,11 +33,11 @@ import {
  * ```
  */
 export class BasicTokenService<E extends Env = Env> extends BaseService {
-  private verifyCredentials: IBasicTokenServiceOptions<E>['verifyCredentials'];
+  protected verifyCredentials: TBasicTokenServiceOptions<E>['verifyCredentials'];
 
   constructor(
     @inject({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-    protected options: IBasicTokenServiceOptions<E>,
+    protected options: TBasicTokenServiceOptions<E>,
   ) {
     super({ scope: BasicTokenService.name });
 

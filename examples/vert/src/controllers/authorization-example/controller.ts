@@ -2,10 +2,10 @@ import {
   Authentication,
   BaseController,
   controller,
-  HTTP,
   IControllerOptions,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/authz-example' })

@@ -1,7 +1,4 @@
 import {
-  AuthenticateComponent,
-  Authentication,
-  AuthenticationStrategyRegistry,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
@@ -11,7 +8,6 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  JWTAuthenticationStrategy,
   SwaggerBindingKeys,
   SwaggerComponent,
   ValueOrPromise,
@@ -24,7 +20,6 @@ import { TestController } from './controllers/test.controller';
 import { ViewController } from './controllers/view.controller';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
-import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -101,25 +96,12 @@ export class Application extends BaseApplication {
     }
   }
 
-  registerAuth() {
-    this.service(AuthenticationService);
-    this.component(AuthenticateComponent);
-    AuthenticationStrategyRegistry.getInstance().register({
-      container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
-    });
-  }
-
   preConfigure(): ValueOrPromise<void> {
     // DataSources
     this.dataSource(PostgresDataSource);
 
     // Repositories
     this.repository(ConfigurationRepository);
-
-    // Services
-    this.registerAuth();
 
     // Controllers
     this.controller(TestController);

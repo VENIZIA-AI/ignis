@@ -127,16 +127,17 @@ export class TestAuthorizationEnforcer
  * Tracks context variables so we can assert on them.
  */
 export const createMockContext = (overrides?: {
-  user?: IAuthUser | undefined;
+  user?: (IAuthUser & { principalType?: string }) | undefined;
   isSkipAuthorize?: boolean;
   rules?: unknown;
   path?: string;
 }) => {
   const store = new Map<string, unknown>();
 
-  // Pre-populate context variables
+  // Pre-populate context variables — inject default principalType for enforcer-based auth
   if (overrides?.user !== undefined) {
-    store.set(Authentication.CURRENT_USER, overrides.user);
+    const user = { principalType: 'user', ...overrides.user };
+    store.set(Authentication.CURRENT_USER, user);
   }
   if (overrides?.isSkipAuthorize) {
     store.set(Authorization.SKIP_AUTHORIZATION, true);
