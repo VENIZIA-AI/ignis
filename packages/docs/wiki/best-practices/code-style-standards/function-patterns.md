@@ -125,7 +125,7 @@ async syncData() {
 **With the helper utility:**
 
 ```typescript
-import { executeWithPerformanceMeasure } from '@venizia/ignis';
+import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 
 await executeWithPerformanceMeasure({
   logger: this.logger.for('syncData'),

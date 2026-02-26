@@ -67,7 +67,8 @@ To get the most out of the documentation, define your routes with `zod` schemas:
 ```typescript
 // src/controllers/hello.controller.ts
 import { z } from '@hono/zod-openapi';
-import { BaseController, controller, HTTP, jsonContent, ValueOrPromise } from '@venizia/ignis';
+import { BaseController, controller, jsonContent, ValueOrPromise } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/hello' })
 export class HelloController extends BaseController {

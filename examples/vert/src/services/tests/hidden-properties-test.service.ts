@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { getUID } from '@venizia/ignis-helpers';
 import { eq, like } from 'drizzle-orm';
 import { User } from '../../models/entities';
 import {

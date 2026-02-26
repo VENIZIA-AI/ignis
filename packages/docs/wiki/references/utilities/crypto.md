@@ -19,7 +19,7 @@ The `hash` function allows you to create a hash of a string using either `SHA256
 **MD5 Hash**
 
 ```typescript
-import { hash } from '@venizia/ignis';
+import { hash } from '@venizia/ignis-helpers';
 
 const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });
 // => '552e21cd4cd99186789c2370c7482837'
@@ -28,7 +28,7 @@ const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });
 **SHA256 HMAC**
 
 ```typescript
-import { hash } from '@venizia/ignis';
+import { hash } from '@venizia/ignis-helpers';
 
 const sha256Hash = hash('some text', {
   algorithm: 'SHA256',

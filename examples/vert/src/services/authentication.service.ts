@@ -13,7 +13,6 @@ import { UserRepository } from '@/repositories';
 import {
   BaseService,
   getError,
-  HTTP,
   IAuthService,
   inject,
   JWTTokenService,
@@ -21,6 +20,7 @@ import {
   UserStatuses,
   UserTypes,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { hash, compare, genSalt } from 'bcrypt';
 import { and, eq } from 'drizzle-orm';
 import { Env } from 'hono';

@@ -294,7 +294,8 @@ app.use(requestSpy.value());
 #### Accessing Request ID
 
 ```typescript
-import { RequestSpyMiddleware, get, HTTP, jsonResponse, TRouteContext, z } from '@venizia/ignis';
+import { RequestSpyMiddleware, get, jsonResponse, TRouteContext, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const ExampleConfig = {
   method: HTTP.Methods.GET,

@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
-import { AuthenticateStrategy, HTTP, IAuthRouteConfig, jsonContent } from '@venizia/ignis';
+import { AuthenticateStrategy, IAuthRouteConfig, jsonContent } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 export const RouteConfigs: Record<string, IAuthRouteConfig> = {
   // Public — no authentication, no authorization

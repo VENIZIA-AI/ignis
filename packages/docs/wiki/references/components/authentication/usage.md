@@ -107,8 +107,8 @@ import {
   IJWTTokenPayload,
   JWTTokenService,
   TSignInRequest,
-  getError,
 } from '@venizia/ignis';
+import { getError } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
 
 export class AuthenticationService extends BaseService implements IAuthService {

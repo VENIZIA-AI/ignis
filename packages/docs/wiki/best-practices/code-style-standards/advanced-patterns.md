@@ -7,7 +7,7 @@ Advanced TypeScript patterns used throughout the Ignis framework.
 Create reusable class extensions without deep inheritance:
 
 ```typescript
-import { TMixinTarget } from '@venizia/ignis';
+import { TMixinTarget } from '@venizia/ignis-helpers';
 
 export const LoggableMixin = <BaseClass extends TMixinTarget<Base>>(
   baseClass: BaseClass,

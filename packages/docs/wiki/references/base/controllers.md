@@ -58,7 +58,8 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { api, BaseController, controller, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const MyRouteConfig = {
   method: 'get',
@@ -89,7 +90,8 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 **Example using `@get` and `@post`:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, HTTP } from '@venizia/ignis';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // Define route configs as const
 const UserRoutes = {
@@ -153,7 +155,8 @@ const UserRoutes = {
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
 ```typescript
-import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@venizia/ignis';
+import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from 'hono/zod-openapi';
 
 const RouteConfigs = {
@@ -264,7 +267,8 @@ request: {
 The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
 
 ```typescript
-import { defineRouteConfigs, HTTP, jsonResponse, jsonContent, z } from '@venizia/ignis';
+import { defineRouteConfigs, jsonResponse, jsonContent, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const RouteConfigs = defineRouteConfigs({
   ROOT: {

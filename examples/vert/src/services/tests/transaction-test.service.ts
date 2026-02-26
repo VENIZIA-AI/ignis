@@ -1,11 +1,10 @@
 import {
   BindingKeys,
   BindingNamespaces,
-  DataTypes,
-  getUID,
   inject,
   IsolationLevels,
 } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,

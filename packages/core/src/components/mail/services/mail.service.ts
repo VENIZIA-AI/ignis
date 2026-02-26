@@ -11,7 +11,7 @@ import {
   TMailOptions,
 } from '../common';
 import { inject } from '@/base/metadata';
-import { AnyType, executePromiseWithLimit, getError } from '@/helpers';
+import { AnyType, executePromiseWithLimit, getError } from '@venizia/ignis-helpers';
 
 export class MailService extends BaseService implements IMailService {
   constructor(

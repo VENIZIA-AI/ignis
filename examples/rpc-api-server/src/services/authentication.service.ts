@@ -1,11 +1,11 @@
 import {
-  AnyObject,
   BaseService,
   IAuthService,
   TSignInRequest,
   TSignUpRequest,
   TChangePasswordRequest,
 } from '@venizia/ignis';
+import type { AnyObject } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
 
 export class AuthenticationService

@@ -184,7 +184,8 @@ export class PageController extends BaseController {
 ### HTML Email Preview
 
 ```typescript
-import { BaseController, get, htmlResponse, TRouteContext, HTTP, z } from '@venizia/ignis';
+import { BaseController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const EmailRoutes = {
   PREVIEW: {
@@ -222,7 +223,8 @@ export class EmailController extends BaseController {
 ### Documentation Page
 
 ```typescript
-import { BaseController, get, htmlResponse, TRouteContext, HTTP, z } from '@venizia/ignis';
+import { BaseController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const DocsRoutes = {
   GET_SECTION: {

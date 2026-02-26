@@ -16,7 +16,7 @@ Comprehensive guide to handling errors gracefully in Ignis applications.
 Ignis provides `getError` for creating consistent, structured errors.
 
 ```typescript
-import { getError, HTTP } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 // Basic error
 throw getError({
@@ -68,7 +68,8 @@ Database constraint violations (unique, foreign key, not null, check) are automa
 ### Service Layer Errors
 
 ```typescript
-import { BaseService, getError, HTTP } from '@venizia/ignis';
+import { BaseService } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 export class UserService extends BaseService {
   async createUser(data: TCreateUserRequest): Promise<TUser> {
@@ -160,7 +161,8 @@ Database constraint violations (unique, foreign key, not null, check) are **auto
 You don't need to wrap repository calls in try-catch for constraint errors. If you need custom error messages, you can still handle them explicitly:
 
 ```typescript
-import { BaseRepository, getError, HTTP } from '@venizia/ignis';
+import { BaseRepository } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 export class UserRepository extends BaseRepository<typeof User.schema> {
   async createWithCustomError(data: TCreateUser): Promise<TCreateResult<TUser>> {
@@ -185,7 +187,8 @@ export class UserRepository extends BaseRepository<typeof User.schema> {
 Ignis includes a built-in error handler. Customize behavior in your application:
 
 ```typescript
-import { BaseApplication, ApplicationError } from '@venizia/ignis';
+import { BaseApplication } from '@venizia/ignis';
+import { ApplicationError } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   override setupMiddlewares(): void {

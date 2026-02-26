@@ -23,6 +23,7 @@
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
     "@venizia/ignis": "latest",
+    "@venizia/ignis-helpers": "latest",
     "hono": "^4.12.1"
   },
   "devDependencies": {

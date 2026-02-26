@@ -1,2 +1,2 @@
 export * from './inversion';
-export * from '@venizia/ignis-helpers';
+export type * from '@venizia/ignis-helpers';

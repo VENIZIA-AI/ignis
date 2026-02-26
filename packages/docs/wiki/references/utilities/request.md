@@ -31,8 +31,8 @@ The function returns a `Promise` that resolves to an array of `IParsedFile` obje
 Here is an example of how to use `parseMultipartBody` in a controller to handle a file upload.
 
 ```typescript
-import { BaseController, controller, HTTP } from '@venizia/ignis';
-import { parseMultipartBody } from '@venizia/ignis';
+import { BaseController, controller } from '@venizia/ignis';
+import { parseMultipartBody, HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/files' })
 export class FileController extends BaseController {

@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-02-26',
+              collapsed: true,
+              items: [
+                { text: 'Core/Helpers Decoupling', link: '/changelogs/2026-02-26-core-helpers-decoupling' },
+              ],
+            },
+            {
               text: '2026-02-16',
               collapsed: true,
               items: [

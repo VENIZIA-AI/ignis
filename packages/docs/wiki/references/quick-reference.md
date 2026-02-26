@@ -396,11 +396,8 @@ import { MinIOHelper } from '@venizia/ignis-helpers/minio';
 ### Dependency Injection
 
 ```typescript
-import {
-  Container,
-  BindingKeys,
-  BindingNamespaces,
-} from '@venizia/ignis-inversion';
+import { Container, BindingKeys } from '@venizia/ignis-inversion';
+import { BindingNamespaces } from '@venizia/ignis';
 ```
 
 

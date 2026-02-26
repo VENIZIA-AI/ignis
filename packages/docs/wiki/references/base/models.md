@@ -902,7 +902,8 @@ console.log(result);
 **Use case:** API endpoint that accepts snake_case but works with camelCase internally
 
 ```typescript
-import { BaseController, controller, snakeToCamel, HTTP } from '@venizia/ignis';
+import { BaseController, controller, snakeToCamel } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 const createUserSchema = snakeToCamel({

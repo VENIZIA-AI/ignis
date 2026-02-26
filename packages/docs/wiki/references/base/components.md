@@ -306,7 +306,8 @@ export class HealthCheckComponent extends BaseComponent {
 
 ```typescript
 // src/components/auth/authenticate/component.ts
-import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise, getError } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
+import { getError } from '@venizia/ignis-helpers';
 import { AuthenticateBindingKeys, IAuthenticateOptions, IBasicTokenServiceOptions, IJWTTokenServiceOptions } from './common';
 import { BasicTokenService, JWTTokenService } from './services';
 import { defineAuthController } from './controllers';

@@ -43,19 +43,11 @@ Pure, standalone functions providing common, reusable logic for the Ignis framew
 
 ## Usage Pattern
 
-All utilities are imported from `@venizia/ignis`:
+Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) or `@venizia/ignis-helpers` (runtime utilities):
 
 ```typescript
-import {
-  hash,
-  compare,
-  formatDate,
-  toBoolean,
-  jsonContent,
-  jsonResponse,
-  htmlResponse,
-  Statuses,
-} from '@venizia/ignis';
+import { jsonContent, jsonResponse, htmlResponse, Statuses } from '@venizia/ignis';
+import { hash, compare, formatDate, toBoolean } from '@venizia/ignis-helpers';
 
 // Crypto
 const hashed = await hash({ value: 'password123' });

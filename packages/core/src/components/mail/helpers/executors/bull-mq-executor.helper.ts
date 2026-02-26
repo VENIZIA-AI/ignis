@@ -1,4 +1,5 @@
-import { BaseHelper, getError, IRedisHelperOptions, RedisHelper, TConstValue } from '@/helpers';
+import { BaseHelper, getError, IRedisHelperOptions, RedisHelper } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import {
   BullMQExecutorModes,

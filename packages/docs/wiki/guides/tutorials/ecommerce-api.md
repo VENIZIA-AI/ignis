@@ -922,10 +922,10 @@ import {
   controller,
   get,
   inject,
-  HTTP,
   jsonContent,
   TRouteContext,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { ProductService } from '../services/product.service';
 
 // Define route configs with PascalCase type and SCREAMING_SNAKE_CASE keys
@@ -1013,10 +1013,10 @@ import {
   put,
   del,
   inject,
-  HTTP,
   jsonContent,
   TRouteContext,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { CartService } from '../services/cart.service';
 
 const CartRoutes = {
@@ -1150,10 +1150,10 @@ import {
   get,
   post,
   inject,
-  HTTP,
   jsonContent,
   TRouteContext,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { OrderService } from '../services/order.service';
 
 const OrderRoutes = {

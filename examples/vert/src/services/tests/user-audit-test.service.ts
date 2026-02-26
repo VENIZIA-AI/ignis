@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import { eq } from 'drizzle-orm';
 import { Configuration } from '../../models/entities';
 import {

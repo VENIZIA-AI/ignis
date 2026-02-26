@@ -84,11 +84,11 @@ import {
   BaseController,
   controller,
   get,
-  HTTP,
   IApplicationInfo,
   jsonContent,
   SwaggerComponent,
 } from "@venizia/ignis";
+import { HTTP } from "@venizia/ignis-helpers";
 import { Context } from "hono";
 import appInfo from "./../package.json";
 

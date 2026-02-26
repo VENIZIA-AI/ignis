@@ -1,6 +1,6 @@
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../common/types';
-import { AnyType } from '@/helpers';
+import { AnyType } from '@venizia/ignis-helpers';
 
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{

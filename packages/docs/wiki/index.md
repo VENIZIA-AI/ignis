@@ -64,7 +64,8 @@ bun add -d typescript @types/bun
 ```
 
 ```typescript
-import { BaseApplication, BaseController, controller, get, HTTP, jsonContent, SwaggerComponent } from '@venizia/ignis';
+import { BaseApplication, BaseController, controller, get, jsonContent, SwaggerComponent } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 // 1. Define your controller

@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-02-26 | [Core/Helpers Decoupling](./2026-02-26-core-helpers-decoupling) | Refactor, Breaking Change |
 | 2026-02-16 | [Authorization System & Auth Module Refactor](./2026-02-16-authorization-system) | New Feature, Refactor, Breaking Change |
 | 2026-02-11 | [WebSocket Generic Type Parameters](./2026-02-11-websocket-generic-types) | Enhancement |
 | 2026-02-11 | [WebSocket Encrypted Delivery](./2026-02-11-websocket-encrypted-delivery) | New Feature |
