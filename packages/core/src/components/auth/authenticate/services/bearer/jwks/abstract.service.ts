@@ -8,7 +8,9 @@ import { AbstractBearerTokenService } from '../abstract.service';
  * if `initialize()` rejects, `initPromise` is reset so the next call retries
  * instead of caching the failure permanently.
  */
-export abstract class AbstractJWKSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
+export abstract class AbstractJWKSTokenService<
+  E extends Env = Env,
+> extends AbstractBearerTokenService<E> {
   protected initialized = false;
   protected initPromise: Promise<void> | null = null;
 

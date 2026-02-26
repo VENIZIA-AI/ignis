@@ -53,12 +53,7 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
   ) {
     super({ scope: JWSTokenService.name });
 
-    const {
-      aesAlgorithm,
-      jwtSecret,
-      applicationSecret,
-      getTokenExpiresFn,
-    } = options ?? {};
+    const { aesAlgorithm, jwtSecret, applicationSecret, getTokenExpiresFn } = options ?? {};
 
     if (!jwtSecret) {
       throw getError({

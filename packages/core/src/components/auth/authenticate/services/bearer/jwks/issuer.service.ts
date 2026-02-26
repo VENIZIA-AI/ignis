@@ -134,7 +134,9 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
           const pub = await importJWK(parsed.pub, algorithm);
           return { priv, pub };
         } catch (error) {
-          this.logger.for(this.parseKeyMaterial.name).error('Invalid JWK key material | Error: %s', error);
+          this.logger
+            .for(this.parseKeyMaterial.name)
+            .error('Invalid JWK key material | Error: %s', error);
           throw getError({
             statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
             message: '[JWKSIssuerTokenService] Invalid JWK key material',
@@ -179,7 +181,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
   // --------------------------------------------------------------------------------------
   protected override getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey> {
     if (!this.privateKey) {
-      throw getError({ message: '[getSigningKey] Invalid privateKey!' })
+      throw getError({ message: '[getSigningKey] Invalid privateKey!' });
     }
 
     return this.privateKey;
