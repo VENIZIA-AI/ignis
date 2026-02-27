@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/ignis-helpers
+# :fire: IGNIS - @venizia/ignis-helpers
 
 **Production-ready infrastructure utilities for the Ignis Framework**
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/dev-configs
+# :fire: IGNIS - @venizia/dev-configs
 
 **Shared ESLint, Prettier, and TypeScript configs for the Ignis ecosystem**
 

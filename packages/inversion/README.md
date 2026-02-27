@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/ignis-inversion
+# :fire: IGNIS - @venizia/ignis-inversion
 
 **Standalone, lightweight DI/IoC container for TypeScript**
 

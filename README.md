@@ -2,7 +2,7 @@
 
 <br />
 
-# IGNIS
+# :fire: IGNIS
 
 **Enterprise-grade TypeScript server infrastructure built on Hono.**
 
@@ -18,12 +18,12 @@
 
 | Package | Version |
 | :--- | :--- |
-| `@venizia/ignis` | `0.0.7-10` |
-| `@venizia/ignis-boot` | `0.0.4-1` |
-| `@venizia/ignis-inversion` | `0.0.5` |
-| `@venizia/ignis-helpers` | `0.0.6-11` |
-| `@venizia/dev-configs` | `0.0.6` |
-| `@venizia/ignis-docs` | `0.0.6-3` |
+| `@venizia/ignis` | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) |
+| `@venizia/ignis-boot` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) |
+| `@venizia/ignis-inversion` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
+| `@venizia/ignis-helpers` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
+| `@venizia/dev-configs` | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) |
+| `@venizia/ignis-docs` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs) |
 
 <br />
 

@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/ignis
+# :fire: IGNIS - @venizia/ignis
 
 **High-performance TypeScript server infrastructure combining enterprise-grade architecture with Hono speed.**
 

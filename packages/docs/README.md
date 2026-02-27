@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/ignis-docs
+# :fire: IGNIS - @venizia/ignis-docs
 
 **Documentation site and MCP server for the Ignis Framework**
 

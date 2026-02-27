@@ -1,6 +1,6 @@
 <div align="center">
 
-# @venizia/ignis-boot
+# :fire: IGNIS - @venizia/ignis-boot
 
 **Convention-based auto-discovery and bootstrapping for the Ignis Framework**
 
