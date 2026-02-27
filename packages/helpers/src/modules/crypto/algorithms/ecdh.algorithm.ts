@@ -20,12 +20,7 @@ export interface IECDHExtraOptions {
   additionalData?: string;
 }
 
-/**
- * ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption.
- *
- * Uses Web Crypto API (`crypto.subtle`) — works in both Bun and browsers.
- * All crypto methods are stateless.
- */
+/** ECDH P-256 key exchange with HKDF-derived AES-256-GCM session encryption. */
 export class ECDH extends AbstractCryptoAlgorithm<
   ECDHAlgorithmType,
   string,
@@ -53,19 +48,16 @@ export class ECDH extends AbstractCryptoAlgorithm<
     return new ECDH(opts);
   }
 
-  // ----------------------------------------------------------------------------------------------------
   async generateKeyPair(): Promise<{ keyPair: CryptoKeyPair; publicKeyB64: string }> {
     const keyPair = await crypto.subtle.generateKey(CURVE, false, ['deriveBits']);
     const raw = await crypto.subtle.exportKey('raw', keyPair.publicKey);
     return { keyPair, publicKeyB64: ECDH.toBase64(raw) };
   }
 
-  // ----------------------------------------------------------------------------------------------------
   async importPublicKey(opts: { rawKeyB64: string }): Promise<CryptoKey> {
     return crypto.subtle.importKey('raw', ECDH.fromBase64(opts.rawKeyB64), CURVE, false, []);
   }
 
-  // ----------------------------------------------------------------------------------------------------
   async deriveAESKey(opts: {
     privateKey: CryptoKey;
     peerPublicKey: CryptoKey;
@@ -101,7 +93,6 @@ export class ECDH extends AbstractCryptoAlgorithm<
     return { key, salt: ECDH.toBase64(salt) };
   }
 
-  // ----------------------------------------------------------------------------------------------------
   async encrypt(opts: {
     message: string;
     secret: CryptoKey;
@@ -125,7 +116,6 @@ export class ECDH extends AbstractCryptoAlgorithm<
     return { iv: ECDH.toBase64(iv), ct: ECDH.toBase64(ct) };
   }
 
-  // ----------------------------------------------------------------------------------------------------
   async decrypt(opts: {
     message: IECDHEncryptedPayload;
     secret: CryptoKey;
@@ -148,7 +138,6 @@ export class ECDH extends AbstractCryptoAlgorithm<
     return ECDH.decoder.decode(decrypted);
   }
 
-  // ----------------------------------------------------------------------------------------------------
   private static toBase64(data: ArrayBuffer | Uint8Array): string {
     const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
     return Buffer.from(bytes).toString('base64');

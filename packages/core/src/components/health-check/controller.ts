@@ -45,7 +45,6 @@ const RouteConfigs = {
   },
 } as const;
 
-// -----------------------------------------------------------------------------
 export class HealthCheckController extends BaseController {
   constructor(opts: IControllerOptions) {
     super({

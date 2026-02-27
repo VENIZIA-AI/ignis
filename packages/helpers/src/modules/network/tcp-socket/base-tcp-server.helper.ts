@@ -45,7 +45,6 @@ export interface ITcpSocketServerOptions<
     connectionListener: (socket: SocketClientType) => void,
   ) => SocketServerType;
 
-  // handlers
   onServerReady?: (opts: { server: SocketServerType }) => void;
   onClientConnected?: (opts: { id: string; socket: SocketClientType }) => void;
   onClientData?: (opts: { id: string; socket: SocketClientType; data: Buffer | string }) => void;
@@ -75,7 +74,6 @@ export class BaseNetworkTcpServer<
     connectionListener: (socket: SocketClientType) => void,
   ) => SocketServerType;
 
-  // handlers
   protected onServerReady?: (opts: { server: SocketServerType }) => void;
   protected onClientConnected?: (opts: { id: string; socket: SocketClientType }) => void;
   protected onClientData?: (opts: {
@@ -189,7 +187,6 @@ export class BaseNetworkTcpServer<
 
     this.onClientConnected?.({ id, socket });
 
-    // Check client authentication
     if (
       this.authenticateOptions.required &&
       this.authenticateOptions.duration &&

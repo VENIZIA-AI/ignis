@@ -12,87 +12,24 @@ import {
 import { UpdateBuilder } from '../operators/update';
 import { ReadableRepository } from './readable';
 
-// -----------------------------------------------------------------------------
-// Persistable Repository
-// -----------------------------------------------------------------------------
-
-/**
- * Full CRUD repository implementation.
- *
- * Extends {@link ReadableRepository} with create, update, and delete operations.
- * This class provides the complete set of database operations for entities.
- *
- * @template EntitySchema - The Drizzle table schema type with an 'id' column
- * @template DataObject - The type of objects returned from queries
- * @template PersistObject - The type for insert/update operations
- * @template ExtraOptions - Additional options type extending IExtraOptions
- *
- * @example
- * ```typescript
- * @repository({ model: User, dataSource: PostgresDataSource })
- * export class UserRepository extends PersistableRepository<typeof User.schema> {
- *   async createWithDefaults(email: string) {
- *     return this.create({
- *       data: { email, role: 'user', isActive: true }
- *     });
- *   }
- * }
- * ```
- */
+/** Full CRUD repository extending ReadableRepository with create, update, and delete. */
 export class PersistableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  // ---------------------------------------------------------------------------
-  // Properties
-  // ---------------------------------------------------------------------------
-
-  /** Builder for transforming update data with JSON path support. */
   protected _updateBuilder: UpdateBuilder;
 
-  // ---------------------------------------------------------------------------
-  // Constructor
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Creates a new persistable (read-write) repository instance.
-   *
-   * @param ds - Optional data source (auto-injected from @repository decorator)
-   * @param opts - Optional configuration
-   * @param opts.entityClass - Entity class if not using @repository decorator
-   */
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, { entityClass: opts?.entityClass });
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
     this._updateBuilder = new UpdateBuilder();
   }
-
-  // ---------------------------------------------------------------------------
-  // Accessors
-  // ---------------------------------------------------------------------------
-
-  /** Returns the update builder instance. */
   get updateBuilder() {
     return this._updateBuilder;
   }
-
-  // ---------------------------------------------------------------------------
-  // Protected Helpers
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Validates where condition for bulk operations (update/delete).
-   * Prevents accidental mass updates/deletes by requiring explicit force flag.
-   *
-   * @param opts - Validation options
-   * @param opts.where - The where condition to validate
-   * @param opts.force - If true, allows empty where condition
-   * @param opts.operationName - Operation name for error message
-   * @returns True if where is empty (used for logging warnings)
-   * @throws Error if where is empty and force is not true
-   */
+  /** Prevents accidental mass updates/deletes by requiring explicit force flag for empty where. */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
     force?: boolean;
@@ -108,20 +45,6 @@ export class PersistableRepository<
 
     return isEmptyWhere;
   }
-
-  // ---------------------------------------------------------------------------
-  // Create Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Internal create implementation for single or bulk inserts.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Create options
-   * @param opts.data - Array of records to insert
-   * @param opts.options - Extra options (transaction, logging, shouldReturn)
-   * @returns Promise with count and optionally the created records
-   */
   protected async _create<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -143,7 +66,6 @@ export class PersistableRepository<
       return { count: rs.rowCount ?? 0, data: null };
     }
 
-    // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
     this.logger.for('_create').debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
@@ -186,21 +108,6 @@ export class PersistableRepository<
     };
     return this._create<R>({ data: opts.data, options });
   }
-
-  // ---------------------------------------------------------------------------
-  // Update Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Internal update implementation for single or bulk updates.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Update options
-   * @param opts.data - Partial data to update
-   * @param opts.where - Where condition for selecting records to update
-   * @param opts.options - Extra options (transaction, logging, shouldReturn, force)
-   * @returns Promise with count and optionally the updated records
-   */
   protected async _update<R = DataObject>(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -221,14 +128,12 @@ export class PersistableRepository<
       this.logger.for('_update').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    // Apply default filter's where condition
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
-    // Validate where condition (throws if empty without force)
     const isEmptyWhere = this.validateWhereCondition({
       where: mergedWhere,
       force,
@@ -251,7 +156,6 @@ export class PersistableRepository<
         );
     }
 
-    // Transform data to handle JSON path updates (e.g., 'metadata.settings.theme': 'dark')
     const transformed = this._updateBuilder.transform({
       tableName: this.entity.name,
       schema: this.entity.schema,
@@ -270,7 +174,6 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps
       ? ((await query.returning(visibleProps)) as Array<R>)
@@ -319,20 +222,6 @@ export class PersistableRepository<
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     return this._update<R>(opts);
   }
-
-  // ---------------------------------------------------------------------------
-  // Delete Operations
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Internal delete implementation for single or bulk deletes.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Delete options
-   * @param opts.where - Where condition for selecting records to delete
-   * @param opts.options - Extra options (transaction, logging, shouldReturn, force)
-   * @returns Promise with count and optionally the deleted records
-   */
   protected async _delete<R = DataObject>(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
@@ -349,14 +238,12 @@ export class PersistableRepository<
       this.logger.for('_delete').log(log.level ?? 'info', 'Executing with opts: %j', opts);
     }
 
-    // Apply default filter's where condition
     const mergedFilter = this.applyDefaultFilter({
       userFilter: { where: opts.where },
       shouldSkipDefaultFilter,
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
-    // Validate where condition (throws if empty without force)
     const isEmptyWhere = this.validateWhereCondition({
       where: mergedWhere,
       force,
@@ -386,7 +273,6 @@ export class PersistableRepository<
       return { count: rs?.rowCount ?? 0, data: null };
     }
 
-    // Return only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     const rs = visibleProps ? await query.returning(visibleProps) : await query.returning();
     this.logger.for('_delete').debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
@@ -424,7 +310,6 @@ export class PersistableRepository<
     where?: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    // Provide default empty where object if undefined
     return this._delete<R>({ where: opts.where ?? {}, options: opts.options });
   }
 

@@ -4,7 +4,6 @@ import { applicationLogger } from './default-logger';
 import { TLogLevel } from './types';
 import { Environment } from '../env';
 
-// Pre-computed at module load - ZERO runtime cost
 const extraLogEnvs =
   (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
@@ -13,10 +12,7 @@ const CURRENT_ENV = process.env.NODE_ENV;
 const shouldLogDebug = isDebugEnabled && (!CURRENT_ENV || LOG_ENVIRONMENTS.has(CURRENT_ENV));
 
 export class Logger {
-  // Cache: same scope = same logger instance
   private static cache = new Map<string, Logger>();
-
-  // Pre-formatted prefix with brackets - computed once at construction
   private readonly _formattedPrefix: string;
   private readonly _logger: winston.Logger;
 
@@ -25,15 +21,8 @@ export class Logger {
     this._logger = logger;
   }
 
-  // ---------------------------------------------------------------------
-  /**
-   * Get or create a logger for a scope. Cached globally.
-   * @example
-   * const logger = Logger.get('UserService');
-   * logger.info('message'); // [UserService] message
-   */
+  /** Get or create a cached logger for the given scope. */
   static get(scope: string, customLogger?: winston.Logger): Logger {
-    // Fast path: default logger (most common case)
     if (!customLogger) {
       let cached = this.cache.get(scope);
       if (cached) {
@@ -45,7 +34,6 @@ export class Logger {
       return cached;
     }
 
-    // Slow path: custom logger
     const cacheKey = scope + ':custom';
     let cached = this.cache.get(cacheKey);
 
@@ -57,21 +45,11 @@ export class Logger {
     return cached;
   }
 
-  // ---------------------------------------------------------------------
-  /**
-   * Get a method-scoped logger. Cached globally.
-   * @example
-   * Logger.get('UserService').for('createUser').info('done');
-   * // [UserService-createUser] done
-   */
+  /** Get a method-scoped sub-logger. */
   for(methodName: string): Logger {
-    // Extract scope from formatted prefix (remove [ and ] )
     const scope = this._formattedPrefix.slice(1, -2);
     return Logger.get(scope + '-' + methodName);
   }
-
-  // ---------------------------------------------------------------------
-  // Inlined log methods - direct calls for minimal overhead
 
   debug(message: string, ...args: any[]) {
     if (!shouldLogDebug) {
@@ -96,13 +74,11 @@ export class Logger {
     this._logger.emerg(this._formattedPrefix + message, ...args);
   }
 
-  // Generic log method (kept for flexibility, but prefer specific methods)
   log(level: TLogLevel, message: string, ...args: any[]) {
     this._logger.log(level, this._formattedPrefix + message, ...args);
   }
 }
 
-// Backward compatibility - export both value and type
 export const ApplicationLogger = Logger;
 // eslint-disable-next-line @typescript-eslint/naming-convention
 export type ApplicationLogger = Logger;

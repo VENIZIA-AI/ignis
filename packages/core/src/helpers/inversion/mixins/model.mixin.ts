@@ -9,9 +9,7 @@ import {
   TModelClass,
 } from '../common/types';
 
-// -----------------------------------------------------------------
 // Model Metadata & Registry
-// -----------------------------------------------------------------
 export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
   // mixinOpts: { },

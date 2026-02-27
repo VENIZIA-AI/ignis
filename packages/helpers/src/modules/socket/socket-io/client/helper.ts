@@ -17,7 +17,6 @@ export class SocketIOClientHelper extends BaseHelper {
   private client: Socket;
   private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
 
-  // Lifecycle callbacks
   private onConnected?: () => ValueOrPromise<void>;
   private onDisconnected?: (reason: string) => ValueOrPromise<void>;
   private onError?: (error: Error) => ValueOrPromise<void>;
@@ -31,7 +30,6 @@ export class SocketIOClientHelper extends BaseHelper {
     this.host = opts.host;
     this.options = opts.options;
 
-    // Store lifecycle callbacks
     this.onConnected = opts.onConnected;
     this.onDisconnected = opts.onDisconnected;
     this.onError = opts.onError;
@@ -41,12 +39,10 @@ export class SocketIOClientHelper extends BaseHelper {
     this.configure();
   }
 
-  // -----------------------------------------------------------------
   getState(): TSocketIOClientState {
     return this.state;
   }
 
-  // -----------------------------------------------------------------
   configure() {
     const logger = this.logger.for(this.configure.name);
 
@@ -57,8 +53,7 @@ export class SocketIOClientHelper extends BaseHelper {
 
     this.client = io(this.host, this.options);
 
-    // Register connection lifecycle handlers
-    // NOTE: Socket.IO client fires 'connect', NOT 'connection' (which is server-side only)
+    // Socket.IO client fires 'connect', NOT 'connection' (server-side only)
     this.client.on('connect', () => {
       logger.info('Connected | id: %s', this.identifier);
 
@@ -84,7 +79,6 @@ export class SocketIOClientHelper extends BaseHelper {
       });
     });
 
-    // Handle server authentication responses
     this.client.on(SocketIOConstants.EVENT_AUTHENTICATED, (data: unknown) => {
       logger.info('Authenticated | id: %s | data: %j', this.identifier, data);
       this.state = SocketIOClientStates.AUTHENTICATED;
@@ -103,18 +97,15 @@ export class SocketIOClientHelper extends BaseHelper {
       });
     });
 
-    // Handle ping from server
     this.client.on(SocketIOConstants.EVENT_PING, () => {
       logger.debug('Ping received | id: %s', this.identifier);
     });
   }
 
-  // -----------------------------------------------------------------
   getSocketClient(): Socket {
     return this.client;
   }
 
-  // -----------------------------------------------------------------
   authenticate() {
     const logger = this.logger.for(this.authenticate.name);
 
@@ -133,7 +124,6 @@ export class SocketIOClientHelper extends BaseHelper {
     logger.info('Authentication requested | id: %s', this.identifier);
   }
 
-  // -----------------------------------------------------------------
   subscribe<T = unknown>(opts: {
     event: string;
     handler: TSocketIOEventHandler<T>;
@@ -167,7 +157,6 @@ export class SocketIOClientHelper extends BaseHelper {
     logger.info('Subscribed | event: %s', event);
   }
 
-  // Keep batch subscribe for convenience
   subscribeMany(opts: {
     events: Record<string, TSocketIOEventHandler>;
     ignoreDuplicate?: boolean;
@@ -183,7 +172,6 @@ export class SocketIOClientHelper extends BaseHelper {
     }
   }
 
-  // -----------------------------------------------------------------
   unsubscribe(opts: { event: string; handler?: TSocketIOEventHandler }) {
     const logger = this.logger.for(this.unsubscribe.name);
     const { event, handler } = opts;
@@ -209,7 +197,6 @@ export class SocketIOClientHelper extends BaseHelper {
     }
   }
 
-  // -----------------------------------------------------------------
   connect() {
     const logger = this.logger.for(this.connect.name);
 
@@ -221,7 +208,6 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client.connect();
   }
 
-  // -----------------------------------------------------------------
   disconnect() {
     const logger = this.logger.for(this.disconnect.name);
 
@@ -233,7 +219,6 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client.disconnect();
   }
 
-  // -----------------------------------------------------------------
   emit<T = unknown>(opts: { topic: string; data: T; doLog?: boolean; cb?: () => void }) {
     const logger = this.logger.for(this.emit.name);
     const { topic, data, doLog = false, cb } = opts;
@@ -263,7 +248,6 @@ export class SocketIOClientHelper extends BaseHelper {
     }
   }
 
-  // -----------------------------------------------------------------
   joinRooms(opts: { rooms: string[] }) {
     const logger = this.logger.for(this.joinRooms.name);
     const { rooms } = opts;
@@ -277,7 +261,6 @@ export class SocketIOClientHelper extends BaseHelper {
     logger.info('Join rooms requested | id: %s | rooms: %j', this.identifier, rooms);
   }
 
-  // -----------------------------------------------------------------
   leaveRooms(opts: { rooms: string[] }) {
     const logger = this.logger.for(this.leaveRooms.name);
     const { rooms } = opts;
@@ -291,13 +274,11 @@ export class SocketIOClientHelper extends BaseHelper {
     logger.info('Leave rooms requested | id: %s | rooms: %j', this.identifier, rooms);
   }
 
-  // -----------------------------------------------------------------
   shutdown() {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down SocketIO client | id: %s', this.identifier);
 
     if (this.client) {
-      // Remove all listeners to prevent memory leaks
       this.client.removeAllListeners();
 
       if (this.client.connected) {

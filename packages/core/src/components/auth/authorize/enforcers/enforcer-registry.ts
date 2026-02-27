@@ -10,16 +10,13 @@ import {
   ICasbinEnforcerOptions,
 } from '../common';
 
-// --------------------------------------------------------------------------------------------------------
 // Authorization Enforcer Registry — manages enforcer registration and resolution
-// --------------------------------------------------------------------------------------------------------
 
 export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationEnforcer> {
   private static instance: AuthorizationEnforcerRegistry;
 
   private configuredEnforcers: Set<string>;
 
-  // ---------------------------------------------------------------------------
   constructor() {
     super({ scope: AuthorizationEnforcerRegistry.name });
     this.configuredEnforcers = new Set();
@@ -33,18 +30,15 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return AuthorizationEnforcerRegistry.instance;
   }
 
-  // ---------------------------------------------------------------------------
   override reset(): void {
     super.reset();
     this.configuredEnforcers.clear();
   }
 
-  // ---------------------------------------------------------------------------
   protected getBindingPrefix(): string {
     return Authorization.ENFORCER;
   }
 
-  // ---------------------------------------------------------------------------
   register(opts: {
     container: Container;
     enforcers: Array<
@@ -91,7 +85,6 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return this;
   }
 
-  // ---------------------------------------------------------------------------
   getDefaultEnforcerName(): string {
     return this.getDefaultName();
   }

@@ -2,7 +2,6 @@ import { BaseHelper } from '@/modules/base';
 import { ValueOf, ValueOrPromise } from '@/common/types';
 import isEmpty from 'lodash/isEmpty';
 
-// --------------------------------------------------------
 export class QueueStatuses {
   static readonly WAITING = '000_WAITING';
   static readonly PROCESSING = '100_PROCESSING';
@@ -19,7 +18,6 @@ export class QueueStatuses {
 export type TQueueStatus = ValueOf<Omit<typeof QueueStatuses, 'isValid' | 'SCHEME_SET'>>;
 export type TQueueElement<T> = { isLocked: boolean; payload: T };
 
-// --------------------------------------------------------
 interface IQueueCallback<TElementPayload> {
   autoDispatch?: boolean;
 
@@ -42,7 +40,6 @@ interface IQueueCallback<TElementPayload> {
   }) => ValueOrPromise<void>;
 }
 
-// --------------------------------------------------------
 export class QueueHelper<TElementPayload> extends BaseHelper {
   public storage: Array<TQueueElement<TElementPayload>>;
   protected processingEvents: Set<TQueueElement<TElementPayload>>;

@@ -13,7 +13,6 @@ export interface INetworkTcpClientProps<
   SocketClientOptions extends PlainConnectionOptions | TlsConnectionOptions,
   SocketClientType extends PlainSocketClient | TlsSocketClient,
 > {
-  // props
   identifier: string;
   scope?: string;
 
@@ -27,7 +26,6 @@ export interface INetworkTcpClientProps<
     connectionListener?: () => void,
   ) => SocketClientType;
 
-  // handlers
   onConnected?: (opts: { client: SocketClientType }) => ValueOrPromise<void>;
   onData?: (opts: { identifier: string; message: string | Buffer }) => ValueOrPromise<void>;
   onClosed?: (opts: { client: SocketClientType }) => void;
@@ -54,7 +52,6 @@ export class BaseNetworkTcpClient<
     connectionListener?: () => void,
   ) => SocketClientType;
 
-  // handlers
   protected onConnected: (opts: { client: SocketClientType }) => void;
   protected onData: (opts: { identifier: string; message: string | Buffer }) => void;
   protected onClosed?: (opts: { client: SocketClientType }) => void;

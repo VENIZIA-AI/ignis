@@ -40,7 +40,6 @@ export class MQTTClientHelper extends BaseHelper {
     this.configure();
   }
 
-  // -------------------------------------------------------------------------------
   configure() {
     if (this.client) {
       this.logger
@@ -87,7 +86,6 @@ export class MQTTClientHelper extends BaseHelper {
     });
   }
 
-  // -------------------------------------------------------------------------------
   subscribe(opts: { topics: Array<string> }) {
     return new Promise((resolve, reject) => {
       if (!this.client?.connected) {
@@ -110,7 +108,6 @@ export class MQTTClientHelper extends BaseHelper {
     });
   }
 
-  // -------------------------------------------------------------------------------
   publish(opts: { topic: string; message: string | Buffer }) {
     return new Promise((resolve, reject) => {
       if (!this.client?.connected) {

@@ -15,7 +15,6 @@ export class AuthorizeComponent extends BaseComponent {
     });
   }
 
-  // ---------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
     const options = this.application.get<IAuthorizeOptions>({
       key: AuthorizeBindingKeys.OPTIONS,
@@ -34,7 +33,6 @@ export class AuthorizeComponent extends BaseComponent {
     this.logger.for(this.binding.name).info('Authorization configured');
   }
 
-  // ---------------------------------------------------------------------------
   private bindAlwaysAllowRoles(opts: { options: IAuthorizeOptions }): void {
     if (!opts.options.alwaysAllowRoles?.length) {
       return;

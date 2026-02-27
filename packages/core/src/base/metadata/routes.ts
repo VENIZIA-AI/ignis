@@ -2,38 +2,13 @@ import { IControllerMetadata, MetadataRegistry } from '@/helpers/inversion';
 import { HTTP } from '@venizia/ignis-helpers';
 import { IAuthRouteConfig as IAuthRouteConfig } from '../controllers';
 
-// --------------------------------------------------------------------------------------------
 export const controller = (metadata: IControllerMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.getInstance().setControllerMetadata({ target, metadata });
   };
 };
 
-// --------------------------------------------------------------------------------------------
-/**
- * Decorator for defining API routes.
- *
- * Registers the route configuration with the metadata registry.
- * Use `valid<T>('target')` for explicit typing of validated request data.
- *
- * @example
- * ```typescript
- * const config = {
- *   path: '/ping',
- *   method: 'post',
- *   request: { body: jsonContent({ schema: z.object({ message: z.string() }) }) },
- *   responses: { 200: jsonContent({ schema: z.object({ reply: z.string() }) }) }
- * } as const;
- *
- * class MyController extends BaseController {
- *   @api({ configs: config })
- *   pingPong(context: TTypedContext) {
- *     const { message } = context.req.valid<{ message: string }>('json');
- *     return context.json({ reply: message }, 200);
- *   }
- * }
- * ```
- */
+/** Generic route decorator. Registers route config in metadata registry. */
 export const api = <RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) => {
   return function (
     target: any,
@@ -48,7 +23,6 @@ export const api = <RouteConfig extends IAuthRouteConfig>(opts: { configs: Route
   };
 };
 
-// --------------------------------------------------------------------------------------------
 /** GET route decorator. Equivalent to @api but automatically sets method to 'get'. */
 export const get = <RouteConfig extends Omit<IAuthRouteConfig, 'method'>>(opts: {
   configs: RouteConfig;

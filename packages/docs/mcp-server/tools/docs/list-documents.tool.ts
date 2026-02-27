@@ -3,10 +3,6 @@ import { createTool } from '@mastra/core/tools';
 import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
 
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
-
 const TOOL_DESCRIPTION = `
 Lists all available Ignis Framework documentation files with their identifiers, titles, and categories.
 
@@ -74,10 +70,6 @@ EXAMPLES:
 TIP: If unsure of exact category name, call listCategories first or omit this parameter.
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const DocEntrySchema = z.object({
   id: z
     .string()
@@ -94,10 +86,6 @@ const OutputSchema = z.object({
   count: z.number().int().describe('Total documents returned. Reflects filter if applied.'),
   docs: z.array(DocEntrySchema).describe('Document entries with id, title, and category.'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class ListDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'listDocuments';

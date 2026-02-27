@@ -3,7 +3,6 @@ import { BaseHelper } from '@/modules/base';
 import { MessagePort, Transferable } from 'node:worker_threads';
 import { IWorkerBus, IWorkerMessageBusHandler } from './types';
 
-// -------------------------------------------------------------------------------------------
 export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
   extends BaseHelper
   implements IWorkerMessageBusHandler<IConsumePayload>
@@ -14,7 +13,6 @@ export abstract class AbstractWorkerMessageBusHandlerHelper<IConsumePayload>
   onExit: (opts: { exitCode: number | string }) => ValueOrPromise<void>;
 }
 
-// -------------------------------------------------------------------------------------------
 export class BaseWorkerMessageBusHandlerHelper<
   IConsumePayload,
 > extends AbstractWorkerMessageBusHandlerHelper<IConsumePayload> {
@@ -45,7 +43,6 @@ export class BaseWorkerMessageBusHandlerHelper<
   }
 }
 
-// -------------------------------------------------------------------------------------------
 export abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>
   extends BaseHelper
   implements IWorkerBus<IConsumePayload, IPublishPayload>
@@ -61,7 +58,6 @@ export abstract class AbstractWorkerBusHelper<IConsumePayload, IPublishPayload>
   }): ValueOrPromise<void>;
 }
 
-// -------------------------------------------------------------------------------------------
 export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends AbstractWorkerBusHelper<
   IConsumePayload,
   IPublishPayload
@@ -73,11 +69,9 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
   }) {
     super({ scope: opts.scope, identifier: opts.scope });
 
-    // Initialize
     this.port = opts.port;
     this.handler = opts.busHandler;
 
-    // Binding events
     this.port.on('message', message => {
       this.handler.onMessage({ message });
     });

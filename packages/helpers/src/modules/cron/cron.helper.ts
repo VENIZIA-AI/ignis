@@ -12,7 +12,6 @@ export interface ICronHelperOptions {
   errorHandler?: (error: unknown) => void | null;
 }
 
-// --------------------------------------------------------
 export class CronHelper extends BaseHelper {
   private cronTime: string;
   private onTick: () => void | Promise<void>;

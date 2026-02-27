@@ -11,23 +11,19 @@ import {
 } from '../common';
 import { AuthenticationStrategyRegistry } from '../strategies';
 
-// --------------------------------------------------------------------------------------------------------
 // Authentication Provider — produces middleware factory via IProvider pattern
-// --------------------------------------------------------------------------------------------------------
 
 export class AuthenticationProvider extends BaseHelper implements IProvider<TAuthenticateFn> {
   constructor() {
     super({ scope: AuthenticationProvider.name });
   }
 
-  // ---------------------------------------------------------------------------
   value(): TAuthenticateFn {
     return opts => {
       return this.createAuthenticateMiddleware(opts);
     };
   }
 
-  // ---------------------------------------------------------------------------
   private createAuthenticateMiddleware(opts: { strategies: string[]; mode?: TAuthMode }) {
     const { strategies, mode = AuthenticationModes.ANY } = opts;
     const registry = AuthenticationStrategyRegistry.getInstance();
@@ -78,7 +74,6 @@ export class AuthenticationProvider extends BaseHelper implements IProvider<TAut
     });
   }
 
-  // ---------------------------------------------------------------------------
   private async executeAnyMode(opts: {
     context: TContext;
     strategies: string[];
@@ -108,7 +103,6 @@ export class AuthenticationProvider extends BaseHelper implements IProvider<TAut
     });
   }
 
-  // ---------------------------------------------------------------------------
   private async executeAllMode(opts: {
     context: TContext;
     strategies: string[];
@@ -143,7 +137,6 @@ export class AuthenticationProvider extends BaseHelper implements IProvider<TAut
     return next();
   }
 
-  // ---------------------------------------------------------------------------
   private setCurrentUser(opts: { context: TContext; user: IAuthUser }) {
     const { context, user } = opts;
     context.set(Authentication.CURRENT_USER, user);

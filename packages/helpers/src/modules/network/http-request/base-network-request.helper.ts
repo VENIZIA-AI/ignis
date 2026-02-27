@@ -4,7 +4,6 @@ import isEmpty from 'lodash/isEmpty';
 import { IFetchable, IRequestOptions } from './fetcher/base-fetcher';
 import { TFetcherResponse, TFetcherVariant } from './types';
 
-// -----------------------------------------------------------------------------
 export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
   protected baseUrl: string;
   protected fetcher: IFetchable<T, IRequestOptions, TFetcherResponse<T>>;
@@ -25,7 +24,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     const rs = paths
       .map((path: string) => {
         if (!path.startsWith('/')) {
-          path = `/${path}`; // Add / to the start of url path
+          path = `/${path}`;
         }
 
         return path;
@@ -47,7 +46,7 @@ export class BaseNetworkRequest<T extends TFetcherVariant> extends BaseHelper {
     }
 
     if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.slice(0, -1); // Remove / at the end
+      baseUrl = baseUrl.slice(0, -1);
     }
 
     const joined = this.getRequestPath({ paths });

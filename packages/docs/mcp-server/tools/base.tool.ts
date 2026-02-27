@@ -1,99 +1,15 @@
 import type { Tool } from '@mastra/core/tools';
 import type { z } from 'zod';
 
-// ============================================================================
-// BASE TOOL CLASS
-// ============================================================================
-
-/**
- * Abstract base class for all MCP documentation tools.
- *
- * Provides a consistent structure for tool implementation with:
- * - Singleton pattern via getInstance()
- * - Required abstract members for tool definition
- * - Abstract toMastraTool() for type-safe conversion
- *
- * @template TInputSchema - The Zod input schema type
- * @template TOutputSchema - The Zod output schema type
- *
- * @example
- * ```typescript
- * class MyTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
- *   readonly id = 'myTool';
- *   readonly description = 'Does something useful';
- *   readonly inputSchema = InputSchema;
- *   readonly outputSchema = OutputSchema;
- *
- *   async execute(opts: z.infer<typeof InputSchema>) {
- *     return { result: 'done' };
- *   }
- *
- *   getTool() {
- *     return createTool({
- *       id: this.id,
- *       description: this.description,
- *       inputSchema: this.inputSchema,
- *       outputSchema: this.outputSchema,
- *       execute: async input => this.execute(input),
- *     });
- *   }
- * }
- * ```
- */
+/** Abstract base class for all MCP documentation tools. */
 export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema extends z.ZodType> {
-  /**
-   * Unique identifier for the tool.
-   * Used by MCP clients to invoke the tool.
-   *
-   * @example 'searchDocs', 'getDocContent', 'listCategories'
-   */
   abstract readonly id: string;
-
-  /**
-   * Detailed description of the tool's purpose and usage.
-   * Should include: PURPOSE, WHEN TO USE, WHEN NOT TO USE, OUTPUT description.
-   * This helps AI agents understand when and how to use the tool.
-   */
   abstract readonly description: string;
-
-  /**
-   * Zod schema defining the input parameters.
-   * Each field should have a .describe() for AI agent guidance.
-   */
   abstract readonly inputSchema: TInputSchema;
-
-  /**
-   * Zod schema defining the output structure.
-   * Helps AI agents understand and parse the response.
-   */
   abstract readonly outputSchema: TOutputSchema;
 
-  /**
-   * Executes the tool's main logic.
-   *
-   * @param opts - Validated options object matching inputSchema
-   * @returns Promise resolving to output matching outputSchema
-   */
   abstract execute(opts: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
 
-  /**
-   * Converts this tool instance to a Mastra-compatible tool object.
-   * Must be implemented by each subclass to ensure proper type inference.
-   *
-   * @returns A tool object compatible with @mastra/core createTool format
-   *
-   * @example
-   * ```typescript
-   * getTool() {
-   *   return createTool({
-   *     id: this.id,
-   *     description: this.description,
-   *     inputSchema: this.inputSchema,
-   *     outputSchema: this.outputSchema,
-   *     execute: async input => this.execute(input),
-   *   });
-   * }
-   * ```
-   */
+  /** Converts this tool instance to a Mastra-compatible tool object. */
   abstract getTool(): Tool<z.infer<TInputSchema>, z.infer<TOutputSchema>>;
 }

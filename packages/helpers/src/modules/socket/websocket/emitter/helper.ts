@@ -13,13 +13,9 @@ type TRedisClient = Redis | Cluster;
 
 const EMITTER_SERVER_ID = 'emitter';
 
-// -------------------------------------------------------------------------------------------------------------
 export class WebSocketEmitter extends BaseHelper {
   private redisPub: TRedisClient;
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Constructor
-  // -------------------------------------------------------------------------------------------------------------
   constructor(opts: IWebSocketEmitterOptions) {
     super({ scope: opts.identifier ?? WebSocketEmitter.name });
 
@@ -39,9 +35,6 @@ export class WebSocketEmitter extends BaseHelper {
     this.redisPub = client.duplicate();
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Configuration
-  // -------------------------------------------------------------------------------------------------------------
   private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
     const timeoutMs = opts?.timeoutMs ?? 30_000;
 
@@ -86,9 +79,6 @@ export class WebSocketEmitter extends BaseHelper {
     logger.info('WebSocket Emitter READY');
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Publish Helpers
-  // -------------------------------------------------------------------------------------------------------------
   private async publish(opts: {
     channel: string;
     type: IRedisSocketMessage['type'];
@@ -111,9 +101,6 @@ export class WebSocketEmitter extends BaseHelper {
     await this.redisPub.publish(channel, JSON.stringify(message));
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Emit Methods
-  // -------------------------------------------------------------------------------------------------------------
   async toClient(opts: { clientId: string; event: string; data: unknown }) {
     const { clientId, event, data } = opts;
     await this.publish({
@@ -158,9 +145,6 @@ export class WebSocketEmitter extends BaseHelper {
     });
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Shutdown
-  // -------------------------------------------------------------------------------------------------------------
   async shutdown() {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down WebSocket Emitter...');

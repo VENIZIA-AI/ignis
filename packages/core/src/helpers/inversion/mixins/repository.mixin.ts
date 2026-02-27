@@ -13,9 +13,7 @@ import {
   TDrizzleRelations,
 } from '../common/types';
 
-// -----------------------------------------------------------------
 // Repository Metadata & Bindings
-// -----------------------------------------------------------------
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
     _MetadataRegistry & { modelRegistry: Map<string, IModelRegistryEntry> }

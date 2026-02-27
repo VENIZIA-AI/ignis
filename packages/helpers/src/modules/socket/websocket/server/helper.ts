@@ -29,27 +29,22 @@ import {
 
 type TRedisClient = Redis | Cluster;
 
-// -------------------------------------------------------------------------------------------------------------
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > extends BaseHelper {
-  // --- Server ---
   private path: string;
   private server: IBunServer;
 
-  // --- Connections ---
   private serverId: string;
 
   private clients: Map<string, IWebSocketClient<MetadataType>> = new Map();
   private users: Map<string, Set<string>> = new Map(); // userId -> Set<clientId>
   private rooms: Map<string, Set<string>> = new Map(); // room -> Set<clientId>
 
-  // --- Redis ---
   private redisPub: TRedisClient;
   private redisSub: TRedisClient;
 
-  // --- Callbacks ---
   private authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   private validateRoomFn?: TWebSocketValidateRoomFn;
   private onClientConnected?: TWebSocketClientConnectedFn<MetadataType>;
@@ -58,7 +53,6 @@ export class WebSocketServerHelper<
   private outboundTransformer?: TWebSocketOutboundTransformer<unknown, MetadataType>;
   private handshakeFn?: TWebSocketHandshakeFn<AuthDataType>;
 
-  // --- Options ---
   private defaultRooms: string[];
   private serverOptions: IBunWebSocketConfig;
   private authTimeout: number;
@@ -68,9 +62,6 @@ export class WebSocketServerHelper<
   private encryptedBatchLimit: number;
   private requireEncryption: boolean;
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Constructor
-  // -------------------------------------------------------------------------------------------------------------
   constructor(opts: IWebSocketServerOptions<AuthDataType, MetadataType>) {
     super({ scope: opts.identifier });
 
@@ -79,7 +70,6 @@ export class WebSocketServerHelper<
     this.server = opts.server;
     this.serverId = crypto.randomUUID();
 
-    // Store callbacks
     this.authenticateFn = opts.authenticateFn;
     this.validateRoomFn = opts.validateRoomFn;
     this.onClientConnected = opts.clientConnectedFn;
@@ -88,7 +78,6 @@ export class WebSocketServerHelper<
     this.outboundTransformer = opts.outboundTransformer;
     this.handshakeFn = opts.handshakeFn;
 
-    // Store options with defaults
     this.defaultRooms = opts.defaultRooms ?? [
       WebSocketDefaults.ROOM,
       WebSocketDefaults.NOTIFICATION_ROOM,
@@ -123,9 +112,6 @@ export class WebSocketServerHelper<
     this.redisSub = client.duplicate();
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Public Accessors
-  // -------------------------------------------------------------------------------------------------------------
   getClients(opts?: {
     id?: string;
   }): IWebSocketClient<MetadataType> | Map<string, IWebSocketClient<MetadataType>> | undefined {
@@ -172,9 +158,6 @@ export class WebSocketServerHelper<
     return this.path;
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Configuration
-  // -------------------------------------------------------------------------------------------------------------
   private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
     const timeoutMs = opts?.timeoutMs ?? 30_000;
 
@@ -207,7 +190,6 @@ export class WebSocketServerHelper<
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Server | id: %s', this.identifier);
 
-    // Register error handlers before awaiting readiness
     this.redisPub.on('error', (error: Error) => {
       logger.error('Redis pub error | error: %j', error);
     });
@@ -222,7 +204,6 @@ export class WebSocketServerHelper<
       }
     }
 
-    // Wait for all Redis connections to be ready
     await Promise.all([
       this.waitForRedisReady(this.redisPub),
       this.waitForRedisReady(this.redisSub),
@@ -237,9 +218,6 @@ export class WebSocketServerHelper<
     logger.info('WebSocket Server READY | path: %s', this.path);
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Redis Pub/Sub
-  // -------------------------------------------------------------------------------------------------------------
   private async setupRedisSubscriptions() {
     const logger = this.logger.for(this.setupRedisSubscriptions.name);
 
@@ -251,12 +229,10 @@ export class WebSocketServerHelper<
       this.redisSub.psubscribe(WebSocketChannels.forUserPattern()),
     ]);
 
-    // Handle direct subscribe messages
     this.redisSub.on('message', (channel: string, raw: string) => {
       this.onRedisMessage({ channel, raw });
     });
 
-    // Handle pattern subscribe messages
     this.redisSub.on('pmessage', (_pattern: string, channel: string, raw: string) => {
       this.onRedisMessage({ channel, raw });
     });
@@ -295,7 +271,6 @@ export class WebSocketServerHelper<
 
     const { type, target, event, data, exclude } = message;
 
-    // Route by message type
     switch (type) {
       case WebSocketMessageTypes.BROADCAST: {
         this.broadcast({ event, data, exclude });
@@ -369,9 +344,6 @@ export class WebSocketServerHelper<
     this.redisPub.publish(channel, JSON.stringify(message));
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Bun WebSocket Handler
-  // -------------------------------------------------------------------------------------------------------------
   getBunWebSocketHandler(): IBunWebSocketHandler {
     const config = this.serverOptions;
 
@@ -405,7 +377,6 @@ export class WebSocketServerHelper<
           this.logger.for('drain').debug('Backpressure cleared | id: %s', clientId);
         }
       },
-      // Spread Bun native config
       perMessageDeflate: config.perMessageDeflate,
       maxPayloadLength: config.maxPayloadLength,
       idleTimeout: config.idleTimeout,
@@ -416,9 +387,6 @@ export class WebSocketServerHelper<
     };
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Connection Lifecycle
-  // -------------------------------------------------------------------------------------------------------------
   onClientConnect(opts: { clientId: string; socket: IWebSocket }) {
     const logger = this.logger.for(this.onClientConnect.name);
     const { clientId, socket } = opts;
@@ -540,13 +508,11 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Clear auth timeout if still pending
     if (client.authTimer) {
       clearTimeout(client.authTimer);
       client.authTimer = undefined;
     }
 
-    // Remove from user index
     if (client.userId) {
       const userClients = this.users.get(client.userId);
       userClients?.delete(clientId);
@@ -555,7 +521,6 @@ export class WebSocketServerHelper<
       }
     }
 
-    // Remove from all rooms
     for (const room of client.rooms) {
       const roomClients = this.rooms.get(room);
       roomClients?.delete(clientId);
@@ -564,7 +529,6 @@ export class WebSocketServerHelper<
       }
     }
 
-    // Remove client
     this.clients.delete(clientId);
 
     logger.info(
@@ -573,7 +537,6 @@ export class WebSocketServerHelper<
       client.userId ?? 'anonymous',
     );
 
-    // Invoke user callback
     Promise.resolve(this.onClientDisconnected?.({ clientId, userId: client.userId })).catch(
       error => {
         this.logger.for('clientDisconnectedFn').error('Handler error | error: %s', error);
@@ -581,9 +544,6 @@ export class WebSocketServerHelper<
     );
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Room Management
-  // -------------------------------------------------------------------------------------------------------------
   joinRoom(opts: { clientId: string; room: string }) {
     const { clientId, room } = opts;
     const client = this.clients.get(clientId);
@@ -591,7 +551,6 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Track in roomIndex
     if (!this.rooms.has(room)) {
       this.rooms.set(room, new Set<string>());
     }
@@ -611,7 +570,6 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Remove from roomIndex
     const roomClients = this.rooms.get(room);
     roomClients?.delete(clientId);
     if (roomClients?.size === 0) {
@@ -637,7 +595,6 @@ export class WebSocketServerHelper<
 
     client.encrypted = true;
 
-    // Unsubscribe from Bun native topics to prevent double delivery
     client.socket.unsubscribe(WebSocketDefaults.BROADCAST_TOPIC);
     for (const room of client.rooms) {
       client.socket.unsubscribe(room);
@@ -696,7 +653,6 @@ export class WebSocketServerHelper<
           return;
         }
 
-        // Update client with auth result
         client.userId = result.userId;
         client.metadata = result.metadata;
         client.state = WebSocketClientStates.AUTHENTICATED;
@@ -743,7 +699,6 @@ export class WebSocketServerHelper<
           client.salt = handshakeResult.salt;
         }
 
-        // Index by userId
         if (client.userId) {
           if (!this.users.has(client.userId)) {
             this.users.set(client.userId, new Set<string>());
@@ -756,13 +711,11 @@ export class WebSocketServerHelper<
           client.socket.subscribe(WebSocketDefaults.BROADCAST_TOPIC);
         }
 
-        // Join default rooms
         this.joinRoom({ clientId, room: clientId });
         for (const room of this.defaultRooms) {
           this.joinRoom({ clientId, room });
         }
 
-        // Notify client of successful authentication
         const connectedData: Record<string, unknown> = {
           id: clientId,
           userId: client.userId,
@@ -785,7 +738,6 @@ export class WebSocketServerHelper<
           client.encrypted,
         );
 
-        // Invoke user callback
         Promise.resolve(
           this.onClientConnected?.({
             clientId,
@@ -820,7 +772,6 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Reject rooms with internal prefixes or invalid names
     const INTERNAL_PREFIX = 'ws:';
     const MAX_ROOM_NAME_LENGTH = 256;
     const sanitizedRooms = rooms.filter(r => {
@@ -906,9 +857,6 @@ export class WebSocketServerHelper<
     logger.info('Left rooms | id: %s | rooms: %j', clientId, validRooms);
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Messaging — Local Delivery
-  // -------------------------------------------------------------------------------------------------------------
   sendToClient(opts: { clientId: string; event: string; data: unknown; doLog?: boolean }) {
     const logger = this.logger.for(this.sendToClient.name);
     const { clientId, event, data, doLog } = opts;
@@ -1083,9 +1031,6 @@ export class WebSocketServerHelper<
     }
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Messaging — Public API (local + Redis)
-  // -------------------------------------------------------------------------------------------------------------
   send<T = unknown>(opts: {
     destination?: string;
     payload: { topic: string; data: T };
@@ -1150,9 +1095,6 @@ export class WebSocketServerHelper<
     }
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Heartbeat
-  // -------------------------------------------------------------------------------------------------------------
   private startHeartbeatTimer() {
     this.heartbeatTimer = setInterval(() => {
       this.heartbeatAll();
@@ -1167,7 +1109,6 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Sweep stale authenticated clients
     for (const [clientId, client] of this.clients) {
       if (client.state !== WebSocketClientStates.AUTHENTICATED) {
         continue; // Auth timeout handles unauthorized clients separately
@@ -1190,14 +1131,10 @@ export class WebSocketServerHelper<
     }
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Shutdown
-  // -------------------------------------------------------------------------------------------------------------
   async shutdown() {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down WebSocket server...');
 
-    // Clear heartbeat timer
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
@@ -1222,7 +1159,6 @@ export class WebSocketServerHelper<
     this.users.clear();
     this.rooms.clear();
 
-    // Cleanup Redis connections
     await Promise.all([this.redisPub?.quit(), this.redisSub?.quit()]);
 
     logger.info('WebSocket server shutdown complete');

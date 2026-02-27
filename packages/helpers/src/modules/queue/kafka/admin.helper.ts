@@ -125,10 +125,6 @@ export class KafkaAdminHelper extends BaseHelper {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Consumer Group Operations
-  // ---------------------------------------------------------------------------
-
   async listGroups(opts?: IKafkaListGroupsOptions) {
     try {
       const result = await this.admin.listGroups({
@@ -178,10 +174,6 @@ export class KafkaAdminHelper extends BaseHelper {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Offset Management
-  // ---------------------------------------------------------------------------
-
   async listConsumerGroupOffsets(opts: IKafkaListGroupOffsetsOptions) {
     try {
       const result = await this.admin.listConsumerGroupOffsets({ groups: opts.groups });
@@ -222,10 +214,6 @@ export class KafkaAdminHelper extends BaseHelper {
     }
   }
 
-  // ---------------------------------------------------------------------------
-  // Partition Management
-  // ---------------------------------------------------------------------------
-
   async createPartitions(opts: IKafkaCreatePartitionsOptions): Promise<void> {
     try {
       await this.admin.createPartitions({
@@ -243,10 +231,6 @@ export class KafkaAdminHelper extends BaseHelper {
       throw error;
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Config Management
-  // ---------------------------------------------------------------------------
 
   async describeConfigs(opts: IKafkaDescribeConfigsOptions) {
     try {
@@ -283,10 +267,6 @@ export class KafkaAdminHelper extends BaseHelper {
       throw error;
     }
   }
-
-  // ---------------------------------------------------------------------------
-  // Escape Hatch
-  // ---------------------------------------------------------------------------
 
   getAdmin(): Admin {
     return this.admin;

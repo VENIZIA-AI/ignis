@@ -1,23 +1,3 @@
-/**
- * Socket.IO Component Test Suite
- *
- * Tests for the SocketIOComponent and related functionality.
- *
- * Note: Full integration tests with SocketIOServerHelper require a running Redis instance
- * because the socket.io-redis-adapter needs real Redis pub/sub functionality.
- * These tests focus on component-level validation and client helper functionality.
- *
- * Test Categories:
- * 1. SocketIOComponent Unit Tests - Binding validation, configuration
- * 2. SocketIOClientHelper Unit Tests - State management, lifecycle
- * 3. SocketIOBindingKeys Tests - Key constants
- *
- * For full integration tests with server-client communication,
- * run with a Redis instance available and use the integration test suite.
- *
- * @module __tests__/socket-io
- */
-
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { createServer, Server as HTTPServer } from 'node:http';
 import { AddressInfo } from 'node:net';
@@ -28,10 +8,6 @@ import {
   SocketIOClientStates,
 } from '@venizia/ignis-helpers/socket-io';
 import { SocketIOBindingKeys } from '@/components/socket-io/common/keys';
-
-// =============================================================================
-// Test Utilities
-// =============================================================================
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -66,10 +42,6 @@ const getAvailablePort = (): Promise<number> => {
   });
 };
 
-// =============================================================================
-// SocketIOBindingKeys Tests
-// =============================================================================
-
 describe('SocketIOBindingKeys', () => {
   test('should have correct binding key for SOCKET_IO_INSTANCE', () => {
     expect(SocketIOBindingKeys.SOCKET_IO_INSTANCE).toBe('@app/socket-io/instance');
@@ -94,10 +66,6 @@ describe('SocketIOBindingKeys', () => {
   });
 });
 
-// =============================================================================
-// SocketIOConstants Tests
-// =============================================================================
-
 describe('SocketIOConstants', () => {
   test('should have correct event constants', () => {
     expect(SocketIOConstants.EVENT_PING).toBe('ping');
@@ -115,10 +83,6 @@ describe('SocketIOConstants', () => {
     expect(SocketIOConstants.ROOM_NOTIFICATION).toBe('io-notification');
   });
 });
-
-// =============================================================================
-// SocketIOClientStates Tests
-// =============================================================================
 
 describe('SocketIOClientStates', () => {
   test('should have correct state values', () => {
@@ -139,10 +103,6 @@ describe('SocketIOClientStates', () => {
     expect(SocketIOClientStates.isValid('UNAUTHORIZED')).toBe(false);
   });
 });
-
-// =============================================================================
-// SocketIOClientHelper Tests (with simple mock server)
-// =============================================================================
 
 describe('SocketIOClientHelper', () => {
   let httpServer: HTTPServer;
@@ -166,33 +126,29 @@ describe('SocketIOClientHelper', () => {
   });
 
   afterEach(async () => {
-    // Cleanup all active clients first
     for (const client of activeClients) {
       try {
         client.shutdown();
       } catch {
-        // Ignore errors during cleanup
+        // ignore cleanup errors
       }
     }
     activeClients = [];
 
-    // Close socket.io server
     try {
       ioServer.close();
     } catch {
-      // Ignore errors
+      // ignore cleanup errors
     }
 
-    // Close HTTP server with timeout
     await Promise.race([
       new Promise<void>(resolve => {
         httpServer.close(() => resolve());
       }),
-      wait(1000).then(() => {}), // Timeout after 1 second
+      wait(1000).then(() => {}),
     ]);
   });
 
-  // Helper to track clients for cleanup
   /* const _createClient = (opts?: Record<string, any>): SocketIOClientHelper => {
     const client = new SocketIOClientHelper({
       identifier: 'test-client',
@@ -352,10 +308,8 @@ describe('SocketIOClientHelper', () => {
         } as any,
       });
 
-      // Try to authenticate before connection
       client.authenticate();
 
-      // State should remain UNAUTHORIZED
       expect(client.getState()).toBe(SocketIOClientStates.UNAUTHORIZED);
 
       client.shutdown();
@@ -495,10 +449,8 @@ describe('SocketIOClientHelper', () => {
         timeout: 3000,
       });
 
-      // Try to authenticate again
       client.authenticate();
 
-      // Should still be AUTHENTICATED (not AUTHENTICATING)
       expect(client.getState()).toBe(SocketIOClientStates.AUTHENTICATED);
 
       client.shutdown();
@@ -527,7 +479,6 @@ describe('SocketIOClientHelper', () => {
         },
       });
 
-      // Server sends event
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('test-event', { message: 'Hello' });
 
@@ -555,17 +506,14 @@ describe('SocketIOClientHelper', () => {
         callCount++;
       };
 
-      // Subscribe twice with ignoreDuplicate (default is true)
       client.subscribe({ event: 'test-event', handler });
       client.subscribe({ event: 'test-event', handler });
 
-      // Server sends event
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('test-event', {});
 
       await wait(100);
 
-      // Should only be called once
       expect(callCount).toBe(1);
 
       client.shutdown();
@@ -589,17 +537,14 @@ describe('SocketIOClientHelper', () => {
         callCount++;
       };
 
-      // Subscribe twice with ignoreDuplicate=false
       client.subscribe({ event: 'test-event', handler, ignoreDuplicate: false });
       client.subscribe({ event: 'test-event', handler, ignoreDuplicate: false });
 
-      // Server sends event
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('test-event', {});
 
       await wait(100);
 
-      // Should be called twice
       expect(callCount).toBe(2);
 
       client.shutdown();
@@ -628,13 +573,11 @@ describe('SocketIOClientHelper', () => {
 
       client.unsubscribe({ event: 'test-event' });
 
-      // Server sends event
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('test-event', {});
 
       await wait(100);
 
-      // Handler should not be called
       expect(callCount).toBe(0);
 
       client.shutdown();
@@ -892,7 +835,6 @@ describe('SocketIOClientHelper', () => {
         } as any,
       });
 
-      // Should not throw, just log warning
       client.joinRooms({ rooms: ['room-1'] });
 
       client.shutdown();
@@ -908,7 +850,6 @@ describe('SocketIOClientHelper', () => {
         } as any,
       });
 
-      // Should not throw, just log warning
       client.leaveRooms({ rooms: ['room-1'] });
 
       client.shutdown();
@@ -974,13 +915,11 @@ describe('SocketIOClientHelper', () => {
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
-      // Add some listeners
       client.subscribe({ event: 'test-1', handler: () => {} });
       client.subscribe({ event: 'test-2', handler: () => {} });
 
       client.shutdown();
 
-      // Socket should have no custom listeners
       expect(client.getSocketClient().hasListeners('test-1')).toBe(false);
       expect(client.getSocketClient().hasListeners('test-2')).toBe(false);
     });
@@ -1009,7 +948,6 @@ describe('SocketIOClientHelper', () => {
         ignoreDuplicate: false,
       });
 
-      // Server sends ping
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit(SocketIOConstants.EVENT_PING, { time: new Date().toISOString() });
 
@@ -1024,7 +962,6 @@ describe('SocketIOClientHelper', () => {
     test('should call onError callback on connection error', async () => {
       let errorReceived: Error | null = null;
 
-      // Use invalid port that will cause connection error
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
         host: 'http://localhost:99999',
@@ -1056,7 +993,6 @@ describe('SocketIOClientHelper', () => {
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
-      // Subscribe with handler that throws
       client.subscribe({
         event: 'error-event',
         handler: () => {
@@ -1064,13 +1000,11 @@ describe('SocketIOClientHelper', () => {
         },
       });
 
-      // Server sends event - should not crash
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('error-event', {});
 
       await wait(100);
 
-      // Client should still be connected
       expect(client.getSocketClient().connected).toBe(true);
 
       client.shutdown();
@@ -1088,7 +1022,6 @@ describe('SocketIOClientHelper', () => {
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
-      // Subscribe with async handler that rejects
       client.subscribe({
         event: 'async-error-event',
         handler: async () => {
@@ -1096,13 +1029,11 @@ describe('SocketIOClientHelper', () => {
         },
       });
 
-      // Server sends event - should not crash
       const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
       clientSocket.emit('async-error-event', {});
 
       await wait(100);
 
-      // Client should still be connected
       expect(client.getSocketClient().connected).toBe(true);
 
       client.shutdown();
@@ -1153,10 +1084,6 @@ describe('SocketIOClientHelper', () => {
   });
 });
 
-// =============================================================================
-// Edge Cases & Stress Tests
-// =============================================================================
-
 describe('SocketIOClientHelper - Edge Cases', () => {
   let httpServer: HTTPServer;
   let ioServer: IOServer;
@@ -1179,29 +1106,26 @@ describe('SocketIOClientHelper - Edge Cases', () => {
   });
 
   afterEach(async () => {
-    // Cleanup all active clients first
     for (const client of activeClients) {
       try {
         client.shutdown();
       } catch {
-        // Ignore errors during cleanup
+        // ignore cleanup errors
       }
     }
     activeClients = [];
 
-    // Close socket.io server
     try {
       ioServer.close();
     } catch {
-      // Ignore errors
+      // ignore cleanup errors
     }
 
-    // Close HTTP server with timeout
     await Promise.race([
       new Promise<void>(resolve => {
         httpServer.close(() => resolve());
       }),
-      wait(1000).then(() => {}), // Timeout after 1 second
+      wait(1000).then(() => {}),
     ]);
   });
 
@@ -1218,11 +1142,9 @@ describe('SocketIOClientHelper - Edge Cases', () => {
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 5000 });
       client.shutdown();
-      // Wait for server-side disconnect to propagate
       await waitFor(() => ioServer.sockets.sockets.size === 0, { timeout: 5000 });
     }
 
-    // All clients should be disconnected
     expect(ioServer.sockets.sockets.size).toBe(0);
   });
 
@@ -1246,7 +1168,6 @@ describe('SocketIOClientHelper - Edge Cases', () => {
 
     expect(ioServer.sockets.sockets.size).toBe(clientCount);
 
-    // Cleanup
     clients.forEach(c => c.shutdown());
   });
 
@@ -1262,13 +1183,11 @@ describe('SocketIOClientHelper - Edge Cases', () => {
 
     await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
-    // Try to subscribe with no handler
     client.subscribe({
       event: 'test-event',
       handler: null as any,
     });
 
-    // Should not crash
     const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
     clientSocket.emit('test-event', {});
 
@@ -1290,7 +1209,6 @@ describe('SocketIOClientHelper - Edge Cases', () => {
 
     await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
-    // Should not throw
     client.unsubscribe({ event: 'non-existent-event' });
 
     expect(client.getSocketClient().connected).toBe(true);

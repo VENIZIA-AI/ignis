@@ -1,14 +1,12 @@
 import { TConstValue } from '@venizia/ignis-helpers';
 import { AuthorizationRole } from '../models/authorization-role.model';
 
-// --------------------------------------------------------------------------------------------------------
 export class Authorization {
   static readonly RULES = 'authorization.rules';
   static readonly SKIP_AUTHORIZATION = 'authorization.skip';
   static readonly ENFORCER = 'authorization.enforcer';
 }
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthorizationActions {
   static readonly CREATE = 'create';
   static readonly READ = 'read';
@@ -30,7 +28,6 @@ export class AuthorizationActions {
 }
 export type TAuthorizationAction = TConstValue<typeof AuthorizationActions>;
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthorizationDecisions {
   static readonly ALLOW = 'allow';
   static readonly DENY = 'deny';
@@ -65,7 +62,6 @@ export class AuthorizationDecisions {
 }
 export type TAuthorizationDecision = TConstValue<typeof AuthorizationDecisions>;
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthorizationRoles {
   static readonly SUPER_ADMIN = AuthorizationRole.build({
     name: 'super-admin',
@@ -101,7 +97,6 @@ export class AuthorizationRoles {
   }
 }
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthorizationEnforcerTypes {
   static readonly CASBIN = 'casbin';
   static readonly CUSTOM = 'custom';
@@ -115,7 +110,6 @@ export class AuthorizationEnforcerTypes {
 
 export type TAuthorizationEnforcerType = TConstValue<typeof AuthorizationEnforcerTypes>;
 
-// --------------------------------------------------------------------------------------------------------
 export class CasbinEnforcerCachedDrivers {
   static readonly IN_MEMORY = 'in-memory';
   static readonly REDIS = 'redis';
@@ -129,7 +123,6 @@ export class CasbinEnforcerCachedDrivers {
 
 export type TCasbinEnforcerCachedDriver = TConstValue<typeof CasbinEnforcerCachedDrivers>;
 
-// --------------------------------------------------------------------------------------------------------
 export class CasbinEnforcerModelDrivers {
   static readonly FILE = 'file';
   static readonly TEXT = 'text';
@@ -143,7 +136,6 @@ export class CasbinEnforcerModelDrivers {
 
 export type TCasbinEnforcerModelDriver = TConstValue<typeof CasbinEnforcerModelDrivers>;
 
-// --------------------------------------------------------------------------------------------------------
 export class CasbinRuleVariants {
   static readonly POLICY = 'policy';
   static readonly GROUP = 'group';

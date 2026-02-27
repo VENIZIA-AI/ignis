@@ -15,12 +15,7 @@ import {
   ViewSourceFileTool,
 } from './tools';
 
-// ----------------------------------------------------------------------------
-// MCP SERVER CONFIGURATION
-// ----------------------------------------------------------------------------
-
 const mcpTools = {
-  // Documentation Tools
   searchDocs: new SearchDocsTool().getTool(),
   getDocContent: new GetDocContentTool().getTool(),
   listDocs: new ListDocsTool().getTool(),
@@ -28,7 +23,6 @@ const mcpTools = {
   getDocMetadata: new GetDocMetadataTool().getTool(),
   getPackageOverview: new GetPackageOverviewTool().getTool(),
 
-  // Code & Project Tools
   searchCode: new SearchCodeTool().getTool(),
   listProjectFiles: new ListProjectFilesTool().getTool(),
   viewSourceFile: new ViewSourceFileTool().getTool(),
@@ -67,36 +61,17 @@ const mcpServer = new MCPServer({
   id: MCPConfigs.server.name,
   name: MCPConfigs.server.name,
   version: MCPConfigs.server.version,
-
-  // Register tools using singleton instances
   tools: mcpTools,
-
-  // Resource handlers for direct document access
   resources: mcpReosources,
 });
 
-// ----------------------------------------------------------------------------
-// CLI ARGUMENT PARSING
-// ----------------------------------------------------------------------------
-
-/**
- * Parse CLI arguments for branch configuration.
- * Usage: node index.js [branch]
- * Example: node index.js develop
- * Default: main
- */
 const parseArgs = (): { branch: string } => {
   const args = process.argv.slice(2);
   const branch = args[0] || 'main';
   return { branch };
 };
 
-// ----------------------------------------------------------------------------
-// SERVER INITIALIZATION
-// ----------------------------------------------------------------------------
-
 const main = async () => {
-  // Parse CLI arguments and configure branch
   const { branch } = parseArgs();
   MCPConfigs.setBranch({ branch });
 

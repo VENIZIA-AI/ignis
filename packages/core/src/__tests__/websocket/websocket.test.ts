@@ -1,24 +1,5 @@
-/**
- * WebSocket Core Component Test Suite
- *
- * Tests for WebSocketBindingKeys and WebSocketComponent.
- *
- * The WebSocketComponent requires a mocked BaseApplication for DI container
- * operations. Full integration tests require a running Bun server and Redis.
- *
- * Test Categories:
- * 1. WebSocketBindingKeys - Binding key constants
- * 2. WebSocketComponent - Constructor, bindings, resolveBindings, runtime check
- *
- * @module __tests__/websocket
- */
-
 import { describe, test, expect } from 'bun:test';
 import { WebSocketBindingKeys } from '@/components/websocket/common/keys';
-
-// =============================================================================
-// WebSocketBindingKeys Tests
-// =============================================================================
 
 describe('WebSocketBindingKeys', () => {
   test('should have correct binding key for WEBSOCKET_INSTANCE', () => {

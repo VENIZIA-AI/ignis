@@ -1,6 +1,5 @@
 import type { IAuthorizationComparable } from '../../common';
 
-// --------------------------------------------------------------------------------------------------------
 export class StringAuthorizationResource implements IAuthorizationComparable<string> {
   readonly value: string;
 

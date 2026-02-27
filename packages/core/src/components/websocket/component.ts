@@ -81,7 +81,6 @@ export class WebSocketComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   private resolveBindings(): IResolvedBindings {
     const extraServerOptions =
       this.application.get<Partial<IServerOptions>>({
@@ -146,7 +145,6 @@ export class WebSocketComponent extends BaseComponent {
     };
   }
 
-  // --------------------------------------------------------------------------
   private registerBunHook(opts: IResolvedBindings) {
     const {
       redisConnection,
@@ -208,7 +206,6 @@ export class WebSocketComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 

@@ -7,11 +7,6 @@ import {
   type ICasbinPolicyFilter,
   type TBasePolicyRow,
 } from './base-filtered';
-
-// --------------------------------------------------------------------------------------------------------
-// Drizzle Adapter Types
-// --------------------------------------------------------------------------------------------------------
-
 export interface IDrizzleCasbinEntities extends IBaseFilteredAdapterEntities {
   permission: { tableName: string; principalType: string };
   role: { tableName: string; principalType: string };
@@ -23,9 +18,7 @@ export interface IDrizzleCasbinAdapterOptions {
   entities: IDrizzleCasbinEntities;
 }
 
-// --------------------------------------------------------------------------------------------------------
 // Drizzle Casbin Adapter — read-only FilteredAdapter using raw SQL queries
-// --------------------------------------------------------------------------------------------------------
 
 export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEntities> {
   private connector: TAnyConnector;
@@ -35,9 +28,7 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
     this.connector = opts.dataSource.connector;
   }
 
-  // ---------------------------------------------------------------------------
   // Query builders
-  // ---------------------------------------------------------------------------
 
   protected async buildDirectPolicies(opts: {
     filter: ICasbinPolicyFilter;

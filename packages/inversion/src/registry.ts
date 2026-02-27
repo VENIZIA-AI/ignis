@@ -3,15 +3,12 @@ import { MetadataKeys } from './common/keys';
 import { Logger } from './common/logger';
 import { IInjectableMetadata, IInjectMetadata, IPropertyMetadata, TClass } from './common/types';
 
-/**
- * Central metadata registry for storing and retrieving decorator metadata
- */
+/** Central metadata registry for storing and retrieving decorator metadata. */
 export class MetadataRegistry extends BaseHelper {
   constructor() {
     super({ scope: MetadataRegistry.name });
   }
 
-  // -----------------------------------------------------------------
   define<Target extends object = object, Value = any>(opts: {
     target: Target;
     key: string | symbol;
@@ -27,7 +24,6 @@ export class MetadataRegistry extends BaseHelper {
     Reflect.defineMetadata(key, value, target);
   }
 
-  // -----------------------------------------------------------------
   get<Target extends object = object, Value = any>(opts: {
     target: Target;
     key: string | symbol;
@@ -36,19 +32,16 @@ export class MetadataRegistry extends BaseHelper {
     return Reflect.getMetadata(key, target);
   }
 
-  // -----------------------------------------------------------------
   has<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
     const { target, key } = opts;
     return Reflect.hasMetadata(key, target);
   }
 
-  // -----------------------------------------------------------------
   delete<Target extends object = object>(opts: { target: Target; key: string | symbol }): boolean {
     const { target, key } = opts;
     return Reflect.deleteMetadata(key, target);
   }
 
-  // -----------------------------------------------------------------
   getKeys<Target extends object = object>(opts: { target: Target }): (string | symbol)[] {
     const { target } = opts;
     return (
@@ -58,7 +51,6 @@ export class MetadataRegistry extends BaseHelper {
     );
   }
 
-  // -----------------------------------------------------------------
   getMethodNames<T = any>(opts: { target: TClass<T> }): string[] {
     const { target } = opts;
     const prototype = target.prototype;
@@ -68,7 +60,6 @@ export class MetadataRegistry extends BaseHelper {
     return methods;
   }
 
-  // -----------------------------------------------------------------
   clearMetadata<T extends object = object>(opts: { target: T }): void {
     const { target } = opts;
     const keys = Reflect.getMetadataKeys(target);
@@ -78,9 +69,6 @@ export class MetadataRegistry extends BaseHelper {
     }
   }
 
-  // -----------------------------------------------------------------
-  // Property Metadata
-  // -----------------------------------------------------------------
   setPropertyMetadata<T extends object = object>(opts: {
     target: T;
     propertyName: string | symbol;
@@ -113,9 +101,6 @@ export class MetadataRegistry extends BaseHelper {
     return properties?.get(propertyName);
   }
 
-  // -----------------------------------------------------------------
-  // Injection Metadata
-  // -----------------------------------------------------------------
   setInjectMetadata<T extends object = object>(opts: {
     target: T;
     index: number;
@@ -132,7 +117,6 @@ export class MetadataRegistry extends BaseHelper {
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
   }
 
-  // -----------------------------------------------------------------
   setInjectableMetadata<T extends object = object>(opts: {
     target: T;
     metadata: IInjectableMetadata;

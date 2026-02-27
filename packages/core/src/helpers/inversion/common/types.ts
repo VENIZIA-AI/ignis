@@ -11,9 +11,6 @@ import {
 } from '@venizia/ignis-inversion';
 import { relations as defineRelations } from 'drizzle-orm';
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Metadata
-// ----------------------------------------------------------------------------------------------------------------------------------------
 export type TRouteMetadata = RouteConfig & {
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
 };
@@ -33,44 +30,13 @@ export interface IInjectableMetadata {
   tags?: Record<string, any>;
 }
 
-/**
- * Type for decorator target for any constructable class.
- * Includes Function to support ClassDecorator pattern.
- */
+/** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Model Metadata & Types
-// ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IModelSettings {
-  /**
-   * Properties to exclude from all repository query results.
-   * Hidden properties are excluded at the SQL level for performance.
-   * Use direct connector queries to access hidden properties when needed.
-   *
-   * @example
-   * settings: { hiddenProperties: ['password', 'secret'] }
-   */
+  /** Properties excluded from all query results at SQL level. */
   hiddenProperties?: string[];
-
-  /**
-   * Default filter applied to all repository operations (find, findOne, count, update, delete).
-   * User filters merge with defaultFilter (user values take precedence).
-   * Use `options.shouldSkipDefaultFilter: true` to bypass.
-   *
-   * Merge strategy:
-   * - `where`: Deep merge (user overrides matching keys)
-   * - `order`, `limit`, `offset`, `skip`, `fields`, `include`: User completely replaces default
-   *
-   * @example
-   * settings: {
-   *   defaultFilter: {
-   *     where: { isDeleted: false, status: 'active' },
-   *     order: ['createdAt DESC'],
-   *     limit: 100
-   *   }
-   * }
-   */
+  /** Default filter auto-applied to all repository operations. Bypassable via shouldSkipDefaultFilter. */
   defaultFilter?: TFilter;
 }
 
@@ -78,9 +44,6 @@ export interface IModelMetadata {
   type: 'entity' | 'view';
   tableName?: string;
   skipMigrate?: boolean;
-  /**
-   * Model settings for advanced configuration.
-   */
   settings?: IModelSettings;
 }
 
@@ -89,30 +52,17 @@ export type TModelClass<
   Model extends BaseEntity<Schema> = BaseEntity<Schema>,
 > = TClass<Model> & IEntity<Schema>;
 
-/**
- * Type for decorator target that can be either:
- * - A strongly typed model class (TClass<T> & IEntity<Schema>)
- * - A Function type (from ClassDecorator) with optional IEntity properties
- *
- * ClassDecorators receive Function type, but at runtime they're always constructors.
- * This type allows both strongly typed and decorator usage patterns.
- */
+/** Decorator target for model classes (supports both strongly typed and ClassDecorator patterns). */
 export type TDecoratorModelTarget<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   Model extends BaseEntity<Schema> = BaseEntity<Schema>,
 > = TModelClass<Schema, Model> | (Function & Partial<IEntity<Schema>>);
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// DataSource Metadata & Types
-// ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IDataSourceMetadata {
   driver: TDataSourceDriver;
   autoDiscovery?: boolean;
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Repository Metadata & Types
-// ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IRepositoryMetadata<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   Model extends BaseEntity<Schema> = BaseEntity<Schema>,
@@ -123,9 +73,7 @@ export interface IRepositoryMetadata<
   operationScope?: TRepositoryOperationScope;
 }
 
-/**
- * Internal resolved repository metadata after lazy evaluation
- */
+/** Resolved repository metadata after lazy evaluation. */
 export interface IResolvedRepositoryMetadata<
   Schema extends TTableSchemaWithId = TTableSchemaWithId,
   Model extends BaseEntity<Schema> = BaseEntity<Schema>,
@@ -136,12 +84,7 @@ export interface IResolvedRepositoryMetadata<
   operationScope?: TRepositoryOperationScope;
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Registry Types
-// ----------------------------------------------------------------------------------------------------------------------------------------
-/**
- * Type for Drizzle relations returned by the relations() function
- */
+/** Drizzle relations return type. */
 export type TDrizzleRelations = ReturnType<typeof defineRelations>;
 
 export interface IModelRegistryEntry<
@@ -151,14 +94,9 @@ export interface IModelRegistryEntry<
   target: TValueOrResolver<TClass<Model>>;
   metadata: IModelMetadata;
   schema: Schema;
-  /**
-   * Lazy relations resolver - stored as function to avoid circular dependency issues.
-   * Only resolved when DataSource builds its schema (all models loaded by then).
-   */
+  /** Lazy resolver to avoid circular deps. Resolved when DataSource builds schema. */
   relationsResolver?: TValueOrResolver<Array<unknown>>;
-  /**
-   * Cache for built Drizzle relations - populated on first access via buildSchema().
-   */
+  /** Cache populated on first buildSchema() call. */
   _builtRelations?: TDrizzleRelations;
 }
 

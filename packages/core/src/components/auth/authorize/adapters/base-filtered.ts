@@ -1,11 +1,6 @@
 import { BaseHelper, ValueOrPromise } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
 import { CasbinRuleVariants } from '../common';
-
-// --------------------------------------------------------------------------------------------------------
-// Shared Types
-// --------------------------------------------------------------------------------------------------------
-
 export interface IBaseFilteredAdapterEntities {
   role: { principalType: string };
   domain?: { principalType: string };
@@ -32,7 +27,6 @@ export type TBasePolicyRow = {
   domain: string | null;
 };
 
-// --------------------------------------------------------------------------------------------------------
 // Base Filtered Adapter — read-only template for casbin FilteredAdapter
 //
 // Generic parameters (ordered by likelihood of customization):
@@ -42,7 +36,6 @@ export type TBasePolicyRow = {
 //
 // Subclasses implement the three query hooks; the base orchestrates loading,
 // provides shared formatters, and satisfies the no-op write contract.
-// --------------------------------------------------------------------------------------------------------
 
 export abstract class BaseFilteredAdapter<
   TEntities extends IBaseFilteredAdapterEntities = IBaseFilteredAdapterEntities,
@@ -59,9 +52,7 @@ export abstract class BaseFilteredAdapter<
     this.entities = opts.entities;
   }
 
-  // ---------------------------------------------------------------------------
   // FilteredAdapter — public API
-  // ---------------------------------------------------------------------------
 
   async loadPolicy(): Promise<void> {
     return;
@@ -91,9 +82,7 @@ export abstract class BaseFilteredAdapter<
     return true;
   }
 
-  // ---------------------------------------------------------------------------
   // FilteredAdapter — no-op write methods (read-only adapter)
-  // ---------------------------------------------------------------------------
 
   async savePolicy(): Promise<boolean> {
     return true;
@@ -111,9 +100,7 @@ export abstract class BaseFilteredAdapter<
     return;
   }
 
-  // ---------------------------------------------------------------------------
   // Abstract hooks — subclasses provide the data queries
-  // ---------------------------------------------------------------------------
 
   /** Query direct permission policies assigned to the principal. Return casbin `p` lines. */
   protected abstract buildDirectPolicies(opts: {
@@ -132,9 +119,7 @@ export abstract class BaseFilteredAdapter<
     rolePrincipal: string;
   }): ValueOrPromise<string[]>;
 
-  // ---------------------------------------------------------------------------
   // Formatters — shared utilities for subclasses
-  // ---------------------------------------------------------------------------
 
   /** Format a domain value with optional entity prefix (e.g., `"Organization_<uuid>"`). */
   protected formatDomain(domain: string | null) {

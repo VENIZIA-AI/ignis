@@ -1,6 +1,5 @@
 import type { IAuthorizationComparable } from '../../common';
 
-// --------------------------------------------------------------------------------------------------------
 export class StringAuthorizationAction implements IAuthorizationComparable<string> {
   static readonly WILDCARD = '*';
 

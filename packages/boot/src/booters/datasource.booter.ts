@@ -11,17 +11,14 @@ export class DatasourceBooter extends BaseArtifactBooter {
     super({ scope: DatasourceBooter.name, root, artifactOptions: bootOptions.datasources ?? {} });
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['datasources'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultExtensions(): string[] {
     return ['.datasource.js'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
       const key = BindingKeys.build({ namespace: 'datasources', key: cls.name });

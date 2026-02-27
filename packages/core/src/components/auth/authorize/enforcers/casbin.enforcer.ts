@@ -22,9 +22,7 @@ import {
   type TAuthorizationDecision,
 } from '../common';
 
-// --------------------------------------------------------------------------------------------------------
 // Casbin Authorization Enforcer — wraps casbin (optional peer dep)
-// --------------------------------------------------------------------------------------------------------
 
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
@@ -47,9 +45,7 @@ export class CasbinAuthorizationEnforcer<
     super({ scope: CasbinAuthorizationEnforcer.name });
   }
 
-  // ---------------------------------------------------------------------------
   // Lifecycle
-  // ---------------------------------------------------------------------------
 
   async configure(): Promise<void> {
     let casbin: typeof import('casbin');
@@ -96,9 +92,7 @@ export class CasbinAuthorizationEnforcer<
     this.inMemoryInvalidationTimer = null;
   }
 
-  // ---------------------------------------------------------------------------
   // IAuthorizationEnforcer — public API
-  // ---------------------------------------------------------------------------
 
   async buildRules(opts: {
     user: { principalType: string } & IAuthUser;
@@ -197,9 +191,7 @@ export class CasbinAuthorizationEnforcer<
     return isAllowed ? AuthorizationDecisions.ALLOW : AuthorizationDecisions.DENY;
   }
 
-  // ---------------------------------------------------------------------------
   // Enforcer & model resolvers
-  // ---------------------------------------------------------------------------
 
   protected async resolveCasbinEnforcer(opts: {
     casbin: typeof import('casbin');
@@ -272,9 +264,7 @@ export class CasbinAuthorizationEnforcer<
     });
   }
 
-  // ---------------------------------------------------------------------------
   // Policy loading internals
-  // ---------------------------------------------------------------------------
 
   protected async loadPoliciesFromAdapter(opts: { user: { principalType: string } & IAuthUser }) {
     if (!this.enforcer) {

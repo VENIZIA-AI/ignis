@@ -6,10 +6,6 @@ import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types
 import { Container } from '@/helpers/inversion';
 import { createFreshRegistry, TestAuthorizationEnforcer } from './helpers';
 
-// =============================================================================
-// 4. AuthorizationEnforcerRegistry Tests
-// =============================================================================
-
 describe('AuthorizationEnforcerRegistry', () => {
   test('should be a singleton', () => {
     const instance1 = AuthorizationEnforcerRegistry.getInstance();
@@ -34,7 +30,6 @@ describe('AuthorizationEnforcerRegistry', () => {
       const registry = createFreshRegistry();
       const container = new Container({ scope: 'test' });
 
-      // Bind the options that TestAuthorizationEnforcer needs
       container.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
         defaultDecision: 'deny',
       });
@@ -50,7 +45,6 @@ describe('AuthorizationEnforcerRegistry', () => {
         ],
       });
 
-      // Verify the enforcer was bound in the container
       const isBound = container.isBound({
         key: 'authorization.enforcer.test',
       });
@@ -89,7 +83,6 @@ describe('AuthorizationEnforcerRegistry', () => {
         defaultDecision: 'deny',
       });
 
-      // Create a custom enforcer class
       class CustomEnforcer extends TestAuthorizationEnforcer {
         override name = 'custom';
       }

@@ -11,10 +11,8 @@ import {
   IUploadResult,
 } from '../types';
 
-// ================================================================================
 export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 
-// ================================================================================
 export class MinioHelper extends BaseStorageHelper {
   client: Client;
 
@@ -26,7 +24,6 @@ export class MinioHelper extends BaseStorageHelper {
     this.client = new Client(options);
   }
 
-  // ---------------------------------------------------------------------
   async isBucketExists(opts: { name: string }) {
     const { name } = opts;
     if (!this.isValidName(name)) {
@@ -37,13 +34,11 @@ export class MinioHelper extends BaseStorageHelper {
     return isExists;
   }
 
-  // ---------------------------------------------------------------------
   async getBuckets(): Promise<IBucketInfo[]> {
     const buckets = await this.client.listBuckets();
     return buckets;
   }
 
-  // ---------------------------------------------------------------------
   async getBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const isExists = await this.isBucketExists(opts);
     if (!isExists) {
@@ -55,7 +50,6 @@ export class MinioHelper extends BaseStorageHelper {
     return bucket ?? null;
   }
 
-  // ---------------------------------------------------------------------
   async createBucket(opts: { name: string }): Promise<IBucketInfo | null> {
     const { name } = opts;
     if (!this.isValidName(name)) {
@@ -69,7 +63,6 @@ export class MinioHelper extends BaseStorageHelper {
     return bucket;
   }
 
-  // ---------------------------------------------------------------------
   async removeBucket(opts: { name: string }): Promise<boolean> {
     const { name } = opts;
     if (!this.isValidName(name)) {
@@ -82,7 +75,6 @@ export class MinioHelper extends BaseStorageHelper {
     return true;
   }
 
-  // ---------------------------------------------------------------------
   async upload(opts: {
     bucket: string;
     files: IUploadFile[];
@@ -102,7 +94,6 @@ export class MinioHelper extends BaseStorageHelper {
       });
     }
 
-    // Validate all files first
     for (const file of files) {
       const { originalName, size, folderPath } = file;
 
@@ -158,7 +149,6 @@ export class MinioHelper extends BaseStorageHelper {
     return Promise.all(uploadPromises);
   }
 
-  // ---------------------------------------------------------------------
   getFile(opts: {
     bucket: string;
     name: string;
@@ -173,7 +163,6 @@ export class MinioHelper extends BaseStorageHelper {
     return this.client.getObject(bucket, name, options);
   }
 
-  // ---------------------------------------------------------------------
   async getStat(opts: { bucket: string; name: string }): Promise<IFileStat> {
     const { bucket, name } = opts;
     const stat = await this.client.statObject(bucket, name);
@@ -186,19 +175,16 @@ export class MinioHelper extends BaseStorageHelper {
     };
   }
 
-  // ---------------------------------------------------------------------
   async removeObject(opts: { bucket: string; name: string }): Promise<void> {
     const { bucket, name } = opts;
     await this.client.removeObject(bucket, name);
   }
 
-  // ---------------------------------------------------------------------
   async removeObjects(opts: { bucket: string; names: string[] }): Promise<void> {
     const { bucket, names } = opts;
     await this.client.removeObjects(bucket, names);
   }
 
-  // ---------------------------------------------------------------------
   async listObjects(opts: {
     bucket: string;
     prefix?: string;

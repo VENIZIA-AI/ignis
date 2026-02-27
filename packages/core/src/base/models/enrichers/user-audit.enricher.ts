@@ -22,12 +22,7 @@ export type TUserAuditEnricherResult<
   modifiedBy: PgIntegerBuilderInitial<string> | PgTextBuilderInitial<string, [string, ...string[]]>;
 };
 
-/**
- * Get current user ID from Hono context storage.
- * Returns null if context unavailable (background jobs, migrations, tests).
- *
- * CAUTIONS: if using fire-and-forget promise, this could be run outside of async context => cannot detect AUDIT_USER_ID
- */
+/** CAUTION: fire-and-forget promises may run outside async context, losing AUDIT_USER_ID. */
 const getCurrentUserId = <T>(opts: { allowAnonymous: boolean; columnField: string }): T | null => {
   const context = tryGetContext();
   if (!context) {

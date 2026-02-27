@@ -3,9 +3,6 @@ import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion'
 import { MetadataKeys } from '../common/keys';
 import { IDataSourceMetadata } from '../common/types';
 
-// -----------------------------------------------------------------
-// DataSource Metadata
-// -----------------------------------------------------------------
 export const DatasourceMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
   // mixinOpts: { },

@@ -50,41 +50,26 @@ export abstract class AbstractNetworkFetchableHelper<
     return this.worker;
   }
 
-  // -------------------------------------------------------------
-  // GET REQUEST
-  // -------------------------------------------------------------
   get(opts: RQ, logger?: any) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: 'get' }, logger);
   }
 
-  // -------------------------------------------------------------
-  // POST REQUEST
-  // -------------------------------------------------------------
   post(opts: RQ, logger?: any) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: 'post' }, logger);
   }
 
-  // -------------------------------------------------------------
-  // PUT REQUEST
-  // -------------------------------------------------------------
   put(opts: RQ, logger?: any) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: 'put' }, logger);
   }
 
-  // -------------------------------------------------------------
-  // PATCH REQUEST
-  // -------------------------------------------------------------
   patch(opts: RQ, logger?: any) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: 'patch' }, logger);
   }
 
-  // -------------------------------------------------------------
-  // DELETE REQUEST
-  // -------------------------------------------------------------
   delete(opts: RQ, logger?: any) {
     const { ...rest } = opts;
     return this.send({ ...rest, method: 'delete' }, logger);

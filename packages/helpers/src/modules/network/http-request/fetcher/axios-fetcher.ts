@@ -13,7 +13,6 @@ export interface IAxiosRequestOptions extends AxiosRequestConfig, IRequestOption
   headers?: AnyObject;
 }
 
-// -------------------------------------------------------------
 export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   'axios',
   IAxiosRequestOptions,
@@ -27,9 +26,6 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
     this.worker = axios.create({ ...defaultConfigs });
   }
 
-  // -------------------------------------------------------------
-  // SEND REQUEST
-  // -------------------------------------------------------------
   override send<T = any>(opts: IAxiosRequestOptions, logger?: any) {
     const { url, method = 'get', params = {}, body: data, headers, ...rest } = opts;
     const props: AxiosRequestConfig = {
@@ -54,7 +50,6 @@ export class AxiosFetcher extends AbstractNetworkFetchableHelper<
   }
 }
 
-// -----------------------------------------------------------------------------
 export interface IAxiosNetworkRequestOptions {
   name: string;
   networkOptions: Omit<AxiosRequestConfig, 'baseURL'> & {
@@ -62,19 +57,16 @@ export interface IAxiosNetworkRequestOptions {
   };
 }
 
-// -----------------------------------------------------------------------------
 export class AxiosNetworkRequest extends BaseNetworkRequest<'axios'> {
   constructor(opts: IAxiosNetworkRequestOptions) {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, timeout, ...rest } = networkOptions;
 
-    // Build headers with user values taking precedence
     const mergedHeaders: AnyObject = {
       ['content-type']: 'application/json; charset=utf-8',
       ...headers,
     };
 
-    // User options override defaults
     const defaultConfigs: AxiosRequestConfig = {
       withCredentials: true,
       validateStatus: (status: number) => status < 500,

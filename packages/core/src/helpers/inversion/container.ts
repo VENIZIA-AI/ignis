@@ -5,7 +5,6 @@ import {
 } from '@venizia/ignis-inversion';
 import { MetadataRegistry } from './registry';
 
-// -------------------------------------------------------------------------------------
 export class Container extends DIContainer {
   logger: Logger;
 

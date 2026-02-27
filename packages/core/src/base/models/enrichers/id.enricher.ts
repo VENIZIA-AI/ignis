@@ -28,7 +28,6 @@ export type TIdEnricherOptions = {
   );
 };
 
-// Type aliases for id column definitions
 type TStringIdCol = HasRuntimeDefault<
   HasDefault<IsPrimaryKey<NotNull<PgTextBuilderInitial<'id', [string, ...string[]]>>>>
 >;

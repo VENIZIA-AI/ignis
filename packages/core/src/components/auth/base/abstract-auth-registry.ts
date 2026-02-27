@@ -3,9 +3,7 @@ import { Container } from '@/helpers/inversion/container';
 import { BaseHelper, getError, TClass } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 
-// --------------------------------------------------------------------------------------------------------
 // Abstract Auth Registry — shared base for authentication and authorization registries
-// --------------------------------------------------------------------------------------------------------
 
 export type TRegistryDescriptor<TItem> = {
   container: Container;
@@ -15,7 +13,6 @@ export type TRegistryDescriptor<TItem> = {
 export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
   protected descriptors: Map<string, TRegistryDescriptor<TItem>>;
 
-  // ---------------------------------------------------------------------------
   constructor(opts: { scope: string }) {
     super(opts);
     this.descriptors = new Map();
@@ -23,7 +20,6 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
 
   protected abstract getBindingPrefix(): string;
 
-  // ---------------------------------------------------------------------------
   getKey(opts: { name: string }): string {
     if (!opts?.name || isEmpty(opts.name)) {
       throw getError({ message: `[getKey] Invalid name | name: ${opts.name}` });
@@ -42,7 +38,6 @@ export abstract class AbstractAuthRegistry<TItem> extends BaseHelper {
     return firstName;
   }
 
-  // ---------------------------------------------------------------------------
   protected registerDescriptor(opts: {
     container: Container;
     target: TClass<TItem>;

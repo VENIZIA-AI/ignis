@@ -1,6 +1,5 @@
 import { Readable } from 'node:stream';
 
-// -------------------------------------------------------------------------
 export interface IUploadFile {
   originalName: string;
   mimetype: string;
@@ -11,7 +10,6 @@ export interface IUploadFile {
   [key: string | symbol]: any;
 }
 
-// -------------------------------------------------------------------------
 export interface IUploadResult {
   bucketName: string;
   objectName: string;
@@ -20,7 +18,6 @@ export interface IUploadResult {
   metaLinkError?: any;
 }
 
-// -------------------------------------------------------------------------
 export interface IFileStat {
   size: number;
   metadata: Record<string, any>;
@@ -29,13 +26,11 @@ export interface IFileStat {
   versionId?: string;
 }
 
-// -------------------------------------------------------------------------
 export interface IBucketInfo {
   name: string;
   creationDate: Date;
 }
 
-// -------------------------------------------------------------------------
 export interface IObjectInfo {
   name?: string;
   size?: number;
@@ -44,7 +39,6 @@ export interface IObjectInfo {
   prefix?: string;
 }
 
-// -------------------------------------------------------------------------
 export interface IListObjectsOptions {
   bucket: string;
   prefix?: string;
@@ -52,25 +46,20 @@ export interface IListObjectsOptions {
   maxKeys?: number;
 }
 
-// -------------------------------------------------------------------------
 export interface IStorageHelperOptions {
   scope?: string;
   identifier?: string;
 }
 
-// -------------------------------------------------------------------------
 export interface IStorageHelper {
-  // Name validation
   isValidName(name: string): boolean;
 
-  // Bucket operations
   isBucketExists(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   removeBucket(opts: { name: string }): Promise<boolean>;
 
-  // File operations
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
@@ -84,6 +73,5 @@ export interface IStorageHelper {
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  // Utility
   getFileType(opts: { mimeType: string }): string;
 }

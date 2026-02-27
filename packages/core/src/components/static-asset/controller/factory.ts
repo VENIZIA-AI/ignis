@@ -58,7 +58,6 @@ export class AssetControllerFactory extends BaseHelper {
       }
 
       override binding(): ValueOrPromise<void> {
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.GET_BUCKETS,
         }).to({
@@ -68,7 +67,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.GET_BUCKET_BY_NAME,
         }).to({
@@ -87,7 +85,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.GET_OBJECT_BY_NAME,
         }).to({
@@ -131,7 +128,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
         }).to({
@@ -179,7 +175,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.CREATE_BUCKET,
         }).to({
@@ -198,7 +193,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.UPLOAD,
         }).to({
@@ -283,7 +277,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.DELETE_BUCKET,
         }).to({
@@ -304,7 +297,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.DELETE_OBJECT,
         }).to({
@@ -353,7 +345,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         this.bindRoute({
           configs: StaticAssetDefinitions.LIST_OBJECTS,
         }).to({
@@ -379,7 +370,6 @@ export class AssetControllerFactory extends BaseHelper {
           },
         });
 
-        // ----------------------------------------
         if (useMetaLink && metaLink) {
           this.bindRoute({
             configs: StaticAssetDefinitions.RECREATE_METALINK,

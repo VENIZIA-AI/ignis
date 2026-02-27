@@ -11,26 +11,17 @@ import {
 import { ValueOrPromise } from '@venizia/ignis-helpers';
 import { IBootOptions } from '@venizia/ignis-boot';
 
-// ------------------------------------------------------------------------------
-// Common Middleware Options
-// ------------------------------------------------------------------------------
 export interface IBaseMiddlewareOptions {
   enable: boolean;
   path?: string;
   [extra: string | symbol]: any;
 }
 
-// ------------------------------------------------------------------------------
-// Compress Middleware Options
-// ------------------------------------------------------------------------------
 export interface ICompressOptions extends IBaseMiddlewareOptions {
   encoding: 'gzip' | 'deflate';
   threshold?: number;
 }
 
-// ------------------------------------------------------------------------------
-// CORS Middleware Options
-// ------------------------------------------------------------------------------
 export type TOrigin =
   | string
   | string[]
@@ -47,9 +38,6 @@ export interface ICORSOptions extends IBaseMiddlewareOptions {
   exposeHeaders?: string[];
 }
 
-// ------------------------------------------------------------------------------
-// CSRF Middleware Options
-// ------------------------------------------------------------------------------
 export type TIsAllowedOriginHandler = (origin: string, context: Context) => boolean;
 export const SecFetchSiteValues = ['same-origin', 'same-site', 'none', 'cross-site'] as const;
 export type TSecFetchSite = (typeof SecFetchSiteValues)[number];
@@ -63,26 +51,16 @@ export interface ICSRFOptions extends IBaseMiddlewareOptions {
   secFetchSite?: TSecFetchSite | TSecFetchSite[] | TIsAllowedSecFetchSiteHandler;
 }
 
-// ------------------------------------------------------------------------------
-// Body Limit Middleware Options
-// ------------------------------------------------------------------------------
 export interface IBodyLimitOptions extends IBaseMiddlewareOptions {
   maxSize: number;
   onError?: (c: Context) => Response | Promise<Response>;
 }
 
-// ------------------------------------------------------------------------------
-// RequestId Middleware Options
-// ------------------------------------------------------------------------------
 export interface IRequestIdOptions extends IBaseMiddlewareOptions {}
 
-// ------------------------------------------------------------------------------
-// Application
-// ------------------------------------------------------------------------------
 export type TBunServerInstance = ReturnType<typeof Bun.serve>;
 export type TNodeServerInstance = any; // Will be set at runtime from @hono/node-server
 
-// ------------------------------------------------------------------------------
 export interface IMiddlewareConfigs {
   requestId?: IRequestIdOptions;
   compress?: ICompressOptions;
@@ -114,7 +92,6 @@ export interface IApplicationInfo {
   [extra: string | symbol]: any;
 }
 
-// ------------------------------------------------------------------------------
 export interface IApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = Schema,
@@ -135,7 +112,6 @@ export interface IApplication<
   stop(): ValueOrPromise<void>;
 }
 
-// ------------------------------------------------------------------------------
 export interface IRestApplication
   extends
     IApplication,

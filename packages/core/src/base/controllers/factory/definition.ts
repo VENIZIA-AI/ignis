@@ -14,9 +14,7 @@ import {
 } from '../common';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
 
-/**
- * Creates conditional count response schema.
- */
+/** Creates conditional count response schema. */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
   return z.union([
     CountSchema.extend({ data: dataSchema }).openapi({
@@ -28,9 +26,6 @@ export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) 
   ]);
 };
 
-// -----------------------------------------------------------------------------
-// Route Config Resolvers
-// -----------------------------------------------------------------------------
 export const resolveCountConfig = (opts: {
   config: ICustomizableRoutes['count'];
   isStrict: boolean;
@@ -234,14 +229,7 @@ const resolveDeleteByConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
   };
 };
 
-// -----------------------------------------------------------------------------
-// Route Configs Generator
-// -----------------------------------------------------------------------------
-
-/**
- * Generates complete route configurations for a CRUD controller.
- * Generic over Routes to preserve custom schema types for proper type inference.
- */
+/** Generates complete route configurations for a CRUD controller. */
 export const defineControllerRouteConfigs = <
   Routes extends ICustomizableRoutes,
   SelectSchema extends TAnyObjectSchema,
@@ -269,15 +257,11 @@ export const defineControllerRouteConfigs = <
   } = opts;
   const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
-  // Type-safe routes access (Routes may be undefined)
   const routesConfig = (routes ?? {}) as Routes;
 
   type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };
 
-  /**
-   * Resolves authentication config for a specific route.
-   * Priority: endpoint authenticate > controller authenticate
-   */
+  /** Priority: endpoint authenticate > controller authenticate. */
   const resolveRouteAuth = (routeKey: keyof ICustomizableRoutes): TAuthenticateConfig => {
     const endpointConfig = routesConfig[routeKey];
     const authConfig = endpointConfig?.authenticate;
@@ -298,14 +282,10 @@ export const defineControllerRouteConfigs = <
 
   type TAuthorizeConfig = IAuthorizationSpec | IAuthorizationSpec[] | undefined;
 
-  /**
-   * Resolves authorization config for a specific route.
-   * Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize
-   */
+  /** Priority: endpoint authenticate.skip > endpoint authorize.skip > endpoint authorize > controller authorize. */
   const resolveRouteAuthorize = (routeKey: keyof ICustomizableRoutes): TAuthorizeConfig => {
     const endpointConfig = routesConfig[routeKey];
 
-    // authenticate.skip also implies authorization skip
     if (endpointConfig?.authenticate?.skip === true) {
       return undefined;
     }
@@ -316,7 +296,6 @@ export const defineControllerRouteConfigs = <
       return controllerAuthorize;
     }
 
-    // authorize: { skip: true } → skip authorization for this route
     if (!Array.isArray(authorize) && 'skip' in authorize) {
       return undefined;
     }
@@ -324,9 +303,6 @@ export const defineControllerRouteConfigs = <
     return authorize as TAuthorizeConfig;
   };
 
-  // -------------------------------------------------------------------------
-  // Resolve route configs using external resolvers
-  // -------------------------------------------------------------------------
   const count = resolveCountConfig({ config: routesConfig.count, isStrict });
   const find = resolveFindConfig({ config: routesConfig.find, selectSchema });
   const findById = resolveFindByIdConfig({ config: routesConfig.findById, selectSchema, idType });
@@ -350,9 +326,6 @@ export const defineControllerRouteConfigs = <
   });
   const deleteBy = resolveDeleteByConfig({ config: routesConfig.deleteBy, selectSchema });
 
-  // -------------------------------------------------------------------------
-  // Define route configurations
-  // -------------------------------------------------------------------------
   const rs = {
     COUNT: {
       method: HTTP.Methods.GET,

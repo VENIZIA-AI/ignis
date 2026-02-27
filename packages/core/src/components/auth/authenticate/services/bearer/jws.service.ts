@@ -10,40 +10,7 @@ import {
 } from '../../common';
 import { AbstractBearerTokenService } from './abstract.service';
 
-/**
- * Symmetric JWT (JWS) token service with AES-encrypted payloads.
- *
- * Uses HS256 signing (shared `jwtSecret`) and encrypts all custom claim keys and values
- * with AES (`applicationSecret`). Standard JWT fields (iss, sub, aud, jti, nbf, exp, iat)
- * are preserved in plaintext.
- *
- * Since symmetric JWT means every service holding the secret can both sign and verify,
- * payload encryption prevents token inspection by intermediaries or client-side code.
- *
- * The `roles` claim receives special serialization: each role is encoded as
- * `"id|identifier|priority"` before encryption, and reconstructed on decryption.
- *
- * @example
- * ```typescript
- * // Register via AuthenticateComponent (recommended)
- * this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
- *   standard: JOSEStandards.JWS,
- *   options: {
- *     jwtSecret: env.get('JWT_SECRET'),
- *     applicationSecret: env.get('APP_SECRET'),
- *     getTokenExpiresFn: () => 86_400, // 24h
- *   },
- * });
- *
- * // Generate a token
- * const token = await jwsTokenService.generate({
- *   payload: { userId: 'u1', roles: [{ id: '1', identifier: 'admin', priority: 100 }] },
- * });
- *
- * // Verify and decrypt
- * const user = await jwsTokenService.verify({ type: 'Bearer', token });
- * ```
- */
+/** Symmetric JWT (JWS) token service with optional AES-encrypted payloads. */
 export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenService<E> {
   protected jwtSecret: Uint8Array;
 
@@ -73,13 +40,11 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
   }
 
-  // --------------------------------------------------------------------------------------
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     const decodedToken = await jwtVerify<IJWTTokenPayload>(token, this.jwtSecret, {});
     return this.decryptPayload({ result: decodedToken });
   }
 
-  // --------------------------------------------------------------------------------------
   override async getSigner(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
@@ -96,7 +61,6 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       .setNotBefore(now);
   }
 
-  // --------------------------------------------------------------------------------------
   protected override getSigningKey(): ValueOrPromise<Uint8Array> {
     if (!this.jwtSecret) {
       throw getError({ message: '[getSigningKey] Invalid jwtSecret!' });

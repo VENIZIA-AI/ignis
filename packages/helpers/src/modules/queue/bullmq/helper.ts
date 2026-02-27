@@ -3,53 +3,6 @@ import { DefaultRedisHelper } from '@/modules/redis';
 import { Job, Queue, Worker } from 'bullmq';
 import { TBullQueueRole } from '../common';
 
-/**
- * BullMQ Helper for queue and worker management.
- *
- * @example
- * // When using Redis Cluster, initialize with recommended options:
- * import { Cluster } from 'ioredis';
- *
- * const cluster = new Cluster(
- *   [
- *     { host: 'node1.redis.example.com', port: 6379 },
- *     { host: 'node2.redis.example.com', port: 6379 },
- *     { host: 'node3.redis.example.com', port: 6379 },
- *   ],
- *   {
- *     // Recommended options for BullMQ:
- *     maxRetriesPerRequest: null,      // Required by BullMQ (disables retry limit)
- *     enableReadyCheck: true,          // Wait until cluster is ready
- *     scaleReads: 'slave',             // Optional: read from replicas to reduce master load
- *
- *     // If behind NAT/proxy:
- *     // natMap: {
- *     //   'internal-ip:6379': { host: 'external-ip', port: 6379 }
- *     // },
- *
- *     redisOptions: {
- *       password: 'your-password',     // If auth required
- *       tls: {},                       // If TLS required
- *     },
- *   }
- * );
- *
- * const redisHelper = new DefaultRedisHelper({
- *   scope: 'BullMQ',
- *   identifier: 'my-redis',
- *   client: cluster,
- * });
- *
- * const helper = BullMQHelper.newInstance({
- *   queueName: 'my-queue',
- *   identifier: 'my-worker',
- *   role: 'worker',
- *   redisConnection: redisHelper,
- *   onWorkerData: async (job) => { ... },
- * });
- *
- * @note `maxRetriesPerRequest: null` is required by BullMQ for both Redis and Cluster connections to prevent blocking issues.
- */
 interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
   identifier: string;
@@ -173,9 +126,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     this.worker.on('completed', (job, result) => {
       this.onWorkerDataCompleted?.(job, result)
-        .then(() => {
-          // Do something after processing completed job
-        })
+        .then(() => {})
         .catch(error => {
           this.logger
             .for('worker-completed')
@@ -190,9 +141,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     this.worker.on('failed', (job, reason) => {
       this.onWorkerDataFail?.(job, reason)
-        .then(() => {
-          // Do something after processing failed job
-        })
+        .then(() => {})
         .catch(error => {
           this.logger
             .for('worker-failed')

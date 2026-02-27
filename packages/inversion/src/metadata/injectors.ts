@@ -11,36 +11,7 @@ export const injectable = (
   };
 };
 
-/**
- * @inject decorator - Marks a property or constructor parameter for dependency injection
- *
- * Usage examples:
- *
- * 1. Property injection:
- * ```typescript
- * class UserService {
- *   @inject({ key: 'UserRepository' })
- *   userRepository: UserRepository;
- * }
- * ```
- *
- * 2. Constructor parameter injection:
- * ```typescript
- * class UserService {
- *   constructor(
- *     @inject({ key: 'UserRepository' })
- *     private userRepository: UserRepository,
- *
- *     @inject({ key: 'Logger', optional: true })
- *     private logger?: Logger
- *   ) {}
- * }
- * ```
- *
- * @param opts - Injection options
- * @param opts.key - The binding key to inject (can be string or symbol)
- * @param opts.optional - Whether the dependency is optional (defaults to false)
- */
+/** Marks a property or constructor parameter for dependency injection. */
 export const inject = (opts: {
   key: string | symbol;
   isOptional?: boolean;
@@ -49,7 +20,6 @@ export const inject = (opts: {
   return (target: any, propertyName: string | symbol | undefined, parameterIndex?: number) => {
     const registry = opts.registry ?? metadataRegistry;
 
-    // Constructor parameter injection
     if (typeof parameterIndex === 'number') {
       registry.setInjectMetadata({
         target,
@@ -63,7 +33,6 @@ export const inject = (opts: {
       return;
     }
 
-    // Property injection
     if (propertyName !== undefined) {
       registry.setPropertyMetadata({
         target,

@@ -9,17 +9,7 @@ import type {
 } from '@/components/auth/authorize/common/types';
 import type { TRouteAuthConfig } from '@/base/controllers/common/types';
 
-// =============================================================================
-// 6. Route Config Integration Tests
-// =============================================================================
-
 describe('Route Config Integration', () => {
-  // These tests verify that resolveRouteAuthorize in definition.ts correctly
-  // resolves authorization configs at different levels.
-
-  // We import defineControllerRouteConfigs which includes resolveRouteAuthorize internally.
-  // Since it needs entity schemas, we test the logic at a higher level.
-
   describe('TRouteAuthConfig type behavior', () => {
     test('authenticate: { skip: true } should skip both auth and authorize', () => {
       const config: TRouteAuthConfig = {
@@ -107,7 +97,6 @@ describe('Route Config Integration', () => {
 
   describe('IAuthRouteConfig compatibility', () => {
     test('should support both authenticate and authorize fields', () => {
-      // Verifying IAuthRouteConfig extends HonoRouteConfig with both auth fields
       const config = {
         method: 'get' as const,
         path: '/users',

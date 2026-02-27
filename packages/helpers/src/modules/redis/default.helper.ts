@@ -5,7 +5,6 @@ import isEmpty from 'lodash/isEmpty';
 import zlib from 'node:zlib';
 import { IRedisHelperCallbacks } from './types';
 
-// -----------------------------------------------------------------------------------------------
 export class DefaultRedisHelper extends BaseHelper {
   client: Redis | Cluster;
   name: string;
@@ -76,7 +75,6 @@ export class DefaultRedisHelper extends BaseHelper {
     });
   }
 
-  // ---------------------------------------------------------------------------------
   disconnect() {
     return new Promise<boolean>((resolve, reject) => {
       const invalidStatuses: (typeof this.client.status)[] = ['end', 'close'];
@@ -97,7 +95,6 @@ export class DefaultRedisHelper extends BaseHelper {
     });
   }
 
-  // ---------------------------------------------------------------------------------
   async set<T>(opts: { key: string; value: T; options?: { log: boolean } }): Promise<void> {
     const logger = this.logger.for(this.set.name);
     const { key, value, options = { log: false } } = opts;
@@ -117,7 +114,6 @@ export class DefaultRedisHelper extends BaseHelper {
     logger.for(this.set.name).info(`Set key: ${key} | value: ${serialized}`);
   }
 
-  // ---------------------------------------------------------------------------------
   async get<T = string>(opts: {
     key: string;
     transform?: (input: string) => T;
@@ -136,23 +132,19 @@ export class DefaultRedisHelper extends BaseHelper {
     return transform ? transform(value) : (value as unknown as T);
   }
 
-  // ---------------------------------------------------------------------------------
   del(opts: { keys: Array<string> }) {
     const { keys } = opts;
     return this.client.del(keys);
   }
 
-  // ---------------------------------------------------------------------------------
   getString(opts: { key: string }) {
     return this.get(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   getStrings(opts: { keys: Array<string> }) {
     return this.mget(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   getObject<T>(opts: { key: string }) {
     return this.get<T>({
       ...opts,
@@ -160,7 +152,6 @@ export class DefaultRedisHelper extends BaseHelper {
     });
   }
 
-  // ---------------------------------------------------------------------------------
   getObjects(opts: { keys: Array<string> }) {
     return this.mget({
       ...opts,
@@ -168,7 +159,6 @@ export class DefaultRedisHelper extends BaseHelper {
     });
   }
 
-  // ---------------------------------------------------------------------------------
   async hset<T extends Record<string, unknown>>(opts: {
     key: string;
     value: T;
@@ -191,7 +181,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return rs;
   }
 
-  // ---------------------------------------------------------------------------------
   hSet<T extends Record<string, unknown>>(opts: {
     key: string;
     value: T;
@@ -200,7 +189,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.hset(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   async hgetall(opts: { key: string; transform?: <T, R>(input: T) => R }) {
     const { key, transform } = opts;
     if (!this.client) {
@@ -216,12 +204,10 @@ export class DefaultRedisHelper extends BaseHelper {
     return transform(value);
   }
 
-  // ---------------------------------------------------------------------------------
   hGetAll(opts: { key: string; transform?: <T, R>(input: T) => R }) {
     return this.hgetall(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   async mset<T>(opts: {
     payload: Array<{ key: string; value: T }>;
     options?: { log: boolean };
@@ -249,7 +235,6 @@ export class DefaultRedisHelper extends BaseHelper {
     logger.for(this.mset.name).info('Payload: %j', serialized);
   }
 
-  // ---------------------------------------------------------------------------------
   mSet<T>(opts: {
     payload: Array<{ key: string; value: T }>;
     options?: { log: boolean };
@@ -257,7 +242,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.mset(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   async mget<T = string>(opts: {
     keys: Array<string>;
     transform?: (input: string) => T;
@@ -276,7 +260,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return values.map(el => (el ? (transform ? transform(el) : (el as unknown as T)) : null));
   }
 
-  // ---------------------------------------------------------------------------------
   mGet<T = string>(opts: {
     keys: Array<string>;
     transform?: (input: string) => T;
@@ -284,7 +267,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.mget(opts);
   }
 
-  // ---------------------------------------------------------------------------------
   async keys(opts: { key: string }) {
     const { key } = opts;
     if (!this.client) {
@@ -296,49 +278,41 @@ export class DefaultRedisHelper extends BaseHelper {
     return existedKeys;
   }
 
-  // ---------------------------------------------------------------------------------
   jSet<T>(opts: { key: string; path: string; value: T }): Promise<string | null> {
     const { key, path, value } = opts;
     return this.execute<string | null>('JSON.SET', [key, path, JSON.stringify(value)]);
   }
 
-  // ---------------------------------------------------------------------------------
   jGet<T>(opts: { key: string; path?: string }): Promise<T | null> {
     const { key, path = '$' } = opts;
     return this.execute<T | null>('JSON.GET', [key, path]);
   }
 
-  // ---------------------------------------------------------------------------------
   jDelete(opts: { key: string; path?: string }): Promise<number> {
     const { key, path = '$' } = opts;
     return this.execute<number>('JSON.DEL', [key, path]);
   }
 
-  // ---------------------------------------------------------------------------------
   jNumberIncreaseBy(opts: { key: string; path: string; value: number }): Promise<string | null> {
     const { key, path, value } = opts;
     return this.execute<string | null>('JSON.NUMINCRBY', [key, path, value]);
   }
 
-  // ---------------------------------------------------------------------------------
   jStringAppend(opts: { key: string; path: string; value: string }): Promise<number[] | null> {
     const { key, path, value } = opts;
     return this.execute<number[] | null>('JSON.STRAPPEND', [key, path, value]);
   }
 
-  // ---------------------------------------------------------------------------------
   jPush<T>(opts: { key: string; path: string; value: T }): Promise<number[] | null> {
     const { key, path, value } = opts;
     return this.execute<number[] | null>('JSON.ARRAPPEND', [key, path, JSON.stringify(value)]);
   }
 
-  // ---------------------------------------------------------------------------------
   jPop<T>(opts: { key: string; path: string }): Promise<T | null> {
     const { key, path } = opts;
     return this.execute<T | null>('JSON.ARRPOP', [key, path]);
   }
 
-  // ---------------------------------------------------------------------------------
   execute<R>(command: string, parameters?: Array<string | number | Buffer>): Promise<R> {
     if (!this.client) {
       throw getError({
@@ -353,7 +327,6 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.client.call(command, parameters) as Promise<R>;
   }
 
-  // ---------------------------------------------------------------------------------
   async publish<T>(opts: {
     topics: Array<string>;
     payload: T;
@@ -393,7 +366,6 @@ export class DefaultRedisHelper extends BaseHelper {
     );
   }
 
-  // ---------------------------------------------------------------------------------
   subscribe(opts: { topic: string }) {
     const logger = this.logger.for(this.subscribe.name);
     const { topic } = opts;
@@ -422,7 +394,6 @@ export class DefaultRedisHelper extends BaseHelper {
     });
   }
 
-  // ---------------------------------------------------------------------------------
   unsubscribe(opts: { topic: string }) {
     const logger = this.logger.for(this.unsubscribe.name);
     const { topic } = opts;

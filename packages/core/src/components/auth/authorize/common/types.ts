@@ -8,41 +8,17 @@ import {
   CasbinEnforcerModelDrivers,
   TAuthorizationDecision,
 } from './constants';
-
-// --------------------------------------------------------------------------------------------------------
-// Foundational Types
-// --------------------------------------------------------------------------------------------------------
-
 export interface IAuthorizationRole {
   readonly name: string;
   readonly priority: number;
   readonly identifier: string;
 }
 
-/**
- * Key-value conditions for attribute-based access control.
- * Values are compared with strict equality (`===`).
- *
- * @typeParam KeyType - Key type for condition entries. Defaults to `string | symbol`.
- * @typeParam ValueType - Value type for condition entries. Defaults to primitive types.
- *
- * @example
- * ```typescript
- * // Default — accepts primitives
- * conditions: { ownerId: currentUser.userId, level: 3 }
- *
- * // Narrowed — string keys, string values
- * const filter: TAuthorizationConditions<string, string> = { department: 'engineering' }
- * ```
- */
+/** Key-value conditions for attribute-based access control. Values compared with strict equality. */
 export type TAuthorizationConditions<
   KeyType extends string | symbol = string | symbol,
   ValueType = string | number | boolean | null,
 > = Record<KeyType, ValueType>;
-
-// --------------------------------------------------------------------------------------------------------
-// Authorization Comparable
-// --------------------------------------------------------------------------------------------------------
 
 export interface IAuthorizationComparable<TElement = string, TCompareResult = number> {
   value: TElement;
@@ -50,32 +26,13 @@ export interface IAuthorizationComparable<TElement = string, TCompareResult = nu
   isEqual(other: TElement): boolean;
 }
 
-// --------------------------------------------------------------------------------------------------------
-// Authorization Evaluation
-// --------------------------------------------------------------------------------------------------------
-
 export interface IAuthorizationRequest<TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
   conditions?: TAuthorizationConditions;
 }
 
-/**
- * Authorization enforcer that builds rules and evaluates authorization requests.
- *
- * @typeParam E - Hono `Env` type for typed context access (default: `Env`).
- * @typeParam TAction - Action type (default: `string`). Use `IAuthorizationComparable` for custom comparison.
- * @typeParam TResource - Resource type (default: `string`). Use `IAuthorizationComparable` for custom comparison.
- * @typeParam TRules - The rules type produced by `buildRules` and consumed by `evaluate`.
- *   - `CasbinAuthorizationEnforcer` → `IAuthUser`
- * @typeParam TBuildRulesReturn - Return type of `buildRules` (default: `ValueOrPromise<TRules>`).
- * @typeParam TEvaluateReturn - Return type of `evaluate` (default: `ValueOrPromise<TAuthorizationDecision>`).
- *
- * @example
- * ```typescript
- * class MyEnforcer implements IAuthorizationEnforcer<Env, string, string, unknown> { ... }
- * ```
- */
+/** Authorization enforcer that builds rules and evaluates authorization requests. */
 export interface IAuthorizationEnforcer<
   E extends Env = Env,
   TAction = string,
@@ -100,10 +57,6 @@ export interface IAuthorizationEnforcer<
   }): TEvaluateReturn;
 }
 
-// --------------------------------------------------------------------------------------------------------
-// Route-level Declaration
-// --------------------------------------------------------------------------------------------------------
-
 export type TAuthorizationVoter<
   E extends Env = Env,
   TAction = string,
@@ -123,18 +76,10 @@ export interface IAuthorizationSpec<E extends Env = Env, TAction = string, TReso
   voters?: TAuthorizationVoter<E, TAction, TResource>[];
 }
 
-// --------------------------------------------------------------------------------------------------------
-// Authorize Function
-// --------------------------------------------------------------------------------------------------------
-
 export type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = string> = (opts: {
   spec: IAuthorizationSpec<E, TAction, TResource>;
   enforcerName?: string;
 }) => MiddlewareHandler;
-
-// --------------------------------------------------------------------------------------------------------
-// Component-level Configuration
-// --------------------------------------------------------------------------------------------------------
 
 export interface ICasbinEnforcerCachedMemory {
   driver: typeof CasbinEnforcerCachedDrivers.IN_MEMORY;

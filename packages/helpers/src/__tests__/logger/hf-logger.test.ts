@@ -1,27 +1,10 @@
-/**
- * High-Frequency Logger Test Suite
- *
- * Tests the zero-allocation logging system designed for HFT use cases:
- * 1. HfLogger - Zero allocation logging with pre-encoded messages
- * 2. HfLogFlusher - Async buffer flushing
- * 3. Performance characteristics
- *
- * @module __tests__/logger/hf-logger
- */
+/** High-Frequency Logger Test Suite */
 
 import { describe, test, expect, beforeEach, spyOn, afterEach } from 'bun:test';
 import { HfLogger, HfLogFlusher } from '@/modules/logger';
 
-// =============================================================================
-// Test Suite: HfLogger
-// =============================================================================
-
 describe('High-Frequency Logger', () => {
   describe('HfLogger', () => {
-    // -------------------------------------------------------------------------
-    // Instance Management Tests
-    // -------------------------------------------------------------------------
-
     describe('Instance Management', () => {
       test('TC-001: should create a new logger instance with scope', () => {
         const logger = HfLogger.get('TestScope');
@@ -64,10 +47,6 @@ describe('High-Frequency Logger', () => {
         expect(logger).toBeDefined();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Message Encoding Tests
-    // -------------------------------------------------------------------------
 
     describe('Message Encoding', () => {
       test('TC-008: should encode message to Uint8Array', () => {
@@ -121,10 +100,6 @@ describe('High-Frequency Logger', () => {
         expect(encoded).toBeInstanceOf(Uint8Array);
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Logging Tests
-    // -------------------------------------------------------------------------
 
     describe('Logging', () => {
       let logger: HfLogger;
@@ -194,10 +169,6 @@ describe('High-Frequency Logger', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Ring Buffer Wrap-around Tests
-    // -------------------------------------------------------------------------
-
     describe('Ring Buffer Behavior', () => {
       test('TC-026: should handle buffer wrap-around gracefully', () => {
         const logger = HfLogger.get('WrapTest');
@@ -213,10 +184,6 @@ describe('High-Frequency Logger', () => {
       });
     });
   });
-
-  // ===========================================================================
-  // Test Suite: HfLogFlusher
-  // ===========================================================================
 
   describe('HfLogFlusher', () => {
     let consoleLogSpy: ReturnType<typeof spyOn>;
@@ -300,10 +267,6 @@ describe('High-Frequency Logger', () => {
       setIntervalSpy.mockRestore();
     });
   });
-
-  // ===========================================================================
-  // Performance Tests
-  // ===========================================================================
 
   describe('Performance', () => {
     test('TC-033: should achieve sub-microsecond logging latency', () => {
@@ -408,10 +371,6 @@ describe('High-Frequency Logger', () => {
     });
   });
 
-  // ===========================================================================
-  // Edge Cases
-  // ===========================================================================
-
   describe('Edge Cases', () => {
     test('TC-038: should handle null bytes in message', () => {
       const msgWithNull = HfLogger.encodeMessage('Test\x00Null\x00Bytes');
@@ -472,10 +431,6 @@ describe('High-Frequency Logger', () => {
       }
     });
   });
-
-  // ===========================================================================
-  // Integration Scenarios
-  // ===========================================================================
 
   describe('Integration Scenarios', () => {
     test('TC-045: HFT trading simulation - rapid order logging', () => {
@@ -565,10 +520,6 @@ describe('High-Frequency Logger', () => {
       }).not.toThrow();
     });
   });
-
-  // ===========================================================================
-  // Memory Safety Tests
-  // ===========================================================================
 
   describe('Memory Safety', () => {
     test('TC-049: should handle SharedArrayBuffer correctly', () => {

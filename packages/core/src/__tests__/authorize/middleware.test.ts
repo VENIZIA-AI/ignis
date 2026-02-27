@@ -21,15 +21,7 @@ import {
   type TTestRule,
 } from './helpers';
 
-// =============================================================================
-// 5. Middleware Integration Tests (Enforcer Registry authorize())
-// =============================================================================
-
 describe('Enforcer Registry Middleware Flow', () => {
-  /**
-   * Helper to set up a registry with a TestAuthorizationEnforcer and run
-   * the authorize() middleware against a mock context.
-   */
   const setupMiddlewareTest = (opts: {
     options?: {
       defaultDecision?: TAuthorizationDecision;
@@ -44,7 +36,6 @@ describe('Enforcer Registry Middleware Flow', () => {
     const registry = createFreshRegistry();
     const container = new Container({ scope: 'middleware-test' });
 
-    // Set static fields on TestAuthorizationEnforcer
     if (opts.options?.rules) {
       TestAuthorizationEnforcer.rules = opts.options.rules;
     }
@@ -83,9 +74,6 @@ describe('Enforcer Registry Middleware Flow', () => {
     return { registry, container, middleware };
   };
 
-  /**
-   * Runs the middleware handler with a mock context and tracks whether next() was called.
-   */
   const runMiddleware = async (
     middleware: any,
     context: ReturnType<typeof createMockContext>,
@@ -107,12 +95,10 @@ describe('Enforcer Registry Middleware Flow', () => {
     test('should skip authorization when SKIP_AUTHORIZATION is set', async () => {
       const { middleware } = setupMiddlewareTest({
         spec: { action: 'read', resource: 'User' },
-        // No rules — would normally deny
       });
 
       const context = createMockContext({
         isSkipAuthorize: true,
-        // No user at all — should still skip without error
       });
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
@@ -126,9 +112,7 @@ describe('Enforcer Registry Middleware Flow', () => {
         spec: { action: 'read', resource: 'User' },
       });
 
-      const context = createMockContext({
-        // No user -> will fail at step 2
-      });
+      const context = createMockContext({});
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
@@ -143,9 +127,7 @@ describe('Enforcer Registry Middleware Flow', () => {
         spec: { action: 'read', resource: 'User' },
       });
 
-      const context = createMockContext({
-        // user is undefined
-      });
+      const context = createMockContext({});
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
@@ -180,7 +162,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         spec: { action: 'delete', resource: 'CriticalResource' },
         options: {
           alwaysAllowRoles: ['superadmin'],
-          // No rules defined — normally would deny
         },
       });
 
@@ -202,7 +183,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         spec: { action: 'delete', resource: 'CriticalResource' },
         options: {
           alwaysAllowRoles: ['superadmin'],
-          // No delete permission
           rules: [{ action: 'read', resource: 'CriticalResource', effect: 'allow' }],
         },
       });
@@ -226,7 +206,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         spec: { action: 'delete', resource: 'AuditLog' },
         options: {
           alwaysAllowRoles: ['superadmin', 'root'],
-          // No permissions — deny all
         },
       });
 
@@ -254,13 +233,10 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       const context = createMockContext({
         user: { userId: 'user_no_roles' },
-        // No roles property at all
       });
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
-      // Should not crash — extractUserRoles returns []
-      // Then proceeds to enforcer which allows read:User
       expect(error).toBeUndefined();
       expect(hasCalledNext).toBe(true);
     });
@@ -280,8 +256,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
-      // extractUserRoles checks Array.isArray, returns []
-      // Falls through to enforcer, which allows read:User
       expect(error).toBeUndefined();
       expect(hasCalledNext).toBe(true);
     });
@@ -296,7 +270,6 @@ describe('Enforcer Registry Middleware Flow', () => {
           allowedRoles: ['moderator'],
         },
         options: {
-          // No delete permission — would deny
           rules: [{ action: 'read', resource: 'User', effect: 'allow' }],
         },
       });
@@ -335,7 +308,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
-      // Falls through to enforcer — no delete:User rule, denied
       expect(hasCalledNext).toBe(false);
       expect(error).toBeDefined();
       expect(error.statusCode).toBe(403);
@@ -350,7 +322,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         },
       });
 
-      // Role with only `name` (no identifier)
       const contextName = createMockContext({
         user: {
           userId: 'u1',
@@ -362,7 +333,6 @@ describe('Enforcer Registry Middleware Flow', () => {
       expect(rsName.error).toBeUndefined();
       expect(rsName.hasCalledNext).toBe(true);
 
-      // Role with only `id` (no identifier, no name)
       const contextId = createMockContext({
         user: {
           userId: 'u2',
@@ -419,7 +389,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         options: {
           onBuildRules: () => {
             hasCalledEnforcer = true;
-            // This should NOT be called if voter ALLOWs
           },
         },
       });
@@ -432,7 +401,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       expect(error).toBeUndefined();
       expect(hasCalledNext).toBe(true);
-      // Enforcer buildRules should NOT have been called
       expect(hasCalledEnforcer).toBe(false);
     });
 
@@ -493,7 +461,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       expect(error).toBeDefined();
       expect(error.statusCode).toBe(403);
-      // voter3 should NOT have been called because voter2 denied
       expect(callOrder).toEqual(['voter1', 'voter2']);
     });
 
@@ -529,7 +496,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       expect(error).toBeUndefined();
       expect(hasCalledNext).toBe(true);
-      // voter3 should NOT have been called because voter2 allowed
       expect(callOrder).toEqual(['voter1', 'voter2']);
     });
 
@@ -612,7 +578,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       await runMiddleware(middleware, context);
 
-      // After middleware runs, rules should be cached in context
       const cachedRules = context._store.get(Authorization.RULES);
       expect(cachedRules).toBeDefined();
       expect(Array.isArray(cachedRules)).toBe(true);
@@ -632,7 +597,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         },
       });
 
-      // Pre-populate cached rules
       const cachedRules: TTestRule[] = [{ action: 'read', resource: 'User', effect: 'allow' }];
 
       const context = createMockContext({
@@ -642,7 +606,6 @@ describe('Enforcer Registry Middleware Flow', () => {
 
       await runMiddleware(middleware, context);
 
-      // onBuildRules should NOT have been called since rules were cached
       expect(buildCount).toBe(0);
     });
   });
@@ -652,10 +615,7 @@ describe('Enforcer Registry Middleware Flow', () => {
       const { middleware } = setupMiddlewareTest({
         spec: { action: 'delete', resource: 'User' },
         options: {
-          rules: [
-            { action: 'read', resource: 'User', effect: 'allow' },
-            // No delete permission
-          ],
+          rules: [{ action: 'read', resource: 'User', effect: 'allow' }],
         },
       });
 
@@ -755,7 +715,6 @@ describe('Enforcer Registry Middleware Flow', () => {
     test('should throw when no enforcers are registered', async () => {
       createFreshRegistry();
 
-      // Create middleware without registering any enforcer
       const middleware = authorize({
         spec: { action: 'read', resource: 'User' },
       });
@@ -807,11 +766,8 @@ describe('Enforcer Registry Middleware Flow', () => {
 
   describe('middleware precedence chain (full order)', () => {
     test('skip > user check > alwaysAllowRoles > allowedRoles > voters > enforcer', async () => {
-      // This test verifies the entire precedence chain by ensuring each step
-      // short-circuits appropriately.
       const callLog: string[] = [];
 
-      // Step 1: skip flag
       {
         const { middleware } = setupMiddlewareTest({
           spec: { action: 'read', resource: 'User' },
@@ -821,7 +777,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         expect(hasCalledNext).toBe(true);
       }
 
-      // Step 2: user check
       {
         const { middleware } = setupMiddlewareTest({
           spec: { action: 'read', resource: 'User' },
@@ -831,7 +786,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         expect(error?.statusCode).toBe(401);
       }
 
-      // Step 3: alwaysAllowRoles
       {
         const { middleware } = setupMiddlewareTest({
           spec: { action: 'delete', resource: 'Everything' },
@@ -853,7 +807,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         expect(callLog).not.toContain('enforcer_should_not_run');
       }
 
-      // Step 4: allowedRoles
       {
         const { middleware } = setupMiddlewareTest({
           spec: {
@@ -878,7 +831,6 @@ describe('Enforcer Registry Middleware Flow', () => {
         expect(callLog).not.toContain('enforcer_should_not_run_2');
       }
 
-      // Step 5: voters ALLOW
       {
         const { middleware } = setupMiddlewareTest({
           spec: {

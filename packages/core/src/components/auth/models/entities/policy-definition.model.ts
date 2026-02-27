@@ -1,7 +1,6 @@
 import { getError } from '@venizia/ignis-helpers';
 import { integer, text } from 'drizzle-orm/pg-core';
 
-// -------------------------------------------------------------------------------------------
 export type TPolicyDefinitionOptions = {
   idType?: 'string' | 'number';
 };

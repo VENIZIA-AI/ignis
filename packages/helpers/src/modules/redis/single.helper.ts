@@ -11,7 +11,6 @@ export class RedisHelper extends DefaultRedisHelper {
       port,
       password,
 
-      // Optional
       database = 0,
       autoConnect = true,
       maxRetry = 0,

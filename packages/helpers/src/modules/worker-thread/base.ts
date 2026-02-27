@@ -5,9 +5,6 @@ import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import { IWorker, IWorkerBus, IWorkerThread } from './types';
 
-// -------------------------------------------------------------------------------------------
-// WORKER
-// -------------------------------------------------------------------------------------------
 export abstract class AbstractWorkerHelper<MessageType>
   extends BaseHelper
   implements IWorker<MessageType>
@@ -22,7 +19,6 @@ export abstract class AbstractWorkerHelper<MessageType>
   abstract onMessageError(opts: { error: Error }): ValueOrPromise<void>;
 }
 
-// -------------------------------------------------------------------------------------------
 export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageType> {
   protected eventHandlers?: Partial<
     Pick<IWorker<MessageType>, 'onOnline' | 'onExit' | 'onError' | 'onMessage' | 'onMessageError'>
@@ -116,9 +112,6 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
   }
 }
 
-// -------------------------------------------------------------------------------------------
-// WORKER THREAD RUNNER
-// -------------------------------------------------------------------------------------------
 export abstract class AbstractWorkerThreadHelper extends BaseHelper implements IWorkerThread {
   buses: {
     [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;
@@ -132,7 +125,6 @@ export abstract class AbstractWorkerThreadHelper extends BaseHelper implements I
   abstract getWorkerBus<IC, IP>(opts: { key: string }): IWorkerBus<IC, IP>;
 }
 
-// -------------------------------------------------------------------------------------------
 export class BaseWorkerThreadHelper extends AbstractWorkerThreadHelper {
   constructor(opts: { scope: string }) {
     const { scope } = opts;

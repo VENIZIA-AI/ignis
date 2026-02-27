@@ -21,7 +21,6 @@ export interface IHandshake {
   };
 }
 
-// ------------------------------------------------------------
 export type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>;
 
 export interface ISocketIOClient {
@@ -32,7 +31,6 @@ export interface ISocketIOClient {
   authenticateTimeout: NodeJS.Timeout;
 }
 
-// ------------------------------------------------------------
 export interface IOptions extends SocketOptions {
   path: string;
   extraHeaders: Record<string | symbol | number, any>;
@@ -43,7 +41,6 @@ export interface ISocketIOClientOptions {
   host: string;
   options: IOptions;
 
-  // Lifecycle callbacks
   onConnected?: () => ValueOrPromise<void>;
   onDisconnected?: (reason: string) => ValueOrPromise<void>;
   onError?: (error: Error) => ValueOrPromise<void>;
@@ -51,7 +48,6 @@ export interface ISocketIOClientOptions {
   onUnauthenticated?: (message: string) => ValueOrPromise<void>;
 }
 
-// ------------------------------------------------------------
 export type TSocketIOEventHandler<T = unknown> = (data: T) => ValueOrPromise<void>;
 export type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
 export type TSocketIOValidateRoomFn = (opts: {
@@ -60,7 +56,6 @@ export type TSocketIOValidateRoomFn = (opts: {
 }) => ValueOrPromise<string[]>;
 export type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
 
-// ------------------------------------------------------------
 export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;

@@ -6,10 +6,6 @@ import {
 } from '@/components/auth/authorize/common/constants';
 import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 
-// =============================================================================
-// 1. Constants Tests
-// =============================================================================
-
 describe('Authorization Constants', () => {
   describe('AuthorizationActions', () => {
     test('should define all standard CRUD actions', () => {

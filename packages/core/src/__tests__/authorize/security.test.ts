@@ -11,14 +11,7 @@ import {
   type TTestRule,
 } from './helpers';
 
-// =============================================================================
-// 9. Security Tests
-// =============================================================================
-
 describe('Security Tests', () => {
-  /**
-   * Helper to set up a registry with a TestAuthorizationEnforcer for security tests.
-   */
   const setupSecurityTest = (opts?: {
     rules?: TTestRule[];
     loadRulesFn?: (typeof TestAuthorizationEnforcer)['loadRulesFn'];
@@ -55,35 +48,25 @@ describe('Security Tests', () => {
 
   describe('context variable manipulation', () => {
     test('should not allow setting SKIP_AUTHORIZATION externally to bypass auth', async () => {
-      // In real Hono, context.set() is only available in middleware.
-      // But we test what happens if an earlier middleware sets the skip flag.
-      // The authorization system trusts the skip flag — this is by design,
-      // since only server-side middleware can set it.
       setupSecurityTest();
 
       const middleware = authorize({
         spec: { action: 'delete', resource: 'Everything' },
       });
 
-      // Context with skip flag set (simulates rogue middleware)
       const context = createMockContext({ isSkipAuthorize: true });
       let hasCalledNext = false;
       await (middleware as any)(context, async () => {
         hasCalledNext = true;
       });
 
-      // This is expected — skip flag is trusted server-side
-      // The security boundary is that clients CANNOT set context variables
+      // Skip flag is trusted server-side; clients cannot set context variables
       expect(hasCalledNext).toBe(true);
     });
 
     test('should not allow client to inject rules via context', async () => {
-      // Test that pre-set rules in context are used as-is.
-      // An attacker cannot set context variables from the client.
-      // But if a bug in middleware pre-sets rules, they are used.
       setupSecurityTest();
 
-      // Inject fake rules that grant delete:CriticalData
       const fakeRules: TTestRule[] = [
         { action: 'delete', resource: 'CriticalData', effect: 'allow' },
       ];
@@ -102,8 +85,7 @@ describe('Security Tests', () => {
         hasCalledNext = true;
       });
 
-      // Pre-set rules are trusted — this tests that the caching works
-      // The security boundary is that Hono context is server-side only
+      // Hono context is server-side only; pre-set rules are trusted
       expect(hasCalledNext).toBe(true);
     });
   });
@@ -127,7 +109,6 @@ describe('Security Tests', () => {
         rsError = error;
       }
 
-      // Error message should contain action/resource but NOT file paths
       expect(rsError.message).toContain('read');
       expect(rsError.message).toContain('Secret');
       expect(rsError.message).not.toContain('/src/');
@@ -142,9 +123,7 @@ describe('Security Tests', () => {
         spec: { action: 'read', resource: 'User' },
       });
 
-      const context = createMockContext({
-        // No user
-      });
+      const context = createMockContext({});
 
       let rsError: any;
       try {
@@ -153,7 +132,6 @@ describe('Security Tests', () => {
         rsError = error;
       }
 
-      // Should say "No authenticated user found" but not expose session/token details
       expect(rsError.message).toContain('No authenticated user found');
       expect(rsError.message).not.toContain('token');
       expect(rsError.message).not.toContain('session');
@@ -169,7 +147,6 @@ describe('Security Tests', () => {
         spec: { action: 'read', resource: 'User' },
       });
 
-      // Role with empty strings
       const context = createMockContext({
         user: {
           userId: 'u1',
@@ -186,7 +163,6 @@ describe('Security Tests', () => {
         /* expected */
       }
 
-      // Empty string role matches alwaysAllowRoles: ['']
       expect(hasCalledNext).toBe(true);
     });
 
@@ -239,7 +215,6 @@ describe('Security Tests', () => {
         /* expected */
       }
 
-      // String(42) === '42' matches alwaysAllowRoles: ['42']
       expect(hasCalledNext).toBe(true);
     });
 
@@ -266,7 +241,6 @@ describe('Security Tests', () => {
         /* expected */
       }
 
-      // String(null ?? '') === '' matches alwaysAllowRoles: ['']
       expect(hasCalledNext).toBe(true);
     });
   });
@@ -275,7 +249,6 @@ describe('Security Tests', () => {
     test('should handle concurrent middleware executions without cross-contamination', async () => {
       setupSecurityTest({
         loadRulesFn: async ({ user }) => {
-          // Simulate varying delays
           await new Promise(resolve => setTimeout(resolve, Math.random() * 10));
           if (user.userId === 'admin') {
             return [{ action: 'delete', resource: 'User', effect: 'allow' as const }];
@@ -284,7 +257,6 @@ describe('Security Tests', () => {
         },
       });
 
-      // Run 20 concurrent requests
       const rsPromises = Array.from({ length: 20 }, async (_, i) => {
         const isAdmin = i % 2 === 0;
         const middleware = authorize({

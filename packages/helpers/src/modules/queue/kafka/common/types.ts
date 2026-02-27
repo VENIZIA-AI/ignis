@@ -1,9 +1,6 @@
 import { ValueOrPromise } from '@/common/types';
 import type { Deserializers, Serializers } from '@platformatic/kafka';
 
-// -------------------------------------------------------------------------------------------------------------
-// Connection Options (shared across Producer / Consumer / Admin)
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaConnectionOptions {
   clientId?: string;
   bootstrapBrokers: string[];
@@ -12,9 +9,6 @@ export interface IKafkaConnectionOptions {
   retryDelay?: number;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Producer
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaProducerOptions<
   Key = unknown,
   Value = unknown,
@@ -43,9 +37,6 @@ export interface IKafkaSendOptions {
   acks?: number;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Consumer
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaConsumerOptions<
   Key = unknown,
   Value = unknown,
@@ -83,9 +74,6 @@ export interface IKafkaConsumedMessage {
   commit: (callback?: (error?: Error) => void) => void | Promise<void>;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Admin
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaAdminOptions extends IKafkaConnectionOptions {
   identifier?: string;
   onConnected?: () => void;
@@ -106,16 +94,10 @@ export interface IKafkaListTopicsOptions {
   includeInternals?: boolean;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Consumer: Manual Commit
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaCommitOptions {
   offsets: Array<{ topic: string; partition: number; offset: bigint; leaderEpoch: number }>;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Admin: Consumer Group Operations
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaListGroupsOptions {
   states?: string[];
 }
@@ -128,9 +110,6 @@ export interface IKafkaDeleteGroupsOptions {
   groups: string[];
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Admin: Offset Management
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaListGroupOffsetsOptions {
   groups: string[];
 }
@@ -140,17 +119,11 @@ export interface IKafkaAlterGroupOffsetsOptions {
   topics: Array<{ name: string; partitionOffsets: Array<{ partition: number; offset: bigint }> }>;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Admin: Partition Management
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaCreatePartitionsOptions {
   topics: Array<{ name: string; count: number }>;
   validateOnly?: boolean;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Admin: Config Management
-// -------------------------------------------------------------------------------------------------------------
 export interface IKafkaDescribeConfigsOptions {
   resources: Array<{
     resourceType: number;

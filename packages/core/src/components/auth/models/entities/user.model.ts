@@ -2,7 +2,6 @@ import { UserStatuses, UserTypes } from '@/common/statuses';
 import { TConstValue } from '@venizia/ignis-helpers';
 import { integer, text, timestamp } from 'drizzle-orm/pg-core';
 
-// -------------------------------------------------------------------------------------------
 export const extraUserColumns = (opts?: { idType: 'string' | 'number' }) => {
   return {
     realm: text('realm').default(''),

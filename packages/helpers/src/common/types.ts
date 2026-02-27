@@ -32,34 +32,20 @@ export type TAsyncResolver<T> = (...args: any[]) => T | Promise<T>;
 export type TValueOrResolver<T> = T | TResolver<T>;
 export type TValueOrAsyncResolver<T> = T | TAsyncResolver<T>;
 
-/**
- * Helper to resolve lazy value.
- * If valueOrResolver is:
- * - A class constructor: returns as-is
- * - An arrow/resolver function: calls it and returns result
- * - Any other value: returns as-is
- */
+/** Resolves a value-or-resolver, returning class constructors as-is. */
 export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
   if (typeof valueOrResolver !== 'function') {
     return valueOrResolver;
   }
 
-  // If it's a class constructor, return as-is (it's the value itself)
   if (isClassConstructor(valueOrResolver as Function)) {
     return valueOrResolver as T;
   }
 
-  // Otherwise it's a resolver function, call it
   return (valueOrResolver as TResolver<T>)();
 };
 
-/**
- * Helper to resolve lazy value (async version).
- * If valueOrResolver is:
- * - A class constructor: returns as-is
- * - An arrow/resolver function: calls it and awaits result
- * - Any other value: returns as-is
- */
+/** Async version of resolveValue. */
 export const resolveValueAsync = async <T>(
   valueOrResolver: TValueOrAsyncResolver<T>,
 ): Promise<T> => {
@@ -67,34 +53,24 @@ export const resolveValueAsync = async <T>(
     return valueOrResolver;
   }
 
-  // If it's a class constructor, return as-is (it's the value itself)
   if (isClassConstructor(valueOrResolver as Function)) {
     return valueOrResolver as T;
   }
 
-  // Otherwise it's a resolver function, call it and await
   return (valueOrResolver as TAsyncResolver<T>)();
 };
 
-/**
- * Helper to resolve lazy class references.
- * Handles string binding keys in addition to class/resolver patterns.
- */
+/** Resolves a class reference, passing through string binding keys as-is. */
 export const resolveClass = <T>(
   ref: TClass<T> | TResolver<TClass<T>> | string,
 ): TClass<T> | string => {
-  // String binding keys are returned as-is
   if (typeof ref === 'string') {
     return ref;
   }
 
-  // Delegate to resolveValue for class/resolver handling
   return resolveValue(ref);
 };
 
-// --------------------------------------------------------------------------------------------------------
-// Field Mapping Types
-// --------------------------------------------------------------------------------------------------------
 export type TFieldMappingDataType = 'string' | 'number' | 'strings' | 'numbers' | 'boolean';
 export interface IFieldMapping {
   name: string;
@@ -135,14 +111,10 @@ export type TObjectFromFieldMappings<
             : never;
 };
 
-// --------------------------------------------------------------------------------------------------------
 export type TInjectionGetter = <T>(opts: { key: string | symbol }) => T;
 
 export interface IConfigurable<Options extends object = any, Result = any> {
   configure(opts?: Options): ValueOrPromise<Result>;
 }
 
-// --------------------------------------------------------------------------------------------------------
-// JSX Types (re-exported from Hono for convenience)
-// --------------------------------------------------------------------------------------------------------
 export type { Child, FC, PropsWithChildren } from 'hono/jsx';

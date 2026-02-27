@@ -44,7 +44,6 @@ export class AuthenticateComponent extends BaseComponent {
     });
   }
 
-  // ---------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
     const jwtOptions = this.application.get<TJWTTokenServiceOptions>({
       key: AuthenticateBindingKeys.JWT_OPTIONS,
@@ -96,7 +95,6 @@ export class AuthenticateComponent extends BaseComponent {
     this.defineOAuth2();
   }
 
-  // ---------------------------------------------------------------------------
   private defineJWSAuth(opts: { options: IJWSTokenServiceOptions }): void {
     const { options: jwsOptions } = opts;
 
@@ -124,7 +122,6 @@ export class AuthenticateComponent extends BaseComponent {
     this.logger.for(this.defineJWSAuth.name).info('JWS authentication configured');
   }
 
-  // ---------------------------------------------------------------------------
   private defineJWKSAuth(opts: { options: TJWKSTokenServiceOptions }): void {
     const { options: jwksOptions } = opts;
 
@@ -196,7 +193,6 @@ export class AuthenticateComponent extends BaseComponent {
     }
   }
 
-  // ---------------------------------------------------------------------------
   private defineBasicAuth(opts: { basicOptions?: TBasicTokenServiceOptions }): void {
     const { basicOptions } = opts;
 
@@ -222,7 +218,6 @@ export class AuthenticateComponent extends BaseComponent {
     this.logger.for(this.defineBasicAuth.name).info('Basic authentication configured');
   }
 
-  // ---------------------------------------------------------------------------
   private defineControllers(opts: { options: IAuthenticateOptions }): void {
     const { restOptions, jwtOptions } = opts.options;
 
@@ -244,7 +239,6 @@ export class AuthenticateComponent extends BaseComponent {
     this.logger.for(this.defineControllers.name).info('Auth controller registered');
   }
 
-  // ---------------------------------------------------------------------------
   defineOAuth2() {
     // TODO Implement OAuth2
   }

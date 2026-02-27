@@ -23,29 +23,7 @@ import { BaseController } from '../base';
 import { defineControllerRouteConfigs } from './definition';
 import { ICustomizableRoutes, TRouteContext } from '../common';
 
-/**
- * Configuration options for creating a CRUD controller via {@link ControllerFactory.defineCrudController}.
- *
- * @typeParam EntitySchema - The Drizzle table schema type with an ID column
- * @typeParam Routes - The routes configuration type (inferred from routes option)
- *
- * @example
- * ```typescript
- * const UserControllerClass = ControllerFactory.defineCrudController<UserSchema>({
- *   entity: UserEntity,
- *   repository: { name: 'UserRepository' },
- *   controller: {
- *     name: 'UserController',
- *     basePath: '/users'
- *   },
- *   authenticate: { strategies: ['jwt'] },
- *   routes: {
- *     find: { authenticate: { skip: true } },
- *     findById: { authenticate: { skip: true } }
- *   }
- * });
- * ```
- */
+/** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
 export interface ICrudControllerOptions<
   EntitySchema extends TTableSchemaWithId,
   Routes extends ICustomizableRoutes = ICustomizableRoutes,
@@ -67,114 +45,21 @@ export interface ICrudControllerOptions<
       requestSchema?: boolean;
     };
   };
-  /**
-   * Authentication config applied to all routes (unless overridden per-route)
-   *
-   * @example
-   * // Apply JWT auth to all routes
-   * authenticate: { strategies: ['jwt'] }
-   */
+  /** Authentication config applied to all routes (unless overridden per-route). */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
-  /**
-   * Authorization config applied to all routes (unless overridden per-route)
-   *
-   * @example
-   * // Apply authorization to all routes
-   * authorize: { action: 'manage', resource: 'User' }
-   */
+  /** Authorization config applied to all routes (unless overridden per-route). */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-  /**
-   * Per-route configuration combining schema and auth
-   *
-   * @example
-   * // JWT auth on all, skip for public read endpoints
-   * authenticate: { strategies: ['jwt'] },
-   * routes: {
-   *   find: { authenticate: { skip: true } },
-   *   findById: { authenticate: { skip: true } },
-   *   count: { authenticate: { skip: true } },
-   * }
-   *
-   * @example
-   * // No controller auth, require JWT only for writes
-   * routes: {
-   *   create: { authenticate: { strategies: ['jwt'] } },
-   *   updateById: { authenticate: { strategies: ['jwt'] }, requestBody: CustomUpdateSchema },
-   *   deleteById: { authenticate: { strategies: ['jwt'] } },
-   * }
-   *
-   * @example
-   * // Custom response schema with auth
-   * authenticate: { strategies: ['jwt'] },
-   * routes: {
-   *   find: { authenticate: { skip: true }, schema: CustomFindResponseSchema },
-   *   create: { schema: CustomCreateResponseSchema, requestBody: CustomCreateBodySchema },
-   * }
-   */
+  /** Per-route configuration combining schema and auth overrides. */
   routes?: Routes;
 }
 
-/**
- * Factory for generating CRUD controllers from entity definitions.
- *
- * Creates fully-typed controller classes with standard CRUD endpoints
- * (count, find, findById, findOne, create, updateById, updateBy, deleteById, deleteBy)
- * based on entity schemas.
- *
- * @example
- * ```typescript
- * // Define a CRUD controller for User entity
- * const UserControllerClass = ControllerFactory.defineCrudController<UserSchema>({
- *   entity: UserEntity,
- *   repository: { name: 'UserRepository' },
- *   controller: { name: 'UserController', basePath: '/users' },
- *   authenticate: { strategies: ['jwt'] },
- *   routes: {
- *     find: { authenticate: { skip: true } },
- *     findById: { authenticate: { skip: true } }
- *   }
- * });
- *
- * // Instantiate with repository
- * const userController = new UserControllerClass(userRepository);
- * ```
- */
+/** Factory for generating typed CRUD controllers from entity definitions. */
 export class ControllerFactory extends BaseHelper {
   constructor() {
     super({ scope: ControllerFactory.name });
   }
 
-  /**
-   * Creates a CRUD controller class for the given entity.
-   *
-   * The returned class extends {@link BaseController} and includes handlers for:
-   * - `GET /count` - Count records matching filter
-   * - `GET /` - Find all records with pagination
-   * - `GET /:id` - Find record by ID
-   * - `GET /find-one` - Find single record matching filter
-   * - `POST /` - Create new record
-   * - `PATCH /:id` - Update record by ID
-   * - `PATCH /` - Update records matching filter
-   * - `DELETE /:id` - Delete record by ID
-   * - `DELETE /` - Delete records matching filter
-   *
-   * @typeParam EntitySchema - The Drizzle table schema type
-   * @typeParam RouteEnv - Hono environment type
-   * @typeParam RouteSchema - Combined route schema type
-   * @typeParam BasePath - Base path type
-   * @typeParam ConfigurableOptions - Controller configuration options type
-   * @param defOpts - Controller configuration options
-   * @returns A controller class constructor
-   *
-   * @example
-   * ```typescript
-   * const ProductController = ControllerFactory.defineCrudController({
-   *   entity: ProductEntity,
-   *   repository: { name: 'ProductRepository' },
-   *   controller: { name: 'ProductController', basePath: '/products' }
-   * });
-   * ```
-   */
+  /** Creates a CRUD controller class with standard endpoints (count, find, findById, create, update, delete). */
   static defineCrudController<
     EntitySchema extends TTableSchemaWithId,
     Routes extends ICustomizableRoutes = ICustomizableRoutes,
@@ -247,14 +132,8 @@ export class ControllerFactory extends BaseHelper {
       ConfigurableOptions,
       typeof routeDefinitions
     > {
-      /** Repository instance for database operations */
       repository: AbstractRepository<EntitySchema>;
 
-      /**
-       * Creates a new CRUD controller instance.
-       *
-       * @param repository - Repository for entity database operations
-       */
       constructor(repository: AbstractRepository<EntitySchema>) {
         super({ scope: name, path: basePath, isStrict: isStrict.path ?? true });
         this.repository = repository;
@@ -262,20 +141,7 @@ export class ControllerFactory extends BaseHelper {
         this.definitions = routeDefinitions;
       }
 
-      /**
-       * Normalizes response data based on the `x-request-count` header.
-       *
-       * If the header is 'true' (default), returns full response with count.
-       * If 'false', returns only the data portion.
-       *
-       * Also sets the `X-Response-Count-Data` header with the count.
-       *
-       * @typeParam ResponseSchema - The response data type
-       * @typeParam RequestContext - Hono context type
-       * @typeParam ResponseData - Full response shape with count and data
-       * @param opts - Context and response data
-       * @returns Normalized response (full or data-only)
-       */
+      /** Normalizes response based on x-request-count header (returns full or data-only). */
       normalizeCountData<
         ResponseSchema extends AnyType,
         RequestContext extends TRouteContext<RouteEnv> = TRouteContext<RouteEnv>,
@@ -297,12 +163,7 @@ export class ControllerFactory extends BaseHelper {
         return responseData.data;
       }
 
-      /**
-       * Handles GET /count - Returns count of records matching the filter.
-       *
-       * @param opts - Request options containing the Hono context
-       * @returns JSON response with count
-       */
+      /** GET /count */
       async count(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { where } = context.req.valid<TCountQuery>('query');
@@ -321,14 +182,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles GET / - Returns paginated list of records with Content-Range header.
-       *
-       * Sets `Content-Range` header following HTTP RFC 7233 standard for pagination.
-       *
-       * @param opts - Request options containing the Hono context
-       * @returns JSON response with data array and range information
-       */
+      /** GET / - Returns paginated list with Content-Range header. */
       async find(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { filter = {} } = context.req.valid<TFindQuery>('query');
@@ -368,12 +222,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles GET /:id - Returns single record by ID.
-       *
-       * @param opts - Request options containing the Hono context
-       * @returns JSON response with the found record or null
-       */
+      /** GET /:id */
       async findById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { id } = context.req.valid<TFindByIdParams>('param');
@@ -402,12 +251,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles GET /find-one - Returns first record matching the filter.
-       *
-       * @param opts - Request options containing the Hono context
-       * @returns JSON response with the found record or null
-       */
+      /** GET /find-one */
       async findOne(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { filter = {} } = context.req.valid<TFindOneQuery>('query');
@@ -435,12 +279,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles POST / - Creates a new record.
-       *
-       * @param opts - Request options containing the Hono context with request body
-       * @returns JSON response with created record and count
-       */
+      /** POST / */
       async create(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const data = context.req.valid<TCreateBody>('json');
@@ -468,12 +307,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles PATCH /:id - Updates a record by ID.
-       *
-       * @param opts - Request options containing the Hono context with ID param and body
-       * @returns JSON response with updated record and count
-       */
+      /** PATCH /:id */
       async updateById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { id } = context.req.valid<TUpdateByIdParams>('param');
@@ -502,12 +336,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles PATCH / - Updates records matching the where filter.
-       *
-       * @param opts - Request options containing the Hono context with where query and body
-       * @returns JSON response with updated records array and count
-       */
+      /** PATCH / */
       async updateBy(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { where } = context.req.valid<TUpdateByQuery>('query');
@@ -536,12 +365,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles DELETE /:id - Deletes a record by ID.
-       *
-       * @param opts - Request options containing the Hono context with ID param
-       * @returns JSON response with deleted record and count
-       */
+      /** DELETE /:id */
       async deleteById(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { id } = context.req.valid<TDeleteByIdParams>('param');
@@ -569,12 +393,7 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Handles DELETE / - Deletes records matching the where filter.
-       *
-       * @param opts - Request options containing the Hono context with where query
-       * @returns JSON response with deleted records array and count
-       */
+      /** DELETE / */
       async deleteBy(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { where } = context.req.valid<TDeleteByQuery>('query');
@@ -602,14 +421,8 @@ export class ControllerFactory extends BaseHelper {
         return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
       }
 
-      /**
-       * Registers all CRUD route handlers.
-       *
-       * Called during controller configuration. Binds all standard CRUD
-       * endpoints to their respective handler methods.
-       */
+      /** Registers all CRUD route handlers. */
       override binding(): ValueOrPromise<void> {
-        // Read operations
         this.defineRoute({
           configs: routeDefinitions.COUNT,
           handler: async context => this.count({ context }),
@@ -630,7 +443,6 @@ export class ControllerFactory extends BaseHelper {
           handler: async context => this.findById({ context }),
         });
 
-        // Write operations
         this.defineRoute({
           configs: routeDefinitions.CREATE,
           handler: async context => this.create({ context }),
@@ -646,7 +458,6 @@ export class ControllerFactory extends BaseHelper {
           handler: async context => this.updateBy({ context }),
         });
 
-        // Delete operations
         this.defineRoute({
           configs: routeDefinitions.DELETE_BY_ID,
           handler: async context => this.deleteById({ context }),

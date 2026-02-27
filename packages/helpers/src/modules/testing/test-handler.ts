@@ -10,7 +10,6 @@ import {
   TTestCaseDecision,
 } from './common';
 
-// --------------------------------------------------------------------------------------------
 export interface ITestCaseHandlerOptions<R extends object, I extends ITestCaseInput = {}> {
   scope?: string;
   context: ITestContext<R>;
@@ -21,7 +20,6 @@ export interface ITestCaseHandlerOptions<R extends object, I extends ITestCaseIn
   validator?: (opts: any) => ValueOrPromise<TTestCaseDecision>;
 }
 
-// --------------------------------------------------------------------------------------------
 export abstract class BaseTestCaseHandler<
   R extends object = {},
   I extends ITestCaseInput = {},
@@ -53,7 +51,6 @@ export abstract class BaseTestCaseHandler<
   abstract validate(opts: any): ValueOrPromise<TTestCaseDecision>;
 }
 
-// --------------------------------------------------------------------------------------------
 export abstract class TestCaseHandler<
   R extends object = {},
   I extends ITestCaseInput = {},

@@ -2,14 +2,7 @@ import { Logger, HTTP } from '@venizia/ignis-helpers';
 import { NotFoundHandler } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 
-/**
- * Creates a not found handling middleware for the application.
- * This middleware logs requests to unknown URLs and returns a JSON 404 response.
- *
- * @param opts - Options for the not found handler.
- * @param opts.logger - The application logger instance. Defaults to `console`.
- * @returns A `NotFoundHandler` middleware function.
- */
+/** Logs unknown URLs and returns a JSON 404 response. */
 export const notFoundHandler = (opts: { logger?: Logger }) => {
   const { logger = console } = opts;
 

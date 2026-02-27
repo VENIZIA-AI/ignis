@@ -18,26 +18,7 @@ import {
   sql,
 } from 'drizzle-orm';
 import { IQueryHandlerOptions } from '../common';
-
-// -----------------------------------------------------------------------------
-// PostgreSQL Array Helpers
-// -----------------------------------------------------------------------------
-
-/**
- * Builds PostgreSQL array comparison expressions with proper type handling.
- *
- * **Type Handling:**
- * - **String arrays**: Casts both column and value to `text[]` for type compatibility.
- *   This handles varchar[], text[], char[] columns uniformly.
- * - **Numeric/boolean arrays**: No casting needed as PostgreSQL infers correctly.
- *
- * @param opts - Build options
- * @param opts.column - The Drizzle column object
- * @param opts.value - The array value to compare against
- * @returns Object with columnExpr and arrayLiteral for SQL construction
- *
- * @internal
- */
+/** @internal Builds PostgreSQL array comparison expressions with proper type casting. */
 const buildPgArrayComparison = (opts: {
   column: any;
   value: any[];
@@ -46,10 +27,8 @@ const buildPgArrayComparison = (opts: {
   const first = value[0];
   const valueType = typeof first;
 
-  // Get column name from Drizzle column object
   const columnName = column.name;
 
-  // Numbers: No casting needed, PostgreSQL infers integer[]/numeric[]
   if (valueType === 'number') {
     return {
       columnExpr: `"${columnName}"`,
@@ -57,7 +36,6 @@ const buildPgArrayComparison = (opts: {
     };
   }
 
-  // Booleans: No casting needed, PostgreSQL infers boolean[]
   if (valueType === 'boolean') {
     return {
       columnExpr: `"${columnName}"`,
@@ -65,8 +43,7 @@ const buildPgArrayComparison = (opts: {
     };
   }
 
-  // Strings: Cast BOTH column and value to text[] for compatibility
-  // This works with varchar[], text[], char[] etc.
+  // Cast both sides to text[] for varchar[]/text[]/char[] compatibility
   const escapedValues = value.map(v => `'${String(v).replace(/'/g, "''")}'`).join(', ');
   return {
     columnExpr: `"${columnName}"::text[]`,
@@ -74,72 +51,18 @@ const buildPgArrayComparison = (opts: {
   };
 };
 
-// -----------------------------------------------------------------------------
-// Sort Direction Constants
-// -----------------------------------------------------------------------------
-
-/**
- * Sort direction constants for order by clauses.
- *
- * @example
- * ```typescript
- * // Check if a direction is valid
- * Sorts.isValid('DESC'); // true
- * Sorts.isValid('asc');  // true (case-insensitive)
- *
- * // Use in order strings
- * const order = ['createdAt DESC', 'name ASC'];
- * ```
- */
+/** Sort direction constants for order by clauses. */
 export class Sorts {
-  /** Descending sort order. */
   static readonly DESC = 'desc';
-
-  /** Ascending sort order. */
   static readonly ASC = 'asc';
-
-  /** Set of valid sort directions. */
   static readonly SCHEMA_SET = new Set([Sorts.ASC, Sorts.DESC]);
 
-  /**
-   * Validates if a string is a valid sort direction (case-insensitive).
-   *
-   * @param value - The direction string to validate
-   * @returns True if valid, false otherwise
-   */
   static isValid(value: string): boolean {
     return Sorts.SCHEMA_SET.has(value.toLowerCase());
   }
 }
 
-// -----------------------------------------------------------------------------
-// Query Operators
-// -----------------------------------------------------------------------------
-
-/**
- * Query operators for building where conditions.
- *
- * Supports:
- * - **Comparison**: eq, ne, neq, gt, gte, lt, lte
- * - **Pattern matching**: like, nlike, ilike, nilike, regexp, iregexp
- * - **Null checks**: is, isn (is not)
- * - **Arrays**: in, inq, nin, between, notBetween
- * - **PostgreSQL array columns**: contains, containedBy, overlaps
- * - **Logical**: and, or, not
- *
- * @example
- * ```typescript
- * // Use operators in where conditions
- * const where = {
- *   age: { gte: 18, lt: 65 },
- *   status: { in: ['active', 'pending'] },
- *   name: { ilike: '%john%' }
- * };
- *
- * // Validate operator
- * QueryOperators.isValid('gte'); // true
- * ```
- */
+/** Query operators for building where conditions (comparison, pattern, null, array, logical). */
 export class QueryOperators {
   static readonly EQ = 'eq';
   static readonly NE = 'ne';
@@ -181,7 +104,6 @@ export class QueryOperators {
   static readonly OR = 'or';
 
   static readonly FNS = {
-    // Standard Comparison
     [this.EQ]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNull(opts.column) : eq(opts.column, opts.value),
     [this.NE]: (opts: IQueryHandlerOptions) =>
@@ -195,32 +117,27 @@ export class QueryOperators {
     [this.LT]: (opts: IQueryHandlerOptions) => lt(opts.column, opts.value),
     [this.LTE]: (opts: IQueryHandlerOptions) => lte(opts.column, opts.value),
 
-    // Null Checks
     [this.IS]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNull(opts.column) : eq(opts.column, opts.value),
     [this.IS_NOT]: (opts: IQueryHandlerOptions) =>
       opts.value === null ? isNotNull(opts.column) : ne(opts.column, opts.value),
 
-    // Arrays / Lists
     [this.IN]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return eq(opts.column, opts.value);
       }
-      // Empty array IN () = FALSE (matches nothing)
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.INQ]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return eq(opts.column, opts.value);
       }
-      // Empty array IN () = FALSE (matches nothing)
       return opts.value.length === 0 ? sql`false` : inArray(opts.column, opts.value);
     },
     [this.NIN]: (opts: IQueryHandlerOptions) => {
       if (!Array.isArray(opts.value)) {
         return ne(opts.column, opts.value);
       }
-      // Empty array NOT IN () = TRUE (matches everything) - no constraint needed
       return opts.value.length === 0 ? sql`true` : notInArray(opts.column, opts.value);
     },
     [this.BETWEEN]: (opts: IQueryHandlerOptions) => {
@@ -237,17 +154,13 @@ export class QueryOperators {
           `[NOT_BETWEEN] Invalid value: expected array of 2 elements, got ${JSON.stringify(opts.value)}`,
         );
       }
-      // NOT BETWEEN is equivalent to: value < min OR value > max
       return not(between(opts.column, opts.value[0], opts.value[1]));
     },
 
-    // Array Column Operators (PostgreSQL specific)
-    // Note: For string arrays, we cast both sides to text[] for type compatibility
-    // This handles varchar[], text[], char[] columns uniformly
     [this.CONTAINS]: (opts: IQueryHandlerOptions) => {
       const value = Array.isArray(opts.value) ? opts.value : [opts.value];
       if (value.length === 0) {
-        return sql`true`; // Everything contains empty set
+        return sql`true`;
       }
       const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
       return sql.raw(`${columnExpr} @> ${arrayLiteral}`);
@@ -255,7 +168,7 @@ export class QueryOperators {
     [this.CONTAINED_BY]: (opts: IQueryHandlerOptions) => {
       const value = Array.isArray(opts.value) ? opts.value : [opts.value];
       if (value.length === 0) {
-        return sql`${opts.column} = '{}'`; // Only empty arrays are contained by empty
+        return sql`${opts.column} = '{}'`;
       }
       const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
       return sql.raw(`${columnExpr} <@ ${arrayLiteral}`);
@@ -263,21 +176,19 @@ export class QueryOperators {
     [this.OVERLAPS]: (opts: IQueryHandlerOptions) => {
       const value = Array.isArray(opts.value) ? opts.value : [opts.value];
       if (value.length === 0) {
-        return sql`false`; // No overlap with empty array
+        return sql`false`;
       }
       const { columnExpr, arrayLiteral } = buildPgArrayComparison({ column: opts.column, value });
       return sql.raw(`${columnExpr} && ${arrayLiteral}`);
     },
 
-    // Strings
     [this.LIKE]: (opts: IQueryHandlerOptions) => like(opts.column, opts.value),
     [this.NOT_LIKE]: (opts: IQueryHandlerOptions) => notLike(opts.column, opts.value),
-    [this.ILIKE]: (opts: IQueryHandlerOptions) => ilike(opts.column, opts.value), // Postgres specific (Case insensitive)
+    [this.ILIKE]: (opts: IQueryHandlerOptions) => ilike(opts.column, opts.value),
     [this.NOT_ILIKE]: (opts: IQueryHandlerOptions) => not(ilike(opts.column, opts.value)),
 
-    // Advanced - PostgreSQL POSIX regex operators
-    [this.REGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~ ${opts.value}`, // Case-sensitive regex
-    [this.IREGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~* ${opts.value}`, // Case-insensitive regex
+    [this.REGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~ ${opts.value}`,
+    [this.IREGEXP]: (opts: IQueryHandlerOptions) => sql`${opts.column} ~* ${opts.value}`,
   };
 
   static readonly SCHEME_SET = new Set([
@@ -322,16 +233,7 @@ export class QueryOperators {
     this.NOT_BETWEEN,
   ]);
 
-  /**
-   * Check if an operator object contains any numeric comparison operators with numeric values.
-   * Used to determine if numeric casting is needed for JSON path filtering.
-   *
-   * Validates both:
-   * - Key is a numeric operator (gt, gte, lt, lte, between)
-   * - Value is of correct type (number for gt/gte/lt/lte, array of 2 numbers for between)
-   *
-   * @throws Error if numeric operator has invalid value type
-   */
+  /** Checks if operators contain numeric comparisons (used for JSON path numeric casting). */
   static hasNumericComparison(opts: { operators: Record<string, any> }): boolean {
     const { operators } = opts;
     let hasNumeric = false;
@@ -343,7 +245,6 @@ export class QueryOperators {
 
       const value = operators[op];
 
-      // For 'between' and 'notBetween' operators: value must be an array of exactly 2 numbers
       if (op === this.BETWEEN || op === this.NOT_BETWEEN) {
         if (!Array.isArray(value) || value.length !== 2) {
           throw getError({
@@ -356,11 +257,9 @@ export class QueryOperators {
         continue;
       }
 
-      // For gt, gte, lt, lte: if value is number, it's numeric comparison
       if (typeof value === 'number') {
         hasNumeric = true;
       }
-      // If value is string, it's text comparison (no error, just not numeric)
     }
 
     return hasNumeric;

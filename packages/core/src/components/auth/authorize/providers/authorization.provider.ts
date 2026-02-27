@@ -6,23 +6,19 @@ import { Authentication, IAuthUser } from '../../authenticate';
 import { Authorization, AuthorizationDecisions, IAuthorizationSpec, TAuthorizeFn } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
 
-// --------------------------------------------------------------------------------------------------------
 // Authorization Provider — produces middleware factory via IProvider pattern
-// --------------------------------------------------------------------------------------------------------
 
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
     super({ scope: AuthorizationProvider.name });
   }
 
-  // ---------------------------------------------------------------------------
   value(): TAuthorizeFn {
     return opts => {
       return this.createAuthorizeMiddleware(opts);
     };
   }
 
-  // ---------------------------------------------------------------------------
   private createAuthorizeMiddleware(opts: { spec: IAuthorizationSpec; enforcerName?: string }) {
     const { spec, enforcerName } = opts;
     const logger = this.logger.for(this.createAuthorizeMiddleware.name);
@@ -143,7 +139,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
     });
   }
 
-  // ---------------------------------------------------------------------------
   private extractUserRoles(opts: { user: IAuthUser }): string[] {
     const { user } = opts;
     const roles = user.roles;

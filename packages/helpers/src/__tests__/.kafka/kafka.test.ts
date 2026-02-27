@@ -1,21 +1,4 @@
-/**
- * Kafka Helpers Comprehensive Test Suite
- *
- * Tests for KafkaDefaults, KafkaAcks, KafkaAdminHelper, KafkaProducerHelper,
- * and KafkaConsumerHelper — covering functional, boundary, negative, security,
- * and integration test categories.
- *
- * Uses two strategies:
- * 1. **Unit tests** — Mock @platformatic/kafka classes (Producer, Consumer, Admin)
- *    to test internal logic, error paths, and edge cases without a real broker.
- * 2. **Integration tests** — Connect to a real broker when available (gated by
- *    `isBrokerReachable` flag via `test.skipIf`).
- *
- * Requires: APP_ENV_KAFKA_BROKERS env var pointing to a Kafka broker for
- * integration tests.
- *
- * @module __tests__/kafka
- */
+/** Kafka Helpers Comprehensive Test Suite */
 
 import { describe, test, expect, beforeAll, afterAll, mock, spyOn } from 'bun:test';
 import {
@@ -27,10 +10,6 @@ import {
   KafkaConsumerHelper,
 } from '@/modules/queue/.kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
-
-// =============================================================================
-// Config
-// =============================================================================
 
 const BROKERS = (process.env.APP_ENV_KAFKA_BROKERS ?? '103.176.145.66:19092').split(',');
 const TEST_TOPIC_PREFIX = `ignis-test-${Date.now()}`;
@@ -44,10 +23,6 @@ const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
  */
 let isBrokerReachable = false;
 let isBrokerConnectable = false;
-
-// =============================================================================
-// Mock Factories
-// =============================================================================
 
 /**
  * Creates a mock async iterable stream to simulate MessagesStream.
@@ -74,10 +49,6 @@ function createMockStream(messages: unknown[], opts?: { throwError?: Error; dela
     },
   };
 }
-
-// =============================================================================
-// 1. KafkaDefaults
-// =============================================================================
 
 describe('Kafka Helpers', () => {
   describe('KafkaDefaults', () => {
@@ -139,10 +110,6 @@ describe('Kafka Helpers', () => {
       expect(KafkaDefaults.CLIENT_ID.trim()).toBe(KafkaDefaults.CLIENT_ID);
     });
   });
-
-  // =============================================================================
-  // 2. KafkaAcks
-  // =============================================================================
 
   describe('KafkaAcks', () => {
     test('TC-011: should expose NONE = 0', () => {
@@ -220,10 +187,6 @@ describe('Kafka Helpers', () => {
       expect(KafkaAcks.ALL).toBe(-1);
     });
   });
-
-  // =============================================================================
-  // 3. KafkaProducerHelper — Unit Tests (Mocked)
-  // =============================================================================
 
   describe('KafkaProducerHelper (Unit)', () => {
     test('TC-024: newInstance should create a producer helper', () => {
@@ -636,10 +599,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 4. KafkaConsumerHelper — Unit Tests (Mocked)
-  // =============================================================================
-
   describe('KafkaConsumerHelper (Unit)', () => {
     test('TC-048: newInstance should create a consumer helper', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -856,10 +815,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 5. KafkaConsumerHelper — consumeLoop Logic Tests (Mocked Internals)
-  // =============================================================================
 
   describe('KafkaConsumerHelper (consumeLoop mocked)', () => {
     test('TC-064: consumeLoop should call onMessage for each message in the stream', async () => {
@@ -1131,10 +1086,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 6. KafkaAdminHelper — Unit Tests
-  // =============================================================================
-
   describe('KafkaAdminHelper (Unit)', () => {
     test('TC-073: newInstance should create an admin helper', () => {
       const a = KafkaAdminHelper.newInstance({
@@ -1231,10 +1182,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 7. KafkaAdminHelper — Error Path Tests
-  // =============================================================================
-
   describe('KafkaAdminHelper (Error Paths)', () => {
     test(
       'TC-082: createTopics should throw on unreachable broker',
@@ -1328,10 +1275,6 @@ describe('Kafka Helpers', () => {
       TIMEOUT,
     );
   });
-
-  // =============================================================================
-  // 8. Boundary & Edge Case Tests
-  // =============================================================================
 
   describe('Boundary & Edge Cases', () => {
     test('TC-086: producer send with empty messages array should propagate to underlying producer', async () => {
@@ -1502,10 +1445,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 9. Security & Input Validation Tests
-  // =============================================================================
-
   describe('Security & Input Validation', () => {
     test('TC-093: producer should handle SQL injection-like topic names in construction', () => {
       // The producer should accept any topic string — validation happens at broker level
@@ -1637,10 +1576,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 10. Type & Generic Tests
-  // =============================================================================
-
   describe('Type & Generic Tests', () => {
     test('TC-103: KafkaProducerHelper should accept generic type parameters via newInstance', () => {
       const p = KafkaProducerHelper.newInstance<string, string, string, string>({
@@ -1684,10 +1619,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 11. BaseHelper Integration Tests
-  // =============================================================================
 
   describe('BaseHelper Integration', () => {
     test('TC-107: all helpers should extend BaseHelper (producer)', () => {
@@ -1741,10 +1672,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 12. Consumer start() Idempotency Test (Mocked)
-  // =============================================================================
-
   describe('Consumer start() Idempotency (Mocked)', () => {
     test('TC-111: start() calling twice on a consuming consumer should warn and return early', async () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -1769,10 +1696,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 13. close() Behavior Tests
-  // =============================================================================
 
   describe('close() Behavior', () => {
     test('TC-112: consumer close should abort controller and set consuming=false', async () => {
@@ -1900,10 +1823,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 14. Concurrent / Race Condition Tests
-  // =============================================================================
-
   describe('Concurrent & Race Condition Tests', () => {
     test('TC-117: multiple concurrent sendBatch calls should each flatten correctly', async () => {
       const p = KafkaProducerHelper.newInstance({
@@ -1972,10 +1891,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 15. Integration Tests (Real Broker)
-  // =============================================================================
-
   describe('Integration Tests (Real Broker)', () => {
     let admin: KafkaAdminHelper;
     const adminTopic = `${TEST_TOPIC_PREFIX}-int-admin`;
@@ -2009,8 +1924,6 @@ describe('Kafka Helpers', () => {
       }
       await admin.close().catch(() => {});
     });
-
-    // --- Admin integration tests ---
 
     test.skipIf(!isBrokerConnectable)(
       'TC-119: admin should create topics on real broker',
@@ -2111,8 +2024,6 @@ describe('Kafka Helpers', () => {
       TIMEOUT,
     );
 
-    // --- Producer integration tests ---
-
     test.skipIf(!isBrokerReachable)(
       'TC-127: producer should send a single message to real broker',
       async () => {
@@ -2209,8 +2120,6 @@ describe('Kafka Helpers', () => {
       },
       TIMEOUT,
     );
-
-    // --- Consumer integration tests ---
 
     test.skipIf(!isBrokerReachable)(
       'TC-130: consumer should start consuming and receive messages from real broker',
@@ -2393,8 +2302,6 @@ describe('Kafka Helpers', () => {
       },
       60_000,
     );
-
-    // --- End-to-end ---
 
     test.skipIf(!isBrokerReachable)(
       'TC-134: end-to-end produce and consume round-trip',
@@ -2583,10 +2490,6 @@ describe('Kafka Helpers', () => {
       60_000,
     );
   });
-
-  // =============================================================================
-  // 16. Producer Deep Dive
-  // =============================================================================
 
   describe('Producer Deep Dive', () => {
     test(
@@ -2845,10 +2748,6 @@ describe('Kafka Helpers', () => {
       await p.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 17. Consumer Deep Dive
-  // =============================================================================
 
   describe('Consumer Deep Dive', () => {
     test('TC-145: consumeLoop processes messages sequentially — each onMessage awaited before next', async () => {
@@ -3295,10 +3194,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 18. Admin Deep Dive
-  // =============================================================================
-
   describe('Admin Deep Dive', () => {
     test('TC-161: createTopics passes partitions and replicas to internal admin', async () => {
       const a = KafkaAdminHelper.newInstance({
@@ -3473,10 +3368,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 19. Lifecycle & State Machine Tests
-  // =============================================================================
-
   describe('Lifecycle & State Machine', () => {
     test('TC-170: consumer state transitions: false -> start() -> true -> close() -> false', async () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -3571,10 +3462,6 @@ describe('Kafka Helpers', () => {
       expect(mockAdmin.close).toHaveBeenCalledTimes(2);
     });
   });
-
-  // =============================================================================
-  // 20. Error Propagation Exhaustive
-  // =============================================================================
 
   describe('Error Propagation Exhaustive', () => {
     test('TC-175: admin createTopics error — verify error is re-thrown AND logged', async () => {
@@ -3833,10 +3720,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 21. Batch Edge Cases
-  // =============================================================================
-
   describe('Batch Edge Cases', () => {
     test('TC-184: sendBatch with messages that already have a topic — outer topic should override', async () => {
       const p = KafkaProducerHelper.newInstance({
@@ -3983,10 +3866,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 22. KafkaConfigResourceTypes Constants
-  // =============================================================================
-
   describe('KafkaConfigResourceTypes', () => {
     test('TC-189: should expose UNKNOWN = 0', () => {
       expect(KafkaConfigResourceTypes.UNKNOWN).toBe(0);
@@ -4026,10 +3905,6 @@ describe('Kafka Helpers', () => {
       expect(KafkaConfigResourceTypes.isValid(-1)).toBe(false);
     });
   });
-
-  // =============================================================================
-  // 23. Producer Lifecycle Hooks
-  // =============================================================================
 
   describe('Producer Lifecycle Hooks', () => {
     test('TC-196: producer should accept onConnected hook', () => {
@@ -4114,10 +3989,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 24. Producer Escape Hatch
-  // =============================================================================
-
   describe('Producer Escape Hatch', () => {
     test('TC-202: getProducer should return the internal producer instance', () => {
       const p = KafkaProducerHelper.newInstance({
@@ -4143,10 +4014,6 @@ describe('Kafka Helpers', () => {
       p.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 25. Consumer Lifecycle Hooks
-  // =============================================================================
 
   describe('Consumer Lifecycle Hooks', () => {
     test('TC-204: consumer should accept all lifecycle hooks', () => {
@@ -4297,10 +4164,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 26. Consumer Pause/Resume
-  // =============================================================================
-
   describe('Consumer Pause/Resume', () => {
     test('TC-212: isPaused should return false when no stream exists', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -4393,10 +4256,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 27. Consumer Manual Commit
-  // =============================================================================
-
   describe('Consumer Manual Commit', () => {
     test('TC-217: commit should call consumer.commit with correct offsets', async () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -4461,10 +4320,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 28. Consumer Lag Monitoring
-  // =============================================================================
-
   describe('Consumer Lag Monitoring', () => {
     test('TC-219: startLagMonitoring should call consumer.startLagMonitoring', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -4515,10 +4370,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 29. Consumer Escape Hatch
-  // =============================================================================
-
   describe('Consumer Escape Hatch', () => {
     test('TC-221: getConsumer should return the internal consumer instance', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -4548,10 +4399,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 30. Admin Lifecycle Hooks
-  // =============================================================================
 
   describe('Admin Lifecycle Hooks', () => {
     test('TC-223: admin should accept onConnected hook', () => {
@@ -4633,10 +4480,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 31. Admin Escape Hatch
-  // =============================================================================
-
   describe('Admin Escape Hatch', () => {
     test('TC-229: getAdmin should return the internal admin instance', () => {
       const a = KafkaAdminHelper.newInstance({
@@ -4663,10 +4506,6 @@ describe('Kafka Helpers', () => {
       a.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 32. Admin Consumer Group Operations (Mocked)
-  // =============================================================================
 
   describe('Admin Consumer Group Operations (Mocked)', () => {
     test('TC-231: listGroups should call admin.listGroups', async () => {
@@ -4834,10 +4673,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 33. Admin Offset Management (Mocked)
-  // =============================================================================
-
   describe('Admin Offset Management (Mocked)', () => {
     test('TC-238: listConsumerGroupOffsets should call admin method', async () => {
       const a = KafkaAdminHelper.newInstance({
@@ -4949,10 +4784,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 34. Admin Partition Management (Mocked)
-  // =============================================================================
-
   describe('Admin Partition Management (Mocked)', () => {
     test('TC-242: createPartitions should call admin.createPartitions', async () => {
       const a = KafkaAdminHelper.newInstance({
@@ -5032,10 +4863,6 @@ describe('Kafka Helpers', () => {
       a.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 35. Admin Config Management (Mocked)
-  // =============================================================================
 
   describe('Admin Config Management (Mocked)', () => {
     test('TC-245: describeConfigs should call admin.describeConfigs', async () => {
@@ -5222,10 +5049,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 36. Producer Lifecycle Hooks — Advanced
-  // =============================================================================
-
   describe('Producer Lifecycle Hooks (Advanced)', () => {
     test('TC-251: onConnected should fire multiple times on repeated connect events', () => {
       const callCount = { value: 0 };
@@ -5397,10 +5220,6 @@ describe('Kafka Helpers', () => {
       await p.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 37. Consumer Lifecycle Hooks — Advanced
-  // =============================================================================
 
   describe('Consumer Lifecycle Hooks (Advanced)', () => {
     test('TC-259: onGroupJoin fires multiple times on repeated join events', () => {
@@ -5613,10 +5432,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 38. Consumer Pause/Resume — Advanced
-  // =============================================================================
-
   describe('Consumer Pause/Resume (Advanced)', () => {
     test('TC-267: pause called multiple times should be idempotent', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -5746,10 +5561,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 39. Consumer Manual Commit — Advanced
-  // =============================================================================
 
   describe('Consumer Manual Commit (Advanced)', () => {
     test('TC-272: commit with multiple offsets for different topics', async () => {
@@ -5907,10 +5718,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 40. Consumer Lag Monitoring — Advanced
-  // =============================================================================
-
   describe('Consumer Lag Monitoring (Advanced)', () => {
     test('TC-277: startLagMonitoring with multiple topics', () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -6019,10 +5826,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 41. Consumer Escape Hatch — Advanced
-  // =============================================================================
-
   describe('Consumer Escape Hatch (Advanced)', () => {
     test('TC-281: getConsumer reference persists after close', async () => {
       const c = KafkaConsumerHelper.newInstance({
@@ -6062,10 +5865,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 42. Admin Lifecycle Hooks — Advanced
-  // =============================================================================
 
   describe('Admin Lifecycle Hooks (Advanced)', () => {
     test('TC-283: admin both hooks firing in sequence', () => {
@@ -6163,10 +5962,6 @@ describe('Kafka Helpers', () => {
       a.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 43. Admin Consumer Group Operations — Advanced
-  // =============================================================================
 
   describe('Admin Consumer Group Operations (Advanced)', () => {
     test('TC-288: listGroups with undefined opts should call with empty states', async () => {
@@ -6292,10 +6087,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 44. Admin Offset Management — Advanced
-  // =============================================================================
-
   describe('Admin Offset Management (Advanced)', () => {
     test('TC-293: listConsumerGroupOffsets with multiple groups', async () => {
       const a = KafkaAdminHelper.newInstance({
@@ -6393,10 +6184,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 45. Admin Partition Management — Advanced
-  // =============================================================================
-
   describe('Admin Partition Management (Advanced)', () => {
     test('TC-296: createPartitions with multiple topics', async () => {
       const a = KafkaAdminHelper.newInstance({
@@ -6454,10 +6241,6 @@ describe('Kafka Helpers', () => {
       a.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 46. Admin Config Management — Advanced
-  // =============================================================================
 
   describe('Admin Config Management (Advanced)', () => {
     test('TC-298: describeConfigs with multiple resources', async () => {
@@ -6623,10 +6406,6 @@ describe('Kafka Helpers', () => {
     });
   });
 
-  // =============================================================================
-  // 47. KafkaConfigResourceTypes — Advanced
-  // =============================================================================
-
   describe('KafkaConfigResourceTypes (Advanced)', () => {
     test('TC-303: isValid should return false for floating point values', () => {
       expect(KafkaConfigResourceTypes.isValid(2.5)).toBe(false);
@@ -6666,10 +6445,6 @@ describe('Kafka Helpers', () => {
       expect(KafkaConfigResourceTypes.BROKER_LOGGER).toBe(8);
     });
   });
-
-  // =============================================================================
-  // 48. Consumer consumeLoop with Pause/Resume Integration
-  // =============================================================================
 
   describe('Consumer consumeLoop + Pause/Resume Integration', () => {
     test('TC-309: consumeLoop processes messages then message handler pauses stream', async () => {
@@ -6717,10 +6492,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 49. Consumer commit within onMessage Handler
-  // =============================================================================
 
   describe('Consumer commit within onMessage Handler', () => {
     test('TC-310: manual commit inside onMessage callback', async () => {
@@ -6777,10 +6548,6 @@ describe('Kafka Helpers', () => {
       c.close().catch(() => {});
     });
   });
-
-  // =============================================================================
-  // 50. Cross-Feature Backward Compatibility
-  // =============================================================================
 
   describe('Backward Compatibility', () => {
     test('TC-311: producer without any new options should work identically to before', () => {

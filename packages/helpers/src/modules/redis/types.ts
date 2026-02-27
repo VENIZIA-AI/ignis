@@ -1,7 +1,6 @@
 import { ClusterOptions } from 'ioredis';
 import { DefaultRedisHelper } from './default.helper';
 
-// -----------------------------------------------------------------------------------------------
 export interface IRedisHelperProps {
   name: string;
   host: string;

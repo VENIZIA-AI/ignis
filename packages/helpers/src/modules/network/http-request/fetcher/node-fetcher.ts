@@ -8,7 +8,6 @@ export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   params?: Record<string | symbol, any>;
 }
 
-// -------------------------------------------------------------
 export class NodeFetcher extends AbstractNetworkFetchableHelper<
   'node-fetch',
   INodeFetchRequestOptions,
@@ -25,9 +24,6 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
     this.defaultConfigs = defaultConfigs;
   }
 
-  // -------------------------------------------------------------
-  // SEND REQUEST
-  // -------------------------------------------------------------
   override async send(opts: INodeFetchRequestOptions, logger?: any) {
     const { url, method = 'get', params, body, headers, timeout, signal, ...rest } = opts;
 
@@ -73,7 +69,6 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
   }
 }
 
-// -----------------------------------------------------------------------------
 export interface INodeFetchNetworkRequestOptions {
   name: string;
   networkOptions: RequestInit & {
@@ -81,13 +76,11 @@ export interface INodeFetchNetworkRequestOptions {
   };
 }
 
-// -----------------------------------------------------------------------------
 export class NodeFetchNetworkRequest extends BaseNetworkRequest<'node-fetch'> {
   constructor(opts: INodeFetchNetworkRequestOptions) {
     const { name, networkOptions } = opts;
     const { headers, baseUrl, ...rest } = networkOptions;
 
-    // Build headers with user values taking precedence
     const userHeaders =
       headers instanceof Headers ? Object.fromEntries(headers.entries()) : headers;
     const mergedHeaders: AnyObject = {

@@ -7,7 +7,7 @@ describe('Boot Utility Tests', () => {
   beforeAll(() => {
     root = path.resolve(process.cwd(), 'dist/cjs/__tests__/fixtures');
   });
-  // --------------------------------------------------------------------------------
+
   describe('isClass', () => {
     test('should return true for class constructors', () => {
       class TestClass {}
@@ -38,7 +38,6 @@ describe('Boot Utility Tests', () => {
     });
   });
 
-  // --------------------------------------------------------------------------------
   describe('discoverFiles', () => {
     test('should return files matching the nested glob pattern', async () => {
       const pattern = '**/*.repository.js';
@@ -67,7 +66,6 @@ describe('Boot Utility Tests', () => {
     });
   });
 
-  // --------------------------------------------------------------------------------
   describe('loadClasses', () => {
     test('should load classes from files', async () => {
       const pattern = 'repositories/*.repository.js';

@@ -1,6 +1,5 @@
 import type { IAuthorizationRole } from '../common';
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthorizationRole implements IAuthorizationRole {
   readonly name: string;
   readonly priority: number;

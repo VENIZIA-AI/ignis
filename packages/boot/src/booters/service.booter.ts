@@ -11,17 +11,14 @@ export class ServiceBooter extends BaseArtifactBooter {
     super({ scope: ServiceBooter.name, root, artifactOptions: bootOptions.services ?? {} });
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['services'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultExtensions(): string[] {
     return ['.service.js'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
       const key = BindingKeys.build({ namespace: 'services', key: cls.name });

@@ -1,6 +1,5 @@
 import { z } from '@hono/zod-openapi';
 
-// -------------------------------------------------------------------------
 export const requiredString = (opts?: { min?: number; max?: number; fixed?: number }) => {
   const { min, max, fixed } = opts ?? {};
   let rs = z.string().nonempty();
@@ -20,7 +19,6 @@ export const requiredString = (opts?: { min?: number; max?: number; fixed?: numb
   return rs;
 };
 
-// -------------------------------------------------------------------------
 export const AnyObjectSchema = z.object().catchall(z.any()).openapi({
   description: 'Unknown schema',
 });

@@ -47,8 +47,8 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
     }
   }
 
-  get<ReturnType>(key: string): ReturnType {
-    return this.arguments[key] as ReturnType;
+  get<ReturnType>(key: string, defaultValue?: ReturnType): ReturnType {
+    return (this.arguments[key] as ReturnType) ?? (defaultValue as ReturnType);
   }
 
   set<ValueType>(key: string, value: ValueType) {
@@ -68,3 +68,5 @@ export const applicationEnvironment = new ApplicationEnvironment({
   prefix: process.env.APPLICATION_ENV_PREFIX ?? 'APP_ENV',
   envs: process.env,
 });
+
+export const Envs = applicationEnvironment;

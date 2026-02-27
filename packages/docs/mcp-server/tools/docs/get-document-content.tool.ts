@@ -3,10 +3,6 @@ import { z } from 'zod';
 import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
 
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
-
 const TOOL_DESCRIPTION = `
 Retrieves the complete markdown content of a specific Ignis Framework documentation file.
 
@@ -81,10 +77,6 @@ TYPICAL STRUCTURE:
 - Cross-references to related documentation
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({
   id: z.string().min(1).describe(ID_DESCRIPTION),
 });
@@ -97,10 +89,6 @@ const OutputSchema = z.object({
     .optional()
     .describe('Error message if document not found. Verify the ID using listDocs or searchDocs.'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'getDocumentContent';

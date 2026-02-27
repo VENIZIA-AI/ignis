@@ -3,10 +3,6 @@ import { z } from 'zod';
 import { BaseTool } from '../base.tool';
 import { GithubHelper } from '@/mcp-server/helpers';
 
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
-
 const TOOL_DESCRIPTION = `
 Retrieves the full source code content of a specific file from the Ignis GitHub repository.
 
@@ -40,10 +36,6 @@ EXAMPLES:
 - "package.json"
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({
   filePath: z.string().min(1).describe(FILE_PATH_DESCRIPTION),
 });
@@ -56,10 +48,6 @@ const OutputSchema = z.object({
     .optional()
     .describe('An error message if the file could not be read (e.g., not found).'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class ViewSourceFileTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'viewSourceFile';

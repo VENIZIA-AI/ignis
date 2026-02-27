@@ -1,24 +1,3 @@
-/**
- * Default Filter Feature Test Suite
- *
- * Tests the default filter logic that:
- * 1. Allows models to define a default filter (e.g., { where: { isDeleted: false }, limit: 100 })
- * 2. Automatically applies the default filter to all queries
- * 3. Can be bypassed with `shouldSkipDefaultFilter: true` option
- * 4. Merges user filters with default filter (user takes precedence)
- *
- * Test Categories:
- * - Functional Tests (Happy Path): Standard expected behavior
- * - Where Condition Merging: Complex where clause combinations
- * - Boundary & Edge Cases: Null, undefined, empty, extreme values
- * - Security Tests: SQL injection, XSS, command injection, prototype pollution
- * - Type Handling: Type coercion and validation
- * - Integration Scenarios: Real-world usage patterns
- * - Performance & Stress Tests: Large payloads, circular references
- *
- * @module __tests__/default-filter
- */
-
 import { describe, test, expect, beforeEach, spyOn } from 'bun:test';
 import { FilterBuilder } from '@/base/repositories/operators';
 import { DefaultFilterMixin } from '@/base/repositories/mixins';
@@ -26,24 +5,13 @@ import { TFilter } from '@/base/repositories/common';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-// Type alias for any filter (used in tests with dynamic types)
 type AnyFilter = TFilter<any>;
 
-// =============================================================================
-// Test Setup - Create testable classes
-// =============================================================================
-
-/**
- * Mock entity for testing
- */
 class MockEntity {
   name = 'TestEntity';
   schema = {} as any;
 }
 
-/**
- * Testable class that uses DefaultFilterMixin
- */
 class TestableDefaultFilterRepository extends DefaultFilterMixin(BaseHelper) {
   private _entity: MockEntity;
   private _filterBuilder: FilterBuilder;
@@ -63,14 +31,6 @@ class TestableDefaultFilterRepository extends DefaultFilterMixin(BaseHelper) {
   }
 }
 
-// =============================================================================
-// Test Helpers & Security Payloads
-// =============================================================================
-
-/**
- * SQL injection payloads for security testing
- * These represent common attack vectors that should be safely handled
- */
 const SQL_INJECTION_PAYLOADS = {
   basic: "'; DROP TABLE users; --",
   orAttack: "' OR '1'='1",
@@ -88,9 +48,6 @@ const SQL_INJECTION_PAYLOADS = {
   truncation: 'a' + ' '.repeat(100) + 'DROP TABLE users',
 } as const;
 
-/**
- * XSS payloads for security testing
- */
 const XSS_PAYLOADS = {
   scriptTag: '<script>alert("xss")</script>',
   eventHandler: '<img src=x onerror=alert(1)>',
@@ -107,9 +64,6 @@ const XSS_PAYLOADS = {
     'jaVasCript:/*-/*`/*\\`/*\'/*"/**/(/* */oNcLiCk=alert() )//%0D%0A%0d%0a//</stYle/</titLe/</teXtarEa/</scRipt/--!>\\x3csVg/<sVg/oNloAd=alert()//>\\x3e',
 } as const;
 
-/**
- * Command injection payloads
- */
 const COMMAND_INJECTION_PAYLOADS = {
   semicolon: '; rm -rf /',
   pipe: '| cat /etc/passwd',
@@ -123,9 +77,6 @@ const COMMAND_INJECTION_PAYLOADS = {
   nullByteTermination: 'file.txt\x00; rm -rf /',
 } as const;
 
-/**
- * Path traversal payloads
- */
 const PATH_TRAVERSAL_PAYLOADS = {
   basic: '../../../etc/passwd',
   doubleEncoded: '..%252f..%252f..%252fetc/passwd',
@@ -135,9 +86,6 @@ const PATH_TRAVERSAL_PAYLOADS = {
   mixedSlash: '..\\/../..\\/../etc/passwd',
 } as const;
 
-/**
- * NoSQL injection payloads (relevant for JSON-based filters)
- */
 const NOSQL_INJECTION_PAYLOADS = {
   neOperator: { $ne: 1 },
   gtOperator: { $gt: '' },
@@ -146,18 +94,12 @@ const NOSQL_INJECTION_PAYLOADS = {
   jsInjection: { $where: 'function() { return true; }' },
 } as const;
 
-/**
- * ReDoS (Regular Expression Denial of Service) payloads
- */
 const REDOS_PAYLOADS = {
   exponentialBacktrack: 'a'.repeat(50) + '!',
   nestedQuantifiers: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaa!',
   catastrophicBacktrack: 'x'.repeat(100) + 'y',
 } as const;
 
-/**
- * Unicode and encoding edge cases
- */
 const UNICODE_EDGE_CASES = {
   nullChar: 'test\u0000value',
   bom: '\uFEFFtest',
@@ -169,10 +111,6 @@ const UNICODE_EDGE_CASES = {
   fullWidthChars: '\uFF54\uFF45\uFF53\uFF54',
 } as const;
 
-// =============================================================================
-// Test Suite: FilterBuilder.mergeFilter
-// =============================================================================
-
 describe('Default Filter Feature', () => {
   describe('FilterBuilder.mergeFilter', () => {
     let filterBuilder: FilterBuilder;
@@ -180,10 +118,6 @@ describe('Default Filter Feature', () => {
     beforeEach(() => {
       filterBuilder = new FilterBuilder();
     });
-
-    // -------------------------------------------------------------------------
-    // Functional Tests (Happy Path)
-    // -------------------------------------------------------------------------
 
     describe('Functional Tests', () => {
       test('TC-001: should return empty object when both filters are undefined', () => {
@@ -323,10 +257,6 @@ describe('Default Filter Feature', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Where Condition Merging Tests
-    // -------------------------------------------------------------------------
-
     describe('Where Condition Merging', () => {
       test('TC-012: user where value should override default where value for same key', () => {
         const defaultFilter: AnyFilter = {
@@ -403,7 +333,6 @@ describe('Default Filter Feature', () => {
           where: { createdAt: { lte: '2024-12-31' } },
         };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // Deep merge should combine operators
         expect(result.where?.createdAt).toEqual({
           gte: '2024-01-01',
           lte: '2024-12-31',
@@ -422,7 +351,6 @@ describe('Default Filter Feature', () => {
           },
         };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // Deep merge combines user's AND with default AND - first element merges, rest preserved
         expect(result.where?.and).toEqual([
           { type: 'premium', isActive: true },
           { isVerified: true },
@@ -541,10 +469,6 @@ describe('Default Filter Feature', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Boundary & Edge Cases
-    // -------------------------------------------------------------------------
-
     describe('Boundary & Edge Cases', () => {
       test('TC-017: should handle empty where object', () => {
         const defaultFilter: AnyFilter = { where: {} };
@@ -575,8 +499,6 @@ describe('Default Filter Feature', () => {
         const defaultFilter = { limit: 100 };
         const userFilter = { limit: 0 };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // Implementation correctly uses ?? which preserves 0 since it's not undefined/null
-        // This is correct behavior - user explicitly set limit to 0
         expect(result.limit).toBe(0);
       });
 
@@ -591,7 +513,7 @@ describe('Default Filter Feature', () => {
         const defaultFilter = { offset: 0 };
         const userFilter = { offset: -10 };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        expect(result.offset).toBe(-10); // Validation should happen elsewhere
+        expect(result.offset).toBe(-10);
       });
 
       test('TC-023: should handle empty string values in where', () => {
@@ -628,7 +550,6 @@ describe('Default Filter Feature', () => {
         const defaultFilter = { order: ['createdAt DESC'] };
         const userFilter = { order: [] };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // Empty array should still override default
         expect(result.order).toEqual([]);
       });
 
@@ -786,7 +707,6 @@ describe('Default Filter Feature', () => {
           where: { items: ['a', 2, false, undefined] },
         };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // undefined becomes null during merge process
         expect(result.where?.items).toEqual(['a', 2, false, null]);
       });
 
@@ -799,12 +719,7 @@ describe('Default Filter Feature', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Security Tests
-    // -------------------------------------------------------------------------
-
     describe('Security Tests', () => {
-      // SQL Injection Tests
       describe('SQL Injection Prevention', () => {
         test('TC-033: should handle SQL injection in where key - DROP TABLE', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -812,7 +727,6 @@ describe('Default Filter Feature', () => {
             where: { [SQL_INJECTION_PAYLOADS.basic]: 'value' },
           };
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-          // The merge should complete without executing SQL
           expect(result.where?.isDeleted).toBe(false);
           expect(result.where?.[SQL_INJECTION_PAYLOADS.basic]).toBe('value');
         });
@@ -918,7 +832,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // XSS Prevention Tests
       describe('XSS Prevention', () => {
         test('TC-039: should handle XSS script tag in where value', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -987,7 +900,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // Command Injection Tests
       describe('Command Injection Prevention', () => {
         test('TC-042: should handle command injection with semicolon', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1038,7 +950,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // Path Traversal Tests
       describe('Path Traversal Prevention', () => {
         test('TC-108: should handle basic path traversal', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1080,7 +991,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // Prototype Pollution Tests
       describe('Prototype Pollution Prevention', () => {
         test('TC-045: should handle __proto__ in where key', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1089,7 +999,6 @@ describe('Default Filter Feature', () => {
             where: { __proto__: { polluted: true } },
           };
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-          // Verify prototype is not polluted
           expect(({} as any).polluted).toBeUndefined();
           expect(result.where?.isDeleted).toBe(false);
         });
@@ -1108,7 +1017,6 @@ describe('Default Filter Feature', () => {
           const userFilter: AnyFilter = {
             where: { '__proto__.isAdmin': true },
           };
-          // Execute merge to test for prototype pollution (result not needed)
           filterBuilder.mergeFilter({ defaultFilter, userFilter });
           expect(({} as any).isAdmin).toBeUndefined();
         });
@@ -1129,7 +1037,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // NoSQL Injection Tests
       describe('NoSQL Injection Prevention', () => {
         test('TC-114: should handle $ne operator injection', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1159,7 +1066,6 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // Unicode Security Tests
       describe('Unicode Security', () => {
         test('TC-117: should handle null character in string', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1210,13 +1116,11 @@ describe('Default Filter Feature', () => {
         });
       });
 
-      // Default Filter Bypass Tests
       describe('Default Filter Bypass Prevention', () => {
         test('TC-047: should not allow user to set where to undefined to bypass default', () => {
           const defaultFilter = { where: { isDeleted: false } };
           const userFilter = { where: undefined };
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-          // Default where should be preserved
           expect(result.where).toEqual({ isDeleted: false });
         });
 
@@ -1224,7 +1128,6 @@ describe('Default Filter Feature', () => {
           const defaultFilter = { where: { isDeleted: false } };
           const userFilter = { where: null } as any;
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-          // With null, the merge behavior depends on implementation
           expect(result.where).toBeDefined();
         });
 
@@ -1247,13 +1150,11 @@ describe('Default Filter Feature', () => {
             where: { tenantId: undefined, isDeleted: undefined },
           };
           const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-          // Deep merge with undefined should preserve defaults
           expect(result.where?.tenantId).toBe('safe-tenant');
           expect(result.where?.isDeleted).toBe(false);
         });
       });
 
-      // ReDoS Prevention Tests
       describe('ReDoS Prevention', () => {
         test('TC-123: should handle ReDoS payload without hanging', () => {
           const defaultFilter: AnyFilter = { where: { isDeleted: false } };
@@ -1284,10 +1185,6 @@ describe('Default Filter Feature', () => {
         });
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Type Coercion Tests
-    // -------------------------------------------------------------------------
 
     describe('Type Handling', () => {
       test('TC-050: should handle number to string coercion in where', () => {
@@ -1322,7 +1219,6 @@ describe('Default Filter Feature', () => {
         const defaultFilter: AnyFilter = { where: { items: [1, 2, 3] } };
         const userFilter: AnyFilter = { where: { items: { 0: 'a', 1: 'b' } } };
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
-        // Object with numeric keys merges into array by index, preserving unmentioned elements
         expect(result.where?.items).toEqual(['a', 'b', 3]);
       });
 
@@ -1342,22 +1238,16 @@ describe('Default Filter Feature', () => {
     });
   });
 
-  // ===========================================================================
-  // Test Suite: DefaultFilterMixin
-  // ===========================================================================
-
   describe('DefaultFilterMixin', () => {
     let repository: TestableDefaultFilterRepository;
 
     beforeEach(() => {
       repository = new TestableDefaultFilterRepository();
-      // Reset the cached default filter
       repository['_defaultFilter'] = null;
     });
 
     describe('getDefaultFilter', () => {
       test('TC-053: should return undefined when no default filter is configured', () => {
-        // Mock MetadataRegistry to return no default filter
         const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
           getModelEntry: () => null,
         } as any);
@@ -1394,11 +1284,9 @@ describe('Default Filter Feature', () => {
           } as any;
         });
 
-        // Call twice
         repository.getDefaultFilter();
         repository.getDefaultFilter();
 
-        // Should only call getInstance once due to caching
         expect(callCount).toBe(1);
 
         mockGetInstance.mockRestore();
@@ -1506,7 +1394,6 @@ describe('Default Filter Feature', () => {
         });
 
         expect(result).toEqual({ where: { status: 'active' } });
-        // Default filter should NOT be merged
         expect(result.where?.isDeleted).toBeUndefined();
 
         mockGetInstance.mockRestore();
@@ -1591,10 +1478,9 @@ describe('Default Filter Feature', () => {
         const userFilter: AnyFilter = { where: { status: 'active' } };
         const result = repository.applyDefaultFilter({
           userFilter,
-          shouldSkipDefaultFilter: undefined, // Should not skip
+          shouldSkipDefaultFilter: undefined,
         });
 
-        // Default filter should be merged
         expect(result.where?.isDeleted).toBe(false);
         expect(result.where?.status).toBe('active');
 
@@ -1611,10 +1497,9 @@ describe('Default Filter Feature', () => {
         const userFilter: AnyFilter = { where: { status: 'active' } };
         const result = repository.applyDefaultFilter({
           userFilter,
-          shouldSkipDefaultFilter: false, // Explicit false, should not skip
+          shouldSkipDefaultFilter: false,
         });
 
-        // Default filter should be merged
         expect(result.where?.isDeleted).toBe(false);
         expect(result.where?.status).toBe('active');
 
@@ -1657,10 +1542,6 @@ describe('Default Filter Feature', () => {
       });
     });
   });
-
-  // ===========================================================================
-  // Integration-like Tests (Simulating Real Usage)
-  // ===========================================================================
 
   describe('Integration Scenarios', () => {
     let filterBuilder: FilterBuilder;
@@ -1718,10 +1599,8 @@ describe('Default Filter Feature', () => {
     });
 
     test('TC-069: Admin override pattern - shouldSkipDefaultFilter bypasses all restrictions', () => {
-      // When shouldSkipDefaultFilter is true, only user filter should apply
-      // This is tested in applyDefaultFilter, but here we verify merge behavior
       const result = filterBuilder.mergeFilter({
-        defaultFilter: undefined, // Simulating shouldSkipDefaultFilter=true scenario
+        defaultFilter: undefined,
         userFilter: { where: { isDeleted: true }, limit: 1000 },
       });
 
@@ -1848,10 +1727,6 @@ describe('Default Filter Feature', () => {
     });
   });
 
-  // ===========================================================================
-  // Performance / Edge Cases
-  // ===========================================================================
-
   describe('Performance & Stress Tests', () => {
     let filterBuilder: FilterBuilder;
 
@@ -1863,7 +1738,6 @@ describe('Default Filter Feature', () => {
       const defaultWhere: Record<string, any> = {};
       const userWhere: Record<string, any> = {};
 
-      // Create 100 conditions each
       for (let i = 0; i < 100; i++) {
         defaultWhere[`defaultField${i}`] = `defaultValue${i}`;
         userWhere[`userField${i}`] = `userValue${i}`;
@@ -1894,13 +1768,10 @@ describe('Default Filter Feature', () => {
       const defaultFilter: AnyFilter = { where: { isDeleted: false } };
       const userFilter: AnyFilter = { where: { data: circularObj } };
 
-      // This should not cause infinite loop - merge handles it gracefully
-      // Note: lodash merge may have issues with circular refs
       try {
         const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
         expect(result.where?.isDeleted).toBe(false);
       } catch (error) {
-        // If error occurs, it should be a stack overflow or similar
         expect(error).toBeDefined();
       }
     });
@@ -2017,10 +1888,6 @@ describe('Default Filter Feature', () => {
     });
   });
 
-  // ===========================================================================
-  // Additional Edge Cases
-  // ===========================================================================
-
   describe('Additional Edge Cases', () => {
     let filterBuilder: FilterBuilder;
 
@@ -2116,7 +1983,6 @@ describe('Default Filter Feature', () => {
 
       const result = filterBuilder.mergeFilter({ defaultFilter, userFilter });
 
-      // These shadow built-in Object methods, so we access them via indexer
       expect((result.where as any)?.hasOwnProperty).toBe('test');
       expect((result.where as any)?.toString).toBe('string');
       expect((result.where as any)?.valueOf).toBe('value');

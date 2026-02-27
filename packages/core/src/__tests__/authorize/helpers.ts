@@ -17,10 +17,6 @@ import type { IAuthUser } from '@/components/auth/authenticate/common/types';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
-// =============================================================================
-// Test rule type
-// =============================================================================
-
 export type TTestRule = {
   action: string;
   resource: string;
@@ -28,17 +24,12 @@ export type TTestRule = {
   conditions?: Record<string, unknown>;
 };
 
-// =============================================================================
-// TestAuthorizationEnforcer — lightweight test double for middleware testing
-// =============================================================================
-
 export class TestAuthorizationEnforcer
   extends BaseHelper
   implements IAuthorizationEnforcer<Env, string, string, TTestRule[]>
 {
   name = 'test';
 
-  // Static fields set per-test for behavior control
   static rules: TTestRule[] = [];
   static loadRulesFn?: (opts: { user: IAuthUser; context: TContext }) => Promise<TTestRule[]>;
   static onBuildRules?: () => void;
@@ -50,9 +41,7 @@ export class TestAuthorizationEnforcer
     super({ scope: TestAuthorizationEnforcer.name });
   }
 
-  configure(): void {
-    // No initialization needed for test enforcer
-  }
+  configure(): void {}
 
   async buildRules(opts: {
     user: { principalType: string } & IAuthUser;
@@ -78,13 +67,11 @@ export class TestAuthorizationEnforcer
       return this.options.defaultDecision;
     }
 
-    // Find matching rules: exact action + resource + conditions
     const matching = rules.filter(rule => {
       if (rule.action !== request.action || rule.resource !== request.resource) {
         return false;
       }
 
-      // If rule has conditions, all must match request conditions
       if (rule.conditions && Object.keys(rule.conditions).length > 0) {
         if (!request.conditions) {
           return false;
@@ -101,7 +88,6 @@ export class TestAuthorizationEnforcer
       return this.options.defaultDecision;
     }
 
-    // Deny takes precedence
     if (matching.some(r => r.effect === 'deny')) {
       return AuthorizationDecisions.DENY;
     }
@@ -118,14 +104,6 @@ export class TestAuthorizationEnforcer
   }
 }
 
-// =============================================================================
-// Shared test utilities
-// =============================================================================
-
-/**
- * Creates a minimal mock Hono context with get/set/req for middleware testing.
- * Tracks context variables so we can assert on them.
- */
 export const createMockContext = (overrides?: {
   user?: (IAuthUser & { principalType?: string }) | undefined;
   isSkipAuthorize?: boolean;
@@ -134,7 +112,6 @@ export const createMockContext = (overrides?: {
 }) => {
   const store = new Map<string, unknown>();
 
-  // Pre-populate context variables — inject default principalType for enforcer-based auth
   if (overrides?.user !== undefined) {
     const user = { principalType: 'user', ...overrides.user };
     store.set(Authentication.CURRENT_USER, user);
@@ -152,14 +129,10 @@ export const createMockContext = (overrides?: {
     req: {
       path: overrides?.path ?? '/test',
     },
-    _store: store, // expose for assertions
+    _store: store,
   };
 };
 
-/**
- * Creates a fresh AuthorizationEnforcerRegistry by resetting the singleton.
- * Also resets the TestAuthorizationEnforcer static state.
- */
 export const createFreshRegistry = (): AuthorizationEnforcerRegistry => {
   const registry = AuthorizationEnforcerRegistry.getInstance();
   registry.reset();

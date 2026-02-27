@@ -3,7 +3,6 @@ import { DefaultRedisHelper } from '@/modules/redis';
 import { TNullable } from '@venizia/ignis-inversion';
 import { TWebSocketMessageType, WebSocketClientStates } from './constants';
 
-// -------------------------------------------------------------------------------------------------------------
 export interface IWebSocket<T = unknown> {
   readonly data: T;
   readonly remoteAddress: string;
@@ -48,10 +47,6 @@ export interface IBunWebSocketHandler extends IBunWebSocketConfig {
   drain: (socket: IWebSocket) => void;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Wire Protocol Types
-// -------------------------------------------------------------------------------------------------------------
-
 /** Client <-> Server message envelope */
 export interface IWebSocketMessage<DataType = unknown> {
   event: string;
@@ -69,9 +64,6 @@ export interface IRedisSocketMessage<DataType = unknown> {
   exclude?: string[];
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Client Tracking
-// -------------------------------------------------------------------------------------------------------------
 export type TWebSocketClientState = TConstValue<typeof WebSocketClientStates>;
 
 export interface IWebSocketClient<
@@ -92,9 +84,6 @@ export interface IWebSocketClient<
   authTimer?: ReturnType<typeof setTimeout>;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// WebSocket Data (attached during server.upgrade)
-// -------------------------------------------------------------------------------------------------------------
 export interface IWebSocketData<
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
 > {
@@ -103,9 +92,6 @@ export interface IWebSocketData<
   metadata?: MetadataType;
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Callback Types
-// -------------------------------------------------------------------------------------------------------------
 export type TWebSocketAuthenticateFn<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
@@ -151,9 +137,6 @@ export type TWebSocketOutboundTransformer<
   data: DataType;
 }) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
 
-// -------------------------------------------------------------------------------------------------------------
-// Server Options (Bun only)
-// -------------------------------------------------------------------------------------------------------------
 export interface IWebSocketServerOptions<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
   MetadataType extends Record<string, unknown> = Record<string, unknown>,
@@ -170,7 +153,6 @@ export interface IWebSocketServerOptions<
   encryptedBatchLimit?: number; // Default: 10 (max concurrent encryption operations)
   requireEncryption?: boolean; // Default: false — when true, clients must complete handshake during auth or get rejected (4004)
 
-  // Hooks
   authenticateFn: TWebSocketAuthenticateFn<AuthDataType, MetadataType>;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn<MetadataType>;
@@ -180,9 +162,6 @@ export interface IWebSocketServerOptions<
   handshakeFn?: TWebSocketHandshakeFn<AuthDataType>; // Required when requireEncryption is true
 }
 
-// -------------------------------------------------------------------------------------------------------------
-// Emitter Options
-// -------------------------------------------------------------------------------------------------------------
 export interface IWebSocketEmitterOptions {
   identifier?: string;
   redisConnection: DefaultRedisHelper;

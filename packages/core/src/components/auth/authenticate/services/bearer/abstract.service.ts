@@ -5,14 +5,7 @@ import { Env } from 'hono';
 import { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
 import { Authentication, IJWTTokenPayload, TGetTokenExpiresFn } from '../../common';
 
-/**
- * Abstract base for Bearer-token services (JWS, JWKS Issuer, JWKS Verifier).
- *
- * Provides shared `extractCredentials` (parse `Authorization: Bearer` header),
- * template-method `verify` (delegates to `doVerify`),
- * template-method `generate` (delegates to `getSigner` + `getSigningKey`),
- * and optional AES payload encryption/decryption.
- */
+/** Abstract base for Bearer-token services (JWS, JWKS) with optional AES payload encryption. */
 export abstract class AbstractBearerTokenService<E extends Env = Env> extends BaseService {
   /** Standard JWT fields that are never encrypted. */
   static readonly JWT_COMMON_FIELDS = new Set<keyof JWTPayload>([
@@ -28,12 +21,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
   protected aes: AES | null = null;
   protected applicationSecret: string | null = null;
 
-  // --------------------------------------------------------------------------------------
-  /**
-   * Configures optional AES payload encryption. Both parameters must be provided
-   * for encryption to be active. When not configured, `encryptPayload` and
-   * `decryptPayload` pass through payloads unchanged.
-   */
+  /** Configures AES payload encryption. Both aesAlgorithm and applicationSecret required to activate. */
   protected configurePayloadEncryption(opts: {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
@@ -48,7 +36,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     this.applicationSecret = applicationSecret;
   }
 
-  // --------------------------------------------------------------------------------------
   extractCredentials(context: TContext<E, string>): { type: string; token: string } {
     const request = context.req;
 
@@ -79,7 +66,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return { type: tokenType, token: tokenValue };
   }
 
-  // --------------------------------------------------------------------------------------
   async verify(opts: { type: string; token: string }): Promise<IJWTTokenPayload> {
     const { token } = opts;
     if (!token) {
@@ -101,7 +87,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
   }
 
-  // --------------------------------------------------------------------------------------
   async generate(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn?: TGetTokenExpiresFn;
@@ -129,7 +114,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
   }
 
-  // --------------------------------------------------------------------------------------
   encryptPayload(payload: IJWTTokenPayload): Record<string, any> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
@@ -181,7 +165,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return rs;
   }
 
-  // --------------------------------------------------------------------------------------
   decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
     const { payload, protectedHeader } = opts.result;
 
@@ -226,7 +209,6 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     return rs;
   }
 
-  // --------------------------------------------------------------------------------------
   protected abstract doVerify(token: string): Promise<IJWTTokenPayload>;
 
   abstract getSigner(opts: {

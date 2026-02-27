@@ -24,7 +24,6 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     });
   }
 
-  // --------------------------------------------------------------------------------------
   protected override async initialize(): Promise<void> {
     const jwksUrl = new URL(this.options.jwksUrl);
     this.jwksVerifier = createRemoteJWKSet(jwksUrl, {
@@ -39,14 +38,12 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
       .info('JWKS verifier initialized | url: %s', this.options.jwksUrl);
   }
 
-  // --------------------------------------------------------------------------------------
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
     const result = await jwtVerify<IJWTTokenPayload>(token, this.jwksVerifier!);
     return this.decryptPayload({ result });
   }
 
-  // --------------------------------------------------------------------------------------
   override async getSigner(_opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
@@ -57,7 +54,6 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     });
   }
 
-  // --------------------------------------------------------------------------------------
   protected override getSigningKey(): never {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,

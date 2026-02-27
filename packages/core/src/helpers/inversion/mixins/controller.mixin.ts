@@ -3,9 +3,6 @@ import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion'
 import { MetadataKeys } from '../common/keys';
 import { IControllerMetadata, TRouteMetadata } from '../common/types';
 
-// -----------------------------------------------------------------
-// Controller Metadata
-// -----------------------------------------------------------------
 export const ControllerMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
   // mixinOpts: { },

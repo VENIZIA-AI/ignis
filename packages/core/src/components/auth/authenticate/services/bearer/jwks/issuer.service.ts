@@ -39,7 +39,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     });
   }
 
-  // --------------------------------------------------------------------------------------
   protected override async initialize(): Promise<void> {
     const { keys, algorithm } = this.options;
 
@@ -68,7 +67,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       );
   }
 
-  // --------------------------------------------------------------------------------------
   protected async resolveKeyContent(opts: { keys: IJWKSIssuerOptions['keys'] }) {
     const { keys } = opts;
 
@@ -95,7 +93,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     }
   }
 
-  // --------------------------------------------------------------------------------------
   protected async parseKeyMaterial(opts: {
     raw: { priv: string; pub: string };
     algorithm: IJWKSIssuerOptions['algorithm'];
@@ -152,14 +149,12 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     }
   }
 
-  // --------------------------------------------------------------------------------------
   protected override async doVerify(token: string): Promise<IJWTTokenPayload> {
     await this.ensureInitialized();
     const result = await jwtVerify<IJWTTokenPayload>(token, this.publicKey!);
     return this.decryptPayload({ result });
   }
 
-  // --------------------------------------------------------------------------------------
   override async getSigner(opts: {
     payload: IJWTTokenPayload;
     getTokenExpiresFn: TGetTokenExpiresFn;
@@ -178,7 +173,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
       .setNotBefore(now);
   }
 
-  // --------------------------------------------------------------------------------------
   protected override getSigningKey(): ValueOrPromise<Uint8Array | CryptoKey> {
     if (!this.privateKey) {
       throw getError({ message: '[getSigningKey] Invalid privateKey!' });
@@ -191,7 +185,6 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     return this.options.getTokenExpiresFn;
   }
 
-  // --------------------------------------------------------------------------------------
   getJWKS(): { keys: JWK[] } {
     if (!this.jwks) {
       throw getError({

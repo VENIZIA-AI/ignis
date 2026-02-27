@@ -1,6 +1,5 @@
 import { TConstValue } from '@venizia/ignis-helpers';
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthenticateStrategy {
   static readonly BASIC = 'basic';
   static readonly JWT = 'jwt';
@@ -13,7 +12,6 @@ export class AuthenticateStrategy {
 }
 export type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
 
-// --------------------------------------------------------------------------------------------------------
 export class JOSEStandards {
   static readonly JWS = 'JWS';
   static readonly JWKS = 'JWKS';
@@ -27,7 +25,6 @@ export class JOSEStandards {
 
 export type TJOSEStandard = TConstValue<typeof JOSEStandards>;
 
-// --------------------------------------------------------------------------------------------------------
 export class Authentication {
   // Strategy
   static readonly STRATEGY_BASIC = AuthenticateStrategy.BASIC;
@@ -44,14 +41,12 @@ export class Authentication {
   static readonly AUDIT_USER_ID = 'audit.user.id';
 }
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthenticationTokenTypes {
   static readonly TYPE_AUTHORIZATION_CODE = '000_AUTHORIZATION_CODE';
   static readonly TYPE_ACCESS_TOKEN = '100_ACCESS_TOKEN';
   static readonly TYPE_REFRESH_TOKEN = '200_REFRESH_TOKEN';
 }
 
-// --------------------------------------------------------------------------------------------------------
 export class AuthenticationModes {
   static readonly ANY = 'any';
   static readonly ALL = 'all';
@@ -65,7 +60,6 @@ export class AuthenticationModes {
 
 export type TAuthMode = TConstValue<typeof AuthenticationModes>;
 
-// --------------------------------------------------------------------------------------------------------
 export class JWKSModes {
   static readonly ISSUER = 'issuer';
   static readonly VERIFIER = 'verifier';
@@ -79,7 +73,6 @@ export class JWKSModes {
 
 export type TJWKSMode = TConstValue<typeof JWKSModes>;
 
-// --------------------------------------------------------------------------------------------------------
 export class JWKSKeyDrivers {
   static readonly TEXT = 'text';
   static readonly FILE = 'file';
@@ -93,7 +86,6 @@ export class JWKSKeyDrivers {
 
 export type TJWKSKeyDriver = TConstValue<typeof JWKSKeyDrivers>;
 
-// --------------------------------------------------------------------------------------------------------
 export class JWKSKeyFormats {
   static readonly PEM = 'pem';
   static readonly JWK = 'jwk';

@@ -1,14 +1,4 @@
-/**
- * Crypto Algorithms Test Suite
- *
- * Tests all crypto algorithm implementations:
- * 1. BaseCryptoAlgorithm — construction, validation, key normalization, key size parsing
- * 2. AES — encrypt/decrypt for aes-256-cbc and aes-256-gcm, file operations
- * 3. RSA — key pair generation, encrypt/decrypt with DER keys
- * 4. ECDH — key exchange, AES-GCM session encryption via Web Crypto API
- *
- * @module __tests__/crypto/algorithms
- */
+/** Crypto Algorithms Test Suite */
 
 import { describe, test, expect, beforeAll } from 'bun:test';
 import C from 'node:crypto';
@@ -18,24 +8,12 @@ import path from 'node:path';
 import { AES, RSA, ECDH } from '@/modules/crypto/algorithms';
 import type { IECDHEncryptedPayload } from '@/modules/crypto/algorithms';
 
-// =============================================================================
-// Helpers
-// =============================================================================
-
 const SECRET_32 = 'abcdefghijklmnopqrstuvwxyz012345'; // exactly 32 chars
 const SECRET_SHORT = 'short';
 const SECRET_LONG = 'this-secret-is-longer-than-thirty-two-characters-definitely';
 
-// =============================================================================
-// BaseCryptoAlgorithm (tested through AES since it's abstract)
-// =============================================================================
-
 describe('Crypto Algorithms', () => {
   describe('BaseCryptoAlgorithm', () => {
-    // -------------------------------------------------------------------------
-    // Construction & Validation
-    // -------------------------------------------------------------------------
-
     describe('Construction & Validation', () => {
       test('TC-001: should construct with valid algorithm name', () => {
         const aes = AES.withAlgorithm('aes-256-cbc');
@@ -52,10 +30,6 @@ describe('Crypto Algorithms', () => {
         expect(() => new AES({ algorithm: '' as any })).toThrow();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // normalizeSecretKey
-    // -------------------------------------------------------------------------
 
     describe('normalizeSecretKey', () => {
       let aes: AES;
@@ -93,10 +67,6 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // getAlgorithmKeySize
-    // -------------------------------------------------------------------------
-
     describe('getAlgorithmKeySize', () => {
       test('TC-009: should parse 256-bit key size from aes-256-cbc', () => {
         const aes = AES.withAlgorithm('aes-256-cbc');
@@ -110,15 +80,7 @@ describe('Crypto Algorithms', () => {
     });
   });
 
-  // ===========================================================================
-  // AES
-  // ===========================================================================
-
   describe('AES', () => {
-    // -------------------------------------------------------------------------
-    // Factory
-    // -------------------------------------------------------------------------
-
     describe('Factory', () => {
       test('TC-011: withAlgorithm should create aes-256-cbc instance', () => {
         const aes = AES.withAlgorithm('aes-256-cbc');
@@ -132,10 +94,6 @@ describe('Crypto Algorithms', () => {
         expect(aes.algorithm).toBe('aes-256-gcm');
       });
     });
-
-    // -------------------------------------------------------------------------
-    // AES-256-CBC
-    // -------------------------------------------------------------------------
 
     describe('AES-256-CBC', () => {
       let aes: AES;
@@ -255,10 +213,6 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // AES-256-GCM
-    // -------------------------------------------------------------------------
-
     describe('AES-256-GCM', () => {
       let aes: AES;
 
@@ -359,10 +313,6 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Cross-algorithm isolation
-    // -------------------------------------------------------------------------
-
     describe('Cross-algorithm Isolation', () => {
       test('TC-037: CBC ciphertext cannot be decrypted by GCM', () => {
         const cbc = AES.withAlgorithm('aes-256-cbc');
@@ -380,10 +330,6 @@ describe('Crypto Algorithms', () => {
         expect(() => cbc.decrypt({ message: encrypted, secret: SECRET_32 })).toThrow();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // File Operations
-    // -------------------------------------------------------------------------
 
     describe('File Operations', () => {
       let aes: AES;
@@ -436,10 +382,6 @@ describe('Crypto Algorithms', () => {
     });
   });
 
-  // ===========================================================================
-  // RSA
-  // ===========================================================================
-
   describe('RSA', () => {
     let rsa: RSA;
     let keyPair: { publicKey: Buffer; privateKey: Buffer };
@@ -448,10 +390,6 @@ describe('Crypto Algorithms', () => {
       rsa = RSA.withAlgorithm();
       keyPair = rsa.generateDERKeyPair();
     });
-
-    // -------------------------------------------------------------------------
-    // Factory & Key Generation
-    // -------------------------------------------------------------------------
 
     describe('Factory & Key Generation', () => {
       test('TC-043: withAlgorithm creates RSA instance', () => {
@@ -484,10 +422,6 @@ describe('Crypto Algorithms', () => {
         expect(keys2.privateKey.equals(keyPair.privateKey)).toBe(false);
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Encrypt / Decrypt
-    // -------------------------------------------------------------------------
 
     describe('Encrypt / Decrypt', () => {
       let pubKeyB64: string;
@@ -589,15 +523,7 @@ describe('Crypto Algorithms', () => {
     });
   });
 
-  // ===========================================================================
-  // ECDH
-  // ===========================================================================
-
   describe('ECDH', () => {
-    // -------------------------------------------------------------------------
-    // Factory
-    // -------------------------------------------------------------------------
-
     describe('Factory', () => {
       test('TC-058: withAlgorithm creates ECDH instance with default options', () => {
         const ecdh = ECDH.withAlgorithm();
@@ -616,10 +542,6 @@ describe('Crypto Algorithms', () => {
         expect(ecdh.algorithm).toBe('ecdh-p256');
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Key Generation
-    // -------------------------------------------------------------------------
 
     describe('Key Generation', () => {
       let ecdh: ECDH;
@@ -651,10 +573,6 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Key Import
-    // -------------------------------------------------------------------------
-
     describe('Key Import', () => {
       let ecdh: ECDH;
 
@@ -673,10 +591,6 @@ describe('Crypto Algorithms', () => {
         expect(ecdh.importPublicKey({ rawKeyB64: 'not-valid-key' })).rejects.toThrow();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Key Derivation
-    // -------------------------------------------------------------------------
 
     describe('Key Derivation', () => {
       let ecdh: ECDH;
@@ -725,10 +639,6 @@ describe('Crypto Algorithms', () => {
         expect(decrypted).toBe(plaintext);
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Encrypt / Decrypt
-    // -------------------------------------------------------------------------
 
     describe('Encrypt / Decrypt', () => {
       let ecdh: ECDH;
@@ -828,10 +738,6 @@ describe('Crypto Algorithms', () => {
         expect(JSON.parse(decrypted)).toEqual(JSON.parse(payload));
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Full Key Exchange Flow (Alice ↔ Bob)
-    // -------------------------------------------------------------------------
 
     describe('Full Key Exchange Flow', () => {
       test('TC-077: complete Alice→Bob key exchange and bidirectional messaging', async () => {
@@ -934,10 +840,6 @@ describe('Crypto Algorithms', () => {
       });
     });
 
-    // -------------------------------------------------------------------------
-    // Salt-based Key Derivation
-    // -------------------------------------------------------------------------
-
     describe('Salt-based Key Derivation', () => {
       let ecdh: ECDH;
 
@@ -989,10 +891,6 @@ describe('Crypto Algorithms', () => {
         expect(ecdh.decrypt({ message: encrypted, secret: key2 })).rejects.toThrow();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // AAD (Additional Authenticated Data)
-    // -------------------------------------------------------------------------
 
     describe('AAD (Additional Authenticated Data)', () => {
       let ecdh: ECDH;
@@ -1048,10 +946,6 @@ describe('Crypto Algorithms', () => {
         ).rejects.toThrow();
       });
     });
-
-    // -------------------------------------------------------------------------
-    // Base64 Validation & IV Tampering
-    // -------------------------------------------------------------------------
 
     describe('Input Validation', () => {
       let ecdh: ECDH;

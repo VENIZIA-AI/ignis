@@ -4,27 +4,11 @@ import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types
 import { Container } from '@/helpers/inversion';
 import { createFreshRegistry } from './helpers';
 
-// =============================================================================
-// 7. Component Lifecycle Tests
-// =============================================================================
-
 describe('AuthorizeComponent Lifecycle', () => {
-  // These tests verify AuthorizeComponent.binding() behavior.
-  // We test the component logic without a full BaseApplication by examining
-  // how it interacts with the container/options.
-
-  // AuthorizeComponent's constructor requires @inject(CoreBindings.APPLICATION_INSTANCE)
-  // which is normally resolved by DI. We test the logic at the enforcer registry level
-  // since the component delegates to it.
-
   describe('component with no options', () => {
     test('should have empty registry when no enforcers are registered', () => {
-      // The component now throws when no options are bound (resolveOptions).
-      // This test verifies the registry starts empty after reset.
-
       const registry = createFreshRegistry();
 
-      // Access private enforcers map to verify it's empty
       const enforcersMap = (registry as any).descriptors as Map<string, any>;
       expect(enforcersMap.size).toBe(0);
     });
@@ -43,7 +27,6 @@ describe('AuthorizeComponent Lifecycle', () => {
         .bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS })
         .toValue(authorizeOptions);
 
-      // Simulate the component binding alwaysAllowRoles
       if (authorizeOptions.alwaysAllowRoles?.length) {
         container
           .bind<string[]>({ key: AuthorizeBindingKeys.ALWAYS_ALLOW_ROLES })
@@ -69,7 +52,6 @@ describe('AuthorizeComponent Lifecycle', () => {
         normalizePayloadFn,
       };
 
-      // Enforcer options are now bound to a per-enforcer key
       container
         .bind({ key: AuthorizeBindingKeys.enforcerOptions('casbin') })
         .toValue(enforcerOptions);

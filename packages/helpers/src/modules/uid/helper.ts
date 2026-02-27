@@ -38,41 +38,7 @@ export interface ISnowflakeParsedId {
   sequence: number;
 }
 
-/**
- * Snowflake ID Generator with Base62 Encoding
- *
- * Generates unique, time-sortable IDs suitable for distributed systems.
- * Output is Base62 encoded to fit within 15 characters limit.
- *
- * @example
- * ```typescript
- * // Initialize with defaults (workerId: 199, epoch: 2025-01-01 00:00:00 UTC)
- * const generator = new SnowflakeUidHelper();
- *
- * // Or with custom values
- * const customGenerator = new SnowflakeUidHelper({
- *   workerId: 123,
- *   epoch: BigInt(1735689600000),
- * });
- *
- * // Generate transaction number
- * const txnNumber = generator.nextId(); // e.g., "9du1sJXO88"
- *
- * // Generate raw snowflake (bigint)
- * const snowflakeId = generator.nextSnowflake(); // e.g., 130546360012247045n
- * ```
- *
- * @description
- * Snowflake ID Structure (70 bits):
- * - 48 bits: timestamp in ms since epoch (2025-01-01) - ~8,919 years
- * - 10 bits: worker ID - 1024 unique workers
- * - 12 bits: sequence number - 4096 IDs per ms per worker
- *
- * Base62 Output: 10-12 chars (max 12 chars, within 15-char limit)
- * Throughput: 4,096,000 IDs/second/worker
- * Max workers: 1024
- * Lifespan: Until ~10,944 AD
- */
+/** Snowflake ID generator with Base62 encoding for distributed, time-sortable unique IDs. */
 export class SnowflakeUidHelper extends BaseHelper {
   private readonly workerId: bigint;
   private readonly epoch: bigint;
@@ -101,30 +67,22 @@ export class SnowflakeUidHelper extends BaseHelper {
       );
   }
 
-  /**
-   * Generate next unique ID as Base62 string
-   * @returns Base62 encoded ID (max 12 chars, fits 15 char limit)
-   */
+  /** Generate next unique ID as Base62 string. */
   nextId(): string {
     const snowflake = this.nextSnowflake();
     return this.encodeBase62(snowflake);
   }
 
-  /**
-   * Generate next unique ID as raw Snowflake bigint
-   * @returns 70-bit Snowflake ID
-   */
+  /** Generate next unique ID as raw Snowflake bigint. */
   nextSnowflake(): bigint {
     let timestamp = this.currentTimestamp();
 
-    // Handle clock going backward
     if (timestamp < this.lastTimestamp) {
       const diff = this.lastTimestamp - timestamp;
       this.logger
         .for(this.nextSnowflake.name)
         .warn('Clock moved backward | diff: %d ms', Number(diff));
 
-      // Wait for clock to catch up (max 100ms)
       if (diff <= SnowflakeConfig.MAX_CLOCK_BACKWARD_MS) {
         timestamp = this.waitForNextMs(this.lastTimestamp);
       } else {
@@ -135,25 +93,20 @@ export class SnowflakeUidHelper extends BaseHelper {
       }
     }
 
-    // Same millisecond - increment sequence
     if (timestamp === this.lastTimestamp) {
       this.sequence = (this.sequence + BigInt(1)) & SnowflakeConfig.MAX_SEQUENCE;
 
-      // Sequence exhausted for this millisecond
       if (this.sequence === BigInt(0)) {
         timestamp = this.waitForNextMs(timestamp);
       }
     } else {
-      // New millisecond - reset sequence
       this.sequence = BigInt(0);
     }
 
     this.lastTimestamp = timestamp;
 
-    // Check for approaching sequence expiry (10 years before end)
     this.checkExpiryWarning(timestamp);
 
-    // Compose the 70-bit ID
     const id =
       ((timestamp - this.epoch) << SnowflakeConfig.TIMESTAMP_SHIFT) |
       (this.workerId << SnowflakeConfig.WORKER_ID_SHIFT) |
@@ -162,9 +115,7 @@ export class SnowflakeUidHelper extends BaseHelper {
     return id;
   }
 
-  /**
-   * Encode a bigint to Base62 string
-   */
+  /** Encode a bigint to Base62 string. */
   encodeBase62(num: bigint): string {
     if (num === BigInt(0)) {
       return BASE62_CHARS[0];
@@ -183,9 +134,7 @@ export class SnowflakeUidHelper extends BaseHelper {
     return result;
   }
 
-  /**
-   * Decode a Base62 string to bigint
-   */
+  /** Decode a Base62 string to bigint. */
   decodeBase62(str: string): bigint {
     let result = BigInt(0);
     const base = BigInt(BASE62_CHARS.length);
@@ -204,34 +153,25 @@ export class SnowflakeUidHelper extends BaseHelper {
     return result;
   }
 
-  /**
-   * Extract timestamp from a Snowflake ID
-   * @returns Date when the ID was generated
-   */
+  /** Extract timestamp from a Snowflake ID. */
   extractTimestamp(id: bigint): Date {
     const timestamp = (id >> SnowflakeConfig.TIMESTAMP_SHIFT) + this.epoch;
     return new Date(Number(timestamp));
   }
 
-  /**
-   * Extract worker ID from a Snowflake ID
-   */
+  /** Extract worker ID from a Snowflake ID. */
   extractWorkerId(id: bigint): number {
     const extractedWorkerId =
       (id >> SnowflakeConfig.WORKER_ID_SHIFT) & SnowflakeConfig.MAX_WORKER_ID;
     return Number(extractedWorkerId);
   }
 
-  /**
-   * Extract sequence from a Snowflake ID
-   */
+  /** Extract sequence from a Snowflake ID. */
   extractSequence(id: bigint): number {
     return Number(id & SnowflakeConfig.MAX_SEQUENCE);
   }
 
-  /**
-   * Parse a Base62 ID and extract its components
-   */
+  /** Parse a Base62 ID and extract its components. */
   parseId(base62Id: string): ISnowflakeParsedId {
     const raw = this.decodeBase62(base62Id);
     return {
@@ -242,9 +182,7 @@ export class SnowflakeUidHelper extends BaseHelper {
     };
   }
 
-  /**
-   * Get current worker ID
-   */
+  /** Get current worker ID. */
   getWorkerId(): number {
     return Number(this.workerId);
   }

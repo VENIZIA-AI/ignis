@@ -11,7 +11,6 @@ const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? './';
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
 const LOGGER_FORMAT = process.env.APP_ENV_LOGGER_FORMAT ?? 'text';
 
-// File rotation defaults (can be overridden via env or options)
 const LOGGER_FILE_FREQUENCY = process.env.APP_ENV_LOGGER_FILE_FREQUENCY ?? '1h';
 const LOGGER_FILE_MAX_SIZE = process.env.APP_ENV_LOGGER_FILE_MAX_SIZE ?? '100m';
 const LOGGER_FILE_MAX_FILES = process.env.APP_ENV_LOGGER_FILE_MAX_FILES ?? '5d';
@@ -19,7 +18,6 @@ const LOGGER_FILE_DATE_PATTERN = process.env.APP_ENV_LOGGER_FILE_DATE_PATTERN ??
 
 const f = winston.format;
 
-// -------------------------------------------------------------------------------------------
 export class LoggerFormats {
   static readonly JSON = 'json';
   static readonly TEXT = 'text';
@@ -33,7 +31,6 @@ export class LoggerFormats {
 
 export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
 
-// -------------------------------------------------------------------------------------------
 export const defineJsonLoggerFormatter = (opts: { label: string }) => {
   return f.combine(
     f.label({ label: opts.label }),
@@ -45,7 +42,6 @@ export const defineJsonLoggerFormatter = (opts: { label: string }) => {
   );
 };
 
-// -------------------------------------------------------------------------------------------
 export const definePrettyLoggerFormatter = (opts: { label: string }) => {
   return f.combine(
     f.simple(),
@@ -61,7 +57,6 @@ export const definePrettyLoggerFormatter = (opts: { label: string }) => {
   );
 };
 
-// -------------------------------------------------------------------------------------------
 export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat }) => {
   const format = opts.format ?? (LOGGER_FORMAT as TLoggerFormat);
 
@@ -80,10 +75,8 @@ export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat
   }
 };
 
-// -------------------------------------------------------------------------------------------
 export const applicationLogFormatter = defineLogFormatter({ label: LOGGER_PREFIX });
 
-// -------------------------------------------------------------------------------------------
 export interface IFileTransportOptions {
   prefix: string;
   folder: string;
@@ -146,7 +139,6 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     exception: [consoleLogTransport],
   };
 
-  // File configure
   if (infoTransportOptions.file) {
     const fileOpts = infoTransportOptions.file;
     const transport = new winston.transports.DailyRotateFile({
@@ -176,7 +168,6 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     transports.exception.push(transport);
   }
 
-  // Stream configure
   if (infoTransportOptions.dgram) {
     const transport = DgramTransport.fromPartial(infoTransportOptions.dgram);
     if (transport) {
@@ -191,10 +182,8 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     }
   }
 
-  // Color configure
   winston.addColors(logColors);
 
-  // Logger
   return winston.createLogger({
     levels: logLevels,
     format: loggerFormatter,
@@ -204,7 +193,6 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
   });
 };
 
-// -------------------------------------------------------------------------------------------
 const fileOptions = { folder: LOGGER_FOLDER_PATH, prefix: LOGGER_PREFIX };
 const dgramOptions: Partial<IDgramTransportOptions> = {
   socketOptions: { type: 'udp4' },
@@ -214,7 +202,6 @@ const dgramOptions: Partial<IDgramTransportOptions> = {
   levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map(el => el.trim()) ?? [],
 };
 
-// -------------------------------------------------------------------------------------------
 export const applicationLogger = defineCustomLogger({
   transports: {
     info: { file: fileOptions, dgram: dgramOptions },

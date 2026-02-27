@@ -164,7 +164,6 @@ export class KafkaConsumerHelper<
       .for(this.start.name)
       .info('Consumer started | Topics: %j | ID: %s', this.topics, this.identifier);
 
-    // Fire-and-forget async consume loop
     // eslint-disable-next-line no-void
     void this.consumeLoop();
   }

@@ -19,14 +19,10 @@ interface ISearchOptions {
   limit?: number;
 }
 
-// --------------------------------------------------------------------------------------------------
 export class DocsHelper {
   private static _docs: IDoc[] = [];
   private static _fuse: Fuse<IDoc> | null = null;
 
-  /**
-   * Loads and caches documentation from the wiki.
-   */
   static async load(): Promise<IDoc[]> {
     if (this._docs.length > 0) {
       return this._docs;
@@ -76,18 +72,12 @@ export class DocsHelper {
     }
   }
 
-  /**
-   * Clears the documentation cache.
-   */
   static clearCache(): void {
     this._docs = [];
     this._fuse = null;
     Logger.debug('Documentation cache cleared');
   }
 
-  /**
-   * Generates a smart snippet from content.
-   */
   private static generateSnippet(opts: { content: string; maxLength?: number }): string {
     const { content, maxLength = MCPConfigs.search.snippetLength } = opts;
     if (content.length <= maxLength) {
@@ -100,9 +90,6 @@ export class DocsHelper {
     return (lastSpace > 0 ? trimmed.substring(0, lastSpace) : trimmed) + '...';
   }
 
-  /**
-   * Searches the loaded documentation.
-   */
   static async searchDocuments(opts: ISearchOptions) {
     if (!this._fuse) {
       await this.load();
@@ -124,9 +111,6 @@ export class DocsHelper {
     }));
   }
 
-  /**
-   * Gets the full content of a specific document.
-   */
   static async getDocumentContent(opts: { id: string }): Promise<string | null> {
     if (this._docs.length === 0) {
       await this.load();
@@ -139,9 +123,6 @@ export class DocsHelper {
     return null;
   }
 
-  /**
-   * Lists all available documentation files.
-   */
   static async listDocumentFiles(opts: { category?: string }) {
     if (this._docs.length === 0) {
       await this.load();
@@ -158,9 +139,6 @@ export class DocsHelper {
     }));
   }
 
-  /**
-   * Lists all unique categories in the documentation.
-   */
   static async listCategories(): Promise<string[]> {
     if (this._docs.length === 0) {
       await this.load();
@@ -170,9 +148,6 @@ export class DocsHelper {
     return Array.from(categories).sort();
   }
 
-  /**
-   * Gets metadata about a specific document.
-   */
   static async getDocumentMetadata(opts: { id: string }) {
     if (this._docs.length === 0) {
       await this.load();

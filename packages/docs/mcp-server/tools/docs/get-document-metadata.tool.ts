@@ -3,10 +3,6 @@ import { z } from 'zod';
 import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
 
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
-
 const TOOL_DESCRIPTION = `
 Retrieves statistical metadata about a specific Ignis Framework documentation file
 without fetching its full content.
@@ -69,10 +65,6 @@ IMPORTANT:
 - Invalid IDs return an error object
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({
   id: z.string().min(1).describe(ID_DESCRIPTION),
 });
@@ -97,10 +89,6 @@ const OutputSchema = z.object({
   size: z.number().int().optional().describe('File size in bytes. May be undefined.'),
   error: z.string().optional().describe('Error message if document not found.'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class GetDocMetadataTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'getDocumentMetadata';

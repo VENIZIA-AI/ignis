@@ -1,7 +1,6 @@
 import { AnyType, ValueOrPromise } from '@/common/types';
 import { MessagePort, Transferable, Worker, WorkerOptions } from 'node:worker_threads';
 
-// -------------------------------------------------------------------------------------------
 export interface IWorker<MessageType> {
   worker: Worker;
   options: WorkerOptions;
@@ -13,7 +12,6 @@ export interface IWorker<MessageType> {
   onMessageError(opts: { error: Error }): ValueOrPromise<void>;
 }
 
-// -------------------------------------------------------------------------------------------
 export interface IWorkerThread {
   buses: {
     [workerKey: string | symbol]: IWorkerBus<AnyType, AnyType>;

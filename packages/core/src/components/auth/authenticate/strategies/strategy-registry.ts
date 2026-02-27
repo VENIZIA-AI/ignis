@@ -3,14 +3,11 @@ import { TClass } from '@venizia/ignis-helpers';
 import { AbstractAuthRegistry } from '../../base';
 import { Authentication, IAuthenticationStrategy } from '../common';
 
-// -----------------------------------------------------------------------------------------------------
 // Authentication Strategy Registry — manages strategy registration and resolution
-// -----------------------------------------------------------------------------------------------------
 
 export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthenticationStrategy> {
   private static instance: AuthenticationStrategyRegistry;
 
-  // ---------------------------------------------------------------------------
   constructor() {
     super({ scope: AuthenticationStrategyRegistry.name });
   }
@@ -23,12 +20,10 @@ export class AuthenticationStrategyRegistry extends AbstractAuthRegistry<IAuthen
     return AuthenticationStrategyRegistry.instance;
   }
 
-  // ---------------------------------------------------------------------------
   protected getBindingPrefix(): string {
     return Authentication.AUTHENTICATION_STRATEGY;
   }
 
-  // ---------------------------------------------------------------------------
   register(opts: {
     container: Container;
     strategies: { strategy: TClass<IAuthenticationStrategy>; name: string }[];

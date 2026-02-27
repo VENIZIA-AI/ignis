@@ -25,37 +25,28 @@ const CLIENT_PING_INTERVAL = 30_000;
 
 type TRedisClient = Redis | Cluster;
 
-// -------------------------------------------------------------------------------------------------------------
 export class SocketIOServerHelper extends BaseHelper {
-  // --- Runtime & Server ---
   private runtime: TRuntimeModule;
   private server?: HTTPServer;
   private bunEngine?: any;
   private serverOptions: Partial<ServerOptions> = {};
 
-  // --- Socket.IO ---
   private io: IOServer;
   private emitter: Emitter;
   private clients: Map<string, ISocketIOClient> = new Map();
 
-  // --- Redis ---
   private redisPub: TRedisClient;
   private redisSub: TRedisClient;
   private redisEmitter: TRedisClient;
 
-  // --- Callbacks ---
   private authenticateFn: TSocketIOAuthenticateFn;
   private validateRoomFn?: TSocketIOValidateRoomFn;
   private onClientConnected?: TSocketIOClientConnectedFn;
 
-  // --- Options ---
   private authenticateTimeout: number;
   private pingInterval: number;
   private defaultRooms: string[];
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Constructor
-  // -------------------------------------------------------------------------------------------------------------
   constructor(opts: TSocketIOServerOptions) {
     super({ scope: opts.identifier });
 
@@ -124,9 +115,6 @@ export class SocketIOServerHelper extends BaseHelper {
     this.redisEmitter = client.duplicate();
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Public Accessors
-  // -------------------------------------------------------------------------------------------------------------
   getIOServer(): IOServer {
     return this.io;
   }
@@ -170,9 +158,6 @@ export class SocketIOServerHelper extends BaseHelper {
     this.io.on(topic, handler);
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Configuration
-  // -------------------------------------------------------------------------------------------------------------
   private waitForRedisReady(client: TRedisClient): Promise<void> {
     return new Promise((resolve, reject) => {
       if (client.status === 'ready') {
@@ -189,7 +174,6 @@ export class SocketIOServerHelper extends BaseHelper {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);
 
-    // Register error handlers before awaiting readiness
     this.redisPub.on('error', (error: Error) => {
       logger.error('Redis adapter pub error | error: %j', error);
     });
@@ -207,7 +191,6 @@ export class SocketIOServerHelper extends BaseHelper {
       }
     }
 
-    // Wait for all Redis connections to be ready
     await Promise.all([
       this.waitForRedisReady(this.redisPub),
       this.waitForRedisReady(this.redisSub),
@@ -215,17 +198,14 @@ export class SocketIOServerHelper extends BaseHelper {
     ]);
     logger.info('All Redis connections ready');
 
-    // Initialize IO server based on runtime
     this.initIOServer();
 
-    // Setup Redis adapter & emitter
     this.io.adapter(createAdapter(this.redisPub, this.redisSub));
     logger.info('SocketIO Server initialized Redis Adapter');
 
     this.emitter = new Emitter(this.redisEmitter);
     logger.info('SocketIO Server initialized Redis Emitter');
 
-    // Register connection handler
     this.io.on(SocketIOConstants.EVENT_CONNECT, (socket: IOSocket) => {
       this.onClientConnect({ socket });
     });
@@ -269,9 +249,6 @@ export class SocketIOServerHelper extends BaseHelper {
     }
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Connection Lifecycle
-  // -------------------------------------------------------------------------------------------------------------
   onClientConnect(opts: { socket: IOSocket }) {
     const logger = this.logger.for(this.onClientConnect.name);
     const { socket } = opts;
@@ -289,7 +266,6 @@ export class SocketIOServerHelper extends BaseHelper {
 
     logger.info('New connection request | id: %s', id);
 
-    // Create client entry with auth timeout
     const client: ISocketIOClient = {
       id,
       socket,
@@ -304,12 +280,10 @@ export class SocketIOServerHelper extends BaseHelper {
     };
     this.clients.set(id, client);
 
-    // Register disconnect handler immediately
     socket.on(SocketIOConstants.EVENT_DISCONNECT, () => {
       this.disconnect({ socket });
     });
 
-    // Register authentication handler
     this.registerAuthHandler({ socket, handshake, clientId: id });
   }
 
@@ -349,7 +323,6 @@ export class SocketIOServerHelper extends BaseHelper {
             return;
           }
 
-          // Authentication failed
           const failedClient = this.clients.get(id);
           if (failedClient) {
             failedClient.state = SocketIOClientStates.UNAUTHORIZED;
@@ -423,7 +396,6 @@ export class SocketIOServerHelper extends BaseHelper {
       new Date().toISOString(),
     );
 
-    // Join default rooms
     Promise.all(this.defaultRooms.map((room: string) => Promise.resolve(socket.join(room))))
       .then(() => {
         logger.info('Joined default rooms | id: %s | rooms: %s', id, this.defaultRooms);
@@ -437,15 +409,12 @@ export class SocketIOServerHelper extends BaseHelper {
         );
       });
 
-    // Register room handlers
     this.registerRoomHandlers({ socket, clientId: id });
 
-    // Start ping interval
     client.interval = setInterval(() => {
       this.ping({ socket, doIgnoreAuth: true });
     }, this.pingInterval);
 
-    // Notify client
     this.send({
       destination: socket.id,
       payload: {
@@ -457,7 +426,6 @@ export class SocketIOServerHelper extends BaseHelper {
       },
     });
 
-    // Invoke user callback
     this.onClientConnected?.({ socket })
       ?.then(() => {})
       .catch(error => {
@@ -468,7 +436,6 @@ export class SocketIOServerHelper extends BaseHelper {
   private registerRoomHandlers(opts: { socket: IOSocket; clientId: string }) {
     const { socket, clientId: id } = opts;
 
-    // Join rooms
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
     socket.on(SocketIOConstants.EVENT_JOIN, (payload: any) => {
       const { rooms = [] } = payload || { rooms: [] };
@@ -514,7 +481,6 @@ export class SocketIOServerHelper extends BaseHelper {
         });
     });
 
-    // Leave rooms
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
     socket.on(SocketIOConstants.EVENT_LEAVE, (payload: any) => {
       const { rooms = [] } = payload || { rooms: [] };
@@ -539,9 +505,6 @@ export class SocketIOServerHelper extends BaseHelper {
     });
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Client Actions
-  // -------------------------------------------------------------------------------------------------------------
   ping(opts: { socket: IOSocket; doIgnoreAuth: boolean }) {
     const logger = this.logger.for(this.ping.name);
     const { socket, doIgnoreAuth } = opts;
@@ -593,9 +556,6 @@ export class SocketIOServerHelper extends BaseHelper {
     socket.disconnect();
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Messaging
-  // -------------------------------------------------------------------------------------------------------------
   send(opts: {
     destination?: string;
     payload: { topic: string; data: any };
@@ -636,9 +596,6 @@ export class SocketIOServerHelper extends BaseHelper {
     }
   }
 
-  // -------------------------------------------------------------------------------------------------------------
-  // Shutdown
-  // -------------------------------------------------------------------------------------------------------------
   private close() {
     return new Promise<void>((resolve, reject) => {
       this.io.close(err => {
@@ -655,7 +612,6 @@ export class SocketIOServerHelper extends BaseHelper {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down SocketIO server...');
 
-    // Disconnect all clients
     for (const [, client] of this.clients) {
       if (client.interval) {
         clearInterval(client.interval);
@@ -669,10 +625,8 @@ export class SocketIOServerHelper extends BaseHelper {
     }
     this.clients.clear();
 
-    // Close IO server
     await this.close();
 
-    // Cleanup Redis connections
     await Promise.all([this.redisPub?.quit(), this.redisSub?.quit(), this.redisEmitter?.quit()]);
 
     logger.info('SocketIO server shutdown complete');

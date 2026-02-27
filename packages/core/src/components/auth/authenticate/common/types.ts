@@ -13,7 +13,6 @@ import {
   JWKSModes,
 } from './constants';
 
-// --------------------------------------------------------------------------------------------------------
 export type TDefineAuthControllerOpts = {
   restPath?: string;
   serviceKey: string;
@@ -50,9 +49,6 @@ export interface IJWSTokenServiceOptions {
   applicationSecret?: string;
 }
 
-// --------------------------------------------------------------------------------------------------------
-// JWKS Options (Asymmetric JWT)
-// --------------------------------------------------------------------------------------------------------
 export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
 
 export interface IJWKSIssuerOptions {
@@ -82,51 +78,23 @@ export interface IJWKSVerifierOptions {
 
 export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
 
-// --------------------------------------------------------------------------------------------------------
-// Discriminated union for JWT_OPTIONS — standard field for clean TypeScript narrowing
-// --------------------------------------------------------------------------------------------------------
-
 export type TJWTTokenServiceOptions =
   | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
   | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
 
 export type TBasicTokenServiceOptions<E extends Env = Env> = {
-  /**
-   * Callback function to verify basic authentication credentials.
-   * Implement this to look up user and verify password.
-   *
-   * @param credentials - The extracted username and password
-   * @param context - The Hono request context (for accessing repos, services, etc.)
-   * @returns IAuthUser if valid, null if invalid
-   *
-   * @example
-   * ```typescript
-   * const verifyCredentials: TBasicAuthVerifyFn = async (creds, ctx) => {
-   *   const user = await userRepo.findByUsername(creds.username);
-   *   if (user && await bcrypt.compare(creds.password, user.passwordHash)) {
-   *     return { userId: user.id, roles: user.roles };
-   *   }
-   *   return null;
-   * };
-   * ```
-   */
+  /** Callback to verify basic auth credentials. Returns IAuthUser if valid, null otherwise. */
   verifyCredentials: (opts: {
     credentials: { username: string; password: string };
     context: TContext<E, string>;
   }) => Promise<IAuthUser | null>;
 };
-
-// --------------------------------------------------------------------------------------------------------
-// Authenticate Options
-// --------------------------------------------------------------------------------------------------------
-
 export interface IAuthenticateOptions {
   restOptions?: TAuthenticationRestOptions;
   jwtOptions?: TJWTTokenServiceOptions;
   basicOptions?: TBasicTokenServiceOptions;
 }
 
-// --------------------------------------------------------------------------------------------------------
 export interface IAuthUser {
   userId: IdType;
   [extra: string | symbol]: any;
@@ -153,16 +121,11 @@ export interface IAuthenticationStrategy<E extends Env = Env> {
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
-// --------------------------------------------------------------------------------------------------------
-// Authenticate Function
-// --------------------------------------------------------------------------------------------------------
-
 export type TAuthenticateFn = (opts: {
   strategies: string[];
   mode?: TAuthMode;
 }) => MiddlewareHandler;
 
-// --------------------------------------------------------------------------------------------------------
 export interface IAuthService<
   E extends Env = Env,
   // SignIn types

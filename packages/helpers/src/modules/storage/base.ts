@@ -5,7 +5,6 @@ import path from 'node:path';
 import { Readable } from 'node:stream';
 import { IBucketInfo, IFileStat, IStorageHelper, IUploadFile, IUploadResult } from './types';
 
-// -------------------------------------------------------------------------
 export abstract class BaseStorageHelper extends BaseHelper implements IStorageHelper {
   protected static MIME_MAP: Record<string, string> = {
     '.png': 'image/png',
@@ -33,13 +32,11 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     super(opts);
   }
 
-  // -------------------------------------------------------------------------
   getMimeType(filename: string): string {
     const ext = path.extname(filename).toLowerCase();
     return BaseStorageHelper.MIME_MAP[ext] || 'application/octet-stream';
   }
 
-  // -------------------------------------------------------------------------
   isValidName(name: string): boolean {
     if (typeof name !== 'string') {
       this.logger.for(this.isValidName.name).error('Invalid name provided: %j', name);
@@ -99,7 +96,6 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return true;
   }
 
-  // -------------------------------------------------------------------------
   getFileType(opts: { mimeType: string }): string {
     const { mimeType } = opts;
     if (mimeType?.toLowerCase()?.startsWith(MimeTypes.IMAGE)) {
@@ -117,7 +113,6 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return MimeTypes.UNKNOWN;
   }
 
-  // -------------------------------------------------------------------------
   abstract isBucketExists(opts: { name: string }): Promise<boolean>;
   abstract getBuckets(): Promise<IBucketInfo[]>;
   abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;

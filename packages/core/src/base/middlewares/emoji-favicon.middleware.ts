@@ -1,13 +1,7 @@
 import type { MiddlewareHandler } from 'hono';
 import { createMiddleware } from 'hono/factory';
 
-/**
- * Creates a middleware that serves an emoji as a favicon.
- *
- * @param opts - Options for the emoji favicon middleware.
- * @param opts.icon - The emoji character to use as the favicon.
- * @returns A `MiddlewareHandler` function.
- */
+/** Serves an emoji as an SVG favicon on /favicon.ico. */
 export const emojiFavicon = (opts: { icon: string }): MiddlewareHandler => {
   const { icon } = opts;
 

@@ -3,10 +3,6 @@ import { z } from 'zod';
 import { BaseTool } from '../base.tool';
 import { GithubHelper, Logger } from '@/mcp-server/helpers';
 
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
-
 const TOOL_DESCRIPTION = `
 Verifies dependencies of a package within the Ignis monorepo against NPM registry.
 
@@ -39,10 +35,6 @@ EXAMPLES:
 - "examples/5-mins-qs"
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const DependencyInfoSchema = z.object({
   name: z.string(),
   currentVersion: z.string(),
@@ -66,10 +58,6 @@ interface INpmRegistryResponse {
   [key: string]: any;
 }
 
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
-
 export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'verifyDependencies';
   readonly description = TOOL_DESCRIPTION;
@@ -91,12 +79,7 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
     }
   }
 
-  /**
-   * Extracts a clean semver version from various version specifiers.
-   * Returns null for non-standard versions that can't be compared.
-   */
   private parseVersion(opts: { version: string }): string | null {
-    // Skip workspace, file, git, and URL references
     if (
       opts.version.startsWith('workspace:') ||
       opts.version.startsWith('file:') ||
@@ -108,11 +91,9 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
       return null;
     }
 
-    // Remove common prefixes: ^, ~, >=, >, <=, <, =
     const cleaned = opts.version.replace(/^[\^~>=<]+/, '').trim();
 
-    // Handle version ranges (e.g., "1.0.0 || 2.0.0", ">=1.0.0 <2.0.0")
-    // Just take the first version-like string
+    // Extract first semver-like string from potentially complex range expressions
     const semverMatch = cleaned.match(/(\d+\.\d+\.\d+(?:-[\w.]+)?)/);
     return semverMatch ? semverMatch[1] : null;
   }
@@ -126,7 +107,6 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
     for (const [name, version] of Object.entries(opts.deps)) {
       const parsedVersion = this.parseVersion({ version });
 
-      // Skip non-standard versions
       if (!parsedVersion) {
         results.push({
           name,
