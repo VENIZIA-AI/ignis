@@ -1,10 +1,28 @@
+<div align="center">
+
 # @venizia/ignis-inversion
 
-[![npm version](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg)](https://www.npmjs.com/package/@venizia/ignis-inversion)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+**Standalone, lightweight DI/IoC container for TypeScript**
 
-A standalone, lightweight **Dependency Injection & Inversion of Control (IoC)** container for TypeScript. Part of the [Ignis Framework](https://github.com/VENIZIA-AI/ignis).
+[![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion)
+[![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+A ~350-line Dependency Injection & Inversion of Control (IoC) container featuring decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, and tag-based discovery. Part of the [Ignis Framework](https://github.com/VENIZIA-AI/ignis).
+
+[Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#container) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
+
+</div>
+
+## Highlights
+
+| | Feature | |
+| :---: | :--- | :--- |
+| **1** | **~350 Lines of Core** | Full IoC container with zero bloat |
+| **2** | **Decorator-Based DI** | `@inject` for constructor and property injection |
+| **3** | **Fluent Binding API** | Chain `.toClass()`, `.toValue()`, `.toProvider()`, `.setScope()` |
+| **4** | **Namespace Auto-Tagging** | `"services.UserService"` auto-tags with `"services"` |
+| **5** | **Zero Framework Lock-in** | Works with any TypeScript project |
 
 ---
 
@@ -14,10 +32,12 @@ Ignis Inversion takes the best ideas from **LoopBack 4**'s IoC system -- decorat
 
 **Why this exists:**
 
-- **LoopBack 4** had the right DI architecture but came bundled with an entire framework (now effectively abandoned)
-- **NestJS** modules add ceremony and indirection when all you need is straightforward DI
-- **InversifyJS** is powerful but heavy for projects that need a simple, fast container
-- **tsyringe** is minimal but lacks fluent configuration, tagging, and property injection
+| Library | Limitation |
+|---------|------------|
+| **LoopBack 4** | Had the right DI architecture but came bundled with an entire framework (now effectively abandoned) |
+| **NestJS** | Modules add ceremony and indirection when all you need is straightforward DI |
+| **InversifyJS** | Powerful but heavy for projects that need a simple, fast container |
+| **tsyringe** | Minimal but lacks fluent configuration, tagging, and property injection |
 
 Ignis Inversion gives you **constructor injection, property injection, singleton/transient scoping, tag-based discovery, and a provider pattern** -- all in a single dependency with no runtime overhead.
 
@@ -376,7 +396,7 @@ class UserService {
 ```
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+|:----------|:-----|:------------|
 | `metadata.scope` | `'singleton' \| 'transient'` | Optional. Default binding scope hint |
 | `metadata.tags` | `Record<string, any>` | Optional. Arbitrary tag metadata |
 
@@ -405,7 +425,7 @@ class OrderService {
 ```
 
 | Parameter | Type | Description |
-|-----------|------|-------------|
+|:----------|:-----|:------------|
 | `opts.key` | `string \| symbol` | The binding key to resolve |
 | `opts.isOptional` | `boolean` | If `true`, returns `undefined` instead of throwing when unbound. Default: `false` |
 | `opts.registry` | `MetadataRegistry` | Optional. Override the default global registry |
@@ -433,7 +453,7 @@ const key = BindingKeys.build({ namespace: 'services', key: 'UserService' });
 **Convention:** `namespace.ClassName`
 
 | Namespace | Usage |
-|-----------|-------|
+|:----------|:------|
 | `controllers` | HTTP controllers |
 | `services` | Business logic services |
 | `repositories` | Data access repositories |
@@ -519,6 +539,8 @@ container.bind({ key: 'services.PaymentService' }).toClass(PaymentService);
 const paymentService = container.get<PaymentService>({ key: 'services.PaymentService' });
 ```
 
+---
+
 ### Property Injection
 
 Property injection assigns dependencies after the constructor completes. Useful for optional dependencies or to avoid long constructor parameter lists.
@@ -541,7 +563,9 @@ class ReportService {
 }
 ```
 
-**Note:** Use the definite assignment assertion (`!`) for required property injections since TypeScript cannot see that the container will assign the value.
+> **Note:** Use the definite assignment assertion (`!`) for required property injections since TypeScript cannot see that the container will assign the value.
+
+---
 
 ### Provider Pattern
 
@@ -581,6 +605,8 @@ container.bind({ key: 'datasources.Pool' }).toProvider(DatabasePoolProvider);
 
 Class providers are instantiated by the container (via `container.instantiate`), so they can themselves use DI if needed.
 
+---
+
 ### Optional Dependencies
 
 Mark a dependency as optional to receive `undefined` instead of an error when the binding does not exist.
@@ -606,10 +632,12 @@ const svc = container.get<MyService>({ key: 'services.MyService' });
 const svc = container.get<MyService>({ key: 'services.MyService', isOptional: true });
 ```
 
+---
+
 ### Singleton vs Transient Scoping
 
 | Scope | Behavior | Use Case |
-|-------|----------|----------|
+|:------|:---------|:---------|
 | `transient` (default) | New instance created on every `get()` call | Stateful per-request services, short-lived objects |
 | `singleton` | Cached after first resolution; same instance returned thereafter | Database pools, configuration, shared utilities |
 
@@ -646,6 +674,8 @@ import { BindingScopes } from '@venizia/ignis-inversion';
 BindingScopes.SINGLETON; // 'singleton'
 BindingScopes.TRANSIENT; // 'transient'
 ```
+
+---
 
 ### Tag-Based Discovery
 
@@ -690,6 +720,8 @@ const binding = container.getBinding({ key: 'services.EmailNotifier' });
 binding?.hasTag('notifiers'); // true
 binding?.getTags();           // ['services', 'notifiers', 'async']
 ```
+
+---
 
 ### Type Guards and Utilities
 
@@ -748,12 +780,14 @@ container.clear();  // Clear singleton caches, keep bindings
 container.reset();  // Remove all bindings
 ```
 
+---
+
 ### clear() vs reset()
 
 These two methods serve very different purposes:
 
 | Method | Bindings | Singleton Caches | Use Case |
-|--------|----------|-----------------|----------|
+|:-------|:---------|:-----------------|:---------|
 | `clear()` | Kept | Cleared | Refresh singleton instances (e.g., reconnect a database pool) without losing the binding configuration |
 | `reset()` | Removed | Removed (implicitly) | Full teardown -- the container returns to an empty state |
 
@@ -843,6 +877,8 @@ container.get({ key: 'services.UserService' })
          +--> Return instance
 ```
 
+---
+
 ### Resolver Types and getValue() Flow
 
 The `getValue()` method on a `Binding` handles three resolver types:
@@ -879,6 +915,8 @@ binding.getValue(container)
 
 The `value` resolver type does not require a container -- it returns the stored value directly.
 
+---
+
 ### Singleton Caching Internals
 
 Singleton caching is handled **per-Binding**, not per-Container. The cached value is stored as a private `cached` property on the `Binding` instance:
@@ -902,7 +940,7 @@ getValue(container?: Container): T {
 }
 ```
 
-**Important:** The cache check uses `this.cached !== undefined`. This means if a singleton resolves to `undefined` or `null`, it will **not** be cached and will be re-resolved on every call. For value bindings that intentionally hold `undefined`, use transient scope or wrap the value.
+> **Important:** The cache check uses `this.cached !== undefined`. This means if a singleton resolves to `undefined` or `null`, it will **not** be cached and will be re-resolved on every call. For value bindings that intentionally hold `undefined`, use transient scope or wrap the value.
 
 **`clearCache()` behavior:**
 
@@ -935,6 +973,8 @@ container.bind({ key: 'services.DatabasePool' }).toProvider((container) => {
 ```
 
 Function providers are called directly -- `provider(container)` -- with no DI on the function itself. They are best for simple factory logic where you just need to read config and create an object.
+
+---
 
 ### Class-Based Providers (IProvider)
 
@@ -977,10 +1017,12 @@ The container detects class-based providers using `isClassProvider()`, which che
 
 The full Ignis framework also provides a `BaseProvider<T>` abstract class (in `@venizia/ignis` core) that extends `BaseHelper` and implements `IProvider<T>`, giving providers access to scoped logging.
 
+---
+
 ### When to Use Each
 
 | Pattern | Use When |
-|---------|----------|
+|:--------|:---------|
 | **Function provider** | Simple factory logic. No need for the provider itself to have injected dependencies. One-liner or few-liner creation. |
 | **Class provider** | The provider needs its own injected dependencies. Complex initialization logic. Reusable across multiple bindings. Testing requires mocking the provider. |
 | **`toClass()`** | The dependency is a straightforward class with `@inject` decorators. No custom factory logic needed. |
@@ -1005,6 +1047,8 @@ console.log(handler1 === handler2); // false -- different instances
 
 Transient bindings never cache. Each resolution triggers the full two-phase instantiation process. This is ideal for per-request objects, short-lived services, or stateful objects where sharing would cause bugs.
 
+---
+
 ### Singleton Behavior
 
 Singleton bindings cache the instance after the first resolution:
@@ -1024,6 +1068,8 @@ console.log(ds1 === ds2); // true -- same instance
 const ds3 = container.get<PostgresDataSource>({ key: 'datasources.Postgres' });
 console.log(ds1 === ds3); // true
 ```
+
+---
 
 ### Cache Management
 
@@ -1289,6 +1335,8 @@ export const inject = (opts: { key: string | symbol; isOptional?: boolean }) => 
 };
 ```
 
+---
+
 ### How Boot Uses Inversion
 
 The boot package uses inversion for auto-discovery of artifacts. All booters use `@inject` for their dependencies:
@@ -1341,6 +1389,8 @@ export const BootMixin = <T extends TMixinTarget<Container>>(baseClass: T) => {
 
 The `Bootstrapper` then discovers booters via `container.findByTag({ tag: 'booter' })` and runs them through their lifecycle phases.
 
+---
+
 ### MetadataRegistry Extension via Mixins
 
 The core package extends the inversion `MetadataRegistry` using mixin composition:
@@ -1390,6 +1440,7 @@ export const MetadataKeys = {
 **Why `Symbol.for()` instead of `Symbol()`:**
 
 `Symbol.for('ignis:properties')` uses the **global Symbol registry**. This means:
+
 1. Any module in any package that calls `Symbol.for('ignis:properties')` gets the **same symbol**.
 2. This is critical for monorepo setups where `@venizia/ignis-inversion` might be resolved from different `node_modules` paths or bundled separately.
 3. Plain `Symbol('ignis:properties')` creates a **unique** symbol each time -- if two copies of the library exist (e.g., different versions), their symbols would not match, and metadata lookups would silently fail.
@@ -1408,7 +1459,7 @@ The `ignis:` prefix acts as a namespace to avoid collisions with other libraries
 - **Singleton resolution (first call):** Same cost as transient -- full two-phase instantiation.
 - **Transient resolution:** Every call pays the full cost: metadata lookup, dependency resolution (potentially recursive), constructor invocation, property assignment.
 
-**Recommendation:** Use singleton for anything stateless or expensive to create (database connections, loggers, configuration parsers). Use transient for per-request state or objects that must not be shared.
+> **Recommendation:** Use singleton for anything stateless or expensive to create (database connections, loggers, configuration parsers). Use transient for per-request state or objects that must not be shared.
 
 ### Metadata Reflection Cost
 
@@ -1426,7 +1477,7 @@ The `ignis:` prefix acts as a namespace to avoid collisions with other libraries
 
 1. **Register datasources as singletons** -- connection pools are expensive and must be shared.
 2. **Register services as singletons if they are stateless** -- avoids repeated instantiation.
-3. **Keep constructor parameter counts reasonable** -- 3-5 parameters is typical. More than 7 is a code smell indicating the class has too many responsibilities.
+3. **Keep constructor parameter counts reasonable** -- 3--5 parameters is typical. More than 7 is a code smell indicating the class has too many responsibilities.
 4. **Prefer constructor injection over property injection** -- it is resolved during instantiation (one pass), while property injection requires an additional metadata lookup pass.
 
 ---
@@ -1799,10 +1850,12 @@ BindingKeys.build({ namespace: 'services', key: '' });
 // throws: ApplicationError { message: '[BindingKeys][build] Invalid key to build | key: ' }
 ```
 
+---
+
 ### Error Catalog
 
 | Scenario | Error Message | Root Cause |
-|----------|---------------|------------|
+|:---------|:--------------|:-----------|
 | Unbound key | `Binding key: {key} is not bounded in context!` | The key was never registered via `bind()` |
 | Class without container | `[getValue] Invalid context/container to instantiate class` | `getValue()` called without passing container |
 | Provider without container | `[getValue] Invalid context/container to get provider value` | `getValue()` called without passing container |
@@ -1811,7 +1864,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 | Invalid decorator usage | `@inject decorator can only be used on class properties or constructor parameters` | Decorator applied to wrong target |
 | Empty binding key build | `[BindingKeys][build] Invalid key to build` | `BindingKeys.build()` called with empty key |
 
-**Note on circular dependencies:** The container does **not** detect circular dependencies at bind-time or resolution-time. If class A depends on class B, and class B depends on class A (both via constructor injection), resolution will enter infinite recursion and crash with a stack overflow. To break circular dependencies, use property injection on one side, or introduce a provider that defers resolution.
+> **Note on circular dependencies:** The container does **not** detect circular dependencies at bind-time or resolution-time. If class A depends on class B, and class B depends on class A (both via constructor injection), resolution will enter infinite recursion and crash with a stack overflow. To break circular dependencies, use property injection on one side, or introduce a provider that defers resolution.
 
 ---
 
@@ -1820,7 +1873,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 ### Container API
 
 | Method | Signature | Description |
-|--------|-----------|-------------|
+|:-------|:----------|:------------|
 | `constructor` | `new Container(opts?: { scope: string })` | Create a new container with optional debug scope |
 | `bind` | `bind<T>(opts: { key: string \| symbol }): Binding<T>` | Create and register a new binding |
 | `get` | `get<T>(opts: { key: string \| symbol \| { namespace, key }, isOptional?: boolean }): T` | Resolve a dependency by key |
@@ -1839,7 +1892,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 ### Binding API
 
 | Method | Signature | Description |
-|--------|-----------|-------------|
+|:-------|:----------|:------------|
 | `constructor` | `new Binding<T>(opts: { key: string })` | Create a binding (prefer `container.bind()`) |
 | `Binding.bind` | `static bind<T>(opts: { key: string }): Binding<T>` | Static factory method |
 | `toClass` | `toClass(value: TClass<T>): this` | Resolve by instantiating a class with DI |
@@ -1857,7 +1910,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 ### MetadataRegistry API
 
 | Method | Signature | Description |
-|--------|-----------|-------------|
+|:-------|:----------|:------------|
 | `define` | `define(opts: { target, key, value }): void` | Store metadata on a target |
 | `get` | `get(opts: { target, key }): Value \| undefined` | Retrieve metadata |
 | `has` | `has(opts: { target, key }): boolean` | Check if metadata exists |
@@ -1876,14 +1929,14 @@ BindingKeys.build({ namespace: 'services', key: '' });
 ### Decorators API
 
 | Decorator | Signature | Description |
-|-----------|-----------|-------------|
+|:----------|:----------|:------------|
 | `@injectable` | `injectable(metadata: IInjectableMetadata, registry?: MetadataRegistry): ClassDecorator` | Mark a class as injectable |
 | `@inject` | `inject(opts: { key: string \| symbol, isOptional?: boolean, registry?: MetadataRegistry })` | Inject a dependency into a constructor parameter or property |
 
 ### Utility Functions
 
 | Function | Signature | Description |
-|----------|-----------|-------------|
+|:---------|:----------|:------------|
 | `isClass` | `isClass<T>(target: any): target is TClass<T>` | Check if a value is a class |
 | `isClassProvider` | `isClassProvider<T>(target: any): target is TClass<IProvider<T>>` | Check if a value is an `IProvider` class |
 | `isClassConstructor` | `isClassConstructor(fn: Function): boolean` | Check if a function is a named class constructor |
@@ -1899,7 +1952,7 @@ BindingKeys.build({ namespace: 'services', key: '' });
 InversifyJS uses similar concepts but with different API shapes. Here is a mapping:
 
 | InversifyJS | Ignis Inversion | Notes |
-|-------------|-----------------|-------|
+|:------------|:----------------|:------|
 | `@injectable()` | `@injectable({})` | Ignis requires an options object (can be empty) |
 | `@inject(TYPES.Logger)` | `@inject({ key: 'services.Logger' })` | Ignis uses options objects, supports string or symbol keys |
 | `container.bind<T>(TYPES.Logger).to(Logger)` | `container.bind({ key: 'services.Logger' }).toClass(Logger)` | Fluent chain on options-based `bind()` |
@@ -1955,12 +2008,14 @@ container.bind({ key: 'services.UserService' }).toClass(UserService);
 const svc = container.get<UserService>({ key: 'services.UserService' });
 ```
 
+---
+
 ### From tsyringe
 
 tsyringe uses a token-based approach with a global container. Here is the mapping:
 
 | tsyringe | Ignis Inversion | Notes |
-|----------|-----------------|-------|
+|:---------|:----------------|:------|
 | `@injectable()` | `@injectable({})` | Similar, options object required |
 | `@inject('token')` | `@inject({ key: 'token' })` | Options object |
 | `container.register('token', { useClass: Cls })` | `container.bind({ key: 'token' }).toClass(Cls)` | Fluent API instead of config object |
@@ -1972,6 +2027,7 @@ tsyringe uses a token-based approach with a global container. Here is the mappin
 | `@injectAll('token')` | `container.findByTag({ tag }).map(b => b.getValue(container))` | Use tag discovery |
 
 **Key differences from tsyringe:**
+
 - Ignis does not have a global container -- you always create explicit `Container` instances.
 - Ignis has no child containers. Each container is independent.
 - Ignis uses namespace-based string keys with auto-tagging, rather than string/symbol tokens.
@@ -1998,16 +2054,21 @@ tsyringe uses a token-based approach with a global container. Here is the mappin
 
 Both are required. `experimentalDecorators` enables decorator syntax, while `emitDecoratorMetadata` causes TypeScript to emit `Reflect.metadata()` calls that store parameter type information.
 
+---
+
 ### Wrong Binding Key Format
 
 **Symptom:** `Binding key: X is not bounded in context!` even though you registered the binding.
 
 **Common causes:**
+
 - Mismatched key strings (typo, different casing).
 - Using `Symbol()` instead of `Symbol.for()` -- each `Symbol()` call creates a unique symbol, so `Symbol('key') !== Symbol('key')`.
 - Registering with `'services.UserService'` but resolving with `'service.UserService'` (missing 's').
 
 **Fix:** Use `container.isBound({ key })` to verify the exact key exists. Consider using `BindingKeys.build()` to construct keys consistently.
+
+---
 
 ### Optional vs Required Dependencies
 
@@ -2020,23 +2081,31 @@ Both are required. `experimentalDecorators` enables decorator syntax, while `emi
 private analytics?: AnalyticsService;
 ```
 
+---
+
 ### Property Injection Not Working
 
 **Symptom:** Property decorated with `@inject` is `undefined` at runtime.
 
 **Possible causes:**
+
 1. Missing `experimentalDecorators` / `emitDecoratorMetadata` in tsconfig.
 2. Accessing the property in the constructor -- property injection happens **after** the constructor runs. If you need the dependency in the constructor, use constructor injection instead.
 3. The class was instantiated with `new MyClass()` instead of `container.get()` or `container.instantiate()`. Manual instantiation bypasses the DI container entirely.
+
+---
 
 ### Singleton Returns Different Instances
 
 **Symptom:** A binding set to `setScope('singleton')` returns different instances.
 
 **Possible causes:**
+
 1. The key string does not match exactly between `bind()` and `get()`.
 2. `container.clear()` was called between resolutions, which wipes all singleton caches.
 3. The binding was `unbind()`-ed and re-`bind()`-ed, creating a new `Binding` instance with no cache.
+
+---
 
 ### Circular Dependencies
 
@@ -2074,6 +2143,8 @@ container.bind({ key: 'A' }).toProvider((container) => {
   return a;
 });
 ```
+
+---
 
 ### Debug Logging
 

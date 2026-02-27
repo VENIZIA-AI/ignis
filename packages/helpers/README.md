@@ -1,10 +1,45 @@
+<div align="center">
+
 # @venizia/ignis-helpers
 
-[![npm version](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg)](https://www.npmjs.com/package/@venizia/ignis-helpers)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+**Production-ready infrastructure utilities for the Ignis Framework**
 
-A production-ready **utility library** for the [Ignis Framework](https://github.com/VENIZIA-AI/ignis) -- providing logging, Redis, queues, storage, cryptography, networking, cron, Socket.IO, WebSocket, UID generation, worker threads, and more. Designed to integrate seamlessly with the Ignis IoC container and follow the options-object pattern used throughout the framework.
+[![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers)
+[![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+
+Logging, Redis, queues (BullMQ/MQTT/Kafka), storage (MinIO/Disk/Memory), cryptography (AES/RSA/ECDH), networking (TCP/TLS/UDP/HTTP), cron, Socket.IO, WebSocket, UID generation, worker threads, and more. Designed to integrate seamlessly with the Ignis IoC container.
+
+[Installation](#installation) &#8226; [Quick Start](#module-overview) &#8226; [API Reference](#logger) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
+
+</div>
+
+## Highlights
+
+| | Feature | |
+| :---: | :--- | :--- |
+| **1** | **14+ Production Modules** | Logger, Redis, Queue, Storage, Crypto, Network, and more |
+| **2** | **Pluggable Architecture** | Install only what you use via optional peer deps |
+| **3** | **Sub-Path Imports** | Tree-shake heavy modules with `@venizia/ignis-helpers/redis` |
+| **4** | **Consistent API** | Every helper extends `BaseHelper` with scoped logging |
+| **5** | **HfLogger** | Zero-allocation ring buffer logger for hot paths (~100-300ns) |
+| **6** | **Snowflake UID** | 70-bit distributed IDs at ~4M/sec/worker |
+
+---
+
+## At a Glance
+
+The 5 most common imports:
+
+```typescript
+import { LoggerFactory } from '@venizia/ignis-helpers';
+import { RedisHelper } from '@venizia/ignis-helpers/redis';
+import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
+import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { CryptoHelper } from '@venizia/ignis-helpers/crypto';
+```
+
+---
 
 ## Table of Contents
 
@@ -93,18 +128,18 @@ bun add @venizia/ignis-helpers
 
 The package has several **optional peer dependencies** that you install only for the modules you need:
 
-| Peer Dependency | Required For | Install |
-|---|---|---|
-| `bullmq` | BullMQ queue/worker | `bun add bullmq` |
-| `cron` | Cron job scheduling | `bun add cron` |
-| `minio` | MinIO/S3 storage | `bun add minio` |
-| `mqtt` | MQTT pub/sub | `bun add mqtt` |
-| `socket.io` | Socket.IO server | `bun add socket.io` |
-| `socket.io-client` | Socket.IO client | `bun add socket.io-client` |
-| `@socket.io/redis-adapter` | Socket.IO Redis adapter | `bun add @socket.io/redis-adapter` |
-| `@socket.io/redis-emitter` | Socket.IO Redis emitter | `bun add @socket.io/redis-emitter` |
-| `axios` | Axios HTTP client | `bun add axios` |
-| `@platformatic/kafka` | Kafka producer/consumer | `bun add @platformatic/kafka` |
+| Peer Dependency                  | Required For                 | Install Command                         |
+| -------------------------------- | ---------------------------- | --------------------------------------- |
+| `bullmq`                        | BullMQ queue/worker          | `bun add bullmq`                       |
+| `cron`                          | Cron job scheduling          | `bun add cron`                          |
+| `minio`                         | MinIO/S3 storage             | `bun add minio`                         |
+| `mqtt`                          | MQTT pub/sub                 | `bun add mqtt`                          |
+| `socket.io`                     | Socket.IO server             | `bun add socket.io`                     |
+| `socket.io-client`              | Socket.IO client             | `bun add socket.io-client`              |
+| `@socket.io/redis-adapter`      | Socket.IO Redis adapter      | `bun add @socket.io/redis-adapter`      |
+| `@socket.io/redis-emitter`      | Socket.IO Redis emitter      | `bun add @socket.io/redis-emitter`      |
+| `axios`                         | Axios HTTP client            | `bun add axios`                         |
+| `@platformatic/kafka`           | Kafka producer/consumer      | `bun add @platformatic/kafka`           |
 
 **Sub-path imports** are available for tree-shaking heavy optional dependencies:
 
@@ -120,46 +155,46 @@ import { KafkaProducerHelper, KafkaConsumerHelper, KafkaAdminHelper } from '@ven
 
 **Core dependencies** (always installed):
 
-| Dependency | Purpose |
-|---|---|
-| `winston` + `winston-daily-rotate-file` + `winston-transport` | Logger transports |
-| `ioredis` | Redis client |
-| `dayjs` | Date/time utilities |
-| `hono` | HTTP framework types, JSX re-exports |
-| `drizzle-orm` | ORM types (used across Ignis) |
-| `lodash` | Utility functions |
-| `reflect-metadata` | Decorator metadata |
-| `@venizia/ignis-inversion` | IoC container, `@inject`/`@injectable` |
+| Dependency                                                    | Purpose                                  |
+| ------------------------------------------------------------- | ---------------------------------------- |
+| `winston` + `winston-daily-rotate-file` + `winston-transport` | Logger transports                        |
+| `ioredis`                                                     | Redis client                             |
+| `dayjs`                                                       | Date/time utilities                      |
+| `hono`                                                        | HTTP framework types, JSX re-exports     |
+| `drizzle-orm`                                                 | ORM types (used across Ignis)            |
+| `lodash`                                                      | Utility functions                        |
+| `reflect-metadata`                                            | Decorator metadata                       |
+| `@venizia/ignis-inversion`                                    | IoC container, `@inject`/`@injectable`   |
 
 ---
 
 ## Module Overview
 
-| Module | Description |
-|--------|-------------|
-| **Logger** | Winston-based logging with daily file rotation, scoped loggers, JSON/text formats, and UDP transport |
-| **HfLogger** | High-frequency zero-allocation ring buffer logger for hot paths (~100-300ns) |
-| **Redis** | Single instance and Cluster support via IoRedis with auto-reconnect, pub/sub, JSON commands, and zlib compression |
-| **Queue (BullMQ)** | Redis-backed distributed job queue with producer/worker roles |
-| **Queue (Internal)** | In-memory generator-based queue with state machine (WAITING/PROCESSING/LOCKED/SETTLED) |
-| **Queue (MQTT)** | MQTT client for IoT and lightweight pub/sub messaging |
-| **Queue (Kafka)** | Kafka producer, consumer, and admin via `@platformatic/kafka` (experimental) |
-| **Storage (MinIO)** | S3-compatible object storage with bucket management and file upload |
-| **Storage (Disk)** | Local filesystem storage with the same `IStorageHelper` interface |
-| **Storage (Memory)** | In-memory key-value storage helper |
-| **Crypto (AES)** | AES-256-CBC and AES-256-GCM encryption/decryption with file support |
-| **Crypto (RSA)** | RSA key pair generation and public/private key encryption |
-| **Crypto (ECDH)** | ECDH P-256 key exchange with HKDF-derived AES-256-GCM (Web Crypto API) |
-| **Cron** | Cron job scheduling with modification and duplication |
-| **Socket.IO** | Socket.IO server and client helpers with Redis adapter, auth flow, and room management |
-| **WebSocket** | Bun-native WebSocket server with Redis pub/sub, encryption support, room/user management |
-| **Network (HTTP)** | HTTP request clients with Axios and native fetch backends |
-| **Network (TCP)** | TCP server and client with TLS support, auth flow, and client state tracking |
-| **Network (UDP)** | UDP client with multicast support |
-| **UID** | Snowflake ID generator (48-10-12 bit layout) with Base62 encoding, ~4M IDs/sec/worker |
-| **Environment** | Environment detection (`NODE_ENV`) and prefixed env var management |
-| **Error** | Standardized `ApplicationError` with status codes and message codes |
-| **Worker Thread** | Worker pool management, worker bus for inter-thread messaging |
+| Module               | Description                                                                                   |
+| -------------------- | --------------------------------------------------------------------------------------------- |
+| **Logger**           | Winston-based logging with daily file rotation, scoped loggers, JSON/text formats, and UDP transport |
+| **HfLogger**         | High-frequency zero-allocation ring buffer logger for hot paths (~100--300ns)                  |
+| **Redis**            | Single instance and Cluster support via IoRedis with auto-reconnect, pub/sub, JSON commands, and zlib compression |
+| **Queue (BullMQ)**   | Redis-backed distributed job queue with producer/worker roles                                 |
+| **Queue (Internal)** | In-memory generator-based queue with state machine (WAITING/PROCESSING/LOCKED/SETTLED)        |
+| **Queue (MQTT)**     | MQTT client for IoT and lightweight pub/sub messaging                                         |
+| **Queue (Kafka)**    | Kafka producer, consumer, and admin via `@platformatic/kafka` (experimental)                  |
+| **Storage (MinIO)**  | S3-compatible object storage with bucket management and file upload                           |
+| **Storage (Disk)**   | Local filesystem storage with the same `IStorageHelper` interface                             |
+| **Storage (Memory)** | In-memory key-value storage helper                                                            |
+| **Crypto (AES)**     | AES-256-CBC and AES-256-GCM encryption/decryption with file support                          |
+| **Crypto (RSA)**     | RSA key pair generation and public/private key encryption                                     |
+| **Crypto (ECDH)**    | ECDH P-256 key exchange with HKDF-derived AES-256-GCM (Web Crypto API)                       |
+| **Cron**             | Cron job scheduling with modification and duplication                                         |
+| **Socket.IO**        | Socket.IO server and client helpers with Redis adapter, auth flow, and room management        |
+| **WebSocket**        | Bun-native WebSocket server with Redis pub/sub, encryption support, room/user management      |
+| **Network (HTTP)**   | HTTP request clients with Axios and native fetch backends                                     |
+| **Network (TCP)**    | TCP server and client with TLS support, auth flow, and client state tracking                  |
+| **Network (UDP)**    | UDP client with multicast support                                                             |
+| **UID**              | Snowflake ID generator (48-10-12 bit layout) with Base62 encoding, ~4M IDs/sec/worker        |
+| **Environment**      | Environment detection (`NODE_ENV`) and prefixed env var management                            |
+| **Error**            | Standardized `ApplicationError` with status codes and message codes                           |
+| **Worker Thread**    | Worker pool management, worker bus for inter-thread messaging                                 |
 
 ---
 
@@ -197,19 +232,20 @@ const customScopedLogger = Logger.get('MyScope', customWinston);
 
 The logger defines a custom level hierarchy. Lower numeric priority means higher severity:
 
-| Level | Priority | Description | Color |
-|-------|----------|-------------|-------|
-| `error` | 0 | Error conditions | Red |
-| `alert` | 0 | Alert conditions | Red |
-| `emerg` | 0 | Emergency conditions | Red |
-| `warn` | 1 | Warning conditions | Yellow |
-| `info` | 2 | Informational messages | Green |
-| `http` | 3 | HTTP request logging | Magenta |
-| `verbose` | 4 | Verbose output | Gray |
-| `debug` | 5 | Debug messages (requires `DEBUG=true`) | Blue |
-| `silly` | 6 | Most verbose | Gray |
+| Level     | Priority | Description              | Color   |
+| --------- | -------- | ------------------------ | ------- |
+| `error`   | 0        | Error conditions         | Red     |
+| `alert`   | 0        | Alert conditions         | Red     |
+| `emerg`   | 0        | Emergency conditions     | Red     |
+| `warn`    | 1        | Warning conditions       | Yellow  |
+| `info`    | 2        | Informational messages   | Green   |
+| `http`    | 3        | HTTP request logging     | Magenta |
+| `verbose` | 4        | Verbose output           | Gray    |
+| `debug`   | 5        | Debug messages (requires `DEBUG=true`) | Blue |
+| `silly`   | 6        | Most verbose             | Gray    |
 
 **Debug level behavior:** The `debug` method is gated at module load time. It only produces output when:
+
 1. `DEBUG` env var is truthy, AND
 2. `NODE_ENV` is one of the common environments (`local`, `debug`, `development`, `alpha`, `beta`, `staging`, `production`) or listed in `APP_ENV_EXTRA_LOG_ENVS`.
 
@@ -336,12 +372,12 @@ Configured per info/error channel. Automatically rotates files based on time and
 ./logs/APP-error-20250101_14.log
 ```
 
-| Option | Default | Description |
-|--------|---------|-------------|
-| `frequency` | `1h` | How often to rotate |
-| `maxSize` | `100m` | Maximum size before forced rotation |
-| `maxFiles` | `5d` | How long to retain rotated files |
-| `datePattern` | `YYYYMMDD_HH` | Date format in rotated filenames |
+| Option        | Default        | Description                              |
+| ------------- | -------------- | ---------------------------------------- |
+| `frequency`   | `1h`           | How often to rotate                      |
+| `maxSize`     | `100m`         | Maximum size before forced rotation      |
+| `maxFiles`    | `5d`           | How long to retain rotated files         |
+| `datePattern` | `YYYYMMDD_HH`  | Date format in rotated filenames         |
 
 **UDP/Dgram Transport:**
 Forwards log messages over UDP to a remote collector. Only activates when host, port, label, and levels are all provided.
@@ -370,27 +406,29 @@ const safeTransport = DgramTransport.fromPartial({
 ```
 
 The Dgram transport auto-reconnects on socket errors and formats messages as:
+
 ```
 <timestamp> [<label>] <level> <message>
 ```
 
 ### HfLogger (High-Frequency Logger)
 
-Zero-allocation logger using a pre-allocated `SharedArrayBuffer` ring buffer for latency-critical hot paths (~100-300ns per log). Designed for trading engines, real-time pipelines, and any code path where Winston's overhead is unacceptable.
+Zero-allocation logger using a pre-allocated `SharedArrayBuffer` ring buffer for latency-critical hot paths (~100--300ns per log). Designed for trading engines, real-time pipelines, and any code path where Winston's overhead is unacceptable.
 
 **Architecture:**
+
 - 64K-entry ring buffer (65,536 slots x 256 bytes = 16MB `SharedArrayBuffer`)
 - Lock-free writes via atomic increment of write index
 - Entries are written in binary format, flushed asynchronously to disk
 
 **Entry format (256 bytes per entry):**
 
-| Offset | Size | Field |
-|--------|------|-------|
-| 0-7 | 8 bytes | Timestamp (BigInt64, nanosecond precision) |
-| 8 | 1 byte | Level (0=debug, 1=info, 2=warn, 3=error, 4=emerg) |
-| 9-40 | 32 bytes | Scope (fixed-width, padded) |
-| 41-255 | 215 bytes | Message (fixed-width, truncated if longer) |
+| Offset  | Size      | Field                                        |
+| ------- | --------- | -------------------------------------------- |
+| 0--7    | 8 bytes   | Timestamp (BigInt64, nanosecond precision)    |
+| 8       | 1 byte    | Level (0=debug, 1=info, 2=warn, 3=error, 4=emerg) |
+| 9--40   | 32 bytes  | Scope (fixed-width, padded)                  |
+| 41--255 | 215 bytes | Message (fixed-width, truncated if longer)   |
 
 ```typescript
 import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
@@ -420,15 +458,16 @@ await flusher.flush();
 
 **HfLogger levels:**
 
-| Level | Numeric Value |
-|-------|--------------|
-| `debug` | 0 |
-| `info` | 1 |
-| `warn` | 2 |
-| `error` | 3 |
-| `emerg` | 4 |
+| Level   | Numeric Value |
+| ------- | ------------- |
+| `debug` | 0             |
+| `info`  | 1             |
+| `warn`  | 2             |
+| `error` | 3             |
+| `emerg` | 4             |
 
 **Key characteristics:**
+
 - Scope cache: `Map<string, Uint8Array>` -- scope strings are encoded to fixed 32-byte arrays once
 - Message cache: `Map<string, Uint8Array>` -- pre-encoded messages avoid `TextEncoder.encode()` in hot path
 - Ring buffer wraps around using bitmask: `writeIndex++ & (BUFFER_SIZE - 1)`
@@ -436,21 +475,21 @@ await flusher.flush();
 
 ### Logger Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./` | Directory for log files |
-| `APP_ENV_LOGGER_FORMAT` | `text` | Log format: `json` or `text` |
-| `APP_ENV_LOGGER_FILE_FREQUENCY` | `1h` | File rotation frequency |
-| `APP_ENV_LOGGER_FILE_MAX_SIZE` | `100m` | Max file size before rotation |
-| `APP_ENV_LOGGER_FILE_MAX_FILES` | `5d` | Max days to retain log files |
-| `APP_ENV_LOGGER_FILE_DATE_PATTERN` | `YYYYMMDD_HH` | Date pattern for rotated file names |
-| `APP_ENV_LOGGER_DGRAM_HOST` | -- | UDP transport host |
-| `APP_ENV_LOGGER_DGRAM_PORT` | -- | UDP transport port |
-| `APP_ENV_LOGGER_DGRAM_LABEL` | -- | UDP transport label |
-| `APP_ENV_LOGGER_DGRAM_LEVELS` | -- | Comma-separated log levels to forward via UDP |
-| `DEBUG` | -- | Set to any truthy value to enable `debug` level output |
-| `APP_ENV_EXTRA_LOG_ENVS` | -- | Comma-separated extra `NODE_ENV` values that enable debug |
-| `APP_ENV_APPLICATION_NAME` | `APP` | Application name prefix for log files and labels |
+| Variable                            | Default        | Description                                    |
+| ----------------------------------- | -------------- | ---------------------------------------------- |
+| `APP_ENV_LOGGER_FOLDER_PATH`        | `./`           | Directory for log files                        |
+| `APP_ENV_LOGGER_FORMAT`             | `text`         | Log format: `json` or `text`                   |
+| `APP_ENV_LOGGER_FILE_FREQUENCY`     | `1h`           | File rotation frequency                        |
+| `APP_ENV_LOGGER_FILE_MAX_SIZE`      | `100m`         | Max file size before rotation                  |
+| `APP_ENV_LOGGER_FILE_MAX_FILES`     | `5d`           | Max days to retain log files                   |
+| `APP_ENV_LOGGER_FILE_DATE_PATTERN`  | `YYYYMMDD_HH`  | Date pattern for rotated file names            |
+| `APP_ENV_LOGGER_DGRAM_HOST`         | --             | UDP transport host                             |
+| `APP_ENV_LOGGER_DGRAM_PORT`         | --             | UDP transport port                             |
+| `APP_ENV_LOGGER_DGRAM_LABEL`        | --             | UDP transport label                            |
+| `APP_ENV_LOGGER_DGRAM_LEVELS`       | --             | Comma-separated log levels to forward via UDP  |
+| `DEBUG`                             | --             | Set to any truthy value to enable `debug` level output |
+| `APP_ENV_EXTRA_LOG_ENVS`            | --             | Comma-separated extra `NODE_ENV` values that enable debug |
+| `APP_ENV_APPLICATION_NAME`          | `APP`          | Application name prefix for log files and labels |
 
 ---
 
@@ -701,12 +740,12 @@ const ioRedisClient = redis.getClient(); // Redis (single) or Cluster instance
 
 Events are fired in order during the connection lifecycle:
 
-| Order | Callback | Triggered When | Receives |
-|-------|----------|----------------|----------|
-| 1 | `onInitialized` | Helper instance created (synchronous) | `{ name, helper }` |
-| 2 | `onConnected` | Redis TCP connection established | `{ name, helper }` |
-| 3 | `onReady` | Redis is ready to accept commands | `{ name, helper }` |
-| -- | `onError` | Any Redis error | `{ name, helper, error }` |
+| Order | Callback        | Triggered When                         | Receives               |
+| ----- | --------------- | -------------------------------------- | ---------------------- |
+| 1     | `onInitialized` | Helper instance created (synchronous)  | `{ name, helper }`     |
+| 2     | `onConnected`   | Redis TCP connection established       | `{ name, helper }`     |
+| 3     | `onReady`       | Redis is ready to accept commands      | `{ name, helper }`     |
+| --    | `onError`       | Any Redis error                        | `{ name, helper, error }` |
 
 Additionally, the client logs `reconnecting` events automatically.
 
@@ -797,12 +836,14 @@ await worker.close();
 ```
 
 **Default job options (configured on the queue):**
+
 - `removeOnComplete: true` -- clean up completed jobs automatically
 - `removeOnFail: true` -- clean up failed jobs automatically
 
 **Redis connection note:** BullMQ requires `maxRetriesPerRequest: null`. The `RedisHelper` sets this automatically. The BullMQ helper calls `redisConnection.getClient().duplicate()` for both queue and worker connections so they don't interfere with your main Redis client.
 
 **Supported roles:**
+
 - `'queue'` -- creates a `Queue` instance (producer)
 - `'worker'` -- creates a `Worker` instance (consumer)
 
@@ -813,19 +854,19 @@ Generator-based in-memory queue with a state machine for synchronous sequential 
 **State machine:**
 
 ```
-WAITING ──(enqueue + autoDispatch)──> PROCESSING ──(message done)──> WAITING
+WAITING --(enqueue + autoDispatch)--> PROCESSING --(message done)--> WAITING
    |                                       |
-   └──(lock())──> LOCKED                   └──(settle request + empty)──> SETTLED
+   +--(lock())--> LOCKED                   +--(settle request + empty)--> SETTLED
                     |
-                    └──(unlock())──> WAITING
+                    +--(unlock())--> WAITING
 ```
 
-| State | Description |
-|-------|-------------|
-| `000_WAITING` | Idle, waiting for next message |
-| `100_PROCESSING` | Currently processing a message |
-| `200_LOCKED` | Paused, no new messages processed |
-| `300_SETTLED` | Terminal state, no more items accepted |
+| State            | Description                              |
+| ---------------- | ---------------------------------------- |
+| `000_WAITING`    | Idle, waiting for next message           |
+| `100_PROCESSING` | Currently processing a message           |
+| `200_LOCKED`     | Paused, no new messages processed        |
+| `300_SETTLED`    | Terminal state, no more items accepted   |
 
 ```typescript
 import { QueueHelper, QueueStatuses } from '@venizia/ignis-helpers';
@@ -916,21 +957,21 @@ Apache Kafka helpers built on `@platformatic/kafka`. Import from the `@venizia/i
 
 **Constants and defaults:**
 
-| Constant | Default | Description |
-|----------|---------|-------------|
-| `KafkaDefaults.CLIENT_ID` | `ignis-kafka` | Default client ID |
-| `KafkaDefaults.SESSION_TIMEOUT` | `30000` | Consumer session timeout (ms) |
-| `KafkaDefaults.HEARTBEAT_INTERVAL` | `3000` | Consumer heartbeat interval (ms) |
-| `KafkaDefaults.MAX_WAIT_TIME` | `5000` | Max wait time for fetch (ms) |
-| `KafkaDefaults.HIGH_WATER_MARK` | `1024` | Stream high water mark |
+| Constant                         | Default        | Description                           |
+| -------------------------------- | -------------- | ------------------------------------- |
+| `KafkaDefaults.CLIENT_ID`        | `ignis-kafka`  | Default client ID                     |
+| `KafkaDefaults.SESSION_TIMEOUT`  | `30000`        | Consumer session timeout (ms)         |
+| `KafkaDefaults.HEARTBEAT_INTERVAL` | `3000`       | Consumer heartbeat interval (ms)      |
+| `KafkaDefaults.MAX_WAIT_TIME`    | `5000`         | Max wait time for fetch (ms)          |
+| `KafkaDefaults.HIGH_WATER_MARK`  | `1024`         | Stream high water mark                |
 
 **Ack levels (`KafkaAcks`):**
 
-| Constant | Value | Behavior |
-|----------|-------|----------|
-| `KafkaAcks.NONE` | `0` | No acknowledgment |
-| `KafkaAcks.LEADER` | `1` | Leader only |
-| `KafkaAcks.ALL` | `-1` | All in-sync replicas |
+| Constant           | Value | Behavior               |
+| ------------------ | ----- | ---------------------- |
+| `KafkaAcks.NONE`   | `0`   | No acknowledgment      |
+| `KafkaAcks.LEADER` | `1`   | Leader only            |
+| `KafkaAcks.ALL`    | `-1`  | All in-sync replicas   |
 
 **Producer:**
 
@@ -1191,14 +1232,14 @@ interface IObjectInfo {
 
 `isValidName()` is called automatically before bucket and file operations. It prevents:
 
-| Threat | Pattern Blocked | Example |
-|--------|----------------|---------|
-| Path traversal | `..`, `/`, `\` | `../../etc/passwd` |
-| Hidden files | Leading `.` | `.env`, `.gitignore` |
-| Shell injection | `;`, `\|`, `&`, `$`, backticks, `<>{}[]!#` | `file; rm -rf /` |
-| Header injection | `\n`, `\r`, `\0` | `file\r\nHeader: inject` |
-| DoS | Length > 255 | Very long filenames |
-| Whitespace-only | Empty or spaces | `"   "` |
+| Threat             | Pattern Blocked                                | Example                   |
+| ------------------ | ---------------------------------------------- | ------------------------- |
+| Path traversal     | `..`, `/`, `\`                                 | `../../etc/passwd`        |
+| Hidden files       | Leading `.`                                    | `.env`, `.gitignore`      |
+| Shell injection    | `;`, `\|`, `&`, `$`, backticks, `<>{}[]!#`     | `file; rm -rf /`          |
+| Header injection   | `\n`, `\r`, `\0`                               | `file\r\nHeader: inject`  |
+| DoS                | Length > 255                                   | Very long filenames       |
+| Whitespace-only    | Empty or spaces                                | `"   "`                   |
 
 ```typescript
 storage.isValidName('photo.jpg');        // true
@@ -1363,14 +1404,14 @@ Symmetric encryption with AES-256-CBC or AES-256-GCM.
 
 **Algorithm comparison:**
 
-| Feature | AES-256-CBC | AES-256-GCM |
-|---------|-------------|-------------|
-| Confidentiality | Yes | Yes |
-| Authentication | No (encrypt-only) | Yes (AEAD -- built-in auth tag) |
-| Auth tag size | N/A | 16 bytes |
-| Performance | Slightly faster | Slightly slower (auth overhead) |
-| Use case | Legacy compatibility | **Recommended** for new code |
-| Encrypted format | `[IV(16B)][ciphertext]` | `[IV(16B)][authTag(16B)][ciphertext]` |
+| Feature          | AES-256-CBC                    | AES-256-GCM                                |
+| ---------------- | ------------------------------ | ------------------------------------------- |
+| Confidentiality  | Yes                            | Yes                                         |
+| Authentication   | No (encrypt-only)              | Yes (AEAD -- built-in auth tag)             |
+| Auth tag size    | N/A                            | 16 bytes                                    |
+| Performance      | Slightly faster                | Slightly slower (auth overhead)             |
+| Use case         | Legacy compatibility           | **Recommended** for new code                |
+| Encrypted format | `[IV(16B)][ciphertext]`        | `[IV(16B)][authTag(16B)][ciphertext]`       |
 
 ```typescript
 import { AES } from '@venizia/ignis-helpers';
@@ -1472,6 +1513,7 @@ rsa.generateDERKeyPair({ modulus: 4096 });  // High security, slower
 Elliptic Curve Diffie-Hellman key exchange with HKDF-derived AES-256-GCM session keys. Uses the Web Crypto API for cross-platform compatibility (Bun and browsers).
 
 **Algorithm details:**
+
 - Curve: P-256 (NIST)
 - Key derivation: HKDF with SHA-256
 - Cipher: AES-256-GCM with 128-bit auth tag
@@ -1717,16 +1759,16 @@ client.shutdown();
 
 **System events:**
 
-| Event | Direction | Description |
-|-------|-----------|-------------|
-| `ping` | Server -> Client | Keepalive |
-| `connection` | Client -> Server | Initial connection |
-| `disconnect` | Bidirectional | Disconnection |
-| `join` | Client -> Server | Join rooms |
-| `leave` | Client -> Server | Leave rooms |
-| `authenticate` | Client -> Server | Start authentication |
-| `authenticated` | Server -> Client | Auth success |
-| `unauthenticated` | Server -> Client | Auth failure |
+| Event             | Direction          | Description            |
+| ----------------- | ------------------ | ---------------------- |
+| `ping`            | Server -> Client   | Keepalive              |
+| `connection`      | Client -> Server   | Initial connection     |
+| `disconnect`      | Bidirectional      | Disconnection          |
+| `join`            | Client -> Server   | Join rooms             |
+| `leave`           | Client -> Server   | Leave rooms            |
+| `authenticate`    | Client -> Server   | Start authentication   |
+| `authenticated`   | Server -> Client   | Auth success           |
+| `unauthenticated` | Server -> Client   | Auth failure           |
 
 ---
 
@@ -1850,6 +1892,7 @@ const ws = new WebSocketServerHelper({
 ```
 
 When a client has encryption enabled:
+
 - It is unsubscribed from Bun's native pub/sub topics (prevents double delivery)
 - All messages go through the `outboundTransformer` before `socket.send()`
 - Room/broadcast messages are delivered individually with concurrency limit (`encryptedBatchLimit`)
@@ -1872,22 +1915,22 @@ When a client has encryption enabled:
 
 **WebSocket close codes:**
 
-| Code | Reason |
-|------|--------|
-| `1001` | Server shutting down |
-| `4001` | Authentication timeout |
-| `4002` | Heartbeat timeout |
-| `4003` | Authentication failed |
-| `4004` | Encryption required (handshake failed) |
+| Code   | Reason                                   |
+| ------ | ---------------------------------------- |
+| `1001` | Server shutting down                     |
+| `4001` | Authentication timeout                   |
+| `4002` | Heartbeat timeout                        |
+| `4003` | Authentication failed                    |
+| `4004` | Encryption required (handshake failed)   |
 
 **Redis pub/sub channels:**
 
-| Channel | Purpose |
-|---------|---------|
-| `ws:broadcast` | Broadcast messages across instances |
-| `ws:room:<name>` | Room-targeted messages |
-| `ws:client:<id>` | Client-targeted messages |
-| `ws:user:<id>` | User-targeted messages |
+| Channel            | Purpose                                  |
+| ------------------ | ---------------------------------------- |
+| `ws:broadcast`     | Broadcast messages across instances      |
+| `ws:room:<name>`   | Room-targeted messages                   |
+| `ws:client:<id>`   | Client-targeted messages                 |
+| `ws:user:<id>`     | User-targeted messages                   |
 
 ---
 
@@ -1996,14 +2039,14 @@ axiosInstance.interceptors.response.use(
 
 **Differences between implementations:**
 
-| Feature | NodeFetch | Axios |
-|---------|-----------|-------|
-| Return type | `Response` (Web API) | `AxiosResponse.data` (parsed) |
-| Dependencies | None (built-in `fetch`) | `axios` |
-| Timeout | `AbortController` | Axios built-in |
-| Interceptors | Manual | Built-in request/response |
-| HTTPS | Standard | Auto `https.Agent` |
-| Credentials | Manual headers | `withCredentials: true` |
+| Feature       | NodeFetch                     | Axios                            |
+| ------------- | ----------------------------- | -------------------------------- |
+| Return type   | `Response` (Web API)          | `AxiosResponse.data` (parsed)    |
+| Dependencies  | None (built-in `fetch`)       | `axios`                          |
+| Timeout       | `AbortController`             | Axios built-in                   |
+| Interceptors  | Manual                        | Built-in request/response        |
+| HTTPS         | Standard                      | Auto `https.Agent`               |
+| Credentials   | Manual headers                | `withCredentials: true`          |
 
 ### TCP
 
@@ -2161,13 +2204,13 @@ Snowflake ID generator producing unique, time-sortable IDs with Base62 encoding.
  MSB                                   LSB
 ```
 
-| Field | Bits | Range | Description |
-|-------|------|-------|-------------|
-| Timestamp | 48 | ~8,919 years from epoch | Milliseconds since epoch |
-| Worker ID | 10 | 0-1023 (1024 workers) | Unique worker identifier |
-| Sequence | 12 | 0-4095 per millisecond | Per-millisecond counter |
+| Field     | Bits | Range                         | Description                    |
+| --------- | ---- | ----------------------------- | ------------------------------ |
+| Timestamp | 48   | ~8,919 years from epoch       | Milliseconds since epoch       |
+| Worker ID | 10   | 0--1023 (1024 workers)        | Unique worker identifier       |
+| Sequence  | 12   | 0--4095 per millisecond       | Per-millisecond counter        |
 
-**Output:** Base62 encoded string (10-12 characters).
+**Output:** Base62 encoded string (10--12 characters).
 **Default epoch:** 2025-01-01 00:00:00 UTC (`1735689600000`).
 **Lifespan:** Until approximately 10,944 AD.
 
@@ -2224,18 +2267,19 @@ uid.getWorkerId();                         // number
 
 ### Throughput and Limits
 
-| Metric | Value |
-|--------|-------|
-| **IDs per millisecond per worker** | 4,096 |
-| **IDs per second per worker** | 4,096,000 |
-| **Max workers** | 1,024 |
-| **Total IDs per second (all workers)** | ~4.2 billion |
-| **ID lifespan** | ~8,919 years from epoch |
-| **Clock backward tolerance** | 100ms (waits), >100ms throws |
-| **Base62 output length** | 10-12 characters |
-| **Base62 charset** | `0-9A-Za-z` |
+| Metric                                   | Value                            |
+| ---------------------------------------- | -------------------------------- |
+| **IDs per millisecond per worker**       | 4,096                            |
+| **IDs per second per worker**            | 4,096,000                        |
+| **Max workers**                          | 1,024                            |
+| **Total IDs per second (all workers)**   | ~4.2 billion                     |
+| **ID lifespan**                          | ~8,919 years from epoch          |
+| **Clock backward tolerance**             | 100ms (waits), >100ms throws    |
+| **Base62 output length**                 | 10--12 characters                |
+| **Base62 charset**                       | `0-9A-Za-z`                      |
 
 **Clock drift handling:**
+
 - If clock moves backward <= 100ms: waits (spin-loop) until clock catches up
 - If clock moves backward > 100ms: throws `ApplicationError` (500)
 - If sequence exhausted in a millisecond (>4095): waits for next millisecond
@@ -2924,33 +2968,33 @@ export class HealthController extends BaseController {
 
 ## Environment Variables Reference
 
-Complete table of all environment variables used across all helpers modules:
+Complete table of all environment variables used across all helpers modules.
 
 ### Logger
 
-| Variable | Default | Module | Description |
-|----------|---------|--------|-------------|
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./` | Logger | Directory for log files |
-| `APP_ENV_LOGGER_FORMAT` | `text` | Logger | Log format: `json` or `text` |
-| `APP_ENV_LOGGER_FILE_FREQUENCY` | `1h` | Logger | File rotation frequency |
-| `APP_ENV_LOGGER_FILE_MAX_SIZE` | `100m` | Logger | Max file size before rotation |
-| `APP_ENV_LOGGER_FILE_MAX_FILES` | `5d` | Logger | Max retention period |
-| `APP_ENV_LOGGER_FILE_DATE_PATTERN` | `YYYYMMDD_HH` | Logger | Date pattern for filenames |
-| `APP_ENV_LOGGER_DGRAM_HOST` | -- | Logger | UDP transport host |
-| `APP_ENV_LOGGER_DGRAM_PORT` | -- | Logger | UDP transport port |
-| `APP_ENV_LOGGER_DGRAM_LABEL` | -- | Logger | UDP transport label |
-| `APP_ENV_LOGGER_DGRAM_LEVELS` | -- | Logger | Comma-separated UDP levels |
-| `DEBUG` | -- | Logger | Enable debug level output |
-| `APP_ENV_EXTRA_LOG_ENVS` | -- | Logger | Extra NODE_ENV values for debug |
+| Variable                            | Default        | Module  | Description                              |
+| ----------------------------------- | -------------- | ------- | ---------------------------------------- |
+| `APP_ENV_LOGGER_FOLDER_PATH`        | `./`           | Logger  | Directory for log files                  |
+| `APP_ENV_LOGGER_FORMAT`             | `text`         | Logger  | Log format: `json` or `text`             |
+| `APP_ENV_LOGGER_FILE_FREQUENCY`     | `1h`           | Logger  | File rotation frequency                  |
+| `APP_ENV_LOGGER_FILE_MAX_SIZE`      | `100m`         | Logger  | Max file size before rotation            |
+| `APP_ENV_LOGGER_FILE_MAX_FILES`     | `5d`           | Logger  | Max retention period                     |
+| `APP_ENV_LOGGER_FILE_DATE_PATTERN`  | `YYYYMMDD_HH`  | Logger  | Date pattern for filenames               |
+| `APP_ENV_LOGGER_DGRAM_HOST`         | --             | Logger  | UDP transport host                       |
+| `APP_ENV_LOGGER_DGRAM_PORT`         | --             | Logger  | UDP transport port                       |
+| `APP_ENV_LOGGER_DGRAM_LABEL`        | --             | Logger  | UDP transport label                      |
+| `APP_ENV_LOGGER_DGRAM_LEVELS`       | --             | Logger  | Comma-separated UDP levels               |
+| `DEBUG`                             | --             | Logger  | Enable debug level output                |
+| `APP_ENV_EXTRA_LOG_ENVS`            | --             | Logger  | Extra NODE_ENV values for debug          |
 
 ### Application
 
-| Variable | Default | Module | Description |
-|----------|---------|--------|-------------|
-| `APP_ENV_APPLICATION_NAME` | `APP` | Logger/Defaults | Application name prefix |
-| `APP_ENV_APPLICATION_TIMEZONE` | `Asia/Ho_Chi_Minh` | Date utility | Default timezone for dayjs |
-| `APPLICATION_ENV_PREFIX` | `APP_ENV` | Environment | Prefix for ApplicationEnvironment |
-| `NODE_ENV` | `development` | Environment | Runtime environment name |
+| Variable                     | Default            | Module          | Description                           |
+| ---------------------------- | ------------------ | --------------- | ------------------------------------- |
+| `APP_ENV_APPLICATION_NAME`   | `APP`              | Logger/Defaults | Application name prefix               |
+| `APP_ENV_APPLICATION_TIMEZONE` | `Asia/Ho_Chi_Minh` | Date utility  | Default timezone for dayjs            |
+| `APPLICATION_ENV_PREFIX`     | `APP_ENV`          | Environment     | Prefix for ApplicationEnvironment     |
+| `NODE_ENV`                   | `development`      | Environment     | Runtime environment name              |
 
 ---
 
@@ -3042,7 +3086,7 @@ try {
 
 - `Logger.get()` caching avoids creating new Winston loggers per call.
 - The `debug()` method has zero overhead when `DEBUG` is not set (check is pre-computed at module load).
-- For hot paths (>10k calls/sec), use `HfLogger` instead of Winston (~100-300ns vs ~1-10us).
+- For hot paths (>10k calls/sec), use `HfLogger` instead of Winston (~100--300ns vs ~1--10us).
 - Consider disabling file transports in development for faster startup.
 
 ### Queue Optimization
@@ -3060,7 +3104,7 @@ try {
 ### Crypto
 
 - AES-256-GCM is recommended over CBC for new code (built-in authentication).
-- RSA key generation is expensive (~50-200ms for 2048-bit). Generate keys once and store them.
+- RSA key generation is expensive (~50--200ms for 2048-bit). Generate keys once and store them.
 - ECDH uses Web Crypto API (`crypto.subtle`) which is hardware-accelerated on most platforms.
 - Pre-encode HfLogger messages and ECDH keys at initialization time, not in hot paths.
 

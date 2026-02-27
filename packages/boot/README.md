@@ -1,12 +1,28 @@
+<div align="center">
+
 # @venizia/ignis-boot
 
-[![npm version](https://img.shields.io/npm/v/@venizia/ignis-boot.svg)](https://www.npmjs.com/package/@venizia/ignis-boot)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
+**Convention-based auto-discovery and bootstrapping for the Ignis Framework**
 
-Convention-based **auto-discovery and bootstrapping** system for the [Ignis Framework](https://github.com/VENIZIA-AI/ignis). Discovers artifact files (controllers, services, repositories, datasources) by glob patterns and registers them into the IoC container during application startup.
+[![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot)
+[![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-Inspired by [LoopBack 4's boot system](https://loopback.io/doc/en/lb4/Booting-an-Application.html), this package provides a structured, three-phase lifecycle for discovering and loading application artifacts -- giving you convention over configuration without sacrificing control.
+Discovers artifact files (controllers, services, repositories, datasources) by glob patterns and registers them into the IoC container during application startup. Three-phase lifecycle (configure, discover, load) with the Template Method pattern. Inspired by [LoopBack 4's boot system](https://loopback.io/doc/en/lb4/Booting-an-Application.html).
+
+[Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#core-concepts) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
+
+</div>
+
+## Highlights
+
+| | Feature | |
+| :---: | :--- | :--- |
+| **1** | **Three-Phase Lifecycle** | Configure, discover, load -- structured and predictable |
+| **2** | **Convention Over Configuration** | Default dirs and extensions just work out of the box |
+| **3** | **4 Built-in Booters** | Controllers, services, repositories, and datasources |
+| **4** | **Template Method Pattern** | Extend `BaseArtifactBooter` for custom artifact types |
+| **5** | **Performance Timing** | Built-in `performance.now()` boot report |
 
 ---
 
@@ -188,12 +204,12 @@ The base class handles all the common logic (option merging, glob execution, fil
 
 The package ships with four built-in booters covering the most common artifact types:
 
-| Booter | Default Directory | Default Extension | Namespace | Scope | Binding Key Example |
-|---|---|---|---|---|---|
-| `ControllerBooter` | `controllers/` | `.controller.js` | `controllers` | transient | `controllers.UserController` |
-| `ServiceBooter` | `services/` | `.service.js` | `services` | transient | `services.AuthService` |
-| `RepositoryBooter` | `repositories/` | `.repository.js` | `repositories` | transient | `repositories.UserRepository` |
-| `DatasourceBooter` | `datasources/` | `.datasource.js` | `datasources` | **singleton** | `datasources.PostgresDataSource` |
+| Booter               | Default Directory | Default Extension   | Namespace      | Scope         | Binding Key Example              |
+| -------------------- | ----------------- | ------------------- | -------------- | ------------- | -------------------------------- |
+| `ControllerBooter`   | `controllers/`    | `.controller.js`    | `controllers`  | transient     | `controllers.UserController`     |
+| `ServiceBooter`      | `services/`       | `.service.js`       | `services`     | transient     | `services.AuthService`           |
+| `RepositoryBooter`   | `repositories/`   | `.repository.js`    | `repositories` | transient     | `repositories.UserRepository`    |
+| `DatasourceBooter`   | `datasources/`    | `.datasource.js`    | `datasources`  | **singleton** | `datasources.PostgresDataSource` |
 
 **Why are datasources singletons?** Datasources manage connection pools and shared resources (database connections, Redis clients, etc.). Creating new instances per injection would leak connections and defeat pool sharing. All other artifact types default to transient scope.
 
@@ -292,14 +308,14 @@ class MyApp extends BootMixin(Container) {
 
 **What it registers in the constructor:**
 
-| Binding Key | Value | Tags | Scope |
-|---|---|---|---|
-| `@app/boot-options` | User's `bootOptions` object | -- | -- |
-| `booter.DatasourceBooter` | `DatasourceBooter` class | `booter` | transient |
-| `booter.RepositoryBooter` | `RepositoryBooter` class | `booter` | transient |
-| `booter.ServiceBooter` | `ServiceBooter` class | `booter` | transient |
-| `booter.ControllerBooter` | `ControllerBooter` class | `booter` | transient |
-| `bootstrapper` | `Bootstrapper` class | -- | singleton |
+| Binding Key                 | Value                   | Tags     | Scope     |
+| --------------------------- | ----------------------- | -------- | --------- |
+| `@app/boot-options`         | User's `bootOptions`    | --       | --        |
+| `booter.DatasourceBooter`   | `DatasourceBooter` class | `booter` | transient |
+| `booter.RepositoryBooter`   | `RepositoryBooter` class | `booter` | transient |
+| `booter.ServiceBooter`      | `ServiceBooter` class   | `booter` | transient |
+| `booter.ControllerBooter`   | `ControllerBooter` class | `booter` | transient |
+| `bootstrapper`              | `Bootstrapper` class    | --       | singleton |
 
 **What it adds to the class:**
 
@@ -363,18 +379,19 @@ interface IArtifactOptions {
 }
 ```
 
-| Option | Type | Default | Description |
-|---|---|---|---|
-| `dirs` | `string[]` | Booter-specific | Directories to scan, relative to project root |
-| `extensions` | `string[]` | Booter-specific | File extension patterns to match |
-| `isNested` | `boolean` | `true` | Whether to recurse into subdirectories |
-| `glob` | `string` | `undefined` | Custom glob pattern; if set, `dirs` and `extensions` are ignored |
+| Option       | Type       | Default          | Description                                                           |
+| ------------ | ---------- | ---------------- | --------------------------------------------------------------------- |
+| `dirs`       | `string[]` | Booter-specific  | Directories to scan, relative to project root                         |
+| `extensions` | `string[]` | Booter-specific  | File extension patterns to match                                      |
+| `isNested`   | `boolean`  | `true`           | Whether to recurse into subdirectories                                |
+| `glob`       | `string`   | `undefined`      | Custom glob pattern; if set, `dirs` and `extensions` are ignored      |
 
 ### Pattern Generation
 
 When no custom `glob` is provided, `BaseArtifactBooter.getPattern()` builds a glob pattern from `dirs`, `extensions`, and `isNested`:
 
 **Single directory, single extension:**
+
 ```
 dirs: ['repositories']
 extensions: ['.repository.js']
@@ -384,6 +401,7 @@ Result: repositories/{**/*,*}.repository.js
 ```
 
 **Multiple directories or extensions:**
+
 ```
 dirs: ['dir1', 'dir2']
 extensions: ['.ext1.js', '.ext2.js']
@@ -393,6 +411,7 @@ Result: {dir1,dir2}/{**/*,*}.{ext1.js,ext2.js}
 ```
 
 **Non-nested (single level only):**
+
 ```
 dirs: ['controllers']
 extensions: ['.controller.js']
@@ -402,6 +421,7 @@ Result: controllers/*.controller.js
 ```
 
 **Custom glob (overrides everything):**
+
 ```
 glob: 'custom/glob/pattern/**/*.js'
 
@@ -535,13 +555,13 @@ The `Bootstrapper` returns an `IBootReport` object. The current implementation r
 
 After boot completes, the IoC container holds:
 
-| Binding Key | Class | Scope | Tags |
-|---|---|---|---|
-| `datasources.PostgresDataSource` | `PostgresDataSource` | singleton | `datasources` |
-| `repositories.UserRepository` | `UserRepository` | transient | `repositories` |
-| `services.AuthService` | `AuthService` | transient | `services` |
-| `controllers.UserController` | `UserController` | transient | `controllers` |
-| `controllers.AdminController` | `AdminController` | transient | `controllers` |
+| Binding Key                        | Class                | Scope     | Tags          |
+| ---------------------------------- | -------------------- | --------- | ------------- |
+| `datasources.PostgresDataSource`   | `PostgresDataSource` | singleton | `datasources` |
+| `repositories.UserRepository`      | `UserRepository`     | transient | `repositories`|
+| `services.AuthService`             | `AuthService`        | transient | `services`    |
+| `controllers.UserController`       | `UserController`     | transient | `controllers` |
+| `controllers.AdminController`      | `AdminController`    | transient | `controllers` |
 
 These can now be resolved anywhere via `@inject({ key: 'services.AuthService' })` or `app.get({ key: 'controllers.UserController' })`.
 
@@ -567,12 +587,12 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 }
 ```
 
-| Property | Type | Initial Value | Description |
-|---|---|---|---|
-| `root` | `string` | `''` | Absolute path to the project root directory. Set from constructor `opts.root`. Glob patterns are resolved relative to this path. |
-| `artifactOptions` | `IArtifactOptions` | `{}` | The merged configuration after `configure()` runs. Before `configure()`, holds whatever the user passed (or `{}`). After `configure()`, has all fields populated with defaults. |
-| `discoveredFiles` | `string[]` | `[]` | Array of absolute file paths populated by `discover()`. Reset to `[]` at the start of each `discover()` call. |
-| `loadedClasses` | `TClass<any>[]` | `[]` | Array of class constructors extracted from discovered files by `load()`. Reset to `[]` at the start of each `load()` call. |
+| Property          | Type              | Initial Value | Description                                                                                                                                       |
+| ----------------- | ----------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `root`            | `string`          | `''`          | Absolute path to the project root directory. Set from constructor `opts.root`. Glob patterns are resolved relative to this path.                   |
+| `artifactOptions` | `IArtifactOptions` | `{}`          | The merged configuration after `configure()` runs. Before `configure()`, holds whatever the user passed (or `{}`). After `configure()`, has all fields populated with defaults. |
+| `discoveredFiles` | `string[]`        | `[]`          | Array of absolute file paths populated by `discover()`. Reset to `[]` at the start of each `discover()` call.                                     |
+| `loadedClasses`   | `TClass<any>[]`   | `[]`          | Array of class constructors extracted from discovered files by `load()`. Reset to `[]` at the start of each `load()` call.                        |
 
 ### BaseArtifactBooter Constructor
 
@@ -587,11 +607,11 @@ constructor(opts: IBooterOptions) {
 
 The constructor receives an `IBooterOptions` object with three fields:
 
-| Field | Type | Description |
-|---|---|---|
-| `scope` | `string` | Logger scope name, typically `BooterClassName.name` (e.g., `"ControllerBooter"`) |
-| `root` | `string` | Absolute path to project root (injected as `@app/project_root`) |
-| `artifactOptions` | `IArtifactOptions` | User-provided options from `bootOptions.controllers` (or whichever artifact key) |
+| Field              | Type               | Description                                                                                    |
+| ------------------ | ------------------ | ---------------------------------------------------------------------------------------------- |
+| `scope`            | `string`           | Logger scope name, typically `BooterClassName.name` (e.g., `"ControllerBooter"`)               |
+| `root`             | `string`           | Absolute path to project root (injected as `@app/project_root`)                                |
+| `artifactOptions`  | `IArtifactOptions` | User-provided options from `bootOptions.controllers` (or whichever artifact key)               |
 
 The `super({ scope })` call initializes the `BaseHelper` which sets up scoped logging via `LoggerFactory.getLogger([scope])`.
 
@@ -741,17 +761,20 @@ protected getPattern(): string {
 ### Single Dir + Single Extension
 
 **Input:**
+
 ```typescript
 { dirs: ['controllers'], extensions: ['.controller.js'], isNested: true }
 ```
 
 **Processing:**
+
 - `dirs.join(',')` => `"controllers"`
 - Extensions: `.controller.js` => strip dot => `"controller.js"`
 - `dirs.length === 1 && extensions.length === 1` => simple format
 - `nested = '{**/*,*}'`
 
 **Output:**
+
 ```
 controllers/{**/*,*}.controller.js
 ```
@@ -763,16 +786,19 @@ controllers/{**/*,*}.controller.js
 ### Multiple Dirs + Multiple Extensions
 
 **Input:**
+
 ```typescript
 { dirs: ['private-controllers', 'public-controllers'], extensions: ['.controller.js', '.ctrl.js'], isNested: true }
 ```
 
 **Processing:**
+
 - `dirs.join(',')` => `"private-controllers,public-controllers"`
 - Extensions: `.controller.js` => `controller.js`, `.ctrl.js` => `ctrl.js` => `"controller.js,ctrl.js"`
 - `dirs.length === 2 || extensions.length === 2` => brace expansion format
 
 **Output:**
+
 ```
 {private-controllers,public-controllers}/{**/*,*}.{controller.js,ctrl.js}
 ```
@@ -782,14 +808,17 @@ controllers/{**/*,*}.controller.js
 ### Multiple Dirs + Single Extension
 
 **Input:**
+
 ```typescript
 { dirs: ['api', 'admin'], extensions: ['.controller.js'], isNested: true }
 ```
 
 **Processing:**
+
 - `dirs.length === 2` => brace expansion triggered
 
 **Output:**
+
 ```
 {api,admin}/{**/*,*}.controller.js
 ```
@@ -797,14 +826,17 @@ controllers/{**/*,*}.controller.js
 ### Single Dir + Multiple Extensions
 
 **Input:**
+
 ```typescript
 { dirs: ['services'], extensions: ['.service.js', '.svc.js'], isNested: true }
 ```
 
 **Processing:**
+
 - `extensions.length === 2` => brace expansion triggered
 
 **Output:**
+
 ```
 {services}/{**/*,*}.{service.js,svc.js}
 ```
@@ -812,33 +844,43 @@ controllers/{**/*,*}.controller.js
 ### Nested vs Non-Nested
 
 **Nested (default, `isNested: true`):**
+
 ```typescript
 { dirs: ['repositories'], extensions: ['.repository.js'], isNested: true }
 ```
+
 **Output:**
+
 ```
 repositories/{**/*,*}.repository.js
 ```
+
 The `{**/*,*}` alternation ensures files are matched at any depth, including the root of the directory.
 
 **Non-nested (`isNested: false`):**
+
 ```typescript
 { dirs: ['repositories'], extensions: ['.repository.js'], isNested: false }
 ```
+
 **Output:**
+
 ```
 repositories/*.repository.js
 ```
+
 Only matches files directly inside `repositories/` -- no subdirectory scanning.
 
 ### Custom Glob Override
 
 **Input:**
+
 ```typescript
 { dirs: ['ignored'], extensions: ['.ignored.js'], glob: 'modules/**/handlers/*.handler.js' }
 ```
 
 **Output:**
+
 ```
 modules/**/handlers/*.handler.js
 ```
@@ -855,26 +897,26 @@ const exts = this.artifactOptions.extensions
   .join(',');
 ```
 
-| Input Extension | After Stripping | In Pattern |
-|---|---|---|
-| `.controller.js` | `controller.js` | `*.controller.js` |
-| `.service.js` | `service.js` | `*.service.js` |
-| `handler.js` | `handler.js` (no dot to strip) | `*.handler.js` |
-| `.my.custom.ext.js` | `my.custom.ext.js` | `*.my.custom.ext.js` |
+| Input Extension       | After Stripping       | In Pattern              |
+| --------------------- | --------------------- | ----------------------- |
+| `.controller.js`      | `controller.js`       | `*.controller.js`       |
+| `.service.js`         | `service.js`          | `*.service.js`          |
+| `handler.js`          | `handler.js` (no dot) | `*.handler.js`          |
+| `.my.custom.ext.js`   | `my.custom.ext.js`    | `*.my.custom.ext.js`    |
 
 This means files need a dot before the extension in their filename. For example, the pattern `*.controller.js` matches `user.controller.js` but does NOT match `usercontrollerjs` or `user-controller.js`.
 
 ### Pattern Summary Table
 
-| dirs | extensions | isNested | glob | Generated Pattern |
-|---|---|---|---|---|
-| `['controllers']` | `['.controller.js']` | `true` | -- | `controllers/{**/*,*}.controller.js` |
-| `['controllers']` | `['.controller.js']` | `false` | -- | `controllers/*.controller.js` |
-| `['api', 'admin']` | `['.controller.js']` | `true` | -- | `{api,admin}/{**/*,*}.controller.js` |
-| `['services']` | `['.service.js', '.svc.js']` | `true` | -- | `{services}/{**/*,*}.{service.js,svc.js}` |
-| `['a', 'b']` | `['.x.js', '.y.js']` | `true` | -- | `{a,b}/{**/*,*}.{x.js,y.js}` |
-| `['a', 'b']` | `['.x.js', '.y.js']` | `false` | -- | `{a,b}/*.{x.js,y.js}` |
-| any | any | any | `'custom/**/*.js'` | `custom/**/*.js` |
+| dirs                  | extensions                         | isNested | glob                | Generated Pattern                                      |
+| --------------------- | ---------------------------------- | -------- | ------------------- | ------------------------------------------------------ |
+| `['controllers']`     | `['.controller.js']`               | `true`   | --                  | `controllers/{**/*,*}.controller.js`                   |
+| `['controllers']`     | `['.controller.js']`               | `false`  | --                  | `controllers/*.controller.js`                          |
+| `['api', 'admin']`    | `['.controller.js']`               | `true`   | --                  | `{api,admin}/{**/*,*}.controller.js`                   |
+| `['services']`        | `['.service.js', '.svc.js']`       | `true`   | --                  | `{services}/{**/*,*}.{service.js,svc.js}`              |
+| `['a', 'b']`          | `['.x.js', '.y.js']`              | `true`   | --                  | `{a,b}/{**/*,*}.{x.js,y.js}`                          |
+| `['a', 'b']`          | `['.x.js', '.y.js']`              | `false`  | --                  | `{a,b}/*.{x.js,y.js}`                                 |
+| any                   | any                                | any      | `'custom/**/*.js'`  | `custom/**/*.js`                                       |
 
 ---
 
@@ -882,11 +924,11 @@ This means files need a dot before the extension in their filename. For example,
 
 All four built-in booters share the same structure. They differ only in their default directories, default extensions, binding namespace, and binding scope. Each one receives three constructor-injected values:
 
-| Injection Key | Type | Description |
-|---|---|---|
-| `@app/project_root` | `string` | Absolute path to the project's build output directory |
-| `@app/instance` | `IApplication` | The application container instance (for binding classes) |
-| `@app/boot-options` | `IBootOptions` | The user's boot options object |
+| Injection Key        | Type           | Description                                              |
+| -------------------- | -------------- | -------------------------------------------------------- |
+| `@app/project_root`  | `string`       | Absolute path to the project's build output directory    |
+| `@app/instance`      | `IApplication` | The application container instance (for binding classes) |
+| `@app/boot-options`  | `IBootOptions` | The user's boot options object                           |
 
 ### ControllerBooter
 
@@ -920,14 +962,14 @@ export class ControllerBooter extends BaseArtifactBooter {
 }
 ```
 
-| Property | Value |
-|---|---|
-| Default dirs | `['controllers']` |
-| Default extensions | `['.controller.js']` |
-| Namespace | `controllers` |
-| Binding key format | `controllers.{ClassName}` (e.g., `controllers.UserController`) |
-| Scope | transient (default) |
-| Tags | `controllers` |
+| Property             | Value                                                          |
+| -------------------- | -------------------------------------------------------------- |
+| Default dirs         | `['controllers']`                                              |
+| Default extensions   | `['.controller.js']`                                           |
+| Namespace            | `controllers`                                                  |
+| Binding key format   | `controllers.{ClassName}` (e.g., `controllers.UserController`) |
+| Scope                | transient (default)                                            |
+| Tags                 | `controllers`                                                  |
 
 ### ServiceBooter
 
@@ -961,14 +1003,14 @@ export class ServiceBooter extends BaseArtifactBooter {
 }
 ```
 
-| Property | Value |
-|---|---|
-| Default dirs | `['services']` |
-| Default extensions | `['.service.js']` |
-| Namespace | `services` |
-| Binding key format | `services.{ClassName}` (e.g., `services.AuthService`) |
-| Scope | transient (default) |
-| Tags | `services` |
+| Property             | Value                                                      |
+| -------------------- | ---------------------------------------------------------- |
+| Default dirs         | `['services']`                                             |
+| Default extensions   | `['.service.js']`                                          |
+| Namespace            | `services`                                                 |
+| Binding key format   | `services.{ClassName}` (e.g., `services.AuthService`)      |
+| Scope                | transient (default)                                        |
+| Tags                 | `services`                                                 |
 
 ### RepositoryBooter
 
@@ -1002,14 +1044,14 @@ export class RepositoryBooter extends BaseArtifactBooter {
 }
 ```
 
-| Property | Value |
-|---|---|
-| Default dirs | `['repositories']` |
-| Default extensions | `['.repository.js']` |
-| Namespace | `repositories` |
-| Binding key format | `repositories.{ClassName}` (e.g., `repositories.UserRepository`) |
-| Scope | transient (default) |
-| Tags | `repositories` |
+| Property             | Value                                                                  |
+| -------------------- | ---------------------------------------------------------------------- |
+| Default dirs         | `['repositories']`                                                     |
+| Default extensions   | `['.repository.js']`                                                   |
+| Namespace            | `repositories`                                                         |
+| Binding key format   | `repositories.{ClassName}` (e.g., `repositories.UserRepository`)       |
+| Scope                | transient (default)                                                    |
+| Tags                 | `repositories`                                                         |
 
 ### DatasourceBooter
 
@@ -1043,14 +1085,14 @@ export class DatasourceBooter extends BaseArtifactBooter {
 }
 ```
 
-| Property | Value |
-|---|---|
-| Default dirs | `['datasources']` |
-| Default extensions | `['.datasource.js']` |
-| Namespace | `datasources` |
-| Binding key format | `datasources.{ClassName}` (e.g., `datasources.PostgresDataSource`) |
-| Scope | **singleton** |
-| Tags | `datasources` |
+| Property             | Value                                                                      |
+| -------------------- | -------------------------------------------------------------------------- |
+| Default dirs         | `['datasources']`                                                          |
+| Default extensions   | `['.datasource.js']`                                                       |
+| Namespace            | `datasources`                                                              |
+| Binding key format   | `datasources.{ClassName}` (e.g., `datasources.PostgresDataSource`)         |
+| Scope                | **singleton**                                                              |
+| Tags                 | `datasources`                                                              |
 
 ### Why Are Datasources Singletons?
 
@@ -1120,12 +1162,15 @@ export const BootMixin = <T extends TMixinTarget<Container>>(baseClass: T) => {
 When the `BootMixin` constructor runs, it performs exactly 6 binding registrations in this order:
 
 **1. Boot options binding:**
+
 ```typescript
 this.bind({ key: '@app/boot-options' }).toValue(this.bootOptions ?? {});
 ```
+
 Binds the user's `bootOptions` object (or `{}` if undefined) as a plain value. This is injected into every booter's constructor.
 
 **2-5. Booter class registrations (in dependency order):**
+
 ```typescript
 this.bind({ key: 'booter.DatasourceBooter' }).toClass(DatasourceBooter).setTags('booter');
 this.bind({ key: 'booter.RepositoryBooter' }).toClass(RepositoryBooter).setTags('booter');
@@ -1134,6 +1179,7 @@ this.bind({ key: 'booter.ControllerBooter' }).toClass(ControllerBooter).setTags(
 ```
 
 Each booter is:
+
 - Bound as a **class** (not an instance) -- the container instantiates it on resolution with constructor injection
 - Tagged with `'booter'` -- this is how the `Bootstrapper` discovers them via `findByTag({ tag: 'booter' })`
 - Registered in **dependency order** -- datasources before repositories before services before controllers
@@ -1141,9 +1187,11 @@ Each booter is:
 The registration order determines execution order within each phase. This ensures that during the LOAD phase, datasources are bound to the container before repositories try to resolve them.
 
 **6. Bootstrapper singleton:**
+
 ```typescript
 this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
 ```
+
 The `Bootstrapper` is a singleton because it maintains internal state (the booter list, phase timings). Multiple `boot()` calls resolve the same `Bootstrapper` instance.
 
 ### boot() Method
@@ -1156,6 +1204,7 @@ boot(): Promise<IBootReport> {
 ```
 
 The `boot()` method:
+
 1. Resolves the `Bootstrapper` singleton from the container (which triggers `@inject({ key: '@app/instance' })` constructor injection)
 2. Calls `bootstrapper.boot({})` with an empty options object, which means all phases run on all booters
 3. Returns the `IBootReport` promise
@@ -1209,6 +1258,7 @@ private async discoverBooters(): Promise<void> {
 ```
 
 This method:
+
 1. Calls `this.application.findByTag({ tag: 'booter' })` which returns all `Binding` objects that have the `'booter'` tag
 2. For each binding, calls `binding.getValue(this.application)` which:
    - Instantiates the booter class (since booters are bound via `.toClass()`)
@@ -1300,11 +1350,13 @@ throw getError({
 ```
 
 Example error message:
+
 ```
 [Bootstrapper][runPhase] Error during phase 'discover' on booter 'ControllerBooter': [discover] Failed to discover files using pattern: controllers/{**/*,*}.controller.js | Error: ENOENT: no such file or directory
 ```
 
 This multi-layer error wrapping makes it clear:
+
 1. Which component threw (`Bootstrapper`)
 2. Which phase was running (`discover`)
 3. Which booter failed (`ControllerBooter`)
@@ -1471,6 +1523,7 @@ export class MiddlewareBooter extends BaseArtifactBooter {
 ```
 
 **Registration:**
+
 ```typescript
 class MyApp extends BootMixin(Container) {
   bootOptions: IBootOptions = {
@@ -1526,6 +1579,7 @@ export class MigrationBooter extends BaseArtifactBooter {
 ```
 
 **Registration with custom extensions:**
+
 ```typescript
 class MyApp extends BootMixin(Container) {
   bootOptions: IBootOptions = {
@@ -1615,6 +1669,7 @@ const bootOptions: IBootOptions = {
   },
 };
 ```
+
 Generated pattern: `{api-controllers,admin-controllers}/{**/*,*}.controller.js`
 
 #### Override extensions only
@@ -1627,6 +1682,7 @@ const bootOptions: IBootOptions = {
   },
 };
 ```
+
 Generated pattern: `{services}/{**/*,*}.{service.js,provider.js}`
 
 #### Disable nested scanning
@@ -1639,6 +1695,7 @@ const bootOptions: IBootOptions = {
   },
 };
 ```
+
 Generated pattern: `repositories/*.repository.js`
 
 #### Full override with custom glob
@@ -1651,6 +1708,7 @@ const bootOptions: IBootOptions = {
   },
 };
 ```
+
 Generated pattern: `config/datasources/*.datasource.js`
 
 #### Mixed overrides across artifact types
@@ -1813,6 +1871,7 @@ async load(): Promise<void> {
 ```
 
 **Debug output:**
+
 ```
 [ServiceBooter][discover] Root: /app/dist | Using pattern: services/{**/*,*}.service.js | Discovered file: []
 [ServiceBooter][load] No files discovered to load.
@@ -1825,11 +1884,13 @@ This is common during early development when you may not yet have files for ever
 If a discovered file exports only non-class values (arrow functions, constants, objects, primitives), `loadClasses()` will filter them all out. The `loadedClasses` array will be empty, and `bind()` will execute but do nothing (it iterates an empty array).
 
 **Example file** (`non.repository.ts`):
+
 ```typescript
 // LET THIS FILE BE EMPTY
 ```
 
 Or a file that exports only constants:
+
 ```typescript
 export const CONFIG = { host: 'localhost' };
 export const helper = () => 'helper';
@@ -1842,6 +1903,7 @@ Both result in zero loaded classes -- no error, no binding.
 If your glob pattern is too broad (e.g., `**/*.js`), you may discover files that are not artifact classes. The `isClass()` check prevents non-class exports from being bound, but unexpected classes could still be registered.
 
 **Prevention strategies:**
+
 - Use specific file extensions: `.controller.js`, `.service.js`
 - Use dedicated directories: `controllers/`, `services/`
 - Avoid overly broad custom globs
@@ -1993,14 +2055,17 @@ for (const binding of datasourceBindings) {
 For large codebases with many files, overly broad glob patterns can slow down the DISCOVER phase. Here are strategies to optimize:
 
 **1. Disable nested scanning when not needed:**
+
 ```typescript
 repositories: {
   isNested: false, // Only scan the top-level directory
 }
 ```
+
 This changes the pattern from `repositories/{**/*,*}.repository.js` to `repositories/*.repository.js`, which is significantly faster for directories with deep structures.
 
 **2. Use specific directory lists instead of nested scanning:**
+
 ```typescript
 controllers: {
   dirs: ['controllers/api', 'controllers/admin'],
@@ -2010,6 +2075,7 @@ controllers: {
 ```
 
 **3. Use custom glob patterns for surgical targeting:**
+
 ```typescript
 controllers: {
   glob: 'controllers/*.controller.js',
@@ -2065,12 +2131,12 @@ However, the standard Ignis workflow uses compiled output, so `.js` is the corre
 
 The convention follows the pattern: `{name}.{artifact-type}.{extension}`
 
-| Artifact Type | Convention | Example |
-|---|---|---|
-| Controller | `{name}.controller.ts` | `user.controller.ts` |
-| Service | `{name}.service.ts` | `auth.service.ts` |
-| Repository | `{name}.repository.ts` | `user.repository.ts` |
-| DataSource | `{name}.datasource.ts` | `postgres.datasource.ts` |
+| Artifact Type | Convention               | Example                    |
+| ------------- | ------------------------ | -------------------------- |
+| Controller    | `{name}.controller.ts`   | `user.controller.ts`       |
+| Service       | `{name}.service.ts`      | `auth.service.ts`          |
+| Repository    | `{name}.repository.ts`   | `user.repository.ts`       |
+| DataSource    | `{name}.datasource.ts`   | `postgres.datasource.ts`   |
 
 These conventions are not enforced by the framework -- they are what the default extensions expect. You can use any naming scheme by overriding `extensions` or `glob` in your boot options.
 
@@ -2079,11 +2145,11 @@ These conventions are not enforced by the framework -- they are what the default
 The default directory names match the artifact types:
 
 | Artifact Type | Default Directory |
-|---|---|
-| Controllers | `controllers/` |
-| Services | `services/` |
-| Repositories | `repositories/` |
-| DataSources | `datasources/` |
+| ------------- | ----------------- |
+| Controllers   | `controllers/`    |
+| Services      | `services/`       |
+| Repositories  | `repositories/`   |
+| DataSources   | `datasources/`    |
 
 These are relative to the project root (the `@app/project_root` binding). In a typical Ignis application built with `tsc`, the project root is the `dist/cjs/` directory.
 
@@ -2173,6 +2239,7 @@ const isClass: <T>(target: AnyType) => target is TClass<T>;
 ```
 
 **Implementation:**
+
 ```typescript
 export const isClass = <T>(target: AnyType): target is TClass<T> => {
   return typeof target === 'function' && target.prototype !== undefined;
@@ -2419,16 +2486,16 @@ const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load'];
 
 ### DI Binding Keys Used by the Boot System
 
-| Key | Bound By | Type | Description |
-|---|---|---|---|
-| `@app/project_root` | Application | `string` | Absolute path to project's build output root |
-| `@app/instance` | Application | `IApplication` | The application container itself |
-| `@app/boot-options` | BootMixin / BaseApplication | `IBootOptions` | User's boot configuration |
-| `booter.DatasourceBooter` | BootMixin | `DatasourceBooter` class | Tagged `'booter'` |
-| `booter.RepositoryBooter` | BootMixin | `RepositoryBooter` class | Tagged `'booter'` |
-| `booter.ServiceBooter` | BootMixin | `ServiceBooter` class | Tagged `'booter'` |
-| `booter.ControllerBooter` | BootMixin | `ControllerBooter` class | Tagged `'booter'` |
-| `bootstrapper` | BootMixin / BaseApplication | `Bootstrapper` class | Singleton scope |
+| Key                         | Bound By                    | Type                    | Description                                      |
+| --------------------------- | --------------------------- | ----------------------- | ------------------------------------------------ |
+| `@app/project_root`        | Application                 | `string`                | Absolute path to project's build output root     |
+| `@app/instance`            | Application                 | `IApplication`          | The application container itself                 |
+| `@app/boot-options`        | BootMixin / BaseApplication | `IBootOptions`          | User's boot configuration                        |
+| `booter.DatasourceBooter`  | BootMixin                   | `DatasourceBooter` class | Tagged `'booter'`                                |
+| `booter.RepositoryBooter`  | BootMixin                   | `RepositoryBooter` class | Tagged `'booter'`                                |
+| `booter.ServiceBooter`     | BootMixin                   | `ServiceBooter` class   | Tagged `'booter'`                                |
+| `booter.ControllerBooter`  | BootMixin                   | `ControllerBooter` class | Tagged `'booter'`                                |
+| `bootstrapper`             | BootMixin / BaseApplication | `Bootstrapper` class    | Singleton scope                                  |
 
 Note: When used with `BaseApplication`, the booter keys follow the pattern `booters.{ClassName}` (using the `BindingNamespaces.BOOTERS` namespace) instead of `booter.{ClassName}`.
 

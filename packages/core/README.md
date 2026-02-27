@@ -1,24 +1,45 @@
+<div align="center">
+
 # @venizia/ignis
 
-[![npm version](https://img.shields.io/npm/v/@venizia/ignis.svg)](https://www.npmjs.com/package/@venizia/ignis)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue.svg)](https://www.typescriptlang.org/)
-[![Hono](https://img.shields.io/badge/Hono-4.x-orange.svg)](https://hono.dev/)
-[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-green.svg)](https://orm.drizzle.team/)
+**High-performance TypeScript server infrastructure combining enterprise-grade architecture with Hono speed.**
 
-The core package of the **Ignis Framework** -- a high-performance TypeScript server infrastructure combining enterprise-grade architecture patterns with modern speed.
+[![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis)
+[![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Hono](https://img.shields.io/badge/Hono-4.x-E36002.svg?style=flat-square&logo=hono&logoColor=white)](https://hono.dev/)
+[![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-C5F74F.svg?style=flat-square)](https://orm.drizzle.team/)
+
+Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono**, giving you the best of both worlds: decorator-based DI, repository pattern, DataSource abstraction, component system, boot conventions — running on Hono's ~140k req/s engine with Drizzle ORM's type-safe SQL.
+
+[Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#controllers) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
+
+</div>
+
+## Highlights
+
+| | Feature | |
+| :---: | :--- | :--- |
+| **1** | **Zero-Config CRUD** | 2-line repository gives you full create/read/update/delete |
+| **2** | **Type-Safe SQL** | End-to-end TypeScript inference with Drizzle ORM |
+| **3** | **Auto OpenAPI** | Every route produces Swagger documentation automatically |
+| **4** | **~140k req/s** | Hono-powered HTTP with zero wrapper overhead |
+| **5** | **9 Built-in Components** | Auth, Health, Swagger, Mail, Socket.IO, Static Assets, and more |
+| **6** | **3 Route Patterns** | Decorator, imperative, or fluent -- your choice |
 
 ---
 
-## Philosophy
+## At a Glance
 
-Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono**, giving you the best of both worlds:
-
-- **LoopBack 4's architecture** -- decorator-based DI, repository pattern, DataSource abstraction, component system, boot conventions
-- **Hono's raw speed** -- ~140k req/s on Bun, minimal overhead, native OpenAPI support
-- **Drizzle ORM** -- type-safe SQL, zero-overhead queries, PostgreSQL-native features
-
-Ignis targets growing APIs (10+ endpoints) that need structure without sacrificing performance. It makes the common case trivial and the complex case possible.
+```typescript
+import {
+  BaseApplication,       // Your app extends this
+  BaseController,        // Controllers extend this
+  DefaultCRUDRepository, // Repositories extend this
+  BaseEntity,            // Models extend this
+  BaseDataSource,        // DataSources extend this
+} from '@venizia/ignis';
+```
 
 ---
 
@@ -336,7 +357,7 @@ app.start();
 ### Key Application Methods
 
 | Method | Description |
-|--------|-------------|
+| --- | --- |
 | `controller(ctor)` | Register a controller class -- bound to `controllers.{Name}` |
 | `service(ctor)` | Register a service class -- bound to `services.{Name}` |
 | `repository(ctor)` | Register a repository class -- bound to `repositories.{Name}` |
@@ -427,7 +448,7 @@ import { serve } from '@hono/node-server';
 serve({ fetch: server.fetch, port, hostname });
 ```
 
-The runtime is detected via `RuntimeModules.detect()` which checks for the presence of global `Bun` object.
+The runtime is detected via `RuntimeModules.detect()` which checks for the presence of the global `Bun` object.
 
 ---
 
@@ -699,11 +720,11 @@ import { cors } from 'hono/cors';
 async uploadFile(context: TRouteContext) { /* ... */ }
 ```
 
-Middleware execution order: authenticate -> authorize -> custom middleware -> handler.
+Middleware execution order: `authenticate` -> `authorize` -> custom middleware -> handler.
 
 ### Request Validation with Zod
 
-Routes automatically validate request parameters, query strings, headers, and body against Zod schemas. Invalid requests return a 422 Unprocessable Entity with structured error details:
+Routes automatically validate request parameters, query strings, headers, and body against Zod schemas. Invalid requests return a `422 Unprocessable Entity` with structured error details:
 
 ```typescript
 @post({
@@ -856,7 +877,7 @@ this.defineJSXRoute({
 ### Route Decorators
 
 | Decorator | Description |
-|-----------|-------------|
+| --- | --- |
 | `@controller({ path, authenticate? })` | Class decorator -- registers controller path and optional default auth |
 | `@get({ configs })` | GET route -- method is set automatically |
 | `@post({ configs })` | POST route |
@@ -936,7 +957,7 @@ const UserCrudController = ControllerFactory.defineCrudController({
 This generates the following endpoints:
 
 | Method | Path | Description |
-|--------|------|-------------|
+| --- | --- | --- |
 | `GET` | `/count` | Count records matching where condition |
 | `GET` | `/` | Find all records (paginated, with Content-Range header) |
 | `GET` | `/{id}` | Find record by ID |
@@ -1287,8 +1308,8 @@ interface TFilter<T> {
 **Comparison operators:**
 
 | Operator | Description | Example |
-|----------|-------------|---------|
-| (equality) | Exact match | `{ status: 'active' }` |
+| --- | --- | --- |
+| _(equality)_ | Exact match | `{ status: 'active' }` |
 | `eq` | Equal | `{ age: { eq: 25 } }` |
 | `ne` / `neq` | Not equal | `{ role: { neq: 'guest' } }` |
 | `gt` | Greater than | `{ score: { gt: 90 } }` |
@@ -1299,7 +1320,7 @@ interface TFilter<T> {
 **Pattern matching operators:**
 
 | Operator | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `like` | SQL LIKE (case-sensitive) | `{ name: { like: '%john%' } }` |
 | `ilike` | Case-insensitive LIKE | `{ email: { ilike: '%@GMAIL.COM' } }` |
 | `nlike` | NOT LIKE | `{ name: { nlike: '%test%' } }` |
@@ -1310,7 +1331,7 @@ interface TFilter<T> {
 **Array/set operators:**
 
 | Operator | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `inq` / `in` | IN array | `{ status: { inq: ['active', 'pending'] } }` |
 | `nin` | NOT IN array | `{ role: { nin: ['banned', 'deleted'] } }` |
 | `between` | BETWEEN two values | `{ age: { between: [18, 65] } }` |
@@ -1319,26 +1340,26 @@ interface TFilter<T> {
 **Null check operators:**
 
 | Operator | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `is` | IS NULL (when value is null) | `{ deletedAt: { is: null } }` |
 | `isn` | IS NOT NULL (when value is null) | `{ email: { isn: null } }` |
 
 **Logical operators:**
 
 | Operator | Description | Example |
-|----------|-------------|---------|
+| --- | --- | --- |
 | `and` | Logical AND | `{ and: [{ status: 'active' }, { role: 'admin' }] }` |
 | `or` | Logical OR | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` |
 
-**PostgreSQL array column operators (for columns defined as `text[]`, `integer[]`, etc.):**
+**PostgreSQL array column operators** (for columns defined as `text[]`, `integer[]`, etc.):
 
 | Operator | SQL | Description | Example |
-|----------|-----|-------------|---------|
+| --- | --- | --- | --- |
 | `contains` | `@>` | Array contains all elements | `{ tags: { contains: ['urgent', 'bug'] } }` |
 | `containedBy` | `<@` | Array is contained by | `{ tags: { containedBy: ['a', 'b', 'c'] } }` |
 | `overlaps` | `&&` | Arrays have common elements | `{ categories: { overlaps: ['tech', 'science'] } }` |
 
-**JSON path queries (for `json`/`jsonb` columns):**
+**JSON path queries** (for `json`/`jsonb` columns):
 
 ```typescript
 // Query nested JSON fields using dot notation
@@ -1354,7 +1375,7 @@ const users = await repo.find({
 });
 ```
 
-JSON path queries automatically handle numeric casting: when a numeric comparison operator (gt, gte, lt, lte, between) is used with a numeric value, the extracted text is safely cast to `numeric` via a CASE expression.
+JSON path queries automatically handle numeric casting: when a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`) is used with a numeric value, the extracted text is safely cast to `numeric` via a CASE expression.
 
 **Sorting with JSON paths:**
 
@@ -1504,7 +1525,7 @@ The mixin caches the visible property set for performance. It computes it once f
 
 #### DefaultFilterMixin
 
-Automatically applies a default filter to all queries. Common use case: soft delete:
+Automatically applies a default filter to all queries. Common use case -- soft delete:
 
 ```typescript
 @model({
@@ -1528,13 +1549,13 @@ const allUsers = await userRepo.find({
 });
 ```
 
-Merge strategy: `where` conditions are deep-merged (user values override matching keys); all other filter fields (limit, order, etc.) -- user completely replaces default if provided.
+Merge strategy: `where` conditions are deep-merged (user values override matching keys); all other filter fields (`limit`, `order`, etc.) -- user completely replaces default if provided.
 
 ### Dual Query API
 
 Repositories use two internal query paths:
 
-- **Core API** (`connector.select().from()`): 15-20% faster. Used for queries without relation inclusion and without explicit field selection. Builds SQL directly via Drizzle's core select/where/orderBy/limit/offset.
+- **Core API** (`connector.select().from()`): 15--20% faster. Used for queries without relation inclusion and without explicit field selection. Builds SQL directly via Drizzle's core select/where/orderBy/limit/offset.
 - **Query API** (`connector.query.EntityName.findMany()`): Supports `include` for relation loading and field selection via `columns`. Used when the filter contains `include` or `fields`.
 
 The repository automatically selects the appropriate API based on whether `include` or `fields` are present in the filter via `canUseCoreAPI()`. You do not need to think about this -- it is transparent.
@@ -1613,6 +1634,7 @@ export class User extends BaseEntity<typeof User.schema> {
 ```
 
 When `@model` is applied, it registers the class with the `MetadataRegistry`, extracting:
+
 - The static `schema` (pgTable definition)
 - The static `relations` (relation configuration array or resolver function)
 - The model metadata (type, settings)
@@ -1888,7 +1910,7 @@ try {
 #### Isolation Levels
 
 | Level | Constant | When to Use |
-|-------|----------|-------------|
+| --- | --- | --- |
 | `READ COMMITTED` | `IsolationLevels.READ_COMMITTED` | Default. Each statement sees only data committed before it began. Sufficient for most CRUD operations. |
 | `REPEATABLE READ` | `IsolationLevels.REPEATABLE_READ` | All statements in the transaction see a snapshot from the start. Use for consistent reads across multiple queries (e.g., generating reports). |
 | `SERIALIZABLE` | `IsolationLevels.SERIALIZABLE` | Strictest. Transactions behave as if they ran sequentially. Use for financial operations or inventory management where absolute consistency is required. May cause serialization failures requiring retry. |
@@ -1964,7 +1986,7 @@ Components are self-contained modules that register controllers, services, bindi
 ### Built-in Components
 
 | Component | Import | Description |
-|-----------|--------|-------------|
+| --- | --- | --- |
 | **HealthCheckComponent** | `@venizia/ignis` | Health check endpoints (`GET /health`, `/health/live`, `/health/ready`) |
 | **SwaggerComponent** | `@venizia/ignis` | OpenAPI documentation with Swagger UI or Scalar UI |
 | **AuthenticateComponent** | `@venizia/ignis` | JWT + Basic authentication strategies, token services, auth middleware |
@@ -1990,7 +2012,7 @@ this.component(HealthCheckComponent);
 **Endpoints:**
 
 | Endpoint | Description |
-|----------|-------------|
+| --- | --- |
 | `GET /health` | Basic health check -- returns `{ status: 'ok', uptime, timestamp }` |
 | `GET /health/live` | Liveness probe -- returns 200 if server is running |
 | `GET /health/ready` | Readiness probe -- returns 200 if server is ready to accept traffic |
@@ -2016,7 +2038,7 @@ The component auto-populates `info` from `getAppInfo()` and registers JWT/Basic 
 **Endpoints:**
 
 | Endpoint | Description |
-|----------|-------------|
+| --- | --- |
 | `GET /doc/openapi.json` | Raw OpenAPI spec in JSON |
 | `GET /doc/explorer` | Interactive API explorer (Scalar or Swagger UI) |
 
@@ -2128,7 +2150,7 @@ async getProfile(context: TRouteContext) {
 #### Authentication Modes
 
 | Mode | Behavior |
-|------|----------|
+| --- | --- |
 | `any` (default) | At least one strategy must succeed. Tries each strategy in order; first success wins. |
 | `all` | All specified strategies must succeed. All are tried; all must pass. |
 
@@ -2263,6 +2285,7 @@ import { MailComponent } from '@venizia/ignis/mail';
 ```
 
 Supports:
+
 - **Transporters**: Nodemailer (SMTP), Mailgun (API)
 - **Executors**: Direct (synchronous send), BullMQ (background queue with Redis), InternalQueue (in-memory queue)
 
@@ -2279,6 +2302,7 @@ this.component(SocketIOComponent);
 ```
 
 Provides Socket.IO server integration with:
+
 - Bun and Node.js runtime handlers (auto-detected)
 - Redis adapter support for horizontal scaling across multiple server instances
 
@@ -2389,8 +2413,8 @@ In production (`NODE_ENV=production`), `stack` and `cause` are stripped from res
 
 The error handler automatically recognizes PostgreSQL constraint violations and returns HTTP 400 instead of 500:
 
-| Error Code | Message |
-|------------|---------|
+| Error Code | Description |
+| --- | --- |
 | `23505` | Unique constraint violation |
 | `23503` | Foreign key constraint violation |
 | `23502` | Not null constraint violation |
@@ -2423,19 +2447,19 @@ throw getError({
 ## Decorators Reference
 
 | Decorator | Target | Parameters | Description |
-|-----------|--------|------------|-------------|
+| --- | --- | --- | --- |
 | `@model({ type?, settings? })` | Class | `type`: entity type string; `settings.hiddenProperties`: string[]; `settings.defaultFilter`: TFilter | Register entity model with hidden properties and default filters |
-| `@datasource({ driver?, autoDiscovery? })` | Class | `driver`: 'node-postgres'; `autoDiscovery`: boolean (default true) | Register datasource with driver configuration |
+| `@datasource({ driver?, autoDiscovery? })` | Class | `driver`: `'node-postgres'`; `autoDiscovery`: boolean (default true) | Register datasource with driver configuration |
 | `@repository({ model, dataSource })` | Class | `model`: entity class; `dataSource`: datasource class | Bind repository to model and datasource; auto-injects datasource at param[0] |
-| `@controller({ path, authenticate? })` | Class | `path`: base path string; `authenticate`: { strategies, mode } | Register controller with base path and optional default auth |
+| `@controller({ path, authenticate? })` | Class | `path`: base path string; `authenticate`: `{ strategies, mode }` | Register controller with base path and optional default auth |
 | `@get({ configs })` | Method | Full route config (path, request, responses, authenticate, authorize, middleware) | Define GET route |
-| `@post({ configs })` | Method | Same as @get | Define POST route |
-| `@put({ configs })` | Method | Same as @get | Define PUT route |
-| `@patch({ configs })` | Method | Same as @get | Define PATCH route |
-| `@del({ configs })` | Method | Same as @get | Define DELETE route |
-| `@api({ configs })` | Method | Same as @get + `method` field | Define route with explicit HTTP method |
+| `@post({ configs })` | Method | Same as `@get` | Define POST route |
+| `@put({ configs })` | Method | Same as `@get` | Define PUT route |
+| `@patch({ configs })` | Method | Same as `@get` | Define PATCH route |
+| `@del({ configs })` | Method | Same as `@get` | Define DELETE route |
+| `@api({ configs })` | Method | Same as `@get` + `method` field | Define route with explicit HTTP method |
 | `@inject({ key, isOptional? })` | Constructor param / Property | `key`: binding key string or symbol; `isOptional`: boolean (default false) | Inject dependency from IoC container |
-| `@injectable({ scope?, tags? })` | Class | `scope`: 'singleton' or 'transient'; `tags`: string[] | Mark class as injectable with scope and tags |
+| `@injectable({ scope?, tags? })` | Class | `scope`: `'singleton'` or `'transient'`; `tags`: string[] | Mark class as injectable with scope and tags |
 
 ---
 
@@ -2741,7 +2765,7 @@ describe('UserController', () => {
 
 3. **Hidden Fields at SQL Level** -- `hiddenProperties` are excluded in the SQL SELECT clause, not filtered post-query. This means sensitive data never leaves the database.
 
-4. **Core API vs Query API** -- The repository automatically uses the faster Core API (15-20% faster) when your filter does not include relations or explicit field selection. No manual optimization needed.
+4. **Core API vs Query API** -- The repository automatically uses the faster Core API (15--20% faster) when your filter does not include relations or explicit field selection. No manual optimization needed.
 
 5. **Visible Property Caching** -- The `FieldsVisibilityMixin` computes the visible property set once and caches it. Subsequent queries reuse the cached column selection.
 

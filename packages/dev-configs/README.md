@@ -1,10 +1,31 @@
+<div align="center">
+
 # @venizia/dev-configs
 
-[![npm version](https://img.shields.io/npm/v/@venizia/dev-configs.svg)](https://www.npmjs.com/package/@venizia/dev-configs)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.0%2B-blue.svg)](https://www.typescriptlang.org/)
+**Shared ESLint, Prettier, and TypeScript configs for the Ignis ecosystem**
 
-Centralized, shared development configurations for the **Ignis Framework** monorepo. This package is the **single source of truth** for ESLint, Prettier, and TypeScript compiler settings consumed by every package and example in the Ignis ecosystem.
+[![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs)
+[![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![ESLint](https://img.shields.io/badge/ESLint-9.x-4B32C3.svg?style=flat-square&logo=eslint&logoColor=white)](https://eslint.org/)
+[![Prettier](https://img.shields.io/badge/Prettier-3.x-F7B93E.svg?style=flat-square&logo=prettier&logoColor=black)](https://prettier.io/)
+
+Single source of truth for development tooling across the entire Ignis monorepo. Flat ESLint config (v9+), Prettier formatting, and TypeScript compiler settings with `experimentalDecorators` + `emitDecoratorMetadata` enabled.
+
+[Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#eslint-configuration) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
+
+</div>
+
+## Highlights
+
+| | Feature | |
+| :---: | :--- | :--- |
+| **1** | **3-Line Setup** | Import and re-export -- ESLint, Prettier, and TypeScript ready |
+| **2** | **Flat Config (ESLint v9+)** | Modern flat config format with composable layers |
+| **3** | **Decorator Support** | `experimentalDecorators` + `emitDecoratorMetadata` pre-configured |
+| **4** | **Consistent Formatting** | 100-char width, single quotes, trailing commas everywhere |
+
+---
 
 ## Table of Contents
 
@@ -41,19 +62,23 @@ Centralized, shared development configurations for the **Ignis Framework** monor
 - [Important Notes](#important-notes)
 - [License](#license)
 
+---
+
 ## Installation
 
 ```bash
 bun add -d @venizia/dev-configs
 ```
 
-Peer dependencies (install those you need):
+Peer dependencies -- install only the tools you intend to use:
 
 ```bash
 bun add -d eslint@^9.0.0 prettier@^3.0.0 typescript@^5.0.0
 ```
 
-All peer dependencies are marked optional, so you only need to install the tools you intend to use.
+All peer dependencies are marked optional, so you only need to install the ones relevant to your workflow.
+
+---
 
 ## Quick Start
 
@@ -87,6 +112,8 @@ export default prettierConfigs;
 }
 ```
 
+---
+
 ## ESLint Configuration
 
 The ESLint configuration uses the **flat config format** (ESLint v9+) and is exported as a `Linter.Config[]` array.
@@ -105,6 +132,8 @@ Layer 3: @venizia/dev-configs           (Ignis: relax no-explicit-any + add unic
 
 Each layer is a flat config array. The final export is the concatenation of all three, meaning rules defined later take precedence.
 
+---
+
 ### Layer 1: eslint-common (Foundation)
 
 Provided by `@minimaltech/eslint-common`. This layer establishes:
@@ -116,7 +145,7 @@ Provided by `@minimaltech/eslint-common`. This layer establishes:
 Key rules from this layer:
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `curly` | `["error", "all"]` | Braces required on all control flow |
 | `prefer-const` | `"error"` | Must use `const` when variable is never reassigned |
 | `no-restricted-imports` | Blocks `lodash` barrel import | Forces `import get from 'lodash/get'` for tree-shaking |
@@ -128,6 +157,8 @@ Key rules from this layer:
 
 **Default ignores:** `node_modules/`, `*.d.ts`, `build/`, `dist/`, `release/`, `babel.config.*`, `.eslintrc.*`, `.prettierrc.*`, `eslint.config.*`.
 
+---
+
 ### Layer 2: eslint-node (Node.js Specialization)
 
 Provided by `@minimaltech/eslint-node`. Built on top of the common layer, this adds:
@@ -135,7 +166,7 @@ Provided by `@minimaltech/eslint-node`. Built on top of the common layer, this a
 **LoopBack 4-derived rules (`lbRules`)** -- a comprehensive rule set originally from the LoopBack Next project, adapted for Ignis:
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `prefer-const` | `"error"` | Enforce immutable bindings |
 | `no-unused-labels` | `"error"` | Disallow unused labels |
 | `no-new-wrappers` | `"error"` | Disallow `new String()`, `new Number()`, etc. |
@@ -162,17 +193,19 @@ Provided by `@minimaltech/eslint-node`. Built on top of the common layer, this a
 **Node.js-specific rules** via `eslint-plugin-n`:
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `n/prefer-node-protocol` | `"error"` | Require `node:` prefix: `import fs from 'node:fs'` |
 
 **Relaxations applied at this layer:**
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `@typescript-eslint/no-inferrable-types` | `"off"` | Allow explicit types on initialized variables |
 | `@typescript-eslint/no-misused-promises` | `"off"` | Re-disabled (was enabled in lbRules, turned off here) |
 | `@typescript-eslint/ban-ts-comment` | `"off"` | Allow `@ts-ignore`, `@ts-expect-error` |
 | Various legacy TS rules | `"off"` | Old rules no longer relevant in modern TS-ESLint |
+
+---
 
 ### Layer 3: dev-configs (Ignis Overrides)
 
@@ -203,22 +236,24 @@ export const eslintConfigs: Linter.Config[] = [
 **Config object 1** -- overrides `@typescript-eslint/no-explicit-any` from `"error"` (Layer 2) to `"off"`:
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `@typescript-eslint/no-explicit-any` | `"off"` | Pragmatic decision. Framework-level code dealing with metadata, decorators, and dynamic DI resolution frequently requires `any`. |
 
 **Config object 2** -- adds `eslint-plugin-unicorn` and enforces brace rules:
 
 | Rule | Value | Purpose |
-|------|-------|---------|
+| :--- | :---- | :------ |
 | `curly` | `["error", "all"]` | Re-enforces braces on all control flow (already set in Layer 1, repeated for clarity) |
 | `unicorn/switch-case-braces` | `["error", "always"]` | Every `case`/`default` in a `switch` must be wrapped in braces |
+
+---
 
 ### Complete Rule Reference
 
 The following table shows every explicitly configured rule across all three layers, with the **final effective value** after all overrides:
 
 | Rule | Final Value | Set By |
-|------|-------------|--------|
+| :--- | :---------- | :----- |
 | **Core JavaScript** | | |
 | `curly` | `["error", "all"]` | Layer 1 + 3 |
 | `prefer-const` | `"error"` | Layer 1 + 2 |
@@ -279,6 +314,8 @@ The following table shows every explicitly configured rule across all three laye
 | **Unicorn** | | |
 | `unicorn/switch-case-braces` | `["error", "always"]` | Layer 3 |
 
+---
+
 ### Rule Examples: Pass vs Fail
 
 #### `curly: ["error", "all"]` -- Braces Required on All Control Flow
@@ -316,6 +353,8 @@ for (const item of items) transform(item); // Error: Expected { after 'for'
 while (hasNext()) advance();               // Error: Expected { after 'while' condition
 ```
 
+---
+
 #### `@typescript-eslint/no-explicit-any: off` -- Why This Is Pragmatic
 
 In framework-level code, `any` is sometimes unavoidable when dealing with decorator metadata, dynamic DI resolution, and generic container patterns:
@@ -351,6 +390,8 @@ export default [
   { rules: { '@typescript-eslint/no-explicit-any': 'error' } },
 ];
 ```
+
+---
 
 #### `unicorn/switch-case-braces: ["error", "always"]` -- Case Clause Braces
 
@@ -391,6 +432,8 @@ switch (action.type) {
 
 Without braces, `const entity` and `const changes` share the same lexical scope. This can cause `SyntaxError: Identifier already declared` or subtle bugs where variables from one case are visible in another.
 
+---
+
 #### `n/prefer-node-protocol: "error"` -- Require `node:` Prefix
 
 ```typescript
@@ -408,6 +451,8 @@ import path from 'path';      // Error: Prefer 'node:path' over 'path'
 import { createServer } from 'http';  // Error: Prefer 'node:http' over 'http'
 ```
 
+---
+
 #### `eqeqeq: ["error", "smart"]` -- Strict Equality with Exceptions
 
 ```typescript
@@ -421,6 +466,8 @@ if (typeof x === 'string') { /* ... */ }
 if (user.role == 'admin') { /* ... */ }  // Error: Expected '===' but found '=='
 if (count != 0) { /* ... */ }            // Error: Expected '!==' but found '!='
 ```
+
+---
 
 ### Flat Config Format (ESLint v9+)
 
@@ -450,7 +497,7 @@ export default [
 Key differences from the legacy format:
 
 | Aspect | Legacy `.eslintrc` | Flat Config |
-|--------|-------------------|-------------|
+| :----- | :----------------- | :---------- |
 | File name | `.eslintrc.json`, `.eslintrc.js` | `eslint.config.mjs` |
 | Structure | Single object with `extends`, `overrides` | Array of config objects |
 | Plugin loading | `plugins: ['unicorn']` (string name) | `plugins: { unicorn: importedPlugin }` (object reference) |
@@ -459,6 +506,8 @@ Key differences from the legacy format:
 | Ignore patterns | `.eslintignore` file | `ignores` key in a config object |
 
 **Why flat config matters for `@venizia/dev-configs`:** The exported `eslintConfigs` is already a `Linter.Config[]` array. To extend it, you spread it into your own array and append additional config objects. No `extends` keyword, no magic resolution -- just arrays and objects.
+
+---
 
 ### Adding Project-Specific Overrides
 
@@ -483,6 +532,8 @@ export default [
   },
 ];
 ```
+
+---
 
 ### Adding File-Specific Overrides
 
@@ -523,6 +574,8 @@ export default [
 ];
 ```
 
+---
+
 ## Prettier Configuration
 
 All formatting settings are exported as a `Config` object from Prettier's type definitions.
@@ -542,6 +595,8 @@ export const prettierConfigs: Config = {
   semi: true,
 };
 ```
+
+---
 
 ### Settings with Before/After Examples
 
@@ -571,6 +626,8 @@ export class DefaultCRUDRepository<
 export class DefaultCRUDRepository<T extends Record<string, unknown>> extends PersistableRepository<T> {
 ```
 
+---
+
 #### `tabWidth: 2` -- Indentation
 
 Two spaces per indentation level. Consistent with most Node.js/TypeScript projects.
@@ -597,6 +654,8 @@ class UserController extends BaseController {
 }
 ```
 
+---
+
 #### `singleQuote: true` -- Quote Style
 
 Single quotes for string literals. Double quotes are still used in JSX attributes and when a string contains a single quote.
@@ -611,6 +670,8 @@ const message = "it's a test";   // Double quotes when string contains single qu
 import { controller } from "@venizia/ignis";
 const name = "hello";
 ```
+
+---
 
 #### `semi: true` -- Semicolons
 
@@ -627,6 +688,8 @@ const port = 3000
 const host = 'localhost'
 app.start({ port, host })
 ```
+
+---
 
 #### `trailingComma: "all"` -- Trailing Commas
 
@@ -685,6 +748,8 @@ const config = {
   };
 ```
 
+---
+
 #### `arrowParens: "avoid"` -- Arrow Function Parentheses
 
 Omit parentheses around a sole arrow function parameter when possible.
@@ -711,6 +776,8 @@ items.map((item) => item.id);
 items.filter((item) => item.isActive);
 ```
 
+---
+
 #### `bracketSpacing: true` -- Object Literal Spacing
 
 Spaces inside object literal braces.
@@ -727,6 +794,8 @@ const {name, age} = user;
 import {controller, inject} from '@venizia/ignis';
 ```
 
+---
+
 ### Overriding Prettier Settings
 
 Import and spread to override specific settings:
@@ -741,6 +810,8 @@ export default {
   arrowParens: 'always',   // Always wrap arrow params
 };
 ```
+
+---
 
 ### .prettierignore Patterns
 
@@ -766,6 +837,8 @@ bun.lockb
 *.min.js
 *.min.css
 ```
+
+---
 
 ## TypeScript Configuration
 
@@ -835,12 +908,14 @@ The comprehensive base configuration containing all compiler options. Located at
 }
 ```
 
+---
+
 #### Compiler Options Reference
 
 **Language and Environment**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `target` | `ES2022` | Sets the JavaScript version for emit output. | ES2022 provides native `class`, `async/await`, `top-level await`, private class fields, and `Array.at()` without downleveling. Bun and modern Node.js fully support ES2022. | Lowering to ES5/ES6 introduces unnecessary transpilation overhead. Raising to ESNext may use features not yet stable in all runtimes. |
 | `lib` | `["ES2022"]` | Includes type definitions for ES2022 standard library APIs (`structuredClone`, `Array.at()`, `Object.hasOwn()`, `Error.cause`, etc.). | Matches the `target` to ensure type-checked APIs match the emitted code. | Removing this causes TypeScript to not recognize modern APIs like `structuredClone`. Adding `"DOM"` would introduce browser-specific types (e.g., `window`, `document`) that do not exist in Node.js/Bun. |
 | `experimentalDecorators` | `true` | **CRITICAL.** Enables the legacy/experimental decorator syntax (`@decorator`) used by Ignis for DI, controllers, models, and repositories. | See [Critical Flags](#critical-flags-for-decorator-based-di). | All Ignis decorators fail to compile. |
@@ -850,7 +925,7 @@ The comprehensive base configuration containing all compiler options. Located at
 **Modules**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `module` | `Node16` | Sets the module system for emitted code. | Node16 provides full ESM and CJS interop with `package.json` `"type"` field support. Matches the target Node.js/Bun environment. | Changing to `CommonJS` loses ESM support. Changing to `ESNext` loses CJS interop. |
 | `moduleResolution` | `node16` | Controls how TypeScript resolves `import` paths to files. | Supports `package.json` `"exports"` field, conditional exports, and the `#imports` private imports pattern. | Changing to `node` (legacy) ignores `"exports"` field in `package.json`, causing resolution failures for modern packages. |
 | `resolveJsonModule` | `true` | Allows importing `.json` files with full type inference. | Used for importing `package.json` and configuration files. | `import pkg from './package.json'` stops working. |
@@ -862,7 +937,7 @@ The comprehensive base configuration containing all compiler options. Located at
 **Emit**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `declaration` | `true` | Generates `.d.ts` type declaration files alongside JavaScript output. | Required for packages consumed as dependencies so that consumers get type information. | Downstream packages lose all type information and IntelliSense. |
 | `declarationMap` | `true` | Generates `.d.ts.map` files mapping declarations back to original `.ts` source. | Enables "Go to Definition" in IDEs to navigate to original TypeScript source instead of the `.d.ts` file. | IDE "Go to Definition" lands on `.d.ts` stubs instead of real source code. |
 | `sourceMap` | `true` | Generates `.js.map` files for debugging. | Allows debuggers and stack traces to show original TypeScript source locations instead of compiled JavaScript. | Stack traces and breakpoints reference compiled JS line numbers, making debugging harder. |
@@ -875,7 +950,7 @@ The comprehensive base configuration containing all compiler options. Located at
 **Type Checking -- Strict Mode (Balanced for Production)**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `strict` | `true` | Enables all strict type-checking options as a baseline. Individual overrides below relax specific checks. | Maximum type safety as the default, with targeted relaxations for framework patterns. | Disabling this removes all strict checks at once, dramatically reducing type safety. |
 | `noImplicitAny` | `false` | Allows variables and parameters to implicitly have the `any` type when TypeScript cannot infer a more specific type. | Pragmatic choice. Framework code dealing with decorator metadata (`Reflect.getMetadata`) and dynamic DI patterns frequently encounters values with no inferrable type. | Enabling this would require explicit type annotations on every decorator metadata access and dynamic container resolution, adding significant boilerplate to framework internals. |
 | `strictNullChecks` | `true` | Makes `null` and `undefined` their own distinct types rather than assignable to everything. | Prevents the most common class of runtime errors (`Cannot read property of null/undefined`). | Disabling this allows `null` to be assigned anywhere, removing compile-time null safety. |
@@ -889,7 +964,7 @@ The comprehensive base configuration containing all compiler options. Located at
 **Additional Checks**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `noUnusedLocals` | `true` | Errors on declared but unused local variables. | Keeps code clean and prevents dead code accumulation. | Disabling this allows unused variables to accumulate silently. |
 | `noUnusedParameters` | `true` | Errors on declared but unused function parameters. Prefix with `_` to suppress. | Catches dead parameters that may indicate incomplete refactoring. The `_` prefix convention explicitly marks intentionally unused params. | Disabling this allows function signatures to diverge from implementation. |
 | `noImplicitReturns` | `false` | When `true`, errors when not all code paths return a value. | Disabled because many methods intentionally return `void` from some branches (e.g., early return guards). | Enabling this would require explicit `return undefined` in many guard-clause patterns. |
@@ -902,7 +977,7 @@ The comprehensive base configuration containing all compiler options. Located at
 **Performance**
 
 | Option | Value | What It Does | Why This Value | What Breaks If Changed |
-|--------|-------|--------------|----------------|----------------------|
+| :----- | :---- | :----------- | :------------- | :--------------------- |
 | `incremental` | `true` | Stores build state in `.tsbuildinfo` files and only recompiles changed files. | Significantly speeds up rebuilds in the monorepo. First build is the same speed; subsequent builds only process changed files. | Disabling this forces full recompilation on every build, which is noticeably slower in a 50k+ LOC monorepo. |
 | `skipLibCheck` | `true` | Skips type checking of `.d.ts` files from `node_modules`. | Dramatically reduces build times. Type errors in third-party `.d.ts` files are not actionable anyway. | Disabling this adds seconds to every build for no practical benefit, and may surface false positives from poorly-typed third-party packages. |
 
@@ -915,6 +990,8 @@ The base config excludes the following from compilation:
 - `build` -- alternative build output directory
 - `coverage` -- test coverage reports
 - `**/*.spec.ts`, `**/*.test.ts`, `**/__tests__/**` -- test files (compiled separately by test runners)
+
+---
 
 ### tsconfig.common.json
 
@@ -937,7 +1014,7 @@ The consumer-facing configuration that most packages should extend. Located at `
 This config extends `tsconfig.base.json` and makes two adjustments:
 
 | Override | Base Value | Common Value | Rationale |
-|----------|-----------|--------------|-----------|
+| :------- | :--------- | :----------- | :-------- |
 | `module` | `Node16` | `nodenext` | Uses the latest Node.js module resolution. `nodenext` tracks the most current Node.js behavior and will adopt future changes automatically. While `Node16` is frozen to Node 16 semantics, `nodenext` evolves with the Node.js release cycle. |
 | `moduleResolution` | `node16` | `nodenext` | Matching module resolution strategy for `nodenext` module mode. Must always match the `module` setting. |
 
@@ -958,6 +1035,8 @@ This configures `ts-node` (when used during development) to run in `transpileOnl
 - **When it matters:** When running scripts directly with `ts-node`, or when tools like Drizzle Kit load TypeScript config files (e.g., `drizzle-kit push --config=src/migration.ts`).
 
 **Use `tsconfig.common.json` unless you have a specific reason to extend `tsconfig.base.json` directly.**
+
+---
 
 ### Critical Flags for Decorator-Based DI
 
@@ -990,6 +1069,8 @@ The following decorators all require this flag: `@controller`, `@inject`, `@inje
 
 **Note on TC39 decorators:** TypeScript 5.0+ supports the new TC39 stage 3 decorator proposal (without `experimentalDecorators`). However, the TC39 decorators do NOT support `emitDecoratorMetadata`, which Ignis relies on for automatic DI resolution. Ignis intentionally uses the legacy/experimental decorator syntax for this reason.
 
+---
+
 #### `emitDecoratorMetadata: true`
 
 Instructs TypeScript to emit design-time type information as metadata using `Reflect.metadata()`. This is what allows the IoC container (`@venizia/ignis-inversion`) to inspect constructor parameter types at runtime and automatically resolve dependencies.
@@ -1019,10 +1100,13 @@ The `design:paramtypes` metadata tells the DI container: "The first constructor 
 3. Pass it as the first constructor argument
 
 Without this flag:
+
 - `Reflect.getMetadata('design:paramtypes', UserService)` returns `undefined`
 - The DI container cannot determine what types the constructor expects
 - All automatic constructor injection silently fails
 - `@inject` decorators lose their type-resolution capability
+
+---
 
 #### `useDefineForClassFields: false`
 
@@ -1065,6 +1149,8 @@ class UserController extends BaseController {
 error TS2564: Property 'userService' has no initializer and is not definitely
 assigned in the constructor.
 ```
+
+---
 
 ## Consumption Pattern
 
@@ -1116,6 +1202,8 @@ Packages that need path aliases or additional settings simply add them under `co
 }
 ```
 
+---
+
 ## Real-World Consumer Examples
 
 The following are actual configurations from packages in the Ignis monorepo.
@@ -1125,6 +1213,7 @@ The following are actual configurations from packages in the Ignis monorepo.
 The simplest and most common pattern -- direct consumption with path aliases:
 
 **`eslint.config.mjs`:**
+
 ```javascript
 import { eslintConfigs } from '@venizia/dev-configs';
 
@@ -1132,6 +1221,7 @@ export default eslintConfigs;
 ```
 
 **`.prettierrc.mjs`:**
+
 ```javascript
 import { prettierConfigs } from '@venizia/dev-configs';
 
@@ -1139,6 +1229,7 @@ export default prettierConfigs;
 ```
 
 **`tsconfig.json`:**
+
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
@@ -1158,11 +1249,14 @@ export default prettierConfigs;
 
 Note that `include` adds `./*.config.*` and `.prettierrc.*` so ESLint and Prettier config files are also type-checked.
 
+---
+
 ### packages/core (Extended TypeScript Config)
 
 The core package needs JSX support for Hono's JSX rendering, so it uses a two-level tsconfig chain:
 
 **`tsconfig.core.json`** (base for core):
+
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
@@ -1181,6 +1275,7 @@ The core package needs JSX support for Hono's JSX rendering, so it uses a two-le
 ```
 
 **`tsconfig.json`** (adds JSX on top):
+
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
@@ -1194,11 +1289,14 @@ The core package needs JSX support for Hono's JSX rendering, so it uses a two-le
 
 This pattern demonstrates that you can chain `extends` references: `tsconfig.json` extends `tsconfig.core.json` which extends `@venizia/dev-configs/tsconfig.common.json`.
 
+---
+
 ### examples/vert (Application-Level Config)
 
 Applications use the same pattern as library packages:
 
 **`tsconfig.json`:**
+
 ```json
 {
   "$schema": "http://json.schemastore.org/tsconfig",
@@ -1215,6 +1313,8 @@ Applications use the same pattern as library packages:
   "exclude": ["node_modules", "dist", "app_data"]
 }
 ```
+
+---
 
 ## Setting Up a New Package
 
@@ -1317,6 +1417,8 @@ bun run eslint
 bun run prettier:cli
 ```
 
+---
+
 ## Extending and Overriding
 
 ### ESLint
@@ -1366,6 +1468,8 @@ Use `"extends"` and override specific `compilerOptions`:
 
 **Warning:** Do not override `experimentalDecorators`, `emitDecoratorMetadata`, or `useDefineForClassFields` unless you fully understand the consequences for the DI system. See [Critical Flags](#critical-flags-for-decorator-based-di).
 
+---
+
 ## IDE Integration
 
 ### Visual Studio Code
@@ -1396,6 +1500,8 @@ Key points:
 - **`typescript.tsdk`** -- Points to the workspace's TypeScript version instead of the VS Code bundled one. Ensures the same TypeScript version is used for type checking in the IDE and during builds.
 - Prettier handles formatting; ESLint handles code quality rules. The `eslint-plugin-prettier` integration in the config stack ensures they do not conflict.
 
+---
+
 ### WebStorm / IntelliJ IDEA
 
 WebStorm automatically detects `eslint.config.mjs` and `.prettierrc.mjs` files. Ensure these settings are enabled:
@@ -1403,6 +1509,8 @@ WebStorm automatically detects `eslint.config.mjs` and `.prettierrc.mjs` files. 
 1. **Settings > Languages & Frameworks > JavaScript > Code Quality Tools > ESLint**: Select "Automatic ESLint configuration."
 2. **Settings > Languages & Frameworks > JavaScript > Prettier**: Check "On save" and "On 'Reformat Code' action."
 3. **Settings > Languages & Frameworks > TypeScript**: Point the TypeScript service to `node_modules/typescript/lib`.
+
+---
 
 ## CI/CD Integration
 
@@ -1447,6 +1555,8 @@ make lint-all     # All packages + examples
 
 Since `noEmitOnError: true` is set, a failed type check will cause the build to fail.
 
+---
+
 ## Troubleshooting
 
 ### ESLint flat config not recognized
@@ -1456,14 +1566,18 @@ Since `noEmitOnError: true` is set, a failed type check will cause the build to 
 **Cause:** ESLint version is below v9.0.0, which does not support flat config as the default format.
 
 **Fix:**
+
 ```bash
 bun add -d eslint@^9.0.0
 ```
 
 Verify your version:
+
 ```bash
 bun eslint --version   # Should be 9.x.x or later
 ```
+
+---
 
 ### Prettier conflicts with ESLint
 
@@ -1473,9 +1587,12 @@ bun eslint --version   # Should be 9.x.x or later
 
 **Fix:** The `@venizia/dev-configs` ESLint config already includes `eslint-plugin-prettier/recommended` (via the `@minimaltech/eslint-common` base layer), which automatically disables ESLint rules that conflict with Prettier. If you see conflicts, check that you are not adding formatting rules in your project-level overrides that conflict with Prettier settings.
 
+---
+
 ### TypeScript decorator errors
 
 **Symptom:**
+
 ```
 error TS1219: Experimental support for decorators is a feature that is subject
 to change in a future release.
@@ -1484,6 +1601,7 @@ to change in a future release.
 **Cause:** `experimentalDecorators` is not enabled, usually because `tsconfig.json` does not extend the shared config or the `extends` path is wrong.
 
 **Fix:** Verify your `tsconfig.json`:
+
 ```json
 {
   "extends": "@venizia/dev-configs/tsconfig.common.json"
@@ -1491,19 +1609,25 @@ to change in a future release.
 ```
 
 If the path cannot be resolved, ensure `@venizia/dev-configs` is installed:
+
 ```bash
 bun add -d @venizia/dev-configs
 ```
+
+---
 
 ### DI injection returns undefined at runtime
 
 **Symptom:** `@inject`-decorated properties are `undefined` at runtime even though the binding exists in the container.
 
 **Cause:** Usually one of:
+
 1. `emitDecoratorMetadata: false` -- the container cannot read constructor parameter types.
 2. `useDefineForClassFields: true` -- `Object.defineProperty` overwrites decorator-injected values.
 
 **Fix:** Verify both flags are set correctly in your `tsconfig.json`. If you extend `@venizia/dev-configs/tsconfig.common.json`, these are already set. Do not override them.
+
+---
 
 ### Path alias resolution fails at runtime (tsc-alias)
 
@@ -1525,9 +1649,12 @@ bun add -d tsc-alias
 }
 ```
 
+---
+
 ### Module resolution errors (node16 vs nodenext)
 
 **Symptom:**
+
 ```
 error TS2835: Relative import paths need explicit file extensions in ECMAScript
 imports when '--moduleResolution' is 'node16' or 'nodenext'.
@@ -1547,6 +1674,8 @@ import { UserService } from './services/user.service';
 
 This is a TypeScript convention: you write `.js` in the import path because the compiled output will be `.js` files.
 
+---
+
 ### Incremental build stale cache
 
 **Symptom:** TypeScript does not pick up changes, or emits stale output after modifying files.
@@ -1561,14 +1690,17 @@ tsc
 ```
 
 Or use the clean script:
+
 ```bash
 bun run clean && bun run build
 ```
 
+---
+
 ## Version Compatibility
 
 | Tool | Required Version | Notes |
-|------|-----------------|-------|
+| :--- | :--------------- | :---- |
 | **ESLint** | `^9.0.0` | Flat config format. Versions below 9.0 do not support `eslint.config.mjs` as the default config file. |
 | **Prettier** | `^3.0.0` | Major version 3 for `trailingComma: "all"` support in type parameters. |
 | **TypeScript** | `^5.0.0` | Required for `@typescript-eslint` v8 compatibility and modern decorator metadata support. |
@@ -1578,16 +1710,20 @@ bun run clean && bun run build
 | **eslint-plugin-unicorn** | `^62.0.0` | Direct dependency of `@venizia/dev-configs`. |
 | **eslint-plugin-n** | `^17.21.3` | Provided transitively via `@minimaltech/eslint-node`. |
 
+---
+
 ## Comparison with Alternatives
 
 ### Why a shared config package instead of per-package configs?
 
 | Approach | Pros | Cons |
-|----------|------|------|
+| :------- | :--- | :--- |
 | **Shared package (what we do)** | Single source of truth; update once, propagate everywhere; guaranteed consistency; 3-line consumption | Requires publishing/building the package before consumers can use it; tighter coupling |
 | **Copy-paste configs** | Independent per package; no build dependency | Config drift across packages; painful to update 10+ packages; no guarantee of consistency |
 | **Root-level configs only** | Zero duplication | Does not work for published packages that need their own `tsconfig.json` for declaration emit; monorepo tools may not respect root configs |
 | **Tool-specific workspace configs** (e.g., ESLint `root: true`) | Built into the tool | Only works for ESLint (legacy format); Prettier and TypeScript have no equivalent workspace inheritance |
+
+---
 
 ### Why flat config (ESLint v9+) instead of `.eslintrc`?
 
@@ -1596,20 +1732,26 @@ bun run clean && bun run build
 - **Plugin loading:** Plugins are imported as ES modules, not resolved by string name. No more version mismatch confusion.
 - **Future-proof:** ESLint has deprecated `.eslintrc` as of v9. It will be removed in a future major version.
 
+---
+
 ### Why Prettier config in `.prettierrc.mjs` instead of `.prettierrc.json`?
 
 - **Import support:** `.mjs` files can `import` from npm packages. `.json` files cannot reference external configs.
 - **Spread operator:** JavaScript allows `{ ...baseConfig, override: value }`. JSON does not support any form of inheritance.
 - **Consistency:** All three configs (ESLint, Prettier, TypeScript) follow the same "import from shared package" pattern.
 
+---
+
 ## Package Exports
 
 | Export Path | Resolves To | Description |
-|-------------|-------------|-------------|
+| :---------- | :---------- | :---------- |
 | `@venizia/dev-configs` | `dist/index.js` | ESLint and Prettier configs (`eslintConfigs`, `prettierConfigs`) |
 | `@venizia/dev-configs/tsconfig.base.json` | `tsconfig/tsconfig.base.json` | Comprehensive base TypeScript config |
 | `@venizia/dev-configs/tsconfig.common.json` | `tsconfig/tsconfig.common.json` | Consumer-facing TypeScript config (recommended) |
 | `@venizia/dev-configs/package.json` | `package.json` | Package manifest |
+
+---
 
 ## Important Notes
 
@@ -1622,6 +1764,8 @@ bun run clean && bun run build
 - **Bun is the primary runtime.** The `engines` field specifies `bun >= 1.3`. While the configs themselves are runtime-agnostic, the monorepo build system uses Bun exclusively.
 
 - **Build order matters.** `@venizia/dev-configs` is the root of the build dependency chain (`dev-configs -> inversion -> helpers -> boot -> core`). It must be built before any other package.
+
+---
 
 ## License
 
