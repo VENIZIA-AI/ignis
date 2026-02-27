@@ -16,14 +16,14 @@
 
 <br />
 
-| Package | Version |
-| :--- | :--- |
-| `@venizia/ignis` | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) |
-| `@venizia/ignis-boot` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) |
-| `@venizia/ignis-inversion` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
-| `@venizia/ignis-helpers` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
-| `@venizia/dev-configs` | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) |
-| `@venizia/ignis-docs` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs) |
+| Package | Latest Version | Next Version |
+| :--- | :---: | :---: |
+| `@venizia/ignis` | [![npm](https://img.shields.io/npm/v/@venizia/ignis.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis) |
+| `@venizia/ignis-boot` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-boot/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-boot) |
+| `@venizia/ignis-inversion` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-inversion.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-inversion) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-inversion/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-inversion) |
+| `@venizia/ignis-helpers` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-helpers/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-helpers) |
+| `@venizia/dev-configs` | [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs) | [![npm next](https://img.shields.io/npm/v/@venizia/dev-configs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/dev-configs) |
+| `@venizia/ignis-docs` | [![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs) | [![npm next](https://img.shields.io/npm/v/@venizia/ignis-docs/next.svg?style=flat-square&color=f59e0b)](https://www.npmjs.com/package/@venizia/ignis-docs) |
 
 <br />
 
