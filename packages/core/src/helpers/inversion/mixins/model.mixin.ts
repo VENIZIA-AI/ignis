@@ -141,10 +141,9 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       authorize: IModelAuthorizeSettings;
       entry: IModelRegistryEntry;
     }>;
-    getAuthorizeModelSettings(opts: { format: 'record' }): Record<
-      string,
-      { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }
-    >;
+    getAuthorizeModelSettings(opts: {
+      format: 'record';
+    }): Record<string, { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }>;
     getAuthorizeModelSettings(opts: { format: 'array' | 'record' }) {
       switch (opts.format) {
         case 'array': {
