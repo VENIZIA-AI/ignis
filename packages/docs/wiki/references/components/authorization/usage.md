@@ -689,6 +689,68 @@ const customRole = AuthorizationRole.build({ name: 'editor', priority: 100, deli
 customRole.identifier;  // '100-editor'
 ```
 
+## Model-Based Resource References
+
+Instead of hardcoding resource strings, use `AUTHORIZATION_SUBJECT` from your model classes. When a model declares `authorize.principal` in `@model` settings, the decorator auto-populates `AUTHORIZATION_SUBJECT`:
+
+```typescript
+import { BaseEntity, model, generateIdColumnDefs } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+@model({
+  type: 'entity',
+  settings: {
+    authorize: { principal: 'article' },
+  },
+})
+export class Article extends BaseEntity<typeof Article.schema> {
+  static override schema = pgTable('Article', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    title: text('title').notNull(),
+  });
+}
+
+// Article.AUTHORIZATION_SUBJECT === 'article'
+```
+
+Use it in route configs for type-safe, refactor-friendly resource references:
+
+```typescript
+import { AuthorizationActions } from '@venizia/ignis';
+import { Article } from '../models/entities/article.model';
+
+// Instead of: resource: 'article'
+authorize: {
+  action: AuthorizationActions.READ,
+  resource: Article.AUTHORIZATION_SUBJECT,
+}
+```
+
+### Querying All Principals
+
+Use `MetadataRegistry` to retrieve all registered authorization principals at runtime:
+
+```typescript
+import { MetadataRegistry } from '@venizia/ignis';
+
+const registry = MetadataRegistry.getInstance();
+
+// Flat array of principal names — ideal for Casbin policy setup
+const principals = registry.getAuthorizeModelPrincipals({ format: 'array' });
+// ['article', 'user', 'configuration']
+
+// Record of model name → principal
+const principalMap = registry.getAuthorizeModelPrincipals({ format: 'record' });
+// { Article: 'article', User: 'user', Configuration: 'configuration' }
+
+// Full settings with model registry entries (framework-level)
+const settings = registry.getAuthorizeModelSettings({ format: 'array' });
+// [{ name: 'Article', authorize: { principal: 'article' }, entry: IModelRegistryEntry }]
+```
+
+> [!TIP]
+> Defining `authorize.principal` on the model makes the model the single source of truth for its authorization subject. This eliminates string duplication across route configs and policy setup.
+
 ## See Also
 
 - [Setup & Configuration](./) -- Binding keys, options interfaces, and initial setup

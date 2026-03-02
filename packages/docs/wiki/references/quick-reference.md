@@ -118,6 +118,7 @@ class User extends BaseEntity {
 **Key Properties:**
 - `static tableName` - Database table name
 - `static schema` - Drizzle schema definition
+- `static AUTHORIZATION_SUBJECT` - Authorization principal (auto-set from `@model` settings `authorize.principal`)
 
 
 ## Route Decorators

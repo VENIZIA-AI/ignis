@@ -32,7 +32,7 @@ Fundamental building block wrapping a Drizzle ORM schema.
 | **Schema Encapsulation** | Holds Drizzle `pgTable` schema for consistent repository access |
 | **Metadata** | Works with `@model` decorator to mark database entities |
 | **Schema Generation** | Uses `drizzle-zod` to generate Zod schemas (`SELECT`, `CREATE`, `UPDATE`) |
-| **Static Properties** | Supports static `schema`, `relations`, and `TABLE_NAME` for cleaner syntax |
+| **Static Properties** | Supports static `schema`, `relations`, `TABLE_NAME`, and `AUTHORIZATION_SUBJECT` |
 | **Convenience** | Includes `toObject()` and `toJSON()` methods |
 
 ### The `@model` Decorator
@@ -49,6 +49,10 @@ The `@model` decorator marks a class as a database entity and configures its beh
   settings?: {
     hiddenProperties?: string[],  // Properties to exclude from query results
     defaultFilter?: TFilter,      // Filter applied to all repository queries
+    authorize?: {                  // Authorization settings
+      principal: string,           // Authorization subject name
+      [extra: string | symbol]: any, // Extensible metadata
+    },
   }
 })
 ```
@@ -60,6 +64,8 @@ The `@model` decorator marks a class as a database entity and configures its beh
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
 | `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
+| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings — declares the model's authorization principal (see [Authorization](/references/components/authorization/usage#model-based-resource-references)) |
+| `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates `AUTHORIZATION_SUBJECT` static property |
 
 ### Hidden Properties
 
@@ -233,6 +239,7 @@ export class User extends BaseEntity<typeof userTable> {
 | `schema` | `TTableSchemaWithId` | Drizzle table schema defined with `pgTable()` |
 | `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading) |
 | `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
+| `AUTHORIZATION_SUBJECT` | `string \| undefined` | Authorization principal name. Auto-populated from `@model` settings `authorize.principal` |
 
 ### IEntity Interface
 
@@ -269,6 +276,7 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   static schema: TTableSchemaWithId;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
   static TABLE_NAME?: string;  // Optional, defaults to class name
+  static AUTHORIZATION_SUBJECT?: string;  // Auto-set by @model decorator from authorize.principal
 
   // Static singleton for schemaFactory - shared across all instances
   // Performance optimization: avoids creating new factory per entity

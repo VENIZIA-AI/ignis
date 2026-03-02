@@ -208,6 +208,38 @@ const [fullUser] = await connector
 For complete hidden properties documentation, see the [Models Reference](../../../references/base/models.md#hidden-properties).
 :::
 
+## Authorization Settings
+
+Declare your model's authorization principal directly in `@model` settings. The decorator auto-populates `AUTHORIZATION_SUBJECT` for type-safe references in route configs:
+
+```typescript
+import { BaseEntity, generateIdColumnDefs, model, AuthorizationActions } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+
+@model({
+  type: 'entity',
+  settings: {
+    authorize: { principal: 'article' },
+  },
+})
+export class Article extends BaseEntity<typeof Article.schema> {
+  static override schema = pgTable('Article', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    title: text('title').notNull(),
+  });
+}
+
+// Use in route configs — no hardcoded strings
+authorize: {
+  action: AuthorizationActions.READ,
+  resource: Article.AUTHORIZATION_SUBJECT, // 'article'
+}
+```
+
+:::tip
+For full authorization integration details, see the [Authorization Usage Reference](../../../references/components/authorization/usage#model-based-resource-references).
+:::
+
 ## Model Template
 
 ```typescript

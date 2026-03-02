@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-02',
+              collapsed: true,
+              items: [
+                { text: 'Model Authorize Settings', link: '/changelogs/2026-03-02-model-authorize-settings' },
+              ],
+            },
+            {
               text: '2026-02-27',
               collapsed: true,
               items: [
