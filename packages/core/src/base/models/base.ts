@@ -11,11 +11,11 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   name: string;
   schema: Schema;
 
-  static schema: TTableSchemaWithId;
-
-  static relations?: TValueOrResolver<Array<TRelationConfig>>;
-
   static TABLE_NAME?: string;
+  static AUTHORIZATION_SUBJECT?: string;
+
+  static schema: TTableSchemaWithId;
+  static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
   /** Lazy singleton — shared across all BaseEntity instances. */
   private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;

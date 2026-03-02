@@ -15,6 +15,12 @@ import { TTableSchemaWithId } from '../models/common';
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
+    // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
+    const principal = metadata.settings?.authorize?.principal;
+    if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
+      (target as any).AUTHORIZATION_SUBJECT = principal;
+    }
+
     MetadataRegistry.getInstance().registerModel({ target, metadata });
   };
 };

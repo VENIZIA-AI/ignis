@@ -1,8 +1,9 @@
 import { BaseEntity, TTableSchemaWithId } from '@/base/models';
-import { TMixinTarget } from '@venizia/ignis-helpers';
+import { getError, TMixinTarget } from '@venizia/ignis-helpers';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
 import {
+  IModelAuthorizeSettings,
   IModelMetadata,
   IModelRegistryEntry,
   TDecoratorModelTarget,
@@ -86,6 +87,103 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
      */
     getAllModels(): Map<string, IModelRegistryEntry> {
       return this.modelRegistry;
+    }
+
+    /**
+     * Get authorize settings for a single model by name.
+     */
+    getModelAuthorizeSettings(opts: { name: string }): IModelAuthorizeSettings | undefined {
+      const entry = this.getModelEntry(opts);
+      return entry?.metadata?.settings?.authorize;
+    }
+
+    /**
+     * Get all authorization principals from models that have authorize settings.
+     */
+    getAuthorizeModelPrincipals(opts: { format: 'array' }): string[];
+    getAuthorizeModelPrincipals(opts: { format: 'record' }): Record<string, string>;
+    getAuthorizeModelPrincipals(opts: { format: 'array' | 'record' }) {
+      switch (opts.format) {
+        case 'array': {
+          const principals: string[] = [];
+
+          for (const [, entry] of this.modelRegistry) {
+            const principal = entry.metadata.settings?.authorize?.principal;
+            if (principal) {
+              principals.push(principal);
+            }
+          }
+
+          return principals;
+        }
+        case 'record': {
+          const record: Record<string, string> = {};
+
+          for (const [name, entry] of this.modelRegistry) {
+            const principal = entry.metadata.settings?.authorize?.principal;
+            if (principal) {
+              record[name] = principal;
+            }
+          }
+
+          return record;
+        }
+        default: {
+          throw getError({
+            message: `[getAuthorizeModelPrincipals] Invalid format | format: ${opts.format} | valid: array, record`,
+          });
+        }
+      }
+    }
+
+    getAuthorizeModelSettings(opts: { format: 'array' }): Array<{
+      name: string;
+      authorize: IModelAuthorizeSettings;
+      entry: IModelRegistryEntry;
+    }>;
+    getAuthorizeModelSettings(opts: { format: 'record' }): Record<
+      string,
+      { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }
+    >;
+    getAuthorizeModelSettings(opts: { format: 'array' | 'record' }) {
+      switch (opts.format) {
+        case 'array': {
+          const result: Array<{
+            name: string;
+            authorize: IModelAuthorizeSettings;
+            entry: IModelRegistryEntry;
+          }> = [];
+
+          for (const [name, entry] of this.modelRegistry) {
+            const authorize = entry.metadata.settings?.authorize;
+            if (authorize) {
+              result.push({ name, authorize, entry });
+            }
+          }
+
+          return result;
+        }
+        case 'record': {
+          const record: Record<
+            string,
+            { authorize: IModelAuthorizeSettings; entry: IModelRegistryEntry }
+          > = {};
+
+          for (const [name, entry] of this.modelRegistry) {
+            const authorize = entry.metadata.settings?.authorize;
+            if (authorize) {
+              record[name] = { authorize, entry };
+            }
+          }
+
+          return record;
+        }
+        default: {
+          throw getError({
+            message: `[getAuthorizeModelSettings] Invalid format | format: ${opts.format} | valid: array, record`,
+          });
+        }
+      }
     }
   };
 };

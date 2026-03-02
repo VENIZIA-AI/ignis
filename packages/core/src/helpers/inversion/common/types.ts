@@ -1,9 +1,9 @@
 import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
 import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
 import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import { RouteConfig } from '@hono/zod-openapi';
 import { TClass, TValueOrResolver } from '@venizia/ignis-helpers';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,
@@ -33,11 +33,20 @@ export interface IInjectableMetadata {
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;
 
+export interface IModelAuthorizeSettings {
+  /** The authorization principal name (resource/subject) for this model. */
+  principal: string;
+  /** Extensible — consumers can add any extra authorization metadata. */
+  [extra: string | symbol]: any;
+}
+
 export interface IModelSettings {
   /** Properties excluded from all query results at SQL level. */
   hiddenProperties?: string[];
   /** Default filter auto-applied to all repository operations. Bypassable via shouldSkipDefaultFilter. */
   defaultFilter?: TFilter;
+  /** Authorization settings for this model (principal name, etc.). */
+  authorize?: IModelAuthorizeSettings;
 }
 
 export interface IModelMetadata {
