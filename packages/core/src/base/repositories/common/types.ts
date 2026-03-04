@@ -9,9 +9,8 @@ import { DEFAULT_LIMIT, RelationTypes } from './constants';
 export const SkipSchema = z
   .number()
   .optional()
-  .default(0)
   .openapi({
-    description: 'Number of items to skip for pagination. Default is 0.',
+    description: 'Number of items to skip for pagination.',
     examples: [1, 2, 3],
   });
 
@@ -21,9 +20,8 @@ export type TSkip = z.infer<typeof SkipSchema>;
 export const OffsetSchema = z
   .number()
   .optional()
-  .default(0)
   .openapi({
-    description: 'Number of items to offset for pagination. Default is 0.',
+    description: 'Number of items to offset for pagination.',
     examples: [1, 2, 3],
   });
 
