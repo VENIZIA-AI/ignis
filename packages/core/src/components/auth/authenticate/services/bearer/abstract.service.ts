@@ -1,9 +1,14 @@
 import { TContext } from '@/base/controllers/common/types';
 import { BaseService } from '@/base/services/base';
-import { AES, AESAlgorithmType, getError, HTTP, int, ValueOrPromise } from '@venizia/ignis-helpers';
+import { AES, AESAlgorithmType, getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 import { JWTPayload, JWTVerifyResult, SignJWT } from 'jose';
-import { Authentication, IJWTTokenPayload, TGetTokenExpiresFn } from '../../common';
+import {
+  Authentication,
+  IJWTTokenPayload,
+  IPayloadFieldCodec,
+  TGetTokenExpiresFn,
+} from '../../common';
 
 /** Abstract base for Bearer-token services (JWS, JWKS) with optional AES payload encryption. */
 export abstract class AbstractBearerTokenService<E extends Env = Env> extends BaseService {
@@ -20,13 +25,21 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
 
   protected aes: AES | null = null;
   protected applicationSecret: string | null = null;
+  protected fieldCodecs: Map<string, IPayloadFieldCodec> = new Map();
 
-  /** Configures AES payload encryption. Both aesAlgorithm and applicationSecret required to activate. */
+  /** Configures AES payload encryption and field codecs. Both aesAlgorithm and applicationSecret required to activate encryption. */
   protected configurePayloadEncryption(opts: {
     aesAlgorithm?: AESAlgorithmType;
     applicationSecret?: string;
+    fieldCodecs?: IPayloadFieldCodec[];
   }): void {
-    const { aesAlgorithm = 'aes-256-cbc', applicationSecret } = opts;
+    const { aesAlgorithm = 'aes-256-cbc', applicationSecret, fieldCodecs } = opts;
+
+    if (fieldCodecs) {
+      for (const codec of fieldCodecs) {
+        this.fieldCodecs.set(codec.key, codec);
+      }
+    }
 
     if (!applicationSecret) {
       return;
@@ -114,6 +127,17 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
     }
   }
 
+  protected serializeField(opts: { key: string; value: any }): string {
+    const { key, value } = opts;
+    const codec = this.fieldCodecs.get(key);
+
+    if (codec) {
+      return codec.serialize({ value });
+    }
+
+    return JSON.stringify(value);
+  }
+
   encryptPayload(payload: IJWTTokenPayload): Record<string, any> {
     if (!this.aes || !this.applicationSecret) {
       return payload;
@@ -139,30 +163,27 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         message: key,
         secret: this.applicationSecret,
       });
-      switch (key) {
-        case 'roles': {
-          rs[encryptedKey] = this.aes.encrypt({
-            message: JSON.stringify(
-              value.map(
-                (el: IJWTTokenPayload['roles'][number]) =>
-                  `${el.id}|${el.identifier}|${el.priority}`,
-              ),
-            ),
-            secret: this.applicationSecret,
-          });
-          break;
-        }
-        default: {
-          rs[encryptedKey] = this.aes.encrypt({
-            message: `${value}`,
-            secret: this.applicationSecret,
-          });
-          break;
-        }
-      }
+
+      const serialized = this.serializeField({ key, value });
+
+      rs[encryptedKey] = this.aes.encrypt({
+        message: serialized,
+        secret: this.applicationSecret,
+      });
     }
 
     return rs;
+  }
+
+  protected deserializeField(opts: { key: string; value: string }) {
+    const { key, value } = opts;
+    const codec = this.fieldCodecs.get(key);
+
+    if (codec) {
+      return codec.deserialize({ raw: value });
+    }
+
+    return JSON.parse(value);
   }
 
   decryptPayload(opts: { result: JWTVerifyResult<IJWTTokenPayload> }): IJWTTokenPayload {
@@ -192,18 +213,7 @@ export abstract class AbstractBearerTokenService<E extends Env = Env> extends Ba
         secret: this.applicationSecret,
       });
 
-      switch (decryptedKey) {
-        case 'roles': {
-          rs[decryptedKey] = (JSON.parse(decryptedValue) as string[]).map(el => {
-            const [id, identifier, priority] = el.split('|');
-            return { id, identifier, priority: int(priority) };
-          });
-          break;
-        }
-        default: {
-          rs[decryptedKey] = decryptedValue;
-        }
-      }
+      rs[decryptedKey] = this.deserializeField({ key: decryptedKey, value: decryptedValue });
     }
 
     return rs;

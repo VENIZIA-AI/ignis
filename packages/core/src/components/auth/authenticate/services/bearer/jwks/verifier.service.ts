@@ -21,6 +21,7 @@ export class JWKSVerifierTokenService<E extends Env = Env> extends AbstractJWKST
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
+      fieldCodecs: this.options.fieldCodecs,
     });
   }
 

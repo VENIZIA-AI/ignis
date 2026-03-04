@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-03-04 | [Customizable JWT Payload Field Codecs](./2026-03-04-jwt-payload-field-codecs) | New Feature, Breaking Change |
 | 2026-02-27 | [JWKS Authentication & Service Hierarchy Refactor](./2026-02-27-jwks-authentication) | New Feature, Refactor, Breaking Change, Security |
 | 2026-02-26 | [Core/Helpers Decoupling](./2026-02-26-core-helpers-decoupling) | Refactor, Breaking Change |
 | 2026-02-16 | [Authorization System & Auth Module Refactor](./2026-02-16-authorization-system) | New Feature, Refactor, Breaking Change |

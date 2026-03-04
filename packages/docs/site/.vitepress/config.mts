@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-04',
+              collapsed: true,
+              items: [
+                { text: 'JWT Payload Field Codecs', link: '/changelogs/2026-03-04-jwt-payload-field-codecs' },
+              ],
+            },
+            {
               text: '2026-03-02',
               collapsed: true,
               items: [

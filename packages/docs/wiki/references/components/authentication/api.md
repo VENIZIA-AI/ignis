@@ -251,17 +251,20 @@ Base class for all Bearer token services. Extends `BaseService`. Generic on <cod
 |-------|------|---------|-------------|
 | `aes` | `AES \| null` | `null` | AES utility instance, configured by `configurePayloadEncryption()` |
 | `applicationSecret` | `string \| null` | `null` | AES secret, configured by `configurePayloadEncryption()` |
+| `fieldCodecs` | <code v-pre>Map&lt;string, IPayloadFieldCodec&gt;</code> | `new Map()` | Field codec map keyed by field name, configured by `configurePayloadEncryption()` |
 
 ### Methods
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `configurePayloadEncryption` | `(opts: { aesAlgorithm?: AESAlgorithmType; applicationSecret?: string }) => void` | Configures optional AES encryption. Both `aes` and `applicationSecret` must be set for encryption to activate. |
+| `configurePayloadEncryption` | <code v-pre>(opts: { aesAlgorithm?: AESAlgorithmType; applicationSecret?: string; fieldCodecs?: IPayloadFieldCodec[] }) =&gt; void</code> | Configures optional AES encryption and field codecs. Codecs are converted to a Map keyed by `codec.key` for O(1) lookup. |
 | `extractCredentials` | <code v-pre>(context: TContext&lt;E, string&gt;) =&gt; { type: string; token: string }</code> | Extracts Bearer token from Authorization header |
 | `verify` | <code v-pre>(opts: { type: string; token: string }) =&gt; Promise&lt;IJWTTokenPayload&gt;</code> | Template method — calls `doVerify()` |
 | `generate` | <code v-pre>(opts: { payload: IJWTTokenPayload; getTokenExpiresFn?: TGetTokenExpiresFn }) =&gt; Promise&lt;string&gt;</code> | Template method — calls `getSigner()` + `getSigningKey()` |
-| `encryptPayload` | <code v-pre>(payload: IJWTTokenPayload) =&gt; Record&lt;string, any&gt;</code> | AES-encrypts non-standard JWT fields. Returns payload unchanged if AES not configured. |
-| `decryptPayload` | <code v-pre>(opts: { result: JWTVerifyResult&lt;IJWTTokenPayload&gt; }) =&gt; IJWTTokenPayload</code> | Decrypts AES-encrypted fields. Returns payload unchanged if AES not configured. |
+| `serializeField` | <code v-pre>(opts: { key: string; value: any }) =&gt; string</code> | Serializes a single field: codec → `JSON.stringify` fallback |
+| `deserializeField` | <code v-pre>(opts: { key: string; value: string }) =&gt; any</code> | Deserializes a single field: codec → `JSON.parse` fallback |
+| `encryptPayload` | <code v-pre>(payload: IJWTTokenPayload) =&gt; Record&lt;string, any&gt;</code> | AES-encrypts non-standard JWT fields using `serializeField`. Returns payload unchanged if AES not configured. |
+| `decryptPayload` | <code v-pre>(opts: { result: JWTVerifyResult&lt;IJWTTokenPayload&gt; }) =&gt; IJWTTokenPayload</code> | Decrypts AES-encrypted fields using `deserializeField`. Returns payload unchanged if AES not configured. |
 
 ### Abstract Methods (implemented by subclasses)
 
@@ -720,9 +723,10 @@ If the service is not bound, the component will throw: `"[AuthController] Failed
 ```
 packages/core/src/components/auth/authenticate/
 ├── common/
+│   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)
 │   ├── constants.ts          # AuthenticateStrategy, JOSEStandards, JWKSModes, JWKSKeyDrivers, JWKSKeyFormats, Authentication, AuthenticationTokenTypes, AuthenticationModes
 │   ├── keys.ts               # AuthenticateBindingKeys (REST_OPTIONS, JWT_OPTIONS, JWKS_OPTIONS, BASIC_OPTIONS)
-│   ├── types.ts              # All option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IAuthService
+│   ├── types.ts              # All option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IPayloadFieldCodec, IAuthService
 │   └── index.ts              # Barrel export
 ├── controllers/
 │   ├── factory.ts            # defineAuthController() factory + JWTTokenPayloadSchema

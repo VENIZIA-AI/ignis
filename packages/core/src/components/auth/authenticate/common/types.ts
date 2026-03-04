@@ -47,6 +47,7 @@ export interface IJWSTokenServiceOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 
 export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
@@ -65,6 +66,7 @@ export interface IJWKSIssuerOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 
 export interface IJWKSVerifierOptions {
@@ -74,6 +76,7 @@ export interface IJWKSVerifierOptions {
   cooldownMs?: number; // Default: 30_000 (30s)
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 
 export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
@@ -112,6 +115,12 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
 
   // Unknow extra fields
   [extra: string | symbol]: any;
+}
+
+export interface IPayloadFieldCodec<T = unknown> {
+  key: string;
+  serialize(opts: { value: T }): string;
+  deserialize(opts: { raw: string }): T;
 }
 
 export type TGetTokenExpiresFn = () => ValueOrPromise<number>;

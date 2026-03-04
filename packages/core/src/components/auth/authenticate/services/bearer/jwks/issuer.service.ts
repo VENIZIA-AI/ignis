@@ -36,6 +36,7 @@ export class JWKSIssuerTokenService<E extends Env = Env> extends AbstractJWKSTok
     this.configurePayloadEncryption({
       aesAlgorithm: this.options.aesAlgorithm,
       applicationSecret: this.options.applicationSecret,
+      fieldCodecs: this.options.fieldCodecs,
     });
   }
 

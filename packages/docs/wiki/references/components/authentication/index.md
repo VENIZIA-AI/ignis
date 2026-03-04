@@ -108,6 +108,7 @@ import {
   AuthenticateComponent,
   AuthenticateBindingKeys,
   Authentication,
+  AuthenticationFieldCodecs,
   AuthenticationModes,
   AuthenticationTokenTypes,
   AuthenticationStrategyRegistry,
@@ -151,6 +152,7 @@ import type {
   // User + payload types
   IAuthUser,
   IJWTTokenPayload,
+  IPayloadFieldCodec,
   IAuthService,
   IAuthenticationStrategy,
 
@@ -507,6 +509,7 @@ This enables clean TypeScript narrowing — once you set `standard: JOSEStandard
 | `applicationSecret` | `string` | -- | No | Secret for AES-encrypting JWT payload fields |
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom field codecs for payload serialization |
 
 ```typescript
 interface IJWSTokenServiceOptions {
@@ -515,6 +518,7 @@ interface IJWSTokenServiceOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 ```
 
@@ -539,6 +543,7 @@ interface IJWSTokenServiceOptions {
 | `rest` | `{ path: string }` | `{ path: '/certs' }` | No | Custom path for the JWKS endpoint |
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
 | `applicationSecret` | `string` | -- | No | Secret for AES-encrypting JWT payload fields |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom field codecs for payload serialization |
 
 ```typescript
 interface IJWKSIssuerOptions {
@@ -555,6 +560,7 @@ interface IJWKSIssuerOptions {
   getTokenExpiresFn: TGetTokenExpiresFn;
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 ```
 
@@ -568,6 +574,7 @@ interface IJWKSIssuerOptions {
 | `cooldownMs` | `number` | `30_000` (30s) | No | Minimum time between JWKS refreshes |
 | `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
 | `applicationSecret` | `string` | -- | No | Secret for AES-decrypting JWT payload fields |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom field codecs for payload deserialization |
 
 ```typescript
 interface IJWKSVerifierOptions {
@@ -577,6 +584,7 @@ interface IJWKSVerifierOptions {
   cooldownMs?: number;
   aesAlgorithm?: AESAlgorithmType;
   applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 ```
 

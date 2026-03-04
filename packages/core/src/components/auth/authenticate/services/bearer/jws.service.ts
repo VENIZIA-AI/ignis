@@ -36,7 +36,11 @@ export class JWSTokenService<E extends Env = Env> extends AbstractBearerTokenSer
       });
     }
 
-    this.configurePayloadEncryption({ aesAlgorithm, applicationSecret });
+    this.configurePayloadEncryption({
+      aesAlgorithm,
+      applicationSecret,
+      fieldCodecs: options.fieldCodecs,
+    });
     this.jwtSecret = new TextEncoder().encode(this.options.jwtSecret);
   }
 
