@@ -129,13 +129,14 @@ export class FilterBuilder extends BaseHelper {
     }
 
     const { tableName, schema, filter } = opts;
-    const { limit, skip, order, fields, where, include } = filter;
+    const { limit, skip, offset, order, fields, where, include } = filter;
 
     const relations = this.resolveRelations({ schema });
+    const effectiveOffset = skip ?? offset;
 
     return {
       ...(limit !== undefined && { limit }),
-      ...(skip !== undefined && { offset: skip }),
+      ...(effectiveOffset !== undefined && { offset: effectiveOffset }),
       ...(fields && { columns: this.toColumns({ fields }) }),
       ...(order && { orderBy: this.toOrderBy({ tableName, schema, order }) }),
       ...(where && { where: this.toWhere({ tableName, schema, where }) }),
