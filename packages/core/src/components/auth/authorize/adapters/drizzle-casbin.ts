@@ -21,11 +21,15 @@ export interface IDrizzleCasbinAdapterOptions {
 // Drizzle Casbin Adapter — read-only FilteredAdapter using raw SQL queries
 
 export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEntities> {
-  private connector: TAnyConnector;
+  private dataSource: IDataSource;
+
+  private get connector(): TAnyConnector {
+    return this.dataSource.connector;
+  }
 
   constructor(opts: IDrizzleCasbinAdapterOptions) {
     super({ scope: DrizzleCasbinAdapter.name, entities: opts.entities });
-    this.connector = opts.dataSource.connector;
+    this.dataSource = opts.dataSource;
   }
 
   // Query builders

@@ -936,6 +936,172 @@ Returns the JSON Web Key Set for external verifiers.
 
 **Cache headers:** `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`
 
+## Auth Entity Column Helpers
+
+Ignis provides column helper functions that return pre-configured Drizzle column objects for common auth-related database tables. These functions are designed to be spread into `pgTable()` definitions, giving you standardized columns for User, Role, Permission, and PolicyDefinition entities without manually defining each column.
+
+All helpers that accept an `opts` parameter support `{ idType: 'string' | 'number' }` to control whether foreign key columns use `text` (for UUIDs) or `integer` (for serial IDs). The default is `'number'`.
+
+### extraUserColumns
+
+**Import:** `import { extraUserColumns } from '@venizia/ignis';`
+
+**Signature:** `extraUserColumns(opts?: { idType: 'string' | 'number' })`
+
+| Column | DB Column | Type | Nullable | Default | Description |
+|--------|-----------|------|----------|---------|-------------|
+| `realm` | `realm` | `text` | Yes | `''` | Multi-tenancy realm identifier |
+| `status` | `status` | `text` | No | `UserStatuses.UNKNOWN` | User lifecycle status |
+| `type` | `type` | `text` | No | `UserTypes.SYSTEM` | User type (`SYSTEM` or `LINKED`) |
+| `activatedAt` | `activated_at` | `timestamp (tz)` | Yes | `null` | When the user was activated |
+| `lastLoginAt` | `last_login_at` | `timestamp (tz)` | Yes | `null` | Last login timestamp |
+| `parentId` | `parent_id` | `text` or `integer` | Yes | `null` | Parent user ID (type depends on `idType`) |
+
+### extraRoleColumns
+
+**Import:** `import { extraRoleColumns } from '@venizia/ignis';`
+
+**Signature:** `extraRoleColumns()`
+
+| Column | DB Column | Type | Nullable | Default | Description |
+|--------|-----------|------|----------|---------|-------------|
+| `identifier` | `identifier` | `text` (unique) | No | -- | Unique role identifier (e.g., `'admin'`, `'editor'`) |
+| `name` | `name` | `text` | No | -- | Human-readable role name |
+| `description` | `description` | `text` | Yes | `null` | Optional role description |
+| `priority` | `priority` | `integer` | No | -- | Role priority (lower = higher priority) |
+| `status` | `status` | `text` | No | `RoleStatuses.ACTIVATED` | Role lifecycle status |
+
+### extraPermissionColumns
+
+**Import:** `import { extraPermissionColumns } from '@venizia/ignis';`
+
+**Signature:** `extraPermissionColumns(opts?: { idType: 'string' | 'number' })`
+
+| Column | DB Column | Type | Nullable | Default | Description |
+|--------|-----------|------|----------|---------|-------------|
+| `code` | `code` | `text` (unique) | No | -- | Unique permission code |
+| `name` | `name` | `text` | No | -- | Permission display name |
+| `subject` | `subject` | `text` | No | -- | Permission subject (e.g., `'User'`, `'Order'`) |
+| `action` | `action` | `text` | No | -- | Permitted action (e.g., `'read'`, `'write'`) |
+| `scope` | `scope` | `text` | No | -- | Permission scope |
+| `parentId` | `parent_id` | `text` or `integer` | Yes | `null` | Parent permission ID (type depends on `idType`) |
+
+### extraPolicyDefinitionColumns
+
+**Import:** `import { extraPolicyDefinitionColumns } from '@venizia/ignis';`
+
+**Signature:** `extraPolicyDefinitionColumns(opts?: { idType: 'string' | 'number' })`
+
+Provides columns for Casbin-style policy definitions that map subjects (users/roles) to targets (resources/permissions).
+
+| Column | DB Column | Type | Nullable | Default | Description |
+|--------|-----------|------|----------|---------|-------------|
+| `variant` | `variant` | `text` | No | -- | Policy variant (e.g., `'p'` for policy, `'g'` for grouping) |
+| `subjectType` | `subject_type` | `text` | No | -- | Type of subject (e.g., `'user'`, `'role'`) |
+| `targetType` | `target_type` | `text` | No | -- | Type of target (e.g., `'permission'`, `'role'`) |
+| `action` | `action` | `text` | Yes | `null` | Policy action |
+| `effect` | `effect` | `text` | Yes | `null` | Policy effect (e.g., `'allow'`, `'deny'`) |
+| `domain` | `domain` | `text` | Yes | `null` | Policy domain for multi-tenancy |
+| `subjectId` | `subject_id` | `text` or `integer` | No | -- | Subject ID (type depends on `idType`) |
+| `targetId` | `target_id` | `text` or `integer` | No | -- | Target ID (type depends on `idType`) |
+
+### Usage Example
+
+```typescript
+import { pgTable, serial, text } from 'drizzle-orm/pg-core';
+import {
+  extraUserColumns,
+  extraRoleColumns,
+  extraPermissionColumns,
+  extraPolicyDefinitionColumns,
+} from '@venizia/ignis';
+import { withSerialId, withTimestamps } from '@venizia/ignis';
+
+// User table
+export const users = pgTable('users', {
+  ...withSerialId(),
+  ...withTimestamps(),
+  ...extraUserColumns(),
+  username: text('username').unique().notNull(),
+  passwordHash: text('password_hash').notNull(),
+  email: text('email').unique(),
+});
+
+// Role table
+export const roles = pgTable('roles', {
+  ...withSerialId(),
+  ...withTimestamps(),
+  ...extraRoleColumns(),
+});
+
+// Permission table
+export const permissions = pgTable('permissions', {
+  ...withSerialId(),
+  ...withTimestamps(),
+  ...extraPermissionColumns(),
+});
+
+// Policy definition table (Casbin-style policies)
+export const policyDefinitions = pgTable('policy_definitions', {
+  ...withSerialId(),
+  ...withTimestamps(),
+  ...extraPolicyDefinitionColumns(),
+});
+
+// With UUID-based IDs
+export const uuidUsers = pgTable('users', {
+  ...withUuidId(),
+  ...withTimestamps(),
+  ...extraUserColumns({ idType: 'string' }),
+  username: text('username').unique().notNull(),
+});
+
+export const uuidPolicies = pgTable('policy_definitions', {
+  ...withUuidId(),
+  ...withTimestamps(),
+  ...extraPolicyDefinitionColumns({ idType: 'string' }),
+});
+```
+
+### Context Variables
+
+The auth middleware sets several variables on the Hono `Context` object during request processing. These are declared via a `ContextVariableMap` module augmentation and can be accessed with `c.get()` / `c.set()`.
+
+| Constant | Key String | Type | Description |
+|----------|-----------|------|-------------|
+| `Authentication.CURRENT_USER` | `'auth.current.user'` | `IAuthUser` | The authenticated user payload, set after successful authentication |
+| `Authentication.AUDIT_USER_ID` | `'audit.user.id'` | `IdType` | The authenticated user's ID, extracted from the user payload |
+| `Authentication.SKIP_AUTHENTICATION` | `'authentication.skip'` | `boolean` | Set to `true` in a preceding middleware to bypass authentication for the current request |
+| `Authorization.RULES` | `'authorization.rules'` | `unknown` | Authorization rules resolved for the current request |
+| `Authorization.SKIP_AUTHORIZATION` | `'authorization.skip'` | `boolean` | Set to `true` to bypass authorization checks for the current request |
+
+**Reading context variables in a handler:**
+
+```typescript
+import { Authentication, Authorization } from '@venizia/ignis';
+
+// Inside a route handler
+const currentUser = c.get(Authentication.CURRENT_USER);
+const userId = c.get(Authentication.AUDIT_USER_ID);
+const skipAuth = c.get(Authentication.SKIP_AUTHENTICATION);
+const authzRules = c.get(Authorization.RULES);
+```
+
+**Skipping auth dynamically from middleware:**
+
+```typescript
+import { Authentication, Authorization } from '@venizia/ignis';
+import { createMiddleware } from 'hono/factory';
+
+const apiKeyMiddleware = createMiddleware(async (c, next) => {
+  if (c.req.header('X-API-Key') === process.env.INTERNAL_API_KEY) {
+    c.set(Authentication.SKIP_AUTHENTICATION, true);
+    c.set(Authorization.SKIP_AUTHORIZATION, true);
+  }
+  return next();
+});
+```
+
 ## See Also
 
 - [Setup & Configuration](./) -- Binding keys, options interfaces, and initial setup

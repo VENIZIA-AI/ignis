@@ -49,6 +49,34 @@ Extends `AbstractApplication` with concrete lifecycle implementations and resour
 | `repository(MyRepository, opts?)`| `repositories.MyRepository` (default) or custom key via `opts.binding` |
 | `dataSource(MyDataSource, opts?)`| `datasources.MyDataSource` (default) or custom key via `opts.binding` |
 
+> [!TIP]
+> All registration methods accept an optional `opts.binding` parameter to override the default namespace-based key:
+> ```typescript
+> this.controller(UserController, {
+>   binding: { namespace: 'controllers', key: 'CustomUserController' },
+> });
+> ```
+
+### registerDynamicBindings
+
+Protected method for handling late-registration and circular dependency patterns. Iterates bindings in a namespace, configuring each instance and re-fetching to pick up dynamically added bindings.
+
+```typescript
+protected async registerDynamicBindings<T extends IConfigurable>(opts: {
+  namespace: TBindingNamespace;
+  onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
+  onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
+}): Promise<void>
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `namespace` | `TBindingNamespace` | Binding namespace to scan (e.g., `'components'`, `'controllers'`) |
+| `onBeforeConfigure` | callback | Called before each binding's `configure()` — use for validation |
+| `onAfterConfigure` | callback | Called after `configure()` — use for route mounting, post-setup |
+
+The method tracks already-configured bindings to prevent duplicates and re-fetches after each configuration to handle bindings registered during the configure phase.
+
 ### `initialize()` Method Flow
 
 Startup sequence executed by the `initialize()` method:

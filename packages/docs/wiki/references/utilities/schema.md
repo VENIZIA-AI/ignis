@@ -60,28 +60,37 @@ const schema = z.object({
 
 ## Predefined Schemas
 
-The utility also provides several predefined schemas for common use cases.
-
 -   **`AnyObjectSchema`**: A flexible schema for any object (`z.object().catchall(z.any())`).
--   **`IdParamsSchema`**: A schema for a numeric path parameter named `id`.
--   **`UUIDParamsSchema`**: A schema for a UUID path parameter named `id`.
 
-### Example
+### Type Utilities
 
 ```typescript
-import { IdParamsSchema } from '@venizia/ignis';
+import { TAnyObjectSchema, TInferSchema } from '@venizia/ignis';
+
+// TAnyObjectSchema = z.ZodObject<z.ZodRawShape>
+// TInferSchema<T> = z.infer<T> — infer TypeScript type from a Zod schema
+
+type UserType = TInferSchema<typeof UserSchema>;
+```
+
+### Custom ID Params
+
+Use the `idParamsSchema()` helper (from controller utilities) to generate path parameter schemas:
+
+```typescript
+import { idParamsSchema } from '@venizia/ignis';
 
 this.defineRoute({
   configs: {
     path: '/{id}',
     method: 'get',
     request: {
-      params: IdParamsSchema,
+      params: idParamsSchema({ idType: 'number' }),
     },
     // ...
   },
   handler: (c) => {
-    const { id } = c.req.valid('param'); // id is a number
+    const { id } = c.req.valid('param');
     // ...
   },
 });

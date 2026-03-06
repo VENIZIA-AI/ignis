@@ -842,6 +842,139 @@ export const auditLogTable = pgTable('AuditLog', {
 ```
 
 
+### `generateDataTypeColumnDefs`
+
+Adds polymorphic data storage columns for entities that need to store values of different types in a single table. This is useful for key-value stores, settings tables, or any schema where a row's value type is determined at runtime.
+
+**File:** `packages/core/src/base/models/enrichers/data-type.enricher.ts`
+
+#### Signature
+
+```typescript
+generateDataTypeColumnDefs(opts?: TDataTypeEnricherOptions): {
+  dataType: PgTextBuilderInitial;
+  nValue: PgDoublePrecisionBuilderInitial;
+  tValue: PgTextBuilderInitial;
+  bValue: PgCustomColumnBuilder<Buffer>;
+  jValue: PgJsonbBuilderInitial<Record<string, any>>;
+  boValue: PgBooleanBuilderInitial;
+}
+```
+
+#### Options (`TDataTypeEnricherOptions`)
+
+```typescript
+type TDataTypeEnricherOptions = {
+  defaultValue: Partial<{
+    dataType: string;
+    nValue: number;
+    tValue: string;
+    bValue: Buffer;
+    jValue: object;
+    boValue: boolean;
+  }>;
+};
+```
+
+#### Generated Columns
+
+| Column | SQL Type | DB Column Name | TypeScript Type | Purpose |
+|--------|----------|----------------|-----------------|---------|
+| `dataType` | `text` | `data_type` | `string` | Type discriminator (e.g., `'number'`, `'text'`, `'json'`) |
+| `nValue` | `double precision` | `n_value` | `number` | Numeric values |
+| `tValue` | `text` | `t_value` | `string` | Text values |
+| `bValue` | `bytea` | `b_value` | `Buffer` | Binary values |
+| `jValue` | `jsonb` | `j_value` | `Record<string, any>` | JSON values |
+| `boValue` | `boolean` | `bo_value` | `boolean` | Boolean values |
+
+All columns are **nullable** by default (no `NOT NULL` constraint), since only one value column is typically populated per row depending on the `dataType` discriminator.
+
+#### Usage Examples
+
+**Basic usage:**
+
+```typescript
+import { pgTable } from 'drizzle-orm/pg-core';
+import { BaseEntity, model, generateIdColumnDefs, generateDataTypeColumnDefs } from '@venizia/ignis';
+
+@model({ type: 'entity' })
+export class Setting extends BaseEntity<typeof Setting.schema> {
+  static override schema = pgTable('Setting', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateDataTypeColumnDefs(),
+  });
+}
+```
+
+**With default values:**
+
+```typescript
+export const settingTable = pgTable('Setting', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generateDataTypeColumnDefs({
+    defaultValue: { dataType: 'text', tValue: '' },
+  }),
+});
+
+// Generates columns with SQL defaults:
+// data_type text DEFAULT 'text'
+// t_value text DEFAULT ''
+// nValue, bValue, jValue, boValue — no defaults
+```
+
+**Key-value store pattern:**
+
+```typescript
+@model({ type: 'entity' })
+export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
+  static override schema = pgTable('AppConfig', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateDataTypeColumnDefs(),
+    key: text('key').notNull().unique(),
+    description: text('description'),
+  });
+}
+
+// Usage:
+// { key: 'max_retries', dataType: 'number', nValue: 3 }
+// { key: 'welcome_message', dataType: 'text', tValue: 'Hello!' }
+// { key: 'feature_flags', dataType: 'json', jValue: { darkMode: true } }
+// { key: 'is_maintenance', dataType: 'boolean', boValue: false }
+```
+
+### `enrichDataTypes`
+
+A convenience function that merges data type columns into an existing schema object, rather than spreading into `pgTable`.
+
+#### Signature
+
+```typescript
+enrichDataTypes(
+  baseSchema: TColumnDefinitions,
+  opts?: TDataTypeEnricherOptions,
+): TColumnDefinitions
+```
+
+#### Usage
+
+```typescript
+import { text } from 'drizzle-orm/pg-core';
+import { enrichDataTypes, generateIdColumnDefs } from '@venizia/ignis';
+
+const baseColumns = {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  key: text('key').notNull(),
+};
+
+// Merge data type columns into existing column definitions
+const allColumns = enrichDataTypes(baseColumns);
+
+export const configTable = pgTable('Config', allColumns);
+```
+
+This is equivalent to spreading `generateDataTypeColumnDefs()` directly but useful when building column definitions programmatically.
+
+
 ## Schema Utilities
 
 ### `snakeToCamel`

@@ -197,6 +197,29 @@ Manual route definition is useful for:
 - Complex routing logic that benefits from programmatic control
 :::
 
+#### `defineJSXRoute`
+
+Define a route that returns server-rendered JSX/HTML:
+
+```typescript
+this.defineJSXRoute({
+  configs: {
+    path: '/dashboard',
+    method: 'get',
+    responses: htmlResponse({ description: 'Dashboard page' }),
+  },
+  handler: async (c) => {
+    const data = await this.dashboardService.getData();
+    return c.html(<DashboardPage data={data} />);
+  },
+  hook: (result, c) => {
+    // Optional hook for post-processing
+  },
+});
+```
+
+Works the same as `defineRoute()` but typed for JSX handler return values.
+
 #### `defineRoute`
 
 This method is for creating API endpoints. It now handles both public and authenticated routes by accepting an `authStrategies` array within the `configs`.

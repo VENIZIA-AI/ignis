@@ -191,6 +191,37 @@ class UserController {
 
 > **Learn More:** See [Bootstrapping Concepts](/guides/core-concepts/application/bootstrapping)
 
+## Request Context Access
+
+Access the current Hono request context from anywhere using `useRequestContext()`. This uses Hono's context storage middleware and requires `asyncContext.enable: true` in application config.
+
+```typescript
+import { useRequestContext } from '@venizia/ignis';
+
+class MyService extends BaseService {
+  async doSomething() {
+    const ctx = useRequestContext();
+    if (ctx) {
+      const userId = ctx.get('currentUser')?.id;
+      // Use context data without passing it through parameters
+    }
+  }
+}
+```
+
+> [!WARNING]
+> `useRequestContext()` returns `undefined` outside of request handling. Always check for `undefined` before accessing context properties.
+
+**Setup:** Enable async context in your application:
+```typescript
+class MyApp extends BaseApplication {
+  configs = {
+    asyncContext: { enable: true },
+    // ...
+  };
+}
+```
+
 ## See Also
 
 - **Related Concepts:**

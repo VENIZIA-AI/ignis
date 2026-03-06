@@ -18,7 +18,7 @@ Technical reference for DataSource classes - managing database connections in Ig
 | **AbstractDataSource** | Base implementation with logging | Extends `BaseHelper` |
 | **BaseDataSource** | Concrete class to extend | Auto-discovery, driver from decorator, transaction support |
 | **ITransaction** | Transaction object | `connector`, `isActive`, `commit()`, `rollback()` |
-| **IsolationLevels** | Isolation level constants | `READ_COMMITTED`, `REPEATABLE_READ`, `SERIALIZABLE` |
+| **IsolationLevels** | Isolation level constants | `READ_UNCOMMITTED`, `READ_COMMITTED`, `REPEATABLE_READ`, `SERIALIZABLE` |
 
 ## `IDataSource` Interface
 
@@ -60,6 +60,9 @@ This class extends `AbstractDataSource` and provides a constructor with **auto-d
 | **Driver Auto-Read** | Driver is read from `@datasource` decorator - no need to pass in constructor |
 | **Schema Auto-Discovery** | Schema is automatically built from registered `@repository` decorators |
 | **Manual Override** | You can still manually provide schema in constructor for full control |
+
+> [!TIP]
+> Set `metadata.autoDiscovery` to `false` in the `@datasource` decorator to disable automatic schema discovery. This is useful when you want to manually provide the schema.
 
 ### Constructor Options
 
@@ -288,7 +291,7 @@ DataSources provide built-in transaction management through the `beginTransactio
 |------|-------------|
 | `ITransaction<Schema>` | Transaction object with `commit()`, `rollback()`, and `connector` |
 | `ITransactionOptions` | Options for starting a transaction (e.g., `isolationLevel`) |
-| `TIsolationLevel` | Union type: `'READ COMMITTED'` \| `'REPEATABLE READ'` \| `'SERIALIZABLE'` |
+| `TIsolationLevel` | Union type: `'READ UNCOMMITTED'` \| `'READ COMMITTED'` \| `'REPEATABLE READ'` \| `'SERIALIZABLE'` |
 | `IsolationLevels` | Static class with isolation level constants and validation |
 
 ### ITransaction Interface
@@ -312,6 +315,7 @@ Use the `IsolationLevels` static class for type-safe isolation level constants:
 import { IsolationLevels } from '@venizia/ignis';
 
 // Available levels
+IsolationLevels.READ_UNCOMMITTED // Allows dirty reads (least strict)
 IsolationLevels.READ_COMMITTED   // Default - prevents dirty reads
 IsolationLevels.REPEATABLE_READ  // Consistent reads within transaction
 IsolationLevels.SERIALIZABLE     // Strictest isolation

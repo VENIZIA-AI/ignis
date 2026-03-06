@@ -72,3 +72,41 @@ project/
 Ignis validates required variables on startup. Missing values cause clear error messages.
 
 > **Related:** [Environment Variables Reference](./environment-variables.md) | [DataSources Guide](../../guides/core-concepts/persistent/datasources)
+
+## EnvironmentKeys Class
+
+```typescript
+import { EnvironmentKeys } from '@venizia/ignis';
+```
+
+| Constant | Description |
+|----------|-------------|
+| `APP_ENV_APPLICATION_NAME` | Application display name |
+| `APP_ENV_APPLICATION_TIMEZONE` | Application timezone (e.g., 'Asia/Ho_Chi_Minh') |
+| `APP_ENV_APPLICATION_SECRET` | Application-wide secret key |
+| `APP_ENV_JWT_SECRET` | JWT signing secret |
+| `APP_ENV_JWT_EXPIRES_IN` | JWT token expiration |
+| `APP_ENV_LOGGER_FOLDER_PATH` | Log file output directory |
+| `APP_ENV_APPLICATION_ROLES` | Application role definitions |
+| `APP_ENV_APPLICATION_DS_MIGRATION` | DataSource name for migrations |
+| `APP_ENV_APPLICATION_DS_AUTHORIZE` | DataSource name for authorization |
+| `APP_ENV_APPLICATION_DS_OAUTH2` | DataSource name for OAuth2 |
+| `APP_ENV_OAUTH2_VIEW_FOLDER` | OAuth2 view templates folder |
+| `APP_ENV_SERVER_HOST` | HTTP server host (e.g., '0.0.0.0') |
+| `APP_ENV_SERVER_PORT` | HTTP server port (e.g., 3000) |
+| `APP_ENV_SERVER_BASE_PATH` | Base URL path prefix |
+| `APP_ENV_DATASOURCE_NAME` | Default datasource name |
+| `APP_ENV_POSTGRES_HOST` | PostgreSQL host |
+| `APP_ENV_POSTGRES_PORT` | PostgreSQL port |
+| `APP_ENV_POSTGRES_USERNAME` | PostgreSQL username |
+| `APP_ENV_POSTGRES_PASSWORD` | PostgreSQL password |
+| `APP_ENV_POSTGRES_DATABASE` | PostgreSQL database name |
+
+Usage:
+
+```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { EnvironmentKeys } from '@venizia/ignis';
+
+const dbHost = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
+```

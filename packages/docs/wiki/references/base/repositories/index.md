@@ -29,8 +29,9 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 | **ReadableRepository** | Read-only operations | Views, external tables |
 | **PersistableRepository** | Read + Write operations | Rarely used directly |
 | **DefaultCRUDRepository** | Full CRUD operations | Standard data tables |
+| **SoftDeletableRepository** | CRUD + soft delete + restore | Tables with `deletedAt` column |
 
-**Most common:** Extend `DefaultCRUDRepository` for standard tables.
+**Most common:** Extend `DefaultCRUDRepository` for standard tables, or `SoftDeletableRepository` for soft-delete patterns.
 
 
 ## Available Methods
@@ -54,6 +55,7 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 | `updateAll(opts)` | Update matching records | `repo.updateAll({ where: { status: 'draft' }, data: { status: 'published' } })` |
 | `deleteById(opts)` | Delete by primary key | `repo.deleteById({ id: '123' })` |
 | `deleteAll(opts)` | Delete matching records | `repo.deleteAll({ where: { status: 'archived' } })` |
+| `deleteBy(opts)` | Delete by where condition | `repo.deleteBy({ where: { status: 'archived' } })` |
 
 
 ## Documentation Sections
@@ -92,6 +94,22 @@ await repo.find({
     }]
   }
 });
+```
+
+### [SoftDeletableRepository](./soft-deletable.md)
+Soft-delete and restore operations using `deletedAt` timestamps instead of physical deletion.
+
+```typescript
+// Preview
+@repository({ model: Category, dataSource: PostgresDataSource })
+export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
+
+// Soft delete (sets deletedAt)
+await repo.deleteById({ id: '123' });
+// Restore
+await repo.restoreById({ id: '123' });
+// Hard delete (physical removal)
+await repo.deleteById({ id: '123', options: { shouldHardDelete: true } });
 ```
 
 ### [Advanced Features](./advanced.md)
@@ -193,6 +211,10 @@ await repo.deleteAll({ where: {}, options: { force: true } });
 | Create one | `repo.create({ data: { name: 'John' } })` |
 | Update by ID | `repo.updateById({ id: '123', data: { name: 'Jane' } })` |
 | Delete by ID | `repo.deleteById({ id: '123' })` |
+| Delete by condition | `repo.deleteBy({ where: { status: 'archived' } })` |
+| Soft delete | `repo.deleteById({ id: '123' })` (with `SoftDeletableRepository`) |
+| Restore soft-deleted | `repo.restoreById({ id: '123' })` (with `SoftDeletableRepository`) |
+| Hard delete (bypass soft) | `repo.deleteById({ id: '123', options: { shouldHardDelete: true } })` |
 | Count matching | `repo.count({ where: { status: 'active' } })` |
 | Check exists | `repo.existsWith({ where: { email: 'test@example.com' } })` |
 
@@ -201,6 +223,7 @@ await repo.deleteAll({ where: {}, options: { force: true } });
 
 - **New to filtering?** Start with [Filter System](/references/base/filter-system/)
 - **Need related data?** See [Relations & Includes](./relations.md)
+- **Need soft delete?** See [SoftDeletableRepository](./soft-deletable.md)
 - **Need transactions?** Go to [Advanced Features](./advanced.md)
 
 ## See Also

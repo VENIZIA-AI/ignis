@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-06',
+              collapsed: true,
+              items: [
+                { text: 'Filter Offset/Skip Bug Fix', link: '/changelogs/2026-03-06-filter-offset-skip-fix' },
+              ],
+            },
+            {
               text: '2026-03-04',
               collapsed: true,
               items: [
@@ -449,6 +456,7 @@ const config = defineConfig({
               collapsed: false,
               items: [
                 { text: 'Overview', link: '/references/base/repositories/' },
+                { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
                 { text: 'Mixins', link: '/references/base/repositories/mixins' },
                 { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
                 { text: 'Advanced Features', link: '/references/base/repositories/advanced' },

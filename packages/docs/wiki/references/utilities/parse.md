@@ -37,6 +37,26 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 // => { firstName: 'John', lastName: 'Doe' }
 ```
 
+## Number Parsing
+
+-   **`getNumberValue(input, opts?)`**: Parses a string to a number with locale support (US or EU format).
+
+```typescript
+import { getNumberValue } from '@venizia/ignis-helpers';
+
+// US format (default) — comma is thousands separator
+getNumberValue('1,234.56', { method: 'float' }); // => 1234.56
+getNumberValue('1,234', { method: 'int' });       // => 1234
+
+// EU format — dot is thousands separator, comma is decimal
+getNumberValue('1.234,56', { method: 'float', locale: 'eu' }); // => 1234.56
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `method` | `'int' \| 'float'` | `'int'` | Parse as integer or float |
+| `locale` | `'us' \| 'eu'` | `'us'` | Number format locale |
+
 ## Array Transformation
 
 -   **`parseArrayToRecordWithKey(opts)`**: Transforms an array of objects into a record (plain object), using a specified property of the objects as keys.
