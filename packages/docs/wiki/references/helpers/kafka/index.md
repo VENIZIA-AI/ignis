@@ -107,35 +107,46 @@ await producer.close();
 
 ## Consumer
 
-The `KafkaConsumerHelper` provides a stream-based consumer with consumer group support, pause/resume, manual commit, and lag monitoring.
+The `KafkaConsumerHelper` provides stream-based consumption with support for both `eachMessage` and `batchMessages` processing modes.
 
 ```typescript
 import { KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
 
-const consumer = new KafkaConsumerHelper({
+const consumer = KafkaConsumerHelper.newInstance({
   identifier: 'order-consumer',
   bootstrapBrokers: ['localhost:9092'],
   groupId: 'order-processing-group',
-  topics: ['orders'],
-  mode: 'latest',
-  autocommit: true,
-  onMessage: async ({ message }) => {
-    console.log(`Topic: ${message.topic}, Partition: ${message.partition}`);
-    console.log(`Key: ${message.key}, Value: ${message.value}`);
-  },
-  onConnected: () => console.log('Consumer connected'),
-  onGroupJoin: ({ groupId, memberId }) => {
-    console.log(`Joined group ${groupId} as ${memberId}`);
-  },
-  onError: ({ error }) => console.error('Consumer error:', error),
+  autocommit: false, // Recommended for manual control
 });
 
-// Start consuming
-await consumer.start();
+// Consume messages one-by-one
+const abortCtrl = new AbortController();
+await consumer.eachMessage(
+  ['orders'],
+  async (message) => {
+    console.log(`Topic: ${message.topic}, Partition: ${message.partition}`);
+    console.log(`Key: ${message.key}, Value: ${message.value}`);
+    
+    // Commit after successful processing
+    await message.commit();
+  },
+  { abortSignal: abortCtrl.signal, fromBeginning: false }
+);
 
-// Pause/resume
-consumer.pause();
-consumer.resume();
+// OR: Consume messages in batches
+await consumer.batchMessages(
+  ['orders'],
+  async (batch) => {
+    console.log(`Processing batch of ${batch.length} messages`);
+    for (const msg of batch) {
+      await msg.commit();
+    }
+  },
+  { batchSize: 20, batchTimeMs: 5000 }
+);
+
+// Stop consuming
+abortCtrl.abort();
 
 // Graceful shutdown
 await consumer.close();
@@ -147,62 +158,51 @@ await consumer.close();
 |--------|------|---------|-------------|
 | `bootstrapBrokers` | `string[]` | -- | Kafka broker addresses (required) |
 | `groupId` | `string` | -- | Consumer group ID (required) |
-| `topics` | `string[]` | -- | Topics to consume (required) |
 | `identifier` | `string` | -- | Scoped logging identifier |
-| `clientId` | `string` | `'ignis-kafka'` | Kafka client ID |
-| `mode` | `'latest' \| 'earliest' \| 'committed'` | `'latest'` | Offset reset strategy |
-| `autocommit` | `boolean \| number` | `true` | Auto-commit offsets (or interval in ms) |
+| `clientId` | `string` | `'consumer'` | Kafka client ID |
+| `autocommit` | `boolean \| number` | `false` | Auto-commit offsets (or interval in ms) |
 | `sessionTimeout` | `number` | `30000` | Session timeout in ms |
 | `heartbeatInterval` | `number` | `3000` | Heartbeat interval in ms |
+| `rebalanceTimeout` | `number` | `30000` | Rebalance timeout in ms |
+| `groupProtocol` | `'classic' \| 'consumer'` | `'classic'` | Consumer group protocol |
+| `groupInstanceId` | `string` | -- | Static membership instance ID |
 | `highWaterMark` | `number` | `1024` | Stream high water mark |
-| `maxWaitTime` | `number` | `5000` | Max wait time for fetch in ms |
-| `deserializers` | `Partial<Deserializers>` | -- | Custom key/value/header deserializers |
-| `onMessage` | `(opts: { message }) => ValueOrPromise<void>` | -- | Message handler |
-| `onConnected` | `() => void` | -- | Broker connect callback |
-| `onDisconnected` | `() => void` | -- | Broker disconnect callback |
-| `onGroupJoin` | `(opts: { groupId; memberId }) => void` | -- | Consumer group join callback |
-| `onGroupLeave` | `() => void` | -- | Consumer group leave callback |
-| `onRebalance` | `() => void` | -- | Group rebalance callback |
-| `onLag` | `(opts: { offsets }) => void` | -- | Consumer lag callback |
-| `onError` | `(opts: { error: Error }) => void` | -- | Error callback |
+| `minBytes` | `number` | `1` | Min bytes to fetch |
+| `maxBytes` | `number` | -- | Max bytes to fetch per partition |
+| `maxWaitTime` | `number` | -- | Max wait time for fetch in ms |
+| `metadataMaxAge` | `number` | `300000` | Metadata max age in ms |
+| `retries` | `number` | `3` | Connection retries |
+| `retryDelay` | `number` | `1000` | Delay between retries in ms |
 
 ### Consumer API
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `start()` | `Promise<void>` | Start consuming messages (fires async consume loop) |
-| `pause()` | `void` | Pause the message stream |
-| `resume()` | `void` | Resume the message stream |
-| `isPaused()` | `boolean` | Check if the stream is paused |
-| `isConsuming()` | `boolean` | Check if the consumer is running |
-| `commit(opts)` | `Promise<void>` | Manually commit offsets |
-| `startLagMonitoring(opts)` | `void` | Start lag monitoring. `opts: { interval: number }` |
-| `stopLagMonitoring()` | `void` | Stop lag monitoring |
-| `getConsumer()` | `Consumer` | Access the underlying `@platformatic/kafka` Consumer |
-| `close()` | `Promise<void>` | Abort consume loop, close stream and consumer |
+| `eachMessage(topics, handler, opts)` | `Promise<void>` | Consume messages one-by-one. `opts: IEachMessageOpts` |
+| `batchMessages(topics, handler, opts)` | `Promise<void>` | Consume messages in batches. `opts: IBatchMessagesOpts` |
+| `consume(topics, opts)` | `Promise<AsyncGenerator>` | Access raw async generator of messages |
+| `commit(offsets)` | `Promise<void>` | Manually commit specific offsets |
+| `close(isForce)` | `Promise<void>` | Close consumer connection |
 | `static newInstance(opts)` | `KafkaConsumerHelper` | Factory method |
 
 ### Manual Commit
 
-When `autocommit` is `false`, commit offsets explicitly:
+When `autocommit` is `false`, each message must be explicitly committed:
 
 ```typescript
-const consumer = new KafkaConsumerHelper({
-  // ...
-  autocommit: false,
-  onMessage: async ({ message }) => {
+const abortCtrl = new AbortController();
+
+await consumer.eachMessage(
+  ['orders'],
+  async (message) => {
+    // Process your message
     await processMessage(message);
-    // Commit after successful processing
-    await consumer.commit({
-      offsets: [{
-        topic: message.topic,
-        partition: message.partition,
-        offset: message.offset,
-        leaderEpoch: 0,
-      }],
-    });
+    
+    // Simple commit using the message object (replaces cumbersome offset definitions)
+    await message.commit();
   },
-});
+  { abortSignal: abortCtrl.signal }
+);
 ```
 
 ## Admin
