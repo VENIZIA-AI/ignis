@@ -91,7 +91,15 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      // 5. Resolve enforcer
+      // 5. Resolve enforcer — if none registered, skip authorization
+      if (!registry.hasEnforcers()) {
+        logger.debug(
+          'SKIP checking authorization | No enforcers registered | path: %s',
+          context.req.path,
+        );
+        return next();
+      }
+
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 

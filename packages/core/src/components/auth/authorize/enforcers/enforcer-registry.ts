@@ -85,6 +85,10 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return this;
   }
 
+  hasEnforcers(): boolean {
+    return this.descriptors.size > 0;
+  }
+
   getDefaultEnforcerName(): string {
     return this.getDefaultName();
   }
