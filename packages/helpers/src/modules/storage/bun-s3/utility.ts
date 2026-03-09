@@ -38,16 +38,7 @@ export async function buildSignedRequest(opts: {
   sessionToken?: string;
   body?: string;
 }): Promise<{ url: string; headers: Record<string, string> }> {
-  const {
-    method,
-    endpoint,
-    path,
-    accessKey,
-    secretKey,
-    region,
-    sessionToken,
-    body = '',
-  } = opts;
+  const { method, endpoint, path, accessKey, secretKey, region, sessionToken, body = '' } = opts;
 
   const now = new Date();
   const amzDate = now
@@ -92,13 +83,14 @@ export async function buildSignedRequest(opts: {
   const signature = toHex(await hmacSHA256(kSigning, stringToSign));
 
   const authHeader = `AWS4-HMAC-SHA256 Credential=${accessKey}/${credentialScope}, SignedHeaders=${signedHeaders}, Signature=${signature}`;
+  const contentLength = String(new TextEncoder().encode(body).length);
 
   return {
     url,
     headers: {
       ...canonicalHeadersMap,
       Authorization: authHeader,
-      'Content-Length': String(body.length),
+      'Content-Length': contentLength,
     },
   };
 }
