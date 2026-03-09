@@ -1,10 +1,11 @@
-import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
-    ConfigurationRepository,
-    ProductRepository,
-    SaleChannelProductRepository,
-    SaleChannelRepository,
-    UserRepository,
+  ConfigurationRepository,
+  ProductRepository,
+  SaleChannelProductRepository,
+  SaleChannelRepository,
+  UserRepository,
 } from '../../repositories';
 import { BaseTestService } from './base-test.service';
 

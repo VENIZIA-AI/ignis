@@ -1,4 +1,4 @@
-import { BaseHelper, getError } from '@/helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { IMailQueueExecutor, IMailQueueOptions, IMailQueueResult } from '../../common';
 
 export class DirectMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {

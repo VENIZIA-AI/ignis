@@ -2,7 +2,6 @@ import type { Context, Next } from 'hono';
 import { DocumentUITypes, IGetProviderParams, IUIConfig, IUIProvider } from './common';
 import { getError, MemoryStorageHelper } from '@venizia/ignis-helpers';
 
-// -------------------------------------------------------------------
 export class SwaggerUIProvider implements IUIProvider {
   async render(context: Context, config: IUIConfig, next: Next): Promise<Response | void> {
     const { swaggerUI } = await import('@hono/swagger-ui');
@@ -21,7 +20,6 @@ export class ScalarUIProvider implements IUIProvider {
   }
 }
 
-// -------------------------------------------------------------------
 export class UIProviderFactory extends MemoryStorageHelper<{
   [key: string | symbol]: IUIProvider;
 }> {

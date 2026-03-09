@@ -1,6 +1,6 @@
 import 'dotenv-flow/config';
 
-import { applicationEnvironment, int, LoggerFactory } from '@venizia/ignis';
+import { applicationEnvironment, int, LoggerFactory } from '@venizia/ignis-helpers';
 import { defineConfig } from 'drizzle-kit';
 
 const migration = () => {
@@ -23,7 +23,7 @@ const migration = () => {
   return defineConfig({
     dialect: 'postgresql',
     out: './migration',
-    schema: './src/models/entities',
+    schema: './dist/migration-schema.js',
     dbCredentials: databaseConfigs,
   });
 };

@@ -53,6 +53,11 @@ coverage/
 .env.*
 !**/.env.example
 
+# Cryptographic Keys
+*.pem
+*.key
+keys/
+
 # IDEs and Editors
 # Add settings and temporary files from common editors to prevent user-specific
 # configurations from being committed.
@@ -76,12 +81,7 @@ Desktop.ini
 .local/
 .claude/
 **/*/.claude
-.gemini/
-**/*/.gemini
 .prompts/
-
-GEMINI.md
-**/*/GEMINI.md
 
 CLAUDE.md
 CLAUDE.*.md

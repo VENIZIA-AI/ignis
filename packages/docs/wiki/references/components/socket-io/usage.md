@@ -13,10 +13,10 @@ import {
   BaseService,
   inject,
   SocketIOBindingKeys,
-  SocketIOServerHelper,
   CoreBindings,
   BaseApplication,
 } from '@venizia/ignis';
+import { SocketIOServerHelper } from '@venizia/ignis-helpers';
 
 export class NotificationService extends BaseService {
   // Lazy getter pattern -- helper is bound AFTER server starts

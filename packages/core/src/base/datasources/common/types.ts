@@ -1,9 +1,6 @@
 import { IConfigurable, TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
 import { NodePgClient, type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { PoolClient } from 'pg';
-
-// ----------------------------------------------------------------------------------------------------------------------------------------
-
 export class DataSourceDrivers {
   static readonly NODE_POSTGRES = 'node-postgres';
 
@@ -17,30 +14,20 @@ export class DataSourceDrivers {
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers>;
 export type TAnyDataSourceSchema = Record<string, any>;
 
-// Client connector for node-postgres driver
 export type TNodePostgresConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   Client extends NodePgClient = NodePgClient,
 > = ReturnType<typeof nodePostgresConnector<DataSourceSchema, Client>>;
 
-// Transaction connector uses PoolClient specifically
+/** Uses PoolClient specifically for transaction isolation. */
 export type TNodePostgresTransactionConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = ReturnType<typeof nodePostgresConnector<DataSourceSchema, PoolClient>>;
 
-// Connector type that works for both datasource and transaction operations
 export type TAnyConnector<DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema> =
   | TNodePostgresConnector<DataSourceSchema>
   | TNodePostgresTransactionConnector<DataSourceSchema>;
-
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// Transaction Support
-// ----------------------------------------------------------------------------------------------------------------------------------------
-
-/**
- * PostgreSQL transaction isolation levels.
- * Uses static class pattern per code-style-standards.md
- */
+/** PostgreSQL transaction isolation levels. */
 export class IsolationLevels {
   static readonly READ_COMMITTED = 'READ COMMITTED';
   static readonly REPEATABLE_READ = 'REPEATABLE READ';
@@ -72,9 +59,6 @@ export interface ITransaction<Schema extends TAnyDataSourceSchema = TAnyDataSour
   rollback(): Promise<void>;
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------
-// DataSource Interface
-// ----------------------------------------------------------------------------------------------------------------------------------------
 export interface IDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,

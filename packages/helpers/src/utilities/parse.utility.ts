@@ -1,8 +1,7 @@
 import get from 'lodash/get';
 import round from 'lodash/round';
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 
-// -------------------------------------------------------------------------
 const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
   minimumFractionDigits: 0,
@@ -13,17 +12,14 @@ const INTL_2_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
   minimumFractionDigits: 2,
 });
 
-// -------------------------------------------------------------------------
 export const getUID = () => Math.random().toString(36).slice(2).toUpperCase();
 
-// -------------------------------------------------------------------------
 export const toCamel = (s: string) => {
   return s.replace(/([-_][a-z])/gi, (sub: string) => {
     return sub.toUpperCase().replace('-', '').replace('_', '');
   });
 };
 
-// -------------------------------------------------------------------------
 export const keysToCamel = (object: object) => {
   const n: any = {};
   const keys = Object.keys(object);
@@ -58,7 +54,6 @@ export const keysToCamel = (object: object) => {
   return n;
 };
 
-// -------------------------------------------------------------------------
 export const isInt = (n: any) => {
   if (isNaN(n)) {
     return false;
@@ -67,7 +62,6 @@ export const isInt = (n: any) => {
   return Number.isInteger(n) || Math.floor(Number(n)) === n || Number(n) % 1 === 0;
 };
 
-// -------------------------------------------------------------------------
 export const isFloat = (input: any) => {
   if (isNaN(input)) {
     return false;
@@ -76,7 +70,6 @@ export const isFloat = (input: any) => {
   return Number(input) === input || Number(input) % 1 !== 0;
 };
 
-// -------------------------------------------------------------------------
 export const int = (input: any) => {
   if (!input || isNaN(input)) {
     return 0;
@@ -86,7 +79,6 @@ export const int = (input: any) => {
   return Number.parseInt(normalized, 10) ?? 0;
 };
 
-// -------------------------------------------------------------------------
 export const float = (input: any, digit = 2) => {
   if (!input || isNaN(input)) {
     return 0;
@@ -96,7 +88,6 @@ export const float = (input: any, digit = 2) => {
   return round(Number.parseFloat(normalized), digit);
 };
 
-// -------------------------------------------------------------------------
 export const toBoolean = (input: any): boolean => {
   return (
     input !== '' &&
@@ -109,7 +100,6 @@ export const toBoolean = (input: any): boolean => {
   );
 };
 
-// -------------------------------------------------------------------------
 export const toStringDecimal = (input: any, digit = 2, options = { useLocaleFormat: true }) => {
   const { useLocaleFormat } = options;
   if (isNaN(input)) {
@@ -142,7 +132,6 @@ export const toStringDecimal = (input: any, digit = 2, options = { useLocaleForm
   return formater.format(number);
 };
 
-// -------------------------------------------------------------------------
 export const getNumberValue = (
   input: string,
   opts?: { method?: 'int' | 'float'; locale?: 'us' | 'eu' },
@@ -184,15 +173,7 @@ export const getNumberValue = (
   }
 };
 
-// ---------------------------------------------------------
-/**
- * Returns an object with the key as the value of the `keyMap` and the value as the object itself.
- *
- * @param arr - The input array
- * @param keyMap - The property key to use as the key in the resulting object
- *
- * Note: In case of duplicate keys, the last element will be used.
- */
+/** Converts an array to a Record keyed by `keyMap`. Last element wins on duplicate keys. */
 export const parseArrayToRecordWithKey = <
   T extends Record<K, PropertyKey>,
   K extends keyof T,
@@ -220,15 +201,7 @@ export const parseArrayToRecordWithKey = <
   return resultRecord;
 };
 
-// ---------------------------------------------------------
-/**
- * Return a map with the key as the value of the `keyMap` and the value as the object itself.
- *
- * @param arr - The input array
- * @param keyMap - The property key to use as the key in the resulting object
- *
- * Note: In case of duplicate keys, the last element will be used.
- */
+/** Converts an array to a Map keyed by `keyMap`. Last element wins on duplicate keys. */
 export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K extends keyof T>(
   arr: T[],
   keyMap: K,

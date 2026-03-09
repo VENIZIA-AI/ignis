@@ -20,7 +20,7 @@ import type { TError } from '@venizia/ignis-helpers';
 ```
 
 > [!NOTE]
-> `ApplicationError`, `getError`, `ErrorSchema`, and `TError` are also available from `@venizia/ignis-inversion` and re-exported through `@venizia/ignis`.
+> `ApplicationError`, `getError`, `ErrorSchema`, and `TError` are also available from `@venizia/ignis-inversion`. Their types are re-exported through `@venizia/ignis` (via `export type *`), but for runtime usage, import directly from `@venizia/ignis-helpers` or `@venizia/ignis-inversion`.
 
 ## Creating an Instance
 

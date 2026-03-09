@@ -1,28 +1,29 @@
 import {
-  applicationEnvironment,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
   CoreBindings,
-  Environment,
   HealthCheckBindingKeys,
   HealthCheckComponent,
-  HTTP,
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
+  SwaggerComponent,
+  ValueOrPromise,
+} from '@venizia/ignis';
+import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
+import {
+  applicationEnvironment,
+  Environment,
+  HTTP,
   int,
   RedisHelper,
-  SocketIOBindingKeys,
-  SocketIOComponent,
   SocketIOServerHelper,
-  SwaggerComponent,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
-  ValueOrPromise,
-} from '@venizia/ignis';
+} from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';

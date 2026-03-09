@@ -24,7 +24,6 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
   abstract binding(): ValueOrPromise<void>;
 
-  // ------------------------------------------------------------------------------
   protected initDefaultBindings(opts: { container: Container }) {
     const { container } = opts;
 
@@ -43,7 +42,6 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
     }
   }
 
-  // ------------------------------------------------------------------------------
   async configure(opts?: ConfigurableOptions): Promise<void> {
     const t = performance.now();
 

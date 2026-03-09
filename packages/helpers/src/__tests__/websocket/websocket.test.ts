@@ -1,24 +1,4 @@
-/**
- * WebSocket Helpers Test Suite
- *
- * Tests for WebSocketEvents, WebSocketChannels, WebSocketDefaults, WebSocketMessageTypes,
- * WebSocketClientStates, WebSocketServerHelper, and WebSocketEmitter.
- *
- * All tests use mocked Redis and Bun server instances since the helpers
- * require Redis pub/sub and Bun native WebSocket functionality.
- *
- * Test Categories:
- * 1. WebSocketEvents - System event constants
- * 2. WebSocketChannels - Redis channel prefixes
- * 3. WebSocketDefaults - Default configuration values
- * 4. WebSocketMessageTypes - Message type constants
- * 5. WebSocketClientStates - State validation
- * 6. WebSocketServerHelper - Constructor, lifecycle, messaging, rooms, Redis, auth, shutdown,
- *    backpressure, broadcast topic, drain, Bun config passthrough
- * 7. WebSocketEmitter - Constructor, emit methods, shutdown
- *
- * @module __tests__/websocket
- */
+/** WebSocket Helpers Test Suite */
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { EventEmitter } from 'node:events';
@@ -30,13 +10,9 @@ import {
   WebSocketClientStates,
   WebSocketServerHelper,
   WebSocketEmitter,
-} from '@/helpers/socket/websocket';
-import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/helpers/socket/websocket';
-import { DefaultRedisHelper } from '@/helpers/redis';
-
-// =============================================================================
-// Test Utilities
-// =============================================================================
+} from '@/modules/socket/websocket';
+import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
+import { DefaultRedisHelper } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -66,10 +42,6 @@ async function connectAndAuth(
   });
   await wait(10);
 }
-
-// =============================================================================
-// Mock Factories
-// =============================================================================
 
 class MockRedisClient extends EventEmitter {
   status: string = 'ready';
@@ -147,10 +119,6 @@ function createMockBunServer() {
   };
 }
 
-// =============================================================================
-// WebSocketEvents Tests
-// =============================================================================
-
 describe('WebSocketEvents', () => {
   test('should have correct event constants (consistent with Socket.IO naming)', () => {
     expect(WebSocketEvents.AUTHENTICATE).toBe('authenticate');
@@ -213,10 +181,6 @@ describe('WebSocketEvents', () => {
   });
 });
 
-// =============================================================================
-// WebSocketChannels Tests
-// =============================================================================
-
 describe('WebSocketChannels', () => {
   test('should have correct channel constants', () => {
     expect(WebSocketChannels.BROADCAST).toBe('ws:broadcast');
@@ -263,10 +227,6 @@ describe('WebSocketChannels', () => {
     });
   });
 });
-
-// =============================================================================
-// WebSocketDefaults Tests
-// =============================================================================
 
 describe('WebSocketDefaults', () => {
   test('should have correct default path', () => {
@@ -315,10 +275,6 @@ describe('WebSocketDefaults', () => {
   });
 });
 
-// =============================================================================
-// WebSocketMessageTypes Tests
-// =============================================================================
-
 describe('WebSocketMessageTypes', () => {
   test('should have correct message type constants', () => {
     expect(WebSocketMessageTypes.CLIENT).toBe('client');
@@ -352,10 +308,6 @@ describe('WebSocketMessageTypes', () => {
     });
   });
 });
-
-// =============================================================================
-// WebSocketClientStates Tests
-// =============================================================================
 
 describe('WebSocketClientStates', () => {
   test('should have correct state values (consistent with Socket.IO)', () => {
@@ -398,10 +350,6 @@ describe('WebSocketClientStates', () => {
   });
 });
 
-// =============================================================================
-// WebSocketServerHelper Tests
-// =============================================================================
-
 describe('WebSocketServerHelper', () => {
   let helper: WebSocketServerHelper;
   let opts: IWebSocketServerOptions;
@@ -433,9 +381,6 @@ describe('WebSocketServerHelper', () => {
     }
   });
 
-  // ---------------------------------------------------------------------------
-  // Constructor
-  // ---------------------------------------------------------------------------
   describe('Constructor', () => {
     test('should create helper with default options', () => {
       expect(helper).toBeDefined();
@@ -486,9 +431,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Configure
-  // ---------------------------------------------------------------------------
   describe('configure()', () => {
     test('should complete when Redis clients are already ready', async () => {
       await helper.configure();
@@ -536,9 +478,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Post-connection Authentication
-  // ---------------------------------------------------------------------------
   describe('Post-connection Authentication', () => {
     test('should authenticate and transition to AUTHENTICATED state', async () => {
       const socket = createMockSocket('client-1');
@@ -836,9 +775,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Bun WebSocket Handler
-  // ---------------------------------------------------------------------------
   describe('getBunWebSocketHandler()', () => {
     test('should return handler object with open, message, close, drain', () => {
       const handler = helper.getBunWebSocketHandler();
@@ -986,9 +922,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Connection Lifecycle
-  // ---------------------------------------------------------------------------
   describe('onClientConnect()', () => {
     test('should register a new client with UNAUTHORIZED state', () => {
       const socket = createMockSocket('client-1');
@@ -1057,9 +990,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // onClientMessage
-  // ---------------------------------------------------------------------------
   describe('onClientMessage()', () => {
     beforeEach(async () => {
       const socket = createMockSocket('client-1');
@@ -1233,9 +1163,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // onClientDisconnect
-  // ---------------------------------------------------------------------------
   describe('onClientDisconnect()', () => {
     beforeEach(async () => {
       const socket = createMockSocket('client-1');
@@ -1313,9 +1240,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Room Management
-  // ---------------------------------------------------------------------------
   describe('Room Management', () => {
     beforeEach(async () => {
       const socket = createMockSocket('client-1');
@@ -1405,9 +1329,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Messaging — Local Delivery
-  // ---------------------------------------------------------------------------
   describe('Messaging — Local Delivery', () => {
     beforeEach(async () => {
       const socket1 = createMockSocket('client-1');
@@ -1600,9 +1521,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Messaging — Public API (send)
-  // ---------------------------------------------------------------------------
   describe('send() — Public API', () => {
     let redisPub: MockRedisClient;
 
@@ -1714,9 +1632,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Redis Message Routing
-  // ---------------------------------------------------------------------------
   describe('Redis Message Routing', () => {
     let redisSub: MockRedisClient;
 
@@ -1868,9 +1783,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Public Accessors
-  // ---------------------------------------------------------------------------
   describe('Public Accessors', () => {
     beforeEach(async () => {
       const socket1 = createMockSocket('client-1');
@@ -1920,9 +1832,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Shutdown
-  // ---------------------------------------------------------------------------
   describe('shutdown()', () => {
     test('should disconnect all clients', async () => {
       const socket1 = createMockSocket('client-1');
@@ -1969,9 +1878,6 @@ describe('WebSocketServerHelper', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Edge Cases
-  // ---------------------------------------------------------------------------
   describe('Edge Cases', () => {
     test('should handle rapid connect/disconnect', () => {
       for (let i = 0; i < 50; i++) {
@@ -2149,10 +2055,6 @@ describe('WebSocketServerHelper', () => {
   });
 });
 
-// =============================================================================
-// Heartbeat — Application-Level Liveness Check
-// =============================================================================
-
 describe('Heartbeat — Application-Level Liveness Check', () => {
   let helper: WebSocketServerHelper;
   let opts: IWebSocketServerOptions;
@@ -2290,10 +2192,6 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
   });
 });
 
-// =============================================================================
-// WebSocketEmitter Tests
-// =============================================================================
-
 describe('WebSocketEmitter', () => {
   let emitter: WebSocketEmitter;
   let mockRedisHelper: DefaultRedisHelper & { mockClient: MockRedisClient };
@@ -2317,9 +2215,6 @@ describe('WebSocketEmitter', () => {
     }
   });
 
-  // ---------------------------------------------------------------------------
-  // Constructor
-  // ---------------------------------------------------------------------------
   describe('Constructor', () => {
     test('should create emitter with default identifier', () => {
       expect(emitter.identifier).toBe('WebSocketEmitter');
@@ -2344,9 +2239,6 @@ describe('WebSocketEmitter', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Configure
-  // ---------------------------------------------------------------------------
   describe('configure()', () => {
     test('should complete when Redis is ready', async () => {
       await emitter.configure();
@@ -2369,9 +2261,6 @@ describe('WebSocketEmitter', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Emit Methods
-  // ---------------------------------------------------------------------------
   describe('toClient()', () => {
     test('should publish to Redis with correct channel', async () => {
       await emitter.toClient({ clientId: 'c1', event: 'hello', data: { x: 1 } });
@@ -2447,9 +2336,6 @@ describe('WebSocketEmitter', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Emitter Server ID
-  // ---------------------------------------------------------------------------
   describe('Emitter Server ID', () => {
     test('should always use "emitter" as serverId', async () => {
       await emitter.toClient({ clientId: 'c1', event: 'test', data: {} });
@@ -2465,9 +2351,6 @@ describe('WebSocketEmitter', () => {
     });
   });
 
-  // ---------------------------------------------------------------------------
-  // Shutdown
-  // ---------------------------------------------------------------------------
   describe('shutdown()', () => {
     test('should quit Redis connection', async () => {
       await emitter.shutdown();

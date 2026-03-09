@@ -21,7 +21,6 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
   }
 
   protected getPattern(): string {
-    // Use custom glob if provided
     if (this.artifactOptions.glob) {
       return this.artifactOptions.glob;
     }
@@ -45,8 +44,6 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
 
     const nested = this.artifactOptions.isNested ? '{**/*,*}' : '*'; // NOTE: only suports one level of nesting now
 
-    // Pattern: {dir1,dir2}/**/*.{artifact}.{ext1,ext2}
-    // Example: {private-controllers,public-controllers}/**/*.controller.{js,ts}
     if (this.artifactOptions.dirs.length > 1 || this.artifactOptions.extensions.length > 1) {
       return `{${dirs}}/${nested}.{${exts}}`;
     } else {
@@ -54,7 +51,6 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     }
   }
 
-  // --------------------------------------------------------------------------------
   async configure(): Promise<void> {
     this.artifactOptions = {
       dirs: this.artifactOptions?.dirs ?? this.getDefaultDirs(),
@@ -67,12 +63,11 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     this.logger.for(this.configure.name).debug(`Configured: %j`, this.artifactOptions);
   }
 
-  // --------------------------------------------------------------------------------
   async discover(): Promise<void> {
     const pattern = this.getPattern();
 
     try {
-      this.discoveredFiles = []; // Reset discovered files
+      this.discoveredFiles = [];
       this.discoveredFiles = await discoverFiles({ root: this.root, pattern });
       this.logger
         .for(this.discover.name)
@@ -89,7 +84,6 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     }
   }
 
-  // --------------------------------------------------------------------------------
   async load(): Promise<void> {
     if (!this.discoveredFiles.length) {
       this.logger.for(this.load.name).debug(`No files discovered to load.`);
@@ -97,7 +91,7 @@ export abstract class BaseArtifactBooter extends BaseHelper implements IBooter {
     }
 
     try {
-      this.loadedClasses = []; // Reset loaded classes
+      this.loadedClasses = [];
       this.loadedClasses = await loadClasses({ files: this.discoveredFiles, root: this.root });
       await this.bind();
     } catch (error) {

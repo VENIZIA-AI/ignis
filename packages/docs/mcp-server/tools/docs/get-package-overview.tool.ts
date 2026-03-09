@@ -6,11 +6,7 @@ import matter from 'gray-matter';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
+import { BaseTool } from '../base.tool';
 
 const TOOL_DESCRIPTION = `
 Returns an overview of Ignis packages from the source details documentation.
@@ -51,10 +47,6 @@ VALID VALUES:
 If not provided, returns overview of ALL packages.
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const PackageInfoSchema = z.object({
   name: z.string().describe('Package name (e.g., "core", "helpers")'),
   npmName: z.string().describe('NPM package name (e.g., "@venizia/ignis")'),
@@ -79,10 +71,6 @@ const OutputSchema = z.object({
   error: z.string().optional().describe('Error message if operation failed'),
 });
 
-// ----------------------------------------------------------------------------
-// PACKAGE MAPPING
-// ----------------------------------------------------------------------------
-
 const PACKAGE_NPM_NAMES: Record<string, string> = {
   core: '@venizia/ignis',
   helpers: '@venizia/ignis-helpers',
@@ -92,19 +80,12 @@ const PACKAGE_NPM_NAMES: Record<string, string> = {
   'mcp-server': '@venizia/ignis-docs (MCP Server)',
 };
 
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
-
 export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'getPackageOverview';
   readonly description = TOOL_DESCRIPTION;
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  /**
-   * Extracts package description from first paragraph after title
-   */
   private extractDescription(opts: { content: string }): string {
     const lines = opts.content.split('\n');
     let bFoundTitle = false;
@@ -135,9 +116,6 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
     return descLines.join(' ').slice(0, 300) || 'No description available';
   }
 
-  /**
-   * Extracts directory table from markdown content
-   */
   private extractDirectories(opts: { content: string }): Array<{ name: string; purpose: string }> {
     const directories: Array<{ name: string; purpose: string }> = [];
     const lines = opts.content.split('\n');
@@ -146,7 +124,6 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
     let isHeaderPassed = false;
 
     for (const line of lines) {
-      // Look for tables with Directory/Folder column
       if (line.includes('| Directory') || line.includes('| Folder') || line.includes('| **`')) {
         isInTable = true;
         continue;
@@ -171,20 +148,18 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
         }
       }
 
-      // Stop at next section
       if (isInTable && isHeaderPassed && (line.startsWith('##') || line.startsWith('---'))) {
         break;
       }
     }
 
-    return directories.slice(0, 10); // Limit to top 10 directories
+    return directories.slice(0, 10);
   }
 
   async execute(opts: z.infer<typeof InputSchema>): Promise<z.infer<typeof OutputSchema>> {
     const srcDetailsPath = Paths.SOURCE_DETAILS;
 
     try {
-      // Get specific package or all packages
       const pattern = opts.packageName ? `${opts.packageName}.md` : '*.md';
       const files = await fg(pattern, {
         cwd: srcDetailsPath,
@@ -213,7 +188,6 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
             directories: this.extractDirectories({ content }),
           };
 
-          // Include full content only if single package requested
           if (opts.packageName) {
             packageInfo.content = content;
           }
@@ -222,7 +196,6 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
         }),
       );
 
-      // Sort by package name
       packages.sort((a, b) => a.name.localeCompare(b.name));
 
       return { packages };
@@ -235,13 +208,13 @@ export class GetPackageOverviewTool extends BaseTool<typeof InputSchema, typeof 
     }
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

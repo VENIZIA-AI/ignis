@@ -60,7 +60,6 @@ export class SocketIOComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   private resolveBindings(): IResolvedBindings {
     const extraServerOptions =
       this.application.get<Partial<ServerOptions>>({
@@ -101,7 +100,6 @@ export class SocketIOComponent extends BaseComponent {
     return { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn };
   }
 
-  // --------------------------------------------------------------------------
   private registerBunHook(opts: IResolvedBindings) {
     const { redisConnection, authenticateFn, validateRoomFn, clientConnectedFn } = opts;
     const serverOptions = this.serverOptions;
@@ -143,7 +141,6 @@ export class SocketIOComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   private registerNodeHook(opts: IResolvedBindings) {
     const serverOptions = this.serverOptions;
     const logger = this.logger.for(this.registerNodeHook.name);
@@ -173,7 +170,6 @@ export class SocketIOComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 

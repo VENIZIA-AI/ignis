@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { getUID } from '@venizia/ignis-helpers';
 import { eq, like } from 'drizzle-orm';
 import { User } from '../../models/entities';
 import {
@@ -178,7 +179,8 @@ export class HiddenPropertiesTestService extends BaseTestService {
       // Test findById
       const findByIdUser = await repo.findById({ id: findOneUser.id });
       const findByIdKeys = findByIdUser ? Object.keys(findByIdUser) : [];
-      const findByIdHasHidden = findByIdKeys.includes('password') || findByIdKeys.includes('secret');
+      const findByIdHasHidden =
+        findByIdKeys.includes('password') || findByIdKeys.includes('secret');
 
       // Report results
       if (findOneHasHidden || findHasHidden || findByIdHasHidden) {

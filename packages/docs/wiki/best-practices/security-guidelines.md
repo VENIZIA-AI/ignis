@@ -72,7 +72,8 @@ const SecureRoute = {
 
 **Access user in protected routes:**
 ```typescript
-import { Authentication, IJWTTokenPayload, ApplicationError, getError } from '@venizia/ignis';
+import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
+import { ApplicationError, getError } from '@venizia/ignis-helpers';
 
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
 if (!user.roles.includes('admin')) {
@@ -132,7 +133,7 @@ When handling file uploads, prevent **path traversal attacks** and ensure safe f
 **Solution:** Use `sanitizeFilename()` to strip dangerous patterns:
 
 ```typescript
-import { sanitizeFilename } from '@venizia/ignis';
+import { sanitizeFilename } from '@venizia/ignis-helpers';
 
 // ❌ DANGEROUS - User-controlled filename
 const unsafeFilename = req.body.filename; // Could be "../../../etc/passwd"
@@ -154,7 +155,7 @@ fs.writeFileSync(`./uploads/${safeFilename}`, data);
 Use `createContentDispositionHeader()` for secure download responses:
 
 ```typescript
-import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis';
+import { createContentDispositionHeader, sanitizeFilename } from '@venizia/ignis-helpers';
 
 async downloadFile(c: Context) {
   const filename = sanitizeFilename(c.req.param('filename'));
@@ -177,7 +178,7 @@ async downloadFile(c: Context) {
 Use `parseMultipartBody()` for safe file uploads with automatic sanitization:
 
 ```typescript
-import { parseMultipartBody } from '@venizia/ignis';
+import { parseMultipartBody } from '@venizia/ignis-helpers';
 
 async uploadFile(c: Context) {
   const files = await parseMultipartBody({

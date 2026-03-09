@@ -94,7 +94,9 @@ await repo.find({
 
 ## Pagination
 
-### Limit and Skip
+### Limit and Skip/Offset
+
+Both `skip` and `offset` are supported as aliases — they both map to the SQL `OFFSET` clause. When both are provided, `skip` takes precedence.
 
 ```typescript
 // First 10 results
@@ -105,6 +107,11 @@ await repo.find({
 // Page 2 (skip first 10, get next 10)
 await repo.find({
   filter: { limit: 10, skip: 10 }
+});
+
+// Using offset (equivalent to skip)
+await repo.find({
+  filter: { limit: 10, offset: 10 }
 });
 
 // Page N formula: skip = (page - 1) * limit

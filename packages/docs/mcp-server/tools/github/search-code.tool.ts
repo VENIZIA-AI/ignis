@@ -1,12 +1,8 @@
 import { MCPConfigs } from '@/mcp-server/common';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { Logger } from '@/mcp-server/helpers';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
 
 const TOOL_DESCRIPTION = `
 Searches for code patterns, function names, class definitions, and keywords across the Ignis source code.
@@ -70,10 +66,6 @@ RECOMMENDATIONS:
 - Use ${MCPConfigs.codeSearch.maxLimit} when exploring all usages of a common term
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const SearchResultSchema = z.object({
   filePath: z.string().describe('Full file path from repository root. Use with viewSourceFile.'),
   fileName: z.string().describe('File name for quick reference.'),
@@ -106,10 +98,6 @@ const OutputSchema = z.object({
     .describe('Warning if approaching GitHub API rate limits.'),
 });
 
-// ----------------------------------------------------------------------------
-// TYPES
-// ----------------------------------------------------------------------------
-
 // GitHub API response uses snake_case - intentionally matching external API format
 /* eslint-disable @typescript-eslint/naming-convention */
 interface IGithubSearchResponse {
@@ -129,10 +117,6 @@ interface IGithubSearchResponse {
 }
 /* eslint-enable @typescript-eslint/naming-convention */
 
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
-
 export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'searchCode';
   readonly description = TOOL_DESCRIPTION;
@@ -143,7 +127,6 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
     const { query, limit } = opts;
     const { apiBase, repoOwner, repoName, userAgent } = MCPConfigs.github;
 
-    // Build GitHub code search query
     const searchQuery = `${query} repo:${repoOwner}/${repoName}`;
     const url = `${apiBase}/search/code?q=${encodeURIComponent(searchQuery)}&per_page=${limit}`;
 
@@ -153,11 +136,10 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
       const response = await fetch(url, {
         headers: {
           'User-Agent': userAgent,
-          Accept: 'application/vnd.github.text-match+json', // Include text match fragments
+          Accept: 'application/vnd.github.text-match+json',
         },
       });
 
-      // Check rate limit headers
       const rateLimitRemaining = response.headers.get('X-RateLimit-Remaining');
       const rateLimitWarning =
         rateLimitRemaining &&
@@ -192,7 +174,6 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
       const data = (await response.json()) as IGithubSearchResponse;
 
       const results = data.items.map(item => {
-        // Extract the best text match snippet
         const matchSnippet = item.text_matches?.[0]?.fragment;
 
         return {
@@ -220,13 +201,13 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
     }
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

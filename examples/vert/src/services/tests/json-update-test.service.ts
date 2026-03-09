@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -135,7 +136,11 @@ export class JsonUpdateTestService extends BaseTestService {
         if (verified?.nValue === 200 && verified?.description === 'Updated description') {
           this.logger.info('[CASE 1] PASSED | Normal columns updated correctly');
         } else {
-          this.logger.error('[CASE 1] FAILED | Values not updated: nValue=%s, description=%s', verified?.nValue, verified?.description);
+          this.logger.error(
+            '[CASE 1] FAILED | Values not updated: nValue=%s, description=%s',
+            verified?.nValue,
+            verified?.description,
+          );
         }
       } else {
         this.logger.error('[CASE 1] FAILED | Update count: %d', updateResult.count);
@@ -236,7 +241,9 @@ export class JsonUpdateTestService extends BaseTestService {
         const emailNotif = jValue?.settings?.notifications?.email;
 
         if (fontSize === 16 && theme === 'light' && emailNotif === true) {
-          this.logger.info('[CASE 3] PASSED | fontSize=16, theme="light", email=true (all preserved)');
+          this.logger.info(
+            '[CASE 3] PASSED | fontSize=16, theme="light", email=true (all preserved)',
+          );
         } else {
           this.logger.error('[CASE 3] FAILED | jValue: %j', jValue);
         }
@@ -291,7 +298,9 @@ export class JsonUpdateTestService extends BaseTestService {
         const addr0Street = jValue?.addresses?.[0]?.street;
 
         if (addr0Primary === true && addr1Primary === false && addr0Street === '123 Main St') {
-          this.logger.info('[CASE 4] PASSED | addresses[0].primary=true, addresses[1].primary=false');
+          this.logger.info(
+            '[CASE 4] PASSED | addresses[0].primary=true, addresses[1].primary=false',
+          );
         } else {
           this.logger.error('[CASE 4] FAILED | jValue: %j', jValue);
         }
@@ -391,7 +400,11 @@ export class JsonUpdateTestService extends BaseTestService {
         const verified = await repo.findById({ id });
         const jValue = verified?.jValue as Record<string, any>;
 
-        if (jValue?.theme === 'dark' && jValue?.settings?.debug === true && jValue?.newField === 'added') {
+        if (
+          jValue?.theme === 'dark' &&
+          jValue?.settings?.debug === true &&
+          jValue?.newField === 'added'
+        ) {
           this.logger.info('[CASE 6] PASSED | All paths updated correctly');
         } else {
           this.logger.error('[CASE 6] FAILED | jValue: %j', jValue);
@@ -442,10 +455,18 @@ export class JsonUpdateTestService extends BaseTestService {
         const verified = await repo.findById({ id });
         const jValue = verified?.jValue as Record<string, any>;
 
-        if (verified?.description === 'Updated description' && jValue?.theme === 'dark' && jValue?.language === 'en') {
+        if (
+          verified?.description === 'Updated description' &&
+          jValue?.theme === 'dark' &&
+          jValue?.language === 'en'
+        ) {
           this.logger.info('[CASE 7] PASSED | description=Updated, theme=dark, language=en');
         } else {
-          this.logger.error('[CASE 7] FAILED | description: %s, jValue: %j', verified?.description, jValue);
+          this.logger.error(
+            '[CASE 7] FAILED | description: %s, jValue: %j',
+            verified?.description,
+            jValue,
+          );
         }
       } else {
         this.logger.error('[CASE 7] FAILED | Update count: %d', updateResult.count);
@@ -574,7 +595,9 @@ export class JsonUpdateTestService extends BaseTestService {
         jValue?.nested?.z === 3;
 
       if (allPreserved) {
-        this.logger.info('[CASE 9] PASSED | a=original_a, b=updated_b, c=original_c, x=1, y=99, z=3');
+        this.logger.info(
+          '[CASE 9] PASSED | a=original_a, b=updated_b, c=original_c, x=1, y=99, z=3',
+        );
       } else {
         this.logger.error('[CASE 9] FAILED | jValue: %j', jValue);
       }
@@ -685,7 +708,10 @@ export class JsonUpdateTestService extends BaseTestService {
           this.logger.error('[CASE 11] FAILED | Not all configs verified');
         }
       } else {
-        this.logger.info('[CASE 11] INFO | updateAll returned count: %d (expected 3)', updateResult.count);
+        this.logger.info(
+          '[CASE 11] INFO | updateAll returned count: %d (expected 3)',
+          updateResult.count,
+        );
       }
 
       await repo.deleteAll({ where: { group: groupId } });
@@ -802,10 +828,10 @@ export class JsonUpdateTestService extends BaseTestService {
       const id = created.data.id;
 
       const invalidPaths = [
-        'jValue.invalid field',  // space
-        'jValue.field@domain',   // special char
-        'jValue.2startWithNum',  // starts with number
-        'jValue.field()',        // parentheses
+        'jValue.invalid field', // space
+        'jValue.field@domain', // special char
+        'jValue.2startWithNum', // starts with number
+        'jValue.field()', // parentheses
       ];
 
       let allRejected = true;
@@ -870,7 +896,10 @@ export class JsonUpdateTestService extends BaseTestService {
             id,
             data: { [path]: 'value' } as any,
           });
-          this.logger.error('[CASE 15] FAILED | SQL injection should be rejected: %s', path.substring(0, 40));
+          this.logger.error(
+            '[CASE 15] FAILED | SQL injection should be rejected: %s',
+            path.substring(0, 40),
+          );
           allRejected = false;
         } catch {
           // Expected - SQL injection should be rejected

@@ -1,11 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
 
 const TOOL_DESCRIPTION = `
 Lists all unique documentation categories available in the Ignis Framework documentation.
@@ -67,20 +63,12 @@ USE WITH listDocs:
 Pass any category name to listDocs(category) to filter documents by that category.
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({}).describe('No input parameters required.');
 
 const OutputSchema = z.object({
   count: z.number().int().describe('Total number of unique categories.'),
   categories: z.array(z.string()).describe(CATEGORIES_DESCRIPTION),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'listCategories';
@@ -97,13 +85,13 @@ export class ListCategoriesTool extends BaseTool<typeof InputSchema, typeof Outp
     };
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

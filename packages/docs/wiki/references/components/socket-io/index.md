@@ -18,9 +18,12 @@
 import {
   SocketIOComponent,
   SocketIOBindingKeys,
+} from '@venizia/ignis';
+
+import {
   SocketIOServerHelper,
   RedisHelper,
-} from '@venizia/ignis';
+} from '@venizia/ignis-helpers';
 
 import {
   SocketIOClientHelper,
@@ -70,11 +73,13 @@ import {
   BaseApplication,
   SocketIOComponent,
   SocketIOBindingKeys,
-  RedisHelper,
+  ValueOrPromise,
+} from '@venizia/ignis';
+import { RedisHelper } from '@venizia/ignis-helpers';
+import type {
   TSocketIOAuthenticateFn,
   TSocketIOValidateRoomFn,
   TSocketIOClientConnectedFn,
-  ValueOrPromise,
 } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
@@ -146,7 +151,7 @@ The `RedisHelper` is created with `autoConnect: false` because the server helper
 You can use either `RedisHelper` (single Redis instance) or `RedisClusterHelper` (Redis Cluster mode). Both extend `DefaultRedisHelper`, which is the type the component validates against:
 
 ```typescript
-import { RedisClusterHelper } from '@venizia/ignis';
+import { RedisClusterHelper } from '@venizia/ignis-helpers';
 
 // For Redis Cluster deployments
 const redisHelper = new RedisClusterHelper({

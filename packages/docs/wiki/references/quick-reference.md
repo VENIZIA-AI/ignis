@@ -118,6 +118,7 @@ class User extends BaseEntity {
 **Key Properties:**
 - `static tableName` - Database table name
 - `static schema` - Drizzle schema definition
+- `static AUTHORIZATION_SUBJECT` - Authorization principal (auto-set from `@model` settings `authorize.principal`)
 
 
 ## Route Decorators
@@ -396,11 +397,8 @@ import { MinIOHelper } from '@venizia/ignis-helpers/minio';
 ### Dependency Injection
 
 ```typescript
-import {
-  Container,
-  BindingKeys,
-  BindingNamespaces,
-} from '@venizia/ignis-inversion';
+import { Container, BindingKeys } from '@venizia/ignis-inversion';
+import { BindingNamespaces } from '@venizia/ignis';
 ```
 
 

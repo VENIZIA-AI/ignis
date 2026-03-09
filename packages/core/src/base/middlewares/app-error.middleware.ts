@@ -29,9 +29,7 @@ const DATABASE_CLIENT_ERROR_MESSAGES: Record<string, string> = {
   [PostgresErrorCodes.STRING_DATA_TOO_LONG]: 'String data too long',
 };
 
-/**
- * Extended error type for database errors with additional properties.
- */
+/** Extended error type for database errors. */
 interface IDatabaseError extends Error {
   code?: string;
   cause?: {
@@ -42,10 +40,7 @@ interface IDatabaseError extends Error {
   };
 }
 
-/**
- * Checks if error is a database constraint error that should return 400.
- * Returns a formatted, human-readable message.
- */
+/** Checks if error is a database constraint error that should return 400. */
 const isDatabaseClientError = (opts: {
   error: Error;
 }): { isClientError: boolean; message?: string } => {
@@ -122,16 +117,7 @@ const formatZodError = (opts: {
   };
 };
 
-/**
- * Creates an error handling middleware for the application.
- * This middleware catches errors, logs them, and formats the response for the client.
- * It also handles `ZodError` specifically for validation errors.
- *
- * @param opts - Options for the error handler.
- * @param opts.logger - The application logger instance. Defaults to `console`.
- * @param opts.rootKey - Optional: A key to wrap the error response in.
- * @returns An `ErrorHandler` middleware function.
- */
+/** Application error handler with ZodError and database constraint error support. */
 export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
   const { logger = console, rootKey = null } = opts;
 

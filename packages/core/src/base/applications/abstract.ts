@@ -21,7 +21,6 @@ import {
   TNodeServerInstance,
 } from './types';
 
-// ------------------------------------------------------------------------------
 export abstract class AbstractApplication<
   AppEnv extends Env = Env,
   AppSchema extends Schema = {},
@@ -48,7 +47,6 @@ export abstract class AbstractApplication<
 
   private postStartHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
 
-  // ------------------------------------------------------------------------------
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     const { scope, config } = opts;
     super({ scope });
@@ -75,7 +73,6 @@ export abstract class AbstractApplication<
     };
   }
 
-  // ------------------------------------------------------------------------------
   abstract getAppInfo(): ValueOrPromise<IApplicationInfo>;
   abstract preConfigure(): ValueOrPromise<void>;
   abstract postConfigure(): ValueOrPromise<void>;
@@ -88,7 +85,6 @@ export abstract class AbstractApplication<
 
   abstract initialize(): Promise<void>;
 
-  // ------------------------------------------------------------------------------
   getProjectConfigs(): IApplicationConfigs {
     return this.configs;
   }
@@ -125,7 +121,6 @@ export abstract class AbstractApplication<
     return this.server.instance as T | undefined;
   }
 
-  // ------------------------------------------------------------------------------
   registerPostStartHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
     this.postStartHooks.push(opts);
     this.logger
@@ -152,7 +147,6 @@ export abstract class AbstractApplication<
     }
   }
 
-  // ------------------------------------------------------------------------------
   protected registerCoreBindings() {
     this.bind<typeof this>({
       key: CoreBindings.APPLICATION_INSTANCE,
@@ -208,7 +202,6 @@ export abstract class AbstractApplication<
       );
   }
 
-  // ------------------------------------------------------------------------------
   protected startBunModule() {
     return new Promise((resolve, reject) => {
       if (this.server.runtime !== RuntimeModules.BUN) {
@@ -296,12 +289,10 @@ export abstract class AbstractApplication<
     });
   }
 
-  // ------------------------------------------------------------------------------
   init() {
     this.registerCoreBindings();
   }
 
-  // ------------------------------------------------------------------------------
   async start() {
     await this.initialize();
     await this.setupMiddlewares();

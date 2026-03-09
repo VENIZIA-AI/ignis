@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -230,7 +231,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (results.length === 1 && results[0].name === 'Product A') {
-        this.logger.info('[CASE 3] PASSED | User filter merged with default | Found: %s', results[0].name);
+        this.logger.info(
+          '[CASE 3] PASSED | User filter merged with default | Found: %s',
+          results[0].name,
+        );
       } else {
         this.logger.error(
           '[CASE 3] FAILED | Expected Product A | Got: %j',
@@ -312,7 +316,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (resultWithSkip?.code === testCode) {
-        this.logger.info('[CASE 5] PASSED | FindOne with skip works | code: %s', resultWithSkip.code);
+        this.logger.info(
+          '[CASE 5] PASSED | FindOne with skip works | code: %s',
+          resultWithSkip.code,
+        );
       } else {
         this.logger.error('[CASE 5] FAILED | Expected product | Got: %j', resultWithSkip);
       }
@@ -389,7 +396,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (countResult.count === 1) {
-        this.logger.info('[CASE 7] PASSED | Count applies default filter | count: %d', countResult.count);
+        this.logger.info(
+          '[CASE 7] PASSED | Count applies default filter | count: %d',
+          countResult.count,
+        );
       } else {
         this.logger.error('[CASE 7] FAILED | Expected 1 | Got: %d', countResult.count);
       }
@@ -401,7 +411,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (countWithSkip.count === 2) {
-        this.logger.info('[CASE 7] PASSED | Count with skip works | count: %d', countWithSkip.count);
+        this.logger.info(
+          '[CASE 7] PASSED | Count with skip works | count: %d',
+          countWithSkip.count,
+        );
       } else {
         this.logger.error('[CASE 7] FAILED | Expected 2 with skip | Got: %d', countWithSkip.count);
       }
@@ -431,7 +444,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (!exists) {
-        this.logger.info('[CASE 8] PASSED | ExistsWith applies default filter | exists: %s', exists);
+        this.logger.info(
+          '[CASE 8] PASSED | ExistsWith applies default filter | exists: %s',
+          exists,
+        );
       } else {
         this.logger.error('[CASE 8] FAILED | Expected false | Got: %s', exists);
       }
@@ -443,7 +459,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (existsWithSkip) {
-        this.logger.info('[CASE 8] PASSED | ExistsWith with skip works | exists: %s', existsWithSkip);
+        this.logger.info(
+          '[CASE 8] PASSED | ExistsWith with skip works | exists: %s',
+          existsWithSkip,
+        );
       } else {
         this.logger.error('[CASE 8] FAILED | Expected true with skip | Got: %s', existsWithSkip);
       }
@@ -603,7 +622,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (results.length === 2) {
-        this.logger.info('[CASE 12] PASSED | User limit overrides default | count: %d', results.length);
+        this.logger.info(
+          '[CASE 12] PASSED | User limit overrides default | count: %d',
+          results.length,
+        );
       } else {
         this.logger.error('[CASE 12] FAILED | Expected 2 | Got: %d', results.length);
       }
@@ -641,9 +663,15 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (results.length === 2 && results[0].price > results[1].price) {
-        this.logger.info('[CASE 13] PASSED | User order preserved | prices: %j', results.map(r => r.price));
+        this.logger.info(
+          '[CASE 13] PASSED | User order preserved | prices: %j',
+          results.map(r => r.price),
+        );
       } else {
-        this.logger.error('[CASE 13] FAILED | Expected DESC order | Got: %j', results.map(r => r.price));
+        this.logger.error(
+          '[CASE 13] FAILED | Expected DESC order | Got: %j',
+          results.map(r => r.price),
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 13] FAILED | Error: %s', (error as Error).message);
@@ -661,7 +689,7 @@ export class DefaultFilterTestService extends BaseTestService {
       "'; DROP TABLE Product; --",
       "' OR '1'='1",
       "' UNION SELECT * FROM User --",
-      "1; DELETE FROM Product; --",
+      '1; DELETE FROM Product; --',
     ];
 
     try {
@@ -747,7 +775,7 @@ export class DefaultFilterTestService extends BaseTestService {
       await repo.find({ filter: maliciousFilter });
 
       // Verify prototype is not polluted
-      if ((({} as any).polluted) === undefined) {
+      if (({} as any).polluted === undefined) {
         this.logger.info('[CASE 16] PASSED | Prototype pollution attempt blocked');
       } else {
         this.logger.error('[CASE 16] FAILED | Prototype was polluted');
@@ -770,7 +798,12 @@ export class DefaultFilterTestService extends BaseTestService {
 
     try {
       await repo.create({
-        data: { code: testCode, name: longString.substring(0, 255), description: longString, price: 100 },
+        data: {
+          code: testCode,
+          name: longString.substring(0, 255),
+          description: longString,
+          price: 100,
+        },
         options: { shouldSkipDefaultFilter: true },
       });
 
@@ -779,9 +812,15 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (found?.description === longString) {
-        this.logger.info('[CASE 17] PASSED | Long string stored and retrieved | length: %d', found.description?.length);
+        this.logger.info(
+          '[CASE 17] PASSED | Long string stored and retrieved | length: %d',
+          found.description?.length,
+        );
       } else {
-        this.logger.error('[CASE 17] FAILED | Long string not preserved | Got length: %d', found?.description?.length);
+        this.logger.error(
+          '[CASE 17] FAILED | Long string not preserved | Got length: %d',
+          found?.description?.length,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 17] FAILED | Error: %s', (error as Error).message);
@@ -796,7 +835,7 @@ export class DefaultFilterTestService extends BaseTestService {
     this.logCase('[CASE 18] Special characters should be handled correctly');
 
     const testCode = `DF_SPECIAL_${getUID()}`;
-    const specialChars = "Test\n\t\r'\"\\`${}[]<>&|;";
+    const specialChars = 'Test\n\t\r\'"\\`${}[]<>&|;';
 
     try {
       await repo.create({
@@ -811,7 +850,10 @@ export class DefaultFilterTestService extends BaseTestService {
       if (found?.name === specialChars) {
         this.logger.info('[CASE 18] PASSED | Special characters preserved');
       } else {
-        this.logger.error('[CASE 18] FAILED | Special characters not preserved | Got: %s', found?.name);
+        this.logger.error(
+          '[CASE 18] FAILED | Special characters not preserved | Got: %s',
+          found?.name,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 18] FAILED | Error: %s', (error as Error).message);
@@ -847,7 +889,10 @@ export class DefaultFilterTestService extends BaseTestService {
 
       if (results.length === 1) {
         await transaction.commit();
-        this.logger.info('[CASE 19] PASSED | Default filter works in transaction | count: %d', results.length);
+        this.logger.info(
+          '[CASE 19] PASSED | Default filter works in transaction | count: %d',
+          results.length,
+        );
       } else {
         await transaction.rollback();
         this.logger.error('[CASE 19] FAILED | Expected 1 in transaction | Got: %d', results.length);
@@ -882,7 +927,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (found?.code === testCode) {
-        this.logger.info('[CASE 20] PASSED | Relations work with default filter | code: %s', found.code);
+        this.logger.info(
+          '[CASE 20] PASSED | Relations work with default filter | code: %s',
+          found.code,
+        );
       } else {
         this.logger.error('[CASE 20] FAILED | Expected product with relations | Got: %j', found);
       }
@@ -919,7 +967,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (updateResult.count === 1) {
-        this.logger.info('[CASE 21] PASSED | UpdateAll respects default filter | updated: %d', updateResult.count);
+        this.logger.info(
+          '[CASE 21] PASSED | UpdateAll respects default filter | updated: %d',
+          updateResult.count,
+        );
       } else {
         this.logger.error('[CASE 21] FAILED | Expected 1 update | Got: %d', updateResult.count);
       }
@@ -931,7 +982,9 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (freeProduct?.description !== 'Updated') {
-        this.logger.info('[CASE 21] PASSED | Free product was NOT updated (excluded by default filter)');
+        this.logger.info(
+          '[CASE 21] PASSED | Free product was NOT updated (excluded by default filter)',
+        );
       } else {
         this.logger.error('[CASE 21] FAILED | Free product should NOT have been updated');
       }
@@ -966,7 +1019,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (deleteResult.count === 1) {
-        this.logger.info('[CASE 22] PASSED | DeleteAll respects default filter | deleted: %d', deleteResult.count);
+        this.logger.info(
+          '[CASE 22] PASSED | DeleteAll respects default filter | deleted: %d',
+          deleteResult.count,
+        );
       } else {
         this.logger.error('[CASE 22] FAILED | Expected 1 delete | Got: %d', deleteResult.count);
       }
@@ -978,7 +1034,9 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (freeProduct) {
-        this.logger.info('[CASE 22] PASSED | Free product still exists (excluded by default filter)');
+        this.logger.info(
+          '[CASE 22] PASSED | Free product still exists (excluded by default filter)',
+        );
         // Clean up the remaining product
         await repo.deleteAll({
           where: { code: `${testCode}_FREE` },
@@ -1022,7 +1080,10 @@ export class DefaultFilterTestService extends BaseTestService {
       });
 
       if (results.length === 2) {
-        this.logger.info('[CASE 23] PASSED | AND/OR works with default filter | count: %d', results.length);
+        this.logger.info(
+          '[CASE 23] PASSED | AND/OR works with default filter | count: %d',
+          results.length,
+        );
       } else {
         this.logger.error('[CASE 23] FAILED | Expected 2 | Got: %d', results.length);
       }
@@ -1032,16 +1093,16 @@ export class DefaultFilterTestService extends BaseTestService {
         filter: {
           where: {
             code: { like: `${testCode}%` },
-            or: [
-              { and: [{ name: 'Product A' }, { price: { gte: 50 } }] },
-              { name: 'Product B' },
-            ],
+            or: [{ and: [{ name: 'Product A' }, { price: { gte: 50 } }] }, { name: 'Product B' }],
           },
         },
       });
 
       if (nestedResults.length === 2) {
-        this.logger.info('[CASE 23] PASSED | Nested AND/OR works | count: %d', nestedResults.length);
+        this.logger.info(
+          '[CASE 23] PASSED | Nested AND/OR works | count: %d',
+          nestedResults.length,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 23] FAILED | Error: %s', (error as Error).message);
@@ -1117,7 +1178,9 @@ export class DefaultFilterTestService extends BaseTestService {
       const allCorrect = allResults.every(r => r.length === 2);
 
       if (allCorrect) {
-        this.logger.info('[CASE 25] PASSED | All 10 concurrent queries applied default filter correctly');
+        this.logger.info(
+          '[CASE 25] PASSED | All 10 concurrent queries applied default filter correctly',
+        );
       } else {
         const counts = allResults.map(r => r.length);
         this.logger.error('[CASE 25] FAILED | Inconsistent results | counts: %j', counts);
@@ -1156,12 +1219,14 @@ export class DefaultFilterTestService extends BaseTestService {
       const found = await productRepo.findOne({
         filter: {
           where: { code: testCode },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{ relation: 'saleChannel' }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [{ relation: 'saleChannel' }],
+              },
             },
-          }],
+          ],
         },
       });
 
@@ -1213,7 +1278,10 @@ export class DefaultFilterTestService extends BaseTestService {
       if (updateResult.count === 0) {
         this.logger.info('[CASE 27] PASSED | UpdateById respects default filter | count: 0');
       } else {
-        this.logger.error('[CASE 27] FAILED | Should not update excluded record | count: %d', updateResult.count);
+        this.logger.error(
+          '[CASE 27] FAILED | Should not update excluded record | count: %d',
+          updateResult.count,
+        );
       }
 
       // Update with skip - should work
@@ -1260,8 +1328,11 @@ export class DefaultFilterTestService extends BaseTestService {
       if (filterBefore === filterAfter) {
         this.logger.info('[CASE 28] PASSED | Original filter was not mutated');
       } else {
-        this.logger.error('[CASE 28] FAILED | Filter was mutated | before: %s | after: %s',
-          filterBefore, filterAfter);
+        this.logger.error(
+          '[CASE 28] FAILED | Filter was mutated | before: %s | after: %s',
+          filterBefore,
+          filterAfter,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 28] FAILED | Error: %s', (error as Error).message);
@@ -1308,7 +1379,10 @@ export class DefaultFilterTestService extends BaseTestService {
           // If no error, that's concerning but let's verify data integrity
         } catch (err) {
           // Error is expected for invalid SQL - this is safe behavior
-          this.logger.info('[CASE 29] INFO | Order injection rejected: %s', (err as Error).message.slice(0, 50));
+          this.logger.info(
+            '[CASE 29] INFO | Order injection rejected: %s',
+            (err as Error).message.slice(0, 50),
+          );
         }
       }
 
@@ -1420,7 +1494,7 @@ export class DefaultFilterTestService extends BaseTestService {
       const maliciousRelations = [
         "saleChannelProducts'; DROP TABLE Product--",
         'saleChannelProducts UNION SELECT * FROM users',
-        "nonexistent); DELETE FROM Product WHERE (1=1",
+        'nonexistent); DELETE FROM Product WHERE (1=1',
         '__proto__',
         'constructor.prototype',
       ];
@@ -1437,7 +1511,10 @@ export class DefaultFilterTestService extends BaseTestService {
           // Query might succeed with unknown relation being ignored
         } catch (err) {
           // Error expected for invalid relation - safe behavior
-          this.logger.info('[CASE 31] INFO | Include injection rejected: %s', (err as Error).message.slice(0, 50));
+          this.logger.info(
+            '[CASE 31] INFO | Include injection rejected: %s',
+            (err as Error).message.slice(0, 50),
+          );
         }
       }
 
@@ -1446,12 +1523,14 @@ export class DefaultFilterTestService extends BaseTestService {
         await repo.find({
           filter: {
             where: { code: testCode },
-            include: [{
-              relation: 'saleChannelProducts',
-              scope: {
-                where: { "id; DROP TABLE--": 1 } as any,
+            include: [
+              {
+                relation: 'saleChannelProducts',
+                scope: {
+                  where: { 'id; DROP TABLE--': 1 } as any,
+                },
               },
-            }],
+            ],
           },
           options: { shouldSkipDefaultFilter: true },
         });
@@ -1491,12 +1570,34 @@ export class DefaultFilterTestService extends BaseTestService {
     try {
       // Delete all test products with various prefixes
       const prefixes = [
-        'DF_TEST_%', 'DF_MERGE_%', 'DF_OVERRIDE_%', 'DF_FINDONE_%', 'DF_FINDBYID_%',
-        'DF_COUNT_%', 'DF_EXISTS_%', 'DF_EMPTY_%', 'DF_NULL_%', 'DF_OPERATOR_%',
-        'DF_LIMIT_%', 'DF_ORDER_%', 'DF_XSS_%', 'DF_LONG_%', 'DF_SPECIAL_%',
-        'DF_TX_%', 'DF_REL_%', 'DF_UPDATEALL_%', 'DF_DELETEALL_%', 'DF_ANDOR_%',
-        'DF_FIELDS_%', 'DF_CONCURRENT_%', 'DF_NESTED_%', 'DF_UPDATEBYID_%', 'DF_INVARIANCE_%',
-        'DF_ORDER_SEC_%', 'DF_FIELDS_SEC_%', 'DF_INCLUDE_SEC_%',
+        'DF_TEST_%',
+        'DF_MERGE_%',
+        'DF_OVERRIDE_%',
+        'DF_FINDONE_%',
+        'DF_FINDBYID_%',
+        'DF_COUNT_%',
+        'DF_EXISTS_%',
+        'DF_EMPTY_%',
+        'DF_NULL_%',
+        'DF_OPERATOR_%',
+        'DF_LIMIT_%',
+        'DF_ORDER_%',
+        'DF_XSS_%',
+        'DF_LONG_%',
+        'DF_SPECIAL_%',
+        'DF_TX_%',
+        'DF_REL_%',
+        'DF_UPDATEALL_%',
+        'DF_DELETEALL_%',
+        'DF_ANDOR_%',
+        'DF_FIELDS_%',
+        'DF_CONCURRENT_%',
+        'DF_NESTED_%',
+        'DF_UPDATEBYID_%',
+        'DF_INVARIANCE_%',
+        'DF_ORDER_SEC_%',
+        'DF_FIELDS_SEC_%',
+        'DF_INCLUDE_SEC_%',
       ];
 
       for (const prefix of prefixes) {

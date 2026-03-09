@@ -448,11 +448,10 @@ import {
   CoreBindings,
   inject,
   SocketIOBindingKeys,
-  SocketIOServerHelper,
   BindingKeys,
   BindingNamespaces,
 } from '@venizia/ignis';
-import { ISocketIOClient, getError } from '@venizia/ignis-helpers';
+import { ISocketIOClient, getError, SocketIOServerHelper } from '@venizia/ignis-helpers';
 import { Socket } from 'socket.io';
 import { MessageRepository } from '../repositories/message.repository';
 import { RoomRepository } from '../repositories/room.repository';
@@ -938,19 +937,21 @@ The application binds Redis, authentication, and the client connected handler vi
 ```typescript
 // src/application.ts
 import {
-  applicationEnvironment,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
   IApplicationConfigs,
   IApplicationInfo,
-  ISocketIOServerBaseOptions,
-  RedisHelper,
   SocketIOBindingKeys,
   SocketIOComponent,
-  SocketIOServerHelper,
   ValueOrPromise,
 } from '@venizia/ignis';
+import {
+  applicationEnvironment,
+  type ISocketIOServerBaseOptions,
+  RedisHelper,
+  SocketIOServerHelper,
+} from '@venizia/ignis-helpers';
 import { ChatService } from './services/chat.service';
 import { ChatController } from './controllers/chat.controller';
 import { UserRepository } from './repositories/user.repository';

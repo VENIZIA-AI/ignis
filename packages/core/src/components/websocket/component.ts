@@ -7,7 +7,6 @@ import {
   DefaultRedisHelper,
   getError,
   HTTP,
-  IWebSocketServerOptions,
   RuntimeModules,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
@@ -82,7 +81,6 @@ export class WebSocketComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   private resolveBindings(): IResolvedBindings {
     const extraServerOptions =
       this.application.get<Partial<IServerOptions>>({
@@ -147,7 +145,6 @@ export class WebSocketComponent extends BaseComponent {
     };
   }
 
-  // --------------------------------------------------------------------------
   private registerBunHook(opts: IResolvedBindings) {
     const {
       redisConnection,
@@ -192,7 +189,7 @@ export class WebSocketComponent extends BaseComponent {
           outboundTransformer,
           handshakeFn,
           requireEncryption: serverOptions.requireEncryption,
-        } satisfies IWebSocketServerOptions);
+        });
         await wsHelper.configure();
 
         this.application.bind({ key: WebSocketBindingKeys.WEBSOCKET_INSTANCE }).toValue(wsHelper);
@@ -209,7 +206,6 @@ export class WebSocketComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------
   override binding(): ValueOrPromise<void> {
     const logger = this.logger.for(this.binding.name);
 

@@ -192,7 +192,7 @@ export class RepositoryTestService extends BaseService {
   async runUserAuditTests(): Promise<void> {
     await this.userAuditTestService.run();
   }
-  
+
   private async runJsonUpdateTestService(): Promise<void> {
     await this.jsonUpdateTestService.run();
   }

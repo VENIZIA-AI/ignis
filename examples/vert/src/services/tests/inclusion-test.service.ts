@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -312,7 +313,9 @@ export class InclusionTestService extends BaseTestService {
         }
 
         if (totalChannels === 6) {
-          this.logger.info('[CASE 5] PASSED | Found 3 test products with total 6 channel associations');
+          this.logger.info(
+            '[CASE 5] PASSED | Found 3 test products with total 6 channel associations',
+          );
         } else {
           this.logger.error(
             '[CASE 5] FAILED | Expected 6 total associations | got: %d',
@@ -320,7 +323,10 @@ export class InclusionTestService extends BaseTestService {
           );
         }
       } else {
-        this.logger.error('[CASE 5] FAILED | Expected 3 test products | got: %d', testProducts.length);
+        this.logger.error(
+          '[CASE 5] FAILED | Expected 3 test products | got: %d',
+          testProducts.length,
+        );
       }
     } catch (error) {
       this.logger.error('[CASE 5] FAILED | Error: %s', (error as Error).message);
@@ -341,11 +347,7 @@ export class InclusionTestService extends BaseTestService {
       const testProducts = await productRepo.find({
         filter: {
           where: {
-            or: [
-              { name: 'Product A' },
-              { name: 'Product B' },
-              { name: 'Product C' },
-            ],
+            or: [{ name: 'Product A' }, { name: 'Product B' }, { name: 'Product C' }],
           },
           fields: ['id'],
         },
@@ -357,11 +359,7 @@ export class InclusionTestService extends BaseTestService {
       const testChannels = await saleChannelRepo.find({
         filter: {
           where: {
-            or: [
-              { name: 'Online Store' },
-              { name: 'Retail Store' },
-              { name: 'Wholesale' },
-            ],
+            or: [{ name: 'Online Store' }, { name: 'Retail Store' }, { name: 'Wholesale' }],
           },
           fields: ['id'],
         },
@@ -443,17 +441,21 @@ export class InclusionTestService extends BaseTestService {
       const productWithFiltered = await productRepo.findOne({
         filter: {
           where: { id: product.data.id },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{
-                relation: 'saleChannel',
-                scope: {
-                  where: { name: 'Active Channel' },
-                },
-              }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [
+                  {
+                    relation: 'saleChannel',
+                    scope: {
+                      where: { name: 'Active Channel' },
+                    },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -492,9 +494,18 @@ export class InclusionTestService extends BaseTestService {
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { id: product.data.id }, options: { force: true, shouldSkipDefaultFilter: true } });
-      await saleChannelRepo.deleteAll({ where: { code: { like: 'SCOPE_FILTER_CH%' } }, options: { force: true } });
+      await junctionRepo.deleteAll({
+        where: { productId: product.data.id },
+        options: { force: true },
+      });
+      await productRepo.deleteAll({
+        where: { id: product.data.id },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
+      await saleChannelRepo.deleteAll({
+        where: { code: { like: 'SCOPE_FILTER_CH%' } },
+        options: { force: true },
+      });
     } catch (error) {
       this.logger.error('[CASE 7] FAILED | Error: %s', (error as Error).message);
     }
@@ -531,13 +542,15 @@ export class InclusionTestService extends BaseTestService {
       const productWithOrdered = await productRepo.findOne({
         filter: {
           where: { id: product.data.id },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{ relation: 'saleChannel' }],
-              order: ['saleChannelId DESC'],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [{ relation: 'saleChannel' }],
+                order: ['saleChannelId DESC'],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -555,13 +568,25 @@ export class InclusionTestService extends BaseTestService {
           this.logger.error('[CASE 8] FAILED | Channels not in DESC order | IDs: %j', ids);
         }
       } else {
-        this.logger.error('[CASE 8] FAILED | Expected 3 ordered channels | got: %d', saleChannelProducts.length);
+        this.logger.error(
+          '[CASE 8] FAILED | Expected 3 ordered channels | got: %d',
+          saleChannelProducts.length,
+        );
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { id: product.data.id }, options: { force: true, shouldSkipDefaultFilter: true } });
-      await saleChannelRepo.deleteAll({ where: { code: { like: 'SCOPE_ORDER_CH_%' } }, options: { force: true } });
+      await junctionRepo.deleteAll({
+        where: { productId: product.data.id },
+        options: { force: true },
+      });
+      await productRepo.deleteAll({
+        where: { id: product.data.id },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
+      await saleChannelRepo.deleteAll({
+        where: { code: { like: 'SCOPE_ORDER_CH_%' } },
+        options: { force: true },
+      });
     } catch (error) {
       this.logger.error('[CASE 8] FAILED | Error: %s', (error as Error).message);
     }
@@ -600,13 +625,15 @@ export class InclusionTestService extends BaseTestService {
       const productWithLimited = await productRepo.findOne({
         filter: {
           where: { id: product.data.id },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              limit: 2,
-              include: [{ relation: 'saleChannel' }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                limit: 2,
+                include: [{ relation: 'saleChannel' }],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -615,13 +642,25 @@ export class InclusionTestService extends BaseTestService {
       if (saleChannelProducts.length === 2) {
         this.logger.info('[CASE 9] PASSED | Scoped limit returned only 2 channels');
       } else {
-        this.logger.error('[CASE 9] FAILED | Expected 2 limited channels | got: %d', saleChannelProducts.length);
+        this.logger.error(
+          '[CASE 9] FAILED | Expected 2 limited channels | got: %d',
+          saleChannelProducts.length,
+        );
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { id: product.data.id }, options: { force: true, shouldSkipDefaultFilter: true } });
-      await saleChannelRepo.deleteAll({ where: { code: { like: 'SCOPE_LIMIT_CH_%' } }, options: { force: true } });
+      await junctionRepo.deleteAll({
+        where: { productId: product.data.id },
+        options: { force: true },
+      });
+      await productRepo.deleteAll({
+        where: { id: product.data.id },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
+      await saleChannelRepo.deleteAll({
+        where: { code: { like: 'SCOPE_LIMIT_CH_%' } },
+        options: { force: true },
+      });
     } catch (error) {
       this.logger.error('[CASE 9] FAILED | Error: %s', (error as Error).message);
     }
@@ -660,7 +699,10 @@ export class InclusionTestService extends BaseTestService {
       }
 
       // Cleanup
-      await productRepo.deleteAll({ where: { id: product.data.id }, options: { force: true, shouldSkipDefaultFilter: true } });
+      await productRepo.deleteAll({
+        where: { id: product.data.id },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
     } catch (error) {
       this.logger.error('[CASE 10] FAILED | Error: %s', (error as Error).message);
     }
@@ -701,10 +743,7 @@ export class InclusionTestService extends BaseTestService {
       const configWithRelations = await configRepo.findOne({
         filter: {
           where: { id: config.data.id },
-          include: [
-            { relation: 'creator' },
-            { relation: 'modifier' },
-          ],
+          include: [{ relation: 'creator' }, { relation: 'modifier' }],
         },
       });
 
@@ -752,17 +791,21 @@ export class InclusionTestService extends BaseTestService {
       const productWithFields = await productRepo.findOne({
         filter: {
           where: { id: product.data.id },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{
-                relation: 'saleChannel',
-                scope: {
-                  fields: ['id', 'name'], // Only select id and name
-                },
-              }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [
+                  {
+                    relation: 'saleChannel',
+                    scope: {
+                      fields: ['id', 'name'], // Only select id and name
+                    },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -770,17 +813,25 @@ export class InclusionTestService extends BaseTestService {
       const scp = (productWithFields as any)?.saleChannelProducts?.[0];
       const sc = scp?.saleChannel;
 
-      if (sc && sc.name && !sc.createdAt) {
+      if (sc?.name && !sc.createdAt) {
         this.logger.info('[CASE 12] PASSED | Only selected fields returned in relation');
         this.logger.info('[CASE 12] Channel keys: %s', Object.keys(sc).join(', '));
       } else {
-        this.logger.info('[CASE 12] INFO | Field selection may include all fields | keys: %s',
-          sc ? Object.keys(sc).join(', ') : 'no channel');
+        this.logger.info(
+          '[CASE 12] INFO | Field selection may include all fields | keys: %s',
+          sc ? Object.keys(sc).join(', ') : 'no channel',
+        );
       }
 
       // Cleanup
-      await junctionRepo.deleteAll({ where: { productId: product.data.id }, options: { force: true } });
-      await productRepo.deleteAll({ where: { id: product.data.id }, options: { force: true, shouldSkipDefaultFilter: true } });
+      await junctionRepo.deleteAll({
+        where: { productId: product.data.id },
+        options: { force: true },
+      });
+      await productRepo.deleteAll({
+        where: { id: product.data.id },
+        options: { force: true, shouldSkipDefaultFilter: true },
+      });
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
       this.logger.error('[CASE 12] FAILED | Error: %s', (error as Error).message);
@@ -819,17 +870,21 @@ export class InclusionTestService extends BaseTestService {
       const channelWithExpensive = await saleChannelRepo.findOne({
         filter: {
           where: { id: channel.data.id },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{
-                relation: 'product',
-                scope: {
-                  where: { price: { gt: 100 } },
-                },
-              }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [
+                  {
+                    relation: 'product',
+                    scope: {
+                      where: { price: { gt: 100 } },
+                    },
+                  },
+                ],
+              },
             },
-          }],
+          ],
         },
       });
 
@@ -864,7 +919,10 @@ export class InclusionTestService extends BaseTestService {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
       }
       for (const p of products.data!) {
-        await productRepo.deleteAll({ where: { id: p.id }, options: { force: true, shouldSkipDefaultFilter: true } });
+        await productRepo.deleteAll({
+          where: { id: p.id },
+          options: { force: true, shouldSkipDefaultFilter: true },
+        });
       }
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
@@ -906,12 +964,14 @@ export class InclusionTestService extends BaseTestService {
       const productsWithRelations = await productRepo.find({
         filter: {
           where: { code: { like: `${testGroup}_%` } },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{ relation: 'saleChannel' }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [{ relation: 'saleChannel' }],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -933,7 +993,10 @@ export class InclusionTestService extends BaseTestService {
       // Cleanup
       for (const p of products.data!) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
-        await productRepo.deleteAll({ where: { id: p.id }, options: { force: true, shouldSkipDefaultFilter: true } });
+        await productRepo.deleteAll({
+          where: { id: p.id },
+          options: { force: true, shouldSkipDefaultFilter: true },
+        });
       }
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {
@@ -973,12 +1036,14 @@ export class InclusionTestService extends BaseTestService {
       const expensiveWithRelations = await productRepo.find({
         filter: {
           where: { code: `${testGroup}_EXPENSIVE` },
-          include: [{
-            relation: 'saleChannelProducts',
-            scope: {
-              include: [{ relation: 'saleChannel' }],
+          include: [
+            {
+              relation: 'saleChannelProducts',
+              scope: {
+                include: [{ relation: 'saleChannel' }],
+              },
             },
-          }],
+          ],
         },
         options: { shouldSkipDefaultFilter: true },
       });
@@ -997,7 +1062,10 @@ export class InclusionTestService extends BaseTestService {
       // Cleanup
       for (const p of products.data!) {
         await junctionRepo.deleteAll({ where: { productId: p.id }, options: { force: true } });
-        await productRepo.deleteAll({ where: { id: p.id }, options: { force: true, shouldSkipDefaultFilter: true } });
+        await productRepo.deleteAll({
+          where: { id: p.id },
+          options: { force: true, shouldSkipDefaultFilter: true },
+        });
       }
       await saleChannelRepo.deleteAll({ where: { id: channel.data.id }, options: { force: true } });
     } catch (error) {

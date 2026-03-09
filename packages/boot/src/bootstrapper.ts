@@ -10,14 +10,6 @@ import {
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { inject } from '@venizia/ignis-inversion';
 
-/**
- * BaseBootstrapper orchestrates the boot process
- *
- * Responsibilities:
- * 1. Discover all booters
- * 2. Run boot phases (configure, discover, load)
- * 3. Generate boot report
- */
 export class Bootstrapper extends BaseHelper implements IBootstrapper {
   private booters: IBooter[] = [];
   private phaseStartTimings: Map<string, number> = new Map();
@@ -27,7 +19,6 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     super({ scope: Bootstrapper.name });
   }
 
-  // --------------------------------------------------------------------------------
   async boot(opts: IBootExecutionOptions): Promise<IBootReport> {
     const { phases = BOOT_PHASES, booters } = opts;
 
@@ -41,7 +32,6 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     return this.generateReport();
   }
 
-  // --------------------------------------------------------------------------------
   private async discoverBooters(): Promise<void> {
     const booterBindings = this.application.findByTag<IBooter>({ tag: 'booter' });
 
@@ -51,7 +41,6 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
     }
   }
 
-  // --------------------------------------------------------------------------------
   private async runPhase(opts: { phase: TBootPhase; booterNames?: string[] }): Promise<void> {
     const { phase } = opts; // TODO: booterNames filtering can be implemented later
     this.phaseStartTimings.set(phase, performance.now());
@@ -104,7 +93,6 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
       .debug(`Completed phase: %s | Took: %d ms`, phase.toUpperCase(), duration);
   }
 
-  // --------------------------------------------------------------------------------
   private generateReport(): IBootReport {
     const report: IBootReport = {};
     this.logger.for(this.generateReport.name).debug(`Boot report: %j`, report);

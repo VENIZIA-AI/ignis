@@ -1,26 +1,18 @@
 import {
-  AuthenticateComponent,
-  Authentication,
-  AuthenticationStrategyRegistry,
   BaseApplication,
   BindingKeys,
   BindingNamespaces,
-  DataTypes,
-  Environment,
-  getUID,
   HealthCheckBindingKeys,
   HealthCheckComponent,
-  HTTP,
   IApplicationConfigs,
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  int,
-  JWTAuthenticationStrategy,
   SwaggerBindingKeys,
   SwaggerComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { DataTypes, Environment, getUID, HTTP, int } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
@@ -28,7 +20,6 @@ import { TestController } from './controllers/test.controller';
 import { ViewController } from './controllers/view.controller';
 import { PostgresDataSource } from './datasources';
 import { ConfigurationRepository } from './repositories';
-import { AuthenticationService } from './services';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -105,25 +96,12 @@ export class Application extends BaseApplication {
     }
   }
 
-  registerAuth() {
-    this.service(AuthenticationService);
-    this.component(AuthenticateComponent);
-    AuthenticationStrategyRegistry.getInstance().register({
-      container: this,
-      name: Authentication.STRATEGY_JWT,
-      strategy: JWTAuthenticationStrategy,
-    });
-  }
-
   preConfigure(): ValueOrPromise<void> {
     // DataSources
     this.dataSource(PostgresDataSource);
 
     // Repositories
     this.repository(ConfigurationRepository);
-
-    // Services
-    this.registerAuth();
 
     // Controllers
     this.controller(TestController);

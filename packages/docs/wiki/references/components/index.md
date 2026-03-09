@@ -7,6 +7,7 @@ Reusable, pluggable modules that group together related features. A component ca
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
 | [Authentication](./authentication/) | JWT/Basic auth | Token generation, protected routes, multi-strategy |
+| [Authorization](./authorization/) <Badge type="warning" text="Experimental" /> | Enforcer-based authz | RBAC, ABAC, voters, Casbin integration, role shortcuts |
 | [Health Check](./health-check) | Monitoring endpoint | `/health` endpoint, ping/pong functionality |
 | [Mail](./mail/) | Email sending system | Multiple transports, templating, queue-based processing |
 | [Request Tracker](./request-tracker) | Request logging | Request ID generation, timing, structured logging |
@@ -72,6 +73,7 @@ Using components is a great way to organize your application's features into mod
 
 - **Built-in Components:**
   - [Authentication](./authentication/) - JWT/Basic authentication
+  - [Authorization](./authorization/) - Enforcer-based authorization
   - [Health Check](./health-check) - Health check endpoints
   - [Mail](./mail/) - Email functionality
   - [Request Tracker](./request-tracker) - Request tracking

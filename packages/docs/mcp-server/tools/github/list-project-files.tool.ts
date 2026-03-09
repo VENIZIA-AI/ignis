@@ -1,11 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { GithubHelper } from '@/mcp-server/helpers';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
 
 const TOOL_DESCRIPTION = `
 Lists files and directories within the Ignis GitHub repository.
@@ -42,10 +38,6 @@ EXAMPLES:
 - "packages/core/src" -> lists the source files of the core package
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({
   directoryPath: z.string().default('.').describe(DIRECTORY_PATH_DESCRIPTION),
 });
@@ -58,10 +50,6 @@ const OutputSchema = z.object({
     .describe('A list of subdirectory names within the specified directory.'),
   error: z.string().optional().describe('An error message if the directory could not be listed.'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class ListProjectFilesTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'listProjectFiles';
@@ -92,13 +80,13 @@ export class ListProjectFilesTool extends BaseTool<typeof InputSchema, typeof Ou
     };
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

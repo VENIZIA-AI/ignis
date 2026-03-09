@@ -17,9 +17,8 @@ import {
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
   StaticAssetStorageTypes,
-  DiskHelper,
-  MinioHelper,
 } from '@venizia/ignis';
+import { DiskHelper, MinioHelper } from '@venizia/ignis-helpers';
 import type {
   TStaticAssetsComponentOptions,
   TMetaLinkConfig,
@@ -46,12 +45,11 @@ import type {
 ```typescript
 import {
   BaseApplication,
-  DiskHelper,
-  MinioHelper,
   StaticAssetComponentBindingKeys,
   StaticAssetStorageTypes,
-  TStaticAssetsComponentOptions,
 } from '@venizia/ignis';
+import { DiskHelper, MinioHelper } from '@venizia/ignis-helpers';
+import type { TStaticAssetsComponentOptions } from '@venizia/ignis';
 
 export class Application extends BaseApplication {
   preConfigure() {

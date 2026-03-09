@@ -20,7 +20,7 @@ The `BaseApplication` uses this utility to measure the time taken to register co
 
 ```typescript
 // Inside BaseApplication class
-import { executeWithPerformanceMeasure } from '@venizia/ignis';
+import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 
 // ...
 
@@ -53,7 +53,7 @@ For more granular measurements, you can use the lower-level functions:
 ### Example
 
 ```typescript
-import { getPerformanceCheckpoint, getExecutedPerformance } from '@venizia/ignis';
+import { getPerformanceCheckpoint, getExecutedPerformance } from '@venizia/ignis-helpers';
 
 const start = getPerformanceCheckpoint();
 

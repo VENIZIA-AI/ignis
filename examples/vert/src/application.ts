@@ -7,29 +7,35 @@ import {
   SignUpResponseSchema,
 } from '@/models';
 import {
-  applicationEnvironment,
+  Authentication,
   AuthenticateBindingKeys,
   AuthenticateComponent,
-  Authentication,
   AuthenticationStrategyRegistry,
+  AuthorizeBindingKeys,
+  AuthorizeComponent,
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
+  CasbinEnforcerModelDrivers,
   BaseApplication,
   BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
+  CasbinAuthorizationEnforcer,
   CoreBindings,
-  DiskHelper,
-  Environment,
-  getError,
+  DrizzleCasbinAdapter,
   HealthCheckBindingKeys,
   HealthCheckComponent,
-  HTTP,
   IApplicationConfigs,
   IApplicationInfo,
+  IAuthorizeOptions,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  int,
+  JOSEStandards,
+  JWKSIssuerAuthenticationStrategy,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+  JWKSModes,
   BasicAuthenticationStrategy,
-  JWTAuthenticationStrategy,
   StaticAssetComponent,
   StaticAssetComponentBindingKeys,
   StaticAssetStorageTypes,
@@ -37,17 +43,32 @@ import {
   TStaticAssetsComponentOptions,
   ValueOrPromise,
   TAuthenticationRestOptions,
-  IJWTTokenServiceOptions,
-  IBasicTokenServiceOptions,
+  TJWTTokenServiceOptions,
+  TBasicTokenServiceOptions,
+  TJWKSKeyDriver,
+  TJWKSKeyFormat,
 } from '@venizia/ignis';
+import {
+  applicationEnvironment,
+  DiskHelper,
+  Environment,
+  getError,
+  HTTP,
+  int,
+} from '@venizia/ignis-helpers';
+import { DefaultRedisHelper } from '@venizia/ignis-helpers';
 import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
+import { PostgresDataSource } from './datasources/postgres.datasource';
 import { MetaLinkRepository } from './repositories/meta-link.repository';
+import { UserRepository } from './repositories/user.repository';
 import { AuthenticationService } from './services';
-import { TestController } from './controllers';
+import { AuthorizationExampleController, TestController } from './controllers';
+import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -138,10 +159,19 @@ export class Application extends BaseApplication {
 
   // --------------------------------------------------------------------------------
   registerAuth() {
+    // Manual registration (booter can't discover .ts files when running from source)
+    this.dataSource(PostgresDataSource);
+    this.repository(UserRepository);
+    this.service(AuthenticationService);
+
     this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
       useAuthController: true,
       controllerOpts: {
         restPath: '/auth',
+        serviceKey: BindingKeys.build({
+          namespace: BindingNamespaces.SERVICE,
+          key: AuthenticationService.name,
+        }),
         payload: {
           signIn: {
             request: { schema: SignInRequestSchema },
@@ -159,26 +189,40 @@ export class Application extends BaseApplication {
       },
     });
 
-    this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-      applicationSecret: applicationEnvironment.get<string>(
-        EnvironmentKeys.APP_ENV_APPLICATION_SECRET,
-      ),
-      jwtSecret: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWT_SECRET),
-      getTokenExpiresFn: () => {
-        const jwtExpiresIn = applicationEnvironment.get<string>(
-          EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
-        );
-        if (!jwtExpiresIn) {
-          throw getError({
-            message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
-          });
-        }
+    this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+      standard: JOSEStandards.JWKS,
+      options: {
+        mode: JWKSModes.ISSUER,
+        algorithm: applicationEnvironment.get<string>(
+          EnvironmentKeys.APP_ENV_JWKS_ALGORITHM,
+        ) as 'ES256',
+        keys: {
+          driver: applicationEnvironment.get<TJWKSKeyDriver>(
+            EnvironmentKeys.APP_ENV_JWKS_KEY_DRIVER,
+          ),
+          format: applicationEnvironment.get<TJWKSKeyFormat>(
+            EnvironmentKeys.APP_ENV_JWKS_KEY_FORMAT,
+          ),
+          private: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PRIVATE_KEY),
+          public: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_PUBLIC_KEY),
+        },
+        kid: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_JWKS_KID),
+        getTokenExpiresFn: () => {
+          const jwtExpiresIn = applicationEnvironment.get<string>(
+            EnvironmentKeys.APP_ENV_JWT_EXPIRES_IN,
+          );
+          if (!jwtExpiresIn) {
+            throw getError({
+              message: `[getTokenExpiresFn] Invalid APP_ENV_JWT_EXPIRES_IN | jwtExpiresIn: ${jwtExpiresIn}`,
+            });
+          }
 
-        return parseInt(jwtExpiresIn);
+          return parseInt(jwtExpiresIn);
+        },
       },
     });
 
-    this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
+    this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
       verifyCredentials: async opts => {
         const authenticateService = this.get<AuthenticationService>({
           key: BindingKeys.build({
@@ -195,10 +239,11 @@ export class Application extends BaseApplication {
 
     this.component(AuthenticateComponent);
 
+    // Register authentication strategies
     AuthenticationStrategyRegistry.getInstance().register({
       container: this,
       strategies: [
-        { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
+        { name: Authentication.STRATEGY_JWT, strategy: JWKSIssuerAuthenticationStrategy },
         { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
       ],
     });
@@ -230,56 +275,112 @@ export class Application extends BaseApplication {
     // });
     this.component(SwaggerComponent);
 
-    this.bind<TStaticAssetsComponentOptions>({
-      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-    }).toValue({
-      // MinIO storage for user uploads and media
-      staticAsset: {
-        controller: {
-          name: 'AssetController',
-          basePath: '/assets',
-          isStrict: true,
-        },
-        storage: StaticAssetStorageTypes.MINIO,
-        helper: new MinioHelper({
-          endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
-          port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
-          accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
-          secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
-          useSSL: false,
-        }),
-        useMetaLink: true,
-        metaLink: {
-          model: BaseMetaLinkModel,
-          repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
-        },
-        extra: {
-          parseMultipartBody: {
-            storage: 'memory',
-          },
-        },
-      },
-      // Local disk storage for temporary files and cache
-      staticResource: {
-        controller: {
-          name: 'ResourceController',
-          basePath: '/resources',
-          isStrict: true,
-        },
-        storage: StaticAssetStorageTypes.DISK,
-        helper: new DiskHelper({
-          basePath: './app_data/resources',
-        }),
-        extra: {
-          parseMultipartBody: {
-            storage: 'memory',
-          },
-        },
-      },
-    });
-    this.component(StaticAssetComponent);
+    // TODO: Fix MetaLinkRepository ordering — temporarily disabled for JWKS testing
+    // this.bind<TStaticAssetsComponentOptions>({
+    //   key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    // }).toValue({
+    //   staticAsset: {
+    //     controller: { name: 'AssetController', basePath: '/assets', isStrict: true },
+    //     storage: StaticAssetStorageTypes.MINIO,
+    //     helper: new MinioHelper({
+    //       endPoint: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_HOST),
+    //       port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_API_PORT)),
+    //       accessKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_ACCESS_KEY),
+    //       secretKey: applicationEnvironment.get(EnvironmentKeys.APP_ENV_MINIO_SECRET_KEY),
+    //       useSSL: false,
+    //     }),
+    //     useMetaLink: true,
+    //     metaLink: {
+    //       model: BaseMetaLinkModel,
+    //       repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
+    //     },
+    //     extra: { parseMultipartBody: { storage: 'memory' } },
+    //   },
+    //   staticResource: {
+    //     controller: { name: 'ResourceController', basePath: '/resources', isStrict: true },
+    //     storage: StaticAssetStorageTypes.DISK,
+    //     helper: new DiskHelper({ basePath: './app_data/resources' }),
+    //     extra: { parseMultipartBody: { storage: 'memory' } },
+    //   },
+    // });
+    // this.component(StaticAssetComponent);
 
     this.controller(TestController);
+    this.controller(AuthorizationExampleController);
+  }
+
+  // --------------------------------------------------------------------------------
+  async registerAuthorization() {
+    const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
+
+    const adapter = new DrizzleCasbinAdapter({
+      dataSource,
+      entities: {
+        permission: { tableName: Permission.name, principalType: Permission.name },
+        role: { tableName: Role.name, principalType: Role.name },
+        policyDefinition: {
+          tableName: PolicyDefinition.name,
+          principalType: PolicyDefinition.name,
+        },
+        domain: { principalType: Organization.name },
+      },
+    });
+
+    // Redis connection for authorization cache
+    const redisClient = new Redis({
+      host: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT)),
+      password:
+        applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD) || undefined,
+      db: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) || '8'),
+      maxRetriesPerRequest: null,
+    });
+
+    const redisHelper = new DefaultRedisHelper({
+      scope: 'AuthorizationRedis',
+      identifier: 'authorization-cache',
+      client: redisClient,
+    });
+
+    this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+      defaultDecision: 'deny',
+      alwaysAllowRoles: ['999_super-admin'],
+    });
+
+    this.component(AuthorizeComponent);
+
+    AuthorizationEnforcerRegistry.getInstance().register({
+      container: this,
+      enforcers: [
+        {
+          enforcer: CasbinAuthorizationEnforcer,
+          name: 'casbin',
+          type: AuthorizationEnforcerTypes.CASBIN,
+          options: {
+            model: {
+              driver: CasbinEnforcerModelDrivers.FILE,
+              definition: path.resolve(__dirname, './security/rbac_with_domains_deny.conf'),
+            },
+            adapter,
+            cached: {
+              use: true,
+              driver: 'redis',
+              options: {
+                connection: redisHelper,
+                expiresIn: 5 * 60 * 1000, // 5 minutes TTL
+                keyFn: ({ user }: any) => `authz:policies:${user.userId}`,
+              },
+            },
+            normalizePayloadFn: ({ user, action, resource }: any) => ({
+              subject: `user_${user.userId}`,
+              domain: `${Organization.name}_${user.organizationId}`,
+              resource,
+              action,
+            }),
+          },
+        },
+      ],
+    });
   }
 
   // --------------------------------------------------------------------------------
@@ -289,13 +390,6 @@ export class Application extends BaseApplication {
       Array.from(this.bindings.keys()),
     );
 
-    // Run all tests using the test service (repositories are injected via DI)
-    // const testService = this.get<RepositoryTestService>({
-    //   key: BindingKeys.build({
-    //     namespace: BindingNamespaces.SERVICE,
-    //     key: RepositoryTestService.name,
-    //   }),
-    // });
-    // await testService.runAllTests();
+    await this.registerAuthorization();
   }
 }

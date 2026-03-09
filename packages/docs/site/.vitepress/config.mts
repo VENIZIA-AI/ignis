@@ -58,6 +58,48 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-06',
+              collapsed: true,
+              items: [
+                { text: 'Filter Offset/Skip Bug Fix', link: '/changelogs/2026-03-06-filter-offset-skip-fix' },
+              ],
+            },
+            {
+              text: '2026-03-04',
+              collapsed: true,
+              items: [
+                { text: 'JWT Payload Field Codecs', link: '/changelogs/2026-03-04-jwt-payload-field-codecs' },
+              ],
+            },
+            {
+              text: '2026-03-02',
+              collapsed: true,
+              items: [
+                { text: 'Model Authorize Settings', link: '/changelogs/2026-03-02-model-authorize-settings' },
+              ],
+            },
+            {
+              text: '2026-02-27',
+              collapsed: true,
+              items: [
+                { text: 'JWKS Authentication & Service Hierarchy Refactor', link: '/changelogs/2026-02-27-jwks-authentication' },
+              ],
+            },
+            {
+              text: '2026-02-26',
+              collapsed: true,
+              items: [
+                { text: 'Core/Helpers Decoupling', link: '/changelogs/2026-02-26-core-helpers-decoupling' },
+              ],
+            },
+            {
+              text: '2026-02-16',
+              collapsed: true,
+              items: [
+                { text: 'Authorization System & Auth Refactor', link: '/changelogs/2026-02-16-authorization-system' },
+              ],
+            },
+            {
               text: '2026-02-11',
               collapsed: true,
               items: [
@@ -340,6 +382,16 @@ const config = defineConfig({
                 { text: 'Error Reference', link: '/references/components/authentication/errors' },
               ],
             },
+            {
+              text: 'Authorization',
+              collapsed: true,
+              items: [
+                { text: 'Setup & Configuration', link: '/references/components/authorization/' },
+                { text: 'Usage & Examples', link: '/references/components/authorization/usage' },
+                { text: 'API Reference', link: '/references/components/authorization/api' },
+                { text: 'Error Reference', link: '/references/components/authorization/errors' },
+              ],
+            },
             { text: 'Health Check', link: '/references/components/health-check' },
             {
               text: 'Mail',
@@ -404,6 +456,7 @@ const config = defineConfig({
               collapsed: false,
               items: [
                 { text: 'Overview', link: '/references/base/repositories/' },
+                { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
                 { text: 'Mixins', link: '/references/base/repositories/mixins' },
                 { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
                 { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
@@ -452,6 +505,7 @@ const config = defineConfig({
                 { text: 'API Reference', link: '/references/helpers/network/api' },
               ],
             },
+            { text: 'Kafka (Experimental)', link: '/references/helpers/kafka/' },
             { text: 'Queue', link: '/references/helpers/queue/' },
             { text: 'Redis', link: '/references/helpers/redis/' },
             {

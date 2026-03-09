@@ -328,7 +328,7 @@ if (user) {
 - `find<R>()`, `findOne<R>()`, `findById<R>()`
 - `create<R>()`, `createAll<R>()`
 - `updateById<R>()`, `updateAll<R>()`
-- `deleteById<R>()`, `deleteAll<R>()`
+- `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`
 
 
 ## Debugging
@@ -355,7 +355,7 @@ await repo.updateById({
 });
 ```
 
-**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`
+**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`, `deleteBy`
 
 ### Query Interface Validation
 

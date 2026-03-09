@@ -1,17 +1,17 @@
 import { z } from '@hono/zod-openapi';
 import {
   AuthenticateStrategy,
-  HTTP,
-  IAuthenticateRouteConfig,
+  IAuthRouteConfig,
   jsonContent,
   jsonResponse,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const route5BodySchema = z.object({ name: z.string(), age: z.number().int().positive() });
 export type TRoute5Body = z.infer<typeof route5BodySchema>;
 
 // Define route configs as const for type inference
-export const RouteConfigs: Record<string, IAuthenticateRouteConfig> = {
+export const RouteConfigs: Record<string, IAuthRouteConfig> = {
   ['/1']: {
     path: '/1',
     method: 'get',

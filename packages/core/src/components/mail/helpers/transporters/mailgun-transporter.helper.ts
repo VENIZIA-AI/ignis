@@ -1,4 +1,4 @@
-import { AnyType, BaseHelper, validateModule } from '@/helpers';
+import { AnyType, BaseHelper, validateModule } from '@venizia/ignis-helpers';
 import { Stream } from 'node:stream';
 import {
   IMailAttachment,

@@ -1,12 +1,8 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { MCPConfigs } from '@/mcp-server/common';
 import { DocsHelper } from '@/mcp-server/helpers';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
 
 const TOOL_DESCRIPTION = `
 Performs intelligent fuzzy search across the entire Ignis Framework documentation corpus.
@@ -67,10 +63,6 @@ RECOMMENDATIONS:
 - Use lower values (3-5) when you need only top matches
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const SearchResultSchema = z.object({
   id: z
     .string()
@@ -100,10 +92,6 @@ const OutputSchema = z.object({
     .describe('Search results sorted by relevance. Empty array if no matches.'),
 });
 
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
-
 export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'searchDocuments';
   readonly description = TOOL_DESCRIPTION;
@@ -118,13 +106,13 @@ export class SearchDocsTool extends BaseTool<typeof InputSchema, typeof OutputSc
     return { results };
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

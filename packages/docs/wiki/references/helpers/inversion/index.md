@@ -50,7 +50,7 @@ import type {
 ```
 
 > [!NOTE]
-> The framework package `@venizia/ignis` re-exports everything from `@venizia/ignis-inversion` and adds higher-level helpers (`app.controller()`, `app.service()`, etc.).
+> The framework package `@venizia/ignis` re-exports DI-specific symbols (`Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `isClassConstructor`, `TBindingScope`, `TBindingValueType`, `IBindingTag`) from `@venizia/ignis-inversion` and adds higher-level helpers (`app.controller()`, `app.service()`, etc.). All types from inversion are also available via type-only re-exports.
 
 ## Creating an Instance
 

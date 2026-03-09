@@ -1,5 +1,6 @@
 import { BaseProvider } from '@/base/providers';
-import { Container, getError } from '@/helpers';
+import { Container } from '@/helpers';
+import { getError } from '@venizia/ignis-helpers';
 import { IMailQueueExecutor, IMailQueueExecutorConfig, MailQueueExecutorTypes } from '../common';
 import {
   BullMQMailExecutorHelper,

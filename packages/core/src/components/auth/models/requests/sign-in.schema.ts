@@ -1,4 +1,4 @@
-import { requiredString } from '@/utilities';
+import { requiredString } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 
 export const SignInRequestSchema = z

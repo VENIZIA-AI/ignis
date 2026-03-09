@@ -16,7 +16,7 @@ This function executes an array of asynchronous tasks concurrently, but with a s
 ### Example
 
 ```typescript
-import { executePromiseWithLimit, sleep } from '@venizia/ignis';
+import { executePromiseWithLimit, sleep } from '@venizia/ignis-helpers';
 
 const tasks = [
   () => sleep(1000).then(() => 'Task 1 done'),
@@ -43,7 +43,7 @@ console.log('All tasks finished:', results);
 A type guard function to check if a given value is a Promise-like object (i.e., it has a `then` method).
 
 ```typescript
-import { isPromiseLike } from '@venizia/ignis';
+import { isPromiseLike } from '@venizia/ignis-helpers';
 
 const a = Promise.resolve(1);
 const b = 2;
@@ -62,7 +62,7 @@ if (isPromiseLike(b)) {
 This function applies a transformation function to a value that might be a direct value or a Promise.
 
 ```typescript
-import { transformValueOrPromise, isPromiseLike } from '@venizia/ignis';
+import { transformValueOrPromise, isPromiseLike } from '@venizia/ignis-helpers';
 
 const double = (n: number) => n * 2;
 
@@ -75,7 +75,7 @@ const result2 = await transformValueOrPromise(Promise.resolve(5), double); // =>
 Safely retrieves a deeply nested property from an object using a dot-separated path string. It throws an error if any part of the path is null or undefined.
 
 ```typescript
-import { getDeepProperty } from '@venizia/ignis';
+import { getDeepProperty } from '@venizia/ignis-helpers';
 
 const obj = { a: { b: { c: 'hello' } } };
 

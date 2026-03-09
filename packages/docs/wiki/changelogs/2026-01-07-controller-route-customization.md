@@ -31,7 +31,7 @@ This release enhances the Controller Factory with comprehensive request/response
 ```typescript
 routes: {
   create: {
-    authStrategies: ['jwt'],
+    authStrategies: [Authentication.STRATEGY_JWT],
     request: {
       body: CreateUserSchema,      // Custom request body
       headers: CustomHeadersSchema, // Custom headers

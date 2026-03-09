@@ -1,25 +1,9 @@
 import { ValueOrPromise } from '@/common';
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 
 export type TTask<T> = (...args: any[]) => Promise<T>;
 
-/**
- *  Execute all tasks with limit number of asyncronous tasks.
- *  Whenever 1 task's resolved next task will be executed.
- *
- *  @example 
- *  With 20 tasks need to execute with limit is 5 tasks asyncronous
- *  ```
- *  const tasks = <Array of 20 functions which return promises>
- *  await executePromiseWithLimit({
- *    tasks,
- *    limit: 5,
-      onTaskDone: (opts: { result: any }) => {
-        // Do something on task done
-      },
- *  })
- *  ```
- */
+/** Execute async tasks with bounded concurrency. */
 export const executePromiseWithLimit = async <T>(opts: {
   tasks: Array<TTask<T>>;
   limit: number;
@@ -49,9 +33,7 @@ export const executePromiseWithLimit = async <T>(opts: {
   return Promise.all(results);
 };
 
-/**
- * Transform a value or promise with a function
- */
+/** Transform a value or promise with a function. */
 export async function transformValueOrPromise<T, V>(
   valueOrPromise: ValueOrPromise<T>,
   transformer: (value: T) => ValueOrPromise<V>,
@@ -60,9 +42,7 @@ export async function transformValueOrPromise<T, V>(
   return transformer(value);
 }
 
-/**
- * Check if a value is a promise
- */
+/** Check if a value is a promise. */
 export function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (
     !!value &&
@@ -71,9 +51,7 @@ export function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLik
   );
 }
 
-/**
- * Try to get the value synchronously, throw if it's a promise
- */
+/** Traverse a dotted property path on an object. */
 export function getDeepProperty<T, V>(obj: T, path: string): V {
   const keys = path.split('.');
   let result: any = obj;

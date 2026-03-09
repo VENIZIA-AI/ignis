@@ -1,8 +1,7 @@
-import { getError } from '@/helpers/error';
+import { getError } from '@/modules/error';
 import fs from 'node:fs';
 import path from 'node:path';
 
-// -------------------------------------------------------------------------
 export interface IRequestedRemark {
   id: string;
   url: string;
@@ -51,7 +50,7 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
     const parsedFile: IParsedFile = {
       fieldname,
       originalname: file.name,
-      encoding: 'utf8', // Default encoding
+      encoding: 'utf8',
       mimetype: file.type,
       size: file.size,
     };
@@ -62,7 +61,6 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
         break;
       }
       case 'disk': {
-        // Store on disk (like multer.diskStorage())
         const timestamp = Date.now();
         const randomString = Math.random().toString(36).substring(7);
         // Sanitize filename to prevent path traversal
@@ -89,40 +87,25 @@ export const parseMultipartBody = async <C extends { req: any } = { req: any }>(
   return files;
 };
 
-// -------------------------------------------------------------------------
-/**
- * Sanitizes a filename for safe use, removing path components and dangerous characters.
- * Useful for HTTP headers (e.g., Content-Disposition) and general file handling.
- *
- * @param filename - The original filename to sanitize.
- * @returns A safe, sanitized filename string.
- */
+/** Sanitizes a filename by removing path components and dangerous characters. */
 export const sanitizeFilename = (filename: string): string => {
   const basename = path.basename(filename);
-  // Remove or replace dangerous characters
-  // Allow only alphanumeric, spaces, hyphens, underscores, and dots
   let sanitized = basename.replace(/[^\w\s.-]/g, '_');
-  // Remove leading dots
   sanitized = sanitized.replace(/^\.+/, '');
-  // Replace consecutive dots with a single dot
   sanitized = sanitized.replace(/\.{2,}/g, '.');
-  // Remove any occurrence of ".."
   sanitized = sanitized.replace(/\.\./g, '.');
-  // Prevent empty filename or suspicious patterns
   if (!sanitized || sanitized === '.' || sanitized.includes('..')) {
     sanitized = 'download';
   }
   return sanitized;
 };
 
-// Create RFC 5987 encoded filename
 export const encodeRFC5987 = (filename: string): string => {
   return encodeURIComponent(filename)
     .replace(/['()]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase())
     .replace(/\*/g, '%2A');
 };
 
-// Create safe Content-Disposition header
 export const createContentDispositionHeader = (opts: {
   filename: string;
   type: 'attachment' | 'inline';

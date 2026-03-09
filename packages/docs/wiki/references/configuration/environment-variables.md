@@ -22,7 +22,8 @@ POSTGRES_HOST=localhost
 const host = process.env.APP_ENV_POSTGRES_HOST;
 
 // Using applicationEnvironment helper (recommended)
-import { applicationEnvironment, EnvironmentKeys } from '@venizia/ignis';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+import { EnvironmentKeys } from '@venizia/ignis';
 const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_POSTGRES_HOST);
 ```
 

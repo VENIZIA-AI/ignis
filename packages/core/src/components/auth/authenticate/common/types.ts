@@ -1,25 +1,21 @@
-import { IdType } from '@/base/models';
+import { TContext } from '@/base/controllers/common/types';
+import { IdType } from '@/base/models/common/types';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
-import { TContext } from '@/base/controllers';
 import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+import { Env, type MiddlewareHandler } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
-import { Authentication } from './constants';
+import {
+  type TAuthMode,
+  type TJWKSKeyDriver,
+  type TJWKSKeyFormat,
+  JOSEStandards,
+  JWKSModes,
+} from './constants';
 
-// Extend Hono's context variables to include authentication-related data
-declare module 'hono' {
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  interface ContextVariableMap<User extends IAuthUser = IAuthUser> {
-    [Authentication.CURRENT_USER]: User;
-    [Authentication.AUDIT_USER_ID]: IdType;
-  }
-}
-
-// --------------------------------------------------------------------------------------------------------
 export type TDefineAuthControllerOpts = {
   restPath?: string;
-  serviceKey?: string;
+  serviceKey: string;
   requireAuthenticatedSignUp?: boolean;
   payload?: {
     signIn?: {
@@ -45,51 +41,63 @@ export type TAuthenticationRestOptions = {} & (
     }
 );
 
-export interface IJWTTokenServiceOptions {
-  aesAlgorithm?: AESAlgorithmType;
+export interface IJWSTokenServiceOptions {
   headerAlgorithm?: string;
   jwtSecret: string;
-  applicationSecret: string;
   getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
 }
 
-export interface IBasicTokenServiceOptions<E extends Env = Env> {
-  /**
-   * Callback function to verify basic authentication credentials.
-   * Implement this to look up user and verify password.
-   *
-   * @param credentials - The extracted username and password
-   * @param context - The Hono request context (for accessing repos, services, etc.)
-   * @returns IAuthUser if valid, null if invalid
-   *
-   * @example
-   * ```typescript
-   * const verifyCredentials: TBasicAuthVerifyFn = async (creds, ctx) => {
-   *   const user = await userRepo.findByUsername(creds.username);
-   *   if (user && await bcrypt.compare(creds.password, user.passwordHash)) {
-   *     return { userId: user.id, roles: user.roles };
-   *   }
-   *   return null;
-   * };
-   * ```
-   */
+export type TJWKSAlgorithm = 'ES256' | 'RS256' | 'EdDSA';
+
+export interface IJWKSIssuerOptions {
+  mode: typeof JWKSModes.ISSUER;
+  algorithm: TJWKSAlgorithm;
+  rest?: { path: string };
+  keys: {
+    driver: TJWKSKeyDriver;
+    format: TJWKSKeyFormat;
+    private: string; // Key content (text) or file path (file) — PEM or JWK based on format
+    public: string; // Key content (text) or file path (file) — PEM or JWK based on format
+  };
+  kid: string;
+  getTokenExpiresFn: TGetTokenExpiresFn;
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
+}
+
+export interface IJWKSVerifierOptions {
+  mode: typeof JWKSModes.VERIFIER;
+  jwksUrl: string;
+  cacheTtlMs?: number; // Default: 43_200_000 (12h)
+  cooldownMs?: number; // Default: 30_000 (30s)
+  aesAlgorithm?: AESAlgorithmType;
+  applicationSecret?: string;
+  fieldCodecs?: IPayloadFieldCodec[];
+}
+
+export type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions;
+
+export type TJWTTokenServiceOptions =
+  | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
+  | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
+
+export type TBasicTokenServiceOptions<E extends Env = Env> = {
+  /** Callback to verify basic auth credentials. Returns IAuthUser if valid, null otherwise. */
   verifyCredentials: (opts: {
     credentials: { username: string; password: string };
     context: TContext<E, string>;
   }) => Promise<IAuthUser | null>;
-}
-
-// --------------------------------------------------------------------------------------------------------
-// Authenticate Options
-// --------------------------------------------------------------------------------------------------------
-
+};
 export interface IAuthenticateOptions {
   restOptions?: TAuthenticationRestOptions;
-  jwtOptions?: IJWTTokenServiceOptions;
-  basicOptions?: IBasicTokenServiceOptions;
+  jwtOptions?: TJWTTokenServiceOptions;
+  basicOptions?: TBasicTokenServiceOptions;
 }
 
-// --------------------------------------------------------------------------------------------------------
 export interface IAuthUser {
   userId: IdType;
   [extra: string | symbol]: any;
@@ -109,6 +117,12 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   [extra: string | symbol]: any;
 }
 
+export interface IPayloadFieldCodec<T = unknown> {
+  key: string;
+  serialize(opts: { value: T }): string;
+  deserialize(opts: { raw: string }): T;
+}
+
 export type TGetTokenExpiresFn = () => ValueOrPromise<number>;
 
 export interface IAuthenticationStrategy<E extends Env = Env> {
@@ -116,7 +130,11 @@ export interface IAuthenticationStrategy<E extends Env = Env> {
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
-// --------------------------------------------------------------------------------------------------------
+export type TAuthenticateFn = (opts: {
+  strategies: string[];
+  mode?: TAuthMode;
+}) => MiddlewareHandler;
+
 export interface IAuthService<
   E extends Env = Env,
   // SignIn types

@@ -123,7 +123,7 @@ Use the `getError` helper and `HTTP` constants to throw consistent, formatted ex
 ### Basic Error
 
 ```typescript
-import { getError, HTTP } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 if (!record) {
   throw getError({

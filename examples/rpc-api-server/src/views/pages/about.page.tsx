@@ -1,4 +1,4 @@
-import type { FC } from '@venizia/ignis';
+import type { FC } from '@venizia/ignis-helpers';
 import { MainLayout } from '../layouts/main.layout';
 
 export const AboutPage: FC = () => {

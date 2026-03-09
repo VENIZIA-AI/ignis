@@ -375,7 +375,39 @@ export class User extends BaseEntity<typeof User.schema> {
 
 > **Reference:** See [Hidden Properties](../references/base/models.md#hidden-properties) for complete documentation.
 
-## 6. Database Migrations
+## 6. Authorization Settings
+
+Declare your model's authorization principal in `@model` settings to make the model the single source of truth for permission subjects:
+
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    authorize: { principal: 'user' },
+    hiddenProperties: ['password'],
+  },
+})
+export class User extends BaseEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    email: text('email').notNull(),
+    password: text('password'),
+  });
+}
+
+// User.AUTHORIZATION_SUBJECT === 'user' (auto-populated)
+```
+
+**Key points:**
+
+- `AUTHORIZATION_SUBJECT` is auto-set from `authorize.principal` by the `@model` decorator
+- Use `Model.AUTHORIZATION_SUBJECT` in route configs instead of hardcoded strings
+- Explicit `static AUTHORIZATION_SUBJECT = '...'` on the class takes precedence
+- The `authorize` settings are extensible via index signature for custom metadata
+
+> **Reference:** See [Model-Based Resource References](../references/components/authorization/usage#model-based-resource-references) for full authorization integration.
+
+## 7. Database Migrations
 
 Drizzle Kit handles schema migrations. Follow these best practices for safe migrations.
 

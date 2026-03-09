@@ -1,4 +1,4 @@
-import { AnyType, BaseHelper, validateModule } from '@/helpers';
+import { AnyType, BaseHelper, validateModule } from '@venizia/ignis-helpers';
 import { IMailMessage, IMailSendResult, IMailTransport, TNodemailerConfig } from '../../common';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {

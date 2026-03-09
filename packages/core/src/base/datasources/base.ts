@@ -12,7 +12,6 @@ import {
   TNodePostgresConnector,
 } from './common';
 
-// --------------------------------------------------------------------------------------
 export abstract class AbstractDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
@@ -50,37 +49,12 @@ export abstract class AbstractDataSource<
   }
 }
 
-// --------------------------------------------------------------------------------------
-/**
- * Base DataSource with auto-discovery support.
- *
- * Features:
- * - Schema auto-discovered from registered repositories
- *
- * Usage:
- * ```typescript
- * @datasource({})
- * export class PostgresDataSource extends BaseDataSource<IDbConfig> {
- *   constructor() {
- *     super({
- *       name: PostgresDataSource.name,
- *       config: { host: '...', port: 5432, ... },
- *       // schema auto-discovered from repositories
- *     });
- *   }
- * }
- * ```
- */
+/** Base DataSource with schema auto-discovery from registered repositories. */
 export abstract class BaseDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
 > extends AbstractDataSource<Settings, Schema, ConfigurableOptions> {
-  /**
-   * @param opts.name - DataSource name (usually class name)
-   * @param opts.config - Database connection settings
-   * @param opts.schema - Optional, auto-discovered from repositories if not provided
-   */
   constructor(opts: { name: string; config: Settings; schema?: Schema }) {
     super({ scope: opts.name });
 
@@ -92,9 +66,7 @@ export abstract class BaseDataSource<
     }
   }
 
-  /**
-   * Get the schema - auto-discovers if not manually provided.
-   */
+  /** Auto-discovers schema from repositories if not manually provided. */
   override getSchema(): Schema {
     if (!this.schema) {
       this.schema = this.discoverSchema();
@@ -102,9 +74,6 @@ export abstract class BaseDataSource<
     return this.schema;
   }
 
-  /**
-   * Build schema from registered repositories that reference this datasource.
-   */
   protected discoverSchema(): Schema {
     const registry = MetadataRegistry.getInstance();
     const metadata = registry.getDataSourceMetadata({ target: this.constructor });
@@ -136,9 +105,6 @@ export abstract class BaseDataSource<
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
-  // ---------------------------------------------------------------------------
-  // Transaction Support
-  // ---------------------------------------------------------------------------
   async beginTransaction(opts?: ITransactionOptions): Promise<ITransaction<Schema>> {
     if (!this.pool) {
       throw getError({
@@ -156,12 +122,10 @@ export abstract class BaseDataSource<
       isolationLevel,
       connector: drizzle({ client, schema: this.schema }),
 
-      // On-demand check transaction state
       get isActive() {
         return isActive;
       },
 
-      // COMMIT Action
       commit: async () => {
         if (!isActive) {
           throw getError({ message: '[Transaction][commit] Transaction already ended' });
@@ -177,7 +141,6 @@ export abstract class BaseDataSource<
         }
       },
 
-      // ROLLBACK Action
       rollback: async () => {
         if (!isActive) {
           throw getError({ message: '[Transaction][rollback] Transaction already ended' });

@@ -1,4 +1,4 @@
-import type { FC, PropsWithChildren } from '@venizia/ignis';
+import type { FC, PropsWithChildren } from '@venizia/ignis-helpers';
 
 interface MainLayoutProps {
   title: string;

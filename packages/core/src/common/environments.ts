@@ -1,7 +1,4 @@
-/**
- * Defines a collection of environment variable keys used throughout the application.
- * These keys provide a standardized way to access configuration values from the environment.
- */
+/** Environment variable keys used throughout the application. */
 export class EnvironmentKeys {
   static readonly APP_ENV_APPLICATION_NAME = 'APP_ENV_APPLICATION_NAME';
   static readonly APP_ENV_APPLICATION_TIMEZONE = 'APP_ENV_APPLICATION_TIMEZONE';

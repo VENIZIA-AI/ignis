@@ -13,7 +13,6 @@ import {
 } from './common/types';
 import { metadataRegistry } from './registry';
 
-// -------------------------------------------------------------------------------------
 export class Binding<T = any> extends BaseHelper {
   key: string;
 
@@ -29,7 +28,6 @@ export class Binding<T = any> extends BaseHelper {
         value: (<C extends Container>(container: C) => T) | TClass<IProvider<T>>;
       };
 
-  // ------------------------------------------------------------------------------
   constructor(opts: { key: string }) {
     super({ scope: opts.key });
     this.tags = new Set([]);
@@ -47,7 +45,6 @@ export class Binding<T = any> extends BaseHelper {
     return new Binding<T>(opts);
   }
 
-  // ------------------------------------------------------------------------------
   toClass(value: TClass<T>): this {
     this.resolver = { type: BindingValueTypes.CLASS, value };
     return this;
@@ -63,7 +60,6 @@ export class Binding<T = any> extends BaseHelper {
     return this;
   }
 
-  // ------------------------------------------------------------------------------
   getBindingMeta(opts: { type: TConstValue<typeof BindingValueTypes> }) {
     if (this.resolver.type !== opts.type) {
       throw getError({
@@ -160,7 +156,6 @@ export class Binding<T = any> extends BaseHelper {
   }
 }
 
-// -------------------------------------------------------------------------------------
 export class Container extends BaseHelper {
   protected bindings = new Map<string | symbol, Binding>();
 
@@ -272,7 +267,6 @@ export class Container extends BaseHelper {
   instantiate<T>(cls: TClass<T>): T {
     const registry = this.getMetadataRegistry();
 
-    // 1. Handle constructor parameter injection
     const injectMetadata = registry.getInjectMetadata({
       target: cls,
     });
@@ -288,10 +282,8 @@ export class Container extends BaseHelper {
       }
     }
 
-    // Create instance
     const instance = new cls(...args);
 
-    // 2. Handle property injection
     const propertyMetadata = registry.getPropertiesMetadata({
       target: instance as object,
     });

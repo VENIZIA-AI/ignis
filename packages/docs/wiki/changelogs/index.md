@@ -17,6 +17,12 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-03-06 | [Filter Offset/Skip Bug Fix](./2026-03-06-filter-offset-skip-fix) | Bug Fix |
+| 2026-03-04 | [Customizable JWT Payload Field Codecs](./2026-03-04-jwt-payload-field-codecs) | New Feature, Breaking Change |
+| 2026-03-02 | [Model Authorize Settings](./2026-03-02-model-authorize-settings) | New Feature |
+| 2026-02-27 | [JWKS Authentication & Service Hierarchy Refactor](./2026-02-27-jwks-authentication) | New Feature, Refactor, Breaking Change, Security |
+| 2026-02-26 | [Core/Helpers Decoupling](./2026-02-26-core-helpers-decoupling) | Refactor, Breaking Change |
+| 2026-02-16 | [Authorization System & Auth Module Refactor](./2026-02-16-authorization-system) | New Feature, Refactor, Breaking Change |
 | 2026-02-11 | [WebSocket Generic Type Parameters](./2026-02-11-websocket-generic-types) | Enhancement |
 | 2026-02-11 | [WebSocket Encrypted Delivery](./2026-02-11-websocket-encrypted-delivery) | New Feature |
 | 2026-02-11 | [Crypto Algorithm Refactor & ECDH](./2026-02-11-crypto-refactor-ecdh) | Refactor, New Feature, Breaking Change |

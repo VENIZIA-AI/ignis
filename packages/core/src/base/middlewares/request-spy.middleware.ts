@@ -5,13 +5,7 @@ import { createMiddleware } from 'hono/factory';
 import { MiddlewareHandler } from 'hono/types';
 import { TContext } from '../controllers';
 
-/**
- * `RequestSpyMiddleware` is a middleware that logs incoming and outgoing request information.
- * It extends `BaseHelper` and implements `IProvider<MiddlewareHandler>` to provide a Hono middleware.
- *
- * Note: Request body and query params are only logged in non-production environments
- * to prevent sensitive data exposure in production logs.
- */
+/** Logs incoming/outgoing request details. Body/query only logged in non-production. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';
 
@@ -23,16 +17,10 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     this.isDebugMode = env !== Environment.PRODUCTION;
   }
 
-  /**
-   * Parses request body based on Content-Type header.
-   * - application/json → req.json()
-   * - multipart/form-data, application/x-www-form-urlencoded → req.parseBody()
-   * - Other content types (text, html, xml, etc.) → req.text()
-   */
+  /** Parses request body based on Content-Type header. */
   async parseBody(opts: { req: TContext['req'] }): Promise<unknown> {
     const contentType = opts.req.header(HTTP.Headers.CONTENT_TYPE);
 
-    // No Content-Type header means no body
     if (!contentType) {
       return null;
     }
@@ -43,13 +31,11 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     }
 
     try {
-      // JSON body
       if (contentType.includes(HTTP.HeaderValues.APPLICATION_JSON)) {
         const rs = await opts.req.json();
         return rs;
       }
 
-      // Form data (multipart or urlencoded)
       if (
         contentType.includes(HTTP.HeaderValues.MULTIPART_FORM_DATA) ||
         contentType.includes(HTTP.HeaderValues.APPLICATION_FORM_URLENCODED)
@@ -58,7 +44,6 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         return rs;
       }
 
-      // Everything else (text, html, xml, etc.) - read as text
       const rs = await opts.req.text();
       return rs;
     } catch {
@@ -69,12 +54,7 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
     }
   }
 
-  /**
-   * Returns a Hono middleware handler that logs request details at the start and end of a request.
-   * It captures request ID, IPs, URL, method, path, query, body, and logs the request duration.
-   *
-   * @returns A `MiddlewareHandler` function.
-   */
+  /** Returns a Hono middleware that logs request details and duration. */
   value() {
     return createMiddleware(async (context, next) => {
       const t = performance.now();

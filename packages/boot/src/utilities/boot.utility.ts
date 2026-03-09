@@ -1,23 +1,12 @@
 import { AnyType, getError, TClass } from '@venizia/ignis-helpers';
 import { glob } from 'glob';
 
-/**
- * Check if a value is a class constructor
- *
- * @param target - Target to check
- * @returns True if target is a class
- */
+/** Check if a value is a class constructor. */
 export const isClass = <T>(target: AnyType): target is TClass<T> => {
   return typeof target === 'function' && target.prototype !== undefined;
 };
 
-/**
- * Discover files matching a glob pattern
- *
- * @param pattern - Glob pattern
- * @param root - Root directory
- * @returns Array of absolute file paths
- */
+/** Discover files matching a glob pattern. */
 export const discoverFiles: (opts: {
   pattern: string;
   root: string;
@@ -35,13 +24,7 @@ export const discoverFiles: (opts: {
   }
 };
 
-/**
- * Load classes from files
- *
- * @param files - Array of file paths
- * @param root - Root directory (for relative paths in errors)
- * @returns Array of class constructors
- */
+/** Load classes from discovered files via dynamic import. */
 export const loadClasses: (opts: {
   files: string[];
   root: string;

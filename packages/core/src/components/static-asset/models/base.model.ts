@@ -7,12 +7,7 @@ import {
 } from '@/base/models';
 import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-core';
 
-// ================================================================================
-/**
- * BaseMetaLinkModel using static schema pattern.
- *
- * This model stores metadata about uploaded files/assets.
- */
+/** Stores metadata about uploaded files/assets. */
 @model({ type: 'entity', skipMigrate: true })
 export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schema> {
   static override schema = pgTable(
@@ -43,7 +38,5 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
   static override relations = () => [];
 }
 
-// ================================================================================
-// Type exports
 export type TMetaLinkSchema = typeof BaseMetaLinkModel.schema;
 export type TMetaLink = TTableObject<TMetaLinkSchema>;

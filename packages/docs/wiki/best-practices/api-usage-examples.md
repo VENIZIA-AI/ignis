@@ -11,7 +11,8 @@ Use `@get`, `@post` decorators with `as const` route configs for full type safet
 **`src/controllers/test/definitions.ts`**
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { Authentication, HTTP, jsonContent, jsonResponse } from '@venizia/ignis';
+import { Authentication, jsonContent, jsonResponse } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // Define route configs as const for type inference
 export const RouteConfigs = {
@@ -52,8 +53,8 @@ import {
   get,
   post,
   TRouteContext,
-  HTTP,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
@@ -90,7 +91,8 @@ You can also define routes manually within the controller's `binding()` method u
 
 **`src/controllers/test/controller.ts`**
 ```typescript
-import { BaseController, controller, HTTP, ValueOrPromise } from '@venizia/ignis';
+import { BaseController, controller, ValueOrPromise } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
@@ -301,7 +303,7 @@ server.use('/api/*', rateLimiter({ maxRequests: 100 }));
 ### Middleware with Logging
 
 ```typescript
-import { BaseHelper } from '@venizia/ignis';
+import { BaseHelper } from '@venizia/ignis-helpers';
 import { createMiddleware } from 'hono/factory';
 
 export const requestLogger = (): MiddlewareHandler => {
@@ -496,7 +498,7 @@ Use `getError()` to throw structured errors that are automatically formatted by 
 ### Throwing Errors
 
 ```typescript
-import { getError, HTTP } from '@venizia/ignis';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 // Basic error
 throw getError({ message: 'Something went wrong' });

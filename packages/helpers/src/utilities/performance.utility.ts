@@ -1,4 +1,4 @@
-import { Logger } from '@/helpers/logger';
+import { Logger } from '@/modules/logger';
 import { float } from './parse.utility';
 
 const DEFAULT_PERFORMANCE_DECIMAL = 6;

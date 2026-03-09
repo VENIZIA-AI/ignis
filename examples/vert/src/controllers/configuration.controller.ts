@@ -65,7 +65,7 @@ const _Controller = ControllerFactory.defineCrudController({
     // COUNT - Public endpoint, no auth required
     // -------------------------------------------------------------------------
     count: {
-      skipAuth: true,
+      authenticate: { skip: true },
     },
 
     // -------------------------------------------------------------------------

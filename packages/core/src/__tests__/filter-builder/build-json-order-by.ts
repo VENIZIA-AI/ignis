@@ -2,7 +2,6 @@ import { FilterBuilder } from '@/base/repositories/operators';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
-// Test schema with JSON column
 const testTable = pgTable('test_table', {
   id: serial('id').primaryKey(),
   name: varchar('name', { length: 255 }),
@@ -10,7 +9,6 @@ const testTable = pgTable('test_table', {
   data: jsonb('data'),
 });
 
-// Access private method for testing
 class TestableFilterBuilder extends FilterBuilder {
   public testBuildJsonOrderBy(opts: { key: string; direction: string; tableName: string }) {
     const columns = getTableColumns(testTable);
@@ -29,7 +27,6 @@ interface ITestCase {
 }
 
 const testCases: ITestCase[] = [
-  // Valid cases - should PASS
   {
     input: 'metadata.field',
     direction: 'ASC',
@@ -73,7 +70,6 @@ const testCases: ITestCase[] = [
     description: 'Field with numbers',
   },
 
-  // Invalid cases - should FAIL (SQL injection attempts)
   {
     input: 'metadata.field; DROP TABLE users;--',
     direction: 'ASC',
@@ -147,7 +143,6 @@ const testCases: ITestCase[] = [
     description: 'Newline injection',
   },
 
-  // Invalid cases - non-JSON column
   {
     input: 'name.field',
     direction: 'ASC',
@@ -155,7 +150,6 @@ const testCases: ITestCase[] = [
     description: 'Non-JSON column (varchar)',
   },
 
-  // Invalid cases - non-existent column
   {
     input: 'nonexistent.field',
     direction: 'ASC',

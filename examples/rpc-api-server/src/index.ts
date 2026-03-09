@@ -1,4 +1,4 @@
-import { LoggerFactory } from '@venizia/ignis';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 import { Application, beConfigs } from './application';
 
 const logger = LoggerFactory.getLogger(['main']);

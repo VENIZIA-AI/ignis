@@ -11,17 +11,14 @@ export class ControllerBooter extends BaseArtifactBooter {
     super({ scope: ControllerBooter.name, root, artifactOptions: bootOptions.controllers ?? {} });
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultDirs(): string[] {
     return ['controllers'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultExtensions(): string[] {
     return ['.controller.js'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
       const key = BindingKeys.build({ namespace: 'controllers', key: cls.name });

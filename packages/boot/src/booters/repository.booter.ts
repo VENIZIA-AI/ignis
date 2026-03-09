@@ -10,17 +10,15 @@ export class RepositoryBooter extends BaseArtifactBooter {
   ) {
     super({ scope: RepositoryBooter.name, root, artifactOptions: bootOptions.repositories ?? {} });
   }
-  // --------------------------------------------------------------------------------
+
   protected override getDefaultDirs(): string[] {
     return ['repositories'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override getDefaultExtensions(): string[] {
     return ['.repository.js'];
   }
 
-  // --------------------------------------------------------------------------------
   protected override async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
       const key = BindingKeys.build({ namespace: 'repositories', key: cls.name });

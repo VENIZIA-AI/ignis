@@ -9,7 +9,8 @@ Controllers handle HTTP requests and return responses - they're your API endpoin
 Extend `BaseController` and use decorators to define routes:
 
 ```typescript
-import { BaseController, controller, get, jsonResponse, z, HTTP } from '@venizia/ignis';
+import { BaseController, controller, get, jsonResponse, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
 
 @controller({ path: '/users' })
@@ -70,7 +71,8 @@ The `opts` object contains a `configs` property that defines the route's path, r
 For optimal organization and type safety, define your route configurations in a constant with `as const`. This allows TypeScript to precisely infer the types for your request data and expected responses within your handler methods.
 
 ```typescript
-import { BaseController, controller, get, post, HTTP, jsonContent, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { BaseController, controller, get, post, jsonContent, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 // Define route configs as const for type inference
@@ -161,7 +163,8 @@ When using this method, you will override the `binding()` method in your control
 Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
 
 ```typescript
-import { Authentication, HTTP, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { Authentication, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside the binding() method
 
@@ -188,7 +191,8 @@ this.defineRoute({
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
 ```typescript
-import { jsonResponse, z, TRouteContext, HTTP } from '@venizia/ignis';
+import { jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside the binding() method
 
@@ -309,7 +313,7 @@ this.defineJSXRoute({
 
 ```typescript
 // src/views/pages/home.page.tsx
-import type { FC } from '@venizia/ignis';
+import type { FC } from '@venizia/ignis-helpers';
 import { MainLayout } from '../layouts/main.layout';
 
 interface HomePageProps {
@@ -330,7 +334,7 @@ export const HomePage: FC<HomePageProps> = ({ user }) => {
 
 ```typescript
 // src/views/layouts/main.layout.tsx
-import type { FC, PropsWithChildren } from '@venizia/ignis';
+import type { FC, PropsWithChildren } from '@venizia/ignis-helpers';
 
 interface MainLayoutProps {
   title: string;
@@ -369,7 +373,8 @@ When you define Zod schemas in your route's `request` configuration (whether wit
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put, HTTP } from '@venizia/ignis';
+import { jsonContent, put } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside a controller class
 
@@ -406,7 +411,8 @@ Using `c.req.valid()` is the recommended way to access request data as it ensure
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put, TRouteContext, HTTP } from '@venizia/ignis';
+import { jsonContent, put, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside a controller class
 

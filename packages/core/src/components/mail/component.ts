@@ -2,7 +2,7 @@ import { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common';
-import { getError } from '@/helpers';
+import { getError } from '@venizia/ignis-helpers';
 import { IMailQueueExecutorConfig, MailKeys, TMailOptions } from './common';
 import {
   MailQueueExecutorProvider,
@@ -29,7 +29,6 @@ export class MailComponent extends BaseComponent {
     });
   }
 
-  // --------------------------------------------------------------------------------
   override binding(): void | Promise<void> {
     if (!this.application.isBound({ key: MailKeys.MAIL_OPTIONS })) {
       this.logger
@@ -52,7 +51,6 @@ export class MailComponent extends BaseComponent {
     this.logger.for(this.binding.name).info('Mail component initialized successfully');
   }
 
-  // --------------------------------------------------------------------------------
   initGenerators() {
     this.application
       .bind({ key: MailKeys.MAIL_VERIFICATION_CODE_GENERATOR })
@@ -65,7 +63,6 @@ export class MailComponent extends BaseComponent {
       .toClass(DefaultVerificationDataGenerator);
   }
 
-  // --------------------------------------------------------------------------------
   initProviders() {
     this.application
       .bind({ key: MailKeys.MAIL_TRANSPORT_PROVIDER })
@@ -77,7 +74,6 @@ export class MailComponent extends BaseComponent {
       .setScope('singleton');
   }
 
-  // --------------------------------------------------------------------------------
   initServices() {
     this.application
       .bind({ key: MailKeys.MAIL_SERVICE })
@@ -89,7 +85,6 @@ export class MailComponent extends BaseComponent {
       .setScope('singleton');
   }
 
-  // --------------------------------------------------------------------------------
   createAndBindInstances(): void {
     // Transport
     const transportGetter = this.application.get<TGetMailTransportFn>({

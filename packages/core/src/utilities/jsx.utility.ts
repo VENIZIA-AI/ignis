@@ -1,14 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
 
-/**
- * Create HTML content configuration for OpenAPI documentation
- * Similar to jsonContent() but for HTML responses
- * Scope: [JSXUtility][htmlContent]
- *
- * @param opts - Content options
- * @returns Content configuration object
- */
+/** Creates HTML content configuration for OpenAPI documentation. */
 export const htmlContent = (opts: { description: string; required?: boolean }) => {
   const { description } = opts;
 
@@ -26,14 +19,7 @@ export const htmlContent = (opts: { description: string; required?: boolean }) =
   };
 };
 
-/**
- * Create HTML response configuration for OpenAPI documentation
- * Similar to jsonResponse() but for HTML endpoints
- * Scope: [JSXUtility][htmlResponse]
- *
- * @param opts - Response options
- * @returns Response configuration object with success and error schemas
- */
+/** Creates HTML response configuration for OpenAPI documentation. */
 export const htmlResponse = (opts: { description: string; required?: boolean }) => {
   return {
     [HTTP.ResultCodes.RS_2.Ok]: htmlContent({

@@ -46,7 +46,6 @@ export class HTTP {
     RS_SUCCESS: 1,
     RS_UNKNOWN_ERROR: -199,
 
-    // 2xx successful – the request was successfully received, understood, and accepted
     RS_2: {
       Ok: 200,
       Created: 201,
@@ -58,7 +57,6 @@ export class HTTP {
       MultiStatus: 207,
     },
 
-    // 3xx redirection – further action needs to be taken in order to complete the request
     RS_3: {
       MovedPermanently: 301,
       Found: 302,
@@ -67,7 +65,6 @@ export class HTTP {
       PermanentRedirect: 308,
     },
 
-    // 4xx client error – the request contains bad syntax or cannot be fulfilled
     RS_4: {
       BadRequest: 400,
       Unauthorized: 401,
@@ -97,7 +94,6 @@ export class HTTP {
       UnavailableForLegalReasons: 451,
     },
 
-    // 5xx server error – the server failed to fulfil an apparently valid request
     RS_5: {
       InternalServerError: 500,
       NotImplemented: 501,

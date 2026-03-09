@@ -214,8 +214,9 @@ The controller uses `this.definitions = RouteConfigs` to store route configurati
 ```typescript
 import {
   BaseController, IControllerOptions, TRouteContext,
-  api, jsonContent, jsonResponse, HTTP, z,
+  api, jsonContent, jsonResponse, z,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const RouteConfigs = {
   ROOT: {

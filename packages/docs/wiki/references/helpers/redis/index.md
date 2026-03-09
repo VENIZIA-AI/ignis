@@ -20,21 +20,14 @@ import {
   RedisClusterHelper,
 } from '@venizia/ignis-helpers';
 
-// Or from the core package (re-exports everything)
-import {
-  DefaultRedisHelper,
-  RedisHelper,
-  RedisClusterHelper,
-} from '@venizia/ignis';
-
-// Types
+// Types are also available from the core package (via type-only re-export)
 import type {
   IRedisHelperOptions,
   IRedisClusterHelperOptions,
   IRedisHelperCallbacks,
   IRedisHelperProps,
   IRedisClusterHelperProps,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers'; // or from '@venizia/ignis'
 ```
 
 ## Creating an Instance

@@ -1,8 +1,4 @@
-// -----------------------------------------------------------------------------
-/**
- * Defines a comprehensive set of application statuses, categorized into different schemes.
- * Provides utility methods to check the status against these schemes.
- */
+/** Application statuses categorized by lifecycle phase (initial, pending, active, completed, inactive, failed). */
 export class Statuses {
   // 0xx - Initial
   static readonly UNKNOWN = '000_UNKNOWN';
@@ -52,7 +48,6 @@ export class Statuses {
   static readonly DELETED = '506_DELETED';
   static readonly REJECTED = '507_REJECTED';
 
-  // Scheme sets by group
   static readonly INITIAL_SCHEME_SET = new Set([this.UNKNOWN, this.DRAFT]);
 
   static readonly PENDING_SCHEME_SET = new Set([
@@ -113,7 +108,6 @@ export class Statuses {
     ...this.FAILED_SCHEME_SET,
   ]);
 
-  // Validation methods
   static isInitial(status: string): boolean {
     return this.INITIAL_SCHEME_SET.has(status);
   }
@@ -143,10 +137,7 @@ export class Statuses {
   }
 }
 
-// -----------------------------------------------------------------------------
-/**
- * Defines statuses specifically for database migrations.
- */
+/** Database migration statuses. */
 export class MigrationStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly SUCCESS = Statuses.SUCCESS;
@@ -159,10 +150,7 @@ export class MigrationStatuses {
   }
 }
 
-// -----------------------------------------------------------------------------
-/**
- * Defines a common set of statuses that can be reused across different entities.
- */
+/** Common reusable entity statuses. */
 export class CommonStatuses {
   static readonly UNKNOWN = Statuses.UNKNOWN;
   static readonly ACTIVATED = Statuses.ACTIVATED;
@@ -183,22 +171,13 @@ export class CommonStatuses {
   }
 }
 
-// -----------------------------------------------------------------------------
-/**
- * Defines statuses specific to users, inheriting from `CommonStatuses`.
- */
+/** User statuses. */
 export class UserStatuses extends CommonStatuses {}
 
-// -----------------------------------------------------------------------------
-/**
- * Defines statuses specific to roles, inheriting from `CommonStatuses`.
- */
+/** Role statuses. */
 export class RoleStatuses extends CommonStatuses {}
 
-// -----------------------------------------------------------------------------
-/**
- * Defines different types of users within the application.
- */
+/** User types within the application. */
 export class UserTypes {
   static readonly SYSTEM = 'SYSTEM';
   static readonly LINKED = 'LINKED';

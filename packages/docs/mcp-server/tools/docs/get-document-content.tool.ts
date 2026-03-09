@@ -1,11 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, TMastraTool } from '../base.tool';
+import { BaseTool } from '../base.tool';
 import { DocsHelper } from '@/mcp-server/helpers';
-
-// ----------------------------------------------------------------------------
-// DESCRIPTIONS
-// ----------------------------------------------------------------------------
 
 const TOOL_DESCRIPTION = `
 Retrieves the complete markdown content of a specific Ignis Framework documentation file.
@@ -81,10 +77,6 @@ TYPICAL STRUCTURE:
 - Cross-references to related documentation
 `;
 
-// ----------------------------------------------------------------------------
-// SCHEMAS
-// ----------------------------------------------------------------------------
-
 const InputSchema = z.object({
   id: z.string().min(1).describe(ID_DESCRIPTION),
 });
@@ -97,10 +89,6 @@ const OutputSchema = z.object({
     .optional()
     .describe('Error message if document not found. Verify the ID using listDocs or searchDocs.'),
 });
-
-// ----------------------------------------------------------------------------
-// TOOL CLASS
-// ----------------------------------------------------------------------------
 
 export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof OutputSchema> {
   readonly id = 'getDocumentContent';
@@ -118,13 +106,13 @@ export class GetDocContentTool extends BaseTool<typeof InputSchema, typeof Outpu
     return { content, id: opts.id };
   }
 
-  getTool(): TMastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async ({ context }) => this.execute(context),
+      execute: async input => this.execute(input),
     });
   }
 }

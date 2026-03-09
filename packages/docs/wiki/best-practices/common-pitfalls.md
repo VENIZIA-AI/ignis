@@ -66,7 +66,7 @@ export class Application extends BaseApplication {
 
 -   **Bad:**
     ```typescript
-    import { ApplicationError, getError } from '@venizia/ignis';
+    import { ApplicationError, getError } from '@venizia/ignis-helpers';
 
     // In a Controller
     async createUser(c: Context) {

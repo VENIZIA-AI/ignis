@@ -1,4 +1,5 @@
-import { BindingKeys, BindingNamespaces, DataTypes, getUID, inject } from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,
   ProductRepository,
@@ -954,8 +955,14 @@ export class JsonFilterTestService extends BaseTestService {
         const priorities = results.map(r => (r.jValue as any)?.priority);
         const allNumericAndGreater = priorities.every(p => typeof p === 'number' && p > 3);
         if (allNumericAndGreater) {
-          this.logger.info('[CASE 20] PASSED | Numeric operator safe on mixed types (found %d)', results.length);
-          this.logger.info('[CASE 20] Priorities: %j (string/null/missing were safely ignored)', priorities);
+          this.logger.info(
+            '[CASE 20] PASSED | Numeric operator safe on mixed types (found %d)',
+            results.length,
+          );
+          this.logger.info(
+            '[CASE 20] Priorities: %j (string/null/missing were safely ignored)',
+            priorities,
+          );
         } else {
           this.logger.error('[CASE 20] FAILED | Unexpected priorities: %j', priorities);
         }
@@ -968,7 +975,9 @@ export class JsonFilterTestService extends BaseTestService {
       await repo.deleteAll({ where: { group } });
     } catch (error) {
       this.logger.error('[CASE 20] FAILED | Error: %s', (error as Error).message);
-      this.logger.error('[CASE 20] This likely means numeric casting crashed on non-numeric values');
+      this.logger.error(
+        '[CASE 20] This likely means numeric casting crashed on non-numeric values',
+      );
       await repo.deleteAll({ where: { group } }).catch(() => {});
     }
   }

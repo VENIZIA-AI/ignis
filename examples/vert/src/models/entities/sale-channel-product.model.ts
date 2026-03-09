@@ -6,7 +6,7 @@ import {
   RelationTypes,
   TRelationConfig,
 } from '@venizia/ignis';
-import { foreignKey, index, pgTable, unique, uuid } from 'drizzle-orm/pg-core';
+import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { Product } from './product.model';
 import { SaleChannel } from './sale-channel.model';
 
@@ -25,8 +25,8 @@ export class SaleChannelProduct extends BaseEntity<typeof SaleChannelProduct.sch
     {
       ...generateIdColumnDefs({ id: { dataType: 'string' } }),
       ...generateTzColumnDefs(),
-      productId: uuid('product_id').notNull(),
-      saleChannelId: uuid('sale_channel_id').notNull(),
+      productId: text('product_id').notNull(),
+      saleChannelId: text('sale_channel_id').notNull(),
     },
     def => [
       // Unique constraint to prevent duplicate product-channel combinations

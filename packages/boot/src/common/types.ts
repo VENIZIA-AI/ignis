@@ -2,7 +2,6 @@ import { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Container } from '@venizia/ignis-inversion';
 import { BootPhases } from './constants';
 
-// ================================================================================
 export interface IArtifactOptions {
   dirs?: string[];
   extensions?: string[];
@@ -43,15 +42,7 @@ export interface IBooter {
 }
 
 export interface IBootExecutionOptions {
-  /**
-   * Phases to execute
-   * @default ['configure', 'discover', 'load']
-   */
   phases?: TBootPhase[];
-  /**
-   * Specific booters to run (by name)
-   * If not specified, all booters are run
-   */
   booters?: string[];
 }
 
@@ -59,5 +50,4 @@ export interface IBootstrapper {
   boot(opts: IBootExecutionOptions): Promise<IBootReport>;
 }
 
-// ================================================================================
 export interface IBootReport {}

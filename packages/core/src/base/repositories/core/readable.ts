@@ -12,72 +12,20 @@ import {
 } from '../common';
 import { AbstractRepository } from './abstract';
 
-// -----------------------------------------------------------------------------
-// Readable Repository
-// -----------------------------------------------------------------------------
-
-/**
- * Read-only repository implementation.
- *
- * Provides read operations (find, findOne, findById, count, existsWith) while
- * blocking write operations (create, update, delete) with an error.
- *
- * Use this class when you need a repository that should only read data,
- * such as for reporting or analytics views.
- *
- * @template EntitySchema - The Drizzle table schema type with an 'id' column
- * @template DataObject - The type of objects returned from queries
- * @template PersistObject - The type for insert/update operations
- * @template ExtraOptions - Additional options type extending IExtraOptions
- *
- * @example
- * ```typescript
- * @repository({ model: Report, dataSource: PostgresDataSource })
- * export class ReportRepository extends ReadableRepository<typeof Report.schema> {
- *   async getMonthlyStats() {
- *     return this.find({ filter: { where: { type: 'monthly' } } });
- *   }
- * }
- * ```
- */
+/** Read-only repository. Write operations throw errors. */
 export class ReadableRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IExtraOptions,
 > extends AbstractRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  // ---------------------------------------------------------------------------
-  // Constructor
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Creates a new read-only repository instance.
-   *
-   * @param ds - Optional data source (auto-injected from @repository decorator)
-   * @param opts - Optional configuration
-   * @param opts.entityClass - Entity class if not using @repository decorator
-   */
   constructor(ds?: IDataSource, opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> }) {
     super(ds, {
       entityClass: opts?.entityClass,
       operationScope: RepositoryOperationScopes.READ_ONLY,
     });
   }
-
-  // ---------------------------------------------------------------------------
-  // Protected Query Helpers
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Determines if a query can use the Drizzle Core API for better performance.
-   *
-   * Core API is ~15-20% faster but has limitations:
-   * - No relation inclusion support
-   * - Different field selection syntax
-   *
-   * @param filter - The filter to evaluate
-   * @returns True if Core API can be used, false if Query API is needed
-   */
+  /** Core API is ~15-20% faster but doesn't support relations or field selection. */
   protected canUseCoreAPI(filter: TFilter<DataObject>): boolean {
     const hasInclude = filter.include && filter.include.length > 0;
     const hasFields =
@@ -88,18 +36,7 @@ export class ReadableRepository<
     return !hasInclude && !hasFields;
   }
 
-  /**
-   * Executes a query using the Drizzle Core API (faster for flat queries).
-   *
-   * Performance: ~15-20% faster than Query API for simple queries without relations.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Query options
-   * @param opts.filter - Filter configuration
-   * @param opts.isFindOne - If true, limits to 1 result
-   * @param opts.options - Extra options (transaction, logging)
-   * @returns Promise resolving to array of results
-   */
+  /** Executes a query using Drizzle Core API (~15-20% faster for flat queries). */
   protected async findWithCoreAPI<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     isFindOne?: boolean;
@@ -108,13 +45,11 @@ export class ReadableRepository<
     const { filter, isFindOne = false, options } = opts;
     const schema = this.entity.schema;
 
-    // Apply default filter
     const mergedFilter = this.applyDefaultFilter({
       userFilter: filter,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    // Build where clause
     const where = mergedFilter.where
       ? this.filterBuilder.toWhere({
           tableName: this.entity.name,
@@ -123,7 +58,6 @@ export class ReadableRepository<
         })
       : undefined;
 
-    // Build order by clause
     const orderBy = mergedFilter.order
       ? this.filterBuilder.toOrderBy({
           tableName: this.entity.name,
@@ -132,16 +66,13 @@ export class ReadableRepository<
         })
       : undefined;
 
-    // Calculate limit and offset
     const limit = isFindOne ? 1 : mergedFilter.limit;
     const offset = mergedFilter.skip ?? mergedFilter.offset;
 
-    // Build query using Core API
-    // Type assertion to PgTable is safe: EntitySchema extends TTableSchemaWithId which extends PgTable
+    // Safe cast: EntitySchema extends TTableSchemaWithId which extends PgTable
     const table = schema as PgTable;
     const connector = this.resolveConnector({ transaction: options?.transaction });
 
-    // Select only visible properties (excludes hidden properties at SQL level)
     const visibleProps = this.getVisibleProperties();
     let query = visibleProps
       ? connector.select(visibleProps).from(table).$dynamic()
@@ -166,15 +97,7 @@ export class ReadableRepository<
     return query as Promise<Array<R>>;
   }
 
-  /**
-   * Executes a query using the Drizzle Query API (supports relations and field selection).
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Query options
-   * @param opts.filter - Filter configuration (should already have default filter applied)
-   * @param opts.options - Extra options (transaction, logging)
-   * @returns Promise resolving to array of results
-   */
+  /** Executes a query using Drizzle Query API (supports relations and field selection). */
   protected async findWithQueryAPI<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
@@ -183,42 +106,17 @@ export class ReadableRepository<
     const queryInterface = this.getQueryInterface({ options: opts.options });
     return queryInterface.findMany(queryOptions) as unknown as Promise<Array<R>>;
   }
-
-  // ---------------------------------------------------------------------------
-  // Public Read Operations - Find
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Finds all records matching the filter with range information.
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Options containing filter and extra options with shouldQueryRange: true
-   * @returns Promise resolving to object with data array and range information
-   */
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options: ExtraOptions & { shouldQueryRange: true };
   }): Promise<{ data: Array<R>; range: TDataRange }>;
 
-  /**
-   * Finds all records matching the filter.
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Options containing filter and extra options
-   * @returns Promise resolving to array of matching records
-   */
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions & { shouldQueryRange?: false };
   }): Promise<Array<R>>;
 
-  /**
-   * Finds all records matching the filter.
-   * Automatically selects Core API or Query API based on filter complexity.
-   * When shouldQueryRange is true, also returns range information (from, to, total).
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Options containing filter and extra options
-   * @returns Promise resolving to array of matching records or object with data and range
-   */
+  /** Auto-selects Core API or Query API based on filter complexity. */
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions & { shouldQueryRange?: boolean };
@@ -226,26 +124,21 @@ export class ReadableRepository<
     const { filter, options } = opts;
     const shouldQueryRange = options?.shouldQueryRange === true;
 
-    // Apply default filter once for all operations
     const mergedFilter = this.applyDefaultFilter({
       userFilter: filter,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    // Prevent double-application in delegated methods
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
 
-    // Prepare data fetch based on filter complexity
     const dataPromise = this.canUseCoreAPI(mergedFilter)
       ? this.findWithCoreAPI<R>({ filter: mergedFilter, options: effectiveOptions })
       : this.findWithQueryAPI<R>({ filter: mergedFilter, options: effectiveOptions });
 
-    // Return data directly if range not requested
     if (!shouldQueryRange) {
       return dataPromise;
     }
 
-    // Run data fetch and count in parallel for better performance
     const [data, { count: total }] = await Promise.all([
       dataPromise,
       this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions }),
@@ -261,14 +154,7 @@ export class ReadableRepository<
     };
   }
 
-  /**
-   * Finds the first record matching the filter.
-   * Automatically selects Core API or Query API based on filter complexity.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Options containing filter and extra options
-   * @returns Promise resolving to the found record or null
-   */
+  /** Auto-selects Core API or Query API based on filter complexity. */
   override async findOne<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
@@ -296,14 +182,7 @@ export class ReadableRepository<
     return (result ?? null) as TNullable<R>;
   }
 
-  /**
-   * Finds a record by its ID.
-   * Delegates to findOne with id in the where clause.
-   *
-   * @template R - Return type (defaults to DataObject)
-   * @param opts - Options containing id and optional filter (without where)
-   * @returns Promise resolving to the found record or null
-   */
+  /** Delegates to findOne with id in the where clause. */
   override findById<R = DataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<DataObject>, 'where'>;
@@ -317,18 +196,6 @@ export class ReadableRepository<
       options: opts.options,
     });
   }
-
-  // ---------------------------------------------------------------------------
-  // Public Read Operations - Aggregate
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Counts records matching the where condition.
-   * Applies default filter if configured.
-   *
-   * @param opts - Options containing where condition
-   * @returns Promise resolving to count result
-   */
   override async count(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -350,12 +217,6 @@ export class ReadableRepository<
     return { count };
   }
 
-  /**
-   * Checks if any records exist matching the where condition.
-   *
-   * @param opts - Options containing where condition
-   * @returns Promise resolving to true if records exist, false otherwise
-   */
   override async existsWith(opts: {
     where: TWhere<DataObject>;
     options?: ExtraOptions;
@@ -363,15 +224,7 @@ export class ReadableRepository<
     const rs = await this.count(opts);
     return rs.count > 0;
   }
-
-  // ---------------------------------------------------------------------------
-  // Disabled Write Operations (Read-Only Repository)
-  // ---------------------------------------------------------------------------
-
-  /**
-   * Create is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override create(opts: {
     data: PersistObject;
     options: ExtraOptions & { shouldReturn: false };
@@ -389,10 +242,7 @@ export class ReadableRepository<
     });
   }
 
-  /**
-   * CreateAll is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override createAll(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn: false };
@@ -410,10 +260,7 @@ export class ReadableRepository<
     });
   }
 
-  /**
-   * UpdateById is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override updateById(opts: {
     id: IdType;
     data: Partial<PersistObject>;
@@ -434,10 +281,7 @@ export class ReadableRepository<
     });
   }
 
-  /**
-   * UpdateAll is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override updateAll(opts: {
     data: Partial<PersistObject>;
     where: TWhere<DataObject>;
@@ -458,10 +302,7 @@ export class ReadableRepository<
     });
   }
 
-  /**
-   * DeleteById is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override deleteById(opts: {
     id: IdType;
     options: ExtraOptions & { shouldReturn: false };
@@ -479,10 +320,7 @@ export class ReadableRepository<
     });
   }
 
-  /**
-   * DeleteAll is disabled in read-only repository.
-   * @throws Error indicating operation is not allowed
-   */
+  /** @throws Error - disabled in read-only repository. */
   override deleteAll(opts: {
     where?: TWhere<DataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };

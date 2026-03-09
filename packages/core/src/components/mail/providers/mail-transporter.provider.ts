@@ -9,7 +9,8 @@ import {
   TMailOptions,
 } from '../common';
 import { MailgunTransportHelper, NodemailerTransportHelper } from '../helpers';
-import { Container, getError } from '@/helpers';
+import { Container } from '@/helpers';
+import { getError } from '@venizia/ignis-helpers';
 import { isMailTransport } from '../utilities';
 
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;

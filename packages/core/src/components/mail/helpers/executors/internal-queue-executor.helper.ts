@@ -1,4 +1,4 @@
-import { BaseHelper, getError, QueueHelper } from '@/helpers';
+import { BaseHelper, getError, QueueHelper } from '@venizia/ignis-helpers';
 import {
   IMailQueueOptions,
   IMailQueueExecutor,

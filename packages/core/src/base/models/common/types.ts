@@ -11,13 +11,11 @@ import {
 import { IsPrimaryKey, NotNull } from 'drizzle-orm';
 import { AnyPgColumn, PgColumnBuilderBase, PgTable, TableConfig } from 'drizzle-orm/pg-core';
 
-// --------------------------------------------------------------------------------------------
 export type NumberIdType = number;
 export type StringIdType = string;
 export type BigIntIdType = bigint;
 export type IdType = NumberIdType | StringIdType | BigIntIdType;
 
-// --------------------------------------------------------------------------------------------
 export type TColumnDefinition = PgColumnBuilderBase;
 export type TColumnDefinitions = { [field: string | symbol]: TColumnDefinition };
 export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
@@ -37,7 +35,6 @@ export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => 
 
 export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
 
-// --------------------------------------------------------------------------------------------
 /**
  * Interface for model class with static schema and relations.
  */
@@ -47,7 +44,6 @@ export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   relations?: TValueOrResolver<Array<TRelationConfig>>;
 }
 
-// --------------------------------------------------------------------------------------------
 export const idParamsSchema = (opts?: { idType: string }) => {
   const { idType = 'number' } = opts || {};
 
@@ -84,7 +80,6 @@ export const idParamsSchema = (opts?: { idType: string }) => {
   }
 };
 
-// -------------------------------------------------------------------------
 export const jsonContent = <T extends z.ZodType>(opts: {
   schema: T;
   description: string;
@@ -97,7 +92,6 @@ export const jsonContent = <T extends z.ZodType>(opts: {
   };
 };
 
-// -------------------------------------------------------------------------
 /** OpenAPI Header Object format */
 type THeaderObject = {
   description?: string;
@@ -134,7 +128,6 @@ export const jsonResponse = <
   };
 };
 
-// -------------------------------------------------------------------------
 type TSnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
   ? `${T}${Capitalize<TSnakeToCamelCase<U>>}`
   : S;

@@ -259,9 +259,9 @@ import {
   BaseController,
   controller,
   api,
-  HTTP,
   jsonContent,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 import { Context } from 'hono';
 
@@ -326,7 +326,7 @@ Create `src/index.ts` - this starts your application:
 
 ```typescript
 import { Application, appConfigs } from './application';
-import { LoggerFactory } from '@venizia/ignis';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['main']);
 

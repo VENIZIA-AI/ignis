@@ -133,11 +133,11 @@ import {
   controller,
   post,
   inject,
-  HTTP,
   jsonContent,
   jsonResponse,
   TRouteContext,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 import { NotificationService } from '../services';
 

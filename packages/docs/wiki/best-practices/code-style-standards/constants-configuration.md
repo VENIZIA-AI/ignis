@@ -210,7 +210,7 @@ export class EnvironmentKeys {
 
 **Usage:**
 ```typescript
-import { applicationEnvironment } from '@venizia/ignis';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 import { EnvironmentKeys } from '@/common/environments';
 
 // Correct usage

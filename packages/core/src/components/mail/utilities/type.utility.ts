@@ -1,4 +1,4 @@
-import { AnyType } from '@/helpers';
+import { AnyType } from '@venizia/ignis-helpers';
 import { IMailTransport, TMailOptions } from '../common';
 
 export function isMailTransport(value: AnyType): value is IMailTransport {

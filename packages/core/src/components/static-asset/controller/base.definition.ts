@@ -2,7 +2,6 @@ import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
 
-// ================================================================================
 const MultipartBodySchema = z.object({
   files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
     type: 'array',
@@ -13,7 +12,6 @@ const MultipartBodySchema = z.object({
   }),
 });
 
-// ================================================================================
 export const StaticAssetDefinitions = {
   GET_BUCKETS: {
     method: 'get',

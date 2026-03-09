@@ -58,7 +58,8 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, HTTP, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { api, BaseController, controller, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const MyRouteConfig = {
   method: 'get',
@@ -89,7 +90,8 @@ For convenience, `Ignis` provides decorator shortcuts for each HTTP method: Thes
 **Example using `@get` and `@post`:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext, HTTP } from '@venizia/ignis';
+import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 // Define route configs as const
 const UserRoutes = {
@@ -153,7 +155,8 @@ const UserRoutes = {
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
 ```typescript
-import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse, HTTP } from '@venizia/ignis';
+import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { z } from 'hono/zod-openapi';
 
 const RouteConfigs = {
@@ -193,6 +196,29 @@ Manual route definition is useful for:
 - Developers who prefer non-decorator syntax (coming from Express/Fastify)
 - Complex routing logic that benefits from programmatic control
 :::
+
+#### `defineJSXRoute`
+
+Define a route that returns server-rendered JSX/HTML:
+
+```typescript
+this.defineJSXRoute({
+  configs: {
+    path: '/dashboard',
+    method: 'get',
+    responses: htmlResponse({ description: 'Dashboard page' }),
+  },
+  handler: async (c) => {
+    const data = await this.dashboardService.getData();
+    return c.html(<DashboardPage data={data} />);
+  },
+  hook: (result, c) => {
+    // Optional hook for post-processing
+  },
+});
+```
+
+Works the same as `defineRoute()` but typed for JSX handler return values.
 
 #### `defineRoute`
 
@@ -264,7 +290,8 @@ request: {
 The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
 
 ```typescript
-import { defineRouteConfigs, HTTP, jsonResponse, jsonContent, z } from '@venizia/ignis';
+import { defineRouteConfigs, jsonResponse, jsonContent, z } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 const RouteConfigs = defineRouteConfigs({
   ROOT: {
@@ -377,12 +404,14 @@ When resolving authentication for a route, the following priority applies:
 ### Authentication Examples
 
 ```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
+
 // 1. JWT auth on ALL routes
 const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
 });
 
 // 2. JWT auth on all, but skip for public read endpoints
@@ -390,7 +419,7 @@ const ProductController = ControllerFactory.defineCrudController({
   entity: ProductEntity,
   repository: { name: 'ProductRepository' },
   controller: { name: 'ProductController', basePath: '/products' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     find: { skipAuth: true },
     findById: { skipAuth: true },
@@ -404,9 +433,9 @@ const ArticleController = ControllerFactory.defineCrudController({
   repository: { name: 'ArticleRepository' },
   controller: { name: 'ArticleController', basePath: '/articles' },
   routes: {
-    create: { authStrategies: ['jwt'] },
-    updateById: { authStrategies: ['jwt'] },
-    deleteById: { authStrategies: ['jwt'] },
+    create: { authStrategies: [Authentication.STRATEGY_JWT] },
+    updateById: { authStrategies: [Authentication.STRATEGY_JWT] },
+    deleteById: { authStrategies: [Authentication.STRATEGY_JWT] },
   },
 });
 
@@ -415,7 +444,7 @@ const OrderController = ControllerFactory.defineCrudController({
   entity: OrderEntity,
   repository: { name: 'OrderRepository' },
   controller: { name: 'OrderController', basePath: '/orders' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     find: {
       skipAuth: true,
@@ -432,6 +461,7 @@ const OrderController = ControllerFactory.defineCrudController({
 ### Route Customization Examples
 
 ```typescript
+import { Authentication, ControllerFactory } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 
 // Custom request body for create
@@ -453,7 +483,7 @@ const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: ['jwt'],
+  authStrategies: [Authentication.STRATEGY_JWT],
   routes: {
     // Public read endpoints
     find: {
@@ -473,7 +503,7 @@ const UserController = ControllerFactory.defineCrudController({
 
     // Delete requires JWT auth (uses default schema)
     deleteById: {
-      authStrategies: ['jwt'],
+      authStrategies: [Authentication.STRATEGY_JWT],
     },
   },
 });

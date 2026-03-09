@@ -1,4 +1,4 @@
-import { LoggerFactory } from '@venizia/ignis';
+import { LoggerFactory } from '@venizia/ignis-helpers';
 import { Application, beConfigs } from './application';
 
 const logger = LoggerFactory.getLogger(['main']);
@@ -13,7 +13,9 @@ const main = async () => {
   application.init();
 
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? '';
-  logger.for('runApplication').info(' Getting ready to start up %s Application...', applicationName);
+  logger
+    .for('runApplication')
+    .info(' Getting ready to start up %s Application...', applicationName);
 
   return application
     .boot()
