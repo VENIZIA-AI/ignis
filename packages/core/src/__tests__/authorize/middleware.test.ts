@@ -711,8 +711,8 @@ describe('Enforcer Registry Middleware Flow', () => {
     });
   });
 
-  describe('error handling — no enforcers registered', () => {
-    test('should throw when no enforcers are registered', async () => {
+  describe('graceful handling — no enforcers registered', () => {
+    test('should skip authorization when no enforcers are registered', async () => {
       createFreshRegistry();
 
       const middleware = authorize({
@@ -723,10 +723,10 @@ describe('Enforcer Registry Middleware Flow', () => {
         user: { userId: 'u1' },
       });
 
-      const { error } = await runMiddleware(middleware, context);
+      const { hasCalledNext, error } = await runMiddleware(middleware, context);
 
-      expect(error).toBeDefined();
-      expect(error.message).toContain('No items registered');
+      expect(error).toBeUndefined();
+      expect(hasCalledNext).toBe(true);
     });
 
     test('should throw when named enforcer is not found', async () => {
