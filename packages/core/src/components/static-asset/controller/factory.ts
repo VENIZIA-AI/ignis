@@ -14,6 +14,7 @@ import {
   TStaticAssetStorageType,
   TMetaLinkConfig,
   WHITELIST_HEADERS,
+  TStaticAssetsComponentOptions,
 } from '../common';
 import { StaticAssetDefinitions } from './base.definition';
 import { BaseController } from '@/base/controllers';
@@ -26,11 +27,7 @@ type TPrincipalQuery = { principalType?: string; principalId?: string };
 type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export interface IAssetControllerOptions {
-  controller: {
-    name: string;
-    basePath: string;
-    isStrict?: boolean;
-  };
+  controller: TStaticAssetsComponentOptions[string]['controller'];
   storage: TStaticAssetStorageType;
   helper: IStorageHelper;
   useMetaLink?: boolean;
@@ -45,7 +42,7 @@ export class AssetControllerFactory extends BaseHelper {
 
   static defineAssetController(opts: IAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
-    const { name, basePath, isStrict = true } = controller;
+    const { name, basePath, routes, isStrict = true } = controller;
 
     @controllerDecorator({ path: basePath })
     class _controller extends BaseController {
@@ -59,7 +56,7 @@ export class AssetControllerFactory extends BaseHelper {
 
       override binding(): ValueOrPromise<void> {
         this.bindRoute({
-          configs: StaticAssetDefinitions.GET_BUCKETS,
+          configs: { ...StaticAssetDefinitions.GET_BUCKETS, ...routes?.getBuckets },
         }).to({
           handler: async ctx => {
             const bucket = await helper.getBuckets();
@@ -68,7 +65,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.GET_BUCKET_BY_NAME,
+          configs: { ...StaticAssetDefinitions.GET_BUCKET_BY_NAME, ...routes?.getBucketByName },
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
@@ -86,7 +83,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.GET_OBJECT_BY_NAME,
+          configs: { ...StaticAssetDefinitions.GET_OBJECT_BY_NAME, ...routes?.getObjectByName },
         }).to({
           handler: async ctx => {
             const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
@@ -129,7 +126,10 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
+          configs: {
+            ...StaticAssetDefinitions.DOWNLOAD_OBJECT_BY_NAME,
+            ...routes?.downloadObjectByName,
+          },
         }).to({
           handler: async ctx => {
             const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
@@ -176,7 +176,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.CREATE_BUCKET,
+          configs: { ...StaticAssetDefinitions.CREATE_BUCKET, ...routes?.createBucket },
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
@@ -194,7 +194,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.UPLOAD,
+          configs: { ...StaticAssetDefinitions.UPLOAD, ...routes?.upload },
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
@@ -253,7 +253,7 @@ export class AssetControllerFactory extends BaseHelper {
                     metadata: fileStat.metadata,
                     storageType: storage,
                     isSynced: true,
-                    principalId: String(principalId),
+                    principalId: principalId ? String(principalId) : undefined,
                     principalType,
                   },
                 });
@@ -265,7 +265,7 @@ export class AssetControllerFactory extends BaseHelper {
               } catch (error) {
                 this.logger
                   .for('UPLOAD')
-                  .error('Failed to create MetaLink for %s: %o', uploadResult.objectName, error);
+                  .error('Failed to create MetaLink for %s: %j', uploadResult.objectName, error);
                 results.push({
                   ...uploadResult,
                   metaLink: null,
@@ -278,7 +278,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.DELETE_BUCKET,
+          configs: { ...StaticAssetDefinitions.DELETE_BUCKET, ...routes?.deleteBucket },
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
@@ -298,7 +298,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.DELETE_OBJECT,
+          configs: { ...StaticAssetDefinitions.DELETE_OBJECT, ...routes?.deleteObject },
         }).to({
           handler: async ctx => {
             const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
@@ -346,7 +346,7 @@ export class AssetControllerFactory extends BaseHelper {
         });
 
         this.bindRoute({
-          configs: StaticAssetDefinitions.LIST_OBJECTS,
+          configs: { ...StaticAssetDefinitions.LIST_OBJECTS, ...routes?.listObjects },
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
@@ -372,7 +372,7 @@ export class AssetControllerFactory extends BaseHelper {
 
         if (useMetaLink && metaLink) {
           this.bindRoute({
-            configs: StaticAssetDefinitions.RECREATE_METALINK,
+            configs: { ...StaticAssetDefinitions.RECREATE_METALINK, ...routes?.recreateMetaLink },
           }).to({
             handler: async ctx => {
               const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');

@@ -14,7 +14,7 @@ import {
 export interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 
 export class MinioHelper extends BaseStorageHelper {
-  client: Client;
+  private client: Client;
 
   constructor(options: IMinioHelperOptions) {
     super({

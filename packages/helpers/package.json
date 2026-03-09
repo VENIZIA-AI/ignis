@@ -111,6 +111,10 @@
       "types": "./dist/modules/storage/minio/index.d.ts",
       "default": "./dist/modules/storage/minio/index.js"
     },
+    "./bun-s3": {
+      "types": "./dist/modules/storage/bun-s3/index.d.ts",
+      "default": "./dist/modules/storage/bun-s3/index.js"
+    },
     "./axios": {
       "types": "./dist/modules/network/http-request/fetcher/axios-fetcher.d.ts",
       "default": "./dist/modules/network/http-request/fetcher/axios-fetcher.js"

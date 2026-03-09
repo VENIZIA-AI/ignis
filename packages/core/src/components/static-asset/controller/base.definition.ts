@@ -1,3 +1,4 @@
+import { IAuthRouteConfig } from '@/base';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
@@ -24,7 +25,7 @@ export const StaticAssetDefinitions = {
         }),
       ),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   GET_BUCKET_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}',
@@ -47,7 +48,7 @@ export const StaticAssetDefinitions = {
         })
         .nullable(),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   CREATE_BUCKET: {
     method: 'post',
     path: '/buckets/{bucketName}',
@@ -70,7 +71,7 @@ export const StaticAssetDefinitions = {
         })
         .nullable(),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   GET_OBJECT_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}/objects/{objectName}',
@@ -106,7 +107,7 @@ export const StaticAssetDefinitions = {
       },
       ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
-  },
+  } satisfies IAuthRouteConfig,
   DOWNLOAD_OBJECT_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}/objects/{objectName}/download',
@@ -142,7 +143,7 @@ export const StaticAssetDefinitions = {
       },
       ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
     },
-  },
+  } satisfies IAuthRouteConfig,
   UPLOAD: {
     method: 'post',
     path: '/buckets/{bucketName}/upload',
@@ -179,7 +180,7 @@ export const StaticAssetDefinitions = {
         }),
       ),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   DELETE_BUCKET: {
     method: 'delete',
     path: '/buckets/{bucketName}',
@@ -199,7 +200,7 @@ export const StaticAssetDefinitions = {
         isDeleted: z.boolean(),
       }),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   DELETE_OBJECT: {
     method: 'delete',
     path: '/buckets/{bucketName}/objects/{objectName}',
@@ -226,7 +227,7 @@ export const StaticAssetDefinitions = {
         success: z.boolean(),
       }),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   LIST_OBJECTS: {
     method: 'get',
     path: '/buckets/{bucketName}/objects',
@@ -287,7 +288,7 @@ export const StaticAssetDefinitions = {
         }),
       ),
     }),
-  },
+  } satisfies IAuthRouteConfig,
   RECREATE_METALINK: {
     method: 'put',
     path: '/buckets/{bucketName}/objects/{objectName}/meta-links',
@@ -315,5 +316,5 @@ export const StaticAssetDefinitions = {
         metaLink: z.any().optional(),
       }),
     }),
-  },
-} as const;
+  } satisfies IAuthRouteConfig,
+};

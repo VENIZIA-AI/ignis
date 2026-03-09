@@ -11,8 +11,9 @@ export const WHITELIST_HEADERS = [
 export class StaticAssetStorageTypes {
   static readonly DISK = 'disk';
   static readonly MINIO = 'minio';
+  static readonly BUN_S3 = 'bun-s3';
 
-  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO]);
+  static readonly SCHEME_SET = new Set([this.DISK, this.MINIO, this.BUN_S3]);
 
   static isValid(orgType: string): boolean {
     return this.SCHEME_SET.has(orgType);
