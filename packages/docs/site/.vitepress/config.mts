@@ -58,6 +58,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-10',
+              collapsed: true,
+              items: [
+                { text: 'Kafka Helpers Refactor', link: '/changelogs/2026-03-10-kafka-helpers-refactor' },
+              ],
+            },
+            {
               text: '2026-03-06',
               collapsed: true,
               items: [

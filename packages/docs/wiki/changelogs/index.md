@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-03-10 | [Kafka Helpers Refactor & @platformatic/kafka v1.30.0](./2026-03-10-kafka-helpers-refactor) | Refactor, Breaking Change |
 | 2026-03-06 | [Filter Offset/Skip Bug Fix](./2026-03-06-filter-offset-skip-fix) | Bug Fix |
 | 2026-03-04 | [Customizable JWT Payload Field Codecs](./2026-03-04-jwt-payload-field-codecs) | New Feature, Breaking Change |
 | 2026-03-02 | [Model Authorize Settings](./2026-03-02-model-authorize-settings) | New Feature |

@@ -6,12 +6,12 @@ import { Consumer, stringDeserializers } from '@platformatic/kafka';
 // Configuration — fill in your broker addresses and credentials
 // -------------------------------------------------------------------------
 
-const BROKERS = ['103.176.145.66:19092', '103.176.145.66:19093', '103.176.145.66:19094'];
+const BROKERS = ['test-host-1:19092', 'test-host-2:19093', 'test-host-3:19094'];
 
 const SASL = {
   mechanism: 'SCRAM-SHA-512' as const,
-  username: 'nx.dev',
-  password: 'Eventry.Dev.2k',
+  username: 'username',
+  password: 'password',
 };
 
 const TOPIC = 'nx-kaf-t1';
