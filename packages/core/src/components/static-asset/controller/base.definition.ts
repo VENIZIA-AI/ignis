@@ -160,6 +160,7 @@ export const StaticAssetDefinitions = {
       query: z.object({
         principalType: z.string().optional(),
         principalId: z.string().or(z.number()).optional(),
+        type: z.string().optional(),
       }),
       body: {
         content: {
