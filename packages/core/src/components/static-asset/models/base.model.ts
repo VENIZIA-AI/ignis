@@ -13,7 +13,7 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
   static override schema = pgTable(
     'MetaLink',
     {
-      ...generateIdColumnDefs(),
+      ...generateIdColumnDefs({ id: { dataType: 'string' } }),
       ...generateTzColumnDefs(),
       bucketName: text('bucket_name').notNull(),
       objectName: text('object_name').notNull(),
@@ -24,6 +24,9 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
       metadata: jsonb().$type<Record<string, any>>(),
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
+
+      type: text(),
+
       principalType: text('principal_type'),
       principalId: text('principal_id'),
     },
