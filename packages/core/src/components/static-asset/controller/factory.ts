@@ -240,36 +240,32 @@ export class AssetControllerFactory extends BaseHelper {
                   name: uploadResult.objectName,
                 });
 
-                const createdMetaLinkData = metaLink.createMetaLink
+                const { data: createdMetaLink } = metaLink.createMetaLink
                   ? await metaLink.createMetaLink({
                       uploadResult,
                       fileStat,
                       query,
                     })
-                  : (
-                      await metaLink.repository.create({
-                        data: {
-                          bucketName: uploadResult.bucketName,
-                          objectName: uploadResult.objectName,
-                          link: uploadResult.link,
-                          mimetype: fileStat.metadata?.['mimetype'],
-                          size: fileStat.size,
-                          etag: fileStat.etag,
-                          metadata: fileStat.metadata,
-                          storageType: storage,
-                          isSynced: true,
-                          principalId: query.principalId ? String(query.principalId) : undefined,
-                          principalType: query.principalType
-                            ? String(query.principalType)
-                            : undefined,
-                        },
-                      })
-                    )?.data;
+                  : await metaLink.repository.create({
+                      data: {
+                        bucketName: uploadResult.bucketName,
+                        objectName: uploadResult.objectName,
+                        link: uploadResult.link,
+                        mimetype: fileStat.metadata?.['mimetype'],
+                        size: fileStat.size,
+                        etag: fileStat.etag,
+                        metadata: fileStat.metadata,
+                        storageType: storage,
+                        isSynced: true,
+                        principalId: query.principalId ? String(query.principalId) : undefined,
+                        principalType: query.principalType
+                          ? String(query.principalType)
+                          : undefined,
+                        type: query.type ? String(query.type) : undefined,
+                      },
+                    });
 
-                results.push({
-                  ...uploadResult,
-                  metaLink: createdMetaLinkData,
-                });
+                results.push({ ...uploadResult, metaLink: createdMetaLink });
               } catch (error) {
                 this.logger
                   .for('UPLOAD')

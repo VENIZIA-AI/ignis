@@ -36,7 +36,7 @@ export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = 
     uploadResult: IUploadResult;
     fileStat: IFileStat;
     query: TUploadQuery;
-  }) => ValueOrPromise<Schema>;
+  }) => ValueOrPromise<{ count: number; data: Schema }>;
 };
 
 export type TStaticAssetsComponentOptions = {
