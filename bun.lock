@@ -187,7 +187,7 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.7-15",
+      "version": "0.0.7-16",
       "dependencies": {
         "@venizia/ignis-boot": "^0.0.3",
         "@venizia/ignis-helpers": "^0.0.6-8",
@@ -322,7 +322,7 @@
       },
       "devDependencies": {
         "@hono/zod-openapi": "^1.2.2",
-        "@platformatic/kafka": "^1.27.0",
+        "@platformatic/kafka": "1.30.0",
         "@types/bun": "^1.3.9",
         "@types/lodash": "^4.17.23",
         "@venizia/dev-configs": "^0.0.6",
@@ -332,7 +332,7 @@
         "typescript": "^5.9.3",
       },
       "peerDependencies": {
-        "@platformatic/kafka": "^1.27.0",
+        "@platformatic/kafka": "^1.29.0",
         "@socket.io/redis-adapter": "^8.3.0",
         "@socket.io/redis-emitter": "^5.1.0",
         "axios": "^1.13.5",
@@ -716,9 +716,9 @@
 
     "@pkgr/core": ["@pkgr/core@0.2.9", "", {}, "sha512-QNqXyfVS2wm9hweSYD2O7F0G06uurj9kZ96TRQE5Y9hU7+tgdZwIkbAKc5Ocy1HxEY2kuDQa6cQ1WRs/O5LFKA=="],
 
-    "@platformatic/dynamic-buffer": ["@platformatic/dynamic-buffer@0.3.0", "", {}, "sha512-x/SN9lEK9qYqRXAQKXC61bD2LPCd3uUYfzAIX7+tpgaCLky7voJ/xcSh9cC+jmNbbzNH8cxDzYUJD4Lua5VmlQ=="],
+    "@platformatic/dynamic-buffer": ["@platformatic/dynamic-buffer@0.3.1", "", {}, "sha512-xQD5JSkQc4D15suOk7FezGDmh6Vb5e4phDoFZ/ASpa3Ft+3fOVwFOENmHtC1561zm/xHnKwI91NbMF8inpbk0Q=="],
 
-    "@platformatic/kafka": ["@platformatic/kafka@1.28.0", "", { "dependencies": { "@platformatic/dynamic-buffer": "^0.3.0", "@platformatic/wasm-utils": "^0.1.0", "ajv": "^8.17.1", "avsc": "^5.7.9", "debug": "^4.4.3", "fastq": "^1.19.1", "mnemonist": "^0.40.3", "scule": "^1.3.0" }, "optionalDependencies": { "@node-rs/crc32": "^1.10.6", "protobufjs": "^8.0.0" } }, "sha512-JwG9FG36gwXpu4j3+61sLbHGSXkxTDc0eGowGsbcimiL+AnnI4rUWSqkCurBmAuBRbH6fa/BX54YfYFMHAr1fg=="],
+    "@platformatic/kafka": ["@platformatic/kafka@1.30.0", "", { "dependencies": { "@platformatic/dynamic-buffer": "^0.3.1", "@platformatic/wasm-utils": "^0.1.0", "ajv": "^8.17.1", "avsc": "^5.7.9", "debug": "^4.4.3", "fastq": "^1.19.1", "mnemonist": "^0.40.3", "scule": "^1.3.0" }, "optionalDependencies": { "@node-rs/crc32": "^1.10.6", "protobufjs": "^8.0.0" } }, "sha512-c2UdFuv+XHg39o83LcFaEGwSMFoGkeQy4fro7FS7cK6OQy8ApV24/ieawSCEF8nK3eKr7yAycB81OQ91n7Sa+g=="],
 
     "@platformatic/wasm-utils": ["@platformatic/wasm-utils@0.1.0", "", { "dependencies": { "@platformatic/dynamic-buffer": "^0.3.0" } }, "sha512-1fMkKsdud0pNlBh0JRELpWi3NE3/Kb0SCKR+5g2vH3ANDNlWDPJVDjNIJZYNdXA73yBfTVVve7xxBV22PUqZeg=="],
 
@@ -2401,6 +2401,8 @@
     "@nx/websocket-test/@types/bun": ["@types/bun@1.3.9", "", { "dependencies": { "bun-types": "1.3.9" } }, "sha512-KQ571yULOdWJiMH+RIWIOZ7B2RXQGpL1YQrBtLIV3FqDcCu6FsbFUBwhdKUlCKUpS3PJDsHlJ1QKlpxoVR+xtw=="],
 
     "@platformatic/kafka/ajv": ["ajv@8.18.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-PlXPeEWMXMZ7sPYOHqmDyCJzcfNrUr3fGNKtezX14ykXOEIvyK81d+qydx89KY5O71FKMPaQ2vBfBFI5NHR63A=="],
+
+    "@platformatic/wasm-utils/@platformatic/dynamic-buffer": ["@platformatic/dynamic-buffer@0.3.0", "", {}, "sha512-x/SN9lEK9qYqRXAQKXC61bD2LPCd3uUYfzAIX7+tpgaCLky7voJ/xcSh9cC+jmNbbzNH8cxDzYUJD4Lua5VmlQ=="],
 
     "@redocly/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 

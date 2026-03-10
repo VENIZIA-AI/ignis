@@ -5,7 +5,7 @@
 
 async function hmacSHA256(key: Uint8Array | string, data: string): Promise<Uint8Array> {
   const rawKey = typeof key === 'string' ? new TextEncoder().encode(key) : key;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
   const k = await crypto.subtle.importKey(
     'raw',
     rawKey as any,
