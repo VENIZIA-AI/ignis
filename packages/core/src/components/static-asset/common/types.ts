@@ -26,7 +26,7 @@ export type TStaticAssetExtraOptions = {
 // Type definitions for route params/query (avoids heavy RouteHandler inference)
 export type TBucketParams = { bucketName: string };
 export type TObjectParams = { bucketName: string; objectName: string };
-export type TUploadQuery = { principalType?: string; principalId?: string; type?: string };
+export type TUploadQuery = { principalType?: string; principalId?: string; variant?: string };
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {

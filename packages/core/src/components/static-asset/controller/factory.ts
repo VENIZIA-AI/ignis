@@ -261,7 +261,7 @@ export class AssetControllerFactory extends BaseHelper {
                         principalType: query.principalType
                           ? String(query.principalType)
                           : undefined,
-                        type: query.type ? String(query.type) : undefined,
+                        variant: query.variant ? String(query.variant) : undefined,
                       },
                     });
 
