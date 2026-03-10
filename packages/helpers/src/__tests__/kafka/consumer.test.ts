@@ -14,7 +14,7 @@ const SASL = {
   password: 'password',
 };
 
-const TOPIC = 'nx-kaf-t1';
+const TOPIC = 'kaf-t1';
 const CLIENT_ID = process.argv[2] ?? 'ignis-test-consumer';
 const GROUP_ID = 'ignis-test-consumer-group';
 
