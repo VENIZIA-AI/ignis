@@ -25,7 +25,7 @@ export class BaseMetaLinkModel extends BaseEntity<typeof BaseMetaLinkModel.schem
       storageType: text('storage_type').notNull(),
       isSynced: boolean('is_synced').notNull().default(false),
 
-      type: text(),
+      variant: text(),
 
       principalType: text('principal_type'),
       principalId: text('principal_id'),

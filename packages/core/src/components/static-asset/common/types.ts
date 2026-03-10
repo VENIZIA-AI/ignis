@@ -1,6 +1,12 @@
 import { BaseEntity } from '@/base/models';
 import { DefaultCRUDRepository } from '@/base/repositories';
-import { AnyType, DiskHelper } from '@venizia/ignis-helpers';
+import {
+  AnyType,
+  DiskHelper,
+  IFileStat,
+  IUploadResult,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import { TMetaLinkSchema } from '../models';
@@ -17,9 +23,20 @@ export type TStaticAssetExtraOptions = {
   [key: string]: AnyType;
 };
 
+// Type definitions for route params/query (avoids heavy RouteHandler inference)
+export type TBucketParams = { bucketName: string };
+export type TObjectParams = { bucketName: string; objectName: string };
+export type TUploadQuery = { principalType?: string; principalId?: string; variant?: string };
+export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
+
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
   model: typeof BaseEntity<Schema>;
   repository: DefaultCRUDRepository<Schema>;
+  createMetaLink?: (opts: {
+    uploadResult: IUploadResult;
+    fileStat: IFileStat;
+    query: TUploadQuery;
+  }) => ValueOrPromise<{ count: number; data: Schema }>;
 };
 
 export type TStaticAssetsComponentOptions = {
