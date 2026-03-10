@@ -15,16 +15,14 @@ import {
   TMetaLinkConfig,
   WHITELIST_HEADERS,
   TStaticAssetsComponentOptions,
+  TBucketParams,
+  TObjectParams,
+  TUploadQuery,
+  TListQuery,
 } from '../common';
 import { StaticAssetDefinitions } from './base.definition';
 import { BaseController } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
-
-// Type definitions for route params/query (avoids heavy RouteHandler inference)
-type TBucketParams = { bucketName: string };
-type TObjectParams = { bucketName: string; objectName: string };
-type TPrincipalQuery = { principalType?: string; principalId?: string };
-type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export interface IAssetControllerOptions {
   controller: TStaticAssetsComponentOptions[string]['controller'];
@@ -198,7 +196,7 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName } = ctx.req.valid<TBucketParams>('param');
-            const { principalType, principalId } = ctx.req.valid<TPrincipalQuery>('query');
+            const query = ctx.req.valid<TUploadQuery>('query');
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -242,25 +240,35 @@ export class AssetControllerFactory extends BaseHelper {
                   name: uploadResult.objectName,
                 });
 
-                const createdMetaLink = await metaLink?.repository.create({
-                  data: {
-                    bucketName: uploadResult.bucketName,
-                    objectName: uploadResult.objectName,
-                    link: uploadResult.link,
-                    mimetype: fileStat.metadata?.['mimetype'],
-                    size: fileStat.size,
-                    etag: fileStat.etag,
-                    metadata: fileStat.metadata,
-                    storageType: storage,
-                    isSynced: true,
-                    principalId: principalId ? String(principalId) : undefined,
-                    principalType,
-                  },
-                });
+                const createdMetaLinkData = metaLink.createMetaLink
+                  ? await metaLink.createMetaLink({
+                      uploadResult,
+                      fileStat,
+                      query,
+                    })
+                  : (
+                      await metaLink.repository.create({
+                        data: {
+                          bucketName: uploadResult.bucketName,
+                          objectName: uploadResult.objectName,
+                          link: uploadResult.link,
+                          mimetype: fileStat.metadata?.['mimetype'],
+                          size: fileStat.size,
+                          etag: fileStat.etag,
+                          metadata: fileStat.metadata,
+                          storageType: storage,
+                          isSynced: true,
+                          principalId: query.principalId ? String(query.principalId) : undefined,
+                          principalType: query.principalType
+                            ? String(query.principalType)
+                            : undefined,
+                        },
+                      })
+                    )?.data;
 
                 results.push({
                   ...uploadResult,
-                  metaLink: createdMetaLink?.data,
+                  metaLink: createdMetaLinkData,
                 });
               } catch (error) {
                 this.logger
