@@ -1,15 +1,15 @@
 /** Kafka Helpers Test Suite */
 
-import { describe, test, expect } from 'bun:test';
 import {
-  KafkaProducerHelper,
-  KafkaConsumerHelper,
-  KafkaAdminHelper,
-  KafkaGroupProtocol,
   KafkaAcks,
+  KafkaAdminHelper,
+  KafkaConsumerHelper,
   KafkaDefaults,
+  KafkaGroupProtocol,
+  KafkaProducerHelper,
 } from '@/modules/queue/kafka';
-import { Producer, Consumer, Admin } from '@platformatic/kafka';
+import { Admin, Consumer, Producer } from '@platformatic/kafka';
+import { describe, expect, test } from 'bun:test';
 
 const BROKERS = ['127.0.0.1:9092'];
 const CLIENT_ID = 'ignis-test';
@@ -210,7 +210,7 @@ describe('KafkaProducerHelper', () => {
         clientId: CLIENT_ID,
       });
 
-      expect(() => helper.close(true)).not.toThrow();
+      expect(() => helper.close({ isForce: true })).not.toThrow();
     });
   });
 });
@@ -363,7 +363,7 @@ describe('KafkaConsumerHelper', () => {
         groupId: 'test-group',
       });
 
-      expect(() => helper.close(false)).not.toThrow();
+      expect(() => helper.close({ isForce: false })).not.toThrow();
     });
   });
 });

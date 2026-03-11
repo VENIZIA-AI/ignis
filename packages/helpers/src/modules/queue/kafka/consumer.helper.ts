@@ -1,5 +1,5 @@
-import { BaseHelper } from '@venizia/ignis-helpers';
 import { Consumer } from '@platformatic/kafka';
+import { BaseHelper } from '@venizia/ignis-helpers';
 import { KafkaDefaults } from './common/constants';
 import type { IKafkaConsumerOpts } from './common/types';
 
@@ -106,8 +106,8 @@ export class KafkaConsumerHelper<
     return this.consumer;
   }
 
-  async close(isForce = true): Promise<void> {
-    await Promise.resolve(this.consumer.close(isForce));
-    this.logger.info('Consumer closed | Force: %s', isForce);
+  async close(opts?: { isForce?: boolean }): Promise<void> {
+    await this.consumer.close(opts?.isForce);
+    this.logger.info('Consumer closed | Force: %s', opts?.isForce ?? false);
   }
 }

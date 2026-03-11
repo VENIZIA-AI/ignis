@@ -96,8 +96,8 @@ export class KafkaProducerHelper<
     return this.producer;
   }
 
-  async close(isForce = false): Promise<void> {
-    await Promise.resolve(this.producer.close(isForce));
-    this.logger.info('Producer closed | Force: %s', isForce);
+  async close(opts?: { isForce?: boolean }): Promise<void> {
+    await this.producer.close(opts?.isForce);
+    this.logger.info('Producer closed | Force: %s', opts?.isForce ?? false);
   }
 }
