@@ -1,0 +1,173 @@
+# Admin
+
+The `KafkaAdminHelper` is a thin wrapper around `@platformatic/kafka`'s `Admin`. It manages creation, logging, and lifecycle.
+
+```typescript
+class KafkaAdminHelper extends BaseHelper
+```
+
+> [!NOTE]
+> `KafkaAdminHelper` has **no generic type parameters** — the Admin client does not deal with serialized messages.
+
+## Helper API
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `newInstance(opts)` | `static newInstance(opts): KafkaAdminHelper` | Factory method |
+| `getAdmin()` | `(): Admin` | Access the underlying `Admin` |
+| `close()` | `(): Promise<void>` | Close the admin connection |
+
+## IKafkaAdminOpts
+
+```typescript
+interface IKafkaAdminOpts extends IKafkaConnectionOptions {
+  identifier?: string; // Default: 'kafka-admin'
+}
+```
+
+Plus all [Connection Options](./#connection-options).
+
+## Basic Example
+
+```typescript
+import { KafkaAdminHelper } from '@venizia/ignis-helpers/kafka';
+
+const helper = KafkaAdminHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-admin',
+});
+
+const admin = helper.getAdmin();
+
+// Create a topic with 3 partitions and 2 replicas
+await admin.createTopics({ topics: ['orders'], partitions: 3, replicas: 2 });
+
+// List all topics
+const topics = await admin.listTopics();
+
+// Describe a consumer group
+const groups = await admin.describeGroups({ groups: ['order-processing'] });
+
+await helper.close();
+```
+
+---
+
+## API Reference (`@platformatic/kafka`)
+
+After calling `helper.getAdmin()`, you have full access to the `Admin` class.
+
+### Topic Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `createTopics(opts)` | `(opts: { topics: string[], partitions?: number, replicas?: number, configs?: Config[] }): Promise<CreatedTopic[]>` | Create topics |
+| `deleteTopics(opts)` | `(opts: { topics: string[] }): Promise<void>` | Delete topics |
+| `listTopics(opts?)` | `(opts?: { includeInternals?: boolean }): Promise<string[]>` | List all topics |
+| `createPartitions(opts)` | `(opts: { topics: CreatePartitionsRequestTopic[], validateOnly?: boolean }): Promise<void>` | Add partitions to existing topics |
+| `deleteRecords(opts)` | `(opts: { topics: { name, partitions: { partition, offset }[] }[] }): Promise<DeletedRecordsTopic[]>` | Delete records up to offset |
+
+```typescript
+// Create with custom configuration
+await admin.createTopics({
+  topics: ['orders'],
+  partitions: 6,
+  replicas: 3,
+  configs: [
+    { name: 'retention.ms', value: '604800000' },   // 7 days
+    { name: 'cleanup.policy', value: 'compact' },
+    { name: 'compression.type', value: 'zstd' },
+  ],
+});
+
+// Add partitions (can only increase, never decrease)
+await admin.createPartitions({
+  topics: [{ name: 'orders', count: 12 }],
+});
+
+// Delete records before offset 1000 on partition 0
+await admin.deleteRecords({
+  topics: [{ name: 'orders', partitions: [{ partition: 0, offset: 1000n }] }],
+});
+```
+
+### Consumer Group Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `listGroups(opts?)` | `(opts?: { states?: string[], types?: string[] }): Promise<Map<string, GroupBase>>` | List consumer groups |
+| `describeGroups(opts)` | `(opts: { groups: string[] }): Promise<Map<string, Group>>` | Describe consumer groups (members, assignments) |
+| `deleteGroups(opts)` | `(opts: { groups: string[] }): Promise<void>` | Delete consumer groups |
+| `removeMembersFromConsumerGroup(opts)` | `(opts: { groupId, members? }): Promise<void>` | Remove specific members |
+
+```typescript
+// List all active groups
+const groups = await admin.listGroups({ states: ['STABLE'] });
+
+// Describe group members and partition assignments
+const details = await admin.describeGroups({ groups: ['order-processing'] });
+for (const [groupId, group] of details) {
+  console.log(`Group: ${groupId}, State: ${group.state}`);
+  for (const [memberId, member] of group.members) {
+    console.log(`  Member: ${member.clientId} (${member.clientHost})`);
+    if (member.assignments) {
+      for (const [topic, assignment] of member.assignments) {
+        console.log(`    ${topic}: partitions ${assignment.partitions.join(', ')}`);
+      }
+    }
+  }
+}
+```
+
+### Offset Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `listOffsets(opts)` | `(opts): Promise<ListedOffsetsTopic[]>` | List partition offsets at timestamps |
+| `listConsumerGroupOffsets(opts)` | `(opts: { groups }): Promise<ListConsumerGroupOffsetsGroup[]>` | List committed offsets for groups |
+| `alterConsumerGroupOffsets(opts)` | `(opts: { groupId, topics }): Promise<void>` | Reset/alter committed offsets |
+| `deleteConsumerGroupOffsets(opts)` | `(opts: { groupId, topics }): Promise<...>` | Delete committed offsets |
+
+```typescript
+// Reset consumer group offsets to earliest
+await admin.alterConsumerGroupOffsets({
+  groupId: 'order-processing',
+  topics: [{
+    name: 'orders',
+    partitionOffsets: [
+      { partition: 0, offset: 0n },
+      { partition: 1, offset: 0n },
+      { partition: 2, offset: 0n },
+    ],
+  }],
+});
+```
+
+### Configuration Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `describeConfigs(opts)` | `(opts: { resources, includeSynonyms?, includeDocumentation? }): Promise<ConfigDescription[]>` | Describe broker/topic configurations |
+| `alterConfigs(opts)` | `(opts: { resources, validateOnly? }): Promise<void>` | Replace topic/broker configs |
+| `incrementalAlterConfigs(opts)` | `(opts: { resources, validateOnly? }): Promise<void>` | Incrementally modify configs |
+
+### ACL Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `createAcls(opts)` | `(opts: { creations: Acl[] }): Promise<void>` | Create access control lists |
+| `describeAcls(opts)` | `(opts: { filter: AclFilter }): Promise<DescribeAclsResponseResource[]>` | Describe ACLs |
+| `deleteAcls(opts)` | `(opts: { filters: AclFilter[] }): Promise<Acl[]>` | Delete ACLs |
+
+### Quota Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `describeClientQuotas(opts)` | `(opts): Promise<DescribeClientQuotasResponseEntry[]>` | Describe client quotas |
+| `alterClientQuotas(opts)` | `(opts): Promise<AlterClientQuotasResponseEntries[]>` | Alter client quotas |
+
+### Log Management
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `describeLogDirs(opts)` | `(opts: { topics }): Promise<BrokerLogDirDescription[]>` | Describe broker log directories |

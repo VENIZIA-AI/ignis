@@ -512,7 +512,17 @@ const config = defineConfig({
                 { text: 'API Reference', link: '/references/helpers/network/api' },
               ],
             },
-            { text: 'Kafka (Experimental)', link: '/references/helpers/kafka/' },
+            {
+              text: 'Kafka',
+              collapsed: true,
+              items: [
+                { text: 'Overview & Fundamentals', link: '/references/helpers/kafka/' },
+                { text: 'Producer', link: '/references/helpers/kafka/producer' },
+                { text: 'Consumer', link: '/references/helpers/kafka/consumer' },
+                { text: 'Admin', link: '/references/helpers/kafka/admin' },
+                { text: 'Examples & Troubleshooting', link: '/references/helpers/kafka/examples' },
+              ],
+            },
             { text: 'Queue', link: '/references/helpers/queue/' },
             { text: 'Redis', link: '/references/helpers/redis/' },
             {
