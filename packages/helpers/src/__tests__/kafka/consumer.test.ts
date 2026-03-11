@@ -1,6 +1,11 @@
 /** Kafka Consumer Integration Test */
 
-import { Consumer, deserializersFrom, jsonDeserializer, stringDeserializer } from '@platformatic/kafka';
+import {
+  Consumer,
+  deserializersFrom,
+  jsonDeserializer,
+  stringDeserializer,
+} from '@platformatic/kafka';
 
 // -------------------------------------------------------------------------
 // Configuration — fill in your broker addresses and credentials
