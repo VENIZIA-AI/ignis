@@ -1,9 +1,6 @@
-# Kafka <Badge type="warning" text="Experimental" />
+# Kafka
 
 Apache Kafka event streaming with producer, consumer, and admin helpers. Built on [`@platformatic/kafka`](https://github.com/platformatic/kafka) v1.30.0 — a pure TypeScript Kafka client with zero native dependencies.
-
-> [!WARNING]
-> This helper is **experimental**. The API may change in future releases.
 
 ## Overview
 
