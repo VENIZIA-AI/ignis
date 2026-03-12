@@ -1,6 +1,6 @@
 # Consumer
 
-The `KafkaConsumerHelper` is a thin wrapper around `@platformatic/kafka`'s `Consumer`. It manages creation, logging, and lifecycle.
+The `KafkaConsumerHelper` wraps `@platformatic/kafka`'s `Consumer` with health tracking, graceful shutdown, message callbacks, consumer group event callbacks, and lag monitoring.
 
 ```typescript
 class KafkaConsumerHelper<
@@ -8,7 +8,7 @@ class KafkaConsumerHelper<
   ValueType = string,
   HeaderKeyType = string,
   HeaderValueType = string,
-> extends BaseHelper
+> extends BaseKafkaHelper<Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>>
 ```
 
 ## Helper API
@@ -16,35 +16,74 @@ class KafkaConsumerHelper<
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `newInstance(opts)` | `static newInstance<K,V,HK,HV>(opts): KafkaConsumerHelper<K,V,HK,HV>` | Factory method |
-| `getConsumer()` | `(): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>` | Access the underlying `Consumer` |
-| `close(isForce?)` | `(isForce?: boolean): Promise<void>` | Close the consumer. Default: `force=true` |
+| `getConsumer()` | `(): Consumer<K,V,HK,HV>` | Access the underlying `Consumer` |
+| `getStream()` | `(): MessagesStream \| null` | Get the active stream (after `start()`) |
+| `start(opts)` | `(opts: IKafkaConsumeStartOptions): Promise<void>` | Start consuming (creates stream, wires callbacks) |
+| `startLagMonitoring(opts)` | `(opts: { topics: string[]; interval?: number }): void` | Start periodic lag monitoring |
+| `stopLagMonitoring()` | `(): void` | Stop lag monitoring |
+| `isHealthy()` | `(): boolean` | `true` when broker connected |
+| `isReady()` | `(): boolean` | `isHealthy()` **and** `consumer.isActive()` |
+| `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
+| `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Stop lag, close stream, close consumer |
 
-> [!NOTE]
-> Consumer defaults to `force=true` on close (unlike producer which defaults to `false`). This is because consumers should leave the group promptly to trigger faster rebalancing.
-
-## IKafkaConsumerOpts
+## IKafkaConsumerOptions
 
 ```typescript
-interface IKafkaConsumerOpts<KeyType, ValueType, HeaderKeyType, HeaderValueType>
+interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>
   extends IKafkaConnectionOptions
 ```
+
+### Consumer Configuration
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `groupId` | `string` | — | Consumer group ID. **Required** |
 | `identifier` | `string` | `'kafka-consumer'` | Scoped logging identifier |
-| `deserializers` | `Partial<Deserializers<K,V,HK,HV>>` | — | Key/value/header deserializers. **Pass explicitly** |
-| `autocommit` | `boolean \| number` | `false` | Auto-commit offsets. `true` = default interval, `number` = custom interval in ms |
-| `sessionTimeout` | `number` | `30000` | Session timeout — if no heartbeat within this period, consumer is removed from group |
+| `deserializers` | `Partial<Deserializers<K,V,HK,HV>>` | — | Key/value/header deserializers |
+| `autocommit` | `boolean \| number` | `false` | Auto-commit offsets. `true` = default interval, `number` = custom ms |
+| `sessionTimeout` | `number` | `30000` | Session timeout — consumer removed from group if no heartbeat |
 | `heartbeatInterval` | `number` | `3000` | Heartbeat interval — must be less than `sessionTimeout` |
-| `rebalanceTimeout` | `number` | `sessionTimeout` | Max time for rebalance — defaults to `sessionTimeout` value |
+| `rebalanceTimeout` | `number` | `sessionTimeout` | Max time for rebalance |
 | `highWaterMark` | `number` | `1024` | Stream buffer size (messages) |
-| `minBytes` | `number` | `1` | Min bytes per fetch response — broker waits until this threshold |
+| `minBytes` | `number` | `1` | Min bytes per fetch response |
 | `maxBytes` | `number` | — | Max bytes per fetch response per partition |
 | `maxWaitTime` | `number` | — | Max time (ms) broker waits for `minBytes` |
-| `metadataMaxAge` | `number` | `300000` | Metadata cache TTL (ms) — how often to refresh topic/partition info |
+| `metadataMaxAge` | `number` | `300000` | Metadata cache TTL (ms) |
 | `groupProtocol` | `'classic' \| 'consumer'` | `'classic'` | Consumer group protocol. `'consumer'` = KIP-848 (Kafka 3.7+) |
 | `groupInstanceId` | `string` | — | Static group membership ID — prevents rebalance on restart |
+| `shutdownTimeout` | `number` | `30000` | Graceful shutdown timeout in ms |
+| `registry` | `SchemaRegistry` | — | Schema registry for auto deser |
+
+### Lifecycle Callbacks
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `onBrokerConnect` | `TKafkaBrokerEventCallback` | Called when broker connects |
+| `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | Called when broker disconnects |
+
+### Message Callbacks
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `onMessage` | `TKafkaMessageCallback<K,V,HK,HV>` | Called for each message. Receives `{ message }` |
+| `onMessageDone` | `TKafkaMessageDoneCallback<K,V,HK,HV>` | Called after `onMessage` succeeds. Receives `{ message }` |
+| `onMessageError` | `TKafkaMessageErrorCallback<K,V,HK,HV>` | Called on processing error. Receives `{ error, message? }` |
+
+### Consumer Group Callbacks
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `onGroupJoin` | `TKafkaGroupJoinCallback` | Receives `{ groupId, memberId, generationId? }` |
+| `onGroupLeave` | `TKafkaGroupLeaveCallback` | Receives `{ groupId, memberId }` |
+| `onGroupRebalance` | `TKafkaGroupRebalanceCallback` | Receives `{ groupId }` |
+| `onHeartbeatError` | `TKafkaHeartbeatErrorCallback` | Receives `{ error, groupId?, memberId? }` |
+
+### Lag Monitoring Callbacks
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `onLag` | `TKafkaLagCallback` | Receives `{ lag }` (Offsets map) |
+| `onLagError` | `TKafkaLagErrorCallback` | Receives `{ error }` |
 
 Plus all [Connection Options](./#connection-options).
 
@@ -59,61 +98,93 @@ const helper = KafkaConsumerHelper.newInstance({
   clientId: 'order-consumer',
   groupId: 'order-processing',
   deserializers: stringDeserializers,
-  autocommit: false,
+
+  // Message lifecycle
+  onMessage: async ({ message }) => {
+    console.log(`${message.topic}[${message.partition}] @${message.offset}: ${message.key} → ${message.value}`);
+    await message.commit();
+  },
+  onMessageDone: ({ message }) => {
+    console.log(`Done processing: ${message.key}`);
+  },
+  onMessageError: ({ error, message }) => {
+    console.error('Processing failed:', error.message, message?.key);
+  },
+
+  // Consumer group events
+  onGroupJoin: ({ groupId, memberId }) => console.log(`Joined ${groupId} as ${memberId}`),
+  onGroupLeave: ({ groupId }) => console.log(`Left ${groupId}`),
+  onGroupRebalance: ({ groupId }) => console.log(`Rebalance in ${groupId}`),
+  onHeartbeatError: ({ error }) => console.error('Heartbeat failed:', error),
+
+  // Broker events
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
+  onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
+
+  // Lag monitoring
+  onLag: ({ lag }) => {
+    for (const [topic, partitionLags] of lag) {
+      partitionLags.forEach((lagValue, partition) => {
+        if (lagValue > 1000n) {
+          console.warn(`High lag on ${topic}[${partition}]: ${lagValue}`);
+        }
+      });
+    }
+  },
+  onLagError: ({ error }) => console.error('Lag monitoring error:', error),
 });
 
-const consumer = helper.getConsumer();
+// Start consuming
+await helper.start({ topics: ['orders'] });
 
-const stream = await consumer.consume({
-  topics: ['orders'],
-  mode: 'committed',
-  fallbackMode: 'latest',
-});
+// Start lag monitoring (optional)
+helper.startLagMonitoring({ topics: ['orders'], interval: 10_000 });
 
-for await (const message of stream) {
-  console.log(`${message.topic}[${message.partition}] @${message.offset}: ${message.key} → ${message.value}`);
-  await message.commit();
-}
+// Health check
+helper.isHealthy(); // true when broker connected
+helper.isReady();   // true when broker connected AND consumer is active
 
-await stream.close();
+// Shutdown
 await helper.close();
 ```
 
----
+## Message Callback Flow
 
-## API Reference (`@platformatic/kafka`)
+When `start()` is called, the helper creates a `MessagesStream` and wires the callbacks:
 
-After calling `helper.getConsumer()`, you have full access to the `Consumer` class.
+```
+Stream 'data' event
+  → onMessage({ message })
+    ├── success → onMessageDone({ message })
+    └── error   → onMessageError({ error, message })
 
-### `consumer.consume(options)`
-
-Start consuming messages. Returns a `MessagesStream` (extends Node.js `Readable`).
-
-```typescript
-interface ConsumeOptions<Key, Value, HeaderKey, HeaderValue> {
-  topics: string[];
-  mode?: 'latest' | 'earliest' | 'committed' | 'manual';
-  fallbackMode?: 'latest' | 'earliest' | 'fail';
-  maxFetches?: number;
-  offsets?: { topic: string; partition: number; offset: bigint }[];
-  onCorruptedMessage?: CorruptedMessageHandler;
-  // Plus ConsumeBaseOptions (autocommit, minBytes, maxBytes, etc.)
-  // Plus GroupOptions (sessionTimeout, heartbeatInterval, etc.)
-}
+Stream 'error' event
+  → onMessageError({ error })  (no message available)
 ```
 
-#### Stream Modes
+- `onMessage` is the main processing callback — do your business logic here
+- `onMessageDone` fires only after `onMessage` resolves successfully — use for logging, metrics, etc.
+- `onMessageError` fires if `onMessage` OR `onMessageDone` throws — use for error tracking
+- The stream `'error'` event also calls `onMessageError` (without `message` since it's a stream-level error)
+
+## start()
+
+`start()` creates the consume stream and wires all message callbacks. It must be called explicitly after construction.
+
+```typescript
+interface IKafkaConsumeStartOptions {
+  topics: string[];
+  mode?: MessagesStreamModeValue;         // Default: 'committed'
+  fallbackMode?: MessagesStreamFallbackModeValue; // Default: 'latest'
+}
+```
 
 | Mode | Description |
 |------|-------------|
 | `'committed'` | Resume from last committed offset. **Recommended for production** |
 | `'latest'` | Start from the latest offset (skip existing messages) |
 | `'earliest'` | Start from the beginning of the topic |
-| `'manual'` | Start from explicitly provided offsets via `offsets` option |
-
-#### Fallback Modes
-
-Used when `mode: 'committed'` but no committed offset exists (new consumer group):
+| `'manual'` | Start from explicitly provided offsets |
 
 | Fallback | Description |
 |----------|-------------|
@@ -122,42 +193,74 @@ Used when `mode: 'committed'` but no committed offset exists (new consumer group
 | `'fail'` | Throw an error |
 
 ```typescript
-// Production pattern: resume from committed, start from latest for new groups
+// Production pattern
+await helper.start({ topics: ['orders'] });
+
+// Replay all historical messages
+await helper.start({ topics: ['orders'], mode: 'earliest' });
+
+// Custom mode
+await helper.start({
+  topics: ['orders'],
+  mode: 'committed',
+  fallbackMode: 'earliest',
+});
+```
+
+Guards against duplicate starts — calling `start()` twice logs a warning and returns immediately.
+
+## Lag Monitoring
+
+```typescript
+// Start monitoring (polls every interval)
+helper.startLagMonitoring({ topics: ['orders'], interval: 10_000 });
+
+// Stop monitoring
+helper.stopLagMonitoring();
+```
+
+Lag data is delivered via the `onLag` callback. Errors via `onLagError`.
+
+Guards against duplicate starts — calling `startLagMonitoring()` twice logs a warning.
+
+For one-time lag checks, use the underlying consumer directly:
+
+```typescript
+const lag = await helper.getConsumer().getLag({ topics: ['orders'] });
+```
+
+## Graceful Shutdown
+
+`close()` implements an ordered shutdown:
+
+1. Stop lag monitoring
+2. Close the stream (leave consumer group)
+3. Close the consumer client (graceful with timeout, or force)
+4. Set health status to `'disconnected'`
+
+```typescript
+// Graceful (recommended)
+await helper.close();
+
+// Force
+await helper.close({ isForce: true });
+```
+
+## Direct Stream Access
+
+If you don't use the callback pattern, you can access the stream directly after `start()`:
+
+```typescript
+// After start()
+const stream = helper.getStream();
+
+// Or use the consumer directly (bypass helper's start())
+const consumer = helper.getConsumer();
 const stream = await consumer.consume({
   topics: ['orders'],
   mode: 'committed',
   fallbackMode: 'latest',
 });
-
-// Replay all historical messages
-const stream = await consumer.consume({
-  topics: ['orders'],
-  mode: 'earliest',
-});
-
-// Start from specific offsets
-const stream = await consumer.consume({
-  topics: ['orders'],
-  mode: 'manual',
-  offsets: [
-    { topic: 'orders', partition: 0, offset: 100n },
-    { topic: 'orders', partition: 1, offset: 200n },
-  ],
-});
-```
-
----
-
-## MessagesStream
-
-`MessagesStream` extends Node.js `Readable`. It supports three consumption patterns:
-
-### Pattern 1: Async Iterator (`for await`)
-
-Best for sequential processing with backpressure:
-
-```typescript
-const stream = await consumer.consume({ topics: ['orders'], mode: 'committed', fallbackMode: 'latest' });
 
 for await (const message of stream) {
   await processMessage(message);
@@ -165,54 +268,9 @@ for await (const message of stream) {
 }
 ```
 
-### Pattern 2: Event-Based (`.on('data')`)
-
-Best for high-throughput or when you need non-blocking processing:
-
-```typescript
-const stream = await consumer.consume({ topics: ['orders'], mode: 'committed', fallbackMode: 'latest' });
-
-stream.on('data', (message) => {
-  console.log(JSON.stringify({
-    topic: message.topic,
-    partition: message.partition,
-    offset: message.offset,
-    key: message.key,
-    value: message.value,
-    headers: Object.fromEntries(message.headers ?? new Map()),
-    timestamp: message.timestamp,
-  }, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)));
-
-  message.commit();
-});
-
-stream.on('error', (err) => {
-  console.error('Stream error:', err);
-});
-```
-
-> [!WARNING]
-> `message.offset` and `message.timestamp` are `bigint`. When using `JSON.stringify`, you must provide a custom replacer:
-> ```typescript
-> JSON.stringify(data, (_key, value) => (typeof value === 'bigint' ? value.toString() : value))
-> ```
-
-### Pattern 3: Pause/Resume
-
-Manual flow control:
-
-```typescript
-stream.on('data', async (message) => {
-  stream.pause();
-  await heavyProcessing(message);
-  message.commit();
-  stream.resume();
-});
-```
+## API Reference (`@platformatic/kafka`)
 
 ### Message Object
-
-Each message from the stream has the following shape:
 
 ```typescript
 interface Message<Key, Value, HeaderKey, HeaderValue> {
@@ -229,220 +287,84 @@ interface Message<Key, Value, HeaderKey, HeaderValue> {
 }
 ```
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `topic` | `string` | Source topic |
-| `partition` | `number` | Source partition |
-| `offset` | `bigint` | Message offset within the partition |
-| `key` | `KeyType` | Deserialized message key |
-| `value` | `ValueType` | Deserialized message value |
-| `headers` | `Map<HK, HV>` | Deserialized message headers |
-| `timestamp` | `bigint` | Message timestamp (ms since epoch) |
-| `metadata` | `Record<string, unknown>` | Additional metadata |
-| `commit()` | `() => void \| Promise<void>` | Commit this message's offset |
+> [!WARNING]
+> `message.offset` and `message.timestamp` are `bigint`. When using `JSON.stringify`, provide a custom replacer:
+> ```typescript
+> JSON.stringify(data, (_key, value) => (typeof value === 'bigint' ? value.toString() : value))
+> ```
 
-### Stream Events
+### MessagesStream
 
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `'data'` | `Message<K,V,HK,HV>` | New message received |
-| `'error'` | `Error` | Stream error |
-| `'close'` | — | Stream closed |
-| `'end'` | — | Stream ended (all data consumed) |
-| `'autocommit'` | `(err, offsets)` | Auto-commit completed (or failed) |
-| `'fetch'` | — | Fetch request sent |
-| `'offsets'` | — | Offsets updated |
-| `'pause'` | — | Stream paused |
-| `'resume'` | — | Stream resumed |
-| `'readable'` | — | Stream has data available |
+`MessagesStream` extends Node.js `Readable`. Three consumption patterns:
 
-### Stream Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `close()` | `Promise<void>` | Close the stream and leave the consumer group |
-| `isActive()` | `boolean` | Whether the stream is actively consuming |
-| `isConnected()` | `boolean` | Whether the underlying connection is active |
-| `pause()` | `this` | Pause consumption (stop fetching) |
-| `resume()` | `this` | Resume consumption |
-| `[Symbol.asyncIterator]()` | `AsyncIterator<Message>` | Async iteration support |
-
-### Stream Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `consumer` | `Consumer` | Reference to the parent consumer |
-| `offsetsToFetch` | `Map<string, bigint>` | Next offsets to fetch per topic-partition |
-| `offsetsToCommit` | `Map<string, CommitOptionsPartition>` | Pending commit offsets |
-| `offsetsCommitted` | `Map<string, bigint>` | Last committed offsets |
-| `committedOffsets` | `Map<string, bigint>` | Alias for `offsetsCommitted` |
-
----
-
-## Offset Management
-
-### Manual Commit
-
-When `autocommit: false`, commit offsets explicitly after processing:
-
+**Async Iterator** (sequential, backpressure):
 ```typescript
-const stream = await consumer.consume({
-  topics: ['orders'],
-  mode: 'committed',
-  fallbackMode: 'latest',
-});
-
 for await (const message of stream) {
-  try {
-    await processMessage(message);
-    await message.commit(); // Commit on success
-  } catch (err) {
-    // Don't commit — message will be redelivered
-    console.error('Processing failed:', err);
-  }
+  await processMessage(message);
+  await message.commit();
 }
 ```
 
-### Auto-Commit
-
-Commit offsets automatically at a configurable interval:
-
+**Event-Based** (high-throughput):
 ```typescript
-const helper = KafkaConsumerHelper.newInstance({
-  // ...
-  autocommit: true,      // Default interval
-  // autocommit: 5000,   // Custom: commit every 5 seconds
+stream.on('data', (message) => {
+  processMessage(message);
+  message.commit();
 });
 ```
 
-### Bulk Commit via Consumer
+**Pause/Resume** (manual flow control):
+```typescript
+stream.on('data', async (message) => {
+  stream.pause();
+  await heavyProcessing(message);
+  message.commit();
+  stream.resume();
+});
+```
+
+### Offset Management
 
 ```typescript
+// Manual commit (when autocommit: false)
+for await (const message of stream) {
+  await processMessage(message);
+  await message.commit();
+}
+
+// Bulk commit
 await consumer.commit({
   offsets: [
     { topic: 'orders', partition: 0, offset: 150n, leaderEpoch: 0 },
     { topic: 'orders', partition: 1, offset: 300n, leaderEpoch: 0 },
   ],
 });
-```
 
-### List Offsets
-
-```typescript
-// Current log-end offsets
+// List offsets
 const offsets = await consumer.listOffsets({ topics: ['orders'] });
-// Map<string, bigint[]> — topic → partition offsets
-
-// Committed offsets
 const committed = await consumer.listCommittedOffsets({
   topics: [{ topic: 'orders', partitions: [0, 1, 2] }],
 });
-
-// Offsets at a specific timestamp
-const historical = await consumer.listOffsetsWithTimestamps({
-  topics: ['orders'],
-  timestamp: BigInt(Date.now() - 3600_000), // 1 hour ago
-});
 ```
 
----
-
-## Lag Monitoring
+### Consumer Group Management
 
 ```typescript
-// One-time lag check
-const lag = await consumer.getLag({ topics: ['orders'] });
-// Map<string, bigint[]> — topic → lag per partition
-
-// Continuous monitoring (emits 'consumer:lag' events)
-consumer.startLagMonitoring({ topics: ['orders'] }, 5000); // Check every 5s
-
-consumer.on('consumer:lag', (lag) => {
-  for (const [topic, partitionLags] of lag) {
-    partitionLags.forEach((lagValue, partition) => {
-      if (lagValue > 1000n) {
-        console.warn(`High lag on ${topic}[${partition}]: ${lagValue}`);
-      }
-    });
-  }
-});
-
-consumer.on('consumer:lag:error', (error) => {
-  console.error('Lag monitoring error:', error);
-});
-
-// Stop monitoring
-consumer.stopLagMonitoring();
-```
-
----
-
-## Consumer Events
-
-The `Consumer` class emits lifecycle events via `consumer.on(event, handler)`:
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `'consumer:group:join'` | `{ groupId, memberId, generationId, isLeader, assignments }` | Joined consumer group |
-| `'consumer:group:leave'` | `{ groupId, memberId, generationId }` | Left consumer group |
-| `'consumer:group:rejoin'` | — | Rejoining group after rebalance |
-| `'consumer:group:rebalance'` | `{ groupId }` | Partition rebalance triggered |
-| `'consumer:heartbeat:start'` | `{ groupId, memberId, generationId }` | Heartbeat started |
-| `'consumer:heartbeat:cancel'` | `{ groupId, memberId, generationId }` | Heartbeat cancelled |
-| `'consumer:heartbeat:end'` | `{ groupId, memberId, generationId }` | Heartbeat completed |
-| `'consumer:heartbeat:error'` | `{ groupId, memberId, generationId, error }` | Heartbeat failed |
-| `'consumer:lag'` | `Map<string, bigint[]>` | Lag report (from `startLagMonitoring`) |
-| `'consumer:lag:error'` | `Error` | Lag monitoring error |
-
-**Base client events** (shared with Producer and Admin):
-
-| Event | Payload | Description |
-|-------|---------|-------------|
-| `'client:broker:connect'` | `{ node, host, port }` | Connected to broker |
-| `'client:broker:disconnect'` | `{ node, host, port }` | Disconnected from broker |
-| `'client:broker:failed'` | `{ node, host, port }` | Broker connection failed |
-| `'client:metadata'` | `ClusterMetadata` | Metadata refreshed |
-| `'client:close'` | — | Client closed |
-
-```typescript
-consumer.on('consumer:group:join', ({ groupId, memberId, assignments }) => {
-  console.log(`Joined group ${groupId} as ${memberId}`);
-  console.log('Assigned partitions:', assignments);
-});
-
-consumer.on('consumer:group:rebalance', ({ groupId }) => {
-  console.log(`Rebalance triggered for group ${groupId}`);
-});
-```
-
----
-
-## Consumer Group Management
-
-```typescript
-// Consumer properties
 consumer.groupId;        // string
 consumer.memberId;       // string | null
 consumer.generationId;   // number
 consumer.assignments;    // GroupAssignment[] | null
 consumer.isActive();     // boolean
-consumer.lastHeartbeat;  // Date | null
-
-// Manually leave and rejoin group
-await consumer.leaveGroup();
-await consumer.joinGroup();
 
 // Static membership — prevents rebalance on restart
 const helper = KafkaConsumerHelper.newInstance({
-  // ...
-  groupInstanceId: 'worker-1', // Unique per instance
-  sessionTimeout: 60_000,      // Longer timeout for static members
+  ...
+  groupInstanceId: 'worker-1',
+  sessionTimeout: 60_000,
 });
 ```
 
----
-
-## Consumer Group Partitioning
+### Consumer Group Partitioning
 
 When multiple consumers share the same `groupId`, Kafka distributes topic partitions across group members:
 
@@ -457,17 +379,6 @@ Topic "orders" (3 partitions)
 - If a consumer leaves/crashes, its partitions are redistributed (**rebalance**)
 - If consumers > partitions, excess consumers sit idle
 - Messages within a partition are processed **in order**
-
-```bash
-# Terminal 1 — gets partition 0
-bun run consumer.ts --clientId=worker-1
-
-# Terminal 2 — gets partition 1
-bun run consumer.ts --clientId=worker-2
-
-# Terminal 3 — gets partition 2
-bun run consumer.ts --clientId=worker-3
-```
 
 > [!TIP]
 > Create topics with enough partitions for your expected parallelism. You can increase partitions later with `admin.createPartitions()`, but you cannot decrease them.

@@ -2,81 +2,129 @@
 
 Complete examples and common issue resolution for the Kafka helpers.
 
-## Producer: Interval-Based Message Sending
+## Producer: Send Messages with Health Monitoring
 
 ```typescript
-import { Producer, serializersFrom, jsonSerializer, stringSerializer } from '@platformatic/kafka';
+import { KafkaProducerHelper, KafkaAcks } from '@venizia/ignis-helpers/kafka';
+import { stringSerializers } from '@platformatic/kafka';
 
-const producer = new Producer({
+const helper = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['broker1:9092', 'broker2:9092'],
   clientId: 'interval-producer',
-  bootstrapBrokers: ['broker1:9092', 'broker2:9092', 'broker3:9092'],
-  serializers: { ...serializersFrom(jsonSerializer), key: stringSerializer },
-  sasl: { mechanism: 'SCRAM-SHA-512', username: 'user', password: 'pass' },
-  connectTimeout: 30_000,
-  requestTimeout: 30_000,
+  serializers: stringSerializers,
+  acks: KafkaAcks.ALL,
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
+  onBrokerDisconnect: ({ broker }) => console.warn(`Disconnected from ${broker.host}`),
 });
 
+const producer = helper.getProducer();
 let count = 0;
-const interval = setInterval(async () => {
-  const key = `key-${count % 3}`;
-  const value = { index: count, timestamp: new Date().toISOString() };
 
-  await producer.send({ messages: [{ topic: 'events', key, value }] });
-  console.log(JSON.stringify({ topic: 'events', key, value }));
+const interval = setInterval(async () => {
+  if (!helper.isHealthy()) {
+    console.warn('Producer not healthy, skipping...');
+    return;
+  }
+
+  await producer.send({
+    messages: [{
+      topic: 'events',
+      key: `key-${count % 3}`,
+      value: JSON.stringify({ index: count, timestamp: new Date().toISOString() }),
+    }],
+  });
   count++;
 }, 100);
 
 process.on('SIGINT', async () => {
   clearInterval(interval);
   console.log(`Shutting down... (sent ${count} messages)`);
-  await producer.close();
+  await helper.close();
   process.exit(0);
 });
 ```
 
-## Consumer: Event-Based with Manual Commit
+## Consumer: Callback-Based with Lag Monitoring
 
 ```typescript
-import { Consumer, deserializersFrom, jsonDeserializer, stringDeserializer } from '@platformatic/kafka';
+import { KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
+import { stringDeserializers } from '@platformatic/kafka';
 
-const consumer = new Consumer({
+const helper = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['broker1:9092', 'broker2:9092'],
   clientId: 'event-consumer',
-  bootstrapBrokers: ['broker1:9092', 'broker2:9092', 'broker3:9092'],
   groupId: 'processing-group',
-  deserializers: { ...deserializersFrom(jsonDeserializer), key: stringDeserializer },
-  sasl: { mechanism: 'SCRAM-SHA-512', username: 'user', password: 'pass' },
-  connectTimeout: 30_000,
-  requestTimeout: 30_000,
-  autocommit: false,
+  deserializers: stringDeserializers,
+
+  onMessage: async ({ message }) => {
+    const data = JSON.parse(message.value!);
+    console.log(`Processing: ${message.key} → ${JSON.stringify(data)}`);
+    await message.commit();
+  },
+  onMessageDone: ({ message }) => {
+    console.log(`Done: ${message.key}`);
+  },
+  onMessageError: ({ error, message }) => {
+    console.error(`Error processing ${message?.key}:`, error.message);
+  },
+
+  onGroupJoin: ({ groupId, memberId }) => {
+    console.log(`Joined group ${groupId} as ${memberId}`);
+  },
+  onGroupRebalance: ({ groupId }) => {
+    console.log(`Rebalance in ${groupId}`);
+  },
+
+  onLag: ({ lag }) => {
+    for (const [topic, partitionLags] of lag) {
+      partitionLags.forEach((lagValue, partition) => {
+        if (lagValue > 1000n) {
+          console.warn(`High lag on ${topic}[${partition}]: ${lagValue}`);
+        }
+      });
+    }
+  },
+  onLagError: ({ error }) => console.error('Lag error:', error),
 });
 
+await helper.start({ topics: ['events'] });
+helper.startLagMonitoring({ topics: ['events'], interval: 10_000 });
+
+process.on('SIGINT', async () => {
+  await helper.close();
+  process.exit(0);
+});
+```
+
+## Consumer: Direct Stream Access (for-await)
+
+```typescript
+import { KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
+import { stringDeserializers } from '@platformatic/kafka';
+
+const helper = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'stream-consumer',
+  groupId: 'stream-group',
+  deserializers: stringDeserializers,
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}`),
+});
+
+// Use the consumer directly for async iterator pattern
+const consumer = helper.getConsumer();
 const stream = await consumer.consume({
-  topics: ['events'],
+  topics: ['orders'],
   mode: 'committed',
   fallbackMode: 'latest',
 });
 
-stream.on('data', (message) => {
-  console.log(JSON.stringify({
-    topic: message.topic,
-    partition: message.partition,
-    offset: message.offset,
-    key: message.key,
-    value: message.value,
-    headers: Object.fromEntries(message.headers ?? new Map()),
-    timestamp: message.timestamp,
-  }, (_key, value) => (typeof value === 'bigint' ? value.toString() : value)));
+for await (const message of stream) {
+  console.log(`${message.topic}[${message.partition}] @${message.offset}: ${message.key} → ${message.value}`);
+  await message.commit();
+}
 
-  message.commit();
-});
-
-stream.on('error', (err) => console.error('Stream error:', err));
-
-process.on('SIGINT', async () => {
-  await stream.close();
-  await consumer.close();
-  process.exit(0);
-});
+await stream.close();
+await helper.close();
 ```
 
 ## Admin: Topic Setup Script
@@ -88,6 +136,7 @@ async function setupTopics() {
   const helper = KafkaAdminHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'topic-setup',
+    onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}`),
   });
 
   const admin = helper.getAdmin();
@@ -107,64 +156,119 @@ async function setupTopics() {
   const topics = await admin.listTopics({ includeInternals: false });
   console.log('Topics:', topics);
 
+  // Health check
+  console.log('Healthy:', helper.isHealthy());
+
   await helper.close();
 }
 
 setupTopics();
 ```
 
-## Using Helpers with Ignis IoC
+## Exactly-Once: Consume-Transform-Produce
 
 ```typescript
 import { KafkaProducerHelper, KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'eos-producer',
+  serializers: stringSerializers,
+  transactionalId: 'eos-tx',
+  idempotent: true,
+});
+
+const consumer = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'eos-consumer',
+  groupId: 'eos-group',
+  deserializers: stringDeserializers,
+  autocommit: false,
+
+  onMessage: async ({ message }) => {
+    // Consume-transform-produce within a single transaction
+    const transformed = JSON.stringify({
+      ...JSON.parse(message.value!),
+      processedAt: new Date().toISOString(),
+    });
+
+    await producer.runInTransaction(async ({ send, addConsumer, addOffset }) => {
+      await addConsumer(consumer.getConsumer());
+      await addOffset(message);
+      await send({
+        messages: [{ topic: 'processed-events', key: message.key, value: transformed }],
+      });
+    });
+  },
+  onMessageError: ({ error }) => console.error('Processing error:', error),
+});
+
+await consumer.start({ topics: ['raw-events'] });
+```
+
+## Schema Registry: Validated Messages
+
+```typescript
+import {
+  KafkaSchemaRegistryHelper,
+  KafkaProducerHelper,
+  KafkaConsumerHelper,
+} from '@venizia/ignis-helpers/kafka';
+
+const registry = KafkaSchemaRegistryHelper.newInstance({
+  url: 'http://localhost:8081',
+});
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'schema-producer',
+  registry: registry.getRegistry(),
+  onBrokerConnect: ({ broker }) => console.log(`Producer connected to ${broker.host}`),
+});
+
+// Sends schema-validated objects
+await producer.getProducer().send({
+  messages: [{
+    topic: 'orders',
+    key: 'order-1',
+    value: { id: 1, status: 'created', total: 99.99 },
+  }],
+});
+
+const consumer = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'schema-consumer',
+  groupId: 'schema-group',
+  registry: registry.getRegistry(),
+  onMessage: async ({ message }) => {
+    // message.value is auto-deserialized to the schema type
+    console.log(message.value.id, message.value.status);
+    await message.commit();
+  },
+});
+
+await consumer.start({ topics: ['orders'] });
+```
+
+## Using Helpers with Ignis IoC
+
+```typescript
+import {
+  KafkaProducerHelper,
+  KafkaConsumerHelper,
+  KafkaAdminHelper,
+} from '@venizia/ignis-helpers/kafka';
+import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
 import { inject, injectable } from '@venizia/ignis-inversion';
 
-@injectable()
-export class OrderEventService {
-  private producer: KafkaProducerHelper;
-  private consumer: KafkaConsumerHelper;
-
-  constructor(
-    @inject({ key: 'kafka.producer' }) producer: KafkaProducerHelper,
-    @inject({ key: 'kafka.consumer' }) consumer: KafkaConsumerHelper,
-  ) {
-    this.producer = producer;
-    this.consumer = consumer;
-  }
-
-  async publishOrderCreated(orderId: string, data: Record<string, unknown>) {
-    const producer = this.producer.getProducer();
-    await producer.send({
-      messages: [{ topic: 'order-events', key: orderId, value: JSON.stringify(data) }],
-    });
-  }
-
-  async startConsuming() {
-    const consumer = this.consumer.getConsumer();
-    const stream = await consumer.consume({
-      topics: ['order-events'],
-      mode: 'committed',
-      fallbackMode: 'latest',
-    });
-
-    for await (const message of stream) {
-      await this.handleOrderEvent(message.key!, JSON.parse(message.value!));
-      await message.commit();
-    }
-  }
-
-  private async handleOrderEvent(orderId: string, data: Record<string, unknown>) {
-    // Process order event
-  }
-}
-
-// Register in application
+// Register helpers in the IoC container
 app.bind('kafka.producer').to(
   KafkaProducerHelper.newInstance({
     bootstrapBrokers: ['localhost:9092'],
     clientId: 'order-service-producer',
     serializers: stringSerializers,
+    onBrokerConnect: ({ broker }) => console.log(`Producer → ${broker.host}`),
   }),
 );
 
@@ -174,11 +278,32 @@ app.bind('kafka.consumer').to(
     clientId: 'order-service-consumer',
     groupId: 'order-service',
     deserializers: stringDeserializers,
+    onMessage: async ({ message }) => {
+      // Handled by the service below
+    },
+    onBrokerConnect: ({ broker }) => console.log(`Consumer → ${broker.host}`),
   }),
 );
-```
 
----
+// Inject into services
+@injectable()
+export class OrderEventService {
+  constructor(
+    @inject({ key: 'kafka.producer' }) private producer: KafkaProducerHelper,
+    @inject({ key: 'kafka.consumer' }) private consumer: KafkaConsumerHelper,
+  ) {}
+
+  async publishOrderCreated(orderId: string, data: Record<string, unknown>) {
+    await this.producer.getProducer().send({
+      messages: [{ topic: 'order-events', key: orderId, value: JSON.stringify(data) }],
+    });
+  }
+
+  async startConsuming() {
+    await this.consumer.start({ topics: ['order-events'] });
+  }
+}
+```
 
 ## Troubleshooting
 
@@ -190,9 +315,12 @@ app.bind('kafka.consumer').to(
 | `Request timed out` | SASL handshake or broker unreachable | Add `connectTimeout: 30_000, requestTimeout: 30_000` |
 | `Connection closed` | Connecting without SASL to a SASL-required listener | Check `KAFKA_LISTENER_SECURITY_PROTOCOL_MAP` — use `SASL_PLAINTEXT` |
 | `Cannot find a suitable SASL mechanism` | Wrong mechanism (e.g., `PLAIN` when broker only supports `SCRAM-SHA-512`) | Check error message for supported mechanisms, match `mechanism` |
-| `Failed to deserialize a message` | Mismatch between serializer used for producing and deserializer used for consuming | Ensure matching serde. For old data, use a new consumer group or recreate topic |
+| `Failed to deserialize a message` | Mismatch between serializer and deserializer | Ensure matching serde. For old data, use a new consumer group or recreate topic |
 | `JSON.stringify cannot serialize BigInt` | `message.offset` and `message.timestamp` are `bigint` | Use custom replacer: `(_k, v) => typeof v === 'bigint' ? v.toString() : v` |
 | Consumer idle (no messages) | More consumers than partitions | Ensure `numPartitions >= numConsumers` |
+| `isHealthy()` returns `false` | No broker connected yet, or connection lost | Check broker addresses, SASL config, network connectivity |
+| `isReady()` returns `false` (consumer) | Consumer not active — `start()` not called or stream closed | Call `await helper.start({ topics })` before checking readiness |
+| Graceful shutdown timeout | In-flight requests taking too long | Increase `shutdownTimeout` or use `close({ isForce: true })` |
 
 ### Docker Kafka Configuration
 
@@ -214,15 +342,14 @@ environment:
 - `EXTERNAL` — used for client connections from outside Docker
 - `CONTROLLER` — used for KRaft controller communication
 
----
-
 ## See Also
 
 - **Kafka Pages:**
   - [Overview & Fundamentals](./) — Connection, serialization, constants, compression
-  - [Producer](./producer) — Producer helper & API reference
-  - [Consumer](./consumer) — Consumer helper & API reference
+  - [Producer](./producer) — Producer helper, transactions, API reference
+  - [Consumer](./consumer) — Consumer helper, callbacks, lag monitoring, API reference
   - [Admin](./admin) — Admin helper & API reference
+  - [Schema Registry](./schema-registry) — Schema registry helper
 
 - **Other Helpers:**
   - [Queue Helper](../queue/) — BullMQ, MQTT, and in-memory queues

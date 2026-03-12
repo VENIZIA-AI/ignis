@@ -1,24 +1,28 @@
 # Kafka
 
-Apache Kafka event streaming with producer, consumer, and admin helpers. Built on [`@platformatic/kafka`](https://github.com/platformatic/kafka) v1.30.0 — a pure TypeScript Kafka client with zero native dependencies.
+Apache Kafka event streaming with producer, consumer, admin, and schema registry helpers. Built on [`@platformatic/kafka`](https://github.com/platformatic/kafka) v1.30.0 — a pure TypeScript Kafka client with zero native dependencies.
 
 ## Overview
 
-The Kafka module provides three **thin wrapper** classes around `@platformatic/kafka`:
+The Kafka module provides four helper classes built on a shared `BaseKafkaHelper` base:
 
 | Class | Wraps | Use Case |
 |-------|-------|----------|
-| `KafkaProducerHelper` | `Producer` | Publish messages to Kafka topics |
-| `KafkaConsumerHelper` | `Consumer` | Consume messages with consumer groups |
+| `KafkaProducerHelper` | `Producer` | Publish messages, transactions |
+| `KafkaConsumerHelper` | `Consumer` | Consume messages with consumer groups, lag monitoring |
 | `KafkaAdminHelper` | `Admin` | Manage topics, partitions, groups, ACLs, configs |
+| `KafkaSchemaRegistryHelper` | `ConfluentSchemaRegistry` | Schema validation and auto ser/deser |
 
-Each helper provides:
+All helpers (except schema registry) extend `BaseKafkaHelper` which provides:
+
 - **Scoped logging** via `BaseHelper` (Winston with daily rotation)
+- **Health tracking** — `isHealthy()`, `isReady()`, `getHealthStatus()`
+- **Broker event callbacks** — `onBrokerConnect`, `onBrokerDisconnect`
+- **Graceful shutdown** — timeout-based with force fallback
 - **Sensible defaults** via `KafkaDefaults` constants
 - **Factory pattern** via `newInstance()` static method
-- **Lifecycle management** via `close()` method
 
-They do **not** re-implement or passthrough `@platformatic/kafka` methods. Use `getProducer()`, `getConsumer()`, or `getAdmin()` to access the full underlying API directly.
+Use `getProducer()`, `getConsumer()`, or `getAdmin()` to access the full underlying `@platformatic/kafka` API directly.
 
 ### Import Path
 
@@ -28,19 +32,39 @@ import {
   KafkaProducerHelper,
   KafkaConsumerHelper,
   KafkaAdminHelper,
+  KafkaSchemaRegistryHelper,
+  BaseKafkaHelper,
   KafkaDefaults,
   KafkaAcks,
   KafkaGroupProtocol,
+  KafkaHealthStatuses,
+  KafkaClientEvents,
 } from '@venizia/ignis-helpers/kafka';
 
 // Types
 import type {
   IKafkaConnectionOptions,
-  IKafkaProducerOpts,
-  IKafkaConsumerOpts,
-  IKafkaAdminOpts,
+  IKafkaProducerOptions,
+  IKafkaConsumerOptions,
+  IKafkaAdminOptions,
+  IKafkaConsumeStartOptions,
+  IKafkaSchemaRegistryOptions,
+  IKafkaTransactionContext,
+  IKafkaBaseOptions,
   TKafkaAcks,
   TKafkaGroupProtocol,
+  TKafkaHealthStatus,
+  TKafkaBrokerEventCallback,
+  TKafkaMessageCallback,
+  TKafkaMessageDoneCallback,
+  TKafkaMessageErrorCallback,
+  TKafkaGroupJoinCallback,
+  TKafkaGroupLeaveCallback,
+  TKafkaGroupRebalanceCallback,
+  TKafkaHeartbeatErrorCallback,
+  TKafkaLagCallback,
+  TKafkaLagErrorCallback,
+  TKafkaTransactionCallback,
 } from '@venizia/ignis-helpers/kafka';
 
 // @platformatic/kafka (direct usage)
@@ -66,7 +90,43 @@ import type {
 bun add @platformatic/kafka
 ```
 
----
+## Architecture
+
+### Class Hierarchy
+
+```
+BaseHelper (scoped logging, identifier)
+  └── BaseKafkaHelper<TClient> (health tracking, broker events, graceful shutdown)
+        ├── KafkaProducerHelper<K,V,HK,HV>
+        ├── KafkaConsumerHelper<K,V,HK,HV>
+        └── KafkaAdminHelper
+
+BaseHelper
+  └── KafkaSchemaRegistryHelper<K,V,HK,HV>  (no broker connection)
+```
+
+### BaseKafkaHelper
+
+All Kafka helpers (except schema registry) extend `BaseKafkaHelper<TClient>`, which provides:
+
+```typescript
+abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
+  // Health
+  isHealthy(): boolean;          // healthStatus === 'connected'
+  isReady(): boolean;            // healthStatus === 'connected' (consumer overrides: + isActive())
+  getHealthStatus(): TKafkaHealthStatus; // 'connected' | 'disconnected' | 'unknown'
+
+  // Shutdown (used by subclasses)
+  protected closeClient(): Promise<void>;
+  protected gracefulCloseClient(): Promise<void>; // races closeClient vs shutdownTimeout
+}
+```
+
+Health status transitions automatically via broker events:
+- `client:broker:connect` → `'connected'`
+- `client:broker:disconnect` → `'disconnected'`
+- `client:broker:failed` → `'disconnected'`
+- `close()` → `'disconnected'`
 
 ## Connection Options
 
@@ -94,6 +154,17 @@ interface IKafkaConnectionOptions extends ConnectionOptions {
 | `ssl` | `TLSConnectionOptions` | — | Alias for `tls` |
 | `connectTimeout` | `number` | — | TCP connection timeout in milliseconds |
 | `requestTimeout` | `number` | — | Kafka request timeout in milliseconds |
+
+### Shared Helper Options
+
+These options are available on all three helpers (`IKafkaProducerOptions`, `IKafkaConsumerOptions`, `IKafkaAdminOptions`):
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `identifier` | `string` | `'kafka-{type}'` | Scoped logging identifier |
+| `shutdownTimeout` | `number` | `30000` | Graceful shutdown timeout in ms |
+| `onBrokerConnect` | `TKafkaBrokerEventCallback` | — | Called when broker connects |
+| `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | — | Called when broker disconnects |
 
 ### SASL Authentication
 
@@ -132,6 +203,7 @@ const helper = KafkaConsumerHelper.newInstance({
   },
   connectTimeout: 30_000,
   requestTimeout: 30_000,
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
 });
 ```
 
@@ -167,8 +239,6 @@ const helper = KafkaProducerHelper.newInstance({
 });
 ```
 
----
-
 ## Serialization & Deserialization
 
 `@platformatic/kafka`'s default wire format is `Buffer`. The helpers default generic types to `string` (matching common usage), but you must provide serializers/deserializers explicitly.
@@ -191,50 +261,29 @@ const helper = KafkaProducerHelper.newInstance({
 | `serializersFrom(s)` | `<T>(s: Serializer<T>) => Serializers<T, T, T, T>` | Create full serializers from a single serializer |
 | `deserializersFrom(d)` | `<T>(d: Deserializer<T>) => Deserializers<T, T, T, T>` | Create full deserializers from a single deserializer |
 
-### Serializers/Deserializers Interface
-
-```typescript
-interface Serializers<Key, Value, HeaderKey, HeaderValue> {
-  key: SerializerWithHeaders<Key, HeaderKey, HeaderValue>;
-  value: SerializerWithHeaders<Value, HeaderKey, HeaderValue>;
-  headerKey: Serializer<HeaderKey>;
-  headerValue: Serializer<HeaderValue>;
-}
-
-interface Deserializers<Key, Value, HeaderKey, HeaderValue> {
-  key: DeserializerWithHeaders<Key, HeaderKey, HeaderValue>;
-  value: DeserializerWithHeaders<Value, HeaderKey, HeaderValue>;
-  headerKey: Deserializer<HeaderKey>;
-  headerValue: Deserializer<HeaderValue>;
-}
-```
-
 ### String Serialization
-
-The simplest approach — all keys, values, and headers are strings:
 
 ```typescript
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
 
-// Producer
 const producer = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-producer',
   serializers: stringSerializers,
 });
 
-// Consumer
 const consumer = KafkaConsumerHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-consumer',
   groupId: 'my-group',
   deserializers: stringDeserializers,
+  onMessage: async ({ message }) => {
+    console.log(message.key, message.value); // both strings
+  },
 });
 ```
 
 ### JSON Serialization
-
-For structured data — serialize objects as JSON:
 
 ```typescript
 import {
@@ -243,66 +292,62 @@ import {
   serializersFrom, deserializersFrom,
 } from '@platformatic/kafka';
 
-// JSON values with string keys
 const producer = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-producer',
   serializers: { ...serializersFrom(jsonSerializer), key: stringSerializer },
 });
 
-const p = producer.getProducer();
-await p.send({
+await producer.getProducer().send({
   messages: [{
     topic: 'orders',
-    key: 'order-123',                                    // string key
-    value: { id: '123', status: 'created', amount: 99 }, // object value → auto-serialized to JSON
+    key: 'order-123',
+    value: { id: '123', status: 'created', amount: 99 },
   }],
 });
 
-// Consumer with matching deserializers
 const consumer = KafkaConsumerHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-consumer',
   groupId: 'my-group',
   deserializers: { ...deserializersFrom(jsonDeserializer), key: stringDeserializer },
-});
-```
-
-### Custom Serialization
-
-For advanced use cases (Avro, Protobuf, MessagePack):
-
-```typescript
-import type { Serializer, Deserializer } from '@platformatic/kafka';
-import * as msgpack from '@msgpack/msgpack';
-
-const msgpackSerializer: Serializer<unknown> = (data) => {
-  if (data === undefined) return undefined;
-  return Buffer.from(msgpack.encode(data));
-};
-
-const msgpackDeserializer: Deserializer<unknown> = (data) => {
-  if (!data) return undefined;
-  return msgpack.decode(data);
-};
-
-const producer = KafkaProducerHelper.newInstance<string, unknown, string, string>({
-  bootstrapBrokers: ['localhost:9092'],
-  clientId: 'msgpack-producer',
-  serializers: {
-    key: stringSerializer,
-    value: msgpackSerializer,
-    headerKey: stringSerializer,
-    headerValue: stringSerializer,
+  onMessage: async ({ message }) => {
+    console.log(message.value.id, message.value.status); // typed object
   },
 });
 ```
 
----
+### Schema Registry Serialization
+
+For schema-validated serialization (Avro, Protobuf, JSON Schema), use the schema registry helper:
+
+```typescript
+const registry = KafkaSchemaRegistryHelper.newInstance({
+  url: 'http://localhost:8081',
+});
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-producer',
+  registry: registry.getRegistry(),
+});
+
+const consumer = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-consumer',
+  groupId: 'my-group',
+  registry: registry.getRegistry(),
+  onMessage: async ({ message }) => {
+    // message.value is auto-deserialized using registered schema
+  },
+});
+```
+
+See **[Schema Registry](./schema-registry)** for full documentation.
 
 ## Generic Type Parameters
 
-All three helpers (and their option interfaces) support generic type parameters controlling the serialization types:
+All helpers (and their option interfaces) support generic type parameters controlling the serialization types:
 
 ```typescript
 class KafkaProducerHelper<
@@ -332,39 +377,71 @@ const helper = KafkaProducerHelper.newInstance<string, MyEvent, string, string>(
   serializers: { ...serializersFrom(jsonSerializer), key: stringSerializer },
   ...
 });
-
-// Custom: Buffer keys, Buffer values (raw wire format)
-const helper = KafkaProducerHelper.newInstance<Buffer, Buffer, Buffer, Buffer>({
-  // No serializers needed — @platformatic/kafka defaults to Buffer
-  ...
-});
 ```
-
----
 
 ## Constants
 
 ### KafkaDefaults
 
-Centralized default values used by all three helpers.
+Centralized default values used by all helpers.
 
 ```typescript
 import { KafkaDefaults } from '@venizia/ignis-helpers/kafka';
 ```
 
-| Constant | Value | Scope | Used By | Description |
-|----------|-------|-------|---------|-------------|
-| `RETRIES` | `3` | Shared | All helpers | Connection retry count |
-| `RETRY_DELAY` | `1000` | Shared | All helpers | Retry delay in ms |
-| `STRICT` | `true` | Producer | `KafkaProducerHelper` | Fail on unknown topics |
-| `AUTOCREATE_TOPICS` | `false` | Producer | `KafkaProducerHelper` | Auto-create topics on produce |
-| `AUTOCOMMIT` | `false` | Consumer | `KafkaConsumerHelper` | Auto-commit offsets |
-| `SESSION_TIMEOUT` | `30000` | Consumer | `KafkaConsumerHelper` | Session timeout in ms |
-| `HEARTBEAT_INTERVAL` | `3000` | Consumer | `KafkaConsumerHelper` | Heartbeat interval in ms |
-| `HIGH_WATER_MARK` | `1024` | Consumer | `KafkaConsumerHelper` | Stream buffer size (messages) |
-| `MIN_BYTES` | `1` | Consumer | `KafkaConsumerHelper` | Min bytes per fetch |
-| `METADATA_MAX_AGE` | `300000` | Consumer | `KafkaConsumerHelper` | Metadata cache TTL in ms |
-| `GROUP_PROTOCOL` | `'classic'` | Consumer | `KafkaConsumerHelper` | Default group protocol |
+| Constant | Value | Scope | Description |
+|----------|-------|-------|-------------|
+| `RETRIES` | `3` | Shared | Connection retry count |
+| `RETRY_DELAY` | `1000` | Shared | Retry delay in ms |
+| `SHUTDOWN_TIMEOUT` | `30000` | Shared | Graceful shutdown timeout in ms |
+| `STRICT` | `true` | Producer | Fail on unknown topics |
+| `AUTOCREATE_TOPICS` | `false` | Producer | Auto-create topics on produce |
+| `AUTOCOMMIT` | `false` | Consumer | Auto-commit offsets |
+| `SESSION_TIMEOUT` | `30000` | Consumer | Session timeout in ms |
+| `HEARTBEAT_INTERVAL` | `3000` | Consumer | Heartbeat interval in ms |
+| `HIGH_WATER_MARK` | `1024` | Consumer | Stream buffer size (messages) |
+| `MIN_BYTES` | `1` | Consumer | Min bytes per fetch |
+| `METADATA_MAX_AGE` | `300000` | Consumer | Metadata cache TTL in ms |
+| `GROUP_PROTOCOL` | `'classic'` | Consumer | Default group protocol |
+| `CONSUME_MODE` | `'committed'` | Consumer | Default consume mode |
+| `CONSUME_FALLBACK_MODE` | `'latest'` | Consumer | Default consume fallback mode |
+| `LAG_MONITOR_INTERVAL` | `30000` | Consumer | Lag monitoring poll interval in ms |
+
+### KafkaHealthStatuses
+
+Health status values used by all Kafka helpers.
+
+```typescript
+import { KafkaHealthStatuses } from '@venizia/ignis-helpers/kafka';
+```
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CONNECTED` | `'connected'` | Broker connection established |
+| `DISCONNECTED` | `'disconnected'` | Broker connection lost or closed |
+| `UNKNOWN` | `'unknown'` | Initial state before first broker event |
+
+### KafkaClientEvents
+
+Event name constants for `@platformatic/kafka` event emitters.
+
+```typescript
+import { KafkaClientEvents } from '@venizia/ignis-helpers/kafka';
+```
+
+| Constant | Value | Scope |
+|----------|-------|-------|
+| `BROKER_CONNECT` | `'client:broker:connect'` | All clients |
+| `BROKER_DISCONNECT` | `'client:broker:disconnect'` | All clients |
+| `BROKER_FAILED` | `'client:broker:failed'` | All clients |
+| `CONSUMER_GROUP_JOIN` | `'consumer:group:join'` | Consumer |
+| `CONSUMER_GROUP_LEAVE` | `'consumer:group:leave'` | Consumer |
+| `CONSUMER_GROUP_REBALANCE` | `'consumer:group:rebalance'` | Consumer |
+| `CONSUMER_HEARTBEAT_ERROR` | `'consumer:heartbeat:error'` | Consumer |
+| `CONSUMER_LAG` | `'consumer:lag'` | Consumer |
+| `CONSUMER_LAG_ERROR` | `'consumer:lag:error'` | Consumer |
+| `STREAM_DATA` | `'data'` | Stream |
+| `STREAM_ERROR` | `'error'` | Stream |
 
 ### KafkaAcks
 
@@ -380,20 +457,6 @@ import { KafkaAcks } from '@venizia/ignis-helpers/kafka';
 | `LEADER` | `1` | Leader broker acknowledges | Fast, leader-durable |
 | `ALL` | `-1` | All in-sync replicas acknowledge | Slowest, fully durable |
 
-**Static methods:**
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `isValid(ack)` | `(ack: number): boolean` | Check if value is a valid ack level |
-| `SCHEME_SET` | `Set<number>` | Set of valid values: `{0, 1, -1}` |
-
-```typescript
-KafkaAcks.ALL;           // -1
-KafkaAcks.isValid(-1);   // true
-KafkaAcks.isValid(2);    // false
-KafkaAcks.SCHEME_SET;    // Set { 0, 1, -1 }
-```
-
 ### KafkaGroupProtocol
 
 Consumer group protocol versions.
@@ -407,31 +470,15 @@ import { KafkaGroupProtocol } from '@venizia/ignis-helpers/kafka';
 | `CLASSIC` | `'classic'` | Classic consumer group protocol (default, all Kafka versions) |
 | `CONSUMER` | `'consumer'` | New consumer group protocol — KIP-848 (Kafka 3.7+) |
 
-**Static methods:**
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `isValid(mode)` | `(mode: string): boolean` | Check if value is a valid protocol |
-| `SCHEME_SET` | `Set<string>` | Set of valid values: `{'classic', 'consumer'}` |
-
-```typescript
-KafkaGroupProtocol.CLASSIC;            // 'classic'
-KafkaGroupProtocol.isValid('classic');  // true
-KafkaGroupProtocol.isValid('foo');      // false
-```
-
 ### Derived Types
 
 ```typescript
-import type { TKafkaAcks, TKafkaGroupProtocol } from '@venizia/ignis-helpers/kafka';
+import type { TKafkaAcks, TKafkaGroupProtocol, TKafkaHealthStatus } from '@venizia/ignis-helpers/kafka';
 
 // TKafkaAcks = 0 | 1 | -1
 // TKafkaGroupProtocol = 'classic' | 'consumer'
+// TKafkaHealthStatus = 'connected' | 'disconnected' | 'unknown'
 ```
-
-These union types are derived using `TConstValue<T>` from the constant classes.
-
----
 
 ## Compression
 
@@ -450,24 +497,131 @@ const helper = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-producer',
   serializers: stringSerializers,
-  compression: 'zstd', // Applied to all messages by default
+  compression: 'zstd',
 });
 
 // Override per-send
-const producer = helper.getProducer();
-await producer.send({
+await helper.getProducer().send({
   messages: [{ topic: 'logs', key: 'l1', value: largePayload }],
   compression: 'lz4',
 });
 ```
 
----
+## Quick Usage Comparison
+
+### Construction
+
+```typescript
+// Admin
+const admin = KafkaAdminHelper.newInstance({
+  bootstrapBrokers: ['127.0.0.1:29092'],
+  clientId: 'my-admin',
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}`),
+  onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
+});
+
+// Producer
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['127.0.0.1:29092'],
+  clientId: 'my-producer',
+  acks: -1,
+  idempotent: true,
+  transactionalId: 'my-tx',
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}`),
+  onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
+});
+
+// Consumer
+const consumer = KafkaConsumerHelper.newInstance({
+  bootstrapBrokers: ['127.0.0.1:29092'],
+  clientId: 'my-consumer',
+  groupId: 'my-group',
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}`),
+  onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
+  onMessage: async ({ message }) => {
+    console.log('Received:', message.value);
+    await message.commit();
+  },
+  onMessageDone: ({ message }) => console.log('Done:', message.key),
+  onMessageError: ({ error, message }) => console.error('Error:', error),
+  onGroupJoin: ({ groupId, memberId }) => console.log(`Joined ${groupId}`),
+  onGroupLeave: ({ groupId }) => console.log(`Left ${groupId}`),
+  onGroupRebalance: ({ groupId }) => console.log(`Rebalance ${groupId}`),
+  onHeartbeatError: ({ error }) => console.error('Heartbeat:', error),
+  onLag: ({ lag }) => console.log('Lag:', lag),
+  onLagError: ({ error }) => console.error('Lag error:', error),
+});
+```
+
+### Core Operations
+
+| Admin | Producer | Consumer |
+|-------|----------|----------|
+| `admin.getAdmin()` | `producer.getProducer()` | `consumer.getConsumer()` |
+| — | `producer.getProducer().send(...)` | `await consumer.start({ topics: ['t1'] })` |
+| — | `await producer.runInTransaction(async ({ send, addConsumer, addOffset }) => { ... })` | `consumer.startLagMonitoring({ topics: ['t1'], interval: 10_000 })` |
+| — | — | `consumer.stopLagMonitoring()` |
+| — | — | `consumer.getStream()` |
+
+### Health Checks
+
+```typescript
+// All three — identical API
+helper.isHealthy();      // true when broker connected
+helper.isReady();        // Admin/Producer: same as isHealthy()
+                         // Consumer: isHealthy() + consumer.isActive()
+helper.getHealthStatus(); // 'connected' | 'disconnected' | 'unknown'
+```
+
+### Shutdown
+
+```typescript
+// All three — identical API
+await helper.close();                    // graceful (timeout → force fallback)
+await helper.close({ isForce: true });   // immediate force close
+```
+
+### With Schema Registry
+
+```typescript
+const registry = KafkaSchemaRegistryHelper.newInstance({ url: 'http://localhost:8081' });
+
+const producer = KafkaProducerHelper.newInstance({
+  ...,
+  registry: registry.getRegistry(),
+  // or use registry.getSerializers() for manual serializer config
+});
+
+const consumer = KafkaConsumerHelper.newInstance({
+  ...,
+  registry: registry.getRegistry(),
+  // or use registry.getDeserializers() for manual deserializer config
+});
+```
+
+### Transaction (Producer Only)
+
+```typescript
+const result = await producer.runInTransaction(async ({ send, addConsumer, addOffset }) => {
+  // Send messages within transaction
+  const result = await send({
+    messages: [{ topic: 'orders', key: 'o1', value: '{"status":"created"}' }],
+  });
+
+  // Optionally add consumer for exactly-once semantics
+  await addConsumer(consumer.getConsumer());
+  await addOffset(message);
+
+  return result;
+});
+```
 
 ## Pages
 
-- **[Producer](./producer)** — Producer helper setup, usage, and full `@platformatic/kafka` Producer API reference
-- **[Consumer](./consumer)** — Consumer helper setup, usage, and full `@platformatic/kafka` Consumer API reference
-- **[Admin](./admin)** — Admin helper setup, usage, and full `@platformatic/kafka` Admin API reference
+- **[Producer](./producer)** — Producer helper, transactions, and full `@platformatic/kafka` Producer API reference
+- **[Consumer](./consumer)** — Consumer helper, message callbacks, lag monitoring, and full Consumer API reference
+- **[Admin](./admin)** — Admin helper and full Admin API reference
+- **[Schema Registry](./schema-registry)** — Schema registry helper for Avro/Protobuf/JSON Schema validation
 - **[Examples & Troubleshooting](./examples)** — Complete examples, IoC integration, and troubleshooting guide
 
 ## See Also

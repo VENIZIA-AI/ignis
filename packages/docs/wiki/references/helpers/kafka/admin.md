@@ -1,9 +1,9 @@
 # Admin
 
-The `KafkaAdminHelper` is a thin wrapper around `@platformatic/kafka`'s `Admin`. It manages creation, logging, and lifecycle.
+The `KafkaAdminHelper` wraps `@platformatic/kafka`'s `Admin` with health tracking, graceful shutdown, and broker event callbacks. Use `getAdmin()` to access the full Admin API directly.
 
 ```typescript
-class KafkaAdminHelper extends BaseHelper
+class KafkaAdminHelper extends BaseKafkaHelper<Admin>
 ```
 
 > [!NOTE]
@@ -15,13 +15,19 @@ class KafkaAdminHelper extends BaseHelper
 |--------|-----------|-------------|
 | `newInstance(opts)` | `static newInstance(opts): KafkaAdminHelper` | Factory method |
 | `getAdmin()` | `(): Admin` | Access the underlying `Admin` |
-| `close()` | `(): Promise<void>` | Close the admin connection |
+| `isHealthy()` | `(): boolean` | `true` when broker connected |
+| `isReady()` | `(): boolean` | Same as `isHealthy()` |
+| `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
+| `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Close the admin connection (default: graceful) |
 
-## IKafkaAdminOpts
+## IKafkaAdminOptions
 
 ```typescript
-interface IKafkaAdminOpts extends IKafkaConnectionOptions {
-  identifier?: string; // Default: 'kafka-admin'
+interface IKafkaAdminOptions extends IKafkaConnectionOptions {
+  identifier?: string;       // Default: 'kafka-admin'
+  shutdownTimeout?: number;  // Default: 30000ms
+  onBrokerConnect?: TKafkaBrokerEventCallback;
+  onBrokerDisconnect?: TKafkaBrokerEventCallback;
 }
 ```
 
@@ -35,23 +41,27 @@ import { KafkaAdminHelper } from '@venizia/ignis-helpers/kafka';
 const helper = KafkaAdminHelper.newInstance({
   bootstrapBrokers: ['localhost:9092'],
   clientId: 'my-admin',
+  onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
+  onBrokerDisconnect: ({ broker }) => console.log(`Disconnected from ${broker.host}`),
 });
 
 const admin = helper.getAdmin();
 
-// Create a topic with 3 partitions and 2 replicas
+// Create a topic
 await admin.createTopics({ topics: ['orders'], partitions: 3, replicas: 2 });
 
 // List all topics
 const topics = await admin.listTopics();
 
-// Describe a consumer group
-const groups = await admin.describeGroups({ groups: ['order-processing'] });
+// Health check
+helper.isHealthy(); // true when connected
 
+// Graceful close
 await helper.close();
-```
 
----
+// Or force close
+await helper.close({ isForce: true });
+```
 
 ## API Reference (`@platformatic/kafka`)
 
@@ -110,11 +120,6 @@ for (const [groupId, group] of details) {
   console.log(`Group: ${groupId}, State: ${group.state}`);
   for (const [memberId, member] of group.members) {
     console.log(`  Member: ${member.clientId} (${member.clientHost})`);
-    if (member.assignments) {
-      for (const [topic, assignment] of member.assignments) {
-        console.log(`    ${topic}: partitions ${assignment.partitions.join(', ')}`);
-      }
-    }
   }
 }
 ```
