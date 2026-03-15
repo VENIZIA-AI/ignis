@@ -15,9 +15,6 @@ import type { IConnectAdapterResult, IRpcRegistration } from './common/types';
 
 const CONNECT_RPC_MODULES = ['@connectrpc/connect'];
 
-/** Resolves peer deps from the app's node_modules at runtime — required for single-file builds. */
-const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
-
 type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   request: RequestType,
   context: HandlerContext,
@@ -69,6 +66,9 @@ export class GrpcRequestAdapter<
     this.controller = opts.controller;
     this.interceptors = opts.interceptors;
 
+    /** Resolves peer deps from the app's node_modules at runtime — required for single-file builds. */
+    const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
+
     this.createConnectRouter = appRequire('@connectrpc/connect').createConnectRouter;
     const proto = appRequire('@connectrpc/connect/protocol');
 
@@ -86,12 +86,17 @@ export class GrpcRequestAdapter<
     const handlers: Record<string, TConnectHandler> = {};
 
     for (const name in opts.definitions) {
-      const { handler } = opts.definitions[name];
+      const { handler, middlewares } = opts.definitions[name];
 
-      handlers[name] = (request: unknown, _connectContext: HandlerContext) => {
+      handlers[name] = async (request: unknown, _connectContext: HandlerContext) => {
         const context = opts.storage.getStore();
         if (!context) {
           throw new Error(`[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`);
+        }
+
+        // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
+        for (const mw of middlewares) {
+          await mw(context, async () => {});
         }
 
         return handler({ request, context });
@@ -148,11 +153,17 @@ export class GrpcRequestAdapter<
         } catch (error) {
           const message = error instanceof Error ? error.message : 'Internal gRPC error';
 
-          return new Response(JSON.stringify({ message }), {
-            status: HTTP.ResultCodes.RS_5.InternalServerError,
+          // Preserve gRPC status code from ConnectError (duck-type check avoids peer dep coupling)
+          const code =
+            typeof (error as any)?.code === 'number'
+              ? (error as any).code
+              : GRPC.ResultCodes.INTERNAL;
+
+          return new Response(JSON.stringify({ message, code }), {
+            status: code === GRPC.ResultCodes.OK ? 200 : HTTP.ResultCodes.RS_5.InternalServerError,
             headers: {
               [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
-              [GRPC.Headers.GRPC_STATUS]: GRPC.ResultCodes.INTERNAL.toString(),
+              [GRPC.Headers.GRPC_STATUS]: String(code),
               [GRPC.Headers.GRPC_MESSAGE]: encodeURIComponent(message),
             },
           });

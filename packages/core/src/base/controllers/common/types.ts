@@ -68,8 +68,8 @@ export interface IBindRouteOptions<
   BasePath extends string = '/',
 > {
   configs: RouteConfig;
-  to: <ReponseType = unknown>(opts: {
-    handler: TRouteHandler<ReponseType, RouteEnv>;
+  to: <ResponseType = unknown>(opts: {
+    handler: TRouteHandler<ResponseType, RouteEnv>;
   }) => IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
 

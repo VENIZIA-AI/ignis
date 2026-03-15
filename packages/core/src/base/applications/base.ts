@@ -3,7 +3,13 @@ import { BindingNamespaces, TBindingNamespace } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
 import { RestComponent } from '@/components/controller/rest';
-import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
+import {
+  Binding,
+  BindingKeys,
+  BindingScopes,
+  BindingValueTypes,
+  MetadataRegistry,
+} from '@/helpers/inversion';
 import {
   Bootstrapper,
   ControllerBooter,
@@ -182,6 +188,32 @@ export abstract class BaseApplication
               });
             }
           }
+        }
+
+        // Warn if gRPC controllers exist but gRPC transport is not enabled
+        if (transports.includes(ControllerTransports.GRPC)) {
+          return;
+        }
+
+        const allBindings = this.findByTag({ tag: BindingNamespaces.CONTROLLER });
+        for (const binding of allBindings) {
+          const target = binding.getBindingMeta({ type: BindingValueTypes.CLASS });
+          if (!target) {
+            continue;
+          }
+
+          const metadata = MetadataRegistry.getInstance().getControllerMetadata({ target });
+          if (metadata?.transport !== ControllerTransports.GRPC) {
+            continue;
+          }
+
+          this.logger
+            .for(this.registerControllers.name)
+            .error(
+              'gRPC controller "%s" discovered but gRPC transport is not enabled. Add "%s" to transports config.',
+              binding.key,
+              ControllerTransports.GRPC,
+            );
         }
       },
     });

@@ -1,8 +1,7 @@
 import { TRouteContext } from '@/base/controllers/common/types';
 import { IRpcMetadata } from '@/helpers/inversion/common/types';
-import type { OpenAPIHono } from '@hono/zod-openapi';
 import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
-import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
+import type { Env, Hono, Input, MiddlewareHandler, Next, Schema } from 'hono';
 
 /** Configuration options for gRPC controller instantiation. */
 export interface IGrpcControllerOptions {
@@ -21,10 +20,17 @@ export type TRpcHandler<
   context: TRouteContext<RouteEnv>;
 }) => ValueOrPromise<ResponseType>;
 
-/** Unified registration entry: metadata + handler stored together. */
+/** Pre-built middleware function for gRPC auth enforcement. */
+export type TRpcMiddleware<RouteEnv extends Env = Env> = (
+  context: TRouteContext<RouteEnv>,
+  next: Next,
+) => ValueOrPromise<void | Response>;
+
+/** Unified registration entry: metadata + handler + pre-built middlewares stored together. */
 export interface IRpcRegistration<RouteEnv extends Env = Env> {
   configs: IRpcMetadata;
   handler: TRpcHandler<unknown, unknown, RouteEnv>;
+  middlewares: TRpcMiddleware<RouteEnv>[];
 }
 
 /** Return type from defineRoute — contains processed configs. */
@@ -47,11 +53,11 @@ export interface IGrpcController<
   ConfigurableOptions extends object = {},
 > extends IConfigurable<ConfigurableOptions> {
   service: ServiceType;
-  router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+  router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   definitions: Record<string, IRpcRegistration<RouteEnv>>;
 
-  getRouter(): OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+  getRouter(): Hono<RouteEnv, RouteSchema, BasePath>;
 
   bindRoute(opts: { configs: IRpcMetadata }): IGrpcBindRouteOptions<RouteEnv>;
   defineRoute(opts: {

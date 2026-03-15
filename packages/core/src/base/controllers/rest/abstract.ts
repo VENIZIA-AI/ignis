@@ -75,10 +75,17 @@ export abstract class AbstractRestController<
       return;
     }
 
+    const logger = this.logger.for(this.registerRoutesFromRegistry.name);
     const routeDefs = routes.entries();
     for (const [methodName, routeConfigs] of routeDefs) {
+      const handler = (this as any)[methodName];
+      if (typeof handler !== 'function') {
+        logger.warn('Route method "%s" not found on controller', String(methodName));
+        continue;
+      }
+
       this.bindRoute({ configs: routeConfigs }).to({
-        handler: this[methodName].bind(this),
+        handler: handler.bind(this),
       });
     }
   }
@@ -105,11 +112,9 @@ export abstract class AbstractRestController<
     return this.router;
   }
 
-  /** Processes route config, injecting auth middleware and OpenAPI security specs. */
-  getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
-    const { configs } = opts;
-
-    const { authenticate = {}, authorize, ...restConfig } = configs;
+  /** @internal Builds auth + custom middlewares and security specs from route config. */
+  buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
+    const { authenticate = {}, authorize, ...restConfig } = opts.configs;
     const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
 
     const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
@@ -141,6 +146,12 @@ export abstract class AbstractRestController<
       }
     }
 
+    return { restConfig, security, mws };
+  }
+
+  /** Processes route config, injecting auth middleware and OpenAPI security specs. */
+  getRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
+    const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { tags = [] } = restConfig;
 
     return createRoute<string, RouteConfig>(
@@ -154,44 +165,12 @@ export abstract class AbstractRestController<
 
   /** Like getRouteConfigs but adds HTML response schema for JSX rendering. */
   getJSXRouteConfigs<RouteConfig extends IAuthRouteConfig>(opts: { configs: RouteConfig }) {
-    const { configs } = opts;
-
-    const { authenticate = {}, authorize, ...restConfig } = configs;
-    const { strategies = [], mode = AuthenticationModes.ANY } = authenticate;
-
-    const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
-    const mws: ReturnType<typeof authenticateFn>[] = [];
-
-    // Inject authenticate middleware
-    if (strategies.length > 0) {
-      mws.push(authenticateFn({ strategies, mode }));
-    }
-
-    // Inject authorize middleware AFTER authenticate
-    if (authorize) {
-      const specs: IAuthorizationSpec[] = Array.isArray(authorize) ? authorize : [authorize];
-      for (const spec of specs) {
-        mws.push(authorizeFn({ spec }));
-      }
-    }
-
-    // Inject custom middleware
-    if (restConfig.middleware) {
-      const extraMws = Array.isArray(restConfig.middleware)
-        ? restConfig.middleware
-        : [restConfig.middleware];
-
-      for (const mw of extraMws) {
-        if (mw) {
-          mws.push(mw);
-        }
-      }
-    }
-
+    const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { responses, tags = [] } = restConfig;
 
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
+        middleware: mws,
         responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
         security,

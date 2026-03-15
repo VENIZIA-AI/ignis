@@ -139,11 +139,11 @@ describe('BaseGrpcController', () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           const binding = this.bindRoute({
-            configs: { name: 'ListUsers', method: GRPC.Methods.SERVER_STREAMING },
+            configs: { name: 'ListUsers', method: GRPC.Methods.UNARY },
           });
 
           expect(binding.configs.name).toBe('ListUsers');
-          expect(binding.configs.method).toBe('server_streaming');
+          expect(binding.configs.method).toBe('unary');
 
           const result = binding.to({ handler: () => ({}) });
           expect(result.configs.name).toBe('ListUsers');
@@ -152,6 +152,19 @@ describe('BaseGrpcController', () => {
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
       ctrl['binding']();
+    });
+
+    test('should throw on non-unary streaming methods', () => {
+      class TestCtrl extends BaseGrpcController {
+        async binding() {
+          this.bindRoute({
+            configs: { name: 'StreamMethod', method: GRPC.Methods.SERVER_STREAMING },
+          }).to({ handler: () => ({}) });
+        }
+      }
+
+      const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+      expect(() => ctrl['binding']()).toThrow('Only unary RPCs are supported');
     });
   });
 
@@ -276,7 +289,7 @@ describe('BaseGrpcController', () => {
           handler: () => ({}),
         });
         this.defineRoute({
-          configs: { name: 'Method2', method: GRPC.Methods.SERVER_STREAMING },
+          configs: { name: 'Method2', method: GRPC.Methods.UNARY },
           handler: () => ({}),
         });
       }

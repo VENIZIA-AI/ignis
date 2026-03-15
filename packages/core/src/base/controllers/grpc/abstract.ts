@@ -1,10 +1,13 @@
 import { ControllerTransports } from '@/base/controllers/common/constants';
+import { AuthenticationModes } from '@/components/auth/authenticate/common/constants';
+import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
+import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
 import { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { ConnectRouter } from '@connectrpc/connect';
-import { OpenAPIHono } from '@hono/zod-openapi';
 import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
+import { Env, Hono, Schema } from 'hono';
 import { GrpcRequestAdapter } from './adapter';
 import {
   IGrpcBindRouteOptions,
@@ -13,6 +16,7 @@ import {
   IGrpcDefineRouteOptions,
   IRpcRegistration,
   TRpcHandler,
+  TRpcMiddleware,
 } from './common/types';
 
 /** Abstract base class for gRPC controllers, providing RPC registration and ConnectRPC integration. */
@@ -33,7 +37,7 @@ export abstract class AbstractGrpcController<
   /** ConnectRPC service definition from @controller metadata. */
   service: ServiceType;
   path: string;
-  router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
+  router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {
     super(opts);
@@ -52,14 +56,7 @@ export abstract class AbstractGrpcController<
 
     this.path = resolvedPath;
 
-    this.router = new OpenAPIHono<RouteEnv, RouteSchema, BasePath>({
-      strict: true,
-      defaultHook: (result, _context) => {
-        if (!result.success) {
-          throw result.error;
-        }
-      },
-    });
+    this.router = new Hono<RouteEnv, RouteSchema, BasePath>();
 
     if (decoratorMetadata?.transport === ControllerTransports.GRPC && decoratorMetadata.service) {
       this.service = decoratorMetadata.service as ServiceType;
@@ -73,7 +70,35 @@ export abstract class AbstractGrpcController<
     return this.router;
   }
 
-  /** Processes RPC config (symmetric with REST's getRouteConfigs). Returns configs as-is for now. */
+  /** Builds pre-built auth middleware from RPC config (symmetric with REST's buildRouteMiddlewares). */
+  buildRpcMiddlewares(opts: { configs: IRpcMetadata }): TRpcMiddleware<RouteEnv>[] {
+    const { configs } = opts;
+    const mws: TRpcMiddleware<RouteEnv>[] = [];
+
+    // Inject authenticate middleware
+    if (configs.authenticate) {
+      const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
+      if (strategies.length > 0) {
+        const authMw = authenticateFn({ strategies, mode });
+        mws.push((context, next) => authMw(context as any, next));
+      }
+    }
+
+    // Inject authorize middleware AFTER authenticate
+    if (configs.authorize) {
+      const specs: IAuthorizationSpec[] = Array.isArray(configs.authorize)
+        ? configs.authorize
+        : [configs.authorize];
+      for (const spec of specs) {
+        const authzMw = authorizeFn({ spec });
+        mws.push((context, next) => authzMw(context as any, next));
+      }
+    }
+
+    return mws;
+  }
+
+  /** Processes RPC config (symmetric with REST's getRouteConfigs). Returns configs as-is. */
   getRouteConfigs(opts: { configs: IRpcMetadata }): IRpcMetadata {
     return opts.configs;
   }

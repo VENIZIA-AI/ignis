@@ -1,6 +1,7 @@
 import { TContext } from '@/base/controllers/common/types';
 import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
 import { IProvider } from '@venizia/ignis-inversion';
+import { Env } from 'hono';
 import { createMiddleware } from 'hono/factory';
 import {
   Authentication,
@@ -13,12 +14,15 @@ import { AuthenticationStrategyRegistry } from '../strategies';
 
 // Authentication Provider — produces middleware factory via IProvider pattern
 
-export class AuthenticationProvider extends BaseHelper implements IProvider<TAuthenticateFn> {
+export class AuthenticationProvider<RouteEnv extends Env = Env>
+  extends BaseHelper
+  implements IProvider<TAuthenticateFn<RouteEnv>>
+{
   constructor() {
     super({ scope: AuthenticationProvider.name });
   }
 
-  value(): TAuthenticateFn {
+  value(): TAuthenticateFn<RouteEnv> {
     return opts => {
       return this.createAuthenticateMiddleware(opts);
     };

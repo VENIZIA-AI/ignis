@@ -6,12 +6,6 @@ import { TResponseHeaders } from './types';
 export class ControllerTransports {
   static readonly REST = 'rest';
   static readonly GRPC = 'grpc';
-
-  static readonly SCHEME_SET = new Set([this.REST, this.GRPC]);
-
-  static isValid(value: string): boolean {
-    return this.SCHEME_SET.has(value);
-  }
 }
 
 export type TControllerTransport = TConstValue<typeof ControllerTransports>;

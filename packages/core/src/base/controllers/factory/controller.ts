@@ -305,7 +305,7 @@ export class ControllerFactory extends BaseHelper {
           },
         });
 
-        return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+        return context.json(rs, HTTP.ResultCodes.RS_2.Created);
       }
 
       /** PATCH /:id */
@@ -341,6 +341,14 @@ export class ControllerFactory extends BaseHelper {
       async updateBy(opts: { context: TRouteContext<RouteEnv> }) {
         const { context } = opts;
         const { where } = context.req.valid<TUpdateByQuery>('query');
+
+        if (!where || Object.keys(where).length === 0) {
+          return context.json(
+            { message: 'where filter is required for bulk operations' },
+            HTTP.ResultCodes.RS_4.BadRequest,
+          );
+        }
+
         const data = context.req.valid<TUpdateByBody>('json');
 
         const rs = await executeWithPerformanceMeasure({
@@ -399,6 +407,13 @@ export class ControllerFactory extends BaseHelper {
         const { context } = opts;
         const { where } = context.req.valid<TDeleteByQuery>('query');
 
+        if (!where || Object.keys(where).length === 0) {
+          return context.json(
+            { message: 'where filter is required for bulk operations' },
+            HTTP.ResultCodes.RS_4.BadRequest,
+          );
+        }
+
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
           level: 'debug',
@@ -424,6 +439,7 @@ export class ControllerFactory extends BaseHelper {
 
       /** Registers all CRUD route handlers. */
       override binding(): ValueOrPromise<void> {
+        // Read routes — always registered
         this.defineRoute({
           configs: routeDefinitions.COUNT,
           handler: async context => this.count({ context }),
@@ -443,6 +459,11 @@ export class ControllerFactory extends BaseHelper {
           configs: routeDefinitions.FIND_BY_ID,
           handler: async context => this.findById({ context }),
         });
+
+        // Write routes — skipped when readonly
+        if (controller.readonly) {
+          return;
+        }
 
         this.defineRoute({
           configs: routeDefinitions.CREATE,

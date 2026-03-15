@@ -130,10 +130,10 @@ export interface IAuthenticationStrategy<E extends Env = Env> {
   authenticate(context: TContext<E, string>): Promise<IAuthUser>;
 }
 
-export type TAuthenticateFn = (opts: {
+export type TAuthenticateFn<RouteEnv extends Env = Env> = (opts: {
   strategies: string[];
   mode?: TAuthMode;
-}) => MiddlewareHandler;
+}) => MiddlewareHandler<RouteEnv>;
 
 export interface IAuthService<
   E extends Env = Env,
