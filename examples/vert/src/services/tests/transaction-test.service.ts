@@ -1,9 +1,4 @@
-import {
-  BindingKeys,
-  BindingNamespaces,
-  inject,
-  IsolationLevels,
-} from '@venizia/ignis';
+import { BindingKeys, BindingNamespaces, inject, IsolationLevels } from '@venizia/ignis';
 import { DataTypes, getUID } from '@venizia/ignis-helpers';
 import {
   ConfigurationRepository,

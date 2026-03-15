@@ -57,6 +57,7 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
             {
               text: '2026-03-10',
               collapsed: true,
@@ -325,7 +326,13 @@ const config = defineConfig({
                 { text: 'Bootstrapping', link: '/guides/core-concepts/application/bootstrapping' },
               ],
             },
-            { text: 'Controllers', link: '/guides/core-concepts/controllers' },
+            {
+              text: 'Controllers',
+              collapsed: true,
+              items: [
+                { text: 'REST & gRPC', link: '/guides/core-concepts/controllers' },
+              ],
+            },
             { text: 'Dependency Injection', link: '/guides/core-concepts/dependency-injection' },
             {
               text: 'Components',
@@ -452,7 +459,14 @@ const config = defineConfig({
             { text: 'Application', link: '/references/base/application' },
             { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
             { text: 'Components', link: '/references/base/components' },
-            { text: 'Controllers', link: '/references/base/controllers' },
+            {
+              text: 'Controllers',
+              collapsed: true,
+              items: [
+                { text: 'REST Controllers', link: '/references/base/controllers' },
+                { text: 'gRPC Controllers', link: '/references/base/grpc-controllers' },
+              ],
+            },
             { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
             { text: 'Middlewares', link: '/references/base/middlewares' },
             { text: 'Models & Enrichers', link: '/references/base/models' },

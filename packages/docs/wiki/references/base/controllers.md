@@ -1,6 +1,6 @@
 ---
-title: Controllers Reference
-description: Technical reference for controller classes and API endpoints
+title: REST Controllers Reference
+description: Technical reference for REST controller classes and API endpoints
 difficulty: beginner
 ---
 
@@ -8,16 +8,19 @@ difficulty: beginner
 
 Technical reference for controller classes - the foundation for creating API endpoints in Ignis.
 
+> [!NOTE]
+> This page covers **REST controllers** (HTTP/JSON). For gRPC controllers using ConnectRPC, see the [gRPC Controllers Reference](./grpc-controllers.md).
+
 **Files:**
-- `packages/core/src/base/controllers/abstract.ts`
-- `packages/core/src/base/controllers/base.ts`
+- `packages/core/src/base/controllers/rest/abstract.ts`
+- `packages/core/src/base/controllers/rest/base.ts`
 
 ## Quick Reference
 
 | Class | Purpose | Route Definition Methods |
 |-------|---------|--------------------------|
-| **AbstractController** | Base class with Hono router integration | `binding()`, `registerRoutesFromRegistry()` |
-| **BaseController** | Concrete implementation for API routes | `defineRoute()`, `bindRoute()`, `@get`, `@post`, `@api` decorators |
+| **AbstractRestController** | Base class with Hono router integration | `binding()`, `registerRoutesFromRegistry()` |
+| **BaseRestController** | Concrete implementation for API routes | `defineRoute()`, `bindRoute()`, `@get`, `@post`, `@api` decorators |
 
 ## Routing Approaches
 
@@ -26,7 +29,7 @@ Technical reference for controller classes - the foundation for creating API end
 | **Decorator-Based** (Recommended) | Clean, declarative routes | `@get({ configs: {...} })` |
 | **Manual Definition** | Complex routing logic | `this.defineRoute({ configs, handler })` |
 
-## `AbstractController`
+## `AbstractRestController`
 
 Base class integrating Hono routing with Ignis DI and OpenAPI generation.
 
@@ -39,9 +42,9 @@ Base class integrating Hono routing with Ignis DI and OpenAPI generation.
 | **OpenAPI Integration** | Integrates with `@hono/zod-openapi` for schema generation |
 | **Standard Route Configs** | `getRouteConfigs` adds auth strategies, default responses, controller tags |
 
-## `BaseController`
+## `BaseRestController`
 
-Extends `AbstractController` with concrete implementations for defining API routes.
+Extends `AbstractRestController` with concrete implementations for defining API routes.
 
 ### Decorator-Based Routing (Recommended)
 
@@ -58,7 +61,7 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 The generic `@api` decorator allows you to define a route with a full configuration object. The decorated method will automatically have its `context` parameter and return type inferred and type-checked against the provided route configuration. This ensures strong type safety throughout your API definitions.
 
 ```typescript
-import { api, BaseController, controller, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { api, BaseRestController, controller, jsonContent, jsonResponse, z, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const MyRouteConfig = {
@@ -68,7 +71,7 @@ const MyRouteConfig = {
 } as const;
 
 @controller({ path: '/my-feature' })
-export class MyFeatureController extends BaseController {
+export class MyFeatureController extends BaseRestController {
 
   @api({ configs: MyRouteConfig })
   getData(c: TRouteContext) {
@@ -97,15 +100,13 @@ import { HTTP } from '@venizia/ignis-helpers';
 const UserRoutes = {
   LIST_USERS: {
     path: '/',
-    method: 'get',
     responses: jsonResponse({
       description: 'A list of users',
       schema: z.array(z.object({ id: z.string(), name: z.string() })),
     }),
   },
   GET_USER: {
-    path: '/:id',
-    method: 'get',
+    path: '/{id}',
     request: {
       params: z.object({ id: z.string() }),
     },
@@ -116,8 +117,7 @@ const UserRoutes = {
   },
   CREATE_USER: {
     path: '/',
-    method: 'post',
-    authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
+    authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // Secure this endpoint
     request: {
       body: jsonContent({
         schema: z.object({ name: z.string() }),
@@ -155,7 +155,7 @@ const UserRoutes = {
 For better organization, you can define all your route configurations in a constant and reference them in your decorators. This approach also allows you to get a typed context for your handler.
 
 ```typescript
-import { api, BaseController, controller, TRouteContext, jsonContent, jsonResponse } from '@venizia/ignis';
+import { api, BaseRestController, controller, TRouteContext, jsonContent, jsonResponse } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from 'hono/zod-openapi';
 
@@ -175,7 +175,7 @@ const RouteConfigs = {
 } as const; // Use 'as const' for strict type inference
 
 @controller({ path: '/health' })
-export class HealthCheckController extends BaseController {
+export class HealthCheckController extends BaseRestController {
 
   @api({ configs: RouteConfigs.PING })
   ping(c: TRouteContext) {
@@ -222,33 +222,33 @@ Works the same as `defineRoute()` but typed for JSX handler return values.
 
 #### `defineRoute`
 
-This method is for creating API endpoints. It now handles both public and authenticated routes by accepting an `authStrategies` array within the `configs`.
+This method is for creating API endpoints. It now handles both public and authenticated routes by accepting an `authenticate` object within the `configs`.
 
 ```typescript
 this.defineRoute({
-  configs: TAuthRouteConfig<RouteConfig>; // You would define this inline or via a const
-  handler: TLazyRouteHandler<typeof configs, RouteEnv>; // Inferred from configs
+  configs: IAuthRouteConfig; // You would define this inline or via a const
+  handler: TRouteHandler; // Inferred from configs
   hook?: Hook;
 });
 ```
 
--   **`configs`**: An object that defines the route's OpenAPI specification. It now includes an optional `authStrategies` array. See the table below for details.
+-   **`configs`**: An object that defines the route's OpenAPI specification. It now includes an optional `authenticate` object. See the table below for details.
 -   **`handler`**: The Hono route handler function `(c: Context) => Response`.
 -   **`hook`**: An optional hook for processing the request or response, often used for validation error handling.
 
 #### `bindRoute`
 
-This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also supports `authStrategies`.
+This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also supports `authenticate`.
 
 ```typescript
 this.bindRoute({
-  configs: TAuthRouteConfig<RouteConfig>; // You would define this inline or via a const
+  configs: IAuthRouteConfig; // You would define this inline or via a const
 }).to({
-  handler: TLazyRouteHandler<typeof configs, RouteEnv>; // Inferred from configs
+  handler: TRouteHandler; // Inferred from configs
 });
 ```
 
--   **`configs`**: Same as `defineRoute`, including `authStrategies`.
+-   **`configs`**: Same as `defineRoute`, including `authenticate`.
 -   **`to`**: A method that accepts an object with the `handler` function.
 
 ### `TRouteConfig` Options
@@ -257,14 +257,14 @@ The `configs` object accepts properties based on the OpenAPI 3.0 specification.
 
 | Property | Type | Description |
 | :--- | :--- | :--- |
-| `path` | `string` | The route path, relative to the controller's base path (e.g., `/:id`). |
+| `path` | `string` | The route path, relative to the controller's base path (e.g., `/{id}`). |
 | `method` | `'get' \| 'post' \| ...` | The HTTP method for the route. |
 | `request` | `object` | Defines the request, including `params`, `query`, and `body`. You can use Zod schemas for validation. |
 | `responses`| `object` | An object mapping HTTP status codes to response descriptions and schemas. The `jsonContent` and `jsonResponse` utilities can simplify this. |
 | `tags` | `string[]` | An array of tags for grouping routes in the OpenAPI documentation. The controller's name is automatically added as a tag. |
 | `summary` | `string` | A short summary of what the operation does. |
 | `description`| `string` | A detailed description of the operation. |
-| `authStrategies`| `TAuthStrategy[]` | An optional array of authentication strategy names (e.g., `[Authentication.STRATEGY_JWT]`). If provided, the framework will automatically add the necessary middleware to enforce these strategies. |
+| `authenticate`| `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | An optional object specifying authentication strategies (e.g., `{ strategies: [Authentication.STRATEGY_JWT] }`). If provided, the framework will automatically add the necessary middleware to enforce these strategies. |
 
 ### Example of `request` Configuration
 
@@ -283,17 +283,15 @@ request: {
 // ...
 ```
 
-### `defineRouteConfigs`
+### Defining Route Configs
 
--   **File:** `packages/core/src/base/controllers/factory/definition.ts`
-
-The `defineRouteConfigs` function is a simple helper for creating a typed object containing multiple route configurations. This is particularly useful for organizing all of a controller's route definitions in a single, type-checked constant.
+Route configurations are plain TypeScript objects. Use `as const` for strict type inference, which enables full type safety in your decorator-based routes:
 
 ```typescript
-import { defineRouteConfigs, jsonResponse, jsonContent, z } from '@venizia/ignis';
+import { jsonResponse, jsonContent, z } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
-const RouteConfigs = defineRouteConfigs({
+const RouteConfigs = {
   ROOT: {
     method: HTTP.Methods.GET,
     path: '/',
@@ -313,7 +311,7 @@ const RouteConfigs = defineRouteConfigs({
       schema: z.object({ message: z.string() }),
     }),
   },
-});
+} as const;
 ```
 
 ## `ControllerFactory`
@@ -324,7 +322,7 @@ The `ControllerFactory` provides a static method `defineCrudController` to quick
 
 ### `static defineCrudController<EntitySchema>(opts: ICrudControllerOptions<EntitySchema>)`
 
-This factory method returns a `BaseController` class that is already set up with the following standard CRUD endpoints.
+This factory method returns a `BaseRestController` class that is already set up with the following standard CRUD endpoints.
 
 **Note:** The returned class is dynamically named using `controller.name` from the options. This ensures that when registered with `app.controller()`, the class has a proper name for binding keys and debugging (e.g., `ConfigurationController` instead of an anonymous class).
 
@@ -332,12 +330,12 @@ This factory method returns a `BaseController` class that is already set up with
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Get the number of records matching a filter. |
 | `find` | `GET` | `/` | Retrieve all records matching a filter. |
-| `findById` | `GET` | `/:id` | Retrieve a single record by its ID. |
+| `findById` | `GET` | `/{id}` | Retrieve a single record by its ID. |
 | `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
 | `create` | `POST` | `/` | Create a new record. |
-| `updateById` | `PATCH` | `/:id` | Update a single record by its ID. |
+| `updateById` | `PATCH` | `/{id}` | Update a single record by its ID. |
 | `updateBy` | `PATCH` | `/` | Update multiple records matching a `where` filter. |
-| `deleteById` | `DELETE` | `/:id` | Delete a single record by its ID. |
+| `deleteById` | `DELETE` | `/{id}` | Delete a single record by its ID. |
 | `deleteBy` | `DELETE` | `/` | Delete multiple records matching a `where` filter. |
 
 ### `ICrudControllerOptions<EntitySchema>`
@@ -349,9 +347,8 @@ This factory method returns a `BaseController` class that is already set up with
 | `controller.name` | `string` | A unique name for the generated controller (e.g., `'ConfigurationController'`). |
 | `controller.basePath`| `string` | The base path for all routes in this CRUD controller (e.g., `'/configurations'`). |
 | `controller.readonly` | `boolean` | If `true`, only read operations (find, findOne, findById, count) are generated. Write operations are excluded. Defaults to `false`. |
-| `controller.isStrict` | `boolean` | If `true`, query parameters like `where` will be strictly validated. Defaults to `true`. |
-| `controller.defaultLimit`| `number` | The default limit for `find` operations. Defaults to `10`. |
-| `authStrategies` | `Array<TAuthStrategy>` | Auth strategies applied to all routes (unless overridden per-route). |
+| `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | Controls strict mode. `path`: if `true` (default), `/users` and `/users/` are different routes. `requestSchema`: if `true` (default), query parameters like `where` are strictly validated. |
+| `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication config applied to all routes (unless overridden per-route). |
 | `routes` | `TRoutesConfig` | Per-route configuration combining schema and auth. See routes configuration below. |
 
 ### Routes Configuration
@@ -359,9 +356,9 @@ This factory method returns a `BaseController` class that is already set up with
 The `routes` option provides a unified way to configure request/response schemas and authentication for each endpoint:
 
 ```typescript
-type TRouteAuthConfig =
-  | { skipAuth: true }
-  | { skipAuth?: false; authStrategies: Array<TAuthStrategy> };
+type TRouteAuthConfig = {
+  authenticate?: { skip: true } | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+};
 
 type TRequestConfig = {
   query?: z.ZodObject;    // Custom query parameters
@@ -397,9 +394,9 @@ type TBaseRouteConfig = TRouteAuthConfig & {
 
 When resolving authentication for a route, the following priority applies:
 
-1. **Endpoint `skipAuth: true`** → No auth (ignores controller `authStrategies`)
-2. **Endpoint `authStrategies`** → Override controller (empty array = no auth)
-3. **Controller `authStrategies`** → Default fallback
+1. **Endpoint `authenticate: { skip: true }`** → No auth (ignores controller `authenticate`)
+2. **Endpoint `authenticate: { strategies }`** → Override controller (empty array = no auth)
+3. **Controller `authenticate`** → Default fallback
 
 ### Authentication Examples
 
@@ -411,7 +408,7 @@ const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
 });
 
 // 2. JWT auth on all, but skip for public read endpoints
@@ -419,11 +416,11 @@ const ProductController = ControllerFactory.defineCrudController({
   entity: ProductEntity,
   repository: { name: 'ProductRepository' },
   controller: { name: 'ProductController', basePath: '/products' },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
-    find: { skipAuth: true },
-    findById: { skipAuth: true },
-    count: { skipAuth: true },
+    find: { authenticate: { skip: true } },
+    findById: { authenticate: { skip: true } },
+    count: { authenticate: { skip: true } },
   },
 });
 
@@ -433,9 +430,9 @@ const ArticleController = ControllerFactory.defineCrudController({
   repository: { name: 'ArticleRepository' },
   controller: { name: 'ArticleController', basePath: '/articles' },
   routes: {
-    create: { authStrategies: [Authentication.STRATEGY_JWT] },
-    updateById: { authStrategies: [Authentication.STRATEGY_JWT] },
-    deleteById: { authStrategies: [Authentication.STRATEGY_JWT] },
+    create: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+    updateById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
+    deleteById: { authenticate: { strategies: [Authentication.STRATEGY_JWT] } },
   },
 });
 
@@ -444,10 +441,10 @@ const OrderController = ControllerFactory.defineCrudController({
   entity: OrderEntity,
   repository: { name: 'OrderRepository' },
   controller: { name: 'OrderController', basePath: '/orders' },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
     find: {
-      skipAuth: true,
+      authenticate: { skip: true },
       response: { schema: CustomOrderListSchema },
     },
     create: {
@@ -483,15 +480,15 @@ const UserController = ControllerFactory.defineCrudController({
   entity: UserEntity,
   repository: { name: 'UserRepository' },
   controller: { name: 'UserController', basePath: '/users' },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   routes: {
     // Public read endpoints
     find: {
-      skipAuth: true,
+      authenticate: { skip: true },
       response: { schema: z.array(PublicUserSchema) },
     },
     findById: {
-      skipAuth: true,
+      authenticate: { skip: true },
       response: { schema: PublicUserSchema },
     },
 
@@ -503,7 +500,7 @@ const UserController = ControllerFactory.defineCrudController({
 
     // Delete requires JWT auth (uses default schema)
     deleteById: {
-      authStrategies: [Authentication.STRATEGY_JWT],
+      authenticate: { strategies: [Authentication.STRATEGY_JWT] },
     },
   },
 });
@@ -598,10 +595,10 @@ const CreateResponseSchema = z.object({
 const _Controller = ControllerFactory.defineCrudController({
   repository: { name: ConfigurationRepository.name },
   controller: { name: 'ConfigurationController', basePath: BASE_PATH },
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   entity: () => Configuration,
   routes: {
-    count: { skipAuth: true },
+    count: { authenticate: { skip: true } },
     create: {
       request: { body: CreateConfigurationSchema },
       response: { schema: CreateResponseSchema },
@@ -666,6 +663,7 @@ export class ConfigurationController extends _Controller {
 ## See Also
 
 - **Related References:**
+  - [gRPC Controllers](./grpc-controllers.md) - gRPC controller reference with ConnectRPC integration
   - [Services](./services.md) - Business logic layer called by controllers
   - [Repositories](./repositories/) - Data access layer for CRUD operations
   - [Middlewares](./middlewares.md) - Request/response middleware

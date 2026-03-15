@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package time.v1;
+
+service TimeService {
+  rpc GetTime (GetTimeRequest) returns (GetTimeResponse);
+}
+
+message GetTimeRequest {
+  string timezone = 1;
+}
+
+message GetTimeResponse {
+  string timestamp = 1;
+  string timezone = 2;
+}

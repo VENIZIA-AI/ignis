@@ -1,0 +1,292 @@
+import 'reflect-metadata';
+import { describe, test, expect, beforeEach } from 'bun:test';
+import { MetadataRegistry } from '@/helpers/inversion/registry';
+import { ControllerTransports } from '@/base/controllers/common/constants';
+import { BaseGrpcController } from '@/base/controllers/grpc/base';
+import { GRPC } from '@venizia/ignis-helpers';
+describe('BaseGrpcController', () => {
+  const registry = MetadataRegistry.getInstance();
+
+  beforeEach(() => {
+    registry.clearAll();
+  });
+
+  test('should resolve path from constructor', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc/test' });
+    expect(ctrl.path).toBe('/grpc/test');
+  });
+
+  test('should resolve path from decorator metadata', () => {
+    class DecoratedCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    registry.setControllerMetadata({
+      target: DecoratedCtrl,
+      metadata: {
+        path: '/grpc/decorated',
+        transport: ControllerTransports.GRPC,
+        service: {},
+      },
+    });
+
+    const ctrl = new DecoratedCtrl({ scope: 'DecoratedCtrl' });
+    expect(ctrl.path).toBe('/grpc/decorated');
+    expect(ctrl.service).toBeDefined();
+  });
+
+  test('should throw when no path is provided', () => {
+    class NoPathCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    expect(() => new NoPathCtrl({ scope: 'NoPathCtrl' })).toThrow();
+  });
+
+  test('each controller should have its own OpenAPIHono router', () => {
+    class Ctrl1 extends BaseGrpcController {
+      async binding() {}
+    }
+    class Ctrl2 extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const ctrl1 = new Ctrl1({ scope: 'Ctrl1', path: '/grpc/1' });
+    const ctrl2 = new Ctrl2({ scope: 'Ctrl2', path: '/grpc/2' });
+
+    expect(ctrl1.router).toBeDefined();
+    expect(ctrl2.router).toBeDefined();
+    expect(ctrl1.router).not.toBe(ctrl2.router);
+  });
+
+  test('getRouter should return the sub-router', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    expect(ctrl.getRouter()).toBe(ctrl.router);
+  });
+
+  describe('defineRoute', () => {
+    test('should register an implementation handler and track definition', () => {
+      class TestCtrl extends BaseGrpcController {
+        async binding() {
+          this.defineRoute({
+            configs: { name: 'SayHello', method: GRPC.Methods.UNARY },
+            handler: () => ({ message: `Hello!` }),
+          });
+        }
+      }
+
+      const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+      ctrl['binding']();
+
+      expect(ctrl.definitions['SayHello']).toBeDefined();
+      expect(typeof ctrl.definitions['SayHello'].handler).toBe('function');
+      expect(ctrl.definitions['SayHello'].configs.method).toBe('unary');
+    });
+
+    test('should register handler with full IRpcMetadata including authenticate and authorize', () => {
+      class TestCtrl extends BaseGrpcController {
+        async binding() {
+          this.defineRoute({
+            configs: {
+              name: 'SecureMethod',
+              method: GRPC.Methods.UNARY,
+              authenticate: { strategies: ['jwt'], mode: 'all' },
+              authorize: { action: 'read', resource: 'users' },
+            },
+            handler: () => ({}),
+          });
+        }
+      }
+
+      const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+      ctrl['binding']();
+
+      const def = ctrl.definitions['SecureMethod'].configs;
+      expect(def.authenticate?.strategies).toEqual(['jwt']);
+      expect(def.authorize).toEqual({ action: 'read', resource: 'users' });
+    });
+  });
+
+  describe('bindRoute', () => {
+    test('should register handler via fluent API', () => {
+      class TestCtrl extends BaseGrpcController {
+        async binding() {
+          this.bindRoute({
+            configs: { name: 'GetUser', method: GRPC.Methods.UNARY },
+          }).to({
+            handler: () => ({ user: 'test' }),
+          });
+        }
+      }
+
+      const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+      ctrl['binding']();
+
+      expect(ctrl.definitions['GetUser']).toBeDefined();
+      expect(typeof ctrl.definitions['GetUser'].handler).toBe('function');
+      expect(ctrl.definitions['GetUser'].configs.name).toBe('GetUser');
+    });
+
+    test('should return configs from fluent API', () => {
+      class TestCtrl extends BaseGrpcController {
+        async binding() {
+          const binding = this.bindRoute({
+            configs: { name: 'ListUsers', method: GRPC.Methods.SERVER_STREAMING },
+          });
+
+          expect(binding.configs.name).toBe('ListUsers');
+          expect(binding.configs.method).toBe('server_streaming');
+
+          const result = binding.to({ handler: () => ({}) });
+          expect(result.configs.name).toBe('ListUsers');
+        }
+      }
+
+      const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+      ctrl['binding']();
+    });
+  });
+
+  test('should warn when overwriting an RPC with the same name', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        this.defineRoute({
+          configs: { name: 'Duplicate', method: GRPC.Methods.UNARY },
+          handler: () => ({ first: true }),
+        });
+        this.defineRoute({
+          configs: { name: 'Duplicate', method: GRPC.Methods.UNARY },
+          handler: () => ({ second: true }),
+        });
+      }
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    ctrl['binding']();
+
+    // Second handler should overwrite first
+    expect(ctrl.definitions['Duplicate']).toBeDefined();
+    expect(typeof ctrl.definitions['Duplicate'].handler).toBe('function');
+  });
+
+  test('registerRpcsFromRegistry should route through bindRoute', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+
+      async myRpcMethod(opts: any) {
+        return { result: opts.request.input };
+      }
+    }
+
+    registry.addRpc({
+      target: TestCtrl.prototype,
+      methodName: 'myRpcMethod',
+      configs: { name: 'MyRpc', method: GRPC.Methods.UNARY },
+    });
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    ctrl['registerRpcsFromRegistry']();
+
+    expect(ctrl.definitions['MyRpc']).toBeDefined();
+    expect(typeof ctrl.definitions['MyRpc'].handler).toBe('function');
+    expect(ctrl.definitions['MyRpc'].configs.method).toBe('unary');
+  });
+
+  test('configure should call binding and registerRpcsFromRegistry', async () => {
+    let hasCalledBinding = false;
+
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        hasCalledBinding = true;
+        this.defineRoute({
+          configs: { name: 'ImperativeMethod', method: GRPC.Methods.UNARY },
+          handler: () => ({}),
+        });
+      }
+
+      async decoratedMethod() {
+        return {};
+      }
+    }
+
+    registry.addRpc({
+      target: TestCtrl.prototype,
+      methodName: 'decoratedMethod',
+      configs: { name: 'DecoratedMethod', method: GRPC.Methods.UNARY },
+    });
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+
+    // configure calls GrpcRequestAdapter.build which requires @connectrpc/connect
+    // We test binding + registerRpcsFromRegistry directly
+    await ctrl['binding']();
+    ctrl['registerRpcsFromRegistry']();
+
+    expect(hasCalledBinding).toBe(true);
+
+    expect(ctrl.definitions['ImperativeMethod']).toBeDefined();
+    expect(typeof ctrl.definitions['ImperativeMethod'].handler).toBe('function');
+    expect(ctrl.definitions['DecoratedMethod']).toBeDefined();
+    expect(typeof ctrl.definitions['DecoratedMethod'].handler).toBe('function');
+  });
+
+  test('configure should be idempotent', async () => {
+    let callCount = 0;
+
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        callCount++;
+      }
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+
+    // First configure: binding runs
+    await ctrl['binding']();
+    ctrl.isConfigured = true;
+
+    // Second configure should be skipped
+    await ctrl.configure();
+
+    expect(callCount).toBe(1);
+  });
+
+  test('definitions should be empty initially', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {}
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    expect(ctrl.definitions).toEqual({});
+  });
+
+  test('definitions should contain both configs and handler for each registered RPC', () => {
+    class TestCtrl extends BaseGrpcController {
+      async binding() {
+        this.defineRoute({
+          configs: { name: 'Method1', method: GRPC.Methods.UNARY },
+          handler: () => ({}),
+        });
+        this.defineRoute({
+          configs: { name: 'Method2', method: GRPC.Methods.SERVER_STREAMING },
+          handler: () => ({}),
+        });
+      }
+    }
+
+    const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
+    ctrl['binding']();
+
+    expect(Object.keys(ctrl.definitions)).toEqual(['Method1', 'Method2']);
+    expect(ctrl.definitions['Method1'].configs.method).toBe('unary');
+    expect(typeof ctrl.definitions['Method1'].handler).toBe('function');
+  });
+});

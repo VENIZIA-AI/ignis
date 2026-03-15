@@ -2,6 +2,9 @@ import { BaseEntity } from '@/base/models/base';
 import { SchemaTypes } from '@/base/models/common/constants';
 import { getIdType, TTableObject, TTableSchemaWithId } from '@/base/models/common/types';
 import { AbstractRepository } from '@/base/repositories/core/abstract';
+import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
+import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { z } from '@hono/zod-openapi';
 import {
   AnyType,
   BaseHelper,
@@ -14,14 +17,11 @@ import {
   TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
-import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
-import { z } from '@hono/zod-openapi';
-import { BaseController } from '../base';
-import { defineControllerRouteConfigs } from './definition';
 import { ICustomizableRoutes, TRouteContext } from '../common';
+import { BaseRestController } from '../rest/base';
+import { defineControllerRouteConfigs } from './definition';
 
 /** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
 export interface ICrudControllerOptions<
@@ -45,6 +45,7 @@ export interface ICrudControllerOptions<
       requestSchema?: boolean;
     };
   };
+
   /** Authentication config applied to all routes (unless overridden per-route). */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   /** Authorization config applied to all routes (unless overridden per-route). */
@@ -125,7 +126,7 @@ export class ControllerFactory extends BaseHelper {
     type TDeleteByQuery = z.infer<typeof routeDefinitions.DELETE_BY.request.query>;
 
     // 3. Define class
-    const _controller = class extends BaseController<
+    const _controller = class extends BaseRestController<
       RouteEnv,
       RouteSchema,
       BasePath,
@@ -231,7 +232,7 @@ export class ControllerFactory extends BaseHelper {
         const rs = await executeWithPerformanceMeasure({
           logger: this.logger,
           level: 'debug',
-          scope: 'find',
+          scope: 'findById',
           description: 'execute findById',
           args: filter,
           task: async () => {

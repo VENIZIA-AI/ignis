@@ -1,22 +1,28 @@
 import { Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
-import { AbstractController } from './abstract';
 import {
   IAuthRouteConfig,
   IBindRouteOptions,
   IDefineRouteOptions,
   TRouteHandler,
-} from './common/types';
+} from '../common/types';
+import { AbstractRestController } from './abstract';
 
-/** Recommended base class for controllers with concrete bindRoute and defineRoute implementations. */
-export abstract class BaseController<
+/** Recommended base class for REST controllers with concrete bindRoute and defineRoute implementations. */
+export abstract class BaseRestController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
   ConfigurableOptions extends object = {},
   Definitions extends Record<string, IAuthRouteConfig> = Record<string, IAuthRouteConfig>,
-> extends AbstractController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions, Definitions> {
+> extends AbstractRestController<
+  RouteEnv,
+  RouteSchema,
+  BasePath,
+  ConfigurableOptions,
+  Definitions
+> {
   /** Casts handler to Hono OpenAPI Handler type. */
   toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
     return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];

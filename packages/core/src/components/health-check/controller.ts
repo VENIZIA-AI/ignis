@@ -1,4 +1,4 @@
-import { BaseController, IControllerOptions, TRouteContext } from '@/base/controllers';
+import { BaseRestController, IControllerOptions, TRouteContext } from '@/base/controllers';
 import { api } from '@/base/metadata';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
@@ -45,7 +45,7 @@ const RouteConfigs = {
   },
 } as const;
 
-export class HealthCheckController extends BaseController {
+export class HealthCheckController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({
       ...opts,

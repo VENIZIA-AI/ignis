@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+package greeter.v1;
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+message SayHelloRequest {
+  string name = 1;
+}
+
+message SayHelloResponse {
+  string message = 1;
+}
+
+message ListUsersRequest {}
+
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+}
+
+// Server streaming: client sends a count, server streams back that many events
+message StreamEventsRequest {
+  int32 count = 1;
+}
+
+message Event {
+  int32 sequence = 1;
+  string message = 2;
+  string timestamp = 3;
+}
+
+// Client streaming: client streams log entries, server responds with summary
+message LogEntry {
+  string level = 1;
+  string message = 2;
+}
+
+message LogSummary {
+  int32 total_entries = 1;
+  int32 error_count = 2;
+  int32 warn_count = 3;
+  int32 info_count = 4;
+}
+
+// Bidi streaming: real-time chat — client sends messages, server echoes with metadata
+message ChatMessage {
+  string user = 1;
+  string text = 2;
+}
+
+message ChatResponse {
+  string user = 1;
+  string text = 2;
+  string server_timestamp = 3;
+  int32 message_number = 4;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service GreeterService {
+  // Unary — single request, single response
+  rpc SayHello (SayHelloRequest) returns (SayHelloResponse);
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+  
+  // Server streaming — single request, stream of responses
+  rpc StreamEvents (StreamEventsRequest) returns (stream Event);
+  
+  // Client streaming — stream of requests, single response
+  rpc CollectLogs (stream LogEntry) returns (LogSummary);
+  
+  // Bidirectional streaming — stream of requests, stream of responses
+  rpc Chat (stream ChatMessage) returns (stream ChatResponse);
+}

@@ -10,9 +10,11 @@ import {
     IMiddlewareConfigs,
     SwaggerComponent,
     ValueOrPromise,
+} from '@venizia/ignis';
+import {
     WebSocketBindingKeys,
     WebSocketComponent,
-} from '@venizia/ignis';
+} from '@venizia/ignis/websocket';
 import {
     applicationEnvironment,
     Environment,

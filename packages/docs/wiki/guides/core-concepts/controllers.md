@@ -1,20 +1,39 @@
 # Controllers
 
-Controllers handle HTTP requests and return responses - they're your API endpoints.
+Controllers handle incoming requests and return responses -- they are your API endpoints. Ignis supports two transport types out of the box:
 
-> **Deep Dive:** See [Controllers Reference](../../references/base/controllers.md) for advanced patterns.
+- **REST Controllers** -- HTTP/JSON endpoints powered by Hono and OpenAPI. This is the default and covers the majority of use cases.
+- **gRPC Controllers** -- RPC endpoints powered by ConnectRPC. Ideal for service-to-service communication with strongly-typed Protobuf contracts.
 
-## Creating a Controller
+Both transports share the same `@controller` decorator, DI system, and lifecycle hooks. The transport is determined by the `transport` field in the decorator metadata.
 
-Extend `BaseController` and use decorators to define routes:
+> **Deep Dive:** See [Controllers Reference](../../references/base/controllers.md) for advanced REST patterns.
+
+## Transport Types
+
+| Feature | REST | gRPC |
+| :--- | :--- | :--- |
+| **Base Class** | `BaseRestController` | `BaseGrpcController` |
+| **Decorators** | `@get`, `@post`, `@put`, `@patch`, `@del` | `@unary`, `@serverStream`, `@clientStream`, `@bidiStream` |
+| **Protocol** | HTTP/JSON | ConnectRPC (HTTP/1.1 + gRPC-Web compatible) |
+| **Schema** | Zod + OpenAPI | Protobuf (`@bufbuild/protobuf`) |
+| **Peer Dependencies** | None | `@connectrpc/connect`, `@bufbuild/protobuf` |
+| **Use Case** | Public APIs, browser clients, CRUD | Service-to-service, streaming, high-throughput RPC |
+
+## REST Controllers
+
+The following sections cover REST controllers -- the default transport in Ignis.
+
+### Creating a REST Controller
+
+Extend `BaseRestController` and use decorators to define routes:
 
 ```typescript
-import { BaseController, controller, get, jsonResponse, z } from '@venizia/ignis';
+import { BaseRestController, controller, get, jsonResponse, z, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Context } from 'hono';
 
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor() {
     // It's good practice to pass a scope for logging
     super({ scope: UserController.name, path: '/users' });
@@ -29,14 +48,14 @@ export class UserController extends BaseController {
       }),
     },
   })
-  getAllUsers(c: Context) {
+  getAllUsers(c: TRouteContext) {
     return c.json([{ id: '1', name: 'John Doe' }], HTTP.ResultCodes.RS_2.Ok);
   }
 }
 ```
 Notice that the `binding()` method is no longer needed when using decorators.
 
-## Controller Lifecycle
+### Controller Lifecycle
 
 Controllers have a simple and predictable lifecycle managed by the application.
 
@@ -45,7 +64,7 @@ Controllers have a simple and predictable lifecycle managed by the application.
 | **1. Instantiation** | `constructor(opts)` | The controller is created by the DI container. Dependencies are injected, and you call `super()` to initialize the internal Hono router. |
 | **2. Configuration**| `registerControllers` phase | The application automatically discovers and registers all routes defined with decorators (`@get`, `@post`, etc.) on your controller methods. If you have routes defined manually inside `binding()`, that method is also called during this phase. **Note:** If you exclusively use decorators for routing, the `binding()` method can be omitted from your controller. |
 
-## Defining Routes with Decorators (Recommended)
+### Defining Routes with Decorators (Recommended)
 
 The recommended way to define routes is by using decorators directly on the controller methods that handle them. This approach is more declarative, keeps your code organized, and provides **full type safety** for your request parameters, query, body, and even the response.
 
@@ -53,7 +72,7 @@ The recommended way to define routes is by using decorators directly on the cont
 For decorator-based routes, you do not need to explicitly annotate the return type with `TRouteResponse`. TypeScript will automatically infer and validate the return type against the OpenAPI response schema you define in your `configs`. This gives you full type safety with less code.
 :::
 
-### HTTP Method Decorators
+#### HTTP Method Decorators
 
 `Ignis` provides a decorator for each common HTTP method:
 
@@ -71,14 +90,13 @@ The `opts` object contains a `configs` property that defines the route's path, r
 For optimal organization and type safety, define your route configurations in a constant with `as const`. This allows TypeScript to precisely infer the types for your request data and expected responses within your handler methods.
 
 ```typescript
-import { BaseController, controller, get, post, jsonContent, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, post, jsonContent, jsonResponse, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 // Define route configs as const for type inference
 const TestRoutes = {
   GET_DATA: {
-    method: HTTP.Methods.GET,
     path: '/',
     responses: jsonResponse({
       description: 'A simple message',
@@ -86,7 +104,6 @@ const TestRoutes = {
     }),
   },
   CREATE_ITEM: {
-    method: HTTP.Methods.POST,
     path: '/',
     request: {
       body: jsonContent({
@@ -102,7 +119,7 @@ const TestRoutes = {
 } as const; // Crucial for strict type inference!
 
 @controller({ path: '/my-items' })
-export class MyItemsController extends BaseController {
+export class MyItemsController extends BaseRestController {
   constructor() {
     super({ scope: MyItemsController.name, path: '/my-items' });
   }
@@ -132,11 +149,11 @@ export class MyItemsController extends BaseController {
 }
 ```
 
-## Manual Route Definition: An Alternative Approach
+### Manual Route Definition: An Alternative Approach
 
 While decorators are the recommended approach for most use cases, `Ignis` also provides a manual way to define routes within the controller's `binding()` method.
 
-### Decorator vs Manual: Quick Comparison
+#### Decorator vs Manual: Quick Comparison
 
 | Aspect | Decorators (`@get`, `@post`) | Manual (`defineRoute`, `bindRoute`) |
 | :--- | :--- | :--- |
@@ -147,7 +164,7 @@ While decorators are the recommended approach for most use cases, `Ignis` also p
 | **Readability** | High - easy to scan | Medium - requires scrolling |
 | **Best For** | 90% of use cases | Advanced scenarios |
 
-### When to Use Manual Route Definition
+#### When to Use Manual Route Definition
 
 Manual route definition is useful for:
 
@@ -158,7 +175,7 @@ Manual route definition is useful for:
 
 When using this method, you will override the `binding()` method in your controller and use `this.defineRoute` or `this.bindRoute` to register your endpoints.
 
-### `defineRoute`
+#### `defineRoute`
 
 Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
 
@@ -171,7 +188,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 const GetUsersRoute = {
   path: '/',
   method: 'get',
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
   responses: jsonResponse({
     description: 'List of all users',
     schema: z.array(z.object({ id: z.number(), name: z.string() })),
@@ -186,7 +203,7 @@ this.defineRoute({
 });
 ```
 
-### `bindRoute`
+#### `bindRoute`
 
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
@@ -197,7 +214,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 // ... inside the binding() method
 
 const GetUserByIdRoute = {
-  path: '/:id',
+  path: '/{id}',
   method: 'get',
   responses: jsonResponse({
     description: 'A single user',
@@ -215,7 +232,7 @@ this.bindRoute({
 });
 ```
 
-## `ControllerFactory` for CRUD Operations
+### `ControllerFactory` for CRUD Operations
 
 For standard CRUD (Create, Read, Update, Delete) operations, `Ignis` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
@@ -264,12 +281,12 @@ The `ControllerFactory.defineCrudController` method automatically sets up the fo
 | :--- | :--- | :--- | :--- |
 | `count` | `GET` | `/count` | Get the number of records matching a filter. |
 | `find` | `GET` | `/` | Retrieve all records matching a filter. |
-| `findById` | `GET` | `/:id` | Retrieve a single record by its ID. |
+| `findById` | `GET` | `/{id}` | Retrieve a single record by its ID. |
 | `findOne` | `GET` | `/find-one` | Retrieve a single record matching a filter. |
 | `create` | `POST` | `/` | Create a new record. |
-| `updateById` | `PATCH` | `/:id` | Update a single record by its ID. |
+| `updateById` | `PATCH` | `/{id}` | Update a single record by its ID. |
 | `updateBy` | `PATCH` | `/` | Update multiple records matching a `where` filter. |
-| `deleteById` | `DELETE` | `/:id` | Delete a single record by its ID. |
+| `deleteById` | `DELETE` | `/{id}` | Delete a single record by its ID. |
 | `deleteBy` | `DELETE` | `/` | Delete multiple records matching a `where` filter. |
 
 :::info Customization
@@ -278,7 +295,7 @@ The `ControllerFactory` is highly customizable. You can override the Zod schemas
 For a full list of customization options, see the [**Deep Dive: `ControllerFactory`**](../../references/base/controllers.md#controllerfactory) documentation.
 :::
 
-### `defineJSXRoute` (Server-Side Rendered HTML)
+#### `defineJSXRoute` (Server-Side Rendered HTML)
 
 Use this method for routes that render HTML pages using JSX components. This is perfect for building server-side rendered web applications.
 
@@ -367,13 +384,13 @@ export const MainLayout: FC<PropsWithChildren<MainLayoutProps>> = ({ title, chil
 
 > **Note:** JSX support in `Ignis` uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
 
-## Accessing Validated Request Data
+### Accessing Validated Request Data
 
 When you define Zod schemas in your route's `request` configuration (whether with decorators or manual definition), Hono's validation middleware automatically parses and validates the incoming data. You can access this validated data using `c.req.valid()`.
 
 ```typescript
 import { z } from '@hono/zod-openapi';
-import { jsonContent, put } from '@venizia/ignis';
+import { jsonContent, put, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 // ... inside a controller class
@@ -382,8 +399,7 @@ const UserSchema = z.object({ name: z.string(), email: z.string().email() });
 
 @put({
   configs: {
-    path: '/:id',
-    method: 'put',
+    path: '/{id}',
     request: {
       params: z.object({ id: z.string() }),
       query: z.object({ notify: z.string().optional() }),
@@ -392,7 +408,7 @@ const UserSchema = z.object({ name: z.string(), email: z.string().email() });
     // ... responses
   },
 })
-updateUser(c: Context) {
+updateUser(c: TRouteContext) {
   // Access validated data from the request
   const { id } = c.req.valid('param');
   const { notify } = c.req.valid('query');
@@ -417,8 +433,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 // ... inside a controller class
 
 const UpdateUserConfig = {
-  path: '/:id',
-  method: 'put',
+  path: '/{id}',
   request: {
     params: z.object({ id: z.string() }),
     query: z.object({ notify: z.string().optional() }),
@@ -447,6 +462,114 @@ updateUser(c: TRouteContext) {
 
 Using `TRouteContext` provides a typed context object. By using `c.req.valid<T>()`, you ensure that the data you are accessing matches your expectations and provides autocomplete in your editor.
 
+## gRPC Controllers
+
+Ignis provides first-class support for gRPC via the [ConnectRPC](https://connectrpc.com/) protocol. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
+
+### Peer Dependencies
+
+gRPC support requires the following packages to be installed:
+
+```bash
+bun add @connectrpc/connect @bufbuild/protobuf
+```
+
+### Creating a gRPC Controller
+
+Extend `BaseGrpcController` and use the `@controller` decorator with `transport: ControllerTransports.GRPC` and a `service` reference to your generated Protobuf service definition.
+
+```typescript
+import { create } from '@bufbuild/protobuf';
+import {
+  BaseGrpcController,
+  ControllerTransports,
+  controller,
+  inject,
+  unary,
+} from '@venizia/ignis';
+import {
+  GreeterService,
+  SayHelloResponseSchema,
+  type SayHelloRequest,
+  type SayHelloResponse,
+} from './generated/greeter_pb';
+
+@controller({
+  path: '/grpc',
+  transport: ControllerTransports.GRPC,
+  service: GreeterService,
+})
+export class GreeterController extends BaseGrpcController {
+  constructor(
+    @inject({ key: 'services.GreeterService' })
+    private readonly greeterService: GreeterService,
+  ) {
+    super({ scope: 'GreeterController', path: '/grpc' });
+  }
+
+  override binding() {}
+
+  @unary({ configs: { name: 'sayHello' } })
+  async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
+    const message = await this.greeterService.greet({ name: opts.request.name });
+    return create(SayHelloResponseSchema, { message });
+  }
+}
+```
+
+### RPC Method Decorators
+
+Ignis provides a decorator for each gRPC method type:
+
+- `@unary(opts)` -- Single request, single response. The most common pattern.
+- `@serverStream(opts)` -- Single request, stream of responses. Return an `AsyncGenerator`.
+- `@clientStream(opts)` -- Stream of requests, single response. Receive an `AsyncIterable`.
+- `@bidiStream(opts)` -- Bidirectional streaming. Receive an `AsyncIterable`, return an `AsyncGenerator`.
+
+The `opts` object contains a `configs` property with at minimum a `name` field that matches the RPC method name in your Protobuf service definition. You can also specify `authenticate` and `authorize` options, just like REST routes.
+
+```typescript
+// Unary
+@unary({ configs: { name: 'sayHello' } })
+async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> { ... }
+
+// Server streaming
+@serverStream({ configs: { name: 'streamEvents' } })
+async *streamEvents(opts: { request: StreamEventsRequest }): AsyncGenerator<Event> { ... }
+
+// Client streaming
+@clientStream({ configs: { name: 'collectLogs' } })
+async collectLogs(opts: { request: AsyncIterable<LogEntry> }): Promise<LogSummary> { ... }
+
+// Bidirectional streaming
+@bidiStream({ configs: { name: 'chat' } })
+async *chat(opts: { request: AsyncIterable<ChatMessage> }): AsyncGenerator<ChatResponse> { ... }
+```
+
+### Transport Configuration
+
+The transport type is set via the `transport` field in the `@controller` decorator:
+
+```typescript
+// REST controller (default -- transport can be omitted)
+@controller({ path: '/users' })
+
+// gRPC controller
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: MyService })
+```
+
+The `ControllerTransports` class provides the available transport constants:
+
+- `ControllerTransports.REST` -- Default HTTP/JSON transport
+- `ControllerTransports.GRPC` -- ConnectRPC transport
+
+### Key Differences from REST Controllers
+
+- gRPC controllers use `name` (matching the Protobuf method name) instead of `path` + HTTP method in route configs.
+- Handler functions receive `{ request, context }` instead of a Hono `Context` object.
+- Responses are Protobuf message objects created with `create()` from `@bufbuild/protobuf`, not `c.json()` calls.
+- The `binding()` method must be implemented (even if empty) since `BaseGrpcController` declares it as abstract.
+
 ## See Also
 
 - **Related Concepts:**
@@ -455,7 +578,8 @@ Using `TRouteContext` provides a typed context object. By using `c.req.valid<T>(
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - Injecting services into controllers
 
 - **References:**
-  - [BaseController API](/references/base/controllers) - Complete API reference
+  - [BaseRestController API](/references/base/controllers) - Complete REST controller API reference
+  - [BaseGrpcController API](/references/base/grpc-controllers) - Complete gRPC controller API reference
   - [Middlewares](/references/base/middlewares) - Request interceptors
   - [Swagger Component](/references/components/swagger) - Auto-generate API docs
   - [Schema Utilities](/references/utilities/schema) - Request/response helpers

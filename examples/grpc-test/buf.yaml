@@ -1,0 +1,4 @@
+version: v2
+modules:
+  - path: src/controllers/greeter/proto
+  - path: src/controllers/health/proto

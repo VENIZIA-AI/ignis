@@ -36,11 +36,7 @@ import {
   JWKSKeyFormats,
   JWKSModes,
   BasicAuthenticationStrategy,
-  StaticAssetComponent,
-  StaticAssetComponentBindingKeys,
-  StaticAssetStorageTypes,
   SwaggerComponent,
-  TStaticAssetsComponentOptions,
   ValueOrPromise,
   TAuthenticationRestOptions,
   TJWTTokenServiceOptions,
@@ -48,6 +44,12 @@ import {
   TJWKSKeyDriver,
   TJWKSKeyFormat,
 } from '@venizia/ignis';
+import {
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
+  TStaticAssetsComponentOptions,
+} from '@venizia/ignis/static-asset';
 import {
   applicationEnvironment,
   DiskHelper,

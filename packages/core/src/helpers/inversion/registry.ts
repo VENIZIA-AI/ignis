@@ -3,18 +3,26 @@ import { IModelRegistryEntry, IRepositoryBinding } from './common/types';
 import {
   ControllerMetadataMixin,
   DatasourceMetadataMixin,
+  GrpcControllerMetadataMixin,
   ModelMetadataMixin,
   RepositoryMetadataMixin,
+  RestControllerMetadataMixin,
 } from './mixins';
+
+const _BaseRegistry = GrpcControllerMetadataMixin(
+  RestControllerMetadataMixin(
+    ControllerMetadataMixin(
+      RepositoryMetadataMixin(ModelMetadataMixin(DatasourceMetadataMixin(_MetadataRegistry))),
+    ),
+  ),
+);
 
 /**
 
  * Central metadata registry for storing and retrieving decorator metadata.
  * Enhanced with model registry, repository bindings, and auto-discovery capabilities.
  */
-export class MetadataRegistry extends ControllerMetadataMixin(
-  RepositoryMetadataMixin(ModelMetadataMixin(DatasourceMetadataMixin(_MetadataRegistry))),
-) {
+export class MetadataRegistry extends _BaseRegistry {
   private static instance: MetadataRegistry;
 
   private constructor() {

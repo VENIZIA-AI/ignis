@@ -1,19 +1,19 @@
 import { TContext } from '@/base/controllers/common/types';
-import { inject } from '@/base/metadata/injectors';
+import { Authentication } from '@/components/auth/authenticate/common/constants';
+import type { IAuthUser } from '@/components/auth/authenticate/common/types';
 import {
   Authorization,
   AuthorizationDecisions,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
 import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
-import { AuthorizationEnforcerRegistry } from '@/components/auth/authorize/enforcers/enforcer-registry';
-import { Authentication } from '@/components/auth/authenticate/common/constants';
 import type {
   IAuthorizationEnforcer,
   IAuthorizationRequest,
   IAuthorizeOptions,
 } from '@/components/auth/authorize/common/types';
-import type { IAuthUser } from '@/components/auth/authenticate/common/types';
+import { AuthorizationEnforcerRegistry } from '@/components/auth/authorize/enforcers/enforcer-registry';
+import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
@@ -24,6 +24,11 @@ export type TTestRule = {
   conditions?: Record<string, unknown>;
 };
 
+/**
+ * Note: Bun's transpiler does not support parameter decorators (experimentalDecorators).
+ * So @inject on constructor params is a no-op at test time. We use explicit inject
+ * metadata registration instead.
+ */
 export class TestAuthorizationEnforcer
   extends BaseHelper
   implements IAuthorizationEnforcer<Env, string, string, TTestRule[]>
@@ -34,11 +39,11 @@ export class TestAuthorizationEnforcer
   static loadRulesFn?: (opts: { user: IAuthUser; context: TContext }) => Promise<TTestRule[]>;
   static onBuildRules?: () => void;
 
-  constructor(
-    @inject({ key: AuthorizeBindingKeys.OPTIONS })
-    private options: IAuthorizeOptions,
-  ) {
+  private options: IAuthorizeOptions;
+
+  constructor(options: IAuthorizeOptions) {
     super({ scope: TestAuthorizationEnforcer.name });
+    this.options = options;
   }
 
   configure(): void {}
@@ -133,10 +138,32 @@ export const createMockContext = (overrides?: {
   };
 };
 
+/**
+ * Manually register @inject metadata for TestAuthorizationEnforcer.
+ * Bun's transpiler does not support parameter decorators, so we register
+ * the inject metadata programmatically instead.
+ */
+const registerTestEnforcerInjectMetadata = () => {
+  MetadataRegistry.getInstance().setInjectMetadata({
+    target: TestAuthorizationEnforcer,
+    index: 0,
+    metadata: {
+      key: AuthorizeBindingKeys.OPTIONS,
+      index: 0,
+      isOptional: false,
+    },
+  });
+};
+
+// Register once at module load time (equivalent to what @inject would do)
+registerTestEnforcerInjectMetadata();
+
 export const createFreshRegistry = (): AuthorizationEnforcerRegistry => {
   const registry = AuthorizationEnforcerRegistry.getInstance();
   registry.reset();
   TestAuthorizationEnforcer.reset();
+  // Re-register inject metadata in case clearAll was called
+  registerTestEnforcerInjectMetadata();
   return registry;
 };
 

@@ -1,9 +1,10 @@
+import { ControllerTransports } from '@/base/controllers/common/constants';
 import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
 import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
 import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
-import { RouteConfig } from '@hono/zod-openapi';
-import { TClass, TValueOrResolver } from '@venizia/ignis-helpers';
+import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,
@@ -11,14 +12,32 @@ import {
 } from '@venizia/ignis-inversion';
 import { relations as defineRelations } from 'drizzle-orm';
 
-export type TRouteMetadata = RouteConfig & {
-  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
-};
-
-export interface IControllerMetadata {
+interface IBaseControllerMetadata {
   path: string;
   tags?: string[];
   description?: string;
+}
+
+export interface IRestControllerMetadata extends IBaseControllerMetadata {
+  transport?: typeof ControllerTransports.REST;
+}
+
+export interface IGrpcControllerMetadata<ServiceType = unknown> extends IBaseControllerMetadata {
+  transport: typeof ControllerTransports.GRPC;
+  service: ServiceType;
+}
+
+export type TControllerMetadata = IRestControllerMetadata | IGrpcControllerMetadata;
+
+export interface IRpcMetadata {
+  /** Proto method name. */
+  name: string;
+  /** RPC method type (unary, server_streaming, etc.). */
+  method: TGrpcMethod;
+  /** Authentication config for this RPC method. */
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  /** Authorization spec(s) for this RPC method. */
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
 
 export interface IPropertyMetadata extends _IPropertyMetadata {}

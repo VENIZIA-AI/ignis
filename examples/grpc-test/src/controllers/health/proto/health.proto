@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package health.v1;
+
+// ---------------------------------------------------------------------------
+// Messages
+// ---------------------------------------------------------------------------
+
+message PingRequest {
+  string message = 1;
+  string tz = 2;
+}
+
+message PongResponse {
+  string message = 1;
+  string tz = 2;
+  int32 took = 3;
+}
+
+// ---------------------------------------------------------------------------
+// Service
+// ---------------------------------------------------------------------------
+
+service HealthService {
+  // Unary — single request, single response
+  rpc Ping (PingRequest) returns (PongResponse);
+}

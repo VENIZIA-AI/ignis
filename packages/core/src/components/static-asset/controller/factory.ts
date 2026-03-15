@@ -1,3 +1,5 @@
+import { BaseRestController } from '@/base/controllers';
+import { controller as controllerDecorator } from '@/base/metadata';
 import {
   BaseHelper,
   createContentDispositionHeader,
@@ -10,19 +12,17 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import {
-  TStaticAssetExtraOptions,
-  TStaticAssetStorageType,
-  TMetaLinkConfig,
-  WHITELIST_HEADERS,
-  TStaticAssetsComponentOptions,
   TBucketParams,
-  TObjectParams,
-  TUploadQuery,
   TListQuery,
+  TMetaLinkConfig,
+  TObjectParams,
+  TStaticAssetExtraOptions,
+  TStaticAssetsComponentOptions,
+  TStaticAssetStorageType,
+  TUploadQuery,
+  WHITELIST_HEADERS,
 } from '../common';
 import { StaticAssetDefinitions } from './base.definition';
-import { BaseController } from '@/base/controllers';
-import { controller as controllerDecorator } from '@/base/metadata';
 
 export interface IAssetControllerOptions {
   controller: TStaticAssetsComponentOptions[string]['controller'];
@@ -43,7 +43,7 @@ export class AssetControllerFactory extends BaseHelper {
     const { name, basePath, routes, isStrict = true } = controller;
 
     @controllerDecorator({ path: basePath })
-    class _controller extends BaseController {
+    class _controller extends BaseRestController {
       constructor() {
         super({
           scope: name,
@@ -110,7 +110,7 @@ export class AssetControllerFactory extends BaseHelper {
               ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
             });
             if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
-              ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPPLICATION_OCTET_STREAM);
+              ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_OCTET_STREAM);
             }
             ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
             ctx.header('x-content-type-options', 'nosniff');
@@ -156,7 +156,7 @@ export class AssetControllerFactory extends BaseHelper {
               ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
             });
             if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
-              ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPPLICATION_OCTET_STREAM);
+              ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_OCTET_STREAM);
             }
             ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
             ctx.header(

@@ -1,4 +1,4 @@
-import { BaseController } from '@/base/controllers/base';
+import { BaseRestController } from '@/base/controllers/rest/base';
 import { inject } from '@/base/metadata/injectors';
 import { BindingNamespaces } from '@/common/bindings';
 import { HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
@@ -6,7 +6,7 @@ import { BindingKeys } from '@venizia/ignis-inversion';
 import { JWKSIssuerTokenService } from '../../services';
 import { RouteConfigs } from './definitions';
 
-export class JWKSController extends BaseController {
+export class JWKSController extends BaseRestController {
   constructor(
     @inject({
       key: BindingKeys.build({

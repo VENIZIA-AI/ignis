@@ -105,6 +105,18 @@
       "types": "./dist/components/mail/index.d.ts",
       "default": "./dist/components/mail/index.js"
     },
+    "./grpc": {
+      "types": "./dist/components/grpc/index.d.ts",
+      "default": "./dist/components/grpc/index.js"
+    },
+    "./static-asset": {
+      "types": "./dist/components/static-asset/index.d.ts",
+      "default": "./dist/components/static-asset/index.js"
+    },
+    "./websocket": {
+      "types": "./dist/components/websocket/index.d.ts",
+      "default": "./dist/components/websocket/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -141,6 +153,7 @@
   },
   "peerDependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.1",
+    "@connectrpc/connect": "^2.1.1",
     "@hono/node-server": "^1.19.8",
     "@hono/swagger-ui": "^0.5.2",
     "@hono/zod-openapi": "^1.2.2",
@@ -161,6 +174,9 @@
     "socket.io-client": "^4.8.1"
   },
   "peerDependenciesMeta": {
+    "@connectrpc/connect": {
+      "optional": true
+    },
     "@hono/node-server": {
       "optional": true
     },
@@ -203,6 +219,7 @@
   },
   "devDependencies": {
     "@asteasolutions/zod-to-openapi": "^8.4.1",
+    "@connectrpc/connect": "^2.1.1",
     "@hono/node-server": "^1.19.8",
     "@hono/swagger-ui": "^0.5.2",
     "@socket.io/bun-engine": "^0.1.0",

@@ -1,6 +1,20 @@
-import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
+import { HTTP, TConstValue } from '@venizia/ignis-helpers';
 import { TResponseHeaders } from './types';
+
+/** Transport protocol constants for controllers. */
+export class ControllerTransports {
+  static readonly REST = 'rest';
+  static readonly GRPC = 'grpc';
+
+  static readonly SCHEME_SET = new Set([this.REST, this.GRPC]);
+
+  static isValid(value: string): boolean {
+    return this.SCHEME_SET.has(value);
+  }
+}
+
+export type TControllerTransport = TConstValue<typeof ControllerTransports>;
 
 /** Standard REST API path constants for CRUD controllers. */
 export class RestPaths {

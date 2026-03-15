@@ -1,22 +1,23 @@
 import { AuthenticationModes } from '@/components/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
-import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
 import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
 import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Env, Schema } from 'hono';
 import {
-  IController,
-  IControllerOptions,
   IAuthRouteConfig,
   IBindRouteOptions,
+  IController,
+  IControllerOptions,
   IDefineRouteOptions,
   TRouteHandler,
-} from './common/types';
-/** Abstract base class for all controllers, providing route registration and auth middleware integration. */
-export abstract class AbstractController<
+} from '../common/types';
+
+/** Abstract base class for all REST controllers, providing route registration and auth middleware integration. */
+export abstract class AbstractRestController<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
   BasePath extends string = '/',
@@ -26,10 +27,10 @@ export abstract class AbstractController<
   extends BaseHelper
   implements IController<RouteEnv, RouteSchema, BasePath, ConfigurableOptions>
 {
+  isConfigured = false;
   router: OpenAPIHono<RouteEnv, RouteSchema, BasePath>;
-  /** Route definitions map, keyed by route identifier (e.g., 'FIND', 'CREATE'). */
-  definitions: Definitions;
   path: string;
+  definitions: Definitions;
 
   constructor(opts: IControllerOptions) {
     super(opts);
@@ -82,10 +83,14 @@ export abstract class AbstractController<
     }
   }
 
-  /** Configures the controller by binding all routes and registering decorator-based routes. */
+  /** Configures the controller by binding all routes and registering decorator-based routes. Idempotent. */
   async configure(
     opts?: ConfigurableOptions,
   ): Promise<OpenAPIHono<RouteEnv, RouteSchema, BasePath>> {
+    if (this.isConfigured) {
+      return this.router;
+    }
+
     const t = performance.now();
     const logger = this.logger.for(this.configure.name);
 
@@ -95,6 +100,7 @@ export abstract class AbstractController<
     await this.binding();
     this.registerRoutesFromRegistry();
 
+    this.isConfigured = true;
     logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
     return this.router;
   }

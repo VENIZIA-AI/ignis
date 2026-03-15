@@ -1,6 +1,9 @@
 import type { OpenAPIHono } from '@hono/zod-openapi';
+import { IBootOptions } from '@venizia/ignis-boot';
+import { ValueOrPromise } from '@venizia/ignis-helpers';
 import type { Context, Env, Schema } from 'hono';
 import { IPRestrictionRules as IIPRestrictionRules } from 'hono/ip-restriction';
+import { TControllerTransport } from '../controllers/common/constants';
 import {
   IComponentMixin,
   IControllerMixin,
@@ -8,8 +11,6 @@ import {
   IServiceMixin,
   IStaticServeMixin,
 } from '../mixins/types';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { IBootOptions } from '@venizia/ignis-boot';
 
 export interface IBaseMiddlewareOptions {
   enable: boolean;
@@ -81,6 +82,8 @@ export interface IApplicationConfigs {
   asyncContext?: { enable: boolean };
   bootOptions?: IBootOptions;
   debug?: { shouldShowRoutes?: boolean };
+  /** Controller transports to enable. Defaults to ['rest']. */
+  transports?: TControllerTransport[];
   [key: string]: any;
 }
 

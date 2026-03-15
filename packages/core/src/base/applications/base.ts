@@ -1,12 +1,9 @@
+import { ControllerTransports } from '@/base/controllers/common/constants';
 import { BindingNamespaces, TBindingNamespace } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
-import {
-  Binding,
-  BindingKeys,
-  BindingScopes,
-  BindingValueTypes,
-  MetadataRegistry,
-} from '@/helpers/inversion';
+import { GrpcComponent } from '@/components/controller/grpc';
+import { RestComponent } from '@/components/controller/rest';
+import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
 import {
   Bootstrapper,
   ControllerBooter,
@@ -27,9 +24,7 @@ import {
   TClass,
 } from '@venizia/ignis-helpers';
 import { contextStorage } from 'hono/context-storage';
-import isEmpty from 'lodash/isEmpty';
 import { BaseComponent } from '../components';
-import { BaseController } from '../controllers';
 import { IDataSource } from '../datasources';
 import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
 import { TMixinOpts } from '../mixins';
@@ -54,6 +49,7 @@ const {
 
 interface IRegisterDynamicBindingsOptions<T extends IConfigurable = IConfigurable> {
   namespace: TBindingNamespace;
+
   onBeforeConfigure?: (opts: { binding: Binding<T> }) => Promise<void>;
   onAfterConfigure?: (opts: { binding: Binding<T>; instance: T }) => Promise<void>;
 }
@@ -64,14 +60,17 @@ export abstract class BaseApplication
 {
   private registeredBindings: Record<string, Set<string>> = {};
 
+  // -----------------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
     return joined || '/';
   }
 
+  // -----------------------------------------------------------------------------------------
   protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
     opts: IRegisterDynamicBindingsOptions<T>,
   ): Promise<void> {
+    const logger = this.logger.for(this.registerDynamicBindings.name);
     const { namespace, onBeforeConfigure, onAfterConfigure } = opts;
 
     if (!this.registeredBindings[namespace]) {
@@ -83,9 +82,7 @@ export abstract class BaseApplication
     while (bindings.length > 0) {
       const binding = bindings.shift();
       if (!binding) {
-        this.logger
-          .for(this.registerDynamicBindings.name)
-          .debug('Empty binding | namespace: %s', namespace);
+        logger.debug('Empty binding | namespace: %s', namespace);
         continue;
       }
 
@@ -95,9 +92,7 @@ export abstract class BaseApplication
 
       const instance = this.get<T>({ key: binding.key, isOptional: false });
       if (!instance) {
-        this.logger
-          .for(this.registerDynamicBindings.name)
-          .debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
+        logger.debug('No binding instance | namespace: %s | key: %s', namespace, binding.key);
         configured.add(binding.key);
         continue;
       }
@@ -114,6 +109,7 @@ export abstract class BaseApplication
     }
   }
 
+  // -----------------------------------------------------------------------------------------
   component<Base extends BaseComponent, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -144,6 +140,7 @@ export abstract class BaseApplication
     });
   }
 
+  // -----------------------------------------------------------------------------------------
   controller<Base, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -164,36 +161,33 @@ export abstract class BaseApplication
       description: 'Register application controllers',
       scope: this.registerControllers.name,
       task: async () => {
-        const router = this.getRootRouter();
+        const transports = this.configs.transports ?? [ControllerTransports.REST];
 
-        await this.registerDynamicBindings<BaseController>({
-          namespace: BindingNamespaces.CONTROLLER,
-          onBeforeConfigure: async ({ binding }) => {
-            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
-              target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
-            });
-
-            if (!controllerMetadata?.path || isEmpty(controllerMetadata?.path)) {
+        for (const transport of transports) {
+          switch (transport) {
+            case ControllerTransports.REST: {
+              const restComponent = new RestComponent(this);
+              await restComponent.configure();
+              break;
+            }
+            case ControllerTransports.GRPC: {
+              const grpcComponent = new GrpcComponent(this);
+              await grpcComponent.configure();
+              break;
+            }
+            default: {
               throw getError({
                 statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-                message: `[registerControllers] key: '${binding.key}' | Invalid controller metadata, 'path' is required for controller metadata`,
+                message: `[registerControllers] Unsupported transport: '${transport}'`,
               });
             }
-          },
-          onAfterConfigure: async ({ binding, instance }) => {
-            const controllerMetadata = MetadataRegistry.getInstance().getControllerMetadata({
-              target: binding.getBindingMeta({ type: BindingValueTypes.CLASS }),
-            });
-
-            if (controllerMetadata?.path) {
-              router.route(controllerMetadata.path, instance.getRouter());
-            }
-          },
-        });
+          }
+        }
       },
     });
   }
 
+  // -----------------------------------------------------------------------------------------
   service<Base extends IService, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -208,6 +202,7 @@ export abstract class BaseApplication
     }).toClass(ctor);
   }
 
+  // -----------------------------------------------------------------------------------------
   repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -222,6 +217,7 @@ export abstract class BaseApplication
     }).toClass(ctor);
   }
 
+  // -----------------------------------------------------------------------------------------
   dataSource<Base extends IDataSource, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -249,6 +245,7 @@ export abstract class BaseApplication
     });
   }
 
+  // -----------------------------------------------------------------------------------------
   booter<Base extends IBooter, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -280,6 +277,7 @@ export abstract class BaseApplication
     });
   }
 
+  // -----------------------------------------------------------------------------------------
   static(opts: { restPath?: string; folderPath: string }) {
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
@@ -320,6 +318,7 @@ export abstract class BaseApplication
     return this;
   }
 
+  // -----------------------------------------------------------------------------------------
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
     this.logger
@@ -351,6 +350,7 @@ export abstract class BaseApplication
       .info('------------------------------------------------------------------------');
   }
 
+  // -----------------------------------------------------------------------------------------
   protected async registerDefaultMiddlewares() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -382,14 +382,14 @@ export abstract class BaseApplication
     });
   }
 
+  // -----------------------------------------------------------------------------------------
   async boot(): Promise<IBootReport> {
     await this.registerBooters();
-
     const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
-
     return bootstrapper.boot({});
   }
 
+  // -----------------------------------------------------------------------------------------
   override async initialize() {
     this.printStartUpInfo({ scope: this.initialize.name });
     this.validateEnvs();

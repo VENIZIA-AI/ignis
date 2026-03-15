@@ -6,6 +6,7 @@ import { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
 import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import type { TypedResponse } from 'hono';
 import { Context, Env, Schema } from 'hono';
+
 /** Typed validation results for route handlers. */
 export interface IValidRequestProps<
   JsonType = unknown,
@@ -77,6 +78,7 @@ export interface IAuthRouteConfig extends HonoRouteConfig {
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
+
 /** Base controller interface defining route registration and configuration contract. */
 export interface IController<
   RouteEnv extends Env = Env,
@@ -97,6 +99,7 @@ export interface IController<
     hook?: Hook<any, RouteEnv, string, ValueOrPromise<any>>;
   }): IDefineRouteOptions<RouteConfig, RouteEnv, RouteSchema, BasePath>;
 }
+
 /** Configuration options for controller instantiation. */
 export interface IControllerOptions {
   scope: string;
@@ -119,6 +122,7 @@ export type TRouteAuthConfig = {
   authenticate?: TRouteAuthenticateConfig;
   authorize?: TRouteAuthorizeConfig;
 };
+
 /** OpenAPI response header object */
 export type TResponseHeaderObject = {
   description?: string;

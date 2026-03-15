@@ -1,0 +1,48 @@
+{
+  "name": "grpc-test",
+  "version": "0.0.0",
+  "private": true,
+  "description": "gRPC example — ConnectRPC server + client with Ignis",
+  "main": "dist/index.js",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "bun run clean && bun run build",
+    "proto:gen": "bun run proto:gen:greeter && bun run proto:gen:health && bun run proto:gen:echo && bun run proto:gen:time",
+    "proto:gen:greeter": "node_modules/.bin/buf generate --template src/controllers/greeter/proto/buf.gen.yaml src/controllers/greeter/proto",
+    "proto:gen:health": "node_modules/.bin/buf generate --template src/controllers/health/proto/buf.gen.yaml src/controllers/health/proto",
+    "proto:gen:echo": "node_modules/.bin/buf generate --template src/controllers/echo/proto/buf.gen.yaml src/controllers/echo/proto",
+    "proto:gen:time": "node_modules/.bin/buf generate --template src/controllers/time/proto/buf.gen.yaml src/controllers/time/proto",
+    "preserver:dev": "bun run rebuild",
+    "server:dev": "NODE_ENV=development bun .",
+    "preclient:dev": "bun run rebuild",
+    "client:dev": "NODE_ENV=development bun run dist/client.js"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "^2.5.2",
+    "@connectrpc/connect": "^2.0.3",
+    "@connectrpc/connect-web": "^2.0.3",
+    "@hono/zod-openapi": "latest",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "hono": "^4.12.1"
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "^1.50.0",
+    "@bufbuild/protoc-gen-es": "^2.5.2",
+    "@types/bun": "latest",
+    "@venizia/dev-configs": "workspace:*",
+    "eslint": "^9.39.3",
+    "prettier": "^3.8.1",
+    "tsc-alias": "^1.8.10",
+    "typescript": "^5.9.3"
+  }
+}

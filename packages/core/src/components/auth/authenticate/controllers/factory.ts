@@ -1,4 +1,4 @@
-import { BaseController } from '@/base/controllers/base';
+import { BaseRestController } from '@/base/controllers/rest/base';
 import { inject } from '@/base/metadata/injectors';
 import { controller } from '@/base/metadata/routes';
 import { jsonContent, jsonResponse } from '@/base/models/common/types';
@@ -35,7 +35,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
   const { restPath = '/auth', serviceKey, requireAuthenticatedSignUp = false, payload = {} } = opts;
 
   @controller({ path: restPath })
-  class AuthController extends BaseController {
+  class AuthController extends BaseRestController {
     service: IAuthService;
 
     constructor(authService: IAuthService) {

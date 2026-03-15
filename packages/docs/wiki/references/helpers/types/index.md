@@ -404,7 +404,7 @@ The `HTTP` class groups all HTTP-related constants into nested objects.
 |----------|-------|
 | `HTTP.HeaderValues.APPLICATION_JSON` | `'application/json'` |
 | `HTTP.HeaderValues.APPLICATION_FORM_URLENCODED` | `'application/x-www-form-urlencoded'` |
-| `HTTP.HeaderValues.APPPLICATION_OCTET_STREAM` | `'application/octet-stream'` |
+| `HTTP.HeaderValues.APPLICATION_OCTET_STREAM` | `'application/octet-stream'` |
 | `HTTP.HeaderValues.MULTIPART_FORM_DATA` | `'multipart/form-data'` |
 | `HTTP.HeaderValues.TEXT_PLAIN` | `'text/plain'` |
 
@@ -481,6 +481,65 @@ The `HTTP` class groups all HTTP-related constants into nested objects.
 ```typescript
 type THttpMethod = ValueOf<typeof HTTP.Methods>;       // 'get' | 'post' | 'put' | ...
 type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>; // 0 | 1 | -199 | { Ok: 200, ... } | ...
+```
+
+#### GRPC
+
+gRPC protocol constants for headers, methods, content types, and status codes.
+
+```typescript
+import { GRPC } from '@venizia/ignis-helpers';
+```
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `GRPC.Methods.UNARY` | `'unary'` | Single request, single response |
+| `GRPC.Methods.SERVER_STREAMING` | `'server_streaming'` | Single request, stream of responses |
+| `GRPC.Methods.CLIENT_STREAMING` | `'client_streaming'` | Stream of requests, single response |
+| `GRPC.Methods.BIDI_STREAMING` | `'bidi_streaming'` | Bidirectional streaming |
+| `GRPC.Headers.CONTENT_TYPE` | `'content-type'` | HTTP content type header |
+| `GRPC.Headers.TE` | `'te'` | Transfer encoding header |
+| `GRPC.Headers.USER_AGENT` | `'user-agent'` | User agent header |
+| `GRPC.Headers.GRPC_TIMEOUT` | `'grpc-timeout'` | gRPC timeout header |
+| `GRPC.Headers.GRPC_ENCODING` | `'grpc-encoding'` | gRPC encoding header |
+| `GRPC.Headers.GRPC_ACCEPT_ENCODING` | `'grpc-accept-encoding'` | gRPC accepted encodings header |
+| `GRPC.Headers.GRPC_MESSAGE_TYPE` | `'grpc-message-type'` | gRPC message type header |
+| `GRPC.Headers.GRPC_STATUS` | `'grpc-status'` | gRPC status code header |
+| `GRPC.Headers.GRPC_MESSAGE` | `'grpc-message'` | gRPC error message header |
+| `GRPC.Headers.GRPC_STATUS_DETAILS_BIN` | `'grpc-status-details-bin'` | gRPC binary status details header |
+| `GRPC.Headers.GRPC_PREVIOUS_RPC_ATTEMPTS` | `'grpc-previous-rpc-attempts'` | gRPC previous RPC attempts header |
+| `GRPC.Headers.GRPC_RETRY_PUSHBACK_MS` | `'grpc-retry-pushback-ms'` | gRPC retry pushback milliseconds header |
+| `GRPC.Headers.GRPC_TRACE_BIN` | `'grpc-trace-bin'` | gRPC binary trace context header |
+| `GRPC.Headers.GRPC_TAGS_BIN` | `'grpc-tags-bin'` | gRPC binary tags header |
+| `GRPC.HeaderValues.GRPC` | `'application/grpc'` | Standard gRPC content type |
+| `GRPC.HeaderValues.GRPC_PROTO` | `'application/grpc+proto'` | gRPC Protobuf content type |
+| `GRPC.HeaderValues.GRPC_JSON` | `'application/grpc+json'` | gRPC JSON content type |
+| `GRPC.HeaderValues.GRPC_WEB` | `'application/grpc-web'` | gRPC-Web content type |
+| `GRPC.HeaderValues.GRPC_WEB_PROTO` | `'application/grpc-web+proto'` | gRPC-Web Protobuf content type |
+| `GRPC.HeaderValues.GRPC_WEB_JSON` | `'application/grpc-web+json'` | gRPC-Web JSON content type |
+| `GRPC.HeaderValues.GRPC_WEB_TEXT` | `'application/grpc-web-text'` | gRPC-Web text content type |
+| `GRPC.ResultCodes.OK` | `0` | Success |
+| `GRPC.ResultCodes.CANCELLED` | `1` | Operation cancelled |
+| `GRPC.ResultCodes.UNKNOWN` | `2` | Unknown error |
+| `GRPC.ResultCodes.INVALID_ARGUMENT` | `3` | Invalid argument |
+| `GRPC.ResultCodes.DEADLINE_EXCEEDED` | `4` | Deadline exceeded |
+| `GRPC.ResultCodes.NOT_FOUND` | `5` | Not found |
+| `GRPC.ResultCodes.ALREADY_EXISTS` | `6` | Already exists |
+| `GRPC.ResultCodes.PERMISSION_DENIED` | `7` | Permission denied |
+| `GRPC.ResultCodes.RESOURCE_EXHAUSTED` | `8` | Resource exhausted |
+| `GRPC.ResultCodes.FAILED_PRECONDITION` | `9` | Failed precondition |
+| `GRPC.ResultCodes.ABORTED` | `10` | Operation aborted |
+| `GRPC.ResultCodes.OUT_OF_RANGE` | `11` | Out of range |
+| `GRPC.ResultCodes.UNIMPLEMENTED` | `12` | Unimplemented |
+| `GRPC.ResultCodes.INTERNAL` | `13` | Internal server error |
+| `GRPC.ResultCodes.UNAVAILABLE` | `14` | Service unavailable |
+| `GRPC.ResultCodes.DATA_LOSS` | `15` | Unrecoverable data loss |
+| `GRPC.ResultCodes.UNAUTHENTICATED` | `16` | Unauthenticated |
+
+```typescript
+// Derived types
+type TGrpcMethod = ValueOf<typeof GRPC.Methods>;
+type TGrpcResultCode = ValueOf<typeof GRPC.ResultCodes>;
 ```
 
 #### MimeTypes
