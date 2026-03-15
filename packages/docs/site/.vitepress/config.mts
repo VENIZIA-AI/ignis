@@ -1,5 +1,248 @@
-import { defineConfig } from 'vitepress';
+import { defineConfig, type DefaultTheme } from 'vitepress';
 import { withMermaid } from 'vitepress-plugin-mermaid';
+
+// ── Sidebar: Core API ──
+// Shown for: /references/, /references/base/*, /references/configuration/*, /references/utilities/*
+const coreApiSidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: 'Core API',
+    items: [
+      { text: 'Overview', link: '/references/' },
+      { text: '⚡ Quick Reference', link: '/references/quick-reference' },
+    ],
+  },
+  {
+    text: 'Configuration',
+    collapsed: false,
+    items: [
+      { text: 'Overview', link: '/references/configuration/' },
+      { text: 'Environment Variables', link: '/references/configuration/environment-variables' },
+    ],
+  },
+  {
+    text: 'Base Abstractions',
+    collapsed: false,
+    items: [
+      { text: 'Overview', link: '/references/base/' },
+      { text: 'Application', link: '/references/base/application' },
+      { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
+      { text: 'Components', link: '/references/base/components' },
+      {
+        text: 'Controllers',
+        collapsed: true,
+        items: [
+          { text: 'REST', link: '/references/base/controllers' },
+          { text: 'gRPC', link: '/references/base/grpc-controllers' },
+        ],
+      },
+      { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
+      { text: 'Middlewares', link: '/references/base/middlewares' },
+      { text: 'Models & Enrichers', link: '/references/base/models' },
+      { text: 'Providers', link: '/references/base/providers' },
+      { text: 'DataSources', link: '/references/base/datasources' },
+      {
+        text: 'Repositories',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/references/base/repositories/' },
+          { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
+          { text: 'Mixins', link: '/references/base/repositories/mixins' },
+          { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
+          { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
+        ],
+      },
+      {
+        text: 'Filter System',
+        collapsed: false,
+        items: [
+          { text: 'Overview', link: '/references/base/filter-system/' },
+          { text: '⚡ Quick Reference', link: '/references/base/filter-system/quick-reference' },
+          { text: 'Comparison Operators', link: '/references/base/filter-system/comparison-operators' },
+          { text: 'Null Operators', link: '/references/base/filter-system/null-operators' },
+          { text: 'List Operators', link: '/references/base/filter-system/list-operators' },
+          { text: 'Range Operators', link: '/references/base/filter-system/range-operators' },
+          { text: 'Pattern Matching', link: '/references/base/filter-system/pattern-matching' },
+          { text: 'Logical Operators', link: '/references/base/filter-system/logical-operators' },
+          { text: 'JSON Filtering', link: '/references/base/filter-system/json-filtering' },
+          { text: 'Array Operators', link: '/references/base/filter-system/array-operators' },
+          { text: 'Fields, Order & Pagination', link: '/references/base/filter-system/fields-order-pagination' },
+          { text: 'Default Filter', link: '/references/base/filter-system/default-filter' },
+          { text: 'Application Usage', link: '/references/base/filter-system/application-usage' },
+          { text: 'Use Cases', link: '/references/base/filter-system/use-cases' },
+          { text: 'Tips & Edge Cases', link: '/references/base/filter-system/tips' },
+        ],
+      },
+      { text: 'Services', link: '/references/base/services' },
+    ],
+  },
+  {
+    text: 'Utilities',
+    collapsed: false,
+    items: [
+      { text: 'Overview', link: '/references/utilities/' },
+      { text: 'Crypto', link: '/references/utilities/crypto' },
+      { text: 'Date', link: '/references/utilities/date' },
+      { text: 'JSX', link: '/references/utilities/jsx' },
+      { text: 'Module', link: '/references/utilities/module' },
+      { text: 'Parse', link: '/references/utilities/parse' },
+      { text: 'Performance', link: '/references/utilities/performance' },
+      { text: 'Promise', link: '/references/utilities/promise' },
+      { text: 'Request', link: '/references/utilities/request' },
+      { text: 'Schema', link: '/references/utilities/schema' },
+      { text: 'Statuses', link: '/references/utilities/statuses' },
+    ],
+  },
+];
+
+// ── Sidebar: Extensions ──
+// Shown for: /extensions/components/*, /extensions/helpers/*, /extensions/src-details/*
+const extensionsSidebar: DefaultTheme.SidebarItem[] = [
+  {
+    text: 'Extensions',
+    items: [
+      { text: 'Overview', link: '/extensions/' },
+    ],
+  },
+  {
+    text: 'Components',
+    collapsed: false,
+    items: [
+      { text: 'Overview', link: '/extensions/components/' },
+      {
+        text: 'Authentication',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/authentication/' },
+          { text: 'Usage & Examples', link: '/extensions/components/authentication/usage' },
+          { text: 'API Reference', link: '/extensions/components/authentication/api' },
+          { text: 'Error Reference', link: '/extensions/components/authentication/errors' },
+        ],
+      },
+      {
+        text: 'Authorization',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/authorization/' },
+          { text: 'Usage & Examples', link: '/extensions/components/authorization/usage' },
+          { text: 'API Reference', link: '/extensions/components/authorization/api' },
+          { text: 'Error Reference', link: '/extensions/components/authorization/errors' },
+        ],
+      },
+      { text: 'Health Check', link: '/extensions/components/health-check' },
+      {
+        text: 'Mail',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/mail/' },
+          { text: 'Usage & Examples', link: '/extensions/components/mail/usage' },
+          { text: 'API Reference', link: '/extensions/components/mail/api' },
+          { text: 'Error Reference', link: '/extensions/components/mail/errors' },
+        ],
+      },
+      { text: 'Request Tracker', link: '/extensions/components/request-tracker' },
+      {
+        text: 'Socket.IO',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/socket-io/' },
+          { text: 'Usage & Examples', link: '/extensions/components/socket-io/usage' },
+          { text: 'API Reference', link: '/extensions/components/socket-io/api' },
+          { text: 'Error Reference', link: '/extensions/components/socket-io/errors' },
+        ],
+      },
+      {
+        text: 'Static Asset',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/static-asset/' },
+          { text: 'Usage & Examples', link: '/extensions/components/static-asset/usage' },
+          { text: 'API Reference', link: '/extensions/components/static-asset/api' },
+          { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
+        ],
+      },
+      { text: 'Swagger', link: '/extensions/components/swagger' },
+      {
+        text: 'WebSocket',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Configuration', link: '/extensions/components/websocket/' },
+          { text: 'Usage & Examples', link: '/extensions/components/websocket/usage' },
+          { text: 'API Reference', link: '/extensions/components/websocket/api' },
+          { text: 'Error Reference', link: '/extensions/components/websocket/errors' },
+        ],
+      },
+    ],
+  },
+  {
+    text: 'Helpers',
+    collapsed: false,
+    items: [
+      { text: 'Overview', link: '/extensions/helpers/' },
+      { text: 'Cron', link: '/extensions/helpers/cron/' },
+      { text: 'Crypto', link: '/extensions/helpers/crypto/' },
+      { text: 'Environment', link: '/extensions/helpers/env/' },
+      { text: 'Error', link: '/extensions/helpers/error/' },
+      { text: 'Inversion (DI)', link: '/extensions/helpers/inversion/' },
+      { text: 'Logger', link: '/extensions/helpers/logger/' },
+      {
+        text: 'Network',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Usage', link: '/extensions/helpers/network/' },
+          { text: 'API Reference', link: '/extensions/helpers/network/api' },
+        ],
+      },
+      {
+        text: 'Kafka',
+        collapsed: true,
+        items: [
+          { text: 'Overview & Fundamentals', link: '/extensions/helpers/kafka/' },
+          { text: 'Producer', link: '/extensions/helpers/kafka/producer' },
+          { text: 'Consumer', link: '/extensions/helpers/kafka/consumer' },
+          { text: 'Admin', link: '/extensions/helpers/kafka/admin' },
+          { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
+        ],
+      },
+      { text: 'Queue', link: '/extensions/helpers/queue/' },
+      { text: 'Redis', link: '/extensions/helpers/redis/' },
+      {
+        text: 'Socket.IO',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Usage', link: '/extensions/helpers/socket-io/' },
+          { text: 'API Reference', link: '/extensions/helpers/socket-io/api' },
+        ],
+      },
+      {
+        text: 'Storage',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Usage', link: '/extensions/helpers/storage/' },
+          { text: 'API Reference', link: '/extensions/helpers/storage/api' },
+        ],
+      },
+      { text: 'Testing', link: '/extensions/helpers/testing/' },
+      { text: 'Types', link: '/extensions/helpers/types/' },
+      { text: 'UID', link: '/extensions/helpers/uid/' },
+      {
+        text: 'WebSocket',
+        collapsed: true,
+        items: [
+          { text: 'Setup & Usage', link: '/extensions/helpers/websocket/' },
+          { text: 'API Reference', link: '/extensions/helpers/websocket/api' },
+        ],
+      },
+      { text: 'Worker Thread', link: '/extensions/helpers/worker-thread/' },
+    ],
+  },
+  {
+    text: 'Framework Internals',
+    collapsed: true,
+    items: [
+      { text: 'MCP Docs Server', link: '/extensions/src-details/mcp-server' },
+    ],
+  },
+];
 
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
@@ -39,7 +282,8 @@ const config = defineConfig({
 
     nav: [
       { text: 'Guide(s)', link: '/guides/' },
-      { text: 'API(s)', link: '/references/' },
+      { text: 'Core API', link: '/references/' },
+      { text: 'Extensions', link: '/extensions/' },
       { text: 'Best Practice(s)', link: '/best-practices/' },
       { text: 'Changelog(s)', link: '/changelogs/' },
     ],
@@ -57,7 +301,13 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
-            { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
+            {
+              text: '2026-03-15',
+              collapsed: true,
+              items: [
+                { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
+              ],
+            },
             {
               text: '2026-03-10',
               collapsed: true,
@@ -330,7 +580,8 @@ const config = defineConfig({
               text: 'Controllers',
               collapsed: true,
               items: [
-                { text: 'REST & gRPC', link: '/guides/core-concepts/controllers' },
+                { text: 'REST', link: '/guides/core-concepts/rest-controllers' },
+                { text: 'gRPC', link: '/guides/core-concepts/grpc-controllers' },
               ],
             },
             { text: 'Dependency Injection', link: '/guides/core-concepts/dependency-injection' },
@@ -365,235 +616,19 @@ const config = defineConfig({
           ],
         },
       ],
-      '/references/': [
-        {
-          text: 'API Reference',
-          items: [
-            { text: 'Overview', link: '/references/' },
-            { text: '⚡ Quick Reference', link: '/references/quick-reference' },
-          ],
-        },
-        {
-          text: 'Configuration',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/references/configuration/' },
-            { text: 'Environment Variables', link: '/references/configuration/environment-variables' },
-          ],
-        },
-        {
-          text: 'Components',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/references/components/' },
-            {
-              text: 'Authentication',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/authentication/' },
-                { text: 'Usage & Examples', link: '/references/components/authentication/usage' },
-                { text: 'API Reference', link: '/references/components/authentication/api' },
-                { text: 'Error Reference', link: '/references/components/authentication/errors' },
-              ],
-            },
-            {
-              text: 'Authorization',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/authorization/' },
-                { text: 'Usage & Examples', link: '/references/components/authorization/usage' },
-                { text: 'API Reference', link: '/references/components/authorization/api' },
-                { text: 'Error Reference', link: '/references/components/authorization/errors' },
-              ],
-            },
-            { text: 'Health Check', link: '/references/components/health-check' },
-            {
-              text: 'Mail',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/mail/' },
-                { text: 'Usage & Examples', link: '/references/components/mail/usage' },
-                { text: 'API Reference', link: '/references/components/mail/api' },
-                { text: 'Error Reference', link: '/references/components/mail/errors' },
-              ],
-            },
-            { text: 'Request Tracker', link: '/references/components/request-tracker' },
-            {
-              text: 'Socket.IO',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/socket-io/' },
-                { text: 'Usage & Examples', link: '/references/components/socket-io/usage' },
-                { text: 'API Reference', link: '/references/components/socket-io/api' },
-                { text: 'Error Reference', link: '/references/components/socket-io/errors' },
-              ],
-            },
-            {
-              text: 'Static Asset',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/static-asset/' },
-                { text: 'Usage & Examples', link: '/references/components/static-asset/usage' },
-                { text: 'API Reference', link: '/references/components/static-asset/api' },
-                { text: 'Error Reference', link: '/references/components/static-asset/errors' },
-              ],
-            },
-            { text: 'Swagger', link: '/references/components/swagger' },
-            {
-              text: 'WebSocket',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Configuration', link: '/references/components/websocket/' },
-                { text: 'Usage & Examples', link: '/references/components/websocket/usage' },
-                { text: 'API Reference', link: '/references/components/websocket/api' },
-                { text: 'Error Reference', link: '/references/components/websocket/errors' },
-              ],
-            },
-          ],
-        },
-        {
-          text: 'Base Abstractions',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/references/base/' },
-            { text: 'Application', link: '/references/base/application' },
-            { text: 'Bootstrapping', link: '/references/base/bootstrapping' },
-            { text: 'Components', link: '/references/base/components' },
-            {
-              text: 'Controllers',
-              collapsed: true,
-              items: [
-                { text: 'REST Controllers', link: '/references/base/controllers' },
-                { text: 'gRPC Controllers', link: '/references/base/grpc-controllers' },
-              ],
-            },
-            { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
-            { text: 'Middlewares', link: '/references/base/middlewares' },
-            { text: 'Models & Enrichers', link: '/references/base/models' },
-            { text: 'Providers', link: '/references/base/providers' },
-            { text: 'DataSources', link: '/references/base/datasources' },
-            {
-              text: 'Repositories',
-              collapsed: false,
-              items: [
-                { text: 'Overview', link: '/references/base/repositories/' },
-                { text: 'SoftDeletableRepository', link: '/references/base/repositories/soft-deletable' },
-                { text: 'Mixins', link: '/references/base/repositories/mixins' },
-                { text: 'Relations & Includes', link: '/references/base/repositories/relations' },
-                { text: 'Advanced Features', link: '/references/base/repositories/advanced' },
-              ],
-            },
-            {
-              text: 'Filter System',
-              collapsed: false,
-              items: [
-                { text: 'Overview', link: '/references/base/filter-system/' },
-                { text: '⚡ Quick Reference', link: '/references/base/filter-system/quick-reference' },
-                { text: 'Comparison Operators', link: '/references/base/filter-system/comparison-operators' },
-                { text: 'Null Operators', link: '/references/base/filter-system/null-operators' },
-                { text: 'List Operators', link: '/references/base/filter-system/list-operators' },
-                { text: 'Range Operators', link: '/references/base/filter-system/range-operators' },
-                { text: 'Pattern Matching', link: '/references/base/filter-system/pattern-matching' },
-                { text: 'Logical Operators', link: '/references/base/filter-system/logical-operators' },
-                { text: 'JSON Filtering', link: '/references/base/filter-system/json-filtering' },
-                { text: 'Array Operators', link: '/references/base/filter-system/array-operators' },
-                { text: 'Fields, Order & Pagination', link: '/references/base/filter-system/fields-order-pagination' },
-                { text: 'Default Filter', link: '/references/base/filter-system/default-filter' },
-                { text: 'Application Usage', link: '/references/base/filter-system/application-usage' },
-                { text: 'Use Cases', link: '/references/base/filter-system/use-cases' },
-                { text: 'Tips & Edge Cases', link: '/references/base/filter-system/tips' },
-              ],
-            },
-            { text: 'Services', link: '/references/base/services' },
-          ],
-        },
-        {
-          text: 'Helpers',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/references/helpers/' },
-            { text: 'Cron', link: '/references/helpers/cron/' },
-            { text: 'Crypto', link: '/references/helpers/crypto/' },
-            { text: 'Environment', link: '/references/helpers/env/' },
-            { text: 'Error', link: '/references/helpers/error/' },
-            { text: 'Inversion (DI)', link: '/references/helpers/inversion/' },
-            { text: 'Logger', link: '/references/helpers/logger/' },
-            {
-              text: 'Network',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Usage', link: '/references/helpers/network/' },
-                { text: 'API Reference', link: '/references/helpers/network/api' },
-              ],
-            },
-            {
-              text: 'Kafka',
-              collapsed: true,
-              items: [
-                { text: 'Overview & Fundamentals', link: '/references/helpers/kafka/' },
-                { text: 'Producer', link: '/references/helpers/kafka/producer' },
-                { text: 'Consumer', link: '/references/helpers/kafka/consumer' },
-                { text: 'Admin', link: '/references/helpers/kafka/admin' },
-                { text: 'Examples & Troubleshooting', link: '/references/helpers/kafka/examples' },
-              ],
-            },
-            { text: 'Queue', link: '/references/helpers/queue/' },
-            { text: 'Redis', link: '/references/helpers/redis/' },
-            {
-              text: 'Socket.IO',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Usage', link: '/references/helpers/socket-io/' },
-                { text: 'API Reference', link: '/references/helpers/socket-io/api' },
-              ],
-            },
-            {
-              text: 'Storage',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Usage', link: '/references/helpers/storage/' },
-                { text: 'API Reference', link: '/references/helpers/storage/api' },
-              ],
-            },
-            { text: 'Testing', link: '/references/helpers/testing/' },
-            { text: 'Types', link: '/references/helpers/types/' },
-            { text: 'UID', link: '/references/helpers/uid/' },
-            {
-              text: 'WebSocket',
-              collapsed: true,
-              items: [
-                { text: 'Setup & Usage', link: '/references/helpers/websocket/' },
-                { text: 'API Reference', link: '/references/helpers/websocket/api' },
-              ],
-            },
-            { text: 'Worker Thread', link: '/references/helpers/worker-thread/' },
-          ],
-        },
-        {
-          text: 'Utilities',
-          collapsed: false,
-          items: [
-            { text: 'Overview', link: '/references/utilities/' },
-            { text: 'Crypto', link: '/references/utilities/crypto' },
-            { text: 'Date', link: '/references/utilities/date' },
-            { text: 'JSX', link: '/references/utilities/jsx' },
-            { text: 'Module', link: '/references/utilities/module' },
-            { text: 'Parse', link: '/references/utilities/parse' },
-            { text: 'Performance', link: '/references/utilities/performance' },
-            { text: 'Promise', link: '/references/utilities/promise' },
-            { text: 'Request', link: '/references/utilities/request' },
-            { text: 'Schema', link: '/references/utilities/schema' },
-            { text: 'Statuses', link: '/references/utilities/statuses' },
-          ],
-        },
-        {
-          text: 'Framework Internals',
-          collapsed: false,
-          items: [
-            { text: 'MCP Docs Server', link: '/references/src-details/mcp-server' },
-          ],
-        },
-      ],
+
+      // ── Core API: reuse the same sidebar for all sub-paths ──
+      '/references/base/': coreApiSidebar,
+      '/references/configuration/': coreApiSidebar,
+      '/references/utilities/': coreApiSidebar,
+      '/references/quick-reference': coreApiSidebar,
+      '/references/': coreApiSidebar, // catch-all for /references/ index
+
+      // ── Extensions: reuse the same sidebar for all sub-paths ──
+      '/extensions/': extensionsSidebar,
+      '/extensions/components/': extensionsSidebar,
+      '/extensions/helpers/': extensionsSidebar,
+      '/extensions/src-details/': extensionsSidebar,
     },
 
     socialLinks: [{ icon: 'github', link: 'https://github.com/VENIZIA-AI/ignis' }],

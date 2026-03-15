@@ -2,7 +2,7 @@
 title: Default Filter
 description: Automatically apply filter conditions to all repository queries
 difficulty: intermediate
-lastUpdated: 2026-01-02
+lastUpdated: 2026-03-15
 ---
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
@@ -93,11 +93,11 @@ export class User extends BaseEntity<typeof User.schema> {}
 
 ## Merge Behavior
 
-When a user provides a filter, it is merged with the default filter:
+When a user provides a filter, it is merged with the default filter using `FilterBuilder.mergeFilter()`:
 
 | Property | Merge Strategy |
 |----------|----------------|
-| `where` | **Deep merge** - user values override matching keys |
+| `where` | **Deep merge** (via lodash `merge`) -- user values override matching keys |
 | `limit` | User replaces default (if provided) |
 | `offset`/`skip` | User replaces default (if provided) |
 | `order` | User replaces default (if provided) |
@@ -316,6 +316,28 @@ await logRepo.find({ filter: { limit: 50 } }); // LIMIT 50
 ```
 
 
+## Relation Include Default Filters
+
+When using `include` to load relations, the default filter of the related model is also applied. You can bypass it per-relation:
+
+```typescript
+await repo.find({
+  filter: {
+    include: [
+      // Default filter of related model applies
+      { relation: 'posts' },
+
+      // Skip default filter for this specific relation
+      { relation: 'comments', shouldSkipDefaultFilter: true },
+
+      // Apply a custom scope (merged with relation's default filter)
+      { relation: 'tags', scope: { limit: 10, order: ['name ASC'] } },
+    ]
+  }
+});
+```
+
+
 ## IExtraOptions Interface
 
 The `shouldSkipDefaultFilter` option is part of the `IExtraOptions` interface:
@@ -392,6 +414,8 @@ applyDefaultFilter(opts: {
 }): TFilter
 ```
 
+The default filter is resolved from `MetadataRegistry` on first access and cached for subsequent calls.
+
 ### FilterBuilder.mergeFilter()
 
 The merge logic is implemented in `FilterBuilder`:
@@ -415,6 +439,7 @@ const merged = filterBuilder.mergeFilter({
 |------------|------|
 | Configure default filter | `@model({ settings: { defaultFilter: { ... } } })` |
 | Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
+| Bypass for relation | `include: [{ relation: 'x', shouldSkipDefaultFilter: true }]` |
 | Combine with transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
 | Check if model has default | `repo.hasDefaultFilter()` |
 | Get raw default filter | `repo.getDefaultFilter()` |

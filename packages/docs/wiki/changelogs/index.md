@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-03-15 | [gRPC Support — ConnectRPC Integration, BaseGrpcController, RPC Decorators](./2026-03-15-grpc-controller-system) | New Feature |
 | 2026-03-12 | [Kafka Helpers Enhancement — Health, Callbacks, Transactions, Schema Registry](./2026-03-12-kafka-helpers-enhancement) | Enhancement, New Feature |
 | 2026-03-10 | [Kafka Helpers Refactor & @platformatic/kafka v1.30.0](./2026-03-10-kafka-helpers-refactor) | Refactor, Breaking Change |
 | 2026-03-06 | [Filter Offset/Skip Bug Fix](./2026-03-06-filter-offset-skip-fix) | Bug Fix |

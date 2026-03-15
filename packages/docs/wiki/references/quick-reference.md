@@ -1,7 +1,7 @@
 ---
 title: Quick Reference Card
 description: Single-page cheat sheet for IGNIS framework
-lastUpdated: 2026-01-03
+lastUpdated: 2026-03-15
 ---
 
 # Quick Reference Card
@@ -33,24 +33,52 @@ await app.start();
 - `get<T>(key)` - Resolve from DI container
 - `mountControllers()` - Register controllers
 
-### BaseController
+### BaseRestController
 
 ```typescript
-import { BaseController, controller, get } from '@venizia/ignis';
+import { BaseRestController, controller, get } from '@venizia/ignis';
 
 @controller({ path: '/users' })
-class UserController extends BaseController {
-  @get({ configs: { path: '/:id' } })
-  async getUser(@param('id') id: string) {
-    return { id, name: 'John' };
+class UserController extends BaseRestController {
+  constructor() {
+    super({ scope: UserController.name, path: '/users' });
+  }
+
+  override binding() {}
+
+  @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
+  getUser(c: Context) {
+    const id = c.req.param('id');
+    return c.json({ id, name: 'John' });
   }
 }
 ```
 
 **Key Properties:**
-- `this.context` - Hono context
-- `this.container` - DI container
+- `this.router` - OpenAPIHono instance
+- `this.path` - Controller base path
 - `this.logger` - Scoped logger
+
+### BaseGrpcController
+
+```typescript
+import { BaseGrpcController, controller, unary, ControllerTransports } from '@venizia/ignis';
+import { GreeterService } from '../gen/greeter_connect';
+
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterService })
+class GreeterController extends BaseGrpcController {
+  constructor() {
+    super({ scope: GreeterController.name, path: '/grpc' });
+  }
+
+  override binding() {}
+
+  @unary({ configs: { name: 'sayHello' } })
+  async sayHello(request: SayHelloRequest) {
+    return { message: `Hello, ${request.name}!` };
+  }
+}
+```
 
 ### BaseService
 
@@ -133,39 +161,41 @@ class User extends BaseEntity {
 | `@patch()` | PATCH | `@patch({ configs: { path: '/:id' } })` |
 | `@del()` | DELETE | `@del({ configs: { path: '/:id' } })` |
 
-### Parameter Decorators
+### RPC Method Decorators (gRPC)
 
-| Decorator | Extracts | Example |
+| Decorator | RPC Type | Example |
 |-----------|----------|---------|
-| `@param('name')` | Route parameter | `@param('id') id: string` |
-| `@query('name')` | Query string | `@query('page') page: string` |
-| `@body()` | Request body | `@body() data: CreateUserDto` |
-| `@header('name')` | HTTP header | `@header('authorization') auth: string` |
+| `@rpc()` | Generic | `@rpc({ configs: { name: 'myMethod', method: 'unary' } })` |
+| `@unary()` | Unary | `@unary({ configs: { name: 'sayHello' } })` |
+| `@serverStream()` | Server streaming | `@serverStream({ configs: { name: 'listItems' } })` |
+| `@clientStream()` | Client streaming | `@clientStream({ configs: { name: 'uploadData' } })` |
+| `@bidiStream()` | Bidirectional | `@bidiStream({ configs: { name: 'chat' } })` |
 
-### Example
+### REST Example
 
 ```typescript
 @controller({ path: '/users' })
-class UserController extends BaseController {
-  @post({ configs: { path: '/' } })
-  async createUser(
-    @body() data: CreateUserDto,
-    @header('authorization') token: string
+class UserController extends BaseRestController {
+  constructor(
+    @inject({ key: 'services.UserService' }) private userService: UserService,
   ) {
-    return this.userService.create(data);
+    super({ scope: UserController.name, path: '/users' });
   }
 
-  @get({ configs: { path: '/' } })
-  async listUsers(
-    @query('page') page: string,
-    @query('limit') limit: string
-  ) {
-    return this.userService.findAll({ page, limit });
+  override binding() {}
+
+  @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
+  async createUser(c: Context) {
+    const data = await c.req.json();
+    const result = await this.userService.create(data);
+    return c.json(result, 201);
   }
 
-  @get({ configs: { path: '/:id' } })
-  async getUser(@param('id') id: string) {
-    return this.userService.findById(id);
+  @get({ configs: { path: '/:id', responses: { 200: { description: 'User' } } } })
+  async getUser(c: Context) {
+    const id = c.req.param('id');
+    const result = await this.userService.findById(id);
+    return c.json(result);
   }
 }
 ```
@@ -309,15 +339,13 @@ class MyService extends BaseService {
 ```typescript
 import { inject } from '@venizia/ignis';
 
-@injectable()
-class UserController extends BaseController {
+class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'services.UserService' })
-    private userService: UserService
+    private userService: UserService,
   ) {
-    super();
+    super({ scope: UserController.name, path: '/users' });
   }
-}
 ```
 
 ### Manual Resolution
@@ -336,21 +364,24 @@ import {
   // Application
   BaseApplication,
 
-  // Controllers
-  BaseController,
+  // REST Controllers
+  BaseRestController,
   controller,
 
-  // HTTP Methods
-  get, post, put, patch, del,
+  // gRPC Controllers
+  BaseGrpcController,
+  ControllerTransports,
 
-  // Parameters
-  param, query, body, header, context,
+  // REST Route Decorators
+  get, post, put, patch, del, api,
+
+  // gRPC Route Decorators
+  rpc, unary, serverStream, clientStream, bidiStream,
 
   // Services
   BaseService,
 
   // Repositories
-  BaseRepository,
   DefaultCRUDRepository,
 
   // Models
@@ -423,8 +454,9 @@ import { z } from '@hono/zod-openapi';
     }),
   },
 })
-async getUser(@param('id') id: string) {
-  return { id, name: 'John', email: 'john@example.com' };
+getUser(c: Context) {
+  const id = c.req.param('id');
+  return c.json({ id, name: 'John', email: 'john@example.com' });
 }
 ```
 
@@ -441,8 +473,8 @@ import { htmlResponse } from '@venizia/ignis';
     }),
   },
 })
-async getDashboard() {
-  return this.context.html(<DashboardPage />);
+getDashboard(c: Context) {
+  return c.html(<DashboardPage />);
 }
 ```
 
@@ -552,26 +584,28 @@ const apiKey = EnvHelper.getRequired('API_KEY');
 ```typescript
 // Controller
 @controller({ path: '/users' })
-class UserController extends BaseController {
+class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'services.UserService' })
-    private userService: UserService
+    private userService: UserService,
   ) {
-    super();
+    super({ scope: UserController.name, path: '/users' });
   }
 
-  @post({ configs: { path: '/' } })
-  async createUser(@body() data: CreateUserDto) {
-    return this.userService.create(data);
+  override binding() {}
+
+  @post({ configs: { path: '/', responses: { 201: { description: 'Created' } } } })
+  async createUser(c: Context) {
+    const data = await c.req.json();
+    return c.json(await this.userService.create(data), 201);
   }
 }
 
 // Service
-@injectable()
 class UserService extends BaseService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
-    private userRepo: UserRepository
+    private userRepo: UserRepository,
   ) {
     super({ scope: UserService.name });
   }
@@ -581,19 +615,18 @@ class UserService extends BaseService {
     const hashedPassword = await hash({ value: data.password });
 
     return this.userRepo.create({
-      ...data,
-      password: hashedPassword,
-      status: Statuses.ACTIVATED,
+      data: {
+        ...data,
+        password: hashedPassword,
+      },
     });
   }
 }
 
 // Repository
-@injectable()
-class UserRepository extends DefaultCRUDRepository<User> {
-  constructor() {
-    super(User);
-  }
+@repository({ model: User, dataSource: PostgresDataSource })
+class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  // DataSource auto-injected from @repository decorator
 }
 ```
 
@@ -602,8 +635,8 @@ class UserRepository extends DefaultCRUDRepository<User> {
 
 - **Full Documentation:**
   - [Base Abstractions](./base/) - Complete API reference
-  - [Components](./components/) - Pre-built features
-  - [Helpers](./helpers/) - Utility helpers
+  - [Components](/extensions/components/) - Pre-built features
+  - [Helpers](/extensions/helpers/) - Utility helpers
   - [Utilities](./utilities/) - Pure functions
 
 - **Guides:**

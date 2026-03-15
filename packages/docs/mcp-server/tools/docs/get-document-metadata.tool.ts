@@ -51,9 +51,9 @@ Unique document identifier - the relative file path from the wiki root directory
 FORMAT: "<category>/<subcategory>/<filename>.md"
 
 EXAMPLES:
-- "get-started/quickstart.md"
-- "references/components/http-server.md"
-- "get-started/core-concepts/dependency-injection.md"
+- "guides/get-started/5-minute-quickstart.md"
+- "extensions/helpers/redis/index.md"
+- "references/base/dependency-injection.md"
 
 HOW TO OBTAIN:
 - From searchDocs results (the 'id' field)

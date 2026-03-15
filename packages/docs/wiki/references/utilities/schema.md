@@ -6,6 +6,13 @@ The Schema utility provides a set of helper functions and predefined schemas for
 
 The `jsonContent` function creates a standard OpenAPI content object for `application/json` payloads.
 
+### `jsonContent(opts)`
+
+-   `opts` (object):
+    -   `schema` (ZodType): The Zod schema describing the JSON payload.
+    -   `description` (string): A description of the content.
+    -   `required` (boolean, optional): Whether the content is required.
+
 ```typescript
 import { jsonContent, z } from '@venizia/ignis';
 
@@ -16,13 +23,21 @@ const UserSchema = z.object({
 
 const userResponse = {
   description: 'A single user object',
-  ...jsonContent({ schema: UserSchema }),
+  ...jsonContent({ schema: UserSchema, description: 'User data' }),
 };
 ```
 
 ## `jsonResponse`
 
-The `jsonResponse` function generates a standard OpenAPI response object that includes a success (200 OK) response and a default error response for 4xx/5xx status codes.
+The `jsonResponse` function generates a standard OpenAPI response object that includes a success (200 OK) response and a default error response for `4xx | 5xx` status codes. The error response uses the `ErrorSchema`.
+
+### `jsonResponse(opts)`
+
+-   `opts` (object):
+    -   `schema` (ZodType): The Zod schema for the success response body.
+    -   `description` (string, optional): A description for the success response. Defaults to `'Success Response'`.
+    -   `required` (boolean, optional): Whether the content is required.
+    -   `headers` (Record&lt;string, THeaderObject&gt;, optional): Custom response headers to include in the success response.
 
 ```typescript
 import { jsonResponse, z } from '@venizia/ignis';
@@ -43,11 +58,37 @@ this.defineRoute({
   },
   // ...
 });
+
+// With custom headers
+this.defineRoute({
+  configs: {
+    path: '/list',
+    method: 'get',
+    responses: jsonResponse({
+      schema: z.array(UserSchema),
+      description: 'User list',
+      headers: {
+        'x-total-count': {
+          description: 'Total number of records',
+          schema: { type: 'string', examples: ['100'] },
+        },
+      },
+    }),
+  },
+  // ...
+});
 ```
 
 ## `requiredString`
 
-This function creates a `zod` string schema that is non-empty and can be further constrained by length.
+This function creates a `zod` string schema that is non-empty (`nonempty()`) and can be further constrained by length.
+
+### `requiredString(opts?)`
+
+-   `opts` (object, optional):
+    -   `min` (number, optional): Minimum string length.
+    -   `max` (number, optional): Maximum string length.
+    -   `fixed` (number, optional): Exact string length (uses `.length()`).
 
 ```typescript
 import { requiredString } from '@venizia/ignis';
@@ -55,12 +96,13 @@ import { requiredString } from '@venizia/ignis';
 const schema = z.object({
   username: requiredString({ min: 3, max: 20 }),
   password: requiredString({ min: 8 }),
+  countryCode: requiredString({ fixed: 2 }),
 });
 ```
 
 ## Predefined Schemas
 
--   **`AnyObjectSchema`**: A flexible schema for any object (`z.object().catchall(z.any())`).
+-   **`AnyObjectSchema`**: A flexible schema for any object (`z.object().catchall(z.any())`), with an OpenAPI description of `'Unknown schema'`.
 
 ### Type Utilities
 
@@ -73,9 +115,30 @@ import { TAnyObjectSchema, TInferSchema } from '@venizia/ignis';
 type UserType = TInferSchema<typeof UserSchema>;
 ```
 
-### Custom ID Params
+## `snakeToCamel`
 
-Use the `idParamsSchema()` helper (from controller utilities) to generate path parameter schemas:
+Transforms a Zod object shape from snake_case keys to camelCase. Uses `.transform()` and `.pipe()` to create a schema that accepts snake_case input but produces camelCase output.
+
+```typescript
+import { snakeToCamel } from '@venizia/ignis';
+
+const schema = snakeToCamel({
+  first_name: z.string(),
+  last_name: z.string(),
+});
+
+// Input: { first_name: 'John', last_name: 'Doe' }
+// Output: { firstName: 'John', lastName: 'Doe' }
+```
+
+## Custom ID Params
+
+Use the `idParamsSchema()` helper to generate path parameter schemas for resource IDs:
+
+### `idParamsSchema(opts?)`
+
+-   `opts` (object, optional):
+    -   `idType` (string): `'number'` (default) or `'string'`.
 
 ```typescript
 import { idParamsSchema } from '@venizia/ignis';

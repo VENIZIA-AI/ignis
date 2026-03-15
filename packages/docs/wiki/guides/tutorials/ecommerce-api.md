@@ -490,7 +490,7 @@ import { getError } from '@venizia/ignis-helpers';
 @injectable()
 export class ProductService extends BaseService {
   constructor(
-    @inject('repositories.ProductRepository')
+    @inject({ key: 'repositories.ProductRepository' })
     private _productRepo: ProductRepository,
   ) {
     super({ scope: ProductService.name });
@@ -563,9 +563,9 @@ interface ICartItem {
 @injectable()
 export class CartService extends BaseService {
   constructor(
-    @inject('repositories.CartRepository')
+    @inject({ key: 'repositories.CartRepository' })
     private _cartRepo: CartRepository,
-    @inject('services.ProductService')
+    @inject({ key: 'services.ProductService' })
     private _productService: ProductService,
   ) {
     super({ scope: CartService.name });
@@ -715,13 +715,13 @@ interface ICreateOrderInput {
 @injectable()
 export class OrderService extends BaseService {
   constructor(
-    @inject('repositories.OrderRepository')
+    @inject({ key: 'repositories.OrderRepository' })
     private _orderRepo: OrderRepository,
-    @inject('services.CartService')
+    @inject({ key: 'services.CartService' })
     private _cartService: CartService,
-    @inject('services.ProductService')
+    @inject({ key: 'services.ProductService' })
     private _productService: ProductService,
-    @inject('services.PaymentService')
+    @inject({ key: 'services.PaymentService' })
     private _paymentService: PaymentService,
   ) {
     super({ scope: OrderService.name });
@@ -918,7 +918,7 @@ export class PaymentService extends BaseService {
 // src/controllers/product.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
-  BaseController,
+  BaseRestController,
   controller,
   get,
   inject,
@@ -968,9 +968,9 @@ const ProductRoutes = {
 type ProductRoutes = typeof ProductRoutes;
 
 @controller({ path: '/products' })
-export class ProductController extends BaseController {
+export class ProductController extends BaseRestController {
   constructor(
-    @inject('services.ProductService')
+    @inject({ key: 'services.ProductService' })
     private _productService: ProductService,
   ) {
     super({ scope: ProductController.name, path: '/products' });
@@ -1006,7 +1006,7 @@ export class ProductController extends BaseController {
 // src/controllers/cart.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
-  BaseController,
+  BaseRestController,
   controller,
   get,
   post,
@@ -1083,9 +1083,9 @@ const CartRoutes = {
 type CartRoutes = typeof CartRoutes;
 
 @controller({ path: '/cart' })
-export class CartController extends BaseController {
+export class CartController extends BaseRestController {
   constructor(
-    @inject('services.CartService')
+    @inject({ key: 'services.CartService' })
     private _cartService: CartService,
   ) {
     super({ scope: CartController.name, path: '/cart' });
@@ -1145,7 +1145,7 @@ export class CartController extends BaseController {
 // src/controllers/order.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
-  BaseController,
+  BaseRestController,
   controller,
   get,
   post,
@@ -1223,9 +1223,9 @@ const OrderRoutes = {
 type OrderRoutes = typeof OrderRoutes;
 
 @controller({ path: '/orders' })
-export class OrderController extends BaseController {
+export class OrderController extends BaseRestController {
   constructor(
-    @inject('services.OrderService')
+    @inject({ key: 'services.OrderService' })
     private _orderService: OrderService,
   ) {
     super({ scope: OrderController.name, path: '/orders' });
@@ -1393,7 +1393,7 @@ You've built a complete e-commerce API with:
 
 ## Next Steps
 
-- Add user authentication with [Auth Component](/references/components/authentication/)
-- Add order notifications with [Mail Component](/references/components/mail/)
+- Add user authentication with [Auth Component](/extensions/components/authentication/)
+- Add order notifications with [Mail Component](/extensions/components/mail/)
 - Add real-time updates with [Socket.IO](./realtime-chat.md)
 - Deploy with [Deployment Guide](/best-practices/deployment-strategies)

@@ -15,8 +15,10 @@ A repository that overrides delete operations to set a `deletedAt` timestamp ins
 
 ### 1. Define Model with Soft Delete
 
+Use the `generateTzColumnDefs` enricher with the `deleted` option enabled to add a `deletedAt` column:
+
 ```typescript
-import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
+import { pgTable, text } from 'drizzle-orm/pg-core';
 import {
   BaseEntity,
   model,
@@ -34,17 +36,19 @@ import {
 export class Category extends BaseEntity<typeof Category.schema> {
   static override schema = pgTable('Category', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs(),
+    ...generateTzColumnDefs({
+      deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
+    }),
     name: text('name').notNull(),
-    deletedAt: timestamp('deleted_at', { mode: 'date', withTimezone: true }),
   });
 }
 ```
 
 > [!IMPORTANT]
-> - The model **must** have a `deletedAt` column (`Date | null`).
-> - Set `defaultFilter: { where: { deletedAt: null } }` so soft-deleted records are excluded by default.
+> - The model **must** have a `deletedAt` column (`Date | null`). The `SoftDeletableRepository` requires `TSoftDeletableTableSchema` which enforces `{ deletedAt: AnyPgColumn<{ data: Date | null }> }`.
+> - Set `defaultFilter: { where: { deletedAt: null } }` in `@model` settings so soft-deleted records are excluded by default.
 > - Optionally add `deletedAt` to `hiddenProperties` to hide it from API responses.
+> - Use `generateTzColumnDefs` with `deleted: { enable: true, ... }` to add the column, or define it manually with `timestamp('deleted_at', { mode: 'date', withTimezone: true })`.
 
 ### 2. Create Repository
 
@@ -60,16 +64,22 @@ export class CategoryRepository extends SoftDeletableRepository<typeof Category.
 
 ## Delete Operations
 
-All delete methods set `deletedAt = new Date()` instead of removing the row. They internally call the corresponding `update` method.
+All delete methods set `deletedAt = new Date()` instead of removing the row. They internally call the corresponding `update` method (`updateById` or `updateAll`).
 
 ### deleteById
 
 ```typescript
-// Soft delete — sets deletedAt timestamp
+// Soft delete - sets deletedAt timestamp
 const result = await repo.deleteById({ id: '123' });
 // { count: 1, data: { id: '123', name: 'Electronics', deletedAt: '2026-03-06T...' } }
 
-// Hard delete — physically removes the row
+// Without returning data
+const result = await repo.deleteById({
+  id: '123',
+  options: { shouldReturn: false },
+});
+
+// Hard delete - physically removes the row
 const result = await repo.deleteById({
   id: '123',
   options: { shouldHardDelete: true },
@@ -95,9 +105,15 @@ const result = await repo.deleteAll({
 ### deleteBy
 
 ```typescript
-// Soft delete by where condition (requires non-empty where)
+// Soft delete by where condition (alias for deleteAll)
 const result = await repo.deleteBy({
   where: { name: 'Obsolete' },
+});
+
+// Hard delete by where condition
+const result = await repo.deleteBy({
+  where: { name: 'Obsolete' },
+  options: { shouldHardDelete: true },
 });
 ```
 
@@ -137,7 +153,7 @@ const result = await repo.restoreAll({
 ### restoreBy
 
 ```typescript
-// Alias for restoreAll with required where
+// Alias for restoreAll
 const result = await repo.restoreBy({
   where: { status: 'archived' },
 });
@@ -148,7 +164,7 @@ const result = await repo.restoreBy({
 
 ### findById with isStrict
 
-`SoftDeletableRepository` overrides `findById` to support a `isStrict` option that throws a `404 Not Found` error when the record doesn't exist:
+`SoftDeletableRepository` overrides `findById` to support an `isStrict` option that throws a `404 Not Found` error when the record doesn't exist:
 
 ```typescript
 // Returns null if not found (default)
@@ -159,7 +175,10 @@ const category = await repo.findById({
   id: '123',
   options: { isStrict: true },
 });
+// Throws: [CategoryRepository][findById] Entity with id 123 not found (HTTP 404)
 ```
+
+All other read operations (`find`, `findOne`, `count`, `existsWith`) work as normal. The default filter (`{ deletedAt: null }`) automatically excludes soft-deleted records. Use `shouldSkipDefaultFilter: true` to include them.
 
 
 ## Options Reference
@@ -170,30 +189,36 @@ const category = await repo.findById({
 |--------|------|---------|-------------|
 | `shouldHardDelete` | `boolean` | `false` | Bypass soft delete and physically remove the row |
 | `shouldReturn` | `boolean` | `true` | Return the updated/deleted record |
-| `force` | `boolean` | `false` | Allow empty `where` condition (deleteAll/deleteBy) |
-| `transaction` | `ITransaction` | — | Transaction context |
+| `force` | `boolean` | `false` | Allow empty `where` condition (`deleteAll`/`deleteBy`) |
+| `transaction` | `ITransaction` | - | Transaction context |
+| `log` | `{ use: boolean; level?: TLogLevel }` | - | Enable operation logging |
+| `shouldSkipDefaultFilter` | `boolean` | `false` | Bypass the default filter |
 
 ### Restore Options
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
 | `shouldReturn` | `boolean` | `true` | Return the restored record |
-| `force` | `boolean` | `false` | Allow empty `where` condition (restoreAll) |
-| `transaction` | `ITransaction` | — | Transaction context |
+| `force` | `boolean` | `false` | Allow empty `where` condition (`restoreAll`) |
+| `transaction` | `ITransaction` | - | Transaction context |
+
+> [!NOTE]
+> Restore operations automatically set `shouldSkipDefaultFilter: true` internally so they can find soft-deleted records that the default filter would normally hide. You do not need to set this yourself.
 
 
 ## How It Works
 
-| Operation | Behavior |
-|-----------|----------|
-| `deleteById` | `UPDATE SET deletedAt = NOW() WHERE id = ?` |
-| `deleteAll` | `UPDATE SET deletedAt = NOW() WHERE ...` |
-| `restoreById` | `UPDATE SET deletedAt = NULL WHERE id = ?` (skips default filter) |
-| `restoreAll` | `UPDATE SET deletedAt = NULL WHERE ...` (skips default filter) |
-| `find` / `findOne` | Default filter automatically excludes `deletedAt IS NOT NULL` |
+| Operation | SQL Behavior |
+|-----------|-------------|
+| `deleteById` | `UPDATE SET deletedAt = NOW() WHERE id = ?` (via `updateById`) |
+| `deleteAll` / `deleteBy` | `UPDATE SET deletedAt = NOW() WHERE ...` (via `updateAll`) |
+| `restoreById` | `UPDATE SET deletedAt = NULL WHERE id = ?` (via `updateById` with `shouldSkipDefaultFilter: true`) |
+| `restoreAll` / `restoreBy` | `UPDATE SET deletedAt = NULL WHERE ...` (via `updateAll` with `shouldSkipDefaultFilter: true`) |
+| `find` / `findOne` / `count` | Default filter automatically adds `WHERE deletedAt IS NULL` |
+| `deleteById({ shouldHardDelete: true })` | `DELETE FROM ... WHERE id = ?` (delegates to parent `PersistableRepository`) |
 
 > [!TIP]
-> Restore operations automatically set `shouldSkipDefaultFilter: true` so they can find soft-deleted records that would normally be hidden by the default filter.
+> The `shouldHardDelete` option bypasses soft delete entirely and delegates to the parent `DefaultCRUDRepository`'s delete implementation, which performs a real SQL `DELETE`.
 
 
 ## With Transactions
@@ -211,3 +236,59 @@ try {
   await tx.rollback();
 }
 ```
+
+
+## Type Constraint
+
+`SoftDeletableRepository` enforces that the schema includes a `deletedAt` column at the type level:
+
+```typescript
+export type TSoftDeletableTableSchema = TTableSchemaWithId & {
+  deletedAt: AnyPgColumn<{ data: Date | null }>;
+};
+
+export class SoftDeletableRepository<
+  EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
+  // ...
+> extends DefaultCRUDRepository<EntitySchema, ...> { }
+```
+
+If your schema does not have a `deletedAt` column, you will get a TypeScript compilation error when extending `SoftDeletableRepository`.
+
+
+## Class Hierarchy
+
+```
+AbstractRepository
+  -> ReadableRepository
+    -> PersistableRepository
+      -> DefaultCRUDRepository
+        -> SoftDeletableRepository   <-- you are here
+```
+
+
+## Quick Reference
+
+| Want to... | Code |
+|------------|------|
+| Soft delete by ID | `repo.deleteById({ id })` |
+| Hard delete by ID | `repo.deleteById({ id, options: { shouldHardDelete: true } })` |
+| Soft delete by condition | `repo.deleteAll({ where, options: { force: true } })` |
+| Restore by ID | `repo.restoreById({ id })` |
+| Restore by condition | `repo.restoreAll({ where })` |
+| Find including deleted | `repo.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
+| Strict findById (404) | `repo.findById({ id, options: { isStrict: true } })` |
+
+
+## Next Steps
+
+- [Advanced Features](./advanced.md) - Transactions, hidden properties
+- [Repository Mixins](./mixins.md) - Default filter and fields visibility
+- [Repository Overview](./index.md) - Repository basics
+
+## See Also
+
+- **Related Concepts:**
+  - [Repositories Overview](./index) - Core repository operations
+  - [Default Filter](../filter-system/default-filter) - Automatic filtering
+  - [Models](/guides/core-concepts/persistent/models) - Entity definitions with enrichers

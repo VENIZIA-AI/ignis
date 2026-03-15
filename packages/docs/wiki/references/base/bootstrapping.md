@@ -2,6 +2,7 @@
 title: Bootstrapping Reference
 description: Technical reference for application bootstrapping and initialization
 difficulty: advanced
+lastUpdated: 2026-03-15
 ---
 
 # Bootstrapping API Reference
@@ -32,30 +33,26 @@ Interface that applications must implement to support bootstrapping.
 
 ```typescript
 interface IBootableApplication {
-  bootOptions?: IBootOptions;
   boot(): Promise<IBootReport>;
 }
 ```
 
 | Member | Type | Description |
 |--------|------|-------------|
-| `bootOptions` | `IBootOptions \| undefined` | Configuration for artifact discovery |
 | `boot()` | `() => Promise<IBootReport>` | Execute boot process |
 
 **Example:**
 
 ```typescript
 export class Application extends BaseApplication implements IBootableApplication {
-  bootOptions = {
-    controllers: { dirs: ['controllers'] }
-  };
-  
   async boot() {
     const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
     return bootstrapper.boot({});
   }
 }
 ```
+
+> **Note:** The `BootMixin` adds an optional `bootOptions?: IBootOptions` property to the mixed class, but it is not part of the `IBootableApplication` interface itself.
 
 
 ### IBootOptions
@@ -143,11 +140,13 @@ Interface that all booters must implement.
 
 ```typescript
 interface IBooter {
-  configure?(): Promise<void> | void;
-  discover?(): Promise<void> | void;
-  load?(): Promise<void> | void;
+  configure(): ValueOrPromise<void>;
+  discover(): ValueOrPromise<void>;
+  load(): ValueOrPromise<void>;
 }
 ```
+
+> **Note:** `ValueOrPromise<T>` is `T | Promise<T>`. While the interface requires all three methods, the `Bootstrapper` gracefully skips any phase method that is not a function at runtime, so partial implementations are tolerated in practice.
 
 | Method | Phase | Description |
 |--------|-------|-------------|
@@ -468,7 +467,13 @@ Generate glob pattern from artifact options.
 protected getPattern(): string
 ```
 
-**Returns:** Glob pattern string (e.g., `{dir1,dir2}/**/*.{ext1,ext2}`)
+**Returns:** Glob pattern string. Examples:
+- Single dir/ext: `controllers/{**/*,*}.controller.js`
+- Multiple dirs/exts: `{dir1,dir2}/{**/*,*}.{ext1,ext2}`
+- Non-nested (`isNested: false`): `controllers/*.controller.js`
+- Custom `glob` option overrides pattern generation entirely
+
+> **Note:** The nested pattern `{**/*,*}` currently supports one level of nesting.
 
 #### Properties
 
@@ -586,6 +591,9 @@ constructor(
 | Directories | `['datasources']` |
 | Extensions | `['.datasource.js']` |
 | Binding Key | `datasources.{ClassName}` |
+| Binding Scope | `singleton` |
+
+> **Key difference:** `DatasourceBooter` is the only built-in booter that sets bindings to `singleton` scope (via `.setScope('singleton')`). This ensures connection pooling and resource sharing across the application. All other booters use the default transient scope.
 
 
 ## Types
@@ -667,7 +675,7 @@ Load class constructors from files.
 async function loadClasses(opts: {
   files: string[];
   root: string;
-}): Promise<TClass<any>[]>
+}): Promise<AnyType[]>
 ```
 
 | Parameter | Type | Description |
@@ -675,7 +683,7 @@ async function loadClasses(opts: {
 | `files` | `string[]` | Array of file paths to load |
 | `root` | `string` | Project root (for error messages) |
 
-**Returns:** `Promise<TClass<any>[]>` - Array of loaded class constructors
+**Returns:** `Promise<AnyType[]>` - Array of loaded class constructors (filtered by `isClass` type guard)
 
 **Example:**
 
@@ -721,9 +729,21 @@ for (const exported of Object.values(module)) {
 
 ## Constants
 
+### BootPhases
+
+Static class defining boot phase constants.
+
+```typescript
+class BootPhases {
+  static readonly CONFIGURE = 'configure';
+  static readonly DISCOVER = 'discover';
+  static readonly LOAD = 'load';
+}
+```
+
 ### BOOT_PHASES
 
-Array of all boot phases in execution order.
+Array of all boot phases in execution order (derived from `BootPhases`).
 
 ```typescript
 const BOOT_PHASES: TBootPhase[] = ['configure', 'discover', 'load']
@@ -756,6 +776,14 @@ function BootMixin<T extends TMixinTarget<Container>>(
 
 **Returns:** Mixed class implementing `IBootableApplication`
 
+**Auto-registers in constructor:**
+- `@app/boot-options` -- user boot config (from `this.bootOptions`)
+- `booter.DatasourceBooter` -- tagged `'booter'`
+- `booter.RepositoryBooter` -- tagged `'booter'`
+- `booter.ServiceBooter` -- tagged `'booter'`
+- `booter.ControllerBooter` -- tagged `'booter'`
+- `bootstrapper` -- singleton `Bootstrapper` instance
+
 **Example:**
 
 ```typescript
@@ -771,6 +799,8 @@ class MyApp extends BootMixin(Container) {
 const app = new MyApp();
 await app.boot();
 ```
+
+> **Note:** `BaseApplication` does not use `BootMixin`. Instead, it registers the same booters and bootstrapper in its own `registerBooters()` method using `this.booter()` and reads boot options from `this.configs.bootOptions`.
 
 
 ## See Also

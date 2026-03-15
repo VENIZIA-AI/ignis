@@ -7,7 +7,7 @@ This guide walks you through creating your own components step-by-step.
 Imagine you're building multiple applications that all need the same features: authentication, health checks, file uploads. Without components, you'd copy-paste code between projects:
 
 ```typescript
-// ❌ Without Components - Copy-paste everywhere
+// Without Components - Copy-paste everywhere
 export class Application extends BaseApplication {
   preConfigure() {
     // Auth feature - copied to every project
@@ -28,7 +28,7 @@ export class Application extends BaseApplication {
 **Components solve this** by packaging related functionality into reusable, plug-and-play modules:
 
 ```typescript
-// ✅ With Components - Clean and reusable
+// With Components - Clean and reusable
 export class Application extends BaseApplication {
   preConfigure() {
     this.component(AuthenticateComponent);  // All auth features in one line
@@ -57,11 +57,11 @@ When you register a component, all of these get added to your application automa
 
 | Scenario | Use Component? | Why |
 |----------|----------------|-----|
-| Feature used in **one** project only | ❌ No | Just register services/controllers directly |
-| Feature **shared across projects** | ✅ Yes | Package once, reuse everywhere |
-| Feature with **multiple related parts** | ✅ Yes | Keep related code together |
-| Building a **library/package** | ✅ Yes | Easy distribution and installation |
-| **Configurable feature** with options | ✅ Yes | Components handle configuration elegantly |
+| Feature used in **one** project only | No | Just register services/controllers directly |
+| Feature **shared across projects** | Yes | Package once, reuse everywhere |
+| Feature with **multiple related parts** | Yes | Keep related code together |
+| Building a **library/package** | Yes | Easy distribution and installation |
+| **Configurable feature** with options | Yes | Components handle configuration elegantly |
 
 ## Creating Your First Component
 
@@ -129,7 +129,7 @@ export class NotificationService extends BaseService {
 ```typescript
 // src/components/notification/controllers/controller.ts
 import {
-  BaseController,
+  BaseRestController,
   controller,
   post,
   inject,
@@ -143,7 +143,6 @@ import { NotificationService } from '../services';
 
 const NotificationRoutes = {
   SEND: {
-    method: HTTP.Methods.POST,
     path: '/send',
     request: {
       body: jsonContent({
@@ -160,12 +159,12 @@ const NotificationRoutes = {
 } as const;
 
 @controller({ path: '/notifications' })
-export class NotificationController extends BaseController {
+export class NotificationController extends BaseRestController {
   constructor(
     @inject({ key: 'services.NotificationService' })
     private _notificationService: NotificationService,
   ) {
-    super({ scope: NotificationController.name, path: '/notifications' });
+    super({ scope: NotificationController.name });
   }
 
   @post({ configs: NotificationRoutes.SEND })
@@ -317,22 +316,25 @@ export class Application extends BaseApplication {
 Application.preConfigure()
          │
          ▼
-this.component(MyComponent)
+this.component(MyComponent)           (registers binding as SINGLETON)
+         │
+         ▼
+Application.registerComponents()      (called during initialize())
          │
          ▼
 ┌────────────────────────────────┐
 │  1. Constructor called         │
 │     - Inject application       │
 │     - Set up component scope   │
+│     - Define default bindings  │
 └────────────────────────────────┘
          │
          ▼
 ┌────────────────────────────────┐
-│  2. binding() called           │
-│     - Register services        │
-│     - Register controllers     │
-│     - Register repositories    │
-│     - Bind default options     │
+│  2. configure() called         │
+│     - initDefaultBindings()    │  (if initDefault.enable = true)
+│     - binding()                │  (register services, controllers, etc.)
+│     - isConfigured = true      │  (idempotent guard)
 └────────────────────────────────┘
          │
          ▼
@@ -491,6 +493,8 @@ export class MyComponent extends BaseComponent {
 | **Key method** | `binding()` - register all resources here |
 | **Configuration** | Use binding keys + `isBound()` check for overridable options |
 | **Registration** | `this.component(MyComponent)` in `preConfigure()` |
+| **Scope** | Components are always registered as **singletons** |
+| **Idempotent** | `configure()` only runs once, even if called multiple times |
 
 ## See Also
 
@@ -501,8 +505,8 @@ export class MyComponent extends BaseComponent {
 
 - **References:**
   - [BaseComponent API](/references/base/components) - Complete API reference
-  - [Authentication Component](/references/components/authentication/) - Real-world component example
-  - [Health Check Component](/references/components/health-check) - Simple component example
+  - [Authentication Component](/extensions/components/authentication/) - Real-world component example
+  - [Health Check Component](/extensions/components/health-check) - Simple component example
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component architecture patterns

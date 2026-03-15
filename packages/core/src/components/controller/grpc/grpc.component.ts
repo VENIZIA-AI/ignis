@@ -79,7 +79,9 @@ export class GrpcComponent extends BaseComponent {
         continue;
       }
 
+      instance.basePath = this.application.getProjectConfigs().path.base;
       await instance.configure();
+
       router.route(metadata.path, instance.getRouter());
       configured.add(binding.key);
 

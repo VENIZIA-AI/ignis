@@ -92,8 +92,8 @@ const parsed = generator.parseId("9du1sJXO88");
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/uid.md` | New documentation |
-| `wiki/references/helpers/index.md` | Added UID to helper list |
+| `wiki/extensions/helpers/uid.md` | New documentation |
+| `wiki/extensions/helpers/index.md` | Added UID to helper list |
 
 ## No Breaking Changes
 

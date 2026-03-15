@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import {
   BaseApplication,
-  BaseController,
+  BaseRestController,
   controller,
   get,
   IApplicationInfo,
@@ -13,7 +13,7 @@ import appInfo from './../package.json';
 
 // 1. Define a controller
 @controller({ path: '/hello' })
-class HelloController extends BaseController {
+class HelloController extends BaseRestController {
   constructor() {
     super({ scope: 'HelloController', path: '/hello' });
   }
@@ -27,7 +27,6 @@ class HelloController extends BaseController {
   @get({
     configs: {
       path: '/',
-      method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
           description: 'Says hello',

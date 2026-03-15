@@ -178,7 +178,7 @@ const documents = await documentRepo.find({
 const searchProducts = async (query: string, filters: {
   minRating?: number;
   maxPrice?: number;
-  features?: string[];
+  categories?: string[];
 }) => {
   const where: TWhere<TProductSchema> = {
     status: 'active',
@@ -201,8 +201,9 @@ const searchProducts = async (query: string, filters: {
     where.price = { lte: filters.maxPrice };
   }
 
-  if (filters.features?.length) {
-    where['metadata.features'] = { contains: filters.features };
+  if (filters.categories?.length) {
+    // Use array operator on a PostgreSQL array column
+    where.categories = { contains: filters.categories };
   }
 
   return productRepo.find({
@@ -214,7 +215,7 @@ const searchProducts = async (query: string, filters: {
   });
 };
 
-// Example: searchProducts('wireless', { minRating: 4, maxPrice: 200, features: ['bluetooth'] })
+// Example: searchProducts('wireless', { minRating: 4, maxPrice: 200, categories: ['electronics'] })
 //
 // SQL:
 // SELECT *
@@ -228,7 +229,7 @@ const searchProducts = async (query: string, filters: {
 //   )
 //   AND "rating" >= 4
 //   AND "price" <= 200
-//   AND "metadata" #>> '{features}' @> '["bluetooth"]'
+//   AND "categories"::text[] @> ARRAY['electronics']::text[]
 // ORDER BY "rating" DESC, "created_at" DESC
 // LIMIT 50
 ```

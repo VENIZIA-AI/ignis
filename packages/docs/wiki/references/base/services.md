@@ -17,25 +17,16 @@ Technical reference for `BaseService` - the foundation for business logic layers
 | **Extends `BaseHelper`** | Auto-configured scoped logger (`this.logger`) |
 | **DI Integration** | Fits into framework's dependency injection system |
 | **Business Logic Layer** | Bridge between Controllers and Repositories |
+| **No built-in CRUD** | Services are for business logic, not data access — that's what Repositories are for |
 
 ## `BaseService` Class
 
-Abstract class that all application services should extend.
-
-### Key Features
-
-| Feature | Description |
-| :--- | :--- |
-| **Standardization** | Common base for all services, fits framework architecture |
-| **Logging** | Extends `BaseHelper` - auto-configured logger at `this.logger` (scope = class name) |
-| **Clarity** | Signals the class contains business logic |
+Abstract class that all application services should extend. It implements the `IService` interface (currently a marker interface with no required methods).
 
 ### Class Definition
 
-The implementation is straightforward:
-
 ```typescript
-import { BaseHelper } from '../helpers';
+import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 
 export abstract class BaseService extends BaseHelper implements IService {
@@ -43,6 +34,50 @@ export abstract class BaseService extends BaseHelper implements IService {
     super({ scope: opts.scope });
   }
 }
+```
+
+### Key Features
+
+| Feature | Description |
+| :--- | :--- |
+| **Standardization** | Common base for all services, fits framework architecture |
+| **Logging** | Extends `BaseHelper` from `@venizia/ignis-helpers` — auto-configured logger at `this.logger` (scope = class name) |
+| **Clarity** | Signals the class contains business logic |
+
+### Constructor
+
+The constructor requires an options object with a `scope` string, which is typically set to the class name:
+
+```typescript
+class UserService extends BaseService {
+  constructor() {
+    super({ scope: UserService.name });
+  }
+}
+```
+
+## `IService` Interface
+
+The `IService` interface is a marker interface with no required methods. It exists to provide a type-level contract for services.
+
+```typescript
+export interface IService {}
+```
+
+## No Built-in CRUD Service
+
+Ignis intentionally does not provide a `BaseCrudService`. CRUD operations belong in the Repository layer (`DefaultCRUDRepository`). Services are for business logic that orchestrates one or more repositories, performs validation, handles transactions, or coordinates cross-cutting concerns.
+
+## Registration
+
+Services are registered with the DI container using the `app.service()` method or via the boot system's auto-discovery:
+
+```typescript
+// Manual registration (in preConfigure or registerComponents)
+app.service(UserService); // Binds as 'services.UserService'
+
+// Or via boot system auto-discovery:
+// Place file at src/services/user.service.ts → auto-discovered and bound
 ```
 
 ## How Services Fit into the Architecture
@@ -64,12 +99,12 @@ Services are the core of your application's logic. They act as a bridge between 
 ### Example
 
 ```typescript
-import { BaseService, inject } from '@venizia/ignis';
+import { BaseService, inject, injectable } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { UserRepository } from '../repositories/user.repository';
 import { TUser } from '../models/entities';
 
-// 1. Service is decorated with `@injectable` (or registered via `app.service()`)
+// 1. Service is decorated with @injectable (or registered via app.service())
 @injectable()
 export class UserService extends BaseService {
   // 2. Dependencies (like UserRepository) are injected
@@ -94,15 +129,60 @@ export class UserService extends BaseService {
     // 5. Returns transformed data
     return {
       id: user.id,
-      name: user.name, // Assuming a 'name' field exists
+      name: user.name,
       email: user.email,
     };
   }
 }
 ```
 
-By adhering to this pattern, you keep your code organized, testable, and maintainable. You can easily test `UserService` by providing a mock `UserRepository` without needing a real database connection.
+### Transaction Orchestration
 
+A common service pattern is orchestrating transactions across multiple repositories:
+
+```typescript
+@injectable()
+export class OrderService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.OrderRepository' })
+    private orderRepo: OrderRepository,
+
+    @inject({ key: 'repositories.InventoryRepository' })
+    private inventoryRepo: InventoryRepository,
+
+    @inject({ key: 'datasources.PostgresDataSource' })
+    private dataSource: PostgresDataSource,
+  ) {
+    super({ scope: OrderService.name });
+  }
+
+  async placeOrder(opts: { userId: string; items: OrderItem[] }) {
+    const transaction = await this.dataSource.beginTransaction();
+    try {
+      const order = await this.orderRepo.create({
+        data: { userId: opts.userId, items: opts.items },
+        options: { transaction },
+      });
+
+      for (const item of opts.items) {
+        await this.inventoryRepo.updateById({
+          id: item.productId,
+          data: { quantity: item.quantity },
+          options: { transaction },
+        });
+      }
+
+      await transaction.commit();
+      return order;
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
+    }
+  }
+}
+```
+
+By adhering to this pattern, you keep your code organized, testable, and maintainable. You can easily test `UserService` by providing a mock `UserRepository` without needing a real database connection.
 
 ## See Also
 

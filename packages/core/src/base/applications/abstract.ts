@@ -205,7 +205,7 @@ export abstract class AbstractApplication<
   protected startBunModule() {
     return new Promise((resolve, reject) => {
       if (this.server.runtime !== RuntimeModules.BUN) {
-        reject(
+        return reject(
           getError({
             message: `[startBunModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.BUN}`,
           }),
@@ -246,7 +246,7 @@ export abstract class AbstractApplication<
   protected startNodeModule() {
     return new Promise((resolve, reject) => {
       if (this.server.runtime !== RuntimeModules.NODE) {
-        reject(
+        return reject(
           getError({
             message: `[startNodeModule] Invalid runtime to start server | runtime: ${this.server.runtime} | required: ${RuntimeModules.NODE}`,
           }),

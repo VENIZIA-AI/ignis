@@ -2,7 +2,7 @@
 title: Providers Reference
 description: Technical reference for the Provider pattern in IGNIS
 difficulty: advanced
-lastUpdated: 2026-01-03
+lastUpdated: 2026-03-15
 ---
 
 # Providers Reference
@@ -461,37 +461,37 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
 
 ### Example 3: Middleware Provider
 
-Providers can also produce middleware:
+Providers can also produce middleware. `RequestSpyMiddleware` is a real-world example that implements `IProvider<MiddlewareHandler>` directly (extending `BaseHelper`, not `BaseProvider`):
 
 ```typescript
-import { RequestSpyMiddleware } from '@venizia/ignis';
-
-// RequestSpyMiddleware is a provider that produces Hono middleware
-@injectable()
+// From packages/core/src/base/middlewares/request-spy.middleware.ts
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';
 
   constructor() {
-    super({ scope: RequestSpyMiddleware.name });
+    super({ scope: 'SpyMW' });
   }
 
+  /** Returns a Hono middleware that logs request details and duration. */
   value() {
     return createMiddleware(async (context, next) => {
+      const t = performance.now();
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+      const method = context.req.method;
+      const path = context.req.path ?? '/';
 
-      this.logger.info('[spy][%s] START | path: %s', requestId, context.req.path);
+      this.logger.info('[%s][=>] %s %s', requestId, method, path);
 
       await next();
 
-      this.logger.info('[spy][%s] DONE | path: %s', requestId, context.req.path);
+      const duration = (performance.now() - t).toFixed(2);
+      this.logger.info('[%s][<=] %s %s | Took: %s (ms)', requestId, method, path, duration);
     });
   }
 }
-
-// Usage
-const requestSpy = new RequestSpyMiddleware();
-app.use(requestSpy.value());
 ```
+
+Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter -- the `IProvider<T>` interface defines `value(container: Container): T`, but implementations may ignore the parameter when they don't need container access. In practice, `RequestSpyMiddleware` is registered via `RequestTrackerComponent`, which binds it as a provider in the DI container and resolves it automatically.
 
 
 ## Common Patterns
@@ -708,7 +708,7 @@ export class ConfigProvider extends BaseProvider<Config> {
 - **Related References:**
   - [Services](./services.md) - Business logic layer
   - [Dependency Injection](./dependency-injection.md) - DI container and injection
-  - [Middlewares](./middlewares.md) - Middleware providers
+  - [Middleware](./middleware.md) - Built-in middlewares (includes `RequestSpyMiddleware` provider)
 
 - **Guides:**
   - [Dependency Injection Guide](/guides/core-concepts/dependency-injection.md)

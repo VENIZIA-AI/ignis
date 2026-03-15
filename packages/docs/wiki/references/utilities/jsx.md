@@ -89,7 +89,7 @@ const pageContent = htmlContent({
 
 ## htmlResponse()
 
-Creates a standard OpenAPI response object for HTML endpoints, including success (200 OK) HTML response and JSON error responses for 4xx/5xx status codes.
+Creates a standard OpenAPI response object for HTML endpoints, including a success (200 OK) HTML response and a JSON error response for `4xx | 5xx` status codes using the `ErrorSchema`.
 
 ### Signature
 
@@ -120,7 +120,7 @@ function htmlResponse(opts: {
 ### Returns
 
 Returns an OpenAPI responses object with:
-- `200`: Success response with HTML content
+- `200`: Success response with HTML content (via `htmlContent()`)
 - `4xx | 5xx`: Error responses with JSON error schema
 
 ### Example
@@ -157,14 +157,16 @@ this.defineRoute({
 ### Basic HTML Route
 
 ```typescript
-import { BaseController, get, htmlResponse } from '@venizia/ignis';
+import { BaseRestController, get, htmlResponse } from '@venizia/ignis';
 
-export class PageController extends BaseController {
+export class PageController extends BaseRestController {
   @get({
-    path: '/home',
-    responses: htmlResponse({
-      description: 'Home page HTML',
-    }),
+    configs: {
+      path: '/home',
+      responses: htmlResponse({
+        description: 'Home page HTML',
+      }),
+    },
   })
   async getHomePage() {
     return this.context.html(
@@ -184,7 +186,7 @@ export class PageController extends BaseController {
 ### HTML Email Preview
 
 ```typescript
-import { BaseController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { BaseRestController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const EmailRoutes = {
@@ -200,7 +202,7 @@ const EmailRoutes = {
   },
 } as const;
 
-export class EmailController extends BaseController {
+export class EmailController extends BaseRestController {
   @get({ configs: EmailRoutes.PREVIEW })
   async previewTemplate(c: TRouteContext) {
     const { templateId } = c.req.valid<{ templateId: string }>('param');
@@ -223,7 +225,7 @@ export class EmailController extends BaseController {
 ### Documentation Page
 
 ```typescript
-import { BaseController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { BaseRestController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const DocsRoutes = {
@@ -239,7 +241,7 @@ const DocsRoutes = {
   },
 } as const;
 
-export class DocsController extends BaseController {
+export class DocsController extends BaseRestController {
   @get({ configs: DocsRoutes.GET_SECTION })
   async getDocumentation(c: TRouteContext) {
     const { section } = c.req.valid<{ section: string }>('param');
@@ -270,16 +272,17 @@ export class DocsController extends BaseController {
 ### Admin Dashboard
 
 ```typescript
-import { BaseController, get, htmlResponse } from '@venizia/ignis';
-import { authenticate } from '../middleware/auth';
+import { BaseRestController, get, htmlResponse } from '@venizia/ignis';
 
-export class AdminController extends BaseController {
+export class AdminController extends BaseRestController {
   @get({
-    path: '/admin',
-    middleware: [authenticate({ role: 'admin' })],
-    responses: htmlResponse({
-      description: 'Admin dashboard',
-    }),
+    configs: {
+      path: '/admin',
+      middleware: [authenticate({ role: 'admin' })],
+      responses: htmlResponse({
+        description: 'Admin dashboard',
+      }),
+    },
   })
   async getDashboard() {
     const stats = await this.statsService.getAdminStats();
@@ -337,7 +340,7 @@ export class AdminController extends BaseController {
 ### 1. Use for Server-Side Rendering
 
 ```typescript
-// ✅ Good: Use htmlResponse for SSR routes
+// Good: Use htmlResponse for SSR routes
 const ProfileConfig = {
   method: HTTP.Methods.GET,
   path: '/profile/:userId',
@@ -352,29 +355,16 @@ async getUserProfile(c: TRouteContext) {
   return c.html(<UserProfile user={user} />);
 }
 
-// ❌ Bad: Don't use htmlResponse for API endpoints
-const BadConfig = {
-  method: HTTP.Methods.GET,
-  path: '/api/users/:userId',
-  request: { params: z.object({ userId: z.string() }) },
-  responses: htmlResponse({ description: 'User data' }), // Wrong!
-} as const;
-
-@get({ configs: BadConfig })
-async getUser(c: TRouteContext) {
-  const { userId } = c.req.valid<{ userId: string }>('param');
-  return { id: userId, name: 'John' }; // Should use jsonResponse
-}
+// Bad: Don't use htmlResponse for API endpoints — use jsonResponse instead
 ```
 
 ### 2. Combine with Authentication
 
 ```typescript
-// ✅ Good: Protect HTML routes with auth
 const SettingsConfig = {
   method: HTTP.Methods.GET,
   path: '/admin/settings',
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: ['jwt'] },
   responses: htmlResponse({ description: 'Settings page' }),
 } as const;
 
@@ -490,8 +480,10 @@ export const Layout = (props: { title: string; children: any }) => {
 import { Layout } from './components/Layout';
 
 @get({
-  path: '/',
-  responses: htmlResponse({ description: 'Home page' }),
+  configs: {
+    path: '/',
+    responses: htmlResponse({ description: 'Home page' }),
+  },
 })
 async getHome() {
   return this.context.html(
@@ -509,19 +501,23 @@ async getHome() {
 ### Pitfall 1: Missing HTML Wrapper
 
 ```typescript
-// ❌ Bad: Incomplete HTML
+// Bad: Incomplete HTML
 @get({
-  path: '/page',
-  responses: htmlResponse({ description: 'Page' }),
+  configs: {
+    path: '/page',
+    responses: htmlResponse({ description: 'Page' }),
+  },
 })
 async getPage() {
   return this.context.html(<div>Hello</div>); // Missing <html>, <head>, <body>
 }
 
-// ✅ Good: Complete HTML document
+// Good: Complete HTML document
 @get({
-  path: '/page',
-  responses: htmlResponse({ description: 'Page' }),
+  configs: {
+    path: '/page',
+    responses: htmlResponse({ description: 'Page' }),
+  },
 })
 async getPage() {
   return this.context.html(
@@ -536,22 +532,26 @@ async getPage() {
 ### Pitfall 2: Using htmlResponse for APIs
 
 ```typescript
-// ❌ Bad: HTML response for API
+// Bad: HTML response for API
 @get({
-  path: '/api/users',
-  responses: htmlResponse({ description: 'Users' }),
+  configs: {
+    path: '/api/users',
+    responses: htmlResponse({ description: 'Users' }),
+  },
 })
 async getUsers() {
   return { users: [...] }; // Should return HTML or use jsonResponse
 }
 
-// ✅ Good: Use jsonResponse for APIs
+// Good: Use jsonResponse for APIs
 @get({
-  path: '/api/users',
-  responses: jsonResponse({
-    description: 'Users list',
-    schema: z.object({ users: z.array(UserSchema) }),
-  }),
+  configs: {
+    path: '/api/users',
+    responses: jsonResponse({
+      description: 'Users list',
+      schema: z.object({ users: z.array(UserSchema) }),
+    }),
+  },
 })
 async getUsers() {
   return { users: await this.userService.findAll() };
@@ -564,7 +564,7 @@ async getUsers() {
 - **Related References:**
   - [Schema Utility](./schema.md) - JSON content and response helpers
   - [Controllers](../base/controllers.md) - Defining routes and handlers
-  - [OpenAPI Component](../components/swagger) - API documentation
+  - [OpenAPI Component](/extensions/components/swagger) - API documentation
 
 - **External Resources:**
   - [Hono JSX Documentation](https://hono.dev/guides/jsx)

@@ -48,7 +48,7 @@ Then, use the decorators in your controller class.
 **`src/controllers/test/controller.ts`**
 ```typescript
 import {
-  BaseController,
+  BaseRestController,
   controller,
   get,
   post,
@@ -57,8 +57,8 @@ import {
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
-@controller({ path: '/test' })
-export class TestController extends BaseController {
+@controller({ path: '/test' }) // transport defaults to 'rest'
+export class TestController extends BaseRestController {
   // ...
 
   @get({ configs: RouteConfigs.GET_TEST })
@@ -91,12 +91,12 @@ You can also define routes manually within the controller's `binding()` method u
 
 **`src/controllers/test/controller.ts`**
 ```typescript
-import { BaseController, controller, ValueOrPromise } from '@venizia/ignis';
+import { BaseRestController, controller, ValueOrPromise } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/test' })
-export class TestController extends BaseController {
+export class TestController extends BaseRestController {
   // ...
   override binding(): ValueOrPromise<void> {
     // Using 'defineRoute'
@@ -236,10 +236,10 @@ Ignis supports server-side rendering using Hono's JSX middleware. This is useful
 Use `defineJSXRoute` in your controller and `htmlResponse` for documentation.
 
 ```typescript
-import { BaseController, controller, htmlResponse } from '@venizia/ignis';
+import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
 
 @controller({ path: '/pages' })
-export class PageController extends BaseController {
+export class PageController extends BaseRestController {
   
   override binding(): void {
     this.defineJSXRoute({
@@ -330,7 +330,7 @@ Apply middleware to specific routes in your controller:
 
 ```typescript
 @controller({ path: '/admin' })
-export class AdminController extends BaseController {
+export class AdminController extends BaseRestController {
   constructor() {
     super({ scope: AdminController.name, path: '/admin' });
   }
@@ -412,7 +412,7 @@ export class UserService extends BaseService {
 
 ```typescript
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor(
     @inject({
       key: BindingKeys.build({

@@ -33,12 +33,16 @@ Matches records where field equals the value.
 // Array shorthand (becomes IN)
 { where: { id: [1, 2, 3] } }
 // SQL: WHERE "id" IN (1, 2, 3)
+
+// Empty array shorthand
+{ where: { id: [] } }
+// SQL: WHERE false (no results)
 ```
 
 
 ## ne / neq - Not Equal To
 
-Matches records where field does NOT equal the value.
+Matches records where field does NOT equal the value. Both `ne` and `neq` are aliases and behave identically.
 
 ```typescript
 { where: { status: { ne: 'deleted' } } }
@@ -48,6 +52,7 @@ Matches records where field does NOT equal the value.
 
 // Null handling
 { where: { deletedAt: { ne: null } } }
+{ where: { deletedAt: { neq: null } } }
 // SQL: WHERE "deleted_at" IS NOT NULL
 ```
 
@@ -101,8 +106,9 @@ Matches records where field does NOT equal the value.
 
 | Operator | SQL | Description |
 |----------|-----|-------------|
-| `eq` | `=` | Equal to |
-| `ne` / `neq` | `!=` | Not equal to |
+| `eq` | `=` / `IS NULL` | Equal to (handles null) |
+| `ne` | `!=` / `IS NOT NULL` | Not equal to (handles null) |
+| `neq` | `!=` / `IS NOT NULL` | Alias for `ne` |
 | `gt` | `>` | Greater than |
 | `gte` | `>=` | Greater than or equal |
 | `lt` | `<` | Less than |

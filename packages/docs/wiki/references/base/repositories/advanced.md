@@ -207,7 +207,7 @@ const usersWithPosts = await repo.find({
 
 | Filter Options | API Used | Performance |
 |----------------|----------|-------------|
-| `where`, `limit`, `order`, `offset` only | Core API | ~15-20% faster |
+| `where`, `limit`, `order`, `offset`/`skip` only | Core API | ~15-20% faster |
 | Has `include` (relations) | Query API | Standard |
 | Has `fields` selection | Query API | Standard |
 
@@ -216,7 +216,7 @@ const usersWithPosts = await repo.find({
 Prevent memory exhaustion on large tables:
 
 ```typescript
-// ✅ Good - bounded result set
+// Good - bounded result set
 await repo.find({
   filter: {
     where: { status: 'active' },
@@ -230,33 +230,30 @@ await repo.find({
 });
 ```
 
-### Pagination Pattern
+> [!NOTE]
+> The default limit is `10` when using the `FilterSchema` Zod validation (via `LimitSchema`). However, when calling repository methods directly without schema validation, no default limit is applied.
+
+### Pagination with Data Range
+
+Use `shouldQueryRange` to get both data and total count in a single call:
 
 ```typescript
-async function getPaginatedUsers(page: number, pageSize: number = 20) {
-  const [users, total] = await Promise.all([
-    userRepo.find({
-      filter: {
-        where: { status: 'active' },
-        limit: pageSize,
-        skip: (page - 1) * pageSize,
-        order: ['createdAt DESC']
-      }
-    }),
-    userRepo.count({ where: { status: 'active' } })
-  ]);
+const result = await userRepo.find({
+  filter: {
+    where: { status: 'active' },
+    limit: 20,
+    skip: 40,
+    order: ['createdAt DESC']
+  },
+  options: { shouldQueryRange: true }
+});
 
-  return {
-    data: users,
-    pagination: {
-      page,
-      pageSize,
-      total,
-      totalPages: Math.ceil(total / pageSize)
-    }
-  };
-}
+// Result type: { data: User[], range: { start: number, end: number, total: number } }
+// range follows HTTP Content-Range standard (inclusive end index)
+// Example: { data: [...20 users], range: { start: 40, end: 59, total: 150 } }
 ```
+
+This runs `find` and `count` in parallel via `Promise.all` for optimal performance.
 
 ### WeakMap Cache
 
@@ -264,8 +261,8 @@ The filter builder caches table column metadata, avoiding repeated reflection:
 
 ```typescript
 // Internal optimization - automatic
-// First query: getTableColumns(schema) → cached
-// Subsequent queries: retrieved from WeakMap
+// First query: getTableColumns(schema) -> cached in WeakMap
+// Subsequent queries: retrieved from WeakMap cache
 ```
 
 
@@ -281,8 +278,7 @@ const result1 = await repo.create({
   data: { name: 'John' },
   options: { shouldReturn: false }
 });
-// Type: Promise<{ count: number; data: null }>
-console.log(result1.data); // null
+// Type: Promise<{ count: number; data: undefined | null }>
 
 // shouldReturn: true (default) - TypeScript knows data is the entity
 const result2 = await repo.create({
@@ -327,7 +323,7 @@ if (user) {
 **Supported Methods:**
 - `find<R>()`, `findOne<R>()`, `findById<R>()`
 - `create<R>()`, `createAll<R>()`
-- `updateById<R>()`, `updateAll<R>()`
+- `updateById<R>()`, `updateAll<R>()`, `updateBy<R>()`
 - `deleteById<R>()`, `deleteAll<R>()`, `deleteBy<R>()`
 
 
@@ -355,7 +351,7 @@ await repo.updateById({
 });
 ```
 
-**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`, `deleteBy`
+**Available on:** `create`, `createAll`, `updateById`, `updateAll`, `updateBy`, `deleteById`, `deleteAll`, `deleteBy` (all write operations that go through `_create`, `_update`, or `_delete` internal methods)
 
 ### Query Interface Validation
 
@@ -377,10 +373,10 @@ The repository validates schema registration on startup:
 Prevents accidental mass updates/deletes:
 
 ```typescript
-// ❌ Throws error - empty where without force
+// Throws error - empty where without force
 await repo.deleteAll({ where: {} });
 
-// ✅ Explicit force flag - logs warning, proceeds
+// Explicit force flag - logs warning, proceeds
 await repo.deleteAll({
   where: {},
   options: { force: true }
@@ -393,29 +389,16 @@ await repo.deleteAll({
 | Empty `where` | Throws error | Logs warning, proceeds |
 | Valid `where` | Executes normally | Executes normally |
 
-### Constructor Type Validation
+> [!NOTE]
+> This protection applies to `updateAll`, `updateBy`, `deleteAll`, and `deleteBy`. The `updateById` and `deleteById` methods always have a non-empty where (`{ id }`) so they are not affected.
 
-The `@repository` decorator validates constructor parameters:
+### Transaction Safety
+
+The `resolveConnector` method validates transaction state before use:
 
 ```typescript
-// ❌ Error: First parameter must extend AbstractDataSource
-@repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
-  constructor(dataSource: any) { // 'any' not allowed!
-    super(dataSource);
-  }
-}
-
-// ✅ Correct: Concrete DataSource type
-@repository({ model: User, dataSource: PostgresDataSource })
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' })
-    dataSource: PostgresDataSource,
-  ) {
-    super(dataSource);
-  }
-}
+// If a transaction has already been committed or rolled back:
+// Error: [UserRepository][resolveConnector] Transaction is no longer active
 ```
 
 
@@ -444,12 +427,13 @@ const results = await connector
 
 ## Repository Class Hierarchy
 
-| Class | Description |
-|-------|-------------|
-| `AbstractRepository` | Base class, defines method signatures |
-| `ReadableRepository` | Read-only operations (find, findOne, count) |
-| `PersistableRepository` | Adds write operations (create, update, delete) |
-| `DefaultCRUDRepository` | Full CRUD - **use this one** |
+| Class | Scope | Description |
+|-------|-------|-------------|
+| `AbstractRepository` | N/A | Abstract base class, defines all method signatures, combines `FieldsVisibilityMixin` + `DefaultFilterMixin` |
+| `ReadableRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw errors. |
+| `PersistableRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder` |
+| `DefaultCRUDRepository` | `READ_WRITE` | Extends `PersistableRepository` with no additional logic - **recommended default** |
+| `SoftDeletableRepository` | `READ_WRITE` | Extends `DefaultCRUDRepository` with soft delete + restore operations |
 
 ### Creating a Read-Only Repository
 
@@ -460,6 +444,15 @@ export class AuditLogRepository extends ReadableRepository<typeof AuditLog.schem
   // Write operations throw "NOT ALLOWED" error
 }
 ```
+
+### Alias Methods
+
+`AbstractRepository` provides two alias methods for convenience:
+
+- `updateBy(opts)` - Alias for `updateAll(opts)`. Delegates directly.
+- `deleteBy(opts)` - Alias for `deleteAll(opts)`. Delegates directly.
+
+Both accept the same parameters (`where`, `data`/`options`) and support `shouldReturn` and `force` options.
 
 
 ## Default Filter Bypass
@@ -515,7 +508,7 @@ await tx.commit();
 
 ## Nested JSON Updates
 
-Repositories support updating specific fields within `json` or `jsonb` columns without overwriting the entire object. This is achieved using **JSON Path Notation** in the update data.
+Repositories support updating specific fields within `json` or `jsonb` columns without overwriting the entire object. This is achieved using **JSON Path Notation** in the update data via the `UpdateBuilder`.
 
 ### Basic Usage
 
@@ -540,9 +533,10 @@ await repo.updateById({
 
 - **Deep Nesting:** Update properties at any depth (e.g., `settings.display.font.size`).
 - **Array Access:** Update array elements by index (e.g., `tags[0]`).
-- **Auto-Creation:** Creates missing intermediate keys automatically.
-- **Type Safety:** Validates that the target column is a JSON type.
-- **Multiple Updates:** Chain multiple updates to the same or different columns.
+- **Auto-Creation:** Creates missing intermediate keys automatically (`jsonb_set` with `create_missing = true`).
+- **Type Safety:** Validates that the target column is a JSON/JSONB type.
+- **Multiple Updates:** Multiple updates to the same column are chained as nested `jsonb_set` calls.
+- **Mixed Updates:** Combine regular column updates with JSON path updates in a single call.
 
 ### Examples
 
@@ -580,7 +574,7 @@ await repo.updateById({
   data: {
     status: 'active',           // Regular column
     'metadata.lastLogin': now,  // JSON path
-    'preferences.lang': 'en'    // Another JSON path
+    'preferences.lang': 'en'   // Another JSON path
   }
 });
 ```
@@ -588,12 +582,31 @@ await repo.updateById({
 ### Security & Validation
 
 The framework validates JSON paths to prevent SQL injection:
-- **Allowed Characters:** Alphanumeric, underscores `_`, hyphens `-`, and brackets `[]`.
-- **Validation:** Invalid paths (e.g., containing SQL commands or special characters) throw an error before reaching the database.
-- **Values:** Values are safely serialized and parameterized.
+- **Allowed Characters:** Path components must match `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` (identifiers, kebab-case, or array indices).
+- **Column Type Validation:** Only `json` and `jsonb` columns are allowed. Other column types throw an error.
+- **Values:** Values are serialized to JSONB literals with proper escaping.
 
 > [!NOTE]
 > This feature uses PostgreSQL's `jsonb_set` function. It is only available for columns defined as `json` or `jsonb`.
+
+
+## ExtraOptions Reference
+
+All repository operations accept an `options` parameter with these fields:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `transaction` | `ITransaction` | - | Transaction context for the operation |
+| `log` | `{ use: boolean; level?: TLogLevel }` | - | Enable operation logging |
+| `shouldSkipDefaultFilter` | `boolean` | `false` | Bypass the default filter from model settings |
+
+Write operations additionally support:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `shouldReturn` | `boolean` | `true` | Return the created/updated/deleted data |
+| `force` | `boolean` | `false` | Allow empty `where` condition on bulk operations |
+| `shouldQueryRange` | `boolean` | `false` | Return `{ data, range }` with total count (find only) |
 
 
 ## Quick Reference
@@ -608,6 +621,7 @@ The framework validates JSON paths to prevent SQL injection:
 | Enable logging | `options: { log: { use: true, level: 'debug' } }` |
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |
+| Get data + count | `options: { shouldQueryRange: true }` |
 | Access connector | `repo.getConnector()` |
 
 
@@ -618,6 +632,7 @@ The framework validates JSON paths to prevent SQL injection:
 - [Default Filter](../filter-system/default-filter.md) - Automatic filter configuration
 - [Repository Mixins](./mixins.md) - Composable features
 - [Relations & Includes](./relations.md) - Eager loading
+- [Soft-Deletable Repository](./soft-deletable.md) - Soft delete operations
 - [JSON Path Filtering](../filter-system/json-filtering) - JSONB queries
 - [Array Operators](../filter-system/array-operators) - PostgreSQL arrays
 
@@ -629,7 +644,7 @@ The framework validates JSON paths to prevent SQL injection:
   - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
 
 - **Related Topics:**
-  - [Repository Mixins](./mixins) - Soft delete and auditing
+  - [Repository Mixins](./mixins) - Composable mixin features
   - [Relations & Includes](./relations) - Loading related data
   - [Filter System](/references/base/filter-system/) - Query operators
 

@@ -27,7 +27,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -64,9 +64,11 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 
 **How auto-discovery works:**
 
-1. `@repository` decorators register model-datasource bindings
-2. When `configure()` is called, `getSchema()` collects all bound models
-3. Drizzle is initialized with the complete schema
+1. `@repository` decorators register model-datasource bindings in the `MetadataRegistry`
+2. When `configure()` is called, `getSchema()` invokes `discoverSchema()` which calls `MetadataRegistry.buildSchema({ dataSource })` to collect all bound models and their relations
+3. Drizzle is initialized with the complete schema (tables + Drizzle relations)
+
+You can disable auto-discovery per datasource via `@datasource({ driver: 'node-postgres', autoDiscovery: false })`.
 
 ## Manual Schema (Optional)
 
@@ -74,7 +76,7 @@ If you need explicit control, you can still provide schema manually:
 
 ```typescript
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -89,6 +91,21 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 }
 ```
 
+## DataSource Hierarchy
+
+```
+AbstractDataSource extends BaseHelper
+  └── BaseDataSource
+        ├── configure()               # Setup pool + Drizzle connector (abstract)
+        ├── getConnectionString()     # Build connection URL (abstract)
+        ├── getSchema()               # Auto-discover from @repository bindings
+        ├── discoverSchema()          # Internal: reads MetadataRegistry
+        ├── hasDiscoverableModels()   # Check if any repos reference this DS
+        ├── beginTransaction(opts?)   # Start transaction with isolation level
+        ├── getConnector()            # Get Drizzle connector
+        └── getSettings()            # Get connection config
+```
+
 ## Registering a DataSource
 
 ```typescript
@@ -100,18 +117,20 @@ export class Application extends BaseApplication {
 }
 ```
 
+DataSources are bound as **singletons** to ensure connection pool sharing across the application.
+
 ## Supported Drivers
 
 | Driver | Package | Status |
 |--------|---------|--------|
-| `node-postgres` | `pg` | ✅ Supported |
+| `node-postgres` | `pg` | Supported |
 | `mysql2` | `mysql2` | Planned |
 | `better-sqlite3` | `better-sqlite3` | Planned |
 
 ## DataSource Template
 
 ```typescript
-import { BaseDataSource, datasource, TNodePostgresConnector, ValueOrPromise } from '@venizia/ignis';
+import { BaseDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -124,7 +143,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,

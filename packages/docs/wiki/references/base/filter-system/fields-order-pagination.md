@@ -28,20 +28,16 @@ await repo.find({
 ### Object Format
 
 ```typescript
-// Include specific fields
+// Include specific fields (only keys with `true` are selected)
 await repo.find({
   filter: {
     fields: { id: true, email: true, name: true }
   }
 });
-
-// Exclude specific fields
-await repo.find({
-  filter: {
-    fields: { password: false, secret: false }
-  }
-});
 ```
+
+> [!NOTE]
+> The object format only supports inclusion (`true` values). Keys set to `false` are simply ignored -- they do not exclude fields. To select specific fields, list the ones you want with `true` or use the array format.
 
 
 ## Ordering
@@ -63,6 +59,14 @@ await repo.find({
 await repo.find({
   filter: { order: ['name'] }  // Same as 'name ASC'
 });
+```
+
+### Valid Directions
+
+Only `ASC` and `DESC` (case-insensitive) are accepted. Invalid directions throw an error:
+
+```
+Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
 ```
 
 ### JSON Path Ordering
@@ -96,10 +100,10 @@ await repo.find({
 
 ### Limit and Skip/Offset
 
-Both `skip` and `offset` are supported as aliases — they both map to the SQL `OFFSET` clause. When both are provided, `skip` takes precedence.
+Both `skip` and `offset` are supported as aliases -- they both map to the SQL `OFFSET` clause. When both are provided, `skip` takes precedence.
 
 ```typescript
-// First 10 results
+// First 10 results (default limit is 10)
 await repo.find({
   filter: { limit: 10 }
 });
@@ -126,7 +130,7 @@ await repo.find({
 ```
 
 > [!TIP]
-> Always use `limit` for public-facing endpoints to prevent memory exhaustion.
+> Always use `limit` for public-facing endpoints to prevent memory exhaustion. The default limit is 10 if not specified.
 
 ### Pagination Helper
 
@@ -186,7 +190,7 @@ const contentRange = data.length > 0
   : `records */${range.total}`;
 
 res.setHeader('Content-Range', contentRange);
-// → "records 20-29/100"
+// -> "records 20-29/100"
 ```
 
 ### TDataRange Type
@@ -242,5 +246,5 @@ const { data, range } = await repo.find({
 });
 
 console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
-// → "Showing 0-19 of 150"
+// -> "Showing 0-19 of 150"
 ```

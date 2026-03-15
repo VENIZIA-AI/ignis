@@ -20,8 +20,8 @@ IGNIS provides a comprehensive system of standardized status codes and constants
 | `Statuses` | Universal status codes (0xx-5xx scheme) | General entity lifecycle states |
 | `MigrationStatuses` | Database migration status tracking | Migration success/failure tracking |
 | `CommonStatuses` | Common entity statuses | Users, roles, and general entities |
-| `UserStatuses` | User-specific statuses | User account states |
-| `RoleStatuses` | Role-specific statuses | Role lifecycle states |
+| `UserStatuses` | User-specific statuses | User account states (extends `CommonStatuses`) |
+| `RoleStatuses` | Role-specific statuses | Role lifecycle states (extends `CommonStatuses`) |
 | `UserTypes` | User type classification | System vs linked users |
 
 ## Table of Contents
@@ -67,8 +67,10 @@ Initial states for entities being created or in draft mode.
 import { Statuses } from '@venizia/ignis';
 
 const article = await articleRepository.create({
-  title: 'My Article',
-  status: Statuses.DRAFT, // Still being written
+  data: {
+    title: 'My Article',
+    status: Statuses.DRAFT, // Still being written
+  },
 });
 ```
 
@@ -88,13 +90,16 @@ States indicating the entity is awaiting action, approval, or processing.
 ```typescript
 // Job queue
 const job = await jobRepository.create({
-  name: 'send-email',
-  status: Statuses.QUEUED,
+  data: {
+    name: 'send-email',
+    status: Statuses.QUEUED,
+  },
 });
 
 // Approval workflow
-const post = await postRepository.update(postId, {
-  status: Statuses.IN_REVIEW, // Submitted for moderation
+await postRepository.updateById({
+  id: postId,
+  data: { status: Statuses.IN_REVIEW },
 });
 ```
 
@@ -114,21 +119,24 @@ States indicating the entity is actively being processed or is currently operati
 **Example Usage:**
 ```typescript
 // User account activation
-await userRepository.update(userId, {
-  status: Statuses.ACTIVATED,
+await userRepository.updateById({
+  id: userId,
+  data: { status: Statuses.ACTIVATED },
 });
 
 // Background job
-await jobRepository.update(jobId, {
-  status: Statuses.RUNNING,
-  startedAt: new Date(),
+await jobRepository.updateById({
+  id: jobId,
+  data: { status: Statuses.RUNNING, startedAt: new Date() },
 });
 
 // Email tracking
 await emailRepository.create({
-  to: 'user@example.com',
-  subject: 'Welcome',
-  status: Statuses.SENT,
+  data: {
+    to: 'user@example.com',
+    subject: 'Welcome',
+    status: Statuses.SENT,
+  },
 });
 ```
 
@@ -148,23 +156,19 @@ Positive terminal states indicating successful completion.
 **Example Usage:**
 ```typescript
 // Job completion
-await jobRepository.update(jobId, {
-  status: Statuses.SUCCESS,
-  completedAt: new Date(),
+await jobRepository.updateById({
+  id: jobId,
+  data: { status: Statuses.SUCCESS, completedAt: new Date() },
 });
 
 // Approval workflow
-await documentRepository.update(docId, {
-  status: Statuses.APPROVED,
-  approvedBy: userId,
-  approvedAt: new Date(),
-});
-
-// Batch processing
-await batchRepository.update(batchId, {
-  status: Statuses.PARTIAL, // Some items succeeded
-  processedCount: 75,
-  totalCount: 100,
+await documentRepository.updateById({
+  id: docId,
+  data: {
+    status: Statuses.APPROVED,
+    approvedBy: userId,
+    approvedAt: new Date(),
+  },
 });
 ```
 
@@ -187,19 +191,15 @@ Negative but reversible states - the entity can be reactivated.
 **Example Usage:**
 ```typescript
 // User account management
-await userRepository.update(userId, {
-  status: Statuses.SUSPENDED, // Temporarily suspended
-  suspendedUntil: addDays(new Date(), 7),
+await userRepository.updateById({
+  id: userId,
+  data: { status: Statuses.SUSPENDED },
 });
 
 // Feature flags
-await featureRepository.update(featureId, {
-  status: Statuses.DISABLED, // Feature turned off
-});
-
-// Ticket system
-await ticketRepository.update(ticketId, {
-  status: Statuses.CLOSED, // Can be reopened if needed
+await featureRepository.updateById({
+  id: featureId,
+  data: { status: Statuses.DISABLED },
 });
 ```
 
@@ -221,30 +221,22 @@ Negative terminal states indicating permanent failure or cancellation.
 **Example Usage:**
 ```typescript
 // Job failure
-await jobRepository.update(jobId, {
-  status: Statuses.FAIL,
-  error: 'Connection timeout',
-  failedAt: new Date(),
-});
-
-// Token expiration
-await tokenRepository.update(tokenId, {
-  status: Statuses.EXPIRED,
-  expiredAt: new Date(),
+await jobRepository.updateById({
+  id: jobId,
+  data: { status: Statuses.FAIL, error: 'Connection timeout', failedAt: new Date() },
 });
 
 // Soft delete
-await productRepository.update(productId, {
-  status: Statuses.DELETED,
-  deletedAt: new Date(),
-  deletedBy: userId,
+await productRepository.updateById({
+  id: productId,
+  data: { status: Statuses.DELETED, deletedAt: new Date(), deletedBy: userId },
 });
 ```
 
 
 ## Status Groups
 
-The `Statuses` class provides static sets for grouping related statuses.
+The `Statuses` class provides static `Set` instances for grouping related statuses.
 
 ### Available Groups
 
@@ -333,15 +325,15 @@ const pendingOrders = orders.filter(order => Statuses.isPending(order.status));
 
 ### MigrationStatuses
 
-Simplified statuses for database migration tracking.
+Simplified statuses for database migration tracking. References values from `Statuses`.
 
 ```typescript
 import { MigrationStatuses } from '@venizia/ignis';
 
 class MigrationStatuses {
-  static readonly UNKNOWN = '000_UNKNOWN';
-  static readonly SUCCESS = '302_SUCCESS';
-  static readonly FAIL = '500_FAIL';
+  static readonly UNKNOWN = '000_UNKNOWN';  // = Statuses.UNKNOWN
+  static readonly SUCCESS = '302_SUCCESS';  // = Statuses.SUCCESS
+  static readonly FAIL = '500_FAIL';        // = Statuses.FAIL
 
   static readonly SCHEME_SET = new Set([
     this.UNKNOWN,
@@ -356,26 +348,28 @@ class MigrationStatuses {
 **Usage:**
 ```typescript
 await migrationRepository.create({
-  version: '20240103_001',
-  name: 'add_users_table',
-  status: MigrationStatuses.SUCCESS,
-  appliedAt: new Date(),
+  data: {
+    version: '20240103_001',
+    name: 'add_users_table',
+    status: MigrationStatuses.SUCCESS,
+    appliedAt: new Date(),
+  },
 });
 ```
 
 ### CommonStatuses
 
-Common statuses used across multiple entity types.
+Common statuses used across multiple entity types. References values from `Statuses`.
 
 ```typescript
 import { CommonStatuses } from '@venizia/ignis';
 
 class CommonStatuses {
-  static readonly UNKNOWN = '000_UNKNOWN';
-  static readonly ACTIVATED = '201_ACTIVATED';
-  static readonly DEACTIVATED = '401_DEACTIVATED';
-  static readonly BLOCKED = '403_BLOCKED';
-  static readonly ARCHIVED = '405_ARCHIVED';
+  static readonly UNKNOWN = '000_UNKNOWN';       // = Statuses.UNKNOWN
+  static readonly ACTIVATED = '201_ACTIVATED';    // = Statuses.ACTIVATED
+  static readonly DEACTIVATED = '401_DEACTIVATED'; // = Statuses.DEACTIVATED
+  static readonly BLOCKED = '403_BLOCKED';        // = Statuses.BLOCKED
+  static readonly ARCHIVED = '405_ARCHIVED';      // = Statuses.ARCHIVED
 
   static readonly SCHEME_SET = new Set([...]);
   static isValid(scheme: string): boolean;
@@ -385,33 +379,39 @@ class CommonStatuses {
 **Usage:**
 ```typescript
 // User management
-await userRepository.update(userId, {
-  status: CommonStatuses.ACTIVATED,
+await userRepository.updateById({
+  id: userId,
+  data: { status: CommonStatuses.ACTIVATED },
 });
 
 // Role management
-await roleRepository.update(roleId, {
-  status: CommonStatuses.ARCHIVED,
+await roleRepository.updateById({
+  id: roleId,
+  data: { status: CommonStatuses.ARCHIVED },
 });
 ```
 
 ### UserStatuses & RoleStatuses
 
-Aliases for `CommonStatuses` with semantic naming.
+Both `UserStatuses` and `RoleStatuses` extend `CommonStatuses` directly, inheriting all its statuses and methods.
 
 ```typescript
 import { UserStatuses, RoleStatuses } from '@venizia/ignis';
 
 // UserStatuses extends CommonStatuses
 const user = await userRepository.create({
-  email: 'user@example.com',
-  status: UserStatuses.ACTIVATED,
+  data: {
+    email: 'user@example.com',
+    status: UserStatuses.ACTIVATED,
+  },
 });
 
 // RoleStatuses extends CommonStatuses
 const role = await roleRepository.create({
-  name: 'admin',
-  status: RoleStatuses.ACTIVATED,
+  data: {
+    name: 'admin',
+    status: RoleStatuses.ACTIVATED,
+  },
 });
 ```
 
@@ -435,17 +435,21 @@ class UserTypes {
 ```typescript
 // Create system user
 const systemUser = await userRepository.create({
-  email: 'system@app.com',
-  type: UserTypes.SYSTEM,
-  status: UserStatuses.ACTIVATED,
+  data: {
+    email: 'system@app.com',
+    type: UserTypes.SYSTEM,
+    status: UserStatuses.ACTIVATED,
+  },
 });
 
 // OAuth linked user
 const oauthUser = await userRepository.create({
-  email: 'user@example.com',
-  type: UserTypes.LINKED,
-  linkedProvider: 'google',
-  status: UserStatuses.ACTIVATED,
+  data: {
+    email: 'user@example.com',
+    type: UserTypes.LINKED,
+    linkedProvider: 'google',
+    status: UserStatuses.ACTIVATED,
+  },
 });
 ```
 
@@ -461,13 +465,13 @@ class OrderService extends BaseService {
   async createOrder(data: CreateOrderDto) {
     // Start as NEW
     const order = await this.orderRepository.create({
-      ...data,
-      status: Statuses.NEW,
+      data: { ...data, status: Statuses.NEW },
     });
 
     // Queue for processing
-    await this.orderRepository.update(order.id, {
-      status: Statuses.QUEUED,
+    await this.orderRepository.updateById({
+      id: order.data.id,
+      data: { status: Statuses.QUEUED },
     });
 
     return order;
@@ -475,9 +479,9 @@ class OrderService extends BaseService {
 
   async processOrder(orderId: string) {
     // Mark as processing
-    await this.orderRepository.update(orderId, {
-      status: Statuses.PROCESSING,
-      startedAt: new Date(),
+    await this.orderRepository.updateById({
+      id: orderId,
+      data: { status: Statuses.PROCESSING, startedAt: new Date() },
     });
 
     try {
@@ -486,16 +490,15 @@ class OrderService extends BaseService {
       await this.inventoryService.reserve(order.items);
 
       // Mark as completed
-      await this.orderRepository.update(orderId, {
-        status: Statuses.COMPLETED,
-        completedAt: new Date(),
+      await this.orderRepository.updateById({
+        id: orderId,
+        data: { status: Statuses.COMPLETED, completedAt: new Date() },
       });
     } catch (error) {
       // Mark as failed
-      await this.orderRepository.update(orderId, {
-        status: Statuses.FAIL,
-        error: error.message,
-        failedAt: new Date(),
+      await this.orderRepository.updateById({
+        id: orderId,
+        data: { status: Statuses.FAIL, error: error.message, failedAt: new Date() },
       });
 
       throw error;
@@ -503,16 +506,16 @@ class OrderService extends BaseService {
   }
 
   async cancelOrder(orderId: string) {
-    const order = await this.orderRepository.findById(orderId);
+    const order = await this.orderRepository.findById({ id: orderId });
 
     // Can only cancel pending or active orders
     if (Statuses.isCompleted(order.status) || Statuses.isFailed(order.status)) {
       throw new Error('Cannot cancel completed or failed order');
     }
 
-    await this.orderRepository.update(orderId, {
-      status: Statuses.CANCELLED,
-      cancelledAt: new Date(),
+    await this.orderRepository.updateById({
+      id: orderId,
+      data: { status: Statuses.CANCELLED, cancelledAt: new Date() },
     });
   }
 }
@@ -527,9 +530,11 @@ class JobService extends BaseService {
   // Get all jobs that can be retried
   async getRetryableJobs() {
     return this.jobRepository.find({
-      where: {
-        status: { in: [...Statuses.FAILED_SCHEME_SET] },
-        retryCount: { lt: 3 },
+      filter: {
+        where: {
+          status: { inq: [...Statuses.FAILED_SCHEME_SET] },
+          retryCount: { lt: 3 },
+        },
       },
     });
   }
@@ -538,23 +543,7 @@ class JobService extends BaseService {
   async getActiveJobsCount() {
     return this.jobRepository.count({
       where: {
-        status: { in: [...Statuses.ACTIVE_SCHEME_SET] },
-      },
-    });
-  }
-
-  // Archive old completed jobs
-  async archiveCompletedJobs(daysOld: number) {
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - daysOld);
-
-    return this.jobRepository.updateMany({
-      where: {
-        status: { in: [...Statuses.COMPLETED_SCHEME_SET] },
-        completedAt: { lt: cutoffDate },
-      },
-      data: {
-        status: Statuses.ARCHIVED,
+        status: { inq: [...Statuses.ACTIVE_SCHEME_SET] },
       },
     });
   }
@@ -573,14 +562,14 @@ class TaskService extends BaseService {
       throw new Error(`Invalid status: ${newStatus}`);
     }
 
-    const task = await this.taskRepository.findById(taskId);
+    const task = await this.taskRepository.findById({ id: taskId });
 
     // Validate transition
     this.validateStatusTransition(task.status, newStatus);
 
-    await this.taskRepository.update(taskId, {
-      status: newStatus,
-      statusChangedAt: new Date(),
+    await this.taskRepository.updateById({
+      id: taskId,
+      data: { status: newStatus, statusChangedAt: new Date() },
     });
   }
 
@@ -605,7 +594,7 @@ class TaskService extends BaseService {
 
 ## Binding Namespaces
 
-The `BindingNamespaces` class organizes dependency injection bindings by type.
+The `BindingNamespaces` class organizes dependency injection bindings by type. It uses `createNamespace()` internally to produce namespace strings.
 
 **File:** `packages/core/src/common/bindings.ts`
 
@@ -624,12 +613,14 @@ class BindingNamespaces {
   static readonly PROVIDER = 'providers';
   static readonly CONTROLLER = 'controllers';
   static readonly BOOTERS = 'booters';
+
+  static createNamespace(opts: { name: string }): string;
 }
 ```
 
 ### CoreBindings
 
-Application-level binding keys:
+Application-level binding keys. Extends `BindingKeys` from the inversion package.
 
 ```typescript
 import { CoreBindings } from '@venizia/ignis';
@@ -660,36 +651,36 @@ const config = container.get(CoreBindings.APPLICATION_CONFIG);
 ### 1. Use Status Constants
 
 ```typescript
-// ✅ Good: Use constants
+// Good: Use constants
 order.status = Statuses.COMPLETED;
 
-// ❌ Bad: Magic strings
+// Bad: Magic strings
 order.status = '303_COMPLETED'; // Prone to typos
 ```
 
 ### 2. Validate Before Updating
 
 ```typescript
-// ✅ Good: Validate transitions
+// Good: Validate transitions
 if (Statuses.isCompleted(order.status)) {
   throw new Error('Cannot modify completed order');
 }
 
-// ❌ Bad: No validation
+// Bad: No validation
 order.status = newStatus; // Could break business rules
 ```
 
 ### 3. Use Helper Methods
 
 ```typescript
-// ✅ Good: Use helper methods
+// Good: Use helper methods
 if (Statuses.isActive(job.status)) {
   // ...
 }
 
-// ❌ Bad: Manual set checking
+// Less readable alternative: Manual set checking
 if (Statuses.ACTIVE_SCHEME_SET.has(job.status)) {
-  // Less readable
+  // ...
 }
 ```
 
@@ -698,9 +689,9 @@ if (Statuses.ACTIVE_SCHEME_SET.has(job.status)) {
 ```typescript
 /**
  * Order Status Flow:
- * NEW → QUEUED → PROCESSING → COMPLETED
- *   ↓      ↓          ↓
- * CANCELLED ← ← ← ← ← ←
+ * NEW -> QUEUED -> PROCESSING -> COMPLETED
+ *   \      \          \
+ *    -> CANCELLED <-----
  */
 class OrderService {
   // Implementation...
@@ -710,7 +701,7 @@ class OrderService {
 ### 5. Terminal State Checks
 
 ```typescript
-// ✅ Good: Check for terminal states
+// Good: Check for terminal states
 const isTerminal = Statuses.isCompleted(status) || Statuses.isFailed(status);
 
 if (isTerminal) {

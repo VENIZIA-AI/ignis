@@ -123,8 +123,8 @@ export class WebSocketDefaults {
 
 | Document | Path | Content |
 |----------|------|---------|
-| WebSocket Helper Reference | `wiki/references/helpers/websocket.md` | WebSocketServerHelper API, WebSocketEmitter API, constants, types, auth flow, heartbeat, Redis integration |
-| WebSocket Component Reference | `wiki/references/components/websocket.md` | Binding keys, lifecycle, setup guide, component internals, troubleshooting |
+| WebSocket Helper Reference | `wiki/extensions/helpers/websocket.md` | WebSocketServerHelper API, WebSocketEmitter API, constants, types, auth flow, heartbeat, Redis integration |
+| WebSocket Component Reference | `wiki/extensions/components/websocket.md` | Binding keys, lifecycle, setup guide, component internals, troubleshooting |
 
 Both documents added to VitePress sidebar and linked from their respective index pages.
 
@@ -150,10 +150,10 @@ Both documents added to VitePress sidebar and linked from their respective index
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/websocket.md` | New — comprehensive WebSocket helper reference |
-| `wiki/references/components/websocket.md` | New — WebSocket component reference |
-| `wiki/references/helpers/index.md` | Added WebSocket row to helper index |
-| `wiki/references/components/index.md` | Added WebSocket row to component index |
+| `wiki/extensions/helpers/websocket.md` | New — comprehensive WebSocket helper reference |
+| `wiki/extensions/components/websocket.md` | New — WebSocket component reference |
+| `wiki/extensions/helpers/index.md` | Added WebSocket row to helper index |
+| `wiki/extensions/components/index.md` | Added WebSocket row to component index |
 | `site/.vitepress/config.mts` | Added sidebar entries for both WebSocket docs |
 
 ### Examples

@@ -34,7 +34,10 @@ Find values within a range (inclusive):
 ```
 
 > [!WARNING]
-> The value MUST be an array with exactly 2 elements `[min, max]`. Invalid values throw an error.
+> The value MUST be an array with exactly 2 elements `[min, max]`. Invalid values throw an error:
+> ```
+> Error: [BETWEEN] Invalid value: expected array of 2 elements, got ...
+> ```
 
 
 ## notBetween
@@ -46,6 +49,9 @@ Find values outside a range:
 // SQL: WHERE NOT ("score" BETWEEN 40 AND 60)
 // Matches: scores < 40 OR scores > 60
 ```
+
+> [!WARNING]
+> Same validation as `between` -- the value MUST be an array with exactly 2 elements.
 
 
 ## Alternative: Using gte/lte

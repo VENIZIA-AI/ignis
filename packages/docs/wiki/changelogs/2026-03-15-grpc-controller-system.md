@@ -7,15 +7,17 @@ description: New gRPC controller system with ConnectRPC integration, controller 
 
 ## gRPC Controller System & Controller Architecture Refactor
 
-Introduces a full gRPC controller system built on ConnectRPC, alongside a structural refactor that splits the controller hierarchy into dedicated REST and gRPC base classes. The gRPC system supports all four RPC patterns (unary, server streaming, client streaming, bidirectional streaming) via decorators, uses AsyncLocalStorage for production-safe request context isolation, and integrates into the existing application lifecycle through a component-based registration pattern.
+Introduces a full gRPC controller system built on ConnectRPC, alongside a structural refactor that splits the controller hierarchy into dedicated REST and gRPC base classes. The current version supports **unary RPCs only** (streaming decorators exist but throw at boot time — HTTP/1.1 Connect protocol limitation). The system uses AsyncLocalStorage for production-safe request context isolation, enforces authentication/authorization on gRPC endpoints, and integrates into the existing application lifecycle through a component-based registration pattern.
 
 ## Overview
 
-- **gRPC Controller System**: New `BaseGrpcController` with ConnectRPC integration supporting all four RPC patterns
+- **gRPC Controller System**: New `BaseGrpcController` with ConnectRPC integration (unary RPCs only in current version)
 - **Controller Architecture Split**: REST and gRPC controllers now have dedicated base classes under `base/controllers/rest/` and `base/controllers/grpc/`
 - **AsyncLocalStorage Isolation**: `GrpcRequestAdapter` uses AsyncLocalStorage for production-safe per-request context, replacing the previous `createHonoConnectAdapter` function
-- **Unified IRpcRegistration Type**: Single type merging handler and metadata, replacing separate `implementation`/`definitions` maps
-- **RPC Decorators**: `@unary`, `@serverStream`, `@clientStream`, `@bidiStream` for declarative RPC method registration
+- **gRPC Auth Enforcement**: Authentication and authorization middleware applied to gRPC endpoints via pre-built middleware chain (symmetric with REST)
+- **gRPC Error Code Preservation**: ConnectRPC error codes preserved instead of always mapping to INTERNAL(13)
+- **Unified IRpcRegistration Type**: Single type merging handler, metadata, and pre-built auth middleware
+- **RPC Decorators**: `@unary` for declarative RPC method registration. `@serverStream`, `@clientStream`, `@bidiStream` decorators exist but throw at boot time (reserved for future HTTP/2 support)
 - **Optional ConnectRPC Dependency**: `@connectrpc/connect` added as an optional peer dependency -- REST-only users are unaffected
 - **GRPC Protocol Constants**: Headers, methods, status codes, and content types added to the helpers package
 - **Component-Based Registration**: `GrpcComponent` and `RestComponent` for transport-specific controller registration
@@ -102,18 +104,11 @@ const adapter = await GrpcRequestAdapter.build({
 **Solution:** `BaseGrpcController` provides a concrete gRPC controller implementation with decorator-driven RPC method registration, matching the ergonomics of REST controllers.
 
 ```typescript
-@controller({ path: '/grpc', transport: ControllerTransports.GRPC })
+@controller({ path: '/grpc', transport: ControllerTransports.GRPC, service: GreeterServiceDef })
 export class GreeterController extends BaseGrpcController {
   @unary({ configs: { name: 'sayHello' } })
   async sayHello(opts: { request: SayHelloRequest }) {
-    return { message: `Hello, ${opts.request.name}!` };
-  }
-
-  @serverStream({ configs: { name: 'streamEvents' } })
-  async *streamEvents(opts: { request: StreamEventsRequest }) {
-    for (const event of events) {
-      yield event;
-    }
+    return create(SayHelloResponseSchema, { message: `Hello, ${opts.request.name}!` });
   }
 }
 ```
@@ -124,12 +119,12 @@ export class GreeterController extends BaseGrpcController {
 
 Declarative decorators for all four gRPC patterns:
 
-| Decorator | Pattern | Description |
-|-----------|---------|-------------|
-| `@unary` | Unary | Single request, single response |
-| `@serverStream` | Server Streaming | Single request, stream of responses |
-| `@clientStream` | Client Streaming | Stream of requests, single response |
-| `@bidiStream` | Bidirectional Streaming | Stream of requests, stream of responses |
+| Decorator | Pattern | Status |
+|-----------|---------|--------|
+| `@unary` | Unary | Supported |
+| `@serverStream` | Server Streaming | Throws at boot (reserved for future HTTP/2 support) |
+| `@clientStream` | Client Streaming | Throws at boot (reserved for future HTTP/2 support) |
+| `@bidiStream` | Bidirectional Streaming | Throws at boot (reserved for future HTTP/2 support) |
 
 ### GrpcRequestAdapter -- ConnectRPC Bridge with AsyncLocalStorage
 

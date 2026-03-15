@@ -91,20 +91,23 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         const strategy = registry.resolveStrategy({ name: strategyName });
         const user = await strategy.authenticate(context);
         this.setCurrentUser({ context, user });
-        await next();
-        return;
-      } catch (_error) {
+        break;
+      } catch (error) {
         this.logger
           .for(this.executeAnyMode.name)
-          .debug('Strategy %s failed, trying next...', strategyName);
+          .debug('Strategy %s failed, trying next... | Error: %s', strategyName, error);
       }
     }
 
-    // All strategies failed
-    throw getError({
-      statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-      message: `Authentication failed. Tried strategies: ${strategies.join(', ')}`,
-    });
+    const currentUser = context.get(Authentication.CURRENT_USER);
+    if (!currentUser) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
+        message: `Authentication failed. Tried strategies: ${strategies.join(', ')}`,
+      });
+    }
+
+    await next();
   }
 
   private async executeAllMode(opts: {
@@ -114,12 +117,17 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     next: () => Promise<void>;
   }) {
     const { context, strategies, registry, next } = opts;
+
+    // Use the first strategy's user as the identity source — all must succeed but first wins for identity
     let authUser: IAuthUser | null = null;
 
     for (const strategyName of strategies) {
       const strategy = registry.resolveStrategy({ name: strategyName });
       const user = await strategy.authenticate(context);
-      authUser = user;
+
+      if (!authUser) {
+        authUser = user;
+      }
     }
 
     if (authUser?.userId) {

@@ -35,7 +35,8 @@ How filters flow through the application layers.
                                  v
 +-----------------------------------------------------------------+
 |                     Repository Layer                             |
-|   - FilterBuilder transforms Filter -> SQL                       |
+|   - DefaultFilterMixin merges default filter                     |
+|   - FilterBuilder transforms Filter -> Drizzle query options     |
 |   - Executes query via Drizzle ORM                               |
 |   - Returns typed results                                        |
 +-----------------------------------------------------------------+
@@ -102,7 +103,7 @@ export class ProductController extends _Controller {
 
 ```typescript
 @controller({ path: '/products' })
-export class ProductController extends BaseController {
+export class ProductController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
     private _productRepo: ProductRepository,
@@ -128,6 +129,21 @@ export class ProductController extends BaseController {
   }
 }
 ```
+
+
+## Filter Schema Validation
+
+The `FilterSchema` (Zod) accepts both object and JSON string formats:
+
+```typescript
+// Object format (from parsed query params)
+{ where: { status: 'active' }, limit: 10 }
+
+// JSON string format (from URL query string)
+'{"where":{"status":"active"},"limit":10}'
+```
+
+The `WhereSchema` also accepts both formats independently, useful for the `count` endpoint which takes `where` directly.
 
 
 ## Service Layer

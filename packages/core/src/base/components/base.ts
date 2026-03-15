@@ -10,6 +10,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   protected bindings: Record<string | symbol, Binding>;
 
   protected initDefault: TInitDefault;
+  protected isConfigured = false;
 
   constructor(opts: {
     scope: string;
@@ -43,6 +44,10 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   }
 
   async configure(opts?: ConfigurableOptions): Promise<void> {
+    if (this.isConfigured) {
+      return;
+    }
+
     const t = performance.now();
 
     const configureOptions = opts ?? {};
@@ -56,6 +61,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
 
     await this.binding();
 
+    this.isConfigured = true;
     this.logger
       .for(this.binding.name)
       .info('DONE | Binding component | Took: %s (ms)', performance.now() - t);

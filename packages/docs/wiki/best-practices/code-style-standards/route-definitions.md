@@ -41,7 +41,7 @@ export const RouteConfigs = {
 
 ```typescript
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
 
   @api({ configs: RouteConfigs.GET_USERS })
   list(context: TRouteContext) {
@@ -60,7 +60,7 @@ export class UserController extends BaseController {
 
 ```typescript
 @controller({ path: '/health' })
-export class HealthCheckController extends BaseController {
+export class HealthCheckController extends BaseRestController {
   constructor() {
     super({ scope: HealthCheckController.name });
 
@@ -75,7 +75,7 @@ export class HealthCheckController extends BaseController {
 
 ```typescript
 @controller({ path: '/health' })
-export class HealthCheckController extends BaseController {
+export class HealthCheckController extends BaseRestController {
   constructor() {
     super({ scope: HealthCheckController.name });
 
@@ -147,4 +147,4 @@ export const RouteConfigs = {
 
 - [API Usage Examples](../api-usage-examples) - Full API patterns
 - [Controllers Reference](../../references/base/controllers) - Controller API
-- [Swagger Component](../../references/components/swagger) - OpenAPI setup
+- [Swagger Component](../../extensions/components/swagger) - OpenAPI setup

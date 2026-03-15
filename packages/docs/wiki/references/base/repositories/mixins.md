@@ -29,109 +29,42 @@ Ignis uses the mixin pattern to compose repository features. This enables:
 
 | Mixin | Responsibility |
 |-------|----------------|
+| `FieldsVisibilityMixin` | Hidden properties exclusion at SQL level |
 | `DefaultFilterMixin` | Automatic filter application from model settings |
-| `FieldsVisibilityMixin` | Hidden properties exclusion |
-
-
-## DefaultFilterMixin
-
-Provides automatic default filter application for all repository queries.
-
-**File:** `packages/core/src/base/repositories/mixins/default-filter.ts`
-
-### Properties
-
-| Property | Type | Description |
-|----------|------|-------------|
-| `_defaultFilter` | `TFilter \| null \| undefined` | Cached default filter |
-
-### Methods
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `getDefaultFilter()` | `TFilter \| undefined` | Get default filter from model metadata |
-| `hasDefaultFilter()` | `boolean` | Check if model has a default filter configured |
-| `applyDefaultFilter(opts)` | `TFilter` | Merge default filter with user filter |
-
-### Usage
-
-```typescript
-import { DefaultFilterMixin } from '@venizia/ignis';
-import { BaseHelper } from '@venizia/ignis-helpers';
-
-class MyRepository extends DefaultFilterMixin(BaseHelper) {
-  // Required abstract implementations
-  abstract getEntity(): BaseEntity;
-  abstract get filterBuilder(): FilterBuilder;
-
-  // Now has access to:
-  // - getDefaultFilter()
-  // - hasDefaultFilter()
-  // - applyDefaultFilter()
-}
-```
-
-### applyDefaultFilter Options
-
-```typescript
-interface ApplyDefaultFilterOptions {
-  userFilter?: TFilter;        // User-provided filter
-  shouldSkipDefaultFilter?: boolean; // If true, bypass default filter
-}
-```
-
-### Implementation
-
-```typescript
-applyDefaultFilter<DataObject = any>(opts: {
-  userFilter?: TFilter<DataObject>;
-  shouldSkipDefaultFilter?: boolean;
-}): TFilter<DataObject> {
-  const { userFilter, shouldSkipDefaultFilter } = opts;
-
-  // Skip default filter if explicitly requested
-  if (shouldSkipDefaultFilter) {
-    return userFilter ?? {};
-  }
-
-  // Get default filter from model metadata
-  const defaultFilter = this.getDefaultFilter();
-
-  // No default filter configured - return user filter
-  if (!defaultFilter) {
-    return userFilter ?? {};
-  }
-
-  // Merge default filter with user filter
-  return this.filterBuilder.mergeFilter({ defaultFilter, userFilter });
-}
-```
 
 
 ## FieldsVisibilityMixin
 
-Provides hidden properties management for SQL-level field exclusion.
+Provides hidden properties management for SQL-level field exclusion. Reads `hiddenProperties` from `@model` metadata settings and builds a visible columns map for Drizzle's `select()` and `returning()` calls.
 
 **File:** `packages/core/src/base/repositories/mixins/fields-visibility.ts`
+
+### Abstract Requirements
+
+Classes using this mixin must implement:
+
+```typescript
+abstract getEntity(): BaseEntity<TTableSchemaWithId>;
+```
 
 ### Properties
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `_hiddenProperties` | `Set<string> \| null` | Cached hidden property names |
-| `_visibleProperties` | `Record<string, any> \| null \| undefined` | Cached visible columns |
+| `_hiddenProperties` | `Set<string> \| null` | Cached hidden property names (`null` = not yet computed) |
+| `_visibleProperties` | `Record<string, any> \| null \| undefined` | Cached visible columns (`null` = not yet computed, `undefined` = computed with no hidden props) |
 
 ### Methods
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `get hiddenProperties` | `Set<string>` | Get hidden property names |
-| `set hiddenProperties` | `void` | Override hidden properties |
-| `getHiddenProperties()` | `Set<string>` | Get hidden properties from model metadata |
-| `hasHiddenProperties()` | `boolean` | Check if model has hidden properties |
-| `get visibleProperties` | `Record<string, any> \| undefined` | Get visible columns for Drizzle |
+| `get hiddenProperties` | `Set<string>` | Getter that delegates to `getHiddenProperties()` |
+| `set hiddenProperties` | `void` | Override hidden properties set |
+| `getHiddenProperties()` | `Set<string>` | Get hidden properties from model metadata (cached) |
+| `hasHiddenProperties()` | `boolean` | Check if model has any hidden properties |
+| `get visibleProperties` | `Record<string, any> \| undefined` | Getter that delegates to `getVisibleProperties()` |
 | `set visibleProperties` | `void` | Override visible properties |
-| `getVisibleProperties()` | `Record<string, any> \| undefined` | Build visible columns object |
+| `getVisibleProperties()` | `Record<string, any> \| undefined` | Build visible columns object for Drizzle (cached). Returns `undefined` if no hidden props. |
 
 ### Usage
 
@@ -169,10 +102,80 @@ await connector.select(visibleProps).from(schema);
 // SELECT id, email, created_at FROM users
 ```
 
+### How It Resolves Hidden Properties
+
+1. Checks the cache (`_hiddenProperties`). If not `null`, returns cached value.
+2. Looks up the entity name in `MetadataRegistry.getModelEntry()`.
+3. Reads `metadata.settings.hiddenProperties` (array of field names).
+4. Converts to a `Set<string>` and caches.
+
+
+## DefaultFilterMixin
+
+Provides automatic default filter application for all repository queries. Reads `defaultFilter` from `@model` metadata settings and merges it with user-provided filters.
+
+**File:** `packages/core/src/base/repositories/mixins/default-filter.ts`
+
+### Abstract Requirements
+
+Classes using this mixin must implement:
+
+```typescript
+abstract getEntity(): BaseEntity<TTableSchemaWithId>;
+abstract get filterBuilder(): FilterBuilder;
+```
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `_defaultFilter` | `TFilter \| null \| undefined` | Cached default filter (`null` = not yet computed, `undefined` = computed with no default filter) |
+
+### Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `getDefaultFilter()` | `TFilter \| undefined` | Get default filter from model metadata (cached) |
+| `hasDefaultFilter()` | `boolean` | Check if model has a default filter configured |
+| `applyDefaultFilter(opts)` | `TFilter` | Merge default filter with user filter |
+
+### Usage
+
+```typescript
+import { DefaultFilterMixin } from '@venizia/ignis';
+import { BaseHelper } from '@venizia/ignis-helpers';
+
+class MyRepository extends DefaultFilterMixin(BaseHelper) {
+  // Required abstract implementations
+  abstract getEntity(): BaseEntity;
+  abstract get filterBuilder(): FilterBuilder;
+
+  // Now has access to:
+  // - getDefaultFilter()
+  // - hasDefaultFilter()
+  // - applyDefaultFilter()
+}
+```
+
+### applyDefaultFilter Options
+
+```typescript
+applyDefaultFilter<DataObject = any>(opts: {
+  userFilter?: TFilter<DataObject>;        // User-provided filter
+  shouldSkipDefaultFilter?: boolean;       // If true, bypass default filter
+}): TFilter<DataObject>
+```
+
+**Behavior:**
+
+1. If `shouldSkipDefaultFilter` is `true`, returns the user filter as-is (or `{}` if none).
+2. If no default filter is configured, returns the user filter as-is (or `{}` if none).
+3. Otherwise, delegates to `filterBuilder.mergeFilter({ defaultFilter, userFilter })` which deep-merges `where` conditions and uses user values for other filter properties (`order`, `limit`, `offset`, `skip`, `fields`, `include`).
+
 
 ## Mixin Composition
 
-The `AbstractRepository` composes multiple mixins:
+The `AbstractRepository` composes both mixins:
 
 ```typescript
 export abstract class AbstractRepository<...>
@@ -180,17 +183,17 @@ export abstract class AbstractRepository<...>
   implements IPersistableRepository<...>
 {
   // Inherits from both mixins:
+  // From FieldsVisibilityMixin:
+  //   - hiddenProperties (getter/setter)
+  //   - visibleProperties (getter/setter)
+  //   - getHiddenProperties()
+  //   - hasHiddenProperties()
+  //   - getVisibleProperties()
+  //
   // From DefaultFilterMixin:
   //   - getDefaultFilter()
   //   - hasDefaultFilter()
   //   - applyDefaultFilter()
-  //
-  // From FieldsVisibilityMixin:
-  //   - hiddenProperties
-  //   - visibleProperties
-  //   - getHiddenProperties()
-  //   - hasHiddenProperties()
-  //   - getVisibleProperties()
 }
 ```
 
@@ -207,7 +210,7 @@ DefaultFilterMixin(FieldsVisibilityMixin(BaseHelper))
 
 ## Creating Custom Mixins
 
-Follow the TypeScript mixin pattern:
+Follow the TypeScript mixin pattern using `TMixinTarget`:
 
 ```typescript
 import { TMixinTarget } from '@venizia/ignis-helpers';
@@ -269,44 +272,46 @@ class ProductRepository extends AuditableRepository {
 
 ## Caching Behavior
 
-Both mixins use caching for performance:
+Both mixins use a three-state caching pattern for performance:
 
 ```typescript
 // DefaultFilterMixin caching
 // null = not computed yet
-// undefined = computed, no default filter
+// undefined = computed, no default filter exists
 // TFilter = computed, has default filter
-private _defaultFilter: TFilter | null | undefined = null;
+_defaultFilter: TFilter | null | undefined = null;
 
 getDefaultFilter() {
   if (this._defaultFilter !== null) {
-    return this._defaultFilter;  // Return cached value
+    return this._defaultFilter;  // Return cached value (either TFilter or undefined)
   }
-  // Compute and cache...
+  // Compute from MetadataRegistry and cache...
 }
 
 // FieldsVisibilityMixin caching
 // null = not computed yet
-// Set<string> = computed
-private _hiddenProperties: Set<string> | null = null;
+// Set<string> = computed (may be empty)
+_hiddenProperties: Set<string> | null = null;
 
 // null = not computed yet
-// undefined = computed, no hidden properties
-// Record<string, any> = computed, has hidden properties
-private _visibleProperties: Record<string, any> | null | undefined = null;
+// undefined = computed, no hidden properties exist
+// Record<string, any> = computed, has visible column map
+_visibleProperties: Record<string, any> | null | undefined = null;
 ```
+
+This ensures metadata lookups happen only once per repository instance, with subsequent calls returning the cached value.
 
 
 ## Quick Reference
 
 | Mixin | Method | Purpose |
 |-------|--------|---------|
-| `DefaultFilterMixin` | `hasDefaultFilter()` | Check if default filter exists |
-| `DefaultFilterMixin` | `getDefaultFilter()` | Get raw default filter |
-| `DefaultFilterMixin` | `applyDefaultFilter()` | Merge filters |
 | `FieldsVisibilityMixin` | `hasHiddenProperties()` | Check if hidden props exist |
-| `FieldsVisibilityMixin` | `getHiddenProperties()` | Get hidden property names |
-| `FieldsVisibilityMixin` | `getVisibleProperties()` | Get Drizzle columns object |
+| `FieldsVisibilityMixin` | `getHiddenProperties()` | Get hidden property names as `Set<string>` |
+| `FieldsVisibilityMixin` | `getVisibleProperties()` | Get Drizzle columns object (excludes hidden) |
+| `DefaultFilterMixin` | `hasDefaultFilter()` | Check if default filter exists |
+| `DefaultFilterMixin` | `getDefaultFilter()` | Get raw default filter from model metadata |
+| `DefaultFilterMixin` | `applyDefaultFilter()` | Merge default filter with user filter |
 
 
 ## Next Steps

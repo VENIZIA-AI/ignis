@@ -31,13 +31,15 @@ Fundamental building block wrapping a Drizzle ORM schema.
 |---------|-------------|
 | **Schema Encapsulation** | Holds Drizzle `pgTable` schema for consistent repository access |
 | **Metadata** | Works with `@model` decorator to mark database entities |
-| **Schema Generation** | Uses `drizzle-zod` to generate Zod schemas (`SELECT`, `CREATE`, `UPDATE`) |
+| **Schema Generation** | Uses `drizzle-zod` to generate Zod schemas (`select`, `create`, `update`) |
 | **Static Properties** | Supports static `schema`, `relations`, `TABLE_NAME`, and `AUTHORIZATION_SUBJECT` |
 | **Convenience** | Includes `toObject()` and `toJSON()` methods |
 
 ### The `@model` Decorator
 
 The `@model` decorator marks a class as a database entity and configures its behavior.
+
+**File:** `packages/core/src/base/metadata/persistents.ts`
 
 #### Decorator Options
 
@@ -60,12 +62,19 @@ The `@model` decorator marks a class as a database entity and configures its beh
 | Option | Type | Description |
 |--------|------|-------------|
 | `type` | `'entity' \| 'view'` | Entity type - `'entity'` for tables, `'view'` for database views |
-| `tableName` | `string` | Optional custom table name (defaults to class name) |
+| `tableName` | `string` | Optional custom table name. Resolution order: `tableName` > static `TABLE_NAME` > class name |
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
 | `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
-| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings — declares the model's authorization principal (see [Authorization](/references/components/authorization/usage#model-based-resource-references)) |
+| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings — declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates `AUTHORIZATION_SUBJECT` static property |
+
+#### `@model` Behavior
+
+When the `@model` decorator is applied:
+1. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already defined on the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value
+2. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as: `metadata.tableName` > `static TABLE_NAME` > class name)
+3. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models
 
 ### Hidden Properties
 
@@ -237,7 +246,7 @@ export class User extends BaseEntity<typeof userTable> {
 | Property | Type | Description |
 |----------|------|-------------|
 | `schema` | `TTableSchemaWithId` | Drizzle table schema defined with `pgTable()` |
-| `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading) |
+| `relations` | `TValueOrResolver<Array<TRelationConfig>>` | Relation definitions (can be a function for lazy loading to avoid circular deps) |
 | `TABLE_NAME` | `string \| undefined` | Optional table name (defaults to class name if not set) |
 | `AUTHORIZATION_SUBJECT` | `string \| undefined` | Authorization principal name. Auto-populated from `@model` settings `authorize.principal` |
 
@@ -257,9 +266,40 @@ interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
 
 | Method | Description |
 |--------|-------------|
-| `getSchema({ type })` | Get Zod schema for validation (`SELECT`, `CREATE`, `UPDATE`) |
-| `toObject()` | Convert to plain object |
-| `toJSON()` | Convert to JSON string |
+| `getSchema({ type })` | Get Zod schema for validation (`'select'`, `'create'`, `'update'`) |
+| `toObject()` | Convert to plain object (shallow spread of `this`) |
+| `toJSON()` | Delegates to `toObject()` — returns a plain object (used by `JSON.stringify`) |
+
+### `getSchema` Method
+
+Generates a Zod validation schema from the Drizzle table schema using `drizzle-zod`.
+
+```typescript
+getSchema(opts: { type: TSchemaType }): ZodSchema
+```
+
+The `type` parameter accepts lowercase string values defined in the `SchemaTypes` class:
+
+| Type | Value | Zod Schema Generated | Description |
+|------|-------|---------------------|-------------|
+| `SchemaTypes.SELECT` | `'select'` | `createSelectSchema(schema)` | Schema for query results |
+| `SchemaTypes.CREATE` | `'create'` | `createInsertSchema(schema)` | Schema for insert operations |
+| `SchemaTypes.UPDATE` | `'update'` | `createUpdateSchema(schema)` | Schema for update operations |
+
+```typescript
+const user = new User();
+
+// Get Zod schema for validating insert data
+const createSchema = user.getSchema({ type: 'create' });
+
+// Get Zod schema for validating query results
+const selectSchema = user.getSchema({ type: 'select' });
+
+// Get Zod schema for validating update data
+const updateSchema = user.getSchema({ type: 'update' });
+```
+
+The `schemaFactory` is a static lazy singleton created via `drizzle-zod`'s `createSchemaFactory()`, shared across all `BaseEntity` instances to avoid per-entity overhead.
 
 ### Class Definition
 
@@ -288,7 +328,7 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   // Constructor supports both patterns
   constructor(opts?: { name?: string; schema?: Schema }) {
     const ctor = new.target as typeof BaseEntity;
-    // Use explicit TABLE_NAME if defined, otherwise fall back to class name
+    // Resolution order: opts.name > static TABLE_NAME > class name
     const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
     super({ scope: name });
@@ -323,7 +363,82 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
 }
 ```
 
-**Performance Note:** The `schemaFactory` is implemented as a static lazy singleton, meaning it's created once and shared across all `BaseEntity` instances. This avoids the overhead of creating a new `drizzle-zod` schema factory for every entity instantiation.
+## Key Types
+
+### `TTableSchemaWithId`
+
+Ensures a Drizzle `PgTable` has an `id` column:
+
+```typescript
+type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
+  id: TIdColumn;
+};
+```
+
+### `TTableObject`
+
+Infers the select (output) type from a table schema:
+
+```typescript
+type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
+```
+
+### `TTableInsert`
+
+Infers the insert (input) type from a table schema:
+
+```typescript
+type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
+```
+
+### `TGetIdType`
+
+Extracts the `id` field type from a table schema:
+
+```typescript
+type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
+```
+
+### `IdType`
+
+Union of supported ID types:
+
+```typescript
+type NumberIdType = number;
+type StringIdType = string;
+type BigIntIdType = bigint;
+type IdType = NumberIdType | StringIdType | BigIntIdType;
+```
+
+### `TRelationConfig`
+
+Configuration for entity relationships:
+
+```typescript
+type TRelationConfig = {
+  name: string;
+} & (
+  | { type: 'one'; schema: TTableSchemaWithId; metadata: /* Drizzle one() params */ }
+  | { type: 'many'; schema: TTableSchemaWithId; metadata: /* Drizzle many() params */ }
+);
+```
+
+Relation types are defined in the `RelationTypes` class:
+
+| Type | Value | Description |
+|------|-------|-------------|
+| `RelationTypes.ONE` | `'one'` | One-to-one or many-to-one relationship |
+| `RelationTypes.MANY` | `'many'` | One-to-many relationship |
+
+### `TValueOrResolver`
+
+From `@venizia/ignis-helpers`, enables lazy resolution to avoid circular dependencies:
+
+```typescript
+type TValueOrResolver<T> = T | TResolver<T>;  // T or () => T
+```
+
+Used for `relations` on `BaseEntity` — store a function that returns the relations array, resolved lazily when `DataSource.buildSchema()` is called.
 
 ## Schema Enrichers
 
@@ -331,14 +446,16 @@ Enrichers are helper functions located in `packages/core/src/base/models/enriche
 
 ### Available Enrichers
 
-| Enricher Function | Purpose |
-| :--- | :--- |
-| **`generateIdColumnDefs`** | Adds a primary key `id` column (string UUID or numeric serial). |
-| **`generateTzColumnDefs`** | Adds `createdAt`, `modifiedAt`, and `deletedAt` timestamp columns with timezone support. |
-| **`generateUserAuditColumnDefs`** | Adds `createdBy` and `modifiedBy` columns to track user audit information. |
-| **`generateDataTypeColumnDefs`** | Adds generic data type columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) for flexible data storage. |
-| **`generatePrincipalColumnDefs`** | Adds polymorphic fields for associating with different principal types. |
-| **`extraUserColumns`** | Adds common fields for a user model, such as `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, and `parentId`. Import from `@venizia/ignis`. |
+| Enricher Function | Convenience Wrapper | Purpose |
+| :--- | :--- | :--- |
+| **`generateIdColumnDefs`** | `enrichId` | Adds a primary key `id` column (string UUID, numeric integer, or big integer). |
+| **`generateTzColumnDefs`** | `enrichTz` | Adds `createdAt`, `modifiedAt`, and `deletedAt` timestamp columns with timezone support. |
+| **`generateUserAuditColumnDefs`** | `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns to track user audit information. |
+| **`generatePrincipalColumnDefs`** | `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`). |
+| **`generateDataTypeColumnDefs`** | `enrichDataTypes` | Adds generic data type columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) for flexible data storage. |
+| **`extraUserColumns`** | — | Adds common user fields (`realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId`). Imported from `@venizia/ignis` (part of auth component). |
+
+Each `generate*` function returns column definition objects for spreading into `pgTable`. The `enrich*` convenience wrappers accept an existing `TColumnDefinitions` object as the first argument and merge the generated columns into it.
 
 ### Example Usage
 
@@ -353,7 +470,10 @@ import {
 export const myTable = pgTable('MyTable', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
   ...generateTzColumnDefs(),
-  ...generateUserAuditColumnDefs({ created: { dataType: 'string' }, modified: { dataType: 'string' } }),
+  ...generateUserAuditColumnDefs({
+    created: { dataType: 'string', columnName: 'created_by' },
+    modified: { dataType: 'string', columnName: 'modified_by' },
+  }),
   name: text('name').notNull(),
 });
 ```
@@ -542,6 +662,24 @@ export const myTable = pgTable('MyTable', {
 - **Big Number Mode:** For `dataType: 'big-number'`, the `numberMode` field is required to specify whether to use JavaScript `number` (up to 2^53-1) or `bigint` (for larger values)
 - **Sequence Options:** Available for `number` and `big-number` types to customize identity generation behavior
 
+#### Convenience Wrapper: `enrichId`
+
+```typescript
+enrichId(baseColumns: TColumnDefinitions, opts?: TIdEnricherOptions): TColumnDefinitions
+```
+
+Merges the generated ID column into an existing column definitions object:
+
+```typescript
+import { text } from 'drizzle-orm/pg-core';
+import { enrichId } from '@venizia/ignis';
+
+const columns = enrichId(
+  { name: text('name').notNull() },
+  { id: { dataType: 'string' } },
+);
+```
+
 
 ### `generateTzColumnDefs`
 
@@ -552,7 +690,9 @@ Adds timestamp columns for tracking entity creation, modification, and soft dele
 #### Signature
 
 ```typescript
-generateTzColumnDefs(opts?: TTzEnricherOptions): TTzEnricherResult
+generateTzColumnDefs<Opts extends TTzEnricherOptions | undefined>(
+  opts?: Opts,
+): TTzEnricherResult<Opts>
 ```
 
 #### Options (`TTzEnricherOptions`)
@@ -579,7 +719,7 @@ The `modified` and `deleted` options use a discriminated union pattern:
 | Column | Type | Constraints | Default | Description |
 |--------|------|-------------|---------|-------------|
 | `createdAt` | `timestamp` | `NOT NULL` | `now()` | When the record was created (always included) |
-| `modifiedAt` | `timestamp` | `NOT NULL` | `now()` | When the record was last modified (optional, enabled by default) |
+| `modifiedAt` | `timestamp` | `NOT NULL` | `now()`, auto-updates via `$onUpdate(() => new Date())` | When the record was last modified (optional, enabled by default) |
 | `deletedAt` | `timestamp` | nullable | `null` | When the record was soft-deleted (optional, **disabled by default**) |
 
 #### Usage Examples
@@ -685,15 +825,26 @@ await db.update(myTable)
 
 #### Type Inference
 
-The enricher provides proper TypeScript type inference:
+The enricher provides **conditional TypeScript type inference** based on the options:
 
 ```typescript
-type TTzEnricherResult<ColumnDefinitions extends TColumnDefinitions = TColumnDefinitions> = {
-  createdAt: PgTimestampBuilderInitial<string> & NotNull & HasDefault;
-  modifiedAt?: PgTimestampBuilderInitial<string> & NotNull & HasDefault;
-  deletedAt?: PgTimestampBuilderInitial<string>;
-};
+type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
+  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+} & (/* modifiedAt included unless opts.modified.enable === false */)
+  & (/* deletedAt included only when opts.deleted.enable === true */);
 ```
+
+- `createdAt` is always present
+- `modifiedAt` is present by default; excluded only when `modified: { enable: false }`
+- `deletedAt` is absent by default; included only when `deleted: { enable: true, ... }`
+
+#### Convenience Wrapper: `enrichTz`
+
+```typescript
+enrichTz(baseSchema: TColumnDefinitions, opts?: TTzEnricherOptions): TColumnDefinitions
+```
+
+Merges timestamp columns into an existing column definitions object.
 
 
 ### `generateUserAuditColumnDefs`
@@ -730,6 +881,15 @@ type TUserAuditEnricherOptions = {
 - `created`: `{ dataType: 'number', columnName: 'created_by', allowAnonymous: true }`
 - `modified`: `{ dataType: 'number', columnName: 'modified_by', allowAnonymous: true }`
 
+#### How It Works
+
+The enricher uses Hono's `contextStorage` (via `tryGetContext()`) to automatically retrieve the current user ID from the request context at insert/update time:
+
+- **`createdBy`**: Set via `$default()` — only populated on record creation
+- **`modifiedBy`**: Set via both `$default()` and `$onUpdate()` — populated on creation and updated on every modification
+
+The user ID is read from the `Authentication.AUDIT_USER_ID` key in the Hono context.
+
 #### `allowAnonymous` Behavior
 
 The `allowAnonymous` option controls whether the enricher requires an authenticated user context:
@@ -749,6 +909,9 @@ The `allowAnonymous` option controls whether the enricher requires an authentica
 - System-generated records
 - Tables that allow both authenticated and anonymous operations
 
+> [!WARNING]
+> Fire-and-forget promises may run outside the async context, losing access to `AUDIT_USER_ID`. Ensure audit-critical operations complete within the request lifecycle.
+
 #### Generated Columns
 
 | Column | Data Type | Column Name | Description |
@@ -761,11 +924,11 @@ The `allowAnonymous` option controls whether the enricher requires an authentica
 The enricher validates the `dataType` option and throws an error for invalid values:
 
 ```typescript
-// ✅ Valid
+// Valid
 generateUserAuditColumnDefs({ created: { dataType: 'number', columnName: 'created_by' } });
 generateUserAuditColumnDefs({ created: { dataType: 'string', columnName: 'created_by' } });
 
-// ❌ Invalid - throws error
+// Invalid - throws error
 generateUserAuditColumnDefs({ created: { dataType: 'uuid', columnName: 'created_by' } });
 // Error: [enrichUserAudit] Invalid dataType for 'createdBy' | value: uuid | valid: ['number', 'string']
 ```
@@ -840,6 +1003,136 @@ export const auditLogTable = pgTable('AuditLog', {
 // If no authenticated user context is available, throws:
 // Error: [getCurrentUserId] Invalid request context to identify user | columnName: createdBy | allowAnonymous: false
 ```
+
+#### Convenience Wrapper: `enrichUserAudit`
+
+```typescript
+enrichUserAudit<ColumnDefinitions extends TColumnDefinitions>(
+  baseSchema: ColumnDefinitions,
+  opts?: TUserAuditEnricherOptions,
+): TUserAuditEnricherResult<ColumnDefinitions>
+```
+
+Merges user audit columns into an existing column definitions object with proper type inference.
+
+
+### `generatePrincipalColumnDefs`
+
+Adds polymorphic principal columns for associating a record with different entity types. This is the polymorphic association pattern where a row can belong to different parent types (e.g., a comment can belong to a Post, User, or Product).
+
+**File:** `packages/core/src/base/models/enrichers/principal.enricher.ts`
+
+#### Signature
+
+```typescript
+generatePrincipalColumnDefs<
+  Discriminator extends string = 'principal',
+  IdType extends 'number' | 'string' = 'number',
+>(
+  opts: TPrincipalEnricherOptions<Discriminator, IdType>,
+): TPrincipalColumnDef<Discriminator, IdType>
+```
+
+#### Options (`TPrincipalEnricherOptions`)
+
+```typescript
+type TPrincipalEnricherOptions<
+  Discriminator extends string = string,
+  IdType extends 'number' | 'string' = 'number' | 'string',
+> = {
+  discriminator?: Discriminator;       // Field name prefix (default: 'principal')
+  defaultPolymorphic?: string;         // Default value for the type column (default: '')
+  polymorphicIdType: IdType;           // Required - type of the principal ID column
+};
+```
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `discriminator` | `string` | `'principal'` | Prefix for generated column names |
+| `defaultPolymorphic` | `string` | `''` | Default value for the type discriminator column |
+| `polymorphicIdType` | `'number' \| 'string'` | (required) | Data type of the ID column |
+
+#### Generated Columns
+
+Given `discriminator = 'principal'` (default):
+
+| Column | DB Column Name | Type | Constraints | Description |
+|--------|---------------|------|-------------|-------------|
+| `principalId` | `principal_id` | `integer` or `text` | `NOT NULL` | The ID of the associated entity |
+| `principalType` | `principal_type` | `text` | `DEFAULT ''` | The type discriminator (e.g., `'User'`, `'Post'`) |
+
+With a custom discriminator (e.g., `discriminator: 'owner'`):
+
+| Column | DB Column Name | Type |
+|--------|---------------|------|
+| `ownerId` | `owner_id` | `integer` or `text` |
+| `ownerType` | `owner_type` | `text` |
+
+#### Usage Examples
+
+**Default (polymorphic principal with numeric ID):**
+
+```typescript
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { generateIdColumnDefs, generatePrincipalColumnDefs } from '@venizia/ignis';
+
+export const commentTable = pgTable('Comment', {
+  ...generateIdColumnDefs(),
+  ...generatePrincipalColumnDefs({ polymorphicIdType: 'number' }),
+  content: text('content').notNull(),
+});
+
+// Generates:
+// principalId: integer('principal_id').notNull()
+// principalType: text('principal_type').default('')
+```
+
+**Custom discriminator name:**
+
+```typescript
+export const attachmentTable = pgTable('Attachment', {
+  ...generateIdColumnDefs(),
+  ...generatePrincipalColumnDefs({
+    discriminator: 'owner',
+    polymorphicIdType: 'string',
+    defaultPolymorphic: 'User',
+  }),
+  filePath: text('file_path').notNull(),
+});
+
+// Generates:
+// ownerId: text('owner_id').notNull()
+// ownerType: text('owner_type').default('User')
+```
+
+**Polymorphic association pattern:**
+
+```typescript
+// A notification can belong to different entity types
+export const notificationTable = pgTable('Notification', {
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+  ...generatePrincipalColumnDefs({
+    discriminator: 'target',
+    polymorphicIdType: 'string',
+  }),
+  message: text('message').notNull(),
+});
+
+// Usage:
+// { targetId: 'user-123', targetType: 'User', message: 'Welcome!' }
+// { targetId: 'order-456', targetType: 'Order', message: 'Order shipped' }
+```
+
+#### Convenience Wrapper: `enrichPrincipal`
+
+```typescript
+enrichPrincipal<ColumnDefinitions extends TColumnDefinitions>(
+  baseSchema: ColumnDefinitions,
+  opts: TPrincipalEnricherOptions,
+): ColumnDefinitions & TPrincipalColumnDef
+```
+
+Merges principal columns into an existing column definitions object.
 
 
 ### `generateDataTypeColumnDefs`
@@ -942,11 +1235,7 @@ export class AppConfig extends BaseEntity<typeof AppConfig.schema> {
 // { key: 'is_maintenance', dataType: 'boolean', boValue: false }
 ```
 
-### `enrichDataTypes`
-
-A convenience function that merges data type columns into an existing schema object, rather than spreading into `pgTable`.
-
-#### Signature
+#### Convenience Wrapper: `enrichDataTypes`
 
 ```typescript
 enrichDataTypes(
@@ -955,7 +1244,7 @@ enrichDataTypes(
 ): TColumnDefinitions
 ```
 
-#### Usage
+Merges data type columns into an existing column definitions object:
 
 ```typescript
 import { text } from 'drizzle-orm/pg-core';
@@ -972,10 +1261,55 @@ const allColumns = enrichDataTypes(baseColumns);
 export const configTable = pgTable('Config', allColumns);
 ```
 
-This is equivalent to spreading `generateDataTypeColumnDefs()` directly but useful when building column definitions programmatically.
-
 
 ## Schema Utilities
+
+### `idParamsSchema`
+
+Generates a Zod schema for path parameters containing an `id` field, suitable for OpenAPI route definitions.
+
+**File:** `packages/core/src/base/models/common/types.ts`
+
+#### Signature
+
+```typescript
+idParamsSchema(opts?: { idType: string }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
+```
+
+| `idType` | Default | Zod Type | Examples |
+|----------|---------|----------|----------|
+| `'number'` | Yes | `z.number()` | `[1, 2, 3]` |
+| `'string'` | | `z.string()` | `['4651e634-...', 'some_unique_id']` |
+
+Throws an error for invalid `idType` values.
+
+### `jsonContent`
+
+Creates an OpenAPI JSON content specification:
+
+```typescript
+jsonContent<T extends z.ZodType>(opts: {
+  schema: T;
+  description: string;
+  required?: boolean;
+}): { description, content: { 'application/json': { schema } }, required? }
+```
+
+### `jsonResponse`
+
+Creates a complete OpenAPI response specification with success and error responses:
+
+```typescript
+jsonResponse<ContentSchema, HeaderSchema>(opts: {
+  schema: ContentSchema;
+  description?: string;  // Default: 'Success Response'
+  required?: boolean;
+  headers?: HeaderSchema;
+}): {
+  200: { description, content, headers? },
+  '4xx | 5xx': { description: 'Error Response', content: ErrorSchema }
+}
+```
 
 ### `snakeToCamel`
 
@@ -1043,7 +1377,7 @@ console.log(result);
 **Use case:** API endpoint that accepts snake_case but works with camelCase internally
 
 ```typescript
-import { BaseController, controller, snakeToCamel } from '@venizia/ignis';
+import { BaseRestController, controller, snakeToCamel } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
@@ -1055,7 +1389,7 @@ const createUserSchema = snakeToCamel({
 });
 
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   override binding() {
     this.bindRoute({
       configs: {
@@ -1073,18 +1407,18 @@ export class UserController extends BaseController {
       handler: async (ctx) => {
         // Request body is automatically camelCase
         const data = ctx.req.valid('json');
-        
+
         // data = {
         //   firstName: string,
         //   lastName: string,
         //   emailAddress: string,
         //   phoneNumber?: string
         // }
-        
+
         // Work with camelCase data
-        console.log(data.firstName);  // ✅ TypeScript knows this exists
-        console.log(data.first_name);  // ❌ TypeScript error
-        
+        console.log(data.firstName);  // TypeScript knows this exists
+        console.log(data.first_name);  // TypeScript error
+
         return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -1097,13 +1431,13 @@ export class UserController extends BaseController {
 The utility includes sophisticated TypeScript type transformation:
 
 ```typescript
-type TSnakeToCamelCase<S extends string> = 
+type TSnakeToCamelCase<S extends string> =
   S extends `${infer T}_${infer U}`
     ? `${T}${Capitalize<TSnakeToCamelCase<U>>}`
     : S;
 
 type TCamelCaseKeys<T extends z.ZodRawShape> = {
-  [K in keyof T as K extends string ? TSnakeToCamelCase<K> : K]: 
+  [K in keyof T as K extends string ? TSnakeToCamelCase<K> : K]:
     T[K] extends z.ZodType<infer U> ? z.ZodType<U> : T[K];
 };
 ```
@@ -1121,7 +1455,7 @@ The schema validates twice for safety:
 ```typescript
 // If validation fails at any step, you get clear error messages
 const invalidData = {
-  user_id: 'not-a-number',  // ❌ Fails first validation
+  user_id: 'not-a-number',  // Fails first validation
   first_name: 'John',
   last_name: 'Doe',
 };
@@ -1139,6 +1473,16 @@ try {
 - Recursively handles nested objects
 - Preserves array structures
 - Works seamlessly with Zod's other features (refinements, transforms, etc.)
+
+### `getIdType`
+
+Utility function to determine the data type of an entity's `id` column at runtime:
+
+```typescript
+getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string
+```
+
+Returns the `dataType` property of the entity's `id` column (e.g., `'number'`, `'string'`), or `'unknown'` if not determinable.
 
 ## See Also
 

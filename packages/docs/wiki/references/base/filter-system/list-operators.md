@@ -11,7 +11,7 @@ Operators for matching values against arrays.
 
 ## in / inq - In Array
 
-Matches records where field value is in the provided array.
+Matches records where field value is in the provided array. `in` and `inq` are aliases and behave identically.
 
 ```typescript
 { where: { status: { in: ['active', 'pending', 'review'] } } }
@@ -37,9 +37,10 @@ Matches records where field value is in the provided array.
 
 | Scenario | Behavior |
 |----------|----------|
-| `{ in: [] }` (empty array) | Returns no rows (`false`) |
-| `{ nin: [] }` (empty array) | Returns all rows (`true`) |
+| `{ in: [] }` (empty array) | Returns no rows (`WHERE false`) |
+| `{ nin: [] }` (empty array) | Returns all rows (`WHERE true`) |
 | `{ in: 'value' }` (non-array) | Treated as `{ eq: 'value' }` |
+| `{ nin: 'value' }` (non-array) | Treated as `{ ne: 'value' }` |
 
 > [!WARNING]
 > `NOT IN` excludes rows where the column is `NULL`. If your column can be `NULL`, use `OR` to include them:

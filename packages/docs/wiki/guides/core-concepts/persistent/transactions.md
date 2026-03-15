@@ -4,10 +4,10 @@ Ignis supports explicit transaction objects that can be passed across multiple s
 
 ## Using Transactions
 
-To use transactions, start one from a repository or datasource, and then pass it to subsequent operations via the `options` parameter.
+To use transactions, start one from a datasource (via the repository's `beginTransaction` method), and then pass it to subsequent operations via the `options` parameter.
 
 ```typescript
-// 1. Start a transaction
+// 1. Start a transaction from the datasource (accessed through a repository)
 const tx = await userRepo.beginTransaction({
   isolationLevel: 'SERIALIZABLE' // Optional, defaults to 'READ COMMITTED'
 });
@@ -38,6 +38,20 @@ try {
 }
 ```
 
+## Transaction Object
+
+The transaction object returned by `beginTransaction()` has the following properties:
+
+| Property/Method | Type | Description |
+| :--- | :--- | :--- |
+| `connector` | `TNodePostgresConnector` | A Drizzle connector bound to the transaction's database client |
+| `isolationLevel` | `TIsolationLevel` | The isolation level of this transaction |
+| `isActive` | `boolean` | Whether the transaction is still active (not yet committed/rolled back) |
+| `commit()` | `Promise<void>` | Commit the transaction and release the connection |
+| `rollback()` | `Promise<void>` | Rollback the transaction and release the connection |
+
+Calling `commit()` or `rollback()` on an already-ended transaction throws an error.
+
 ## Isolation Levels
 
 Ignis supports standard PostgreSQL isolation levels:
@@ -48,10 +62,12 @@ Ignis supports standard PostgreSQL isolation levels:
 | `REPEATABLE READ` | Queries see a snapshot as of the start of the transaction. | Reports, consistent reads across multiple queries. |
 | `SERIALIZABLE` | Strictest level. Emulates serial execution. | Financial transactions, critical data integrity. |
 
+Note: `READ UNCOMMITTED` is technically accepted but behaves as `READ COMMITTED` in PostgreSQL.
+
 ## Best Practices
 
-1.  **Always use `try...catch...finally`**: Ensure `rollback()` is called on error to release the connection.
-2.  **Keep it short**: Long-running transactions hold database locks and connections.
+1.  **Always use `try...catch`**: Ensure `rollback()` is called on error to release the connection back to the pool.
+2.  **Keep it short**: Long-running transactions hold database connections from the pool and can cause connection exhaustion.
 3.  **Pass explicit options**: When calling other services inside a transaction, ensure they accept and use the `transaction` option.
 
 ```typescript
@@ -109,19 +125,19 @@ export class OrderService extends BaseService {
 
 ```typescript
 @controller({ path: '/orders' })
-export class OrderController extends BaseController {
+export class OrderController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
     private _orderRepository: OrderRepository,
     @inject({ key: 'services.OrderService' })
     private _orderService: OrderService,
   ) {
-    super({ scope: OrderController.name, path: '/orders' });
+    super({ scope: OrderController.name });
   }
 
   @post({ configs: OrderRoutes.CREATE })
   async createOrder(c: TRouteContext) {
-    const body = c.req.valid<{ order: any; items: any[] }>('json'); // Use explicit types for better safety
+    const body = c.req.valid<{ order: any; items: any[] }>('json');
 
     const tx = await this._orderRepository.beginTransaction({
       isolationLevel: 'SERIALIZABLE',
@@ -144,6 +160,20 @@ export class OrderController extends BaseController {
 }
 ```
 
+## How Transactions Work Internally
+
+When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` (a Drizzle instance bound to the transaction's `PoolClient`) instead of the default datasource connector. This ensures all operations within the transaction use the same database connection and see a consistent view of the data.
+
+```typescript
+// Inside AbstractRepository (simplified)
+protected resolveConnector(opts?: { transaction?: ITransaction }) {
+  if (opts?.transaction) {
+    return opts.transaction.connector;
+  }
+  return this.dataSource.connector;
+}
+```
+
 > **Deep Dive:** See [Repository Reference](../../../references/base/repositories/) for more transaction options and patterns.
 
 ## See Also
@@ -151,7 +181,7 @@ export class OrderController extends BaseController {
 - **Related Concepts:**
   - [Repositories](/guides/core-concepts/persistent/repositories) - Provide transaction API
   - [Services](/guides/core-concepts/services) - Orchestrate transactional operations
-  - [Controllers](/guides/core-concepts/controllers) - Initiate transactions from HTTP handlers
+  - [Controllers](/guides/core-concepts/rest-controllers) - Initiate transactions from HTTP handlers
   - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
 
 - **References:**

@@ -15,7 +15,7 @@ Services contain the core business logic of your application. They orchestrate t
 
 ### Creating a Service
 
-To create a service, you extend the `BaseService` class and inject the repositories or other services it depends on.
+To create a service, extend the `BaseService` class and inject the repositories or other services it depends on.
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
@@ -27,9 +27,9 @@ import { TConfiguration } from '../models/entities';
 
 export class ConfigurationService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.ConfigurationRepository' }) 
+    @inject({ key: 'repositories.ConfigurationRepository' })
     private configurationRepository: ConfigurationRepository,
-    @inject({ key: 'repositories.UserRepository' }) 
+    @inject({ key: 'repositories.UserRepository' })
     private userRepository: UserRepository,
     @inject({ key: 'services.LoggingService' })
     private loggingService: LoggingService, // Injecting another service for reuse
@@ -48,6 +48,20 @@ export class ConfigurationService extends BaseService {
     const user = await this.userRepository.findById({ id: opts.userId });
 // ...
 ```
+
+### BaseService API
+
+`BaseService` is intentionally minimal. It extends `BaseHelper` to provide scoped logging:
+
+```typescript
+export abstract class BaseService extends BaseHelper implements IService {
+  constructor(opts: { scope: string }) {
+    super({ scope: opts.scope });
+  }
+}
+```
+
+There is no built-in CRUD service -- implement business logic directly in your service methods. This keeps the service layer focused on your domain-specific operations rather than generic data access patterns (which belong in repositories).
 
 ## How Services Fit into the Architecture
 
@@ -88,14 +102,14 @@ This layered architecture makes your application:
 ## See Also
 
 - **Related Concepts:**
-  - [Controllers](/guides/core-concepts/controllers) - Call services to handle requests
+  - [Controllers](/guides/core-concepts/rest-controllers) - Call services to handle requests
   - [Repositories](/guides/core-concepts/persistent/repositories) - Data access layer used by services
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - Injecting dependencies into services
 
 - **References:**
   - [BaseService API](/references/base/services) - Complete API reference
   - [Providers](/references/base/providers) - Factory pattern for runtime instantiation
-  - [Logger Helper](/references/helpers/logger/) - Logging in services
+  - [Logger Helper](/extensions/helpers/logger/) - Logging in services
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Service layer design

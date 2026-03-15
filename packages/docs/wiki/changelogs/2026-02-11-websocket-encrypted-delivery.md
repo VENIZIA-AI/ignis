@@ -195,8 +195,8 @@ this.bind<TWebSocketHandshakeFn>({
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/websocket.md` | Added encryption section, outbound transformer docs, updated types/constants/methods |
-| `wiki/references/components/websocket.md` | Added `OUTBOUND_TRANSFORMER` binding key, encryption setup example |
+| `wiki/extensions/helpers/websocket.md` | Added encryption section, outbound transformer docs, updated types/constants/methods |
+| `wiki/extensions/components/websocket.md` | Added `OUTBOUND_TRANSFORMER` binding key, encryption setup example |
 | `wiki/changelogs/2026-02-11-websocket-encrypted-delivery.md` | New -- this changelog |
 | `site/.vitepress/config.mts` | Added sidebar entry for this changelog |
 

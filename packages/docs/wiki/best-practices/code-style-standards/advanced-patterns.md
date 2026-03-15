@@ -65,7 +65,7 @@ class ControllerFactory {
   static defineCrudController<Schema extends TTableSchemaWithId>(
     opts: ICrudControllerOptions<Schema>,
   ) {
-    return class extends BaseController {
+    return class extends BaseRestController {
       constructor(repository: AbstractRepository<Schema>) {
         super({ scope: opts.controller.name });
         this.repository = repository;

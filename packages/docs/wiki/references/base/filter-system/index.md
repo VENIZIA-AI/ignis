@@ -45,17 +45,17 @@ Before reading this document, you should understand:
 
 ## Filter Structure
 
-The `Filter<T>` object is the core mechanism for querying data in Ignis. It provides a structured, type-safe way to express complex queries without writing raw SQL.
+The `TFilter<T>` object is the core mechanism for querying data in Ignis. It provides a structured way to express complex queries without writing raw SQL.
 
 ```typescript
 type TFilter<T> = {
   where?: TWhere<T>;      // Query conditions (SQL WHERE)
   fields?: TFields<T>;    // Column selection (SQL SELECT)
-  order?: string[];       // Sorting (SQL ORDER BY)
-  limit?: number;         // Max results (SQL LIMIT)
+  order?: string[];        // Sorting (SQL ORDER BY)
+  limit?: number;         // Max results (SQL LIMIT, default: 10)
   skip?: number;          // Pagination offset (SQL OFFSET)
   offset?: number;        // Alias for skip
-  include?: TInclusion[]; // Related data (SQL JOIN / subqueries)
+  include?: TInclusion[]; // Related data (Drizzle relational queries)
 };
 ```
 
@@ -69,7 +69,7 @@ type TFilter<T> = {
 | `order` | `ORDER BY` | Sort results |
 | `limit` | `LIMIT` | Restrict number of results |
 | `skip` / `offset` | `OFFSET` | Skip rows for pagination |
-| `include` | `JOIN` / subquery | Include related data |
+| `include` | Separate relational query | Include related data |
 
 
 ## Basic Example
@@ -86,7 +86,7 @@ const filter = {
 
 // Equivalent SQL
 // SELECT "id", "name", "email"
-// FROM "User"
+// FROM "users"
 // WHERE "status" = 'active' AND "role" = 'admin'
 // ORDER BY "created_at" DESC
 // LIMIT 10 OFFSET 0
@@ -98,20 +98,23 @@ const filter = {
 | Want to... | Filter Syntax |
 |------------|---------------|
 | Equals | `{ field: value }` or `{ field: { eq: value } }` |
-| Not equals | `{ field: { ne: value } }` |
+| Not equals | `{ field: { ne: value } }` or `{ field: { neq: value } }` |
 | Greater than | `{ field: { gt: value } }` |
 | Greater or equal | `{ field: { gte: value } }` |
 | Less than | `{ field: { lt: value } }` |
 | Less or equal | `{ field: { lte: value } }` |
 | Is null | `{ field: null }` or `{ field: { is: null } }` |
-| Is not null | `{ field: { isn: null } }` |
-| In list | `{ field: { in: [a, b, c] } }` |
+| Is not null | `{ field: { isn: null } }` or `{ field: { ne: null } }` |
+| In list | `{ field: { in: [a, b, c] } }` or `{ field: { inq: [a, b, c] } }` |
 | Not in list | `{ field: { nin: [a, b, c] } }` |
 | Range | `{ field: { between: [min, max] } }` |
 | Outside range | `{ field: { notBetween: [min, max] } }` |
 | Contains pattern | `{ field: { like: '%pattern%' } }` |
+| Not contains pattern | `{ field: { nlike: '%pattern%' } }` |
 | Case-insensitive | `{ field: { ilike: '%pattern%' } }` |
+| Not case-insensitive | `{ field: { nilike: '%pattern%' } }` |
 | Regex match | `{ field: { regexp: '^pattern$' } }` |
+| Case-insensitive regex | `{ field: { iregexp: '^pattern$' } }` |
 | Array contains all | `{ arrayField: { contains: [a, b] } }` |
 | Array is subset | `{ arrayField: { containedBy: [a, b, c] } }` |
 | Array overlaps | `{ arrayField: { overlaps: [a, b] } }` |
@@ -121,7 +124,162 @@ const filter = {
 | OR conditions | `{ or: [{ a: 1 }, { b: 2 }] }` |
 | Include relation | `{ include: [{ relation: 'name' }] }` |
 | Nested include | `{ include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }] }` |
-| Select fields | `{ fields: ['id', 'name'] }` |
+| Select fields | `{ fields: ['id', 'name'] }` or `{ fields: { id: true, name: true } }` |
 | Order by | `{ order: ['field DESC'] }` |
 | Order by JSON | `{ order: ['jsonField.path DESC'] }` |
-| Paginate | `{ limit: 10, skip: 20 }` |
+| Paginate | `{ limit: 10, skip: 20 }` or `{ limit: 10, offset: 20 }` |
+
+
+## Common Filter Patterns
+
+### Multi-Condition Search
+
+```typescript
+{
+  where: {
+    and: [
+      { age: { gte: 18, lte: 65 } }, // Between 18 and 65
+      { status: { in: ['active', 'pending'] } },
+      { or: [
+        { email: { ilike: '%@company.com' } },
+        { role: 'admin' }
+      ]}
+    ]
+  }
+}
+```
+
+### Text Search
+
+```typescript
+{
+  where: {
+    or: [
+      { name: { ilike: '%john%' } },
+      { email: { ilike: '%john%' } },
+      { username: { ilike: '%john%' } }
+    ]
+  }
+}
+```
+
+### Date Range
+
+```typescript
+{
+  where: {
+    createdAt: {
+      gte: new Date('2024-01-01'),
+      lt: new Date('2024-02-01')
+    }
+  }
+}
+```
+
+### Exclude Soft Deleted
+
+```typescript
+{
+  where: {
+    and: [
+      { isDeleted: false },
+      { status: 'active' }
+    ]
+  }
+}
+```
+
+### Multi-Tenant Filtering
+
+```typescript
+{
+  where: {
+    and: [
+      { tenantId: currentTenantId },
+      { isActive: true }
+    ]
+  }
+}
+```
+
+
+## Operator Precedence
+
+When combining operators, IGNIS follows standard SQL precedence:
+
+1. **AND** - Higher precedence
+2. **OR** - Lower precedence
+
+Use explicit nesting (via `and`/`or` arrays) for clarity:
+
+```typescript
+// Clear precedence
+{
+  where: {
+    and: [
+      { status: 'active' },
+      { or: [
+        { role: 'admin' },
+        { role: 'moderator' }
+      ]}
+    ]
+  }
+}
+```
+
+
+## Performance Tips
+
+1. **Index frequently filtered columns:**
+   ```sql
+   CREATE INDEX idx_users_status ON users(status);
+   CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
+   ```
+
+2. **Use `eq` instead of `like` when possible:**
+   ```typescript
+   // Fast: Uses index
+   { status: { eq: 'active' } }
+
+   // Slower: Full table scan
+   { status: { like: 'active' } }
+   ```
+
+3. **Limit array contains operations:**
+   ```typescript
+   // Better performance with smaller arrays
+   { tags: { contains: ['typescript'] } } // Good
+   { tags: { contains: ['tag1', 'tag2', /* ... 100 tags */] } } // Slow
+   ```
+
+4. **Use pagination for large result sets:**
+   ```typescript
+   {
+     where: { isActive: true },
+     limit: 100,
+     skip: 0,
+     order: ['id ASC']
+   }
+   ```
+
+
+## See Also
+
+- **Detailed Guides:**
+  - [Comparison Operators](./comparison-operators.md)
+  - [Logical Operators](./logical-operators.md)
+  - [Pattern Matching](./pattern-matching.md)
+  - [JSON Filtering](./json-filtering.md)
+  - [Array Operators](./array-operators.md)
+
+- **Related References:**
+  - [Repositories](../repositories/) - Using filters in repository queries
+  - [Models](../models.md) - Defining model schemas
+
+- **Usage Guides:**
+  - [Application Usage](./application-usage.md) - Filters in the full stack
+  - [Use Case Gallery](./use-cases.md) - Real-world examples
+  - [Pro Tips & Edge Cases](./tips.md) - Advanced patterns
+
+- **Quick Reference:**
+  - [Main Quick Reference](/references/quick-reference.md) - All IGNIS APIs

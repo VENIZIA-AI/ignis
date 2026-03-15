@@ -119,10 +119,10 @@ export class UserService extends BaseService {
 Controllers should delegate to services and let the global error handler catch exceptions:
 
 ```typescript
-import { BaseController, controller, get, post } from '@venizia/ignis';
+import { BaseRestController, controller, get, post } from '@venizia/ignis';
 
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
 
   @post({ configs: RouteConfigs.CREATE_USER })
   async createUser(c: TRouteContext) {

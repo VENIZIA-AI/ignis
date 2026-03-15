@@ -121,7 +121,7 @@ export class SocketIOBindingKeys {
 Use underscore prefix (`_`) for private and protected class fields to distinguish them from public fields and method parameters.
 
 ```typescript
-class MyRepository extends BaseRepository {
+class MyRepository extends DefaultCRUDRepository {
   // Private fields with underscore prefix
   private _dataSource: IDataSource;
   private _entity: BaseEntity;

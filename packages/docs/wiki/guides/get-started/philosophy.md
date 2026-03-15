@@ -13,7 +13,7 @@ Ignis combines the structured, enterprise-grade development experience of **Loop
 
 ## The Framework Landscape
 
-When building REST APIs with Node.js/Bun, developers choose from three categories of frameworks:
+When building REST APIs and server applications with Node.js/Bun, developers choose from three categories of frameworks:
 
 <div class="landscape-grid">
 

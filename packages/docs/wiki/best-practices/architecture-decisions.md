@@ -21,9 +21,9 @@ This guide helps you make informed architectural decisions when building applica
 ```typescript
 // Simple CRUD with no business logic
 @controller({ path: '/items' })
-export class ItemController extends BaseController {
+export class ItemController extends BaseRestController {
   constructor(
-    @inject('repositories.ItemRepository')
+    @inject({ key: 'repositories.ItemRepository' })
     private itemRepo: ItemRepository,
   ) {
     super({ scope: 'ItemController', path: '/items' });
@@ -48,9 +48,9 @@ export class ItemController extends BaseController {
 ```typescript
 // Complex business logic needs a service
 @controller({ path: '/orders' })
-export class OrderController extends BaseController {
+export class OrderController extends BaseRestController {
   constructor(
-    @inject('services.OrderService')
+    @inject({ key: 'services.OrderService' })
     private orderService: OrderService,
   ) {
     super({ scope: 'OrderController', path: '/orders' });
@@ -125,7 +125,7 @@ export class NotificationComponent extends BaseComponent {
 ```typescript
 // Inline: Simple, one-off, no need for abstraction
 @controller({ path: '/health' })
-export class HealthController extends BaseController {
+export class HealthController extends BaseRestController {
   @get({ configs: { path: '/' } })
   healthCheck(c: Context) {
     return c.json({ status: 'ok', timestamp: new Date() });
@@ -209,7 +209,7 @@ export class OrderRepository extends BaseRepository<Order> {
 
 ```typescript
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   @post({ configs: { path: '/' } })
   async createUser(c: Context) {
     try {

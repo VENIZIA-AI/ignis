@@ -159,7 +159,7 @@ export interface ICryptoAlgorithm<
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/crypto.md` | Rewritten — added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
+| `wiki/extensions/helpers/crypto.md` | Rewritten — added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
 | `wiki/changelogs/2026-02-11-crypto-refactor-ecdh.md` | New — this changelog |
 | `wiki/changelogs/index.md` | Added entry for this changelog |
 | `site/.vitepress/config.mts` | Added sidebar entry for this changelog |

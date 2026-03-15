@@ -10,7 +10,7 @@ Each layer has a single responsibility. Ignis supports **two architectural appro
 graph TD
     Client[Client/API Consumer]
 
-    Client -->|HTTP Request| Controller[Controllers]
+    Client -->|HTTP/gRPC Request| Controller[Controllers]
 
     Controller -->|Simple CRUD| Repo[Repositories]
     Controller -->|Complex Logic| Service[Services]
@@ -27,7 +27,7 @@ graph TD
 
 | Layer | Responsibility | Example |
 |-------|---------------|---------|
-| **Controllers** | Handle HTTP - parse requests, validate, format responses | `ConfigurationController` (uses `ControllerFactory`) |
+| **Controllers** | Handle HTTP/gRPC - parse requests, validate, format responses | `ConfigurationController` (REST), `GreeterController` (gRPC) |
 | **Services** | Business logic - orchestrate operations | `AuthenticationService` (auth logic) |
 | **Repositories** | Data access - CRUD operations | `ConfigurationRepository` (extends `DefaultCRUDRepository`) |
 | **DataSources** | Database connections | `PostgresDataSource` (connects to PostgreSQL) |
@@ -79,7 +79,7 @@ Classes declare dependencies in their constructor - the framework automatically 
 - Easy to test (mock dependencies)
 - Easy to swap implementations
 
-**Example:**
+**Example (REST controller):**
 ```typescript
 @controller({ path: BASE_PATH })
 export class ConfigurationController extends _Controller {
@@ -98,6 +98,22 @@ export class ConfigurationController extends _Controller {
   }
 }
 ```
+
+**Controller Transports:**
+
+The `@controller` decorator supports a `transport` field to distinguish between REST and gRPC controllers:
+
+```typescript
+// REST controller (default - transport can be omitted)
+@controller({ path: '/users' })
+export class UserController extends BaseRestController { ... }
+
+// gRPC controller (transport is required)
+@controller({ path: '/greeter', transport: 'grpc', service: GreeterService })
+export class GreeterController extends BaseGrpcController { ... }
+```
+
+REST controllers extend `BaseRestController`, while gRPC controllers extend `BaseGrpcController`. The application must enable the appropriate transport(s) in its configuration.
 
 ## 3. Component-Based Modularity
 

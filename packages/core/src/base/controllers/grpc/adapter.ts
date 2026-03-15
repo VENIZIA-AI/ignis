@@ -129,6 +129,9 @@ export class GrpcRequestAdapter<
 
     return async (context, next) => {
       let pathname = context.req.path;
+
+      // context.req.path returns the full original URL path (e.g., /v1/api/grpc/package.Service/Method).
+      // Strip basePath + controllerPath prefix to get the ConnectRPC handler path (e.g., /package.Service/Method).
       if (controllerPath && pathname.startsWith(controllerPath)) {
         pathname = pathname.slice(controllerPath.length) || '/';
       }
@@ -160,7 +163,10 @@ export class GrpcRequestAdapter<
               : GRPC.ResultCodes.INTERNAL;
 
           return new Response(JSON.stringify({ message, code }), {
-            status: code === GRPC.ResultCodes.OK ? 200 : HTTP.ResultCodes.RS_5.InternalServerError,
+            status:
+              code === GRPC.ResultCodes.OK
+                ? HTTP.ResultCodes.RS_2.Ok
+                : HTTP.ResultCodes.RS_5.InternalServerError,
             headers: {
               [HTTP.Headers.CONTENT_TYPE]: HTTP.HeaderValues.APPLICATION_JSON,
               [GRPC.Headers.GRPC_STATUS]: String(code),
@@ -231,7 +237,12 @@ export class GrpcRequestAdapter<
       paths,
       middleware: adapter.buildMiddleware({
         handlerMap,
-        controllerPath: adapter.controller.path,
+        // Compute full mount prefix: basePath + controllerPath
+        // context.req.path returns the original full URL, so we need to strip the full prefix.
+        controllerPath: [
+          adapter.controller.basePath.replace(/\/$/, ''),
+          adapter.controller.path,
+        ].join(''),
         storage,
       }),
     };

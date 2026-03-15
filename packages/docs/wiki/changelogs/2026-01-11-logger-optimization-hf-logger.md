@@ -210,8 +210,8 @@ export class Logger {
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/logger.md` | Complete documentation update |
-| `wiki/references/helpers/network.md` | Updated with configuration interfaces |
+| `wiki/extensions/helpers/logger.md` | Complete documentation update |
+| `wiki/extensions/helpers/network.md` | Updated with configuration interfaces |
 
 ## No Breaking Changes
 

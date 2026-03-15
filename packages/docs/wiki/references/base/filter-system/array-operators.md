@@ -27,8 +27,9 @@ Find rows where the array column contains **all** specified elements.
 { where: { tags: { contains: ['electronics', 'featured'] } } }
 // SQL: "tags"::text[] @> ARRAY['electronics', 'featured']::text[]
 
-// Single element
+// Single element (can pass single value or array)
 { where: { tags: { contains: ['featured'] } } }
+{ where: { tags: { contains: 'featured' } } }  // Also works
 // Matches: ['featured'], ['featured', 'sale'], ['a', 'featured', 'b']
 ```
 
@@ -85,11 +86,14 @@ Find rows where the arrays share at least one common element.
 
 ## Empty Array Behavior
 
-| Operator | Empty Value `[]` | Behavior |
-|----------|------------------|----------|
-| `contains: []` | Returns **ALL** rows | Everything contains empty set |
-| `containedBy: []` | Returns only rows with **empty arrays** | Only `[]` is subset of `[]` |
-| `overlaps: []` | Returns **NO** rows | Nothing overlaps with empty |
+| Operator | Empty Value `[]` | SQL Generated | Behavior |
+|----------|------------------|---------------|----------|
+| `contains: []` | `WHERE true` | Returns **ALL** rows |
+| `containedBy: []` | `WHERE "col" = '{}'` | Returns only rows with **empty arrays** |
+| `overlaps: []` | `WHERE false` | Returns **NO** rows |
+
+> [!NOTE]
+> Single values are automatically wrapped in an array: `{ contains: 'value' }` is treated as `{ contains: ['value'] }`.
 
 
 ## Type Handling
@@ -100,11 +104,15 @@ Find rows where the arrays share at least one common element.
 // SQL: "tags"::text[] @> ARRAY['a', 'b']::text[]
 ```
 
+Both the column and the array literal are cast to `text[]` for compatibility.
+
 **Numeric Arrays** (`integer[]`, `numeric[]`):
 ```typescript
 { where: { scores: { contains: [100, 200] } } }
 // SQL: "scores" @> ARRAY[100, 200]
 ```
+
+No casting needed for numeric arrays.
 
 **Boolean Arrays**:
 ```typescript

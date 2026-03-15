@@ -107,11 +107,12 @@ Combine AND and OR for complex logic:
 
 ## NOT Logic
 
-Use negation operators for NOT conditions:
+Ignis does not have a standalone `not` logical operator. Instead, use negation operators for NOT conditions:
 
 ```typescript
 // NOT equal
 { where: { status: { ne: 'deleted' } } }
+{ where: { status: { neq: 'deleted' } } }
 
 // NOT IN
 { where: { status: { nin: ['deleted', 'banned'] } } }
@@ -119,8 +120,12 @@ Use negation operators for NOT conditions:
 // NOT LIKE
 { where: { email: { nlike: '%@test.com' } } }
 
-// NOT NULL
+// NOT ILIKE
+{ where: { email: { nilike: '%@test.com' } } }
+
+// IS NOT NULL
 { where: { verifiedAt: { isn: null } } }
+{ where: { verifiedAt: { ne: null } } }
 
 // NOT BETWEEN
 { where: { score: { notBetween: [40, 60] } } }

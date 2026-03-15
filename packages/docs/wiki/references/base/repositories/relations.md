@@ -62,6 +62,9 @@ const post = await postRepo.findOne({
 });
 ```
 
+> [!NOTE]
+> When `include` is present in the filter, the repository uses the **Query API** (`connector.query`) instead of the Core API. This is handled automatically by the `canUseCoreAPI` check in `ReadableRepository`.
+
 
 ## Scoped Includes
 
@@ -138,6 +141,23 @@ const user = await userRepo.findOne({
 });
 ```
 
+### Skip Default Filter on Includes
+
+Each inclusion can independently bypass the related model's default filter:
+
+```typescript
+// Include soft-deleted posts that would normally be filtered out
+const user = await userRepo.findOne({
+  filter: {
+    where: { id: '123' },
+    include: [{
+      relation: 'posts',
+      shouldSkipDefaultFilter: true
+    }]
+  }
+});
+```
+
 
 ## Nested Includes
 
@@ -146,7 +166,7 @@ Include relations of relations (up to 2 levels recommended):
 ### Two-Level Nesting
 
 ```typescript
-// User → Posts → Comments
+// User -> Posts -> Comments
 const user = await userRepo.findOne({
   filter: {
     where: { id: '123' },
@@ -179,7 +199,7 @@ const user = await userRepo.findOne({
 ### Many-to-Many Through Junction
 
 ```typescript
-// Product → SaleChannelProduct (junction) → SaleChannel
+// Product -> SaleChannelProduct (junction) -> SaleChannel
 const product = await productRepo.findOne({
   filter: {
     where: { id: 'prod1' },
@@ -216,7 +236,26 @@ const product = await productRepo.findOne({
 
 ## Defining Relations
 
-Relations must be defined in your model before you can `include` them.
+Relations are defined using the `createRelations` helper and the `TRelationConfig` type. These use Drizzle ORM's relation system under the hood.
+
+### Relation Config Type
+
+```typescript
+type TRelationConfig = {
+  name: string;  // Relation name used in includes
+} & (
+  | {
+      type: 'one';   // one-to-one or many-to-one
+      schema: TTableSchemaWithId;
+      metadata: { fields, references, relationName? };
+    }
+  | {
+      type: 'many';  // one-to-many
+      schema: TTableSchemaWithId;
+      metadata: { relationName? };
+    }
+);
+```
 
 ### In Your Model
 
@@ -230,14 +269,14 @@ export const userTable = pgTable('User', {
   email: text('email').notNull(),
 });
 
-export const userRelations = createRelations({
+const userRelationsConfig = createRelations({
   source: userTable,
   relations: [
     {
-      type: 'hasMany',
-      model: () => Post,       // Target model
-      foreignKey: 'authorId',  // FK in Post table
-      name: 'posts',           // Relation name for includes
+      type: 'many',
+      schema: postTable,
+      name: 'posts',
+      metadata: { relationName: 'posts' },
     },
   ],
 });
@@ -245,51 +284,91 @@ export const userRelations = createRelations({
 @model({ type: 'entity' })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
-  static override relations = () => userRelations.definitions;
+  static override relations = () => userRelationsConfig.definitions;
   static override TABLE_NAME = 'User';
 }
 ```
 
 ### Relation Types
 
-| Type | Description | Example |
-|------|-------------|---------|
-| `hasMany` | One-to-many | User has many Posts |
-| `hasOne` | One-to-one | User has one Profile |
-| `belongsTo` | Inverse of hasMany/hasOne | Post belongs to User |
+| Type | Drizzle Function | Description | Example |
+|------|------------------|-------------|---------|
+| `'one'` | `one()` | One-to-one or many-to-one | Post has one Author, User has one Profile |
+| `'many'` | `many()` | One-to-many | User has many Posts |
 
-### Example: Post Model
+> [!NOTE]
+> Unlike LoopBack 4's `hasMany`/`hasOne`/`belongsTo` terminology, Ignis uses Drizzle ORM's relation model which has only `one` and `many` types. A "belongsTo" relationship is expressed as `type: 'one'` with `fields` (local FK) and `references` (remote PK) in the metadata.
+
+### Example: Post Model with Both Types
 
 ```typescript
-export const postRelations = createRelations({
+const postRelationsConfig = createRelations({
   source: postTable,
   relations: [
     {
-      type: 'belongsTo',
-      model: () => User,
-      foreignKey: 'authorId',
+      type: 'one',
+      schema: userTable,
       name: 'author',
+      metadata: {
+        fields: [postTable.authorId],
+        references: [userTable.id],
+      },
     },
     {
-      type: 'hasMany',
-      model: () => Comment,
-      foreignKey: 'postId',
+      type: 'many',
+      schema: commentTable,
       name: 'comments',
+      metadata: { relationName: 'comments' },
     },
   ],
 });
 ```
 
+### createRelations Return Value
+
+`createRelations` returns an object with two properties:
+
+```typescript
+const result = createRelations({ source, relations });
+
+result.definitions;  // Record<string, TRelationConfig> - keyed by relation name
+result.relations;    // Drizzle relations() call result - pass to DataSource schema
+```
+
+- **`definitions`**: Used by `BaseEntity.relations` for include resolution at runtime.
+- **`relations`**: The actual Drizzle ORM relations definition, needed for DataSource schema registration.
+
 
 ## Auto-Resolution
 
-Relations are automatically resolved from the entity's static `relations` property. No need to pass them in the repository constructor:
+Relations are automatically resolved from the entity's static `relations` property via `MetadataRegistry`. The `FilterBuilder.resolveRelations()` method reads them when building include queries. No need to pass them in the repository constructor:
 
 ```typescript
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   // Relations auto-resolved from User.relations!
 }
+```
+
+
+## Hidden Properties in Relations
+
+When building include queries, the `FilterBuilder.toInclude()` method automatically:
+
+1. Resolves hidden properties for each related model via `resolveHiddenProperties()`.
+2. Resolves the default filter for each related model via `resolveDefaultFilter()`.
+3. Merges the default filter with any user-provided `scope`.
+4. Excludes hidden columns from the nested query's `columns` selection.
+
+```typescript
+// User model has hiddenProperties: ['password']
+const post = await postRepo.findOne({
+  filter: {
+    include: [{ relation: 'author' }]
+  }
+});
+
+// post.author will NOT include password - excluded at SQL level
 ```
 
 
@@ -343,6 +422,19 @@ product?.saleChannelProducts[0].saleChannel.name;
 ```
 
 
+## TInclusion Type Reference
+
+Each element in the `include` array has this shape:
+
+```typescript
+type TInclusion = {
+  relation: string;             // Name of the relation to include
+  scope?: TFilter;              // Optional nested filter (where, order, limit, fields, include)
+  shouldSkipDefaultFilter?: boolean;  // Skip the related model's default filter
+};
+```
+
+
 ## Common Patterns
 
 ### Find All with Count of Relations
@@ -382,21 +474,6 @@ async function getUser(id: string, includePosts: boolean) {
 }
 ```
 
-### Include with Hidden Properties
-
-Hidden properties (like `password`) are automatically excluded from included relations:
-
-```typescript
-// User model has hiddenProperties: ['password']
-const post = await postRepo.findOne({
-  filter: {
-    include: [{ relation: 'author' }]
-  }
-});
-
-// post.author will NOT include password
-```
-
 
 ## Error Handling
 
@@ -405,7 +482,7 @@ const post = await postRepo.findOne({
 If you try to include a relation that doesn't exist:
 
 ```typescript
-// Error: Relation 'nonExistent' not found in User relations
+// Error: [FilterBuilder][toInclude] Relation NOT FOUND | relation: 'nonExistent'
 await userRepo.find({
   filter: {
     include: [{ relation: 'nonExistent' }]
@@ -413,7 +490,15 @@ await userRepo.find({
 });
 ```
 
-**Fix:** Check your model's `relations` definition.
+**Fix:** Check your model's `relations` definition and ensure the relation name matches.
+
+### Invalid Include Format
+
+```typescript
+// Error: [FilterBuilder][toInclude] Invalid include format | include: ...
+```
+
+**Fix:** Ensure each include element has a `relation` string property.
 
 ### Schema Key Mismatch
 
@@ -431,6 +516,7 @@ in connector.query | Available keys: [Post, Comment]
 2. **Use `fields` in scope** - Only fetch needed columns
 3. **Use `limit` in scope** - Don't fetch unbounded related data
 4. **Consider separate queries** - For complex data needs, multiple simple queries often outperform one complex nested query
+5. **Use `shouldSkipDefaultFilter` sparingly** - Only when you explicitly need filtered-out records
 
 ```typescript
 // Instead of deep nesting, use separate queries
@@ -443,7 +529,7 @@ const posts = await postRepo.find({
 });
 const comments = await commentRepo.find({
   filter: {
-    where: { postId: { in: posts.map(p => p.id) } }
+    where: { postId: { inq: posts.map(p => p.id) } }
   }
 });
 ```
@@ -460,6 +546,7 @@ const comments = await commentRepo.find({
 | Limit included | `include: [{ relation: 'posts', scope: { limit: 5 } }]` |
 | Nested include | `include: [{ relation: 'posts', scope: { include: [{ relation: 'comments' }] } }]` |
 | Select fields | `include: [{ relation: 'posts', scope: { fields: ['id', 'title'] } }]` |
+| Skip default filter | `include: [{ relation: 'posts', shouldSkipDefaultFilter: true }]` |
 
 
 ## Next Steps
@@ -476,11 +563,8 @@ const comments = await commentRepo.find({
 
 - **Related Topics:**
   - [Advanced Features](./advanced) - Hidden properties, transactions
-  - [Repository Mixins](./mixins) - Soft delete and auditing
+  - [Repository Mixins](./mixins) - Default filter and fields visibility
   - [Filter System](/references/base/filter-system/) - Query operators
 
 - **External Resources:**
   - [Drizzle ORM Relations](https://orm.drizzle.team/docs/rqb#relations) - Relation definition guide
-
-- **Tutorials:**
-  - [E-commerce API](/guides/tutorials/ecommerce-api) - Relations in practice

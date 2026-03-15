@@ -294,8 +294,8 @@ export abstract class BaseApplication
   async registerBooters() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
-      scope: this.registerDataSources.name,
-      description: 'Register application data sources',
+      scope: this.registerBooters.name,
+      description: 'Register application booters',
       task: async () => {
         this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
         this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);

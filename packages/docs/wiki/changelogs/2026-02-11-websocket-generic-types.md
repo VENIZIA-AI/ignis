@@ -130,5 +130,5 @@ This ensures metadata is always an object type, preventing accidental usage like
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/websocket.md` | Added "Generic Type Parameters" section; updated type definitions for `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`, and all callback types to show generics; added `serverPublicKey` to tracked state table; updated auth flow diagram |
+| `wiki/extensions/helpers/websocket.md` | Added "Generic Type Parameters" section; updated type definitions for `IWebSocketClient`, `IWebSocketData`, `IWebSocketServerOptions`, and all callback types to show generics; added `serverPublicKey` to tracked state table; updated auth flow diagram |
 | `wiki/changelogs/2026-02-11-websocket-generic-types.md` | New -- this changelog |

@@ -13,14 +13,17 @@ Advanced tips and common edge cases when working with filters.
 
 ```typescript
 // JSON field contains: { "priority": "3" } (string)
-// This WON'T match numeric comparison!
-{ where: { 'metadata.priority': { gt: 2 } } }  // NULL due to safe casting
+// Numeric comparison uses safe casting:
+{ where: { 'metadata.priority': { gt: 2 } } }
+// The regex '^-?[0-9]+(\.[0-9]+)?$' matches "3", so it casts to numeric 3
+// Result: 3 > 2 -> matches
 
-// Use string comparison instead
-{ where: { 'metadata.priority': { gt: '2' } } }  // Lexicographic compare
+// But if JSON field contains: { "priority": "high" }
+{ where: { 'metadata.priority': { gt: 2 } } }
+// "high" fails regex -> NULL -> no match
 
-// Or ensure your data stores numbers properly
-{ "priority": 3 }  // Store as number, not string
+// Best practice: ensure your data stores numbers as JSON numbers
+{ "priority": 3 }  // Store as number, not string "3"
 ```
 
 
@@ -73,7 +76,7 @@ for (let i = 0; i < allIds.length; i += chunkSize) {
 ## Tip 5: Order By JSON Fields
 
 ```typescript
-// JSON ordering uses #> (preserves type) not #>> (text)
+// JSON ordering uses #> (returns JSONB, preserves types) not #>> (returns text)
 { order: ['metadata.priority DESC'] }
 // SQL: "metadata" #> '{priority}' DESC
 
@@ -187,4 +190,28 @@ const products = await productRepo.find({
     ...createPaginationFilter(3),
   }
 });
+```
+
+
+## Tip 11: Array Operators Accept Single Values
+
+```typescript
+// These are equivalent:
+{ where: { tags: { contains: ['featured'] } } }
+{ where: { tags: { contains: 'featured' } } }
+
+// Single values are automatically wrapped in an array
+// This works for contains, containedBy, and overlaps
+```
+
+
+## Tip 12: Field Selection Object Format
+
+```typescript
+// Object format only supports inclusion (true values)
+{ fields: { id: true, name: true, email: true } }
+
+// Setting a field to false does NOT exclude it -- it just ignores that key
+// If you want to exclude fields, list only the ones you want:
+{ fields: ['id', 'name', 'email'] }  // Array format is clearer for this
 ```

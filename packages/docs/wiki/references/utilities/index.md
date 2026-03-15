@@ -4,26 +4,26 @@ Pure, standalone functions providing common, reusable logic for the Ignis framew
 
 ## Quick Reference
 
-| Utility | Purpose | Key Functions |
-|---------|---------|---------------|
-| **Crypto** | Cryptographic operations | `hash()`, `compare()`, `encrypt()`, `decrypt()` |
-| **Date** | Date/time manipulation | `format()`, `parse()`, `diff()`, `add()` |
-| **JSX** | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
-| **Module** | Module detection | `isInstalled()`, `resolve()` |
-| **Parse** | Data type conversion | `toBoolean()`, `toNumber()`, `toArray()` |
-| **Performance** | Execution timing | `measure()`, `measureAsync()` |
-| **Promise** | Promise helpers | `delay()`, `timeout()`, `retry()` |
-| **Request** | HTTP utilities | `parseMultipart()`, `contentDisposition()` |
-| **Schema** | Zod schema helpers | `jsonContent()`, `jsonResponse()` |
-| **Statuses** | Status code constants | `Statuses`, `UserStatuses`, `CommonStatuses` |
+| Utility | Package | Purpose | Key Functions |
+|---------|---------|---------|---------------|
+| **Crypto** | `ignis-helpers` | Cryptographic hashing | `hash()` |
+| **Date** | `ignis-helpers` | Date/time manipulation | `dayjs`, `sleep()`, `isWeekday()`, `getDateTz()`, `hrTime()` |
+| **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
+| **Module** | `ignis-helpers` | Module validation | `validateModule()` |
+| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()`, `getNumberValue()` |
+| **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
+| **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
+| **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
+| **Schema** | `ignis` | Zod schema helpers | `jsonContent()`, `jsonResponse()`, `requiredString()`, `idParamsSchema()` |
+| **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
 
 ## What's in This Section
 
 ### Data Processing
 
-- [**Crypto**](./crypto.md) - Simple, stateless cryptographic functions for hashing, comparison, and encryption/decryption operations
-- [**Parse**](./parse.md) - Functions for parsing and converting data types safely with proper type inference
-- [**Schema**](./schema.md) - Helpers for creating and validating Zod schemas, especially for OpenAPI request/response validation
+- [**Crypto**](./crypto.md) - Simple, stateless cryptographic functions for hashing (SHA256 HMAC, MD5)
+- [**Parse**](./parse.md) - Functions for parsing and converting data types safely (integers, floats, booleans, camelCase, locale-aware numbers, array-to-map)
+- [**Schema**](./schema.md) - Helpers for creating Zod schemas for OpenAPI request/response validation
 - [**Statuses**](./statuses.md) - Standardized status code constants for entity lifecycle management
 
 ### Time & Performance
@@ -34,30 +34,32 @@ Pure, standalone functions providing common, reusable logic for the Ignis framew
 ### Async & HTTP
 
 - [**JSX**](./jsx.md) - HTML and JSX response utilities for server-side rendering and OpenAPI documentation
-- [**Promise**](./promise.md) - Helper functions for working with Promises including retry, timeout, and delay
+- [**Promise**](./promise.md) - Helper functions for working with Promises including concurrency limiting and value transformation
 - [**Request**](./request.md) - HTTP request utilities for parsing multipart form data and creating secure Content-Disposition headers
 
 ### Runtime
 
-- [**Module**](./module.md) - Utility for checking if a Node.js module is installed at runtime
+- [**Module**](./module.md) - Utility for validating that required Node.js modules are installed at runtime
 
 ## Usage Pattern
 
 Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) or `@venizia/ignis-helpers` (runtime utilities):
 
 ```typescript
-import { jsonContent, jsonResponse, htmlResponse, Statuses } from '@venizia/ignis';
-import { hash, compare, formatDate, toBoolean } from '@venizia/ignis-helpers';
+import { jsonContent, jsonResponse, htmlResponse, requiredString, Statuses } from '@venizia/ignis';
+import { hash, dayjs, sleep, int, float, toBoolean, getNumberValue } from '@venizia/ignis-helpers';
 
 // Crypto
-const hashed = await hash({ value: 'password123' });
-const isMatch = await compare({ value: 'password123', hashed });
+const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });
 
 // Date
-const formatted = formatDate({ date: new Date(), format: 'YYYY-MM-DD' });
+const now = dayjs();
+await sleep(1000);
 
 // Parse
-const boolValue = toBoolean('true'); // true
+const myInt = int('1,000'); // 1000
+const myFloat = float('1,234.567', 2); // 1234.57
+const myBool = toBoolean('true'); // true
 
 // Schema (for OpenAPI JSON routes)
 const responseSchema = jsonResponse({
@@ -77,4 +79,4 @@ if (Statuses.isCompleted(order.status)) {
 }
 ```
 
-> **Related:** [Helpers Reference](../helpers/) | [Core Concepts Guide](../../guides/core-concepts/application/)
+> **Related:** [Helpers Reference](/extensions/helpers/) | [Core Concepts Guide](../../guides/core-concepts/application/)

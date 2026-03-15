@@ -1,6 +1,6 @@
 # Crypto Utility
 
-The Crypto utility provides simple, stateless functions for cryptographic hashing.
+The Crypto utility provides simple, stateless functions for cryptographic hashing using Node.js's built-in `node:crypto` module.
 
 ## `hash`
 
@@ -10,9 +10,15 @@ The `hash` function allows you to create a hash of a string using either `SHA256
 
 -   `text` (string): The input string to hash.
 -   `options` (object):
-    -   `algorithm` ('SHA256' | 'MD5'): The hashing algorithm to use.
-    -   `secret` (string, optional): The secret key for HMAC-SHA256.
-    -   `outputType` (BinaryToTextEncoding): The output encoding (e.g., 'hex', 'base64').
+    -   `algorithm` (`'SHA256'` | `'MD5'`): The hashing algorithm to use.
+    -   `secret` (string, optional): The secret key for HMAC-SHA256. If `algorithm` is `'SHA256'` and no `secret` is provided, the original text is returned unchanged.
+    -   `outputType` (`BinaryToTextEncoding`): The output encoding (e.g., `'hex'`, `'base64'`).
+
+### Behavior
+
+-   **SHA256**: Creates an HMAC using the provided `secret`. Returns the original text if no secret is given.
+-   **MD5**: Creates a standard hash digest (no secret needed).
+-   **Other algorithms**: Returns the original text unchanged.
 
 ### Examples
 
@@ -36,4 +42,15 @@ const sha256Hash = hash('some text', {
   outputType: 'hex',
 });
 // => 'b8a1c3f2... (64-character hex string)'
+```
+
+**Base64 output**
+
+```typescript
+import { hash } from '@venizia/ignis-helpers';
+
+const base64Hash = hash('some text', {
+  algorithm: 'MD5',
+  outputType: 'base64',
+});
 ```

@@ -668,7 +668,7 @@ Add Prometheus metrics endpoint:
 ```typescript
 // src/controllers/metrics.controller.ts
 @controller({ path: '/metrics' })
-export class MetricsController extends BaseController {
+export class MetricsController extends BaseRestController {
   @get({ configs: { path: '/' } })
   getMetrics(c: Context) {
     return c.text(`

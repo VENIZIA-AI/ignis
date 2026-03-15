@@ -11,7 +11,7 @@ This function executes an array of asynchronous tasks concurrently, but with a s
 -   `opts` (object):
     -   `tasks` (Array&lt;() => Promise&lt;T&gt;&gt;): An array of functions that each return a Promise.
     -   `limit` (number): The maximum number of promises to execute in parallel.
-    -   `onTaskDone` (&lt;R&gt;(opts: { result: R }) => ValueOrPromise&lt;void&gt;, optional): A callback function that is executed whenever a task is completed.
+    -   `onTaskDone` (&lt;R&gt;(opts: { result: R }) => ValueOrPromise&lt;void&gt;, optional): A callback function that is executed whenever a task is completed (specifically, when the concurrency limit is reached and a task finishes to make room).
 
 ### Example
 
@@ -38,9 +38,22 @@ const results = await executePromiseWithLimit({
 console.log('All tasks finished:', results);
 ```
 
+## `transformValueOrPromise`
+
+This async function applies a transformation function to a value that might be a direct value or a Promise. It always returns a Promise.
+
+```typescript
+import { transformValueOrPromise } from '@venizia/ignis-helpers';
+
+const double = (n: number) => n * 2;
+
+const result1 = await transformValueOrPromise(5, double); // => 10
+const result2 = await transformValueOrPromise(Promise.resolve(5), double); // => 10
+```
+
 ## `isPromiseLike`
 
-A type guard function to check if a given value is a Promise-like object (i.e., it has a `then` method).
+A type guard function to check if a given value is a Promise-like object (i.e., it has a `then` method). Checks that the value is non-null, is an object or function, and has a `then` property that is a function.
 
 ```typescript
 import { isPromiseLike } from '@venizia/ignis-helpers';
@@ -57,22 +70,9 @@ if (isPromiseLike(b)) {
 }
 ```
 
-## `transformValueOrPromise`
-
-This function applies a transformation function to a value that might be a direct value or a Promise.
-
-```typescript
-import { transformValueOrPromise, isPromiseLike } from '@venizia/ignis-helpers';
-
-const double = (n: number) => n * 2;
-
-const result1 = await transformValueOrPromise(5, double); // => 10
-const result2 = await transformValueOrPromise(Promise.resolve(5), double); // => 10
-```
-
 ## `getDeepProperty`
 
-Safely retrieves a deeply nested property from an object using a dot-separated path string. It throws an error if any part of the path is null or undefined.
+Traverses a dot-separated property path on an object and returns the value. It throws an error if any intermediate part of the path is null or undefined.
 
 ```typescript
 import { getDeepProperty } from '@venizia/ignis-helpers';
@@ -80,4 +80,7 @@ import { getDeepProperty } from '@venizia/ignis-helpers';
 const obj = { a: { b: { c: 'hello' } } };
 
 const value = getDeepProperty(obj, 'a.b.c'); // => 'hello'
+
+// Throws: Cannot read property 'x' of undefined
+getDeepProperty(obj, 'a.x.y');
 ```

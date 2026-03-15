@@ -208,6 +208,35 @@ const [fullUser] = await connector
 For complete hidden properties documentation, see the [Models Reference](../../../references/base/models.md#hidden-properties).
 :::
 
+## Default Filter
+
+Apply automatic filters to all repository queries. This is commonly used for soft-delete patterns:
+
+```typescript
+@model({
+  type: 'entity',
+  settings: {
+    defaultFilter: { where: { isDeleted: false } },
+    hiddenProperties: ['deletedAt'],
+  },
+})
+export class Article extends BaseEntity<typeof Article.schema> {
+  // ...
+}
+```
+
+The default filter is applied automatically to all read operations. Bypass it with `shouldSkipDefaultFilter: true` in the options:
+
+```typescript
+// Normal query - auto-filters out soft-deleted records
+const articles = await articleRepo.find({});
+
+// Include deleted records
+const allArticles = await articleRepo.find({
+  options: { shouldSkipDefaultFilter: true },
+});
+```
+
 ## Authorization Settings
 
 Declare your model's authorization principal directly in `@model` settings. The decorator auto-populates `AUTHORIZATION_SUBJECT` for type-safe references in route configs:
@@ -237,8 +266,21 @@ authorize: {
 ```
 
 :::tip
-For full authorization integration details, see the [Authorization Usage Reference](../../../references/components/authorization/usage#model-based-resource-references).
+For full authorization integration details, see the [Authorization Usage Reference](../../../extensions/components/authorization/usage#model-based-resource-references).
 :::
+
+## Model Metadata Types
+
+The `@model` decorator accepts the following metadata:
+
+| Field | Type | Description |
+| :--- | :--- | :--- |
+| `type` | `'entity' \| 'view'` | Whether this is a table or a database view |
+| `tableName` | `string` | Optional explicit table name |
+| `skipMigrate` | `boolean` | Skip this model during migrations |
+| `settings.hiddenProperties` | `string[]` | Properties excluded from all query results |
+| `settings.defaultFilter` | `TFilter` | Default filter auto-applied to all queries |
+| `settings.authorize.principal` | `string` | Authorization subject name for this model |
 
 ## Model Template
 

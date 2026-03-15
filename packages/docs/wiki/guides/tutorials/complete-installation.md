@@ -239,14 +239,17 @@ export class Application extends BaseApplication {
 
 **Key takeaway:** You'll mostly work in `preConfigure()` when building your app. The other hooks are there when you need them.
 
-**Application Lifecycle Hooks:**
+**Application Lifecycle Hooks (execution order):**
 | Hook | Purpose | Usage |
 |------|---------|-------|
 | `getAppInfo()` | Application metadata | Required - used for API docs |
-| `staticConfigure()` | Static file serving | Optional |
-| `setupMiddlewares()` | Global middlewares | Optional |
-| `preConfigure()` | **Register resources** | **Main hook** - register controllers, services, etc. |
+| `staticConfigure()` | Static file serving | Optional - runs before DI registration |
+| `preConfigure()` | **Register resources** | **Main hook** - register controllers, services, components, etc. |
+| `registerDataSources()` | Configure datasources | Auto - discovers and configures bound datasources |
+| `registerComponents()` | Configure components | Auto - discovers and configures bound components |
+| `registerControllers()` | Configure controllers | Auto - mounts REST/gRPC routes |
 | `postConfigure()` | Post-initialization | Optional - seed data, background jobs |
+| `setupMiddlewares()` | Global middlewares | Optional - runs after `initialize()`, before server starts |
 
 > **Deep Dive:** See [Application Class Reference](../core-concepts/application/) for detailed lifecycle documentation.
 
@@ -256,7 +259,7 @@ Create `src/controllers/hello.controller.ts` - controllers handle HTTP requests 
 
 ```typescript
 import {
-  BaseController,
+  BaseRestController,
   controller,
   api,
   jsonContent,
@@ -270,7 +273,7 @@ const BASE_PATH = '/hello';
 // The @controller decorator registers this class as a controller
 // All routes in this controller will be under /api/hello (remember path.base: '/api')
 @controller({ path: BASE_PATH })
-export class HelloController extends BaseController {
+export class HelloController extends BaseRestController {
   constructor() {
     super({ scope: HelloController.name, path: BASE_PATH });
   }
@@ -278,12 +281,12 @@ export class HelloController extends BaseController {
   // Required: Override binding() to register routes or dependencies
   override binding() {
     // Option 1: Use bindRoute() or defineRoute() for programmatic route registration
-    // this.bindRoute({ method: 'get', path: '/programmatic', handler: this.myHandler });
+    // this.bindRoute({ configs: { method: 'get', path: '/programmatic', responses: {...} } }).to({ handler: this.myHandler });
 
     // Option 2: Use @api decorator on methods (shown below) - recommended
   }
 
-  // The @api decorator defines a route (prefer @api with method over @get/@post)
+  // The @api decorator defines a route with explicit method. You can also use @get/@post shorthand decorators.
   @api({
     configs: {
       method: HTTP.Methods.GET,
@@ -303,8 +306,8 @@ export class HelloController extends BaseController {
     return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 
-  // For authenticated endpoints, add 'authStrategies':
-  // @api({ configs: { method: HTTP.Methods.GET, path: '/secure', authStrategies: [Authentication.STRATEGY_JWT] } })
+  // For authenticated endpoints, add 'authenticate':
+  // @api({ configs: { method: HTTP.Methods.GET, path: '/secure', authenticate: { strategies: [Authentication.STRATEGY_JWT] } } })
 }
 ```
 
@@ -312,13 +315,13 @@ export class HelloController extends BaseController {
 
 | Pattern | Description |
 |---------|-------------|
-| `@controller` | Registers the class as a controller with a base path |
-| `@api` | Defines a route with `method` specified (recommended) |
-| `@get`, `@post`, etc. | Shorthand decorators (also work) |
+| `@controller` | Registers the class as a controller with a base path. Supports optional `transport` field (`'rest'` default, `'grpc'`) |
+| `@api` | Defines a route with `method` specified in configs |
+| `@get`, `@post`, etc. | Shorthand decorators that auto-set the HTTP method (recommended) |
 | `binding()` | Required override — use `bindRoute()` or `defineRoute()` for programmatic routes |
 | Zod schemas | Provide automatic validation and OpenAPI docs |
 
-> **Deep Dive:** See [Controllers Reference](../core-concepts/controllers.md) for advanced routing patterns and validation.
+> **Deep Dive:** See [Controllers Reference](../core-concepts/rest-controllers.md) for advanced routing patterns and validation.
 
 ### Create Entry Point
 

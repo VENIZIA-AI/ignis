@@ -81,7 +81,7 @@ Create `src/index.ts`:
 import { z } from "@hono/zod-openapi";
 import {
   BaseApplication,
-  BaseController,
+  BaseRestController,
   controller,
   get,
   IApplicationInfo,
@@ -94,7 +94,7 @@ import appInfo from "./../package.json";
 
 // 1. Define a controller
 @controller({ path: "/hello" })
-class HelloController extends BaseController {
+class HelloController extends BaseRestController {
   constructor() {
     super({ scope: "HelloController", path: "/hello" });
   }
@@ -108,7 +108,6 @@ class HelloController extends BaseController {
   @get({
     configs: {
       path: "/",
-      method: HTTP.Methods.GET,
       responses: {
         [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
           description: "Says hello",
@@ -235,10 +234,10 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 
 | Component | What It Does |
 |-----------|--------------|
-| `@controller` | Registers a class as an API controller at `/api/hello` |
-| `@get` | Defines a GET endpoint with OpenAPI metadata |
+| `@controller` | Registers a class as an API controller at `/api/hello`. Supports `transport` field for REST (default) or gRPC |
+| `@get` | Defines a GET endpoint with OpenAPI metadata (auto-sets HTTP method) |
 | `Zod schema` | Validates request/response and auto-generates OpenAPI docs |
-| `BaseController` | Provides lifecycle hooks and route binding capabilities |
+| `BaseRestController` | Provides lifecycle hooks, route binding, and OpenAPI integration for REST controllers |
 | `BaseApplication` | Manages dependency injection, middleware, and server startup |
 | `SwaggerComponent` | Generates interactive API docs at `/doc/explorer` |
 | `app.start()` | Boots the DI container and starts HTTP server on port 3000 |
@@ -296,7 +295,7 @@ You might wonder why we set up TypeScript, ESLint, and Prettier configs in a "qu
   },
 })
 async greet(c: Context) {
-  const { name } = await c.req.json();
+  const { name } = c.req.valid('json');
   return c.json({ greeting: `Hello, ${name}!` }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```

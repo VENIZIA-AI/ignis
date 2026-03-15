@@ -173,7 +173,7 @@ KafkaConsumerHelper.newInstance({
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/kafka/index.md` | Rewritten to match new thin wrapper API |
+| `wiki/extensions/helpers/kafka/index.md` | Rewritten to match new thin wrapper API |
 | `wiki/changelogs/2026-03-10-kafka-helpers-refactor.md` | This changelog |
 
 ## Migration Guide

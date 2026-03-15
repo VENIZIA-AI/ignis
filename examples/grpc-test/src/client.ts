@@ -16,11 +16,7 @@ import { create } from "@bufbuild/protobuf";
 import { createClient } from "@connectrpc/connect";
 import { createConnectTransport } from "@connectrpc/connect-web";
 import { EchoRequestSchema, EchoService } from "@/controllers/echo";
-import {
-  GreeterService,
-  SayHelloRequestSchema,
-  StreamEventsRequestSchema,
-} from "@/controllers/greeter";
+import { GreeterService, SayHelloRequestSchema } from "@/controllers/greeter";
 import { HealthService, PingRequestSchema } from "@/controllers/health";
 import { GetTimeRequestSchema, TimeService } from "@/controllers/time";
 
@@ -122,25 +118,6 @@ async function testGrpcEndpoints() {
     }
   } catch (error) {
     fail("GreeterService.ListUsers (direct)", error);
-  }
-
-  // Direct: GreeterService.StreamEvents (server streaming)
-  try {
-    const client = createClient(GreeterService, transport);
-    const stream = client.streamEvents(create(StreamEventsRequestSchema, { count: 2 }));
-
-    let eventCount = 0;
-    for await (const _event of stream) {
-      eventCount++;
-    }
-
-    if (eventCount === 2) {
-      pass("GreeterService.StreamEvents (direct)", `received ${eventCount} events`);
-    } else {
-      fail("GreeterService.StreamEvents (direct)", `expected 2, got ${eventCount}`);
-    }
-  } catch (error) {
-    fail("GreeterService.StreamEvents (direct)", error);
   }
 
   // Direct: HealthService.Ping

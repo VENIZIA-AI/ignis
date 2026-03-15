@@ -100,9 +100,9 @@ export class JWTTokenService extends BaseService {
   }
 }
 
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor() {
-    super({ scope: UserController.name });
+    super({ scope: UserController.name, path: '/users' });
   }
 }
 ```

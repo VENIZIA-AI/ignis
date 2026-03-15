@@ -53,9 +53,9 @@ interface IUserService { }
 type TUserRequest = { };
 
 // Classes use PascalCase with suffix
-class UserController extends BaseController { }
+class UserController extends BaseRestController { }
 class UserService extends BaseService { }
-class UserRepository extends BaseRepository { }
+class UserRepository extends DefaultCRUDRepository { }
 ```
 
 ### File Structure

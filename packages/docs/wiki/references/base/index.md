@@ -7,7 +7,8 @@ Core classes that power every Ignis application - from the Application entry poi
 | Class | Purpose | Extends |
 |-------|---------|---------|
 | `BaseApplication` | Application entry point, DI container | `AbstractApplication` |
-| `BaseController` | HTTP route handlers | - |
+| `BaseRestController` | REST/HTTP route handlers | `AbstractRestController` |
+| `BaseGrpcController` | gRPC route handlers (ConnectRPC) | `AbstractGrpcController` |
 | `BaseService` | Business logic layer | - |
 | `BaseProvider` | Factory pattern for runtime instantiation | `BaseHelper` |
 | `BaseComponent` | Pluggable feature modules | - |
@@ -19,29 +20,31 @@ Core classes that power every Ignis application - from the Application entry poi
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
+┌──────────────────────────────────────────────────────────────┐
 │                     BaseApplication                          │
 │  (DI Container + Lifecycle + Server Management)              │
-├─────────────────────────────────────────────────────────────┤
+├──────────────────────────────────────────────────────────────┤
 │                                                              │
-│  ┌──────────────┐   ┌──────────────┐   ┌──────────────┐     │
-│  │ BaseController│   │ BaseService  │   │BaseComponent │     │
-│  │ (HTTP Layer) │   │(Business Logic)│  │ (Plugins)   │     │
-│  └──────┬───────┘   └──────┬───────┘   └──────────────┘     │
-│         │                  │                                 │
-│         └────────┬─────────┘                                 │
-│                  ▼                                           │
-│         ┌──────────────────┐                                 │
-│         │DefaultCRUDRepository│                              │
-│         │  (Data Access)    │                                │
-│         └────────┬──────────┘                                │
-│                  │                                           │
-│         ┌────────┴────────┐                                  │
-│         ▼                 ▼                                  │
-│  ┌────────────┐   ┌────────────┐                             │
-│  │BaseDataSource│  │ BaseEntity │                            │
-│  │(Connection) │  │  (Schema)  │                             │
-│  └─────────────┘  └────────────┘                             │
+│  ┌──────────────────┐  ┌─────────────┐  ┌──────────────┐    │
+│  │BaseRestController │  │ BaseService  │  │BaseComponent │    │
+│  │  (REST Layer)     │  │(Biz Logic)  │  │ (Plugins)    │    │
+│  ├──────────────────┤  └──────┬───────┘  └──────────────┘    │
+│  │BaseGrpcController │        │                              │
+│  │  (gRPC Layer)     │        │                              │
+│  └────────┬──────────┘        │                              │
+│           └─────────┬─────────┘                              │
+│                     ▼                                        │
+│          ┌──────────────────────┐                            │
+│          │DefaultCRUDRepository │                            │
+│          │  (Data Access)       │                            │
+│          └──────────┬───────────┘                            │
+│                     │                                        │
+│          ┌──────────┴──────────┐                             │
+│          ▼                     ▼                             │
+│   ┌──────────────┐      ┌────────────┐                      │
+│   │BaseDataSource │      │ BaseEntity │                      │
+│   │(Connection)   │      │  (Schema)  │                      │
+│   └───────────────┘      └────────────┘                      │
 │                                                              │
 └──────────────────────────────────────────────────────────────┘
 ```
@@ -52,8 +55,9 @@ Core classes that power every Ignis application - from the Application entry poi
 - [Application](./application.md) - `BaseApplication` class, resource registration, lifecycle hooks
 - [Bootstrapping](./bootstrapping.md) - Startup sequence, `initialize()` flow
 
-### HTTP Layer
-- [Controllers](./controllers.md) - Route handlers, decorators, request/response handling
+### Transport Layer
+- [REST Controllers](./controllers.md) - REST route handlers, decorators, request/response handling
+- [gRPC Controllers](./grpc-controllers.md) - gRPC/ConnectRPC handlers, RPC decorators
 - [Middlewares](./middlewares.md) - Built-in middlewares for error handling, logging, and request processing
 - [Services](./services.md) - Business logic, injectable services
 
@@ -79,7 +83,11 @@ AbstractRepository
 │   └── PersistableRepository
 │       └── DefaultCRUDRepository ──────► Your Repository
 │
-BaseController ──────► Your Controller
+AbstractRestController
+└── BaseRestController ──────► Your REST Controller
+
+AbstractGrpcController
+└── BaseGrpcController ──────► Your gRPC Controller
 BaseService ──────► Your Service
 BaseProvider ──────► Your Provider
 BaseComponent ──────► Your Component

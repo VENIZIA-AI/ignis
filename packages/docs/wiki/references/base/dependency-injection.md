@@ -9,19 +9,24 @@ difficulty: advanced
 Technical reference for the DI system in Ignis - managing resource lifecycles and dependency resolution.
 
 **Files:**
-- `packages/inversion/src/container.ts` (base Container and Binding classes)
-- `packages/core/src/helpers/inversion/container.ts` (extended Container with ApplicationLogger)
-- `packages/core/src/base/metadata/injectors.ts` (@inject, @injectable decorators)
-- `packages/core/src/helpers/inversion/registry.ts` (MetadataRegistry)
+- `packages/inversion/src/container.ts` — Base `Container` and `Binding` classes
+- `packages/inversion/src/registry.ts` — Base `MetadataRegistry`
+- `packages/inversion/src/metadata/injectors.ts` — Base `@inject` and `@injectable` decorators
+- `packages/inversion/src/common/types.ts` — `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
+- `packages/core/src/helpers/inversion/container.ts` — Extended `Container` with `ApplicationLogger`
+- `packages/core/src/helpers/inversion/registry.ts` — Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
+- `packages/core/src/base/metadata/injectors.ts` — Core `@inject` and `@injectable` (wired to extended registry)
 
 ## Quick Reference
 
 | Component | Purpose | Key Methods |
 |-----------|---------|-------------|
-| **Container** | DI registry managing resource lifecycles | `bind()`, `get()`, `instantiate()`, `findByTag()` |
-| **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()` |
-| **@inject** | Decorator marking injection points | Applied to constructor parameters/properties |
-| **MetadataRegistry** | Stores decorator metadata | Singleton accessed via `getInstance()` |
+| **Container** | DI registry managing resource lifecycles | `bind()`, `get()`, `gets()`, `instantiate()`, `resolve()`, `findByTag()`, `isBound()`, `unbind()`, `clear()`, `reset()` |
+| **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()`, `getValue()`, `clearCache()` |
+| **@inject** | Decorator marking injection points | Applied to constructor parameters and class properties |
+| **@injectable** | Decorator marking a class as injectable | Stores scope and tag metadata |
+| **MetadataRegistry** | Stores decorator metadata | Singleton — base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
+| **BindingKeys** | Utility for building namespaced keys | `BindingKeys.build({ namespace, key })` |
 | **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
 
 ## Prerequisites
@@ -30,7 +35,7 @@ Before reading this document, you should understand:
 
 - [TypeScript Decorators](https://www.typescriptlang.org/docs/handbook/decorators.html) - How decorators work in TypeScript
 - [IGNIS Application basics](./application.md) - Application lifecycle and initialization
-- [Services](./services.md) and [Controllers](./controllers.md) - Basic understanding of IGNIS architecture
+- [Services](./services.md) and [Controllers](./controllers.md) - Basic understanding of IGNIS architecture (REST controllers)
 - Inversion of Control (IoC) pattern - [Martin Fowler's article](https://martinfowler.com/articles/injection.html)
 
 ## `Container` Class
@@ -39,65 +44,311 @@ Heart of the DI system - registry managing all application resources.
 
 **File:** `packages/inversion/src/container.ts` (Base) & `packages/core/src/helpers/inversion/container.ts` (Extended)
 
+The base `Container` extends `BaseHelper` (which provides `scope` and `identifier` properties). The core `Container` extends the base and adds a `Logger` instance.
+
+### Constructor
+
+```typescript
+const container = new Container({ scope: 'MyApp' }); // scope is optional, defaults to "Container"
+```
+
 ### Key Methods
 
-| Method | Description |
-| :--- | :--- |
-| **`bind<T>({ key })`** | Starts a new binding for a given key. It returns a `Binding` instance that you can use to configure the dependency. |
-| **`get<T>({ key, isOptional })`** | Retrieves a dependency from the container. The `key` can be a string, a symbol, or an object like `{ namespace: 'services', key: 'MyService' }`. If the dependency is not found and `isOptional` is `false` (the default), it will throw an error. |
-| **`instantiate<T>(cls)`** | Creates a new instance of a class, automatically injecting any dependencies specified in its constructor or on its properties. This is the method the container uses internally to create your controllers, services, etc. |
-| **`findByTag({ tag })`** | Finds all bindings that have been tagged with a specific tag (e.g., `'controllers'`, `'components'`). This is used by the application to discover and initialize all registered resources of a certain type. |
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| **`bind`** | `bind<T>({ key: string \| symbol }): Binding<T>` | Creates and registers a new `Binding` for the given key. Returns the `Binding` for fluent configuration. |
+| **`get`** | `get<T>({ key, isOptional? }): T` | Retrieves a resolved dependency. `key` can be a `string`, `symbol`, or `{ namespace, key }` object. Throws if not found and `isOptional` is `false` (default). Returns `undefined` if `isOptional` is `true` and not found. |
+| **`gets`** | `gets<T>({ bindings }): T[]` | Resolves multiple dependencies at once. Each entry in `bindings` accepts `{ key, isOptional? }`. All lookups are treated as optional (returns `undefined` for missing). |
+| **`getBinding`** | `getBinding<T>({ key }): Binding<T> \| undefined` | Returns the raw `Binding` object without resolving it. `key` accepts `string`, `symbol`, or `{ namespace, key }`. |
+| **`set`** | `set<T>({ binding: Binding<T> }): void` | Directly sets a pre-built `Binding` into the container. |
+| **`isBound`** | `isBound({ key: string \| symbol }): boolean` | Checks if a binding exists for the given key. |
+| **`unbind`** | `unbind({ key: string \| symbol }): boolean` | Removes a binding. Returns `true` if it existed. |
+| **`resolve`** | `resolve<T>(cls: TClass<T>): T` | Alias for `instantiate()`. Creates a new instance of the class with DI. |
+| **`instantiate`** | `instantiate<T>(cls: TClass<T>): T` | Creates a new instance of a class, injecting constructor parameters and property dependencies from the container. |
+| **`findByTag`** | `findByTag<T>({ tag, exclude? }): Binding<T>[]` | Finds all bindings tagged with `tag`. Optionally exclude specific binding keys via `exclude` (accepts `Array<string>` or `Set<string>`). |
+| **`clear`** | `clear(): void` | Clears cached singleton values on all bindings (does not remove bindings). |
+| **`reset`** | `reset(): void` | Removes all bindings entirely. |
+| **`getMetadataRegistry`** | `getMetadataRegistry(): MetadataRegistry` | Returns the metadata registry. The core `Container` overrides this to return `MetadataRegistry.getInstance()`. |
+
+### Instantiation Algorithm (Two-Phase)
+
+When `container.instantiate(MyClass)` is called:
+
+1. **Constructor injection** — Reads `@inject` metadata from the class, sorts by parameter index, resolves each dependency from the container, and passes them as constructor arguments.
+2. **Property injection** — After the instance is created, reads property metadata, resolves each dependency, and assigns them directly to the instance properties.
+
+```typescript
+// Both constructor and property injection in action
+class UserController {
+  @inject({ key: 'services.NotificationService' })
+  private notificationService!: NotificationService; // Property injection
+
+  constructor(
+    @inject({ key: 'services.UserService' })
+    private userService: UserService, // Constructor injection
+  ) {}
+}
+```
 
 ## `Binding` Class
 
-A `Binding` represents a single registered dependency in the container. It's a fluent API that allows you to specify *how* a dependency should be created and managed.
+A `Binding` represents a single registered dependency in the container. It provides a fluent API to configure *how* a dependency should be created and managed.
 
--   **File:** `packages/inversion/src/container.ts`
+**File:** `packages/inversion/src/container.ts`
+
+The `Binding` class extends `BaseHelper`.
+
+### Constructor
+
+```typescript
+const binding = new Binding<MyService>({ key: 'services.MyService' });
+```
+
+When a binding key contains a dot (e.g., `services.MyService`), the namespace portion (`services`) is automatically added as a tag. This enables `findByTag({ tag: 'services' })` to work without manual tagging.
 
 ### Configuration Methods
 
-| Method | Description |
-| :--- | :--- |
-| **`toClass(MyClass)`** | Binds the key to a class. The container will instantiate this class (and resolve its dependencies) when the key is requested. |
-| **`toValue(someValue)`** | Binds the key to a constant value (e.g., a configuration object, a string, a number). |
-| **`toProvider(MyProvider)`**| Binds the key to a provider class or function. This is for dependencies that require complex creation logic. |
-| **`setScope(scope)`** | Sets the lifecycle scope of the binding. See "Binding Scopes" below. |
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| **`toClass`** | `toClass(value: TClass<T>): this` | Binds to a class. The container will instantiate it (resolving constructor and property dependencies) when requested. |
+| **`toValue`** | `toValue(value: T): this` | Binds to a constant value (e.g., a config object, string, number). |
+| **`toProvider`** | `toProvider(value: ((container) => T) \| TClass<IProvider<T>>): this` | Binds to a factory function or a class implementing `IProvider<T>`. |
+| **`setScope`** | `setScope(scope: TBindingScope): this` | Sets the lifecycle scope (`'singleton'` or `'transient'`). |
+| **`setTags`** | `setTags(...tags: string[]): this` | Adds one or more tags to the binding. Tags are additive — calling this multiple times adds more tags. |
+| **`getValue`** | `getValue(container?: Container): T` | Resolves the binding's value. For `CLASS` and `PROVIDER` types, a `container` argument is required. Respects singleton caching. |
+| **`clearCache`** | `clearCache(): void` | Clears the cached singleton instance (if any). Next `getValue()` call will re-create it. |
+| **`hasTag`** | `hasTag(tag: string): boolean` | Checks if the binding has a specific tag. |
+| **`getTags`** | `getTags(): string[]` | Returns all tags as an array. |
+| **`getScope`** | `getScope(): TBindingScope` | Returns the current scope setting. |
+| **`getBindingMeta`** | `getBindingMeta({ type }): TClass<T> \| T \| ...` | Returns the raw resolver value. Throws if the requested type does not match the binding's actual type. |
+
+### Fluent API Example
+
+```typescript
+container
+  .bind<UserService>({ key: 'services.UserService' })
+  .toClass(UserService)
+  .setScope(BindingScopes.SINGLETON)
+  .setTags('core');
+```
+
+### Provider Bindings
+
+Providers allow complex creation logic. Two forms are supported:
+
+**Function provider:**
+```typescript
+container.bind({ key: 'config.db' }).toProvider((container) => {
+  const env = container.get<EnvConfig>({ key: 'config.env' });
+  return { host: env.DB_HOST, port: env.DB_PORT };
+});
+```
+
+**Class provider** (must implement `IProvider<T>`):
+```typescript
+class DbConfigProvider implements IProvider<DbConfig> {
+  value(container: Container): DbConfig {
+    const env = container.get<EnvConfig>({ key: 'config.env' });
+    return { host: env.DB_HOST, port: env.DB_PORT };
+  }
+}
+
+container.bind({ key: 'config.db' }).toProvider(DbConfigProvider);
+```
 
 ### Binding Scopes
 
-| Scope | Description |
-| :--- | :--- |
-| **`BindingScopes.TRANSIENT`** | (Default) A new instance of the dependency is created every time it is injected or requested from the container. |
-| **`BindingScopes.SINGLETON`** | A single instance is created the first time it is requested, and that same instance is reused for all subsequent requests. DataSources and Components are typically singletons. |
+| Scope | Value | Description |
+| :--- | :--- | :--- |
+| **`BindingScopes.TRANSIENT`** | `'transient'` | (Default) A new instance is created every time the dependency is requested. |
+| **`BindingScopes.SINGLETON`** | `'singleton'` | A single instance is created on first request and reused for all subsequent requests. The cache is per-Binding, not per-Container. |
+
+### Binding Value Types
+
+| Type | Value | Description |
+| :--- | :--- | :--- |
+| **`BindingValueTypes.CLASS`** | `'class'` | Bound via `toClass()`. Container instantiates with DI. |
+| **`BindingValueTypes.VALUE`** | `'value'` | Bound via `toValue()`. Direct value return. |
+| **`BindingValueTypes.PROVIDER`** | `'provider'` | Bound via `toProvider()`. Factory function or `IProvider` class. |
+
+## `BindingKeys` Utility
+
+Builds namespaced binding keys from structured objects.
+
+**File:** `packages/inversion/src/common/types.ts`
+
+```typescript
+BindingKeys.build({ namespace: 'services', key: 'UserService' });
+// → 'services.UserService'
+
+BindingKeys.build({ namespace: '', key: 'AppConfig' });
+// → 'AppConfig'
+
+BindingKeys.build({ namespace: 'services', key: '' });
+// → Throws error: key is required
+```
+
+This is also used internally by `container.get()` and `container.getBinding()` when you pass a `{ namespace, key }` object as the key.
 
 ## `@inject` Decorator
 
-The `@inject` decorator is used to mark where dependencies should be injected.
+The `@inject` decorator marks where dependencies should be injected — either on constructor parameters or class properties.
 
--   **File:** `packages/core/src/base/metadata/injectors.ts`
+**File:** `packages/inversion/src/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
+
+### Signature
+
+```typescript
+@inject({ key: string | symbol; isOptional?: boolean })
+```
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `key` | `string \| symbol` | — | The binding key to resolve from the container. |
+| `isOptional` | `boolean` | `false` | If `true`, returns `undefined` instead of throwing when the binding is not found. |
+
+### Constructor Parameter Injection
+
+```typescript
+class UserController {
+  constructor(
+    @inject({ key: 'services.UserService' })
+    private userService: UserService,
+
+    @inject({ key: 'services.CacheService', isOptional: true })
+    private cacheService?: CacheService, // Won't throw if not registered
+  ) {}
+}
+```
+
+### Property Injection
+
+```typescript
+class UserController {
+  @inject({ key: 'services.UserService' })
+  private userService!: UserService;
+
+  @inject({ key: 'services.CacheService', isOptional: true })
+  private cacheService?: CacheService;
+}
+```
 
 ### How It Works
 
-1.  When you apply the `@inject` decorator to a constructor parameter or a class property, it uses `Reflect.metadata` to attach metadata to the class.
-2.  The metadata includes the **binding key** of the dependency to be injected.
-3.  When the `container.instantiate(MyClass)` method is called, it reads this metadata.
-4.  It then calls `container.get({ key })` for each decorated parameter/property to resolve the dependency.
-5.  Finally, it creates the instance of `MyClass`, passing the resolved dependencies to the constructor or setting them on the instance properties.
+1. When `@inject` is applied to a **constructor parameter**, it stores `IInjectMetadata` (key, index, isOptional) on the class via the `MetadataRegistry`.
+2. When `@inject` is applied to a **property**, it stores `IPropertyMetadata` (bindingKey, isOptional) on the class prototype via the `MetadataRegistry`.
+3. When `container.instantiate(MyClass)` is called, it reads both metadata sets, resolves each dependency from the container, and injects them.
 
-This entire process is managed by the framework when your application starts up, ensuring that all your registered classes are created with their required dependencies.
+### Base vs Core Decorators
+
+The `@venizia/ignis-inversion` package exports base decorators that use the module-level `metadataRegistry` singleton. The `@venizia/ignis` (core) package re-exports wrappers that use the core `MetadataRegistry.getInstance()` singleton instead, which includes model/repository/datasource metadata support.
+
+**Always import from `@venizia/ignis` in application code:**
+```typescript
+import { inject, injectable } from '@venizia/ignis';
+```
+
+## `@injectable` Decorator
+
+Marks a class as injectable and attaches optional metadata.
+
+**File:** `packages/inversion/src/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
+
+### Signature
+
+```typescript
+@injectable({ scope?: TBindingScope; tags?: Record<string, any> })
+```
+
+| Parameter | Type | Default | Description |
+| :--- | :--- | :--- | :--- |
+| `scope` | `'singleton' \| 'transient'` | — | Optional scope hint for the binding. |
+| `tags` | `Record<string, any>` | — | Optional metadata tags. |
+
+### Example
+
+```typescript
+@injectable({ scope: BindingScopes.SINGLETON })
+class UserService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.UserRepository' })
+    private userRepo: UserRepository,
+  ) {
+    super({ scope: UserService.name });
+  }
+}
+```
 
 ## `MetadataRegistry`
 
-The `MetadataRegistry` is a crucial part of the DI and routing systems. It's a singleton class responsible for storing and retrieving all the metadata attached by decorators like `@inject`, `@controller`, `@get`, etc.
+The `MetadataRegistry` stores and retrieves all metadata attached by decorators (`@inject`, `@injectable`, `@controller`, `@model`, etc.).
 
--   **File:** `packages/core/src/helpers/inversion/registry.ts`
+### Base MetadataRegistry
 
-### Role in DI
+**File:** `packages/inversion/src/registry.ts`
 
--   When you use a decorator (e.g., `@inject`), it calls a method on the `MetadataRegistry.getInstance()` to store information about the injection (like the binding key and target property/parameter).
--   When the `Container` instantiates a class, it queries the `MetadataRegistry` to find out which dependencies need to be injected and where.
+A singleton exported as `metadataRegistry`. Extends `BaseHelper`.
 
-You typically won't interact with the `MetadataRegistry` directly, but it's the underlying mechanism that makes the decorator-based DI and routing systems work seamlessly.
+| Method | Description |
+| :--- | :--- |
+| `define({ target, key, value })` | Stores arbitrary metadata on a target using `Reflect.defineMetadata`. |
+| `get({ target, key })` | Retrieves metadata by key from a target. |
+| `has({ target, key })` | Checks if metadata exists. |
+| `delete({ target, key })` | Removes metadata. Returns `true` if it existed. |
+| `getKeys({ target })` | Returns all metadata keys on a target. |
+| `getMethodNames({ target })` | Returns all method names on a class prototype (excluding `constructor`). |
+| `clearMetadata({ target })` | Removes all metadata from a target. |
+| `setInjectMetadata({ target, index, metadata })` | Stores constructor parameter injection metadata (`IInjectMetadata`). |
+| `getInjectMetadata({ target })` | Returns all constructor injection metadata for a class. |
+| `setPropertyMetadata({ target, propertyName, metadata })` | Stores property injection metadata (`IPropertyMetadata`). |
+| `getPropertiesMetadata({ target })` | Returns a `Map<string \| symbol, IPropertyMetadata>` for all injected properties. |
+| `getPropertyMetadata({ target, propertyName })` | Returns property metadata for a specific property. |
+| `setInjectableMetadata({ target, metadata })` | Stores `@injectable` metadata on a class. |
+| `getInjectableMetadata({ target })` | Returns `@injectable` metadata for a class. |
+
+### Core MetadataRegistry
+
+**File:** `packages/core/src/helpers/inversion/registry.ts`
+
+Extends the base with controller, repository, model, and datasource metadata support via mixins. Accessed as a singleton via `MetadataRegistry.getInstance()`.
+
+Additional capabilities include:
+- Controller metadata (route configs, path mappings)
+- REST and gRPC controller metadata
+- Repository binding metadata
+- Model registry (schema, settings)
+- DataSource metadata and schema auto-discovery
+
+### Metadata Keys
+
+Defined in `packages/inversion/src/common/keys.ts`:
+
+```typescript
+MetadataKeys.PROPERTIES  = Symbol.for('ignis:properties')
+MetadataKeys.INJECT      = Symbol.for('ignis:inject')
+MetadataKeys.INJECTABLE  = Symbol.for('ignis:injectable')
+```
+
+### Key Types
+
+```typescript
+interface IInjectMetadata {
+  key: string | symbol;
+  index: number;
+  isOptional?: boolean;
+}
+
+interface IPropertyMetadata {
+  bindingKey: string | symbol;
+  isOptional?: boolean;
+  [key: string]: any;
+}
+
+interface IInjectableMetadata {
+  scope?: TBindingScope;
+  tags?: Record<string, any>;
+}
+```
 
 ## Boot System Integration
 
@@ -136,19 +387,19 @@ This pattern allows the `Bootstrapper` to automatically discover and execute all
 
 ### Artifact Bindings
 
-Once artifacts are discovered and loaded, they're bound using consistent patterns:
+Once artifacts are discovered and loaded, they're bound using consistent namespace patterns:
 
 ```typescript
-// Controllers
+// Controllers — auto-tagged with 'controllers'
 this.bind({ key: 'controllers.UserController' }).toClass(UserController);
 
-// Services
+// Services — auto-tagged with 'services'
 this.bind({ key: 'services.UserService' }).toClass(UserService);
 
-// Repositories
+// Repositories — auto-tagged with 'repositories'
 this.bind({ key: 'repositories.UserRepository' }).toClass(UserRepository);
 
-// Datasources
+// Datasources — auto-tagged with 'datasources'
 this.bind({ key: 'datasources.PostgresDataSource' }).toClass(PostgresDataSource);
 ```
 
@@ -227,12 +478,12 @@ class MyApp extends BaseApplication {
 - **Related Concepts:**
   - [Dependency Injection Guide](/guides/core-concepts/dependency-injection) - DI fundamentals tutorial
   - [Application](/guides/core-concepts/application/) - Application extends Container
-  - [Controllers](/guides/core-concepts/controllers) - Use DI for injecting services
+  - [Controllers](/guides/core-concepts/rest-controllers) - Use DI for injecting services
   - [Services](/guides/core-concepts/services) - Use DI for injecting repositories
   - [Providers](/references/base/providers) - Factory pattern for dynamic injection
 
 - **References:**
-  - [Inversion Helper](/references/helpers/inversion/) - DI container utilities
+  - [Inversion Helper](/extensions/helpers/inversion/) - DI container utilities
   - [Bootstrapping API](/references/base/bootstrapping) - Auto-discovery and DI
   - [Glossary](/guides/reference/glossary#dependency-injection-di) - DI concepts explained
 

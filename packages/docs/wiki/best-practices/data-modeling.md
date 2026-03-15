@@ -405,7 +405,7 @@ export class User extends BaseEntity<typeof User.schema> {
 - Explicit `static AUTHORIZATION_SUBJECT = '...'` on the class takes precedence
 - The `authorize` settings are extensible via index signature for custom metadata
 
-> **Reference:** See [Model-Based Resource References](../references/components/authorization/usage#model-based-resource-references) for full authorization integration.
+> **Reference:** See [Model-Based Resource References](../extensions/components/authorization/usage#model-based-resource-references) for full authorization integration.
 
 ## 7. Database Migrations
 

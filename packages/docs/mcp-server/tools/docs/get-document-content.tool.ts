@@ -22,9 +22,9 @@ WHEN NOT TO USE:
 
 DOCUMENT ID FORMAT:
 The 'id' parameter is the relative file path from the wiki root:
-- "get-started/quickstart.md" - Quickstart guide
-- "references/components/http-server.md" - HTTP Server component reference
-- "get-started/core-concepts/dependency-injection.md" - DI concepts
+- "guides/get-started/5-minute-quickstart.md" - Quickstart guide
+- "extensions/helpers/redis/index.md" - Redis helper reference
+- "references/base/dependency-injection.md" - DI reference
 
 HOW TO GET VALID IDs:
 1. Use searchDocs to find documents by keyword
@@ -45,10 +45,10 @@ Unique document identifier - the relative file path from the wiki root directory
 FORMAT: "<category>/<subcategory>/<filename>.md"
 
 EXAMPLES:
-- "get-started/quickstart.md"
-- "get-started/core-concepts/dependency-injection.md"
-- "references/components/http-server.md"
-- "references/helpers/redis.md"
+- "guides/get-started/5-minute-quickstart.md"
+- "references/base/dependency-injection.md"
+- "extensions/helpers/redis/index.md"
+- "extensions/components/authentication/index.md"
 
 HOW TO OBTAIN:
 - From searchDocs results (the 'id' field)

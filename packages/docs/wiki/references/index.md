@@ -9,12 +9,12 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <p>Application, Controller, Service, Repository, Model</p>
 </a>
 
-<a href="./components/" class="guide-card">
+<a href="/ignis/extensions/components/" class="guide-card">
 <h3>Components</h3>
 <p>Auth, Mail, Socket.IO, Swagger, Health Check</p>
 </a>
 
-<a href="./helpers/" class="guide-card">
+<a href="/ignis/extensions/helpers/" class="guide-card">
 <h3>Helpers</h3>
 <p>Logger, Redis, Queue, Storage, Cron, Crypto</p>
 </a>
@@ -29,7 +29,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <p>Environment variables and settings</p>
 </a>
 
-<a href="./src-details/" class="guide-card">
+<a href="/ignis/extensions/src-details/" class="guide-card">
 <h3>Framework Internals</h3>
 <p>Package structure and architecture</p>
 </a>
@@ -63,7 +63,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <span class="stage-num">3</span>
 <h4>Adding Features</h4>
 </div>
-<p><a href="./components/authentication">Auth</a> → <a href="./components/socket-io">Real-time</a> → <a href="./components/mail">Email</a> → <a href="./components/swagger">API Docs</a></p>
+<p><a href="/ignis/extensions/components/authentication/">Auth</a> → <a href="/ignis/extensions/components/socket-io/">Real-time</a> → <a href="/ignis/extensions/components/mail/">Email</a> → <a href="/ignis/extensions/components/swagger">API Docs</a></p>
 <span class="stage-desc">Pre-built components for common features</span>
 </div>
 
@@ -72,7 +72,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <span class="stage-num">4</span>
 <h4>Infrastructure</h4>
 </div>
-<p><a href="./helpers/logger">Logging</a> → <a href="./helpers/redis">Caching</a> → <a href="./helpers/queue">Queues</a> → <a href="./helpers/cron">Scheduling</a></p>
+<p><a href="/ignis/extensions/helpers/logger/">Logging</a> → <a href="/ignis/extensions/helpers/redis/">Caching</a> → <a href="/ignis/extensions/helpers/queue/">Queues</a> → <a href="/ignis/extensions/helpers/cron/">Scheduling</a></p>
 <span class="stage-desc">Background jobs, caching, and observability</span>
 </div>
 
@@ -90,7 +90,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <span class="stage-num">6</span>
 <h4>Production Ready</h4>
 </div>
-<p><a href="./base/middlewares">Error Handling</a> → <a href="./components/health-check">Health Checks</a> → <a href="./configuration/environment-variables">Configuration</a> → <a href="./base/bootstrapping">Auto-Discovery</a></p>
+<p><a href="./base/middlewares">Error Handling</a> → <a href="/ignis/extensions/components/health-check">Health Checks</a> → <a href="./configuration/environment-variables">Configuration</a> → <a href="./base/bootstrapping">Auto-Discovery</a></p>
 <span class="stage-desc">Production deployment, monitoring, and reliability</span>
 </div>
 
@@ -99,7 +99,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 <span class="stage-num">7</span>
 <h4>Testing & Quality</h4>
 </div>
-<p><a href="./helpers/testing">Unit Testing</a> → <a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
+<p><a href="/ignis/extensions/helpers/testing/">Unit Testing</a> → <a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
 <span class="stage-desc">Testing strategies, quality assurance, and code review</span>
 </div>
 
@@ -113,7 +113,7 @@ Complete reference documentation for the Ignis framework. Find detailed API docs
 **Define a Controller:**
 ```typescript
 @controller({ path: '/users' })
-class UserController extends BaseController {
+class UserController extends BaseRestController {
   @get({ configs: { path: '/:id' } })
   getUser(c: Context) {
     return c.json({ id: c.req.param('id') });
@@ -143,11 +143,13 @@ CronHelper.schedule('0 * * * *', async () => {
 // Core framework
 import {
   BaseApplication,
-  BaseController,
+  BaseRestController,
+  BaseGrpcController,
   BaseService,
-  BaseRepository,
+  DefaultCRUDRepository,
   controller,
   get, post, put, del,
+  rpc, unary, serverStream,
   inject,
 } from '@venizia/ignis';
 

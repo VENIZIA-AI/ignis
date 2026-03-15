@@ -1,6 +1,6 @@
 # Request Utility
 
-The Request utility provides functions for handling HTTP request data, such as parsing multipart form data.
+The Request utility provides functions for handling HTTP request data, such as parsing multipart form data, and utilities for creating secure Content-Disposition headers.
 
 ## `parseMultipartBody`
 
@@ -9,21 +9,21 @@ The `parseMultipartBody` function is an asynchronous utility for parsing `multip
 ### `parseMultipartBody(opts)`
 
 -   `opts` (object):
-    -   `context` (Hono.Context): The Hono context object for the current request.
-    -   `storage` ('memory' | 'disk', optional): The storage strategy for uploaded files. Defaults to `'memory'`.
-    -   `uploadDir` (string, optional): The directory to save files to when using the `'disk'` storage strategy. Defaults to `'./uploads'`.
+    -   `context` (object with `req` property): The Hono context object for the current request. Uses `context.req.formData()` internally.
+    -   `storage` (`'memory'` | `'disk'`, optional): The storage strategy for uploaded files. Defaults to `'memory'`.
+    -   `uploadDir` (string, optional): The directory to save files to when using the `'disk'` storage strategy. Defaults to `'./uploads'`. The directory is created recursively if it does not exist.
 
-The function returns a `Promise` that resolves to an array of `IParsedFile` objects.
+The function returns a `Promise` that resolves to an array of `IParsedFile` objects. String form fields are skipped (only `File` entries are processed).
 
 ### `IParsedFile` Interface
 
 -   `fieldname`: The name of the form field.
 -   `originalname`: The original name of the uploaded file.
--   `encoding`: The file's encoding.
+-   `encoding`: The file's encoding (always `'utf8'`).
 -   `mimetype`: The MIME type of the file.
 -   `size`: The size of the file in bytes.
 -   `buffer` (Buffer, optional): The file's content as a Buffer (if `storage` is `'memory'`).
--   `filename` (string, optional): The name of the file on disk (if `storage` is `'disk'`).
+-   `filename` (string, optional): The generated name of the file on disk (if `storage` is `'disk'`). Format: `{timestamp}-{randomString}-{sanitizedOriginalName}`.
 -   `path` (string, optional): The full path to the file on disk (if `storage` is `'disk'`).
 
 ### Example
@@ -31,11 +31,11 @@ The function returns a `Promise` that resolves to an array of `IParsedFile` obje
 Here is an example of how to use `parseMultipartBody` in a controller to handle a file upload.
 
 ```typescript
-import { BaseController, controller } from '@venizia/ignis';
+import { BaseRestController, controller } from '@venizia/ignis';
 import { parseMultipartBody, HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/files' })
-export class FileController extends BaseController {
+export class FileController extends BaseRestController {
   // ...
   override binding() {
     this.defineRoute({
@@ -81,27 +81,38 @@ These utilities help create secure, RFC-compliant `Content-Disposition` headers 
 
 Creates a safe Content-Disposition header with proper filename encoding for file downloads.
 
-#### `createContentDispositionHeader(filename: string): string`
+#### `createContentDispositionHeader(opts)`
 
--   `filename` (string): The filename to use in the Content-Disposition header.
+-   `opts` (object):
+    -   `filename` (string): The filename to use in the Content-Disposition header.
+    -   `type` (`'attachment'` | `'inline'`): The disposition type.
 
 The function returns a properly formatted `Content-Disposition` header string with both ASCII and UTF-8 encoded filenames for maximum browser compatibility.
 
 **Features:**
-- Automatic filename sanitization (removes path components and dangerous characters)
-- UTF-8 encoding support for international characters
+- Automatic filename sanitization via `sanitizeFilename()`
+- UTF-8 encoding support via `encodeRFC5987()`
 - RFC 5987 compliant
-- Fallback for older browsers
+- Dual `filename` / `filename*` for browser compatibility
 
 **Example:**
 
 ```typescript
 import { createContentDispositionHeader } from '@venizia/ignis-helpers';
 
-// In a download endpoint
-ctx.header('content-disposition', createContentDispositionHeader('my-document.pdf'));
-
+// Attachment (file download)
+ctx.header('content-disposition', createContentDispositionHeader({
+  filename: 'my-document.pdf',
+  type: 'attachment',
+}));
 // Output: attachment; filename="my-document.pdf"; filename*=UTF-8''my-document.pdf
+
+// Inline (display in browser)
+ctx.header('content-disposition', createContentDispositionHeader({
+  filename: 'report.pdf',
+  type: 'inline',
+}));
+// Output: inline; filename="report.pdf"; filename*=UTF-8''report.pdf
 ```
 
 ---
@@ -117,13 +128,13 @@ Sanitizes a filename for safe use, removing path components and dangerous charac
 Returns a safe filename suitable for use in headers or filesystem operations.
 
 **Features:**
-- Removes path components (prevents directory traversal attacks)
-- Allows only alphanumeric characters, spaces, hyphens, underscores, and dots
+- Removes path components via `path.basename()` (prevents directory traversal attacks)
+- Allows only word characters (`\w`), spaces, hyphens, underscores, and dots
 - Replaces dangerous characters with underscores
 - Removes leading dots (prevents hidden files)
 - Replaces consecutive dots with a single dot
 - Removes ".." patterns (additional path traversal protection)
-- Prevents empty filenames and suspicious patterns
+- Returns `'download'` for empty, suspicious, or invalid filenames
 
 **Example:**
 
@@ -134,7 +145,6 @@ sanitizeFilename('../../etc/passwd');        // Returns: 'passwd'
 sanitizeFilename('my<file>name.txt');        // Returns: 'my_file_name.txt'
 sanitizeFilename('.hidden');                 // Returns: 'hidden'
 sanitizeFilename('file...txt');              // Returns: 'file.txt'
-sanitizeFilename('документ.pdf');            // Returns: '_________.pdf'
 sanitizeFilename('');                        // Returns: 'download'
 sanitizeFilename('..');                      // Returns: 'download'
 ```
@@ -142,7 +152,7 @@ sanitizeFilename('..');                      // Returns: 'download'
 
 ### `encodeRFC5987`
 
-Encodes a filename according to RFC 5987 for use in HTTP headers.
+Encodes a filename according to RFC 5987 for use in HTTP headers. Encodes using `encodeURIComponent` and additionally escapes single quotes, parentheses, and asterisks.
 
 #### `encodeRFC5987(filename: string): string`
 
@@ -156,8 +166,17 @@ Returns an RFC 5987 encoded string suitable for the `filename*` parameter in Con
 import { encodeRFC5987 } from '@venizia/ignis-helpers';
 
 encodeRFC5987('my document.pdf');     // Returns: 'my%20document.pdf'
-encodeRFC5987('файл.txt');            // Returns: '%D1%84%D0%B0%D0%B9%D0%BB.txt'
 ```
+
+
+## `IRequestedRemark` Interface
+
+The Request utility also exports the `IRequestedRemark` interface, which describes a request remark object:
+
+-   `id` (string): The request identifier.
+-   `url` (string): The request URL.
+-   `method` (string): The HTTP method.
+-   `[extra: string | symbol]`: Additional arbitrary properties.
 
 
 ## Complete File Download Example
@@ -165,13 +184,13 @@ encodeRFC5987('файл.txt');            // Returns: '%D1%84%D0%B0%D0%B9%D0%BB.
 Here's a complete example combining multipart upload parsing with secure file downloads:
 
 ```typescript
-import { BaseController, controller } from '@venizia/ignis';
+import { BaseRestController, controller } from '@venizia/ignis';
 import { parseMultipartBody, createContentDispositionHeader, HTTP } from '@venizia/ignis-helpers';
 import fs from 'node:fs';
 import path from 'node:path';
 
 @controller({ path: '/files' })
-export class FileController extends BaseController {
+export class FileController extends BaseRestController {
   override binding() {
     // Upload endpoint
     this.bindRoute({
@@ -209,7 +228,10 @@ export class FileController extends BaseController {
         // Set secure headers
         ctx.header('content-type', 'application/octet-stream');
         ctx.header('content-length', fileStat.size.toString());
-        ctx.header('content-disposition', createContentDispositionHeader(filename));
+        ctx.header('content-disposition', createContentDispositionHeader({
+          filename,
+          type: 'attachment',
+        }));
         ctx.header('x-content-type-options', 'nosniff');
 
         return new Response(fileStream, {

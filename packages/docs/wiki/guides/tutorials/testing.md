@@ -27,7 +27,7 @@ Since Ignis is just a TypeScript/JavaScript application framework, you can test 
 
 Before starting, ensure you have:
 - A working Ignis application (see [Building a CRUD API](./building-a-crud-api.md))
-- Basic understanding of [Controllers](../core-concepts/controllers.md) and [Repositories](../core-concepts/persistent/)
+- Basic understanding of [Controllers](../core-concepts/rest-controllers.md) and [Repositories](../core-concepts/persistent/)
 
 ## Quick Examples with Popular Frameworks
 
@@ -702,7 +702,7 @@ class CreateAndUpdateAndDeleteHandler extends TestCaseHandler {
 
 ## Next Steps
 
-- [Testing Reference](../../references/helpers/testing/) - Complete API documentation
+- [Testing Reference](../../extensions/helpers/testing/) - Complete API documentation
 - [Best Practices](../../best-practices/code-style-standards/) - Code quality standards
 - [Troubleshooting](../../best-practices/troubleshooting-tips.md) - Common issues
 

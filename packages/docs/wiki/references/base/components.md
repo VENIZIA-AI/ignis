@@ -17,6 +17,8 @@ Technical reference for `BaseComponent`—the foundation for creating reusable, 
 | **Encapsulation** | Bundle feature bindings (services, controllers) into single class |
 | **Lifecycle Management** | Auto-called `binding()` method during startup |
 | **Default Bindings** | Self-contained with automatic DI registration |
+| **Idempotent Configure** | `configure()` is safe to call multiple times — runs `binding()` only once |
+| **Controller Transports** | `RestComponent` and `GrpcComponent` handle controller discovery per transport |
 
 
 ## Component Directory Structure
@@ -68,6 +70,23 @@ src/components/auth/
     └── requests/
         ├── sign-in.schema.ts
         └── sign-up.schema.ts
+```
+
+### Controller Transport Component
+
+Transport components live under `src/components/controller/` and are instantiated directly by the application during `registerControllers()` — they are **not** registered via `this.component()`.
+
+```
+src/components/controller/
+├── index.ts              # Barrel re-exports (REST only; gRPC excluded from barrel)
+├── rest/
+│   ├── rest.component.ts
+│   └── common/
+│       └── types.ts      # IRestComponentConfig, RestBindingKeys
+└── grpc/
+    ├── grpc.component.ts
+    └── common/
+        └── types.ts      # IGrpcComponentConfig, GrpcBindingKeys
 ```
 
 
@@ -233,6 +252,16 @@ export * from './controller';
 
 Abstract class for all components - structures resource binding and lifecycle management.
 
+### Class Signature
+
+```typescript
+abstract class BaseComponent<ConfigurableOptions extends object = {}>
+  extends BaseHelper
+  implements IConfigurable<ConfigurableOptions>
+```
+
+`BaseComponent` extends `BaseHelper` (scoped logging via `this.logger`) and implements `IConfigurable` (the `configure()` method).
+
 ### Constructor Options
 
 The `super()` constructor in your component can take the following options:
@@ -240,14 +269,178 @@ The `super()` constructor in your component can take the following options:
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `scope` | `string` | **Required.** A unique name for the component, typically `MyComponent.name`. Used for logging. |
-| `initDefault` | `{ enable: boolean; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) if they are not already bound. |
-| `bindings` | `Record<string, Binding>` | An object where keys are binding keys and values are `Binding` instances. These are the default services, values, or providers that your component offers. |
+| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) when `configure()` is called — but only if they are not already bound. Defaults to `{ enable: false }`. |
+| `bindings` | `Record<string \| symbol, Binding>` | An object where keys are binding keys and values are `Binding` instances. These are the default services, values, or providers that your component offers. Defaults to `{}`. |
+
+### Properties
+
+| Property | Type | Access | Description |
+| :--- | :--- | :--- | :--- |
+| `bindings` | `Record<string \| symbol, Binding>` | `protected` | Default bindings the component provides. Can be set in constructor or assigned directly in the constructor body. |
+| `initDefault` | `TInitDefault` | `protected` | Controls whether default bindings are auto-registered to a container. |
+| `isConfigured` | `boolean` | `protected` | Guard flag — prevents `configure()` from running more than once. |
+
+### Methods
+
+| Method | Signature | Description |
+| :--- | :--- | :--- |
+| `binding()` | `abstract binding(): ValueOrPromise<void>` | **Abstract.** Override this to register services, controllers, and other resources. Called by `configure()`. |
+| `configure(opts?)` | `async configure(opts?: ConfigurableOptions): Promise<void>` | Entry point. Calls `initDefaultBindings()` (if enabled), then `binding()`. Idempotent — skips if already configured. |
+| `initDefaultBindings(opts)` | `protected initDefaultBindings(opts: { container: Container }): void` | Iterates `this.bindings` and registers each into the container if not already bound. |
 
 ### Lifecycle Flow
 
 1. **Application Instantiates Component**: When you call `this.component(MyComponent)` in your application, the DI container creates an instance of your component.
-2. **Constructor Runs**: Your component's constructor calls `super()`, setting up its scope and defining its default `bindings`. If `initDefault` is enabled, these bindings are immediately registered with the application container.
-3. **Application Calls `binding()`**: During the `registerComponents` phase of the application startup, the `binding()` method of your component is called. This is where you can perform additional setup that might depend on the default bindings being available.
+2. **Constructor Runs**: Your component's constructor calls `super()`, setting up its scope and defining its default `bindings`.
+3. **Application Calls `configure()`**: During the `registerComponents` phase, the application resolves each component and calls `configure()`.
+4. **`configure()` Executes**: Checks `isConfigured` guard (idempotent). If `initDefault.enable` is `true`, registers default bindings into the container. Then calls `binding()`.
+5. **`binding()` Runs**: Your override registers controllers, services, reads options from the container, and performs any additional setup.
+
+
+## Controller Transport Components
+
+Controller transport components are a special category. Unlike regular components registered via `this.component()`, transport components are instantiated and configured directly by `BaseApplication.registerControllers()`. They are responsible for discovering controller bindings and mounting them onto the application router.
+
+### Transport Configuration
+
+The application config `transports` controls which transports are enabled. Defaults to `['rest']`.
+
+```typescript
+// In your application constructor
+super({
+  scope: MyApplication.name,
+  config: {
+    // ...
+    transports: [ControllerTransports.REST, ControllerTransports.GRPC],
+  },
+});
+```
+
+The `ControllerTransports` constants:
+
+```typescript
+export class ControllerTransports {
+  static readonly REST = 'rest';
+  static readonly GRPC = 'grpc';
+}
+```
+
+### How `registerControllers()` Works
+
+During the application lifecycle, `registerControllers()` iterates the configured transports and creates the corresponding component:
+
+```typescript
+// Simplified from BaseApplication.registerControllers()
+const transports = this.configs.transports ?? [ControllerTransports.REST];
+
+for (const transport of transports) {
+  switch (transport) {
+    case ControllerTransports.REST: {
+      const restComponent = new RestComponent(this);
+      await restComponent.configure();
+      break;
+    }
+    case ControllerTransports.GRPC: {
+      const grpcComponent = new GrpcComponent(this);
+      await grpcComponent.configure();
+      break;
+    }
+  }
+}
+```
+
+If gRPC controllers are discovered but the `'grpc'` transport is not in the `transports` config, the application logs an error warning for each one.
+
+### `RestComponent`
+
+**File:** `packages/core/src/components/controller/rest/rest.component.ts`
+
+Discovers all controller bindings tagged with `BindingNamespaces.CONTROLLER`, skips any whose metadata has `transport === ControllerTransports.GRPC`, and configures the rest as REST controllers.
+
+```typescript
+export class RestComponent extends BaseComponent {
+  constructor(private application: BaseApplication) {
+    super({
+      scope: RestComponent.name,
+      initDefault: { enable: true, container: application },
+      bindings: {
+        [RestBindingKeys.REST_COMPONENT_OPTIONS]: Binding.bind<IRestComponentConfig>({
+          key: RestBindingKeys.REST_COMPONENT_OPTIONS,
+        }).toValue(DEFAULT_OPTIONS),
+      },
+    });
+  }
+
+  override async binding(): Promise<void> { /* ... */ }
+}
+```
+
+**Binding loop:**
+
+1. Fetches all controller bindings not yet configured (tracked via a `Set<string>`).
+2. For each binding, reads controller metadata from `MetadataRegistry`.
+3. Skips bindings with `transport === ControllerTransports.GRPC`.
+4. Validates that `metadata.path` is present (throws if missing).
+5. Resolves the controller instance from the DI container, calls `instance.configure()`, and mounts it: `router.route(metadata.path, instance.getRouter())`.
+6. Re-fetches bindings after each configure to pick up dynamically added controllers.
+
+**Config types:**
+
+```typescript
+export interface IRestComponentConfig {}
+
+export class RestBindingKeys {
+  static readonly REST_COMPONENT_OPTIONS = '@app/rest/options';
+}
+```
+
+### `GrpcComponent`
+
+**File:** `packages/core/src/components/controller/grpc/grpc.component.ts`
+
+Discovers all controller bindings tagged with `BindingNamespaces.CONTROLLER`, skips any whose metadata does **not** have `transport === ControllerTransports.GRPC`, and configures gRPC controllers.
+
+```typescript
+export class GrpcComponent extends BaseComponent {
+  constructor(private application: BaseApplication) {
+    super({
+      scope: GrpcComponent.name,
+      initDefault: { enable: true, container: application },
+      bindings: {
+        [GrpcBindingKeys.GRPC_COMPONENT_OPTIONS]: Binding.bind<IGrpcComponentConfig>({
+          key: GrpcBindingKeys.GRPC_COMPONENT_OPTIONS,
+        }).toValue(DEFAULT_OPTIONS),
+      },
+    });
+  }
+
+  override async binding(): Promise<void> { /* ... */ }
+}
+```
+
+**Binding loop** (same dynamic re-fetch pattern as `RestComponent`):
+
+1. Fetches all controller bindings not yet configured.
+2. Skips bindings with `transport !== ControllerTransports.GRPC`.
+3. Validates `metadata.path` is present.
+4. Resolves the gRPC controller instance. Skips if the instance has no `service` definition (logs a warning).
+5. Sets `instance.basePath` from the application's project configs.
+6. Calls `instance.configure()` and mounts: `router.route(metadata.path, instance.getRouter())`.
+7. Re-fetches bindings to pick up dynamically added controllers.
+
+**Config types:**
+
+```typescript
+export interface IGrpcComponentConfig {
+  interceptors?: unknown[];
+}
+
+export class GrpcBindingKeys {
+  static readonly GRPC_COMPONENT_OPTIONS = '@app/grpc/options';
+}
+```
+
+> **Note:** `GrpcComponent` is excluded from the barrel export at `src/components/controller/index.ts`. Import it directly from `@venizia/ignis/components/controller/grpc` if needed.
 
 
 ## Component Implementation Patterns
@@ -420,6 +613,62 @@ override binding(): ValueOrPromise<void> {
 }
 ```
 
+### Component without `initDefault` (Manual Binding Assignment)
+
+Some components skip `initDefault` and assign `this.bindings` directly in the constructor body:
+
+```typescript
+// src/components/swagger/component.ts
+export class SwaggerComponent extends BaseComponent {
+  constructor(
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
+  ) {
+    super({ scope: SwaggerComponent.name });
+
+    this.bindings = {
+      [SwaggerBindingKeys.SWAGGER_OPTIONS]: Binding.bind<ISwaggerOptions>({
+        key: SwaggerBindingKeys.SWAGGER_OPTIONS,
+      }).toValue(DEFAULT_SWAGGER_OPTIONS),
+    };
+  }
+
+  override async binding() {
+    // Read options, configure OpenAPI doc endpoint, UI endpoint, etc.
+  }
+}
+```
+
+In this pattern, `initDefault` defaults to `{ enable: false }`, so the bindings are defined but not auto-registered. The component manages its own option reading and setup in `binding()`.
+
+
+## Built-in Components
+
+### Registered via `this.component()` (Standard Components)
+
+| Component | Key Features |
+|-----------|-------------|
+| **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
+| **SwaggerComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
+| **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWTTokenService`, `BasicTokenService`). |
+| **AuthorizationComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
+| **RequestTrackerComponent** | Registers Hono `requestId()` middleware and a `RequestSpyMiddleware` for `x-request-id` header tracking and request body parsing. |
+
+### Excluded from Barrel (Import Directly)
+
+| Component | Import Path | Key Features |
+|-----------|-------------|-------------|
+| **StaticAssetComponent** | `@venizia/ignis/components/static-asset` | File upload/download CRUD, MinIO/Disk storage. |
+| **MailComponent** | `@venizia/ignis/components/mail` | Nodemailer/Mailgun transporters, Direct/BullMQ/InternalQueue executors. |
+| **SocketIOComponent** | `@venizia/ignis/components/socket-io` | Socket.IO server with Redis adapter for horizontal scaling. |
+| **WebSocketComponent** | `@venizia/ignis/components/websocket` | WebSocket support. |
+
+### Controller Transport Components (Not Registered via `this.component()`)
+
+| Component | When Used |
+|-----------|-----------|
+| **RestComponent** | Instantiated by `registerControllers()` when `transports` includes `'rest'` (the default). Discovers and mounts REST controllers. |
+| **GrpcComponent** | Instantiated by `registerControllers()` when `transports` includes `'grpc'`. Discovers and mounts gRPC controllers (ConnectRPC over HTTP). |
+
 
 ## Exposing and Consuming Component Options
 
@@ -505,6 +754,7 @@ override binding(): ValueOrPromise<void> {
 | **Validation** | Validate required options in `binding()` |
 | **Logging** | Log binding activity with structured messages |
 | **Scope** | Always set `scope: ComponentName.name` |
+| **Idempotency** | `configure()` is already idempotent via `isConfigured` guard — no need to add your own |
 
 
 ## Quick Reference Template
@@ -588,12 +838,13 @@ export * from './controller';
   - [Creating Components](/guides/core-concepts/components-guide) - Build your own components
   - [Application](/guides/core-concepts/application/) - Registering components
   - [Dependency Injection](/guides/core-concepts/dependency-injection) - Component bindings
+  - [gRPC Controllers](/references/base/grpc-controllers) - gRPC controller reference
 
 - **Built-in Components:**
-  - [Authentication Component](/references/components/authentication/) - JWT authentication
-  - [Health Check Component](/references/components/health-check) - Health endpoints
-  - [Swagger Component](/references/components/swagger) - API documentation
-  - [Socket.IO Component](/references/components/socket-io/) - WebSocket support
+  - [Authentication Component](/extensions/components/authentication/) - JWT authentication
+  - [Health Check Component](/extensions/components/health-check) - Health endpoints
+  - [Swagger Component](/extensions/components/swagger) - API documentation
+  - [Socket.IO Component](/extensions/components/socket-io/) - WebSocket support
 
 - **Best Practices:**
   - [Architectural Patterns](/best-practices/architectural-patterns) - Component design patterns

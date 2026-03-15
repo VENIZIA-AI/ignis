@@ -71,13 +71,26 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
 > - After the first argument, you can inject any additional dependencies you need
 > - When `@inject` is at param index 0, auto-injection is skipped
 
-## Repository Types
+## Repository Hierarchy
+
+```
+AbstractRepository (base + mixins: FieldsVisibilityMixin + DefaultFilterMixin)
+  ↓
+ReadableRepository (read-only: find, findOne, findById, count, existsWith)
+  ↓
+PersistableRepository (+ create, updateById, updateAll)
+  ↓
+DefaultCRUDRepository (+ deleteById, deleteAll) — recommended default
+  ↓
+SoftDeletableRepository (overrides delete to set deletedAt timestamp)
+```
 
 | Type | Description |
 |------|-------------|
-| `DefaultCRUDRepository` | Full read/write operations |
-| `ReadableRepository` | Read-only operations |
-| `PersistableRepository` | Write operations only |
+| `ReadableRepository` | Read-only operations. Write operations throw errors. |
+| `PersistableRepository` | Read + write operations (create, update). Extends ReadableRepository. |
+| `DefaultCRUDRepository` | Full CRUD including delete. Extends PersistableRepository. **Recommended for most use cases.** |
+| `SoftDeletableRepository` | Extends DefaultCRUDRepository. Overrides delete to set `deletedAt` timestamp instead of physically removing records. |
 
 ## Querying Data
 
@@ -134,6 +147,32 @@ await repo.updateById({
 await repo.deleteById({ id: 'uuid-here' });
 ```
 
+## Extra Options
+
+All repository operations accept an `options` parameter with these fields:
+
+| Option | Type | Description |
+| :--- | :--- | :--- |
+| `transaction` | `ITransaction` | Transaction context for atomic operations |
+| `shouldReturn` | `boolean` | Whether to return created/updated data (default: `true`) |
+| `shouldQueryRange` | `boolean` | Return `{ data, range: { total, skip, limit } }` for pagination |
+| `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
+
+```typescript
+// Create without returning data (faster for bulk inserts)
+await repo.create({
+  data: bulkData,
+  options: { shouldReturn: false }
+});
+
+// Query with pagination range
+const result = await repo.find({
+  filter: { limit: 20, skip: 0 },
+  options: { shouldQueryRange: true }
+});
+// result = { data: [...], range: { total: 150, skip: 0, limit: 20 } }
+```
+
 ## Querying with Relations
 
 Use `include` to fetch related data. The relation name must match what you defined in `static relations`:
@@ -162,6 +201,34 @@ export class Application extends BaseApplication {
 }
 ```
 
+## SoftDeletableRepository
+
+For soft-delete patterns, use `SoftDeletableRepository` which overrides delete operations to set a `deletedAt` timestamp instead of physically removing records:
+
+```typescript
+import { SoftDeletableRepository, repository, model, BaseEntity } from '@venizia/ignis';
+import { pgTable, timestamp } from 'drizzle-orm/pg-core';
+
+@model({
+  type: 'entity',
+  settings: {
+    hiddenProperties: ['deletedAt'],
+    defaultFilter: { where: { deletedAt: null } },
+  },
+})
+export class Category extends BaseEntity<typeof Category.schema> {
+  static override schema = pgTable('Category', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    ...generateTzColumnDefs(),
+    deletedAt: timestamp('deleted_at', { withTimezone: true }),
+    name: text('name').notNull(),
+  });
+}
+
+@repository({ dataSource: PostgresDataSource, model: Category })
+export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
+```
+
 ## Repository Template
 
 ```typescript
@@ -177,7 +244,7 @@ export class MyModelRepository extends DefaultCRUDRepository<typeof MyModel.sche
 
 ### Performance: Core API Optimization
 
-Ignis automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads.
+Ignis automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads. The `canUseCoreAPI()` method on `ReadableRepository` determines when this optimization applies.
 
 ### Modular Persistence with Components
 
@@ -186,9 +253,9 @@ Bundle related persistence resources into Components for better organization:
 ```typescript
 export class UserManagementComponent extends BaseComponent {
   override binding() {
-    this.application.dataSource(PostgresDataSource);
-    this.application.repository(UserRepository);
-    this.application.repository(ProfileRepository);
+    this._application.dataSource(PostgresDataSource);
+    this._application.repository(UserRepository);
+    this._application.repository(ProfileRepository);
   }
 }
 ```

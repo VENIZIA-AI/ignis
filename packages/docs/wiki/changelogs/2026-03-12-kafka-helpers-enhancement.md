@@ -152,12 +152,12 @@ All callbacks follow the Ignis `opts: { ... }` pattern with `ValueOrPromise<void
 
 | File | Changes |
 |------|---------|
-| `wiki/references/helpers/kafka/index.md` | Rewritten — architecture, BaseKafkaHelper, all constants |
-| `wiki/references/helpers/kafka/producer.md` | Rewritten — health, transactions, graceful shutdown |
-| `wiki/references/helpers/kafka/consumer.md` | Rewritten — callbacks, start(), lag monitoring, graceful shutdown |
-| `wiki/references/helpers/kafka/admin.md` | Updated — health tracking, graceful shutdown |
-| `wiki/references/helpers/kafka/schema-registry.md` | **New** |
-| `wiki/references/helpers/kafka/examples.md` | Rewritten — all examples use new callback/health API |
+| `wiki/extensions/helpers/kafka/index.md` | Rewritten — architecture, BaseKafkaHelper, all constants |
+| `wiki/extensions/helpers/kafka/producer.md` | Rewritten — health, transactions, graceful shutdown |
+| `wiki/extensions/helpers/kafka/consumer.md` | Rewritten — callbacks, start(), lag monitoring, graceful shutdown |
+| `wiki/extensions/helpers/kafka/admin.md` | Updated — health tracking, graceful shutdown |
+| `wiki/extensions/helpers/kafka/schema-registry.md` | **New** |
+| `wiki/extensions/helpers/kafka/examples.md` | Rewritten — all examples use new callback/health API |
 | `wiki/changelogs/2026-03-12-kafka-helpers-enhancement.md` | This changelog |
 
 ## Backward Compatibility

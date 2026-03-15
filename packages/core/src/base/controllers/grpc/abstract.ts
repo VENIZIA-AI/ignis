@@ -37,6 +37,7 @@ export abstract class AbstractGrpcController<
   /** ConnectRPC service definition from @controller metadata. */
   service: ServiceType;
   path: string;
+  basePath: string = '';
   router: Hono<RouteEnv, RouteSchema, BasePath>;
 
   constructor(opts: IGrpcControllerOptions) {

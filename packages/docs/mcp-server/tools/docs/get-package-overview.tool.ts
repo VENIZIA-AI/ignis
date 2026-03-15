@@ -30,7 +30,7 @@ WHEN NOT TO USE:
 
 OUTPUT:
 Returns package name, description, main directories, and key components.
-The content comes from wiki/references/src-details/ documentation.
+The content comes from wiki/extensions/src-details/ documentation.
 `;
 
 const PACKAGE_NAME_DESCRIPTION = `

@@ -11,15 +11,18 @@ Query nested fields within JSON/JSONB columns using dot notation. This is a Post
 
 ## Basic JSON Path Syntax
 
+JSON paths are expressed as dot-notation keys in the `where` clause. A key is recognized as a JSON path if it contains a `.` or `[`.
+
 ```typescript
 // Column: metadata jsonb
 // Data: { "user": { "id": 123, "role": "admin" }, "tags": ["urgent"] }
 
 // Simple nested field
 { where: { 'metadata.user.id': 123 } }
-// SQL: "metadata" #>> '{user,id}' = '123'
+// SQL: CASE WHEN ("metadata" #>> '{user,id}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//      THEN ("metadata" #>> '{user,id}')::numeric ELSE NULL END = 123
 
-// Deep nesting
+// String field (no numeric casting)
 { where: { 'metadata.user.role': 'admin' } }
 // SQL: "metadata" #>> '{user,role}' = 'admin'
 
@@ -60,18 +63,26 @@ All standard operators work with JSON paths:
 // Between
 { where: { 'metadata.score': { between: [70, 90] } } }
 
-// Pattern matching
+// Pattern matching (text comparison, no numeric casting)
 { where: { 'metadata.level': { ilike: '%high%' } } }
 // SQL: "metadata" #>> '{level}' ILIKE '%high%'
 
-// IN operator
+// IN operator (text comparison)
 { where: { 'metadata.status': { in: ['pending', 'review'] } } }
+
+// Regex
+{ where: { 'metadata.code': { regexp: '^[A-Z]+$' } } }
+// SQL: "metadata" #>> '{code}' ~ '^[A-Z]+$'
+
+// Not equal
+{ where: { 'metadata.type': { ne: 'draft' } } }
+// SQL: "metadata" #>> '{type}' != 'draft'
 ```
 
 
 ## Safe Numeric Casting
 
-JSON fields may contain mixed types. Ignis uses safe casting to prevent database errors:
+When a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) is used with a JSON path, Ignis wraps the extraction in a safe CASE expression. This prevents database errors when JSON fields contain mixed types:
 
 ```typescript
 // Data in database:
@@ -82,6 +93,12 @@ JSON fields may contain mixed types. Ignis uses safe casting to prevent database
 // Query with numeric operator
 { where: { 'metadata.score': { gt: 50 } } }
 
+// Generated SQL:
+// CASE WHEN ("metadata" #>> '{score}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//   THEN ("metadata" #>> '{score}')::numeric
+//   ELSE NULL
+// END > 50
+
 // Result:
 // Row 1: 85 > 50 -> matched
 // Row 2: "high" -> NULL -> not matched
@@ -91,19 +108,27 @@ JSON fields may contain mixed types. Ignis uses safe casting to prevent database
 | JSON Value | Numeric Operation Result |
 |------------|-------------------------|
 | `{ "score": 85 }` | Compares as `85` |
+| `{ "score": "85" }` | Compares as `85` (string passes regex) |
 | `{ "score": "high" }` | Treated as `NULL` (no match) |
 | `{ "score": null }` | Treated as `NULL` (no match) |
 
+Non-numeric operators (`eq`, `ne`, `like`, `ilike`, `in`, etc.) use text comparison via `#>>` without numeric casting.
 
-## Boolean Values
 
-Booleans are compared as TEXT strings:
+## Numeric Value Equality
+
+When a JSON path is compared to a number using direct equality (not an operator object), numeric casting is also applied:
 
 ```typescript
-// JSON data: { "enabled": true }
+{ where: { 'metadata.user.id': 123 } }
+// Uses numeric CASE expression since value is typeof number
+```
 
-{ where: { 'metadata.enabled': true } }
-// SQL: "metadata" #>> '{enabled}' = 'true'
+When compared to a string, it uses text comparison:
+
+```typescript
+{ where: { 'metadata.user.role': 'admin' } }
+// Uses "metadata" #>> '{user,role}' text comparison
 ```
 
 
@@ -112,12 +137,15 @@ Booleans are compared as TEXT strings:
 Order results by JSON fields:
 
 ```typescript
-{ filter: { order: ['metadata.priority DESC'] } }
+{ order: ['metadata.priority DESC'] }
 // SQL: ORDER BY "metadata" #> '{priority}' DESC
 
 // Multiple JSON fields
-{ filter: { order: ['metadata.priority DESC', 'metadata.score ASC'] } }
+{ order: ['metadata.priority DESC', 'metadata.score ASC'] }
 ```
+
+> [!NOTE]
+> JSON ordering uses `#>` (returns JSONB, preserves native types) unlike where clauses which use `#>>` (returns text). This means JSONB sort order applies.
 
 **Sort Order for JSONB Types:**
 
@@ -133,7 +161,7 @@ Order results by JSON fields:
 
 ## Path Validation & Security
 
-Path components are validated to prevent SQL injection:
+Path components are validated against the pattern `/^[a-zA-Z_][a-zA-Z0-9_-]*$|^\d+$/` to prevent SQL injection:
 
 ```typescript
 // Valid paths
@@ -145,7 +173,7 @@ Path components are validated to prevent SQL injection:
 
 // Invalid (throws error)
 'metadata.field;DROP TABLE'
-'data.123invalid'
+'data.123invalid'         // starts with digit (not array index context)
 'config.(SELECT * FROM users)'
 ```
 
@@ -158,6 +186,8 @@ Error: Column 'name' is not JSON/JSONB type | dataType: 'text'
 Error: Invalid JSON path component: 'field;DROP'
 ```
 
+The column referenced by the first path segment (before the first `.` or `[`) must be a `json` or `jsonb` column type. Using a JSON path on a non-JSON column throws an error.
+
 
 ## Performance Tips
 
@@ -169,16 +199,16 @@ CREATE INDEX idx_metadata_gin ON "Product" USING GIN ("metadata");
 
 2. **Use Appropriate Types in JSON:**
 ```json
-// Good
+// Good - numeric operators will work correctly
 { "priority": 3, "enabled": true }
 
-// Bad
+// Bad - numeric operators will need string-to-number casting
 { "priority": "3", "enabled": "true" }
 ```
 
 3. **Keep Paths Shallow:**
 ```typescript
-// Easier to work with
+// Easier to work with and index
 'metadata.priority'
 
 // Harder to optimize
@@ -193,7 +223,10 @@ CREATE INDEX idx_metadata_gin ON "Product" USING GIN ("metadata");
 // This is safe - no errors, just no matches
 { where: { 'metadata.nonexistent.field': 'value' } }
 // SQL: "metadata" #>> '{nonexistent,field}' = 'value'
+// Result: No rows (NULL != 'value')
+```
+
+
 ## See Also
 
 - [Nested JSON Updates](../repositories/advanced.md#nested-json-updates) - Updating JSON fields
-

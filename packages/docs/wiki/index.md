@@ -37,7 +37,7 @@ features:
 
   - title: Auto-Generated Docs
     details: OpenAPI/Swagger from Zod schemas. Interactive API explorer included with zero config.
-    link: /references/components/swagger
+    link: /extensions/components/swagger
     linkText: View example
 
   - title: Type-Safe Database
@@ -64,13 +64,13 @@ bun add -d typescript @types/bun
 ```
 
 ```typescript
-import { BaseApplication, BaseController, controller, get, jsonContent, SwaggerComponent } from '@venizia/ignis';
+import { BaseApplication, BaseRestController, controller, get, jsonContent, SwaggerComponent } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
 
 // 1. Define your controller
 @controller({ path: '/hello' })
-class HelloController extends BaseController {
+class HelloController extends BaseRestController {
   constructor() {
     super({ scope: 'HelloController', path: '/hello' });
   }
@@ -140,6 +140,7 @@ Ready for a step-by-step guide? Follow the [5-minute quickstart →](/guides/get
 <li><strong>Enterprise apps</strong> — Teams need clear patterns</li>
 <li><strong>Growing projects</strong> — 10+ endpoints that need structure</li>
 <li><strong>REST APIs</strong> — Full CRUD with validation & docs</li>
+<li><strong>gRPC APIs</strong> — ConnectRPC-based gRPC with decorator support</li>
 <li><strong>Real-time apps</strong> — WebSocket support built-in</li>
 </ul>
 </div>

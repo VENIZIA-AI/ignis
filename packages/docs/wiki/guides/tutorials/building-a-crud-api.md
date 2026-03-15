@@ -598,7 +598,7 @@ this.controller(TodoController);  // ← Make sure this is here!
 path: { base: '/api', isStrict: true },  // All routes start with /api
 ```
 
-**Debug:** Set `debug.showRoutes: true` in appConfigs to see all registered routes on startup.
+**Debug:** Set `debug: { shouldShowRoutes: true }` in appConfigs to see all registered routes on startup.
 
 
 ### Error: "Invalid JSON" when creating todo
@@ -695,7 +695,7 @@ You now have a fully functional CRUD API! Here's what to explore next:
 3. [Components](../core-concepts/components.md) - Build reusable modules
 
 **Add Features:**
-1. [Authentication](/references/components/authentication/) - Add JWT authentication
+1. [Authentication](/extensions/components/authentication/) - Add JWT authentication
 2. [Custom Routes](/best-practices/api-usage-examples.md) - Beyond CRUD operations
 3. [Relationships](../core-concepts/persistent/) - Link todos to users
 

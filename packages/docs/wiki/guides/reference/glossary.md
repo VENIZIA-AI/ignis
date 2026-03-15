@@ -8,7 +8,7 @@ Quick reference for key terms in Ignis documentation.
 | Term | Description |
 |------|-------------|
 | **Application** | Main entry point extending `BaseApplication`. Registers all components. |
-| **Controller** | Handles HTTP requests, defines API endpoints (`@controller`, `@get`, `@post`) |
+| **Controller** | Handles HTTP/gRPC requests, defines API endpoints. REST controllers extend `BaseRestController`, gRPC controllers extend `BaseGrpcController`. Uses `@controller`, `@get`, `@post` decorators |
 | **Service** | Contains business logic between controllers and repositories |
 | **Repository** | Database operations for one entity (`find`, `create`, `updateById`, etc.) |
 | **DataSource** | Database connection configuration (host, port, credentials) |
@@ -36,7 +36,7 @@ const TodoRoutes = {
 } as const;
 
 @controller({ path: '/todos' })
-export class TodoController extends BaseController {
+export class TodoController extends BaseRestController {
   @get({ configs: TodoRoutes.GET_ALL })
   async getAll(c: TRouteContext) {
     const todos = await this.repository.find({});
@@ -49,7 +49,7 @@ export class TodoController extends BaseController {
 export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 ```
 
-**Related:** [Application](../core-concepts/application/) | [Controllers](../core-concepts/controllers) | [Services](../core-concepts/services) | [Repositories](../../references/base/repositories/)
+**Related:** [Application](../core-concepts/application/) | [Controllers](../core-concepts/rest-controllers) | [Services](../core-concepts/services) | [Repositories](../../references/base/repositories/)
 
 
 ## TypeScript & Pattern Terms
@@ -59,7 +59,7 @@ Annotations starting with `@` that add behavior to classes/methods.
 
 | Decorator | Purpose |
 |-----------|---------|
-| `@controller` | Marks class as controller |
+| `@controller` | Marks class as controller. Supports `transport` field (`'rest'` default, `'grpc'`) |
 | `@model` | Marks class as model/entity |
 | `@repository` | Marks class as repository |
 | `@datasource` | Marks class as datasource |
@@ -164,7 +164,7 @@ await repository.find({
 | Operator | Meaning | Example |
 |----------|---------|---------|
 | `eq` | Equal | `{ status: { eq: 'active' } }` |
-| `ne` | Not equal | `{ status: { ne: 'deleted' } }` |
+| `neq` | Not equal | `{ status: { neq: 'deleted' } }` |
 | `gt`, `gte` | Greater than (or equal) | `{ age: { gte: 18 } }` |
 | `lt`, `lte` | Less than (or equal) | `{ price: { lt: 100 } }` |
 | `like`, `ilike` | Pattern match | `{ name: { like: '%john%' } }` |
@@ -194,7 +194,7 @@ const TodoRoutes = {
 } as const;
 
 @controller({ path: '/todos' })
-class TodoController {
+class TodoController extends BaseRestController {
   @get({ configs: TodoRoutes.GET_ALL })
   async getAll(c: TRouteContext) { ... }
 
@@ -217,7 +217,7 @@ class TodoController {
 | **Endpoint** | URL path that API responds to (e.g., `GET /todos`) |
 | **Route Parameter** | Variable in URL marked with `:` (e.g., `:id`) |
 | **Request Body** | JSON data sent with POST/PATCH requests |
-| **OpenAPI/Swagger** | Auto-generated API docs at `/docs` |
+| **OpenAPI/Swagger** | Auto-generated API docs at `/doc/explorer` (default path via SwaggerComponent) |
 
 
 ## Environment & Configuration

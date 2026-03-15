@@ -12,24 +12,22 @@ Bootstrapping is the process of automatically discovering and loading applicatio
 
 ```typescript
 export class Application extends BaseApplication {
-  constructor() {
-    super(configs);
-    
+  preConfigure() {
     // Manual registration - tedious and error-prone
     this.dataSource(PostgresDataSource);
     this.dataSource(MongoDataSource);
-    
+
     this.repository(UserRepository);
     this.repository(ProductRepository);
     this.repository(OrderRepository);
     this.repository(CustomerRepository);
     // ... 50+ more repositories
-    
+
     this.service(AuthService);
     this.service(UserService);
     this.service(ProductService);
     // ... 50+ more services
-    
+
     this.controller(AuthController);
     this.controller(UserController);
     this.controller(ProductController);
@@ -48,7 +46,8 @@ export class Application extends BaseApplication {
 
 ```typescript
 export const appConfigs: IApplicationConfigs = {
-  name: 'MyApp',
+  // ... other config
+  path: { base: '/', isStrict: true },
   bootOptions: {
     datasources: { dirs: ['datasources'] },
     repositories: { dirs: ['repositories'] },
@@ -58,8 +57,7 @@ export const appConfigs: IApplicationConfigs = {
 };
 
 export class Application extends BaseApplication {
-  constructor() {
-    super(appConfigs);
+  preConfigure() {
     // That's it! Everything auto-discovered and registered
   }
 }
@@ -96,6 +94,8 @@ protected override getDefaultExtensions(): string[] {
   return ['.controller.js'];
 }
 ```
+
+The `configure()` method merges user-provided options with defaults: `dirs`, `extensions`, `isNested` (defaults to `true`), and optional `glob` override.
 
 #### Phase 2: Discover
 
@@ -206,7 +206,7 @@ const bootOptions: IBootOptions = {
 
 ## Built-in Booters
 
-The framework provides four built-in booters:
+The framework provides four built-in booters. They are registered automatically by `BaseApplication.registerBooters()`:
 
 ### DatasourceBooter
 
@@ -215,6 +215,7 @@ The framework provides four built-in booters:
 | Directories | `['datasources']` |
 | Extensions | `['.datasource.js']` |
 | Binding Key | `datasources.{ClassName}` |
+| Binding Scope | **Singleton** |
 
 **Discovers:**
 - `datasources/postgres.datasource.js` → `PostgresDataSource`
@@ -227,6 +228,7 @@ The framework provides four built-in booters:
 | Directories | `['repositories']` |
 | Extensions | `['.repository.js']` |
 | Binding Key | `repositories.{ClassName}` |
+| Binding Scope | Transient |
 
 **Discovers:**
 - `repositories/user.repository.js` → `UserRepository`
@@ -239,6 +241,7 @@ The framework provides four built-in booters:
 | Directories | `['services']` |
 | Extensions | `['.service.js']` |
 | Binding Key | `services.{ClassName}` |
+| Binding Scope | Transient |
 
 **Discovers:**
 - `services/auth.service.js` → `AuthService`
@@ -251,6 +254,7 @@ The framework provides four built-in booters:
 | Directories | `['controllers']` |
 | Extensions | `['.controller.js']` |
 | Binding Key | `controllers.{ClassName}` |
+| Binding Scope | Transient |
 
 **Discovers:**
 - `controllers/auth.controller.js` → `AuthController`
@@ -258,7 +262,15 @@ The framework provides four built-in booters:
 
 ## Execution Order
 
-Boot system respects dependency order:
+The `Bootstrapper` orchestrates all booters. It discovers booters via `findByTag({ tag: 'booter' })` and runs each phase sequentially across all booters:
+
+```
+Phase: CONFIGURE  → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
+Phase: DISCOVER   → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
+Phase: LOAD       → DatasourceBooter → RepositoryBooter → ServiceBooter → ControllerBooter
+```
+
+The default registration order in `BaseApplication.registerBooters()` ensures dependency order:
 
 ```
 1. DatasourceBooter   → Datasources must be available first
@@ -271,36 +283,43 @@ This ensures dependencies are available when artifacts are constructed.
 
 ## When Boot Runs
 
-### Automatic Boot
+### Integrated Boot
 
-Boot runs automatically during `initialize()` if `bootOptions` is configured:
+Boot runs as part of `BaseApplication` when `bootOptions` is configured. `BaseApplication.registerBooters()` is called during `initialize()`:
 
 ```typescript
 const app = new Application();
-await app.start();  // initialize() → boot() → start()
+await app.start();  // initialize() → registerBooters() + boot() → start HTTP server
 ```
 
 ### Manual Boot
 
-Explicitly control boot execution:
+Explicitly call `boot()` on the application:
 
 ```typescript
 const app = new Application();
-await app.boot({
-  phases: ['configure', 'discover', 'load'],
-  booters: ['ControllerBooter', 'ServiceBooter']  // only these booters
-});
+const report = await app.boot();
 ```
 
-### Partial Boot
+### Using BootMixin (Alternative)
 
-Run only specific phases:
+For custom container classes that are not `BaseApplication`, use the `BootMixin`:
 
 ```typescript
-await app.boot({
-  phases: ['discover']  // only discover, don't load
-});
+import { BootMixin } from '@venizia/ignis-boot';
+import { Container } from '@venizia/ignis-inversion';
+
+class MyApp extends BootMixin(Container) {
+  bootOptions = {
+    controllers: { dirs: ['controllers'] },
+  };
+}
+
+const app = new MyApp();
+await app.boot();
 ```
+
+The `BootMixin` auto-registers all four default booters and the `Bootstrapper` in its constructor.
 
 ## File Naming Conventions
 
@@ -434,8 +453,8 @@ bootOptions: {
 Create custom booters for new artifact types:
 
 ```typescript
-import { BaseArtifactBooter, IBooterOptions } from '@venizia/ignis-boot';
-import { inject } from '@venizia/ignis-inversion';
+import { BaseArtifactBooter, IApplication, IBootOptions } from '@venizia/ignis-boot';
+import { BindingKeys, inject } from '@venizia/ignis-inversion';
 
 export class MiddlewareBooter extends BaseArtifactBooter {
   constructor(
@@ -443,10 +462,10 @@ export class MiddlewareBooter extends BaseArtifactBooter {
     @inject({ key: '@app/instance' }) private app: IApplication,
     @inject({ key: '@app/boot-options' }) bootOptions: IBootOptions,
   ) {
-    super({ 
-      scope: MiddlewareBooter.name, 
-      root, 
-      artifactOptions: bootOptions.middlewares ?? {} 
+    super({
+      scope: MiddlewareBooter.name,
+      root,
+      artifactOptions: bootOptions.middlewares ?? {}
     });
   }
 
@@ -460,7 +479,8 @@ export class MiddlewareBooter extends BaseArtifactBooter {
 
   protected async bind(): Promise<void> {
     for (const cls of this.loadedClasses) {
-      this.app.bind({ key: `middlewares.${cls.name}` }).toClass(cls);
+      const key = BindingKeys.build({ namespace: 'middlewares', key: cls.name });
+      this.app.bind({ key }).toClass(cls).setTags('middlewares');
     }
   }
 }
@@ -470,11 +490,9 @@ export class MiddlewareBooter extends BaseArtifactBooter {
 
 ```typescript
 export class Application extends BaseApplication {
-  override async initialize() {
-    // Register custom booter
+  override preConfigure() {
+    // Register custom booter before boot runs
     this.booter(MiddlewareBooter);
-    
-    await super.initialize();
   }
 }
 ```
@@ -537,7 +555,7 @@ this.booter(CustomRepositoryBooter);  // after datasource
 
 ```bash
 # From project root
-npx glob "your-pattern/**/*.controller.js"
+bunx glob "your-pattern/**/*.controller.js"
 ```
 
 ## Best Practices
@@ -562,7 +580,7 @@ npx glob "your-pattern/**/*.controller.js"
 
 - **Related Concepts:**
   - [Application Overview](./index) - Main application class
-  - [Controllers](/guides/core-concepts/controllers) - Auto-discovered controllers
+  - [Controllers](/guides/core-concepts/rest-controllers) - Auto-discovered controllers
   - [Services](/guides/core-concepts/services) - Auto-discovered services
   - [Repositories](/guides/core-concepts/persistent/repositories) - Auto-discovered repositories
 
