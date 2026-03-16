@@ -42,6 +42,11 @@ export async function transformValueOrPromise<T, V>(
   return transformer(value);
 }
 
+/** Normalize an unknown thrown value into an Error instance. */
+export function toError(error: unknown): Error {
+  return error instanceof Error ? error : new Error(String(error));
+}
+
 /** Check if a value is a promise. */
 export function isPromiseLike<T>(value: T | PromiseLike<T>): value is PromiseLike<T> {
   return (

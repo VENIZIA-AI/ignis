@@ -182,6 +182,8 @@ export interface IKafkaConsumeStartOptions {
   topics: string[];
   mode?: MessagesStreamModeValue;
   fallbackMode?: MessagesStreamFallbackModeValue;
+  reconnectDelayMs?: number;
+  maxReconnectAttempts?: number;
 }
 
 // -------------------------------------------------------------------------

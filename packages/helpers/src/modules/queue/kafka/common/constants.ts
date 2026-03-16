@@ -101,6 +101,8 @@ export class KafkaDefaults {
   static readonly CONSUME_MODE = 'committed';
   static readonly CONSUME_FALLBACK_MODE = 'latest';
 
+  static readonly RECONNECT_DELAY = 2_000;
+  static readonly MAX_RECONNECT_ATTEMPTS = 5;
   static readonly SHUTDOWN_TIMEOUT = 30_000;
   static readonly LAG_MONITOR_INTERVAL = 30_000;
 }

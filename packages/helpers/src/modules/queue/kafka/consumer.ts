@@ -1,9 +1,10 @@
+import { sleep } from '@/utilities/date.utility';
+import { toError } from '@/utilities/promise.utility';
 import type {
   ConsumerGroupJoinPayload,
   ConsumerGroupLeavePayload,
   ConsumerGroupRebalancePayload,
   ConsumerHeartbeatErrorPayload,
-  Message,
   MessagesStream,
   Offsets,
 } from '@platformatic/kafka';
@@ -15,12 +16,12 @@ import type {
   IKafkaConsumerOptions,
   TKafkaGroupJoinCallback,
   TKafkaGroupLeaveCallback,
-  TKafkaMessageDoneCallback,
   TKafkaGroupRebalanceCallback,
   TKafkaHeartbeatErrorCallback,
   TKafkaLagCallback,
   TKafkaLagErrorCallback,
   TKafkaMessageCallback,
+  TKafkaMessageDoneCallback,
   TKafkaMessageErrorCallback,
 } from './common/types';
 
@@ -60,6 +61,8 @@ export class KafkaConsumerHelper<
   HeaderValueType = string,
 > extends BaseKafkaHelper<Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>> {
   private stream: MessagesStream<KeyType, ValueType, HeaderKeyType, HeaderValueType> | null = null;
+  private consumeLoop: Promise<void> | null = null;
+  private consumeStartOptions: IKafkaConsumeStartOptions | null = null;
   private lagMonitoringActive = false;
 
   // Message callbacks
@@ -176,34 +179,26 @@ export class KafkaConsumerHelper<
 
     this.logger.info('[start] Starting consumer | Topics: %j', opts.topics);
 
+    this.consumeStartOptions = opts;
     this.stream = await this.client.consume({
       topics: opts.topics,
       mode: opts.mode ?? KafkaDefaults.CONSUME_MODE,
       fallbackMode: opts.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
     });
 
-    if (this.onMessage) {
-      const messageHandler = this.onMessage;
-      const doneHandler = this.onMessageDone;
-      const errorHandler = this.onMessageError;
-
-      this.stream.on(
-        KafkaClientEvents.STREAM_DATA,
-        (message: Message<KeyType, ValueType, HeaderKeyType, HeaderValueType>) => {
-          Promise.resolve(messageHandler({ message }))
-            .then(() => doneHandler?.({ message }))
-            .catch((error: unknown) => {
-              const err = error instanceof Error ? error : new Error(String(error));
-              this.logger.error('[start] Message processing error: %s', err.message);
-              errorHandler?.({ error: err, message });
-            });
-        },
-      );
-    }
-
     if (this.onMessageError) {
       this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
         this.onMessageError?.({ error: err });
+      });
+    }
+
+    if (this.onMessage) {
+      this.consumeLoop = this.startConsumeLoop({
+        messageHandler: this.onMessage,
+        doneHandler: this.onMessageDone,
+        errorHandler: this.onMessageError,
+        reconnectDelayMs: opts.reconnectDelayMs ?? KafkaDefaults.RECONNECT_DELAY,
+        maxReconnectAttempts: opts.maxReconnectAttempts ?? KafkaDefaults.MAX_RECONNECT_ATTEMPTS,
       });
     }
 
@@ -263,8 +258,8 @@ export class KafkaConsumerHelper<
     } else {
       try {
         await this.gracefulCloseClient();
-      } catch {
-        this.logger.warn('[close] Graceful shutdown timed out, forcing close');
+      } catch (error) {
+        this.logger.warn('[close] Graceful shutdown timed out, forcing close | Error: %s', error);
         await this.closeClient();
       }
     }
@@ -273,20 +268,116 @@ export class KafkaConsumerHelper<
     this.logger.info('[close] Consumer closed | Force: %s', force);
   }
 
-  private async closeStream(): Promise<void> {
-    if (!this.stream) {
-      return;
+  private async startConsumeLoop(opts: {
+    messageHandler: TKafkaMessageCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+    doneHandler?: TKafkaMessageDoneCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+    reconnectDelayMs: number;
+    maxReconnectAttempts: number;
+  }): Promise<void> {
+    const { messageHandler, doneHandler, errorHandler, reconnectDelayMs, maxReconnectAttempts } =
+      opts;
+
+    for await (const message of this.consumeMessages({
+      reconnectDelayMs,
+      maxReconnectAttempts,
+      errorHandler,
+    })) {
+      try {
+        await messageHandler({ message });
+        await doneHandler?.({ message });
+      } catch (error) {
+        const err = toError(error);
+        this.logger.error('[startConsumeLoop] Message processing error: %s', err.message);
+        errorHandler?.({ error: err, message });
+      }
     }
-    return new Promise<void>((resolve, reject) => {
-      this.stream!.close((err?: Error | null) => {
-        this.stream = null;
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
+  }
+
+  private async *consumeMessages(opts: {
+    reconnectDelayMs: number;
+    maxReconnectAttempts: number;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }) {
+    const { reconnectDelayMs, maxReconnectAttempts, errorHandler } = opts;
+    let consecutiveErrors = 0;
+
+    while (this.stream) {
+      try {
+        yield* this.stream;
+      } catch (error) {
+        const err = toError(error);
+        this.logger.error('[consumeMessages] Stream error: %s', err.message);
+        errorHandler?.({ error: err });
+        this.destroyDeadStream();
+      }
+
+      // Reconnect loop
+      consecutiveErrors++;
+      if (consecutiveErrors > maxReconnectAttempts) {
+        this.logger.error(
+          '[consumeMessages] All %d reconnect attempts exhausted, consumer stopped',
+          maxReconnectAttempts,
+        );
+        return;
+      }
+
+      this.logger.info(
+        '[consumeMessages] Reconnecting %d/%d in %dms | Topics: %j',
+        consecutiveErrors,
+        maxReconnectAttempts,
+        reconnectDelayMs,
+        this.consumeStartOptions?.topics,
+      );
+      await sleep(reconnectDelayMs);
+
+      if (!this.consumeStartOptions) {
+        return; // closeStream() called during sleep
+      }
+
+      try {
+        this.stream = await this.client.consume({
+          topics: this.consumeStartOptions.topics,
+          mode: this.consumeStartOptions.mode ?? KafkaDefaults.CONSUME_MODE,
+          fallbackMode:
+            this.consumeStartOptions.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
+        });
+
+        if (this.onMessageError) {
+          this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
+            this.onMessageError?.({ error: err });
+          });
         }
-      });
-    });
+
+        this.logger.info('[consumeMessages] Reconnected successfully');
+        consecutiveErrors = 0;
+      } catch (error) {
+        const err = toError(error);
+        this.logger.error('[consumeMessages] Reconnect failed: %s', err.message);
+        errorHandler?.({ error: err });
+      }
+    }
+  }
+
+  private destroyDeadStream(): void {
+    this.stream?.removeAllListeners();
+    this.stream?.destroy();
+    this.stream = null;
+  }
+
+  private async closeStream(): Promise<void> {
+    const stream = this.stream;
+    this.stream = null;
+    this.consumeStartOptions = null;
+
+    try {
+      await stream?.close();
+    } catch (error) {
+      this.logger.warn('[closeStream] Error closing stream: %s', toError(error).message);
+    }
+
+    await this.consumeLoop;
+    this.consumeLoop = null;
   }
 
   protected override configureBrokerEvents(): void {
