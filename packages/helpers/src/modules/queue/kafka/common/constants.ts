@@ -95,6 +95,8 @@ export class KafkaDefaults {
   static readonly HEARTBEAT_INTERVAL = 3_000;
   static readonly HIGH_WATER_MARK = 1024;
   static readonly MIN_BYTES = 1;
+  static readonly MAX_BYTES = 1_048_576 * 10; // 10 MB
+  static readonly MAX_WAIT_TIME = 5_000;
   static readonly METADATA_MAX_AGE = 300_000;
   static readonly GROUP_PROTOCOL = KafkaGroupProtocol.CLASSIC;
 
