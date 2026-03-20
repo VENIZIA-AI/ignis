@@ -45,6 +45,10 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.client;
   }
 
+  duplicateClient(): Redis | Cluster {
+    return this.client.duplicate();
+  }
+
   ping() {
     return this.client.ping();
   }

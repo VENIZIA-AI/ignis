@@ -109,10 +109,9 @@ export class SocketIOServerHelper extends BaseHelper {
       });
     }
 
-    const client = redisConnection.getClient();
-    this.redisPub = client.duplicate();
-    this.redisSub = client.duplicate();
-    this.redisEmitter = client.duplicate();
+    this.redisPub = redisConnection.duplicateClient();
+    this.redisSub = redisConnection.duplicateClient();
+    this.redisEmitter = redisConnection.duplicateClient();
   }
 
   getIOServer(): IOServer {
@@ -175,13 +174,13 @@ export class SocketIOServerHelper extends BaseHelper {
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);
 
     this.redisPub.on('error', (error: Error) => {
-      logger.error('Redis adapter pub error | error: %j', error);
+      logger.error('Redis adapter pub error | error: %s', error);
     });
     this.redisSub.on('error', (error: Error) => {
-      logger.error('Redis adapter sub error | error: %j', error);
+      logger.error('Redis adapter sub error | error: %s', error);
     });
     this.redisEmitter.on('error', (error: Error) => {
-      logger.error('Redis emitter error | error: %j', error);
+      logger.error('Redis emitter error | error: %s', error);
     });
 
     // Ensure duplicated clients connect (they inherit lazyConnect from parent)

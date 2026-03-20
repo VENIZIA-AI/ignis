@@ -92,7 +92,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     const queueName = this.resolveQueueName();
     this.queue = new Queue<TQueueElement, TQueueResult>(queueName, {
-      connection: this.redisConnection.getClient().duplicate(),
+      connection: this.redisConnection.duplicateClient(),
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
@@ -130,7 +130,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           );
       },
       {
-        connection: this.redisConnection.getClient().duplicate(),
+        connection: this.redisConnection.duplicateClient(),
         concurrency: this.numberOfWorker,
         lockDuration: this.lockDuration,
       },

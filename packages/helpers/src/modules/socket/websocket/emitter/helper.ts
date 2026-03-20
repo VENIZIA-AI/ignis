@@ -31,8 +31,7 @@ export class WebSocketEmitter extends BaseHelper {
       });
     }
 
-    const client = redisConnection.getClient();
-    this.redisPub = client.duplicate();
+    this.redisPub = redisConnection.getClient();
   }
 
   private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
@@ -68,7 +67,7 @@ export class WebSocketEmitter extends BaseHelper {
     logger.info('Configuring WebSocket Emitter | id: %s', this.identifier);
 
     this.redisPub.on('error', (error: Error) => {
-      logger.error('Redis pub error | error: %j', error);
+      logger.error('Redis pub error | error: %s', error);
     });
 
     if (this.redisPub.status === 'wait') {
@@ -148,9 +147,6 @@ export class WebSocketEmitter extends BaseHelper {
   async shutdown() {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down WebSocket Emitter...');
-
-    await this.redisPub?.quit();
-
     logger.info('WebSocket Emitter shutdown complete');
   }
 }

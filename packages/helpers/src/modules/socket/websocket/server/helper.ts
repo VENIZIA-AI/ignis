@@ -107,9 +107,8 @@ export class WebSocketServerHelper<
       });
     }
 
-    const client = redisConnection.getClient();
-    this.redisPub = client.duplicate();
-    this.redisSub = client.duplicate();
+    this.redisPub = redisConnection.duplicateClient();
+    this.redisSub = redisConnection.duplicateClient();
   }
 
   getClients(opts?: {
@@ -191,10 +190,10 @@ export class WebSocketServerHelper<
     logger.info('Configuring WebSocket Server | id: %s', this.identifier);
 
     this.redisPub.on('error', (error: Error) => {
-      logger.error('Redis pub error | error: %j', error);
+      logger.error('Redis pub error | error: %s', error);
     });
     this.redisSub.on('error', (error: Error) => {
-      logger.error('Redis sub error | error: %j', error);
+      logger.error('Redis sub error | error: %s', error);
     });
 
     // Ensure duplicated clients connect (they inherit lazyConnect from parent)
