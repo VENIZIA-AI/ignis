@@ -1,6 +1,7 @@
 import { BaseHelper } from '@/modules/base';
 import { DefaultRedisHelper } from '@/modules/redis';
 import { Job, Queue, Worker } from 'bullmq';
+import { Cluster } from 'ioredis';
 import { TBullQueueRole } from '../common';
 
 interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
@@ -72,6 +73,15 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     return new BullMQHelper<T, R>(opts);
   }
 
+  private resolveQueueName(): string {
+    const isCluster = this.redisConnection.getClient() instanceof Cluster;
+    if (isCluster && !this.queueName.startsWith('{')) {
+      return `{${this.queueName}}`;
+    }
+
+    return this.queueName;
+  }
+
   configureQueue() {
     if (!this.queueName) {
       this.logger
@@ -80,7 +90,8 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       return;
     }
 
-    this.queue = new Queue<TQueueElement, TQueueResult>(this.queueName, {
+    const queueName = this.resolveQueueName();
+    this.queue = new Queue<TQueueElement, TQueueResult>(queueName, {
       connection: this.redisConnection.getClient().duplicate(),
       defaultJobOptions: {
         removeOnComplete: true,
@@ -97,8 +108,9 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
       return;
     }
 
+    const queueName = this.resolveQueueName();
     this.worker = new Worker<TQueueElement, TQueueResult>(
-      this.queueName,
+      queueName,
       async job => {
         if (this.onWorkerData) {
           const rs = await this.onWorkerData(job);
