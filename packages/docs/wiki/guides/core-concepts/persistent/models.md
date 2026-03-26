@@ -6,15 +6,17 @@ Models define your data structure using Drizzle ORM schemas. A model is a single
 
 ```typescript
 // src/models/entities/user.model.ts
-import { BaseEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
-import { pgTable } from 'drizzle-orm/pg-core';
+import { BaseEntity, generateIdColumnDefs, generateTzColumnDefs, model } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
 export class User extends BaseEntity<typeof User.schema> {
   // Define schema as static property
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...extraUserColumns({ idType: 'string' }),
+    ...generateTzColumnDefs(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
   });
 
   // Relations (empty array if none)
@@ -126,7 +128,8 @@ static override schema = pgTable('User', {
 ```typescript
 static override schema = pgTable('User', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),  // id (text with UUID default)
-  ...extraUserColumns({ idType: 'string' }),                 // status, audit fields, timestamps
+  ...generateTzColumnDefs(),                                 // createdAt, modifiedAt
+  ...generateUserAuditColumnDefs(),                          // createdBy, modifiedBy
   // ... your fields
 });
 ```
@@ -139,7 +142,6 @@ static override schema = pgTable('User', {
 | `generateTzColumnDefs()` | `createdAt`, `modifiedAt` | Track timestamps |
 | `generateUserAuditColumnDefs()` | `createdBy`, `modifiedBy` | Track who created/updated |
 | `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
-| `extraUserColumns()` | Combines audit + status + type | Full-featured entities |
 
 :::note User Audit Options
 The `generateUserAuditColumnDefs` enricher supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:

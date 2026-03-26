@@ -28,7 +28,7 @@ cd ecommerce-api
 bun init -y
 
 # Install dependencies
-bun add hono @hono/zod-openapi @venizia/ignis dotenv-flow
+bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
 bun add drizzle-orm drizzle-zod pg stripe
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 ```
@@ -57,9 +57,19 @@ ecommerce-api/
 │   │   ├── order.service.ts
 │   │   └── payment.service.ts
 │   ├── controllers/
-│   │   ├── product.controller.ts
-│   │   ├── cart.controller.ts
-│   │   └── order.controller.ts
+│   │   ├── product/
+│   │   │   ├── definitions.ts
+│   │   │   ├── product.controller.ts
+│   │   │   └── index.ts
+│   │   ├── cart/
+│   │   │   ├── definitions.ts
+│   │   │   ├── cart.controller.ts
+│   │   │   └── index.ts
+│   │   ├── order/
+│   │   │   ├── definitions.ts
+│   │   │   ├── order.controller.ts
+│   │   │   └── index.ts
+│   │   └── index.ts
 │   └── datasources/
 │       └── postgres.datasource.ts
 └── package.json
@@ -314,7 +324,6 @@ export * from './order.model';
 import {
   BaseDataSource,
   datasource,
-  TNodePostgresConnector,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -329,7 +338,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -915,7 +924,7 @@ export class PaymentService extends BaseService {
 ### Product Controller
 
 ```typescript
-// src/controllers/product.controller.ts
+// src/controllers/product/product.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
   BaseRestController,
@@ -1003,7 +1012,7 @@ export class ProductController extends BaseRestController {
 ### Cart Controller
 
 ```typescript
-// src/controllers/cart.controller.ts
+// src/controllers/cart/cart.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
   BaseRestController,
@@ -1142,7 +1151,7 @@ export class CartController extends BaseRestController {
 ### Order Controller
 
 ```typescript
-// src/controllers/order.controller.ts
+// src/controllers/order/order.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
   BaseRestController,
@@ -1265,9 +1274,9 @@ export class OrderController extends BaseRestController {
 import { BaseApplication, IApplicationInfo } from '@venizia/ignis';
 import { HealthCheckComponent, SwaggerComponent } from '@venizia/ignis';
 
-import { ProductController } from './controllers/product.controller';
-import { CartController } from './controllers/cart.controller';
-import { OrderController } from './controllers/order.controller';
+import { ProductController } from './controllers/product';
+import { CartController } from './controllers/cart';
+import { OrderController } from './controllers/order';
 
 import { ProductService } from './services/product.service';
 import { CartService } from './services/cart.service';

@@ -11,8 +11,8 @@ Build your first Ignis API endpoint in 5 minutes. No database, no complex setup 
 ```bash
 mkdir my-app && cd my-app
 bun init -y
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis
-bun add -d typescript @types/bun @venizia/dev-configs
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
+bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
 ```
 
 ## Step 2: Configure Development Tools (30 seconds)
@@ -99,11 +99,9 @@ class HelloController extends BaseRestController {
     super({ scope: "HelloController", path: "/hello" });
   }
 
-  // NOTE: This is a function that must be overridden.
-  override binding() {
-    // Bind dependencies here (if needed)
-    // Extra binding routes with functional way, use `bindRoute` or `defineRoute`
-  }
+  // Override binding() to register custom routes via bindRoute() or defineRoute().
+  // For decorator-based routes (@get, @post), this can be empty.
+  override binding() {}
 
   @get({
     configs: {
@@ -152,9 +150,11 @@ const app = new App({
     host: "0.0.0.0",
     port: 3000,
     path: { base: "/api", isStrict: false },
+    debug: { shouldShowRoutes: true }, // Prints all registered routes on startup
   },
 });
 
+// start() runs the full lifecycle: preConfigure → register resources → setupMiddlewares → HTTP server
 app.start();
 ```
 
@@ -177,10 +177,11 @@ Update `package.json` to add build scripts:
     "server:prod": "NODE_ENV=production bun run dist/index.js"
   },
   "dependencies": {
-    "hono": "^4.4.12",
+    "hono": "^4.12.1",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
-    "@venizia/ignis": "latest"
+    "@venizia/ignis": "latest",
+    "@venizia/ignis-helpers": "latest"
   },
   "devDependencies": {
     "typescript": "^5.5.3",
@@ -240,7 +241,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 | `BaseRestController` | Provides lifecycle hooks, route binding, and OpenAPI integration for REST controllers |
 | `BaseApplication` | Manages dependency injection, middleware, and server startup |
 | `SwaggerComponent` | Generates interactive API docs at `/doc/explorer` |
-| `app.start()` | Boots the DI container and starts HTTP server on port 3000 |
+| `app.start()` | Runs the full lifecycle (preConfigure → register resources → middlewares) then starts HTTP server on port 3000 |
 
 ### Why Development Configs?
 

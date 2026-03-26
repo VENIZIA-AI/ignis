@@ -264,7 +264,7 @@ export class KafkaConsumerHelper<
       }
     }
 
-    this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+    this.resetHealthState();
     this.logger.info('[close] Consumer closed | Force: %s', force);
   }
 

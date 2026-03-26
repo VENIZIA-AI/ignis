@@ -25,7 +25,7 @@ cd chat-api
 bun init -y
 
 # Install dependencies
-bun add hono @hono/zod-openapi @venizia/ignis dotenv-flow
+bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
 bun add drizzle-orm drizzle-zod pg
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 
@@ -241,7 +241,6 @@ export * from './message.model';
 import {
   BaseDataSource,
   datasource,
-  TNodePostgresConnector,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -256,7 +255,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -953,7 +952,7 @@ import {
   SocketIOServerHelper,
 } from '@venizia/ignis-helpers';
 import { ChatService } from './services/chat.service';
-import { ChatController } from './controllers/chat.controller';
+import { ChatController } from './controllers/chat';
 import { UserRepository } from './repositories/user.repository';
 import { RoomRepository, RoomMemberRepository } from './repositories/room.repository';
 import { MessageRepository, DirectMessageRepository } from './repositories/message.repository';
@@ -1124,7 +1123,7 @@ Client connects → 'authenticate' event → authenticateFn() → 'authenticated
 ## 7. REST API for Chat History
 
 ```typescript
-// src/controllers/chat.controller.ts
+// src/controllers/chat/chat.controller.ts
 import { z } from '@hono/zod-openapi';
 import {
   BaseRestController,

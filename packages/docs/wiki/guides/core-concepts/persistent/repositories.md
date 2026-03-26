@@ -159,10 +159,18 @@ All repository operations accept an `options` parameter with these fields:
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
 
 ```typescript
-// Create without returning data (faster for bulk inserts)
+// Create without returning data (faster)
 await repo.create({
-  data: bulkData,
-  options: { shouldReturn: false }
+  data: { code: 'SETTING', group: 'SYSTEM' },
+  options: { shouldReturn: false },
+});
+
+// Bulk create multiple records
+await repo.createAll({
+  data: [
+    { code: 'SETTING_A', group: 'SYSTEM' },
+    { code: 'SETTING_B', group: 'SYSTEM' },
+  ],
 });
 
 // Query with pagination range

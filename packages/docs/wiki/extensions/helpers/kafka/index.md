@@ -16,9 +16,9 @@ The Kafka module provides four helper classes built on a shared `BaseKafkaHelper
 All helpers (except schema registry) extend `BaseKafkaHelper` which provides:
 
 - **Scoped logging** via `BaseHelper` (Winston with daily rotation)
-- **Health tracking** -- `isHealthy()`, `isReady()`, `getHealthStatus()`
+- **Health tracking** -- per-broker connection tracking via `isHealthy()`, `isReady()`, `getHealthStatus()`, `getConnectedBrokerCount()`
 - **Broker event callbacks** -- `onBrokerConnect`, `onBrokerDisconnect`
-- **Broker failure tracking** -- automatic `configureBrokerFailed()` sets status to `'disconnected'`
+- **Broker failure tracking** -- automatic `configureBrokerFailed()` sets status to `'disconnected'` only when all brokers are gone
 - **Graceful shutdown** -- timeout-based with force fallback
 - **Sensible defaults** via `KafkaDefaults` constants
 - **Factory pattern** via `newInstance()` static method
@@ -115,21 +115,25 @@ All Kafka helpers (except schema registry) extend `BaseKafkaHelper<TClient>`, wh
 ```typescript
 abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
   // Health
-  isHealthy(): boolean;          // healthStatus === 'connected'
-  isReady(): boolean;            // healthStatus === 'connected' (consumer overrides: + isActive())
-  getHealthStatus(): TKafkaHealthStatus; // 'connected' | 'disconnected' | 'unknown'
+  isHealthy(): boolean;              // true when at least one broker is connected
+  isReady(): boolean;                // healthStatus === 'connected' (consumer overrides: + isActive())
+  getHealthStatus(): TKafkaHealthStatus;  // 'connected' | 'disconnected' | 'unknown'
+  getConnectedBrokerCount(): number; // number of currently connected brokers
 
   // Shutdown (used by subclasses)
   protected closeClient(): Promise<void>;
   protected gracefulCloseClient(): Promise<void>; // races closeClient vs shutdownTimeout
+  protected resetHealthState(): void;             // clears broker tracking + sets 'disconnected'
 }
 ```
 
+Health tracking uses a **per-broker connection set** (`host:port` keys). A single idle broker disconnect does not make the client unhealthy -- only when **all** brokers are disconnected does `isHealthy()` return `false`.
+
 Health status transitions automatically via broker events:
-- `client:broker:connect` -> `'connected'`
-- `client:broker:disconnect` -> `'disconnected'`
-- `client:broker:failed` -> `'disconnected'`
-- `close()` -> `'disconnected'`
+- `client:broker:connect` -> adds broker, sets `healthStatus` to `'connected'`
+- `client:broker:disconnect` -> removes broker, sets `healthStatus` to `'disconnected'` only when all brokers are gone
+- `client:broker:failed` -> removes broker, sets `healthStatus` to `'disconnected'` only when all brokers are gone
+- `close()` -> clears all brokers, sets `healthStatus` to `'disconnected'`
 
 ## Connection Options
 
@@ -400,8 +404,8 @@ import { KafkaDefaults } from '@venizia/ignis-helpers/kafka';
 | `STRICT` | `true` | Producer | Fail on unknown topics |
 | `AUTOCREATE_TOPICS` | `false` | Producer | Auto-create topics on produce |
 | `AUTOCOMMIT` | `false` | Consumer | Auto-commit offsets |
-| `SESSION_TIMEOUT` | `30000` | Consumer | Session timeout in ms |
-| `HEARTBEAT_INTERVAL` | `3000` | Consumer | Heartbeat interval in ms |
+| `SESSION_TIMEOUT` | `60000` | Consumer | Session timeout in ms |
+| `HEARTBEAT_INTERVAL` | `10000` | Consumer | Heartbeat interval in ms |
 | `HIGH_WATER_MARK` | `1024` | Consumer | Stream buffer size (messages) |
 | `MIN_BYTES` | `1` | Consumer | Min bytes per fetch |
 | `METADATA_MAX_AGE` | `300000` | Consumer | Metadata cache TTL in ms |
@@ -570,7 +574,7 @@ const consumer = KafkaConsumerHelper.newInstance({
 
 ```typescript
 // All three -- identical API
-helper.isHealthy();      // true when broker connected
+helper.isHealthy();      // true when at least one broker connected
 helper.isReady();        // Admin/Producer: same as isHealthy()
                          // Consumer: isHealthy() + consumer.isActive()
 helper.getHealthStatus(); // 'connected' | 'disconnected' | 'unknown'

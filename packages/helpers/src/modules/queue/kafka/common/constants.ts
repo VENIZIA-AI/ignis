@@ -91,8 +91,8 @@ export class KafkaDefaults {
 
   // Consumer
   static readonly AUTOCOMMIT = false;
-  static readonly SESSION_TIMEOUT = 30_000;
-  static readonly HEARTBEAT_INTERVAL = 3_000;
+  static readonly SESSION_TIMEOUT = 60_000;
+  static readonly HEARTBEAT_INTERVAL = 10_000;
   static readonly HIGH_WATER_MARK = 1024;
   static readonly MIN_BYTES = 1;
   static readonly MAX_BYTES = 1_048_576 * 10; // 10 MB

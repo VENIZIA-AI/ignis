@@ -74,10 +74,10 @@ HTTP Request (GET /api/todos/:id)
 
 ```bash
 # Add database packages
-bun add drizzle-orm drizzle-zod pg lodash
+bun add drizzle-orm drizzle-zod pg
 
 # Add dev dependencies for migrations
-bun add -d drizzle-kit @types/pg @types/lodash
+bun add -d drizzle-kit @types/pg
 ```
 
 ## Step 2: Define the Model
@@ -182,7 +182,6 @@ Create `src/datasources/postgres.datasource.ts`:
 import {
   BaseDataSource,
   datasource,
-  TNodePostgresConnector,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -205,7 +204,7 @@ interface IDSConfigs {
  * 3. Drizzle is initialized with the auto-discovered schema
  */
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -243,7 +242,7 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
 - Schema is auto-discovered from `@repository` decorators - no manual registration needed
 - Uses `getSchema()` for lazy schema resolution (resolves when all models are loaded)
 - Uses environment variables for connection config
-- Implements connection lifecycle methods (`connect()`, `disconnect()`)
+- Implements `configure()` for connection setup and `getConnectionString()` for URL generation
 
 > **Deep Dive:** See [DataSources Reference](/references/base/datasources) for advanced configuration and multiple database support.
 
@@ -306,24 +305,18 @@ Dependency Injection (DI) is a design pattern where objects receive their depend
 
 `ControllerFactory` generates a full CRUD controller with automatic validation and OpenAPI docs.
 
-Create `src/controllers/todo.controller.ts`:
+Create `src/controllers/todo/definitions.ts`:
 
 ```typescript
-// src/controllers/todo.controller.ts
+// src/controllers/todo/definitions.ts
 import { Todo } from '@/models/todo.model';
 import { TodoRepository } from '@/repositories/todo.repository';
-import {
-  BindingKeys,
-  BindingNamespaces,
-  controller,
-  ControllerFactory,
-  inject,
-} from '@venizia/ignis';
+import { ControllerFactory } from '@venizia/ignis';
 
-const BASE_PATH = '/todos';
+export const BASE_PATH = '/todos';
 
-// 1. The factory generates a controller class with all CRUD routes
-const _Controller = ControllerFactory.defineCrudController({
+// The factory generates a controller class with all CRUD routes
+export const _Controller = ControllerFactory.defineCrudController({
   repository: { name: TodoRepository.name },
   controller: {
     name: 'TodoController',
@@ -331,8 +324,17 @@ const _Controller = ControllerFactory.defineCrudController({
   },
   entity: () => Todo, // The entity is used to generate OpenAPI schemas
 });
+```
 
-// 2. Extend the generated controller to inject the repository
+Create `src/controllers/todo/todo.controller.ts`:
+
+```typescript
+// src/controllers/todo/todo.controller.ts
+import { TodoRepository } from '@/repositories/todo.repository';
+import { BindingKeys, BindingNamespaces, controller, inject } from '@venizia/ignis';
+import { BASE_PATH, _Controller } from './definitions';
+
+// Extend the generated controller to inject the repository
 @controller({ path: BASE_PATH })
 export class TodoController extends _Controller {
   constructor(
@@ -347,6 +349,12 @@ export class TodoController extends _Controller {
     super(repository);
   }
 }
+```
+
+Create `src/controllers/todo/index.ts`:
+
+```typescript
+export * from './todo.controller';
 ```
 
 **Auto-generated Endpoints:**
@@ -371,13 +379,13 @@ Update `src/application.ts` to register all components:
 ```typescript
 // src/application.ts
 import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
-import { HelloController } from './controllers/hello.controller';
+import { HelloController } from './controllers/hello';
 import packageJson from '../package.json';
 
 // Import our new components
 import { PostgresDataSource } from './datasources/postgres.datasource';
 import { TodoRepository } from './repositories/todo.repository';
-import { TodoController } from './controllers/todo.controller';
+import { TodoController } from './controllers/todo';
 
 export const appConfigs: IApplicationConfigs = {
   host: process.env.HOST ?? '0.0.0.0',
@@ -412,6 +420,9 @@ export class Application extends BaseApplication {
   postConfigure(): ValueOrPromise<void> {}
 }
 ```
+
+> [!IMPORTANT] Registration Order
+> Register in this order: **DataSources → Repositories → Services → Controllers**. DataSources must exist before Repositories that reference them. The framework resolves dependencies during initialization, so registering out of order will cause "Binding not found" errors.
 
 ## Step 7: Run Database Migration
 
@@ -462,32 +473,27 @@ Add these scripts to your `package.json`:
 
 ```json
 "scripts": {
-  "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
-  "generate-migration:dev": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts"
+  "db:push": "NODE_ENV=development drizzle-kit push --config=src/migration.ts",
+  "db:generate": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
+  "db:migrate": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts"
 }
 ```
 
 ### Run the Migration
 
+For development, use `push` — it reads your schema and applies changes directly to the database:
+
 ```bash
-bun run migrate:dev
+bun run db:push
 ```
 
 **What happens when you run this:**
 
 1. **Reads** `src/models/todo.model.ts` to see what your schema looks like
-2. **Generates SQL** to create the `Todo` table
-3. **Connects** to your PostgreSQL database
-4. **Executes** the SQL to create the table
-5. **Saves** migration files to `./migration/` folder (for version control)
+2. **Compares** it against the current database state
+3. **Generates and executes** the SQL to create/update tables
 
-**Expected output:**
-```
-Reading schema...
-Generating migration...
-Executing migration...
-✓ Done!
-```
+> **Production workflow:** Use `db:generate` to create versioned migration files, then `db:migrate` to apply them. This gives you version control and rollback capability. `push` is simpler but skips the migration file step.
 
 **Verify it worked:**
 ```bash
@@ -574,7 +580,7 @@ sudo service postgresql start      # Linux
 
 **Fix:**
 ```bash
-bun run migrate:dev
+bun run db:push
 ```
 
 **Verify the table exists:**
@@ -629,9 +635,9 @@ Now that you've built the Todo API, try building a **User** feature on your own!
 |:----:|------|
 | 1 | Create `src/models/user.model.ts` |
 | 2 | Create `src/repositories/user.repository.ts` (auto-registers User with PostgresDataSource) |
-| 3 | Create `src/controllers/user.controller.ts` |
+| 3 | Create `src/controllers/user/` (definitions.ts, user.controller.ts, index.ts) |
 | 4 | Register repository and controller in `application.ts` |
-| 5 | Run migration: `bun run migrate:dev` |
+| 5 | Push schema: `bun run db:push` |
 | 6 | Test with curl |
 
 **Hint:** Follow the exact same pattern as `Todo`. The only changes are the model name and fields!

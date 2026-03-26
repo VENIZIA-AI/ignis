@@ -18,9 +18,10 @@ class KafkaProducerHelper<
 | `newInstance(opts)` | `static newInstance<K,V,HK,HV>(opts): KafkaProducerHelper<K,V,HK,HV>` | Factory method |
 | `getProducer()` | `(): Producer<K,V,HK,HV>` | Access the underlying `Producer` |
 | `runInTransaction(cb)` | `<R>(cb: TKafkaTransactionCallback<R,K,V,HK,HV>): Promise<R>` | Execute callback within a Kafka transaction |
-| `isHealthy()` | `(): boolean` | `true` when broker connected |
+| `isHealthy()` | `(): boolean` | `true` when at least one broker connected |
 | `isReady()` | `(): boolean` | Same as `isHealthy()` |
 | `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
+| `getConnectedBrokerCount()` | `(): number` | Number of currently connected brokers |
 | `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Close the producer (default: graceful) |
 
 ## IKafkaProducerOptions
@@ -64,7 +65,7 @@ const helper = KafkaProducerHelper.newInstance({
 });
 
 // Health check
-helper.isHealthy();      // true when connected
+helper.isHealthy();      // true when at least one broker connected
 helper.getHealthStatus(); // 'connected' | 'disconnected' | 'unknown'
 
 // Send messages via the underlying producer
@@ -153,7 +154,7 @@ If the callback throws, the transaction is automatically aborted and the error r
 2. **Force fallback**: If graceful times out, automatically force-closes
 3. **Force** (`{ isForce: true }`): Immediately calls `close(true)` without timeout protection
 
-After `close()`, `healthStatus` is set to `'disconnected'`.
+After `close()`, all broker tracking is cleared and `healthStatus` is set to `'disconnected'`.
 
 ```typescript
 // Graceful (recommended)

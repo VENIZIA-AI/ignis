@@ -19,15 +19,15 @@ bun init -y
 ### Production Dependencies
 
 ```bash
-bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis dotenv-flow
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
 ```
 
 **What each package does:**
 - `hono` - High-performance web framework
 - `@hono/zod-openapi` - OpenAPI schema generation with Zod validation
 - `@scalar/hono-api-reference` - Interactive API documentation UI
-- `@venizia/ignis` - Core Ignis framework
-- `dotenv-flow` - Environment variable management
+- `@venizia/ignis` - Core Ignis framework (application, controllers, repositories, DI)
+- `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
 
 ### Development Dependencies
 
@@ -121,7 +121,7 @@ This setup might seem verbose compared to minimal frameworks. The trade-off: ~50
 ### Create Project Structure
 
 ```bash
-mkdir -p src/{common,components,configurations,controllers,datasources,helpers,models/{entities,requests,responses},repositories,services,utilities}
+mkdir -p src/{common,components,configurations,controllers/hello,datasources,helpers,models/{entities,requests,responses},repositories,services,utilities}
 ```
 
 Your structure will look like:
@@ -137,7 +137,10 @@ src/
 │   └── index.ts            # App configuration files
 ├── controllers/
 │   ├── index.ts            # Export all controllers
-│   └── hello.controller.ts
+│   └── hello/
+│       ├── definitions.ts  # Route configs, schemas, constants
+│       ├── hello.controller.ts
+│       └── index.ts        # Barrel export
 ├── datasources/
 │   └── index.ts            # Database connections
 ├── helpers/
@@ -155,6 +158,8 @@ src/
     └── index.ts            # Utility functions
 ```
 
+Each controller gets its own folder: `definitions.ts` for route configs and Zod schemas, the controller file itself, and an `index.ts` barrel export. This keeps things organized as controllers grow with custom routes, validations, and transformations.
+
 > **Note:** For this guide, we only use `controllers/`. Other folders will be used in the [CRUD Tutorial](./building-a-crud-api.md) when you add database support.
 
 ### Create Application Class
@@ -163,7 +168,7 @@ Create `src/application.ts` - this is where you configure and register all your 
 
 ```typescript
 import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
-import { HelloController } from './controllers/hello.controller';
+import { HelloController } from './controllers';
 import packageJson from '../package.json';
 
 // Define application configurations
@@ -255,22 +260,39 @@ export class Application extends BaseApplication {
 
 ### Create Controller
 
-Create `src/controllers/hello.controller.ts` - controllers handle HTTP requests and return responses:
+Each controller lives in its own folder with separate files for definitions, logic, and exports.
+
+Create `src/controllers/hello/definitions.ts` — route configs and schemas:
 
 ```typescript
-import {
-  BaseRestController,
-  controller,
-  api,
-  jsonContent,
-} from '@venizia/ignis';
+import { jsonContent } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { z } from '@hono/zod-openapi';
+
+export const BASE_PATH = '/hello';
+
+export const helloRouteConfigs = {
+  sayHello: {
+    method: HTTP.Methods.GET,
+    path: '/',
+    responses: {
+      [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
+        description: 'A simple hello message',
+        schema: z.object({ message: z.string() }),
+      }),
+    },
+  },
+} as const;
+```
+
+Create `src/controllers/hello/hello.controller.ts` — the controller class:
+
+```typescript
+import { BaseRestController, controller, api } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
+import { BASE_PATH, helloRouteConfigs } from './definitions';
 
-const BASE_PATH = '/hello';
-
-// The @controller decorator registers this class as a controller
 // All routes in this controller will be under /api/hello (remember path.base: '/api')
 @controller({ path: BASE_PATH })
 export class HelloController extends BaseRestController {
@@ -278,47 +300,38 @@ export class HelloController extends BaseRestController {
     super({ scope: HelloController.name, path: BASE_PATH });
   }
 
-  // Required: Override binding() to register routes or dependencies
-  override binding() {
-    // Option 1: Use bindRoute() or defineRoute() for programmatic route registration
-    // this.bindRoute({ configs: { method: 'get', path: '/programmatic', responses: {...} } }).to({ handler: this.myHandler });
+  // Override binding() to register custom routes via bindRoute() or defineRoute().
+  // For decorator-based routes (@api, @get, @post), this can be empty.
+  override binding() {}
 
-    // Option 2: Use @api decorator on methods (shown below) - recommended
-  }
-
-  // The @api decorator defines a route with explicit method. You can also use @get/@post shorthand decorators.
-  @api({
-    configs: {
-      method: HTTP.Methods.GET,
-      path: '/',
-      // This 'responses' config does two things:
-      // 1. Generates OpenAPI/Swagger documentation automatically
-      // 2. Validates that your handler returns the correct shape
-      responses: {
-        [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
-          description: 'A simple hello message',
-          schema: z.object({ message: z.string() }),
-        }),
-      },
-    },
-  })
+  @api({ configs: helloRouteConfigs.sayHello })
   sayHello(c: Context) {
     return c.json({ message: 'Hello, World!' }, HTTP.ResultCodes.RS_2.Ok);
   }
-
-  // For authenticated endpoints, add 'authenticate':
-  // @api({ configs: { method: HTTP.Methods.GET, path: '/secure', authenticate: { strategies: [Authentication.STRATEGY_JWT] } } })
 }
+```
+
+Create `src/controllers/hello/index.ts` — barrel export:
+
+```typescript
+export * from './hello.controller';
+```
+
+Create `src/controllers/index.ts` — export all controllers:
+
+```typescript
+export * from './hello';
 ```
 
 **Controller Patterns:**
 
 | Pattern | Description |
 |---------|-------------|
-| `@controller` | Registers the class as a controller with a base path. Supports optional `transport` field (`'rest'` default, `'grpc'`) |
+| `definitions.ts` | Route configs, Zod schemas, and constants — keeps controller file clean |
+| `@controller` | Registers the class as a controller with a base path |
 | `@api` | Defines a route with `method` specified in configs |
 | `@get`, `@post`, etc. | Shorthand decorators that auto-set the HTTP method (recommended) |
-| `binding()` | Required override — use `bindRoute()` or `defineRoute()` for programmatic routes |
+| `binding()` | Override for programmatic routes via `bindRoute()` / `defineRoute()`. Empty for decorator-based routes |
 | Zod schemas | Provide automatic validation and OpenAPI docs |
 
 > **Deep Dive:** See [Controllers Reference](../core-concepts/rest-controllers.md) for advanced routing patterns and validation.
@@ -341,12 +354,19 @@ const main = async () => {
 
   const applicationName = process.env.APP_ENV_APPLICATION_NAME?.toUpperCase() ?? 'My-App';
   logger.info('[main] Getting ready to start up %s Application...', applicationName);
+
+  // start() runs the full lifecycle automatically:
+  // staticConfigure → preConfigure → registerDataSources → registerComponents
+  // → registerControllers → postConfigure → setupMiddlewares → HTTP server
   await application.start();
   return application;
 };
 
 export default main();
 ```
+
+> [!TIP]
+> `start()` runs the full lifecycle internally. You only need the explicit `init()` → `boot()` → `start()` sequence when using **auto-discovery** (glob-based booters) to discover controllers/repositories from the filesystem. For manual registration (as shown here), `start()` alone is sufficient.
 
 ## 5. Run Your Application
 

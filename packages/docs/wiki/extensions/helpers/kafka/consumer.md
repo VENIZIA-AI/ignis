@@ -21,9 +21,10 @@ class KafkaConsumerHelper<
 | `start(opts)` | `(opts: IKafkaConsumeStartOptions): Promise<void>` | Start consuming (creates stream, wires callbacks) |
 | `startLagMonitoring(opts)` | `(opts: { topics: string[]; interval?: number }): void` | Start periodic lag monitoring |
 | `stopLagMonitoring()` | `(): void` | Stop lag monitoring |
-| `isHealthy()` | `(): boolean` | `true` when broker connected |
+| `isHealthy()` | `(): boolean` | `true` when at least one broker connected |
 | `isReady()` | `(): boolean` | `isHealthy()` **and** `consumer.isActive()` |
 | `getHealthStatus()` | `(): TKafkaHealthStatus` | `'connected'` \| `'disconnected'` \| `'unknown'` |
+| `getConnectedBrokerCount()` | `(): number` | Number of currently connected brokers |
 | `close(opts?)` | `(opts?: { isForce?: boolean }): Promise<void>` | Stop lag, close stream, close consumer |
 
 ## IKafkaConsumerOptions
@@ -41,8 +42,8 @@ interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | `identifier` | `string` | `'kafka-consumer'` | Scoped logging identifier |
 | `deserializers` | `Partial<Deserializers<K,V,HK,HV>>` | -- | Key/value/header deserializers |
 | `autocommit` | `boolean \| number` | `false` | Auto-commit offsets. `true` = default interval, `number` = custom ms |
-| `sessionTimeout` | `number` | `30000` | Session timeout -- consumer removed from group if no heartbeat |
-| `heartbeatInterval` | `number` | `3000` | Heartbeat interval -- must be less than `sessionTimeout` |
+| `sessionTimeout` | `number` | `60000` | Session timeout -- consumer removed from group if no heartbeat |
+| `heartbeatInterval` | `number` | `10000` | Heartbeat interval -- must be less than `sessionTimeout` |
 | `rebalanceTimeout` | `number` | `sessionTimeout` | Max time for rebalance. Defaults to the value of `sessionTimeout` |
 | `highWaterMark` | `number` | `1024` | Stream buffer size (messages) |
 | `minBytes` | `number` | `1` | Min bytes per fetch response |
@@ -141,8 +142,8 @@ await helper.start({ topics: ['orders'] });
 helper.startLagMonitoring({ topics: ['orders'], interval: 10_000 });
 
 // Health check
-helper.isHealthy(); // true when broker connected
-helper.isReady();   // true when broker connected AND consumer is active
+helper.isHealthy(); // true when at least one broker connected
+helper.isReady();   // true when at least one broker connected AND consumer is active
 
 // Shutdown
 await helper.close();

@@ -46,16 +46,16 @@ export class User extends BaseEntity<typeof User.schema> {
 
 // 2. Create a DataSource
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
       config: {
-        host: process.env.POSTGRES_HOST ?? 'localhost',
-        port: +(process.env.POSTGRES_PORT ?? 5432),
-        database: process.env.POSTGRES_DATABASE ?? 'mydb',
-        user: process.env.POSTGRES_USER ?? 'postgres',
-        password: process.env.POSTGRES_PASSWORD ?? '',
+        host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
+        port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
+        database: process.env.APP_ENV_POSTGRES_DATABASE ?? 'mydb',
+        user: process.env.APP_ENV_POSTGRES_USERNAME ?? 'postgres',
+        password: process.env.APP_ENV_POSTGRES_PASSWORD ?? '',
       },
     });
   }

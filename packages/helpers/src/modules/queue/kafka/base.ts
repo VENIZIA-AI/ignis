@@ -31,6 +31,9 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
 
   protected healthStatus: TKafkaHealthStatus = KafkaHealthStatuses.UNKNOWN;
 
+  /** Per-broker connection state. Key = "host:port" */
+  private readonly connectedBrokers = new Set<string>();
+
   private readonly onBrokerConnect?: TKafkaBrokerEventCallback;
   private readonly onBrokerDisconnect?: TKafkaBrokerEventCallback;
 
@@ -43,7 +46,7 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
   }
 
   isHealthy(): boolean {
-    return this.healthStatus === KafkaHealthStatuses.CONNECTED;
+    return this.connectedBrokers.size > 0;
   }
 
   isReady(): boolean {
@@ -54,13 +57,20 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     return this.healthStatus;
   }
 
+  getConnectedBrokerCount(): number {
+    return this.connectedBrokers.size;
+  }
+
   protected configureBrokerConnect() {
     this.client.on(KafkaClientEvents.BROKER_CONNECT, (payload: ConnectionPoolEventPayload) => {
+      const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
+      this.connectedBrokers.add(brokerKey);
       this.healthStatus = KafkaHealthStatuses.CONNECTED;
       this.logger.info(
-        '[configureBrokerConnect] Broker CONNECTED | Host: %s | Port: %d',
+        '[configureBrokerConnect] Broker CONNECTED | Host: %s | Port: %d | Connected: %d',
         payload.broker.host,
         payload.broker.port,
+        this.connectedBrokers.size,
       );
       this.onBrokerConnect?.({ broker: payload.broker });
     });
@@ -68,11 +78,18 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
 
   protected configureBrokerDisconnect() {
     this.client.on(KafkaClientEvents.BROKER_DISCONNECT, (payload: ConnectionPoolEventPayload) => {
-      this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+      const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
+      this.connectedBrokers.delete(brokerKey);
+
+      if (this.connectedBrokers.size === 0) {
+        this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+      }
+
       this.logger.warn(
-        '[configureBrokerDisconnect] Broker DISCONNECTED | Host: %s | Port: %d',
+        '[configureBrokerDisconnect] Broker DISCONNECTED | Host: %s | Port: %d | Remaining: %d',
         payload.broker.host,
         payload.broker.port,
+        this.connectedBrokers.size,
       );
       this.onBrokerDisconnect?.({ broker: payload.broker });
     });
@@ -80,11 +97,18 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
 
   protected configureBrokerFailed() {
     this.client.on(KafkaClientEvents.BROKER_FAILED, (payload: ConnectionPoolEventPayload) => {
-      this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+      const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
+      this.connectedBrokers.delete(brokerKey);
+
+      if (this.connectedBrokers.size === 0) {
+        this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+      }
+
       this.logger.error(
-        '[configureBrokerFailed] Broker connection FAILED | Host: %s | Port: %d',
+        '[configureBrokerFailed] Broker connection FAILED | Host: %s | Port: %d | Remaining: %d',
         payload.broker.host,
         payload.broker.port,
+        this.connectedBrokers.size,
       );
     });
   }
@@ -93,6 +117,11 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     this.configureBrokerConnect();
     this.configureBrokerDisconnect();
     this.configureBrokerFailed();
+  }
+
+  protected resetHealthState(): void {
+    this.connectedBrokers.clear();
+    this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
   }
 
   protected closeClient(): Promise<void> {

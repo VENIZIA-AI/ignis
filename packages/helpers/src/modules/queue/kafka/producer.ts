@@ -1,7 +1,7 @@
 import type { Consumer, Message, SendOptions } from '@platformatic/kafka';
 import { Producer } from '@platformatic/kafka';
 import { BaseKafkaHelper } from './base';
-import { KafkaDefaults, KafkaHealthStatuses } from './common/constants';
+import { KafkaDefaults } from './common/constants';
 import type {
   IKafkaProducerOptions,
   IKafkaTransactionContext,
@@ -179,7 +179,7 @@ export class KafkaProducerHelper<
       }
     }
 
-    this.healthStatus = KafkaHealthStatuses.DISCONNECTED;
+    this.resetHealthState();
     this.logger.info('[close] Producer closed | Force: %s', force);
   }
 }

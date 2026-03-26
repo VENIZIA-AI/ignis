@@ -31,7 +31,7 @@ export class WebSocketEmitter extends BaseHelper {
       });
     }
 
-    this.redisPub = redisConnection.getClient();
+    this.redisPub = redisConnection.duplicateClient();
   }
 
   private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
@@ -147,6 +147,9 @@ export class WebSocketEmitter extends BaseHelper {
   async shutdown() {
     const logger = this.logger.for(this.shutdown.name);
     logger.info('Shutting down WebSocket Emitter...');
+
+    await this.redisPub?.quit();
+
     logger.info('WebSocket Emitter shutdown complete');
   }
 }

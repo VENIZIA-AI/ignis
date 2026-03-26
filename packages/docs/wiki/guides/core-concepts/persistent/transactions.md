@@ -62,7 +62,8 @@ Ignis supports standard PostgreSQL isolation levels:
 | `REPEATABLE READ` | Queries see a snapshot as of the start of the transaction. | Reports, consistent reads across multiple queries. |
 | `SERIALIZABLE` | Strictest level. Emulates serial execution. | Financial transactions, critical data integrity. |
 
-Note: `READ UNCOMMITTED` is technically accepted but behaves as `READ COMMITTED` in PostgreSQL.
+> [!NOTE]
+> Ignis only supports these three levels. `READ UNCOMMITTED` is **not** accepted — PostgreSQL treats it as `READ COMMITTED` anyway, so Ignis omits it to avoid confusion.
 
 ## Best Practices
 

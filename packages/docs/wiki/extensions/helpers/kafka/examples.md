@@ -318,7 +318,7 @@ export class OrderEventService {
 | `Failed to deserialize a message` | Mismatch between serializer and deserializer | Ensure matching serde. For old data, use a new consumer group or recreate topic |
 | `JSON.stringify cannot serialize BigInt` | `message.offset` and `message.timestamp` are `bigint` | Use custom replacer: `(_k, v) => typeof v === 'bigint' ? v.toString() : v` |
 | Consumer idle (no messages) | More consumers than partitions | Ensure `numPartitions >= numConsumers` |
-| `isHealthy()` returns `false` | No broker connected yet, or connection lost | Check broker addresses, SASL config, network connectivity |
+| `isHealthy()` returns `false` | All brokers disconnected (a single idle disconnect won't trigger this) | Check broker addresses, SASL config, network connectivity. Use `getConnectedBrokerCount()` for details |
 | `isReady()` returns `false` (consumer) | Consumer not active -- `start()` not called or stream closed | Call `await helper.start({ topics })` before checking readiness |
 | Graceful shutdown timeout | In-flight requests taking too long | Increase `shutdownTimeout` or use `close({ isForce: true })` |
 

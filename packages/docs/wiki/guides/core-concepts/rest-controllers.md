@@ -218,7 +218,7 @@ this.bindRoute({
 For standard CRUD (Create, Read, Update, Delete) operations, `Ignis` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
 ```typescript
-// src/controllers/configuration.controller.ts (Example from @examples/vert)
+// src/controllers/configuration/configuration.controller.ts (Example from @examples/vert)
 import { Configuration } from '@/models';
 import { ConfigurationRepository } from '@/repositories';
 import {
@@ -236,7 +236,7 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: {
     name: 'ConfigurationController',
     basePath: BASE_PATH,
-    isStrict: true,
+    isStrict: { path: true, requestSchema: true },
   },
   entity: () => Configuration, // Provide a resolver for your entity class
 });

@@ -19,7 +19,6 @@ To create a service, extend the `BaseService` class and inject the repositories 
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
 import { ConfigurationRepository } from '../repositories';
 import { UserRepository } from '../repositories';
 import { LoggingService } from './logging.service'; // Example of another service
