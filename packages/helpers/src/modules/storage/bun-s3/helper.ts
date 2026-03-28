@@ -192,7 +192,7 @@ export class BunS3Helper extends BaseStorageHelper {
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      if (folderPath && !this.isValidName(folderPath)) {
+      if (folderPath && !this.isValidPath(folderPath)) {
         throw getError({ message: '[upload] Invalid folder path' });
       }
 
@@ -213,7 +213,10 @@ export class BunS3Helper extends BaseStorageHelper {
 
       const normalizeLink = normalizeLinkFn
         ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`;
+        : `/static-assets/${bucket}/${normalizeName
+            .split('/')
+            .map(s => encodeURIComponent(s))
+            .join('/')}`;
 
       await this.client.write(normalizeName, buffer, { bucket, type: mimeType });
 

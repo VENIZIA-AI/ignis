@@ -96,6 +96,68 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return true;
   }
 
+  static readonly DEFAULT_MAX_FOLDER_DEPTH = 2;
+
+  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean {
+    const maxDepth = opts?.maxDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+
+    if (typeof pathStr !== 'string' || !pathStr || isEmpty(pathStr)) {
+      this.logger.for(this.isValidPath.name).error('Empty or invalid path provided');
+      return false;
+    }
+
+    // Trim leading/trailing slashes for normalization
+    const normalized = pathStr.replace(/^\/+|\/+$/g, '');
+    if (!normalized) {
+      this.logger.for(this.isValidPath.name).error('Path resolved to empty after trimming slashes');
+      return false;
+    }
+
+    const segments = normalized.split('/');
+
+    // Reject empty segments (double slashes like "a//b")
+    if (segments.some(s => s.length === 0)) {
+      this.logger
+        .for(this.isValidPath.name)
+        .error('Path contains empty segments (double slashes): %s', pathStr);
+      return false;
+    }
+
+    // Enforce max depth: segments include folders + filename, so depth = segments.length - 1
+    const folderDepth = segments.length - 1;
+    if (folderDepth > maxDepth) {
+      this.logger
+        .for(this.isValidPath.name)
+        .error(
+          'Path exceeds max folder depth (%d): %s (depth: %d)',
+          maxDepth,
+          pathStr,
+          folderDepth,
+        );
+      return false;
+    }
+
+    // Validate each segment individually with isValidName()
+    for (const segment of segments) {
+      if (!this.isValidName(segment)) {
+        this.logger
+          .for(this.isValidPath.name)
+          .error('Path segment failed validation: %s (in path: %s)', segment, pathStr);
+        return false;
+      }
+    }
+
+    // Enforce total path length
+    if (normalized.length > 1024) {
+      this.logger
+        .for(this.isValidPath.name)
+        .error('Path is too long (%d characters): %s', normalized.length, pathStr);
+      return false;
+    }
+
+    return true;
+  }
+
   getFileType(opts: { mimeType: string }): string {
     const { mimeType } = opts;
     if (mimeType?.toLowerCase()?.startsWith(MimeTypes.IMAGE)) {

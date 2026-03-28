@@ -101,7 +101,7 @@ export class MinioHelper extends BaseStorageHelper {
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      if (folderPath && !this.isValidName(folderPath)) {
+      if (folderPath && !this.isValidPath(folderPath)) {
         throw getError({ message: '[upload] Invalid folder path' });
       }
 
@@ -121,7 +121,10 @@ export class MinioHelper extends BaseStorageHelper {
           : originalName.toLowerCase().replace(/ /g, '_');
       const normalizeLink = normalizeLinkFn
         ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-assets/${bucket}/${encodeURIComponent(normalizeName)}`;
+        : `/static-assets/${bucket}/${normalizeName
+            .split('/')
+            .map(s => encodeURIComponent(s))
+            .join('/')}`;
 
       await this.client.putObject(bucket, normalizeName, buffer, size, {
         originalName,

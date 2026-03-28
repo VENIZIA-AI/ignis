@@ -53,6 +53,7 @@ export interface IStorageHelperOptions {
 
 export interface IStorageHelper {
   isValidName(name: string): boolean;
+  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
   isBucketExists(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;

@@ -175,7 +175,7 @@ export class DiskHelper extends BaseStorageHelper {
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      if (folderPath && !this.isValidName(folderPath)) {
+      if (folderPath && !this.isValidPath(folderPath)) {
         throw getError({ message: '[upload] Invalid folder path' });
       }
 
@@ -195,7 +195,10 @@ export class DiskHelper extends BaseStorageHelper {
           : originalName.toLowerCase().replace(/ /g, '_');
       const normalizeLink = normalizeLinkFn
         ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-resources/${bucket}/${encodeURIComponent(normalizeName)}`;
+        : `/static-resources/${bucket}/${normalizeName
+            .split('/')
+            .map(s => encodeURIComponent(s))
+            .join('/')}`;
 
       const objectPath = this.getObjectPath(bucket, normalizeName);
 
