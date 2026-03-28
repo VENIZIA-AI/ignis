@@ -40,10 +40,17 @@ export interface IAssetControllerOptions {
  * Decodes each segment individually to avoid double-encoding issues.
  */
 const decodeObjectPath: (rawPath: string) => string = rawPath => {
-  return rawPath
-    .split('/')
-    .map(segment => decodeURIComponent(segment))
-    .join('/');
+  try {
+    return rawPath
+      .split('/')
+      .map(segment => decodeURIComponent(segment))
+      .join('/');
+  } catch (error) {
+    throw getError({
+      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+      message: 'Invalid object path encoding',
+    });
+  }
 };
 
 /**
