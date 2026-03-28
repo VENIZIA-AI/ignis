@@ -75,6 +75,8 @@ export const StaticAssetDefinitions = {
   GET_OBJECT_BY_NAME: {
     method: 'get',
     path: '/buckets/{bucketName}/objects/{objectName}',
+    // Native Hono path: /buckets/:bucketName/objects/:objectName{.+}
+    // Supports folder paths (e.g., photos/2024/file.jpg) via Hono regex params
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -88,8 +90,9 @@ export const StaticAssetDefinitions = {
           param: {
             name: 'objectName',
             in: 'path',
+            description: 'Object name or path (e.g., "photo.jpg" or "photos/2024/photo.jpg")',
           },
-          example: 'photo.jpg',
+          example: 'photos/2024/photo.jpg',
         }),
       }),
     },
@@ -110,7 +113,9 @@ export const StaticAssetDefinitions = {
   } satisfies IAuthRouteConfig,
   DOWNLOAD_OBJECT_BY_NAME: {
     method: 'get',
-    path: '/buckets/{bucketName}/objects/{objectName}/download',
+    path: '/buckets/{bucketName}/download/{objectName}',
+    // Native Hono path: /buckets/:bucketName/download/:objectName{.+}
+    // Restructured: action prefix before wildcard (Hono catch-all is greedy)
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -124,8 +129,9 @@ export const StaticAssetDefinitions = {
           param: {
             name: 'objectName',
             in: 'path',
+            description: 'Object name or path (e.g., "photo.jpg" or "photos/2024/photo.jpg")',
           },
-          example: 'photo.jpg',
+          example: 'photos/2024/photo.jpg',
         }),
       }),
     },
@@ -161,6 +167,17 @@ export const StaticAssetDefinitions = {
         principalType: z.string().optional(),
         principalId: z.string().or(z.number()).optional(),
         variant: z.string().optional(),
+        folderPath: z
+          .string()
+          .optional()
+          .openapi({
+            param: {
+              name: 'folderPath',
+              in: 'query',
+              description: 'Target folder path for uploaded files (e.g., "photos/2024")',
+            },
+            example: 'photos/2024',
+          }),
       }),
       body: {
         content: {
@@ -205,6 +222,7 @@ export const StaticAssetDefinitions = {
   DELETE_OBJECT: {
     method: 'delete',
     path: '/buckets/{bucketName}/objects/{objectName}',
+    // Native Hono path: /buckets/:bucketName/objects/:objectName{.+}
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -218,8 +236,9 @@ export const StaticAssetDefinitions = {
           param: {
             name: 'objectName',
             in: 'path',
+            description: 'Object name or path (e.g., "photo.jpg" or "photos/2024/photo.jpg")',
           },
-          example: 'photo.jpg',
+          example: 'photos/2024/photo.jpg',
         }),
       }),
     },
@@ -292,7 +311,9 @@ export const StaticAssetDefinitions = {
   } satisfies IAuthRouteConfig,
   RECREATE_METALINK: {
     method: 'put',
-    path: '/buckets/{bucketName}/objects/{objectName}/meta-links',
+    path: '/buckets/{bucketName}/meta-links/{objectName}',
+    // Native Hono path: /buckets/:bucketName/meta-links/:objectName{.+}
+    // Restructured: action prefix before wildcard (Hono catch-all is greedy)
     request: {
       params: z.object({
         bucketName: z.string().openapi({
@@ -306,8 +327,9 @@ export const StaticAssetDefinitions = {
           param: {
             name: 'objectName',
             in: 'path',
+            description: 'Object name or path (e.g., "photo.jpg" or "photos/2024/photo.jpg")',
           },
-          example: 'photo.jpg',
+          example: 'photos/2024/photo.jpg',
         }),
       }),
     },
