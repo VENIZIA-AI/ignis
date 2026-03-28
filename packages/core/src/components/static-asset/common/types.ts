@@ -20,13 +20,20 @@ export type TStaticAssetExtraOptions = {
   };
   normalizeNameFn?: (opts: { originalName: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
+  maxFolderDepth?: number;
   [key: string]: AnyType;
 };
 
 // Type definitions for route params/query (avoids heavy RouteHandler inference)
 export type TBucketParams = { bucketName: string };
 export type TObjectParams = { bucketName: string; objectName: string };
-export type TUploadQuery = { principalType?: string; principalId?: string; variant?: string };
+export type TUploadQuery = {
+  principalType?: string;
+  principalId?: string;
+  variant?: string;
+  folderPath?: string;
+};
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {

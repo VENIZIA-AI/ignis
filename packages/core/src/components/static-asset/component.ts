@@ -43,9 +43,12 @@ export class StaticAssetComponent extends BaseComponent {
             normalizeLinkFn: extra?.normalizeLinkFn
               ? extra.normalizeLinkFn
               : opts => {
-                  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodeURIComponent(
-                    opts.normalizeName,
-                  )}`;
+                  // Encode each path segment individually to preserve folder separators
+                  const encodedPath = opts.normalizeName
+                    .split('/')
+                    .map(s => encodeURIComponent(s))
+                    .join('/');
+                  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
                 },
           },
         }),
