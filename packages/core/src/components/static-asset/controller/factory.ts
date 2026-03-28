@@ -1,7 +1,8 @@
-import { BaseRestController } from '@/base/controllers';
+import { BaseRestController, TRouteContext } from '@/base/controllers';
 import { controller as controllerDecorator } from '@/base/metadata';
 import {
   BaseHelper,
+  BaseStorageHelper,
   createContentDispositionHeader,
   getError,
   HTTP,
@@ -11,6 +12,7 @@ import {
   parseMultipartBody,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
+import { Env } from 'hono';
 import {
   TBucketParams,
   TListQuery,
@@ -33,6 +35,41 @@ export interface IAssetControllerOptions {
   options?: TStaticAssetExtraOptions;
 }
 
+/**
+ * Safely decodes an object path captured by Hono's regex catch-all param.
+ * Decodes each segment individually to avoid double-encoding issues.
+ */
+const decodeObjectPath: (rawPath: string) => string = rawPath => {
+  return rawPath
+    .split('/')
+    .map(segment => decodeURIComponent(segment))
+    .join('/');
+};
+
+/**
+ * Encodes each segment of an object path for use in URLs.
+ * Preserves `/` as folder separator while encoding individual segments.
+ */
+const encodeObjectPath: (objectPath: string) => string = objectPath => {
+  return objectPath
+    .split('/')
+    .map(segment => encodeURIComponent(segment))
+    .join('/');
+};
+
+/** Sets whitelisted metadata headers on the response context. */
+const applyMetadataHeaders: (opts: {
+  ctx: TRouteContext<Env>;
+  metadata: Record<string, any>;
+}) => void = ({ ctx, metadata }) => {
+  Object.entries(metadata).forEach(([key, value]) => {
+    if (!WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])) {
+      return;
+    }
+    ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
+  });
+};
+
 export class AssetControllerFactory extends BaseHelper {
   constructor() {
     super({ scope: AssetControllerFactory.name });
@@ -41,6 +78,7 @@ export class AssetControllerFactory extends BaseHelper {
   static defineAssetController(opts: IAssetControllerOptions) {
     const { controller, helper, options, useMetaLink, metaLink, storage } = opts;
     const { name, basePath, routes, isStrict = true } = controller;
+    const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
     @controllerDecorator({ path: basePath })
     class _controller extends BaseRestController {
@@ -84,7 +122,8 @@ export class AssetControllerFactory extends BaseHelper {
           configs: { ...StaticAssetDefinitions.GET_OBJECT_BY_NAME, ...routes?.getObjectByName },
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
+            const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
+            const objectName = decodeObjectPath(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -92,23 +131,18 @@ export class AssetControllerFactory extends BaseHelper {
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
-            if (!helper.isValidName(objectName)) {
+
+            if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
               throw getError({
-                message: 'Invalid object name',
+                message: 'Invalid object name or path',
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
 
             const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
             const { size, metadata } = fileStat;
-            Object.entries(metadata).forEach(([key, value]) => {
-              if (
-                !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
-              ) {
-                return;
-              }
-              ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
-            });
+            applyMetadataHeaders({ ctx, metadata });
+
             if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
               ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_OCTET_STREAM);
             }
@@ -130,38 +164,37 @@ export class AssetControllerFactory extends BaseHelper {
           },
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
+            const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
+            const objectName = decodeObjectPath(rawObjectName);
+
             if (!helper.isValidName(bucketName)) {
               throw getError({
                 message: 'Invalid bucket name',
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
-            if (!helper.isValidName(objectName)) {
+
+            if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
               throw getError({
-                message: 'Invalid object name',
+                message: 'Invalid object name or path',
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
 
             const fileStat = await helper.getStat({ bucket: bucketName, name: objectName });
             const { size, metadata } = fileStat;
+            applyMetadataHeaders({ ctx, metadata });
 
-            Object.entries(metadata).forEach(([key, value]) => {
-              if (
-                !WHITELIST_HEADERS.includes(key.toLowerCase() as (typeof WHITELIST_HEADERS)[number])
-              ) {
-                return;
-              }
-              ctx.header(key.toLowerCase(), String(value).replace(/[\r\n]/g, ''));
-            });
             if (!ctx.res.headers.has(HTTP.Headers.CONTENT_TYPE)) {
               ctx.header(HTTP.Headers.CONTENT_TYPE, HTTP.HeaderValues.APPLICATION_OCTET_STREAM);
             }
             ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
+
+            // Use only the filename (last segment) for the Content-Disposition header
+            const fileName = objectName.split('/').pop() ?? objectName;
             ctx.header(
               HTTP.Headers.CONTENT_DISPOSITION,
-              createContentDispositionHeader({ filename: objectName, type: 'attachment' }),
+              createContentDispositionHeader({ filename: fileName, type: 'attachment' }),
             );
             ctx.header('x-content-type-options', 'nosniff');
 
@@ -205,6 +238,34 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
+            // Validate folderPath if provided
+            const folderPath = query.folderPath;
+            if (folderPath) {
+              const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
+              if (!normalizedFolder) {
+                throw getError({
+                  message: 'Invalid folder path',
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
+              }
+              // Validate folder segments (depth excludes filename, so use maxDepth directly)
+              const folderSegments = normalizedFolder.split('/');
+              if (folderSegments.length > maxFolderDepth) {
+                throw getError({
+                  message: `Folder path exceeds max depth of ${maxFolderDepth}`,
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
+              }
+              for (const segment of folderSegments) {
+                if (!helper.isValidName(segment)) {
+                  throw getError({
+                    message: `Invalid folder path segment: ${segment}`,
+                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                  });
+                }
+              }
+            }
+
             const filesArray = await parseMultipartBody({
               context: ctx,
               storage: options?.parseMultipartBody?.storage,
@@ -218,6 +279,7 @@ export class AssetControllerFactory extends BaseHelper {
                 buffer: file.buffer ?? Buffer.alloc(0),
                 size: file.size,
                 encoding: file.encoding,
+                folderPath: folderPath ?? undefined,
               };
             });
 
@@ -305,7 +367,8 @@ export class AssetControllerFactory extends BaseHelper {
           configs: { ...StaticAssetDefinitions.DELETE_OBJECT, ...routes?.deleteObject },
         }).to({
           handler: async ctx => {
-            const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
+            const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
+            const objectName = decodeObjectPath(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -313,9 +376,10 @@ export class AssetControllerFactory extends BaseHelper {
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
-            if (!helper.isValidName(objectName)) {
+
+            if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
               throw getError({
-                message: 'Invalid object name',
+                message: 'Invalid object name or path',
                 statusCode: HTTP.ResultCodes.RS_4.BadRequest,
               });
             }
@@ -379,7 +443,9 @@ export class AssetControllerFactory extends BaseHelper {
             configs: { ...StaticAssetDefinitions.RECREATE_METALINK, ...routes?.recreateMetaLink },
           }).to({
             handler: async ctx => {
-              const { bucketName, objectName } = ctx.req.valid<TObjectParams>('param');
+              const { bucketName, objectName: rawObjectName } =
+                ctx.req.valid<TObjectParams>('param');
+              const objectName = decodeObjectPath(rawObjectName);
 
               if (!helper.isValidName(bucketName)) {
                 throw getError({
@@ -387,9 +453,10 @@ export class AssetControllerFactory extends BaseHelper {
                   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
-              if (!helper.isValidName(objectName)) {
+
+              if (!helper.isValidPath(objectName, { maxDepth: maxFolderDepth })) {
                 throw getError({
-                  message: 'Invalid object name',
+                  message: 'Invalid object name or path',
                   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
@@ -403,7 +470,7 @@ export class AssetControllerFactory extends BaseHelper {
               // Generate link
               const link = options?.normalizeLinkFn
                 ? options.normalizeLinkFn({ bucketName, normalizeName: objectName })
-                : `/${basePath}/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}`;
+                : `/${basePath}/buckets/${bucketName}/objects/${encodeObjectPath(objectName)}`;
 
               // Check if MetaLink already exists
               const existing = await metaLink.repository.findOne({
