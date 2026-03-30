@@ -302,60 +302,121 @@ export class KafkaConsumerHelper<
     const { reconnectDelayMs, maxReconnectAttempts, errorHandler } = opts;
     let consecutiveErrors = 0;
 
-    while (this.stream) {
-      try {
-        yield* this.stream;
-      } catch (error) {
-        const err = toError(error);
-        this.logger.error('[consumeMessages] Stream error: %s', err.message);
-        errorHandler?.({ error: err });
-        this.destroyDeadStream();
+    while (true) {
+      if (this.stream) {
+        yield* this.drainStream({ errorHandler });
       }
 
-      // Reconnect loop
+      if (!this.consumeStartOptions) {
+        this.logger.info('[consumeMessages] Shutdown requested, exiting consume loop');
+        return;
+      }
+
       consecutiveErrors++;
       if (consecutiveErrors > maxReconnectAttempts) {
         this.logger.error(
-          '[consumeMessages] All %d reconnect attempts exhausted, consumer stopped',
+          '[consumeMessages] All %d reconnect attempts exhausted | Topics: %j',
           maxReconnectAttempts,
+          this.consumeStartOptions?.topics,
         );
         return;
       }
 
-      this.logger.info(
-        '[consumeMessages] Reconnecting %d/%d in %dms | Topics: %j',
-        consecutiveErrors,
-        maxReconnectAttempts,
-        reconnectDelayMs,
-        this.consumeStartOptions?.topics,
-      );
-      await sleep(reconnectDelayMs);
+      await this.attemptReconnect({
+        attempt: consecutiveErrors,
+        maxAttempts: maxReconnectAttempts,
+        delayMs: reconnectDelayMs,
+        errorHandler,
+      });
 
       if (!this.consumeStartOptions) {
-        return; // closeStream() called during sleep
+        this.logger.info(
+          '[consumeMessages] Shutdown requested during reconnect, exiting consume loop',
+        );
+        return;
       }
 
-      try {
-        this.stream = await this.client.consume({
-          topics: this.consumeStartOptions.topics,
-          mode: this.consumeStartOptions.mode ?? KafkaDefaults.CONSUME_MODE,
-          fallbackMode:
-            this.consumeStartOptions.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
-        });
-
-        if (this.onMessageError) {
-          this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
-            this.onMessageError?.({ error: err });
-          });
-        }
-
-        this.logger.info('[consumeMessages] Reconnected successfully');
+      if (this.stream) {
         consecutiveErrors = 0;
-      } catch (error) {
-        const err = toError(error);
-        this.logger.error('[consumeMessages] Reconnect failed: %s', err.message);
-        errorHandler?.({ error: err });
       }
+    }
+  }
+
+  private async *drainStream(opts: {
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }) {
+    this.logger.debug('[drainStream] Consuming | Topics: %j', this.consumeStartOptions?.topics);
+
+    try {
+      yield* this.stream!;
+      this.logger.warn(
+        '[drainStream] Stream ended normally | Topics: %j',
+        this.consumeStartOptions?.topics,
+      );
+    } catch (error) {
+      const err = toError(error);
+      this.logger.error(
+        '[drainStream] Stream error: %s | Topics: %j',
+        err.message,
+        this.consumeStartOptions?.topics,
+      );
+      opts.errorHandler?.({ error: err });
+    }
+
+    this.destroyDeadStream();
+  }
+
+  private async attemptReconnect(opts: {
+    attempt: number;
+    maxAttempts: number;
+    delayMs: number;
+    errorHandler?: TKafkaMessageErrorCallback<KeyType, ValueType, HeaderKeyType, HeaderValueType>;
+  }): Promise<void> {
+    const { attempt, maxAttempts, delayMs, errorHandler } = opts;
+
+    this.logger.info(
+      '[attemptReconnect] Reconnecting %d/%d in %dms | Topics: %j | ConnectedBrokers: %d',
+      attempt,
+      maxAttempts,
+      delayMs,
+      this.consumeStartOptions?.topics,
+      this.getConnectedBrokerCount(),
+    );
+    await sleep(delayMs);
+
+    if (!this.consumeStartOptions) {
+      return;
+    }
+
+    try {
+      this.stream = await this.client.consume({
+        topics: this.consumeStartOptions.topics,
+        mode: this.consumeStartOptions.mode ?? KafkaDefaults.CONSUME_MODE,
+        fallbackMode: this.consumeStartOptions.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
+      });
+
+      if (this.onMessageError) {
+        this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
+          this.onMessageError?.({ error: err });
+        });
+      }
+
+      this.logger.info(
+        '[attemptReconnect] Reconnected successfully | Topics: %j | Attempt: %d',
+        this.consumeStartOptions.topics,
+        attempt,
+      );
+    } catch (error) {
+      const err = toError(error);
+      this.logger.error(
+        '[attemptReconnect] Failed (%d/%d): %s | Topics: %j | ConnectedBrokers: %d',
+        attempt,
+        maxAttempts,
+        err.message,
+        this.consumeStartOptions?.topics,
+        this.getConnectedBrokerCount(),
+      );
+      errorHandler?.({ error: err });
     }
   }
 
@@ -382,6 +443,18 @@ export class KafkaConsumerHelper<
 
   protected override configureBrokerEvents(): void {
     super.configureBrokerEvents();
+
+    // Destroy stalled stream when all brokers disconnect to trigger reconnect loop.
+    // Without this, yield* this.stream hangs forever because the stream doesn't
+    // error on its own when broker connections are dropped from the pool.
+    this.client.on(KafkaClientEvents.BROKER_DISCONNECT, () => {
+      if (this.getConnectedBrokerCount() === 0 && this.stream) {
+        this.logger.warn(
+          '[configureBrokerEvents] All brokers disconnected, destroying stream to trigger reconnect',
+        );
+        this.destroyDeadStream();
+      }
+    });
 
     this.client.on(KafkaClientEvents.CONSUMER_GROUP_JOIN, (payload: ConsumerGroupJoinPayload) => {
       this.logger.info(
