@@ -302,6 +302,13 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-03-30',
+              collapsed: true,
+              items: [
+                { text: 'Row-Level Locking (FOR UPDATE)', link: '/changelogs/2026-03-30-row-level-locking' },
+              ],
+            },
+            {
               text: '2026-03-15',
               collapsed: true,
               items: [

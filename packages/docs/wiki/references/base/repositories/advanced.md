@@ -101,6 +101,114 @@ async function transferFunds(fromId: string, toId: string, amount: number) {
 ```
 
 
+## Row-Level Locking
+
+Acquire pessimistic locks on selected rows within a transaction using PostgreSQL's `SELECT ... FOR UPDATE/SHARE` syntax.
+
+### Basic Usage
+
+Pass `lock` in options alongside a `transaction`:
+
+```typescript
+const tx = await repo.beginTransaction();
+
+try {
+  // Lock the row — other transactions will wait
+  const item = await repo.findOne({
+    filter: { where: { id: '123' } },
+    options: {
+      transaction: tx,
+      lock: { strength: 'update' },
+    },
+  });
+
+  // Safe to modify — no concurrent changes possible
+  await repo.updateById({
+    id: '123',
+    data: { quantity: item.quantity - 1 },
+    options: { transaction: tx },
+  });
+
+  await tx.commit();
+} catch (error) {
+  await tx.rollback();
+  throw error;
+}
+```
+
+### Lock Strengths
+
+Use the `LockStrengths` constant class or string literals:
+
+```typescript
+import { LockStrengths } from '@venizia/ignis';
+
+// Using constant
+lock: { strength: LockStrengths.UPDATE }
+
+// Using string literal
+lock: { strength: 'update' }
+```
+
+| Strength | SQL | Use Case |
+|----------|-----|----------|
+| `update` | `FOR UPDATE` | Exclusive lock for writes |
+| `no key update` | `FOR NO KEY UPDATE` | Exclusive lock, allows concurrent `FOR KEY SHARE` |
+| `share` | `FOR SHARE` | Shared read lock, prevents writes |
+| `key share` | `FOR KEY SHARE` | Weakest lock, only prevents key changes |
+
+### Wait Behavior
+
+Control what happens when rows are already locked:
+
+```typescript
+// Skip locked rows (queue-style worker pattern)
+const items = await repo.find({
+  filter: { where: { status: 'pending' }, limit: 10 },
+  options: {
+    transaction: tx,
+    lock: { strength: 'update', config: { skipLocked: true } },
+  },
+});
+
+// Fail immediately instead of waiting
+const item = await repo.findOne({
+  filter: { where: { id: '123' } },
+  options: {
+    transaction: tx,
+    lock: { strength: 'update', config: { noWait: true } },
+  },
+});
+```
+
+| Config | SQL | Behavior |
+|--------|-----|----------|
+| *(none)* | `FOR UPDATE` | Wait until lock is released |
+| `{ noWait: true }` | `FOR UPDATE NOWAIT` | Throw error immediately if locked |
+| `{ skipLocked: true }` | `FOR UPDATE SKIP LOCKED` | Silently skip locked rows |
+
+### Constraints
+
+> [!WARNING]
+> Row-level locking requires a **transaction** and is **incompatible with `include`/`fields`** in the filter (these use the Drizzle Query API which does not support `.for()`).
+
+```typescript
+// Error — no transaction
+await repo.findOne({
+  filter: { where: { id: '123' } },
+  options: { lock: { strength: 'update' } },
+});
+
+// Error — include uses Query API
+await repo.findOne({
+  filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
+  options: { transaction: tx, lock: { strength: 'update' } },
+});
+```
+
+**Supported methods:** `find`, `findOne`, `findById`
+
+
 ## Hidden Properties
 
 Automatically exclude sensitive fields from query results.
@@ -599,6 +707,7 @@ All repository operations accept an `options` parameter with these fields:
 | `transaction` | `ITransaction` | - | Transaction context for the operation |
 | `log` | `{ use: boolean; level?: TLogLevel }` | - | Enable operation logging |
 | `shouldSkipDefaultFilter` | `boolean` | `false` | Bypass the default filter from model settings |
+| `lock` | `TLockOptions` | - | Row-level locking (requires transaction, Core API only) |
 
 Write operations additionally support:
 
@@ -618,6 +727,8 @@ Write operations additionally support:
 | Commit | `await tx.commit()` |
 | Rollback | `await tx.rollback()` |
 | Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
+| Lock rows for update | `options: { transaction: tx, lock: { strength: 'update' } }` |
+| Lock + skip locked | `options: { transaction: tx, lock: { strength: 'update', config: { skipLocked: true } } }` |
 | Enable logging | `options: { log: { use: true, level: 'debug' } }` |
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |

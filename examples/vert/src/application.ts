@@ -17,7 +17,7 @@ import {
   AuthorizationEnforcerTypes,
   CasbinEnforcerModelDrivers,
   BaseApplication,
-  BaseMetaLinkModel,
+  // BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
   CasbinAuthorizationEnforcer,
@@ -66,10 +66,17 @@ import path from 'node:path';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';
 import { PostgresDataSource } from './datasources/postgres.datasource';
-import { MetaLinkRepository } from './repositories/meta-link.repository';
-import { UserRepository } from './repositories/user.repository';
+// import { MetaLinkRepository } from './repositories/meta-link.repository';
+import {
+  ConfigurationRepository,
+  ProductRepository,
+  SaleChannelProductRepository,
+  SaleChannelRepository,
+  UserRepository,
+} from './repositories';
 import { AuthenticationService } from './services';
-import { AuthorizationExampleController, TestController } from './controllers';
+import { RowLockingTestService } from './services/tests/row-locking-test.service';
+// import { AuthorizationExampleController, TestController } from './controllers';
 import { Organization, Permission, PolicyDefinition, Role } from './models/entities';
 
 // -----------------------------------------------------------------------------------------------
@@ -164,6 +171,10 @@ export class Application extends BaseApplication {
     // Manual registration (booter can't discover .ts files when running from source)
     this.dataSource(PostgresDataSource);
     this.repository(UserRepository);
+    this.repository(ConfigurationRepository);
+    this.repository(ProductRepository);
+    this.repository(SaleChannelRepository);
+    this.repository(SaleChannelProductRepository);
     this.service(AuthenticationService);
 
     this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
@@ -254,6 +265,7 @@ export class Application extends BaseApplication {
   // --------------------------------------------------------------------------------
   preConfigure(): ValueOrPromise<void> {
     this.registerAuth();
+    this.registerTestDependencies();
 
     // Extra Components
     this.bind<IHealthCheckOptions>({
@@ -307,8 +319,8 @@ export class Application extends BaseApplication {
     // });
     // this.component(StaticAssetComponent);
 
-    this.controller(TestController);
-    this.controller(AuthorizationExampleController);
+    // this.controller(TestController);
+    // this.controller(AuthorizationExampleController);
   }
 
   // --------------------------------------------------------------------------------
@@ -393,5 +405,22 @@ export class Application extends BaseApplication {
     );
 
     await this.registerAuthorization();
+
+    // Register test repositories & services, then run tests
+    await this.runRepositoryTests();
+  }
+
+  private registerTestDependencies(): void {
+    this.service(RowLockingTestService);
+  }
+
+  private async runRepositoryTests(): Promise<void> {
+    const testService = this.get<RowLockingTestService>({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: RowLockingTestService.name,
+      }),
+    });
+    await testService.run();
   }
 }

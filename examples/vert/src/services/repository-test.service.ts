@@ -10,6 +10,7 @@ import {
   InclusionTestService,
   JsonFilterTestService,
   JsonOrderByTestService,
+  RowLockingTestService,
   TransactionTestService,
 } from './tests';
 import { UserAuditTestService } from './tests/user-audit-test.service';
@@ -111,6 +112,13 @@ export class RepositoryTestService extends BaseService {
       }),
     })
     private readonly jsonUpdateTestService: JsonUpdateTestService,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: RowLockingTestService.name,
+      }),
+    })
+    private readonly rowLockingTestService: RowLockingTestService,
   ) {
     super({ scope: RepositoryTestService.name });
   }
@@ -135,7 +143,8 @@ export class RepositoryTestService extends BaseService {
     // await this.runAdvancedFilterQueryTests();
     // await this.runDefaultFilterTests();
     // await this.runUserAuditTests();
-    await this.runJsonUpdateTestService();
+    // await this.runJsonUpdateTestService();
+    await this.runRowLockingTests();
 
     this.logger.for('runAllTests').info('='.repeat(80));
     this.logger.for('runAllTests').info(' All repository test suites completed!');
@@ -193,7 +202,11 @@ export class RepositoryTestService extends BaseService {
     await this.userAuditTestService.run();
   }
 
-  private async runJsonUpdateTestService(): Promise<void> {
+  async runJsonUpdateTestService(): Promise<void> {
     await this.jsonUpdateTestService.run();
+  }
+
+  async runRowLockingTests(): Promise<void> {
+    await this.rowLockingTestService.run();
   }
 }

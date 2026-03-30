@@ -3,7 +3,7 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
-import { DEFAULT_LIMIT, RelationTypes } from './constants';
+import { DEFAULT_LIMIT, RelationTypes, TLockStrength } from './constants';
 
 /** Zod schema for pagination skip parameter. */
 export const SkipSchema = z
@@ -246,6 +246,18 @@ export type TRepositoryLogOptions = {
   level?: TLogLevel;
 };
 
+/** Configuration for row-level lock wait behavior. Mutually exclusive: use noWait OR skipLocked. */
+export type TLockConfig =
+  | { noWait: true; skipLocked?: undefined }
+  | { noWait?: undefined; skipLocked: true }
+  | { noWait?: undefined; skipLocked?: undefined };
+
+/** Row-level locking options for read operations. */
+export type TLockOptions = {
+  strength: TLockStrength;
+  config?: TLockConfig;
+};
+
 /** Interface for objects that can be associated with a database transaction. */
 export interface IWithTransaction {
   transaction?: ITransaction;
@@ -257,6 +269,9 @@ export interface IExtraOptions extends IWithTransaction {
 
   /** If true, bypass the default filter configured in model settings (e.g., soft delete). */
   shouldSkipDefaultFilter?: boolean;
+
+  /** Row-level locking. Requires transaction. Incompatible with include/fields (Query API). */
+  lock?: TLockOptions;
 }
 
 /** @deprecated Use IExtraOptions instead. */

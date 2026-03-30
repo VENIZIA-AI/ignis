@@ -45,7 +45,7 @@ const decodeObjectPath: (rawPath: string) => string = rawPath => {
       .split('/')
       .map(segment => decodeURIComponent(segment))
       .join('/');
-  } catch (error) {
+  } catch (_error) {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_4.BadRequest,
       message: 'Invalid object path encoding',

@@ -94,6 +94,11 @@ export class ReadableRepository<
       query = query.offset(offset);
     }
 
+    const lock = opts.options?.lock;
+    if (lock) {
+      return query.for(lock.strength, lock.config) as Promise<Array<R>>;
+    }
+
     return query as Promise<Array<R>>;
   }
 
@@ -130,8 +135,15 @@ export class ReadableRepository<
     });
 
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
+    const useCoreAPI = this.canUseCoreAPI(mergedFilter);
 
-    const dataPromise = this.canUseCoreAPI(mergedFilter)
+    this.validateLockOptions({
+      lock: options?.lock,
+      transaction: options?.transaction,
+      usesQueryAPI: !useCoreAPI,
+    });
+
+    const dataPromise = useCoreAPI
       ? this.findWithCoreAPI<R>({ filter: mergedFilter, options: effectiveOptions })
       : this.findWithQueryAPI<R>({ filter: mergedFilter, options: effectiveOptions });
 
@@ -159,8 +171,16 @@ export class ReadableRepository<
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
   }): Promise<TNullable<R>> {
+    const useCoreAPI = this.canUseCoreAPI(opts.filter);
+
+    this.validateLockOptions({
+      lock: opts.options?.lock,
+      transaction: opts.options?.transaction,
+      usesQueryAPI: !useCoreAPI,
+    });
+
     // Use Core API for flat queries (no relations, no field selection)
-    if (this.canUseCoreAPI(opts.filter)) {
+    if (useCoreAPI) {
       const results = await this.findWithCoreAPI<R>({
         filter: opts.filter,
         isFindOne: true,

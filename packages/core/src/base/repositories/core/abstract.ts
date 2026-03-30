@@ -10,6 +10,7 @@ import {
   TDataRange,
   TDrizzleQueryOptions,
   TFilter,
+  TLockOptions,
   TRepositoryLogOptions,
   TRepositoryOperationScope,
   TWhere,
@@ -185,6 +186,29 @@ export abstract class AbstractRepository<
     }
 
     return transaction.connector;
+  }
+
+  /** Validates lock options: requires transaction, incompatible with Query API (include/fields). */
+  protected validateLockOptions(opts: {
+    lock?: TLockOptions;
+    transaction?: ITransaction;
+    usesQueryAPI?: boolean;
+  }): void {
+    if (!opts.lock) {
+      return;
+    }
+
+    if (!opts.transaction) {
+      throw getError({
+        message: `[${this.constructor.name}][validateLockOptions] Row-level locking requires a transaction`,
+      });
+    }
+
+    if (opts.usesQueryAPI) {
+      throw getError({
+        message: `[${this.constructor.name}][validateLockOptions] Row-level locking is incompatible with Query API`,
+      });
+    }
   }
 
   /** Gets the Drizzle query interface, validating schema registration. */

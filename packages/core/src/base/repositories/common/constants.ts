@@ -31,3 +31,24 @@ export class RelationTypes {
 
 /** Valid relation type values. */
 export type TRelationType = TConstValue<typeof RelationTypes>;
+
+/** PostgreSQL row-level lock strengths for SELECT ... FOR <strength>. */
+export class LockStrengths {
+  static readonly UPDATE = 'update';
+  static readonly NO_KEY_UPDATE = 'no key update';
+  static readonly SHARE = 'share';
+  static readonly KEY_SHARE = 'key share';
+  static readonly SCHEME_SET = new Set([
+    this.UPDATE,
+    this.NO_KEY_UPDATE,
+    this.SHARE,
+    this.KEY_SHARE,
+  ]);
+
+  static isValid(strength: string): boolean {
+    return this.SCHEME_SET.has(strength);
+  }
+}
+
+/** Valid lock strength values. */
+export type TLockStrength = TConstValue<typeof LockStrengths>;
