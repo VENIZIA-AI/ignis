@@ -91,11 +91,11 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@minimaltech/eslint-node": "^0.2.1",
+    "@minimaltech/eslint-node": "^0.2.2",
     "eslint-plugin-unicorn": "^64.0.0"
   },
   "peerDependencies": {
-    "eslint": "^9.0.0",
+    "eslint": "^9.0.0 || ^10.0.0",
     "prettier": "^3.0.0",
     "typescript": "^5.0.0 || ^6.0.0"
   },
@@ -112,7 +112,7 @@
   },
   "devDependencies": {
     "@types/bun": "^1.3.11",
-    "eslint": "^9.39.3",
+    "eslint": "^10.1.0",
     "prettier": "^3.8.1",
     "typescript": "^6.0.2"
   }

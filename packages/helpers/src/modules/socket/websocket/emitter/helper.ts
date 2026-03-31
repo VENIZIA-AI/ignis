@@ -1,15 +1,14 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { Cluster, Redis } from 'ioredis';
+import { TRedisClient } from '@/modules/redis/types';
+import { EventEmitter } from 'node:events';
 import {
   IRedisSocketMessage,
   IWebSocketEmitterOptions,
   WebSocketChannels,
   WebSocketMessageTypes,
 } from '../common';
-
-type TRedisClient = Redis | Cluster;
 
 const EMITTER_SERVER_ID = 'emitter';
 
@@ -51,11 +50,12 @@ export class WebSocketEmitter extends BaseHelper {
         );
       }, timeoutMs);
 
-      client.once('ready', () => {
+      const emitter = client as EventEmitter;
+      emitter.once('ready', () => {
         clearTimeout(timer);
         resolve();
       });
-      client.once('error', (error: Error) => {
+      emitter.once('error', (error: Error) => {
         clearTimeout(timer);
         reject(error);
       });
@@ -66,7 +66,7 @@ export class WebSocketEmitter extends BaseHelper {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Emitter | id: %s', this.identifier);
 
-    this.redisPub.on('error', (error: Error) => {
+    (this.redisPub as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis pub error | error: %s', error);
     });
 

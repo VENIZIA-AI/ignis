@@ -1,16 +1,16 @@
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { Cluster, Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
+import { EventEmitter } from 'node:events';
 import zlib from 'node:zlib';
-import { IRedisHelperCallbacks } from './types';
+import { IRedisHelperCallbacks, TRedisClient } from './types';
 
-export class DefaultRedisHelper extends BaseHelper {
-  client: Redis | Cluster;
+export class DefaultRedisHelper<ClientType extends TRedisClient = TRedisClient> extends BaseHelper {
+  client: ClientType;
   name: string;
 
   constructor(
-    opts: { scope: string; identifier: string; client: Redis | Cluster } & IRedisHelperCallbacks,
+    opts: { scope: string; identifier: string; client: ClientType } & IRedisHelperCallbacks,
   ) {
     super({ scope: opts.scope, identifier: opts.identifier });
 
@@ -18,23 +18,24 @@ export class DefaultRedisHelper extends BaseHelper {
     this.client = opts.client;
 
     const { onInitialized, onConnected, onReady, onError } = opts;
+    const emitter = this.client as EventEmitter;
 
-    this.client.on('connect', () => {
+    emitter.on('connect', () => {
       this.logger.for('connect').info('Redis CONNECTED | Name: %s', this.name);
       onConnected?.({ name: this.name, helper: this });
     });
 
-    this.client.on('ready', () => {
+    emitter.on('ready', () => {
       this.logger.for('ready').info('Redis READY | Name: %s', this.name);
       onReady?.({ name: this.name, helper: this });
     });
 
-    this.client.on('error', (error: Error) => {
+    emitter.on('error', (error: Error) => {
       this.logger.for('error').error('Redis ERROR | Name: %s | Error: %s', this.name, error);
       onError?.({ name: this.name, helper: this, error });
     });
 
-    this.client.on('reconnecting', () => {
+    emitter.on('reconnecting', () => {
       this.logger.for('reconnecting').warn('Redis client RECONNECTING | Name: %s', this.name);
     });
 
@@ -45,7 +46,7 @@ export class DefaultRedisHelper extends BaseHelper {
     return this.client;
   }
 
-  duplicateClient(): Redis | Cluster {
+  duplicateClient(): TRedisClient {
     return this.client.duplicate();
   }
 

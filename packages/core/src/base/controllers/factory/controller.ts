@@ -83,12 +83,7 @@ export class ControllerFactory extends BaseHelper {
     }
 
     // 1. Resolve EntityClass
-    let _entityClass: TClass<BaseEntity<EntitySchema>> | null = null;
-    if (isClass(entity)) {
-      _entityClass = entity;
-    } else {
-      _entityClass = entity();
-    }
+    const _entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new _entityClass();
 
     // 2. Define required CRU (Create - Retrieve - Update) schema

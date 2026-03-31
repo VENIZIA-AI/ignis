@@ -1,7 +1,7 @@
 import { AnyObject } from '@/common/types';
 import { stringify } from 'node:querystring';
-import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 import { BaseNetworkRequest } from '../base-network-request.helper';
+import { AbstractNetworkFetchableHelper, IRequestOptions } from './base-fetcher';
 
 export interface INodeFetchRequestOptions extends RequestInit, IRequestOptions {
   url: string;
@@ -46,14 +46,11 @@ export class NodeFetcher extends AbstractNetworkFetchableHelper<
       signal: abortController?.signal ?? signal,
     };
 
-    let requestUrl = '';
     const urlParts = [url];
     if (params) {
       urlParts.push(stringify(params));
-      requestUrl = urlParts.join('?');
-    } else {
-      requestUrl = urlParts.join();
     }
+    const requestUrl = params ? urlParts.join('?') : urlParts.join();
 
     logger
       ?.for(this.send.name)

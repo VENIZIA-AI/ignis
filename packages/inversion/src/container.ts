@@ -184,7 +184,7 @@ export class Container extends BaseHelper {
   getBinding<T>(opts: {
     key: string | symbol | { namespace: string; key: string };
   }): TNullable<Binding<T>> {
-    let key: string | symbol | null = null;
+    let key: string | symbol | null;
     switch (typeof opts.key) {
       case 'string': {
         key = opts.key;

@@ -3,27 +3,26 @@ import { RuntimeModules, TRuntimeModule } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
+import { TRedisClient } from '@/modules/redis/types';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
-import { Cluster, Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
+import { EventEmitter } from 'node:events';
 import { Server as HTTPServer } from 'node:http';
 import { Server as IOServer, Socket as IOSocket, ServerOptions } from 'socket.io';
 import {
   IHandshake,
   ISocketIOClient,
+  SocketIOClientStates,
+  SocketIOConstants,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOServerOptions,
   TSocketIOValidateRoomFn,
-  SocketIOClientStates,
-  SocketIOConstants,
 } from '../common';
 
 const CLIENT_AUTHENTICATE_TIMEOUT = 10_000;
 const CLIENT_PING_INTERVAL = 30_000;
-
-type TRedisClient = Redis | Cluster;
 
 export class SocketIOServerHelper extends BaseHelper {
   private runtime: TRuntimeModule;
@@ -164,8 +163,9 @@ export class SocketIOServerHelper extends BaseHelper {
         return;
       }
 
-      client.once('ready', () => resolve());
-      client.once('error', (error: Error) => reject(error));
+      const emitter = client as EventEmitter;
+      emitter.once('ready', () => resolve());
+      emitter.once('error', (error: Error) => reject(error));
     });
   }
 
@@ -173,13 +173,15 @@ export class SocketIOServerHelper extends BaseHelper {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);
 
-    this.redisPub.on('error', (error: Error) => {
+    (this.redisPub as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis adapter pub error | error: %s', error);
     });
-    this.redisSub.on('error', (error: Error) => {
+
+    (this.redisSub as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis adapter sub error | error: %s', error);
     });
-    this.redisEmitter.on('error', (error: Error) => {
+
+    (this.redisEmitter as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis emitter error | error: %s', error);
     });
 

@@ -1,6 +1,6 @@
+import { getError } from '@/modules/error';
 import get from 'lodash/get';
 import round from 'lodash/round';
-import { getError } from '@/modules/error';
 
 const INTL_0_DIGITS_FORMATER = new Intl.NumberFormat('en-US', {
   maximumFractionDigits: 0,
@@ -106,12 +106,7 @@ export const toStringDecimal = (input: any, digit = 2, options = { useLocaleForm
     return 0;
   }
 
-  let number = 0;
-  if (isInt(input)) {
-    number = int(input);
-  } else {
-    number = float(input, digit);
-  }
+  const number = isInt(input) ? int(input) : float(input, digit);
 
   if (!useLocaleFormat) {
     return number.toFixed(digit);

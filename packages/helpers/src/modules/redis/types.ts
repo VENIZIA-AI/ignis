@@ -1,5 +1,7 @@
-import { ClusterOptions } from 'ioredis';
+import { Cluster, ClusterOptions, Redis } from 'ioredis';
 import { DefaultRedisHelper } from './default.helper';
+
+export type TRedisClient = Redis | Cluster;
 
 export interface IRedisHelperProps {
   name: string;

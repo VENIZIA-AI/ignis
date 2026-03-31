@@ -1,8 +1,9 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
+import { TRedisClient } from '@/modules/redis/types';
 import { executePromiseWithLimit } from '@/utilities';
-import { Cluster, Redis } from 'ioredis';
+import { EventEmitter } from 'node:events';
 import {
   IBunServer,
   IBunWebSocketConfig,
@@ -16,8 +17,8 @@ import {
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
-  TWebSocketMessageHandler,
   TWebSocketHandshakeFn,
+  TWebSocketMessageHandler,
   TWebSocketOutboundTransformer,
   TWebSocketValidateRoomFn,
   WebSocketChannels,
@@ -26,8 +27,6 @@ import {
   WebSocketEvents,
   WebSocketMessageTypes,
 } from '../common';
-
-type TRedisClient = Redis | Cluster;
 
 export class WebSocketServerHelper<
   AuthDataType extends Record<string, unknown> = Record<string, unknown>,
@@ -174,11 +173,14 @@ export class WebSocketServerHelper<
         );
       }, timeoutMs);
 
-      client.once('ready', () => {
+      const emitter = client as EventEmitter;
+
+      emitter.once('ready', () => {
         clearTimeout(timer);
         resolve();
       });
-      client.once('error', (error: Error) => {
+
+      emitter.once('error', (error: Error) => {
         clearTimeout(timer);
         reject(error);
       });
@@ -189,10 +191,10 @@ export class WebSocketServerHelper<
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring WebSocket Server | id: %s', this.identifier);
 
-    this.redisPub.on('error', (error: Error) => {
+    (this.redisPub as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis pub error | error: %s', error);
     });
-    this.redisSub.on('error', (error: Error) => {
+    (this.redisSub as EventEmitter).on('error', (error: Error) => {
       logger.error('Redis sub error | error: %s', error);
     });
 
@@ -228,13 +230,16 @@ export class WebSocketServerHelper<
       this.redisSub.psubscribe(WebSocketChannels.forUserPattern()),
     ]);
 
-    this.redisSub.on('message', (channel: string, raw: string) => {
+    (this.redisSub as EventEmitter).on('message', (channel: string, raw: string) => {
       this.onRedisMessage({ channel, raw });
     });
 
-    this.redisSub.on('pmessage', (_pattern: string, channel: string, raw: string) => {
-      this.onRedisMessage({ channel, raw });
-    });
+    (this.redisSub as EventEmitter).on(
+      'pmessage',
+      (_pattern: string, channel: string, raw: string) => {
+        this.onRedisMessage({ channel, raw });
+      },
+    );
 
     logger.info('Redis subscriptions configured');
   }

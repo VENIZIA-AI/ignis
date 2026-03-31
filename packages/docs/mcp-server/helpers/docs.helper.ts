@@ -68,6 +68,7 @@ export class DocsHelper {
       Logger.error('Failed to load documentation:', error);
       throw new Error(
         `Documentation loading failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        { cause: error },
       );
     }
   }

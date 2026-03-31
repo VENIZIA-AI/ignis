@@ -86,10 +86,10 @@ const formatZodError = (opts: {
   const { isProduction, requestId, url, path, error } = opts;
   const statusCode = HTTP.ResultCodes.RS_4.UnprocessableEntity;
 
-  let validationErrors = error;
+  let validationErrors: unknown;
   try {
     validationErrors = JSON.parse(error.message);
-  } catch (_) {
+  } catch {
     validationErrors = error;
   }
 

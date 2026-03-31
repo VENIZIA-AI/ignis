@@ -168,7 +168,7 @@ function runTests() {
   console.log('='.repeat(70));
 
   for (const testCase of testCases) {
-    let result: { success: boolean; error?: string; sql?: string } = { success: false };
+    let result: { success: boolean; error?: string; sql?: string };
 
     try {
       const sql = filterBuilder.testBuildJsonOrderBy({
