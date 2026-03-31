@@ -1,4 +1,4 @@
-import { AnyType, BaseHelper, validateModule } from '@venizia/ignis-helpers';
+import { AnyType, BaseHelper } from '@venizia/ignis-helpers';
 import { IMailMessage, IMailSendResult, IMailTransport, TNodemailerConfig } from '../../common';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
@@ -11,10 +11,10 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
   }
 
   configure(config: TNodemailerConfig) {
-    validateModule({
-      scope: NodemailerTransportHelper.name,
-      modules: ['nodemailer'],
-    });
+    // validateModule({
+    //   scope: NodemailerTransportHelper.name,
+    //   modules: ['nodemailer'],
+    // });
 
     const nodemailer = require('nodemailer');
     this.transporter = nodemailer.createTransport(config);
