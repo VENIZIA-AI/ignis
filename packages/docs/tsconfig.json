@@ -10,7 +10,6 @@
     /* Paths */
     "outDir": "dist",
     "rootDir": ".",
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./*"]
     },

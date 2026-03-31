@@ -5,9 +5,8 @@
     "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",
-    "baseUrl": "src",
     "paths": {
-      "@/*": ["./*"]
+      "@/*": ["./src/*"]
     },
     "emitDecoratorMetadata": true,
     "experimentalDecorators": true,
