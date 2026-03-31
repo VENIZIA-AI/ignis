@@ -1,4 +1,4 @@
-import { AnyType, BaseHelper, validateModule } from '@venizia/ignis-helpers';
+import { AnyType, BaseHelper } from '@venizia/ignis-helpers';
 import { Stream } from 'node:stream';
 import {
   IMailAttachment,
@@ -19,10 +19,10 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
   }
 
   configure(config: TMailgunConfig) {
-    validateModule({
-      scope: MailgunTransportHelper.name,
-      modules: ['mailgun.js'],
-    });
+    // validateModule({
+    //   scope: MailgunTransportHelper.name,
+    //   modules: ['mailgun.js'],
+    // });
 
     this.domain = config.domain;
 
