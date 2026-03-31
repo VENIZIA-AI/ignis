@@ -246,7 +246,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
 
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
-  base: '/ignis/',
+  base: '/',
   srcDir: '../wiki',
   outDir: './.vitepress/dist',
   srcExclude: ['**/template/**'],
