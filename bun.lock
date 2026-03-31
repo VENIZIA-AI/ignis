@@ -335,7 +335,7 @@
       "name": "@venizia/ignis-helpers",
       "version": "0.0.8-6",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.0.5",
+        "@venizia/ignis-inversion": "^0.0.6-0",
         "dayjs": "^1.11.20",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.12.9",
@@ -351,7 +351,7 @@
         "@platformatic/kafka": "1.31.0",
         "@types/bun": "^1.3.11",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.6",
+        "@venizia/dev-configs": "^0.0.7-0",
         "eslint": "^9.39.3",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
@@ -384,7 +384,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.0.5",
+      "version": "0.0.6-0",
       "dependencies": {
         "lodash": "^4.17.23",
         "reflect-metadata": "^0.2.2",
@@ -2324,17 +2324,19 @@
 
     "@venizia/ignis/@venizia/dev-configs": ["@venizia/dev-configs@0.0.6", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1", "eslint-plugin-unicorn": "^62.0.0" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-Xof+Sz/hoY1q49z71hokRSfaKwFzpjiLcYySVUm+ETCtZDw7SbqjK3swHVAamwir5bi29ZRjvDh3yBrJfBOzWg=="],
 
+    "@venizia/ignis/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.5", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-iGq9Klb3JD5Olol4hijVH88DX3Z+ubtJrv8lgHv2KhbL5IIbpvppQgE4/ieIdPIQ6ZTLQiKkh9hiMe8BHPp/Yw=="],
+
     "@venizia/ignis/typescript": ["typescript@6.0.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ=="],
 
     "@venizia/ignis-boot/@venizia/dev-configs": ["@venizia/dev-configs@0.0.6", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1", "eslint-plugin-unicorn": "^62.0.0" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-Xof+Sz/hoY1q49z71hokRSfaKwFzpjiLcYySVUm+ETCtZDw7SbqjK3swHVAamwir5bi29ZRjvDh3yBrJfBOzWg=="],
+
+    "@venizia/ignis-boot/@venizia/ignis-inversion": ["@venizia/ignis-inversion@0.0.5", "", { "dependencies": { "lodash": "^4.17.21", "reflect-metadata": "^0.2.2", "zod": "^4.1.13" } }, "sha512-iGq9Klb3JD5Olol4hijVH88DX3Z+ubtJrv8lgHv2KhbL5IIbpvppQgE4/ieIdPIQ6ZTLQiKkh9hiMe8BHPp/Yw=="],
 
     "@venizia/ignis-boot/typescript": ["typescript@6.0.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ=="],
 
     "@venizia/ignis-docs/@venizia/dev-configs": ["@venizia/dev-configs@0.0.6", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1", "eslint-plugin-unicorn": "^62.0.0" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-Xof+Sz/hoY1q49z71hokRSfaKwFzpjiLcYySVUm+ETCtZDw7SbqjK3swHVAamwir5bi29ZRjvDh3yBrJfBOzWg=="],
 
     "@venizia/ignis-docs/typescript": ["typescript@6.0.2", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-bGdAIrZ0wiGDo5l8c++HWtbaNCWTS4UTv7RaTH/ThVIgjkveJt83m74bBHMJkuCbslY8ixgLBVZJIOiQlQTjfQ=="],
-
-    "@venizia/ignis-helpers/@venizia/dev-configs": ["@venizia/dev-configs@0.0.6", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.1", "eslint-plugin-unicorn": "^62.0.0" }, "peerDependencies": { "eslint": "^9.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-Xof+Sz/hoY1q49z71hokRSfaKwFzpjiLcYySVUm+ETCtZDw7SbqjK3swHVAamwir5bi29ZRjvDh3yBrJfBOzWg=="],
 
     "@venizia/ignis-helpers/ioredis": ["ioredis@5.9.3", "", { "dependencies": { "@ioredis/commands": "1.5.0", "cluster-key-slot": "^1.1.0", "debug": "^4.3.4", "denque": "^2.1.0", "lodash.defaults": "^4.2.0", "lodash.isarguments": "^3.1.0", "redis-errors": "^1.2.0", "redis-parser": "^3.0.0", "standard-as-callback": "^2.1.0" } }, "sha512-VI5tMCdeoxZWU5vjHWsiE/Su76JGhBvWF1MJnV9ZtGltHk9BmD48oDq8Tj8haZ85aceXZMxLNDQZRVo5QKNgXA=="],
 
@@ -2525,10 +2527,6 @@
     "@venizia/ignis-docs/@venizia/dev-configs/eslint-plugin-unicorn": ["eslint-plugin-unicorn@62.0.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "@eslint-community/eslint-utils": "^4.9.0", "@eslint/plugin-kit": "^0.4.0", "change-case": "^5.4.4", "ci-info": "^4.3.1", "clean-regexp": "^1.0.0", "core-js-compat": "^3.46.0", "esquery": "^1.6.0", "find-up-simple": "^1.0.1", "globals": "^16.4.0", "indent-string": "^5.0.0", "is-builtin-module": "^5.0.0", "jsesc": "^3.1.0", "pluralize": "^8.0.0", "regexp-tree": "^0.1.27", "regjsparser": "^0.13.0", "semver": "^7.7.3", "strip-indent": "^4.1.1" }, "peerDependencies": { "eslint": ">=9.38.0" } }, "sha512-HIlIkGLkvf29YEiS/ImuDZQbP12gWyx5i3C6XrRxMvVdqMroCI9qoVYCoIl17ChN+U89pn9sVwLxhIWj5nEc7g=="],
 
     "@venizia/ignis-docs/@venizia/dev-configs/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
-
-    "@venizia/ignis-helpers/@venizia/dev-configs/eslint-plugin-unicorn": ["eslint-plugin-unicorn@62.0.0", "", { "dependencies": { "@babel/helper-validator-identifier": "^7.28.5", "@eslint-community/eslint-utils": "^4.9.0", "@eslint/plugin-kit": "^0.4.0", "change-case": "^5.4.4", "ci-info": "^4.3.1", "clean-regexp": "^1.0.0", "core-js-compat": "^3.46.0", "esquery": "^1.6.0", "find-up-simple": "^1.0.1", "globals": "^16.4.0", "indent-string": "^5.0.0", "is-builtin-module": "^5.0.0", "jsesc": "^3.1.0", "pluralize": "^8.0.0", "regexp-tree": "^0.1.27", "regjsparser": "^0.13.0", "semver": "^7.7.3", "strip-indent": "^4.1.1" }, "peerDependencies": { "eslint": ">=9.38.0" } }, "sha512-HIlIkGLkvf29YEiS/ImuDZQbP12gWyx5i3C6XrRxMvVdqMroCI9qoVYCoIl17ChN+U89pn9sVwLxhIWj5nEc7g=="],
-
-    "@venizia/ignis-helpers/@venizia/dev-configs/typescript": ["typescript@5.9.3", "", { "bin": { "tsc": "bin/tsc", "tsserver": "bin/tsserver" } }, "sha512-jl1vZzPDinLr9eUt3J/t7V6FgNEw9QjvBPdysz9KfQDD41fQrC2Y4vKQdiaUpFT4bXlb1RHhLpp8wtm6M5TgSw=="],
 
     "@venizia/ignis-helpers/ioredis/@ioredis/commands": ["@ioredis/commands@1.5.0", "", {}, "sha512-eUgLqrMf8nJkZxT24JvVRrQya1vZkQh8BBeYNwGDqa5I0VUi8ACx7uFvAaLxintokpTenkK6DASvo/bvNbBGow=="],
 
