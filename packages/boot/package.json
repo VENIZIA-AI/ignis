@@ -99,7 +99,7 @@
   },
   "dependencies": {
     "@venizia/ignis-helpers": "^0.0.8-6",
-    "@venizia/ignis-inversion": "^0.0.5",
+    "@venizia/ignis-inversion": "0.0.6-1",
     "glob": "^13.0.6",
     "lodash": "^4.17.23",
     "reflect-metadata": "^0.2.2"
