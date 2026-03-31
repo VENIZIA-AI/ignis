@@ -201,7 +201,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.11",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7-0",
+        "@venizia/dev-configs": "^0.0.7-1",
         "eslint": "^10.1.0",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
@@ -228,7 +228,7 @@
         "@types/lodash": "^4.17.23",
         "@types/nodemailer": "^7.0.11",
         "@types/pg": "^8.20.0",
-        "@venizia/dev-configs": "^0.0.7-0",
+        "@venizia/dev-configs": "^0.0.7-1",
         "drizzle-kit": "^0.31.10",
         "eslint": "^10.1.0",
         "prettier": "^3.8.1",
@@ -277,7 +277,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.0.7-0",
+      "version": "0.0.7-1",
       "dependencies": {
         "@minimaltech/eslint-node": "^0.2.2",
         "eslint-plugin-unicorn": "^64.0.0",
@@ -320,7 +320,7 @@
       "devDependencies": {
         "@braintree/sanitize-url": "^7.1.2",
         "@types/bun": "^1.3.11",
-        "@venizia/dev-configs": "^0.0.7-0",
+        "@venizia/dev-configs": "^0.0.7-1",
         "eslint": "^10.1.0",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
@@ -351,7 +351,7 @@
         "@platformatic/kafka": "1.31.0",
         "@types/bun": "^1.3.11",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7-0",
+        "@venizia/dev-configs": "^0.0.7-1",
         "eslint": "^10.1.0",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
@@ -393,7 +393,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.11",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7-0",
+        "@venizia/dev-configs": "^0.0.7-1",
         "eslint": "^10.1.0",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
@@ -1098,7 +1098,7 @@
 
     "@types/react-dom": ["@types/react-dom@19.2.3", "", { "peerDependencies": { "@types/react": "^19.2.0" } }, "sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ=="],
 
-    "@types/send": ["@types/send@1.2.1", "", { "dependencies": { "@types/node": "*" } }, "sha512-arsCikDvlU99zl1g69TcAB3mzZPpxgw0UQnaHeC1Nwb015xp8bknZv5rIfri9xTOcMuaVgvabfIRA7PSZVuZIQ=="],
+    "@types/send": ["@types/send@0.17.6", "", { "dependencies": { "@types/mime": "^1", "@types/node": "*" } }, "sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og=="],
 
     "@types/serve-static": ["@types/serve-static@1.15.10", "", { "dependencies": { "@types/http-errors": "*", "@types/node": "*", "@types/send": "<1" } }, "sha512-tRs1dB+g8Itk72rlSI2ZrW6vZg0YrLI81iQSTkMmOqnqCaNr/8Ek4VwWcN5vZgCYWbg/JJSGBlUaYGAOP73qBw=="],
 
@@ -2323,8 +2323,6 @@
     "@sindresorhus/slugify/escape-string-regexp": ["escape-string-regexp@5.0.0", "", {}, "sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw=="],
 
     "@sindresorhus/transliterate/escape-string-regexp": ["escape-string-regexp@5.0.0", "", {}, "sha512-/veY75JbMK4j1yjvuUxuVsiS/hr/4iHs9FTT6cgTexxdE0Ly/glccBAkloH/DofkjRbZU3bnoj38mOmhkZ0lHw=="],
-
-    "@types/serve-static/@types/send": ["@types/send@0.17.6", "", { "dependencies": { "@types/mime": "^1", "@types/node": "*" } }, "sha512-Uqt8rPBE8SY0RK8JB1EzVOIZ32uqy8HwdxCnoCOsYrvnswqmFZ/k+9Ikidlk/ImhsdvBsloHbAlewb2IEBV/Og=="],
 
     "@typescript-eslint/eslint-plugin/ignore": ["ignore@7.0.5", "", {}, "sha512-Hs59xBNfUIunMFgWAbGX5cq6893IbWg4KnrjbYwX3tx0ztorVgTDA6B2sxf8ejHJ4wz8BqGUMYlnzNBer5NvGg=="],
 

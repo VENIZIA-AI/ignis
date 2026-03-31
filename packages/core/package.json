@@ -227,7 +227,7 @@
     "@types/lodash": "^4.17.23",
     "@types/nodemailer": "^7.0.11",
     "@types/pg": "^8.20.0",
-    "@venizia/dev-configs": "^0.0.7-0",
+    "@venizia/dev-configs": "^0.0.7-1",
     "drizzle-kit": "^0.31.10",
     "eslint": "^10.1.0",
     "prettier": "^3.8.1",

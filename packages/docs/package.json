@@ -129,7 +129,7 @@
   "devDependencies": {
     "@braintree/sanitize-url": "^7.1.2",
     "@types/bun": "^1.3.11",
-    "@venizia/dev-configs": "^0.0.7-0",
+    "@venizia/dev-configs": "^0.0.7-1",
     "eslint": "^10.1.0",
     "prettier": "^3.8.1",
     "tsc-alias": "^1.8.16",
