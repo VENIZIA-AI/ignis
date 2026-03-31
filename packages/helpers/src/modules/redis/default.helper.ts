@@ -46,7 +46,7 @@ export class DefaultRedisHelper<ClientType extends TRedisClient = TRedisClient> 
     return this.client;
   }
 
-  duplicateClient(): TRedisClient {
+  duplicateClient() {
     return this.client.duplicate();
   }
 

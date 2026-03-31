@@ -1,6 +1,6 @@
 import { BaseHelper } from '@/modules/base';
 import { DefaultRedisHelper } from '@/modules/redis';
-import { Job, Queue, Worker } from 'bullmq';
+import { ConnectionOptions, Job, Queue, Worker } from 'bullmq';
 import { Cluster } from 'ioredis';
 import { TBullQueueRole } from '../common';
 
@@ -92,7 +92,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
 
     const queueName = this.resolveQueueName();
     this.queue = new Queue<TQueueElement, TQueueResult>(queueName, {
-      connection: this.redisConnection.duplicateClient(),
+      connection: this.redisConnection.duplicateClient() as ConnectionOptions,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
@@ -130,7 +130,7 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
           );
       },
       {
-        connection: this.redisConnection.duplicateClient(),
+        connection: this.redisConnection.duplicateClient() as ConnectionOptions,
         concurrency: this.numberOfWorker,
         lockDuration: this.lockDuration,
       },

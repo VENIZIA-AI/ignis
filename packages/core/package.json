@@ -223,6 +223,7 @@
     "@hono/node-server": "^1.19.12",
     "@hono/swagger-ui": "^0.6.1",
     "@socket.io/bun-engine": "^0.1.0",
+    "casbin": "^5.49.0",
     "@types/bun": "^1.3.11",
     "@types/lodash": "^4.17.23",
     "@types/nodemailer": "^7.0.11",
