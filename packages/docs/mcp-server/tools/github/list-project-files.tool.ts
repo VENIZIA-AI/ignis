@@ -86,7 +86,7 @@ export class ListProjectFilesTool extends BaseTool<typeof InputSchema, typeof Ou
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async input => this.execute(input),
+      execute: async input => this.execute(InputSchema.parse(input)),
     });
   }
 }

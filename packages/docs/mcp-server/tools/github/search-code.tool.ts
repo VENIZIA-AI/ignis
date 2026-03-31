@@ -207,7 +207,7 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
       description: this.description,
       inputSchema: this.inputSchema,
       outputSchema: this.outputSchema,
-      execute: async input => this.execute(input),
+      execute: async input => this.execute(InputSchema.parse(input)),
     });
   }
 }

@@ -11,5 +11,5 @@ export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema ext
   abstract execute(opts: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
 
   /** Converts this tool instance to a Mastra-compatible tool object. */
-  abstract getTool(): Tool<z.infer<TInputSchema>, z.infer<TOutputSchema>>;
+  abstract getTool(): Tool<z.input<TInputSchema>, z.infer<TOutputSchema>>;
 }
