@@ -252,7 +252,7 @@ const config = defineConfig({
   srcExclude: ['**/template/**'],
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
-  head: [['link', { rel: 'icon', href: '/ignis/logo.svg' }]],
+  head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   vite: {
     build: {
       chunkSizeWarningLimit: 2000,
