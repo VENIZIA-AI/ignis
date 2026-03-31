@@ -166,7 +166,7 @@
     "drizzle-orm": "^0.45.2",
     "drizzle-zod": "^0.8.3",
     "hono": "^4.12.9",
-    "jose": "^6.2.2",
+    "jose": "^6.2.1",
     "mailgun.js": "^12.1.1",
     "nodemailer": "^7.0.10",
     "pg": "^8.18.0",
