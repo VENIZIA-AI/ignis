@@ -23,7 +23,8 @@ export class Environment {
   ]);
 
   static get current(): string {
-    return process.env.NODE_ENV || Environment.DEVELOPMENT;
+    const { NODE_ENV } = process.env;
+    return NODE_ENV || Environment.DEVELOPMENT;
   }
 
   static is(opts: { name: string }) {
@@ -56,7 +57,8 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
   }
 
   isDevelopment() {
-    return process.env.NODE_ENV === 'development';
+    const { NODE_ENV } = process.env;
+    return NODE_ENV === 'development';
   }
 
   keys() {

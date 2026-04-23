@@ -8,7 +8,7 @@ const extraLogEnvs =
   (process.env.APP_ENV_EXTRA_LOG_ENVS ?? '').split(',').map(el => el.trim()) ?? [];
 const LOG_ENVIRONMENTS = new Set([...Array.from(Environment.COMMON_ENVS), ...extraLogEnvs]);
 const isDebugEnabled = toBoolean(process.env.DEBUG);
-const CURRENT_ENV = process.env.NODE_ENV;
+const { NODE_ENV: CURRENT_ENV } = process.env;
 const shouldLogDebug = isDebugEnabled && (!CURRENT_ENV || LOG_ENVIRONMENTS.has(CURRENT_ENV));
 
 export class Logger {

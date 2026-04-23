@@ -132,7 +132,8 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
       error,
     );
 
-    const env = context.env?.NODE_ENV || process.env.NODE_ENV;
+    const { NODE_ENV } = process.env;
+    const env = context.env?.NODE_ENV || NODE_ENV;
     const isProduction = env?.toLowerCase() === Environment.PRODUCTION;
 
     const statusCode =

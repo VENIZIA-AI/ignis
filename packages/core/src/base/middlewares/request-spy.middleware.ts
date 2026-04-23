@@ -13,7 +13,8 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
 
   constructor() {
     super({ scope: 'SpyMW' });
-    const env = process.env.NODE_ENV?.toLowerCase();
+    const { NODE_ENV } = process.env;
+    const env = NODE_ENV?.toLowerCase();
     this.isDebugMode = env !== Environment.PRODUCTION;
   }
 
