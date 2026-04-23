@@ -1,4 +1,4 @@
-import { Logger, Environment, HTTP } from '@venizia/ignis-helpers';
+import { Environment, HTTP, Logger } from '@venizia/ignis-helpers';
 import { ErrorHandler, HTTPResponseError } from 'hono/types';
 import { RequestSpyMiddleware } from './request-spy.middleware';
 
@@ -139,7 +139,6 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const statusCode =
       'statusCode' in error ? error.statusCode : HTTP.ResultCodes.RS_5.InternalServerError;
     const messageCode = 'messageCode' in error ? error.messageCode : undefined;
-    const messageArgs = 'messageArgs' in error ? error.messageArgs : undefined;
 
     if (error.name === 'ZodError') {
       const rs = formatZodError({
@@ -164,9 +163,9 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const rs = {
       message: resolvedMessage,
       messageCode,
-      messageArgs,
       statusCode: resolvedStatusCode,
       requestId,
+      extra: 'extra' in error ? error?.extra : undefined,
       details: {
         url: context.req.url,
         path: context.req.path,
