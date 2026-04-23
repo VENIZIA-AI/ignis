@@ -139,6 +139,7 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const statusCode =
       'statusCode' in error ? error.statusCode : HTTP.ResultCodes.RS_5.InternalServerError;
     const messageCode = 'messageCode' in error ? error.messageCode : undefined;
+    const messageArgs = 'messageArgs' in error ? error.messageArgs : undefined;
 
     if (error.name === 'ZodError') {
       const rs = formatZodError({
@@ -163,6 +164,7 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const rs = {
       message: resolvedMessage,
       messageCode,
+      messageArgs,
       statusCode: resolvedStatusCode,
       requestId,
       details: {
