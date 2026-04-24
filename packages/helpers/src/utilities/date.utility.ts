@@ -1,4 +1,5 @@
 import dayjs from 'dayjs';
+import DurationPlugin from 'dayjs/plugin/duration';
 
 import CustomParseFormatPlugin from 'dayjs/plugin/customParseFormat';
 import IsoWeekPlugin from 'dayjs/plugin/isoWeek';
@@ -8,6 +9,7 @@ import WeekdayPlugin from 'dayjs/plugin/weekday';
 import { float } from './parse.utility';
 
 dayjs.extend(CustomParseFormatPlugin);
+dayjs.extend(DurationPlugin);
 dayjs.extend(UTCPlugin);
 dayjs.extend(TimezonePlugin);
 dayjs.extend(WeekdayPlugin);
@@ -62,4 +64,6 @@ export const hrTime = () => {
   return float(curr[0] + curr[1] / 10 ** 9, 9);
 };
 
-export { dayjs };
+export const duration = dayjs.duration.bind(dayjs);
+
+export { dayjs, DurationPlugin };
