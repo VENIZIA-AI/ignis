@@ -6,11 +6,11 @@ import { Env, type MiddlewareHandler } from 'hono';
 import { JWTPayload } from 'jose';
 import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
 import {
+  JOSEStandards,
+  JWKSModes,
   type TAuthMode,
   type TJWKSKeyDriver,
   type TJWKSKeyFormat,
-  JOSEStandards,
-  JWKSModes,
 } from './constants';
 
 export type TDefineAuthControllerOpts = {
@@ -28,6 +28,9 @@ export type TDefineAuthControllerOpts = {
     };
     changePassword?: {
       request: { schema?: TAnyObjectSchema };
+      response: { schema: TAnyObjectSchema };
+    };
+    refreshToken?: {
       response: { schema: TAnyObjectSchema };
     };
   };
@@ -149,9 +152,12 @@ export interface IAuthService<
   // UserInformation types
   UIRQ = AnyObject,
   UIRS = AnyObject,
+  // RefreshToken types
+  RTRS = AnyObject,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
   changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
   getUserInformation?(context: TContext<E>, opts: UIRQ): Promise<UIRS>;
+  refreshToken?(context: TContext<E>): Promise<RTRS>;
 }

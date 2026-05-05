@@ -10,12 +10,7 @@ import {
   SignInRequestSchema,
   SignUpRequestSchema,
 } from '../../models';
-import {
-  Authentication,
-  IAuthService,
-  IJWTTokenPayload,
-  TDefineAuthControllerOpts,
-} from '../common';
+import { Authentication, IAuthService, TDefineAuthControllerOpts } from '../common';
 
 export const JWTTokenPayloadSchema = z.object({
   userId: z.string().or(z.number()),
@@ -58,8 +53,9 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
     override binding(): ValueOrPromise<void> {
       this.defineRoute({
         configs: {
+          description: 'Sign In',
           path: '/sign-in',
-          method: 'post',
+          method: HTTP.Methods.POST,
           request: {
             body: jsonContent({
               description: 'Sign-in request body',
@@ -81,8 +77,9 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
 
       this.defineRoute({
         configs: {
+          description: 'Sign Up',
           path: '/sign-up',
-          method: 'post',
+          method: HTTP.Methods.POST,
           authenticate: {
             strategies: !requireAuthenticatedSignUp ? [] : [Authentication.STRATEGY_JWT],
           },
@@ -107,8 +104,9 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
 
       this.defineRoute({
         configs: {
+          description: 'Change password',
           path: '/change-password',
-          method: 'post',
+          method: HTTP.Methods.POST,
           request: {
             body: jsonContent({
               description: 'Change password request body',
@@ -129,10 +127,35 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
       });
 
+      // Re-issues an access token using the caller's currently valid JWT — no separate refresh token. Implementers must enforce their own rotation/revocation policy if needed.
+      this.defineRoute({
+        configs: {
+          description: 'Refresh access token',
+          path: '/token/refresh',
+          method: HTTP.Methods.POST,
+          responses: jsonResponse({
+            schema: payload?.refreshToken?.response?.schema ?? AnyObjectSchema,
+            description: 'Success Response',
+          }),
+          authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+        },
+        handler: async context => {
+          if (!this.service.refreshToken) {
+            throw getError({
+              statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
+              message: 'Method not implemented',
+            });
+          }
+
+          const rs = await this.service.refreshToken(context);
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+        },
+      });
+
       this.defineRoute({
         configs: {
           path: '/who-am-i',
-          method: 'get',
+          method: HTTP.Methods.GET,
           responses: {
             [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
               description: 'Success Response',
@@ -142,7 +165,7 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
         handler: context => {
-          const currentUser = context.get(Authentication.CURRENT_USER as never) as IJWTTokenPayload;
+          const currentUser = context.get(Authentication.CURRENT_USER);
           return context.json(currentUser, HTTP.ResultCodes.RS_2.Ok);
         },
       });
