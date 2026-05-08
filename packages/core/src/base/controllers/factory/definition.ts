@@ -1,18 +1,18 @@
 import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common/types';
 import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories/common/types';
-import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers';
 import {
   commonResponseHeaders,
-  RestPaths,
-  trackableHeaders,
-  ICustomizableRoutes,
   defaultRequestHeaders,
   findResponseHeaders,
+  ICustomizableRoutes,
+  RestPaths,
+  trackableHeaders,
 } from '../common';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
 
 /** Creates conditional count response schema. */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
@@ -497,7 +497,7 @@ export const defineControllerRouteConfigs = <
       request: deleteBy.request,
       responses: jsonResponse(deleteBy.response),
     },
-  } as const;
+  };
 
   return rs;
 };
