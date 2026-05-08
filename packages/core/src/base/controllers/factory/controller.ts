@@ -40,6 +40,12 @@ export interface ICrudControllerOptions<
     name: string;
     basePath: string;
     readonly?: boolean;
+    /**
+     * Whitelist of routes to enable. When provided, only the listed routes are registered.
+     * Takes priority over per-route `enabled` flag in `routes`.
+     * @example enabledRoutes: ['count'] // only registers GET /count
+     */
+    enabledRoutes?: Array<keyof ICustomizableRoutes>;
     isStrict?: {
       path?: boolean;
       requestSchema?: boolean;
@@ -434,56 +440,81 @@ export class ControllerFactory extends BaseHelper {
 
       /** Registers all CRUD route handlers. */
       override binding(): ValueOrPromise<void> {
-        // Read routes — always registered
-        this.defineRoute({
-          configs: routeDefinitions.COUNT,
-          handler: async context => this.count({ context }),
-        });
+        const isEnabled = (routeKey: keyof ICustomizableRoutes) => {
+          if (controller.enabledRoutes) {
+            return controller.enabledRoutes.includes(routeKey);
+          }
+          return routes?.[routeKey]?.enabled !== false;
+        };
 
-        this.defineRoute({
-          configs: routeDefinitions.FIND,
-          handler: async context => this.find({ context }),
-        });
+        // Read routes — always registered (unless explicitly disabled)
+        if (isEnabled('count')) {
+          this.defineRoute({
+            configs: routeDefinitions.COUNT,
+            handler: async context => this.count({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.FIND_ONE,
-          handler: async context => this.findOne({ context }),
-        });
+        if (isEnabled('find')) {
+          this.defineRoute({
+            configs: routeDefinitions.FIND,
+            handler: async context => this.find({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.FIND_BY_ID,
-          handler: async context => this.findById({ context }),
-        });
+        if (isEnabled('findOne')) {
+          this.defineRoute({
+            configs: routeDefinitions.FIND_ONE,
+            handler: async context => this.findOne({ context }),
+          });
+        }
+
+        if (isEnabled('findById')) {
+          this.defineRoute({
+            configs: routeDefinitions.FIND_BY_ID,
+            handler: async context => this.findById({ context }),
+          });
+        }
 
         // Write routes — skipped when readonly
         if (controller.readonly) {
           return;
         }
 
-        this.defineRoute({
-          configs: routeDefinitions.CREATE,
-          handler: async context => this.create({ context }),
-        });
+        if (isEnabled('create')) {
+          this.defineRoute({
+            configs: routeDefinitions.CREATE,
+            handler: async context => this.create({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.UPDATE_BY_ID,
-          handler: async context => this.updateById({ context }),
-        });
+        if (isEnabled('updateById')) {
+          this.defineRoute({
+            configs: routeDefinitions.UPDATE_BY_ID,
+            handler: async context => this.updateById({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.UPDATE_BY,
-          handler: async context => this.updateBy({ context }),
-        });
+        if (isEnabled('updateBy')) {
+          this.defineRoute({
+            configs: routeDefinitions.UPDATE_BY,
+            handler: async context => this.updateBy({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.DELETE_BY_ID,
-          handler: async context => this.deleteById({ context }),
-        });
+        if (isEnabled('deleteById')) {
+          this.defineRoute({
+            configs: routeDefinitions.DELETE_BY_ID,
+            handler: async context => this.deleteById({ context }),
+          });
+        }
 
-        this.defineRoute({
-          configs: routeDefinitions.DELETE_BY,
-          handler: async context => this.deleteBy({ context }),
-        });
+        if (isEnabled('deleteBy')) {
+          this.defineRoute({
+            configs: routeDefinitions.DELETE_BY,
+            handler: async context => this.deleteBy({ context }),
+          });
+        }
       }
     };
 

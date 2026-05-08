@@ -133,6 +133,8 @@ export type TResponseHeaderObject = {
 export type TResponseHeaders = Record<string, TResponseHeaderObject>;
 
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
