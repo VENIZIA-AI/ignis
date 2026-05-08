@@ -30,6 +30,14 @@ export type TJsonResponse<
   ResponseStatusCode extends StatusCode = StatusCode,
 > = Response & TypedResponse<ResponseBody, ResponseStatusCode, 'json'>;
 
+/**
+ * Polymorphic response body for endpoints that honor the `x-request-count-data`
+ * header — returns either the count-wrapped shape `{ count, data }` or the raw
+ * payload `T`. Pass the unwrapped payload type as `T`; for arrays use
+ * `TCountResponse<TThing[]>`.
+ */
+export type TCountResponse<TData = unknown> = TData | { count: number; data: TData };
+
 /** Lightweight typed context that bypasses RouteHandler inference. */
 export type TContext<
   RouteEnv extends Env = Env,
