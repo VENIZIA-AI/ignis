@@ -158,6 +158,8 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributi
 >;
 
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
