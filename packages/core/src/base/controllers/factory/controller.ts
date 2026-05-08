@@ -130,12 +130,18 @@ export class ControllerFactory extends BaseHelper {
     type TDeleteByQuery = z.infer<typeof routeDefinitions.DELETE_BY.request.query>;
 
     // 3. Define class
+    // Note: `Definitions` (5th generic) intentionally omitted — passing
+    // `typeof routeDefinitions` here makes the consumer-class `.definitions`
+    // property materialize the entire route-definitions tree (including all
+    // Zod schemas) into d.ts, blowing past TS's serialization cap (TS7056)
+    // for entities with complex schemas. Default `Record<string, IAuthRouteConfig>`
+    // keeps the type small; runtime value of `this.definitions = routeDefinitions`
+    // is unchanged.
     const _controller = class extends BaseRestController<
       RouteEnv,
       RouteSchema,
       BasePath,
-      ConfigurableOptions,
-      typeof routeDefinitions
+      ConfigurableOptions
     > {
       repository: AbstractRepository<EntitySchema>;
 
