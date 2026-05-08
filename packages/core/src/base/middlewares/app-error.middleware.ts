@@ -125,9 +125,10 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
 
     logger.error(
-      '[onError][%s] REQUEST ERROR | path: %s | url: %s | Error: %j',
+      '[onError][%s] REQUEST ERROR | path: %s | method: %s | url: %s | Error: %j',
       requestId,
       context.req.path,
+      context.req.method,
       context.req.url,
       error,
     );

@@ -19,7 +19,7 @@ import {
 } from '@venizia/ignis-helpers';
 import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
-import { ICustomizableRoutes, TRouteContext } from '../common';
+import { ICustomizableRoutes, TResponseBodyOf, TRouteContext } from '../common';
 import { BaseRestController } from '../rest/base';
 import { defineControllerRouteConfigs } from './definition';
 
@@ -48,8 +48,10 @@ export interface ICrudControllerOptions<
 
   /** Authentication config applied to all routes (unless overridden per-route). */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
   /** Authorization config applied to all routes (unless overridden per-route). */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+
   /** Per-route configuration combining schema and auth overrides. */
   routes?: Routes;
 }
@@ -87,17 +89,18 @@ export class ControllerFactory extends BaseHelper {
     const entityInstance = new _entityClass();
 
     // 2. Define required CRU (Create - Retrieve - Update) schema
+    const entitySchema = {
+      select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
+      create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
+      update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
+    };
     const routeDefinitions = defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
       idType: getIdType({ entity: entityInstance.schema }),
       authenticate,
       authorize,
       routes,
-      schema: {
-        select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
-        create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
-        update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
-      },
+      schema: entitySchema,
     });
 
     // Pre-computed request types using z.infer for explicit typing
@@ -119,6 +122,16 @@ export class ControllerFactory extends BaseHelper {
     >;
     type TDeleteByIdParams = z.infer<typeof routeDefinitions.DELETE_BY_ID.request.params>;
     type TDeleteByQuery = z.infer<typeof routeDefinitions.DELETE_BY.request.query>;
+
+    type TCountResponseBody = TResponseBodyOf<typeof routeDefinitions.COUNT>;
+    type TFindResponseBody = TResponseBodyOf<typeof routeDefinitions.FIND>;
+    type TFindByIdResponseBody = TResponseBodyOf<typeof routeDefinitions.FIND_BY_ID>;
+    type TFindOneResponseBody = TResponseBodyOf<typeof routeDefinitions.FIND_ONE>;
+    type TCreateResponseBody = TResponseBodyOf<typeof routeDefinitions.CREATE>;
+    type TUpdateByIdResponseBody = TResponseBodyOf<typeof routeDefinitions.UPDATE_BY_ID>;
+    type TUpdateByResponseBody = TResponseBodyOf<typeof routeDefinitions.UPDATE_BY>;
+    type TDeleteByIdResponseBody = TResponseBodyOf<typeof routeDefinitions.DELETE_BY_ID>;
+    type TDeleteByResponseBody = TResponseBodyOf<typeof routeDefinitions.DELETE_BY>;
 
     // 3. Define class
     const _controller = class extends BaseRestController<
@@ -160,7 +173,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** GET /count */
-      async count(opts: { context: TRouteContext<RouteEnv> }) {
+      async count(opts: { context: TRouteContext<RouteEnv, TCountResponseBody> }) {
         const { context } = opts;
         const { where } = context.req.valid<TCountQuery>('query');
 
@@ -179,7 +192,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** GET / - Returns paginated list with Content-Range header. */
-      async find(opts: { context: TRouteContext<RouteEnv> }) {
+      async find(opts: { context: TRouteContext<RouteEnv, TFindResponseBody> }) {
         const { context } = opts;
         const { filter = {} } = context.req.valid<TFindQuery>('query');
 
@@ -219,7 +232,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** GET /:id */
-      async findById(opts: { context: TRouteContext<RouteEnv> }) {
+      async findById(opts: { context: TRouteContext<RouteEnv, TFindByIdResponseBody> }) {
         const { context } = opts;
         const { id } = context.req.valid<TFindByIdParams>('param');
         const { filter } = context.req.valid<TFindByIdQuery>('query');
@@ -248,7 +261,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** GET /find-one */
-      async findOne(opts: { context: TRouteContext<RouteEnv> }) {
+      async findOne(opts: { context: TRouteContext<RouteEnv, TFindOneResponseBody> }) {
         const { context } = opts;
         const { filter = {} } = context.req.valid<TFindOneQuery>('query');
 
@@ -276,7 +289,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** POST / */
-      async create(opts: { context: TRouteContext<RouteEnv> }) {
+      async create(opts: { context: TRouteContext<RouteEnv, TCreateResponseBody> }) {
         const { context } = opts;
         const data = context.req.valid<TCreateBody>('json');
 
@@ -304,7 +317,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** PATCH /:id */
-      async updateById(opts: { context: TRouteContext<RouteEnv> }) {
+      async updateById(opts: { context: TRouteContext<RouteEnv, TUpdateByIdResponseBody> }) {
         const { context } = opts;
         const { id } = context.req.valid<TUpdateByIdParams>('param');
         const data = context.req.valid<TUpdateByIdBody>('json');
@@ -333,7 +346,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** PATCH / */
-      async updateBy(opts: { context: TRouteContext<RouteEnv> }) {
+      async updateBy(opts: { context: TRouteContext<RouteEnv, TUpdateByResponseBody> }) {
         const { context } = opts;
         const { where } = context.req.valid<TUpdateByQuery>('query');
 
@@ -370,7 +383,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** DELETE /:id */
-      async deleteById(opts: { context: TRouteContext<RouteEnv> }) {
+      async deleteById(opts: { context: TRouteContext<RouteEnv, TDeleteByIdResponseBody> }) {
         const { context } = opts;
         const { id } = context.req.valid<TDeleteByIdParams>('param');
 
@@ -398,7 +411,7 @@ export class ControllerFactory extends BaseHelper {
       }
 
       /** DELETE / */
-      async deleteBy(opts: { context: TRouteContext<RouteEnv> }) {
+      async deleteBy(opts: { context: TRouteContext<RouteEnv, TDeleteByResponseBody> }) {
         const { context } = opts;
         const { where } = context.req.valid<TDeleteByQuery>('query');
 
@@ -435,22 +448,22 @@ export class ControllerFactory extends BaseHelper {
       /** Registers all CRUD route handlers. */
       override binding(): ValueOrPromise<void> {
         // Read routes — always registered
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.COUNT, TCountResponseBody>({
           configs: routeDefinitions.COUNT,
           handler: async context => this.count({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.FIND, TFindResponseBody>({
           configs: routeDefinitions.FIND,
           handler: async context => this.find({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.FIND_ONE, TFindOneResponseBody>({
           configs: routeDefinitions.FIND_ONE,
           handler: async context => this.findOne({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.FIND_BY_ID, TFindByIdResponseBody>({
           configs: routeDefinitions.FIND_BY_ID,
           handler: async context => this.findById({ context }),
         });
@@ -460,27 +473,27 @@ export class ControllerFactory extends BaseHelper {
           return;
         }
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.CREATE, TCreateResponseBody>({
           configs: routeDefinitions.CREATE,
           handler: async context => this.create({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.UPDATE_BY_ID, TUpdateByIdResponseBody>({
           configs: routeDefinitions.UPDATE_BY_ID,
           handler: async context => this.updateById({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.UPDATE_BY, TUpdateByResponseBody>({
           configs: routeDefinitions.UPDATE_BY,
           handler: async context => this.updateBy({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.DELETE_BY_ID, TDeleteByIdResponseBody>({
           configs: routeDefinitions.DELETE_BY_ID,
           handler: async context => this.deleteById({ context }),
         });
 
-        this.defineRoute({
+        this.defineRoute<typeof routeDefinitions.DELETE_BY, TDeleteByResponseBody>({
           configs: routeDefinitions.DELETE_BY,
           handler: async context => this.deleteBy({ context }),
         });

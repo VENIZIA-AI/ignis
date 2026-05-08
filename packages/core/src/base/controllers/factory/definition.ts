@@ -26,8 +26,15 @@ export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) 
   ]);
 };
 
-export const resolveCountConfig = (opts: {
-  config: ICustomizableRoutes['count'];
+/** Picks user-overridden response schema if present (and non-undefined), else the default. */
+type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
+  response: { schema: infer S extends z.ZodTypeAny };
+}
+  ? S
+  : D;
+
+export const resolveCountConfig = <C extends ICustomizableRoutes['count']>(opts: {
+  config: C;
   isStrict: boolean;
 }) => {
   const { config, isStrict } = opts;
@@ -46,20 +53,27 @@ export const resolveCountConfig = (opts: {
     },
     response: {
       description: 'Total count of matching records',
-      schema: config?.response?.schema ?? CountSchema,
+      schema: (config?.response?.schema ?? CountSchema) as TResolvedResponseSchema<
+        C,
+        typeof CountSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
-export const resolveFindConfig = <FindSchema extends TAnyObjectSchema>(opts: {
-  config: ICustomizableRoutes['find'];
+export const resolveFindConfig = <
+  C extends ICustomizableRoutes['find'],
+  FindSchema extends TAnyObjectSchema,
+>(opts: {
+  config: C;
   selectSchema: FindSchema;
 }) => {
   const { config, selectSchema } = opts;
   const defaultQuery = z.object({ filter: FilterSchema }).openapi({
     description: 'Filter with where, fields, limit, skip, order, include',
   });
+  const defaultSchema = conditionalCountResponse(z.array(selectSchema));
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -67,21 +81,28 @@ export const resolveFindConfig = <FindSchema extends TAnyObjectSchema>(opts: {
     },
     response: {
       description: 'Array of matching records (with optional count)',
-      schema: config?.response?.schema ?? conditionalCountResponse(z.array(selectSchema)),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? findResponseHeaders,
     },
   };
 };
 
-export const resolveFindByIdConfig = <FindByIdSchema extends TAnyObjectSchema>(opts: {
+export const resolveFindByIdConfig = <
+  C extends ICustomizableRoutes['findById'],
+  FindByIdSchema extends TAnyObjectSchema,
+>(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: ICustomizableRoutes['findById'];
+  config: C;
   selectSchema: FindByIdSchema;
 }) => {
   const { config, selectSchema, idType } = opts;
   const defaultQuery = z.object({ filter: FilterSchema }).openapi({
     description: 'Filter with fields, order, include (where ignored)',
   });
+  const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
       params: idParamsSchema({ idType }),
@@ -90,20 +111,27 @@ export const resolveFindByIdConfig = <FindByIdSchema extends TAnyObjectSchema>(o
     },
     response: {
       description: 'Single record matching ID or null',
-      schema: config?.response?.schema ?? conditionalCountResponse(selectSchema),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
-export const resolveFindOneConfig = <FindOneSchema extends TAnyObjectSchema>(opts: {
-  config: ICustomizableRoutes['findOne'];
+export const resolveFindOneConfig = <
+  C extends ICustomizableRoutes['findOne'],
+  FindOneSchema extends TAnyObjectSchema,
+>(opts: {
+  config: C;
   selectSchema: FindOneSchema;
 }) => {
   const { config, selectSchema } = opts;
   const defaultQuery = z.object({ filter: FilterSchema }).openapi({
     description: 'Filter with where, fields, order, include',
   });
+  const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -111,21 +139,26 @@ export const resolveFindOneConfig = <FindOneSchema extends TAnyObjectSchema>(opt
     },
     response: {
       description: 'First matching record or null',
-      schema: config?.response?.schema ?? conditionalCountResponse(selectSchema),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
 export const resolveCreateConfig = <
+  C extends ICustomizableRoutes['create'],
   SelectSchema extends TAnyObjectSchema,
   CreateSchema extends TAnyObjectSchema,
 >(opts: {
-  config: ICustomizableRoutes['create'];
+  config: C;
   selectSchema: SelectSchema;
   createSchema: CreateSchema;
 }) => {
   const { config, selectSchema, createSchema } = opts;
+  const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
       body: config?.request?.body ?? createSchema,
@@ -133,22 +166,27 @@ export const resolveCreateConfig = <
     },
     response: {
       description: 'Created record with generated fields (id, createdAt, etc.)',
-      schema: config?.response?.schema ?? conditionalCountResponse(selectSchema),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
 const resolveUpdateByIdConfig = <
+  C extends ICustomizableRoutes['updateById'],
   SelectSchema extends TAnyObjectSchema,
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: ICustomizableRoutes['updateById'];
+  config: C;
   selectSchema: SelectSchema;
   updateSchema: UpdateSchema;
 }) => {
   const { config, selectSchema, updateSchema, idType } = opts;
+  const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
       params: idParamsSchema({ idType }),
@@ -157,17 +195,21 @@ const resolveUpdateByIdConfig = <
     },
     response: {
       description: 'Updated record with all current fields',
-      schema: config?.response?.schema ?? conditionalCountResponse(selectSchema),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
 const resolveUpdateByConfig = <
+  C extends ICustomizableRoutes['updateBy'],
   SelectSchema extends TAnyObjectSchema,
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
-  config: ICustomizableRoutes['updateBy'];
+  config: C;
   selectSchema: SelectSchema;
   updateSchema: UpdateSchema;
 }) => {
@@ -175,6 +217,7 @@ const resolveUpdateByConfig = <
   const defaultQuery = z.object({ where: WhereSchema }).openapi({
     description: 'Required where condition to select records for update',
   });
+  const defaultSchema = conditionalCountResponse(z.array(selectSchema));
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -183,18 +226,25 @@ const resolveUpdateByConfig = <
     },
     response: {
       description: 'Array of updated records',
-      schema: config?.response?.schema ?? conditionalCountResponse(z.array(selectSchema)),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
-const resolveDeleteByIdConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
+const resolveDeleteByIdConfig = <
+  C extends ICustomizableRoutes['deleteById'],
+  SelectSchema extends TAnyObjectSchema,
+>(opts: {
   idType: ReturnType<typeof getIdType>;
-  config: ICustomizableRoutes['deleteById'];
+  config: C;
   selectSchema: SelectSchema;
 }) => {
   const { config, selectSchema, idType } = opts;
+  const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
       params: idParamsSchema({ idType }),
@@ -202,20 +252,27 @@ const resolveDeleteByIdConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
     },
     response: {
       description: 'Deleted record data',
-      schema: config?.response?.schema ?? conditionalCountResponse(selectSchema),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
 };
 
-const resolveDeleteByConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
-  config: ICustomizableRoutes['deleteBy'];
+const resolveDeleteByConfig = <
+  C extends ICustomizableRoutes['deleteBy'],
+  SelectSchema extends TAnyObjectSchema,
+>(opts: {
+  config: C;
   selectSchema: SelectSchema;
 }) => {
   const { config, selectSchema } = opts;
   const defaultQuery = z.object({ where: WhereSchema }).openapi({
     description: 'Required where condition to select records for deletion',
   });
+  const defaultSchema = conditionalCountResponse(z.array(selectSchema));
   return {
     request: {
       query: config?.request?.query ?? defaultQuery,
@@ -223,7 +280,10 @@ const resolveDeleteByConfig = <SelectSchema extends TAnyObjectSchema>(opts: {
     },
     response: {
       description: 'Array of deleted records',
-      schema: config?.response?.schema ?? conditionalCountResponse(z.array(selectSchema)),
+      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
+        C,
+        typeof defaultSchema
+      >,
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };

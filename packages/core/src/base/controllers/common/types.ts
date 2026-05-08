@@ -3,9 +3,10 @@ import type { IAuthorizationSpec } from '@/components/auth/authorize/common/type
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
-import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
+import { AnyType, IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import type { TypedResponse } from 'hono';
 import { Context, Env, Schema } from 'hono';
+import { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
 
 /** Typed validation results for route handlers. */
 export interface IValidRequestProps<
@@ -24,19 +25,28 @@ export interface IValidRequestProps<
   form?: FormType;
 }
 
+export type TJsonResponse<
+  ResponseBody = unknown,
+  ResponseStatusCode extends StatusCode = StatusCode,
+> = Response & TypedResponse<ResponseBody, ResponseStatusCode, 'json'>;
+
 /** Lightweight typed context that bypasses RouteHandler inference. */
-export type TContext<RouteEnv extends Env = Env, ValidTargetKey extends string = string> = Omit<
-  Context<RouteEnv>,
-  'req'
-> & {
-  req: Omit<Context<RouteEnv>['req'], 'valid'> & {
-    valid<T = unknown>(target: ValidTargetKey): T;
-  };
+export type TContext<
+  RouteEnv extends Env = Env,
+  ValidTargetKey extends string = string,
+  ResponseBody = unknown,
+> = Omit<Context<RouteEnv>, 'req' | 'json'> & {
+  req: Omit<Context<RouteEnv>['req'], 'valid'> & { valid<T = unknown>(target: ValidTargetKey): T };
+  json<StatusCode extends ContentfulStatusCode = 200>(
+    body: ResponseBody,
+    status?: StatusCode,
+  ): TJsonResponse<ResponseBody, StatusCode>;
 };
 
-export type TRouteContext<RouteEnv extends Env = Env> = TContext<
+export type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
   RouteEnv,
-  keyof IValidRequestProps
+  keyof IValidRequestProps,
+  ResponseBody
 >;
 
 /** Casts middleware context to TContext (safe -- structurally identical to Context). */
@@ -46,7 +56,7 @@ export const asTypedContext = <E extends Env>(context: unknown): TContext<E, str
 
 /** Lightweight handler type using TTypedContext to avoid heavy RouteHandler inference. */
 export type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (
-  context: TRouteContext<RouteEnv>,
+  context: TRouteContext<RouteEnv, ResponseType>,
 ) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
 
 /** Registered route with its configuration and router instance. */
@@ -131,6 +141,13 @@ export type TResponseHeaderObject = {
 
 /** OpenAPI response headers format */
 export type TResponseHeaders = Record<string, TResponseHeaderObject>;
+
+// Response body types — derived from route definitions (union of success + error schemas).
+// Uses a distributive conditional so z.infer is applied to each schema in the union separately.
+type TInferDistributive<S> = S extends z.ZodType ? z.infer<S> : never;
+export type TResponseBodyOf<R extends { responses: AnyType }> = TInferDistributive<
+  R['responses'][keyof R['responses']]['content']['application/json']['schema']
+>;
 
 export type TCustomizableRouteConfig = TRouteAuthConfig & {
   request?: {
