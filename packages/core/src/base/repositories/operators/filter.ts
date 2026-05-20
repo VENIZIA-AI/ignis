@@ -7,7 +7,9 @@ import isEmpty from 'lodash/isEmpty';
 import merge from 'lodash/merge';
 import set from 'lodash/set';
 import {
+  DEFAULT_LIMIT,
   getCachedColumns,
+  RelationTypes,
   TDrizzleQueryOptions,
   TFields,
   TFilter,
@@ -299,8 +301,12 @@ export class FilterBuilder extends BaseHelper {
         : this.resolveDefaultFilter({ schema: relationConfig.schema });
 
       const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scope });
+      const scopedFilter: TFilter =
+        relationConfig.type === RelationTypes.MANY
+          ? { ...mergedScope, limit: mergedScope.limit ?? DEFAULT_LIMIT }
+          : mergedScope;
 
-      const hasNoEffectiveFilter = isEmpty(mergedScope) || Object.keys(mergedScope).length === 0;
+      const hasNoEffectiveFilter = isEmpty(scopedFilter) || Object.keys(scopedFilter).length === 0;
       if (hasNoEffectiveFilter && hiddenProps.size === 0) {
         result[relationName] = true;
         continue;
@@ -309,7 +315,7 @@ export class FilterBuilder extends BaseHelper {
       const nestedQuery = this.build<TTableSchemaWithId>({
         tableName: relationName,
         schema: relationConfig.schema,
-        filter: mergedScope,
+        filter: scopedFilter,
       });
 
       if (hiddenProps.size > 0) {

@@ -2,10 +2,11 @@ import { describe, test, expect } from 'bun:test';
 import { DEFAULT_LIMIT, FilterSchema, ReadableRepository, TFilter } from '@/base/repositories';
 
 /**
- * Regression: FilterSchema must NEVER inject a default limit — not at the top level
- * and not inside relation `scope` objects. The top-level default (DEFAULT_LIMIT) is
- * applied later, by ReadableRepository.find(), so adding `order` (or any field) to a
- * relation scope must not silently cap the relation at DEFAULT_LIMIT rows.
+ * FilterSchema must NEVER inject a default limit — defaults are applied at the
+ * query-building layer instead (top-level by ReadableRepository.find(), to-many
+ * relations by FilterBuilder.toInclude), never baked into the recursively-reused
+ * Zod schema. This keeps limit handling explicit and avoids the original bug where
+ * the schema default leaked into (or skipped) relation scopes inconsistently.
  */
 describe('FilterSchema - no default limit injection', () => {
   test('top-level filter does not inject a limit at parse time', () => {
@@ -96,7 +97,10 @@ describe('ReadableRepository.find - default limit application', () => {
     expect(repo.captured?.limit).toBe(50);
   });
 
-  test('defaults the top-level limit but leaves relation scope uncapped', async () => {
+  // find() only defaults the TOP-LEVEL limit and passes relation scopes through
+  // untouched. Per-relation default limits are applied downstream by
+  // FilterBuilder.toInclude (see order-limit-scope.test.ts).
+  test('defaults the top-level limit and leaves scopes for toInclude to handle', async () => {
     const repo = new CapturingRepository();
     await repo.find({
       filter: { include: [{ relation: 'categories', scope: { order: ['createdAt DESC'] } }] },
