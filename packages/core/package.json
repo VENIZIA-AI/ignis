@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis",
-  "version": "0.0.9-3",
+  "version": "0.0.9-4",
   "description": "High-performance TypeScript server infrastructure combining LoopBack 4 enterprise architecture (decorator-based DI, repository pattern, component system) with Hono speed (~140k req/s). Features auto-generated OpenAPI docs, Drizzle ORM type-safe SQL, JWT/Basic authentication, Casbin authorization, convention-based bootstrapping, and pluggable components for health checks, Swagger UI, mail, Socket.IO, and static assets. Built for Bun and Node.js.",
   "keywords": [
     "access-control",
