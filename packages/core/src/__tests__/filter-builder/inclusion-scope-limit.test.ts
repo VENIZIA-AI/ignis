@@ -64,7 +64,7 @@ class CapturingRepository extends ReadableRepository<any> {
   public captured?: TFilter<any>;
 
   constructor() {
-    super(undefined, { scope: 'CapturingRepository' });
+    super(undefined, { scope: 'CapturingRepository' } as any);
   }
 
   // Avoid model-metadata / entity resolution.
