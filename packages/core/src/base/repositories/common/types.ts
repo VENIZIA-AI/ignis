@@ -3,7 +3,7 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
-import { DEFAULT_LIMIT, RelationTypes, TLockStrength } from './constants';
+import { RelationTypes, TLockStrength } from './constants';
 
 /** Zod schema for pagination skip parameter. */
 export const SkipSchema = z
@@ -27,13 +27,16 @@ export const OffsetSchema = z
 
 export type TOffset = z.infer<typeof OffsetSchema>;
 
-/** Zod schema for pagination limit parameter. Defaults to DEFAULT_LIMIT (10). */
+/**
+ * Zod schema for pagination limit parameter. No schema-level default — the default
+ * (DEFAULT_LIMIT) is applied by ReadableRepository.find() to the top-level query only,
+ * so it never leaks into relation scopes.
+ */
 export const LimitSchema = z
   .number()
   .optional()
-  .default(DEFAULT_LIMIT)
   .openapi({
-    description: 'Maximum number of items to return. Default is 10.',
+    description: 'Maximum number of items to return. Defaults to 10 for top-level list queries.',
     examples: [1, 2, 3],
   });
 

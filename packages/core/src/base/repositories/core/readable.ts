@@ -3,6 +3,7 @@ import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } fr
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { PgTable } from 'drizzle-orm/pg-core';
 import {
+  DEFAULT_LIMIT,
   IExtraOptions,
   RepositoryOperationScopes,
   TCount,
@@ -129,10 +130,15 @@ export class ReadableRepository<
     const { filter, options } = opts;
     const shouldQueryRange = options?.shouldQueryRange === true;
 
-    const mergedFilter = this.applyDefaultFilter({
+    const baseFilter = this.applyDefaultFilter({
       userFilter: filter,
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
+
+    const mergedFilter: TFilter<DataObject> = {
+      ...baseFilter,
+      limit: baseFilter.limit ?? DEFAULT_LIMIT,
+    };
 
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;
     const useCoreAPI = this.canUseCoreAPI(mergedFilter);
