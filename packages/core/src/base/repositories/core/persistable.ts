@@ -1,7 +1,6 @@
 import { IDataSource } from '@/base/datasources';
 import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
-import isEmpty from 'lodash/isEmpty';
 import {
   IExtraOptions,
   RepositoryOperationScopes,
@@ -26,16 +25,34 @@ export class PersistableRepository<
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
     this._updateBuilder = new UpdateBuilder();
   }
+
   get updateBuilder() {
     return this._updateBuilder;
   }
-  /** Prevents accidental mass updates/deletes by requiring explicit force flag for empty where. */
+
+  /** Guards id-based operations against a null/undefined id */
+  protected validateId(opts: { id: unknown; operationName: string }): void {
+    if (opts.id !== null && opts.id !== undefined) {
+      return;
+    }
+
+    throw getError({
+      message: `[${opts.operationName}] DENY to perform | entity: ${this.entity.name} | id is null or undefined`,
+    });
+  }
+
+  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
     force?: boolean;
     operationName: string;
   }): boolean {
-    const isEmptyWhere = !opts.where || isEmpty(opts.where);
+    const resolvedWhere = this.filterBuilder.toWhere({
+      tableName: this.entity.name,
+      schema: this.entity.schema,
+      where: opts.where ?? {},
+    });
+    const isEmptyWhere = resolvedWhere === undefined;
 
     if (!opts.force && isEmptyWhere) {
       throw getError({
@@ -45,6 +62,7 @@ export class PersistableRepository<
 
     return isEmptyWhere;
   }
+
   protected async _create<R = DataObject>(opts: {
     data: Array<PersistObject>;
     options: ExtraOptions & { shouldReturn?: boolean; log?: TRepositoryLogOptions };
@@ -197,6 +215,8 @@ export class PersistableRepository<
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
+    this.validateId({ id: opts.id, operationName: 'updateById' });
+
     const rs = await this._update<R>({
       where: { id: opts.id },
       data: opts.data,
@@ -291,6 +311,8 @@ export class PersistableRepository<
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
+    this.validateId({ id: opts.id, operationName: 'deleteById' });
+
     const rs = await this._delete<R>({
       where: { id: opts.id },
       options: opts.options,
