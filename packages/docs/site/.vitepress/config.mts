@@ -302,6 +302,48 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-05-21',
+              collapsed: true,
+              items: [
+                { text: 'Mass Update/Delete Guards', link: '/changelogs/2026-05-21-mass-mutation-guards' },
+              ],
+            },
+            {
+              text: '2026-05-20',
+              collapsed: true,
+              items: [
+                { text: 'Consistent Default Limit for To-Many Relations', link: '/changelogs/2026-05-20-relation-scope-default-limit' },
+              ],
+            },
+            {
+              text: '2026-05-08',
+              collapsed: true,
+              items: [
+                { text: 'CRUD Route Toggles & Typed JSON Responses', link: '/changelogs/2026-05-08-crud-route-toggles-and-typed-responses' },
+              ],
+            },
+            {
+              text: '2026-05-05',
+              collapsed: true,
+              items: [
+                { text: 'Refresh Access Token Endpoint', link: '/changelogs/2026-05-05-refresh-token-endpoint' },
+              ],
+            },
+            {
+              text: '2026-04-23',
+              collapsed: true,
+              items: [
+                { text: 'Error Responses — messageCode & Extra Fields', link: '/changelogs/2026-04-23-error-response-extra-fields' },
+              ],
+            },
+            {
+              text: '2026-03-31',
+              collapsed: true,
+              items: [
+                { text: 'TypeScript 6 Upgrade & Toolchain Refresh', link: '/changelogs/2026-03-31-typescript-6-and-toolchain' },
+              ],
+            },
+            {
               text: '2026-03-30',
               collapsed: true,
               items: [

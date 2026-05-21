@@ -17,6 +17,13 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-05-21 | [Mass Update/Delete Guards — Blank Id & Empty Where](./2026-05-21-mass-mutation-guards) | Bug Fix, Security |
+| 2026-05-20 | [Consistent Default Limit for To-Many Relations](./2026-05-20-relation-scope-default-limit) | Bug Fix, Breaking Change |
+| 2026-05-08 | [CRUD Route Toggles & Typed JSON Responses](./2026-05-08-crud-route-toggles-and-typed-responses) | New Feature, Enhancement |
+| 2026-05-05 | [Refresh Access Token Endpoint](./2026-05-05-refresh-token-endpoint) | New Feature |
+| 2026-04-23 | [Error Responses — messageCode & Extra Fields](./2026-04-23-error-response-extra-fields) | Enhancement |
+| 2026-03-31 | [TypeScript 6 Upgrade & Toolchain Refresh](./2026-03-31-typescript-6-and-toolchain) | Maintenance |
+| 2026-03-30 | [Row-Level Locking (FOR UPDATE)](./2026-03-30-row-level-locking) | New Feature |
 | 2026-03-15 | [gRPC Support — ConnectRPC Integration, BaseGrpcController, RPC Decorators](./2026-03-15-grpc-controller-system) | New Feature |
 | 2026-03-12 | [Kafka Helpers Enhancement — Health, Callbacks, Transactions, Schema Registry](./2026-03-12-kafka-helpers-enhancement) | Enhancement, New Feature |
 | 2026-03-10 | [Kafka Helpers Refactor & @platformatic/kafka v1.30.0](./2026-03-10-kafka-helpers-refactor) | Refactor, Breaking Change |
