@@ -8,9 +8,21 @@ import {
   type TBasePolicyRow,
 } from './base-filtered';
 export interface IDrizzleCasbinEntities extends IBaseFilteredAdapterEntities {
-  permission: { tableName: string; principalType: string };
-  role: { tableName: string; principalType: string };
-  policyDefinition: { tableName: string; principalType: string };
+  permission: {
+    schemaName?: string;
+    tableName: string;
+    principalType: string;
+  };
+  role: {
+    schemaName?: string;
+    tableName: string;
+    principalType: string;
+  };
+  policyDefinition: {
+    schemaName?: string;
+    tableName: string;
+    principalType: string;
+  };
 }
 
 export interface IDrizzleCasbinAdapterOptions {
@@ -23,11 +35,31 @@ export interface IDrizzleCasbinAdapterOptions {
 export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEntities> {
   private dataSource: IDataSource;
 
+  private static readonly DEFAULT_SCHEMA = 'public';
+
   private get connector(): TAnyConnector {
     return this.dataSource.connector;
   }
 
   constructor(opts: IDrizzleCasbinAdapterOptions) {
+    // set default schema
+    if (opts.entities) {
+      if (opts.entities.permission) {
+        opts.entities.permission.schemaName =
+          opts.entities.permission.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
+      }
+
+      if (opts.entities.role) {
+        opts.entities.role.schemaName =
+          opts.entities.role.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
+      }
+
+      if (opts.entities.policyDefinition) {
+        opts.entities.policyDefinition.schemaName =
+          opts.entities.policyDefinition.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
+      }
+    }
+
     super({ scope: DrizzleCasbinAdapter.name, entities: opts.entities });
     this.dataSource = opts.dataSource;
   }
@@ -45,8 +77,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
       SELECT pd.variant, p.code, pd.action,
              pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
              pd.effect, pd.domain
-      FROM ${sql.identifier(pd.tableName)} pd
-      INNER JOIN ${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
+      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
+      INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
       WHERE pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
@@ -80,7 +112,7 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
 
     const result = await this.connector.execute<TRow>(sql`
       SELECT pd.target_id AS "targetId", pd.domain
-      FROM ${sql.identifier(pd.tableName)} pd
+      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
       WHERE pd.variant = ${CasbinRuleVariants.GROUP}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
@@ -120,8 +152,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
       SELECT pd.variant, p.code, pd.action,
              pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
              pd.effect, pd.domain
-      FROM ${sql.identifier(pd.tableName)} pd
-      INNER JOIN ${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
+      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
+      INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
       WHERE pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${rol.principalType}
         AND pd.subject_id IN (${sql.join(
