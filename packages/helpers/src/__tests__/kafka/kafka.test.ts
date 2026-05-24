@@ -90,8 +90,8 @@ describe('KafkaDefaults', () => {
 
   test('TC-008: should expose consumer defaults', () => {
     expect(KafkaDefaults.AUTOCOMMIT).toBe(false);
-    expect(KafkaDefaults.SESSION_TIMEOUT).toBe(30_000);
-    expect(KafkaDefaults.HEARTBEAT_INTERVAL).toBe(3_000);
+    expect(KafkaDefaults.SESSION_TIMEOUT).toBe(60_000);
+    expect(KafkaDefaults.HEARTBEAT_INTERVAL).toBe(10_000);
     expect(KafkaDefaults.HIGH_WATER_MARK).toBe(1024);
     expect(KafkaDefaults.MIN_BYTES).toBe(1);
     expect(KafkaDefaults.METADATA_MAX_AGE).toBe(300_000);

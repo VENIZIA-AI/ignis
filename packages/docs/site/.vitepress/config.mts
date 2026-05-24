@@ -302,6 +302,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-05-22',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Drizzle Casbin Adapter — Schema-Qualified Tables',
+                  link: '/changelogs/2026-05-22-casbin-adapter-schema-qualification',
+                },
+              ],
+            },
+            {
               text: '2026-05-21',
               collapsed: true,
               items: [

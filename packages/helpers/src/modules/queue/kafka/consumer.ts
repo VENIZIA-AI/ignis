@@ -1,3 +1,4 @@
+import { getError } from '@/modules/error';
 import { sleep } from '@/utilities/date.utility';
 import { toError } from '@/utilities/promise.utility';
 import type {
@@ -421,8 +422,7 @@ export class KafkaConsumerHelper<
   }
 
   private destroyDeadStream(): void {
-    this.stream?.removeAllListeners();
-    this.stream?.destroy();
+    this.stream?.destroy(getError({ message: '[destroyDeadStream] All brokers disconnected' }));
     this.stream = null;
   }
 

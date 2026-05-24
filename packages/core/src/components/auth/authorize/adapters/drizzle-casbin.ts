@@ -42,30 +42,16 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
   }
 
   constructor(opts: IDrizzleCasbinAdapterOptions) {
-    // set default schema
-    if (opts.entities) {
-      if (opts.entities.permission) {
-        opts.entities.permission.schemaName =
-          opts.entities.permission.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
-      }
-
-      if (opts.entities.role) {
-        opts.entities.role.schemaName =
-          opts.entities.role.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
-      }
-
-      if (opts.entities.policyDefinition) {
-        opts.entities.policyDefinition.schemaName =
-          opts.entities.policyDefinition.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
-      }
-    }
-
     super({ scope: DrizzleCasbinAdapter.name, entities: opts.entities });
     this.dataSource = opts.dataSource;
   }
 
-  // Query builders
+  /** Resolve an entity's schema, defaulting to `public`. */
+  private schemaOf(opts: { entity: { schemaName?: string } }): string {
+    return opts.entity.schemaName ?? DrizzleCasbinAdapter.DEFAULT_SCHEMA;
+  }
 
+  // Query builders
   protected async buildDirectPolicies(opts: {
     filter: ICasbinPolicyFilter;
     rolePrincipal: string;
@@ -77,8 +63,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
       SELECT pd.variant, p.code, pd.action,
              pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
              pd.effect, pd.domain
-      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
-      INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
+      FROM ${sql.identifier(this.schemaOf({ entity: pd }))}.${sql.identifier(pd.tableName)} pd
+      INNER JOIN ${sql.identifier(this.schemaOf({ entity: perm }))}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
       WHERE pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
@@ -112,7 +98,7 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
 
     const result = await this.connector.execute<TRow>(sql`
       SELECT pd.target_id AS "targetId", pd.domain
-      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
+      FROM ${sql.identifier(this.schemaOf({ entity: pd }))}.${sql.identifier(pd.tableName)} pd
       WHERE pd.variant = ${CasbinRuleVariants.GROUP}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
@@ -152,8 +138,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
       SELECT pd.variant, p.code, pd.action,
              pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
              pd.effect, pd.domain
-      FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
-      INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
+      FROM ${sql.identifier(this.schemaOf({ entity: pd }))}.${sql.identifier(pd.tableName)} pd
+      INNER JOIN ${sql.identifier(this.schemaOf({ entity: perm }))}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
       WHERE pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${rol.principalType}
         AND pd.subject_id IN (${sql.join(
