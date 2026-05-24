@@ -589,6 +589,64 @@ describe('KafkaConsumerHelper (live)', () => {
     },
     TIMEOUT,
   );
+
+  live(
+    'IT-C08: reconnect cycles do not leak consumer listeners (no removeAllListeners needed)',
+    async () => {
+      const topic = freshTopicName();
+      await createTopic(topic);
+      // No onMessage → no background consume loop, so we can drive the reconnect path
+      // manually in isolation. onMessageError attaches a per-stream 'error' listener that
+      // absorbs the synthetic destroy() error.
+      const consumer = KafkaConsumerHelper.newInstance({
+        ...baseConn(),
+        identifier: 'it-leak',
+        groupId: `ignis-it-leak-${RUN}`,
+        deserializers: { key: stringDeserializer, value: stringDeserializer },
+        sessionTimeout: 10_000,
+        heartbeatInterval: 3_000,
+        onMessageError: () => {
+          /* absorb */
+        },
+      });
+      try {
+        await withTimeout(
+          consumer.start({ topics: [topic], fallbackMode: 'latest' }),
+          25_000,
+          'start',
+        );
+
+        const client = consumer.getConsumer();
+        // Per-stream listeners `MessagesStream` registers on the consumer; their
+        // cleanup is owned by the stream's own `_destroy()` (triggered by destroy()),
+        // NOT by removeAllListeners(). With one stream active this is the steady-state max.
+        const liveCounts = () => ({
+          join: client.listenerCount('consumer:group:join'),
+          disc: client.listenerCount('client:broker:disconnect'),
+        });
+        const baseline = liveCounts();
+
+        // Drive the real reconnect path: tear the stream down, then rebuild it.
+        // A settle delay mirrors the real reconnectDelayMs and lets each stream's
+        // async _destroy() run (it removes the per-stream consumer listeners).
+        for (let i = 0; i < 6; i++) {
+          consumer['destroyDeadStream']();
+          await new Promise(resolve => setTimeout(resolve, 400));
+          await consumer['attemptReconnect']({ attempt: i + 1, maxAttempts: 999, delayMs: 0 });
+          await new Promise(resolve => setTimeout(resolve, 400));
+        }
+
+        // Steady state after cycling must return to the single-stream baseline —
+        // _destroy() reclaimed every old stream's listeners (no removeAllListeners needed).
+        const settled = liveCounts();
+        expect(settled.join).toBe(baseline.join);
+        expect(settled.disc).toBe(baseline.disc);
+      } finally {
+        await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
+      }
+    },
+    60_000,
+  );
 });
 
 // -------------------------------------------------------------------------
