@@ -400,21 +400,27 @@ export class KafkaConsumerHelper<
   }): Promise<void> {
     const { attempt, maxAttempts, delayMs, errorHandler } = opts;
 
-    const needsClientRebuild = this.sessionLikelyStale;
-
     this.logger.info(
-      '[attemptReconnect] Reconnecting %d/%d in %dms | Topics: %j | ConnectedBrokers: %d | Rebuild: %s',
+      '[attemptReconnect] Reconnecting %d/%d in %dms | Topics: %j | ConnectedBrokers: %d',
       attempt,
       maxAttempts,
       delayMs,
       this.consumeStartOptions?.topics,
       this.getConnectedBrokerCount(),
-      needsClientRebuild,
     );
     await sleep(delayMs);
 
     if (!this.consumeStartOptions) {
       return;
+    }
+
+    const needsClientRebuild = this.sessionLikelyStale;
+
+    if (needsClientRebuild) {
+      this.logger.warn(
+        '[attemptReconnect] Session stale flag is set, will rebuild client | Attempt: %d',
+        attempt,
+      );
     }
 
     if (needsClientRebuild) {
@@ -491,18 +497,31 @@ export class KafkaConsumerHelper<
   private async closeOldClient(
     oldClient: Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
   ): Promise<void> {
-    await Promise.race([
-      new Promise<void>((resolve, reject) => {
-        oldClient.close(true, (err?: Error | null) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      }),
-      new Promise<void>(resolve => setTimeout(resolve, this.shutdownTimeout)),
-    ]);
+    // Track the timeout handle so we can clear it the moment close() resolves.
+    // Without this, a pending setTimeout keeps the event loop alive for up to
+    // shutdownTimeout ms after close() already returned — visible as hanging
+    // test suites and delayed process exits.
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          oldClient.close(true, (err?: Error | null) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        }),
+        new Promise<void>(resolve => {
+          timeoutHandle = setTimeout(resolve, this.shutdownTimeout);
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
+    }
   }
 
   private destroyDeadStream(): void {

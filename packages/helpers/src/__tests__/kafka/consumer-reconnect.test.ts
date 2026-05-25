@@ -323,6 +323,54 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // error doesn't trigger an unnecessary rebuild.
     expect(helper['sessionLikelyStale']).toBe(false);
   });
+
+  test('TC-150: rebuild triggers when sessionLikelyStale flips to true DURING the retry sleep', async () => {
+    // Regression for the Copilot review: prior to the fix, attemptReconnect
+    // snapshotted sessionLikelyStale BEFORE the sleep, so an all-brokers-down
+    // event that arrived during the backoff window was missed — the snapshot
+    // stayed `false` and consume() was called on a now-stale client.
+    //
+    // After the fix, the flag is read AFTER the sleep and this test exercises
+    // exactly that scenario: enter attemptReconnect with the flag false, set
+    // it via a BROKER_DISCONNECT-to-0 event during the sleep, and assert that
+    // rebuild fires when the retry wakes up.
+    const helper = newConsumer();
+
+    // Bring at least one broker online so the disconnect-to-0 event makes sense.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper['sessionLikelyStale']).toBe(false);
+
+    let rebuildCalled = false;
+    helper['rebuildClient'] = async () => {
+      rebuildCalled = true;
+    };
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (
+      helper.getConsumer() as unknown as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    // Fire the BROKER_DISCONNECT event mid-sleep (just before the 100ms retry
+    // delay elapses). This sets sessionLikelyStale to true while
+    // attemptReconnect is suspended on `await sleep(delayMs)`.
+    setTimeout(() => {
+      helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+        broker: { host: 'h1', port: 9092 },
+      });
+    }, 25);
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 100,
+    });
+
+    // The post-sleep read of the flag must see the mid-sleep transition.
+    expect(rebuildCalled).toBe(true);
+  });
 });
 
 describe('KafkaConsumerHelper - broker health tracking', () => {
