@@ -15,6 +15,13 @@ import { TTableSchemaWithId } from '../models/common';
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
   return target => {
+    const defaultLimit = metadata.settings?.defaultLimit;
+    if (defaultLimit !== undefined && (!Number.isInteger(defaultLimit) || defaultLimit <= 0)) {
+      throw getError({
+        message: `[model][${target.name}] Invalid 'defaultLimit' | Expected a positive integer | Got: ${defaultLimit}`,
+      });
+    }
+
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {

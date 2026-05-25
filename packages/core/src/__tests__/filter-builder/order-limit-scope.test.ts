@@ -1,6 +1,7 @@
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, spyOn } from 'bun:test';
 import { FilterBuilder } from '@/base/repositories/operators';
 import { DEFAULT_LIMIT, TDrizzleQueryOptions, TRelationConfig } from '@/base/repositories/common';
+import { MetadataRegistry } from '@/helpers/inversion';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 
 const table = pgTable('categories', {
@@ -71,6 +72,43 @@ describe('to-many relation scope is capped at DEFAULT_LIMIT', () => {
     }) as TDrizzleQueryOptions;
     expect(q.orderBy).toHaveLength(1);
     expect(q.limit).toBe(3);
+  });
+});
+
+describe("to-many relation scope honors the relation model's defaultLimit", () => {
+  test('no scope -> uses the relation model defaultLimit (not global DEFAULT_LIMIT)', () => {
+    const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntry: () => ({ metadata: { settings: { defaultLimit: 7 } } }),
+    } as any);
+
+    const result = builder.toInclude({ include: [{ relation: 'categories' }], relations });
+    const q = result.categories as TDrizzleQueryOptions;
+    expect(q.limit).toBe(7);
+
+    mockGetInstance.mockRestore();
+  });
+
+  test('explicit scope limit still overrides the model defaultLimit', () => {
+    const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntry: () => ({ metadata: { settings: { defaultLimit: 7 } } }),
+    } as any);
+
+    const q = buildScope('categories', { limit: 50 }) as TDrizzleQueryOptions;
+    expect(q.limit).toBe(50);
+
+    mockGetInstance.mockRestore();
+  });
+
+  test('falls back to DEFAULT_LIMIT when relation model has no defaultLimit', () => {
+    const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+      getModelEntry: () => ({ metadata: { settings: {} } }),
+    } as any);
+
+    const result = builder.toInclude({ include: [{ relation: 'categories' }], relations });
+    const q = result.categories as TDrizzleQueryOptions;
+    expect(q.limit).toBe(DEFAULT_LIMIT);
+
+    mockGetInstance.mockRestore();
   });
 });
 

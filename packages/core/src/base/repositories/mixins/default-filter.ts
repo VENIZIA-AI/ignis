@@ -8,6 +8,7 @@ import { FilterBuilder } from '../operators';
 export const DefaultFilterMixin = <T extends TMixinTarget<object>>(baseClass: T) => {
   abstract class Mixed extends baseClass {
     _defaultFilter: TFilter | null | undefined = null;
+    _defaultLimit: number | null | undefined = null;
 
     abstract getEntity(): BaseEntity<TTableSchemaWithId>;
     abstract get filterBuilder(): FilterBuilder;
@@ -24,6 +25,18 @@ export const DefaultFilterMixin = <T extends TMixinTarget<object>>(baseClass: T)
 
       this._defaultFilter = defaultFilter;
       return this._defaultFilter;
+    }
+
+    /** Gets default row limit from model metadata. Cached after first access. */
+    getDefaultLimit(): number | undefined {
+      if (this._defaultLimit !== null) {
+        return this._defaultLimit;
+      }
+
+      const registry = MetadataRegistry.getInstance();
+      const modelEntry = registry.getModelEntry({ name: this.getEntity().name });
+      this._defaultLimit = modelEntry?.metadata?.settings?.defaultLimit;
+      return this._defaultLimit;
     }
 
     hasDefaultFilter(): boolean {

@@ -1244,6 +1244,62 @@ describe('Default Filter Feature', () => {
     beforeEach(() => {
       repository = new TestableDefaultFilterRepository();
       repository['_defaultFilter'] = null;
+      repository['_defaultLimit'] = null;
+    });
+
+    describe('getDefaultLimit', () => {
+      test('TC-201: should return undefined when no default limit is configured', () => {
+        const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+          getModelEntry: () => null,
+        } as any);
+
+        expect(repository.getDefaultLimit()).toBeUndefined();
+
+        mockGetInstance.mockRestore();
+      });
+
+      test('TC-202: should return default limit from model metadata', () => {
+        const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+          getModelEntry: () => ({
+            metadata: { settings: { defaultLimit: 50 } },
+          }),
+        } as any);
+
+        expect(repository.getDefaultLimit()).toBe(50);
+
+        mockGetInstance.mockRestore();
+      });
+
+      test('TC-203: should return undefined when settings has no defaultLimit', () => {
+        const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
+          getModelEntry: () => ({
+            metadata: { settings: { defaultFilter: { where: { isDeleted: false } } } },
+          }),
+        } as any);
+
+        expect(repository.getDefaultLimit()).toBeUndefined();
+
+        mockGetInstance.mockRestore();
+      });
+
+      test('TC-204: should cache default limit after first call', () => {
+        let callCount = 0;
+        const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockImplementation(() => {
+          callCount++;
+          return {
+            getModelEntry: () => ({
+              metadata: { settings: { defaultLimit: 25 } },
+            }),
+          } as any;
+        });
+
+        repository.getDefaultLimit();
+        repository.getDefaultLimit();
+
+        expect(callCount).toBe(1);
+
+        mockGetInstance.mockRestore();
+      });
     });
 
     describe('getDefaultFilter', () => {

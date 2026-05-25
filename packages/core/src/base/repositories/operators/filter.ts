@@ -94,6 +94,21 @@ export class FilterBuilder extends BaseHelper {
     }
   }
 
+  /** Resolves default row limit for a schema from MetadataRegistry. */
+  resolveDefaultLimit(opts: { schema: TTableSchemaWithId }): number | undefined {
+    const { schema } = opts;
+
+    try {
+      const tableName = getTableConfig(schema).name;
+      const registry = MetadataRegistry.getInstance();
+      const modelEntry = registry.getModelEntry({ name: tableName });
+
+      return modelEntry?.metadata?.settings?.defaultLimit;
+    } catch {
+      return undefined;
+    }
+  }
+
   /** Resolves relation configurations for a schema from MetadataRegistry. */
   resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig> {
     const { schema } = opts;
@@ -303,7 +318,13 @@ export class FilterBuilder extends BaseHelper {
       const mergedScope = this.mergeFilter({ defaultFilter, userFilter: scope });
       const scopedFilter: TFilter =
         relationConfig.type === RelationTypes.MANY
-          ? { ...mergedScope, limit: mergedScope.limit ?? DEFAULT_LIMIT }
+          ? {
+              ...mergedScope,
+              limit:
+                mergedScope.limit ??
+                this.resolveDefaultLimit({ schema: relationConfig.schema }) ??
+                DEFAULT_LIMIT,
+            }
           : mergedScope;
 
       const hasNoEffectiveFilter = isEmpty(scopedFilter) || Object.keys(scopedFilter).length === 0;

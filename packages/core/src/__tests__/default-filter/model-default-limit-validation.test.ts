@@ -1,0 +1,39 @@
+import { describe, test, expect } from 'bun:test';
+import { model } from '@/base/metadata';
+
+/**
+ * `@model({ settings: { defaultLimit } })` validates at decoration (boot) time:
+ * defaultLimit, when provided, MUST be a positive integer. Invalid values fail
+ * fast so misconfiguration never reaches the query layer.
+ */
+describe('@model - defaultLimit validation', () => {
+  const decorate = (settings: Record<string, unknown>) => () => {
+    @model({ type: 'entity', settings: settings as any })
+    class _M {}
+    return _M;
+  };
+
+  test('accepts a positive integer', () => {
+    expect(decorate({ defaultLimit: 50 })).not.toThrow();
+  });
+
+  test('accepts an omitted defaultLimit', () => {
+    expect(decorate({})).not.toThrow();
+  });
+
+  test('rejects zero', () => {
+    expect(decorate({ defaultLimit: 0 })).toThrow(/Invalid 'defaultLimit'/);
+  });
+
+  test('rejects a negative value', () => {
+    expect(decorate({ defaultLimit: -5 })).toThrow(/Invalid 'defaultLimit'/);
+  });
+
+  test('rejects a non-integer', () => {
+    expect(decorate({ defaultLimit: 10.5 })).toThrow(/Invalid 'defaultLimit'/);
+  });
+
+  test('rejects NaN', () => {
+    expect(decorate({ defaultLimit: NaN })).toThrow(/Invalid 'defaultLimit'/);
+  });
+});

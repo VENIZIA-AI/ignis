@@ -73,6 +73,10 @@ class CapturingRepository extends ReadableRepository<any> {
     return undefined;
   }
 
+  override getDefaultLimit(): number | undefined {
+    return undefined;
+  }
+
   protected override findWithCoreAPI<R = any>(opts: { filter: TFilter<any> }): Promise<Array<R>> {
     this.captured = opts.filter;
     return Promise.resolve([] as Array<R>);
@@ -108,5 +112,35 @@ describe('ReadableRepository.find - default limit application', () => {
 
     expect(repo.captured?.limit).toBe(DEFAULT_LIMIT);
     expect(repo.captured?.include?.[0]?.scope?.limit).toBeUndefined();
+  });
+});
+
+/**
+ * find() prefers the model's `settings.defaultLimit` over the global DEFAULT_LIMIT
+ * when the query omits an explicit limit. An explicit limit always wins.
+ */
+class ModelLimitRepository extends CapturingRepository {
+  override getDefaultLimit() {
+    return 25;
+  }
+}
+
+describe('ReadableRepository.find - per-model defaultLimit', () => {
+  test('applies the model defaultLimit when query omits limit', async () => {
+    const repo = new ModelLimitRepository();
+    await repo.find({ filter: { where: { name: 'x' } } });
+    expect(repo.captured?.limit).toBe(25);
+  });
+
+  test('explicit query limit overrides the model defaultLimit', async () => {
+    const repo = new ModelLimitRepository();
+    await repo.find({ filter: { limit: 5 } });
+    expect(repo.captured?.limit).toBe(5);
+  });
+
+  test('falls back to DEFAULT_LIMIT when model has no defaultLimit', async () => {
+    const repo = new CapturingRepository();
+    await repo.find({ filter: {} });
+    expect(repo.captured?.limit).toBe(DEFAULT_LIMIT);
   });
 });

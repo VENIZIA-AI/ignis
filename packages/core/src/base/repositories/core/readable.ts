@@ -137,7 +137,7 @@ export class ReadableRepository<
 
     const mergedFilter: TFilter<DataObject> = {
       ...baseFilter,
-      limit: baseFilter.limit ?? DEFAULT_LIMIT,
+      limit: baseFilter.limit ?? this.getDefaultLimit() ?? DEFAULT_LIMIT,
     };
 
     const effectiveOptions = { ...options, shouldSkipDefaultFilter: true } as ExtraOptions;

@@ -302,6 +302,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-05-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Per-Model Default Limit via @model Settings',
+                  link: '/changelogs/2026-05-25-per-model-default-limit',
+                },
+              ],
+            },
+            {
               text: '2026-05-22',
               collapsed: true,
               items: [
