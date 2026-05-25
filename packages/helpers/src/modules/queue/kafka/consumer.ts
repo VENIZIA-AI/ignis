@@ -65,6 +65,7 @@ export class KafkaConsumerHelper<
   private consumeLoop: Promise<void> | null = null;
   private consumeStartOptions: IKafkaConsumeStartOptions | null = null;
   private lagMonitoringActive = false;
+  private lagMonitoringOptions: { topics: string[]; interval?: number } | null = null;
   private sessionLikelyStale = false;
 
   // Message callbacks
@@ -242,6 +243,7 @@ export class KafkaConsumerHelper<
     const interval = opts.interval ?? KafkaDefaults.LAG_MONITOR_INTERVAL;
     this.client.startLagMonitoring({ topics: opts.topics }, interval);
     this.lagMonitoringActive = true;
+    this.lagMonitoringOptions = { topics: opts.topics, interval };
 
     this.logger.info(
       '[startLagMonitoring] Lag monitoring STARTED | Topics: %j | Interval: %dms',
@@ -257,6 +259,7 @@ export class KafkaConsumerHelper<
 
     this.client.stopLagMonitoring();
     this.lagMonitoringActive = false;
+    this.lagMonitoringOptions = null;
 
     this.logger.info('[stopLagMonitoring] Lag monitoring STOPPED');
   }
@@ -426,6 +429,7 @@ export class KafkaConsumerHelper<
     if (needsClientRebuild) {
       try {
         await this.rebuildClient();
+        this.sessionLikelyStale = false;
       } catch (error) {
         const err = toError(error);
         this.logger.error(
@@ -486,6 +490,23 @@ export class KafkaConsumerHelper<
 
     this.swapClient(newClient);
 
+    if (this.lagMonitoringOptions) {
+      const opts = this.lagMonitoringOptions;
+      this.lagMonitoringActive = false; // reset so startLagMonitoring won't refuse
+      try {
+        this.startLagMonitoring(opts);
+        this.logger.info(
+          '[rebuildClient] Lag monitoring re-armed on new client | Topics: %j',
+          opts.topics,
+        );
+      } catch (error) {
+        this.logger.warn(
+          '[rebuildClient] Failed to restart lag monitoring on new client | Error: %s',
+          toError(error).message,
+        );
+      }
+    }
+
     this.closeOldClient(oldClient).catch(error => {
       this.logger.warn(
         '[rebuildClient] background close of old client failed (ignored) | Error: %s',
@@ -497,10 +518,6 @@ export class KafkaConsumerHelper<
   private async closeOldClient(
     oldClient: Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
   ): Promise<void> {
-    // Track the timeout handle so we can clear it the moment close() resolves.
-    // Without this, a pending setTimeout keeps the event loop alive for up to
-    // shutdownTimeout ms after close() already returned — visible as hanging
-    // test suites and delayed process exits.
     let timeoutHandle: NodeJS.Timeout | null = null;
     try {
       await Promise.race([
@@ -521,6 +538,20 @@ export class KafkaConsumerHelper<
       if (timeoutHandle !== null) {
         clearTimeout(timeoutHandle);
       }
+    }
+  }
+
+  private handleAllBrokersDown(reason: 'disconnected' | 'failed'): void {
+    if (this.getConnectedBrokerCount() !== 0) {
+      return;
+    }
+    this.sessionLikelyStale = true;
+    if (this.stream) {
+      this.logger.warn(
+        '[configureBrokerEvents] All brokers %s, destroying stream to trigger reconnect',
+        reason,
+      );
+      this.destroyDeadStream();
     }
   }
 
@@ -557,25 +588,11 @@ export class KafkaConsumerHelper<
   protected override configureBrokerEvents(): void {
     super.configureBrokerEvents();
 
-    // Destroy stalled stream when all brokers disconnect to trigger reconnect loop.
-    // Without this, yield* this.stream hangs forever because the stream doesn't
-    // error on its own when broker connections are dropped from the pool.
-    //
-    // Also mark sessionLikelyStale so attemptReconnect rebuilds the underlying
-    // client (which carries cached group-session state) instead of just calling
-    // consume() again. We set the flag here — not at retry time — so a
-    // transparent TCP reconnect during the retry sleep doesn't hide the fact
-    // that the session was lost.
     this.client.on(KafkaClientEvents.BROKER_DISCONNECT, () => {
-      if (this.getConnectedBrokerCount() === 0) {
-        this.sessionLikelyStale = true;
-        if (this.stream) {
-          this.logger.warn(
-            '[configureBrokerEvents] All brokers disconnected, destroying stream to trigger reconnect',
-          );
-          this.destroyDeadStream();
-        }
-      }
+      this.handleAllBrokersDown('disconnected');
+    });
+    this.client.on(KafkaClientEvents.BROKER_FAILED, () => {
+      this.handleAllBrokersDown('failed');
     });
 
     this.client.on(KafkaClientEvents.CONSUMER_GROUP_JOIN, (payload: ConsumerGroupJoinPayload) => {

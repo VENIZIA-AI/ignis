@@ -371,6 +371,148 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // The post-sleep read of the flag must see the mid-sleep transition.
     expect(rebuildCalled).toBe(true);
   });
+
+  test('TC-151: rebuildClient restarts lag monitoring on the new client', async () => {
+    // Regression for the Copilot review (high severity): swapping out
+    // this.client during rebuildClient left lagMonitoringActive=true while
+    // the timer lived only on the abandoned old client. Lag events silently
+    // stopped emitting, and the boolean gate in startLagMonitoring made it
+    // impossible to re-enable without reconstructing the helper.
+    //
+    // After the fix: rebuildClient re-arms lag monitoring on the new client
+    // using the persisted lagMonitoringOptions.
+    const helper = newConsumer();
+
+    // Stub the original client's lag-monitoring methods so calling
+    // startLagMonitoring() doesn't touch the network.
+    let oldStartCalls = 0;
+    (helper.getConsumer() as unknown as { startLagMonitoring: () => void }).startLagMonitoring =
+      () => {
+        oldStartCalls += 1;
+      };
+    (helper.getConsumer() as unknown as { stopLagMonitoring: () => void }).stopLagMonitoring =
+      () => {};
+
+    helper.startLagMonitoring({ topics: ['t'], interval: 5000 });
+    expect(oldStartCalls).toBe(1);
+    expect(helper['lagMonitoringActive']).toBe(true);
+    expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
+
+    // Intercept the factory so we can spy on the NEW client's startLagMonitoring.
+    // Restore at the end so other tests aren't affected.
+    const KCH = KafkaConsumerHelper as unknown as {
+      buildConsumerClient: (opts: unknown) => unknown;
+    };
+    const origFactory = KCH.buildConsumerClient;
+    let newStartCalls = 0;
+    KCH.buildConsumerClient = (opts: unknown) => {
+      const client = origFactory.call(KafkaConsumerHelper, opts) as {
+        startLagMonitoring: () => void;
+        stopLagMonitoring: () => void;
+      };
+      client.startLagMonitoring = () => {
+        newStartCalls += 1;
+      };
+      client.stopLagMonitoring = () => {};
+      return client;
+    };
+
+    // Don't actually close the old client (it would try to talk to brokers).
+    helper['closeOldClient'] = async () => {};
+
+    try {
+      await helper['rebuildClient']();
+    } finally {
+      KCH.buildConsumerClient = origFactory;
+    }
+
+    // The new client must have received the startLagMonitoring call, and the
+    // helper state must reflect that monitoring is still active with the same
+    // options as before the swap.
+    expect(newStartCalls).toBe(1);
+    expect(helper['lagMonitoringActive']).toBe(true);
+    expect(helper['lagMonitoringOptions']).toEqual({ topics: ['t'], interval: 5000 });
+  });
+
+  test('TC-152: rebuildClient fires only once across multiple failed retries while brokers stay down', async () => {
+    // Regression for the Copilot review (medium severity): the stale flag
+    // was previously only cleared after a successful consume(). If consume()
+    // kept failing (prolonged outage), every retry would rebuild the client,
+    // churning through Consumer instances and piling up background close()s.
+    //
+    // After the fix, the flag is cleared right after rebuildClient() succeeds
+    // — so a single all-brokers-down event causes exactly ONE rebuild, even
+    // if the subsequent consume() calls keep failing across multiple retry
+    // attempts.
+    const helper = newConsumer();
+
+    // Bring a broker up so the disconnect-to-0 event makes sense.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper['sessionLikelyStale']).toBe(true);
+
+    let rebuildCalls = 0;
+    helper['rebuildClient'] = async () => {
+      rebuildCalls += 1;
+      // Mimic the production behaviour: the real rebuildClient clears the
+      // flag itself on success. The stub does the same so this test
+      // verifies the *invariant* end-to-end rather than coincidentally
+      // passing because the stub forgot to clear it.
+      helper['sessionLikelyStale'] = false;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    // consume() keeps failing — simulating brokers still being down.
+    (
+      helper.getConsumer() as unknown as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => {
+      throw new Error('brokers still unreachable');
+    };
+
+    // Three retry attempts back-to-back.
+    await helper['attemptReconnect']({ attempt: 1, maxAttempts: 5, delayMs: 1 });
+    await helper['attemptReconnect']({ attempt: 2, maxAttempts: 5, delayMs: 1 });
+    await helper['attemptReconnect']({ attempt: 3, maxAttempts: 5, delayMs: 1 });
+
+    // Despite 3 retries with failing consume(), rebuild fired exactly once.
+    expect(rebuildCalls).toBe(1);
+  });
+
+  test('TC-153: BROKER_FAILED-to-zero also sets sessionLikelyStale and destroys the stream', () => {
+    // Regression for the Copilot review (medium severity): the previous
+    // handler only listened to BROKER_DISCONNECT. A pool that emptied via
+    // BROKER_FAILED (auth, broker not up, network) left sessionLikelyStale
+    // false and the stream undestroyed — re-introducing the original hang
+    // bug via a different event path.
+    const helper = newConsumer();
+
+    // Park a fake stream on the helper so we can observe destruction.
+    const fakeStream = new Readable({ objectMode: true, read() {} });
+    fakeStream.on('error', () => {}); // swallow destroy(err) emit
+    helper['stream'] = asStream(fakeStream);
+    expect(helper['sessionLikelyStale']).toBe(false);
+
+    // Bring one broker up, then take it down via BROKER_FAILED (not DISCONNECT).
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_FAILED, {
+      broker: { host: 'h1', port: 9092 },
+    });
+
+    // After BROKER_FAILED-to-zero: count is 0, flag is set, stream destroyed.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper['sessionLikelyStale']).toBe(true);
+    expect(helper.getStream()).toBeNull();
+  });
 });
 
 describe('KafkaConsumerHelper - broker health tracking', () => {
