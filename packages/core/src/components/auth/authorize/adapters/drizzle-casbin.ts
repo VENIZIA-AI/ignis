@@ -79,7 +79,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
              pd.effect, pd.domain
       FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
       INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
-      WHERE pd.variant = ${CasbinRuleVariants.POLICY}
+      WHERE pd.deleted_at is null
+        AND pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
         AND pd.target_type = ${perm.principalType}
@@ -113,7 +114,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
     const result = await this.connector.execute<TRow>(sql`
       SELECT pd.target_id AS "targetId", pd.domain
       FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
-      WHERE pd.variant = ${CasbinRuleVariants.GROUP}
+      WHERE pd.deleted_at is null
+        AND pd.variant = ${CasbinRuleVariants.GROUP}
         AND pd.subject_type = ${principalType}
         AND pd.subject_id = ${principalValue}
         AND pd.target_type = ${rol.principalType}
@@ -154,7 +156,8 @@ export class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEnti
              pd.effect, pd.domain
       FROM ${sql.identifier(pd.schemaName!)}.${sql.identifier(pd.tableName)} pd
       INNER JOIN ${sql.identifier(perm.schemaName!)}.${sql.identifier(perm.tableName)} p ON pd.target_id = p.id
-      WHERE pd.variant = ${CasbinRuleVariants.POLICY}
+      WHERE pd.deleted_at is null
+        AND pd.variant = ${CasbinRuleVariants.POLICY}
         AND pd.subject_type = ${rol.principalType}
         AND pd.subject_id IN (${sql.join(
           roleIds.map(id => sql`${id}`),
