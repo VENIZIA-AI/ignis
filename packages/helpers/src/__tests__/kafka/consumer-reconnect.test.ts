@@ -159,6 +159,172 @@ describe('KafkaConsumerHelper - dead stream reconnect', () => {
 // Base health tracking driven by broker events (no broker required)
 // -------------------------------------------------------------------------
 
+describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
+  test('TC-105: rebuildClient() swaps to a fresh @platformatic/kafka Consumer instance', async () => {
+    const helper = newConsumer();
+    const before = helper.getConsumer();
+
+    // close() on a never-connected client may hang because the platformatic
+    // client tries to flush in-flight requests. Race against a tight timeout
+    // here — the production codepath uses shutdownTimeout for the same reason.
+    helper['closeOldClient'] = async () => {
+      /* no-op — old client is unreachable, don't actually close it */
+    };
+
+    await helper['rebuildClient']();
+
+    const after = helper.getConsumer();
+    expect(after).not.toBe(before);
+    // Health is reset on swap; the new client hasn't seen any BROKER_CONNECT yet.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    expect(helper.isHealthy()).toBe(false);
+  });
+
+  test('TC-106: swapClient() detaches listeners from the old client (events on old client are ignored)', () => {
+    const helper = newConsumer();
+    const oldClient = helper.getConsumer();
+
+    // Simulate state on the OLD client.
+    oldClient.emit(KafkaClientEvents.BROKER_CONNECT, { broker: { host: 'h1', port: 9092 } });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    // Build a synthetic new client by reusing the same options.
+    const newClient = (
+      KafkaConsumerHelper as unknown as {
+        buildConsumerClient: (opts: unknown) => typeof oldClient;
+      }
+    ).buildConsumerClient(helper['initialOptions']);
+    helper['swapClient'](newClient);
+
+    // After swap: connectedBrokers reset, and stray events on the OLD client
+    // must not propagate into the helper's state.
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+    oldClient.emit(KafkaClientEvents.BROKER_CONNECT, { broker: { host: 'h99', port: 9092 } });
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+
+    // Events on the NEW client are tracked normally.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h2', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+  });
+
+  test('TC-107: attemptReconnect skips rebuild when at least one broker is connected', async () => {
+    const helper = newConsumer();
+
+    // Simulate a healthy connection state.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    const beforeClient = helper.getConsumer();
+    let rebuildCalled = false;
+    helper['rebuildClient'] = async () => {
+      rebuildCalled = true;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+
+    // Stub the consume() call to avoid touching the network.
+    (
+      helper.getConsumer() as unknown as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    expect(rebuildCalled).toBe(false);
+    expect(helper.getConsumer()).toBe(beforeClient);
+  });
+
+  test('TC-108: sticky sessionLikelyStale flag triggers rebuild even after brokers reconnect before attemptReconnect runs', async () => {
+    const helper = newConsumer();
+
+    // Healthy initial state.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    // All brokers drop — this is the moment the sticky flag must be set,
+    // regardless of what happens next.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(0);
+
+    // Simulate the platformatic client transparently reconnecting TCP before
+    // our attemptReconnect runs. A snapshot-style check would now see "1
+    // broker connected" and skip the rebuild — the bug we're guarding against.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    expect(helper.getConnectedBrokerCount()).toBe(1);
+
+    let rebuildCalled = false;
+    helper['rebuildClient'] = async () => {
+      rebuildCalled = true;
+    };
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    (
+      helper.getConsumer() as unknown as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    // Despite brokers being back, the sticky flag remembers we lost them all
+    // at some point — rebuild fires.
+    expect(rebuildCalled).toBe(true);
+  });
+
+  test('TC-109: sessionLikelyStale is cleared after a successful consume()', async () => {
+    const helper = newConsumer();
+
+    // Trip the flag via BROKER_DISCONNECT-to-0.
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_CONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+    helper.getConsumer().emit(KafkaClientEvents.BROKER_DISCONNECT, {
+      broker: { host: 'h1', port: 9092 },
+    });
+
+    helper['consumeStartOptions'] = { topics: ['t'] };
+    helper['rebuildClient'] = async () => {
+      /* stub: don't touch the client for this test */
+    };
+    (
+      helper.getConsumer() as unknown as {
+        consume: (opts: unknown) => Promise<unknown>;
+      }
+    ).consume = async () => null;
+
+    expect(helper['sessionLikelyStale']).toBe(true);
+
+    await helper['attemptReconnect']({
+      attempt: 1,
+      maxAttempts: 5,
+      delayMs: 1,
+    });
+
+    // Flag must be cleared on successful consume so a later transient stream
+    // error doesn't trigger an unnecessary rebuild.
+    expect(helper['sessionLikelyStale']).toBe(false);
+  });
+});
+
 describe('KafkaConsumerHelper - broker health tracking', () => {
   const emit = (helper: KafkaConsumerHelper, event: string, host: string, port: number) => {
     helper.getConsumer().emit(event, { broker: { host, port } });
