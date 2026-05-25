@@ -26,7 +26,7 @@ export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
  * through `this.client`. Broker events are wired automatically in the constructor.
  */
 export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
-  protected readonly client: TClient;
+  protected client: TClient;
   protected readonly shutdownTimeout: number;
 
   protected healthStatus: TKafkaHealthStatus = KafkaHealthStatuses.UNKNOWN;
@@ -117,6 +117,19 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     this.configureBrokerConnect();
     this.configureBrokerDisconnect();
     this.configureBrokerFailed();
+  }
+
+  protected unconfigureBrokerEvents(): void {
+    this.client.removeAllListeners(KafkaClientEvents.BROKER_CONNECT);
+    this.client.removeAllListeners(KafkaClientEvents.BROKER_DISCONNECT);
+    this.client.removeAllListeners(KafkaClientEvents.BROKER_FAILED);
+  }
+
+  protected swapClient(newClient: TClient): void {
+    this.unconfigureBrokerEvents();
+    this.client = newClient;
+    this.resetHealthState();
+    this.configureBrokerEvents();
   }
 
   protected resetHealthState(): void {

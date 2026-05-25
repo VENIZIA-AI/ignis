@@ -65,6 +65,8 @@ export class KafkaConsumerHelper<
   private consumeLoop: Promise<void> | null = null;
   private consumeStartOptions: IKafkaConsumeStartOptions | null = null;
   private lagMonitoringActive = false;
+  private lagMonitoringOptions: { topics: string[]; interval?: number } | null = null;
+  private sessionLikelyStale = false;
 
   // Message callbacks
   private readonly onMessage?: TKafkaMessageCallback<
@@ -96,41 +98,24 @@ export class KafkaConsumerHelper<
   private readonly onLag?: TKafkaLagCallback;
   private readonly onLagError?: TKafkaLagErrorCallback;
 
+  private readonly initialOptions: IKafkaConsumerOptions<
+    KeyType,
+    ValueType,
+    HeaderKeyType,
+    HeaderValueType
+  >;
+
   constructor(opts: IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>) {
     super({
       scope: KafkaConsumerHelper.name,
       identifier: opts.identifier ?? 'kafka-consumer',
       shutdownTimeout: opts.shutdownTimeout,
-      client: new Consumer({
-        clientId: opts.clientId,
-        bootstrapBrokers: opts.bootstrapBrokers,
-        sasl: opts.sasl,
-        tls: opts.tls,
-        ssl: opts.ssl,
-        connectTimeout: opts.connectTimeout,
-        requestTimeout: opts.requestTimeout,
-        groupId: opts.groupId,
-        groupInstanceId: opts.groupInstanceId,
-        groupProtocol: opts.groupProtocol ?? KafkaDefaults.GROUP_PROTOCOL,
-        deserializers: opts.deserializers,
-        autocommit: opts.autocommit ?? KafkaDefaults.AUTOCOMMIT,
-        sessionTimeout: opts.sessionTimeout ?? KafkaDefaults.SESSION_TIMEOUT,
-        heartbeatInterval: opts.heartbeatInterval ?? KafkaDefaults.HEARTBEAT_INTERVAL,
-        rebalanceTimeout:
-          opts.rebalanceTimeout ?? opts.sessionTimeout ?? KafkaDefaults.SESSION_TIMEOUT,
-        highWaterMark: opts.highWaterMark ?? KafkaDefaults.HIGH_WATER_MARK,
-        minBytes: opts.minBytes ?? KafkaDefaults.MIN_BYTES,
-        maxBytes: opts.maxBytes ?? KafkaDefaults.MAX_BYTES,
-        maxWaitTime: opts.maxWaitTime ?? KafkaDefaults.MAX_WAIT_TIME,
-        metadataMaxAge: opts.metadataMaxAge ?? KafkaDefaults.METADATA_MAX_AGE,
-        retries: opts.retries ?? KafkaDefaults.RETRIES,
-        retryDelay: opts.retryDelay ?? KafkaDefaults.RETRY_DELAY,
-        registry: opts.registry,
-      }),
+      client: KafkaConsumerHelper.buildConsumerClient(opts),
       onBrokerConnect: opts.onBrokerConnect,
       onBrokerDisconnect: opts.onBrokerDisconnect,
     });
 
+    this.initialOptions = opts;
     this.onMessage = opts.onMessage;
     this.onMessageDone = opts.onMessageDone;
     this.onMessageError = opts.onMessageError;
@@ -160,6 +145,42 @@ export class KafkaConsumerHelper<
     return new KafkaConsumerHelper<KeyType, ValueType, HeaderKeyType, HeaderValueType>(opts);
   }
 
+  private static buildConsumerClient<
+    KeyType = string,
+    ValueType = string,
+    HeaderKeyType = string,
+    HeaderValueType = string,
+  >(
+    opts: IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
+  ): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
+    return new Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>({
+      clientId: opts.clientId,
+      bootstrapBrokers: opts.bootstrapBrokers,
+      sasl: opts.sasl,
+      tls: opts.tls,
+      ssl: opts.ssl,
+      connectTimeout: opts.connectTimeout,
+      requestTimeout: opts.requestTimeout,
+      groupId: opts.groupId,
+      groupInstanceId: opts.groupInstanceId,
+      groupProtocol: opts.groupProtocol ?? KafkaDefaults.GROUP_PROTOCOL,
+      deserializers: opts.deserializers,
+      autocommit: opts.autocommit ?? KafkaDefaults.AUTOCOMMIT,
+      sessionTimeout: opts.sessionTimeout ?? KafkaDefaults.SESSION_TIMEOUT,
+      heartbeatInterval: opts.heartbeatInterval ?? KafkaDefaults.HEARTBEAT_INTERVAL,
+      rebalanceTimeout:
+        opts.rebalanceTimeout ?? opts.sessionTimeout ?? KafkaDefaults.SESSION_TIMEOUT,
+      highWaterMark: opts.highWaterMark ?? KafkaDefaults.HIGH_WATER_MARK,
+      minBytes: opts.minBytes ?? KafkaDefaults.MIN_BYTES,
+      maxBytes: opts.maxBytes ?? KafkaDefaults.MAX_BYTES,
+      maxWaitTime: opts.maxWaitTime ?? KafkaDefaults.MAX_WAIT_TIME,
+      metadataMaxAge: opts.metadataMaxAge ?? KafkaDefaults.METADATA_MAX_AGE,
+      retries: opts.retries ?? KafkaDefaults.RETRIES,
+      retryDelay: opts.retryDelay ?? KafkaDefaults.RETRY_DELAY,
+      registry: opts.registry,
+    });
+  }
+
   getConsumer(): Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType> {
     return this.client;
   }
@@ -186,6 +207,11 @@ export class KafkaConsumerHelper<
       mode: opts.mode ?? KafkaDefaults.CONSUME_MODE,
       fallbackMode: opts.fallbackMode ?? KafkaDefaults.CONSUME_FALLBACK_MODE,
     });
+
+    // Successful consume() means we're freshly joined to the group; clear any
+    // stale-session flag that might have been set during initial broker
+    // negotiation (e.g. transient BROKER_DISCONNECT during bootstrap).
+    this.sessionLikelyStale = false;
 
     if (this.onMessageError) {
       this.stream.on(KafkaClientEvents.STREAM_ERROR, (err: Error) => {
@@ -217,6 +243,7 @@ export class KafkaConsumerHelper<
     const interval = opts.interval ?? KafkaDefaults.LAG_MONITOR_INTERVAL;
     this.client.startLagMonitoring({ topics: opts.topics }, interval);
     this.lagMonitoringActive = true;
+    this.lagMonitoringOptions = { topics: opts.topics, interval };
 
     this.logger.info(
       '[startLagMonitoring] Lag monitoring STARTED | Topics: %j | Interval: %dms',
@@ -232,6 +259,7 @@ export class KafkaConsumerHelper<
 
     this.client.stopLagMonitoring();
     this.lagMonitoringActive = false;
+    this.lagMonitoringOptions = null;
 
     this.logger.info('[stopLagMonitoring] Lag monitoring STOPPED');
   }
@@ -389,6 +417,33 @@ export class KafkaConsumerHelper<
       return;
     }
 
+    const needsClientRebuild = this.sessionLikelyStale;
+
+    if (needsClientRebuild) {
+      this.logger.warn(
+        '[attemptReconnect] Session stale flag is set, will rebuild client | Attempt: %d',
+        attempt,
+      );
+    }
+
+    if (needsClientRebuild) {
+      try {
+        await this.rebuildClient();
+        this.sessionLikelyStale = false;
+      } catch (error) {
+        const err = toError(error);
+        this.logger.error(
+          '[attemptReconnect] Client rebuild failed (%d/%d): %s | Topics: %j',
+          attempt,
+          maxAttempts,
+          err.message,
+          this.consumeStartOptions?.topics,
+        );
+        errorHandler?.({ error: err });
+        return;
+      }
+    }
+
     try {
       this.stream = await this.client.consume({
         topics: this.consumeStartOptions.topics,
@@ -402,10 +457,13 @@ export class KafkaConsumerHelper<
         });
       }
 
+      this.sessionLikelyStale = false;
+
       this.logger.info(
-        '[attemptReconnect] Reconnected successfully | Topics: %j | Attempt: %d',
+        '[attemptReconnect] Reconnected successfully | Topics: %j | Attempt: %d | Rebuilt: %s',
         this.consumeStartOptions.topics,
         attempt,
+        needsClientRebuild,
       );
     } catch (error) {
       const err = toError(error);
@@ -418,6 +476,82 @@ export class KafkaConsumerHelper<
         this.getConnectedBrokerCount(),
       );
       errorHandler?.({ error: err });
+    }
+  }
+
+  private async rebuildClient(): Promise<void> {
+    this.logger.warn(
+      '[rebuildClient] All brokers were disconnected; rebuilding @platformatic/kafka ' +
+        'Consumer to force a clean group rejoin (cached session state is stale)',
+    );
+
+    const oldClient = this.client;
+    const newClient = KafkaConsumerHelper.buildConsumerClient(this.initialOptions);
+
+    this.swapClient(newClient);
+
+    if (this.lagMonitoringOptions) {
+      const opts = this.lagMonitoringOptions;
+      this.lagMonitoringActive = false; // reset so startLagMonitoring won't refuse
+      try {
+        this.startLagMonitoring(opts);
+        this.logger.info(
+          '[rebuildClient] Lag monitoring re-armed on new client | Topics: %j',
+          opts.topics,
+        );
+      } catch (error) {
+        this.logger.warn(
+          '[rebuildClient] Failed to restart lag monitoring on new client | Error: %s',
+          toError(error).message,
+        );
+      }
+    }
+
+    this.closeOldClient(oldClient).catch(error => {
+      this.logger.warn(
+        '[rebuildClient] background close of old client failed (ignored) | Error: %s',
+        toError(error).message,
+      );
+    });
+  }
+
+  private async closeOldClient(
+    oldClient: Consumer<KeyType, ValueType, HeaderKeyType, HeaderValueType>,
+  ): Promise<void> {
+    let timeoutHandle: NodeJS.Timeout | null = null;
+    try {
+      await Promise.race([
+        new Promise<void>((resolve, reject) => {
+          oldClient.close(true, (err?: Error | null) => {
+            if (err) {
+              reject(err);
+            } else {
+              resolve();
+            }
+          });
+        }),
+        new Promise<void>(resolve => {
+          timeoutHandle = setTimeout(resolve, this.shutdownTimeout);
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
+    }
+  }
+
+  private handleAllBrokersDown(reason: 'disconnected' | 'failed'): void {
+    if (this.getConnectedBrokerCount() !== 0) {
+      return;
+    }
+    this.sessionLikelyStale = true;
+    if (this.stream) {
+      this.logger.warn(
+        '[configureBrokerEvents] All brokers %s, destroying stream to trigger reconnect',
+        reason,
+      );
+      this.destroyDeadStream();
     }
   }
 
@@ -441,19 +575,24 @@ export class KafkaConsumerHelper<
     this.consumeLoop = null;
   }
 
+  protected override unconfigureBrokerEvents(): void {
+    super.unconfigureBrokerEvents();
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_GROUP_JOIN);
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_GROUP_LEAVE);
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_GROUP_REBALANCE);
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_HEARTBEAT_ERROR);
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_LAG);
+    this.client.removeAllListeners(KafkaClientEvents.CONSUMER_LAG_ERROR);
+  }
+
   protected override configureBrokerEvents(): void {
     super.configureBrokerEvents();
 
-    // Destroy stalled stream when all brokers disconnect to trigger reconnect loop.
-    // Without this, yield* this.stream hangs forever because the stream doesn't
-    // error on its own when broker connections are dropped from the pool.
     this.client.on(KafkaClientEvents.BROKER_DISCONNECT, () => {
-      if (this.getConnectedBrokerCount() === 0 && this.stream) {
-        this.logger.warn(
-          '[configureBrokerEvents] All brokers disconnected, destroying stream to trigger reconnect',
-        );
-        this.destroyDeadStream();
-      }
+      this.handleAllBrokersDown('disconnected');
+    });
+    this.client.on(KafkaClientEvents.BROKER_FAILED, () => {
+      this.handleAllBrokersDown('failed');
     });
 
     this.client.on(KafkaClientEvents.CONSUMER_GROUP_JOIN, (payload: ConsumerGroupJoinPayload) => {
