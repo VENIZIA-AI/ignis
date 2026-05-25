@@ -51,6 +51,7 @@ The `@model` decorator marks a class as a database entity and configures its beh
   settings?: {
     hiddenProperties?: string[],  // Properties to exclude from query results
     defaultFilter?: TFilter,      // Filter applied to all repository queries
+    defaultLimit?: number,        // Default row limit when a query omits `limit`
     authorize?: {                  // Authorization settings
       principal: string,           // Authorization subject name
       [extra: string | symbol]: any, // Extensible metadata
@@ -66,15 +67,17 @@ The `@model` decorator marks a class as a database entity and configures its beh
 | `skipMigrate` | `boolean` | Skip this model during schema migrations |
 | `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
 | `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
+| `settings.defaultLimit` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit) |
 | `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings — declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates `AUTHORIZATION_SUBJECT` static property |
 
 #### `@model` Behavior
 
 When the `@model` decorator is applied:
-1. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already defined on the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value
-2. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as: `metadata.tableName` > `static TABLE_NAME` > class name)
-3. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models
+1. If `settings.defaultLimit` is provided, it is validated to be a positive integer — otherwise the decorator throws at decoration (boot) time
+2. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already defined on the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value
+3. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as: `metadata.tableName` > `static TABLE_NAME` > class name)
+4. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models
 
 ### Hidden Properties
 

@@ -299,13 +299,13 @@ export class Subscription extends BaseEntity<typeof Subscription.schema> {}
 
 ### Query Limit Protection
 
+Use the dedicated `settings.defaultLimit` to raise (or lower) the per-model default page size. Prefer it over putting `limit` inside `defaultFilter`:
+
 ```typescript
 @model({
   type: 'entity',
   settings: {
-    defaultFilter: {
-      limit: 1000,  // Prevent unbounded queries
-    },
+    defaultLimit: 1000,  // Per-model default when a query omits `limit`
   },
 })
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
@@ -314,6 +314,9 @@ export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
 await logRepo.find({ filter: {} });           // LIMIT 1000
 await logRepo.find({ filter: { limit: 50 } }); // LIMIT 50
 ```
+
+> [!TIP]
+> `defaultLimit` is independent of `defaultFilter`: bypassing the default filter via `shouldSkipDefaultFilter` does **not** drop the limit. See [Pagination → Default Limit](/references/base/filter-system/fields-order-pagination#default-limit).
 
 
 ## Relation Include Default Filters

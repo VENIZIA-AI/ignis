@@ -73,7 +73,7 @@ class CapturingRepository extends ReadableRepository<any> {
     return undefined;
   }
 
-  override getDefaultLimit() {
+  override getDefaultLimit(): number | undefined {
     return undefined;
   }
 
