@@ -64,6 +64,8 @@ export interface IModelSettings {
   hiddenProperties?: string[];
   /** Default filter auto-applied to all repository operations. Bypassable via shouldSkipDefaultFilter. */
   defaultFilter?: TFilter;
+  /** Default row limit when a query omits `limit`. Must be a positive integer. Falls back to DEFAULT_LIMIT (10). */
+  defaultLimit?: number;
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;
 }
