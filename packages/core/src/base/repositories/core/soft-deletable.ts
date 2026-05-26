@@ -5,7 +5,7 @@ import { IExtraOptions, TCount, TFilter, TWhere } from '../common';
 import { DefaultCRUDRepository } from './default-crud';
 
 export type TDeletedAtColumn = AnyPgColumn<{
-  data: Date | null;
+  data: Date | string | null;
 }>;
 
 export type TSoftDeletableTableSchema = TTableSchemaWithId & {
