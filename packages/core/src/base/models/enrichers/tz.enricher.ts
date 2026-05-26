@@ -1,6 +1,8 @@
 import { HasDefault, NotNull } from 'drizzle-orm';
-import { PgTimestampBuilderInitial, timestamp } from 'drizzle-orm/pg-core';
 import { TColumnDefinitions } from '../common/types';
+import { isoTimestamp } from '../common/columns';
+
+type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;
 
 export type TTzEnricherOptions = {
   created?: { columnName: string; withTimezone: boolean };
@@ -15,17 +17,17 @@ type TIsEnabled<T> = T extends { enable: false }
     : undefined;
 
 export type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
-  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+  createdAt: NotNull<HasDefault<TIsoTimestampColumn>>;
 } & (Opts extends TTzEnricherOptions
   ? TIsEnabled<Opts['modified']> extends true
-    ? { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }
+    ? { modifiedAt: NotNull<HasDefault<TIsoTimestampColumn>> }
     : TIsEnabled<Opts['modified']> extends false
       ? {}
-      : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> } // default for undefined modified
-  : { modifiedAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>> }) & // default when opts is undefined
+      : { modifiedAt: NotNull<HasDefault<TIsoTimestampColumn>> } // default for undefined modified
+  : { modifiedAt: NotNull<HasDefault<TIsoTimestampColumn>> }) & // default when opts is undefined
   (Opts extends TTzEnricherOptions
     ? TIsEnabled<Opts['deleted']> extends true
-      ? { deletedAt: PgTimestampBuilderInitial<string> }
+      ? { deletedAt: TIsoTimestampColumn }
       : {}
     : {}); // no deletedAt when opts is undefined
 
@@ -39,32 +41,29 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
   } = opts ?? {};
 
   let rs = {
-    createdAt: timestamp(created.columnName, {
-      mode: 'date',
+    createdAt: isoTimestamp(created.columnName, {
       withTimezone: created.withTimezone,
     })
-      .defaultNow()
+      .default(new Date().toISOString())
       .notNull(),
   } as TTzEnricherResult<Opts>;
 
   if (modified.enable) {
     rs = {
       ...rs,
-      modifiedAt: timestamp(modified.columnName, {
-        mode: 'date',
+      modifiedAt: isoTimestamp(modified.columnName, {
         withTimezone: modified.withTimezone,
       })
-        .defaultNow()
+        .default(new Date().toISOString())
         .notNull()
-        .$onUpdate(() => new Date()),
+        .$onUpdate(() => new Date().toISOString()),
     } as TTzEnricherResult<Opts>;
   }
 
   if (deleted.enable) {
     rs = {
       ...rs,
-      deletedAt: timestamp(deleted.columnName, {
-        mode: 'date',
+      deletedAt: isoTimestamp(deleted.columnName, {
         withTimezone: deleted.withTimezone,
       }),
     } as TTzEnricherResult<Opts>;
