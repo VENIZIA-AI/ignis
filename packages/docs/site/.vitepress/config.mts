@@ -302,6 +302,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-05-27',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Casbin Domain Matching Function — Wildcard/Pattern Domains in g',
+                  link: '/changelogs/2026-05-27-casbin-domain-matching-function',
+                },
+              ],
+            },
+            {
               text: '2026-05-25',
               collapsed: true,
               items: [

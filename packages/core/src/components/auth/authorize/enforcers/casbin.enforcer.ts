@@ -11,6 +11,7 @@ import {
   AuthorizationDecisions,
   AuthorizationEnforcerTypes,
   AuthorizeBindingKeys,
+  CasbinDomainMatchingFunctions,
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,
   CasbinRuleVariants,
@@ -73,6 +74,8 @@ export class CasbinAuthorizationEnforcer<
       adapter: this.options.adapter,
       cached,
     });
+
+    await this.registerDomainMatchingFunction({ casbin });
 
     this.logger
       .for(this.configure.name)
@@ -172,7 +175,12 @@ export class CasbinAuthorizationEnforcer<
       context,
     });
 
-    // Domain-aware enforcement: enforceSync(sub, dom, obj, act)
+    // Domain-aware enforcement: enforceSync(sub, dom, obj, act).
+    // The arg count MUST match the model's [request_definition]. For a domain model
+    // (`r = sub, dom, obj, act`) normalizePayloadFn must always return a `domain`; if it returns
+    // undefined here we fall back to the 3-arg form, which only fits a non-domain model
+    // (`r = sub, obj, act`). Returning undefined against a 4-arg model would shift the columns
+    // (r.dom <- resource, r.obj <- action, r.act <- undefined) and silently mis-evaluate.
     if (normalized.domain) {
       isAllowed = this.enforcer.enforceSync(
         normalized.subject,
@@ -231,6 +239,79 @@ export class CasbinAuthorizationEnforcer<
         });
       }
     }
+  }
+
+  protected async registerDomainMatchingFunction(opts: {
+    casbin: typeof import('casbin');
+  }): Promise<void> {
+    const { domainMatching } = this.options;
+    if (!domainMatching) {
+      return;
+    }
+
+    if (!this.enforcer) {
+      throw getError({
+        message: '[registerDomainMatchingFunc] Enforcer not initialized. Call configure() first.',
+      });
+    }
+
+    if (!this.enforcer.getNamedRoleManager(domainMatching.roleDefinition)) {
+      throw getError({
+        message: `[registerDomainMatchingFunc] Role definition "${domainMatching.roleDefinition}" is not declared in the Casbin model. Declare it under [role_definition] (e.g. \`g = _, _, _\`) before enabling domainMatching.`,
+      });
+    }
+
+    // `Util` is casbin's bag of built-in comparison functions. Each `*Func` takes two strings
+    // (the request value, the stored/policy value) and returns whether they "match":
+    //   keyMatchFunc   — `*` is the only wildcard. keyMatch("anything","*")=true; exact otherwise.
+    //                    (Best for domains: only treats `*` specially, never splits on `/` or `:`,
+    //                     so it can never accidentally pattern-match a `Merchant_<uuid>`.)
+    //   keyMatch2Func  — adds URL-path `:param` segments (e.g. "/u/:id" matches "/u/1").
+    //   keyMatch3Func  — adds `{param}` segments (e.g. "/u/{id}").
+    //   keyMatch4Func  — `{param}` with repeated-name equality checks.
+    //   regexMatchFunc — treats the stored value as a full regular expression.
+    const { Util } = opts.casbin;
+    let matchFn: (arg1: string, arg2: string) => boolean;
+    switch (domainMatching.fn) {
+      case CasbinDomainMatchingFunctions.KEY_MATCH: {
+        matchFn = Util.keyMatchFunc;
+        break;
+      }
+      case CasbinDomainMatchingFunctions.KEY_MATCH_2: {
+        matchFn = Util.keyMatch2Func;
+        break;
+      }
+      case CasbinDomainMatchingFunctions.KEY_MATCH_3: {
+        matchFn = Util.keyMatch3Func;
+        break;
+      }
+      case CasbinDomainMatchingFunctions.KEY_MATCH_4: {
+        matchFn = Util.keyMatch4Func;
+        break;
+      }
+      case CasbinDomainMatchingFunctions.REGEX_MATCH: {
+        matchFn = Util.regexMatchFunc;
+        break;
+      }
+      default: {
+        throw getError({
+          message: `[registerDomainMatchingFunc] Unsupported func: ${domainMatching.fn} | Valids: [${[...CasbinDomainMatchingFunctions.SCHEME_SET].join(', ')}]`,
+        });
+      }
+    }
+
+    await this.enforcer.addNamedDomainMatchingFunc(domainMatching.roleDefinition, matchFn);
+
+    // buildRoleLinks(): (re)computes the in-memory role-inheritance graph from the grouping policies.
+    await this.enforcer.buildRoleLinks();
+
+    this.logger
+      .for(this.configure.name)
+      .info(
+        'Casbin domain matching func registered | roleDefinition: %s, func: %s',
+        domainMatching.roleDefinition,
+        domainMatching.fn,
+      );
   }
 
   protected resolveModel(opts: {

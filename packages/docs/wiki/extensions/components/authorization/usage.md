@@ -789,6 +789,118 @@ const settings = registry.getAuthorizeModelSettings({ format: 'array' });
 > [!TIP]
 > Defining `authorize.principal` on the model makes the model the single source of truth for its authorization subject. This eliminates string duplication across route configs and policy setup.
 
+## RBAC with Domains (Multi-Tenant)
+
+For multi-tenant apps where a user holds roles **scoped to specific tenants** (and sometimes globally), use Casbin's [RBAC with domains](https://casbin.apache.org/docs/rbac-with-domains/) model and register a **domain matching function** via `domainMatching`. This lets the domain slot of a grouping (`g`) policy use a wildcard, so a global role is a single line (`g, user, role, *`) and role permissions stay domain-agnostic (`p, role, *, …`).
+
+> [!TIP]
+> Why this matters: putting the tenant on the membership (`g`) and keeping permissions wildcard (`p.dom = "*"`) keeps a user's materialized policy count **linear** (`memberships + permissions`) instead of the `permissions × tenants` cross-product. For a user with 30 tenants and 700 permissions that is ~730 lines instead of ~21,000.
+
+### The model
+
+```ini
+[request_definition]
+r = sub, dom, obj, act
+
+[policy_definition]
+p = sub, dom, obj, act, eft
+
+[role_definition]
+g = _, _, _
+
+[policy_effect]
+e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
+
+[matchers]
+m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act == p.act
+```
+
+- `g = _, _, _` — the membership relation is **domain-aware** (subject, role, domain).
+- `g(r.sub, p.sub, r.dom)` — the registered domain matching function decides whether the request domain matches the stored membership domain (this is what makes `*` a wildcard).
+- `keyMatch(r.dom, p.dom)` — `keyMatch` is a **built-in matcher function** (no registration needed); it lets a permission with `p.dom = "*"` match any request domain.
+
+### Registering the domain matching function
+
+Pass `domainMatching` in the enforcer options. It is registered once during `configure()`:
+
+```typescript
+import {
+  AuthorizationEnforcerRegistry,
+  AuthorizationEnforcerTypes,
+  CasbinAuthorizationEnforcer,
+  CasbinDomainMatchingFunctions,
+  CasbinEnforcerModelDrivers,
+  type ICasbinEnforcerOptions,
+} from '@venizia/ignis';
+
+AuthorizationEnforcerRegistry.getInstance().register({
+  container: this,
+  enforcers: [
+    {
+      enforcer: CasbinAuthorizationEnforcer,
+      name: 'casbin',
+      type: AuthorizationEnforcerTypes.CASBIN,
+      options: {
+        model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: CASBIN_RBAC_MODEL },
+        adapter,
+        cached,
+        // For a domain model, normalizePayloadFn MUST always return a `domain`.
+        normalizePayloadFn: ({ user, action, resource, context }) => ({
+          subject: `User_${user.userId}`,
+          domain: `Merchant_${resolveActiveMerchant({ context })}`,
+          resource,
+          action,
+        }),
+        // Register keyMatch on the `g` role definition so wildcard domains work:
+        domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
+      } satisfies ICasbinEnforcerOptions,
+    },
+  ],
+});
+```
+
+> [!NOTE]
+> `domainMatching` is opt-in. When omitted, domains are compared as exact strings and behavior is unchanged. The enforcer calls Casbin's `addNamedDomainMatchingFunc(roleDefinition, Util.keyMatchFunc)` internally — you never call it directly.
+
+### Choosing the matching function
+
+`keyMatch` is the safe default for opaque domain identifiers like `Merchant_<uuid>`: it treats only `*` as special and never splits on `/` or `:`, so it cannot accidentally match one tenant against another. Use the others only if your domains are structured paths.
+
+```typescript
+domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH };   // * wildcard (recommended)
+domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH_2 };  // /tenants/:id
+domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH_3 };  // /tenants/{id}
+domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.REGEX_MATCH };  // ^Merchant_.*$
+```
+
+### All cases — policy lines and outcomes
+
+Given the model above with `keyMatch` registered on `g`, the request is `enforceSync(subject, domain, resource, action)`:
+
+| Case | Policy lines | Request | Outcome |
+|------|--------------|---------|---------|
+| **Scoped role** (owner/employee in a tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_A, Material.find, read)` | ✅ allow |
+| **Scoped role — isolation** | (same as above) | `(User_u, Merchant_B, Material.find, read)` | ❌ deny (`g` domain doesn't match) |
+| **Multi-tenant role** | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_B, Material.find, read)` | ✅ allow (one `g` line per owned tenant; **single** `p` line) |
+| **Global role** (e.g. guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | ✅ allow (wildcard `g` domain) |
+| **Direct user permission (scoped)** | `p, User_u, Merchant_A, Report.read, read, allow` | `(User_u, Merchant_A, Report.read, read)` | ✅ allow (reflexive `g(u,u,dom)` + `keyMatch`) |
+| **Direct user permission — isolation** | (same as above) | `(User_u, Merchant_B, Report.read, read)` | ❌ deny |
+| **Deny override** | `p, Role_x, *, Secret.read, read, deny`<br/>`p, Role_y, *, Secret.read, read, allow` | any domain where the user has both roles | ❌ deny (`!some(p.eft == deny)`) |
+
+> [!IMPORTANT]
+> The function is applied as `fn(requestDomain, policyDomain)` — the wildcard belongs on the **stored** side. Store only `*` or exact domain values (never `Merchant_*`) to keep isolation guaranteed.
+
+### Misconfiguration is caught early
+
+If `roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws — Casbin would otherwise register the function as a silent no-op, leaving wildcard domains permanently unmatched (global roles silently denied):
+
+```typescript
+// model declares `g` only
+domainMatching: { roleDefinition: 'g2', fn: CasbinDomainMatchingFunctions.KEY_MATCH };
+// => throws: Role definition "g2" is not declared in the Casbin model. Declare it under
+//    [role_definition] (e.g. `g = _, _, _`) before enabling domainMatching.
+```
+
 ## See Also
 
 - [Setup & Configuration](./) -- Binding keys, options interfaces, and initial setup

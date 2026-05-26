@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-05-27 | [Casbin Domain Matching Function — Wildcard/Pattern Domains in `g`](./2026-05-27-casbin-domain-matching-function) | New Feature |
 | 2026-05-25 | [Per-Model Default Limit via @model Settings](./2026-05-25-per-model-default-limit) | New Feature |
 | 2026-05-22 | [Drizzle Casbin Adapter — Schema-Qualified Tables](./2026-05-22-casbin-adapter-schema-qualification) | Enhancement, Breaking Change |
 | 2026-05-21 | [Mass Update/Delete Guards — Blank Id & Empty Where](./2026-05-21-mass-mutation-guards) | Bug Fix, Security |

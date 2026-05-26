@@ -7,6 +7,7 @@ import {
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,
   TAuthorizationDecision,
+  TCasbinDomainMatchingFunction,
 } from './constants';
 export interface IAuthorizationRole {
   readonly name: string;
@@ -111,6 +112,12 @@ export interface ICasbinEnforcerOptions<
     | (ICasbinEnforcerCachedMemory & { use: true })
     | (ICasbinEnforcerCachedRedis & { use: true });
   adapter?: TAdapter;
+
+  domainMatching?: {
+    roleDefinition: string;
+    fn: TCasbinDomainMatchingFunction;
+  };
+
   normalizePayloadFn?(opts: {
     user: IAuthUser;
     action: TAction;

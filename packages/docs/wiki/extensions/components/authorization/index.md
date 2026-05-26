@@ -130,6 +130,23 @@ flowchart TD
 
 `CasbinEnforcerCachedDrivers.SCHEME_SET` contains all valid drivers. `CasbinEnforcerCachedDrivers.isValid(input)` checks membership.
 
+### Casbin Domain Matching Functions
+
+Built-in Casbin matching functions selectable for `ICasbinEnforcerOptions.domainMatching.fn`. Each value maps 1:1 to a Casbin `Util.*Func` export and is applied to the **domain slot** of a role definition (e.g. `g`).
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `CasbinDomainMatchingFunctions.KEY_MATCH` | `'keyMatch'` | `*` is the only wildcard; exact compare otherwise. Recommended for `Merchant_<uuid>`-style domains |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_2` | `'keyMatch2'` | Adds URL-path `:param` segment matching |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_3` | `'keyMatch3'` | Adds `{param}` segment matching |
+| `CasbinDomainMatchingFunctions.KEY_MATCH_4` | `'keyMatch4'` | `{param}` with repeated-name equality checks |
+| `CasbinDomainMatchingFunctions.REGEX_MATCH` | `'regexMatch'` | Treats the stored/policy value as a full regular expression |
+
+`CasbinDomainMatchingFunctions.SCHEME_SET` contains all valid values. `CasbinDomainMatchingFunctions.isValid(input)` checks membership. Companion type: `TCasbinDomainMatchingFunction`.
+
+> [!IMPORTANT]
+> The function is applied as `fn(requestDomain, policyDomain)` — the wildcard must live on the **stored/policy** side. With `keyMatch`: `keyMatch("Merchant_X", "*") === true`, `keyMatch("Merchant_X", "Merchant_X") === true`, `keyMatch("Merchant_X", "Merchant_Y") === false`. Store only `*` or exact domain values (never partial patterns like `Merchant_*`) to keep tenant isolation guaranteed.
+
 ### Casbin Rule Variants
 
 | Constant | Value | Description |
@@ -190,6 +207,7 @@ import {
   CasbinEnforcerModelDrivers,
   CasbinEnforcerCachedDrivers,
   CasbinRuleVariants,
+  CasbinDomainMatchingFunctions,
 
   // Binding keys
   AuthorizeBindingKeys,
@@ -230,6 +248,7 @@ import type {
   TCasbinEnforcerCachedDriver,
   TCasbinEnforcerModelDriver,
   TCasbinRuleVariant,
+  TCasbinDomainMatchingFunction,
 } from '@venizia/ignis';
 ```
 
@@ -434,6 +453,7 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 | `cached` | `{ use: false } \| { use: true, driver, options }` | -- | **Required.** Caching configuration |
 | `adapter` | `Adapter` | -- | Casbin adapter instance (e.g., `DrizzleCasbinAdapter`) |
 | `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | -- | Normalize subject/resource/action before evaluation |
+| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | -- | Opt-in. Registers a Casbin domain matching function on a role definition so wildcard/pattern domains in `g` policies match (e.g. `g, user, role, *` matches any domain). See [Casbin Domain Matching Functions](#casbin-domain-matching-functions) |
 
 ```typescript
 interface ICasbinEnforcerOptions<
@@ -467,6 +487,14 @@ interface ICasbinEnforcerOptions<
     resource: string;
     action: string;
     domain?: string;
+  };
+
+  // Opt-in. Registers a Casbin domain matching function on the named role definition during
+  // configure(), so the domain slot of a `g` policy supports wildcards/patterns. Unset => domains
+  // are compared as exact strings (unchanged behavior).
+  domainMatching?: {
+    roleDefinition: string; // e.g. 'g'
+    fn: TCasbinDomainMatchingFunction;
   };
 }
 ```

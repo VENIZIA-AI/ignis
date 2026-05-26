@@ -564,6 +564,7 @@ class CasbinAuthorizationEnforcer<
 
   // Protected internals
   protected async resolveCasbinEnforcer(opts): Promise<CasbinEnforcerType | CasbinCachedEnforcerType>;
+  protected async registerDomainMatchingFunction(opts: { casbin }): Promise<void>;
   protected resolveModel(opts): Model;
   protected validateExpiresIn(opts: { expiresIn: number }): void;
   protected async loadPoliciesFromAdapter(opts): Promise<void>;
@@ -591,6 +592,7 @@ Called once by the registry on first use. Performs:
    - `cached.driver: 'in-memory'` -> `casbin.newCachedEnforcer(model, adapter)` + periodic invalidation timer (`setInterval`)
    - `cached.driver: 'redis'` -> `casbin.newEnforcer(model, adapter)` (Redis handles caching externally)
 5. Validates `expiresIn >= MIN_EXPIRES_IN` (10,000 ms) for both in-memory and redis cache drivers
+6. Registers the optional domain matching function via `registerDomainMatchingFunction()` -- a no-op when `options.domainMatching` is unset (see below)
 
 ### destroy()
 
@@ -655,6 +657,7 @@ Returns `AuthorizationDecisions.ALLOW` or `AuthorizationDecisions.DENY`.
 | Method | Input | Output | Description |
 |--------|-------|--------|-------------|
 | `resolveCasbinEnforcer` | `{ casbin, model, adapter, cached }` | `Enforcer \| CachedEnforcer` | Creates the casbin enforcer instance based on cache config |
+| `registerDomainMatchingFunction` | `{ casbin }` | `void` | No-op unless `options.domainMatching` is set. Throws if `roleDefinition` is absent from the model; otherwise calls `addNamedDomainMatchingFunc(roleDefinition, Util.<fn>)` + `buildRoleLinks()` |
 | `resolveModel` | `{ casbin, model }` | `Model` | Resolves casbin model from file or text via driver discriminant |
 | `validateExpiresIn` | `{ expiresIn }` | `void` | Throws if `expiresIn < MIN_EXPIRES_IN` |
 | `loadPoliciesFromAdapter` | `{ user }` | `void` | Calls `enforcer.loadFilteredPolicy({ principalType, principalValue })` |

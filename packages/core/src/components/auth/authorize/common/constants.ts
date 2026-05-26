@@ -153,3 +153,34 @@ export class CasbinRuleVariants {
 }
 
 export type TCasbinRuleVariant = TConstValue<typeof CasbinRuleVariants>;
+
+export class CasbinDomainMatchingFunctions {
+  /** `*` is the only wildcard; exact compare otherwise. Safest for `Merchant_<uuid>` domains. */
+  static readonly KEY_MATCH = 'keyMatch';
+
+  /** Adds URL-path `:param` segment matching. */
+  static readonly KEY_MATCH_2 = 'keyMatch2';
+
+  /** Adds `{param}` segment matching. */
+  static readonly KEY_MATCH_3 = 'keyMatch3';
+
+  /** `{param}` matching with repeated-name equality checks. */
+  static readonly KEY_MATCH_4 = 'keyMatch4';
+
+  /** Treats the stored/policy value as a full regular expression. */
+  static readonly REGEX_MATCH = 'regexMatch';
+
+  static readonly SCHEME_SET = new Set([
+    this.KEY_MATCH,
+    this.KEY_MATCH_2,
+    this.KEY_MATCH_3,
+    this.KEY_MATCH_4,
+    this.REGEX_MATCH,
+  ]);
+
+  static isValid(input: string): boolean {
+    return this.SCHEME_SET.has(input);
+  }
+}
+
+export type TCasbinDomainMatchingFunction = TConstValue<typeof CasbinDomainMatchingFunctions>;
