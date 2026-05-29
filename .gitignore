@@ -83,6 +83,7 @@ Desktop.ini
 **/*/.claude
 .prompts/
 openspec
+docs
 
 CLAUDE.md
 CLAUDE.*.md

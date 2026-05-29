@@ -1,4 +1,4 @@
-import { HasDefault, NotNull } from 'drizzle-orm';
+import { HasDefault, NotNull, sql } from 'drizzle-orm';
 import { TColumnDefinitions } from '../common/types';
 import { isoTimestamp } from '../common/columns';
 
@@ -44,7 +44,8 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
     createdAt: isoTimestamp(created.columnName, {
       withTimezone: created.withTimezone,
     })
-      .default(new Date().toISOString())
+      // .default(new Date().toISOString())
+      .default(sql`NOW()`)
       .notNull(),
   } as TTzEnricherResult<Opts>;
 
@@ -54,7 +55,8 @@ export const generateTzColumnDefs = <Opts extends TTzEnricherOptions | undefined
       modifiedAt: isoTimestamp(modified.columnName, {
         withTimezone: modified.withTimezone,
       })
-        .default(new Date().toISOString())
+        // .default(new Date().toISOString())
+        .default(sql`NOW()`)
         .notNull()
         .$onUpdate(() => new Date().toISOString()),
     } as TTzEnricherResult<Opts>;
