@@ -1,0 +1,19 @@
+{
+  "$schema": "http://json.schemastore.org/tsconfig",
+  "//": "MCP server build (tsc). Extends the shared ES2024 base; emits to dist. The site build uses tsconfig.json (ES2022) instead, because esbuild does not recognize the ES2024 target.",
+  "extends": "@venizia/dev-configs/tsconfig.base.json",
+  "compilerOptions": {
+    "target": "ES2024",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "skipLibCheck": true,
+    "outDir": "dist",
+    "rootDir": ".",
+    "paths": {
+      "@/*": ["./*"]
+    },
+    "tsBuildInfoFile": "./tsconfig.tsbuildinfo"
+  },
+  "include": ["mcp-server/**/*.ts"],
+  "exclude": ["node_modules", "dist", "mcp-server/dist", "wiki"]
+}
