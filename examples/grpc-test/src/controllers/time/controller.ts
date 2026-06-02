@@ -27,8 +27,7 @@ export class TimeController extends BaseGrpcController {
   @unary({ configs: { name: "getTime" } })
   async getTime(opts: { request: GetTimeRequest }): Promise<GetTimeResponse> {
     const tz =
-      opts.request.timezone ||
-      Intl.DateTimeFormat().resolvedOptions().timeZone;
+      opts.request.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     return create(GetTimeResponseSchema, {
       timestamp: new Date().toISOString(),

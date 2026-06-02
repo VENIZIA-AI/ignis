@@ -47,7 +47,10 @@ async function testRestEndpoints() {
     const body = (await res.json()) as { status: string; uptime: number };
 
     if (res.status === 200 && body.status === "ok") {
-      pass("GET /status (direct)", `status=${body.status}, uptime=${body.uptime}`);
+      pass(
+        "GET /status (direct)",
+        `status=${body.status}, uptime=${body.uptime}`,
+      );
     } else {
       fail("GET /status (direct)", `unexpected: ${JSON.stringify(body)}`);
     }
@@ -60,10 +63,17 @@ async function testRestEndpoints() {
     const res = await fetch(`${BASE_URL}/users`);
     const body = (await res.json()) as { users: string[] };
 
-    if (res.status === 200 && Array.isArray(body.users) && body.users.length > 0) {
+    if (
+      res.status === 200 &&
+      Array.isArray(body.users) &&
+      body.users.length > 0
+    ) {
       pass("GET /users (UsersComponent)", `users=[${body.users.join(", ")}]`);
     } else {
-      fail("GET /users (UsersComponent)", `unexpected: ${JSON.stringify(body)}`);
+      fail(
+        "GET /users (UsersComponent)",
+        `unexpected: ${JSON.stringify(body)}`,
+      );
     }
   } catch (error) {
     fail("GET /users (UsersComponent)", error);
@@ -72,12 +82,21 @@ async function testRestEndpoints() {
   // Component-bound (OrdersComponent): GET /orders
   try {
     const res = await fetch(`${BASE_URL}/orders`);
-    const body = (await res.json()) as { orders: { id: string; total: number }[] };
+    const body = (await res.json()) as {
+      orders: { id: string; total: number }[];
+    };
 
-    if (res.status === 200 && Array.isArray(body.orders) && body.orders.length > 0) {
+    if (
+      res.status === 200 &&
+      Array.isArray(body.orders) &&
+      body.orders.length > 0
+    ) {
       pass("GET /orders (OrdersComponent)", `count=${body.orders.length}`);
     } else {
-      fail("GET /orders (OrdersComponent)", `unexpected: ${JSON.stringify(body)}`);
+      fail(
+        "GET /orders (OrdersComponent)",
+        `unexpected: ${JSON.stringify(body)}`,
+      );
     }
   } catch (error) {
     fail("GET /orders (OrdersComponent)", error);
@@ -95,7 +114,9 @@ async function testGrpcEndpoints() {
   // Direct: GreeterService.SayHello
   try {
     const client = createClient(GreeterService, transport);
-    const res = await client.sayHello(create(SayHelloRequestSchema, { name: "Ignis" }));
+    const res = await client.sayHello(
+      create(SayHelloRequestSchema, { name: "Ignis" }),
+    );
 
     if (res.message.includes("Ignis")) {
       pass("GreeterService.SayHello (direct)", res.message);
@@ -123,10 +144,15 @@ async function testGrpcEndpoints() {
   // Direct: HealthService.Ping
   try {
     const client = createClient(HealthService, transport);
-    const res = await client.ping(create(PingRequestSchema, { message: "hello" }));
+    const res = await client.ping(
+      create(PingRequestSchema, { message: "hello" }),
+    );
 
     if (res.message) {
-      pass("HealthService.Ping (direct)", `message=${res.message}, tz=${res.tz}`);
+      pass(
+        "HealthService.Ping (direct)",
+        `message=${res.message}, tz=${res.tz}`,
+      );
     } else {
       fail("HealthService.Ping (direct)", "empty response");
     }
@@ -137,7 +163,9 @@ async function testGrpcEndpoints() {
   // Component-bound (EchoComponent via TimeComponent): EchoService.Echo
   try {
     const client = createClient(EchoService, transport);
-    const res = await client.echo(create(EchoRequestSchema, { message: "test" }));
+    const res = await client.echo(
+      create(EchoRequestSchema, { message: "test" }),
+    );
 
     if (res.message.includes("test")) {
       pass("EchoService.Echo (EchoComponent)", res.message);
@@ -151,10 +179,15 @@ async function testGrpcEndpoints() {
   // Component-bound (TimeComponent): TimeService.GetTime
   try {
     const client = createClient(TimeService, transport);
-    const res = await client.getTime(create(GetTimeRequestSchema, { timezone: "UTC" }));
+    const res = await client.getTime(
+      create(GetTimeRequestSchema, { timezone: "UTC" }),
+    );
 
     if (res.timestamp && res.timezone) {
-      pass("TimeService.GetTime (TimeComponent)", `ts=${res.timestamp}, tz=${res.timezone}`);
+      pass(
+        "TimeService.GetTime (TimeComponent)",
+        `ts=${res.timestamp}, tz=${res.timezone}`,
+      );
     } else {
       fail("TimeService.GetTime (TimeComponent)", "empty response");
     }

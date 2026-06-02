@@ -107,7 +107,7 @@ export class RowLockingTestService extends BaseTestService {
         },
       });
 
-      if (locked && locked.nValue === 100) {
+      if (locked?.nValue === 100) {
         this.logger.info('[CASE 1] PASSED - Row locked with FOR UPDATE | id: %s', locked.id);
       } else {
         this.logger.error('[CASE 1] FAILED - Locked record not found or incorrect');
@@ -189,7 +189,7 @@ export class RowLockingTestService extends BaseTestService {
         },
       });
 
-      if (locked && locked.code === code) {
+      if (locked?.code === code) {
         this.logger.info('[CASE 3] PASSED - findById with FOR UPDATE | id: %s', locked.id);
       } else {
         this.logger.error('[CASE 3] FAILED - Record not found via findById with lock');

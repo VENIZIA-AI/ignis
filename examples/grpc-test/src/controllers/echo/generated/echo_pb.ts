@@ -2,15 +2,26 @@
 // @generated from file echo.proto (package echo.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file echo.proto.
  */
-export const file_echo: GenFile = /*@__PURE__*/
-  fileDesc("CgplY2hvLnByb3RvEgdlY2hvLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkyQgoLRWNob1NlcnZpY2USMwoERWNobxIULmVjaG8udjEuRWNob1JlcXVlc3QaFS5lY2hvLnYxLkVjaG9SZXNwb25zZWIGcHJvdG8z");
+export const file_echo: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "CgplY2hvLnByb3RvEgdlY2hvLnYxIh4KC0VjaG9SZXF1ZXN0Eg8KB21lc3NhZ2UYASABKAkiHwoMRWNob1Jlc3BvbnNlEg8KB21lc3NhZ2UYASABKAkyQgoLRWNob1NlcnZpY2USMwoERWNobxIULmVjaG8udjEuRWNob1JlcXVlc3QaFS5lY2hvLnYxLkVjaG9SZXNwb25zZWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message echo.v1.EchoRequest
@@ -26,7 +37,8 @@ export type EchoRequest = Message<"echo.v1.EchoRequest"> & {
  * Describes the message echo.v1.EchoRequest.
  * Use `create(EchoRequestSchema)` to create a new message.
  */
-export const EchoRequestSchema: GenMessage<EchoRequest> = /*@__PURE__*/
+export const EchoRequestSchema: GenMessage<EchoRequest> =
+  /*@__PURE__*/
   messageDesc(file_echo, 0);
 
 /**
@@ -43,7 +55,8 @@ export type EchoResponse = Message<"echo.v1.EchoResponse"> & {
  * Describes the message echo.v1.EchoResponse.
  * Use `create(EchoResponseSchema)` to create a new message.
  */
-export const EchoResponseSchema: GenMessage<EchoResponse> = /*@__PURE__*/
+export const EchoResponseSchema: GenMessage<EchoResponse> =
+  /*@__PURE__*/
   messageDesc(file_echo, 1);
 
 /**
@@ -57,7 +70,5 @@ export const EchoService: GenService<{
     methodKind: "unary";
     input: typeof EchoRequestSchema;
     output: typeof EchoResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_echo, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_echo, 0);

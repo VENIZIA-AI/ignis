@@ -29,7 +29,9 @@ export class WebSocketEventService extends BaseService {
     }
 
     if (!this._wsHelper) {
-      throw new Error('[WebSocketEventService] WebSocket not initialized. Make sure server is started.');
+      throw new Error(
+        '[WebSocketEventService] WebSocket not initialized. Make sure server is started.',
+      );
     }
 
     return this._wsHelper;
@@ -175,7 +177,11 @@ export class WebSocketEventService extends BaseService {
     return { success: true, message: `Client ${clientId} left rooms: ${rooms.join(', ')}` };
   }
 
-  getClientRooms(opts: { clientId: string }): { success: boolean; rooms?: string[]; message?: string } {
+  getClientRooms(opts: { clientId: string }): {
+    success: boolean;
+    rooms?: string[];
+    message?: string;
+  } {
     const client = this.wsHelper.getClients({ id: opts.clientId }) as IWebSocketClient | undefined;
     if (!client) {
       return { success: false, message: `Client not found: ${opts.clientId}` };
@@ -183,7 +189,12 @@ export class WebSocketEventService extends BaseService {
     return { success: true, rooms: Array.from(client.rooms) };
   }
 
-  getConnectedClients(): Array<{ id: string; userId?: string; rooms: string[]; connectedAt: number }> {
+  getConnectedClients(): Array<{
+    id: string;
+    userId?: string;
+    rooms: string[];
+    connectedAt: number;
+  }> {
     const clients = this.wsHelper.getClients() as Map<string, IWebSocketClient>;
     return Array.from(clients.values()).map(c => ({
       id: c.id,

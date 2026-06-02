@@ -30,7 +30,9 @@ export class SocketEventService extends BaseService {
     }
 
     if (!this._socketIOHelper) {
-      throw new Error('[SocketEventService] SocketIO not initialized. Make sure server is started.');
+      throw new Error(
+        '[SocketEventService] SocketIO not initialized. Make sure server is started.',
+      );
     }
 
     return this._socketIOHelper;
@@ -163,7 +165,11 @@ export class SocketEventService extends BaseService {
   }
 
   // --------------------------------------------------------------------------------
-  getClientRooms(opts: { clientId: string }): { success: boolean; rooms?: string[]; message?: string } {
+  getClientRooms(opts: { clientId: string }): {
+    success: boolean;
+    rooms?: string[];
+    message?: string;
+  } {
     const { clientId } = opts;
 
     const client = this.socketIOHelper.getClients({ id: clientId }) as ISocketIOClient | undefined;

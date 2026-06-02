@@ -2,15 +2,26 @@
 // @generated from file time.proto (package time.v1, syntax proto3)
 /* eslint-disable */
 
-import type { GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
-import { fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
+import type {
+  GenFile,
+  GenMessage,
+  GenService,
+} from "@bufbuild/protobuf/codegenv2";
+import {
+  fileDesc,
+  messageDesc,
+  serviceDesc,
+} from "@bufbuild/protobuf/codegenv2";
 import type { Message } from "@bufbuild/protobuf";
 
 /**
  * Describes the file time.proto.
  */
-export const file_time: GenFile = /*@__PURE__*/
-  fileDesc("Cgp0aW1lLnByb3RvEgd0aW1lLnYxIiIKDkdldFRpbWVSZXF1ZXN0EhAKCHRpbWV6b25lGAEgASgJIjYKD0dldFRpbWVSZXNwb25zZRIRCgl0aW1lc3RhbXAYASABKAkSEAoIdGltZXpvbmUYAiABKAkySwoLVGltZVNlcnZpY2USPAoHR2V0VGltZRIXLnRpbWUudjEuR2V0VGltZVJlcXVlc3QaGC50aW1lLnYxLkdldFRpbWVSZXNwb25zZWIGcHJvdG8z");
+export const file_time: GenFile =
+  /*@__PURE__*/
+  fileDesc(
+    "Cgp0aW1lLnByb3RvEgd0aW1lLnYxIiIKDkdldFRpbWVSZXF1ZXN0EhAKCHRpbWV6b25lGAEgASgJIjYKD0dldFRpbWVSZXNwb25zZRIRCgl0aW1lc3RhbXAYASABKAkSEAoIdGltZXpvbmUYAiABKAkySwoLVGltZVNlcnZpY2USPAoHR2V0VGltZRIXLnRpbWUudjEuR2V0VGltZVJlcXVlc3QaGC50aW1lLnYxLkdldFRpbWVSZXNwb25zZWIGcHJvdG8z",
+  );
 
 /**
  * @generated from message time.v1.GetTimeRequest
@@ -26,7 +37,8 @@ export type GetTimeRequest = Message<"time.v1.GetTimeRequest"> & {
  * Describes the message time.v1.GetTimeRequest.
  * Use `create(GetTimeRequestSchema)` to create a new message.
  */
-export const GetTimeRequestSchema: GenMessage<GetTimeRequest> = /*@__PURE__*/
+export const GetTimeRequestSchema: GenMessage<GetTimeRequest> =
+  /*@__PURE__*/
   messageDesc(file_time, 0);
 
 /**
@@ -48,7 +60,8 @@ export type GetTimeResponse = Message<"time.v1.GetTimeResponse"> & {
  * Describes the message time.v1.GetTimeResponse.
  * Use `create(GetTimeResponseSchema)` to create a new message.
  */
-export const GetTimeResponseSchema: GenMessage<GetTimeResponse> = /*@__PURE__*/
+export const GetTimeResponseSchema: GenMessage<GetTimeResponse> =
+  /*@__PURE__*/
   messageDesc(file_time, 1);
 
 /**
@@ -62,7 +75,5 @@ export const TimeService: GenService<{
     methodKind: "unary";
     input: typeof GetTimeRequestSchema;
     output: typeof GetTimeResponseSchema;
-  },
-}> = /*@__PURE__*/
-  serviceDesc(file_time, 0);
-
+  };
+}> = /*@__PURE__*/ serviceDesc(file_time, 0);
