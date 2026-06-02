@@ -27,92 +27,146 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act == p.act
 `;
 
-const buildEnforcer = async (
-  domainMatching?: ICasbinEnforcerOptions['domainMatching'],
-): Promise<CasbinAuthorizationEnforcer> => {
+// Run the full request path (configure → buildRules → evaluate) on a pooled enforcer wired with a
+// fixed-line adapter + a domain-from-request normalizePayloadFn. The pool model has no shared casbin
+// enforcer to poke directly, so we exercise behavior through the public API.
+const enforceWithDomain = async (opts: {
+  domainMatching?: ICasbinEnforcerOptions['domainMatching'];
+  lines: string[];
+  requestDomain?: string;
+  resource: string;
+  action: string;
+}): Promise<string> => {
   const options: ICasbinEnforcerOptions = {
     model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: MODEL },
     cached: { use: false },
-    domainMatching,
+    adapter: {
+      isFiltered: () => true,
+      loadPolicy: async () => {},
+      loadFilteredPolicy: async (model: import('casbin').Model) => {
+        const { Helper } = await import('casbin');
+        opts.lines.forEach(line => Helper.loadPolicyLine(line, model));
+      },
+      savePolicy: async () => true,
+      addPolicy: async () => {},
+      removePolicy: async () => {},
+      removeFilteredPolicy: async () => {},
+    } as unknown as import('casbin').Adapter,
+    domainMatching: opts.domainMatching,
+    normalizePayloadFn: ({ user, resource, action }) => ({
+      subject: `User_${user.userId}`,
+      domain: opts.requestDomain,
+      resource,
+      action,
+    }),
   };
 
   const enforcer = new CasbinAuthorizationEnforcer(options);
   await enforcer.configure();
-  return enforcer;
-};
 
-// Reach the underlying casbin enforcer (private) to seed policies / role links directly.
-const casbinOf = (enforcer: CasbinAuthorizationEnforcer) => {
-  const inner = enforcer['enforcer'];
-  if (!inner) {
-    throw new Error('casbin enforcer not initialized');
-  }
-  return inner;
+  const user = { userId: 'u', principalType: 'User', roles: [] } as never;
+  const ctx = {} as never;
+  const rules = await enforcer.buildRules({ user, context: ctx });
+  return enforcer.evaluate({
+    rules,
+    request: { action: opts.action, resource: opts.resource },
+    context: ctx,
+  });
 };
 
 describe('CasbinAuthorizationEnforcer - domain matching function', () => {
   test('wildcard `g, user, role, *` matches ANY request domain when keyMatch is registered', async () => {
-    const enforcer = await buildEnforcer({
+    const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
+    const dm: ICasbinEnforcerOptions['domainMatching'] = {
       roleDefinition: 'g',
       fn: CasbinDomainMatchingFunctions.KEY_MATCH,
-    });
-    const e = casbinOf(enforcer);
+    };
 
-    await e.addGroupingPolicy('User_u', 'Role_r', '*'); // global membership
-    await e.addPolicy('Role_r', '*', 'Material.find', 'read', 'allow'); // domain-agnostic perm
-    await e.buildRoleLinks();
-
-    expect(e.enforceSync('User_u', 'Merchant_anything', 'Material.find', 'read')).toBe(true);
-    expect(e.enforceSync('User_u', 'Merchant_other', 'Material.find', 'read')).toBe(true);
+    expect(
+      await enforceWithDomain({
+        domainMatching: dm,
+        lines,
+        requestDomain: 'Merchant_anything',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('allow');
+    expect(
+      await enforceWithDomain({
+        domainMatching: dm,
+        lines,
+        requestDomain: 'Merchant_other',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('allow');
   });
 
   test('scoped `g, user, role, Merchant_X` stays isolated to that merchant', async () => {
-    const enforcer = await buildEnforcer({
+    const lines = ['g, User_u, Role_r, Merchant_X', 'p, Role_r, *, Material.find, read, allow'];
+    const dm: ICasbinEnforcerOptions['domainMatching'] = {
       roleDefinition: 'g',
       fn: CasbinDomainMatchingFunctions.KEY_MATCH,
-    });
-    const e = casbinOf(enforcer);
+    };
 
-    await e.addGroupingPolicy('User_u', 'Role_r', 'Merchant_X');
-    await e.addPolicy('Role_r', '*', 'Material.find', 'read', 'allow');
-    await e.buildRoleLinks();
-
-    expect(e.enforceSync('User_u', 'Merchant_X', 'Material.find', 'read')).toBe(true);
-    expect(e.enforceSync('User_u', 'Merchant_Y', 'Material.find', 'read')).toBe(false);
+    expect(
+      await enforceWithDomain({
+        domainMatching: dm,
+        lines,
+        requestDomain: 'Merchant_X',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('allow');
+    expect(
+      await enforceWithDomain({
+        domainMatching: dm,
+        lines,
+        requestDomain: 'Merchant_Y',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('deny');
   });
 
   test('backward-compatible: without domainMatching, `*` is a literal domain (no wildcard)', async () => {
-    const enforcer = await buildEnforcer(); // option unset
-    const e = casbinOf(enforcer);
-
-    await e.addGroupingPolicy('User_u', 'Role_r', '*');
-    await e.addPolicy('Role_r', '*', 'Material.find', 'read', 'allow');
-    await e.buildRoleLinks();
+    const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
 
     // Without a domain matching function the `g` domain is compared exactly, so a stored `*`
     // does NOT match a real request domain — proving behavior is unchanged when unset.
-    expect(e.enforceSync('User_u', 'Merchant_anything', 'Material.find', 'read')).toBe(false);
+    expect(
+      await enforceWithDomain({
+        lines,
+        requestDomain: 'Merchant_anything',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('deny');
     // It still matches a request whose domain is literally "*".
-    expect(e.enforceSync('User_u', '*', 'Material.find', 'read')).toBe(true);
+    expect(
+      await enforceWithDomain({
+        lines,
+        requestDomain: '*',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('allow');
   });
 
   test('matching function survives a clearPolicy + reload + buildRoleLinks cycle (cache reload path)', async () => {
-    const enforcer = await buildEnforcer({
-      roleDefinition: 'g',
-      fn: CasbinDomainMatchingFunctions.KEY_MATCH,
-    });
-    const e = casbinOf(enforcer);
-    const { Helper } = await import('casbin');
-
-    // Simulate the Redis-cache reload path: wipe the model, reload lines, rebuild links.
-    const model = e.getModel();
-    model.clearPolicy();
-    Helper.loadPolicyLine('g, User_u, Role_r, *', model);
-    Helper.loadPolicyLine('p, Role_r, *, Material.find, read, allow', model);
-    await e.buildRoleLinks();
-
-    // The func was registered once at configure() and is still in effect after the reload.
-    expect(e.enforceSync('User_u', 'Merchant_anything', 'Material.find', 'read')).toBe(true);
+    // The matcher func is registered once per pooled enforcer at create(); every request reloads the
+    // model (clearPolicy + loadPolicyLine + buildRoleLinks) inside pool.use, so this exercises exactly
+    // that reload cycle. The func must still be in effect after the reload.
+    const lines = ['g, User_u, Role_r, *', 'p, Role_r, *, Material.find, read, allow'];
+    expect(
+      await enforceWithDomain({
+        domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
+        lines,
+        requestDomain: 'Merchant_anything',
+        resource: 'Material.find',
+        action: 'read',
+      }),
+    ).toBe('allow');
   });
 
   test('throws on an unsupported domain matching func', async () => {
@@ -257,25 +311,22 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     expect(allowedElsewhere).toBe('allow');
   });
 
-  // ── Shared-model concurrency race (pre-existing, NOT introduced by domainMatching) ────────────
-  // The enforcer is a shared singleton whose model is REPLACED per request inside loadFilteredPolicy
-  // (clearPolicy + reload). buildRules() returns only the `user` object — it is NOT a policy
-  // snapshot; the policy lives in the shared model. So if a second request's buildRules runs between
-  // request A's buildRules and A's evaluate, A enforces against the WRONG user's policies.
-  //
-  // The provider flow is `rules = await buildRules(...)` then `await evaluate(...)`; the await
-  // between them lets another request interleave. We simulate that interleaving deterministically.
+  // ── Shared-model concurrency race — FIXED by the pooled-enforcer rewrite (Plan 2) ─────────────
+  // Previously the enforcer was a shared singleton whose model was REPLACED per request, so a second
+  // request's buildRules between request A's buildRules and A's evaluate corrupted A's decision.
+  // Now buildRules returns a {user, lines} SNAPSHOT and evaluate loads those exact lines into its own
+  // pooled enforcer atomically — so an interleaved buildRules for another user CANNOT affect A.
 
-  // Filtered adapter returning a different policy set per user (keyed by filter.principalValue).
+  // Filtered adapter returning a different policy set per user (keyed by filter.principal.id).
   const makeMultiUserAdapter = (linesByUser: Record<string, string[]>) => ({
     isFiltered: () => true,
     loadPolicy: async () => {},
     loadFilteredPolicy: async (
       model: import('casbin').Model,
-      filter: { principalValue: string | number },
+      filter: { principal: { id: string | number } },
     ) => {
       const { Helper } = await import('casbin');
-      (linesByUser[String(filter.principalValue)] ?? []).forEach(line =>
+      (linesByUser[String(filter.principal.id)] ?? []).forEach(line =>
         Helper.loadPolicyLine(line, model),
       );
     },
@@ -285,7 +336,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     removeFilteredPolicy: async () => {},
   });
 
-  test('shared-model race: a concurrent buildRules for another user corrupts the first user decision', async () => {
+  test('pool isolation: a concurrent buildRules for another user does NOT corrupt the first user decision', async () => {
     const domainByUser: Record<string, string> = { a: 'Merchant_A', b: 'Merchant_B' };
     const options: ICasbinEnforcerOptions = {
       model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: MODEL },
@@ -309,24 +360,21 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const userB = { userId: 'b', principalType: 'User', roles: [] } as never;
     const ctx = {} as never;
 
-    // Request A builds its rules → shared model now holds A's policies.
+    // Request A builds its rules → captures A's policy lines as a snapshot.
     const rulesA = await enforcer.buildRules({ user: userA, context: ctx });
 
-    // A concurrent request B completes its buildRules before A evaluates → shared model now holds
-    // B's policies (A's were wiped by clearPolicy).
+    // A concurrent request B completes its buildRules before A evaluates. With the pooled-enforcer
+    // model this cannot touch A's snapshot or A's per-request enforcer.
     await enforcer.buildRules({ user: userB, context: ctx });
 
-    // A finally evaluates. A legitimately has Material.find at Merchant_A, so the CORRECT answer is
-    // 'allow' — but A is enforced against B's model and is wrongly denied.
+    // A finally evaluates against its OWN snapshot on its own pooled enforcer. A legitimately has
+    // Material.find at Merchant_A, so the correct answer is 'allow' — and the race is gone.
     const decisionA = await enforcer.evaluate({
       rules: rulesA,
       request: { action: 'read', resource: 'Material.find' },
       context: ctx,
     });
 
-    // CHARACTERIZATION of a known pre-existing race: this SHOULD be 'allow'. We pin the current
-    // buggy 'deny' so the suite stays green and the defect is documented + tracked.
-    // TODO(authz-concurrency): when the shared-model race is fixed, flip this assertion to 'allow'.
-    expect(decisionA).toBe('deny');
+    expect(decisionA).toBe('allow');
   });
 });

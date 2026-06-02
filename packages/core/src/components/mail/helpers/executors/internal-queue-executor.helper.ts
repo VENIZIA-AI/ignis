@@ -1,4 +1,4 @@
-import { BaseHelper, getError, QueueHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, SequentialQueueHelper } from '@venizia/ignis-helpers';
 import {
   IMailQueueOptions,
   IMailQueueExecutor,
@@ -16,7 +16,7 @@ interface IQueueJobPayload {
 }
 
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
-  private queue: QueueHelper<IQueueJobPayload>;
+  private queue: SequentialQueueHelper<IQueueJobPayload>;
   private jobIdCounter = 0;
   private delayedJobs: Map<string, NodeJS.Timeout> = new Map();
 
@@ -25,7 +25,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
   constructor(opts: IInternalQueueMailExecutorOpts) {
     super({ scope: InternalQueueMailExecutorHelper.name });
 
-    this.queue = new QueueHelper<IQueueJobPayload>({
+    this.queue = new SequentialQueueHelper<IQueueJobPayload>({
       identifier: opts.identifier,
       autoDispatch: true,
       onMessage: async ({ queueElement }) => {

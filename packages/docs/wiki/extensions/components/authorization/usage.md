@@ -485,72 +485,13 @@ import { Authorization, Authentication } from '@venizia/ignis';
 const user = c.get(Authentication.CURRENT_USER);  // IAuthUser
 const rules = c.get(Authorization.RULES);           // unknown (type depends on enforcer)
 const isSkipped = c.get(Authorization.SKIP_AUTHORIZATION); // boolean
+const domain = c.get(Authorization.DOMAIN);         // string ("<Type>_<id>" | "SYSTEM_WIDE"), set when domain scoping is in play
 
 // Set skip dynamically
 c.set(Authorization.SKIP_AUTHORIZATION, true);
 
 // Invalidate cached rules
 c.set(Authorization.RULES, null);
-```
-
-## Using IAuthorizationComparable
-
-For custom action/resource comparison logic beyond plain string equality, implement `IAuthorizationComparable`.
-
-### StringAuthorizationAction with Wildcard
-
-The built-in `StringAuthorizationAction` supports a wildcard (`*`) that matches any action:
-
-```typescript
-import { StringAuthorizationAction } from '@venizia/ignis';
-
-const wildcard = StringAuthorizationAction.build({ value: '*' });
-wildcard.isEqual('read');    // true — wildcard matches all
-wildcard.isEqual('delete');  // true — wildcard matches all
-wildcard.isEqual('create');  // true — wildcard matches all
-
-const readOnly = StringAuthorizationAction.build({ value: 'read' });
-readOnly.isEqual('read');    // true
-readOnly.isEqual('update');  // false
-```
-
-### StringAuthorizationResource
-
-Standard string comparison for resources (no wildcard):
-
-```typescript
-import { StringAuthorizationResource } from '@venizia/ignis';
-
-const article = StringAuthorizationResource.build({ value: 'Article' });
-article.isEqual('Article');  // true
-article.isEqual('User');     // false
-```
-
-### Custom Comparable Implementation
-
-Create your own comparable type for advanced matching:
-
-```typescript
-import type { IAuthorizationComparable } from '@venizia/ignis';
-
-class HierarchicalResource implements IAuthorizationComparable<string> {
-  readonly value: string;
-
-  constructor(opts: { value: string }) {
-    this.value = opts.value;
-  }
-
-  compare(other: string): number {
-    // Match if the other resource starts with this resource's value
-    // e.g., 'articles' matches 'articles.comments'
-    if (other.startsWith(this.value)) return 0;
-    return this.value.localeCompare(other);
-  }
-
-  isEqual(other: string): boolean {
-    return this.compare(other) === 0;
-  }
-}
 ```
 
 ## Custom Enforcer
@@ -645,60 +586,50 @@ AuthorizationEnforcerRegistry.getInstance().register({
 
 ## Custom Filtered Adapter
 
-Create a custom adapter by extending `BaseFilteredAdapter`:
+For most apps, use the ready-made [`ScopedCasbinAdapter`](./api#scopedcasbinadapter) — it reads a single
+edge table and needs no subclassing. Write a custom adapter only when your storage model differs.
+
+`BaseFilteredAdapter` is now thin: it provides the datasource/connector plumbing, the `isFiltered()`
+flag, no-op write methods, and a `loadLines` helper. A subclass implements **only** `loadFilteredPolicy`
+— query your store for ONE principal's policies and turn them into casbin lines.
 
 ```typescript
 import {
   BaseFilteredAdapter,
-  IBaseFilteredAdapterEntities,
   ICasbinPolicyFilter,
-  TBasePolicyRow,
+  type IDataSource,
 } from '@venizia/ignis';
+import type { Model } from 'casbin';
 
-interface MyEntities extends IBaseFilteredAdapterEntities {
-  permission: { tableName: string; principalType: string };
-  role: { tableName: string; principalType: string };
-  policyDefinition: { tableName: string; principalType: string };
-}
-
-class MyCustomAdapter extends BaseFilteredAdapter<MyEntities> {
-  constructor(opts: { entities: MyEntities; /* your dependencies */ }) {
-    super({ scope: MyCustomAdapter.name, entities: opts.entities });
+// Narrow the filter if you like, or use the default ICasbinPolicyFilter ({ principal: { type, id } }).
+class MyCustomAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
+  constructor(opts: { dataSource: IDataSource }) {
+    super({ scope: MyCustomAdapter.name, dataSource: opts.dataSource });
   }
 
-  protected async buildDirectPolicies(opts: {
-    filter: ICasbinPolicyFilter;
-    rolePrincipal: string;
-  }): Promise<string[]> {
-    // Query direct permission policies for the user
-    // Return casbin `p` lines using this.toPolicyLine()
-    const rows = await this.queryDirectPolicies(opts.filter);
-    return rows.map(row => this.toPolicyLine({ row })).filter(Boolean) as string[];
+  async loadFilteredPolicy(model: Model, filter: ICasbinPolicyFilter): Promise<void> {
+    const { type, id } = filter.principal;
+
+    // 1. Query your store for THIS principal's policies (this.connector is provided by the base).
+    // 2. Build casbin lines as plain strings, e.g.:
+    //      `p, User_${id}, Order, read, allow`
+    //      `g, User_${id}, Role_42, *`
+    const lines: string[] = await this.buildLinesFor({ type, id });
+
+    // 3. Load them into the model with the base helper.
+    await this.loadLines({ model, lines });
   }
 
-  protected async buildGroupPolicies(opts: {
-    filter: ICasbinPolicyFilter;
-  }): Promise<{ lines: string[]; roleIds: (string | number)[] }> {
-    // Query role assignments for the user
-    // Return casbin `g` lines using this.toGroupLine() + role IDs
-    return { lines: [...], roleIds: [...] };
-  }
-
-  protected async buildRolePolicies(opts: {
-    roleIds: (string | number)[];
-    rolePrincipal: string;
-  }): Promise<string[]> {
-    // Query permission policies inherited through roles
-    // Return casbin `p` lines using this.toPolicyLine()
-    return [...];
+  private async buildLinesFor(principal: { type: string; id: unknown }): Promise<string[]> {
+    // ...your queries via this.connector...
+    return [];
   }
 }
 ```
 
-The base class provides shared formatters:
-- `this.formatDomain(domain)` -- adds entity prefix to domain values
-- `this.toGroupLine({ subject, role, domain })` -- formats `g` lines
-- `this.toPolicyLine({ row })` -- formats `p` lines
+The base no longer ships template-method hooks (`buildDirectPolicies`/`buildGroupPolicies`/…) or line
+formatters — you own line construction. See `ScopedCasbinAdapter` for a full reference implementation
+(role closure, structural trees, soft-delete, schema-qualified SQL).
 
 ## AuthorizationRole Comparison
 
@@ -795,6 +726,63 @@ For multi-tenant apps where a user holds roles **scoped to specific tenants** (a
 
 > [!TIP]
 > Why this matters: putting the tenant on the membership (`g`) and keeping permissions wildcard (`p.dom = "*"`) keeps a user's materialized policy count **linear** (`memberships + permissions`) instead of the `permissions × tenants` cross-product. For a user with 30 tenants and 700 permissions that is ~730 lines instead of ~21,000.
+
+There are two ways to do domain scoping:
+
+- **Scoped model (recommended)** — set `isScoped: true` + use `ScopedCasbinAdapter` + the built-in
+  `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`, and supply the request domain **per route** via `spec.domain` (or a
+  global `domainResolver`). The enforcer registers the matchers for you; you do not write `domainMatching`
+  or `normalizePayloadFn`.
+- **Manual flat model (lower-level)** — keep a flat `g + p` model and register `domainMatching` +
+  `normalizePayloadFn` yourself. Documented below under [The model](#the-model).
+
+### Scoped model + per-route domain (recommended)
+
+Register the scoped enforcer (see [Setup](./#step-3-register-enforcers-via-registry)) with `isScoped: true`,
+then tell each route where to read its domain from. `IAuthorizationSpec.domain` accepts either a
+**declarative source** or a **resolver function**:
+
+```typescript
+import type { IAuthorizationDomainSource, TAuthorizationDomainResolver } from '@venizia/ignis';
+
+// (a) Declarative — read the domain id from a request param/header/query/context var:
+authorize({
+  spec: {
+    action: 'read',
+    resource: 'Order',
+    domain: { from: 'param', key: 'merchantId', type: 'Merchant' }, // → "Merchant_<param>"
+  },
+});
+
+// (b) Resolver — compute { type, id } yourself (return null → SYSTEM_WIDE):
+authorize({
+  spec: {
+    action: 'read',
+    resource: 'Order',
+    domain: ({ context }) => {
+      const merchantId = resolveActiveMerchant({ context });
+      return merchantId ? { type: 'Merchant', id: merchantId } : null;
+    },
+  },
+});
+```
+
+Precedence (see `resolveRequestDomain`): `spec.domain` (resolver → declarative) → the global
+`IAuthorizeOptions.domainResolver` → `SYSTEM_WIDE`. The resolved value is stashed on
+`Authorization.DOMAIN` and passed to the enforcer as `request.domain`. A route with no domain at all
+enforces `SYSTEM_WIDE` (super-admin scope) in scoped mode.
+
+For a **global fallback** (apply the same resolver to every route that doesn't set `spec.domain`):
+
+```typescript
+this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+  defaultDecision: 'deny',
+  domainResolver: ({ context }) => {
+    const id = resolveActiveMerchant({ context });
+    return id ? { type: 'Merchant', id } : null;
+  },
+});
+```
 
 ### The model
 

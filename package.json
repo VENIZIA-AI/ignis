@@ -46,6 +46,9 @@
     "packages/*",
     "examples/*"
   ],
+  "overrides": {
+    "esbuild": "^0.25.0"
+  },
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",

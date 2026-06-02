@@ -5,6 +5,7 @@ export * from './env';
 export * from './error';
 export * from './logger';
 export * from './network';
+export * from './pool';
 export * from './queue';
 export * from './redis';
 export * from './socket';

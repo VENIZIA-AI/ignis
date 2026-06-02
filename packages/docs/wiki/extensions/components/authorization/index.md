@@ -20,10 +20,8 @@
 | **AuthorizationProvider** | IProvider producing the `authorize()` middleware factory |
 | **authorize** | Standalone function wrapping `AuthorizationProvider.value()` |
 | **AuthorizationRole** | Value object for role identity with priority-based comparison |
-| **BaseFilteredAdapter** | Abstract casbin `FilteredAdapter` with template method pattern for query hooks |
-| **DrizzleCasbinAdapter** | Drizzle-based read-only `FilteredAdapter` using raw SQL queries |
-| **StringAuthorizationAction** | `IAuthorizationComparable` implementation for string actions (includes `WILDCARD = '*'`) |
-| **StringAuthorizationResource** | `IAuthorizationComparable` implementation for string resources |
+| **BaseFilteredAdapter** | Thin abstract casbin `FilteredAdapter` (datasource plumbing + `loadLines`); subclasses implement only `loadFilteredPolicy` |
+| **ScopedCasbinAdapter** | Generic read-only `FilteredAdapter` for the scoped RBAC model — reads one principal's edges + the shared hierarchy from a single `PolicyDefinition` table |
 | **AbstractAuthRegistry** | Shared base class for authentication strategy registry and authorization enforcer registry |
 
 ### Authorization Flow (7 Steps)
@@ -72,6 +70,7 @@ flowchart TD
 | `Authorization.RULES` | `'authorization.rules'` | Context key for cached rules |
 | `Authorization.SKIP_AUTHORIZATION` | `'authorization.skip'` | Context key to dynamically skip authorization |
 | `Authorization.ENFORCER` | `'authorization.enforcer'` | Binding key prefix for enforcers |
+| `Authorization.DOMAIN` | `'authorization.domain'` | Context key for the resolved request domain scope (set by the provider when domain scoping is in play) |
 
 ### Authorization Actions
 
@@ -125,10 +124,13 @@ flowchart TD
 
 | Constant | Value | Description |
 |----------|-------|-------------|
-| `CasbinEnforcerCachedDrivers.IN_MEMORY` | `'in-memory'` | In-memory cache with periodic invalidation |
-| `CasbinEnforcerCachedDrivers.REDIS` | `'redis'` | Redis-backed cache with TTL |
+| `CasbinEnforcerCachedDrivers.REDIS` | `'redis'` | Redis-backed per-user line cache with TTL (the only cache driver) |
 
 `CasbinEnforcerCachedDrivers.SCHEME_SET` contains all valid drivers. `CasbinEnforcerCachedDrivers.isValid(input)` checks membership.
+
+> The in-memory cache driver was removed. Caching is **Redis-only**: set `cached` to
+> `{ use: true, driver: 'redis', options: { connection, expiresIn, keyFn } }`, or `{ use: false }`
+> to disable caching (every request rebuilds the user's policy from the datasource).
 
 ### Casbin Domain Matching Functions
 
@@ -149,14 +151,45 @@ Built-in Casbin matching functions selectable for `ICasbinEnforcerOptions.domain
 
 ### Casbin Rule Variants
 
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `CasbinRuleVariants.POLICY` | `'policy'` | Database variant column value for permission rules |
-| `CasbinRuleVariants.GROUP` | `'group'` | Database variant column value for role assignments |
-| `CasbinRuleVariants.P` | `'p'` | Casbin line prefix for policy rules |
-| `CasbinRuleVariants.G` | `'g'` | Casbin line prefix for grouping rules |
+`CasbinRuleVariants` holds **only the Casbin line prefixes** declared by the model, numbered in
+request-tuple order (`sub → dom → obj → act`):
 
-`CasbinRuleVariants.SCHEME_SET` contains `POLICY` and `GROUP` (the DB variants). `CasbinRuleVariants.isValid(input)` checks membership against the DB variants.
+| Constant | Value | Relation |
+|----------|-------|----------|
+| `CasbinRuleVariants.P` | `'p'` | Permission policy line |
+| `CasbinRuleVariants.G` | `'g'` | Role membership + role inheritance (the `sub` axis) |
+| `CasbinRuleVariants.G2` | `'g2'` | User→domain membership (the `dom` axis) |
+| `CasbinRuleVariants.G3` | `'g3'` | Domain hierarchy (the `dom` axis) |
+| `CasbinRuleVariants.G4` | `'g4'` | Resource hierarchy (the `obj` axis, via `objectMatch`) |
+| `CasbinRuleVariants.G5` | `'g5'` | Action hierarchy (the `act` axis) |
+
+### Authorization Policy Variants
+
+The DB `variant` discriminator (the kind of "edge" stored in `PolicyDefinition`) lives on
+`AuthorizationPolicyVariants`. Each entry carries `action` (the DB value) and `rule` (the Casbin prefix
+the adapter emits for that edge):
+
+| Variant | `action` (DB) | `rule` | Meaning |
+|---------|---------------|--------|---------|
+| `GRANT` | `'grant'` | `p` | Give a permission to a User or Role |
+| `ASSIGN_ROLE` | `'assign_role'` | `g` | Give a User a Role (optionally domain-scoped) |
+| `ROLE_INHERITS` | `'role_inherits'` | `g` | Role inherits another Role |
+| `JOIN_DOMAIN` | `'join_domain'` | `g2` | User is a member of a Domain |
+| `DOMAIN_INHERITS` | `'domain_inherits'` | `g3` | Domain nested under a parent Domain |
+| `RESOURCE_INHERITS` | `'resource_inherits'` | `g4` | Resource nested under a broader Resource |
+| `ACTION_INHERITS` | `'action_inherits'` | `g5` | Action implied by a broader Action |
+
+`AuthorizationPolicyVariants.isValidAction(input)` / `isValidRule(input)` check membership;
+`ACTION_SCHEME_SET` / `RULE_SCHEME_SET` hold the sets.
+
+### Authorization Domain Scopes
+
+Sentinel domain values used on `grant` rows:
+
+| Constant | Value | Meaning |
+|----------|-------|---------|
+| `AuthorizationDomainScopes.ANY_MEMBER` | `'ANY_MEMBER'` | Applies in every domain the subject joined (checked via `g2`) |
+| `AuthorizationDomainScopes.SYSTEM_WIDE` | `'SYSTEM_WIDE'` | Applies system-wide, bypassing membership (super-admin) |
 
 > [!NOTE]
 > All constant classes follow the same pattern: static readonly values + `SCHEME_SET: Set<string>` + `isValid(input): boolean`. Each class also has a companion type alias generated via `TConstValue<typeof ClassName>` (e.g., `TAuthorizationAction`, `TAuthorizationDecision`, `TCasbinRuleVariant`).
@@ -191,17 +224,20 @@ import {
 
   // Adapters
   BaseFilteredAdapter,
-  DrizzleCasbinAdapter,
+  ScopedCasbinAdapter,
+
+  // Scoped RBAC model
+  CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
 
   // Models
   AuthorizationRole,
-  StringAuthorizationAction,
-  StringAuthorizationResource,
 
   // Constants
   Authorization,
   AuthorizationActions,
   AuthorizationDecisions,
+  AuthorizationDomainScopes,
+  AuthorizationPolicyVariants,
   AuthorizationRoles,
   AuthorizationEnforcerTypes,
   CasbinEnforcerModelDrivers,
@@ -221,19 +257,15 @@ import type {
   IAuthorizationSpec,
   IAuthorizationRequest,
   IAuthorizationRole,
-  IAuthorizationComparable,
 
   // Casbin options
   ICasbinEnforcerOptions,
-  ICasbinEnforcerCachedMemory,
   ICasbinEnforcerCachedRedis,
 
   // Adapter types
-  IBaseFilteredAdapterEntities,
   ICasbinPolicyFilter,
-  TBasePolicyRow,
-  IDrizzleCasbinEntities,
-  IDrizzleCasbinAdapterOptions,
+  IScopedCasbinEntities,
+  IScopedCasbinPolicyFilter,
 
   // Function & utility types
   TAuthorizeFn,
@@ -309,18 +341,20 @@ import {
   AuthorizationEnforcerTypes,
   CasbinAuthorizationEnforcer,
   CasbinEnforcerModelDrivers,
-  DrizzleCasbinAdapter,
+  ScopedCasbinAdapter,
+  CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
 } from '@venizia/ignis';
-import path from 'node:path';
 
-// Create adapter (Drizzle example)
-const adapter = new DrizzleCasbinAdapter({
+// The generic scoped adapter — reads one principal's edges + the shared hierarchy from a single
+// PolicyDefinition edge table. No subclassing; configure it with IScopedCasbinEntities.
+const adapter = new ScopedCasbinAdapter({
   dataSource,
   entities: {
-    permission: { tableName: 'Permission', principalType: 'Permission' },
-    role: { tableName: 'Role', principalType: 'Role' },
-    policyDefinition: { tableName: 'PolicyDefinition', principalType: 'PolicyDefinition' },
-    domain: { principalType: 'Organization' },
+    policyDefinition: { tableName: 'PolicyDefinition', schemaName: 'identity' },
+    permission: { tableName: 'Permission', schemaName: 'identity' },
+    principals: { user: 'User', role: 'Role' },   // casbin name prefixes
+    domainTypes: ['Merchant', 'Organizer'],         // domain types you scope on
+    softDelete: { use: true, columnName: 'deleted_at' },
   },
 });
 
@@ -332,9 +366,10 @@ AuthorizationEnforcerRegistry.getInstance().register({
     type: AuthorizationEnforcerTypes.CASBIN,
     options: {
       model: {
-        driver: CasbinEnforcerModelDrivers.FILE,
-        definition: path.resolve(__dirname, './security/rbac_with_domains_deny.conf'),
+        driver: CasbinEnforcerModelDrivers.TEXT,
+        definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
       },
+      isScoped: true,           // 4-token (sub, dom, obj, act); auto-registers keyMatch + objectMatch
       adapter,
       cached: {
         use: true,
@@ -342,15 +377,12 @@ AuthorizationEnforcerRegistry.getInstance().register({
         options: {
           connection: redisHelper,
           expiresIn: 5 * 60 * 1000, // 5 minutes
-          keyFn: ({ user }) => `authz:policies:${user.userId}`,
+          keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
         },
       },
-      normalizePayloadFn: ({ user, action, resource }) => ({
-        subject: `user_${user.userId}`,
-        domain: `Organization_${user.organizationId}`,
-        resource,
-        action,
-      }),
+      // poolSize / poolAcquireTimeoutMs are optional (defaults 16 / 5000ms).
+      // In scoped mode you do NOT pass domainMatching or normalizePayloadFn — the request domain
+      // is supplied by the provider's domain resolver (see "Domain scoping" in usage.md).
     },
   }],
 });
@@ -380,7 +412,8 @@ import {
   AuthorizationEnforcerTypes,
   CasbinAuthorizationEnforcer,
   CasbinEnforcerModelDrivers,
-  DrizzleCasbinAdapter,
+  ScopedCasbinAdapter,
+  CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
   BaseApplication,
   IAuthorizeOptions,
 } from '@venizia/ignis';
@@ -397,7 +430,7 @@ export class Application extends BaseApplication {
     this.component(AuthorizeComponent);
 
     // Step 3: Register enforcer(s) with co-located options
-    const adapter = new DrizzleCasbinAdapter({ dataSource, entities: { ... } });
+    const adapter = new ScopedCasbinAdapter({ dataSource, entities: { /* IScopedCasbinEntities */ } });
 
     AuthorizationEnforcerRegistry.getInstance().register({
       container: this,
@@ -407,9 +440,10 @@ export class Application extends BaseApplication {
         type: AuthorizationEnforcerTypes.CASBIN,
         options: {
           model: {
-            driver: CasbinEnforcerModelDrivers.FILE,
-            definition: path.resolve(__dirname, './security/rbac_model.conf'),
+            driver: CasbinEnforcerModelDrivers.TEXT,
+            definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
           },
+          isScoped: true,
           adapter,
           cached: { use: false },
         },
@@ -435,11 +469,14 @@ Global authorization settings. Bound to the container before registering `Author
 |--------|------|---------|-------------|
 | `defaultDecision` | `TAuthorizationDecision` | -- | **Required.** Decision when enforcer returns `ABSTAIN` (`'allow'`, `'deny'`, or `'abstain'`) |
 | `alwaysAllowRoles` | `string[]` | `[]` | Roles that bypass all authorization checks (global) |
+| `domainResolver` | `TAuthorizationDomainResolver` | -- | Fallback domain resolver used when a route's `spec.domain` is not set. Returns `{ type, id }` or `null` (→ `SYSTEM_WIDE`) |
 
 ```typescript
 interface IAuthorizeOptions {
   defaultDecision: TAuthorizationDecision;
   alwaysAllowRoles?: string[];
+  /** Fallback domain resolver used when a route's spec has no `domain`. */
+  domainResolver?: TAuthorizationDomainResolver;
 }
 ```
 
@@ -449,11 +486,14 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `model` | `{ driver, definition }` | -- | **Required.** Casbin model definition (file path or inline text) |
-| `cached` | `{ use: false } \| { use: true, driver, options }` | -- | **Required.** Caching configuration |
-| `adapter` | `Adapter` | -- | Casbin adapter instance (e.g., `DrizzleCasbinAdapter`) |
-| `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | -- | Normalize subject/resource/action before evaluation |
-| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | -- | Opt-in. Registers a Casbin domain matching function on a role definition so wildcard/pattern domains in `g` policies match (e.g. `g, user, role, *` matches any domain). See [Casbin Domain Matching Functions](#casbin-domain-matching-functions) |
+| `model` | `{ driver, definition }` | -- | **Required.** Casbin model definition (file path or inline text). For scoped RBAC, use `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` |
+| `cached` | `{ use: false } \| { use: true, driver: 'redis', options }` | -- | **Required.** Caching configuration (Redis-only) |
+| `adapter` | `Adapter` | -- | Casbin adapter instance (e.g., `ScopedCasbinAdapter`) |
+| `isScoped` | `boolean` | `false` | Enable the scoped model: 4-token `(sub, dom, obj, act)` requests; auto-registers `keyMatch` on `g` + `objectMatch` on the resource relation |
+| `poolSize` | `number` | `16` | Number of pooled enforcers (each request enforces on its own) |
+| `poolAcquireTimeoutMs` | `number` | `5000` | Max ms to wait for a free pooled enforcer before failing closed |
+| `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | -- | (Non-scoped/custom) normalize subject/resource/action before evaluation |
+| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | -- | (Non-scoped) opt-in domain matching function on a role definition. **Not needed when `isScoped: true`** — the scoped model registers its matchers automatically |
 
 ```typescript
 interface ICasbinEnforcerOptions<
@@ -468,14 +508,16 @@ interface ICasbinEnforcerOptions<
 
   cached:
     | { use: false }
-    | { use: true; driver: 'in-memory'; options: { expiresIn: number } }
-    | { use: true; driver: 'redis'; options: {
-        connection: DefaultRedisHelper;
-        expiresIn: number;
-        keyFn: (opts: { user: { principalType: string } & IAuthUser }) => ValueOrPromise<string>;
-      } };
+    | (ICasbinEnforcerCachedRedis & { use: true });
 
   adapter?: TAdapter;
+
+  // Enable the scoped RBAC model (4-token requests + auto-registered matchers).
+  isScoped?: boolean;
+
+  // Per-request enforcer pool (concurrency-safe; fail-closed on error).
+  poolSize?: number;             // default 16
+  poolAcquireTimeoutMs?: number; // default 5000
 
   normalizePayloadFn?(opts: {
     user: IAuthUser;
@@ -489,9 +531,8 @@ interface ICasbinEnforcerOptions<
     domain?: string;
   };
 
-  // Opt-in. Registers a Casbin domain matching function on the named role definition during
-  // configure(), so the domain slot of a `g` policy supports wildcards/patterns. Unset => domains
-  // are compared as exact strings (unchanged behavior).
+  // Non-scoped only. Registers a Casbin domain matching function on the named role definition.
+  // When isScoped is true, the scoped model registers its own matchers — do not set this.
   domainMatching?: {
     roleDefinition: string; // e.g. 'g'
     fn: TCasbinDomainMatchingFunction;
@@ -504,25 +545,19 @@ interface ICasbinEnforcerOptions<
 
 #### Cache Configuration Types
 
-The `cached` field is a discriminated union:
+The `cached` field is a discriminated union. **Caching is Redis-only** (the in-memory driver was removed):
 
 ```typescript
-// No caching
+// No caching — every request rebuilds the user's policy from the datasource.
 interface { use: false }
 
-// In-memory cache (CachedEnforcer with periodic invalidation timer)
-interface ICasbinEnforcerCachedMemory {
-  driver: 'in-memory';
-  options: { expiresIn: number };
-}
-
-// Redis cache (store/retrieve policy lines from Redis)
+// Redis cache (store/retrieve the user's policy lines from Redis, TTL via PX).
 interface ICasbinEnforcerCachedRedis {
   driver: 'redis';
   options: {
     connection: DefaultRedisHelper;
     expiresIn: number;
-    keyFn: (opts: { user: { principalType: string } & IAuthUser }) => ValueOrPromise<string>;
+    keyFn: (opts: { user: IAuthorizationUser }) => ValueOrPromise<string>;
   };
 }
 ```
@@ -546,9 +581,6 @@ interface IAuthorizationSpec<E extends Env = Env, TAction = string, TResource = 
   voters?: TAuthorizationVoter<E, TAction, TResource>[];
 }
 ```
-
-> [!NOTE]
-> `TAction` and `TResource` default to `string` but can accept `IAuthorizationComparable` implementations (e.g., `StringAuthorizationAction`) for custom comparison logic.
 
 ### TAuthorizationConditions
 
@@ -626,6 +658,7 @@ declare module 'hono' {
     // Authorization
     [Authorization.RULES]: unknown;
     [Authorization.SKIP_AUTHORIZATION]: boolean;
+    [Authorization.DOMAIN]: string;
   }
 }
 ```
@@ -636,6 +669,7 @@ declare module 'hono' {
 |-----|----------|------|-------------|
 | `'authorization.rules'` | `Authorization.RULES` | `unknown` | Cached rules built by the enforcer. Type depends on enforcer implementation. |
 | `'authorization.skip'` | `Authorization.SKIP_AUTHORIZATION` | `boolean` | Set to `true` to dynamically skip authorization for this request. |
+| `'authorization.domain'` | `Authorization.DOMAIN` | `string` | Resolved request domain scope (`"<Type>_<id>"` or `SYSTEM_WIDE`); set by the provider when `spec.domain` or a global `domainResolver` is in play, and read by the enforcer. |
 
 ### Authentication Variables Used by Authorization
 

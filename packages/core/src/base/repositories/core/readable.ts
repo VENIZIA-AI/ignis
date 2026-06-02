@@ -157,10 +157,24 @@ export class ReadableRepository<
       return dataPromise;
     }
 
-    const [data, { count: total }] = await Promise.all([
-      dataPromise,
-      this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions }),
-    ]);
+    // Inside a transaction the connector wraps a single pg client; firing the
+    // data + count queries concurrently makes node-postgres call client.query()
+    // while the client is still busy, which triggers the pg deprecation warning
+    // ("Calling client.query() when the client is already executing a query").
+    // The pool-backed connector hands out a separate client per query, so only
+    // the non-transaction path is safe to parallelize.
+    const countPromise = () =>
+      this.count({ where: mergedFilter.where ?? {}, options: effectiveOptions });
+
+    let data: Array<R>;
+    let total: number;
+
+    if (effectiveOptions.transaction) {
+      data = await dataPromise;
+      ({ count: total } = await countPromise());
+    } else {
+      [data, { count: total }] = await Promise.all([dataPromise, countPromise()]);
+    }
 
     // Build range following HTTP Content-Range standard (inclusive end index)
     const start = mergedFilter.skip ?? mergedFilter.offset ?? 0;

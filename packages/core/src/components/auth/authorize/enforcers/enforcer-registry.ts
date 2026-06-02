@@ -1,11 +1,13 @@
 import { Container } from '@/helpers/inversion/container';
 import { getError, TClass } from '@venizia/ignis-helpers';
+import { IAuthUser } from '../../authenticate';
 import { AbstractAuthRegistry } from '../../base';
 import {
   Authorization,
   AuthorizationEnforcerTypes,
   AuthorizeBindingKeys,
   IAuthorizationEnforcer,
+  IAuthorizationUser,
   IAuthorizeOptions,
   ICasbinEnforcerOptions,
 } from '../common';
@@ -102,6 +104,41 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     }
 
     return enforcer;
+  }
+
+  /** Drop a user's cached policies on the resolved enforcer. Lazy — next request rebuilds. */
+  async invalidateUserCache(opts: {
+    user: IAuthorizationUser;
+    enforcerName?: string;
+  }): Promise<{ invalidatedKeys: number }> {
+    const name = opts.enforcerName ?? this.getDefaultEnforcerName();
+    const enforcer = await this.resolveEnforcer({ name });
+
+    // Cache management is an optional IAuthorizationEnforcer capability — feature-detect it.
+    if (typeof enforcer.invalidateUserCache !== 'function') {
+      throw getError({
+        message: `[AuthorizationEnforcerRegistry] Enforcer "${name}" does not support cache invalidation`,
+      });
+    }
+
+    return enforcer.invalidateUserCache({ user: opts.user });
+  }
+
+  /** Drop then immediately rebuild + re-cache a user's policies on the resolved enforcer. */
+  async rebuildUserCache(opts: {
+    user: { principalType: string } & IAuthUser;
+    enforcerName?: string;
+  }): Promise<{ cacheKey: string; lineCount: number }> {
+    const name = opts.enforcerName ?? this.getDefaultEnforcerName();
+    const enforcer = await this.resolveEnforcer({ name });
+
+    if (typeof enforcer.rebuildUserCache !== 'function') {
+      throw getError({
+        message: `[AuthorizationEnforcerRegistry] Enforcer "${name}" does not support cache invalidation`,
+      });
+    }
+
+    return enforcer.rebuildUserCache({ user: opts.user });
   }
 
   resolveOptions(): IAuthorizeOptions | undefined {

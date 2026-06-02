@@ -22,11 +22,9 @@ flowchart TD
     S5b -->|DI fails| E500c[/"500: Failed to resolve"/]
     S5b -->|OK| S6{"Step 6: Build rules"}
 
-    S6 -->|No principalType| E400a[/"400: principalType required"/]
-    S6 -->|Not initialized| E500d[/"500: Enforcer not initialized"/]
+    S6 -->|Not configured| E500d[/"500: Not configured. Call configure() first."/]
     S6 -->|No FilteredAdapter| E500e[/"500: Adapter does not support loadFilteredPolicy"/]
-    S6 -->|Bad cache driver| E500f[/"500: Invalid cached.driver"/]
-    S6 -->|Empty Redis key| E400b[/"400: Invalid cachedKey"/]
+    S6 -->|Empty Redis key| E400b[/"400: keyFn returned an empty cache key"/]
     S6 -->|OK| S7{"Step 7: Evaluate"}
 
     S7 -->|No action/resource| E500g[/"500: request.action and resource required"/]
@@ -73,22 +71,38 @@ All error messages from the authorization module, organized by source:
 |---------------|--------|--------|
 | `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 500 | `configure` |
 | `[CasbinAuthorizationEnforcer] options.model is required.` | 500 | `configure` |
-| `[CasbinAuthorizationEnforcer] Enforcer not initialized. Call configure() first.` | 500 | `evaluate`, `buildRules` |
-| `[CasbinAuthorizationEnforcer] Adapter does not support loadFilteredPolicy.` | 500 | `buildRules` |
+| `[CasbinAuthorizationEnforcer] Not configured. Call configure() first.` | 500 | `evaluate`, `loadPolicyLinesIntoModel` |
+| `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 500 | `buildRules` (via `extractUserLines`) |
 | `[CasbinAuthorizationEnforcer] request.action and request.resource are required.` | 500 | `evaluate` |
+| `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `buildRules`/cache management (via `resolveCacheKey`) |
 | <code v-pre>[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms) &#124; Received: {{value}}</code> | 500 | `configure` (via `validateExpiresIn`) |
-| <code v-pre>[buildRules] Invalid cached.driver &#124; Valids: [in-memory, redis]</code> | 500 | `buildRules` |
-| <code v-pre>[resolveCasbinEnforcer] Invalid cached.driver &#124; Valids: [in-memory, redis]</code> | 500 | `configure` (via `resolveCasbinEnforcer`) |
+| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup — ...</code> | 500 | `configure` (via `assertMatcherCompilesSync`) |
+| <code v-pre>[resolveDomainMatchingFn] Unsupported func: {{name}} &#124; Valids: [...]</code> | 500 | `configure` (via `registerMatchers`) |
+| <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model. ...</code> | 500 | `configure` (via `registerMatchers`, only when `domainMatching` is set) |
 | <code v-pre>[resolveModel] Invalid model.driver &#124; Valids: [file, text]</code> | 500 | `configure` (via `resolveModel`) |
+| `[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.` | 500 | `invalidateUserCache`/`rebuildUserCache` (via `requireRedisCache`) |
+
+> The `Invalid cached.driver` errors were removed — `cached` is now a typed union
+> (`{ use: false } | { use: true, driver: 'redis', ... }`), so an invalid driver is a compile-time
+> error, not a runtime one.
 
 ### Policy Loading Errors (CasbinAuthorizationEnforcer internals)
 
 | Error Message | Status | Method |
 |---------------|--------|--------|
-| `[loadPoliciesWithRedisCache] Invalid cachedKey to start validate user authorization!` | 400 | `loadPoliciesWithRedisCache` |
-| `[loadPoliciesFromAdapter] Invalid state of enforcer` | 500 | `loadPoliciesFromAdapter` |
-| `[extractPolicyLines] Invalid state of enforcer` | 500 | `extractPolicyLines` |
-| `[loadPolicyLinesIntoModel] Enforcer not initialized. Call configure() first.` | 500 | `loadPolicyLinesIntoModel` |
+| `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `resolveCacheKey` (read + cache-management paths) |
+| `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 500 | `extractUserLines` |
+| `[loadPolicyLinesIntoModel] Not configured. Call configure() first.` | 500 | `loadPolicyLinesIntoModel` |
+| `[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.` | — (logged, not thrown) | `parseCachedPolicyLines` — corrupt entry is discarded + refetched |
+
+> A corrupted Redis cache entry does **not** raise an error — it is logged and discarded, and the
+> lines are refetched from the adapter (the request never 500s on cache corruption).
+
+### Registry Errors (AuthorizationEnforcerRegistry)
+
+| Error Message | Status | Method |
+|---------------|--------|--------|
+| `[AuthorizationEnforcerRegistry] Enforcer "{{name}}" does not support cache invalidation` | 500 | `invalidateUserCache` / `rebuildUserCache` (the resolved enforcer lacks the optional method) |
 
 ## Troubleshooting
 
@@ -264,18 +278,18 @@ AuthorizationEnforcerRegistry.getInstance().register({
 });
 ```
 
-### "[CasbinAuthorizationEnforcer] Adapter does not support loadFilteredPolicy"
+### "[extractUserLines] Adapter does not support loadFilteredPolicy"
 
 **Cause:** The adapter provided to the Casbin enforcer does not implement the `loadFilteredPolicy` method from casbin's `FilteredAdapter` interface. The authorization system always uses filtered policy loading.
 
-**Fix:** Use an adapter that implements `FilteredAdapter`, such as `DrizzleCasbinAdapter` or a custom adapter extending `BaseFilteredAdapter`:
+**Fix:** Use an adapter that implements `FilteredAdapter`, such as `ScopedCasbinAdapter` or a custom adapter extending `BaseFilteredAdapter`:
 
 ```typescript
-import { DrizzleCasbinAdapter } from '@venizia/ignis';
+import { ScopedCasbinAdapter } from '@venizia/ignis';
 
-const adapter = new DrizzleCasbinAdapter({
+const adapter = new ScopedCasbinAdapter({
   dataSource,
-  entities: { ... },
+  entities: { /* IScopedCasbinEntities */ },
 });
 ```
 
@@ -297,9 +311,9 @@ cached: {
 },
 ```
 
-### "[CasbinAuthorizationEnforcer] Enforcer not initialized"
+### "[CasbinAuthorizationEnforcer] Not configured. Call configure() first."
 
-**Cause:** The Casbin enforcer's `evaluate()`, `buildRules()`, or internal methods were called before `configure()`. This should not happen when using `resolveEnforcer()` (which auto-configures), but can occur if the enforcer is resolved manually via the DI container.
+**Cause:** The Casbin enforcer's `evaluate()` (or `loadPolicyLinesIntoModel()`) was called before `configure()` built the enforcer pool. This should not happen when using `resolveEnforcer()` (which auto-configures), but can occur if the enforcer is resolved manually via the DI container.
 
 **Fix:** Always resolve enforcers through the registry's `resolveEnforcer()` method, which handles configure-once automatically:
 
@@ -323,36 +337,31 @@ keyFn: ({ user }) => {
 },
 ```
 
-### "[loadPoliciesFromAdapter] Invalid state of enforcer"
+### "[CasbinAuthorizationEnforcer] Not configured. Call configure() first."
 
-**Cause:** `loadPoliciesFromAdapter()` was called but the internal casbin enforcer is null. This is an internal state error.
+**Cause:** `evaluate()` or `loadPolicyLinesIntoModel()` ran before the enforcer pool was built.
 
-**Fix:** This should not occur in normal usage. If it does, ensure `configure()` completed successfully before any policy loading operations.
+**Fix:** Ensure `configure()` completed successfully (the registry calls it on first use) before any
+evaluation. The enforcer pool is created in `configure()`.
 
-### "[extractPolicyLines] Invalid state of enforcer"
+### "[CasbinAuthorizationEnforcer] keyFn returned an empty cache key."
 
-**Cause:** `extractPolicyLines()` was called but the internal casbin enforcer is null. This method is called during Redis cache miss flow.
+**Cause:** The Redis `cached.options.keyFn` returned an empty string for a user.
 
-**Fix:** Same as above -- ensure `configure()` completed before policy operations.
+**Fix:** Return a stable, non-empty key (commonly derived from `user.principalType` + `user.userId`):
 
-### "[loadPolicyLinesIntoModel] Enforcer not initialized"
+```typescript
+keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
+```
 
-**Cause:** `loadPolicyLinesIntoModel()` was called but the internal casbin enforcer is null. This method is called during Redis cache hit flow to load cached lines.
+### "[resolveModel] Invalid model.driver | Valids: [file, text]"
 
-**Fix:** Same as above -- ensure `configure()` completed before policy operations.
+**Cause:** An unsupported `model.driver` string was passed.
 
-### Invalid driver errors
+**Fix:** Use `CasbinEnforcerModelDrivers.FILE` (`'file'`) or `CasbinEnforcerModelDrivers.TEXT` (`'text'`).
 
-**Messages:**
-- `[buildRules] Invalid cached.driver | Valids: [in-memory, redis]`
-- `[resolveCasbinEnforcer] Invalid cached.driver | Valids: [in-memory, redis]`
-- `[resolveModel] Invalid model.driver | Valids: [file, text]`
-
-**Cause:** An unsupported driver string was passed in the options.
-
-**Fix:** Use one of the valid values:
-- Cache drivers: `CasbinEnforcerCachedDrivers.IN_MEMORY` (`'in-memory'`) or `CasbinEnforcerCachedDrivers.REDIS` (`'redis'`)
-- Model drivers: `CasbinEnforcerModelDrivers.FILE` (`'file'`) or `CasbinEnforcerModelDrivers.TEXT` (`'text'`)
+> There is no longer an `Invalid cached.driver` runtime error — `cached` is a typed union, so an
+> unsupported cache driver is caught at compile time. Caching is **Redis-only**.
 
 ## Common Patterns
 
@@ -373,10 +382,10 @@ Check that rules are being cached correctly. The middleware caches on `Authoriza
 
 ### Casbin Policies Not Loading
 
-1. **Check adapter entities** -- ensure `tableName` and `principalType` match your database schema
-2. **Check variant column** -- policy rows must have `variant = 'policy'` (`CasbinRuleVariants.POLICY`), role assignments must have `variant = 'group'` (`CasbinRuleVariants.GROUP`)
-3. **Check subject/target types** -- the SQL queries filter by `subject_type` and `target_type`
-4. **Check the model file** -- ensure your `.conf` file matches the policy format (e.g., domain-aware vs simple)
+1. **Check adapter entities** -- ensure `IScopedCasbinEntities` (`policyDefinition`/`permission` table names + `schemaName`, `principals`, `domainTypes`) match your database schema
+2. **Check the variant column** -- `PolicyDefinition.variant` must use the `AuthorizationPolicyVariants.*.action` values: `grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits`, `domain_inherits`
+3. **Check subject/target types** -- the SQL queries filter by `subject_type`/`target_type` against `principals` and `domainTypes`
+4. **Check the model** -- for scoped RBAC, use `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` with `isScoped: true`
 
 ### Redis Cache Not Working
 

@@ -3,7 +3,13 @@ import { BaseHelper, getError, HTTP } from '@venizia/ignis-helpers';
 import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import { Authentication, IAuthUser } from '../../authenticate';
-import { Authorization, AuthorizationDecisions, IAuthorizationSpec, TAuthorizeFn } from '../common';
+import {
+  Authorization,
+  AuthorizationDecisions,
+  IAuthorizationSpec,
+  TAuthorizeFn,
+  resolveRequestDomain,
+} from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
 
 // Authorization Provider — produces middleware factory via IProvider pattern
@@ -103,6 +109,18 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
+      // 5b. Resolve request domain scope and stash it for the enforcer — only when domain scoping is
+      // actually in play (a per-route domain OR a configured global resolver). This keeps the legacy,
+      // non-domain enforcers untouched and avoids running a resolver (possible DB hit) for no reason.
+      if (spec.domain || options?.domainResolver) {
+        const domainScope = await resolveRequestDomain({
+          spec,
+          context: asTypedContext(context),
+          options,
+        });
+        context.set(Authorization.DOMAIN, domainScope);
+      }
+
       // 6. Build or retrieve cached rules
       let rules = context.get(Authorization.RULES);
       if (!rules) {
@@ -128,6 +146,7 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
           action: spec.action,
           resource: spec.resource,
           conditions: spec.conditions,
+          domain: context.get(Authorization.DOMAIN),
         },
         context: asTypedContext(context),
       });

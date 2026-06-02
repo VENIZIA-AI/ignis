@@ -254,12 +254,33 @@ const config = defineConfig({
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   vite: {
+    // The on-disk docs tsconfig targets ES2024 (for the tsc-built MCP server). The bundled esbuild
+    // does not recognize that target, so feed it an inline es2022 config (tsconfigRaw stops esbuild
+    // from reading the ES2024 tsconfig) and pin the transform target. Keeps the MCP build on ES2024.
+    esbuild: { target: 'es2022', tsconfigRaw: { compilerOptions: { target: 'es2022' } } },
+    // mermaid pulls in dayjs/esm, whose extensionless imports break Node's native ESM resolver during
+    // SSR. Bundle them through Vite (noExternal) so Vite's resolver handles the resolution.
+    ssr: { noExternal: ['vitepress-plugin-mermaid', 'mermaid', 'dayjs'] },
+    optimizeDeps: { include: ['mermaid', 'dayjs'] },
     build: {
-      chunkSizeWarningLimit: 2000,
+      target: 'es2022',
+      // mermaid is a legitimately large dependency (~3 MB); isolated into its own lazy chunk below.
+      // Keep the warning limit above its size so the advisory only fires for unexpected app bloat.
+      chunkSizeWarningLimit: 3500,
       rollupOptions: {
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
+              // Isolate mermaid (+ its heavy deps) — large and only needed on pages with diagrams.
+              if (
+                id.includes('mermaid') ||
+                id.includes('cytoscape') ||
+                id.includes('dagre') ||
+                id.includes('d3') ||
+                id.includes('khroma')
+              ) {
+                return 'mermaid';
+              }
               // Split search functionality
               if (id.includes('minisearch') || id.includes('mark.js')) {
                 return 'search';
@@ -301,6 +322,16 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-06-02',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Scoped RBAC Authorization — Edge-Table Model, Pooled Enforcer, Redis-Only Cache',
+                  link: '/changelogs/2026-06-02-authorize-scoped-rbac',
+                },
+              ],
+            },
             {
               text: '2026-05-27',
               collapsed: true,
@@ -692,6 +723,13 @@ const config = defineConfig({
           items: [
             { text: 'Glossary', link: '/guides/reference/glossary' },
             { text: 'MCP Docs Server', link: '/guides/reference/mcp-docs-server' },
+          ],
+        },
+        {
+          text: 'Migrations',
+          collapsed: true,
+          items: [
+            { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
           ],
         },
       ],

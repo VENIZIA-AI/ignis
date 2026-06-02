@@ -1,2 +1,3 @@
 export * from './base-filtered';
-export * from './drizzle-casbin';
+export * from './scoped-casbin.adapter';
+export * from './types';

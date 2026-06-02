@@ -21,8 +21,9 @@ import {
   BindingKeys,
   BindingNamespaces,
   CasbinAuthorizationEnforcer,
+  CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
   CoreBindings,
-  DrizzleCasbinAdapter,
+  ScopedCasbinAdapter,
   HealthCheckBindingKeys,
   HealthCheckComponent,
   IApplicationConfigs,
@@ -327,16 +328,14 @@ export class Application extends BaseApplication {
   async registerAuthorization() {
     const dataSource = this.get<PostgresDataSource>({ key: 'datasources.PostgresDataSource' });
 
-    const adapter = new DrizzleCasbinAdapter({
+    const adapter = new ScopedCasbinAdapter({
       dataSource,
       entities: {
-        permission: { tableName: Permission.name, principalType: Permission.name },
-        role: { tableName: Role.name, principalType: Role.name },
-        policyDefinition: {
-          tableName: PolicyDefinition.name,
-          principalType: PolicyDefinition.name,
-        },
-        domain: { principalType: Organization.name },
+        policyDefinition: { tableName: PolicyDefinition.name },
+        permission: { tableName: Permission.name },
+        // `user` matches the authenticated user's principalType; `role` is the role-subject label.
+        principals: { user: 'user', role: Role.name },
+        domainTypes: [Organization.name],
       },
     });
 
@@ -359,6 +358,13 @@ export class Application extends BaseApplication {
     this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
       defaultDecision: 'deny',
       alwaysAllowRoles: ['999_super-admin'],
+      // Scoped RBAC: the request domain is the authenticated user's organization.
+      domainResolver: ({ context }) => {
+        const user = context.get(Authentication.CURRENT_USER) as
+          | { organizationId?: string }
+          | undefined;
+        return user?.organizationId ? { type: Organization.name, id: user.organizationId } : null;
+      },
     });
 
     this.component(AuthorizeComponent);
@@ -372,9 +378,10 @@ export class Application extends BaseApplication {
           type: AuthorizationEnforcerTypes.CASBIN,
           options: {
             model: {
-              driver: CasbinEnforcerModelDrivers.FILE,
-              definition: path.resolve(__dirname, './security/rbac_with_domains_deny.conf'),
+              driver: CasbinEnforcerModelDrivers.TEXT,
+              definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
             },
+            scoped: true,
             adapter,
             cached: {
               use: true,
@@ -385,12 +392,6 @@ export class Application extends BaseApplication {
                 keyFn: ({ user }: any) => `authz:policies:${user.userId}`,
               },
             },
-            normalizePayloadFn: ({ user, action, resource }: any) => ({
-              subject: `user_${user.userId}`,
-              domain: `${Organization.name}_${user.organizationId}`,
-              resource,
-              action,
-            }),
           },
         },
       ],

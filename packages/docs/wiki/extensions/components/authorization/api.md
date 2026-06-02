@@ -107,31 +107,33 @@ classDiagram
     }
 
     class CasbinAuthorizationEnforcer {
-        -enforcer: CasbinEnforcer
-        -inMemoryInvalidationTimer
+        -pool: BasePoolHelper~Enforcer~
+        -pendingLineFetches: Map
         +configure() void
         +destroy() void
-        +buildRules(opts) IAuthUser
+        +buildRules(opts) ICasbinRules
         +evaluate(opts) TAuthorizationDecision
+        +invalidateUserCache(opts)? 
+        +rebuildUserCache(opts)?
     }
 
-    class BaseFilteredAdapter~TEntities~ {
+    class BaseFilteredAdapter~TFilter~ {
         <<abstract>>
-        #entities: TEntities
-        +loadFilteredPolicy(model, filter) void
-        #buildDirectPolicies(opts)* string[]
-        #buildGroupPolicies(opts)* lines + roleIds
-        #buildRolePolicies(opts)* string[]
-        #formatDomain(domain) string
-        #toGroupLine(opts) string
-        #toPolicyLine(opts) string
+        #dataSource: IDataSource
+        #connector: TAnyConnector
+        +loadFilteredPolicy(model, filter)* void
+        +isFiltered() boolean
+        #loadLines(opts) void
     }
 
-    class DrizzleCasbinAdapter {
-        -connector: TAnyConnector
-        #buildDirectPolicies(opts) string[]
-        #buildGroupPolicies(opts) lines + roleIds
-        #buildRolePolicies(opts) string[]
+    class ScopedCasbinAdapter {
+        #entities: IScopedCasbinEntities
+        +loadFilteredPolicy(model, filter) void
+        #queryRoleAssignments(opts) lines + roleIds
+        #queryMemberships(opts) string[]
+        #queryGrants(opts) string[]
+        #loadStructuralTrees() string[]
+        #expandRoleClosure(opts) IdType[]
     }
 
     BaseHelper <|-- AbstractAuthRegistry
@@ -139,7 +141,7 @@ classDiagram
     IAuthorizationEnforcer <|.. CasbinAuthorizationEnforcer
     BaseHelper <|-- CasbinAuthorizationEnforcer
     BaseHelper <|-- BaseFilteredAdapter
-    BaseFilteredAdapter <|-- DrizzleCasbinAdapter
+    BaseFilteredAdapter <|-- ScopedCasbinAdapter
 ```
 
 ### Module File Layout
@@ -147,13 +149,16 @@ classDiagram
 ```
 auth/authorize/
 ├── adapters/
-│   ├── base-filtered.ts          # BaseFilteredAdapter (abstract template)
-│   └── drizzle-casbin.ts         # DrizzleCasbinAdapter (concrete SQL)
+│   ├── base-filtered.ts          # BaseFilteredAdapter (thin abstract) + ICasbinPolicyFilter
+│   ├── scoped-casbin.adapter.ts  # ScopedCasbinAdapter (generic edge-table reader)
+│   └── types.ts                  # IScopedCasbinEntities, IScopedCasbinTable
 ├── common/
 │   ├── constants.ts              # Authorization, AuthorizationActions, AuthorizationDecisions,
+│   │                             #   AuthorizationDomainScopes, AuthorizationPolicyVariants,
 │   │                             #   AuthorizationRoles, AuthorizationEnforcerTypes,
 │   │                             #   CasbinEnforcerCachedDrivers, CasbinEnforcerModelDrivers,
 │   │                             #   CasbinRuleVariants
+│   ├── object-match.ts           # objectMatch resource-hierarchy matcher
 │   ├── keys.ts                   # AuthorizeBindingKeys
 │   ├── types.ts                  # IAuthorizeOptions, IAuthorizationEnforcer,
 │   │                             #   IAuthorizationSpec, ICasbinEnforcerOptions, etc.
@@ -161,14 +166,13 @@ auth/authorize/
 ├── enforcers/
 │   ├── casbin.enforcer.ts        # CasbinAuthorizationEnforcer
 │   ├── enforcer-registry.ts      # AuthorizationEnforcerRegistry (singleton)
+│   ├── models/
+│   │   ├── rbac-domain.model.ts  # CASBIN_RBAC_DOMAIN_SCOPED_MODEL (scoped model string)
+│   │   └── index.ts
 │   └── index.ts                  # Barrel export
 ├── middlewares/
 │   └── authorize.middleware.ts   # authorize() standalone function
 ├── models/
-│   ├── abilities/
-│   │   ├── string-action.model.ts    # StringAuthorizationAction
-│   │   ├── string-resource.model.ts  # StringAuthorizationResource
-│   │   └── index.ts
 │   ├── authorization-role.model.ts   # AuthorizationRole
 │   └── index.ts
 ├── providers/
@@ -197,8 +201,7 @@ auth/authorize/
 | **Rules caching** | Built rules cached on Hono context per-request -- avoids rebuilding for multi-spec routes |
 | **Registry singleton** | Mirrors `AuthenticationStrategyRegistry` pattern -- consistent with the codebase |
 | **Abstract base** | `AbstractAuthRegistry<T>` shared between authentication and authorization registries |
-| **Filtered adapter pattern** | `BaseFilteredAdapter` template method pattern allows custom query backends while sharing formatting logic |
-| **IAuthorizationComparable** | Generic comparison interface for custom action/resource types beyond plain strings |
+| **Filtered adapter pattern** | `BaseFilteredAdapter` is a thin read-only base; subclasses implement `loadFilteredPolicy` for custom query backends |
 | **No-enforcer fallback** | When no enforcers are registered, the middleware skips authorization and calls `next()` instead of throwing -- prevents hard failures during development or gradual rollout |
 
 ## Component Lifecycle
@@ -408,8 +411,8 @@ interface IAuthorizationEnforcer<
 | Parameter | Default | Description |
 |-----------|---------|-------------|
 | `E` | `Env` | Hono `Env` type for typed context access |
-| `TAction` | `string` | Action type. Can be `string` or `IAuthorizationComparable` for custom comparison |
-| `TResource` | `string` | Resource type. Can be `string` or `IAuthorizationComparable` for custom comparison |
+| `TAction` | `string` | Action type (string) |
+| `TResource` | `string` | Resource type (string) |
 | `TRules` | `unknown` | Rules type produced by `buildRules` and consumed by `evaluate` |
 | `TBuildRulesReturn` | `ValueOrPromise<TRules>` | Return type of `buildRules` |
 | `TEvaluateReturn` | `ValueOrPromise<TAuthorizationDecision>` | Return type of `evaluate` |
@@ -418,7 +421,7 @@ interface IAuthorizationEnforcer<
 
 | Enforcer | TRules | Description |
 |----------|--------|-------------|
-| `CasbinAuthorizationEnforcer` | `IAuthUser` | User object (Casbin evaluates internally from loaded model) |
+| `CasbinAuthorizationEnforcer` | `ICasbinRules` | `{ user, lines }` — the user plus their resolved Casbin policy lines (loaded into a pooled enforcer at evaluate time) |
 | Custom | Any type | Your custom rules structure |
 
 ### Method Contracts
@@ -438,6 +441,8 @@ interface IAuthorizationRequest<TAction = string, TResource = string> {
   action: TAction;
   resource: TResource;
   conditions?: TAuthorizationConditions;
+  /** Resolved domain scope: `"<DomainType>_<id>"` (e.g. `"Merchant_7"`) or the `"SYSTEM_WIDE"` sentinel. */
+  domain?: string;
 }
 ```
 
@@ -446,87 +451,6 @@ interface IAuthorizationRequest<TAction = string, TResource = string> {
 | `action` | `TAction` | Action being checked (e.g., `'read'`, `'create'`) |
 | `resource` | `TResource` | Resource being accessed (e.g., `'Article'`) |
 | `conditions` | `TAuthorizationConditions` | Optional key-value conditions for ABAC |
-
-## IAuthorizationComparable Interface
-
-Generic comparison interface for custom action and resource types. Allows enforcers to work with objects that define their own comparison logic rather than plain strings.
-
-```typescript
-interface IAuthorizationComparable<TElement = string, TCompareResult = number> {
-  value: TElement;
-  compare(other: TElement): TCompareResult;
-  isEqual(other: TElement): boolean;
-}
-```
-
-| Member | Type | Description |
-|--------|------|-------------|
-| `value` | `TElement` | The underlying value |
-| `compare(other)` | `TCompareResult` | Compare with another value. Convention: `0` means equal. |
-| `isEqual(other)` | `boolean` | Convenience check -- typically `compare(other) === 0` |
-
-The `CasbinAuthorizationEnforcer` constrains its `TAction` and `TResource` generics to `string | IAuthorizationComparable`, allowing either plain strings or comparable objects.
-
-## StringAuthorizationAction
-
-`IAuthorizationComparable` implementation for string-based actions with wildcard support.
-
-```typescript
-class StringAuthorizationAction implements IAuthorizationComparable<string> {
-  static readonly WILDCARD = '*';
-
-  readonly value: string;
-
-  static build(opts: { value: string }): StringAuthorizationAction;
-  constructor(opts: { value: string });
-
-  compare(other: string): number;
-  isEqual(other: string): boolean;
-}
-```
-
-### Comparison Logic
-
-- If `this.value === '*'` (WILDCARD), `compare()` returns `0` (matches everything)
-- Otherwise, `this.value.localeCompare(other)` is used
-
-```typescript
-import { StringAuthorizationAction } from '@venizia/ignis';
-
-const wildcard = StringAuthorizationAction.build({ value: '*' });
-wildcard.isEqual('read');    // true — wildcard matches all
-wildcard.isEqual('delete');  // true — wildcard matches all
-
-const read = StringAuthorizationAction.build({ value: 'read' });
-read.isEqual('read');    // true
-read.isEqual('create');  // false
-```
-
-## StringAuthorizationResource
-
-`IAuthorizationComparable` implementation for string-based resources using `localeCompare`.
-
-```typescript
-class StringAuthorizationResource implements IAuthorizationComparable<string> {
-  readonly value: string;
-
-  static build(opts: { value: string }): StringAuthorizationResource;
-  constructor(opts: { value: string });
-
-  compare(other: string): number;   // this.value.localeCompare(other)
-  isEqual(other: string): boolean;  // compare(other) === 0
-}
-```
-
-Unlike `StringAuthorizationAction`, this class has no wildcard support -- comparison is always via `localeCompare`.
-
-```typescript
-import { StringAuthorizationResource } from '@venizia/ignis';
-
-const article = StringAuthorizationResource.build({ value: 'Article' });
-article.isEqual('Article');  // true
-article.isEqual('User');     // false
-```
 
 ## Casbin Enforcer
 
@@ -537,17 +461,19 @@ article.isEqual('User');     // false
 ```typescript
 class CasbinAuthorizationEnforcer<
   E extends Env = Env,
-  TAction extends string | IAuthorizationComparable = string,
-  TResource extends string | IAuthorizationComparable = string,
+  TAction extends string = string,
+  TResource extends string = string,
 >
   extends BaseHelper
-  implements IAuthorizationEnforcer<E, TAction, TResource, IAuthUser>
+  implements IAuthorizationEnforcer<E, TAction, TResource, ICasbinRules>
 {
   name = 'CasbinAuthorizationEnforcer';
 
   private readonly MIN_EXPIRES_IN = 10_000;
-  private enforcer: TNullable<CasbinEnforcerType | CasbinCachedEnforcerType>;
-  private inMemoryInvalidationTimer: TNullable<NodeJS.Timeout>;
+  private pool: TNullable<BasePoolHelper<CasbinEnforcerType>>;          // per-request enforcers
+  private helper: TNullable<typeof CasbinHelper>;                        // casbin.Helper (loadPolicyLine)
+  private readonly pendingLineFetches = new Map<string, Promise<string[]>>(); // single-flight
+  private resolvedPayloadFn: TNullable<TNormalizePayloadFn>;             // memoized in configure()
 
   constructor(
     @inject({ key: AuthorizeBindingKeys.enforcerOptions('casbin') })
@@ -559,385 +485,312 @@ class CasbinAuthorizationEnforcer<
   destroy(): void;
 
   // IAuthorizationEnforcer
-  async buildRules(opts: { user; context }): Promise<IAuthUser>;
+  async buildRules(opts: { user; context }): Promise<ICasbinRules>;       // { user, lines }
   async evaluate(opts: { rules; request; context }): Promise<TAuthorizationDecision>;
 
+  // Optional cache management (Redis only)
+  async invalidateUserCache(opts: { user }): Promise<{ invalidatedKeys: number }>;
+  async rebuildUserCache(opts: { user }): Promise<{ cacheKey: string; lineCount: number }>;
+
   // Protected internals
-  protected async resolveCasbinEnforcer(opts): Promise<CasbinEnforcerType | CasbinCachedEnforcerType>;
-  protected async registerDomainMatchingFunction(opts: { casbin }): Promise<void>;
+  protected async registerMatchers(opts: { enforcer; casbin }): Promise<void>;
+  protected assertMatcherCompilesSync(opts: { enforcer }): void;
   protected resolveModel(opts): Model;
   protected validateExpiresIn(opts: { expiresIn: number }): void;
-  protected async loadPoliciesFromAdapter(opts): Promise<void>;
-  protected async loadPoliciesWithRedisCache(opts): Promise<void>;
-  protected async extractPolicyLines(): Promise<string[]>;
-  protected async loadPolicyLinesIntoModel(opts: { lines: string[] }): Promise<void>;
+  protected async fetchLinesWithRedisCache(opts: { user; cached }): Promise<string[]>;
+  protected async extractUserLines(opts: { user }): Promise<string[]>;   // throwaway enforcer + adapter
+  protected async extractLinesFrom(enforcer): Promise<string[]>;
+  protected async loadPolicyLinesIntoModel(opts: { enforcer; lines }): Promise<void>;
+  protected enforceWithExplain(opts: { enforcer; vals: string[] }): boolean;
 }
 ```
 
+> **Architecture in one line:** the adapter (DB load) runs only on a *throwaway* enforcer to build a
+> user's lines (cached in Redis); every request then enforces on a *pooled* enforcer freshly loaded
+> with those lines. This isolates concurrency and keeps the DB out of the hot path.
+
 ### Constructor
 
-Injects `ICasbinEnforcerOptions` from the DI container using the binding key `AuthorizeBindingKeys.enforcerOptions('casbin')` (which resolves to `@app/authorize/enforcers/casbin/options`).
+Injects `ICasbinEnforcerOptions` from the DI container using the binding key `AuthorizeBindingKeys.enforcerOptions('casbin')`.
 
 ### configure()
 
 Called once by the registry on first use. Performs:
 
-1. Dynamically imports `casbin` -- throws `"casbin" is not installed` if missing
-2. Validates `options.model` -- throws `options.model is required.` if missing
-3. Resolves model via driver:
-   - `'file'` -> `casbin.newModelFromFile(definition)`
-   - `'text'` -> `casbin.newModelFromString(definition)`
-4. Creates enforcer based on cache config:
-   - `cached.use: false` -> `casbin.newEnforcer(model, adapter)`
-   - `cached.driver: 'in-memory'` -> `casbin.newCachedEnforcer(model, adapter)` + periodic invalidation timer (`setInterval`)
-   - `cached.driver: 'redis'` -> `casbin.newEnforcer(model, adapter)` (Redis handles caching externally)
-5. Validates `expiresIn >= MIN_EXPIRES_IN` (10,000 ms) for both in-memory and redis cache drivers
-6. Registers the optional domain matching function via `registerDomainMatchingFunction()` -- a no-op when `options.domainMatching` is unset (see below)
+1. Dynamically imports `casbin` — throws `"casbin" is not installed` if missing.
+2. Validates `options.model` — throws `options.model is required.` if missing.
+3. Memoizes the payload normalizer (`options.normalizePayloadFn ?? defaultScopedPayloadFn()`).
+4. If `cached.use`, validates `expiresIn >= MIN_EXPIRES_IN` (10,000 ms).
+5. Builds a **`BasePoolHelper<Enforcer>`** (`size = poolSize ?? 16`, `acquireTimeoutMs = poolAcquireTimeoutMs ?? 5000`). Each pooled enforcer is created **without an adapter** (`newEnforcer(model)` — no DB load at warmup), then `registerMatchers()` and `assertMatcherCompilesSync()` run on it.
+6. `await pool.warmup()` — pre-creates the enforcers.
+
+`registerMatchers()` — when `isScoped`, registers `keyMatch` as the domain matching func on `g`, adds `objectMatch` as a function, and registers it as the matching func on the resource relation (`g4`). When `domainMatching` is set (non-scoped), registers the chosen `Util.*Func` on the named role definition. Always finishes with `buildRoleLinks()`.
+
+`assertMatcherCompilesSync()` — a boot-time smoke test: forces casbin's lazy matcher compile by running one dummy `enforceSync` (4 args when scoped/`normalizePayloadFn`, else 3), so a malformed matcher, an unregistered function, or an arity mismatch fails at warmup instead of on the first real request.
 
 ### destroy()
 
-Cleans up the in-memory invalidation timer:
-
-```typescript
-destroy() {
-  if (!this.inMemoryInvalidationTimer) {
-    return;
-  }
-  clearInterval(this.inMemoryInvalidationTimer);
-  this.inMemoryInvalidationTimer = null;
-}
-```
-
-Call this when shutting down the application to prevent timer leaks. Only relevant when using the `'in-memory'` cache driver.
+`this.pool?.destroy()` — drains and disposes the pooled enforcers.
 
 ### buildRules()
 
-Loads policies into the casbin enforcer model. Always uses `loadFilteredPolicy` -- the adapter must implement the `FilteredAdapter` interface.
+Returns `ICasbinRules` = `{ user, lines }`. The `lines` are the user's complete Casbin policy lines.
 
 ```mermaid
 flowchart TD
     Start([buildRules]) --> Check{cached.use?}
-    Check -->|false| Direct["loadPoliciesFromAdapter(user)"]
-    Check -->|true| Driver{cached.driver?}
-    Driver -->|in-memory| InMem["loadPoliciesFromAdapter(user)<br/>(CachedEnforcer handles invalidation)"]
-    Driver -->|redis| Redis["loadPoliciesWithRedisCache(user, cached)"]
-    Driver -->|other| Error[/500 Invalid cached.driver/]
-    Direct --> Return([return user])
-    InMem --> Return
-    Redis --> Return
+    Check -->|false| Extract["extractUserLines(user)"]
+    Check -->|true| Redis["fetchLinesWithRedisCache(user, cached)"]
+    Redis --> Hit{Redis hit?}
+    Hit -->|Yes| Lines([lines])
+    Hit -->|No| SF["single-flight → extractUserLines + SET PX"]
+    SF --> Lines
+    Extract --> Lines
+    Lines --> Return(["return { user, lines }"])
 ```
 
-| Cache Driver | Behavior |
-|-------------|----------|
-| `use: false` | Load policies from adapter directly via `loadPoliciesFromAdapter()` |
-| `'in-memory'` | Load policies from adapter (periodic invalidation handles cache refresh) |
-| `'redis'` | Check Redis cache -> hit: load lines into model via `loadPolicyLinesIntoModel()`; miss: load from adapter, extract lines via `extractPolicyLines()`, cache in Redis with TTL |
-
-Returns the `IAuthUser` directly (Casbin evaluates policies from its internal model, not from the returned value).
+- **`extractUserLines(user)`** builds a fresh, **isolated** enforcer *with the adapter*, calls
+  `adapter.loadFilteredPolicy({ principal: { type, id } })`, then `extractLinesFrom()` serializes every
+  p-type and g-type rule back into lines. This throwaway enforcer never serves a request — that is the
+  anti-poisoning guarantee.
+- **`fetchLinesWithRedisCache`** returns cached lines on hit (Redis owns expiry via `PX`). On miss it
+  dedups concurrent misses through `pendingLineFetches` (single-flight), extracts once, and writes the
+  lines back to Redis. A corrupt entry is logged and discarded (refetch), never a 500.
 
 ### evaluate()
 
-Delegates to Casbin's synchronous `enforceSync()`:
-
-```typescript
-// Without normalizePayloadFn:
-//   subject = `${user.principalType}_${user.userId}`
-//   enforceSync(subject, resource, action)
-
-// With normalizePayloadFn:
-//   const { subject, domain, resource, action } = normalizePayloadFn({ user, ... })
-//   Domain-aware: enforceSync(subject, domain, resource, action)
-//   No domain:    enforceSync(subject, resource, action)
-```
-
-Returns `AuthorizationDecisions.ALLOW` or `AuthorizationDecisions.DENY`.
-
-### Protected Methods
-
-| Method | Input | Output | Description |
-|--------|-------|--------|-------------|
-| `resolveCasbinEnforcer` | `{ casbin, model, adapter, cached }` | `Enforcer \| CachedEnforcer` | Creates the casbin enforcer instance based on cache config |
-| `registerDomainMatchingFunction` | `{ casbin }` | `void` | No-op unless `options.domainMatching` is set. Throws if `roleDefinition` is absent from the model; otherwise calls `addNamedDomainMatchingFunc(roleDefinition, Util.<fn>)` + `buildRoleLinks()` |
-| `resolveModel` | `{ casbin, model }` | `Model` | Resolves casbin model from file or text via driver discriminant |
-| `validateExpiresIn` | `{ expiresIn }` | `void` | Throws if `expiresIn < MIN_EXPIRES_IN` |
-| `loadPoliciesFromAdapter` | `{ user }` | `void` | Calls `enforcer.loadFilteredPolicy({ principalType, principalValue })` |
-| `loadPoliciesWithRedisCache` | `{ user, cached }` | `void` | Redis cache flow: check cache -> hit: load lines; miss: load from adapter + cache |
-| `extractPolicyLines` | -- | `string[]` | Extracts `p` and `g` lines from enforcer model via `getPolicy()` and `getGroupingPolicy()` |
-| `loadPolicyLinesIntoModel` | `{ lines }` | `void` | Clears model, loads lines via `Helper.loadPolicyLine()`, rebuilds role links |
-
-### Policy Loading Internals
-
-#### Redis Cache Flow
+Borrows an enforcer from the pool and evaluates **atomically** inside `pool.use`:
 
 ```mermaid
 flowchart TD
-    Start([buildRules with Redis]) --> Key["keyFn({ user }) → cacheKey"]
-    Key --> Valid{cacheKey truthy?}
-    Valid -->|No| E400[/400 Invalid cachedKey/]
-    Valid -->|Yes| Get["Redis GET cacheKey"]
-    Get --> Hit{Cache hit?}
-    Hit -->|Yes| Parse["JSON.parse(cachedData)"]
-    Parse --> LoadModel["loadPolicyLinesIntoModel(lines)"]
-    LoadModel --> LogHit["Log: Loaded CACHED Policies"]
-    Hit -->|No| Adapter["loadPoliciesFromAdapter(user)"]
-    Adapter --> Extract["extractPolicyLines()"]
-    Extract --> Set["Redis SET cacheKey, lines, PX expiresIn"]
-    Set --> LogMiss["Log: Loaded ADAPTER + CACHED Policies"]
-    LogHit --> Return([return user])
-    LogMiss --> Return
+    Start([evaluate]) --> Use["pool.use(enforcer =>"]
+    Use --> Load["loadPolicyLinesIntoModel(enforcer, rules.lines)<br/>clearPolicy + loadPolicyLine* + buildRoleLinks"]
+    Load --> Norm["normalizePayloadFn(user, action, resource, context)"]
+    Norm --> Dom["domain = normalized.domain ?? request.domain ?? (isScoped ? SYSTEM_WIDE : undefined)"]
+    Dom --> Enf["enforceWithExplain(vals)"]
+    Enf --> Dec{allowed?}
+    Dec -->|Yes| Allow([ALLOW])
+    Dec -->|No| Deny([DENY])
 ```
 
-#### extractPolicyLines()
+- `vals` is `[subject, domain, resource, action]` when a domain is present (scoped), else `[subject, resource, action]`.
+- On any error inside `pool.use`, the pool **destroys** the borrowed enforcer (fail-closed); a fresh one is created on demand.
+- `enforceWithExplain` uses `enforceExSync` to also log the deciding policy on a DENY.
 
-Extracts all loaded policies from the enforcer model as casbin-format strings:
+### invalidateUserCache() / rebuildUserCache()
+
+Redis-only (throw if caching is disabled). `invalidateUserCache` deletes the user's shared Redis key
+(next request rebuilds lazily). `rebuildUserCache` deletes then immediately re-extracts (on a throwaway
+enforcer) and re-caches. Because the key is shared in Redis, a single call is correct across instances.
+
+### Protected Methods
+
+| Method | Output | Description |
+|--------|--------|-------------|
+| `registerMatchers` | `void` | Registers domain/resource matching funcs (+ `buildRoleLinks`); scoped vs `domainMatching` |
+| `assertMatcherCompilesSync` | `void` | Boot-time matcher smoke test (forces lazy compile) |
+| `resolveModel` | `Model` | Resolves casbin model from `file` or `text` driver |
+| `validateExpiresIn` | `void` | Throws if `expiresIn < MIN_EXPIRES_IN` |
+| `fetchLinesWithRedisCache` | `string[]` | Redis read → single-flight extract+write on miss |
+| `extractUserLines` | `string[]` | Throwaway enforcer + adapter `loadFilteredPolicy` → `extractLinesFrom` |
+| `extractLinesFrom` | `string[]` | Serializes every p-type and g-type rule into lines |
+| `loadPolicyLinesIntoModel` | `void` | `clearPolicy` + `loadPolicyLine` per line + `buildRoleLinks` |
+| `enforceWithExplain` | `boolean` | `enforceExSync`; logs the deciding rule on DENY |
+
+#### extractLinesFrom()
+
+Serializes **all** policy + grouping rule types (not just `p`/`g`) so the cached payload is complete
+for the scoped model (`g2`…`g5`):
 
 ```typescript
-// Policy rules: ["p, user_123, Article, read, allow", ...]
-const pRules = await this.enforcer.getPolicy();
-const ps = pRules.map(r => [CasbinRuleVariants.P, ...r].join(', '));
+const model = enforcer.getModel();
+const lines: string[] = [];
 
-// Group rules:  ["g, user_123, role_admin, org_1", ...]
-const gRules = await this.enforcer.getGroupingPolicy();
-const gs = gRules.map(r => [CasbinRuleVariants.G, ...r].join(', '));
-
-return [...ps, ...gs];
+for (const ptype of model.model.get(CasbinRuleVariants.P)?.keys() ?? []) {
+  for (const rule of await enforcer.getNamedPolicy(ptype)) lines.push([ptype, ...rule].join(', '));
+}
+for (const gtype of model.model.get(CasbinRuleVariants.G)?.keys() ?? []) {
+  for (const rule of await enforcer.getNamedGroupingPolicy(gtype)) lines.push([gtype, ...rule].join(', '));
+}
+return lines;
 ```
 
 #### loadPolicyLinesIntoModel()
 
-Clears the model and reloads from cached string lines:
+Atomically resets a borrowed enforcer's model to exactly `lines`:
 
 ```typescript
-const { Helper } = await import('casbin');
-const model = this.enforcer.getModel();
+const model = opts.enforcer.getModel();
 model.clearPolicy();
-
 for (const line of opts.lines) {
-  Helper.loadPolicyLine(line, model);
+  this.helper.loadPolicyLine(line, model);
 }
-
-await this.enforcer.buildRoleLinks();
+await opts.enforcer.buildRoleLinks();
 ```
 
 ## BaseFilteredAdapter
 
-Abstract read-only casbin `FilteredAdapter` using a template method pattern. Subclasses provide query hooks; the base orchestrates loading and provides shared formatters.
+Thin read-only base for casbin `FilteredAdapter`s backed by a datasource. It owns the boilerplate
+every filtered adapter repeats — datasource/connector plumbing, the `isFiltered() === true` flag, the
+no-op write methods, and a `loadLines` helper. A subclass implements only `loadFilteredPolicy`: query
+the store for ONE principal's policies and turn them into casbin lines.
 
 ### Class
 
 ```typescript
-abstract class BaseFilteredAdapter<
-  TEntities extends IBaseFilteredAdapterEntities = IBaseFilteredAdapterEntities,
-  TFilter = ICasbinPolicyFilter,
-  TPolicyRow extends TBasePolicyRow = TBasePolicyRow,
->
+abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
   implements FilteredAdapter
 {
-  protected readonly entities: TEntities;
+  protected readonly dataSource: IDataSource;
+  protected get connector(): TAnyConnector;
 
-  constructor(opts: { scope: string; entities: TEntities });
+  constructor(opts: { scope: string; dataSource: IDataSource });
 
-  // FilteredAdapter — public API
-  async loadPolicy(): Promise<void>;  // no-op
-  async loadFilteredPolicy(model: Model, filter: TFilter): Promise<void>;
+  // Subclasses implement ONLY this:
+  abstract loadFilteredPolicy(model: Model, filter: TFilter): Promise<void>;
+
   isFiltered(): boolean; // always true
 
   // No-op write methods (read-only adapter)
-  async savePolicy(): Promise<boolean>;   // returns true
-  async addPolicy(): Promise<void>;       // no-op
-  async removePolicy(): Promise<void>;    // no-op
-  async removeFilteredPolicy(): Promise<void>; // no-op
+  async loadPolicy(): Promise<void>;
+  async savePolicy(): Promise<boolean>;          // returns true
+  async addPolicy(): Promise<void>;
+  async removePolicy(): Promise<void>;
+  async removeFilteredPolicy(): Promise<void>;
 
-  // Abstract hooks — subclasses provide the data queries
-  protected abstract buildDirectPolicies(opts): ValueOrPromise<string[]>;
-  protected abstract buildGroupPolicies(opts): ValueOrPromise<{ lines: string[]; roleIds }>;
-  protected abstract buildRolePolicies(opts): ValueOrPromise<string[]>;
-
-  // Shared formatters
-  protected formatDomain(domain: string | null): string | null;
-  protected toGroupLine(opts): string;
-  protected toPolicyLine(opts): string | null;
+  // Helper: parse + load casbin lines into a model.
+  protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void>;
 }
 ```
 
 ### Generic Parameters
 
-| Parameter | Extends | Default | Description |
-|-----------|---------|---------|-------------|
-| `TEntities` | `IBaseFilteredAdapterEntities` | `IBaseFilteredAdapterEntities` | Entity configuration (subclass adds fields like `tableName`) |
-| `TFilter` | -- | `ICasbinPolicyFilter` | Filter shape passed to `loadFilteredPolicy` |
-| `TPolicyRow` | `TBasePolicyRow` | `TBasePolicyRow` | Policy row shape consumed by `toPolicyLine` |
-
-### IBaseFilteredAdapterEntities
-
-```typescript
-interface IBaseFilteredAdapterEntities {
-  role: { principalType: string };
-  domain?: { principalType: string };
-}
-```
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `TFilter` | `ICasbinPolicyFilter` | Filter shape passed to `loadFilteredPolicy`. Subclasses may narrow it (e.g. `IScopedCasbinPolicyFilter`) |
 
 ### ICasbinPolicyFilter
 
+The default filter: which principal's policies to load. Subclasses may narrow it.
+
 ```typescript
 interface ICasbinPolicyFilter {
-  principalType: string;
-  principalValue: string | number;
+  principal: { type: string; id: IdType };
 }
 ```
 
-### TBasePolicyRow
+### loadLines()
 
-Declared as `type` (not `interface`) for Drizzle compatibility -- carries an implicit index signature required by `connector.execute<T>()`.
+The base's only orchestration helper — subclasses call it from `loadFilteredPolicy` after assembling
+their casbin lines:
 
 ```typescript
-type TBasePolicyRow = {
-  variant: string;       // 'policy' or 'group'
-  code: string;          // permission/resource code
-  action: string | null;
-  subjectType: string;
-  subjectId: string | number;
-  effect: string | null;
-  domain: string | null;
-};
+protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void> {
+  const { Helper } = await import('casbin');
+  for (const line of opts.lines) {
+    Helper.loadPolicyLine(line, opts.model);
+  }
+}
 ```
 
-### loadFilteredPolicy()
+There are no template-method query hooks or shared line formatters on the base — a subclass owns its
+own queries and line construction (see `ScopedCasbinAdapter` below for the reference implementation).
 
-Orchestrates three query phases using `casbin.Helper.loadPolicyLine()`:
+## ScopedCasbinAdapter
 
-```mermaid
-flowchart LR
-    Start([loadFilteredPolicy]) --> D[buildDirectPolicies]
-    D -->|p lines| Load1[Load into model]
-    Load1 --> G[buildGroupPolicies]
-    G -->|g lines + roleIds| Load2[Load into model]
-    Load2 --> Check{roleIds empty?}
-    Check -->|No| R[buildRolePolicies]
-    R -->|p lines| Load3[Load into model]
-    Check -->|Yes| Done([Done])
-    Load3 --> Done
-```
-
-```
-1. buildDirectPolicies({ filter, rolePrincipal })
-   → Direct permissions assigned to the principal → casbin `p` lines
-
-2. buildGroupPolicies({ filter })
-   → Role assignments → casbin `g` lines + roleIds
-
-3. buildRolePolicies({ roleIds, rolePrincipal })
-   → Permissions inherited through roles → casbin `p` lines
-   (only if roleIds is non-empty)
-```
-
-### Abstract Query Hooks
-
-| Hook | Input | Output | Description |
-|------|-------|--------|-------------|
-| `buildDirectPolicies` | `{ filter: TFilter, rolePrincipal: string }` | `string[]` | Direct permission `p` lines for the user |
-| `buildGroupPolicies` | `{ filter: TFilter }` | `{ lines: string[], roleIds: (string \| number)[] }` | Role assignment `g` lines + role IDs |
-| `buildRolePolicies` | `{ roleIds: (string \| number)[], rolePrincipal: string }` | `string[]` | Inherited permission `p` lines via roles |
-
-### Shared Formatters
-
-| Method | Input | Output | Description |
-|--------|-------|--------|-------------|
-| `formatDomain(domain)` | `string \| null` | `string \| null` | Prepends `entities.domain.principalType` prefix if configured (e.g., `"Organization_<uuid>"`). Returns `null` if input is null. |
-| `toGroupLine(opts)` | `{ subject, role, domain }` | `string` | Formats: <code v-pre>g, &lt;subject&gt;, &lt;role&gt;[, &lt;domain&gt;]</code> |
-| `toPolicyLine(opts)` | `{ row: TPolicyRow }` | `string \| null` | Formats: <code v-pre>p, &lt;subject&gt;, [&lt;domain&gt;,] &lt;resource&gt;, &lt;action&gt;, &lt;effect&gt;</code>. Returns `null` if row has no action. Effect defaults to `'allow'`. |
-
-## DrizzleCasbinAdapter
-
-Concrete read-only `FilteredAdapter` using raw SQL queries via Drizzle's `connector.execute()`.
+The generic, read-only `FilteredAdapter` for the scoped RBAC model. It reads **one principal's edges**
+plus the **shared structural hierarchy** from a single `PolicyDefinition` edge table (joined to
+`Permission` for codes) and emits casbin lines. No subclassing — configure it with `IScopedCasbinEntities`.
 
 ### Class
 
 ```typescript
-class DrizzleCasbinAdapter extends BaseFilteredAdapter<IDrizzleCasbinEntities> {
-  private connector: TAnyConnector;
+class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
+  protected readonly entities: IScopedCasbinEntities;
 
-  constructor(opts: IDrizzleCasbinAdapterOptions);
+  constructor(opts: { dataSource: IDataSource; entities: IScopedCasbinEntities });
 
-  protected async buildDirectPolicies(opts): Promise<string[]>;
-  protected async buildGroupPolicies(opts): Promise<{ lines; roleIds }>;
-  protected async buildRolePolicies(opts): Promise<string[]>;
+  async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
+
+  // Per-principal queries
+  protected queryRoleAssignments(opts): Promise<{ lines: string[]; roleIds: IdType[] }>; // → g
+  protected queryMemberships(opts): Promise<string[]>;                                   // → g2
+  protected queryGrants(opts): Promise<string[]>;                                        // → p
+  // Shared hierarchy
+  protected loadStructuralTrees(): Promise<string[]>;        // role(g)/domain(g3)/resource(g4)/action(g5)
+  protected queryRoleInherits(): Promise<string[]>;          // → g
+  protected queryDomainInherits(): Promise<string[]>;        // → g3
+  protected queryResourceInherits(): Promise<string[]>;      // → g4
+  protected queryActionInherits(): Promise<string[]>;        // → g5
+  // Role closure (BFS over role_inherits)
+  protected expandRoleClosure(opts: { role: { ids: IdType[]; edges: string[] } }): IdType[];
 }
 ```
 
-### IDrizzleCasbinEntities
+### IScopedCasbinEntities
 
 ```typescript
-interface IDrizzleCasbinEntities extends IBaseFilteredAdapterEntities {
-  permission: { tableName: string; principalType: string };
-  role: { tableName: string; principalType: string };
-  policyDefinition: { tableName: string; principalType: string };
-  domain?: { principalType: string };
+interface IScopedCasbinTable { tableName: string; schemaName?: string; }
+
+interface IScopedCasbinEntities {
+  policyDefinition: IScopedCasbinTable;          // the single edge table
+  permission: IScopedCasbinTable;                // permission catalog (id, code, ...)
+  principals: { user: string; role: string };    // casbin name prefixes
+  domainTypes: string[];                          // e.g. ['Merchant', 'Organizer']
+  softDelete?: { use: false } | { use: true; columnName: string };
 }
 ```
 
-### IDrizzleCasbinAdapterOptions
+### IScopedCasbinPolicyFilter
 
 ```typescript
-interface IDrizzleCasbinAdapterOptions {
-  dataSource: IDataSource;
-  entities: IDrizzleCasbinEntities;
+interface IScopedCasbinPolicyFilter {
+  principal: { type: string; id: IdType };
 }
 ```
 
-### SQL Queries
+### loadFilteredPolicy() — two waves
 
-All queries use the `sql` template tag from `drizzle-orm` and filter by `variant` using `CasbinRuleVariants.POLICY` or `CasbinRuleVariants.GROUP` constants.
-
-**buildDirectPolicies** -- direct permissions assigned to the user:
-```sql
-SELECT pd.variant, p.code, pd.action,
-       pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
-       pd.effect, pd.domain
-FROM {policyDefinition.tableName} pd
-INNER JOIN {permission.tableName} p ON pd.target_id = p.id
-WHERE pd.variant = 'policy'
-  AND pd.subject_type = :principalType
-  AND pd.subject_id = :principalValue
-  AND pd.target_type = :permission.principalType
+```mermaid
+flowchart TD
+    Start([loadFilteredPolicy]) --> W1["Wave 1 (parallel): queryRoleAssignments (g) ·
+      queryMemberships (g2) · queryGrants[user] (p) · loadStructuralTrees (g/g3/g4/g5)"]
+    W1 --> Closure["expandRoleClosure(assigned roleIds, role_inherits edges)"]
+    Closure --> W2["Wave 2: queryGrants[roleClosure] (p)"]
+    W2 --> Load["loadLines(model, all lines)"]
 ```
 
-**buildGroupPolicies** -- role assignments for the user:
-```sql
-SELECT pd.target_id AS "targetId", pd.domain
-FROM {policyDefinition.tableName} pd
-WHERE pd.variant = 'group'
-  AND pd.subject_type = :principalType
-  AND pd.subject_id = :principalValue
-  AND pd.target_type = :role.principalType
-```
+1. **Wave 1 (parallel):** the principal's own edges — role assignments (`g`), domain memberships
+   (`g2`), direct grants (`p`) — plus the shared structural trees (`role_inherits` → `g`,
+   `domain_inherits` → `g3`, `resource_inherits` → `g4`, `action_inherits` → `g5`).
+2. **Role closure:** `expandRoleClosure` does a cycle-safe BFS over the `role_inherits` (`g`) edges to
+   collect the assigned roles + all transitive parents.
+3. **Wave 2:** fetch the grants (`p`) of every role in the closure, so a user inherits the permissions
+   of parent roles.
+4. All lines are loaded via `loadLines`.
 
-**buildRolePolicies** -- permissions inherited through assigned roles:
-```sql
-SELECT pd.variant, p.code, pd.action,
-       pd.subject_type AS "subjectType", pd.subject_id AS "subjectId",
-       pd.effect, pd.domain
-FROM {policyDefinition.tableName} pd
-INNER JOIN {permission.tableName} p ON pd.target_id = p.id
-WHERE pd.variant = 'policy'
-  AND pd.subject_type = :role.principalType
-  AND pd.subject_id IN (:roleIds)
-  AND pd.target_type = :permission.principalType
-```
+### SQL notes
+
+All queries use the `sql` template tag from `drizzle-orm`. Tables are schema-qualified via
+`sql.identifier` (injection-safe); interpolated values (the `variant` discriminator from
+`AuthorizationPolicyVariants.*.action`, ids, types) are bound parameters. The soft-delete clause
+(`AND <alias>.<col> IS NULL`) is appended when `entities.softDelete.use` is true. `queryGrants`
+short-circuits to `[]` when given no subject ids (no DB round-trip).
 
 ### Usage Example
 
 ```typescript
-import { DrizzleCasbinAdapter } from '@venizia/ignis';
+import { ScopedCasbinAdapter } from '@venizia/ignis';
 
-const adapter = new DrizzleCasbinAdapter({
+const adapter = new ScopedCasbinAdapter({
   dataSource: myPostgresDataSource,
   entities: {
-    permission: { tableName: 'Permission', principalType: 'Permission' },
-    role: { tableName: 'Role', principalType: 'Role' },
-    policyDefinition: { tableName: 'PolicyDefinition', principalType: 'PolicyDefinition' },
-    domain: { principalType: 'Organization' },
+    policyDefinition: { tableName: 'PolicyDefinition', schemaName: 'identity' },
+    permission: { tableName: 'Permission', schemaName: 'identity' },
+    principals: { user: 'User', role: 'Role' },
+    domainTypes: ['Merchant', 'Organizer'],
+    softDelete: { use: true, columnName: 'deleted_at' },
   },
 });
 ```
@@ -995,6 +848,12 @@ for (voter of spec.voters) {
 if (!registry.hasEnforcers()) → next()  // skip if no enforcers registered
 const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
 const enforcer = await registry.resolveEnforcer({ name: resolvedName });
+
+// Step 5b: Resolve request domain scope (only when domain scoping is in play)
+if (spec.domain || options?.domainResolver) {
+  const domainScope = await resolveRequestDomain({ spec, context, options }); // "<Type>_<id>" | SYSTEM_WIDE
+  context.set(Authorization.DOMAIN, domainScope);  // the enforcer reads this for request.domain
+}
 
 // Step 6: Build/cache rules
 let rules = context.get(Authorization.RULES);
@@ -1252,6 +1111,7 @@ declare module 'hono' {
     // Authorization
     [Authorization.RULES]: unknown;                    // 'authorization.rules'
     [Authorization.SKIP_AUTHORIZATION]: boolean;       // 'authorization.skip'
+    [Authorization.DOMAIN]: string;                    // 'authorization.domain'
   }
 }
 ```
