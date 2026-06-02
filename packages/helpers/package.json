@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-helpers",
-  "version": "0.0.8-12",
+  "version": "0.0.8-13",
   "description": "Production-ready TypeScript utility library with 14+ modules: Winston logging with daily rotation, Redis single/cluster with pub/sub, BullMQ/MQTT/Kafka message queues, MinIO/Disk/Memory object storage, AES-256/RSA/ECDH cryptography, Snowflake UID generation (4M IDs/sec), cron scheduling, Socket.IO/WebSocket real-time communication, TCP/TLS/UDP networking, HTTP clients, worker thread pools, and environment management. Sub-path imports isolate optional peer dependencies for optimal tree-shaking and bundle size.",
   "keywords": [
     "aes",
