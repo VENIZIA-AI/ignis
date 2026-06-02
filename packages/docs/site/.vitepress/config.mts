@@ -254,10 +254,6 @@ const config = defineConfig({
   description: 'A TypeScript Server Infrastructure with Hono Framework',
   head: [['link', { rel: 'icon', href: '/logo.svg' }]],
   vite: {
-    // The on-disk docs tsconfig targets ES2024 (for the tsc-built MCP server). The bundled esbuild
-    // does not recognize that target, so feed it an inline es2022 config (tsconfigRaw stops esbuild
-    // from reading the ES2024 tsconfig) and pin the transform target. Keeps the MCP build on ES2024.
-    esbuild: { target: 'es2022', tsconfigRaw: { compilerOptions: { target: 'es2022' } } },
     // mermaid pulls in dayjs/esm, whose extensionless imports break Node's native ESM resolver during
     // SSR. Bundle them through Vite (noExternal) so Vite's resolver handles the resolution.
     ssr: { noExternal: ['vitepress-plugin-mermaid', 'mermaid', 'dayjs'] },

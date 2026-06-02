@@ -219,9 +219,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     expect(helper.getConnectedBrokerCount()).toBe(1);
 
     const beforeClient = helper.getConsumer();
-    let rebuildCalled = false;
+    let didRebuild = false;
     helper['rebuildClient'] = async () => {
-      rebuildCalled = true;
+      didRebuild = true;
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
@@ -239,7 +239,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       delayMs: 1,
     });
 
-    expect(rebuildCalled).toBe(false);
+    expect(didRebuild).toBe(false);
     expect(helper.getConsumer()).toBe(beforeClient);
   });
 
@@ -267,9 +267,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     });
     expect(helper.getConnectedBrokerCount()).toBe(1);
 
-    let rebuildCalled = false;
+    let didRebuild = false;
     helper['rebuildClient'] = async () => {
-      rebuildCalled = true;
+      didRebuild = true;
     };
 
     helper['consumeStartOptions'] = { topics: ['t'] };
@@ -287,7 +287,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     // Despite brokers being back, the sticky flag remembers we lost them all
     // at some point — rebuild fires.
-    expect(rebuildCalled).toBe(true);
+    expect(didRebuild).toBe(true);
   });
 
   test('TC-109: sessionLikelyStale is cleared after a successful consume()', async () => {
@@ -342,9 +342,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     });
     expect(helper['sessionLikelyStale']).toBe(false);
 
-    let rebuildCalled = false;
+    let didRebuild = false;
     helper['rebuildClient'] = async () => {
-      rebuildCalled = true;
+      didRebuild = true;
     };
     helper['consumeStartOptions'] = { topics: ['t'] };
     (
@@ -369,7 +369,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     });
 
     // The post-sleep read of the flag must see the mid-sleep transition.
-    expect(rebuildCalled).toBe(true);
+    expect(didRebuild).toBe(true);
   });
 
   test('TC-151: rebuildClient restarts lag monitoring on the new client', async () => {

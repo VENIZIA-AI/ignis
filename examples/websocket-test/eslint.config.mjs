@@ -1,1 +1,3 @@
-export { default } from '@venizia/dev-configs/eslint.config.mjs';
+import { eslintConfigs } from '@venizia/dev-configs';
+
+export default eslintConfigs;

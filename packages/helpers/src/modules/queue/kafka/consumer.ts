@@ -417,16 +417,16 @@ export class KafkaConsumerHelper<
       return;
     }
 
-    const needsClientRebuild = this.sessionLikelyStale;
+    const shouldRebuildClient = this.sessionLikelyStale;
 
-    if (needsClientRebuild) {
+    if (shouldRebuildClient) {
       this.logger.warn(
         '[attemptReconnect] Session stale flag is set, will rebuild client | Attempt: %d',
         attempt,
       );
     }
 
-    if (needsClientRebuild) {
+    if (shouldRebuildClient) {
       try {
         await this.rebuildClient();
         this.sessionLikelyStale = false;
@@ -463,7 +463,7 @@ export class KafkaConsumerHelper<
         '[attemptReconnect] Reconnected successfully | Topics: %j | Attempt: %d | Rebuilt: %s',
         this.consumeStartOptions.topics,
         attempt,
-        needsClientRebuild,
+        shouldRebuildClient,
       );
     } catch (error) {
       const err = toError(error);
