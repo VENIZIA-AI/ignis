@@ -9,6 +9,7 @@ export type TPermissionOptions = {
 export type TPermissionCommonColumns = {
   code: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
   name: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+  method: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
   subject: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
   action: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
   scope: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
@@ -39,6 +40,7 @@ export const extraPermissionColumns = <Opts extends TPermissionOptions | undefin
         code: text('code').unique().notNull(),
         name: text('name').notNull(),
         subject: text('subject').notNull(),
+        method: text('method').notNull(),
         action: text('action').notNull(),
         scope: text('scope').notNull(),
         parentId: integer('parent_id'),
@@ -49,6 +51,7 @@ export const extraPermissionColumns = <Opts extends TPermissionOptions | undefin
         code: text('code').unique().notNull(),
         name: text('name').notNull(),
         subject: text('subject').notNull(),
+        method: text('method').notNull(),
         action: text('action').notNull(),
         scope: text('scope').notNull(),
         parentId: text('parent_id'),
