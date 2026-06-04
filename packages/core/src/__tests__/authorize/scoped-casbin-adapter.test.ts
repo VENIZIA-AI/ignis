@@ -49,6 +49,18 @@ describe('ScopedCasbinAdapter — queryRoleAssignments', () => {
     expect(captured[0]).toContain('deleted_at');
   });
 
+  test('soft-delete clause references the SAME unquoted alias as the FROM clause', async () => {
+    // The FROM alias is written unquoted (`FROM ... policyDefinition`), which Postgres folds to
+    // `policydefinition`. If the soft-delete clause quotes it (`"policyDefinition"`), Postgres treats
+    // that as a DIFFERENT relation → "missing FROM-clause entry for table policyDefinition" (42P01).
+    const { adapter, captured } = makeAdapter();
+    await adapter['queryRoleAssignments']({ principal: { type: 'User', id: 'u1' } });
+    expect(captured[0]).toContain('FROM "identity"."PolicyDefinition" policyDefinition');
+    expect(captured[0]).toContain('deleted_at');
+    // A quoted alias reference would not match the unquoted FROM alias.
+    expect(captured[0]).not.toContain('"policyDefinition"');
+  });
+
   test('rows become g lines; null domain → "*"; collects roleIds', async () => {
     const { adapter } = makeAdapter(() => [
       { roleId: 'r1', domain: null },

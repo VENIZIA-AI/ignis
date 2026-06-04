@@ -88,14 +88,21 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return sql`${sql.identifier(this.schemaOf(table))}.${sql.identifier(table.tableName)}`;
   }
 
-  /** `AND <alias>.<col> IS NULL` when soft-delete on; empty otherwise. Alias quoted to avoid injection. */
+  /**
+   * `AND <alias>.<col> IS NULL` when soft-delete on; empty otherwise. The alias is emitted RAW (not
+   * quoted) so it matches the unquoted alias declared in the FROM clause (`FROM ... policyDefinition`):
+   * Postgres folds unquoted identifiers to lower-case, so a quoted `"policyDefinition"` would resolve
+   * to a DIFFERENT relation than the unquoted FROM alias → 42P01 "missing FROM-clause entry". The alias
+   * is always a hard-coded literal supplied by this adapter, never user input, so emitting it raw is
+   * safe; the (config-supplied) column name stays quoted via `sql.identifier`.
+   */
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
     if (!sd?.use) {
       return sql.empty();
     }
 
-    return sql` AND ${sql.identifier(opts.alias)}.${sql.identifier(sd.columnName)} IS NULL`;
+    return sql` AND ${sql.raw(opts.alias)}.${sql.identifier(sd.columnName)} IS NULL`;
   }
 
   /**
