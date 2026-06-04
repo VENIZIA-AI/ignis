@@ -5,21 +5,28 @@ import { HasDefault, NotNull } from 'drizzle-orm';
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
   IdType extends 'number' | 'string' = 'number' | 'string',
+  Nullable extends boolean = false,
 > = {
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
   polymorphicIdType: IdType;
+  isNullableId?: Nullable;
 };
 
 type TPrincipalColumnDef<
   Discriminator extends string,
   IdType extends 'number' | 'string',
+  Nullable extends boolean = false,
 > = (IdType extends 'number'
   ? {
-      [K in `${Discriminator}Id`]: NotNull<PgIntegerBuilderInitial<string>>;
+      [K in `${Discriminator}Id`]: Nullable extends true
+        ? PgIntegerBuilderInitial<string>
+        : NotNull<PgIntegerBuilderInitial<string>>;
     }
   : {
-      [K in `${Discriminator}Id`]: NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
+      [K in `${Discriminator}Id`]: Nullable extends true
+        ? PgTextBuilderInitial<string, [string, ...string[]]>
+        : NotNull<PgTextBuilderInitial<string, [string, ...string[]]>>;
     }) & {
   [K in `${Discriminator}Type`]: HasDefault<PgTextBuilderInitial<string, [string, ...string[]]>>;
 };
@@ -27,10 +34,16 @@ type TPrincipalColumnDef<
 export const generatePrincipalColumnDefs = <
   Discriminator extends string = 'principal',
   IdType extends 'number' | 'string' = 'number',
+  Nullable extends boolean = false,
 >(
-  opts: TPrincipalEnricherOptions<Discriminator, IdType>,
-): TPrincipalColumnDef<Discriminator, IdType> => {
-  const { discriminator = 'principal', defaultPolymorphic = '', polymorphicIdType } = opts;
+  opts: TPrincipalEnricherOptions<Discriminator, IdType, Nullable>,
+): TPrincipalColumnDef<Discriminator, IdType, Nullable> => {
+  const {
+    discriminator = 'principal',
+    defaultPolymorphic = '',
+    polymorphicIdType,
+    isNullableId = false,
+  } = opts;
 
   const polymorphic = {
     typeField: `${discriminator}Type`,
@@ -38,20 +51,25 @@ export const generatePrincipalColumnDefs = <
     idField: `${discriminator}Id`,
     idType: polymorphicIdType,
     idColumnName: `${discriminator}_id`,
+    isNullableId,
   };
 
   switch (polymorphic.idType) {
     case 'number': {
       return {
         [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
-        [polymorphic.idField]: integer(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Discriminator, IdType>;
+        [polymorphic.idField]: polymorphic.isNullableId
+          ? integer(polymorphic.idColumnName)
+          : integer(polymorphic.idColumnName).notNull(),
+      } as TPrincipalColumnDef<Discriminator, IdType, Nullable>;
     }
     case 'string': {
       return {
         [polymorphic.typeField]: text(polymorphic.typeColumnName).default(defaultPolymorphic),
-        [polymorphic.idField]: text(polymorphic.idColumnName).notNull(),
-      } as TPrincipalColumnDef<Discriminator, IdType>;
+        [polymorphic.idField]: polymorphic.isNullableId
+          ? text(polymorphic.idColumnName)
+          : text(polymorphic.idColumnName).notNull(),
+      } as TPrincipalColumnDef<Discriminator, IdType, Nullable>;
     }
     default: {
       throw new Error(
