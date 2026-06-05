@@ -98,8 +98,13 @@ describe('AuthorizationActions.isValid + SCHEME_SET', () => {
   });
 
   test('invalid actions', () => {
-    expect(AuthorizationActions.isValid('manage')).toBe(false);
-    expect(AuthorizationActions.SCHEME_SET.has('manage')).toBe(false);
+    expect(AuthorizationActions.isValid('superpower')).toBe(false);
+    expect(AuthorizationActions.SCHEME_SET.has('superpower')).toBe(false);
+  });
+
+  test('coarse lattice tiers are valid actions', () => {
+    expect(AuthorizationActions.isValid('manage')).toBe(true);
+    expect(AuthorizationActions.isValid('write')).toBe(true);
   });
 });
 

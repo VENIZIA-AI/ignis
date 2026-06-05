@@ -10,18 +10,36 @@ export class Authorization {
 
 export class AuthorizationActions {
   static readonly CREATE = 'create';
-  static readonly READ = 'read';
   static readonly UPDATE = 'update';
   static readonly DELETE = 'delete';
   static readonly EXECUTE = 'execute';
 
+  static readonly READ = 'read';
+  static readonly WRITE = 'write';
+  static readonly MANAGE = 'manage';
+
   static readonly SCHEME_SET = new Set([
     this.CREATE,
-    this.READ,
     this.UPDATE,
     this.DELETE,
     this.EXECUTE,
+
+    this.READ,
+    this.WRITE,
+    this.MANAGE,
   ]);
+
+  static readonly LATTICE: ReadonlyArray<{
+    child: TAuthorizationAction;
+    parent: TAuthorizationAction;
+  }> = [
+    { child: this.READ, parent: this.MANAGE },
+    { child: this.WRITE, parent: this.MANAGE },
+    { child: this.EXECUTE, parent: this.MANAGE },
+    { child: this.CREATE, parent: this.WRITE },
+    { child: this.UPDATE, parent: this.WRITE },
+    { child: this.DELETE, parent: this.WRITE },
+  ];
 
   static isValid(input: string): boolean {
     return this.SCHEME_SET.has(input);

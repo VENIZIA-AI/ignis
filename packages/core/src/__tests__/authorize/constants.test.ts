@@ -28,11 +28,16 @@ describe('Authorization Constants', () => {
       expect(AuthorizationActions.isValid('unknown')).toBe(false);
       expect(AuthorizationActions.isValid('')).toBe(false);
       expect(AuthorizationActions.isValid('CREATE')).toBe(false);
-      expect(AuthorizationActions.isValid('manage')).toBe(false);
+      expect(AuthorizationActions.isValid('superpower')).toBe(false);
+    });
+
+    test('should accept the coarse lattice tiers (manage / write)', () => {
+      expect(AuthorizationActions.isValid('manage')).toBe(true);
+      expect(AuthorizationActions.isValid('write')).toBe(true);
     });
 
     test('should have correct SCHEME_SET size', () => {
-      expect(AuthorizationActions.SCHEME_SET.size).toBe(5);
+      expect(AuthorizationActions.SCHEME_SET.size).toBe(7);
     });
 
     test('should reject whitespace-only actions', () => {
