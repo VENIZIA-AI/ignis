@@ -6,10 +6,10 @@ difficulty: intermediate
 
 # Filter System
 
-Complete reference for the Ignis filter system - operators, JSON filtering, array operators, default filters, and query patterns.
+Complete reference for the IGNIS filter system - operators, JSON filtering, array operators, default filters, and query patterns.
 
 > [!NOTE]
-> If you're new to Ignis, start with:
+> If you're new to IGNIS, start with:
 > - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Get up and running
 > - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
 > - [Repositories](/references/base/repositories/) - Repository overview
@@ -45,7 +45,7 @@ Before reading this document, you should understand:
 
 ## Filter Structure
 
-The `TFilter<T>` object is the core mechanism for querying data in Ignis. It provides a structured way to express complex queries without writing raw SQL.
+The `TFilter<T>` object is the core mechanism for querying data in IGNIS. It provides a structured way to express complex queries without writing raw SQL.
 
 ```typescript
 type TFilter<T> = {

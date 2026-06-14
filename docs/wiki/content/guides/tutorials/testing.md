@@ -1,12 +1,12 @@
-# Testing Your Ignis Application
+# Testing Your IGNIS Application
 
-This guide shows you how to write tests for your Ignis application.
+This guide shows you how to write tests for your IGNIS application.
 
 **Time to Complete:** ~30 minutes
 
 ## Choose Your Test Framework
 
-**Ignis works with any test framework.** You can use whichever testing tool you prefer:
+**IGNIS works with any test framework.** You can use whichever testing tool you prefer:
 
 | Framework | Description |
 |-----------|-------------|
@@ -16,17 +16,17 @@ This guide shows you how to write tests for your Ignis application.
 | **Playwright** | End-to-end testing for web applications |
 | **node:test** | Node.js native test module |
 | **Mocha** | Flexible testing framework |
-| **Any other** | All test frameworks work with Ignis |
+| **Any other** | All test frameworks work with IGNIS |
 
-Since Ignis is just a TypeScript/JavaScript application framework, you can test it with any tool that supports TypeScript.
+Since IGNIS is just a TypeScript/JavaScript application framework, you can test it with any tool that supports TypeScript.
 
 > [!TIP] IGNIS Testing Extension
-> IGNIS provides its own testing utilities built on `node:test`. These utilities (`TestPlan`, `TestCase`, `TestCaseHandler`) offer a structured approach for organizing tests with lifecycle hooks and shared context. This is optional — use it if you prefer this pattern, or use your favorite test framework directly.
+> IGNIS provides its own testing utilities built on `node:test`. These utilities (`TestPlan`, `TestCase`, `TestCaseHandler`) offer a structured approach for organizing tests with lifecycle hooks and shared context. This is optional - use it if you prefer this pattern, or use your favorite test framework directly.
 
 ## Prerequisites
 
 Before starting, ensure you have:
-- A working Ignis application (see [Building a CRUD API](./building-a-crud-api.md))
+- A working IGNIS application (see [Building a CRUD API](./building-a-crud-api.md))
 - Basic understanding of [Controllers](../core-concepts/rest-controllers.md) and [Repositories](../core-concepts/persistent/)
 
 ## Quick Examples with Popular Frameworks
@@ -112,7 +112,7 @@ import { test, expect } from '@playwright/test';
 
 test.describe('Todo Application', () => {
   test('should display todo list', async ({ request }) => {
-    const response = await request.get('http://localhost:3000/api/todos');
+    const response = await request.get(`http://localhost:3000/api/todos`);
 
     expect(response.ok()).toBeTruthy();
     const todos = await response.json();
@@ -143,14 +143,14 @@ import {
 class HelloHandler extends TestCaseHandler {
   async execute() {
     // The action to test
-    const message = 'Hello, Ignis!';
+    const message = 'Hello, IGNIS!';
     return { message };
   }
 
   getValidator() {
     // Validate the result
     return (result: { message: string }) => {
-      if (result.message === 'Hello, Ignis!') {
+      if (result.message === 'Hello, IGNIS!') {
         return TestCaseDecisions.SUCCESS;
       }
       return TestCaseDecisions.FAIL;
@@ -165,7 +165,7 @@ const helloTestPlan = TestPlan.newInstance({
     TestCase.withOptions({
       code: 'HELLO-001',
       description: 'Should return greeting message',
-      expectation: 'Message equals "Hello, Ignis!"',
+      expectation: 'Message equals "Hello, IGNIS!"',
       handler: new HelloHandler({ context: {} as any }),
     }),
   ],
@@ -226,7 +226,7 @@ import {
   TestCaseHandler,
   TestCaseDecisions,
 } from '@venizia/ignis-helpers';
-import { app } from '../src/application'; // Your Ignis app
+import { app } from '../src/application'; // Your IGNIS app
 
 // Handler for testing GET /todos
 class GetTodosHandler extends TestCaseHandler {
@@ -429,12 +429,14 @@ const container = new Container();
 
 class CreateTodoRepoHandler extends TestCaseHandler {
   async execute() {
-    const todoRepo = container.get<TodoRepository>('repositories.TodoRepository');
+    const todoRepo = container.get<TodoRepository>({ key: 'repositories.TodoRepository' });
 
-    const created = await todoRepo.create({
-      title: 'Repository Test',
-      description: 'Testing repository layer',
-      isCompleted: false,
+    const { data: created } = await todoRepo.create({
+      data: {
+        title: 'Repository Test',
+        description: 'Testing repository layer',
+        isCompleted: false,
+      },
     });
 
     return { todo: created };
@@ -452,11 +454,10 @@ class CreateTodoRepoHandler extends TestCaseHandler {
 
 class FindTodoRepoHandler extends TestCaseHandler {
   async execute() {
-    const todoRepo = container.get<TodoRepository>('repositories.TodoRepository');
+    const todoRepo = container.get<TodoRepository>({ key: 'repositories.TodoRepository' });
 
     const todos = await todoRepo.find({
-      where: { isCompleted: false },
-      limit: 10,
+      filter: { where: { isCompleted: false }, limit: 10 },
     });
 
     return { todos, count: todos.length };
@@ -477,7 +478,7 @@ const repoTests = TestPlan.newInstance({
   hooks: {
     before: async () => {
       // Setup DI container and database connection
-      container.bind('repositories.TodoRepository').toClass(TodoRepository);
+      container.bind({ key: 'repositories.TodoRepository' }).toClass(TodoRepository);
     },
     after: async () => {
       // Cleanup test data
@@ -719,4 +720,4 @@ class CreateAndUpdateAndDeleteHandler extends TestCaseHandler {
 **Key Takeaways:**
 - Use any test framework you prefer (Jest, Vitest, Bun Test, Playwright, etc.)
 - IGNIS provides optional testing utilities (`TestPlan`, `TestCase`, `TestCaseHandler`) built on `node:test`
-- All frameworks work seamlessly with Ignis applications
+- All frameworks work seamlessly with IGNIS applications

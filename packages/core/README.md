@@ -10,7 +10,7 @@
 [![Hono](https://img.shields.io/badge/Hono-4.x-E36002.svg?style=flat-square&logo=hono&logoColor=white)](https://hono.dev/)
 [![Drizzle ORM](https://img.shields.io/badge/Drizzle_ORM-0.45-C5F74F.svg?style=flat-square)](https://orm.drizzle.team/)
 
-Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono**, giving you the best of both worlds: decorator-based DI, repository pattern, DataSource abstraction, component system, boot conventions — running on Hono's ~140k req/s engine with Drizzle ORM's type-safe SQL.
+IGNIS brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono**, giving you the best of both worlds: decorator-based DI, repository pattern, DataSource abstraction, component system, boot conventions - running on Hono's ~140k req/s engine with Drizzle ORM's type-safe SQL.
 
 [Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#controllers) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
 
@@ -34,7 +34,7 @@ Ignis brings together the structured, enterprise development experience of **Loo
 ```typescript
 import {
   BaseApplication,       // Your app extends this
-  BaseController,        // Controllers extend this
+  BaseRestController,        // Controllers extend this
   DefaultCRUDRepository, // Repositories extend this
   BaseEntity,            // Models extend this
   BaseDataSource,        // DataSources extend this
@@ -200,14 +200,14 @@ export class UserRepository extends PersistableRepository<typeof User.schema> {
 ```typescript
 // controllers/user.controller.ts
 import {
-  BaseController, controller, get, post,
+  BaseRestController, controller, get, post,
   inject, jsonContent, jsonResponse, HTTP, TRouteContext,
 } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 import { UserRepository } from '../repositories/user.repository';
 
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
   ) {
@@ -276,7 +276,7 @@ export class Application extends BaseApplication {
   }
 
   getAppInfo(): IApplicationInfo {
-    return { name: 'My App', version: '1.0.0', description: 'My Ignis application' };
+    return { name: 'My App', version: '1.0.0', description: 'My IGNIS application' };
   }
 
   staticConfigure() {}
@@ -437,7 +437,7 @@ Runtime-aware: uses `hono/bun` `serveStatic` on Bun, `@hono/node-server/serve-st
 
 ### Runtime Detection
 
-Ignis auto-detects the runtime and starts the server accordingly:
+IGNIS auto-detects the runtime and starts the server accordingly:
 
 ```typescript
 // Bun (default)
@@ -499,9 +499,9 @@ interface IApplicationInfo {
 
 ## Controllers
 
-### BaseController
+### BaseRestController
 
-All controllers extend `BaseController`, which provides:
+All controllers extend `BaseRestController`, which provides:
 
 - An `OpenAPIHono` router instance
 - Route registration methods (`defineRoute`, `bindRoute`, `defineJSXRoute`)
@@ -510,7 +510,7 @@ All controllers extend `BaseController`, which provides:
 - Zod-based request validation with automatic 422 error responses
 
 ```typescript
-abstract class BaseController extends AbstractController {
+abstract class BaseRestController extends AbstractController {
   // Register routes -- override this method
   abstract binding(): ValueOrPromise<void>;
 
@@ -536,7 +536,7 @@ Use `@get`, `@post`, `@put`, `@patch`, `@del`, or the generic `@api` decorators.
 
 ```typescript
 @controller({ path: '/products' })
-class ProductController extends BaseController {
+class ProductController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.ProductRepository' }) private productRepo: ProductRepository,
     @inject({ key: 'services.InventoryService' }) private inventoryService: InventoryService,
@@ -2167,7 +2167,7 @@ const UserController = ControllerFactory.defineCrudController({
 
 // Route-level (via decorators)
 @controller({ path: '/products' })
-class ProductController extends BaseController {
+class ProductController extends BaseRestController {
   @get({
     configs: {
       path: '/',
@@ -2573,7 +2573,7 @@ export class UserService extends BaseService {
 
 // controllers/user.controller.ts
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'services.UserService' }) private userService: UserService,
     @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
@@ -2783,7 +2783,7 @@ describe('UserController', () => {
 
 ## Documentation
 
-- [Ignis Repository](https://github.com/VENIZIA-AI/ignis)
+- [IGNIS Repository](https://github.com/VENIZIA-AI/ignis)
 - [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
 - [Core Concepts](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/core-concepts/application.md)
 - [Examples](https://github.com/VENIZIA-AI/ignis/tree/main/examples/vert)

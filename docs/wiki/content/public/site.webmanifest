@@ -1,0 +1,11 @@
+{
+  "name": "IGNIS",
+  "short_name": "IGNIS",
+  "theme_color": "#AF5F5F",
+  "background_color": "#0B0A0C",
+  "display": "standalone",
+  "icons": [
+    { "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}

@@ -1,6 +1,6 @@
 # Helper Documentation Template
 
-Guide for writing consistent, professional helper reference docs for Ignis.
+Guide for writing consistent, professional helper reference docs for IGNIS.
 
 ## Tiers
 

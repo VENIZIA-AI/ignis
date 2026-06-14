@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repositories - IGNIS Docs</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --rose:#AF5F5F; --rose-lt:#C98A8A; --coral:#D98E6A; --gold:#E5B567;
+    --grad:linear-gradient(115deg,#AF5F5F,#D98E6A 52%,#E5B567);
+    --bg:#0B0A0C; --surface:#131114; --line:rgba(255,255,255,.09);
+    --text:#EDE7EA; --text-2:#B4ABB0; --text-3:#8C828A; --faint:#6E646A;
+    --link:#C98A8A; --primary:#AF5F5F; --on-primary:#fff;
+    --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+    --fs-caption:.75rem; --fs-sm:.875rem; --fs-body:1rem; --fs-lede:1.125rem;
+    --fs-h4:1.25rem; --fs-h3:1.5625rem; --fs-h2:1.9375rem; --fs-h1:2.4375rem;
+    --lh-snug:1.2; --lh-heading:1.25; --lh-body:1.7;
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--s9:96px;
+    --r-sm:8px;--r-md:12px;--r-lg:16px; --measure:70ch;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:var(--lh-body)}
+
+  /* ---- header (shared pattern) ---- */
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(11,10,12,.82);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .topbar-inner{max-width:1320px;margin:0 auto;padding:0 var(--s6);height:64px;display:flex;align-items:center;gap:var(--s7)}
+  .brand{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-h4);color:var(--text);text-decoration:none}
+  .brand .ver{font:600 11px var(--mono);color:var(--text-3);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:var(--s1)}
+  .navlinks{display:flex;gap:var(--s5);height:64px}
+  .navlinks a{display:flex;align-items:center;height:64px;font-size:var(--fs-sm);font-weight:500;color:var(--text-2);text-decoration:none;border-bottom:2px solid transparent}
+  .navlinks a:hover{color:var(--text)}
+  .navlinks a.active{color:var(--text);border-bottom-color:var(--coral)}
+  .spacer{flex:1}
+  .actions{display:flex;align-items:center;gap:var(--s2)}
+  .search{display:flex;align-items:center;gap:var(--s2);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;color:var(--text-3);font:500 var(--fs-sm) var(--sans);min-width:196px}
+  .search .kbd{margin-left:auto;font:600 11px var(--mono);color:var(--text-3);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:var(--r-sm);color:var(--text-2);text-decoration:none}
+  .iconbtn:hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+  /* ---- docs layout ---- */
+  .docs{max-width:1320px;margin:0 auto;padding:0 var(--s6);display:grid;grid-template-columns:248px minmax(0,1fr) 210px;gap:var(--s7)}
+  .sidebar{position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto;padding:var(--s7) var(--s4) var(--s7) 0;font-size:var(--fs-sm)}
+  .sb-group{margin-bottom:var(--s5)}
+  .sb-group .gh{font-size:var(--fs-caption);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:var(--s3)}
+  .sb-group a{display:block;color:var(--text-2);text-decoration:none;padding:6px 12px;border-radius:6px;margin:1px 0;line-height:1.4}
+  .sb-group a:hover{color:var(--text);background:rgba(255,255,255,.03)}
+  .sb-group a.active{color:var(--text);font-weight:600;background:rgba(175,95,95,.14);box-shadow:inset 2px 0 0 var(--rose)}
+
+  .article{padding:var(--s7) 0 var(--s9);min-width:0}
+  .prose{max-width:var(--measure)}
+  .crumb{font-size:var(--fs-sm);color:var(--text-3);margin-bottom:var(--s4)}
+  .crumb b{color:var(--text-2);font-weight:500}
+  .prose h1{font-size:var(--fs-h1);font-weight:800;letter-spacing:-.025em;line-height:var(--lh-snug);margin-bottom:var(--s4)}
+  .prose .lede{font-size:var(--fs-lede);color:var(--text-2);line-height:var(--lh-body);margin-bottom:var(--s6)}
+  .prose h2{font-size:var(--fs-h2);font-weight:700;letter-spacing:-.02em;line-height:var(--lh-heading);margin:var(--s8) 0 var(--s4);padding-top:var(--s5);border-top:1px solid var(--line)}
+  .prose h3{font-size:var(--fs-h4);font-weight:700;margin:var(--s6) 0 var(--s3)}
+  .prose p{color:var(--text-2);margin-bottom:var(--s4)}
+  .prose ul{color:var(--text-2);margin:0 0 var(--s4) var(--s5)}
+  .prose li{margin-bottom:var(--s2)}
+  .prose a{color:var(--link);text-decoration:none;border-bottom:1px solid transparent}
+  .prose a:hover{border-bottom-color:var(--link)}
+  .prose code{font:500 .85em var(--mono);color:var(--rose-lt);background:rgba(175,95,95,.1);padding:.12em .4em;border-radius:5px}
+  .prose strong{color:var(--text);font-weight:600}
+
+  /* callouts */
+  .callout{border:1px solid var(--line);border-left-width:3px;border-radius:var(--r-md);padding:var(--s4) var(--s5);margin:var(--s5) 0;font-size:var(--fs-sm)}
+  .callout .ct{font-weight:700;font-size:var(--fs-caption);letter-spacing:.06em;text-transform:uppercase;display:flex;align-items:center;gap:var(--s2);margin-bottom:var(--s2)}
+  .callout p{margin:0;color:var(--text-2)}
+  .callout.tip{border-left-color:var(--coral);background:rgba(217,142,106,.06)} .callout.tip .ct{color:var(--coral)}
+  .callout.warn{border-left-color:var(--gold);background:rgba(229,181,103,.06)} .callout.warn .ct{color:var(--gold)}
+
+  /* code block */
+  .cb{background:#0C0A0D;border:1px solid var(--line);border-radius:var(--r-md);overflow:hidden;margin:var(--s5) 0}
+  .cb-head{display:flex;align-items:center;justify-content:space-between;padding:var(--s2) var(--s4);border-bottom:1px solid var(--line);font:500 var(--fs-caption) var(--mono);color:var(--text-3)}
+  .cb-head .copy{color:var(--text-3);font:500 11px var(--sans)}
+  .cb pre{font:500 var(--fs-sm)/1.75 var(--mono);padding:var(--s4) var(--s5);overflow:auto;color:#cfc4c9}
+  .k{color:var(--gold)} .d{color:var(--coral)} .s{color:#9DBF8E} .c{color:var(--rose-lt)} .cm{color:var(--faint)} .p{color:#c8b8be}
+
+  /* table */
+  .prose table{width:100%;border-collapse:collapse;margin:var(--s5) 0;font-size:var(--fs-sm)}
+  .prose th{text-align:left;font-weight:600;color:var(--text);padding:var(--s3) var(--s4);border-bottom:1px solid var(--rose);background:rgba(175,95,95,.06)}
+  .prose td{padding:var(--s3) var(--s4);border-bottom:1px solid var(--line);color:var(--text-2);vertical-align:top}
+  .prose td code{font-size:.85em}
+
+  /* TOC */
+  .toc{position:sticky;top:64px;height:calc(100vh - 64px);overflow:auto;padding:var(--s7) 0;font-size:var(--fs-sm)}
+  .toc .th{font-size:var(--fs-caption);font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--text-3);margin-bottom:var(--s3)}
+  .toc a{display:block;color:var(--text-3);text-decoration:none;padding:4px 0 4px 12px;border-left:2px solid var(--line);line-height:1.4}
+  .toc a:hover{color:var(--text-2)}
+  .toc a.active{color:var(--link);border-left-color:var(--rose)}
+
+  .pagenav{display:flex;justify-content:space-between;gap:var(--s4);margin-top:var(--s8);padding-top:var(--s5);border-top:1px solid var(--line)}
+  .pagenav a{flex:1;border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s4) var(--s5);text-decoration:none}
+  .pagenav .dir{font-size:var(--fs-caption);color:var(--text-3)}
+  .pagenav .ti{font-size:var(--fs-body);color:var(--link);font-weight:600;margin-top:2px}
+  .pagenav .next{text-align:right}
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand">
+      <svg width="25" height="25" viewBox="0 0 32 32" fill="none"><defs><linearGradient id="fg" x1="6" y1="30" x2="26" y2="3" gradientUnits="userSpaceOnUse"><stop stop-color="#AF5F5F"/><stop offset=".55" stop-color="#D98E6A"/><stop offset="1" stop-color="#E5B567"/></linearGradient></defs><path fill="url(#fg)" d="M17.5 2c.9 3.4-.8 5.1-2.4 7.2-1.7 2.2-2 4.3-.5 6.1.6-1.2.7-2.7 2.2-3.6-.2 2.3 1 3.4 1.9 4.7 1.6 2.3 1.1 4.7-.2 6.3 2.8-.6 5.3-2.7 6-5.9.9-4.2-1.6-7-2.9-9.4C20 5.3 19.9 3.6 17.5 2Z"/><path fill="url(#fg)" opacity=".75" d="M11.6 13.8c-2 1.7-3.4 4.3-3.4 7.1 0 3 1.8 5.6 4.4 6.9-1-1.6-1.2-3.6.1-5.3 1.1-1.4 1.4-2.7.9-4.3-.7 1-1.6 1.3-2.6 1.6.3-2.3 1.1-4 .6-6Z"/></svg>IGNIS<span class="ver">v0.0.9</span>
+    </a>
+    <nav class="navlinks"><a class="active">Guide</a><a>Core API</a><a>Extensions</a><a>Best Practices</a><a>Changelog</a></nav>
+    <div class="spacer"></div>
+    <div class="actions">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search docs<span class="kbd">⌘K</span></div>
+      <button class="iconbtn" title="Toggle theme"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></button>
+      <a class="iconbtn" title="GitHub"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5 0-.3 0-.9 0-1.8-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.6.1-3.3 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 3 .1 3.3.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.3 0 1.6 0 3 0 3.4 0 .3.2.7.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z"/></svg></a>
+    </div>
+  </div>
+</header>
+
+<div class="docs">
+  <aside class="sidebar">
+    <div class="sb-group"><div class="gh">Get Started</div><a>Setup</a><a>5-Minute Quickstart</a><a>Philosophy</a></div>
+    <div class="sb-group"><div class="gh">Core Concepts</div><a>Application</a><a>REST Controllers</a><a>Dependency Injection</a><a>Components</a></div>
+    <div class="sb-group"><div class="gh">Persistent Layer</div><a>Models</a><a>DataSources</a><a class="active">Repositories</a><a>Transactions</a></div>
+    <div class="sb-group"><div class="gh">Tutorials</div><a>Building a CRUD API</a><a>E-commerce API</a><a>Testing</a></div>
+  </aside>
+
+  <article class="article">
+    <div class="prose">
+      <div class="crumb">Guide <b>›</b> Core Concepts <b>›</b> Persistent Layer</div>
+      <h1>Repositories</h1>
+      <p class="lede">Repositories are the data-access layer. They wrap a Drizzle table behind a typed, options-object API - queries, relations, transactions and soft-delete - so your services never touch raw SQL.</p>
+
+      <div class="callout tip"><div class="ct">💡 Tip</div><p>A repository auto-injects its <code>DataSource</code> from the <code>@repository</code> decorator. No constructor needed for the common case.</p></div>
+
+      <h2 id="hierarchy">The repository hierarchy</h2>
+      <p>Every repository composes up a four-level chain, each adding capability. Pick the one matching what the model needs:</p>
+      <ul>
+        <li><strong>AbstractRepository</strong> - entity &amp; metadata resolution</li>
+        <li><strong>ReadableRepository</strong> - <code>find</code>, <code>findById</code>, <code>findOne</code>, <code>count</code></li>
+        <li><strong>PersistableRepository</strong> - <code>create</code>, <code>updateById</code>, <code>deleteById</code></li>
+        <li><strong>DefaultCRUDRepository</strong> - everything above, the usual choice</li>
+      </ul>
+
+      <div class="cb">
+        <div class="cb-head"><span>user.repository.ts</span><span class="copy">⧉ Copy</span></div>
+<pre><span class="k">import</span> { repository, DefaultCRUDRepository } <span class="k">from</span> <span class="s">'@venizia/ignis'</span>
+<span class="k">import</span> { User } <span class="k">from</span> <span class="s">'../models'</span>
+<span class="k">import</span> { PostgresDataSource } <span class="k">from</span> <span class="s">'../datasources'</span>
+
+<span class="d">@repository</span>({ <span class="p">model</span>: <span class="c">User</span>, <span class="p">dataSource</span>: <span class="c">PostgresDataSource</span> })
+<span class="k">export class</span> <span class="c">UserRepository</span> <span class="k">extends</span> <span class="c">DefaultCRUDRepository</span>&lt;<span class="k">typeof</span> <span class="c">User</span>.schema&gt; {}</pre>
+      </div>
+
+      <h2 id="querying">Querying with filters</h2>
+      <p>All read methods take a single options object with a <code>filter</code>. The filter carries <code>where</code>, <code>order</code> (an array of <code>"field DIR"</code> strings), <code>include</code> for relations, plus <code>limit</code> and <code>offset</code>.</p>
+
+      <div class="cb">
+        <div class="cb-head"><span>user.service.ts</span><span class="copy">⧉ Copy</span></div>
+<pre><span class="k">const</span> result = <span class="k">await</span> <span class="k">this</span>.userRepo.<span class="d">find</span>({
+  <span class="p">filter</span>: {
+    <span class="p">where</span>: { <span class="p">status</span>: <span class="s">'active'</span>, <span class="p">age</span>: { <span class="p">gte</span>: <span class="k">18</span> } },
+    <span class="p">order</span>: [<span class="s">'createdAt DESC'</span>],
+    <span class="p">include</span>: [{ <span class="p">relation</span>: <span class="s">'profile'</span> }],
+    <span class="p">limit</span>: <span class="k">20</span>,
+  },
+})  <span class="cm">// → User[] with profile joined</span></pre>
+      </div>
+
+      <div class="callout warn"><div class="ct">⚠ Warning</div><p><code>create()</code> returns <code>{ count, data }</code>, not the bare row. Destructure <code>data</code> to get the inserted record(s).</p></div>
+
+      <h2 id="methods">Core methods</h2>
+      <p>The full CRUD surface on <code>DefaultCRUDRepository</code>:</p>
+      <table>
+        <thead><tr><th>Method</th><th>Signature</th><th>Returns</th></tr></thead>
+        <tbody>
+          <tr><td><code>find</code></td><td><code>find({ filter })</code></td><td><code>T[]</code></td></tr>
+          <tr><td><code>findById</code></td><td><code>findById({ id })</code></td><td><code>T</code></td></tr>
+          <tr><td><code>findOne</code></td><td><code>findOne({ filter })</code></td><td><code>T | null</code></td></tr>
+          <tr><td><code>create</code></td><td><code>create({ data })</code></td><td><code>{ count, data }</code></td></tr>
+          <tr><td><code>updateById</code></td><td><code>updateById({ id, data })</code></td><td><code>T</code></td></tr>
+          <tr><td><code>deleteById</code></td><td><code>deleteById({ id })</code></td><td><code>{ count }</code></td></tr>
+        </tbody>
+      </table>
+      <p>For relation loading and nested filters, see <a>Repository relations</a>. For row-level locking inside a transaction, see <a>Advanced repositories</a>.</p>
+
+      <div class="pagenav">
+        <a class="prev"><div class="dir">← Previous</div><div class="ti">DataSources</div></a>
+        <a class="next"><div class="dir">Next →</div><div class="ti">Transactions</div></a>
+      </div>
+    </div>
+  </article>
+
+  <nav class="toc">
+    <div class="th">On this page</div>
+    <a class="active">The repository hierarchy</a>
+    <a>Querying with filters</a>
+    <a>Core methods</a>
+  </nav>
+</div>
+</body>
+</html>

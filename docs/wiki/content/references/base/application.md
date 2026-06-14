@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Deep Dive: Application
 
-Technical reference for `AbstractApplication` and `BaseApplication` - the foundation classes for every Ignis application.
+Technical reference for `AbstractApplication` and `BaseApplication` - the foundation classes for every IGNIS application.
 
 **Files:**
 - `packages/core/src/base/applications/abstract.ts`
@@ -49,7 +49,7 @@ The constructor:
 
 | Feature | Description |
 | :--- | :--- |
-| **Hono Instance** | Creates and holds two `OpenAPIHono` instances — a main server and a root router |
+| **Hono Instance** | Creates and holds two `OpenAPIHono` instances - a main server and a root router |
 | **Runtime Detection** | Auto-detects Bun or Node.js via `RuntimeModules.detect()` and uses the appropriate server implementation |
 | **Core Bindings** | Registers `CoreBindings.APPLICATION_INSTANCE`, `CoreBindings.APPLICATION_SERVER`, and `CoreBindings.APPLICATION_ROOT_ROUTER` |
 | **Lifecycle Management** | Defines abstract methods (`preConfigure`, `postConfigure`, `setupMiddlewares`, `staticConfigure`, `initialize`, `getAppInfo`) |

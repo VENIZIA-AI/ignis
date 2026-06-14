@@ -2,7 +2,7 @@
 
 # :fire: IGNIS - @venizia/ignis-boot
 
-**Convention-based auto-discovery and bootstrapping for the Ignis Framework**
+**Convention-based auto-discovery and bootstrapping for the IGNIS Framework**
 
 [![npm](https://img.shields.io/npm/v/@venizia/ignis-boot.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-boot)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -2125,7 +2125,7 @@ controllers: {
 }
 ```
 
-However, the standard Ignis workflow uses compiled output, so `.js` is the correct default.
+However, the standard IGNIS workflow uses compiled output, so `.js` is the correct default.
 
 ### Naming convention for artifact files
 
@@ -2151,7 +2151,7 @@ The default directory names match the artifact types:
 | Repositories  | `repositories/`   |
 | DataSources   | `datasources/`    |
 
-These are relative to the project root (the `@app/project_root` binding). In a typical Ignis application built with `tsc`, the project root is the `dist/cjs/` directory.
+These are relative to the project root (the `@app/project_root` binding). In a typical IGNIS application built with `tsc`, the project root is the `dist/cjs/` directory.
 
 ---
 

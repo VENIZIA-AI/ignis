@@ -16,8 +16,8 @@ You have two paths:
 
 | Path | Effort | When |
 |------|--------|------|
-| **B — Bridge** (re-base your custom adapter on `BaseFilteredAdapter`, keep your flat model) | Low — code only, **no data migration** | Do this first to unblock the upgrade |
-| **A — Adopt scoped** (delete your custom adapter, use `ScopedCasbinAdapter` + scoped model) | High — needs a **data migration** | The intended long-term target |
+| **B - Bridge** (re-base your custom adapter on `BaseFilteredAdapter`, keep your flat model) | Low - code only, **no data migration** | Do this first to unblock the upgrade |
+| **A - Adopt scoped** (delete your custom adapter, use `ScopedCasbinAdapter` + scoped model) | High - needs a **data migration** | The intended long-term target |
 
 Both are described below with exact before/after.
 
@@ -67,9 +67,9 @@ When you bump ignis, these stop compiling/working:
 
 ---
 
-## 3. Path B — Bridge (recommended first step, no data migration)
+## 3. Path B - Bridge (recommended first step, no data migration)
 
-Goal: compile against new ignis with **identical runtime behavior** — keep your flat `CASBIN_RBAC_MODEL`,
+Goal: compile against new ignis with **identical runtime behavior** - keep your flat `CASBIN_RBAC_MODEL`,
 your `group`/`policy` variant values, and all bespoke logic (global roles, HQ-owner expansion).
 
 ### 3.1 Define your own variant constants
@@ -147,24 +147,24 @@ Key swaps inside the class:
 - `filter.principalValue` → `filter.principal.id`; `filter.principalType` → `filter.principal.type`.
 - `this.entities.role.principalType` / `this.entities.permission.principalType` → from your own
   `entities` (pass the same values you pass today; drop the `tableName`/`policyDefinition` parts the
-  base used to require — you import the Drizzle tables directly already).
+  base used to require - you import the Drizzle tables directly already).
 - `CasbinRuleVariants.GROUP/.POLICY` → `PolicyDefinitionVariant.GROUP/.POLICY` (§3.1).
 
 ### 3.3 Fix the cache fallback in `verifier.ts`
 
 ```ts
-// BEFORE — in-memory fallback (driver removed)
+// BEFORE - in-memory fallback (driver removed)
 const cached: ICasbinEnforcerOptions['cached'] = redis
   ? { use: true, driver: CasbinEnforcerCachedDrivers.REDIS, options: { ... } }
   : { use: true, driver: CasbinEnforcerCachedDrivers.IN_MEMORY, options: { expiresIn: 5*60*1000 } };
 
-// AFTER — Redis or no cache
+// AFTER - Redis or no cache
 const cached: ICasbinEnforcerOptions['cached'] = redis
   ? { use: true, driver: CasbinEnforcerCachedDrivers.REDIS, options: { connection: redis, expiresIn: 5*60*1000, keyFn: ({ user }) => `casbin:${user.principalType}:${user.userId}` } }
   : { use: false };
 ```
 
-> **Decide:** in prod, **always provide Redis** — without it every request rebuilds the policy from the
+> **Decide:** in prod, **always provide Redis** - without it every request rebuilds the policy from the
 > DB (no per-user cache). The pool still protects you from the concurrency race, but you lose the line cache.
 
 ### 3.4 Adapter construction (`verifier.ts`)
@@ -187,7 +187,7 @@ stays. **Result: behavior identical, compiles on new ignis, zero data migration.
 
 ---
 
-## 4. Path A — Adopt the scoped model (target state)
+## 4. Path A - Adopt the scoped model (target state)
 
 This deletes `ApplicationCasbinAdapter` entirely and uses the generic `ScopedCasbinAdapter`. The
 bespoke logic moves from **code** into **data (edges)**. Do this once Path B has unblocked you.
@@ -221,7 +221,7 @@ const adapter = new ScopedCasbinAdapter({
 //                                  pass the request domain via the provider's domain resolver instead)
 ```
 
-### 4.2 Data migration — the `variant` column
+### 4.2 Data migration - the `variant` column
 
 The scoped adapter filters on `AuthorizationPolicyVariants.*.action`, not `group`/`policy`. You must
 re-classify rows:
@@ -234,11 +234,11 @@ re-classify rows:
 | `policy` (role→perm or user→perm) | `grant` | permission grant |
 
 New edge types you may need to **add** (no equivalent today):
-- `domain_inherits` (Merchant ⊂ Organizer / HQ) — **this replaces the bespoke `queryHqOwnerOrgMerchants`
+- `domain_inherits` (Merchant ⊂ Organizer / HQ) - **this replaces the bespoke `queryHqOwnerOrgMerchants`
   JOIN**. Materialize one row per Merchant→Organizer (or →HQ-merchant) relationship; the scoped model's
   `g3` then cascades a grant on the parent domain to all child merchants automatically. Maintain these
   rows when merchants/organizers are created or moved.
-- `resource_inherits` (`g4`) / `action_inherits` (`g5`) — only if you want resource/action hierarchies.
+- `resource_inherits` (`g4`) / `action_inherits` (`g5`) - only if you want resource/action hierarchies.
 
 ### 4.3 Re-express bespoke behavior as data
 
@@ -249,7 +249,7 @@ New edge types you may need to **add** (no equivalent today):
 | HQ-owner expansion (live JOIN) | `domain_inherits` (`g3`) edges (see §4.2) |
 | Domain-agnostic role permissions (`p, Role, *, ...`) | Grant rows with domain `ANY_MEMBER` (default when `domain` is NULL) |
 
-### 4.4 Behavioral caveat — resource matching changes
+### 4.4 Behavioral caveat - resource matching changes
 
 Your flat model uses exact `r.obj == p.obj`. The scoped model uses **`objectMatch`** (dotted-prefix +
 wildcard): a grant on `Order` will now **also** match `Order.findById`, and `p.obj = '*'` matches any
@@ -277,20 +277,20 @@ the bespoke adapter and gain resource/action/domain hierarchies for free.
 
 ## 6. Verification checklist (either path)
 
-- [ ] `bun run build` (or `tsc -p .`) is clean — no references to `DrizzleCasbinAdapter`,
+- [ ] `bun run build` (or `tsc -p .`) is clean - no references to `DrizzleCasbinAdapter`,
       `IDrizzleCasbinAdapterOptions`, `CasbinRuleVariants.GROUP/.POLICY`, `CasbinEnforcerCachedDrivers.IN_MEMORY`,
       `IAuthorizationCacheInvalidator`.
 - [ ] `SELECT DISTINCT variant FROM identity."PolicyDefinition"` matches what your adapter filters on
       (`group`/`policy` for Path B; the new `*.action` set for Path A).
 - [ ] A request for a user with a role-inherited / per-merchant / global permission resolves the same
-      ALLOW/DENY as before the upgrade (pick 3–4 representative users and diff).
+      ALLOW/DENY as before the upgrade (pick 3-4 representative users and diff).
 - [ ] If `cached.use: true`, Redis is reachable; if a permission changes, call
-      `enforcer.invalidateUserCache({ user })` (or rely on TTL) — see the ignis authorization docs.
+      `enforcer.invalidateUserCache({ user })` (or rely on TTL) - see the ignis authorization docs.
 - [ ] Super-admin / always-allow-roles still short-circuit (these run in the provider before the enforcer).
 
 ---
 
-## 7. Reference — current nx-seller wiring (before)
+## 7. Reference - current nx-seller wiring (before)
 
 For context, the current registration (`packages/core/src/application/verifier.ts`) uses:
 `ApplicationCasbinAdapter` (subclass of removed `DrizzleCasbinAdapter`), `CASBIN_RBAC_MODEL` (flat

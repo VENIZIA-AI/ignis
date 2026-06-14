@@ -4,7 +4,7 @@
 
 ## Architecture
 
-The component integrates Socket.IO into the Ignis application lifecycle with runtime-specific initialization (Node.js vs Bun).
+The component integrates Socket.IO into the IGNIS application lifecycle with runtime-specific initialization (Node.js vs Bun).
 
 #### Architecture Diagram
 ```

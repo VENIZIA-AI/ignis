@@ -28,7 +28,7 @@ cd ecommerce-api
 bun init -y
 
 # Install dependencies
-bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
+bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizia/ignis-helpers
 bun add drizzle-orm drizzle-zod pg stripe
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 ```
@@ -420,24 +420,25 @@ export class CartRepository extends DefaultCRUDRepository<typeof Cart.schema> {
 
   async findCartItem(opts: { cartId: string; productId: string }) {
     return this._cartItemRepo.findOne({
-      where: { cartId: opts.cartId, productId: opts.productId },
+      filter: { where: { cartId: opts.cartId, productId: opts.productId } },
     });
   }
 
   async addCartItem(opts: { cartId: string; productId: string; quantity: number }) {
-    return this._cartItemRepo.create(opts);
+    const rs = await this._cartItemRepo.create({ data: opts });
+    return rs.data;
   }
 
   async updateCartItem(opts: { itemId: string; data: { quantity: number } }) {
-    return this._cartItemRepo.updateById(opts.itemId, opts.data);
+    return this._cartItemRepo.updateById({ id: opts.itemId, data: opts.data });
   }
 
   async deleteCartItem(opts: { itemId: string }) {
-    return this._cartItemRepo.deleteById(opts.itemId);
+    return this._cartItemRepo.deleteById({ id: opts.itemId });
   }
 
   async getCartItems(opts: { cartId: string }) {
-    return this._cartItemRepo.find({ where: { cartId: opts.cartId } });
+    return this._cartItemRepo.find({ filter: { where: { cartId: opts.cartId } } });
   }
 
   async clearCart(opts: { cartId: string }) {
@@ -478,11 +479,12 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
     price: string;
     quantity: number;
   }) {
-    return this._orderItemRepo.create(opts);
+    const rs = await this._orderItemRepo.create({ data: opts });
+    return rs.data;
   }
 
   async getOrderItems(opts: { orderId: string }) {
-    return this._orderItemRepo.find({ where: { orderId: opts.orderId } });
+    return this._orderItemRepo.find({ filter: { where: { orderId: opts.orderId } } });
   }
 }
 ```
@@ -496,7 +498,7 @@ import { BaseService } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
 import { getError } from '@venizia/ignis-helpers';
 
-@injectable()
+@injectable({})
 export class ProductService extends BaseService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
@@ -507,18 +509,20 @@ export class ProductService extends BaseService {
 
   async getActiveProducts(opts: { categoryId?: string; limit?: number; offset?: number }) {
     return this._productRepo.find({
-      where: {
-        isActive: true,
-        ...(opts.categoryId && { categoryId: opts.categoryId }),
+      filter: {
+        where: {
+          isActive: true,
+          ...(opts.categoryId && { categoryId: opts.categoryId }),
+        },
+        order: ['createdAt DESC'],
+        limit: opts.limit ?? 20,
+        offset: opts.offset ?? 0,
       },
-      orderBy: { createdAt: 'desc' },
-      limit: opts.limit ?? 20,
-      offset: opts.offset ?? 0,
     });
   }
 
   async getProductById(opts: { id: string }) {
-    const product = await this._productRepo.findById(opts.id);
+    const product = await this._productRepo.findById({ id: opts.id });
     if (!product) {
       throw getError({ statusCode: 404, message: 'Product not found' });
     }
@@ -540,16 +544,16 @@ export class ProductService extends BaseService {
       });
     }
 
-    await this._productRepo.updateById(opts.productId, {
+    await this._productRepo.updateById({ id: opts.productId, data: {
       stock: product.stock - opts.quantity,
-    });
+    } });
   }
 
   async releaseStock(opts: { productId: string; quantity: number }) {
     const product = await this.getProductById({ id: opts.productId });
-    await this._productRepo.updateById(opts.productId, {
+    await this._productRepo.updateById({ id: opts.productId, data: {
       stock: product.stock + opts.quantity,
-    });
+    } });
   }
 }
 ```
@@ -569,7 +573,7 @@ interface ICartItem {
   quantity: number;
 }
 
-@injectable()
+@injectable({})
 export class CartService extends BaseService {
   constructor(
     @inject({ key: 'repositories.CartRepository' })
@@ -583,16 +587,14 @@ export class CartService extends BaseService {
   async getOrCreateCart(opts: { userId?: string; sessionId?: string }) {
     // Try to find existing cart
     let cart = await this._cartRepo.findOne({
-      where: opts.userId
+      filter: { where: opts.userId
         ? { userId: opts.userId }
-        : { sessionId: opts.sessionId },
+        : { sessionId: opts.sessionId } },
     });
 
     if (!cart) {
-      cart = await this._cartRepo.create({
-        userId: opts.userId,
-        sessionId: opts.sessionId,
-      });
+      const rs = await this._cartRepo.create({ data: { userId: opts.userId, sessionId: opts.sessionId } });
+      cart = rs.data;
     }
 
     return cart;
@@ -657,7 +659,7 @@ export class CartService extends BaseService {
   }
 
   async getCartWithItems(opts: { cartId: string }) {
-    const cart = await this._cartRepo.findById(opts.cartId);
+    const cart = await this._cartRepo.findById({ id: opts.cartId });
     if (!cart) {
       throw getError({ statusCode: 404, message: 'Cart not found' });
     }
@@ -721,7 +723,7 @@ interface ICreateOrderInput {
   billingAddress?: typeof shippingAddress;
 }
 
-@injectable()
+@injectable({})
 export class OrderService extends BaseService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
@@ -775,7 +777,7 @@ export class OrderService extends BaseService {
     });
 
     // Create order
-    const order = await this._orderRepo.create({
+    const { data: order } = await this._orderRepo.create({ data: {
       email: opts.input.email,
       status: 'pending_payment',
       subtotal: subtotal.toString(),
@@ -785,7 +787,7 @@ export class OrderService extends BaseService {
       shippingAddress: opts.input.shippingAddress,
       billingAddress: opts.input.billingAddress ?? opts.input.shippingAddress,
       paymentIntentId: paymentIntent.id,
-    });
+    } });
 
     // Create order items
     for (const item of cart.items) {
@@ -805,7 +807,7 @@ export class OrderService extends BaseService {
   }
 
   async confirmPayment(opts: { orderId: string; paymentIntentId: string }) {
-    const order = await this._orderRepo.findById(opts.orderId);
+    const order = await this._orderRepo.findById({ id: opts.orderId });
 
     if (!order) {
       throw getError({ statusCode: 404, message: 'Order not found' });
@@ -823,7 +825,7 @@ export class OrderService extends BaseService {
     }
 
     // Update order status
-    await this._orderRepo.updateById(opts.orderId, { status: 'paid' });
+    await this._orderRepo.updateById({ id: opts.orderId, data: { status: 'paid' } });
 
     // Reserve stock for all items
     const orderItems = await this._orderRepo.getOrderItems({ orderId: opts.orderId });
@@ -831,18 +833,20 @@ export class OrderService extends BaseService {
       await this._productService.reserveStock({ productId: item.productId, quantity: item.quantity });
     }
 
-    return this._orderRepo.findById(opts.orderId);
+    return this._orderRepo.findById({ id: opts.orderId });
   }
 
   async getOrdersByUser(opts: { userId: string }) {
     return this._orderRepo.find({
-      where: { userId: opts.userId },
-      orderBy: { createdAt: 'desc' },
+      filter: {
+        where: { userId: opts.userId },
+        order: ['createdAt DESC'],
+      },
     });
   }
 
   async getOrderById(opts: { orderId: string }) {
-    const order = await this._orderRepo.findById(opts.orderId);
+    const order = await this._orderRepo.findById({ id: opts.orderId });
     if (!order) {
       throw getError({ statusCode: 404, message: 'Order not found' });
     }
@@ -858,7 +862,7 @@ export class OrderService extends BaseService {
       throw getError({ statusCode: 400, message: 'Invalid status' });
     }
 
-    return this._orderRepo.updateById(opts.orderId, { status: opts.status });
+    return this._orderRepo.updateById({ id: opts.orderId, data: { status: opts.status } });
   }
 }
 ```
@@ -872,7 +876,7 @@ import { BaseService } from '@venizia/ignis';
 import Stripe from 'stripe';
 import { EnvHelper } from '@venizia/ignis-helpers';
 
-@injectable()
+@injectable({})
 export class PaymentService extends BaseService {
   private _stripe: Stripe;
 

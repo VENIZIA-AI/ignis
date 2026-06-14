@@ -1,6 +1,6 @@
 # Tooling Configuration
 
-Ignis provides centralized development configurations via the `@venizia/dev-configs` package.
+IGNIS provides centralized development configurations via the `@venizia/dev-configs` package.
 
 ## Installation
 
@@ -10,7 +10,7 @@ bun add -d @venizia/dev-configs
 
 This package provides:
 - **ESLint rules** - Pre-configured for Node.js/TypeScript projects
-- **Prettier settings** - Consistent formatting across all Ignis projects
+- **Prettier settings** - Consistent formatting across all IGNIS projects
 - **TypeScript configs** - Shared base and common configurations
 
 ## Prettier Configuration
@@ -114,7 +114,7 @@ Use the centralized TypeScript configs:
 | Option | Value | Purpose |
 |--------|-------|---------|
 | `target` | `ES2022` | Modern JavaScript features |
-| `experimentalDecorators` | `true` | Required for Ignis decorators |
+| `experimentalDecorators` | `true` | Required for IGNIS decorators |
 | `emitDecoratorMetadata` | `true` | Metadata reflection for DI |
 | `strict` | `true` | Strict type checking |
 | `skipLibCheck` | `true` | Faster compilation |

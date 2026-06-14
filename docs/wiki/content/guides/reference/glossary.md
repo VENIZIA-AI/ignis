@@ -1,6 +1,6 @@
 # Glossary for Beginners
 
-Quick reference for key terms in Ignis documentation.
+Quick reference for key terms in IGNIS documentation.
 
 
 ## Core Framework Terms
@@ -111,7 +111,7 @@ class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {}
 
 | Term | Description |
 |------|-------------|
-| **ORM** | Tool to work with databases using code instead of raw SQL. Ignis uses Drizzle ORM. |
+| **ORM** | Tool to work with databases using code instead of raw SQL. IGNIS uses Drizzle ORM. |
 | **Drizzle ORM** | Type-safe ORM library. [Docs](https://orm.drizzle.team/) |
 | **Schema** | Table structure definition using Drizzle syntax |
 | **Migration** | Script that creates/modifies tables. Version control for database structure. |
@@ -129,7 +129,7 @@ export const todoTable = pgTable('Todo', {
 // Relations
 export const userRelations = createRelations({
   source: userTable,
-  relations: [{ type: 'hasMany', model: () => Post, foreignKey: 'authorId' }],
+  relations: [{ name: 'posts', type: 'many', schema: postTable, metadata: {} }],
 });
 
 // Query with relations
@@ -222,7 +222,7 @@ class TodoController extends BaseRestController {
 
 ## Environment & Configuration
 
-Environment variables store configuration outside code (in `.env` files). Ignis uses `APP_ENV_` prefix to avoid system conflicts.
+Environment variables store configuration outside code (in `.env` files). IGNIS uses `APP_ENV_` prefix to avoid system conflicts.
 
 ```bash
 # .env file

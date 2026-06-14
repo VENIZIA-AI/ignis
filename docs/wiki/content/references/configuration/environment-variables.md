@@ -1,14 +1,14 @@
 # Environment Variables Reference
 
-Complete reference of all environment variables used by Ignis framework.
+Complete reference of all environment variables used by IGNIS framework.
 
 
 ## Overview
 
-Ignis uses the `APP_ENV_` prefix for all framework-specific environment variables. This prevents conflicts with system variables like `PATH`, `HOME`, etc.
+IGNIS uses the `APP_ENV_` prefix for all framework-specific environment variables. This prevents conflicts with system variables like `PATH`, `HOME`, etc.
 
 ```bash
-# ✅ Ignis variables
+# ✅ IGNIS variables
 APP_ENV_POSTGRES_HOST=localhost
 
 # ❌ Might conflict with system
@@ -360,7 +360,7 @@ process.env.APPLICATION_ENV_PREFIX = 'MY_APP';
 
 ## Validation
 
-Ignis validates `APP_ENV_*` variables on startup. Missing required variables will cause the application to fail with a clear error message.
+IGNIS validates `APP_ENV_*` variables on startup. Missing required variables will cause the application to fail with a clear error message.
 
 ### Disable Validation
 

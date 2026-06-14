@@ -82,7 +82,7 @@ All standard operators work with JSON paths:
 
 ## Safe Numeric Casting
 
-When a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) is used with a JSON path, Ignis wraps the extraction in a safe CASE expression. This prevents database errors when JSON fields contain mixed types:
+When a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) is used with a JSON path, IGNIS wraps the extraction in a safe CASE expression. This prevents database errors when JSON fields contain mixed types:
 
 ```typescript
 // Data in database:

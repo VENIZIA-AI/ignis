@@ -91,7 +91,7 @@ The `AuthenticateComponent` uses five methods during its `binding()` lifecycle (
 | Method | Purpose |
 |--------|---------|
 | `defineJWSAuth(opts)` | Validates JWS secrets (rejects falsy values and `'unknown_secret'`), validates `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService`. |
-| `defineJWKSAuth(opts)` | Switches on `mode`: **Issuer** — validates keys, format, kid, getTokenExpiresFn; binds to `JWKS_OPTIONS`; registers `JWKSIssuerTokenService` + `JWKSController`. **Verifier** — validates jwksUrl; binds to `JWKS_OPTIONS`; registers `JWKSVerifierTokenService`. |
+| `defineJWKSAuth(opts)` | Switches on `mode`: **Issuer** - validates keys, format, kid, getTokenExpiresFn; binds to `JWKS_OPTIONS`; registers `JWKSIssuerTokenService` + `JWKSController`. **Verifier** - validates jwksUrl; binds to `JWKS_OPTIONS`; registers `JWKSVerifierTokenService`. |
 | `defineBasicAuth(opts)` | Validates `verifyCredentials` callback presence, binds `BasicTokenService` as a service. Logs debug if skipped. |
 | `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` factory and registers the generated controller. |
 | `defineOAuth2()` | **Public** stub method -- not yet implemented. Called during `binding()` but performs no action. |
@@ -133,8 +133,8 @@ AuthenticationStrategyRegistry.getInstance().register({
 **Middleware creation:**
 
 The `authenticate()` function returns a Hono middleware that:
-1. Checks if `Authentication.SKIP_AUTHENTICATION` is set on context — if true, skips entirely (logs debug)
-2. Checks if `Authentication.CURRENT_USER` is already set on context — if true, skips (already authenticated)
+1. Checks if `Authentication.SKIP_AUTHENTICATION` is set on context - if true, skips entirely (logs debug)
+2. Checks if `Authentication.CURRENT_USER` is already set on context - if true, skips (already authenticated)
 3. Reads `strategies` and `mode` from the provided options
 4. Executes strategies based on mode (`any` or `all`)
 5. On success, sets `Authentication.CURRENT_USER` and `Authentication.AUDIT_USER_ID` on context
@@ -179,7 +179,7 @@ export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) =
 This is the primary export for creating auth middleware. It creates an `AuthenticationProvider` instance and calls `.value()` to get the middleware factory. The provider uses `AuthenticationStrategyRegistry.getInstance()` internally to resolve strategies.
 
 > [!NOTE]
-> In `all` mode, the **first** strategy's user payload is used as the identity source — all strategies must succeed but the first one wins for identity. If every strategy passes but the first user payload has no `userId`, the middleware throws a `401` with message `"Failed to identify authenticated user!"`. The `any` mode **discards errors** from each failing strategy (logs at debug level) and only throws after all strategies are exhausted.
+> In `all` mode, the **first** strategy's user payload is used as the identity source - all strategies must succeed but the first one wins for identity. If every strategy passes but the first user payload has no `userId`, the middleware throws a `401` with message `"Failed to identify authenticated user!"`. The `any` mode **discards errors** from each failing strategy (logs at debug level) and only throws after all strategies are exhausted.
 
 ## Service Class Hierarchy
 
@@ -259,8 +259,8 @@ Base class for all Bearer token services. Extends `BaseService`. Generic on <cod
 |--------|-----------|-------------|
 | `configurePayloadEncryption` | <code v-pre>(opts: { aesAlgorithm?: AESAlgorithmType; applicationSecret?: string; fieldCodecs?: IPayloadFieldCodec[] }) =&gt; void</code> | Configures optional AES encryption and field codecs. Codecs are converted to a Map keyed by `codec.key` for O(1) lookup. |
 | `extractCredentials` | <code v-pre>(context: TContext&lt;E, string&gt;) =&gt; { type: string; token: string }</code> | Extracts Bearer token from Authorization header |
-| `verify` | <code v-pre>(opts: { type: string; token: string }) =&gt; Promise&lt;IJWTTokenPayload&gt;</code> | Template method — calls `doVerify()` |
-| `generate` | <code v-pre>(opts: { payload: IJWTTokenPayload; getTokenExpiresFn?: TGetTokenExpiresFn }) =&gt; Promise&lt;string&gt;</code> | Template method — calls `getSigner()` + `getSigningKey()` |
+| `verify` | <code v-pre>(opts: { type: string; token: string }) =&gt; Promise&lt;IJWTTokenPayload&gt;</code> | Template method - calls `doVerify()` |
+| `generate` | <code v-pre>(opts: { payload: IJWTTokenPayload; getTokenExpiresFn?: TGetTokenExpiresFn }) =&gt; Promise&lt;string&gt;</code> | Template method - calls `getSigner()` + `getSigningKey()` |
 | `serializeField` | <code v-pre>(opts: { key: string; value: any }) =&gt; string</code> | Serializes a single field: codec → `JSON.stringify` fallback |
 | `deserializeField` | <code v-pre>(opts: { key: string; value: string }) =&gt; any</code> | Deserializes a single field: codec → `JSON.parse` fallback |
 | `encryptPayload` | <code v-pre>(payload: IJWTTokenPayload) =&gt; Record&lt;string, any&gt;</code> | AES-encrypts non-standard JWT fields using `serializeField`. Returns payload unchanged if AES not configured. |
@@ -421,17 +421,17 @@ constructor(
   protected options: IJWKSIssuerOptions,
 ) {
   // Calls configurePayloadEncryption({ aesAlgorithm, applicationSecret })
-  // Keys are NOT loaded here — loaded lazily via ensureInitialized()
+  // Keys are NOT loaded here - loaded lazily via ensureInitialized()
 }
 ```
 
 ### Initialization Flow
 
 The `initialize()` method:
-1. **Resolves key content** — reads from file (`readFile` from `node:fs/promises`) or uses inline text, based on `keys.driver`
-2. **Parses key material** — imports keys using `importPKCS8`/`importSPKI` (PEM format) or `importJWK` (JWK format), based on `keys.format`
-3. **Exports public JWK** — calls `exportJWK()` and adds `kid`, `alg`, `use: 'sig'` metadata
-4. **Caches JWKS** — stores `{ keys: [publicJWK] }` for the `/certs` endpoint
+1. **Resolves key content** - reads from file (`readFile` from `node:fs/promises`) or uses inline text, based on `keys.driver`
+2. **Parses key material** - imports keys using `importPKCS8`/`importSPKI` (PEM format) or `importJWK` (JWK format), based on `keys.format`
+3. **Exports public JWK** - calls `exportJWK()` and adds `kid`, `alg`, `use: 'sig'` metadata
+4. **Caches JWKS** - stores `{ keys: [publicJWK] }` for the `/certs` endpoint
 5. **Sets `initialized = true`**
 
 ### Overridden Methods
@@ -447,8 +447,8 @@ The `initialize()` method:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `getJWKS` | `() => { keys: JWK[] }` | Synchronous — returns cached JWKS. Throws if not yet initialized. |
-| `getJWKSAsync` | `() => Promise<{ keys: JWK[] }>` | Async — calls `ensureInitialized()` first, then returns JWKS. |
+| `getJWKS` | `() => { keys: JWK[] }` | Synchronous - returns cached JWKS. Throws if not yet initialized. |
+| `getJWKSAsync` | `() => Promise<{ keys: JWK[] }>` | Async - calls `ensureInitialized()` first, then returns JWKS. |
 
 ### Internal Methods
 
@@ -504,7 +504,7 @@ constructor(
   protected options: IJWKSVerifierOptions,
 ) {
   // Calls configurePayloadEncryption({ aesAlgorithm, applicationSecret })
-  // Remote JWKS is NOT fetched here — fetched lazily via ensureInitialized()
+  // Remote JWKS is NOT fetched here - fetched lazily via ensureInitialized()
 }
 ```
 
@@ -520,13 +520,13 @@ The `initialize()` method:
 | Method | Behavior |
 |--------|----------|
 | `doVerify(token)` | Calls `ensureInitialized()`, then `jwtVerify(token, this.jwksVerifier!)`, then `this.decryptPayload()` |
-| `getSigner(opts)` | Throws — verifier mode cannot sign tokens |
-| `getSigningKey()` | Throws — verifier mode cannot sign tokens |
-| `getDefaultTokenExpiresFn()` | Throws — verifier mode has no token expiry |
+| `getSigner(opts)` | Throws - verifier mode cannot sign tokens |
+| `getSigningKey()` | Throws - verifier mode cannot sign tokens |
+| `getDefaultTokenExpiresFn()` | Throws - verifier mode has no token expiry |
 
 ## JWKSController
 
-Serves the JWKS endpoint (default path `/certs`). This endpoint is **intentionally unauthenticated** — it serves the public keys needed by external verifiers.
+Serves the JWKS endpoint (default path `/certs`). This endpoint is **intentionally unauthenticated** - it serves the public keys needed by external verifiers.
 
 **File:** `packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts`
 

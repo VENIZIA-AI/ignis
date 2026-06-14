@@ -4,7 +4,7 @@ Dependency Injection (DI) enables loosely coupled, testable code by automaticall
 
 > **Deep Dive:** See [DI Reference](../../references/base/dependency-injection.md) for technical details on Container, Binding, and `@inject`.
 
-> **Standalone Package:** The core DI container is available as the standalone `@venizia/ignis-inversion` package for use outside the Ignis framework. See [Inversion Package Reference](/extensions/helpers/inversion/) for details.
+> **Standalone Package:** The core DI container is available as the standalone `@venizia/ignis-inversion` package for use outside the IGNIS framework. See [Inversion Package Reference](/extensions/helpers/inversion/) for details.
 
 ## Core Concepts
 
@@ -117,7 +117,7 @@ Tags are used by the container's `findByTag()` method to discover bindings by ca
 
 ## Injecting Dependencies
 
-`Ignis` provides the `@inject` decorator to request dependencies from the container.
+`IGNIS` provides the `@inject` decorator to request dependencies from the container.
 
 ### Constructor Injection (Recommended)
 

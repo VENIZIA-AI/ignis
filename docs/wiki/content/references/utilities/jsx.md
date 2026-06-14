@@ -355,7 +355,7 @@ async getUserProfile(c: TRouteContext) {
   return c.html(<UserProfile user={user} />);
 }
 
-// Bad: Don't use htmlResponse for API endpoints — use jsonResponse instead
+// Bad: Don't use htmlResponse for API endpoints - use jsonResponse instead
 ```
 
 ### 2. Combine with Authentication

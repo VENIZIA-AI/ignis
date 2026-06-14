@@ -1,6 +1,6 @@
 # Best Practices
 
-Production-ready patterns, security guidelines, and optimization strategies for building robust Ignis applications. These best practices are distilled from real-world experience building enterprise applications.
+Production-ready patterns, security guidelines, and optimization strategies for building robust IGNIS applications. These best practices are distilled from real-world experience building enterprise applications.
 
 <div class="guide-cards">
 
@@ -186,7 +186,7 @@ const data: any = await fetchData(); // Use proper types!
 |-------|-------------|
 | [Contribution Workflow](./contribution-workflow) | Git workflow, PR guidelines, code review |
 
-> [!TIP] New to Ignis?
+> [!TIP] New to IGNIS?
 > Start with the [Getting Started Guide](/guides/) for tutorials, then return here for production-ready patterns.
 
 > [!WARNING] Production Deployment?
@@ -194,7 +194,7 @@ const data: any = await fetchData(); // Use proper types!
 
 ## See Also
 
-- [Getting Started](/guides/) - New to Ignis? Start here
+- [Getting Started](/guides/) - New to IGNIS? Start here
 - [API Reference](/references/) - Detailed API documentation
 - [Core Concepts](/guides/core-concepts/application/) - Deep dive into architecture
 - [Changelogs](/changelogs/) - Version history and updates

@@ -11,8 +11,8 @@ The crypto module previously had inconsistent API patterns (positional args vs o
 
 ## Overview
 
-- **Unified Type Hierarchy**: `ICryptoAlgorithm` expanded from 6 to 7 generic type parameters — split `MessageType` into `EncryptInputType` + `DecryptInputType` to support ECDH's asymmetric input/output types
-- **Options-Object API**: All `encrypt()`/`decrypt()` methods now use `{ message, secret, opts? }` pattern — consistent with Ignis conventions
+- **Unified Type Hierarchy**: `ICryptoAlgorithm` expanded from 6 to 7 generic type parameters - split `MessageType` into `EncryptInputType` + `DecryptInputType` to support ECDH's asymmetric input/output types
+- **Options-Object API**: All `encrypt()`/`decrypt()` methods now use `{ message, secret, opts? }` pattern - consistent with IGNIS conventions
 - **ECDH Integration**: `ECDH` class now extends `AbstractCryptoAlgorithm` (inherits `BaseHelper` scoped logging) instead of being standalone
 - **Full Test Suite**: 79 tests / 110 assertions covering AES (CBC + GCM), RSA, ECDH, file operations, error handling, and cross-algorithm isolation
 
@@ -69,9 +69,9 @@ ICryptoAlgorithm<AlgorithmNameType, EncryptInputType, DecryptInputType, SecretKe
 
 **File:** `packages/helpers/src/helpers/crypto/algorithms/ecdh.algorithm.ts`
 
-**Problem:** The `ECDH` class was standalone — it didn't extend `AbstractCryptoAlgorithm`, had no scoped logging, and wasn't part of the type hierarchy.
+**Problem:** The `ECDH` class was standalone - it didn't extend `AbstractCryptoAlgorithm`, had no scoped logging, and wasn't part of the type hierarchy.
 
-**Solution:** `ECDH` now extends `AbstractCryptoAlgorithm<ECDHAlgorithmType, string, IECDHEncryptedPayload, CryptoKey, Promise<IECDHEncryptedPayload>, Promise<string>>` — fully integrated with the crypto type system.
+**Solution:** `ECDH` now extends `AbstractCryptoAlgorithm<ECDHAlgorithmType, string, IECDHEncryptedPayload, CryptoKey, Promise<IECDHEncryptedPayload>, Promise<string>>` - fully integrated with the crypto type system.
 
 ```typescript
 const ecdh = ECDH.withAlgorithm();
@@ -93,13 +93,13 @@ const encrypted = await ecdh.encrypt({ message: 'Hello!', secret: aliceKey });
 - Inherits `BaseHelper` scoped logging via `AbstractCryptoAlgorithm`
 - Proper `algorithm` field (`'ecdh-p256'`) on instance
 - Exported from `@venizia/ignis-helpers` alongside AES and RSA
-- Uses Web Crypto API — works in Bun and browsers
+- Uses Web Crypto API - works in Bun and browsers
 
 ### 2. Unified 7-Parameter Type Hierarchy
 
 **File:** `packages/helpers/src/helpers/crypto/common/types.ts`
 
-**Problem:** The original `ICryptoAlgorithm` used a single `MessageType` for both encrypt input and decrypt input. ECDH encrypts strings but decrypts `IECDHEncryptedPayload` objects — these are different types.
+**Problem:** The original `ICryptoAlgorithm` used a single `MessageType` for both encrypt input and decrypt input. ECDH encrypts strings but decrypts `IECDHEncryptedPayload` objects - these are different types.
 
 **Solution:** Split into `EncryptInputType` and `DecryptInputType`:
 
@@ -127,13 +127,13 @@ export interface ICryptoAlgorithm<
 
 | Category | Tests | Coverage |
 |----------|-------|---------|
-| BaseCryptoAlgorithm | TC-001 — TC-010 | Construction, validation, `normalizeSecretKey`, `getAlgorithmKeySize` |
-| AES-256-CBC | TC-011 — TC-025 | Roundtrip, secrets, IV, encoding, error handling, unicode, JSON |
-| AES-256-GCM | TC-026 — TC-036 | Same as CBC + auth tag tamper detection |
-| AES Cross-algorithm | TC-037 — TC-038 | CBC ↔ GCM isolation |
-| AES File Ops | TC-039 — TC-042 | `encryptFile`/`decryptFile`, empty path guard |
-| RSA | TC-043 — TC-057 | Key generation, roundtrip, encoding, error handling |
-| ECDH | TC-058 — TC-079 | Key exchange, derivation, roundtrip, hkdfInfo isolation, third-party rejection |
+| BaseCryptoAlgorithm | TC-001 - TC-010 | Construction, validation, `normalizeSecretKey`, `getAlgorithmKeySize` |
+| AES-256-CBC | TC-011 - TC-025 | Roundtrip, secrets, IV, encoding, error handling, unicode, JSON |
+| AES-256-GCM | TC-026 - TC-036 | Same as CBC + auth tag tamper detection |
+| AES Cross-algorithm | TC-037 - TC-038 | CBC ↔ GCM isolation |
+| AES File Ops | TC-039 - TC-042 | `encryptFile`/`decryptFile`, empty path guard |
+| RSA | TC-043 - TC-057 | Key generation, roundtrip, encoding, error handling |
+| ECDH | TC-058 - TC-079 | Key exchange, derivation, roundtrip, hkdfInfo isolation, third-party rejection |
 
 ## Files Changed
 
@@ -147,7 +147,7 @@ export interface ICryptoAlgorithm<
 | `src/helpers/crypto/algorithms/rsa.algorithm.ts` | Same options-object refactor; explicit 7-param extends |
 | `src/helpers/crypto/algorithms/ecdh.algorithm.ts` | Now extends `AbstractCryptoAlgorithm`; options-object API; HKDF info default changed to `'ignis-ecdh-aes-gcm'` |
 | `src/helpers/crypto/algorithms/index.ts` | Added ECDH export |
-| `src/__tests__/crypto/algorithms.test.ts` | New — 79 tests, 110 assertions |
+| `src/__tests__/crypto/algorithms.test.ts` | New - 79 tests, 110 assertions |
 
 ### Core Package (`packages/core`)
 
@@ -159,8 +159,8 @@ export interface ICryptoAlgorithm<
 
 | File | Changes |
 |------|---------|
-| `wiki/extensions/helpers/crypto.md` | Rewritten — added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
-| `wiki/changelogs/2026-02-11-crypto-refactor-ecdh.md` | New — this changelog |
+| `wiki/extensions/helpers/crypto.md` | Rewritten - added ECDH section, type hierarchy diagram, updated AES/RSA examples to options-object API |
+| `wiki/changelogs/2026-02-11-crypto-refactor-ecdh.md` | New - this changelog |
 | `wiki/changelogs/index.md` | Added entry for this changelog |
 | `site/.vitepress/config.mts` | Added sidebar entry for this changelog |
 

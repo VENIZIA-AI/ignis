@@ -1,6 +1,6 @@
 # Common Pitfalls
 
-Avoid these common mistakes when building Ignis applications.
+Avoid these common mistakes when building IGNIS applications.
 
 ## 1. Forgetting to Register Resources
 
@@ -142,7 +142,7 @@ This ensures that the route configuration object is treated as a readonly litera
 
 **Problem:** Attempting to update or delete all records without an explicit `where` condition.
 
-**Solution:** Ignis prevents accidental bulk data destruction. You must either provide a `where` condition or explicitly set `force: true`.
+**Solution:** IGNIS prevents accidental bulk data destruction. You must either provide a `where` condition or explicitly set `force: true`.
 
 ```typescript
 // ❌ BAD - Will throw error

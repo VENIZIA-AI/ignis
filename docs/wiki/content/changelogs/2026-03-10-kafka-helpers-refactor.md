@@ -14,7 +14,7 @@ Complete rewrite of Kafka producer, consumer, and admin helpers from passthrough
 - **Thin wrapper pattern**: Removed all passthrough methods. Users access `@platformatic/kafka` APIs directly via `getProducer()`, `getConsumer()`, `getAdmin()`
 - **Generic types**: All helpers support custom serialization types via `<KeyType, ValueType, HeaderKeyType, HeaderValueType>`
 - **Constants extraction**: New `constants.ts` with `KafkaDefaults`, `KafkaAcks`, `KafkaGroupProtocol`
-- **Connection options**: `IKafkaConnectionOptions` extends `@platformatic/kafka`'s `ConnectionOptions` — full `sasl`, `tls`, `connectTimeout`, `requestTimeout` support
+- **Connection options**: `IKafkaConnectionOptions` extends `@platformatic/kafka`'s `ConnectionOptions` - full `sasl`, `tls`, `connectTimeout`, `requestTimeout` support
 - **~75% code reduction**: Producer 234 -> 104 lines, Consumer 447 -> 114 lines, Admin 357 -> 68 lines
 
 ## Breaking Changes
@@ -89,9 +89,9 @@ Use `@platformatic/kafka` event emitters directly on the underlying client.
 ### 5. Removed types and constants
 
 The following exports were removed:
-- `KafkaConfigResourceTypes` — use `@platformatic/kafka` directly
-- `IKafkaProduceMessage`, `IKafkaSendOptions`, `IKafkaConsumedMessage`, `IKafkaCommitOptions` — use `@platformatic/kafka` types
-- `IKafkaBaseOpts` — renamed to `IKafkaConnectionOptions`
+- `KafkaConfigResourceTypes` - use `@platformatic/kafka` directly
+- `IKafkaProduceMessage`, `IKafkaSendOptions`, `IKafkaConsumedMessage`, `IKafkaCommitOptions` - use `@platformatic/kafka` types
+- `IKafkaBaseOpts` - renamed to `IKafkaConnectionOptions`
 
 ### 6. No default serializers/deserializers
 

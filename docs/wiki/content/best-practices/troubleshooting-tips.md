@@ -1,6 +1,6 @@
 # Troubleshooting Tips
 
-Common issues and their solutions when building Ignis applications.
+Common issues and their solutions when building IGNIS applications.
 
 ## 1. Application Fails to Start
 
@@ -122,7 +122,7 @@ cat .env | grep APP_ENV
 
 ## 6. Request ID Tracking
 
-Every request in Ignis is automatically assigned a unique `requestId` for log correlation. The `RequestSpyMiddleware` logs this ID at the start and end of each request.
+Every request in IGNIS is automatically assigned a unique `requestId` for log correlation. The `RequestSpyMiddleware` logs this ID at the start and end of each request.
 
 **Log output format:**
 ```
@@ -158,7 +158,7 @@ grep "\[spy\]\[abc123\]" logs/app.log
 
 ## 7. Validation Error Debugging
 
-When Zod validation fails, Ignis returns a structured error response. Understanding this format helps debug client-side issues.
+When Zod validation fails, IGNIS returns a structured error response. Understanding this format helps debug client-side issues.
 
 **Error response structure:**
 ```json

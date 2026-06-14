@@ -2,7 +2,7 @@
 
 # :fire: IGNIS - @venizia/dev-configs
 
-**Shared ESLint, Prettier, and TypeScript configs for the Ignis ecosystem**
+**Shared ESLint, Prettier, and TypeScript configs for the IGNIS ecosystem**
 
 [![npm](https://img.shields.io/npm/v/@venizia/dev-configs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/dev-configs)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
@@ -10,7 +10,7 @@
 [![ESLint](https://img.shields.io/badge/ESLint-9.x-4B32C3.svg?style=flat-square&logo=eslint&logoColor=white)](https://eslint.org/)
 [![Prettier](https://img.shields.io/badge/Prettier-3.x-F7B93E.svg?style=flat-square&logo=prettier&logoColor=black)](https://prettier.io/)
 
-Single source of truth for development tooling across the entire Ignis monorepo. Flat ESLint config (v9+), Prettier formatting, and TypeScript compiler settings with `experimentalDecorators` + `emitDecoratorMetadata` enabled.
+Single source of truth for development tooling across the entire IGNIS monorepo. Flat ESLint config (v9+), Prettier formatting, and TypeScript compiler settings with `experimentalDecorators` + `emitDecoratorMetadata` enabled.
 
 [Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#eslint-configuration) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
 
@@ -35,7 +35,7 @@ Single source of truth for development tooling across the entire Ignis monorepo.
   - [Architecture: Three-Layer Rule Stack](#architecture-three-layer-rule-stack)
   - [Layer 1: eslint-common (Foundation)](#layer-1-eslint-common-foundation)
   - [Layer 2: eslint-node (Node.js Specialization)](#layer-2-eslint-node-nodejs-specialization)
-  - [Layer 3: dev-configs (Ignis Overrides)](#layer-3-dev-configs-ignis-overrides)
+  - [Layer 3: dev-configs (IGNIS Overrides)](#layer-3-dev-configs-ignis-overrides)
   - [Complete Rule Reference](#complete-rule-reference)
   - [Rule Examples: Pass vs Fail](#rule-examples-pass-vs-fail)
   - [Flat Config Format (ESLint v9+)](#flat-config-format-eslint-v9)
@@ -127,7 +127,7 @@ Layer 1: @minimaltech/eslint-common     (Foundation: JS recommended + Prettier +
     |
 Layer 2: @minimaltech/eslint-node       (Node.js: LB4-derived rules + eslint-plugin-n + TS strictness adjustments)
     |
-Layer 3: @venizia/dev-configs           (Ignis: relax no-explicit-any + add unicorn + enforce curly braces)
+Layer 3: @venizia/dev-configs           (IGNIS: relax no-explicit-any + add unicorn + enforce curly braces)
 ```
 
 Each layer is a flat config array. The final export is the concatenation of all three, meaning rules defined later take precedence.
@@ -163,7 +163,7 @@ Key rules from this layer:
 
 Provided by `@minimaltech/eslint-node`. Built on top of the common layer, this adds:
 
-**LoopBack 4-derived rules (`lbRules`)** -- a comprehensive rule set originally from the LoopBack Next project, adapted for Ignis:
+**LoopBack 4-derived rules (`lbRules`)** -- a comprehensive rule set originally from the LoopBack Next project, adapted for IGNIS:
 
 | Rule | Value | Purpose |
 | :--- | :---- | :------ |
@@ -207,7 +207,7 @@ Provided by `@minimaltech/eslint-node`. Built on top of the common layer, this a
 
 ---
 
-### Layer 3: dev-configs (Ignis Overrides)
+### Layer 3: dev-configs (IGNIS Overrides)
 
 This is the final layer defined in `@venizia/dev-configs` itself:
 
@@ -360,7 +360,7 @@ while (hasNext()) advance();               // Error: Expected { after 'while' co
 In framework-level code, `any` is sometimes unavoidable when dealing with decorator metadata, dynamic DI resolution, and generic container patterns:
 
 ```typescript
-// These patterns are common in Ignis and would be painful to type perfectly:
+// These patterns are common in IGNIS and would be painful to type perfectly:
 
 // Decorator factory that accepts any class
 function controller(opts: { path: string }) {
@@ -918,7 +918,7 @@ The comprehensive base configuration containing all compiler options. Located at
 | :----- | :---- | :----------- | :------------- | :--------------------- |
 | `target` | `ES2022` | Sets the JavaScript version for emit output. | ES2022 provides native `class`, `async/await`, `top-level await`, private class fields, and `Array.at()` without downleveling. Bun and modern Node.js fully support ES2022. | Lowering to ES5/ES6 introduces unnecessary transpilation overhead. Raising to ESNext may use features not yet stable in all runtimes. |
 | `lib` | `["ES2022"]` | Includes type definitions for ES2022 standard library APIs (`structuredClone`, `Array.at()`, `Object.hasOwn()`, `Error.cause`, etc.). | Matches the `target` to ensure type-checked APIs match the emitted code. | Removing this causes TypeScript to not recognize modern APIs like `structuredClone`. Adding `"DOM"` would introduce browser-specific types (e.g., `window`, `document`) that do not exist in Node.js/Bun. |
-| `experimentalDecorators` | `true` | **CRITICAL.** Enables the legacy/experimental decorator syntax (`@decorator`) used by Ignis for DI, controllers, models, and repositories. | See [Critical Flags](#critical-flags-for-decorator-based-di). | All Ignis decorators fail to compile. |
+| `experimentalDecorators` | `true` | **CRITICAL.** Enables the legacy/experimental decorator syntax (`@decorator`) used by IGNIS for DI, controllers, models, and repositories. | See [Critical Flags](#critical-flags-for-decorator-based-di). | All IGNIS decorators fail to compile. |
 | `emitDecoratorMetadata` | `true` | **CRITICAL.** Emits design-time type metadata via `Reflect.metadata()`. | See [Critical Flags](#critical-flags-for-decorator-based-di). | DI container cannot resolve constructor parameter types. |
 | `useDefineForClassFields` | `false` | **CRITICAL.** Uses assignment semantics for class fields instead of `Object.defineProperty()`. | See [Critical Flags](#critical-flags-for-decorator-based-di). | Decorator-based property injection is overwritten by defineProperty. |
 
@@ -931,7 +931,7 @@ The comprehensive base configuration containing all compiler options. Located at
 | `resolveJsonModule` | `true` | Allows importing `.json` files with full type inference. | Used for importing `package.json` and configuration files. | `import pkg from './package.json'` stops working. |
 | `allowSyntheticDefaultImports` | `true` | Allows `import foo from 'module'` even when the module has no explicit `default` export. | Many CJS packages (e.g., `express`, `lodash`) do not have default exports but are commonly imported this way. | `import _ from 'lodash/get'` and similar patterns produce type errors. |
 | `esModuleInterop` | `true` | Emits `__importDefault` and `__importStar` helpers for correct CJS/ESM interop at runtime. | Without this, `import` of CJS modules may resolve to `{ default: module }` instead of `module` directly. | Default imports from CJS modules break at runtime (the module object itself becomes `{ default: ... }`). |
-| `isolatedModules` | `false` | When `true`, restricts features that require cross-file analysis (const enums, namespace merging). | Ignis uses `const enum` for binding scopes and namespace merging for type augmentation. These features require cross-file compilation. | Enabling this would disallow `const enum` usage in `@venizia/ignis-inversion` and related packages. |
+| `isolatedModules` | `false` | When `true`, restricts features that require cross-file analysis (const enums, namespace merging). | IGNIS uses `const enum` for binding scopes and namespace merging for type augmentation. These features require cross-file compilation. | Enabling this would disallow `const enum` usage in `@venizia/ignis-inversion` and related packages. |
 | `forceConsistentCasingInFileNames` | `true` | Errors on imports that do not match the file system's actual casing. | Prevents cross-platform bugs where `import './UserService'` works on macOS (case-insensitive) but fails on Linux (case-sensitive). | Disabling this allows case mismatches that cause runtime `MODULE_NOT_FOUND` errors on Linux CI servers. |
 
 **Emit**
@@ -1040,11 +1040,11 @@ This configures `ts-node` (when used during development) to run in `transpileOnl
 
 ### Critical Flags for Decorator-Based DI
 
-Three TypeScript compiler options are **absolutely essential** for the Ignis decorator-based dependency injection system to function. Changing any of these will break the entire framework.
+Three TypeScript compiler options are **absolutely essential** for the IGNIS decorator-based dependency injection system to function. Changing any of these will break the entire framework.
 
 #### `experimentalDecorators: true`
 
-Enables the TypeScript experimental decorator syntax used throughout Ignis:
+Enables the TypeScript experimental decorator syntax used throughout IGNIS:
 
 ```typescript
 @controller({ path: '/users' })
@@ -1067,7 +1067,7 @@ to change in a future release. Set the 'experimentalDecorators' option in your
 
 The following decorators all require this flag: `@controller`, `@inject`, `@injectable`, `@repository`, `@datasource`, `@service`, `@model`, `@get`, `@post`, `@put`, `@patch`, `@del`, `@api`.
 
-**Note on TC39 decorators:** TypeScript 5.0+ supports the new TC39 stage 3 decorator proposal (without `experimentalDecorators`). However, the TC39 decorators do NOT support `emitDecoratorMetadata`, which Ignis relies on for automatic DI resolution. Ignis intentionally uses the legacy/experimental decorator syntax for this reason.
+**Note on TC39 decorators:** TypeScript 5.0+ supports the new TC39 stage 3 decorator proposal (without `experimentalDecorators`). However, the TC39 decorators do NOT support `emitDecoratorMetadata`, which IGNIS relies on for automatic DI resolution. IGNIS intentionally uses the legacy/experimental decorator syntax for this reason.
 
 ---
 
@@ -1154,7 +1154,7 @@ assigned in the constructor.
 
 ## Consumption Pattern
 
-Every package in the Ignis monorepo follows an identical pattern to consume these configs. Here is the complete setup for a new package:
+Every package in the IGNIS monorepo follows an identical pattern to consume these configs. Here is the complete setup for a new package:
 
 ### 1. ESLint (`eslint.config.mjs`)
 
@@ -1206,7 +1206,7 @@ Packages that need path aliases or additional settings simply add them under `co
 
 ## Real-World Consumer Examples
 
-The following are actual configurations from packages in the Ignis monorepo.
+The following are actual configurations from packages in the IGNIS monorepo.
 
 ### packages/inversion (Standard Package)
 
@@ -1318,7 +1318,7 @@ Applications use the same pattern as library packages:
 
 ## Setting Up a New Package
 
-Complete step-by-step guide for adding a new package to the Ignis monorepo (or any project consuming `@venizia/dev-configs`).
+Complete step-by-step guide for adding a new package to the IGNIS monorepo (or any project consuming `@venizia/dev-configs`).
 
 ### Step 1: Create the Package Directory
 
@@ -1332,7 +1332,7 @@ mkdir -p packages/my-package/src
 {
   "name": "@venizia/ignis-my-package",
   "version": "0.0.1",
-  "description": "My new Ignis package",
+  "description": "My new IGNIS package",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -1755,9 +1755,9 @@ bun run clean && bun run build
 
 ## Important Notes
 
-- **Monorepo-wide impact.** This package is the foundation of every other package in the Ignis monorepo. Any change to ESLint rules, Prettier settings, or TypeScript compiler options propagates to **all** packages and examples. Test thoroughly before modifying.
+- **Monorepo-wide impact.** This package is the foundation of every other package in the IGNIS monorepo. Any change to ESLint rules, Prettier settings, or TypeScript compiler options propagates to **all** packages and examples. Test thoroughly before modifying.
 
-- **Decorator flags are non-negotiable.** The `experimentalDecorators`, `emitDecoratorMetadata`, and `useDefineForClassFields` settings are structural requirements of the Ignis DI system. Changing them will break `@inject`, `@controller`, `@repository`, and every other decorator in the framework.
+- **Decorator flags are non-negotiable.** The `experimentalDecorators`, `emitDecoratorMetadata`, and `useDefineForClassFields` settings are structural requirements of the IGNIS DI system. Changing them will break `@inject`, `@controller`, `@repository`, and every other decorator in the framework.
 
 - **ESLint v9+ required.** This package exports flat config arrays, not the legacy `.eslintrc` format. ESLint v9.0.0 or later is required.
 

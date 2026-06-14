@@ -40,7 +40,7 @@ interface IAssetControllerOptions {
 
 ## StaticAssetStorageTypes
 
-A constants class following the Ignis pattern with `static readonly` fields, a `SCHEME_SET`, and an `isValid()` method:
+A constants class following the IGNIS pattern with `static readonly` fields, a `SCHEME_SET`, and an `isValid()` method:
 
 ```typescript
 class StaticAssetStorageTypes {

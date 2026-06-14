@@ -421,7 +421,7 @@ interface IAuthorizationEnforcer<
 
 | Enforcer | TRules | Description |
 |----------|--------|-------------|
-| `CasbinAuthorizationEnforcer` | `ICasbinRules` | `{ user, lines }` — the user plus their resolved Casbin policy lines (loaded into a pooled enforcer at evaluate time) |
+| `CasbinAuthorizationEnforcer` | `ICasbinRules` | `{ user, lines }` - the user plus their resolved Casbin policy lines (loaded into a pooled enforcer at evaluate time) |
 | Custom | Any type | Your custom rules structure |
 
 ### Method Contracts
@@ -517,20 +517,20 @@ Injects `ICasbinEnforcerOptions` from the DI container using the binding key `Au
 
 Called once by the registry on first use. Performs:
 
-1. Dynamically imports `casbin` — throws `"casbin" is not installed` if missing.
-2. Validates `options.model` — throws `options.model is required.` if missing.
+1. Dynamically imports `casbin` - throws `"casbin" is not installed` if missing.
+2. Validates `options.model` - throws `options.model is required.` if missing.
 3. Memoizes the payload normalizer (`options.normalizePayloadFn ?? defaultScopedPayloadFn()`).
 4. If `cached.use`, validates `expiresIn >= MIN_EXPIRES_IN` (10,000 ms).
-5. Builds a **`BasePoolHelper<Enforcer>`** (`size = poolSize ?? 16`, `acquireTimeoutMs = poolAcquireTimeoutMs ?? 5000`). Each pooled enforcer is created **without an adapter** (`newEnforcer(model)` — no DB load at warmup), then `registerMatchers()` and `assertMatcherCompilesSync()` run on it.
-6. `await pool.warmup()` — pre-creates the enforcers.
+5. Builds a **`BasePoolHelper<Enforcer>`** (`size = poolSize ?? 16`, `acquireTimeoutMs = poolAcquireTimeoutMs ?? 5000`). Each pooled enforcer is created **without an adapter** (`newEnforcer(model)` - no DB load at warmup), then `registerMatchers()` and `assertMatcherCompilesSync()` run on it.
+6. `await pool.warmup()` - pre-creates the enforcers.
 
-`registerMatchers()` — when `isScoped`, registers `keyMatch` as the domain matching func on `g`, adds `objectMatch` as a function, and registers it as the matching func on the resource relation (`g4`). When `domainMatching` is set (non-scoped), registers the chosen `Util.*Func` on the named role definition. Always finishes with `buildRoleLinks()`.
+`registerMatchers()` - when `isScoped`, registers `keyMatch` as the domain matching func on `g`, adds `objectMatch` as a function, and registers it as the matching func on the resource relation (`g4`). When `domainMatching` is set (non-scoped), registers the chosen `Util.*Func` on the named role definition. Always finishes with `buildRoleLinks()`.
 
-`assertMatcherCompilesSync()` — a boot-time smoke test: forces casbin's lazy matcher compile by running one dummy `enforceSync` (4 args when scoped/`normalizePayloadFn`, else 3), so a malformed matcher, an unregistered function, or an arity mismatch fails at warmup instead of on the first real request.
+`assertMatcherCompilesSync()` - a boot-time smoke test: forces casbin's lazy matcher compile by running one dummy `enforceSync` (4 args when scoped/`normalizePayloadFn`, else 3), so a malformed matcher, an unregistered function, or an arity mismatch fails at warmup instead of on the first real request.
 
 ### destroy()
 
-`this.pool?.destroy()` — drains and disposes the pooled enforcers.
+`this.pool?.destroy()` - drains and disposes the pooled enforcers.
 
 ### buildRules()
 
@@ -551,7 +551,7 @@ flowchart TD
 
 - **`extractUserLines(user)`** builds a fresh, **isolated** enforcer *with the adapter*, calls
   `adapter.loadFilteredPolicy({ principal: { type, id } })`, then `extractLinesFrom()` serializes every
-  p-type and g-type rule back into lines. This throwaway enforcer never serves a request — that is the
+  p-type and g-type rule back into lines. This throwaway enforcer never serves a request - that is the
   anti-poisoning guarantee.
 - **`fetchLinesWithRedisCache`** returns cached lines on hit (Redis owns expiry via `PX`). On miss it
   dedups concurrent misses through `pendingLineFetches` (single-flight), extracts once, and writes the
@@ -631,7 +631,7 @@ await opts.enforcer.buildRoleLinks();
 ## BaseFilteredAdapter
 
 Thin read-only base for casbin `FilteredAdapter`s backed by a datasource. It owns the boilerplate
-every filtered adapter repeats — datasource/connector plumbing, the `isFiltered() === true` flag, the
+every filtered adapter repeats - datasource/connector plumbing, the `isFiltered() === true` flag, the
 no-op write methods, and a `loadLines` helper. A subclass implements only `loadFilteredPolicy`: query
 the store for ONE principal's policies and turn them into casbin lines.
 
@@ -682,7 +682,7 @@ interface ICasbinPolicyFilter {
 
 ### loadLines()
 
-The base's only orchestration helper — subclasses call it from `loadFilteredPolicy` after assembling
+The base's only orchestration helper - subclasses call it from `loadFilteredPolicy` after assembling
 their casbin lines:
 
 ```typescript
@@ -694,14 +694,14 @@ protected async loadLines(opts: { model: Model; lines: string[] }): Promise<void
 }
 ```
 
-There are no template-method query hooks or shared line formatters on the base — a subclass owns its
+There are no template-method query hooks or shared line formatters on the base - a subclass owns its
 own queries and line construction (see `ScopedCasbinAdapter` below for the reference implementation).
 
 ## ScopedCasbinAdapter
 
 The generic, read-only `FilteredAdapter` for the scoped RBAC model. It reads **one principal's edges**
 plus the **shared structural hierarchy** from a single `PolicyDefinition` edge table (joined to
-`Permission` for codes) and emits casbin lines. No subclassing — configure it with `IScopedCasbinEntities`.
+`Permission` for codes) and emits casbin lines. No subclassing - configure it with `IScopedCasbinEntities`.
 
 ### Class
 
@@ -750,7 +750,7 @@ interface IScopedCasbinPolicyFilter {
 }
 ```
 
-### loadFilteredPolicy() — two waves
+### loadFilteredPolicy() - two waves
 
 ```mermaid
 flowchart TD
@@ -761,8 +761,8 @@ flowchart TD
     W2 --> Load["loadLines(model, all lines)"]
 ```
 
-1. **Wave 1 (parallel):** the principal's own edges — role assignments (`g`), domain memberships
-   (`g2`), direct grants (`p`) — plus the shared structural trees (`role_inherits` → `g`,
+1. **Wave 1 (parallel):** the principal's own edges - role assignments (`g`), domain memberships
+   (`g2`), direct grants (`p`) - plus the shared structural trees (`role_inherits` → `g`,
    `domain_inherits` → `g3`, `resource_inherits` → `g4`, `action_inherits` → `g5`).
 2. **Role closure:** `expandRoleClosure` does a cycle-safe BFS over the `role_inherits` (`g`) edges to
    collect the assigned roles + all transitive parents.
@@ -898,7 +898,7 @@ Supports these formats:
 // String array
 roles: ['admin', 'user']
 
-// Object array with identifier (preferred — matches AuthorizationRole.identifier)
+// Object array with identifier (preferred - matches AuthorizationRole.identifier)
 roles: [{ id: 1, identifier: '900_admin', priority: 900 }]
 
 // Object array with name fallback
@@ -999,7 +999,7 @@ buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: Rou
     mws.push(authenticateFn({ strategies, mode }));
   }
 
-  // 2. Authorize middleware (second) — supports single or array
+  // 2. Authorize middleware (second) - supports single or array
   if (authorize) {
     const specs = Array.isArray(authorize) ? authorize : [authorize];
     for (const spec of specs) {
@@ -1026,7 +1026,7 @@ buildRpcMiddlewares(opts: { configs: IRpcMetadata }): TRpcMiddleware[] {
   // 1. Authenticate middleware (first)
   if (configs.authenticate) { ... }
 
-  // 2. Authorize middleware (second) — same pattern as REST
+  // 2. Authorize middleware (second) - same pattern as REST
   if (configs.authorize) {
     const specs = Array.isArray(configs.authorize) ? configs.authorize : [configs.authorize];
     for (const spec of specs) {

@@ -1,6 +1,6 @@
 # REST Controllers
 
-REST controllers handle incoming HTTP requests and return JSON responses -- they are your API endpoints. This is the default transport in Ignis and covers the majority of use cases.
+REST controllers handle incoming HTTP requests and return JSON responses -- they are your API endpoints. This is the default transport in IGNIS and covers the majority of use cases.
 
 > **Deep Dive:** See [REST Controllers Reference](../../references/base/controllers.md) for the complete API.
 
@@ -55,7 +55,7 @@ For decorator-based routes, you do not need to explicitly annotate the return ty
 
 ### HTTP Method Decorators
 
-`Ignis` provides a decorator for each common HTTP method:
+`IGNIS` provides a decorator for each common HTTP method:
 
 -   `@get(opts)`
 -   `@post(opts)`
@@ -132,7 +132,7 @@ export class MyItemsController extends BaseRestController {
 
 ## Manual Route Definition: An Alternative Approach
 
-While decorators are the recommended approach for most use cases, `Ignis` also provides a manual way to define routes within the controller's `binding()` method.
+While decorators are the recommended approach for most use cases, `IGNIS` also provides a manual way to define routes within the controller's `binding()` method.
 
 ### Decorator vs Manual: Quick Comparison
 
@@ -215,7 +215,7 @@ this.bindRoute({
 
 ## `ControllerFactory` for CRUD Operations
 
-For standard CRUD (Create, Read, Update, Delete) operations, `Ignis` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
+For standard CRUD (Create, Read, Update, Delete) operations, `IGNIS` provides a `ControllerFactory` that can generate a full-featured controller for any given entity. This significantly reduces boilerplate code.
 
 ```typescript
 // src/controllers/configuration/configuration.controller.ts (Example from @examples/vert)
@@ -363,7 +363,7 @@ export const MainLayout: FC<PropsWithChildren<MainLayoutProps>> = ({ title, chil
 };
 ```
 
-> **Note:** JSX support in `Ignis` uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
+> **Note:** JSX support in `IGNIS` uses Hono's built-in JSX runtime. Make sure your `tsconfig.json` includes the JSX configuration (this is already set up in the framework's base configuration).
 
 ## Accessing Validated Request Data
 

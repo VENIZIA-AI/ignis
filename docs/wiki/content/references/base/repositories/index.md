@@ -1,6 +1,6 @@
 # Repositories Overview
 
-Repositories are the data access layer in Ignis - they provide type-safe CRUD operations for your database entities.
+Repositories are the data access layer in IGNIS - they provide type-safe CRUD operations for your database entities.
 
 **Files:** `packages/core/src/base/repositories/core/*.ts`
 
@@ -230,7 +230,7 @@ All repository operations accept an `options` parameter with these fields:
 
 ```typescript
 interface IExtraOptions {
-  /** Transaction context — switches the underlying Drizzle connector. */
+  /** Transaction context - switches the underlying Drizzle connector. */
   transaction?: ITransaction;
 
   /** Operation logging configuration. */

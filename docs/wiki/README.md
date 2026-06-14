@@ -2,14 +2,14 @@
 
 # :fire: IGNIS - @venizia/ignis-docs
 
-**Documentation site and MCP server for the Ignis Framework**
+**Documentation site and MCP server for the IGNIS Framework**
 
 [![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-8B5CF6.svg?style=flat-square)](https://modelcontextprotocol.io/)
 
-VitePress-powered documentation site and an MCP server with 11 tools that gives AI assistants real-time access to Ignis knowledge -- search docs, browse source code, and verify dependencies.
+VitePress-powered documentation site and an MCP server with 11 tools that gives AI assistants real-time access to IGNIS knowledge -- search docs, browse source code, and verify dependencies.
 
 [Installation](#installation) &#8226; [MCP Setup](#mcp-server-setup) &#8226; [Available Tools](#available-mcp-tools) &#8226; [Online Docs](https://venizia-ai.github.io/ignis)
 
@@ -106,13 +106,13 @@ Add to your Claude Code MCP settings:
 | **listDocs** | List all available documentation pages |
 | **listCategories** | List documentation categories and their structure |
 | **getDocMetadata** | Get metadata (title, path, category) for a document |
-| **getPackageOverview** | Get an overview of a specific Ignis package |
+| **getPackageOverview** | Get an overview of a specific IGNIS package |
 
 ### GitHub Tools
 
 | Tool | Description |
 | --- | --- |
-| **searchCode** | Search the Ignis source code by keyword |
+| **searchCode** | Search the IGNIS source code by keyword |
 | **listProjectFiles** | List files in a specific directory of the repository |
 | **viewSourceFile** | View the contents of a source file |
 | **verifyDependencies** | Check dependency versions and compatibility |
@@ -140,7 +140,7 @@ bun run docs:preview
 wiki/
 ├── guides/              # Getting started, core concepts, tutorials
 ├── references/          # API documentation
-│   ├── base/            # BaseApplication, BaseController, BaseEntity, etc.
+│   ├── base/            # BaseApplication, BaseRestController, BaseEntity, etc.
 │   ├── components/      # HealthCheck, Swagger, Auth, Mail, SocketIO, etc.
 │   ├── helpers/         # Logger, Redis, Queue, Storage, Crypto, etc.
 │   └── utilities/       # Parse, Date, Promise, Performance utilities
@@ -184,9 +184,9 @@ bun run mcp:rebuild
 
 ## Related Links
 
-- [Ignis Framework](https://github.com/VENIZIA-AI/ignis) -- Main repository
+- [IGNIS Framework](https://github.com/VENIZIA-AI/ignis) -- Main repository
 - [Online Documentation](https://venizia-ai.github.io/ignis) -- Full documentation site
-- [MCP Server Guide](https://github.com/VENIZIA-AI/ignis/blob/main/packages/docs/wiki/get-started/mcp-docs-server.md) -- Detailed setup guide
+- [MCP Server Guide](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/reference/mcp-docs-server.md) -- Detailed setup guide
 - [Model Context Protocol](https://modelcontextprotocol.io/) -- MCP specification
 
 ---

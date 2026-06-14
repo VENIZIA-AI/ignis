@@ -1,6 +1,6 @@
 # gRPC Controllers
 
-Ignis provides first-class support for gRPC via the [ConnectRPC](https://connectrpc.com/) protocol. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
+IGNIS provides first-class support for gRPC via the [ConnectRPC](https://connectrpc.com/) protocol. gRPC controllers use Protobuf service definitions for strongly-typed RPC methods, and are served over the same Hono HTTP server as REST controllers.
 
 > **Deep Dive:** See [gRPC Controllers Reference](../../references/base/grpc-controllers.md) for the complete API.
 
@@ -83,7 +83,7 @@ export class GreeterController extends BaseGrpcController {
 
 ## RPC Method Decorators
 
-Ignis provides a decorator for each gRPC method type:
+IGNIS provides a decorator for each gRPC method type:
 
 - `@unary(opts)` -- Single request, single response. **This is the only supported method type** in the current version.
 - `@serverStream(opts)` -- Decorator exists for metadata, but throws at runtime.
@@ -102,7 +102,7 @@ async sayHello(opts: { request: SayHelloRequest; context: TRouteContext }): Prom
 @unary({
   configs: {
     name: 'getUser',
-    authenticate: { strategies: ['jwt'], mode: 'required' },
+    authenticate: { strategies: ['jwt'], mode: 'any' },
   },
 })
 async getUser(opts: { request: GetUserRequest; context: TRouteContext }): Promise<GetUserResponse> { ... }
@@ -112,7 +112,7 @@ async getUser(opts: { request: GetUserRequest; context: TRouteContext }): Promis
   configs: {
     name: 'deleteUser',
     authenticate: { strategies: ['jwt'] },
-    authorize: { resource: 'user', scopes: ['delete'] },
+    authorize: { action: 'delete', resource: 'user' },
   },
 })
 async deleteUser(opts: { request: DeleteUserRequest; context: TRouteContext }): Promise<DeleteUserResponse> { ... }

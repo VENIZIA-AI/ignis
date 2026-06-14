@@ -6,9 +6,9 @@ difficulty: intermediate
 
 # Deep Dive: gRPC Controllers
 
-Technical reference for gRPC controller classes -- the foundation for building gRPC services in Ignis, powered by [ConnectRPC](https://connectrpc.com/).
+Technical reference for gRPC controller classes -- the foundation for building gRPC services in IGNIS, powered by [ConnectRPC](https://connectrpc.com/).
 
-Ignis gRPC controllers follow the same patterns as REST controllers (decorator-based routing, `binding()` method, DI integration) while bridging to ConnectRPC's universal handler system. REST and gRPC controllers coexist in the same application, sharing the same DI container, middleware pipeline, and lifecycle.
+IGNIS gRPC controllers follow the same patterns as REST controllers (decorator-based routing, `binding()` method, DI integration) while bridging to ConnectRPC's universal handler system. REST and gRPC controllers coexist in the same application, sharing the same DI container, middleware pipeline, and lifecycle.
 
 **Files:**
 - `packages/core/src/base/controllers/grpc/abstract.ts`
@@ -25,7 +25,7 @@ Ignis gRPC controllers follow the same patterns as REST controllers (decorator-b
 |------|-------------|
 | **AbstractGrpcController** | Abstract base class with RPC registration, ConnectRPC adapter mounting, idempotent `configure()` |
 | **BaseGrpcController** | Recommended concrete base class with `bindRoute()` and `defineRoute()` implementations |
-| **GrpcRequestAdapter** | Internal bridge from Ignis handlers to ConnectRPC universal handlers via `AsyncLocalStorage` |
+| **GrpcRequestAdapter** | Internal bridge from IGNIS handlers to ConnectRPC universal handlers via `AsyncLocalStorage` |
 | **GrpcComponent** | Auto-discovers gRPC controllers and mounts them on the application router |
 | **@controller** | Class decorator with `transport: ControllerTransports.GRPC` and `service` field |
 | **@unary** | Method decorator for unary RPCs |
@@ -411,11 +411,11 @@ interface IConnectAdapterResult<
 
 ## `GrpcRequestAdapter`
 
-Internal bridge between Ignis gRPC controllers and ConnectRPC's universal handler system. You do not interact with this class directly -- it is created automatically during `configure()`.
+Internal bridge between IGNIS gRPC controllers and ConnectRPC's universal handler system. You do not interact with this class directly -- it is created automatically during `configure()`.
 
 ### Architecture
 
-The adapter solves a key challenge: ConnectRPC handlers have their own `(request, context) => response` signature, but Ignis controllers need access to the Hono `Context` for middleware, auth, and request-scoped state. The adapter uses `AsyncLocalStorage` to provide request-scoped context isolation, ensuring concurrent requests never share state.
+The adapter solves a key challenge: ConnectRPC handlers have their own `(request, context) => response` signature, but IGNIS controllers need access to the Hono `Context` for middleware, auth, and request-scoped state. The adapter uses `AsyncLocalStorage` to provide request-scoped context isolation, ensuring concurrent requests never share state.
 
 ```
 Hono Request
@@ -423,7 +423,7 @@ Hono Request
     -> AsyncLocalStorage.run(honoContext, ...)
       -> Pre-built auth middlewares (authenticate -> authorize)
         -> ConnectRPC universal handler
-          -> Ignis TRpcHandler (reads context from AsyncLocalStorage)
+          -> IGNIS TRpcHandler (reads context from AsyncLocalStorage)
             -> Response
 ```
 
@@ -449,7 +449,7 @@ The optional `interceptors` array is passed to ConnectRPC's `createConnectRouter
 
 ### Internal Flow
 
-1. **`buildConnectHandlers()`** -- Wraps each Ignis `TRpcHandler` into ConnectRPC's `(request, context) => response` signature. The wrapper reads the Hono context from `AsyncLocalStorage`, runs pre-built auth middlewares (built by `AbstractGrpcController.buildRpcMiddlewares()`), then passes `{ request, context }` to the Ignis handler.
+1. **`buildConnectHandlers()`** -- Wraps each IGNIS `TRpcHandler` into ConnectRPC's `(request, context) => response` signature. The wrapper reads the Hono context from `AsyncLocalStorage`, runs pre-built auth middlewares (built by `AbstractGrpcController.buildRpcMiddlewares()`), then passes `{ request, context }` to the IGNIS handler.
 
 2. **`registerService()`** -- Bridges the opaque `ServiceType` from `@controller` metadata to ConnectRPC's `router.service()` call, registering all handlers for the service.
 
@@ -839,7 +839,7 @@ import { GreeterService, SayHelloRequestSchema } from './controllers/greeter/def
 const transport = createConnectTransport({ baseUrl: 'http://localhost:3000/grpc' });
 const client = createClient(GreeterService, transport);
 
-const response = await client.sayHello(create(SayHelloRequestSchema, { name: 'Ignis' }));
+const response = await client.sayHello(create(SayHelloRequestSchema, { name: 'IGNIS' }));
 console.log(response.message);
 ```
 
@@ -928,7 +928,7 @@ Per-RPC authentication and authorization are configured via the `authenticate` a
     name: 'sayHello',
     authenticate: {
       strategies: ['jwt'],
-      mode: 'required',
+      mode: 'any',
     },
   },
 })
@@ -949,7 +949,7 @@ async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
 @unary({
   configs: {
     name: 'deleteUser',
-    authenticate: { strategies: ['jwt'], mode: 'required' },
+    authenticate: { strategies: ['jwt'], mode: 'any' },
     authorize: { action: 'delete', resource: 'user' },
   },
 })

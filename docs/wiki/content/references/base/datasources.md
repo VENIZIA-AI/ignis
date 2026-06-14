@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Deep Dive: DataSources
 
-Technical reference for DataSource classes - managing database connections in Ignis.
+Technical reference for DataSource classes - managing database connections in IGNIS.
 
 **Files:** `packages/core/src/base/datasources/*.ts`
 
@@ -337,7 +337,7 @@ When extending `BaseDataSource`, these methods must be implemented:
 | `TNodePostgresConnector<Schema>` | Drizzle connector using `NodePgClient` (Pool or PoolClient) |
 | `TNodePostgresTransactionConnector<Schema>` | Drizzle connector using `PoolClient` specifically (for transaction isolation) |
 | `TAnyConnector<Schema>` | Union of both connector types |
-| `TAnyDataSourceSchema` | `Record<string, any>` — base type for all schema objects |
+| `TAnyDataSourceSchema` | `Record<string, any>` - base type for all schema objects |
 
 ### `DataSourceDrivers`
 

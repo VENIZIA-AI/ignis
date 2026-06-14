@@ -1,6 +1,6 @@
 # Configuration Reference
 
-Configuration options and environment variables for Ignis applications.
+Configuration options and environment variables for IGNIS applications.
 
 ## Quick Reference
 
@@ -16,10 +16,10 @@ Configuration options and environment variables for Ignis applications.
 
 ## Environment Variable Prefix
 
-Ignis uses the `APP_ENV_` prefix to avoid conflicts with system variables:
+IGNIS uses the `APP_ENV_` prefix to avoid conflicts with system variables:
 
 ```bash
-# ✅ Ignis variables
+# ✅ IGNIS variables
 APP_ENV_POSTGRES_HOST=localhost
 
 # ❌ Might conflict with system
@@ -69,7 +69,7 @@ project/
 
 ### 3. Validation on Startup
 
-Ignis validates required variables on startup. Missing values cause clear error messages.
+IGNIS validates required variables on startup. Missing values cause clear error messages.
 
 > **Related:** [Environment Variables Reference](./environment-variables.md) | [DataSources Guide](../../guides/core-concepts/persistent/datasources)
 

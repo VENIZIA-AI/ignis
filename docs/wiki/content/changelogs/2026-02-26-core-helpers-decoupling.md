@@ -71,14 +71,14 @@ import { BaseApplication, BaseController, controller, get, inject } from '@veniz
 
 The previous `export * from '@venizia/ignis-helpers'` created several problems:
 
-1. **Tight coupling** — Core's public API surface included every helpers symbol, making it hard to version independently
-2. **Ambiguous imports** — Consumers couldn't tell if a symbol belonged to core or helpers
-3. **Bundle bloat** — Tree-shaking couldn't eliminate unused helpers re-exports in some bundlers
+1. **Tight coupling** - Core's public API surface included every helpers symbol, making it hard to version independently
+2. **Ambiguous imports** - Consumers couldn't tell if a symbol belonged to core or helpers
+3. **Bundle bloat** - Tree-shaking couldn't eliminate unused helpers re-exports in some bundlers
 
 The new approach using `export type *` (TypeScript 5.0+):
-- **Types remain accessible** — `import type { AnyObject } from '@venizia/ignis'` still works
-- **Runtime is explicit** — Runtime helpers must be imported from their source package
-- **Clean API boundary** — Core only exports its own runtime symbols + DI primitives from inversion
+- **Types remain accessible** - `import type { AnyObject } from '@venizia/ignis'` still works
+- **Runtime is explicit** - Runtime helpers must be imported from their source package
+- **Clean API boundary** - Core only exports its own runtime symbols + DI primitives from inversion
 
 ## Files Changed
 
@@ -142,4 +142,4 @@ import type { AnyObject, FC, TOptions } from '@venizia/ignis';
 bun run rebuild
 ```
 
-Look for errors like `"X" is not exported from "@venizia/ignis"` — these indicate runtime symbols that need to be moved to `@venizia/ignis-helpers` imports.
+Look for errors like `"X" is not exported from "@venizia/ignis"` - these indicate runtime symbols that need to be moved to `@venizia/ignis-helpers` imports.

@@ -1,6 +1,6 @@
 # Complete Installation
 
-This guide walks you through creating a new web application with Ignis and setting up a professional development environment.
+This guide walks you through creating a new web application with IGNIS and setting up a professional development environment.
 
 **Time to Complete:** ~20 minutes
 
@@ -26,7 +26,7 @@ bun add hono @hono/zod-openapi @scalar/hono-api-reference @venizia/ignis @venizi
 - `hono` - High-performance web framework
 - `@hono/zod-openapi` - OpenAPI schema generation with Zod validation
 - `@scalar/hono-api-reference` - Interactive API documentation UI
-- `@venizia/ignis` - Core Ignis framework (application, controllers, repositories, DI)
+- `@venizia/ignis` - Core IGNIS framework (application, controllers, repositories, DI)
 - `@venizia/ignis-helpers` - Utilities (HTTP constants, logger, environment helpers)
 
 ### Development Dependencies
@@ -39,7 +39,7 @@ bun add -d typescript @types/bun @venizia/dev-configs eslint prettier tsc-alias
 - Centralized ESLint configuration
 - Centralized Prettier configuration
 - Shared TypeScript base configs
-- Consistent code style across all Ignis projects
+- Consistent code style across all IGNIS projects
 
 > **Note:** Database dependencies (drizzle-orm, pg, etc.) will be added later in the [CRUD Tutorial](./building-a-crud-api.md).
 
@@ -188,7 +188,7 @@ export class Application extends BaseApplication {
     // return {
     //   name: 'my-app',
     //   version: '1.0.0',
-    //   description: 'My Ignis application',
+    //   description: 'My IGNIS application',
     // };
   }
 
@@ -234,9 +234,9 @@ export class Application extends BaseApplication {
 
 > [!NOTE] IApplicationInfo
 > **Required fields in `package.json`:**
-> - `name` — App name (shown in API docs title)
-> - `version` — App version (shown in API docs)
-> - `description` — App description (shown in API docs)
+> - `name` - App name (shown in API docs title)
+> - `version` - App version (shown in API docs)
+> - `description` - App description (shown in API docs)
 >
 > **No proper `package.json`?** Use static app info instead (see Option 2 in code above).
 >
@@ -262,7 +262,7 @@ export class Application extends BaseApplication {
 
 Each controller lives in its own folder with separate files for definitions, logic, and exports.
 
-Create `src/controllers/hello/definitions.ts` — route configs and schemas:
+Create `src/controllers/hello/definitions.ts` - route configs and schemas:
 
 ```typescript
 import { jsonContent } from '@venizia/ignis';
@@ -285,7 +285,7 @@ export const helloRouteConfigs = {
 } as const;
 ```
 
-Create `src/controllers/hello/hello.controller.ts` — the controller class:
+Create `src/controllers/hello/hello.controller.ts` - the controller class:
 
 ```typescript
 import { BaseRestController, controller, api } from '@venizia/ignis';
@@ -311,13 +311,13 @@ export class HelloController extends BaseRestController {
 }
 ```
 
-Create `src/controllers/hello/index.ts` — barrel export:
+Create `src/controllers/hello/index.ts` - barrel export:
 
 ```typescript
 export * from './hello.controller';
 ```
 
-Create `src/controllers/index.ts` — export all controllers:
+Create `src/controllers/index.ts` - export all controllers:
 
 ```typescript
 export * from './hello';
@@ -327,7 +327,7 @@ export * from './hello';
 
 | Pattern | Description |
 |---------|-------------|
-| `definitions.ts` | Route configs, Zod schemas, and constants — keeps controller file clean |
+| `definitions.ts` | Route configs, Zod schemas, and constants - keeps controller file clean |
 | `@controller` | Registers the class as a controller with a base path |
 | `@api` | Defines a route with `method` specified in configs |
 | `@get`, `@post`, etc. | Shorthand decorators that auto-set the HTTP method (recommended) |
@@ -425,11 +425,11 @@ Response:
 
 Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI with your endpoints.
 
-Congratulations! You have successfully created and configured your first application with the `Ignis` framework.
+Congratulations! You have successfully created and configured your first application with the `IGNIS` framework.
 
 ## Continue Your Journey
 
-You now have a working Ignis application!
+You now have a working IGNIS application!
 
 **Next steps:**
 

@@ -49,7 +49,7 @@ Thrown during `binding()` when validating options and configuring services.
 | `[defineJWSAuth] getTokenExpiresFn is required` | 400 | `defineJWSAuth` | `getTokenExpiresFn` not provided in JWS options |
 
 ::: info applicationSecret is no longer validated
-`applicationSecret` was previously required and validated by the component. It is now **optional** — omitting it simply disables AES payload encryption.
+`applicationSecret` was previously required and validated by the component. It is now **optional** - omitting it simply disables AES payload encryption.
 :::
 
 #### `defineJWKSAuth` Errors (Issuer Mode)
@@ -104,10 +104,10 @@ Base class errors shared by `JWSTokenService`, `JWKSIssuerTokenService`, and `JW
 | Error Message | Status | Method | When |
 |---------------|--------|--------|------|
 | `[verify] Invalid request token!` | 401 | `verify` | Token value is empty/falsy |
-| `[verify] Invalid or expired token` | 401 | `verify` | `doVerify()` threw — token is expired, malformed, or signature invalid |
+| `[verify] Invalid or expired token` | 401 | `verify` | `doVerify()` threw - token is expired, malformed, or signature invalid |
 
 ::: tip Sanitized error messages
-The `verify()` and `generate()` methods use **sanitized error messages** — they do NOT include the original `error.message` in the thrown error. The full error is logged at `error` level for debugging but not exposed to clients.
+The `verify()` and `generate()` methods use **sanitized error messages** - they do NOT include the original `error.message` in the thrown error. The full error is logged at `error` level for debugging but not exposed to clients.
 :::
 
 #### `generate` Errors
@@ -150,7 +150,7 @@ Errors thrown during lazy initialization (`ensureInitialized()`) and key operati
 | <code v-pre>[JWKSIssuerTokenService] Unknown key format: {{format}}</code> | 500 | `parseKeyMaterial` | `keys.format` is not `'pem'` or `'jwk'` |
 
 ::: warning File read errors
-When using `JWKSKeyDrivers.FILE`, file read errors from `readFile()` propagate as Node.js filesystem errors (e.g., `ENOENT`, `EACCES`). These are **not** wrapped — the raw error surfaces during initialization.
+When using `JWKSKeyDrivers.FILE`, file read errors from `readFile()` propagate as Node.js filesystem errors (e.g., `ENOENT`, `EACCES`). These are **not** wrapped - the raw error surfaces during initialization.
 :::
 
 #### Runtime Errors
@@ -208,7 +208,7 @@ The middleware that executes strategies in the configured mode.
 
 | Error Message | Status | Method | When |
 |---------------|--------|--------|------|
-| <code v-pre>Authentication failed. Tried strategies: {{strategies}}</code> | 401 | `executeAnyMode` | All strategies failed in `'any'` mode — each strategy threw during `authenticate()` |
+| <code v-pre>Authentication failed. Tried strategies: {{strategies}}</code> | 401 | `executeAnyMode` | All strategies failed in `'any'` mode - each strategy threw during `authenticate()` |
 | `Failed to identify authenticated user!` | 401 | `executeAllMode` | All strategies succeeded in `'all'` mode but the first strategy's `authUser.userId` is falsy |
 | <code v-pre>Invalid authentication mode &#124; mode: {{mode}}</code> | 500 | `createAuthenticateMiddleware` | `mode` is not `'any'` or `'all'` |
 
@@ -391,7 +391,7 @@ The built-in `JWKSController` already uses `getJWKSAsync()`, so this error only 
 
 **Cause:** `generate()` was called on a `JWKSVerifierTokenService`. The verifier mode only has access to public keys (via the remote JWKS URL) and cannot sign tokens.
 
-**Fix:** Token generation should only happen on the **issuer** service. If you need both signing and verification in the same application, use `JWKSModes.ISSUER` — the issuer can both sign and verify.
+**Fix:** Token generation should only happen on the **issuer** service. If you need both signing and verification in the same application, use `JWKSModes.ISSUER` - the issuer can both sign and verify.
 
 ### "Authentication failed. Tried strategies: jwt, jwks"
 
@@ -471,7 +471,7 @@ this.bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTION
 
 ### "[verify] Invalid or expired token"
 
-**Cause:** Token verification failed. This is a sanitized error — the original error (expired, wrong signature, malformed) is logged internally but not exposed to clients.
+**Cause:** Token verification failed. This is a sanitized error - the original error (expired, wrong signature, malformed) is logged internally but not exposed to clients.
 
 **Fix:** Check the application logs for the full error. Common causes:
 - Token has expired (check `exp` claim)

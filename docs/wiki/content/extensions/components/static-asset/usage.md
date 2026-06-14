@@ -15,9 +15,9 @@ The component dynamically generates REST endpoints for each configured storage b
 | `POST` | <code v-pre>/{basePath}/buckets/:bucketName/upload</code> | Upload files |
 | `GET` | <code v-pre>/{basePath}/buckets/:bucketName/objects</code> | List objects |
 | `GET` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code> | Stream file |
-| `GET` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName/download</code> | Download file |
+| `GET` | <code v-pre>/{basePath}/buckets/:bucketName/download/:objectName</code> | Download file |
 | `DELETE` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code> | Delete object |
-| `PUT` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName/meta-links</code> | Sync MetaLink (MetaLink only) |
+| `PUT` | <code v-pre>/{basePath}/buckets/:bucketName/meta-links/:objectName</code> | Sync MetaLink (MetaLink only) |
 
 #### GET <code v-pre>/{basePath}/buckets</code>
 **Response `200`:**
@@ -196,7 +196,7 @@ All fields in the `IObjectInfo` response are optional. The `prefix` field is pre
 - `X-Content-Type-Options`: `nosniff`
 - Additional whitelisted headers forwarded from storage metadata (see [Header Sanitization](./api#header-sanitization))
 
-#### GET <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName/download</code>
+#### GET <code v-pre>/{basePath}/buckets/:bucketName/download/:objectName</code>
 **Parameters:**
 - `bucketName` (path): Bucket name
 - `objectName` (path): Object name (URL-encoded)
@@ -214,7 +214,7 @@ All fields in the `IObjectInfo` response are optional. The `prefix` field is pre
 
 **Example:**
 ```typescript
-const downloadUrl = `/assets/buckets/uploads/objects/${encodeURIComponent('document.pdf')}/download`;
+const downloadUrl = `/assets/buckets/uploads/download/${encodeURIComponent('document.pdf')}`;
 window.open(downloadUrl, '_blank');
 ```
 
@@ -248,7 +248,7 @@ await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectNa
 // MetaLink record deletion initiated (if enabled) but may complete after response
 ```
 
-#### PUT <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName/meta-links</code>
+#### PUT <code v-pre>/{basePath}/buckets/:bucketName/meta-links/:objectName</code>
 **Availability:** Only registered when `useMetaLink: true`.
 
 **Parameters:**
@@ -302,7 +302,7 @@ const bucketName = 'user-uploads';
 const objectName = 'document.pdf';
 
 const response = await fetch(
-  `/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/meta-links`,
+  `/assets/buckets/${bucketName}/meta-links/${encodeURIComponent(objectName)}`,
   { method: 'PUT' }
 );
 
@@ -315,7 +315,7 @@ const objects = await fetch(`/assets/buckets/${bucketName}/objects`).then(r => r
 
 for (const obj of objects) {
   await fetch(
-    `/assets/buckets/${bucketName}/objects/${encodeURIComponent(obj.name)}/meta-links`,
+    `/assets/buckets/${bucketName}/meta-links/${encodeURIComponent(obj.name)}`,
     { method: 'PUT' }
   );
 }
@@ -345,7 +345,7 @@ async function uploadFile(file: File, principalType?: string, principalId?: stri
 
 // Download file
 function downloadFile(bucketName: string, objectName: string) {
-  const url = `/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}/download`;
+  const url = `/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`;
   window.open(url, '_blank');
 }
 

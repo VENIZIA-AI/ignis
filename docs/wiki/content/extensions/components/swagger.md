@@ -89,7 +89,7 @@ export class HelloController extends BaseRestController {
         },
       },
       handler: (c) => {
-        return c.json({ message: 'Hello, `Ignis`!' }, HTTP.ResultCodes.RS_2.Ok);
+        return c.json({ message: 'Hello, `IGNIS`!' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
   }

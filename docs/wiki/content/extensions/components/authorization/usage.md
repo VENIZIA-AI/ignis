@@ -338,7 +338,7 @@ It supports multiple formats:
 // String array
 roles: ['admin', 'user']
 
-// Object array with identifier (preferred — matches AuthorizationRole.identifier)
+// Object array with identifier (preferred - matches AuthorizationRole.identifier)
 roles: [{ id: 1, identifier: '900_admin', priority: 900 }]
 
 // Object array with name fallback
@@ -586,12 +586,12 @@ AuthorizationEnforcerRegistry.getInstance().register({
 
 ## Custom Filtered Adapter
 
-For most apps, use the ready-made [`ScopedCasbinAdapter`](./api#scopedcasbinadapter) — it reads a single
+For most apps, use the ready-made [`ScopedCasbinAdapter`](./api#scopedcasbinadapter) - it reads a single
 edge table and needs no subclassing. Write a custom adapter only when your storage model differs.
 
 `BaseFilteredAdapter` is now thin: it provides the datasource/connector plumbing, the `isFiltered()`
 flag, no-op write methods, and a `loadLines` helper. A subclass implements **only** `loadFilteredPolicy`
-— query your store for ONE principal's policies and turn them into casbin lines.
+- query your store for ONE principal's policies and turn them into casbin lines.
 
 ```typescript
 import {
@@ -628,7 +628,7 @@ class MyCustomAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
 ```
 
 The base no longer ships template-method hooks (`buildDirectPolicies`/`buildGroupPolicies`/…) or line
-formatters — you own line construction. See `ScopedCasbinAdapter` for a full reference implementation
+formatters - you own line construction. See `ScopedCasbinAdapter` for a full reference implementation
 (role closure, structural trees, soft-delete, schema-qualified SQL).
 
 ## AuthorizationRole Comparison
@@ -704,7 +704,7 @@ import { MetadataRegistry } from '@venizia/ignis';
 
 const registry = MetadataRegistry.getInstance();
 
-// Flat array of principal names — ideal for Casbin policy setup
+// Flat array of principal names - ideal for Casbin policy setup
 const principals = registry.getAuthorizeModelPrincipals({ format: 'array' });
 // ['article', 'user', 'configuration']
 
@@ -729,11 +729,11 @@ For multi-tenant apps where a user holds roles **scoped to specific tenants** (a
 
 There are two ways to do domain scoping:
 
-- **Scoped model (recommended)** — set `isScoped: true` + use `ScopedCasbinAdapter` + the built-in
+- **Scoped model (recommended)** - set `isScoped: true` + use `ScopedCasbinAdapter` + the built-in
   `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`, and supply the request domain **per route** via `spec.domain` (or a
   global `domainResolver`). The enforcer registers the matchers for you; you do not write `domainMatching`
   or `normalizePayloadFn`.
-- **Manual flat model (lower-level)** — keep a flat `g + p` model and register `domainMatching` +
+- **Manual flat model (lower-level)** - keep a flat `g + p` model and register `domainMatching` +
   `normalizePayloadFn` yourself. Documented below under [The model](#the-model).
 
 ### Scoped model + per-route domain (recommended)
@@ -745,7 +745,7 @@ then tell each route where to read its domain from. `IAuthorizationSpec.domain` 
 ```typescript
 import type { IAuthorizationDomainSource, TAuthorizationDomainResolver } from '@venizia/ignis';
 
-// (a) Declarative — read the domain id from a request param/header/query/context var:
+// (a) Declarative - read the domain id from a request param/header/query/context var:
 authorize({
   spec: {
     action: 'read',
@@ -754,7 +754,7 @@ authorize({
   },
 });
 
-// (b) Resolver — compute { type, id } yourself (return null → SYSTEM_WIDE):
+// (b) Resolver - compute { type, id } yourself (return null → SYSTEM_WIDE):
 authorize({
   spec: {
     action: 'read',
@@ -803,9 +803,9 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act == p.act
 ```
 
-- `g = _, _, _` — the membership relation is **domain-aware** (subject, role, domain).
-- `g(r.sub, p.sub, r.dom)` — the registered domain matching function decides whether the request domain matches the stored membership domain (this is what makes `*` a wildcard).
-- `keyMatch(r.dom, p.dom)` — `keyMatch` is a **built-in matcher function** (no registration needed); it lets a permission with `p.dom = "*"` match any request domain.
+- `g = _, _, _` - the membership relation is **domain-aware** (subject, role, domain).
+- `g(r.sub, p.sub, r.dom)` - the registered domain matching function decides whether the request domain matches the stored membership domain (this is what makes `*` a wildcard).
+- `keyMatch(r.dom, p.dom)` - `keyMatch` is a **built-in matcher function** (no registration needed); it lets a permission with `p.dom = "*"` match any request domain.
 
 ### Registering the domain matching function
 
@@ -829,7 +829,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
       name: 'casbin',
       type: AuthorizationEnforcerTypes.CASBIN,
       options: {
-        model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: CASBIN_RBAC_MODEL },
+        model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL },
         adapter,
         cached,
         // For a domain model, normalizePayloadFn MUST always return a `domain`.
@@ -848,7 +848,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
 ```
 
 > [!NOTE]
-> `domainMatching` is opt-in. When omitted, domains are compared as exact strings and behavior is unchanged. The enforcer calls Casbin's `addNamedDomainMatchingFunc(roleDefinition, Util.keyMatchFunc)` internally — you never call it directly.
+> `domainMatching` is opt-in. When omitted, domains are compared as exact strings and behavior is unchanged. The enforcer calls Casbin's `addNamedDomainMatchingFunc(roleDefinition, Util.keyMatchFunc)` internally - you never call it directly.
 
 ### Choosing the matching function
 
@@ -861,26 +861,26 @@ domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MAT
 domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.REGEX_MATCH };  // ^Merchant_.*$
 ```
 
-### All cases — policy lines and outcomes
+### All cases - policy lines and outcomes
 
 Given the model above with `keyMatch` registered on `g`, the request is `enforceSync(subject, domain, resource, action)`:
 
 | Case | Policy lines | Request | Outcome |
 |------|--------------|---------|---------|
 | **Scoped role** (owner/employee in a tenant) | `g, User_u, Role_owner, Merchant_A`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_A, Material.find, read)` | ✅ allow |
-| **Scoped role — isolation** | (same as above) | `(User_u, Merchant_B, Material.find, read)` | ❌ deny (`g` domain doesn't match) |
+| **Scoped role - isolation** | (same as above) | `(User_u, Merchant_B, Material.find, read)` | ❌ deny (`g` domain doesn't match) |
 | **Multi-tenant role** | `g, User_u, Role_owner, Merchant_A`<br/>`g, User_u, Role_owner, Merchant_B`<br/>`p, Role_owner, *, Material.find, read, allow` | `(User_u, Merchant_B, Material.find, read)` | ✅ allow (one `g` line per owned tenant; **single** `p` line) |
 | **Global role** (e.g. guest/onboarding) | `g, User_u, Role_guest, *`<br/>`p, Role_guest, *, Organizer.onBoarding, create, allow` | `(User_u, Merchant_anything, Organizer.onBoarding, create)` | ✅ allow (wildcard `g` domain) |
 | **Direct user permission (scoped)** | `p, User_u, Merchant_A, Report.read, read, allow` | `(User_u, Merchant_A, Report.read, read)` | ✅ allow (reflexive `g(u,u,dom)` + `keyMatch`) |
-| **Direct user permission — isolation** | (same as above) | `(User_u, Merchant_B, Report.read, read)` | ❌ deny |
+| **Direct user permission - isolation** | (same as above) | `(User_u, Merchant_B, Report.read, read)` | ❌ deny |
 | **Deny override** | `p, Role_x, *, Secret.read, read, deny`<br/>`p, Role_y, *, Secret.read, read, allow` | any domain where the user has both roles | ❌ deny (`!some(p.eft == deny)`) |
 
 > [!IMPORTANT]
-> The function is applied as `fn(requestDomain, policyDomain)` — the wildcard belongs on the **stored** side. Store only `*` or exact domain values (never `Merchant_*`) to keep isolation guaranteed.
+> The function is applied as `fn(requestDomain, policyDomain)` - the wildcard belongs on the **stored** side. Store only `*` or exact domain values (never `Merchant_*`) to keep isolation guaranteed.
 
 ### Misconfiguration is caught early
 
-If `roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws — Casbin would otherwise register the function as a silent no-op, leaving wildcard domains permanently unmatched (global roles silently denied):
+If `roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws - Casbin would otherwise register the function as a silent no-op, leaving wildcard domains permanently unmatched (global roles silently denied):
 
 ```typescript
 // model declares `g` only

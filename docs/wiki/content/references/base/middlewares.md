@@ -1,111 +1,110 @@
 ---
 title: Middlewares Reference
-description: Technical reference for IGNIS built-in middlewares
+description: Technical reference for built-in middlewares in IGNIS
 difficulty: intermediate
-lastUpdated: 2026-01-03
+lastUpdated: 2026-06-14
 ---
 
 # Middlewares Reference
 
-IGNIS provides a collection of built-in middlewares for common application needs including error handling, request logging, and favicon serving.
+IGNIS provides built-in middleware functions and a provider-based middleware class for handling common HTTP concerns: error handling, request logging, 404 responses, and favicon serving. These are registered automatically by `BaseApplication` during startup - you do not import or wire them manually.
 
 **Files:**
-- `packages/core/src/base/middlewares/*.ts`
+- `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
+- `packages/core/src/base/middlewares/not-found.middleware.ts`
+- `packages/core/src/base/middlewares/request-spy.middleware.ts`
+- `packages/core/src/base/middlewares/emoji-favicon.middleware.ts`
 
 ## Prerequisites
 
-- [Hono Middleware basics](https://hono.dev/docs/guides/middleware)
-- [IGNIS Application basics](./application.md)
-- Basic understanding of HTTP request/response lifecycle
+Before reading this document, you should understand:
+- [Hono middleware](https://hono.dev/docs/guides/middleware) basics
+- [Application lifecycle](./application.md)
+- [Providers](./providers.md) - `RequestSpyMiddleware` implements `IProvider`
 
 ## Quick Reference
 
-| Middleware | Purpose | Key Options |
-|------------|---------|-------------|
-| `appErrorHandler` | Catches and formats application errors | `logger` |
-| `notFoundHandler` | Handles 404 Not Found responses | `logger` |
-| `RequestSpyMiddleware` | Logs request lifecycle, timing, and parses request body | None |
-| `emojiFavicon` | Serves an emoji as favicon | `icon` |
+| Middleware | Type | Purpose |
+|-----------|------|---------|
+| `appErrorHandler` | `ErrorHandler` | Global error handler (Zod, DB constraints, generic) |
+| `notFoundHandler` | `NotFoundHandler` | JSON 404 response for unknown routes |
+| `RequestSpyMiddleware` | `IProvider<MiddlewareHandler>` | Request/response logging with timing |
+| `emojiFavicon` | `MiddlewareHandler` | Serves an emoji as SVG favicon |
 
-## Table of Contents
+## Default Registration Order
 
-- [Error Handler (`appErrorHandler`)](#error-handler-apporerrorhandler)
-- [Not Found Handler (`notFoundHandler`)](#not-found-handler-notfoundhandler)
-- [Request Spy (`RequestSpyMiddleware`)](#request-spy-requestspymiddleware)
-- [Emoji Favicon](#emoji-favicon)
-- [Creating Custom Middleware](#creating-custom-middleware)
-- [Middleware Order & Priority](#middleware-order--priority)
-- [See Also](#see-also)
-
-## Built-in Middlewares
-
-### Error Handler (`appErrorHandler`)
-
-The error handler middleware catches all unhandled errors in your application and formats them into consistent JSON responses.
-
-**File:** `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
-
-#### Features
-
-- **Automatic Error Formatting**: Converts all errors to structured JSON responses
-- **ZodError Support**: Validation errors surface a schema-driven `messageCode` and `message` (from `params.code`, else the raw Zod code), with the full per-field list under `details.cause`
-- **Database Error Handling**: Returns 400 for SQLSTATE class `22` (data exception) and `23` (integrity) errors, with a fallback message; other classes (e.g. `42` programming errors) stay 500
-- **Production-Safe**: Hides stack traces, error causes, DB driver internals (`detail`/`table`/`constraint`), and raw system messages in production
-- **Request Tracking**: Includes `requestId` for debugging and tracing
-- **Status Code Detection**: Automatically extracts `statusCode` from errors
-
-#### Usage
+`BaseApplication.registerDefaultMiddlewares()` registers middleware in this order during `initialize()`:
 
 ```typescript
-import { appErrorHandler } from '@venizia/ignis';
+protected async registerDefaultMiddlewares() {
+  const server = this.getServer();
 
-const app = new IgnisApplication({
-  // ...
-});
+  // 1. Global error handler
+  server.onError(appErrorHandler({ logger, rootKey }));
 
-// Register error handler
-app.onError(appErrorHandler({
-  logger: app.logger
-}));
-```
-
-#### Error Response Format
-
-**Standard Error:**
-```json
-{
-  "message": "Something went wrong",
-  "statusCode": 500,
-  "requestId": "abc123",
-  "details": {
-    "url": "http://localhost:3000/api/users",
-    "path": "/api/users",
-    "stack": "Error: Something went wrong\n  at ...",  // development only
-    "cause": { ... }  // development only
+  // 2. Async context storage (if enabled)
+  if (this.configs.asyncContext?.enable) {
+    server.use(contextStorage());
   }
+
+  // 3. Not-found handler
+  server.notFound(notFoundHandler({ logger }));
+
+  // 4. RequestTrackerComponent (requestId + RequestSpyMiddleware)
+  this.component(RequestTrackerComponent);
+
+  // 5. Emoji favicon
+  server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
 }
 ```
 
-**Validation Error (ZodError):**
+After `registerDefaultMiddlewares()`, the application calls user-defined `staticConfigure()`, `preConfigure()`, and so on. The user's `setupMiddlewares()` hook runs after `initialize()` but before the server starts.
 
-Top-level `message`/`messageCode` come from the first failing issue — its `params.code` if the schema set one (see below), otherwise its raw Zod code. The full per-field list stays under `details.cause`. If `error.rootKey` is configured, the whole body is wrapped under that key.
+## appErrorHandler
+
+Global error handler registered via `server.onError()`. Handles ZodError validation errors, PostgreSQL constraint violations, and generic errors.
+
+**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
+
+### Signature
+
+```typescript
+function appErrorHandler(opts: {
+  logger: Logger;
+  rootKey?: string;
+}): ErrorHandler
+```
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `logger` | `Logger` | Logger instance for error logging |
+| `rootKey` | `string \| undefined` | Optional root key to wrap the error response object |
+
+### Error Handling Logic
+
+#### 1. ZodError (Validation Errors)
+
+When `error.name === 'ZodError'`, returns HTTP `422 Unprocessable Entity`.
+
+Top-level `message`/`messageCode` come from the first failing issue - its `params.code` if the schema set one, otherwise its raw Zod code. The full per-field list stays under `details.cause`.
 
 ```json
 {
   "message": "Invalid email address",
-  "messageCode": "invalid_type",
+  "messageCode": "user.email.invalid",
   "statusCode": 422,
-  "requestId": "abc123",
+  "requestId": "abc-123",
   "details": {
-    "url": "http://localhost:3000/api/users",
-    "path": "/api/users",
-    "stack": "...",  // development only
+    "url": "http://localhost:3000/users",
+    "path": "/users",
+    "stack": "...(non-production only)",
     "cause": [
       {
         "path": "email",
         "message": "Invalid email address",
-        "code": "invalid_type",
-        "expected": "string"
+        "code": "invalid_string",
+        "expected": "string",
+        "received": "undefined"
       }
     ]
   }
@@ -115,55 +114,71 @@ Top-level `message`/`messageCode` come from the first failing issue — its `par
 To emit a stable, domain-specific `messageCode`, attach `params.code` to a custom check:
 
 ```typescript
-z.string().refine(isEmail, { message: 'Invalid email address', params: { code: 'user.email.invalid' } });
-// → "messageCode": "user.email.invalid"
+z.string().refine(isEmail, {
+  message: 'Invalid email address',
+  params: { code: 'user.email.invalid' }
+});
+// produces "messageCode": "user.email.invalid"
 ```
 
-**Database Constraint Error:**
+#### 2. PostgreSQL Constraint Violations
 
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint) are detected by **class** and returned as 400 Bad Request. A known code uses its specific message; any other in-class code uses `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE` (`"Invalid database request"`).
-
-```json
-// non-production — full driver context for debugging
-{
-  "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
-  "statusCode": 400,
-  "requestId": "abc123",
-  "details": { "url": "...", "path": "/api/users", "stack": "...", "cause": { } }
-}
-```
-
-:::warning Production sanitizes database internals
-In **production** the message is the base message only — `Detail:`/`Table:`/`Constraint:` are stripped (they echo row values and schema names), and `details.stack`/`details.cause` are omitted. Codes outside class 22/23 (e.g. `42703` undefined column) and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak.
-:::
-
-**Database client error classes** — codes in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION) map to HTTP 400. Common codes get a specific message; any other in-class code uses the fallback (`"Invalid database request"`).
+Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
 | Class | Codes with a specific message |
 |-------|-------------------------------|
-| `23` Integrity | `23505` unique · `23503` foreign key · `23502` not null · `23514` check · `23P01` exclusion · `23000` integrity · `23001` restrict |
-| `22` Data exception | `22001` string too long · `22003` numeric range · `22004` null not allowed · `22007` datetime format · `22008` datetime overflow · `22009` tz displacement · `22011` substring · `22012` division by zero · `22023` invalid parameter · `22025` invalid escape · `22026` length mismatch · `22030` duplicate JSON key · `22032` invalid JSON · `22P01` floating-point · `22P02` invalid text · `22P03` invalid binary · `22P05` untranslatable char |
+| `23` Integrity | `23505` unique, `23503` foreign key, `23502` not null, `23514` check, `23P01` exclusion, `23000` integrity, `23001` restrict |
+| `22` Data exception | `22001` string too long, `22003` numeric range, `22004` null not allowed, `22007` datetime format, `22008` datetime overflow, `22009` tz displacement, `22011` substring, `22012` division by zero, `22023` invalid parameter, `22025` invalid escape, `22026` length mismatch, `22030` duplicate JSON key, `22032` invalid JSON, `22P01` floating-point, `22P02` invalid text, `22P03` invalid binary, `22P05` untranslatable char |
 | `44` View check | `44000` WITH CHECK OPTION violation |
 
 :::tip Transient conflicts return 409, not 400/500
-Class `40` (`40001` serialization failure, `40P01` deadlock) is **transient/retryable** and returns **409 Conflict** with `messageCode: "database.conflict"` and a safe "please retry" message — the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
+Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retryable and returns **409 Conflict** with `messageCode: "database.conflict"` and a safe "please retry" message - the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
 :::
 
-#### API Reference
+:::warning Production sanitizes database internals
+In **production** the message is the base message only - `Detail:`/`Table:`/`Constraint:` are stripped (they echo row values and schema names), and `details.stack`/`details.cause` are omitted. Codes outside class 22/23 (e.g. `42703` undefined column) and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak.
+:::
 
-##### `appErrorHandler(options)`
+#### 3. Generic Errors
 
-**Parameters:**
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `logger` | `ApplicationLogger` | Yes | Logger instance for error logging |
+All other errors use the `statusCode` property from the error if present, otherwise default to HTTP `500 Internal Server Error`.
 
-**Returns:** `ErrorHandler` - Hono error handler function
+### Response Format
 
-#### Common Patterns
+```json
+{
+  "message": "Error message",
+  "statusCode": 500,
+  "requestId": "abc-123",
+  "details": {
+    "url": "http://localhost:3000/users",
+    "path": "/users",
+    "stack": "...(non-production only)",
+    "cause": "...(non-production only)"
+  }
+}
+```
+
+When `rootKey` is provided (e.g., `rootKey: 'error'`), the response is wrapped:
+
+```json
+{
+  "error": {
+    "message": "Error message",
+    "statusCode": 500,
+    "requestId": "abc-123",
+    "details": { ... }
+  }
+}
+```
+
+**Production behavior:** `stack` and `cause` fields are omitted when `NODE_ENV` is `'production'`.
+
+### Custom Errors
+
+Throw any error with a `statusCode` property and the handler picks it up:
 
 ```typescript
-// Custom error with status code
 class NotFoundError extends Error {
   statusCode = 404;
 
@@ -173,21 +188,9 @@ class NotFoundError extends Error {
   }
 }
 
-// Throw in controller
-const GetUserConfig = {
-  method: HTTP.Methods.GET,
-  path: '/users/:id',
-  request: {
-    params: z.object({ id: z.string() }),
-  },
-  responses: jsonResponse({
-    schema: z.object({ id: z.string(), name: z.string() }),
-  }),
-} as const;
-
+// In a controller
 @get({ configs: GetUserConfig })
 async getUser(c: TRouteContext) {
-  const { id } = c.req.valid<{ id: string }>('param');
   const user = await this.userRepository.findById(id);
   if (!user) {
     throw new NotFoundError(`User ${id} not found`);
@@ -197,110 +200,108 @@ async getUser(c: TRouteContext) {
 ```
 
 
-### Not Found Handler (`notFoundHandler`)
+## notFoundHandler
 
-Handles requests to routes that don't exist, returning a standardized 404 response.
+Returns a JSON 404 response when no route matches. Registered via `server.notFound()`.
 
-**File:** `packages/core/src/base/middlewares/not-found.middleware.ts`
+**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
 
-#### Usage
+### Signature
 
 ```typescript
-import { notFoundHandler } from '@venizia/ignis';
-
-const app = new IgnisApplication({
-  // ...
-});
-
-// Register 404 handler
-app.notFound(notFoundHandler({
-  logger: app.logger
-}));
+function notFoundHandler(opts: {
+  logger?: Logger;
+}): NotFoundHandler
 ```
 
-#### Response Format
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `logger` | `Logger \| undefined` | Logger instance (defaults to `console`) |
+
+### Response Format
 
 ```json
 {
   "message": "URL NOT FOUND",
-  "path": "/api/nonexistent",
-  "url": "http://localhost:3000/api/nonexistent"
+  "statusCode": 404,
+  "requestId": "abc-123",
+  "path": "/unknown",
+  "url": "http://localhost:3000/unknown"
 }
 ```
 
-**Status Code:** `404 Not Found`
-
-#### API Reference
-
-##### `notFoundHandler(options)`
-
-**Parameters:**
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `logger` | `ApplicationLogger` | No | `console` | Logger instance for logging 404s |
-
-**Returns:** `NotFoundHandler` - Hono not found handler function
+The handler logs the 404 at error level with the request ID, path, and full URL.
 
 
-### Request Spy (`RequestSpyMiddleware`)
+## RequestSpyMiddleware
 
-Logs detailed information about each request including timing, IP address, method, path, query parameters, and request body. Also handles request body parsing for JSON, form data, and text content types.
+A provider-based middleware class that logs incoming request details and outgoing response timing. It extends `BaseHelper` and implements `IProvider<MiddlewareHandler>`.
 
-**File:** `packages/core/src/base/middlewares/request-spy.middleware.ts`
+**Not exported from `@venizia/ignis`** - registered automatically via `RequestTrackerComponent` by `BaseApplication`.
 
-#### Features
-
-- Request lifecycle logging (incoming/outgoing)
-- Performance timing tracking
-- IP address extraction (supports `x-real-ip` and `x-forwarded-for` headers)
-- Request ID tracking
-- Query and body parameter logging (body only logged in non-production)
-- **Request body parsing**: Automatically parses and caches request bodies:
-  - `application/json` → `req.json()`
-  - `multipart/form-data`, `application/x-www-form-urlencoded` → `req.parseBody()`
-  - Other content types (text, html, xml) → `req.text()`
-
-#### Usage
+### Class Definition
 
 ```typescript
-import { RequestSpyMiddleware } from '@venizia/ignis';
+export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
+  static readonly REQUEST_ID_KEY = 'requestId';
 
-const app = new IgnisApplication({
-  // ...
-});
+  constructor() {
+    super({ scope: 'SpyMW' });
+  }
 
-// Create and register spy middleware
-const requestSpy = new RequestSpyMiddleware();
-app.use(requestSpy.value());
+  async parseBody(opts: { req: TContext['req'] }): Promise<unknown>;
+  value(): MiddlewareHandler;
+}
 ```
 
-#### Log Output
+### How It Is Registered
 
-**Request Start:**
+`RequestSpyMiddleware` is not registered directly. Instead, `BaseApplication.registerDefaultMiddlewares()` registers a `RequestTrackerComponent`, which:
+
+1. Adds the `requestId()` middleware from `hono/request-id` to assign a unique ID to every request
+2. Binds `RequestSpyMiddleware` as a singleton provider in the DI container
+3. Resolves the middleware via `IProvider.value()` and registers it with `server.use()`
+
+### Request Logging
+
+In **non-production** mode, logs the full request including query and body:
+
 ```
-[spy][abc123] START  | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET
+[requestId][clientIp][=>] METHOD   /path | query: {...} | body: {...}
 ```
 
-**Request Complete:**
+In **production** mode, body is excluded:
+
 ```
-[spy][abc123] DONE   | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET | Took: 45.23 (ms)
+[requestId][clientIp][=>] METHOD   /path | query: {...}
 ```
 
-#### API Reference
+### Response Logging
 
-##### `RequestSpyMiddleware`
+After the handler completes:
 
-**Class Methods:**
-| Method | Returns | Description |
-|--------|---------|-------------|
-| `value()` | `MiddlewareHandler` | Returns the middleware handler |
+```
+[requestId][clientIp][<=] METHOD   /path | Took: 12.34 (ms)
+```
 
-**Static Properties:**
-| Property | Type | Value | Description |
-|----------|------|-------|-------------|
-| `REQUEST_ID_KEY` | `string` | `'requestId'` | Context key for request ID |
+### Body Parsing
 
-#### Accessing Request ID
+The `parseBody` method parses the request body based on `Content-Type`:
+
+| Content-Type | Parse Method |
+|-------------|-------------|
+| `application/json` | `req.json()` |
+| `multipart/form-data` | `req.parseBody()` |
+| `application/x-www-form-urlencoded` | `req.parseBody()` |
+| Other | `req.text()` |
+
+Returns `null` if no `Content-Type` header or `Content-Length` is `0`/missing. Throws HTTP 400 `'Malformed Body Payload'` on parse failure.
+
+### IP Detection
+
+The middleware resolves the client IP from the connection info or falls back to `x-real-ip` / `x-forwarded-for` headers. If neither is available, it throws HTTP 400 `'Malformed Connection Info'`.
+
+### Accessing the Request ID
 
 ```typescript
 import { RequestSpyMiddleware, get, jsonResponse, TRouteContext, z } from '@venizia/ignis';
@@ -314,75 +315,101 @@ const ExampleConfig = {
   }),
 } as const;
 
-// In a controller
 @get({ configs: ExampleConfig })
 async example(c: TRouteContext) {
   const requestId = c.get(RequestSpyMiddleware.REQUEST_ID_KEY);
-  console.log('Request ID:', requestId);
   return c.json({ requestId }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
-:::warning Performance Impact
-Request spy logs every request detail. Consider disabling or reducing verbosity in production environments with high traffic.
-:::
 
+## emojiFavicon
 
-### Emoji Favicon
+A simple middleware that serves an emoji as an SVG favicon on `/favicon.ico`.
 
-Serves an SVG emoji as the application's favicon, providing a lightweight alternative to traditional favicon files.
+**Not exported from `@venizia/ignis`** - registered automatically by `BaseApplication`.
 
-**File:** `packages/core/src/base/middlewares/emoji-favicon.middleware.ts`
-
-#### Usage
+### Signature
 
 ```typescript
-import { emojiFavicon } from '@venizia/ignis';
+function emojiFavicon(opts: { icon: string }): MiddlewareHandler
+```
 
-const app = new IgnisApplication({
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `icon` | `string` | Emoji character to use as favicon |
+
+### Behavior
+
+- Only intercepts requests to `/favicon.ico`
+- Returns an SVG with `content-type: image/svg+xml`
+- All other requests pass through via `next()`
+
+**Default icon:** The application uses `this.configs.favicon ?? '🔥'` when registering.
+
+
+## Middleware Configuration via IApplicationConfigs
+
+Several middleware behaviors are configured through `IApplicationConfigs`:
+
+```typescript
+interface IApplicationConfigs {
+  favicon?: string;                    // Emoji for emojiFavicon (default: '🔥')
+  error?: { rootKey: string };         // Root key wrapper for appErrorHandler
+  asyncContext?: { enable: boolean };  // Enable Hono contextStorage() middleware
   // ...
-});
-
-// Serve a rocket emoji as favicon
-app.use(emojiFavicon({ icon: '🚀' }));
+}
 ```
 
-#### How It Works
+## User-Defined Middlewares
 
-1. Intercepts requests to `/favicon.ico`
-2. Returns an inline SVG with the specified emoji
-3. Sets `Content-Type: image/svg+xml`
-4. All other requests pass through unchanged
-
-#### API Reference
-
-##### `emojiFavicon(options)`
-
-**Parameters:**
-| Option | Type | Required | Description |
-|--------|------|----------|-------------|
-| `icon` | `string` | Yes | Emoji character to use as favicon |
-
-**Returns:** `MiddlewareHandler` - Hono middleware function
-
-#### Examples
+The `setupMiddlewares()` abstract method on `AbstractApplication` is called after `initialize()` and before the server starts. Use this hook to register additional Hono middlewares via `this.getServer()`:
 
 ```typescript
-// Different emoji icons
-app.use(emojiFavicon({ icon: '🔥' })); // Fire
-app.use(emojiFavicon({ icon: '⚡' })); // Lightning
-app.use(emojiFavicon({ icon: '🎯' })); // Target
-app.use(emojiFavicon({ icon: '🌟' })); // Star
+export class MyApplication extends BaseApplication {
+  async setupMiddlewares() {
+    const server = this.getServer();
+
+    // CORS
+    server.use(cors({ origin: '*' }));
+
+    // Body limit
+    server.use(bodyLimit({ maxSize: 1024 * 1024 })); // 1MB
+
+    // Route-specific
+    server.use('/api/admin/*', adminAuthMiddleware());
+  }
+}
 ```
 
-:::tip Browser Support
-SVG favicons are supported in all modern browsers. Fallback to a traditional `.ico` file if you need to support legacy browsers.
-:::
+The `IMiddlewareConfigs` type defines the shape for configurable middleware options:
+
+```typescript
+interface IMiddlewareConfigs {
+  requestId?: IRequestIdOptions;
+  compress?: ICompressOptions;
+  cors?: ICORSOptions;
+  csrf?: ICSRFOptions;
+  bodyLimit?: IBodyLimitOptions;
+  ipRestriction?: IBaseMiddlewareOptions & IIPRestrictionRules;
+  [extra: string | symbol]: any;
+}
+```
+
+Each option interface extends `IBaseMiddlewareOptions`:
+
+```typescript
+interface IBaseMiddlewareOptions {
+  enable: boolean;
+  path?: string;
+  [extra: string | symbol]: any;
+}
+```
 
 
 ## Creating Custom Middleware
 
-IGNIS uses Hono's middleware system. Create custom middleware using the `createMiddleware` factory:
+IGNIS uses Hono's middleware system. Create custom middleware using the `createMiddleware` factory from `hono/factory`.
 
 ### Basic Middleware
 
@@ -421,19 +448,15 @@ export const myMiddleware = (opts: MyMiddlewareOptions): MiddlewareHandler => {
     await next();
   });
 };
-
-// Usage
-app.use(myMiddleware({ enabled: true, prefix: 'API' }));
 ```
 
 ### Provider-Based Middleware
 
-For middleware requiring dependency injection:
+For middleware requiring dependency injection, implement `IProvider<MiddlewareHandler>`:
 
 ```typescript
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { IProvider } from '@venizia/ignis-inversion';
-import { injectable } from '@venizia/ignis-inversion';
+import { IProvider, injectable } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono';
 
@@ -450,101 +473,17 @@ export class MyMiddleware extends BaseHelper implements IProvider<MiddlewareHand
     });
   }
 }
-
-// Usage
-const myMiddleware = app.get(MyMiddleware);
-app.use(myMiddleware.value());
 ```
 
-
-## Middleware Order & Priority
-
-Middleware execution order matters. Follow these guidelines:
-
-### Recommended Order
+Register and use it inside `setupMiddlewares()`:
 
 ```typescript
-const app = new IgnisApplication({ /* ... */ });
-
-// 1. CORS (if needed)
-app.use(cors());
-
-// 2. Request ID generation
-app.use(requestId());
-
-// 3. Request spy/logging (also handles body parsing)
-const requestSpy = new RequestSpyMiddleware();
-app.use(requestSpy.value());
-
-// 4. Security middleware (helmet, etc.)
-app.use(helmet());
-
-// 5. Rate limiting
-app.use(rateLimit());
-
-// 6. Authentication
-app.use('/api/*', authenticate());
-
-// 7. Favicon (can be early or late)
-app.use(emojiFavicon({ icon: '🚀' }));
-
-// 8. Application routes
-app.mountControllers();
-
-// 9. Error handler (LAST in chain)
-app.onError(appErrorHandler({ logger: app.logger }));
-
-// 10. Not found handler (AFTER error handler)
-app.notFound(notFoundHandler({ logger: app.logger }));
-```
-
-### Key Principles
-
-1. **Request ID First**: Generate request ID before logging
-2. **Request Spy Early**: Log and parse request bodies before business logic
-3. **Security Middleware Before Routes**: Protect routes with security checks
-4. **Error Handler Last**: Catch all errors from previous middleware
-5. **404 Handler After Error Handler**: Ensure unhandled routes return 404
-
-:::warning Order Matters
-Placing error handler before routes will prevent it from catching route errors. Always register error handlers last.
-:::
-
-
-## Common Patterns
-
-### Conditional Middleware
-
-```typescript
-const app = new IgnisApplication({ /* ... */ });
-
-// Enable request spy only in development
-if (process.env.NODE_ENV === 'development') {
-  const requestSpy = new RequestSpyMiddleware();
-  app.use(requestSpy.value());
+export class MyApplication extends BaseApplication {
+  async setupMiddlewares() {
+    const myMiddleware = this.get<MyMiddleware>({ key: 'services.MyMiddleware' });
+    this.getServer().use(myMiddleware.value());
+  }
 }
-```
-
-### Route-Specific Middleware
-
-```typescript
-// Apply middleware to specific routes
-app.use('/api/admin/*', adminAuthMiddleware());
-app.use('/api/public/*', rateLimitMiddleware());
-```
-
-### Middleware Composition
-
-```typescript
-// Combine multiple middleware
-const apiMiddleware = (): MiddlewareHandler => {
-  return createMiddleware(async (context, next) => {
-    // Run multiple middleware in sequence
-    await rateLimit()(context, async () => {
-      await authenticate()(context, next);
-    });
-  });
-};
 ```
 
 
@@ -552,17 +491,7 @@ const apiMiddleware = (): MiddlewareHandler => {
 
 ### Request Spy in Production
 
-Request spy logs detailed information for every request. In high-traffic production environments:
-
-```typescript
-// Conditional request spy
-const isDevelopment = process.env.NODE_ENV === 'development';
-
-if (isDevelopment) {
-  const requestSpy = new RequestSpyMiddleware();
-  app.use(requestSpy.value());
-}
-```
+`RequestSpyMiddleware` logs every request. IGNIS automatically skips body logging in production (`NODE_ENV === 'production'`), but the middleware still runs. For ultra-high-traffic workloads consider sampling strategies or externalizing log aggregation.
 
 ### Error Logging Volume
 
@@ -575,16 +504,12 @@ Error handlers log every error. For high error rates, consider:
 ## See Also
 
 - **Related References:**
-  - [Application](./application.md) - Application setup and configuration
-  - [Controllers](./controllers.md) - HTTP routing and request handling
-  - [Dependency Injection](./dependency-injection.md) - DI container and providers
+  - [Application](./application.md) - Application lifecycle and initialization
+  - [Providers](./providers.md) - Provider pattern (`RequestSpyMiddleware` implements `IProvider`)
+  - [Components](./components.md) - `RequestTrackerComponent`
 
 - **Guides:**
-  - [Building a CRUD API](/guides/tutorials/building-a-crud-api)
-
-- **Best Practices:**
-  - [Troubleshooting Tips](/best-practices/troubleshooting-tips)
+  - [Application Guide](/guides/core-concepts/application/)
 
 - **External Resources:**
   - [Hono Middleware Documentation](https://hono.dev/docs/guides/middleware)
-  - [HTTP Status Codes](https://developer.mozilla.org/en-US/docs/Web/HTTP/Status)

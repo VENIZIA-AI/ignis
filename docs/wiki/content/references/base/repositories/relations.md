@@ -297,7 +297,7 @@ export class User extends BaseEntity<typeof User.schema> {
 | `'many'` | `many()` | One-to-many | User has many Posts |
 
 > [!NOTE]
-> Unlike LoopBack 4's `hasMany`/`hasOne`/`belongsTo` terminology, Ignis uses Drizzle ORM's relation model which has only `one` and `many` types. A "belongsTo" relationship is expressed as `type: 'one'` with `fields` (local FK) and `references` (remote PK) in the metadata.
+> Unlike LoopBack 4's `hasMany`/`hasOne`/`belongsTo` terminology, IGNIS uses Drizzle ORM's relation model which has only `one` and `many` types. A "belongsTo" relationship is expressed as `type: 'one'` with `fields` (local FK) and `references` (remote PK) in the metadata.
 
 ### Example: Post Model with Both Types
 

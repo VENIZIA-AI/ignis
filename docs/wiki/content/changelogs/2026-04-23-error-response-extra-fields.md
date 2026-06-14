@@ -1,5 +1,5 @@
 ---
-title: Error Responses — messageCode & Arbitrary Extra Fields
+title: Error Responses - messageCode & Arbitrary Extra Fields
 description: App error middleware now surfaces messageCode and any extra fields attached to ApplicationError in the JSON error response
 ---
 

@@ -1,24 +1,24 @@
 ---
-title: Socket.IO Integration Fix — Lifecycle Timing & Bun Runtime Support
+title: Socket.IO Integration Fix - Lifecycle Timing & Bun Runtime Support
 description: Fix SocketIOComponent lifecycle timing, add dual-mode (Node/Bun) support to SocketIOServerHelper, add post-start hooks to AbstractApplication, and reimplement socket-io-test example
 ---
 
 # Changelog - 2026-02-06
 
-## Socket.IO Integration Fix — Lifecycle Timing & Bun Runtime Support
+## Socket.IO Integration Fix - Lifecycle Timing & Bun Runtime Support
 
 The `SocketIOComponent` was broken in two ways: (1) it called `getServerInstance()` during `binding()`, but the HTTP server doesn't exist until after `start()` completes; (2) `SocketIOServerHelper` required `node:http.Server`, incompatible with Bun's native server. This release fixes both issues and adds comprehensive Bun runtime support via `@socket.io/bun-engine`.
 
 ## Overview
 
-- **Post-Start Hooks**: New lifecycle hook system in `AbstractApplication` — components can register hooks that execute after the server starts
+- **Post-Start Hooks**: New lifecycle hook system in `AbstractApplication` - components can register hooks that execute after the server starts
 - **Dual-Mode SocketIOServerHelper**: Discriminated union (`runtime: 'node' | 'bun'`) replaces hardcoded HTTP server dependency
 - **SocketIOComponent Rewrite**: Runtime detection, post-start hooks for both Node/Bun, split into clean methods
 - **Generic `getServerInstance()`**: Type-safe server instance access with runtime-specific type parameter
 - **`@socket.io/bun-engine` Support**: Optional peer dependency for Bun runtime Socket.IO
 - **Socket.IO Test Example**: Complete reimplementation with REST + WebSocket simulation endpoints
 - **Async `configure()`**: Redis connections awaited before adapter/emitter initialization
-- **Room Validation**: New `validateRoomFn` callback — joins rejected without it
+- **Room Validation**: New `validateRoomFn` callback - joins rejected without it
 - **Type Aliases**: `TSocketIOAuthenticateFn`, `TSocketIOValidateRoomFn`, `TSocketIOClientConnectedFn`, `TSocketIOEventHandler`
 - **Redis Error Handlers**: All 3 Redis connections now have `.on('error')` handlers
 - **Ping Fix**: Uses local `socket.emit()` instead of Redis emitter
@@ -63,7 +63,7 @@ The constructor now accepts a discriminated union based on `runtime` instead of 
 ```typescript
 const helper = new SocketIOServerHelper({
   identifier: 'my-socket',
-  server: httpServer,          // node:http.Server — required
+  server: httpServer,          // node:http.Server - required
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -76,7 +76,7 @@ const helper = new SocketIOServerHelper({
 const helper = new SocketIOServerHelper({
   runtime: RuntimeModules.NODE,
   identifier: 'my-socket',
-  server: httpServer,          // node:http.Server — required for Node
+  server: httpServer,          // node:http.Server - required for Node
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -92,7 +92,7 @@ const engine = new BunEngine({ path: '/io', cors: { origin: '*' } });
 const helper = new SocketIOServerHelper({
   runtime: RuntimeModules.BUN,
   identifier: 'my-socket',
-  engine,                      // @socket.io/bun-engine — required for Bun
+  engine,                      // @socket.io/bun-engine - required for Bun
   serverOptions,
   redisConnection,
   authenticateFn,
@@ -106,7 +106,7 @@ const helper = new SocketIOServerHelper({
 
 **File:** `packages/core/src/base/applications/abstract.ts`
 
-**Problem:** Components need to access the server instance (for Socket.IO, WebSocket upgrades, etc.), but the server only exists after `start()`. The `binding()` phase runs during `initialize()` — too early.
+**Problem:** Components need to access the server instance (for Socket.IO, WebSocket upgrades, etc.), but the server only exists after `start()`. The `binding()` phase runs during `initialize()` - too early.
 
 **Solution:** Components register hooks during `binding()` that execute after `startBunModule()` / `startNodeModule()` completes.
 
@@ -133,7 +133,7 @@ start()
 **Benefits:**
 - Components no longer need to override `start()` to access the server instance
 - Hooks execute in registration order with performance logging
-- Clean separation of concerns — components declare what they need, framework handles timing
+- Clean separation of concerns - components declare what they need, framework handles timing
 
 ### 2. Dual-Mode SocketIOServerHelper (Node.js + Bun)
 
@@ -174,7 +174,7 @@ switch (this.runtime) {
 
 **Benefits:**
 - Single helper class works for both runtimes
-- Type-safe — discriminated union prevents passing wrong options
+- Type-safe - discriminated union prevents passing wrong options
 - `getEngine()` method exposes bun-engine instance when needed
 - All shared logic (Redis adapter, emitter, connection handling) remains unified
 
@@ -216,9 +216,9 @@ export type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServe
 
 **Solution:** Split into three methods + runtime detection:
 
-- `resolveBindings()` — Resolves server options, Redis connection, auth/connect handlers from application bindings
-- `registerBunHook()` — Registers post-start hook: dynamically imports `@socket.io/bun-engine`, creates engine, creates helper, wires into `Bun.Server.reload()` for request routing
-- `registerNodeHook()` — Registers post-start hook: gets HTTP server instance, creates helper
+- `resolveBindings()` - Resolves server options, Redis connection, auth/connect handlers from application bindings
+- `registerBunHook()` - Registers post-start hook: dynamically imports `@socket.io/bun-engine`, creates engine, creates helper, wires into `Bun.Server.reload()` for request routing
+- `registerNodeHook()` - Registers post-start hook: gets HTTP server instance, creates helper
 
 ```typescript
 override binding(): ValueOrPromise<void> {
@@ -242,7 +242,7 @@ override binding(): ValueOrPromise<void> {
 ```
 
 **Bun mode specifics:**
-- CORS type bridging — extracts individual fields to avoid `socket.io` vs `bun-engine` type mismatch (no `as any`)
+- CORS type bridging - extracts individual fields to avoid `socket.io` vs `bun-engine` type mismatch (no `as any`)
 - Wires engine into running Bun server via `serverInstance.reload({ fetch, websocket })`
 - Uses early return pattern for non-Socket.IO requests
 
@@ -260,15 +260,15 @@ getServerInstance<
 
 Usage:
 ```typescript
-// Bun runtime — get typed Bun server
+// Bun runtime - get typed Bun server
 const server = this.application.getServerInstance<TBunServerInstance>();
 server!.reload({ ... });
 
-// Node runtime — get typed Node server
+// Node runtime - get typed Node server
 const server = this.application.getServerInstance<TNodeServerInstance>();
 ```
 
-### 6. Socket.IO Test Example — Complete Reimplementation
+### 6. Socket.IO Test Example - Complete Reimplementation
 
 **Directory:** `examples/socket-io-test/`
 
@@ -277,7 +277,7 @@ Reimplemented to properly use `SocketIOComponent` instead of manual workarounds.
 **Application changes:**
 - Uses `RedisHelper` instead of manual `new Redis()` + `DefaultRedisHelper`
 - Clean `setupSocketIO()` method: binds Redis, auth handler, client connected handler, registers `SocketIOComponent`
-- No more `override start()` — the component handles lifecycle via post-start hooks
+- No more `override start()` - the component handles lifecycle via post-start hooks
 
 **New REST endpoints (controller):**
 
@@ -323,20 +323,20 @@ Run with `bun client.ts`. Creates two clients and runs all test cases automatica
 5. Echo round-trip (socket event)
 6. Get clients (socket event)
 7. Join room (socket event)
-8. Chat broadcast (socket event — sender to receiver)
-9. Chat to room (socket event — sender to room members)
+8. Chat broadcast (socket event - sender to receiver)
+9. Chat to room (socket event - sender to room members)
 10. Leave room (socket event)
 11. Join room (REST) + verify rooms list
 12. Leave room (REST) + verify rooms list
-13. Send to specific client (REST — verify receiver gets it)
-14. Send to room (REST — verify listener gets it)
-15. Broadcast (REST — verify both clients receive)
+13. Send to specific client (REST - verify receiver gets it)
+14. Send to room (REST - verify listener gets it)
+15. Broadcast (REST - verify both clients receive)
 
 ## Bug Fixes & Improvements (Review Pass)
 
 ### 1. Ping Uses Local Socket Instead of Redis Emitter
 
-**Problem:** Server pings were sent via `this.send()` which routes through the Redis emitter — unnecessary overhead for a keep-alive that only targets the local socket.
+**Problem:** Server pings were sent via `this.send()` which routes through the Redis emitter - unnecessary overhead for a keep-alive that only targets the local socket.
 
 **Fix:** Changed to `socket.emit(SocketIOConstants.EVENT_PING, ...)` for direct local delivery.
 
@@ -346,11 +346,11 @@ Run with `bun client.ts`. Creates two clients and runs all test cases automatica
 
 **Fix:** Error handlers are now registered on all three connections before awaiting readiness.
 
-### 3. `configure()` Now Async — Awaits Redis Readiness
+### 3. `configure()` Now Async - Awaits Redis Readiness
 
 **Problem:** `configure()` was synchronous and called in the constructor. Redis `duplicate()` connections might not be ready when the adapter/emitter tries to use them.
 
-**Fix:** `configure()` is now `async` and uses `waitForRedisReady()` with `Promise.all()` to ensure all three Redis connections are ready before initializing the IO server, adapter, and emitter. Removed `this.configure()` from constructor — both component hooks now call `await socketIOHelper.configure()`.
+**Fix:** `configure()` is now `async` and uses `waitForRedisReady()` with `Promise.all()` to ensure all three Redis connections are ready before initializing the IO server, adapter, and emitter. Removed `this.configure()` from constructor - both component hooks now call `await socketIOHelper.configure()`.
 
 ### 4. Room Join Requires `validateRoomFn`
 
@@ -397,14 +397,14 @@ The `close()` method is now private. Use `shutdown()` for graceful cleanup (whic
 
 The `SocketIOServerHelper` file was reorganized into clear sections with consistent separators:
 
-- **Fields** — grouped by concern (Runtime & Server, Socket.IO, Redis, Callbacks, Options)
-- **Constructor** — with extracted `setRuntime()` and `initRedisClients()` methods
-- **Public Accessors** — `getIOServer()`, `getEngine()`, `getClients()`, `on()`
-- **Configuration** — async `configure()` with `waitForRedisReady()` and `initIOServer()`
-- **Connection Lifecycle** — `onClientConnect()`, `registerAuthHandler()`, `onClientAuthenticated()`, `registerRoomHandlers()`
-- **Client Actions** — `ping()`, `disconnect()`
-- **Messaging** — `send()`
-- **Shutdown** — private `close()`, public `shutdown()`
+- **Fields** - grouped by concern (Runtime & Server, Socket.IO, Redis, Callbacks, Options)
+- **Constructor** - with extracted `setRuntime()` and `initRedisClients()` methods
+- **Public Accessors** - `getIOServer()`, `getEngine()`, `getClients()`, `on()`
+- **Configuration** - async `configure()` with `waitForRedisReady()` and `initIOServer()`
+- **Connection Lifecycle** - `onClientConnect()`, `registerAuthHandler()`, `onClientAuthenticated()`, `registerRoomHandlers()`
+- **Client Actions** - `ping()`, `disconnect()`
+- **Messaging** - `send()`
+- **Shutdown** - private `close()`, public `shutdown()`
 
 ## Dependencies
 
@@ -495,7 +495,7 @@ If using `SocketIOComponent` with Bun, install the engine:
 bun add @socket.io/bun-engine
 ```
 
-No code changes needed — the component auto-detects runtime and dynamically imports the engine.
+No code changes needed - the component auto-detects runtime and dynamically imports the engine.
 
 ### Step 4: Add `validateRoomFn` If Using Room Joins
 
@@ -505,7 +505,7 @@ If your clients use the `join` event to join rooms, you **must** now provide a `
 this.bind<TSocketIOValidateRoomFn>({
   key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
 }).toValue(({ socket, rooms }) => {
-  // Return allowed rooms — empty array rejects all
+  // Return allowed rooms - empty array rejects all
   return rooms;
 });
 ```

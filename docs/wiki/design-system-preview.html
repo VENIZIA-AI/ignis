@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGNIS · Design System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0B0A0C; --surface:#131114; --line:rgba(255,255,255,.09);
+    --text:#EDE7EA; --text-2:#B4ABB0; --text-3:#8C828A; --faint:#6E646A;
+    --rose:#AF5F5F; --rose-lt:#C98A8A; --coral:#D98E6A; --gold:#E5B567;
+    --grad:linear-gradient(115deg,#AF5F5F,#D98E6A 52%,#E5B567);
+    /* spacing 8pt grid */
+    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px; --s8:64px; --s9:96px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:'Inter',system-ui,sans-serif;-webkit-font-smoothing:antialiased;line-height:1.6}
+  .wrap{max-width:920px;margin:0 auto;padding:0 var(--s7)}
+  header{padding:var(--s9) 0 var(--s7);border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--coral);margin-bottom:var(--s3)}
+  header h1{font-size:39px;line-height:1.15;letter-spacing:-.03em;font-weight:800;margin-bottom:var(--s4)}
+  header h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  header p{font-size:18px;line-height:1.6;color:var(--text-2);max-width:62ch}
+  header p b{color:var(--text)}
+  section{padding:var(--s8) 0;border-bottom:1px solid var(--line)}
+  .sec-label{font-size:12px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--rose-lt);margin-bottom:var(--s2)}
+  .sec-title{font-size:25px;font-weight:700;letter-spacing:-.02em;margin-bottom:var(--s2)}
+  .sec-desc{font-size:15px;color:var(--text-3);margin-bottom:var(--s6);max-width:64ch}
+
+  /* type scale */
+  .trow{display:grid;grid-template-columns:130px 1fr;gap:var(--s5);align-items:baseline;padding:var(--s3) 0;border-top:1px solid var(--line)}
+  .trow:first-of-type{border-top:0}
+  .tmeta{font:500 12.5px/1.5 'JetBrains Mono',monospace;color:var(--text-3)}
+  .tmeta b{color:var(--rose-lt);font-weight:600}
+  .tsample{letter-spacing:-.02em;color:var(--text);overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+
+  /* color */
+  .swgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s4)}
+  .sw{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface)}
+  .sw .chip{height:74px}
+  .sw .meta{padding:var(--s3) var(--s4) var(--s4)}
+  .sw .nm{font-size:13.5px;font-weight:600;margin-bottom:2px}
+  .sw .hex{font:500 11.5px 'JetBrains Mono',monospace;color:var(--text-3);margin-bottom:var(--s2)}
+  .badge{display:inline-block;font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px}
+  .pass{background:rgba(157,191,142,.16);color:#9DBF8E}
+  .warn{background:rgba(229,181,103,.16);color:var(--gold)}
+  .use{font-size:11px;color:var(--text-3);margin-top:6px;line-height:1.45}
+
+  /* buttons demo */
+  .btns{display:flex;gap:var(--s4);align-items:center;flex-wrap:wrap;margin-top:var(--s2)}
+  .btn{font-size:15px;font-weight:700;border-radius:8px;padding:12px 22px;border:1px solid transparent}
+  .btn-1{background:var(--rose);color:#fff}
+  .btn-2{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--text)}
+  .btn-bad{background:var(--rose);color:#1A0D0D}
+  .anno{font:500 12px 'JetBrains Mono',monospace;color:var(--text-3)}
+
+  /* spacing */
+  .sprow{display:flex;align-items:center;gap:var(--s4);padding:7px 0}
+  .sprow .lab{width:120px;font:500 12.5px 'JetBrains Mono',monospace;color:var(--text-3)}
+  .sprow .lab b{color:var(--rose-lt)}
+  .spbar{height:18px;background:var(--grad);border-radius:4px}
+
+  /* measure demo */
+  .measure{max-width:70ch;font-size:16px;line-height:1.6;color:var(--text-2)}
+  .measure .mk{color:var(--rose-lt);font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:var(--s7)}
+  .rulecard{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:var(--s5)}
+  .rulecard h4{font-size:14px;font-weight:700;margin-bottom:var(--s3);color:var(--coral)}
+  .rulecard li{font-size:13.5px;color:var(--text-2);list-style:none;padding:5px 0;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:var(--s4)}
+  .rulecard li:first-child{border-top:0}
+  .rulecard code{font:500 12.5px 'JetBrains Mono',monospace;color:var(--rose-lt)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="eyebrow">Foundations</div>
+    <h1>IGNIS <span class="g">Design System</span></h1>
+    <p>Mọi giá trị bắt nguồn từ chuẩn: body <b>16px</b>, type scale <b>Major Third 1.25</b>, spacing <b>8-point grid</b>, contrast <b>WCAG 2.1 AA</b> (4.5:1 chữ thường / 3:1 chữ lớn), measure <b>≤ 70ch</b>, line-height body <b>1.6</b>.</p>
+  </header>
+
+  <section>
+    <div class="sec-label">Typography</div>
+    <div class="sec-title">Type scale - base 16 × ratio 1.25</div>
+    <div class="sec-desc">Major Third (1.25) - cân bằng, đúng chuẩn Material Design. 12-14px là bậc UI tinh chỉnh dưới base.</div>
+    <div class="trow"><div class="tmeta"><b>hero</b><br>61px · lh 1.05</div><div class="tsample" style="font-size:61px;font-weight:800;line-height:1.05">Enterprise APIs</div></div>
+    <div class="trow"><div class="tmeta"><b>display</b><br>49px · lh 1.1</div><div class="tsample" style="font-size:49px;font-weight:800;line-height:1.1">Build something</div></div>
+    <div class="trow"><div class="tmeta"><b>h1</b><br>39px · lh 1.15</div><div class="tsample" style="font-size:39px;font-weight:800;line-height:1.15">Page heading</div></div>
+    <div class="trow"><div class="tmeta"><b>h2</b><br>31px · lh 1.2</div><div class="tsample" style="font-size:31px;font-weight:700;line-height:1.2">Section heading</div></div>
+    <div class="trow"><div class="tmeta"><b>h3</b><br>25px · lh 1.25</div><div class="tsample" style="font-size:25px;font-weight:700">Subsection heading</div></div>
+    <div class="trow"><div class="tmeta"><b>h4</b><br>20px · lh 1.3</div><div class="tsample" style="font-size:20px;font-weight:600">Card / minor heading</div></div>
+    <div class="trow"><div class="tmeta"><b>lede</b><br>18px · lh 1.6</div><div class="tsample" style="font-size:18px;color:var(--text-2)">Intro paragraph - slightly larger body</div></div>
+    <div class="trow"><div class="tmeta"><b>body</b><br>16px · lh 1.6</div><div class="tsample" style="font-size:16px;color:var(--text-2)">Base body text for all documentation prose</div></div>
+    <div class="trow"><div class="tmeta"><b>small</b><br>14px · lh 1.5</div><div class="tsample" style="font-size:14px;color:var(--text-3)">Secondary text, tables, inline code</div></div>
+    <div class="trow"><div class="tmeta"><b>caption</b><br>12px · lh 1.4</div><div class="tsample" style="font-size:12px;color:var(--text-3);letter-spacing:.04em">CAPTIONS · OVERLINE LABELS · BADGES</div></div>
+  </section>
+
+  <section>
+    <div class="sec-label">Color · WCAG AA verified</div>
+    <div class="sec-title">Tokens - đo contrast thật trên nền #0B0A0C</div>
+    <div class="sec-desc">Mỗi token ghi tỉ lệ contrast đo bằng công thức WCAG 2.1. Token "large-only" KHÔNG dùng cho chữ thường.</div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--text-3);margin-bottom:var(--s4)">NEUTRALS</div>
+    <div class="swgrid">
+      <div class="sw"><div class="chip" style="background:#EDE7EA"></div><div class="meta"><div class="nm">text</div><div class="hex">#EDE7EA</div><span class="badge pass">16.2:1 · AAA</span><div class="use">Body chính, headings</div></div></div>
+      <div class="sw"><div class="chip" style="background:#B4ABB0"></div><div class="meta"><div class="nm">text-2</div><div class="hex">#B4ABB0</div><span class="badge pass">8.84:1 · AAA</span><div class="use">Body phụ, lede, mô tả</div></div></div>
+      <div class="sw"><div class="chip" style="background:#8C828A"></div><div class="meta"><div class="nm">text-3</div><div class="hex">#8C828A</div><span class="badge pass">5.34:1 · AA</span><div class="use">Muted nhỏ nhất còn đọc tốt</div></div></div>
+      <div class="sw"><div class="chip" style="background:#6E646A"></div><div class="meta"><div class="nm">faint</div><div class="hex">#6E646A</div><span class="badge warn">3.48:1 · large-only</span><div class="use">Chỉ chữ ≥24px / trang trí</div></div></div>
+    </div>
+    <div style="font-size:12px;font-weight:700;letter-spacing:.1em;color:var(--text-3);margin:var(--s6) 0 var(--s4)">BRAND</div>
+    <div class="swgrid">
+      <div class="sw"><div class="chip" style="background:#AF5F5F"></div><div class="meta"><div class="nm">rose - primary</div><div class="hex">#AF5F5F</div><span class="badge warn">4.35:1 · fill/large</span><div class="use">Nút, accent lớn. KHÔNG cho chữ nhỏ trên nền tối.</div></div></div>
+      <div class="sw"><div class="chip" style="background:#C98A8A"></div><div class="meta"><div class="nm">rose-lt - link</div><div class="hex">#C98A8A</div><span class="badge pass">7.04:1 · AAA</span><div class="use">Link/chữ accent trên nền tối</div></div></div>
+      <div class="sw"><div class="chip" style="background:#D98E6A"></div><div class="meta"><div class="nm">coral</div><div class="hex">#D98E6A</div><span class="badge pass">7.55:1 · AAA</span><div class="use">Eyebrow, decorator code</div></div></div>
+      <div class="sw"><div class="chip" style="background:#E5B567"></div><div class="meta"><div class="nm">gold</div><div class="hex">#E5B567</div><span class="badge pass">10.5:1 · AAA</span><div class="use">Accent, keyword code, gradient end</div></div></div>
+    </div>
+    <div style="margin-top:var(--s6);display:flex;gap:var(--s7);align-items:center;flex-wrap:wrap">
+      <div>
+        <div class="anno" style="margin-bottom:8px">Primary button - fix contrast:</div>
+        <div class="btns">
+          <button class="btn btn-1">White on rose ✓</button>
+          <span class="anno" style="color:#9DBF8E">4.54:1 AA</span>
+          <button class="btn btn-bad">Dark on rose ✗</button>
+          <span class="anno" style="color:var(--gold)">4.18:1 FAIL</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="grid2">
+      <div>
+        <div class="sec-label">Spacing</div>
+        <div class="sec-title">8-point grid</div>
+        <div class="sec-desc" style="margin-bottom:var(--s5)">4px là half-step (padding trong component nhỏ), 8px+ cho khoảng cách giữa các khối.</div>
+        <div class="sprow"><div class="lab"><b>s1</b> 4px</div><div class="spbar" style="width:4px"></div></div>
+        <div class="sprow"><div class="lab"><b>s2</b> 8px</div><div class="spbar" style="width:8px"></div></div>
+        <div class="sprow"><div class="lab"><b>s3</b> 12px</div><div class="spbar" style="width:12px"></div></div>
+        <div class="sprow"><div class="lab"><b>s4</b> 16px</div><div class="spbar" style="width:16px"></div></div>
+        <div class="sprow"><div class="lab"><b>s5</b> 24px</div><div class="spbar" style="width:24px"></div></div>
+        <div class="sprow"><div class="lab"><b>s6</b> 32px</div><div class="spbar" style="width:32px"></div></div>
+        <div class="sprow"><div class="lab"><b>s7</b> 48px</div><div class="spbar" style="width:48px"></div></div>
+        <div class="sprow"><div class="lab"><b>s8</b> 64px</div><div class="spbar" style="width:64px"></div></div>
+        <div class="sprow"><div class="lab"><b>s9</b> 96px</div><div class="spbar" style="width:96px"></div></div>
+      </div>
+      <div>
+        <div class="sec-label">Reading</div>
+        <div class="sec-title">Measure &amp; rhythm</div>
+        <div class="sec-desc" style="margin-bottom:var(--s5)">Độ dài dòng quyết định mỏi mắt. Giới hạn prose ≤ 70ch.</div>
+        <div class="measure">Dòng văn bản nên dài <span class="mk">50-75 ký tự</span> (66 là tối ưu - Bringhurst). Khối này giới hạn <span class="mk">max-width: 70ch</span>, line-height <span class="mk">1.6</span>, căn trái. Quá dài gây mỏi khi nhảy dòng; quá ngắn phá nhịp đọc.</div>
+        <div class="rulecard" style="margin-top:var(--s5)">
+          <h4>Quy chuẩn rút gọn</h4>
+          <li><span>Body</span><code>16px / lh 1.6</code></li>
+          <li><span>Measure (prose)</span><code>≤ 70ch</code></li>
+          <li><span>Type ratio</span><code>1.25</code></li>
+          <li><span>Spacing grid</span><code>8pt (4 half)</code></li>
+          <li><span>Contrast tối thiểu</span><code>AA 4.5:1</code></li>
+          <li><span>Radii</span><code>8 / 12 / 16 / 24</code></li>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section style="border-bottom:0">
+    <div class="sec-desc" style="color:var(--text-3);max-width:70ch">Rendered reference for the IGNIS docs design system. Canonical tokens live in
+      <code>site/.vitepress/theme/design-tokens.css</code>; the written spec is in <code>DESIGN-SYSTEM.md</code>.
+      Every value above is grounded in WCAG 2.1, a 1.25 modular type scale, and an 8-point spacing grid.</div>
+  </section>
+
+</div>
+</body>
+</html>

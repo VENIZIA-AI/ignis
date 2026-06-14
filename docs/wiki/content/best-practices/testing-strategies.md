@@ -1,6 +1,6 @@
 # Testing Strategies
 
-Comprehensive testing guide for Ignis applications using Bun's built-in test runner.
+Comprehensive testing guide for IGNIS applications using Bun's built-in test runner.
 
 ## Testing Philosophy
 
@@ -245,7 +245,7 @@ describe('UserRepository', () => {
   describe('find', () => {
     beforeEach(async () => {
       // Seed test data
-      await repo.createMany({
+      await repo.createAll({
         data: [
           { email: 'alice@test.com', name: 'Alice', status: 'ACTIVE' },
           { email: 'bob@test.com', name: 'Bob', status: 'ACTIVE' },
@@ -305,7 +305,7 @@ describe('UserRepository', () => {
 
       // Create posts for the user
       const postRepo = new PostRepository(TestDatabase.getDb());
-      await postRepo.createMany({
+      await postRepo.createAll({
         data: [
           { title: 'Post 1', authorId: user.data!.id },
           { title: 'Post 2', authorId: user.data!.id },

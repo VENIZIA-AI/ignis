@@ -21,7 +21,7 @@
 | **authorize** | Standalone function wrapping `AuthorizationProvider.value()` |
 | **AuthorizationRole** | Value object for role identity with priority-based comparison |
 | **BaseFilteredAdapter** | Thin abstract casbin `FilteredAdapter` (datasource plumbing + `loadLines`); subclasses implement only `loadFilteredPolicy` |
-| **ScopedCasbinAdapter** | Generic read-only `FilteredAdapter` for the scoped RBAC model — reads one principal's edges + the shared hierarchy from a single `PolicyDefinition` table |
+| **ScopedCasbinAdapter** | Generic read-only `FilteredAdapter` for the scoped RBAC model - reads one principal's edges + the shared hierarchy from a single `PolicyDefinition` table |
 | **AbstractAuthRegistry** | Shared base class for authentication strategy registry and authorization enforcer registry |
 
 ### Authorization Flow (7 Steps)
@@ -147,7 +147,7 @@ Built-in Casbin matching functions selectable for `ICasbinEnforcerOptions.domain
 `CasbinDomainMatchingFunctions.SCHEME_SET` contains all valid values. `CasbinDomainMatchingFunctions.isValid(input)` checks membership. Companion type: `TCasbinDomainMatchingFunction`.
 
 > [!IMPORTANT]
-> The function is applied as `fn(requestDomain, policyDomain)` — the wildcard must live on the **stored/policy** side. With `keyMatch`: `keyMatch("Merchant_X", "*") === true`, `keyMatch("Merchant_X", "Merchant_X") === true`, `keyMatch("Merchant_X", "Merchant_Y") === false`. Store only `*` or exact domain values (never partial patterns like `Merchant_*`) to keep tenant isolation guaranteed.
+> The function is applied as `fn(requestDomain, policyDomain)` - the wildcard must live on the **stored/policy** side. With `keyMatch`: `keyMatch("Merchant_X", "*") === true`, `keyMatch("Merchant_X", "Merchant_X") === true`, `keyMatch("Merchant_X", "Merchant_Y") === false`. Store only `*` or exact domain values (never partial patterns like `Merchant_*`) to keep tenant isolation guaranteed.
 
 ### Casbin Rule Variants
 
@@ -345,7 +345,7 @@ import {
   CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
 } from '@venizia/ignis';
 
-// The generic scoped adapter — reads one principal's edges + the shared hierarchy from a single
+// The generic scoped adapter - reads one principal's edges + the shared hierarchy from a single
 // PolicyDefinition edge table. No subclassing; configure it with IScopedCasbinEntities.
 const adapter = new ScopedCasbinAdapter({
   dataSource,
@@ -381,7 +381,7 @@ AuthorizationEnforcerRegistry.getInstance().register({
         },
       },
       // poolSize / poolAcquireTimeoutMs are optional (defaults 16 / 5000ms).
-      // In scoped mode you do NOT pass domainMatching or normalizePayloadFn — the request domain
+      // In scoped mode you do NOT pass domainMatching or normalizePayloadFn - the request domain
       // is supplied by the provider's domain resolver (see "Domain scoping" in usage.md).
     },
   }],
@@ -493,7 +493,7 @@ Casbin-specific options, provided per-enforcer via `AuthorizationEnforcerRegistr
 | `poolSize` | `number` | `16` | Number of pooled enforcers (each request enforces on its own) |
 | `poolAcquireTimeoutMs` | `number` | `5000` | Max ms to wait for a free pooled enforcer before failing closed |
 | `normalizePayloadFn` | `(opts) => { subject, resource, action, domain? }` | -- | (Non-scoped/custom) normalize subject/resource/action before evaluation |
-| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | -- | (Non-scoped) opt-in domain matching function on a role definition. **Not needed when `isScoped: true`** — the scoped model registers its matchers automatically |
+| `domainMatching` | `{ roleDefinition: string; fn: TCasbinDomainMatchingFunction }` | -- | (Non-scoped) opt-in domain matching function on a role definition. **Not needed when `isScoped: true`** - the scoped model registers its matchers automatically |
 
 ```typescript
 interface ICasbinEnforcerOptions<
@@ -532,7 +532,7 @@ interface ICasbinEnforcerOptions<
   };
 
   // Non-scoped only. Registers a Casbin domain matching function on the named role definition.
-  // When isScoped is true, the scoped model registers its own matchers — do not set this.
+  // When isScoped is true, the scoped model registers its own matchers - do not set this.
   domainMatching?: {
     roleDefinition: string; // e.g. 'g'
     fn: TCasbinDomainMatchingFunction;
@@ -548,7 +548,7 @@ interface ICasbinEnforcerOptions<
 The `cached` field is a discriminated union. **Caching is Redis-only** (the in-memory driver was removed):
 
 ```typescript
-// No caching — every request rebuilds the user's policy from the datasource.
+// No caching - every request rebuilds the user's policy from the datasource.
 interface { use: false }
 
 // Redis cache (store/retrieve the user's policy lines from Redis, TTL via PX).
@@ -743,7 +743,7 @@ buildRouteMiddlewares<RouteConfig extends IAuthRouteConfig>(opts: { configs: Rou
     mws.push(authenticateFn({ strategies, mode }));
   }
 
-  // 2. Authorize middleware (second) — supports single or array
+  // 2. Authorize middleware (second) - supports single or array
   if (authorize) {
     const specs = Array.isArray(authorize) ? authorize : [authorize];
     for (const spec of specs) {
@@ -771,7 +771,7 @@ buildRpcMiddlewares(opts: { configs: IRpcMetadata }): TRpcMiddleware[] {
   // 1. Authenticate middleware
   if (configs.authenticate) { ... }
 
-  // 2. Authorize middleware — same pattern as REST
+  // 2. Authorize middleware - same pattern as REST
   if (configs.authorize) {
     const specs = Array.isArray(configs.authorize) ? configs.authorize : [configs.authorize];
     for (const spec of specs) {

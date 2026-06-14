@@ -1,6 +1,6 @@
 # MCP Docs Server: Deep Dive
 
-This document provides a detailed look into the architecture, features, and internal workings of the Ignis Documentation MCP Server. For a guide on how to use the server, see the [MCP Docs Server Quickstart](/guides/reference/mcp-docs-server).
+This document provides a detailed look into the architecture, features, and internal workings of the IGNIS Documentation MCP Server. For a guide on how to use the server, see the [MCP Docs Server Quickstart](/guides/reference/mcp-docs-server).
 
 ---
 
@@ -98,7 +98,7 @@ sequenceDiagram
     participant Helper as GitHubHelper
     participant API as GitHub API
 
-    AI->>MCP: searchCode("BaseController")
+    AI->>MCP: searchCode("BaseRestController")
     MCP->>Tool: Route to tool handler
     Tool->>Helper: GitHubHelper.searchCode()
     Helper->>API: GET /search/code
@@ -114,7 +114,7 @@ sequenceDiagram
 
 ### 1. Documentation Tools
 
-Tools for accessing the Ignis Framework wiki and guide documentation.
+Tools for accessing the IGNIS Framework wiki and guide documentation.
 
 | Tool | Purpose | Use Case |
 |------|---------|----------|
@@ -158,11 +158,11 @@ Retrieves high-level information about specific framework packages.
 
 ### 2. Code & Project Tools
 
-Tools for exploring the Ignis codebase, searching source code, and verifying dependencies via GitHub.
+Tools for exploring the IGNIS codebase, searching source code, and verifying dependencies via GitHub.
 
 | Tool | Purpose | Use Case |
 |------|---------|----------|
-| `searchCode` | Search source code | "Find usages of BaseController" |
+| `searchCode` | Search source code | "Find usages of BaseRestController" |
 | `listProjectFiles` | List repo files | "Show me files in packages/core" |
 | `viewSourceFile` | Read source code | "Read packages/core/src/index.ts" |
 | `verifyDependencies` | Check package.json | "Check dependencies for @venizia/core" |
@@ -611,7 +611,7 @@ DEBUG=docs:cache ignis-docs-mcp
 
 ### Contributing
 
-Want to add features or fix bugs? See the main Ignis repository:
+Want to add features or fix bugs? See the main IGNIS repository:
 
 - **Repository**: https://github.com/venizia-ai/ignis
 - **Issues**: Report bugs or request features

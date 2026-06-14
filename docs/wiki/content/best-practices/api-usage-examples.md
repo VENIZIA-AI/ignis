@@ -1,6 +1,6 @@
 # API Usage Examples
 
-Practical examples for defining endpoints and working with data in Ignis applications.
+Practical examples for defining endpoints and working with data in IGNIS applications.
 
 ## Routing Patterns
 
@@ -229,7 +229,7 @@ const deleted = await configurationRepository.deleteById({
 
 ## Server-Side Rendering (JSX)
 
-Ignis supports server-side rendering using Hono's JSX middleware. This is useful for returning HTML content, such as landing pages or simple admin views.
+IGNIS supports server-side rendering using Hono's JSX middleware. This is useful for returning HTML content, such as landing pages or simple admin views.
 
 **Usage:**
 
@@ -250,7 +250,7 @@ export class PageController extends BaseRestController {
         responses: htmlResponse({ description: 'HTML Welcome Page' }),
       },
       handler: (c) => {
-        const title = 'Welcome to Ignis';
+        const title = 'Welcome to IGNIS';
         
         // Return JSX directly
         return c.html(

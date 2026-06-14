@@ -74,7 +74,7 @@ controller: {
 
 **File:** `packages/core/src/base/controllers/common/types.ts`
 
-**Problem:** `context.json(body)` accepted any body — a handler could return a shape that didn't match its declared OpenAPI response schema, with no compile-time check.
+**Problem:** `context.json(body)` accepted any body - a handler could return a shape that didn't match its declared OpenAPI response schema, with no compile-time check.
 
 **Solution:** `TContext` takes a `ResponseBody` type parameter and overrides `json()` to constrain the body; `TRouteHandler` threads its `ResponseType` into the context. New helper types `TJsonResponse` and `TResponseBodyOf` derive the body type from a route's response schemas (distributive over the success/error union).
 
@@ -98,7 +98,7 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = /* distributive 
 **Benefits:**
 - Handlers that return the wrong response shape now fail to compile
 - Response types stay in sync with the OpenAPI response schemas
-- No runtime cost — purely type-level
+- No runtime cost - purely type-level
 
 ## Bug Fixes
 
@@ -106,7 +106,7 @@ export type TResponseBodyOf<R extends { responses: AnyType }> = /* distributive 
 
 **File:** `packages/core/src/base/controllers/factory/controller.ts`
 
-The generated controller class previously passed `typeof routeDefinitions` as a 5th generic to `BaseRestController`. For entities with complex Zod schemas this forced TypeScript to serialize the entire route-definitions tree into the emitted `.d.ts`, exceeding the serializer limit (TS7056 — "The inferred type of this node exceeds the maximum length the compiler will serialize").
+The generated controller class previously passed `typeof routeDefinitions` as a 5th generic to `BaseRestController`. For entities with complex Zod schemas this forced TypeScript to serialize the entire route-definitions tree into the emitted `.d.ts`, exceeding the serializer limit (TS7056 - "The inferred type of this node exceeds the maximum length the compiler will serialize").
 
 The 5th generic is now omitted (defaults to the small `Record<string, IAuthRouteConfig>`); the runtime `this.definitions = routeDefinitions` assignment is unchanged.
 
@@ -133,4 +133,4 @@ class extends BaseRestController<RouteEnv, RouteSchema, BasePath, ConfigurableOp
 
 ## No Breaking Changes
 
-Defaults preserve current behavior: every route is `enabled` unless set to `false`, and `enabledRoutes` is opt-in. The typed `context.json()` is a tightening of types — handlers that already return the correct shape compile unchanged.
+Defaults preserve current behavior: every route is `enabled` unless set to `false`, and `enabledRoutes` is opt-in. The typed `context.json()` is a tightening of types - handlers that already return the correct shape compile unchanged.

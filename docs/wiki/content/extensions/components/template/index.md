@@ -1,6 +1,6 @@
 # Component Documentation Template
 
-Guide for writing consistent, professional component reference docs for Ignis.
+Guide for writing consistent, professional component reference docs for IGNIS.
 
 ## Principles
 

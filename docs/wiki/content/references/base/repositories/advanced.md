@@ -113,7 +113,7 @@ Pass `lock` in options alongside a `transaction`:
 const tx = await repo.beginTransaction();
 
 try {
-  // Lock the row — other transactions will wait
+  // Lock the row - other transactions will wait
   const item = await repo.findOne({
     filter: { where: { id: '123' } },
     options: {
@@ -122,7 +122,7 @@ try {
     },
   });
 
-  // Safe to modify — no concurrent changes possible
+  // Safe to modify - no concurrent changes possible
   await repo.updateById({
     id: '123',
     data: { quantity: item.quantity - 1 },
@@ -193,13 +193,13 @@ const item = await repo.findOne({
 > Row-level locking requires a **transaction** and is **incompatible with `include`/`fields`** in the filter (these use the Drizzle Query API which does not support `.for()`).
 
 ```typescript
-// Error — no transaction
+// Error - no transaction
 await repo.findOne({
   filter: { where: { id: '123' } },
   options: { lock: { strength: 'update' } },
 });
 
-// Error — include uses Query API
+// Error - include uses Query API
 await repo.findOne({
   filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
   options: { transaction: tx, lock: { strength: 'update' } },
@@ -339,7 +339,7 @@ await repo.find({
 ```
 
 > [!NOTE]
-> The default limit is `10` when using the `FilterSchema` Zod validation (via `LimitSchema`). However, when calling repository methods directly without schema validation, no default limit is applied.
+> `find()` always applies a default limit of `10` when no `limit` is set in the filter. Pass an explicit `limit` in the filter to override this default.
 
 ### Pagination with Data Range
 

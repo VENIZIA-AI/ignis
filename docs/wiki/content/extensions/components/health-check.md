@@ -200,7 +200,7 @@ Response `200`:
 
 ### Route Definition Patterns
 
-The `HealthCheckController` demonstrates all three route definition patterns supported by Ignis:
+The `HealthCheckController` demonstrates all three route definition patterns supported by IGNIS:
 
 | Pattern | Method | Used For |
 |---------|--------|----------|

@@ -695,7 +695,7 @@ flowchart TD
 
 ```mermaid
 flowchart LR
-    subgraph GENERATE["generate() — Token Creation"]
+    subgraph GENERATE["generate() - Token Creation"]
         direction TB
         P["Payload: { userId, roles, email }"]
         P --> CHECK1{"applicationSecret?"}
@@ -705,7 +705,7 @@ flowchart LR
         CHECK1 -->|"No"| PLAIN1["Use payload as-is"]
     end
 
-    subgraph VERIFY["verify() — Token Verification"]
+    subgraph VERIFY["verify() - Token Verification"]
         direction TB
         T["Verified JWT payload"]
         T --> CHECK2{"applicationSecret?"}
@@ -741,7 +741,7 @@ JWT payloads can optionally be encrypted field-by-field using AES (default `aes-
 
 ## Hono Context Extension
 
-The Authentication module extends Hono's `ContextVariableMap` to provide type-safe access to auth data. Note: `ContextVariableMap` does **not** take a generic parameter — it is a plain interface augmentation:
+The Authentication module extends Hono's `ContextVariableMap` to provide type-safe access to auth data. Note: `ContextVariableMap` does **not** take a generic parameter - it is a plain interface augmentation:
 
 ```typescript
 declare module 'hono' {
@@ -848,7 +848,7 @@ The built-in auth controller is created by the `defineAuthController()` factory 
 | `GET` | `/certs` | No | JWKS endpoint (JWKS Issuer mode only) |
 
 > [!NOTE]
-> The base path `/auth` is configurable via `controllerOpts.restPath`. The `/certs` path is configurable via `rest.path` in `IJWKSIssuerOptions`. The `/certs` endpoint is intentionally unauthenticated — it serves the public keys needed by external verifiers.
+> The base path `/auth` is configurable via `controllerOpts.restPath`. The `/certs` path is configurable via `rest.path` in `IJWKSIssuerOptions`. The `/certs` endpoint is intentionally unauthenticated - it serves the public keys needed by external verifiers.
 
 ### POST /auth/sign-in
 
@@ -922,7 +922,7 @@ Returns the JSON Web Key Set for external verifiers.
 
 ## Auth Entity Column Helpers
 
-Ignis provides column helper functions that return pre-configured Drizzle column objects for common auth-related database tables. These functions are designed to be spread into `pgTable()` definitions, giving you standardized columns for User, Role, Permission, and PolicyDefinition entities without manually defining each column.
+IGNIS provides column helper functions that return pre-configured Drizzle column objects for common auth-related database tables. These functions are designed to be spread into `pgTable()` definitions, giving you standardized columns for User, Role, Permission, and PolicyDefinition entities without manually defining each column.
 
 All helpers that accept an `opts` parameter support `{ idType: 'string' | 'number' }` to control whether foreign key columns use `text` (for UUIDs) or `integer` (for serial IDs). The default is `'number'`.
 

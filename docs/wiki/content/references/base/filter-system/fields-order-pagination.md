@@ -140,14 +140,14 @@ When a query omits `limit`, the repository resolves one with this precedence:
 query.limit  ??  model settings.defaultLimit  ??  DEFAULT_LIMIT (10)
 ```
 
-- **`query.limit`** — an explicit `limit` in the filter always wins.
-- **`settings.defaultLimit`** — a per-model default set on the `@model` decorator. Must be a positive integer (validated at decoration time). Applies to top-level `find()` and to every to-many relation (using the related model's own `defaultLimit`).
-- **`DEFAULT_LIMIT`** — the global fallback, `10`.
+- **`query.limit`** - an explicit `limit` in the filter always wins.
+- **`settings.defaultLimit`** - a per-model default set on the `@model` decorator. Must be a positive integer (validated at decoration time). Applies to top-level `find()` and to every to-many relation (using the related model's own `defaultLimit`).
+- **`DEFAULT_LIMIT`** - the global fallback, `10`.
 
 ```typescript
 @model({
   type: 'entity',
-  settings: { defaultLimit: 200 },  // Small lookup table — default to 200 rows
+  settings: { defaultLimit: 200 },  // Small lookup table - default to 200 rows
 })
 export class Country extends BaseEntity<typeof Country.schema> {}
 
@@ -156,7 +156,7 @@ await countryRepo.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
 ```
 
 > [!NOTE]
-> `defaultLimit` is independent of `defaultFilter`: passing `shouldSkipDefaultFilter` to bypass the default `where` clause does **not** drop the default limit. There is no "unbounded" sentinel — to fetch more rows, pass an explicit `limit`.
+> `defaultLimit` is independent of `defaultFilter`: passing `shouldSkipDefaultFilter` to bypass the default `where` clause does **not** drop the default limit. There is no "unbounded" sentinel - to fetch more rows, pass an explicit `limit`.
 
 ### Pagination Helper
 

@@ -15,7 +15,7 @@ A single component can bundle everything needed for a specific domain--for examp
 
 ## Built-in Components
 
-Ignis includes ready-to-use components for common features. The following are exported from the main barrel (`@venizia/ignis`):
+IGNIS includes ready-to-use components for common features. The following are exported from the main barrel (`@venizia/ignis`):
 
 | Component | Description |
 | :--- | :--- |

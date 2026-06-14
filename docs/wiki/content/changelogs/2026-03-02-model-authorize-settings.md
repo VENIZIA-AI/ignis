@@ -58,7 +58,7 @@ authorize: {
 
 **Benefits:**
 - Model is the single source of truth for its authorization principal
-- `AUTHORIZATION_SUBJECT` is auto-populated — no manual duplication
+- `AUTHORIZATION_SUBJECT` is auto-populated - no manual duplication
 - Explicit override still wins if set on the class directly
 - Extensible via index signature for custom authorization metadata
 
@@ -80,7 +80,7 @@ const settings = registry.getModelAuthorizeSettings({ name: 'Article' });
 
 #### `getAuthorizeModelPrincipals`
 
-Get all authorization principals — the clean end-client API:
+Get all authorization principals - the clean end-client API:
 
 ```typescript
 // Flat array of principal names
@@ -94,7 +94,7 @@ const principalMap = registry.getAuthorizeModelPrincipals({ format: 'record' });
 
 #### `getAuthorizeModelSettings`
 
-Get full authorize settings with model registry entries — for framework-level code:
+Get full authorize settings with model registry entries - for framework-level code:
 
 ```typescript
 // Array format
@@ -112,7 +112,7 @@ const settingsMap = registry.getAuthorizeModelSettings({ format: 'record' });
 export interface IModelAuthorizeSettings {
   /** The authorization principal name (resource/subject) for this model. */
   principal: string;
-  /** Extensible — consumers can add any extra authorization metadata. */
+  /** Extensible - consumers can add any extra authorization metadata. */
   [extra: string | symbol]: any;
 }
 ```

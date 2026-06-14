@@ -1,6 +1,6 @@
 # Error Handling
 
-Comprehensive guide to handling errors gracefully in Ignis applications.
+Comprehensive guide to handling errors gracefully in IGNIS applications.
 
 ## Error Handling Philosophy
 
@@ -13,7 +13,7 @@ Comprehensive guide to handling errors gracefully in Ignis applications.
 
 ## 1. Using `getError` Helper
 
-Ignis provides `getError` for creating consistent, structured errors.
+IGNIS provides `getError` for creating consistent, structured errors.
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -60,7 +60,7 @@ Use the correct status code for each error type:
 | 503 | `RS_5.ServiceUnavailable` | Service temporarily down |
 
 :::tip Automatic Database Error Handling
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint — unique, foreign key, not null, check, exclusion) are automatically converted to HTTP 400 by the global error middleware. You don't need to catch these manually. Other classes (e.g. syntax / undefined column) stay 500, and production responses are sanitized — see [Repository Layer Errors](#repository-layer-errors).
+Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint - unique, foreign key, not null, check, exclusion) are automatically converted to HTTP 400 by the global error middleware. You don't need to catch these manually. Other classes (e.g. syntax / undefined column) stay 500, and production responses are sanitized - see [Repository Layer Errors](#repository-layer-errors).
 :::
 
 ## 3. Error Handling Patterns
@@ -148,7 +148,7 @@ export class UserController extends BaseRestController {
 
 ### Repository Layer Errors
 
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint — unique, foreign key, not null, check, exclusion) are **automatically handled** by the global error middleware and return HTTP 400. Codes outside those classes (e.g. class `42` undefined column — an application/SQL bug) correctly stay 500.
+Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint - unique, foreign key, not null, check, exclusion) are **automatically handled** by the global error middleware and return HTTP 400. Codes outside those classes (e.g. class `42` undefined column - an application/SQL bug) correctly stay 500.
 
 **Non-production** returns the full driver context for debugging:
 
@@ -161,7 +161,7 @@ Database errors in SQLSTATE class `22` (data exception) and `23` (integrity cons
 ```
 
 :::warning Production sanitizes database internals
-In production the message is the **base message only** — `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` + server logs to diagnose.
+In production the message is the **base message only** - `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` + server logs to diagnose.
 
 ```json
 { "message": "Unique constraint violation", "statusCode": 400, "requestId": "abc123" }
@@ -171,10 +171,10 @@ In production the message is the **base message only** — `Detail:` (which echo
 You don't need to wrap repository calls in try-catch for constraint errors. If you need custom error messages, you can still handle them explicitly:
 
 ```typescript
-import { BaseRepository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
-export class UserRepository extends BaseRepository<typeof User.schema> {
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   async createWithCustomError(data: TCreateUser): Promise<TCreateResult<TUser>> {
     try {
       return await this.create({ data });
@@ -194,7 +194,7 @@ export class UserRepository extends BaseRepository<typeof User.schema> {
 
 ## 4. Global Error Handler
 
-Ignis includes a built-in error handler. Customize behavior in your application:
+IGNIS includes a built-in error handler. Customize behavior in your application:
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
@@ -283,7 +283,7 @@ interface ErrorResponse {
 }
 
 // 422 Validation Error
-// `message`/`messageCode` come from the first failing issue — its `params.code` if the schema set
+// `message`/`messageCode` come from the first failing issue - its `params.code` if the schema set
 // one, otherwise the raw Zod code (e.g. `invalid_type`, `too_small`). The full list stays in `details.cause`.
 {
   "statusCode": 422,

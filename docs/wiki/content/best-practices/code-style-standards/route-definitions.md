@@ -1,6 +1,6 @@
 # Route Definitions
 
-Ignis supports multiple methods for defining routes. Choose based on your needs.
+IGNIS supports multiple methods for defining routes. Choose based on your needs.
 
 ## Method 1: Config-Driven Routes
 

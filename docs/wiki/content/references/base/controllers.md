@@ -6,7 +6,7 @@ difficulty: beginner
 
 # Deep Dive: REST Controllers
 
-Technical reference for REST controller classes - the foundation for creating HTTP/JSON API endpoints in Ignis.
+Technical reference for REST controller classes - the foundation for creating HTTP/JSON API endpoints in IGNIS.
 
 > [!NOTE]
 > This page covers **REST controllers** (HTTP/JSON). For gRPC controllers using ConnectRPC, see the [gRPC Controllers Reference](./grpc-controllers.md).
@@ -32,7 +32,7 @@ Technical reference for REST controller classes - the foundation for creating HT
 
 ## Controller Transport System
 
-Ignis supports multiple controller transports. The `@controller` decorator accepts a `transport` field to distinguish between REST and gRPC controllers.
+IGNIS supports multiple controller transports. The `@controller` decorator accepts a `transport` field to distinguish between REST and gRPC controllers.
 
 ### `ControllerTransports`
 
@@ -57,7 +57,7 @@ interface IBaseControllerMetadata {
 }
 
 interface IRestControllerMetadata extends IBaseControllerMetadata {
-  transport?: typeof ControllerTransports.REST; // Optional — defaults to REST
+  transport?: typeof ControllerTransports.REST; // Optional - defaults to REST
 }
 
 interface IGrpcControllerMetadata<ServiceType = unknown> extends IBaseControllerMetadata {
@@ -68,7 +68,7 @@ interface IGrpcControllerMetadata<ServiceType = unknown> extends IBaseController
 type TControllerMetadata = IRestControllerMetadata | IGrpcControllerMetadata;
 ```
 
-REST controllers do not need to specify `transport` explicitly — it defaults to REST when omitted.
+REST controllers do not need to specify `transport` explicitly - it defaults to REST when omitted.
 
 ### Application Transport Configuration
 
@@ -130,7 +130,7 @@ export class RestComponent extends BaseComponent {
 
 ## `AbstractRestController`
 
-Base class integrating Hono routing with Ignis DI, authentication/authorization middleware, and OpenAPI generation.
+Base class integrating Hono routing with IGNIS DI, authentication/authorization middleware, and OpenAPI generation.
 
 **Generic Parameters:**
 
@@ -153,7 +153,7 @@ constructor(opts: IControllerOptions)
 | Option | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
 | `scope` | `string` | Required | Logger scope name |
-| `path` | `string` | — | Route base path. Falls back to `@controller` decorator path if not provided |
+| `path` | `string` | - | Route base path. Falls back to `@controller` decorator path if not provided |
 | `isStrict` | `boolean` | `true` | When `true`, `/users` and `/users/` are different routes |
 
 Path resolution priority: `@controller` decorator metadata > constructor `path` option. Throws if neither provides a path.
@@ -171,7 +171,7 @@ Path resolution priority: `@controller` decorator metadata > constructor `path` 
 
 #### `configure(opts?): Promise<OpenAPIHono>`
 
-Configures the controller. Idempotent — returns the router immediately if already configured.
+Configures the controller. Idempotent - returns the router immediately if already configured.
 
 1. Calls `binding()` (your manual route definitions)
 2. Calls `registerRoutesFromRegistry()` (decorator-based routes)
@@ -416,7 +416,8 @@ export class UserController extends BaseRestController { ... }
 Generic route decorator. Registers route config in the metadata registry.
 
 ```typescript
-import { api, BaseRestController, controller, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+import { api, BaseRestController, controller, jsonResponse, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const MyRouteConfig = {
@@ -448,7 +449,8 @@ Each decorator calls `@api` internally with the appropriate `HTTP.Methods.*` val
 **Example using `@get` and `@post`:**
 
 ```typescript
-import { get, post, z, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
+import { get, post, jsonContent, jsonResponse, Authentication, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const UserRoutes = {
@@ -508,12 +510,12 @@ const UserRoutes = {
 
 - The `binding()` method is not required if you use only decorator-based routing
 - Routes are discovered and registered during `configure()` via `registerRoutesFromRegistry()`
-- TypeScript automatically infers and validates return types against the OpenAPI response schema — no need for explicit `TRouteResponse` annotations
+- TypeScript automatically infers and validates return types against the OpenAPI response schema - no need for explicit `TRouteResponse` annotations
 - Use `as const` on route config objects for strict type inference
 
 ## Manual Route Definition
 
-For advanced use cases — dynamic routes, feature flags, programmatic control — define routes inside `binding()`.
+For advanced use cases - dynamic routes, feature flags, programmatic control - define routes inside `binding()`.
 
 ### `defineRoute` Example
 
@@ -524,7 +526,7 @@ this.defineRoute({
     path: '/status',
     responses: jsonResponse({ schema: z.object({ ok: z.boolean() }) }),
     authenticate: { strategies: ['jwt'] },
-    authorize: { resource: 'status', scopes: ['read'] },
+    authorize: { action: 'read', resource: 'status' },
   },
   handler: async (context) => {
     return context.json({ ok: true }, 200);
@@ -627,7 +629,7 @@ class RestPaths {
 | Constant | Headers Included |
 | :--- | :--- |
 | `trackableHeaders` | `x-request-id`, `x-request-channel`, `x-request-device-info` (all optional) |
-| `countableHeaders` | `x-request-count` — controls `{count, data}` vs data-only response format |
+| `countableHeaders` | `x-request-count` - controls `{count, data}` vs data-only response format |
 | `defaultRequestHeaders` | `trackableHeaders` + `countableHeaders` combined |
 | `commonResponseHeaders` | `x-request-id` (echo), `x-response-count`, `x-response-format` |
 | `findResponseHeaders` | `commonResponseHeaders` + `content-range` for pagination |
@@ -708,16 +710,16 @@ type TCustomizableRouteConfig = TRouteAuthConfig & {
 
 When resolving authentication for a route:
 
-1. **Endpoint `authenticate: { skip: true }`** — No auth (ignores controller `authenticate`)
-2. **Endpoint `authenticate: { strategies }`** — Override controller (empty array = no auth)
-3. **Controller `authenticate`** — Default fallback
+1. **Endpoint `authenticate: { skip: true }`** - No auth (ignores controller `authenticate`)
+2. **Endpoint `authenticate: { strategies }`** - Override controller (empty array = no auth)
+3. **Controller `authenticate`** - Default fallback
 
 When resolving authorization for a route:
 
-1. **Endpoint `authenticate: { skip: true }`** — No authorize (auth skipped entirely)
-2. **Endpoint `authorize: { skip: true }`** — No authorize (explicitly skipped)
-3. **Endpoint `authorize: { ... }`** — Override controller authorize
-4. **Controller `authorize`** — Default fallback
+1. **Endpoint `authenticate: { skip: true }`** - No authorize (auth skipped entirely)
+2. **Endpoint `authorize: { skip: true }`** - No authorize (explicitly skipped)
+3. **Endpoint `authorize: { ... }`** - Override controller authorize
+4. **Controller `authorize`** - Default fallback
 
 ### Authentication Examples
 
@@ -763,14 +765,14 @@ const OrderController = ControllerFactory.defineCrudController({
   repository: { name: 'OrderRepository' },
   controller: { name: 'OrderController', basePath: '/orders' },
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  authorize: { resource: 'orders', scopes: ['read'] },
+  authorize: { action: 'read', resource: 'orders' },
   routes: {
     find: {
       authenticate: { skip: true },
       response: { schema: CustomOrderListSchema },
     },
     create: {
-      authorize: { resource: 'orders', scopes: ['write'] },
+      authorize: { action: 'write', resource: 'orders' },
       request: { body: CustomOrderCreateSchema },
       response: { schema: CustomOrderResponseSchema },
     },

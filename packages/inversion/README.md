@@ -8,7 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-A ~350-line Dependency Injection & Inversion of Control (IoC) container featuring decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, and tag-based discovery. Part of the [Ignis Framework](https://github.com/VENIZIA-AI/ignis).
+A ~350-line Dependency Injection & Inversion of Control (IoC) container featuring decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, and tag-based discovery. Part of the [IGNIS Framework](https://github.com/VENIZIA-AI/ignis).
 
 [Installation](#installation) &#8226; [Quick Start](#quick-start) &#8226; [API Reference](#container) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
 
@@ -28,7 +28,7 @@ A ~350-line Dependency Injection & Inversion of Control (IoC) container featurin
 
 ## Philosophy
 
-Ignis Inversion takes the best ideas from **LoopBack 4**'s IoC system -- decorator-based injection, fluent binding configuration, namespace-driven organization -- and strips them down to ~350 lines of focused, zero-overhead container logic. No complex module system, no provider hierarchies, no framework lock-in. Just a fast, type-safe container that works with any TypeScript project.
+IGNIS Inversion takes the best ideas from **LoopBack 4**'s IoC system -- decorator-based injection, fluent binding configuration, namespace-driven organization -- and strips them down to ~350 lines of focused, zero-overhead container logic. No complex module system, no provider hierarchies, no framework lock-in. Just a fast, type-safe container that works with any TypeScript project.
 
 **Why this exists:**
 
@@ -39,7 +39,7 @@ Ignis Inversion takes the best ideas from **LoopBack 4**'s IoC system -- decorat
 | **InversifyJS** | Powerful but heavy for projects that need a simple, fast container |
 | **tsyringe** | Minimal but lacks fluent configuration, tagging, and property injection |
 
-Ignis Inversion gives you **constructor injection, property injection, singleton/transient scoping, tag-based discovery, and a provider pattern** -- all in a single dependency with no runtime overhead.
+IGNIS Inversion gives you **constructor injection, property injection, singleton/transient scoping, tag-based discovery, and a provider pattern** -- all in a single dependency with no runtime overhead.
 
 ---
 
@@ -79,7 +79,7 @@ Ignis Inversion gives you **constructor injection, property injection, singleton
   - [Cache Management](#cache-management)
 - [Real-World Example: Mini Application](#real-world-example-mini-application)
 - [Container Independence](#container-independence)
-- [Integration with Other Ignis Packages](#integration-with-other-ignis-packages)
+- [Integration with Other IGNIS Packages](#integration-with-other-ignis-packages)
   - [How Core Uses Inversion](#how-core-uses-inversion)
   - [How Boot Uses Inversion](#how-boot-uses-inversion)
   - [MetadataRegistry Extension via Mixins](#metadataregistry-extension-via-mixins)
@@ -440,7 +440,7 @@ class OrderService {
 
 ### Binding Keys
 
-Ignis uses a **namespace-based naming convention** for binding keys. This keeps large applications organized and enables tag-based discovery.
+IGNIS uses a **namespace-based naming convention** for binding keys. This keeps large applications organized and enables tag-based discovery.
 
 ```typescript
 import { BindingKeys } from '@venizia/ignis-inversion';
@@ -497,7 +497,7 @@ export class BaseHelper {
 - **Binding** sets `scope` to its binding key string (e.g., `'services.UserService'`).
 - **MetadataRegistry** sets `scope` to `'MetadataRegistry'`.
 
-`BaseHelper` exists so that every DI primitive carries a human-readable label for logging and debugging. In the full Ignis framework, the core package extends `BaseHelper` with a `Logger` instance, but the inversion package keeps it minimal.
+`BaseHelper` exists so that every DI primitive carries a human-readable label for logging and debugging. In the full IGNIS framework, the core package extends `BaseHelper` with a `Logger` instance, but the inversion package keeps it minimal.
 
 ---
 
@@ -1015,7 +1015,7 @@ const pool = container.get<Pool>({ key: 'datasources.Pool' });
 
 The container detects class-based providers using `isClassProvider()`, which checks whether the target has a `prototype.value` method. If detected, the provider is instantiated via `container.instantiate()` (which performs full two-phase DI on the provider class), and then its `value(container)` method is called.
 
-The full Ignis framework also provides a `BaseProvider<T>` abstract class (in `@venizia/ignis` core) that extends `BaseHelper` and implements `IProvider<T>`, giving providers access to scoped logging.
+The full IGNIS framework also provides a `BaseProvider<T>` abstract class (in `@venizia/ignis` core) that extends `BaseHelper` and implements `IProvider<T>`, giving providers access to scoped logging.
 
 ---
 
@@ -1287,7 +1287,7 @@ This design is intentional: metadata describes the class's **dependencies**, whi
 
 ---
 
-## Integration with Other Ignis Packages
+## Integration with Other IGNIS Packages
 
 ### How Core Uses Inversion
 
@@ -1951,10 +1951,10 @@ BindingKeys.build({ namespace: 'services', key: '' });
 
 InversifyJS uses similar concepts but with different API shapes. Here is a mapping:
 
-| InversifyJS | Ignis Inversion | Notes |
+| InversifyJS | IGNIS Inversion | Notes |
 |:------------|:----------------|:------|
-| `@injectable()` | `@injectable({})` | Ignis requires an options object (can be empty) |
-| `@inject(TYPES.Logger)` | `@inject({ key: 'services.Logger' })` | Ignis uses options objects, supports string or symbol keys |
+| `@injectable()` | `@injectable({})` | IGNIS requires an options object (can be empty) |
+| `@inject(TYPES.Logger)` | `@inject({ key: 'services.Logger' })` | IGNIS uses options objects, supports string or symbol keys |
 | `container.bind<T>(TYPES.Logger).to(Logger)` | `container.bind({ key: 'services.Logger' }).toClass(Logger)` | Fluent chain on options-based `bind()` |
 | `container.bind<T>(TYPES.Logger).to(Logger).inSingletonScope()` | `container.bind({ key: 'services.Logger' }).toClass(Logger).setScope('singleton')` | Scope via `setScope()` |
 | `container.bind<T>(TYPES.Config).toConstantValue(val)` | `container.bind({ key: 'config' }).toValue(val)` | `toValue` instead of `toConstantValue` |
@@ -1992,7 +1992,7 @@ const svc = container.get<UserService>(TYPES.UserService);
 ```
 
 ```typescript
-// Ignis Inversion equivalent
+// IGNIS Inversion equivalent
 @injectable({})
 class UserService {
   constructor(
@@ -2014,7 +2014,7 @@ const svc = container.get<UserService>({ key: 'services.UserService' });
 
 tsyringe uses a token-based approach with a global container. Here is the mapping:
 
-| tsyringe | Ignis Inversion | Notes |
+| tsyringe | IGNIS Inversion | Notes |
 |:---------|:----------------|:------|
 | `@injectable()` | `@injectable({})` | Similar, options object required |
 | `@inject('token')` | `@inject({ key: 'token' })` | Options object |
@@ -2023,15 +2023,15 @@ tsyringe uses a token-based approach with a global container. Here is the mappin
 | `container.register('token', { useFactory: fn })` | `container.bind({ key: 'token' }).toProvider(fn)` | Factory/provider |
 | `container.resolve(Cls)` | `container.resolve(Cls)` or `container.instantiate(Cls)` | Nearly identical |
 | `@singleton()` | `@injectable({})` + `.setScope('singleton')` | Scope on binding, not decorator |
-| `container.createChildContainer()` | N/A | Ignis has no child containers |
+| `container.createChildContainer()` | N/A | IGNIS has no child containers |
 | `@injectAll('token')` | `container.findByTag({ tag }).map(b => b.getValue(container))` | Use tag discovery |
 
 **Key differences from tsyringe:**
 
-- Ignis does not have a global container -- you always create explicit `Container` instances.
-- Ignis has no child containers. Each container is independent.
-- Ignis uses namespace-based string keys with auto-tagging, rather than string/symbol tokens.
-- Property injection is supported natively in Ignis (tsyringe only supports constructor injection).
+- IGNIS does not have a global container -- you always create explicit `Container` instances.
+- IGNIS has no child containers. Each container is independent.
+- IGNIS uses namespace-based string keys with auto-tagging, rather than string/symbol tokens.
+- Property injection is supported natively in IGNIS (tsyringe only supports constructor injection).
 
 ---
 

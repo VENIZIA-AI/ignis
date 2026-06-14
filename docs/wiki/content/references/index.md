@@ -1,6 +1,6 @@
 # API Reference
 
-Complete reference documentation for the Ignis framework. Find detailed API docs, type definitions, and usage examples for every class, component, and utility in the framework.
+Complete reference documentation for the IGNIS framework. Find detailed API docs, type definitions, and usage examples for every class, component, and utility in the framework.
 
 <div class="guide-cards">
 
@@ -124,17 +124,22 @@ class UserController extends BaseRestController {
 **Query with Repository:**
 ```typescript
 const users = await userRepo.find({
-  where: { isActive: true },
-  orderBy: { createdAt: 'desc' },
-  limit: 10,
+  filter: {
+    where: { isActive: true },
+    order: ['createdAt DESC'],
+    limit: 10,
+  },
 });
 ```
 
 **Schedule a Job:**
 ```typescript
-CronHelper.schedule('0 * * * *', async () => {
-  await cleanupExpiredSessions();
-});
+CronHelper.newInstance({
+  cronTime: '0 * * * *',
+  onTick: async () => {
+    await cleanupExpiredSessions();
+  },
+}).start();
 ```
 
 ## Common Imports
@@ -166,7 +171,7 @@ import { Container } from '@venizia/ignis-inversion';
 
 ## See Also
 
-- [Getting Started](/guides/) - New to Ignis? Start here
+- [Getting Started](/guides/) - New to IGNIS? Start here
 - [Core Concepts](/guides/core-concepts/application/) - Deep dive into architecture
 - [Best Practices](/best-practices/) - Production patterns
 - [Changelogs](/changelogs/) - Version history

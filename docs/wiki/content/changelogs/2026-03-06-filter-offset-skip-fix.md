@@ -11,7 +11,7 @@ Fixed two bugs in the filter/pagination system where the `offset` field was sile
 
 ## Overview
 
-- **Fixed**: `offset` field in filters was not being read by `FilterBuilder` — only `skip` was handled
+- **Fixed**: `offset` field in filters was not being read by `FilterBuilder` - only `skip` was handled
 - **Fixed**: `SkipSchema` and `OffsetSchema` had `.default(0)` which forced pagination offset to 0 even when not provided, interfering with queries that don't use pagination
 
 ## Bug Fixes
@@ -85,4 +85,4 @@ export const OffsetSchema = z.number().optional().openapi({
 
 ## No Breaking Changes
 
-These are bug fixes that correct behavior to match documented intent. The `offset` field was already part of the `TFilter` type but was never handled by `FilterBuilder`. The `.default(0)` removal means queries without explicit pagination will no longer have an implicit `OFFSET 0` — which is the correct SQL behavior (no offset clause).
+These are bug fixes that correct behavior to match documented intent. The `offset` field was already part of the `TFilter` type but was never handled by `FilterBuilder`. The `.default(0)` removal means queries without explicit pagination will no longer have an implicit `OFFSET 0` - which is the correct SQL behavior (no offset clause).

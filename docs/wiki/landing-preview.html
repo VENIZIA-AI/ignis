@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IGNIS - Landing (tokenized)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  /* ---- design tokens (dark theme, from design-tokens.css) ---- */
+  :root{
+    --rose:#AF5F5F; --rose-lt:#C98A8A; --rose-deep:#9E5252; --coral:#D98E6A; --gold:#E5B567;
+    --grad:linear-gradient(115deg,#AF5F5F,#D98E6A 52%,#E5B567);
+    --bg:#0B0A0C; --surface:#131114; --line:rgba(255,255,255,.09);
+    --text:#EDE7EA; --text-2:#B4ABB0; --text-3:#8C828A; --faint:#6E646A;
+    --link:#C98A8A; --primary:#AF5F5F; --on-primary:#fff;
+    --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',ui-monospace,monospace;
+    --fs-caption:.75rem; --fs-sm:.875rem; --fs-body:1rem; --fs-lede:1.125rem;
+    --fs-h4:1.25rem; --fs-h3:1.5625rem; --fs-h2:1.9375rem; --fs-h1:2.4375rem; --fs-display:3.0625rem; --fs-hero:3.8125rem;
+    --lh-tight:1.05; --lh-snug:1.2; --lh-heading:1.25; --lh-body:1.6;
+    --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--s8:64px;--s9:96px;
+    --r-sm:8px;--r-md:12px;--r-lg:16px;--r-xl:24px; --measure:70ch; --measure-lede:62ch;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--text);font-family:var(--sans);-webkit-font-smoothing:antialiased;line-height:var(--lh-body);position:relative;overflow-x:hidden}
+  body::before{content:"";position:absolute;top:0;left:0;right:0;height:1100px;pointer-events:none;z-index:0;
+    background:radial-gradient(720px 440px at 18% -2%,rgba(175,95,95,.26),transparent 60%),radial-gradient(680px 420px at 92% 6%,rgba(229,181,103,.12),transparent 62%)}
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 var(--s7)}
+  .gtext{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+
+  .topbar{position:sticky;top:0;z-index:30;background:rgba(11,10,12,.72);backdrop-filter:blur(14px);border-bottom:1px solid var(--line)}
+  .topbar-inner{max-width:1180px;margin:0 auto;padding:0 var(--s7);height:64px;display:flex;align-items:center;gap:var(--s7)}
+  .brand{display:flex;align-items:center;gap:var(--s2);font-weight:800;letter-spacing:.01em;font-size:var(--fs-h4);color:var(--text);text-decoration:none}
+  .brand .ver{font:600 11px var(--mono);color:var(--text-3);border:1px solid var(--line);border-radius:999px;padding:2px 8px;margin-left:var(--s1)}
+  .navlinks{display:flex;gap:var(--s5);height:64px}
+  .navlinks a{display:flex;align-items:center;height:64px;font-size:var(--fs-sm);font-weight:500;color:var(--text-2);text-decoration:none;border-bottom:2px solid transparent;transition:.15s}
+  .navlinks a:hover{color:var(--text)}
+  .navlinks a.active{color:var(--text);border-bottom-color:var(--coral)}
+  .spacer{flex:1}
+  .actions{display:flex;align-items:center;gap:var(--s2)}
+  .search{display:flex;align-items:center;gap:var(--s2);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;color:var(--text-3);font:500 var(--fs-sm) var(--sans);min-width:196px;cursor:text}
+  .search svg{flex:none;opacity:.85}
+  .search .kbd{margin-left:auto;font:600 11px var(--mono);color:var(--text-3);background:rgba(255,255,255,.05);border:1px solid var(--line);border-radius:5px;padding:1px 6px}
+  .iconbtn{width:34px;height:34px;display:grid;place-items:center;border-radius:var(--r-sm);color:var(--text-2);cursor:pointer;text-decoration:none;border:0;background:transparent}
+  .iconbtn:hover{background:rgba(255,255,255,.06);color:var(--text)}
+
+  .hero{display:grid;grid-template-columns:1.02fr 1.1fr;gap:var(--s7);align-items:center;padding:var(--s9) 0 var(--s8)}
+  .eyebrow{display:inline-flex;align-items:center;gap:var(--s2);font-size:var(--fs-caption);font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--coral);background:rgba(217,142,106,.08);border:1px solid rgba(217,142,106,.2);border-radius:var(--r-xl);padding:var(--s1) var(--s4);margin-bottom:var(--s5)}
+  .eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--coral);box-shadow:0 0 10px var(--coral)}
+  h1{font-size:var(--fs-hero);line-height:var(--lh-tight);letter-spacing:-.035em;font-weight:800;margin-bottom:var(--s5)}
+  .lede{font-size:var(--fs-lede);line-height:var(--lh-body);color:var(--text-2);max-width:var(--measure-lede);margin-bottom:var(--s6)}
+  .lede b{color:var(--text);font-weight:600}
+  .cta{display:flex;gap:var(--s3);margin-bottom:var(--s7)}
+  .btn{font-size:var(--fs-body);font-weight:700;border-radius:var(--r-sm);padding:var(--s3) var(--s5);cursor:pointer;border:1px solid transparent;transition:.18s;display:inline-flex;align-items:center;gap:var(--s2)}
+  .btn-1{background:var(--primary);color:var(--on-primary);box-shadow:0 10px 30px -8px rgba(175,95,95,.55)}
+  .btn-1:hover{background:#bd6e6e;transform:translateY(-2px)}
+  .btn-2{background:rgba(255,255,255,.04);border-color:var(--line);color:var(--text)}
+  .btn-2:hover{border-color:rgba(255,255,255,.22)}
+  .stats{display:flex;gap:var(--s6)}
+  .stat .n{font-size:var(--fs-h3);font-weight:800;letter-spacing:-.02em}
+  .stat .l{font-size:var(--fs-caption);color:var(--text-3);margin-top:var(--s1)}
+
+  .code{background:linear-gradient(180deg,#100D11,#0C0A0D);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden;box-shadow:0 40px 80px -30px rgba(0,0,0,.8);transform:perspective(1400px) rotateY(-4deg) rotateX(1.5deg)}
+  .code-bar{display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--line)}
+  .code-bar i{width:11px;height:11px;border-radius:50%;display:block}
+  .code-bar .fn{margin-left:var(--s2);font:500 var(--fs-sm) var(--mono);color:var(--text-3)}
+  .code-bar .tag{margin-left:auto;font:600 var(--fs-caption) var(--mono);color:var(--coral);background:rgba(217,142,106,.1);padding:2px 8px;border-radius:6px}
+  pre{font:500 var(--fs-sm)/var(--lh-code,1.85) var(--mono);padding:var(--s5) var(--s5);color:#cfc4c9;overflow:auto}
+  .k{color:var(--gold)} .d{color:var(--coral)} .s{color:#9DBF8E} .c{color:var(--rose-lt)} .p{color:#c8b8be}
+
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line),transparent)}
+  .section{padding:var(--s9) 0}
+  .section-head{text-align:center;max-width:38rem;margin:0 auto var(--s7)}
+  .label{font-size:var(--fs-caption);font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--coral);margin-bottom:var(--s3)}
+  .section-head h2{font-size:var(--fs-h1);font-weight:800;letter-spacing:-.025em;line-height:var(--lh-snug);margin-bottom:var(--s3)}
+  .section-head p{font-size:var(--fs-lede);color:var(--text-2);line-height:var(--lh-body)}
+
+  .features{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--s5)}
+  .fcard{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s5);background:linear-gradient(180deg,rgba(255,255,255,.025),transparent);transition:.2s}
+  .fcard:hover{border-color:rgba(175,95,95,.4);transform:translateY(-4px);box-shadow:0 24px 50px -30px rgba(175,95,95,.5)}
+  .fic{width:46px;height:46px;border-radius:var(--r-md);display:grid;place-items:center;font-size:22px;margin-bottom:var(--s4);background:rgba(175,95,95,.12);border:1px solid rgba(175,95,95,.25)}
+  .fcard h3{font-size:var(--fs-h4);font-weight:700;margin-bottom:var(--s2)}
+  .fcard p{font-size:var(--fs-sm);color:var(--text-2);line-height:var(--lh-body)}
+  .fcard code{font:500 var(--fs-caption) var(--mono);color:var(--rose-lt)}
+
+  .perf{display:grid;grid-template-columns:.9fr 1.1fr;gap:var(--s7);align-items:center}
+  .perf h2{font-size:var(--fs-h1);font-weight:800;letter-spacing:-.025em;line-height:var(--lh-snug);margin-bottom:var(--s4)}
+  .perf p{font-size:var(--fs-body);color:var(--text-2);line-height:var(--lh-body);margin-bottom:var(--s3);max-width:52ch}
+  .perf .fine{font-size:var(--fs-sm);color:var(--text-3)}
+  .bars{display:flex;flex-direction:column;gap:var(--s4)}
+  .bar-row{display:flex;align-items:center;gap:var(--s4)}
+  .bar-row .nm{width:78px;font-size:var(--fs-sm);color:var(--text-2);text-align:right;font-weight:500}
+  .bar-row.hl .nm{color:var(--text)}
+  .track{flex:1;height:30px;background:rgba(255,255,255,.04);border-radius:var(--r-sm);overflow:hidden}
+  .fill{height:100%;border-radius:var(--r-sm);display:flex;align-items:center;justify-content:flex-end;padding-right:var(--s3);font-size:var(--fs-caption);font-weight:700}
+  .fill.ig{background:var(--grad);color:#231013}
+  .fill.mut{background:#3a3338;color:var(--text-2);font-weight:600}
+
+  .pos{display:grid;grid-template-columns:1fr 1fr;gap:var(--s5)}
+  .pcard{border:1px solid var(--line);border-radius:var(--r-lg);padding:var(--s6)}
+  .pcard.good{background:linear-gradient(180deg,rgba(175,95,95,.07),transparent);border-color:rgba(175,95,95,.3)}
+  .pcard h3{font-size:var(--fs-h4);font-weight:700;margin-bottom:var(--s4)}
+  .pcard ul{list-style:none;display:flex;flex-direction:column;gap:var(--s3)}
+  .pcard li{font-size:var(--fs-sm);color:var(--text-2);display:flex;gap:var(--s3);line-height:1.5}
+  .pcard li .ic{flex:none}
+
+  .powered{text-align:center}
+  .logos{display:flex;justify-content:center;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s2)}
+  .lchip{border:1px solid var(--line);border-radius:var(--r-md);padding:var(--s4) var(--s5);font-size:var(--fs-body);font-weight:600;color:var(--text-3)}
+  .lchip b{color:var(--text)}
+
+  .footer-cta{text-align:center;border:1px solid var(--line);border-radius:var(--r-xl);padding:var(--s8) var(--s7);margin:var(--s5) 0 var(--s9);background:radial-gradient(600px 300px at 50% 0%,rgba(175,95,95,.14),transparent 70%),linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
+  .footer-cta h2{font-size:var(--fs-display);font-weight:800;letter-spacing:-.03em;line-height:var(--lh-snug);margin-bottom:var(--s4)}
+  .footer-cta p{font-size:var(--fs-lede);color:var(--text-2);margin-bottom:var(--s6)}
+  .footer-cta .cta{justify-content:center}
+  .note{position:fixed;left:14px;bottom:12px;z-index:30;font-size:var(--fs-caption);color:var(--text-3);background:rgba(11,10,12,.85);border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--s2) var(--s3);backdrop-filter:blur(8px)}
+</style>
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand">
+      <svg width="25" height="25" viewBox="0 0 32 32" fill="none">
+        <defs><linearGradient id="fg" x1="6" y1="30" x2="26" y2="3" gradientUnits="userSpaceOnUse"><stop stop-color="#AF5F5F"/><stop offset=".55" stop-color="#D98E6A"/><stop offset="1" stop-color="#E5B567"/></linearGradient></defs>
+        <path fill="url(#fg)" d="M17.5 2c.9 3.4-.8 5.1-2.4 7.2-1.7 2.2-2 4.3-.5 6.1.6-1.2.7-2.7 2.2-3.6-.2 2.3 1 3.4 1.9 4.7 1.6 2.3 1.1 4.7-.2 6.3 2.8-.6 5.3-2.7 6-5.9.9-4.2-1.6-7-2.9-9.4C20 5.3 19.9 3.6 17.5 2Z"/>
+        <path fill="url(#fg)" opacity=".75" d="M11.6 13.8c-2 1.7-3.4 4.3-3.4 7.1 0 3 1.8 5.6 4.4 6.9-1-1.6-1.2-3.6.1-5.3 1.1-1.4 1.4-2.7.9-4.3-.7 1-1.6 1.3-2.6 1.6.3-2.3 1.1-4 .6-6Z"/>
+      </svg>IGNIS<span class="ver">v0.0.9</span>
+    </a>
+    <nav class="navlinks">
+      <a class="active">Guide</a><a>Core API</a><a>Extensions</a><a>Best Practices</a><a>Changelog</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="actions">
+      <div class="search"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>Search docs<span class="kbd">⌘K</span></div>
+      <button class="iconbtn" title="Toggle theme"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg></button>
+      <a class="iconbtn" title="GitHub"><svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5 0-.3 0-.9 0-1.8-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.7-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.6.1-3.3 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.7.2 3 .1 3.3.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.3 0 1.6 0 3 0 3.4 0 .3.2.7.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5Z"/></svg></a>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+  <section class="hero">
+    <div>
+      <div class="eyebrow"><span class="dot"></span>TypeScript · Hono · Drizzle · Bun</div>
+      <h1>Enterprise APIs<br>at <span class="gtext">Hono speed</span></h1>
+      <p class="lede">LoopBack&nbsp;4's architecture with Hono's raw throughput. <b>Dependency injection, repositories, auth and real-time</b> - batteries included, none of the overhead.</p>
+      <div class="cta"><button class="btn btn-1">Get Started →</button><button class="btn btn-2">★ Star on GitHub</button></div>
+      <div class="stats"><div class="stat"><div class="n gtext">~140k</div><div class="l">req / sec</div></div><div class="stat"><div class="n gtext">~350</div><div class="l">LoC DI core</div></div><div class="stat"><div class="n gtext">100%</div><div class="l">type-safe</div></div></div>
+    </div>
+    <div class="code">
+      <div class="code-bar"><i style="background:#AF5F5F"></i><i style="background:#E5B567"></i><i style="background:#D98E6A"></i><span class="fn">user.controller.ts</span><span class="tag">live</span></div>
+<pre><span class="k">import</span> { controller, get, BaseRestController } <span class="k">from</span> <span class="s">'@venizia/ignis'</span>
+
+<span class="d">@controller</span>({ <span class="p">path</span>: <span class="s">'/users'</span> })
+<span class="k">export class</span> <span class="c">UserController</span> <span class="k">extends</span> <span class="c">BaseRestController</span> {
+  <span class="d">@get</span>({ <span class="p">path</span>: <span class="s">'/:id'</span> })
+  <span class="k">async</span> <span class="d">findById</span>({ id }: { id: <span class="c">string</span> }) {
+    <span class="k">return this</span>.userRepo.<span class="d">findById</span>({ id })
+  }
+}</pre>
+    </div>
+  </section>
+</div>
+
+<div class="divider"></div>
+<div class="wrap"><section class="section">
+  <div class="section-head"><div class="label">Everything you need</div><h2>Enterprise structure,<br>without the ceremony</h2><p>The patterns that scale teams - wired into a framework that doesn't slow down.</p></div>
+  <div class="features">
+    <div class="fcard"><div class="fic">⚡</div><h3>~140k req/s</h3><p>Direct Hono integration with zero wrapping overhead. Singleton datasources, SQL-level field hiding, lazy metadata.</p></div>
+    <div class="fcard"><div class="fic">⬡</div><h3>Decorator DI</h3><p>A ~350-LoC IoC container. <code>@inject</code>, <code>@controller</code>, <code>@repository</code> with auto-wiring and singleton/transient scopes.</p></div>
+    <div class="fcard"><div class="fic">◆</div><h3>Type-safe data</h3><p>Drizzle + Zod end-to-end. Repository hierarchy with relations, transactions, soft-delete and a rich filter system.</p></div>
+    <div class="fcard"><div class="fic">🔐</div><h3>Auth, built in</h3><p>JWT / JWKS / Basic strategies and Casbin scoped-RBAC authorization - as composable components.</p></div>
+    <div class="fcard"><div class="fic">⇄</div><h3>Real-time &amp; jobs</h3><p>WebSocket, Socket.IO, BullMQ queues, Kafka, Redis, Cron and Mail - first-class helpers, ready to wire.</p></div>
+    <div class="fcard"><div class="fic">📘</div><h3>Auto OpenAPI</h3><p>Routes are typed with <code>@hono/zod-openapi</code>; Swagger / Scalar docs generated from your schemas.</p></div>
+  </div>
+</section></div>
+
+<div class="divider"></div>
+<div class="wrap"><section class="section"><div class="perf">
+  <div>
+    <div class="label">Performance</div>
+    <h2>Architecture has a<br>speed limit. IGNIS<br>doesn't hit it.</h2>
+    <p>Built directly on Hono, IGNIS keeps near-bare-metal throughput while giving you the structure heavier frameworks charge a tax for.</p>
+    <p class="fine">Illustrative req/s, single instance. Your numbers depend on workload.</p>
+  </div>
+  <div class="bars">
+    <div class="bar-row"><div class="nm">Hono</div><div class="track"><div class="fill mut" style="width:97%">~150k</div></div></div>
+    <div class="bar-row hl"><div class="nm">IGNIS</div><div class="track"><div class="fill ig" style="width:92%">~140k</div></div></div>
+    <div class="bar-row"><div class="nm">Fastify</div><div class="track"><div class="fill mut" style="width:50%">~75k</div></div></div>
+    <div class="bar-row"><div class="nm">NestJS</div><div class="track"><div class="fill mut" style="width:18%">~25k</div></div></div>
+    <div class="bar-row"><div class="nm">Express</div><div class="track"><div class="fill mut" style="width:11%">~15k</div></div></div>
+  </div>
+</div></section></div>
+
+<div class="divider"></div>
+<div class="wrap"><section class="section">
+  <div class="section-head"><div class="label">Is it for you?</div><h2>Honest about the fit</h2></div>
+  <div class="pos">
+    <div class="pcard good"><h3>✦ Perfect for</h3><ul>
+      <li><span class="ic" style="color:var(--gold)">✓</span> Growing APIs (10+ endpoints) that need real structure</li>
+      <li><span class="ic" style="color:var(--gold)">✓</span> Teams who want DI, repositories &amp; testability</li>
+      <li><span class="ic" style="color:var(--gold)">✓</span> Performance-sensitive services on Bun or Node</li>
+      <li><span class="ic" style="color:var(--gold)">✓</span> Postgres + Drizzle, type-safe top to bottom</li>
+    </ul></div>
+    <div class="pcard"><h3 style="color:var(--text-2)">○ Consider alternatives</h3><ul>
+      <li><span class="ic" style="color:var(--text-3)">→</span> A 3-route microservice → plain Hono</li>
+      <li><span class="ic" style="color:var(--text-3)">→</span> Heavy GraphQL-first stack → other tools</li>
+      <li><span class="ic" style="color:var(--text-3)">→</span> Non-Postgres / non-Drizzle requirement</li>
+      <li><span class="ic" style="color:var(--text-3)">→</span> You want a massive plugin marketplace today</li>
+    </ul></div>
+  </div>
+</section></div>
+
+<div class="divider"></div>
+<div class="wrap">
+  <section class="section powered">
+    <div class="section-head" style="margin-bottom:var(--s6)"><div class="label">Built on giants</div><h2>Powered by the best of the ecosystem</h2></div>
+    <div class="logos"><div class="lchip"><b>Hono</b> · HTTP</div><div class="lchip"><b>Drizzle</b> · ORM</div><div class="lchip"><b>Zod</b> · Validation</div><div class="lchip"><b>TypeScript</b></div><div class="lchip"><b>Bun</b> + Node</div></div>
+    <p style="color:var(--text-3);font-size:var(--fs-sm);margin-top:var(--s5)">Inspired by Spring Boot &amp; LoopBack 4 - reimagined for the modern TypeScript runtime.</p>
+  </section>
+  <section class="footer-cta">
+    <h2>Build something that <span class="gtext">scales</span>.</h2>
+    <p>From first endpoint to production in minutes. No ceremony, no performance tax.</p>
+    <div class="cta"><button class="btn btn-1">5-Minute Quickstart →</button><button class="btn btn-2">Read the Docs</button></div>
+  </section>
+</div>
+<div class="note">Landing v2 - tokenized · WCAG AA · type scale 1.25</div>
+</body>
+</html>

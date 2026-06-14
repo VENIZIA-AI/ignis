@@ -7,7 +7,7 @@ description: To-many relations are now capped at DEFAULT_LIMIT by default (with 
 
 ## Consistent Default Limit for To-Many Relations
 
-The default pagination limit (`DEFAULT_LIMIT` = 10) is now applied **consistently** at the query-building layer: to the top-level query and to every **to-many** relation. The schema-level Zod default was removed because it leaked into relation scopes inconsistently — present when a `scope` existed, absent when it didn't.
+The default pagination limit (`DEFAULT_LIMIT` = 10) is now applied **consistently** at the query-building layer: to the top-level query and to every **to-many** relation. The schema-level Zod default was removed because it leaked into relation scopes inconsistently - present when a `scope` existed, absent when it didn't.
 
 ## Overview
 
@@ -22,7 +22,7 @@ The default pagination limit (`DEFAULT_LIMIT` = 10) is now applied **consistentl
 > [!WARNING]
 > To-many relations included via `include` are now capped at `DEFAULT_LIMIT` (10) by default. Code that relied on a relation returning **all** rows must pass an explicit `limit` in the relation scope.
 
-### Background — the inconsistency
+### Background - the inconsistency
 
 Previously `LimitSchema` had `.default(DEFAULT_LIMIT)`. Zod only fills a default into a value that exists, so the limit appeared **only when a `scope` object was present**:
 
@@ -35,7 +35,7 @@ Previously `LimitSchema` had `.default(DEFAULT_LIMIT)`. Zod only fills a default
 { "include": [{ "relation": "categories", "scope": { "order": ["createdAt DESC"] } }] }
 ```
 
-Adding an `order` clause silently changed the result count — a confusing footgun.
+Adding an `order` clause silently changed the result count - a confusing footgun.
 
 **After:**
 ```jsonc
@@ -67,7 +67,7 @@ await repo.find({
 
 ```typescript
 // Before: .default(DEFAULT_LIMIT) leaked into every scope object
-// After: no schema default — limit is applied in the query layer
+// After: no schema default - limit is applied in the query layer
 export const LimitSchema = z.number().optional().openapi({
   description: 'Maximum number of items to return. Defaults to 10 for top-level list queries.',
 });
@@ -125,9 +125,9 @@ Find queries that include to-many relations without a scope `limit`.
 ### Step 2: Add explicit `limit` where you need more than 10
 
 ```typescript
-// Before — implicitly returned all related rows
+// Before - implicitly returned all related rows
 { include: [{ relation: 'orders' }] }
 
-// After — request the count you actually need
+// After - request the count you actually need
 { include: [{ relation: 'orders', scope: { limit: 500 } }] }
 ```

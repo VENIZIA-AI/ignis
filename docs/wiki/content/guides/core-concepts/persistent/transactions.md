@@ -1,6 +1,6 @@
 # Transactions
 
-Ignis supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
+IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
 ## Using Transactions
 
@@ -54,7 +54,7 @@ Calling `commit()` or `rollback()` on an already-ended transaction throws an err
 
 ## Isolation Levels
 
-Ignis supports standard PostgreSQL isolation levels:
+IGNIS supports standard PostgreSQL isolation levels:
 
 | Level | Description | Use Case |
 |-------|-------------|----------|
@@ -63,7 +63,7 @@ Ignis supports standard PostgreSQL isolation levels:
 | `SERIALIZABLE` | Strictest level. Emulates serial execution. | Financial transactions, critical data integrity. |
 
 > [!NOTE]
-> Ignis only supports these three levels. `READ UNCOMMITTED` is **not** accepted — PostgreSQL treats it as `READ COMMITTED` anyway, so Ignis omits it to avoid confusion.
+> IGNIS only supports these three levels. `READ UNCOMMITTED` is **not** accepted - PostgreSQL treats it as `READ COMMITTED` anyway, so IGNIS omits it to avoid confusion.
 
 ## Best Practices
 

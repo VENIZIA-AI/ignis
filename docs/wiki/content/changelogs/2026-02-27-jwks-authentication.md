@@ -15,7 +15,7 @@ Added full JWKS (JSON Web Key Set) asymmetric authentication support for microse
 - **JWKS Verifier mode**: Verify tokens using a remote JWKS URL (for downstream microservices)
 - **Service hierarchy refactor**: New `AbstractBearerTokenService` → `AbstractJWKSTokenService` base classes
 - **Discriminated union options**: `TJWTTokenServiceOptions` uses `standard: 'JWS' | 'JWKS'` for type-safe configuration
-- **Optional AES encryption**: `applicationSecret` is now optional — omitting it disables payload encryption
+- **Optional AES encryption**: `applicationSecret` is now optional - omitting it disables payload encryption
 - **Manual strategy registration**: Strategies are no longer auto-registered; explicit registration required
 - **File restructuring**: Bearer services moved to `services/bearer/`, Basic to `services/basic/`
 
@@ -103,7 +103,7 @@ AuthenticationStrategyRegistry.getInstance().register({
 
 **Files:** `services/bearer/jwks/issuer.service.ts`, `controllers/jwks/controller.ts`
 
-**Problem:** Microservice architectures need asymmetric JWT — one service signs tokens with a private key, other services verify using the public key. Symmetric JWT (shared secret) doesn't scale because every service needs the same secret.
+**Problem:** Microservice architectures need asymmetric JWT - one service signs tokens with a private key, other services verify using the public key. Symmetric JWT (shared secret) doesn't scale because every service needs the same secret.
 
 **Solution:** `JWKSIssuerTokenService` signs tokens with RSA/EC private keys and serves the public key set via a `/certs` JWKS endpoint.
 
@@ -126,7 +126,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 ```
 
 **Features:**
-- Lazy initialization with retry-on-failure — keys are loaded on first use, failed init is retried
+- Lazy initialization with retry-on-failure - keys are loaded on first use, failed init is retried
 - Supports PEM and JWK key formats
 - Supports file-based (`JWKSKeyDrivers.FILE`) and inline (`JWKSKeyDrivers.TEXT`) key drivers
 - Automatic `/certs` endpoint with `Cache-Control` headers
@@ -153,16 +153,16 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 ```
 
 **Features:**
-- Lazy initialization — JWKS URL is set up on first verification
+- Lazy initialization - JWKS URL is set up on first verification
 - Configurable cache TTL and cooldown
-- Verify-only — `generate()` throws, preventing accidental signing
+- Verify-only - `generate()` throws, preventing accidental signing
 - Uses `jose` library's `createRemoteJWKSet` with built-in key rotation
 
 ### Bearer Token Service Hierarchy
 
 **File:** `services/bearer/abstract.service.ts`
 
-**Problem:** `JWTTokenService` contained all the logic — credential extraction, AES encryption/decryption, verify/generate flow. Adding JWKS required duplicating this.
+**Problem:** `JWTTokenService` contained all the logic - credential extraction, AES encryption/decryption, verify/generate flow. Adding JWKS required duplicating this.
 
 **Solution:** Extracted shared logic into `AbstractBearerTokenService`, creating a clean inheritance hierarchy:
 
@@ -175,11 +175,11 @@ AbstractBearerTokenService
 ```
 
 **Shared in base class:**
-- `extractCredentials()` — parse `Authorization: Bearer` header
+- `extractCredentials()` - parse `Authorization: Bearer` header
 - `verify()` → delegates to abstract `doVerify()`
 - `generate()` → delegates to abstract `getSigner()` + `getSigningKey()`
-- `encryptPayload()` / `decryptPayload()` — optional AES encryption
-- `configurePayloadEncryption()` — configure AES from constructor
+- `encryptPayload()` / `decryptPayload()` - optional AES encryption
+- `configurePayloadEncryption()` - configure AES from constructor
 
 ### Optional AES Payload Encryption
 
@@ -190,13 +190,13 @@ AbstractBearerTokenService
 **Solution:** `applicationSecret` is now optional across all bearer services. When omitted, `encryptPayload()` and `decryptPayload()` pass through payloads unchanged.
 
 ```typescript
-// Without AES — payloads are plaintext (signed, not encrypted)
+// Without AES - payloads are plaintext (signed, not encrypted)
 options: {
   jwtSecret: env.get('JWT_SECRET'),
   getTokenExpiresFn: () => 86_400,
 }
 
-// With AES — payload keys and values are AES-encrypted
+// With AES - payload keys and values are AES-encrypted
 options: {
   jwtSecret: env.get('JWT_SECRET'),
   applicationSecret: env.get('APP_SECRET'),     // Enables AES
@@ -211,8 +211,8 @@ options: {
 
 Two new strategies for JWKS:
 
-- `JWKSIssuerAuthenticationStrategy` — for the issuer service (both sign and verify)
-- `JWKSVerifierAuthenticationStrategy` — for downstream verifier services (verify only)
+- `JWKSIssuerAuthenticationStrategy` - for the issuer service (both sign and verify)
+- `JWKSVerifierAuthenticationStrategy` - for downstream verifier services (verify only)
 
 ```typescript
 AuthenticationStrategyRegistry.getInstance().register({
@@ -373,7 +373,7 @@ AuthenticationStrategyRegistry.getInstance().register({
 const secret = Authentication.ACCESS_TOKEN_SECRET;
 const expires = Authentication.ACCESS_TOKEN_EXPIRES_IN;
 
-// After — use environment variables directly
+// After - use environment variables directly
 const secret = env.get('JWT_SECRET');
 const expires = Number(env.get('JWT_EXPIRES_IN') || 86_400);
 ```
@@ -386,6 +386,6 @@ If you don't need AES payload encryption, you can remove `applicationSecret`:
 options: {
   jwtSecret: env.get('JWT_SECRET'),
   getTokenExpiresFn: () => 86_400,
-  // applicationSecret removed — payloads are plaintext (but still signed)
+  // applicationSecret removed - payloads are plaintext (but still signed)
 }
 ```

@@ -1,6 +1,6 @@
 # Code Style Standards
 
-Maintain consistent code style using **Prettier** (formatting) and **ESLint** (code quality). Ignis provides centralized configurations via the `@venizia/dev-configs` package.
+Maintain consistent code style using **Prettier** (formatting) and **ESLint** (code quality). IGNIS provides centralized configurations via the `@venizia/dev-configs` package.
 
 ## Quick Reference
 

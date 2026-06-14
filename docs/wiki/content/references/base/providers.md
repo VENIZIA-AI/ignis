@@ -708,7 +708,7 @@ export class ConfigProvider extends BaseProvider<Config> {
 - **Related References:**
   - [Services](./services.md) - Business logic layer
   - [Dependency Injection](./dependency-injection.md) - DI container and injection
-  - [Middleware](./middleware.md) - Built-in middlewares (includes `RequestSpyMiddleware` provider)
+  - [Middlewares](./middlewares.md) - Built-in middlewares (includes `RequestSpyMiddleware` provider)
 
 - **Guides:**
   - [Dependency Injection Guide](/guides/core-concepts/dependency-injection.md)

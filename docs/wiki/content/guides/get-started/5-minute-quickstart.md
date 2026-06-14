@@ -1,6 +1,6 @@
 # 5-Minute Quickstart
 
-Build your first Ignis API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
+Build your first IGNIS API endpoint in 5 minutes. No database, no complex setup - just a working "Hello World" API.
 
 **Time to Complete:** ~5 minutes
 
@@ -64,7 +64,7 @@ node_modules
 ## Step 3: Write Your API (2 minutes)
 
 :::info What is a Decorator?
-A decorator is a TypeScript feature that adds behavior to classes, methods, or properties. It's the `@something` syntax you see before definitions (like `@controller`, `@get`, `@inject`). Decorators in Ignis handle routing, dependency injection, and API documentation automatically.
+A decorator is a TypeScript feature that adds behavior to classes, methods, or properties. It's the `@something` syntax you see before definitions (like `@controller`, `@get`, `@inject`). Decorators in IGNIS handle routing, dependency injection, and API documentation automatically.
 
 [Learn more →](/guides/reference/glossary#decorators)
 :::
@@ -115,7 +115,7 @@ class HelloController extends BaseRestController {
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: "Hello from Ignis!" }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: "Hello from IGNIS!" }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
@@ -222,7 +222,7 @@ Visit `http://localhost:3000/api/hello` in your browser!
 **Response:**
 
 ```json
-{ "message": "Hello from Ignis!" }
+{ "message": "Hello from IGNIS!" }
 ```
 
 ## View API Docs
@@ -247,20 +247,20 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 
 You might wonder why we set up TypeScript, ESLint, and Prettier configs in a "quickstart". Here's why:
 
-**Ignis is opinionated about code quality.** We believe clean, consistent code from day one prevents technical debt later. The `@venizia/dev-configs` package provides pre-configured settings that:
+**IGNIS is opinionated about code quality.** We believe clean, consistent code from day one prevents technical debt later. The `@venizia/dev-configs` package provides pre-configured settings that:
 
 | Config | Purpose |
 |--------|---------|
-| `tsconfig.json` | Strict TypeScript settings optimized for Ignis decorators and path aliases |
+| `tsconfig.json` | Strict TypeScript settings optimized for IGNIS decorators and path aliases |
 | `eslint.config.mjs` | Catches common errors, enforces best practices, works with TypeScript |
-| `.prettierrc.mjs` | Consistent formatting across your team — no more style debates |
+| `.prettierrc.mjs` | Consistent formatting across your team - no more style debates |
 
-**Benefits of starting with Ignis code style:**
+**Benefits of starting with IGNIS code style:**
 
-- **Consistency** — Same patterns across all Ignis projects
-- **IDE Support** — Better autocomplete, error detection, and refactoring
-- **Team Ready** — New developers can onboard faster with familiar structure
-- **CI/CD Friendly** — Lint and format checks work out of the box
+- **Consistency** - Same patterns across all IGNIS projects
+- **IDE Support** - Better autocomplete, error detection, and refactoring
+- **Team Ready** - New developers can onboard faster with familiar structure
+- **CI/CD Friendly** - Lint and format checks work out of the box
 
 > [!TIP]
 > All configs extend from `@venizia/dev-configs`, so you get updates automatically. Customize by overriding specific rules in your local config files.

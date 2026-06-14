@@ -1,6 +1,6 @@
 # Architecture Decisions Guide
 
-This guide helps you make informed architectural decisions when building applications with Ignis. Learn when to use different patterns and how to scale your application.
+This guide helps you make informed architectural decisions when building applications with IGNIS. Learn when to use different patterns and how to scale your application.
 
 ## Common Decision Points
 

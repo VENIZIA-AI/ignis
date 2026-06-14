@@ -247,12 +247,60 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
 // https://vitepress.dev/reference/site-config
 const config = defineConfig({
   base: '/',
+  appearance: 'dark',
+  markdown: {
+    theme: {
+      light: 'github-light',
+      dark: 'one-dark-pro',
+    },
+  },
   srcDir: '../content',
   outDir: './.vitepress/dist',
   srcExclude: ['**/template/**'],
   title: 'IGNIS',
   description: 'A TypeScript Server Infrastructure with Hono Framework',
-  head: [['link', { rel: 'icon', href: '/logo.svg' }]],
+  head: [
+    // Favicon + PWA
+    ['link', { rel: 'icon', href: '/logo.svg' }],
+    ['link', { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' }],
+    ['link', { rel: 'manifest', href: '/site.webmanifest' }],
+    // Fonts - preconnect
+    ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
+    ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
+    // Fonts - stylesheet
+    [
+      'link',
+      {
+        rel: 'stylesheet',
+        href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap',
+      },
+    ],
+    // Open Graph
+    ['meta', { property: 'og:type', content: 'website' }],
+    ['meta', { property: 'og:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
+    [
+      'meta',
+      {
+        property: 'og:description',
+        content:
+          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+      },
+    ],
+    ['meta', { property: 'og:image', content: '/og-image.png' }],
+    ['meta', { property: 'og:url', content: 'https://venizia-ai.github.io/ignis/' }],
+    // Twitter / X card
+    ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
+    ['meta', { name: 'twitter:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
+    [
+      'meta',
+      {
+        name: 'twitter:description',
+        content:
+          'LoopBack 4 architecture with Hono raw throughput. Dependency injection, repositories, auth and real-time - batteries included, none of the overhead.',
+      },
+    ],
+    ['meta', { name: 'twitter:image', content: '/og-image.png' }],
+  ],
   vite: {
     // mermaid pulls in dayjs/esm, whose extensionless imports break Node's native ESM resolver during
     // SSR. Bundle them through Vite (noExternal) so Vite's resolver handles the resolution.
@@ -267,7 +315,7 @@ const config = defineConfig({
         output: {
           manualChunks: (id) => {
             if (id.includes('node_modules')) {
-              // Isolate mermaid (+ its heavy deps) — large and only needed on pages with diagrams.
+              // Isolate mermaid (+ its heavy deps) - large and only needed on pages with diagrams.
               if (
                 id.includes('mermaid') ||
                 id.includes('cytoscape') ||
@@ -298,11 +346,11 @@ const config = defineConfig({
     },
 
     nav: [
-      { text: 'Guide(s)', link: '/guides/' },
+      { text: 'Guide', link: '/guides/' },
       { text: 'Core API', link: '/references/' },
       { text: 'Extensions', link: '/extensions/' },
-      { text: 'Best Practice(s)', link: '/best-practices/' },
-      { text: 'Changelog(s)', link: '/changelogs/' },
+      { text: 'Best Practices', link: '/best-practices/' },
+      { text: 'Changelog', link: '/changelogs/' },
     ],
 
     sidebar: {
@@ -333,7 +381,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'Scoped RBAC Authorization — Edge-Table Model, Pooled Enforcer, Redis-Only Cache',
+                  text: 'Scoped RBAC Authorization - Edge-Table Model, Pooled Enforcer, Redis-Only Cache',
                   link: '/changelogs/2026-06-02-authorize-scoped-rbac',
                 },
               ],
@@ -343,7 +391,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'Casbin Domain Matching Function — Wildcard/Pattern Domains in g',
+                  text: 'Casbin Domain Matching Function - Wildcard/Pattern Domains in g',
                   link: '/changelogs/2026-05-27-casbin-domain-matching-function',
                 },
               ],
@@ -363,7 +411,7 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 {
-                  text: 'Drizzle Casbin Adapter — Schema-Qualified Tables',
+                  text: 'Drizzle Casbin Adapter - Schema-Qualified Tables',
                   link: '/changelogs/2026-05-22-casbin-adapter-schema-qualification',
                 },
               ],
@@ -400,7 +448,7 @@ const config = defineConfig({
               text: '2026-04-23',
               collapsed: true,
               items: [
-                { text: 'Error Responses — messageCode & Extra Fields', link: '/changelogs/2026-04-23-error-response-extra-fields' },
+                { text: 'Error Responses - messageCode & Extra Fields', link: '/changelogs/2026-04-23-error-response-extra-fields' },
               ],
             },
             {

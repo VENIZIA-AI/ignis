@@ -30,8 +30,6 @@ await app.start();
 - `initialize()` - Bootstrap the application
 - `start()` - Start HTTP server
 - `stop()` - Stop server gracefully
-- `get<T>(key)` - Resolve from DI container
-- `mountControllers()` - Register controllers
 
 ### BaseRestController
 
@@ -85,7 +83,7 @@ class GreeterController extends BaseGrpcController {
 ```typescript
 import { BaseService, injectable } from '@venizia/ignis';
 
-@injectable()
+@injectable({})
 class UserService extends BaseService {
   constructor() {
     super({ scope: UserService.name });
@@ -93,7 +91,7 @@ class UserService extends BaseService {
 
   async getUser(id: string) {
     this.logger.info('Getting user', id);
-    return this.userRepo.findById(id);
+    return this.userRepo.findById({ id });
   }
 }
 ```
@@ -115,16 +113,14 @@ class UserRepository extends DefaultCRUDRepository<User> {
 ```
 
 **Key Methods:**
-- `create(data)` - Create single entity
-- `createMany(data[])` - Create multiple entities
-- `find(filter?)` - Find many with filter
-- `findById(id)` - Find by ID
-- `findOne(filter)` - Find single entity
-- `count(filter?)` - Count entities
-- `update(id, data)` - Update by ID
-- `updateMany(filter, data)` - Update multiple
-- `delete(id)` - Delete by ID (soft/hard based on config)
-- `deleteMany(filter)` - Delete multiple
+- `find({ filter })` - Find many with filter, returns `T[]`
+- `findById({ id })` - Find by ID
+- `findOne({ filter })` - Find single entity
+- `count({ where? })` - Count entities
+- `create({ data })` - Create single entity, returns `{ count, data }`
+- `createAll({ data: [] })` - Create multiple entities, returns `{ count, data[] }`
+- `updateById({ id, data })` - Update by ID
+- `deleteById({ id })` - Delete by ID
 
 ### BaseEntity
 
@@ -132,10 +128,10 @@ class UserRepository extends DefaultCRUDRepository<User> {
 import { BaseEntity, model } from '@venizia/ignis';
 import { integer, text, pgTable } from 'drizzle-orm/pg-core';
 
-@model()
+@model({ type: 'entity' })
 class User extends BaseEntity {
-  static readonly tableName = 'users';
-  static readonly schema = pgTable(User.tableName, {
+  static readonly TABLE_NAME = 'users';
+  static readonly schema = pgTable(User.TABLE_NAME, {
     id: integer('id').primaryKey(),
     name: text('name').notNull(),
     email: text('email').notNull().unique(),
@@ -144,7 +140,7 @@ class User extends BaseEntity {
 ```
 
 **Key Properties:**
-- `static tableName` - Database table name
+- `static TABLE_NAME` - Database table name
 - `static schema` - Drizzle schema definition
 - `static AUTHORIZATION_SUBJECT` - Authorization principal (auto-set from `@model` settings `authorize.principal`)
 
@@ -226,7 +222,7 @@ class UserController extends BaseRestController {
 | Operator | SQL | Example |
 |----------|-----|---------|
 | `in` | `IN` | `{ status: { in: ['active', 'pending'] } }` |
-| `notIn` | `NOT IN` | `{ status: { notIn: ['deleted'] } }` |
+| `nin` | `NOT IN` | `{ status: { nin: ['deleted'] } }` |
 
 ### Pattern Matching
 
@@ -234,17 +230,8 @@ class UserController extends BaseRestController {
 |----------|-----|---------|
 | `like` | `LIKE` | `{ name: { like: '%john%' } }` |
 | `ilike` | `ILIKE` | `{ email: { ilike: '%@gmail.com' } }` |
-| `notLike` | `NOT LIKE` | `{ name: { notLike: '%test%' } }` |
-| `notILike` | `NOT ILIKE` | `{ email: { notILike: '%spam%' } }` |
-| `startsWith` | `LIKE 'value%'` | `{ name: { startsWith: 'John' } }` |
-| `endsWith` | `LIKE '%value'` | `{ email: { endsWith: '@example.com' } }` |
-
-### Null Operators
-
-| Operator | SQL | Example |
-|----------|-----|---------|
-| `isNull` | `IS NULL` | `{ deletedAt: { isNull: true } }` |
-| `isNotNull` | `IS NOT NULL` | `{ email: { isNotNull: true } }` |
+| `nlike` | `NOT LIKE` | `{ name: { nlike: '%test%' } }` |
+| `nilike` | `NOT ILIKE` | `{ email: { nilike: '%spam%' } }` |
 
 ### Logical Operators
 
@@ -262,23 +249,18 @@ class UserController extends BaseRestController {
 | `containedBy` | `<@` | `{ tags: { containedBy: ['ts', 'js', 'go'] } }` |
 | `overlaps` | `&&` | `{ tags: { overlaps: ['react', 'vue'] } }` |
 
-### JSON Operators (PostgreSQL)
-
-| Operator | Description | Example |
-|----------|-------------|---------|
-| `jsonPath` | Query JSON field | `{ metadata: { jsonPath: '$.user.name', eq: 'John' } }` |
-
-
 ## Common Filters
 
 ### Basic Find
 
 ```typescript
 const users = await userRepo.find({
-  where: { isActive: true },
-  orderBy: { createdAt: 'desc' },
-  limit: 10,
-  offset: 0,
+  filter: {
+    where: { isActive: true },
+    order: ['createdAt DESC'],
+    limit: 10,
+    offset: 0,
+  },
 });
 ```
 
@@ -286,13 +268,15 @@ const users = await userRepo.find({
 
 ```typescript
 const users = await userRepo.find({
-  where: {
-    and: [
-      { age: { gte: 18 } },
-      { status: { in: ['active', 'pending'] } },
-      { email: { endsWith: '@company.com' } }
-    ]
-  }
+  filter: {
+    where: {
+      and: [
+        { age: { gte: 18 } },
+        { status: { in: ['active', 'pending'] } },
+        { email: { ilike: '%@company.com' } },
+      ],
+    },
+  },
 });
 ```
 
@@ -300,14 +284,13 @@ const users = await userRepo.find({
 
 ```typescript
 const posts = await postRepo.find({
-  where: { published: true },
-  include: {
-    author: true,
-    comments: {
-      where: { approved: true },
-      limit: 5
-    }
-  }
+  filter: {
+    where: { published: true },
+    include: [
+      { relation: 'author' },
+      { relation: 'comments', scope: { where: { approved: true }, limit: 5 } },
+    ],
+  },
 });
 ```
 
@@ -315,8 +298,10 @@ const posts = await postRepo.find({
 
 ```typescript
 const users = await userRepo.find({
-  where: { isActive: true },
-  fields: ['id', 'name', 'email'], // Only these fields
+  filter: {
+    where: { isActive: true },
+    fields: ['id', 'name', 'email'],
+  },
 });
 ```
 
@@ -328,7 +313,7 @@ const users = await userRepo.find({
 ```typescript
 import { injectable } from '@venizia/ignis';
 
-@injectable()
+@injectable({})
 class MyService extends BaseService {
   // ...
 }
@@ -347,13 +332,6 @@ class UserController extends BaseRestController {
     super({ scope: UserController.name, path: '/users' });
   }
 ```
-
-### Manual Resolution
-
-```typescript
-const userService = app.get<UserService>('services.UserService');
-```
-
 
 ## Common Imports
 
@@ -415,14 +393,13 @@ import {
 
   // Crypto
   hash,
-  compare,
 
   // HTTP
   HTTP,
 } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import { CronHelper } from '@venizia/ignis-helpers/cron';
-import { MinIOHelper } from '@venizia/ignis-helpers/minio';
+import { MinioHelper } from '@venizia/ignis-helpers/minio';
 ```
 
 ### Dependency Injection
@@ -487,14 +464,17 @@ getDashboard(c: Context) {
 import { Statuses } from '@venizia/ignis';
 
 // Create with status
-const order = await orderRepo.create({
-  items: [...],
-  status: Statuses.PENDING,
+const { data: order } = await orderRepo.create({
+  data: {
+    items: [...],
+    status: Statuses.PENDING,
+  },
 });
 
 // Update status
-await orderRepo.update(orderId, {
-  status: Statuses.COMPLETED,
+await orderRepo.updateById({
+  id: orderId,
+  data: { status: Statuses.COMPLETED },
 });
 
 // Check status
@@ -553,27 +533,6 @@ app.onError(appErrorHandler({ logger: app.logger }));
 
 // 404 handler
 app.notFound(notFoundHandler({ logger: app.logger }));
-```
-
-
-## Environment Variables
-
-### Loading Environment
-
-```typescript
-import { EnvHelper } from '@venizia/ignis-helpers';
-
-// Load from .env file
-EnvHelper.load();
-
-// Get variable
-const dbUrl = EnvHelper.get('DATABASE_URL');
-
-// Get with default
-const port = EnvHelper.get('PORT', '3000');
-
-// Get required (throws if missing)
-const apiKey = EnvHelper.getRequired('API_KEY');
 ```
 
 

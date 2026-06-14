@@ -1,10 +1,10 @@
 # Architectural Patterns
 
-Ignis promotes separation of concerns, dependency injection, and modularity for scalable, maintainable applications.
+IGNIS promotes separation of concerns, dependency injection, and modularity for scalable, maintainable applications.
 
 ## 1. Layered Architecture
 
-Each layer has a single responsibility. Ignis supports **two architectural approaches**:
+Each layer has a single responsibility. IGNIS supports **two architectural approaches**:
 
 ```mermaid
 graph TD
@@ -117,7 +117,7 @@ REST controllers extend `BaseRestController`, while gRPC controllers extend `Bas
 
 ## 3. Component-Based Modularity
 
-Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories, essentially functioning as a mini-application that can be easily "plugged in" to any Ignis project.
+Components bundle a group of related, reusable, and pluggable features into self-contained modules. A single component can encapsulate multiple providers, services, controllers, and repositories, essentially functioning as a mini-application that can be easily "plugged in" to any IGNIS project.
 
 **Built-in Components:**
 - `AuthenticateComponent` - JWT authentication
@@ -185,7 +185,7 @@ export class MySocketComponent extends BaseComponent {
 
 ## 5. Application Lifecycle Hooks
 
-Ignis applications follow a predictable startup sequence with hooks for customization:
+IGNIS applications follow a predictable startup sequence with hooks for customization:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -282,7 +282,7 @@ export class Application extends BaseApplication {
 
 ## 6. Mixin Pattern
 
-Mixins enable class composition without deep inheritance hierarchies. Ignis uses mixins to add capabilities to the `BaseApplication` class.
+Mixins enable class composition without deep inheritance hierarchies. IGNIS uses mixins to add capabilities to the `BaseApplication` class.
 
 **How Mixins Work:**
 ```typescript

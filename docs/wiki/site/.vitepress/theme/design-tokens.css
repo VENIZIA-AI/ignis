@@ -1,0 +1,120 @@
+/* =============================================================================
+ * IGNIS DOCS - DESIGN TOKENS  (source of truth)
+ * -----------------------------------------------------------------------------
+ * Every value here is grounded in a standard - nothing is set by feel:
+ *   · Typography : base 16px, modular scale Major Third 1.25 (Material Design)
+ *   · Spacing    : 8-point grid, 4px half-step (Tailwind/Material convention)
+ *   · Color      : WCAG 2.1 AA - 4.5:1 normal text, 3:1 large/UI (ratios below)
+ *   · Measure    : prose ≤ 70ch (50-75 CPL, 66 optimal - Bringhurst/Baymard)
+ *   · Line-height: body 1.6, headings 1.15-1.3
+ *
+ * Refs: w3.org/TR/WCAG21 · webaim.org/resources/contrastchecker
+ *       designsystems.com/space-grids-and-layouts · baymard.com/blog/line-length-readability
+ *
+ * Usage: import in `theme/index.ts` BEFORE custom.css. The --vp-* mappings make
+ * it drop-in for VitePress; the --ig-* tokens are the canonical primitives.
+ * ============================================================================= */
+
+:root {
+  /* ---- Brand ramp (theme-agnostic primitives) ------------------------------ */
+  --ig-rose:      #AF5F5F;   /* primary brand. fills + large accents only       */
+  --ig-rose-lt:   #C98A8A;   /* 7.04:1 on dark - link / accent text (dark theme)*/
+  --ig-rose-deep: #9E5252;   /* 5.55:1 white-on - extra-safe button bg          */
+  --ig-coral:     #D98E6A;   /* 7.55:1 on dark - eyebrow, code decorators       */
+  --ig-gold:      #E5B567;   /* 10.5:1 on dark - accent, code keywords          */
+  --ig-gradient:  linear-gradient(115deg, #AF5F5F 0%, #D98E6A 52%, #E5B567 100%);
+  --ig-glow:      radial-gradient(720px 440px at 18% -2%, rgba(175,95,95,.26), transparent 60%),
+                  radial-gradient(680px 420px at 92% 6%, rgba(229,181,103,.12), transparent 62%);
+
+  /* ---- Typography : scale = 16 × 1.25^n ------------------------------------ */
+  --ig-font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --ig-font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --ig-fs-caption: 0.75rem;    /* 12px - labels, captions, badges               */
+  --ig-fs-sm:      0.875rem;   /* 14px - secondary, tables, inline code         */
+  --ig-fs-body:    1rem;       /* 16px - BASE body / docs prose                 */
+  --ig-fs-lede:    1.125rem;   /* 18px - intro paragraphs                       */
+  --ig-fs-h4:      1.25rem;    /* 20px                                          */
+  --ig-fs-h3:      1.5625rem;  /* 25px                                          */
+  --ig-fs-h2:      1.9375rem;  /* 31px - section heading                        */
+  --ig-fs-h1:      2.4375rem;  /* 39px - page heading                           */
+  --ig-fs-display: 3.0625rem;  /* 49px                                          */
+  --ig-fs-hero:    3.8125rem;  /* 61px - hero only (desktop)                    */
+  --ig-lh-tight:   1.05;       /* hero / display                               */
+  --ig-lh-snug:    1.2;        /* h1 / h2                                       */
+  --ig-lh-heading: 1.25;       /* h3 / h4                                       */
+  --ig-lh-normal:  1.5;        /* UI text                                       */
+  --ig-lh-body:    1.6;        /* body / docs prose                            */
+  --ig-lh-code:    1.7;        /* code blocks                                  */
+
+  /* ---- Spacing : 8-point grid (4px half-step) ------------------------------ */
+  --ig-s1: 4px;  --ig-s2: 8px;  --ig-s3: 12px; --ig-s4: 16px; --ig-s5: 24px;
+  --ig-s6: 32px; --ig-s7: 48px; --ig-s8: 64px; --ig-s9: 96px;
+
+  /* ---- Radii --------------------------------------------------------------- */
+  --ig-r-sm: 8px;   /* buttons, inputs, chips     */
+  --ig-r-md: 12px;  /* cards                      */
+  --ig-r-lg: 16px;  /* panels, code windows       */
+  --ig-r-xl: 24px;  /* hero / CTA panels          */
+  --ig-r-pill: 999px;
+
+  /* ---- Reading measure ----------------------------------------------------- */
+  --ig-measure:      70ch;   /* docs prose max width  */
+  --ig-measure-lede: 62ch;
+
+  /* ---- Layout (centered + generous; the header stays full-width) ----------- */
+  --ig-layout-max: 1440px;   /* centered container - fills laptops, modest margins on wide screens, no dead-space */
+  --ig-sidebar-w:  272px;    /* left nav             */
+  --ig-toc-w:      240px;    /* right "on this page" */
+  --ig-gutter:     var(--ig-s7);  /* 48px - column gap / page padding */
+
+  /* ===========================================================================
+   * SEMANTIC - LIGHT THEME (VitePress default :root)
+   * On #FFFFFF: text 17:1 · text-2 8:1 · text-3 5.8:1 · rose(link) 4.54:1 (AA).
+   * Light-theme accent text MUST use --ig-rose (coral/gold are too light → large only).
+   * ========================================================================= */
+  --ig-bg:      #FFFFFF;
+  --ig-surface: #FAF8F9;
+  --ig-border:  rgba(20, 12, 16, .10);
+  --ig-text:    #1A1418;
+  --ig-text-2:  #514A50;
+  --ig-text-3:  #6E646A;
+  --ig-faint:   #9A9097;          /* large/decorative only */
+  --ig-link:    var(--ig-rose);   /* 4.54:1 on white - AA  */
+  --ig-primary: var(--ig-rose);
+  --ig-on-primary: #FFFFFF;       /* 4.54:1 on rose - AA   */
+
+  /* ---- VitePress mapping --------------------------------------------------- */
+  --vp-c-brand-1: var(--ig-link);
+  --vp-c-brand-2: var(--ig-rose-deep);
+  --vp-c-brand-3: var(--ig-primary);
+  --vp-c-bg:      var(--ig-bg);
+  --vp-c-bg-alt:  var(--ig-surface);
+  --vp-c-bg-soft: var(--ig-surface);
+  --vp-c-text-1:  var(--ig-text);
+  --vp-c-text-2:  var(--ig-text-2);
+  --vp-c-text-3:  var(--ig-text-3);
+  --vp-button-brand-bg:    var(--ig-primary);
+  --vp-button-brand-text:  var(--ig-on-primary);
+  --vp-button-brand-hover-bg: var(--ig-rose-deep);
+  --vp-home-hero-name-background: var(--ig-gradient);
+  --vp-font-family-base: var(--ig-font-sans);
+  --vp-font-family-mono: var(--ig-font-mono);
+}
+
+/* ===========================================================================
+ * SEMANTIC - DARK THEME
+ * On #0B0A0C: text 16.2:1 · text-2 8.84:1 · text-3 5.34:1 · rose-lt(link) 7.04:1.
+ * Dark-theme accent text MUST use --ig-rose-lt (rose #AF5F5F is 4.35:1 → fill/large only).
+ * ========================================================================= */
+.dark {
+  --ig-bg:      #0B0A0C;
+  --ig-surface: #131114;
+  --ig-border:  rgba(255, 255, 255, .09);
+  --ig-text:    #EDE7EA;
+  --ig-text-2:  #B4ABB0;
+  --ig-text-3:  #8C828A;
+  --ig-faint:   #6E646A;            /* 3.48:1 - large/decorative only */
+  --ig-link:    var(--ig-rose-lt);  /* 7.04:1 on dark - AAA           */
+  --ig-primary: var(--ig-rose);
+  --ig-on-primary: #FFFFFF;         /* 4.54:1 on rose - AA            */
+}

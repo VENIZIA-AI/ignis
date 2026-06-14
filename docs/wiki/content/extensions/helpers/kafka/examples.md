@@ -251,7 +251,7 @@ const consumer = KafkaConsumerHelper.newInstance({
 await consumer.start({ topics: ['orders'] });
 ```
 
-## Using Helpers with Ignis IoC
+## Using Helpers with IGNIS IoC
 
 ```typescript
 import {

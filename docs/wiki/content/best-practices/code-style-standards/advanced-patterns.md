@@ -1,6 +1,6 @@
 # Advanced Patterns
 
-Advanced TypeScript patterns used throughout the Ignis framework.
+Advanced TypeScript patterns used throughout the IGNIS framework.
 
 ## Mixin Pattern
 

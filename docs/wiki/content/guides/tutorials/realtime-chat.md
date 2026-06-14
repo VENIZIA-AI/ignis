@@ -1,6 +1,6 @@
 # Building a Real-Time Chat Application
 
-This tutorial shows you how to build a real-time chat application with rooms, direct messages, typing indicators, and presence using Socket.IO — powered by the `SocketIOComponent` and `SocketIOServerHelper`.
+This tutorial shows you how to build a real-time chat application with rooms, direct messages, typing indicators, and presence using Socket.IO - powered by the `SocketIOComponent` and `SocketIOServerHelper`.
 
 **What You'll Build:**
 
@@ -29,7 +29,7 @@ bun add hono @hono/zod-openapi @venizia/ignis @venizia/ignis-helpers
 bun add drizzle-orm drizzle-zod pg
 bun add -d typescript @types/bun @venizia/dev-configs drizzle-kit @types/pg
 
-# For Bun runtime — Socket.IO engine
+# For Bun runtime - Socket.IO engine
 bun add @socket.io/bun-engine
 ```
 
@@ -325,25 +325,27 @@ export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
 
   async findByUser(opts: { userId: string }) {
     const memberships = await this._memberRepo.find({
-      where: { userId: opts.userId },
-      include: { room: true },
+      filter: { where: { userId: opts.userId }, include: [{ relation: 'room' }] },
     });
     return memberships.map(m => m.room);
   }
 
   async isMember(opts: { roomId: string; userId: string }): Promise<boolean> {
     const member = await this._memberRepo.findOne({
-      where: { roomId: opts.roomId, userId: opts.userId },
+      filter: { where: { roomId: opts.roomId, userId: opts.userId } },
     });
     return !!member;
   }
 
   async addMember(opts: { roomId: string; userId: string; role?: string }) {
-    return this._memberRepo.create({
-      roomId: opts.roomId,
-      userId: opts.userId,
-      role: opts.role ?? 'member',
+    const { data } = await this._memberRepo.create({
+      data: {
+        roomId: opts.roomId,
+        userId: opts.userId,
+        role: opts.role ?? 'member',
+      },
     });
+    return data;
   }
 
   async removeMember(opts: { roomId: string; userId: string }) {
@@ -354,14 +356,13 @@ export class RoomRepository extends DefaultCRUDRepository<typeof Room.schema> {
 
   async getMember(opts: { roomId: string; userId: string }) {
     return this._memberRepo.findOne({
-      where: { roomId: opts.roomId, userId: opts.userId },
+      filter: { where: { roomId: opts.roomId, userId: opts.userId } },
     });
   }
 
   async getMembers(opts: { roomId: string }) {
     return this._memberRepo.find({
-      where: { roomId: opts.roomId },
-      include: { user: true },
+      filter: { where: { roomId: opts.roomId }, include: [{ relation: 'user' }] },
     });
   }
 }
@@ -393,7 +394,8 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
   }
 
   async createDirectMessage(opts: { senderId: string; receiverId: string; content: string }) {
-    return this._dmRepo.create(opts);
+    const { data } = await this._dmRepo.create({ data: opts });
+    return data;
   }
 
   async findDirectMessages(opts: {
@@ -403,26 +405,26 @@ export class MessageRepository extends DefaultCRUDRepository<typeof Message.sche
     before?: string;
   }) {
     return this._dmRepo.find({
-      where: {
-        or: [
-          { senderId: opts.userId1, receiverId: opts.userId2 },
-          { senderId: opts.userId2, receiverId: opts.userId1 },
-        ],
+      filter: {
+        where: {
+          or: [
+            { senderId: opts.userId1, receiverId: opts.userId2 },
+            { senderId: opts.userId2, receiverId: opts.userId1 },
+          ],
+        },
+        order: ['createdAt DESC'],
+        limit: opts.limit ?? 50,
       },
-      orderBy: { createdAt: 'desc' },
-      limit: opts.limit ?? 50,
     });
   }
 
   async findConversations(opts: { userId: string }) {
     // Get unique conversation partners
     const sent = await this._dmRepo.find({
-      where: { senderId: opts.userId },
-      include: { receiver: true },
+      filter: { where: { senderId: opts.userId }, include: [{ relation: 'receiver' }] },
     });
     const received = await this._dmRepo.find({
-      where: { receiverId: opts.userId },
-      include: { sender: true },
+      filter: { where: { receiverId: opts.userId }, include: [{ relation: 'sender' }] },
     });
 
     // Combine and deduplicate
@@ -492,7 +494,7 @@ export class ChatService extends BaseService {
   }
 
   // ---------------------------------------------------------------------------
-  // SocketIOServerHelper — lazy getter (bound after server starts via post-start hook)
+  // SocketIOServerHelper - lazy getter (bound after server starts via post-start hook)
   // ---------------------------------------------------------------------------
   private get socketIOHelper(): SocketIOServerHelper {
     if (!this._socketIOHelper) {
@@ -511,7 +513,7 @@ export class ChatService extends BaseService {
   }
 
   // ---------------------------------------------------------------------------
-  // Socket event handlers — called from clientConnectedFn after authentication
+  // Socket event handlers - called from clientConnectedFn after authentication
   // ---------------------------------------------------------------------------
   registerClientHandlers(opts: { socket: Socket }) {
     const logger = this.logger.for(this.registerClientHandlers.name);
@@ -699,7 +701,7 @@ export class ChatService extends BaseService {
   // Room operations
   // ---------------------------------------------------------------------------
   async createRoom(opts: { name: string; description?: string; isPrivate?: boolean; createdBy: string }) {
-    const room = await this._roomRepo.create(opts);
+    const { data: room } = await this._roomRepo.create({ data: opts });
 
     // Add creator as admin
     await this._roomRepo.addMember({ roomId: room.id, userId: opts.createdBy, role: 'admin' });
@@ -708,7 +710,7 @@ export class ChatService extends BaseService {
   }
 
   async joinRoom(opts: { roomId: string; userId: string }) {
-    const room = await this._roomRepo.findById(opts.roomId);
+    const room = await this._roomRepo.findById({ id: opts.roomId });
     if (!room) {
       throw getError({ statusCode: 404, message: 'Room not found' });
     }
@@ -742,14 +744,16 @@ export class ChatService extends BaseService {
       throw getError({ statusCode: 403, message: 'Not a member of this room' });
     }
 
-    const message = await this._messageRepo.create({
-      roomId: opts.roomId,
-      senderId: opts.senderId,
-      content: opts.content,
-      type: opts.type ?? 'text',
+    const { data: message } = await this._messageRepo.create({
+      data: {
+        roomId: opts.roomId,
+        senderId: opts.senderId,
+        content: opts.content,
+        type: opts.type ?? 'text',
+      },
     });
 
-    const sender = await this._userRepo.findById(opts.senderId);
+    const sender = await this._userRepo.findById({ id: opts.senderId });
 
     return {
       ...message,
@@ -763,7 +767,7 @@ export class ChatService extends BaseService {
   }
 
   async editMessage(opts: { messageId: string; userId: string; content: string }) {
-    const message = await this._messageRepo.findById(opts.messageId);
+    const message = await this._messageRepo.findById({ id: opts.messageId });
 
     if (!message) {
       throw getError({ statusCode: 404, message: 'Message not found' });
@@ -773,14 +777,17 @@ export class ChatService extends BaseService {
       throw getError({ statusCode: 403, message: 'Cannot edit others messages' });
     }
 
-    return this._messageRepo.updateById(opts.messageId, {
-      content: opts.content,
-      editedAt: new Date(),
+    return this._messageRepo.updateById({
+      id: opts.messageId,
+      data: {
+        content: opts.content,
+        editedAt: new Date(),
+      },
     });
   }
 
   async deleteMessage(opts: { messageId: string; userId: string }) {
-    const message = await this._messageRepo.findById(opts.messageId);
+    const message = await this._messageRepo.findById({ id: opts.messageId });
 
     if (!message) {
       throw getError({ statusCode: 404, message: 'Message not found' });
@@ -793,8 +800,11 @@ export class ChatService extends BaseService {
       }
     }
 
-    return this._messageRepo.updateById(opts.messageId, {
-      deletedAt: new Date(),
+    return this._messageRepo.updateById({
+      id: opts.messageId,
+      data: {
+        deletedAt: new Date(),
+      },
     });
   }
 
@@ -805,16 +815,18 @@ export class ChatService extends BaseService {
     };
 
     if (opts.before) {
-      const beforeMessage = await this._messageRepo.findById(opts.before);
+      const beforeMessage = await this._messageRepo.findById({ id: opts.before });
       if (beforeMessage) {
         where.createdAt = { lt: beforeMessage.createdAt };
       }
     }
 
     return this._messageRepo.find({
-      where,
-      orderBy: { createdAt: 'desc' },
-      limit: opts.limit ?? 50,
+      filter: {
+        where,
+        order: ['createdAt DESC'],
+        limit: opts.limit ?? 50,
+      },
     });
   }
 
@@ -842,16 +854,22 @@ export class ChatService extends BaseService {
   // Presence operations
   // ---------------------------------------------------------------------------
   async setOnline(opts: { userId: string }) {
-    await this._userRepo.updateById(opts.userId, {
-      isOnline: true,
-      lastSeenAt: new Date(),
+    await this._userRepo.updateById({
+      id: opts.userId,
+      data: {
+        isOnline: true,
+        lastSeenAt: new Date(),
+      },
     });
   }
 
   async setOffline(opts: { userId: string }) {
-    await this._userRepo.updateById(opts.userId, {
-      isOnline: false,
-      lastSeenAt: new Date(),
+    await this._userRepo.updateById({
+      id: opts.userId,
+      data: {
+        isOnline: false,
+        lastSeenAt: new Date(),
+      },
     });
   }
 
@@ -990,7 +1008,7 @@ export class ChatApp extends BaseApplication {
 
   // ---------------------------------------------------------------------------
   private setupSocketIO() {
-    // 1. Redis connection — SocketIOServerHelper creates 3 duplicate connections
+    // 1. Redis connection - SocketIOServerHelper creates 3 duplicate connections
     //    for adapter (pub/sub) and emitter automatically
     this.redisHelper = new RedisHelper({
       name: 'chat-redis',
@@ -1004,7 +1022,7 @@ export class ChatApp extends BaseApplication {
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 
-    // 2. Authentication handler — called when a client emits 'authenticate'
+    // 2. Authentication handler - called when a client emits 'authenticate'
     //    Receives the Socket.IO handshake (headers, query, auth object)
     const authenticateFn: ISocketIOServerBaseOptions['authenticateFn'] = handshake => {
       const token =
@@ -1024,7 +1042,7 @@ export class ChatApp extends BaseApplication {
       key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
     }).toValue(authenticateFn);
 
-    // 3. Client connected handler — called AFTER successful authentication
+    // 3. Client connected handler - called AFTER successful authentication
     //    This is where you register custom event handlers on each socket
     const clientConnectedFn: ISocketIOServerBaseOptions['clientConnectedFn'] = ({ socket }) => {
       const chatService = this.get<ChatService>({
@@ -1041,7 +1059,7 @@ export class ChatApp extends BaseApplication {
       key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
     }).toValue(clientConnectedFn);
 
-    // 4. (Optional) Custom server options — override defaults
+    // 4. (Optional) Custom server options - override defaults
     this.bind({
       key: SocketIOBindingKeys.SERVER_OPTIONS,
     }).toValue({
@@ -1054,7 +1072,7 @@ export class ChatApp extends BaseApplication {
       },
     });
 
-    // 5. Register the component — that's it!
+    // 5. Register the component - that's it!
     //    SocketIOComponent handles:
     //    - Runtime detection (Node.js / Bun)
     //    - Post-start hook to create SocketIOServerHelper after server starts
@@ -1104,12 +1122,12 @@ preConfigure()
 
 initialize()
   └── SocketIOComponent.binding()
-        ├── resolveBindings() — reads all bound values
-        ├── RuntimeModules.detect() — auto-detect Node.js or Bun
+        ├── resolveBindings() - reads all bound values
+        ├── RuntimeModules.detect() - auto-detect Node.js or Bun
         └── registerPostStartHook('socket-io-initialize')
 
 start()
-  ├── startBunModule() / startNodeModule() — server starts
+  ├── startBunModule() / startNodeModule() - server starts
   └── executePostStartHooks()
         └── 'socket-io-initialize'
               ├── Create SocketIOServerHelper (with Redis adapter + emitter)
@@ -1265,7 +1283,7 @@ export class ChatController extends BaseRestController {
 
 ## 8. Client Usage
 
-Clients must follow the `SocketIOServerHelper` authentication flow: **connect** → **emit `authenticate`** → **receive `authenticated`** — then they're ready to send and receive events.
+Clients must follow the `SocketIOServerHelper` authentication flow: **connect** → **emit `authenticate`** → **receive `authenticated`** - then they're ready to send and receive events.
 
 ### JavaScript Client Example
 
@@ -1293,16 +1311,16 @@ class ChatClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Connection lifecycle — follows SocketIOServerHelper's auth flow
+  // Connection lifecycle - follows SocketIOServerHelper's auth flow
   // ---------------------------------------------------------------------------
   private setupLifecycle() {
-    // Step 1: Connected — now send authenticate event
+    // Step 1: Connected - now send authenticate event
     this._socket.on('connect', () => {
       console.log('Connected | id:', this._socket.id);
       this._socket.emit('authenticate');
     });
 
-    // Step 2: Authenticated — ready to use
+    // Step 2: Authenticated - ready to use
     this._socket.on('authenticated', (data: { id: string; time: string }) => {
       console.log('Authenticated | id:', data.id);
       this._authenticated = true;
@@ -1317,7 +1335,7 @@ class ChatClient {
 
     // Keep-alive ping from server (every 30s)
     this._socket.on('ping', () => {
-      // Server is checking we're alive — no action needed
+      // Server is checking we're alive - no action needed
     });
 
     this._socket.on('disconnect', (reason: string) => {
@@ -1327,7 +1345,7 @@ class ChatClient {
   }
 
   // ---------------------------------------------------------------------------
-  // Custom event handlers — registered after authentication
+  // Custom event handlers - registered after authentication
   // ---------------------------------------------------------------------------
   private setupEventHandlers() {
     this._socket.on('message:new', (message) => {
@@ -1464,7 +1482,7 @@ Process A                     Redis                     Process B
 
 ### Multi-Instance Deployment
 
-Run multiple instances behind a load balancer — Redis keeps them in sync:
+Run multiple instances behind a load balancer - Redis keeps them in sync:
 
 ```bash
 # Instance 1
@@ -1507,7 +1525,7 @@ this.bind<RedisHelper>({
 | Presence | `socketIOHelper.send()` broadcast on connect/disconnect |
 | History | REST API with cursor-based pagination |
 | Authentication | `SocketIOServerHelper` built-in flow (connect → authenticate → authenticated) |
-| Scaling | Redis adapter/emitter — automatic via `RedisHelper` binding |
+| Scaling | Redis adapter/emitter - automatic via `RedisHelper` binding |
 | Runtime | Auto-detected (Node.js or Bun) by `SocketIOComponent` |
 
 ## Next Steps
@@ -1520,6 +1538,6 @@ this.bind<RedisHelper>({
 
 ## See Also
 
-- [Socket.IO Component](/extensions/components/socket-io/) — Component reference
-- [Socket.IO Helper](/extensions/helpers/socket-io/) — Server + Client helper API
-- [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) — Working example with automated test client
+- [Socket.IO Component](/extensions/components/socket-io/) - Component reference
+- [Socket.IO Helper](/extensions/helpers/socket-io/) - Server + Client helper API
+- [Socket.IO Test Example](https://github.com/VENIZIA-AI/ignis/tree/main/examples/socket-io-test) - Working example with automated test client

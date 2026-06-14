@@ -1,6 +1,6 @@
 # Utilities
 
-Pure, standalone functions providing common, reusable logic for the Ignis framework. All utilities are stateless and easy to use.
+Pure, standalone functions providing common, reusable logic for the IGNIS framework. All utilities are stateless and easy to use.
 
 ## Quick Reference
 

@@ -7,7 +7,7 @@ description: New gRPC controller system with ConnectRPC integration, controller 
 
 ## gRPC Controller System & Controller Architecture Refactor
 
-Introduces a full gRPC controller system built on ConnectRPC, alongside a structural refactor that splits the controller hierarchy into dedicated REST and gRPC base classes. The current version supports **unary RPCs only** (streaming decorators exist but throw at boot time — HTTP/1.1 Connect protocol limitation). The system uses AsyncLocalStorage for production-safe request context isolation, enforces authentication/authorization on gRPC endpoints, and integrates into the existing application lifecycle through a component-based registration pattern.
+Introduces a full gRPC controller system built on ConnectRPC, alongside a structural refactor that splits the controller hierarchy into dedicated REST and gRPC base classes. The current version supports **unary RPCs only** (streaming decorators exist but throw at boot time - HTTP/1.1 Connect protocol limitation). The system uses AsyncLocalStorage for production-safe request context isolation, enforces authentication/authorization on gRPC endpoints, and integrates into the existing application lifecycle through a component-based registration pattern.
 
 ## Overview
 
@@ -69,7 +69,7 @@ const adapter = createHonoConnectAdapter(options);
 **After:**
 ```typescript
 class MyGrpcController extends AbstractGrpcController {
-  // Unified map — single write per RPC:
+  // Unified map - single write per RPC:
   // this.definitions[configs.name] = { configs, handler };
 
   // Structure: IRpcRegistration<RouteEnv>
@@ -99,7 +99,7 @@ const adapter = await GrpcRequestAdapter.build({
 
 **File:** `packages/core/src/base/controllers/grpc/base.ts`
 
-**Problem:** No first-class support for gRPC services within the Ignis controller architecture.
+**Problem:** No first-class support for gRPC services within the IGNIS controller architecture.
 
 **Solution:** `BaseGrpcController` provides a concrete gRPC controller implementation with decorator-driven RPC method registration, matching the ergonomics of REST controllers.
 
@@ -183,7 +183,7 @@ export class UserGrpcController extends BaseGrpcController { /* ... */ }
 
 **File:** `packages/core/src/components/controller/grpc/grpc.component.ts`
 
-The `GrpcComponent` handles gRPC controller discovery and route mounting, following the same component pattern used by other Ignis components:
+The `GrpcComponent` handles gRPC controller discovery and route mounting, following the same component pattern used by other IGNIS components:
 
 ```typescript
 export class Application extends BaseApplication {

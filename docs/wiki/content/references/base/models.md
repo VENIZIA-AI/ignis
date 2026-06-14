@@ -6,7 +6,7 @@ difficulty: intermediate
 
 # Deep Dive: Models and Enrichers
 
-Technical reference for model architecture and schema enrichers in Ignis.
+Technical reference for model architecture and schema enrichers in IGNIS.
 
 **Files:**
 - `packages/core/src/base/models/base.ts`
@@ -68,13 +68,13 @@ The `@model` decorator marks a class as a database entity and configures its beh
 | `settings.hiddenProperties` | `string[]` | Array of property names to exclude from all repository query results |
 | `settings.defaultFilter` | `TFilter` | Filter automatically applied to all repository queries (see [Default Filter](/references/base/filter-system/default-filter)) |
 | `settings.defaultLimit` | `number` | Default row limit applied when a query omits `limit`. Must be a positive integer (validated at decoration time). Falls back to the global `DEFAULT_LIMIT` (10). See [Pagination](/references/base/filter-system/fields-order-pagination#default-limit) |
-| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings — declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
+| `settings.authorize` | `IModelAuthorizeSettings` | Authorization settings - declares the model's authorization principal (see [Authorization](/extensions/components/authorization/usage#model-based-resource-references)) |
 | `settings.authorize.principal` | `string` | The authorization subject name for this model. Auto-populates `AUTHORIZATION_SUBJECT` static property |
 
 #### `@model` Behavior
 
 When the `@model` decorator is applied:
-1. If `settings.defaultLimit` is provided, it is validated to be a positive integer — otherwise the decorator throws at decoration (boot) time
+1. If `settings.defaultLimit` is provided, it is validated to be a positive integer - otherwise the decorator throws at decoration (boot) time
 2. If `settings.authorize.principal` is provided and `AUTHORIZATION_SUBJECT` is not already defined on the class, it auto-populates `AUTHORIZATION_SUBJECT` with the principal value
 3. The model is registered in the `MetadataRegistry` model registry, keyed by table name (resolved as: `metadata.tableName` > `static TABLE_NAME` > class name)
 4. The static `relations` property is stored as a resolver (not immediately resolved) to avoid circular dependency issues between models
@@ -271,7 +271,7 @@ interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
 |--------|-------------|
 | `getSchema({ type })` | Get Zod schema for validation (`'select'`, `'create'`, `'update'`) |
 | `toObject()` | Convert to plain object (shallow spread of `this`) |
-| `toJSON()` | Delegates to `toObject()` — returns a plain object (used by `JSON.stringify`) |
+| `toJSON()` | Delegates to `toObject()` - returns a plain object (used by `JSON.stringify`) |
 
 ### `getSchema` Method
 
@@ -441,7 +441,7 @@ From `@venizia/ignis-helpers`, enables lazy resolution to avoid circular depende
 type TValueOrResolver<T> = T | TResolver<T>;  // T or () => T
 ```
 
-Used for `relations` on `BaseEntity` — store a function that returns the relations array, resolved lazily when `DataSource.buildSchema()` is called.
+Used for `relations` on `BaseEntity` - store a function that returns the relations array, resolved lazily when `DataSource.buildSchema()` is called.
 
 ## Schema Enrichers
 
@@ -456,7 +456,7 @@ Enrichers are helper functions located in `packages/core/src/base/models/enriche
 | **`generateUserAuditColumnDefs`** | `enrichUserAudit` | Adds `createdBy` and `modifiedBy` columns to track user audit information. |
 | **`generatePrincipalColumnDefs`** | `enrichPrincipal` | Adds polymorphic principal columns (`{discriminator}Id` and `{discriminator}Type`). |
 | **`generateDataTypeColumnDefs`** | `enrichDataTypes` | Adds generic data type columns (`dataType`, `nValue`, `tValue`, `bValue`, `jValue`, `boValue`) for flexible data storage. |
-| **`extraUserColumns`** | — | Adds common user fields (`realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId`). Imported from `@venizia/ignis` (part of auth component). |
+| **`extraUserColumns`** | - | Adds common user fields (`realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId`). Imported from `@venizia/ignis` (part of auth component). |
 
 Each `generate*` function returns column definition objects for spreading into `pgTable`. The `enrich*` convenience wrappers accept an existing `TColumnDefinitions` object as the first argument and merge the generated columns into it.
 
@@ -888,8 +888,8 @@ type TUserAuditEnricherOptions = {
 
 The enricher uses Hono's `contextStorage` (via `tryGetContext()`) to automatically retrieve the current user ID from the request context at insert/update time:
 
-- **`createdBy`**: Set via `$default()` — only populated on record creation
-- **`modifiedBy`**: Set via both `$default()` and `$onUpdate()` — populated on creation and updated on every modification
+- **`createdBy`**: Set via `$default()` - only populated on record creation
+- **`modifiedBy`**: Set via both `$default()` and `$onUpdate()` - populated on creation and updated on every modification
 
 The user ID is read from the `Authentication.AUDIT_USER_ID` key in the Hono context.
 
@@ -1215,7 +1215,7 @@ export const settingTable = pgTable('Setting', {
 // Generates columns with SQL defaults:
 // data_type text DEFAULT 'text'
 // t_value text DEFAULT ''
-// nValue, bValue, jValue, boValue — no defaults
+// nValue, bValue, jValue, boValue - no defaults
 ```
 
 **Key-value store pattern:**

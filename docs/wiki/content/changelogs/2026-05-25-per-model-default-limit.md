@@ -1,6 +1,6 @@
 ---
 title: Per-Model Default Limit via @model Settings
-description: Configure a default query limit per model with settings.defaultLimit — applied to top-level find() and to-many relations, validated at boot time
+description: Configure a default query limit per model with settings.defaultLimit - applied to top-level find() and to-many relations, validated at boot time
 ---
 
 # Changelog - 2026-05-25
@@ -23,7 +23,7 @@ Models can now declare their own default page size with `@model({ settings: { de
 
 **File:** `packages/core/src/helpers/inversion/common/types.ts`
 
-**Problem:** `DEFAULT_LIMIT` (10) was a hard-coded constant with no per-model override. A small lookup table (e.g. `Country`, `Role`) had to receive an explicit `limit` on every query to return more than 10 rows, while large tables (e.g. `AuditLog`) wanted to keep the conservative cap. The only workaround — putting `limit` inside `defaultFilter` — was semantically muddy and got dropped when `shouldSkipDefaultFilter` was used.
+**Problem:** `DEFAULT_LIMIT` (10) was a hard-coded constant with no per-model override. A small lookup table (e.g. `Country`, `Role`) had to receive an explicit `limit` on every query to return more than 10 rows, while large tables (e.g. `AuditLog`) wanted to keep the conservative cap. The only workaround - putting `limit` inside `defaultFilter` - was semantically muddy and got dropped when `shouldSkipDefaultFilter` was used.
 
 **Solution:** A dedicated, validated `defaultLimit` model setting resolved at the query-building layer, independent of the `where`-oriented `defaultFilter`.
 
@@ -56,10 +56,10 @@ await productRepo.find({
 
 **Benefits:**
 
-- Per-model tuning — small lookup tables and large audit tables can each have a sensible default
+- Per-model tuning - small lookup tables and large audit tables can each have a sensible default
 - No need to repeat `limit` on every query for naturally small tables
 - Boot-time validation catches misconfiguration before it reaches the query layer
-- Clean separation from `defaultFilter` — not affected by `shouldSkipDefaultFilter`
+- Clean separation from `defaultFilter` - not affected by `shouldSkipDefaultFilter`
 
 > [!NOTE]
 > There is no "unbounded" sentinel. `defaultLimit` must be a positive integer; to fetch more rows than the default, pass an explicit `limit` in the query.
@@ -128,4 +128,4 @@ const scopedFilter: TFilter =
 
 ## No Breaking Changes
 
-`defaultLimit` is opt-in. Models that don't set it keep the existing behavior — the global `DEFAULT_LIMIT` (10). No API changes or migration required.
+`defaultLimit` is opt-in. Models that don't set it keep the existing behavior - the global `DEFAULT_LIMIT` (10). No API changes or migration required.

@@ -1,6 +1,6 @@
 # Philosophy: The Best of Two Worlds
 
-Ignis combines the structured, enterprise-grade development experience of **LoopBack 4** with the speed and simplicity of **Hono**.
+IGNIS combines the structured, enterprise-grade development experience of **LoopBack 4** with the speed and simplicity of **Hono**.
 
 <div class="philosophy-hero">
 <div class="hero-content">
@@ -34,7 +34,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 
 <div class="landscape-card balanced">
 <div class="card-header">
-<h3>Ignis, Ts.ED</h3>
+<h3>IGNIS, Ts.ED</h3>
 <span class="card-badge">Balanced</span>
 </div>
 <p class="card-motto">Structure with lighter footprint</p>
@@ -86,7 +86,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 
 <div class="perf-row highlight">
 <div class="perf-info">
-<span class="perf-name">Ignis</span>
+<span class="perf-name">IGNIS</span>
 <span class="perf-meta">~30ms startup · ~30MB</span>
 </div>
 <div class="perf-bar-container">
@@ -162,7 +162,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <th>Aspect</th>
 <th>Minimal (Hono/Express)</th>
 <th>Enterprise (NestJS/LoopBack)</th>
-<th class="highlight-col">Ignis</th>
+<th class="highlight-col">IGNIS</th>
 </tr>
 </thead>
 <tbody>
@@ -221,7 +221,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <th>Feature</th>
 <th>Minimal</th>
 <th>Enterprise</th>
-<th class="highlight-col">Ignis</th>
+<th class="highlight-col">IGNIS</th>
 </tr>
 </thead>
 <tbody>
@@ -274,7 +274,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <th>Aspect</th>
 <th>Hono</th>
 <th>NestJS</th>
-<th class="highlight-col">Ignis</th>
+<th class="highlight-col">IGNIS</th>
 </tr>
 </thead>
 <tbody>
@@ -330,7 +330,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 </table>
 </div>
 
-## The Ignis Synthesis
+## The IGNIS Synthesis
 
 <div class="synthesis">
 
@@ -359,7 +359,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <div class="synthesis-operator">=</div>
 
 <div class="synthesis-box result">
-<h4>Ignis</h4>
+<h4>IGNIS</h4>
 <ul>
 <li>DI + Speed</li>
 <li>Structure + Simplicity</li>
@@ -400,7 +400,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 </div>
 
 <div class="excel-card ignis">
-<h3>Ignis</h3>
+<h3>IGNIS</h3>
 <p class="excel-subtitle">The balanced choice</p>
 <div class="excel-pros">
 <h4>Strengths</h4>
@@ -452,7 +452,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 
 </div>
 
-## When Should You Use Ignis?
+## When Should You Use IGNIS?
 
 <div class="decision-matrix">
 
@@ -530,7 +530,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 
 <div class="perfect-card">
 <h4>Production APIs</h4>
-<p>10-100+ endpoints with enterprise patterns. Controllers, services, repositories — all built-in and ready.</p>
+<p>10-100+ endpoints with enterprise patterns. Controllers, services, repositories - all built-in and ready.</p>
 </div>
 
 <div class="perfect-card">
@@ -557,42 +557,42 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <div class="choose-card">
 <h3>Use Hono/Fastify/Express When:</h3>
 <ul>
-<li><strong>Simple webhook handler</strong> — No structure overhead needed</li>
-<li><strong>Edge/serverless functions</strong> — Minimal cold start, tiny bundle</li>
-<li><strong>Rapid prototyping</strong> — Get something running in minutes</li>
-<li><strong>1-5 endpoint microservices</strong> — Structure adds complexity</li>
-<li><strong>Maximum control needed</strong> — No conventions to follow</li>
-<li><strong>Learning web development</strong> — Simpler mental model</li>
+<li><strong>Simple webhook handler</strong> - No structure overhead needed</li>
+<li><strong>Edge/serverless functions</strong> - Minimal cold start, tiny bundle</li>
+<li><strong>Rapid prototyping</strong> - Get something running in minutes</li>
+<li><strong>1-5 endpoint microservices</strong> - Structure adds complexity</li>
+<li><strong>Maximum control needed</strong> - No conventions to follow</li>
+<li><strong>Learning web development</strong> - Simpler mental model</li>
 </ul>
 </div>
 
 <div class="choose-card">
 <h3>Use NestJS/LoopBack When:</h3>
 <ul>
-<li><strong>Large team (10+ developers)</strong> — Strong conventions prevent chaos</li>
-<li><strong>Enterprise with strict standards</strong> — Mature, battle-tested, auditable</li>
-<li><strong>Extensive ecosystem needed</strong> — Many official and community modules</li>
-<li><strong>Complex microservices</strong> — Built-in support for messaging, CQRS</li>
-<li><strong>Hiring is a priority</strong> — Large talent pool familiar with it</li>
-<li><strong>Long-term support critical</strong> — Corporate backing, LTS versions</li>
+<li><strong>Large team (10+ developers)</strong> - Strong conventions prevent chaos</li>
+<li><strong>Enterprise with strict standards</strong> - Mature, battle-tested, auditable</li>
+<li><strong>Extensive ecosystem needed</strong> - Many official and community modules</li>
+<li><strong>Complex microservices</strong> - Built-in support for messaging, CQRS</li>
+<li><strong>Hiring is a priority</strong> - Large talent pool familiar with it</li>
+<li><strong>Long-term support critical</strong> - Corporate backing, LTS versions</li>
 </ul>
 </div>
 
 <div class="choose-card highlight">
-<h3>Use Ignis When:</h3>
+<h3>Use IGNIS When:</h3>
 <ul>
-<li><strong>Any size API (10-100+ endpoints)</strong> — Structure without heavy overhead</li>
-<li><strong>Any team size</strong> — Scales from solo dev to enterprise teams</li>
-<li><strong>Performance matters</strong> — Hono's speed with enterprise patterns</li>
-<li><strong>Modern stack preferred</strong> — ESM native, Bun optimized, TypeScript-first</li>
-<li><strong>Coming from NestJS/LoopBack</strong> — Familiar patterns, better performance</li>
-<li><strong>Need built-in features</strong> — DI, validation, OpenAPI, auth ready to use</li>
+<li><strong>Any size API (10-100+ endpoints)</strong> - Structure without heavy overhead</li>
+<li><strong>Any team size</strong> - Scales from solo dev to enterprise teams</li>
+<li><strong>Performance matters</strong> - Hono's speed with enterprise patterns</li>
+<li><strong>Modern stack preferred</strong> - ESM native, Bun optimized, TypeScript-first</li>
+<li><strong>Coming from NestJS/LoopBack</strong> - Familiar patterns, better performance</li>
+<li><strong>Need built-in features</strong> - DI, validation, OpenAPI, auth ready to use</li>
 </ul>
 </div>
 
 </div>
 
-## Why Choose Ignis
+## Why Choose IGNIS
 
 <div class="tradeoffs">
 
@@ -603,7 +603,7 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <li><span class="highlight-text">Built-in DI</span>, validation, OpenAPI, auth</li>
 <li><span class="highlight-text">Structured codebase</span> from day one</li>
 <li><span class="highlight-text">Easier testing</span> with dependency injection</li>
-<li><span class="highlight-text">Single file build</span> — compile to one executable with Bun</li>
+<li><span class="highlight-text">Single file build</span> - compile to one executable with Bun</li>
 <li><span class="highlight-text">Scales</span> from solo dev to enterprise teams</li>
 </ul>
 </div>
@@ -611,10 +611,10 @@ When building REST APIs and server applications with Node.js/Bun, developers cho
 <div class="tradeoff cost">
 <h3>What's Growing</h3>
 <ul>
-<li><span class="highlight-text">Community</span> — expanding every day</li>
-<li><span class="highlight-text">Documentation</span> — continuously improving</li>
-<li><span class="highlight-text">Ecosystem</span> — core features ready, plugins coming</li>
-<li><span class="highlight-text">LTS</span> — planning for long-term support</li>
+<li><span class="highlight-text">Community</span> - expanding every day</li>
+<li><span class="highlight-text">Documentation</span> - continuously improving</li>
+<li><span class="highlight-text">Ecosystem</span> - core features ready, plugins coming</li>
+<li><span class="highlight-text">LTS</span> - planning for long-term support</li>
 </ul>
 </div>
 

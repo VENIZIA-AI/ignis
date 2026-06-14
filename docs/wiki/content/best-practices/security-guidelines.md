@@ -1,6 +1,6 @@
 # Security Guidelines
 
-Critical security practices to protect your Ignis application.
+Critical security practices to protect your IGNIS application.
 
 ## 1. Secret Management
 
@@ -25,7 +25,7 @@ node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 
 ## 2. Input Validation
 
-**Always validate incoming data** with Zod schemas. Ignis automatically rejects invalid requests.
+**Always validate incoming data** with Zod schemas. IGNIS automatically rejects invalid requests.
 
 ```typescript
 import { z } from '@hono/zod-openapi';

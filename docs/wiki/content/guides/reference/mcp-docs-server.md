@@ -1,6 +1,6 @@
-# Getting Started with Ignis Docs MCP Server
+# Getting Started with IGNIS Docs MCP Server
 
-> **What is this?** An MCP (Model Context Protocol) server that lets AI assistants access Ignis framework documentation in real-time. Your AI gets the latest docs instead of outdated training data.
+> **What is this?** An MCP (Model Context Protocol) server that lets AI assistants access IGNIS framework documentation in real-time. Your AI gets the latest docs instead of outdated training data.
 
 ## What You'll Need
 
@@ -210,14 +210,14 @@ Restart your Claude Code session (close terminal and reopen), then test:
 
 ```bash
 # In your Claude Code session, ask:
-Can you search the Ignis docs for "dependency injection"?
+Can you search the IGNIS docs for "dependency injection"?
 ```
 
 **Expected behavior:**
 
 - Claude Code should use the `searchDocs` tool
 - You'll see a message like: `[Using tool: searchDocs]`
-- Results from Ignis documentation appear
+- Results from IGNIS documentation appear
 
 **If it doesn't work:**
 
@@ -231,16 +231,16 @@ Once working, try these queries:
 
 ```
 # Search documentation
-"How do I create a controller in Ignis?"
+"How do I create a controller in IGNIS?"
 
 # Get specific guide
 "Show me the complete Building a CRUD API guide"
 
 # Browse topics
-"What helpers are available in Ignis?"
+"What helpers are available in IGNIS?"
 
 # Get code examples
-"Show me an example of dependency injection in Ignis"
+"Show me an example of dependency injection in IGNIS"
 ```
 
 ## VS Code Setup
@@ -275,7 +275,7 @@ The configuration location depends on which extension you're using:
 
 ### Add MCP Server Configuration
 
-Open the config file for your extension and add the Ignis docs server:
+Open the config file for your extension and add the IGNIS docs server:
 
 **If you installed globally:**
 
@@ -324,7 +324,7 @@ Reload the window: `Cmd/Ctrl + Shift + P` → "Developer: Reload Window"
 Open your AI assistant in VS Code and ask:
 
 ```
-Can you search the Ignis docs for "dependency injection"?
+Can you search the IGNIS docs for "dependency injection"?
 ```
 
 The assistant should use the MCP tools to access and return documentation.
@@ -439,9 +439,9 @@ Once configured, you can ask your AI assistant:
 ### Example 1: Search Documentation
 
 ```
-You: "How do I set up dependency injection in Ignis?"
+You: "How do I set up dependency injection in IGNIS?"
 AI: [Uses searchDocs tool, finds relevant pages]
-AI: "Based on the Ignis documentation..."
+AI: "Based on the IGNIS documentation..."
 ```
 
 ### Example 2: Get Specific Guide
@@ -463,9 +463,9 @@ AI: "The Helpers category contains: Redis, Logger, Queue..."
 
 ## Local Development Setup
 
-For contributors or those developing Ignis itself:
+For contributors or those developing IGNIS itself:
 
-### 1. Clone the Ignis repository
+### 1. Clone the IGNIS repository
 
 ```bash
 git clone https://github.com/venizia-ai/ignis.git
@@ -495,7 +495,7 @@ Use absolute paths in your config:
   "mcpServers": {
     "ignis-docs-dev": {
       "command": "bun",
-      "args": ["run", "/absolute/path/to/ignis/packages/docs/mcp-server/index.ts"]
+      "args": ["run", "/absolute/path/to/ignis/docs/wiki/mcp-server/index.ts"]
     }
   }
 }
@@ -508,7 +508,7 @@ Use absolute paths in your config:
   "mcpServers": {
     "ignis-docs-dev": {
       "command": "bun",
-      "args": ["run", "C:\\absolute\\path\\to\\ignis\\packages\\docs\\mcp-server\\index.ts"]
+      "args": ["run", "C:\\absolute\\path\\to\\ignis\\docs\\wiki\\mcp-server\\index.ts"]
     }
   }
 }
@@ -539,7 +539,7 @@ cat ~/.config/claude-code/config.json | python -m json.tool
 **Test 3: AI tool recognizes MCP server**
 
 - Restart your AI tool COMPLETELY (quit and reopen)
-- Ask: `Can you search the Ignis docs for "controller"?`
+- Ask: `Can you search the IGNIS docs for "controller"?`
 - Look for: `[Using tool: searchDocs]`
 
 

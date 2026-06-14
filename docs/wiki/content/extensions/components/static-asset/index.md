@@ -129,16 +129,16 @@ export class Application extends BaseApplication {
 The component auto-registers REST endpoints for each configured backend. No injection needed in downstream code.
 
 ```
-GET    /assets/buckets                                — List all buckets
-GET    /assets/buckets/:bucketName                    — Get bucket details (or null)
-POST   /assets/buckets/:bucketName                    — Create a bucket
-DELETE /assets/buckets/:bucketName                    — Delete a bucket
-POST   /assets/buckets/:bucketName/upload             — Upload files
-GET    /assets/buckets/:bucketName/objects             — List objects in bucket
-GET    /assets/buckets/:bucketName/objects/:obj        — Stream file inline
-GET    /assets/buckets/:bucketName/objects/:obj/download — Download file (attachment)
-DELETE /assets/buckets/:bucketName/objects/:obj        — Delete file
-PUT    /assets/buckets/:bucketName/objects/:obj/meta-links — Sync MetaLink (MetaLink only)
+GET    /assets/buckets                                - List all buckets
+GET    /assets/buckets/:bucketName                    - Get bucket details (or null)
+POST   /assets/buckets/:bucketName                    - Create a bucket
+DELETE /assets/buckets/:bucketName                    - Delete a bucket
+POST   /assets/buckets/:bucketName/upload             - Upload files
+GET    /assets/buckets/:bucketName/objects             - List objects in bucket
+GET    /assets/buckets/:bucketName/objects/:obj        - Stream file inline
+GET    /assets/buckets/:bucketName/download/:obj        - Download file (attachment)
+DELETE /assets/buckets/:bucketName/objects/:obj        - Delete file
+PUT    /assets/buckets/:bucketName/meta-links/:obj      - Sync MetaLink (MetaLink only)
 ```
 
 Each storage backend gets its own base path (`/assets`, `/resources`, etc.) with the same endpoint structure.
@@ -237,12 +237,12 @@ Each route can be individually configured with authentication, middleware, and p
     name: 'AssetController',
     basePath: '/assets',
     routes: {
-      getBuckets: { authenticate: { strategies: ['jwt'], mode: 'required' } },
-      upload: { authenticate: { strategies: ['jwt'], mode: 'required' }, middleware: [rateLimitMw] },
+      getBuckets: { authenticate: { strategies: ['jwt'], mode: 'any' } },
+      upload: { authenticate: { strategies: ['jwt'], mode: 'any' }, middleware: [rateLimitMw] },
       getObjectByName: { /* public -- no authenticate */ },
       downloadObjectByName: { /* public */ },
-      deleteObject: { authenticate: { strategies: ['jwt'], mode: 'required' } },
-      deleteBucket: { authenticate: { strategies: ['jwt'], mode: 'required' } },
+      deleteObject: { authenticate: { strategies: ['jwt'], mode: 'any' } },
+      deleteBucket: { authenticate: { strategies: ['jwt'], mode: 'any' } },
     },
   },
   // ...
@@ -393,7 +393,8 @@ MetaLink is an optional feature that tracks uploaded files in a database, storin
 **1. Create Model:**
 
 ```typescript
-import { BaseMetaLinkModel, model } from '@venizia/ignis/static-asset';
+import { BaseMetaLinkModel } from '@venizia/ignis/static-asset';
+import { model } from '@venizia/ignis';
 
 @model({ type: 'entity' })
 export class FileMetaLinkModel extends BaseMetaLinkModel {

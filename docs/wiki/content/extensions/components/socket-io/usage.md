@@ -128,7 +128,7 @@ The constructor immediately calls `configure()`, which creates the `socket.io-cl
 
 #### `connect` vs `connection` Event
 
-The client-side `socket.io-client` library fires the `connect` event (no "ion" suffix) when the connection is established. The server-side `socket.io` library fires `connection` (with the suffix). This is a Socket.IO convention, not an Ignis-specific behavior. The client helper registers on `'connect'` while the server helper registers on `SocketIOConstants.EVENT_CONNECT` which equals `'connection'`.
+The client-side `socket.io-client` library fires the `connect` event (no "ion" suffix) when the connection is established. The server-side `socket.io` library fires `connection` (with the suffix). This is a Socket.IO convention, not an IGNIS-specific behavior. The client helper registers on `'connect'` while the server helper registers on `SocketIOConstants.EVENT_CONNECT` which equals `'connection'`.
 
 ### Authentication Flow
 

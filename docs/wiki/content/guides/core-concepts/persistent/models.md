@@ -260,7 +260,7 @@ export class Article extends BaseEntity<typeof Article.schema> {
   });
 }
 
-// Use in route configs — no hardcoded strings
+// Use in route configs - no hardcoded strings
 authorize: {
   action: AuthorizationActions.READ,
   resource: Article.AUTHORIZATION_SUBJECT, // 'article'

@@ -46,11 +46,11 @@ const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 ```typescript
 import { getNumberValue } from '@venizia/ignis-helpers';
 
-// US format (default) — comma is thousands separator
+// US format (default) - comma is thousands separator
 getNumberValue('1,234.56', { method: 'float' }); // => 1234.56
 getNumberValue('1,234', { method: 'int' });       // => 1234
 
-// EU format — dot is thousands separator, comma is decimal
+// EU format - dot is thousands separator, comma is decimal
 getNumberValue('1.234,56', { method: 'float', locale: 'eu' }); // => 1234.56
 ```
 

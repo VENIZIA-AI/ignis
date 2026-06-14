@@ -27,8 +27,8 @@
 
 <br />
 
-Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the
-blazing speed and simplicity of **Hono** -- giving you the best of both worlds. Think LoopBack 4's
+IGNIS brings together the structured, enterprise development experience of **LoopBack 4** with the
+blazing speed and simplicity of **Hono** - giving you the best of both worlds. Think LoopBack 4's
 decorator-driven DI, repository pattern, and component system, running on Hono's ~140k req/s engine
 with Drizzle ORM's type-safe SQL.
 
@@ -48,12 +48,12 @@ with Drizzle ORM's type-safe SQL.
 ## Table of Contents
 
 - [Key Features](#key-features)
-- [When Should You Use Ignis?](#when-should-you-use-ignis)
+- [When Should You Use IGNIS?](#when-should-you-use-ignis)
 - [Framework Comparison](#framework-comparison)
 - [Monorepo Packages](#monorepo-packages)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-- [Quick Start](#quick-start----hello-world)
+- [Quick Start](#quick-start---hello-world)
 - [Architecture Flow](#architecture-flow)
 - [Application Lifecycle](#application-lifecycle)
 - [Built-in Components](#built-in-components)
@@ -70,33 +70,33 @@ with Drizzle ORM's type-safe SQL.
 
 ## Key Features
 
-- **High Performance** -- Built on Hono, one of the fastest web frameworks (~140k req/s on Bun)
-- **Enterprise Architecture** -- Layered architecture with Controllers, Services, Repositories, and DataSources
-- **Dependency Injection** -- Lightweight IoC container (~350 lines) with constructor and property injection
-- **Type Safety** -- Full TypeScript with Drizzle ORM type inference and Zod validation
-- **Auto-Generated API Docs** -- OpenAPI/Swagger documentation out of the box via `@hono/zod-openapi`
-- **Decorator-Based Routing** -- Clean, declarative route definitions with `@get`, `@post`, `@controller`
-- **Component System** -- Pluggable modules for Auth (JWT/Basic), Health Checks, Swagger, Mail, Socket.IO, Static Assets
-- **Convention-Based Boot** -- Auto-discovers controllers, services, repositories, datasources by file conventions
-- **Production Utilities** -- Logger, Redis, BullMQ queues, MinIO storage, Crypto, Cron, Snowflake UID, and more
-- **Multi-Runtime** -- Primary support for Bun, secondary support for Node.js
+- **High Performance** - Built on Hono, one of the fastest web frameworks (~140k req/s on Bun)
+- **Enterprise Architecture** - Layered architecture with Controllers, Services, Repositories, and DataSources
+- **Dependency Injection** - Lightweight IoC container (~350 lines) with constructor and property injection
+- **Type Safety** - Full TypeScript with Drizzle ORM type inference and Zod validation
+- **Auto-Generated API Docs** - OpenAPI/Swagger documentation out of the box via `@hono/zod-openapi`
+- **Decorator-Based Routing** - Clean, declarative route definitions with `@get`, `@post`, `@controller`
+- **Component System** - Pluggable modules for Auth (JWT/Basic), Health Checks, Swagger, Mail, Socket.IO, Static Assets
+- **Convention-Based Boot** - Auto-discovers controllers, services, repositories, datasources by file conventions
+- **Production Utilities** - Logger, Redis, BullMQ queues, MinIO storage, Crypto, Cron, Snowflake UID, and more
+- **Multi-Runtime** - Primary support for Bun, secondary support for Node.js
 
 ---
 
-## When Should You Use Ignis?
+## When Should You Use IGNIS?
 
 ### Perfect For
 
-- **E-commerce Backends** -- Complex business logic, multiple controllers, auth, payments
-- **SaaS Platform APIs** -- Multi-tenant architecture, modular components
-- **Enterprise Tools** -- Team collaboration with clear architectural patterns
-- **Growing APIs** -- 10+ endpoints that need structure and maintainability
+- **E-commerce Backends** - Complex business logic, multiple controllers, auth, payments
+- **SaaS Platform APIs** - Multi-tenant architecture, modular components
+- **Enterprise Tools** - Team collaboration with clear architectural patterns
+- **Growing APIs** - 10+ endpoints that need structure and maintainability
 
 ### Not Recommended For
 
-- **Simple Proxies/Webhooks** -- Too much structure for tiny services
-- **Quick Prototypes** -- Use plain Hono for maximum speed
-- **3-5 Endpoint APIs** -- Consider plain Hono unless you plan to grow
+- **Simple Proxies/Webhooks** - Too much structure for tiny services
+- **Quick Prototypes** - Use plain Hono for maximum speed
+- **3-5 Endpoint APIs** - Consider plain Hono unless you plan to grow
 
 ---
 
@@ -104,7 +104,7 @@ with Drizzle ORM's type-safe SQL.
 
 ### Feature Matrix
 
-| Aspect | Minimal (Hono, Express) | Enterprise (NestJS, LoopBack) | **Ignis** |
+| Aspect | Minimal (Hono, Express) | Enterprise (NestJS, LoopBack) | **IGNIS** |
 | :--- | :--- | :--- | :--- |
 | **Performance** | ~150k req/s | ~25k req/s | **~140k req/s** |
 | **Architecture** | Flexible (DIY) | Strict conventions | Guided conventions |
@@ -116,11 +116,11 @@ with Drizzle ORM's type-safe SQL.
 | **Community** | Large (Express) / Growing (Hono) | Very large | Growing |
 | **Best For** | Microservices, serverless | Large teams, enterprise | Growing APIs, small teams |
 
-### Same Endpoint in Ignis
+### Same Endpoint in IGNIS
 
 ```typescript
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
   ) {
@@ -147,7 +147,7 @@ export class UserController extends BaseController {
 ```
 
 > [!TIP]
-> See the [Philosophy page](docs/wiki/content/guides/get-started/philosophy.md) for detailed Express vs NestJS vs Ignis code comparisons.
+> See the [Philosophy page](docs/wiki/content/guides/get-started/philosophy.md) for detailed Express vs NestJS vs IGNIS code comparisons.
 
 ---
 
@@ -183,15 +183,16 @@ Each package builds on the previous. Changing `inversion` affects everything dow
 
 | Package | npm | Description |
 | :--- | :--- | :--- |
-| **[@venizia/ignis](packages/core/)** | `@venizia/ignis` | Main framework -- Application, Controllers, Repositories, Models, DataSources, Components, Auth |
+| **[@venizia/ignis](packages/core/)** | `@venizia/ignis` | Main framework - Application, Controllers, Repositories, Models, DataSources, Components, Auth |
 | **[@venizia/ignis-boot](packages/boot/)** | `@venizia/ignis-boot` | Convention-based auto-discovery and bootstrapping (configure -> discover -> load) |
-| **[@venizia/ignis-inversion](packages/inversion/)** | `@venizia/ignis-inversion` | Standalone DI/IoC container (~350 lines) -- Container, Binding, MetadataRegistry, decorators |
-| **[@venizia/ignis-helpers](packages/helpers/)** | `@venizia/ignis-helpers` | Production utilities -- Logger, Redis, Queue, Storage, Crypto, Cron, Socket.IO, UID, Network |
+| **[@venizia/ignis-inversion](packages/inversion/)** | `@venizia/ignis-inversion` | Standalone DI/IoC container (~350 lines) - Container, Binding, MetadataRegistry, decorators |
+| **[@venizia/ignis-helpers](packages/helpers/)** | `@venizia/ignis-helpers` | Production utilities - Logger, Redis, Queue, Storage, Crypto, Cron, Socket.IO, UID, Network |
 | **[@venizia/dev-configs](packages/dev-configs/)** | `@venizia/dev-configs` | Shared ESLint v9, Prettier, and TypeScript configs |
 | **[@venizia/ignis-docs](docs/wiki/)** | `@venizia/ignis-docs` | VitePress documentation site and MCP server |
 
 > [!TIP]
-> Each package has its own detailed README with API reference, usage examples, and configuration options.
+> Each package has its own detailed README with API reference, usage examples, and configuration options:
+> [core](packages/core/README.md) - [boot](packages/boot/README.md) - [inversion](packages/inversion/README.md) - [helpers](packages/helpers/README.md) - [dev-configs](packages/dev-configs/README.md) - [docs](docs/wiki/README.md)
 
 ---
 
@@ -237,7 +238,7 @@ bun add -d drizzle-kit @types/pg @types/lodash
 
 ---
 
-## Quick Start -- Hello World
+## Quick Start - Hello World
 
 ### Minimal Example (Single File)
 
@@ -247,7 +248,7 @@ Create `src/index.ts`:
 import { z } from '@hono/zod-openapi';
 import {
   BaseApplication,
-  BaseController,
+  BaseRestController,
   controller,
   get,
   HTTP,
@@ -258,7 +259,7 @@ import { Context } from 'hono';
 
 // 1. Define a controller
 @controller({ path: '/hello' })
-class HelloController extends BaseController {
+class HelloController extends BaseRestController {
   constructor() {
     super({ scope: 'HelloController', path: '/hello' });
   }
@@ -278,14 +279,14 @@ class HelloController extends BaseController {
     },
   })
   sayHello(c: Context) {
-    return c.json({ message: 'Hello from Ignis!' }, HTTP.ResultCodes.RS_2.Ok);
+    return c.json({ message: 'Hello from IGNIS!' }, HTTP.ResultCodes.RS_2.Ok);
   }
 }
 
 // 2. Create the application
 class App extends BaseApplication {
   getAppInfo(): IApplicationInfo {
-    return { name: 'my-app', version: '1.0.0', description: 'My first Ignis app' };
+    return { name: 'my-app', version: '1.0.0', description: 'My first IGNIS app' };
   }
 
   staticConfigure() {}
@@ -321,7 +322,7 @@ bun run src/index.ts
 
 ```bash
 curl http://localhost:3000/api/hello
-# Response: {"message":"Hello from Ignis!"}
+# Response: {"message":"Hello from IGNIS!"}
 ```
 
 **View API Documentation:**
@@ -364,7 +365,7 @@ Open `http://localhost:3000/doc/explorer` in your browser for interactive Swagge
            v
   +------------------+
   |  Repository       |  <-- Type-safe data access (find, create, update, delete)
-  |  findById(id)     |      Mixins: FieldsVisibility, DefaultFilter
+  |  findById({ id }) |      Mixins: FieldsVisibility, DefaultFilter
   +--------+---------+
            |
            v
@@ -383,7 +384,7 @@ Open `http://localhost:3000/doc/explorer` in your browser for interactive Swagge
 
 ```typescript
 @controller({ path: '/users' })
-export class UserController extends BaseController {
+export class UserController extends BaseRestController {
   constructor(
     @inject({ key: 'services.UserService' }) private userService: UserService,
   ) {
@@ -413,7 +414,7 @@ Bindings are namespaced: `"controllers.UserController"`, `"services.AuthService"
 | 8 | `start()` | Start HTTP server (Bun or Node) |
 | 9 | `executePostStartHooks()` | *[AUTOMATIC]* Run post-start hooks |
 
-Phases 3, 4, 5, and 9 are automatic -- you only need to implement the others.
+Phases 3, 4, 5, and 9 are automatic - you only need to implement the others.
 
 ---
 
@@ -438,7 +439,7 @@ class App extends BaseApplication {
 | **HealthCheckComponent** | Health, liveness, and readiness probes | `GET /health`, `/health/live`, `/health/ready` |
 | **SwaggerComponent** | Interactive API documentation (Swagger UI or Scalar UI) | `GET /doc/explorer`, `/doc/openapi.json` |
 | **AuthenticateComponent** | JWT + Basic auth strategies, token services, auth middleware | Configurable |
-| **AuthorizationComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware | N/A (middleware) |
+| **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware | N/A (middleware) |
 | **RequestTrackerComponent** | `x-request-id` header injection, request body parsing | N/A (middleware) |
 | **StaticAssetComponent** | File upload/download CRUD with MinIO, Disk, or Memory backend | Configurable CRUD |
 | **MailComponent** | Email via Nodemailer or Mailgun with Direct, BullMQ, or InternalQueue executors | N/A (service) |
@@ -544,7 +545,7 @@ The `examples/` directory contains reference implementations:
 
 | Example | Description | Complexity |
 | :--- | :--- | :---: |
-| **[5-mins-qs](examples/5-mins-qs/)** | Minimal single-file quickstart -- hello world | Beginner |
+| **[5-mins-qs](examples/5-mins-qs/)** | Minimal single-file quickstart - hello world | Beginner |
 | **[vert](examples/vert/)** | Production-ready reference with full CRUD, auth, components, transactions, multiple models with relations | Advanced |
 | **[rpc-api-server](examples/rpc-api-server/)** | RPC-style API server | Intermediate |
 | **[rpc-client-app](examples/rpc-client-app/)** | React 19 + Vite + Ant Design frontend consuming RPC API | Frontend |
@@ -571,17 +572,17 @@ bun run server:dev     # Start development server
 
 ## Frequently Asked Questions
 
-### Can I use Ignis with Node.js instead of Bun?
+### Can I use IGNIS with Node.js instead of Bun?
 
-Yes. Bun is the primary runtime and provides the best performance, but Ignis supports Node.js >= 18 as a secondary runtime. The framework detects the runtime automatically and uses `@hono/node-server` when running on Node.js instead of `Bun.serve`. Some helpers (like Bun-native WebSocket) are Bun-specific, but the core framework, controllers, repositories, and components all work on Node.js.
+Yes. Bun is the primary runtime and provides the best performance, but IGNIS supports Node.js >= 18 as a secondary runtime. The framework detects the runtime automatically and uses `@hono/node-server` when running on Node.js instead of `Bun.serve`. Some helpers (like Bun-native WebSocket) are Bun-specific, but the core framework, controllers, repositories, and components all work on Node.js.
 
 ### Can I use MySQL or SQLite instead of PostgreSQL?
 
-Drizzle ORM supports MySQL and SQLite, but Ignis repositories are built around `pgTable` (PostgreSQL table definitions). The where operators, filter builders, and query generation assume PostgreSQL semantics. Using MySQL or SQLite would require building custom repository implementations.
+Drizzle ORM supports MySQL and SQLite, but IGNIS repositories are built around `pgTable` (PostgreSQL table definitions). The where operators, filter builders, and query generation assume PostgreSQL semantics. Using MySQL or SQLite would require building custom repository implementations.
 
-### How does Ignis compare to LoopBack 4?
+### How does IGNIS compare to LoopBack 4?
 
-| Aspect | LoopBack 4 | Ignis |
+| Aspect | LoopBack 4 | IGNIS |
 | :--- | :--- | :--- |
 | Performance | ~15-20k req/s | **~140k req/s** |
 | HTTP Engine | Express | Hono |
@@ -590,9 +591,9 @@ Drizzle ORM supports MySQL and SQLite, but Ignis repositories are built around `
 | IoC Container | ~2000 lines, complex | ~350 lines, simple |
 | Runtime | Node.js only | Bun primary, Node.js secondary |
 
-### Is Ignis production-ready?
+### Is IGNIS production-ready?
 
-Ignis is at version 0.x, which means the API may have breaking changes between minor versions. However, it is used internally in production at VENIZIA AI. The core patterns (controllers, repositories, DI, components) are stable. We recommend pinning exact versions and testing thoroughly before upgrading.
+IGNIS is at version 0.x, which means the API may have breaking changes between minor versions. However, it is used internally in production at VENIZIA AI. The core patterns (controllers, repositories, DI, components) are stable. We recommend pinning exact versions and testing thoroughly before upgrading.
 
 > [!TIP]
 > See the [full documentation](https://venizia-ai.github.io/ignis) for more FAQs covering middleware, relations, route patterns, and deployment.
@@ -613,9 +614,9 @@ Key links: [Philosophy](docs/wiki/content/guides/get-started/philosophy.md) &#82
 
 Contributions are welcome! Please read our:
 
-- [Contributing Guide](CONTRIBUTING.md) -- How to contribute
-- [Code of Conduct](CODE_OF_CONDUCT.md) -- Community guidelines
-- [Security Policy](SECURITY.md) -- Reporting vulnerabilities
+- [Contributing Guide](CONTRIBUTING.md) - How to contribute
+- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
+- [Security Policy](SECURITY.md) - Reporting vulnerabilities
 
 ### Development Setup
 
@@ -638,28 +639,28 @@ bun run docs:dev
 
 - **Conventional Commits**: `feat:`, `fix:`, `docs:`, `chore:`, `refactor:`, `test:`
 - **Branch naming**: `feature/*`, `fix/*`, `docs/*`, `chore/*`
-- **PRs target `develop`** -- never `main` directly
+- **PRs target `develop`** - never `main` directly
 - **Options objects**: `fn({ key, value })` not `fn(key, value)`
-- **Package manager**: Bun only -- never npm, yarn, or pnpm
-- **Build tool**: `tsc` directly -- never `npx`, `bunx`, or `bun x`
+- **Package manager**: Bun only - never npm, yarn, or pnpm
+- **Build tool**: `tsc` directly - never `npx`, `bunx`, or `bun x`
 
 ---
 
 ## License
 
-This project is licensed under the **MIT License** -- see the [LICENSE.md](LICENSE.md) file for details.
+This project is licensed under the **MIT License** - see the [LICENSE.md](LICENSE.md) file for details.
 
 ---
 
 ## Acknowledgments
 
-Ignis is inspired by:
+IGNIS is inspired by:
 
-- **[LoopBack 4](https://loopback.io/)** -- Enterprise patterns, decorator-based DI, repository pattern, component system
-- **[Hono](https://hono.dev/)** -- Performance, modern API design, multi-runtime support
-- **[Drizzle ORM](https://orm.drizzle.team/)** -- Type-safe SQL, schema-first approach
-- **[NestJS](https://nestjs.com/)** -- Module system concepts, decorator patterns
-- **[Spring Boot](https://spring.io/projects/spring-boot)** -- IoC/DI container design, auto-configuration patterns
+- **[LoopBack 4](https://loopback.io/)** - Enterprise patterns, decorator-based DI, repository pattern, component system
+- **[Hono](https://hono.dev/)** - Performance, modern API design, multi-runtime support
+- **[Drizzle ORM](https://orm.drizzle.team/)** - Type-safe SQL, schema-first approach
+- **[NestJS](https://nestjs.com/)** - Module system concepts, decorator patterns
+- **[Spring Boot](https://spring.io/projects/spring-boot)** - IoC/DI container design, auto-configuration patterns
 
 ---
 

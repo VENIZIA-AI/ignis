@@ -87,7 +87,7 @@ authorize({ spec: { action: AuthorizationActions.READ, resource: 'Article' } })
 
 **Files:** `packages/core/src/components/auth/authorize/`
 
-**Problem:** Ignis had authentication but no authorization. Developers needed to implement their own permission checking logic.
+**Problem:** IGNIS had authentication but no authorization. Developers needed to implement their own permission checking logic.
 
 **Solution:** A pluggable enforcer-based authorization system that integrates seamlessly with the existing authentication middleware chain. Setup is a three-step process: bind global options, register the component, then register enforcers via the registry.
 
@@ -103,7 +103,7 @@ import {
   IAuthorizeOptions,
 } from '@venizia/ignis';
 
-// Step 1: Global options (simplified — no enforcer-specific config)
+// Step 1: Global options (simplified - no enforcer-specific config)
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
   defaultDecision: 'deny',
   alwaysAllowRoles: ['999_super-admin'],
@@ -322,7 +322,7 @@ import {
   IAuthorizeOptions,
 } from '@venizia/ignis';
 
-// Step 1: Bind global options (simplified — no enforcer-specific config)
+// Step 1: Bind global options (simplified - no enforcer-specific config)
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
   defaultDecision: 'deny',
   alwaysAllowRoles: ['999_super-admin'],

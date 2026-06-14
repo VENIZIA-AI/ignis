@@ -6,16 +6,16 @@ difficulty: advanced
 
 # Deep Dive: Dependency Injection
 
-Technical reference for the DI system in Ignis - managing resource lifecycles and dependency resolution.
+Technical reference for the DI system in IGNIS - managing resource lifecycles and dependency resolution.
 
 **Files:**
-- `packages/inversion/src/container.ts` — Base `Container` and `Binding` classes
-- `packages/inversion/src/registry.ts` — Base `MetadataRegistry`
-- `packages/inversion/src/metadata/injectors.ts` — Base `@inject` and `@injectable` decorators
-- `packages/inversion/src/common/types.ts` — `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
-- `packages/core/src/helpers/inversion/container.ts` — Extended `Container` with `ApplicationLogger`
-- `packages/core/src/helpers/inversion/registry.ts` — Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
-- `packages/core/src/base/metadata/injectors.ts` — Core `@inject` and `@injectable` (wired to extended registry)
+- `packages/inversion/src/container.ts` - Base `Container` and `Binding` classes
+- `packages/inversion/src/registry.ts` - Base `MetadataRegistry`
+- `packages/inversion/src/metadata/injectors.ts` - Base `@inject` and `@injectable` decorators
+- `packages/inversion/src/common/types.ts` - `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
+- `packages/core/src/helpers/inversion/container.ts` - Extended `Container` with `ApplicationLogger`
+- `packages/core/src/helpers/inversion/registry.ts` - Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
+- `packages/core/src/base/metadata/injectors.ts` - Core `@inject` and `@injectable` (wired to extended registry)
 
 ## Quick Reference
 
@@ -25,7 +25,7 @@ Technical reference for the DI system in Ignis - managing resource lifecycles an
 | **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()`, `getValue()`, `clearCache()` |
 | **@inject** | Decorator marking injection points | Applied to constructor parameters and class properties |
 | **@injectable** | Decorator marking a class as injectable | Stores scope and tag metadata |
-| **MetadataRegistry** | Stores decorator metadata | Singleton — base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
+| **MetadataRegistry** | Stores decorator metadata | Singleton - base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
 | **BindingKeys** | Utility for building namespaced keys | `BindingKeys.build({ namespace, key })` |
 | **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
 
@@ -58,7 +58,7 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 | :--- | :--- | :--- |
 | **`bind`** | `bind<T>({ key: string \| symbol }): Binding<T>` | Creates and registers a new `Binding` for the given key. Returns the `Binding` for fluent configuration. |
 | **`get`** | `get<T>({ key, isOptional? }): T` | Retrieves a resolved dependency. `key` can be a `string`, `symbol`, or `{ namespace, key }` object. Throws if not found and `isOptional` is `false` (default). Returns `undefined` if `isOptional` is `true` and not found. |
-| **`gets`** | `gets<T>({ bindings }): T[]` | Resolves multiple dependencies at once. Each entry in `bindings` accepts `{ key, isOptional? }`. All lookups are treated as optional (returns `undefined` for missing). |
+| **`gets`** | `gets<T extends unknown[]>({ bindings }): { [K in keyof T]: T[K] \| undefined }` | Resolves multiple dependencies at once. Each entry in `bindings` accepts `{ key, isOptional? }`. Returns a tuple-preserving array where missing bindings resolve to `undefined`. |
 | **`getBinding`** | `getBinding<T>({ key }): Binding<T> \| undefined` | Returns the raw `Binding` object without resolving it. `key` accepts `string`, `symbol`, or `{ namespace, key }`. |
 | **`set`** | `set<T>({ binding: Binding<T> }): void` | Directly sets a pre-built `Binding` into the container. |
 | **`isBound`** | `isBound({ key: string \| symbol }): boolean` | Checks if a binding exists for the given key. |
@@ -74,8 +74,8 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 
 When `container.instantiate(MyClass)` is called:
 
-1. **Constructor injection** — Reads `@inject` metadata from the class, sorts by parameter index, resolves each dependency from the container, and passes them as constructor arguments.
-2. **Property injection** — After the instance is created, reads property metadata, resolves each dependency, and assigns them directly to the instance properties.
+1. **Constructor injection** - Reads `@inject` metadata from the class, sorts by parameter index, resolves each dependency from the container, and passes them as constructor arguments.
+2. **Property injection** - After the instance is created, reads property metadata, resolves each dependency, and assigns them directly to the instance properties.
 
 ```typescript
 // Both constructor and property injection in action
@@ -114,7 +114,7 @@ When a binding key contains a dot (e.g., `services.MyService`), the namespace po
 | **`toValue`** | `toValue(value: T): this` | Binds to a constant value (e.g., a config object, string, number). |
 | **`toProvider`** | `toProvider(value: ((container) => T) \| TClass<IProvider<T>>): this` | Binds to a factory function or a class implementing `IProvider<T>`. |
 | **`setScope`** | `setScope(scope: TBindingScope): this` | Sets the lifecycle scope (`'singleton'` or `'transient'`). |
-| **`setTags`** | `setTags(...tags: string[]): this` | Adds one or more tags to the binding. Tags are additive — calling this multiple times adds more tags. |
+| **`setTags`** | `setTags(...tags: string[]): this` | Adds one or more tags to the binding. Tags are additive - calling this multiple times adds more tags. |
 | **`getValue`** | `getValue(container?: Container): T` | Resolves the binding's value. For `CLASS` and `PROVIDER` types, a `container` argument is required. Respects singleton caching. |
 | **`clearCache`** | `clearCache(): void` | Clears the cached singleton instance (if any). Next `getValue()` call will re-create it. |
 | **`hasTag`** | `hasTag(tag: string): boolean` | Checks if the binding has a specific tag. |
@@ -192,7 +192,7 @@ This is also used internally by `container.get()` and `container.getBinding()` w
 
 ## `@inject` Decorator
 
-The `@inject` decorator marks where dependencies should be injected — either on constructor parameters or class properties.
+The `@inject` decorator marks where dependencies should be injected - either on constructor parameters or class properties.
 
 **File:** `packages/inversion/src/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
 
@@ -204,7 +204,7 @@ The `@inject` decorator marks where dependencies should be injected — either o
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `key` | `string \| symbol` | — | The binding key to resolve from the container. |
+| `key` | `string \| symbol` | - | The binding key to resolve from the container. |
 | `isOptional` | `boolean` | `false` | If `true`, returns `undefined` instead of throwing when the binding is not found. |
 
 ### Constructor Parameter Injection
@@ -262,8 +262,8 @@ Marks a class as injectable and attaches optional metadata.
 
 | Parameter | Type | Default | Description |
 | :--- | :--- | :--- | :--- |
-| `scope` | `'singleton' \| 'transient'` | — | Optional scope hint for the binding. |
-| `tags` | `Record<string, any>` | — | Optional metadata tags. |
+| `scope` | `'singleton' \| 'transient'` | - | Optional scope hint for the binding. |
+| `tags` | `Record<string, any>` | - | Optional metadata tags. |
 
 ### Example
 
@@ -390,16 +390,16 @@ This pattern allows the `Bootstrapper` to automatically discover and execute all
 Once artifacts are discovered and loaded, they're bound using consistent namespace patterns:
 
 ```typescript
-// Controllers — auto-tagged with 'controllers'
+// Controllers - auto-tagged with 'controllers'
 this.bind({ key: 'controllers.UserController' }).toClass(UserController);
 
-// Services — auto-tagged with 'services'
+// Services - auto-tagged with 'services'
 this.bind({ key: 'services.UserService' }).toClass(UserService);
 
-// Repositories — auto-tagged with 'repositories'
+// Repositories - auto-tagged with 'repositories'
 this.bind({ key: 'repositories.UserRepository' }).toClass(UserRepository);
 
-// Datasources — auto-tagged with 'datasources'
+// Datasources - auto-tagged with 'datasources'
 this.bind({ key: 'datasources.PostgresDataSource' }).toClass(PostgresDataSource);
 ```
 

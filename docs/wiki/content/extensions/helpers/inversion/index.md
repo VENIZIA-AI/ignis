@@ -1,6 +1,6 @@
 # Inversion (DI)
 
-Standalone IoC container with decorator-based injection, fluent binding API, and singleton/transient scoping -- the foundation layer for all Ignis packages.
+Standalone IoC container with decorator-based injection, fluent binding API, and singleton/transient scoping -- the foundation layer for all IGNIS packages.
 
 ## Quick Reference
 

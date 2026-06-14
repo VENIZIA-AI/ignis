@@ -1,6 +1,6 @@
 # Contribution Workflow
 
-Guidelines for contributing to Ignis - help us maintain quality and streamline the process.
+Guidelines for contributing to IGNIS - help us maintain quality and streamline the process.
 
 ## Git Branching Strategy
 
@@ -42,7 +42,7 @@ git remote add upstream https://github.com/VENIZIA-AI/ignis.git
 
 ## Package Build Order
 
-Ignis is a monorepo with interdependent packages. Understanding the dependency chain is critical for development:
+IGNIS is a monorepo with interdependent packages. Understanding the dependency chain is critical for development:
 
 ```
 dev-configs → inversion → helpers → boot → core
@@ -128,7 +128,7 @@ git checkout -b feature/your-feature-name
 - Follow [Code Style Standards](./code-style-standards/)
 - Follow [Architectural Patterns](./architectural-patterns.md)
 - Add tests for new features/fixes
-- Update docs in `packages/docs/wiki` if needed
+- Update docs in `docs/wiki/content/` if needed
 
 ### Step 3: Commit
 
@@ -205,4 +205,4 @@ git commit -m "fix: address review feedback"
 git push origin feature/your-feature-name
 ```
 
-**Thank you for contributing to Ignis!**
+**Thank you for contributing to IGNIS!**

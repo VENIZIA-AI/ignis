@@ -7,14 +7,14 @@ description: Pluggable serialization/deserialization for JWT payload fields with
 
 ## Customizable JWT Payload Field Codecs
 
-Adds pluggable field codecs to `AbstractBearerTokenService`, allowing consumers to control how individual JWT payload fields are serialized (encrypt) and deserialized (decrypt). Previously, `roles` was hardcoded as pipe-delimited and all other fields used `` `${value}` `` — silently corrupting arrays and objects.
+Adds pluggable field codecs to `AbstractBearerTokenService`, allowing consumers to control how individual JWT payload fields are serialized (encrypt) and deserialized (decrypt). Previously, `roles` was hardcoded as pipe-delimited and all other fields used `` `${value}` `` - silently corrupting arrays and objects.
 
 ## Overview
 
 - **`IPayloadFieldCodec<T>`**: New interface for custom field serialization/deserialization
 - **`AuthenticationFieldCodecs`**: New class with built-in `ROLES_CODEC` and a `build()` factory method
 - **`fieldCodecs` option**: All three token service option interfaces (`IJWSTokenServiceOptions`, `IJWKSIssuerOptions`, `IJWKSVerifierOptions`) accept an optional `fieldCodecs` array
-- **Symmetric JSON serialization**: Default fallback uses `JSON.stringify`/`JSON.parse` for all types — no more `String()` corruption
+- **Symmetric JSON serialization**: Default fallback uses `JSON.stringify`/`JSON.parse` for all types - no more `String()` corruption
 
 ## Breaking Changes
 
@@ -48,7 +48,7 @@ The built-in roles codec is no longer automatically applied. If you use AES payl
 
 **Before:**
 ```typescript
-// ROLES_CODEC was automatically applied — no configuration needed
+// ROLES_CODEC was automatically applied - no configuration needed
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWS,
   options: {
@@ -148,7 +148,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
 
 **File:** `packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`
 
-**Problem:** `serializeField` used `String()` for primitives but `deserializeField` needed try/catch to guess the format — asymmetric and error-prone.
+**Problem:** `serializeField` used `String()` for primitives but `deserializeField` needed try/catch to guess the format - asymmetric and error-prone.
 
 **Solution:** Both sides now use `JSON.stringify`/`JSON.parse` uniformly. No try/catch, no type guessing.
 
@@ -175,7 +175,7 @@ protected deserializeField(opts: { key: string; value: string }) {
 | File | Changes |
 |------|---------|
 | `src/components/auth/authenticate/common/types.ts` | Added `IPayloadFieldCodec<T>` interface; added `fieldCodecs?: IPayloadFieldCodec[]` to `IJWSTokenServiceOptions`, `IJWKSIssuerOptions`, `IJWKSVerifierOptions` |
-| `src/components/auth/authenticate/common/codecs.ts` | New file — `AuthenticationFieldCodecs` class with `ROLES_CODEC` and `build()` factory |
+| `src/components/auth/authenticate/common/codecs.ts` | New file - `AuthenticationFieldCodecs` class with `ROLES_CODEC` and `build()` factory |
 | `src/components/auth/authenticate/common/constants.ts` | Removed `ROLES_CODEC` (moved to `codecs.ts`) |
 | `src/components/auth/authenticate/common/index.ts` | Added `export * from './codecs'` |
 | `src/components/auth/authenticate/services/bearer/abstract.service.ts` | Added `fieldCodecs` Map; updated `configurePayloadEncryption` to accept codecs; extracted `serializeField`/`deserializeField` methods; symmetric JSON serialization |

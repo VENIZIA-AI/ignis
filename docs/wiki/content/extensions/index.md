@@ -1,6 +1,6 @@
 # Extensions
 
-Extensions are optional packages and built-in modules that add functionality on top of the Ignis core framework. They are organized into two categories:
+Extensions are optional packages and built-in modules that add functionality on top of the IGNIS core framework. They are organized into two categories:
 
 ## Components
 

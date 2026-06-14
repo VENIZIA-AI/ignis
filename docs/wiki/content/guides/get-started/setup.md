@@ -1,6 +1,6 @@
 # Setup
 
-Everything you need to start building with Ignis. This guide covers installation for macOS, Linux, and Windows (via WSL2).
+Everything you need to start building with IGNIS. This guide covers installation for macOS, Linux, and Windows (via WSL2).
 
 ## Requirements
 
@@ -153,5 +153,5 @@ sudo service postgresql start
 
 ## Next Steps
 
-- [5-Minute Quickstart](./5-minute-quickstart.md) — Build your first API
-- [Complete Installation](../tutorials/complete-installation.md) — Full project setup
+- [5-Minute Quickstart](./5-minute-quickstart.md) - Build your first API
+- [Complete Installation](../tutorials/complete-installation.md) - Full project setup

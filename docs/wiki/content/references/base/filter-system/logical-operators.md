@@ -107,7 +107,7 @@ Combine AND and OR for complex logic:
 
 ## NOT Logic
 
-Ignis does not have a standalone `not` logical operator. Instead, use negation operators for NOT conditions:
+IGNIS does not have a standalone `not` logical operator. Instead, use negation operators for NOT conditions:
 
 ```typescript
 // NOT equal

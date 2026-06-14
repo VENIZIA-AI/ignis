@@ -1,6 +1,6 @@
 # Base Abstractions
 
-Core classes that power every Ignis application - from the Application entry point to Repositories for data access.
+Core classes that power every IGNIS application - from the Application entry point to Repositories for data access.
 
 ## Quick Reference
 

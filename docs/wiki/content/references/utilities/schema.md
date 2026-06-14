@@ -110,7 +110,7 @@ const schema = z.object({
 import { TAnyObjectSchema, TInferSchema } from '@venizia/ignis';
 
 // TAnyObjectSchema = z.ZodObject<z.ZodRawShape>
-// TInferSchema<T> = z.infer<T> — infer TypeScript type from a Zod schema
+// TInferSchema<T> = z.infer<T> - infer TypeScript type from a Zod schema
 
 type UserType = TInferSchema<typeof UserSchema>;
 ```

@@ -1,5 +1,5 @@
 ---
-title: Kafka Helpers Enhancement — Health, Callbacks, Transactions, Schema Registry
+title: Kafka Helpers Enhancement - Health, Callbacks, Transactions, Schema Registry
 description: Major enhancement adding BaseKafkaHelper base class, health tracking, graceful shutdown, message callbacks, consumer group events, lag monitoring, transaction helper, and schema registry support.
 ---
 
@@ -11,11 +11,11 @@ Major enhancement to the Kafka helpers adding enterprise-grade capabilities whil
 
 ## New Features
 
-### BaseKafkaHelper — Shared Base Class
+### BaseKafkaHelper - Shared Base Class
 
 All Kafka helpers (producer, consumer, admin) now extend `BaseKafkaHelper<TClient>` which provides:
 
-- **Health tracking**: `isHealthy()`, `isReady()`, `getHealthStatus()` — automatically updated via broker events
+- **Health tracking**: `isHealthy()`, `isReady()`, `getHealthStatus()` - automatically updated via broker events
 - **Broker event callbacks**: `onBrokerConnect`, `onBrokerDisconnect` via options
 - **Graceful shutdown**: Timeout-based with automatic force fallback
 - **Health statuses**: `'connected'` | `'disconnected'` | `'unknown'`
@@ -115,7 +115,7 @@ const producer = KafkaProducerHelper.newInstance({
 
 ### New Callback Types
 
-All callbacks follow the Ignis `opts: { ... }` pattern with `ValueOrPromise<void>` return type:
+All callbacks follow the IGNIS `opts: { ... }` pattern with `ValueOrPromise<void>` return type:
 
 - `TKafkaBrokerEventCallback`
 - `TKafkaMessageCallback`, `TKafkaMessageDoneCallback`, `TKafkaMessageErrorCallback`
@@ -141,7 +141,7 @@ All callbacks follow the Ignis `opts: { ... }` pattern with `ValueOrPromise<void
 |------|---------|
 | `kafka/common/constants.ts` | Added `KafkaHealthStatuses`, `KafkaClientEvents`, new defaults |
 | `kafka/common/types.ts` | Added callback types, enhanced options, transaction context, schema registry options |
-| `kafka/base.ts` | **New**: `BaseKafkaHelper<TClient>` — shared health tracking, broker events, graceful shutdown |
+| `kafka/base.ts` | **New**: `BaseKafkaHelper<TClient>` - shared health tracking, broker events, graceful shutdown |
 | `kafka/producer.ts` | Extended `BaseKafkaHelper`, added `runInTransaction()`, graceful shutdown |
 | `kafka/consumer.ts` | Extended `BaseKafkaHelper`, added `start()`, message callbacks, lag monitoring, graceful shutdown |
 | `kafka/admin.ts` | Extended `BaseKafkaHelper`, added graceful shutdown |
@@ -152,17 +152,17 @@ All callbacks follow the Ignis `opts: { ... }` pattern with `ValueOrPromise<void
 
 | File | Changes |
 |------|---------|
-| `wiki/extensions/helpers/kafka/index.md` | Rewritten — architecture, BaseKafkaHelper, all constants |
-| `wiki/extensions/helpers/kafka/producer.md` | Rewritten — health, transactions, graceful shutdown |
-| `wiki/extensions/helpers/kafka/consumer.md` | Rewritten — callbacks, start(), lag monitoring, graceful shutdown |
-| `wiki/extensions/helpers/kafka/admin.md` | Updated — health tracking, graceful shutdown |
+| `wiki/extensions/helpers/kafka/index.md` | Rewritten - architecture, BaseKafkaHelper, all constants |
+| `wiki/extensions/helpers/kafka/producer.md` | Rewritten - health, transactions, graceful shutdown |
+| `wiki/extensions/helpers/kafka/consumer.md` | Rewritten - callbacks, start(), lag monitoring, graceful shutdown |
+| `wiki/extensions/helpers/kafka/admin.md` | Updated - health tracking, graceful shutdown |
 | `wiki/extensions/helpers/kafka/schema-registry.md` | **New** |
-| `wiki/extensions/helpers/kafka/examples.md` | Rewritten — all examples use new callback/health API |
+| `wiki/extensions/helpers/kafka/examples.md` | Rewritten - all examples use new callback/health API |
 | `wiki/changelogs/2026-03-12-kafka-helpers-enhancement.md` | This changelog |
 
 ## Backward Compatibility
 
-- All new options are **optional** — existing code works unchanged
+- All new options are **optional** - existing code works unchanged
 - `getProducer()`, `getConsumer()`, `getAdmin()` still return raw platformatic objects
 - `close()` signature adds optional `{ isForce? }` to the existing call
 - Generic type defaults remain `string` for all positions

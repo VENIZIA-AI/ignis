@@ -1,13 +1,13 @@
 ---
 title: Initial Architecture
-description: Documentation of the original Ignis architecture before the Model-Repository-DataSource refactor
+description: Documentation of the original IGNIS architecture before the Model-Repository-DataSource refactor
 ---
 
 # Changelog - 2025-12-16
 
 ## Initial Architecture (Pre-Refactor)
 
-This documents the original architecture of the Ignis framework before the Model-Repository-DataSource refactor. This version required manual schema registration and explicit constructor parameters.
+This documents the original architecture of the IGNIS framework before the Model-Repository-DataSource refactor. This version required manual schema registration and explicit constructor parameters.
 
 ## Overview
 

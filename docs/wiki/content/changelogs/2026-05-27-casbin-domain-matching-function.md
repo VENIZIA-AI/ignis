@@ -1,26 +1,26 @@
 ---
-title: Casbin Domain Matching Function — Wildcard/Pattern Domains in `g`
-description: CasbinAuthorizationEnforcer can now register a domain matching function (keyMatch, etc.) so wildcard/pattern domains in grouping policies work — enabling the canonical RBAC-with-domains model at scale
+title: Casbin Domain Matching Function - Wildcard/Pattern Domains in `g`
+description: CasbinAuthorizationEnforcer can now register a domain matching function (keyMatch, etc.) so wildcard/pattern domains in grouping policies work - enabling the canonical RBAC-with-domains model at scale
 ---
 
 # Changelog - 2026-05-27
 
 ## Casbin Domain Matching Function Support
 
-`CasbinAuthorizationEnforcer` gained an opt-in `domainMatching` option that registers a Casbin **domain matching function** (`keyMatch`, `keyMatch2`, `keyMatch3`, `keyMatch4`, or `regexMatch`) on a named role definition. This lets the **domain slot** of a grouping (`g`) policy use a wildcard or pattern instead of an exact string — so a stored `g, User_x, Role_y, *` matches a request in **any** domain (a global role), while `g, User_x, Role_y, Merchant_X` still matches only `Merchant_X` (tenant isolation preserved).
+`CasbinAuthorizationEnforcer` gained an opt-in `domainMatching` option that registers a Casbin **domain matching function** (`keyMatch`, `keyMatch2`, `keyMatch3`, `keyMatch4`, or `regexMatch`) on a named role definition. This lets the **domain slot** of a grouping (`g`) policy use a wildcard or pattern instead of an exact string - so a stored `g, User_x, Role_y, *` matches a request in **any** domain (a global role), while `g, User_x, Role_y, Merchant_X` still matches only `Merchant_X` (tenant isolation preserved).
 
 This unlocks the canonical [Casbin "RBAC with domains"](https://casbin.apache.org/docs/rbac-with-domains/) + [pattern](https://casbin.apache.org/docs/rbac-with-pattern/) model, where multi-tenant scoping lives on the domain-aware membership relation `g` and role permissions stay domain-agnostic (`p.dom = "*"`). That keeps a user's materialized policy line count **linear** (`memberships + permissions`) instead of the `permissions × domains` cross-product that previously made high-merchant users pathologically slow to enforce.
 
 ## Overview
 
-- **New option `ICasbinEnforcerOptions.domainMatching`**: `{ roleDefinition, fn }` — opt-in, registered during `configure()`
+- **New option `ICasbinEnforcerOptions.domainMatching`**: `{ roleDefinition, fn }` - opt-in, registered during `configure()`
 - **New constant class `CasbinDomainMatchingFunctions`**: `keyMatch` / `keyMatch2` / `keyMatch3` / `keyMatch4` / `regexMatch`, with `SCHEME_SET` + `isValid()` + the `TCasbinDomainMatchingFunction` type alias
 - **Fail-loud guard**: if the configured `roleDefinition` is not declared in the model, `configure()` throws instead of letting Casbin silently no-op (which would make global wildcards silently fail)
 - **Survives per-request reloads**: the function is registered once on the enforcer's role manager and persists across every `loadFilteredPolicy` reload (the role manager is created once at construction, not per request)
 
 ## No Breaking Changes
 
-The option is optional and off by default. When `domainMatching` is **unset**, the enforcer behaves exactly as before — domains are compared as exact strings. Existing applications require no changes.
+The option is optional and off by default. When `domainMatching` is **unset**, the enforcer behaves exactly as before - domains are compared as exact strings. Existing applications require no changes.
 
 ## New Features
 
@@ -28,7 +28,7 @@ The option is optional and off by default. When `domainMatching` is **unset**, t
 
 **File:** `packages/core/src/components/auth/authorize/enforcers/casbin.enforcer.ts`
 
-**Problem:** Casbin's `g = _, _, _` role definition compares the domain slot with **exact string equality** unless a domain matching function is registered. The framework never exposed a way to register one, so a grouping policy like `g, User_x, Role_y, *` would only match a request whose domain was literally `"*"` — there was no way to express a global (all-domains) role on the membership relation, forcing per-domain scoping onto the permission (`p`) lines and an `M × P` policy explosion.
+**Problem:** Casbin's `g = _, _, _` role definition compares the domain slot with **exact string equality** unless a domain matching function is registered. The framework never exposed a way to register one, so a grouping policy like `g, User_x, Role_y, *` would only match a request whose domain was literally `"*"` - there was no way to express a global (all-domains) role on the membership relation, forcing per-domain scoping onto the permission (`p`) lines and an `M × P` policy explosion.
 
 **Solution:** A new opt-in option registers the matching function on the named role definition after the enforcer is created (covering all cache drivers) and before any policy is loaded:
 
@@ -80,13 +80,13 @@ m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act 
 ```
 
 **Benefits:**
-- Global/cross-domain roles via a single grouping line (`g, User_x, Role_y, *`) — same mechanism as scoped roles, just a wildcard domain
+- Global/cross-domain roles via a single grouping line (`g, User_x, Role_y, *`) - same mechanism as scoped roles, just a wildcard domain
 - Role permissions can be emitted domain-agnostic (`p, Role_y, *, …`), collapsing the per-user line count from `M × P` to `M + P`
 - Backward compatible (opt-in; unset ⇒ exact-string domains)
-- Tenant isolation preserved: only `*` (full wildcard) and exact domain values are ever matched, and `keyMatch` treats only `*` specially — it never splits on `/` or `:`, so it cannot accidentally match one tenant identifier against another
+- Tenant isolation preserved: only `*` (full wildcard) and exact domain values are ever matched, and `keyMatch` treats only `*` specially - it never splits on `/` or `:`, so it cannot accidentally match one tenant identifier against another
 
 > [!NOTE]
-> The matching function is applied to the domain argument as `fn(requestDomain, policyDomain)` — the wildcard must live on the **stored/policy** side. `keyMatch("Merchant_X", "*")` is `true`; `keyMatch("Merchant_X", "Merchant_Y")` is `false`.
+> The matching function is applied to the domain argument as `fn(requestDomain, policyDomain)` - the wildcard must live on the **stored/policy** side. `keyMatch("Merchant_X", "*")` is `true`; `keyMatch("Merchant_X", "Merchant_Y")` is `false`.
 
 ### `CasbinDomainMatchingFunctions` constant class
 
@@ -116,7 +116,7 @@ Follows the framework's standard constant-class pattern (`static readonly` membe
 ## Notes
 
 > [!WARNING]
-> When using a **domain** model (`r = sub, dom, obj, act`), `normalizePayloadFn` must always return a `domain`. If it returns `undefined`, the enforcer falls back to the 3-argument `enforceSync` form, which only fits a non-domain model (`r = sub, obj, act`) — against a 4-argument model the request columns shift and silently mis-evaluate.
+> When using a **domain** model (`r = sub, dom, obj, act`), `normalizePayloadFn` must always return a `domain`. If it returns `undefined`, the enforcer falls back to the 3-argument `enforceSync` form, which only fits a non-domain model (`r = sub, obj, act`) - against a 4-argument model the request columns shift and silently mis-evaluate.
 
 > [!TIP]
 > If `domainMatching.roleDefinition` is not declared under `[role_definition]` in the model, `configure()` throws a clear error. Casbin would otherwise register the function as a silent no-op, leaving wildcard domains permanently unmatched (global roles denied) with no signal.

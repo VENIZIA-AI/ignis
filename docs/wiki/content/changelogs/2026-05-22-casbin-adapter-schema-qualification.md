@@ -1,5 +1,5 @@
 ---
-title: Drizzle Casbin Adapter — Schema-Qualified Tables
+title: Drizzle Casbin Adapter - Schema-Qualified Tables
 description: The Casbin policy adapter now qualifies its tables with a configurable schema name (default "public") instead of relying on the Postgres search_path
 ---
 
@@ -13,7 +13,7 @@ description: The Casbin policy adapter now qualifies its tables with a configura
 
 - **Per-entity `schemaName`**: every entity (`permission`, `role`, `policyDefinition`) accepts an optional `schemaName`, so the three tables may live in three different schemas; each defaults to `public`
 - **Qualified SQL**: every `FROM`/`JOIN` is now `"<schema>"."<table>"`, escaped via `sql.identifier`
-- **Centralized resolution**: a private `schemaOf()` helper applies the default at query-build time — no input mutation, no non-null assertions
+- **Centralized resolution**: a private `schemaOf()` helper applies the default at query-build time - no input mutation, no non-null assertions
 
 ## Breaking Changes
 
@@ -52,7 +52,7 @@ new DrizzleCasbinAdapter({
 // Emits: FROM "auth"."policy_definitions"
 ```
 
-Deployments whose tables already live in `public` need no change — the default reproduces the previous behavior.
+Deployments whose tables already live in `public` need no change - the default reproduces the previous behavior.
 
 > [!NOTE]
 > All three entities accept `schemaName`, so each table can live in a different schema. The current queries only read `policy_definitions` and `permissions` in a `FROM`/`JOIN`, so `role.schemaName` is accepted as configuration but does not yet affect emitted SQL (the `role` table is referenced only by its `principalType`).

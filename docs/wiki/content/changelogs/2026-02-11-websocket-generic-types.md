@@ -39,7 +39,7 @@ const helper = new WebSocketServerHelper<AuthPayload, UserMetadata>({
   server: bunServer,
   redisConnection: redis,
   authenticateFn: async (data) => {
-    // data is typed as AuthPayload — no casting needed
+    // data is typed as AuthPayload - no casting needed
     const user = await verifyJWT(data.token);
     if (!user) return null;
     return {
@@ -88,7 +88,7 @@ The generics propagate through the entire type chain:
 interface IWebSocketClient<MetadataType extends Record<string, unknown> = Record<string, unknown>> {
   // ... existing fields ...
   metadata?: MetadataType;
-  serverPublicKey?: string;  // NEW — separate from metadata
+  serverPublicKey?: string;  // NEW - separate from metadata
 }
 ```
 

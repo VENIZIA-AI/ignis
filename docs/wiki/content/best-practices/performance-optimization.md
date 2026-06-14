@@ -1,6 +1,6 @@
 # Performance Optimization
 
-Optimize your Ignis application for speed and scalability.
+Optimize your IGNIS application for speed and scalability.
 
 ## 1. Measure Performance
 
@@ -46,7 +46,7 @@ Prevent blocking the event loop with Worker Threads:
 
 ### Query Operators Reference
 
-Ignis supports extensive query operators for filtering:
+IGNIS supports extensive query operators for filtering:
 
 | Operator | Description | Example |
 |----------|-------------|---------|
@@ -102,7 +102,7 @@ await repo.find({
 ```
 
 > [!TIP]
-> **Avoid Deep Nesting:** While Ignis supports deeply nested `include` filters, each level adds significant overhead to query construction and result mapping. We strongly recommend a **maximum of 2 levels** (e.g., `User -> Orders -> Items`). For more complex data fetching, consider separate queries.
+> **Avoid Deep Nesting:** While IGNIS supports deeply nested `include` filters, each level adds significant overhead to query construction and result mapping. We strongly recommend a **maximum of 2 levels** (e.g., `User -> Orders -> Items`). For more complex data fetching, consider separate queries.
 
 **Example:**
 ```typescript

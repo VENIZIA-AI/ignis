@@ -17,7 +17,7 @@ Composable mixins that provide reusable functionality for repository classes.
 
 ## Overview
 
-Ignis uses the mixin pattern to compose repository features. This enables:
+IGNIS uses the mixin pattern to compose repository features. This enables:
 
 - **Separation of concerns** - Each mixin handles one responsibility
 - **Reusability** - Mixins can be applied to different base classes

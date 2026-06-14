@@ -78,9 +78,9 @@ AbstractRepository (base + mixins: FieldsVisibilityMixin + DefaultFilterMixin)
   ↓
 ReadableRepository (read-only: find, findOne, findById, count, existsWith)
   ↓
-PersistableRepository (+ create, updateById, updateAll)
+PersistableRepository (+ create, updateById, updateAll, deleteById, deleteAll)
   ↓
-DefaultCRUDRepository (+ deleteById, deleteAll) — recommended default
+DefaultCRUDRepository (no additional methods - recommended default)
   ↓
 SoftDeletableRepository (overrides delete to set deletedAt timestamp)
 ```
@@ -88,8 +88,8 @@ SoftDeletableRepository (overrides delete to set deletedAt timestamp)
 | Type | Description |
 |------|-------------|
 | `ReadableRepository` | Read-only operations. Write operations throw errors. |
-| `PersistableRepository` | Read + write operations (create, update). Extends ReadableRepository. |
-| `DefaultCRUDRepository` | Full CRUD including delete. Extends PersistableRepository. **Recommended for most use cases.** |
+| `PersistableRepository` | Read + write operations (create, update, delete). Extends ReadableRepository. |
+| `DefaultCRUDRepository` | Extends PersistableRepository with no additional logic. **Recommended for most use cases.** |
 | `SoftDeletableRepository` | Extends DefaultCRUDRepository. Overrides delete to set `deletedAt` timestamp instead of physically removing records. |
 
 ## Querying Data
@@ -155,7 +155,7 @@ All repository operations accept an `options` parameter with these fields:
 | :--- | :--- | :--- |
 | `transaction` | `ITransaction` | Transaction context for atomic operations |
 | `shouldReturn` | `boolean` | Whether to return created/updated data (default: `true`) |
-| `shouldQueryRange` | `boolean` | Return `{ data, range: { total, skip, limit } }` for pagination |
+| `shouldQueryRange` | `boolean` | Return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
 
 ```typescript
@@ -178,7 +178,7 @@ const result = await repo.find({
   filter: { limit: 20, skip: 0 },
   options: { shouldQueryRange: true }
 });
-// result = { data: [...], range: { total: 150, skip: 0, limit: 20 } }
+// result = { data: [...], range: { start: 0, end: 19, total: 150 } }
 ```
 
 ## Querying with Relations
@@ -252,7 +252,7 @@ export class MyModelRepository extends DefaultCRUDRepository<typeof MyModel.sche
 
 ### Performance: Core API Optimization
 
-Ignis automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads. The `canUseCoreAPI()` method on `ReadableRepository` determines when this optimization applies.
+IGNIS automatically optimizes "flat" queries (no relations, no field selection) by using Drizzle's Core API. This provides **~15-20% faster** queries for simple reads. The `canUseCoreAPI()` method on `ReadableRepository` determines when this optimization applies.
 
 ### Modular Persistence with Components
 

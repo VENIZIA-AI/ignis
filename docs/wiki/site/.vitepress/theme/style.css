@@ -1,51 +1,31 @@
 :root {
-  /* Light theme default colors */
-  --vp-c-brand-1: #AF5F5F;
-  --vp-c-brand-2: #E5B567;
-  --vp-c-bg: #FFFFFF;
-  --vp-c-bg-soft: #EEEEEE;
-  --vp-c-bg-alt: #f3f3f3;
-  --vp-c-text-1: #1a1a1a;
-  --vp-c-text-2: #424242;
+  /* Non-brand layout/component vars (brand/bg/text supplied by design-tokens.css) */
   --vp-code-block-bg: #EEEEEE;
   --vp-sidebar-bg-color: #EEEEEE;
   --vp-c-bg-elv: #EEEEEE;
 
-  /* Brand button */
-  --vp-button-brand-bg: #AF5F5F;
-  --vp-button-brand-hover-bg: #D59572;
-  --vp-button-brand-active-bg: #AF5F5F;
-  --vp-button-brand-text: #EEE2DE;
+  /* Brand button (active + hover-text not defined in design-tokens.css) */
+  --vp-button-brand-active-bg: var(--ig-rose);
   --vp-button-brand-hover-text: #EEE2DE;
 
   /* Alt button */
   --vp-button-alt-bg: #EEEEEE;
   --vp-button-alt-hover-bg: #D59572;
-  --vp-button-alt-active-bg: #E5B567;
+  --vp-button-alt-active-bg: var(--ig-gold);
   --vp-button-alt-text: #111111;
 
   /* Layout */
-  --vp-layout-max-width: 100% !important;
+  --vp-layout-max-width: var(--ig-layout-max);
 
   /* Hero */
   --vp-home-hero-name-color: transparent;
-  --vp-home-hero-name-background: -webkit-linear-gradient(120deg, #ff6b35 30%, #f7c59f);
-  --vp-home-hero-image-background-image: linear-gradient(-45deg, #ff6b35aa 50%, #f7c59faa 50%);
   --vp-home-hero-image-filter: blur(40px);
 }
 
 html.dark {
-  /* Dark theme overrides */
-  --vp-c-bg: #080808;
-  --vp-c-bg-soft: #111111;
-  --vp-c-bg-alt: #202020;
-
-  --vp-c-text-1: #ffffff;
-  --vp-c-text-2: #eeeeee;
-
+  /* Dark theme non-brand vars (brand/bg/text supplied by design-tokens.css .dark block) */
   --vp-code-block-bg: #181818;
   --vp-sidebar-bg-color: #181818;
-
   --vp-c-bg-elv: #181818;
 }
 
@@ -1396,4 +1376,806 @@ html.dark .honest-box {
 .next-card:hover .next-arrow {
   opacity: 1;
   transform: translateX(4px);
+}
+
+/* ============================================================================
+   Phase 1 brand theming
+   All colors/sizes consumed from --ig-* design tokens (design-tokens.css).
+   Appended LAST so these rules win the cascade without !important wars.
+   ============================================================================ */
+
+/* ─── Task A: Nav / Header ──────────────────────────────────────────────── */
+
+/* Semi-transparent blur backgrounds (light + dark) */
+:root {
+  --vp-nav-bg-color: rgba(250, 248, 249, 0.88);
+}
+
+.dark {
+  --vp-nav-bg-color: rgba(11, 10, 12, 0.82);
+}
+
+/* Full-width bar: backdrop blur + 1px brand border */
+.VPNavBar {
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--ig-border) !important;
+}
+
+/* Nav menu links: muted tab style */
+.VPNavBarMenuLink {
+  color: var(--ig-text-2) !important;
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s ease, border-bottom-color 0.15s ease;
+}
+
+.VPNavBarMenuLink:hover {
+  color: var(--ig-text) !important;
+  opacity: 1;
+}
+
+/* Active nav link: coral underline tab */
+.VPNavBarMenuLink.active {
+  color: var(--ig-text) !important;
+  border-bottom: 2px solid var(--ig-coral) !important;
+}
+
+/* ─── Task B: Sidebar ───────────────────────────────────────────────────── */
+
+/* Active sidebar item: soft rounded pill + a short, inset, rounded rose accent tab.
+   (Replaces the old flush 2px edge bar that looked cramped against the text.) */
+.VPSidebarItem.is-active > .item {
+  position: relative;
+  margin: 1px 0;
+}
+.VPSidebarItem.is-active > .item .link {
+  position: relative;
+  background: rgba(175, 95, 95, 0.11) !important;
+  border-radius: 8px;
+  padding-left: 6px;
+}
+/* short rounded accent tab, vertically inset so it never hugs the text */
+.VPSidebarItem.is-active > .item .link::before {
+  content: '';
+  position: absolute;
+  left: -10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 15px;
+  border-radius: 99px;
+  background: var(--ig-gradient);
+}
+.VPSidebarItem.is-active > .item .link .text {
+  color: var(--ig-text) !important;
+  font-weight: 600;
+}
+
+/* TOC (On this page) active outline link */
+.VPDocAside .outline-link.active,
+.outline-link.active {
+  color: var(--ig-link) !important;
+  border-left-color: var(--ig-rose) !important;
+}
+
+/* Prose: token-grounded type scale and line-height */
+.vp-doc {
+  font-size: var(--ig-fs-body);
+  line-height: var(--ig-lh-body);
+  font-family: var(--ig-font-sans);
+}
+
+/* ─── Task C: Callouts (custom-block) ───────────────────────────────────── */
+
+.custom-block {
+  border-radius: var(--ig-r-md);
+  padding: var(--ig-s4) var(--ig-s5);
+  margin: var(--ig-s5) 0;
+  font-size: var(--ig-fs-sm);
+  border: 1px solid var(--ig-border);
+  border-left-width: 3px;
+}
+
+/* TIP - coral accent */
+.custom-block.tip {
+  border-left-color: var(--ig-coral) !important;
+  background: rgba(217, 142, 106, 0.06) !important;
+}
+
+.custom-block.tip .custom-block-title {
+  color: var(--ig-coral) !important;
+}
+
+/* WARNING - gold accent */
+.custom-block.warning {
+  border-left-color: var(--ig-gold) !important;
+  background: rgba(229, 181, 103, 0.06) !important;
+}
+
+.custom-block.warning .custom-block-title {
+  color: var(--ig-gold) !important;
+}
+
+/* DANGER - rose accent */
+.custom-block.danger {
+  border-left-color: var(--ig-rose) !important;
+  background: rgba(175, 95, 95, 0.08) !important;
+}
+
+.custom-block.danger .custom-block-title {
+  color: var(--ig-rose-lt) !important;
+}
+
+/* INFO - neutral text-3 accent */
+.custom-block.info {
+  border-left-color: var(--ig-text-3) !important;
+  background: rgba(110, 100, 106, 0.06) !important;
+}
+
+.custom-block.info .custom-block-title {
+  color: var(--ig-text-3) !important;
+}
+
+/* ─── Task D: Code blocks ────────────────────────────────────────────────── */
+
+/* Rounded border matching the card token, 1px border */
+div[class*='language-'] {
+  border-radius: var(--ig-r-md) !important;
+  border: 1px solid var(--ig-border) !important;
+  overflow: hidden;
+  margin: var(--ig-s5) 0 !important;
+}
+
+/* Language label - mono font, caption size, muted color */
+div[class*='language-'] .lang {
+  font-family: var(--ig-font-mono) !important;
+  font-size: var(--ig-fs-caption) !important;
+  color: var(--ig-text-3) !important;
+  font-weight: 500;
+}
+
+/* Copy button - muted, coral on hover */
+div[class*='language-'] button.copy {
+  color: var(--ig-text-3) !important;
+  transition: color 0.15s ease, opacity 0.15s ease;
+}
+
+div[class*='language-'] button.copy:hover {
+  color: var(--ig-coral) !important;
+}
+
+/* ============================================================================
+   === homepage landing ===
+   Full-width split-hero landing for layout:page homepage. All values consumed
+   from --ig-* design tokens (design-tokens.css). No hard-coded colours except
+   code-window internals (always-dark code editor + two syntax colours without
+   token equivalents: sage #9DBF8E, muted-param #c8b8be, bar-text #231013).
+   ============================================================================ */
+
+/* ── VitePress container reset ────────────────────────────────────────────── */
+/* VPPage has padding:32px 24px / 48px 32px that would indent the landing.
+   Remove it only when our landing wrapper is present. */
+.VPPage:has(.ig-landing) {
+  padding: 0 !important;
+}
+
+/* ── Root container ───────────────────────────────────────────────────────── */
+.ig-landing {
+  position: relative;
+  overflow-x: hidden;
+  background: var(--ig-bg);
+  color: var(--ig-text);
+  font-family: var(--ig-font-sans);
+  line-height: var(--ig-lh-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Reset VitePress heading chrome inside the landing */
+.ig-landing h1,
+.ig-landing h2,
+.ig-landing h3,
+.ig-landing h4 {
+  border: none !important;
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+}
+
+/* ── Ambient glow ─────────────────────────────────────────────────────────── */
+.ig-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1100px;
+  pointer-events: none;
+  z-index: 0;
+  background: var(--ig-glow);
+}
+
+/* ── Content wrapper (centred, max-width) ─────────────────────────────────── */
+.ig-wrap {
+  position: relative;
+  z-index: 1;
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 0 var(--ig-s7);
+}
+
+/* ── Gradient text utility ────────────────────────────────────────────────── */
+.ig-gtext {
+  background: var(--ig-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* ── Section divider ──────────────────────────────────────────────────────── */
+.ig-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--ig-border), transparent);
+}
+
+/* ── Shared section padding + head ───────────────────────────────────────── */
+.ig-section {
+  padding: var(--ig-s9) 0;
+}
+
+.ig-section-head {
+  text-align: center;
+  max-width: 38rem;
+  margin: 0 auto var(--ig-s7);
+}
+
+.ig-label {
+  font-size: var(--ig-fs-caption);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ig-coral);
+  margin-bottom: var(--ig-s3);
+}
+
+.ig-section-head h2 {
+  font-size: var(--ig-fs-h1);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: var(--ig-lh-snug);
+  margin-bottom: var(--ig-s3) !important;
+  color: var(--ig-text);
+}
+
+.ig-section-head p {
+  font-size: var(--ig-fs-lede);
+  color: var(--ig-text-2);
+  line-height: var(--ig-lh-body);
+  margin: 0;
+}
+
+/* ── Hero ─────────────────────────────────────────────────────────────────── */
+.ig-hero {
+  display: grid;
+  grid-template-columns: 1.02fr 1.1fr;
+  gap: var(--ig-s7);
+  align-items: center;
+  padding: var(--ig-s9) 0 var(--ig-s8);
+}
+
+/* Eyebrow chip */
+.ig-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ig-s2);
+  font-size: var(--ig-fs-caption);
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ig-coral);
+  background: rgba(217, 142, 106, 0.08);
+  border: 1px solid rgba(217, 142, 106, 0.2);
+  border-radius: var(--ig-r-pill);
+  padding: var(--ig-s1) var(--ig-s4);
+  margin-bottom: var(--ig-s5);
+}
+
+.ig-eyebrow__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ig-coral);
+  box-shadow: 0 0 10px var(--ig-coral);
+  flex-shrink: 0;
+}
+
+/* Hero heading */
+.ig-hero h1 {
+  font-size: var(--ig-fs-hero);
+  line-height: var(--ig-lh-tight);
+  letter-spacing: -0.035em;
+  font-weight: 800;
+  margin-bottom: var(--ig-s5) !important;
+  color: var(--ig-text);
+}
+
+/* Lede paragraph */
+.ig-lede {
+  font-size: var(--ig-fs-lede);
+  line-height: var(--ig-lh-body);
+  color: var(--ig-text-2);
+  max-width: var(--ig-measure-lede);
+  margin-bottom: var(--ig-s6);
+}
+
+.ig-lede b {
+  color: var(--ig-text);
+  font-weight: 600;
+}
+
+/* CTA row */
+.ig-cta {
+  display: flex;
+  gap: var(--ig-s3);
+  flex-wrap: wrap;
+  margin-bottom: var(--ig-s7);
+}
+
+/* Buttons */
+.ig-btn {
+  font-size: var(--ig-fs-body);
+  font-weight: 700;
+  font-family: var(--ig-font-sans);
+  border-radius: var(--ig-r-sm);
+  padding: var(--ig-s3) var(--ig-s5);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.18s ease, transform 0.18s ease, border-color 0.18s ease, color 0.18s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--ig-s2);
+  text-decoration: none !important;
+}
+
+.ig-btn--primary {
+  background: var(--ig-primary);
+  color: var(--ig-on-primary) !important;
+  box-shadow: 0 10px 30px -8px rgba(175, 95, 95, 0.55);
+}
+
+.ig-btn--primary:hover {
+  background: var(--ig-rose-deep);
+  transform: translateY(-2px);
+  color: var(--ig-on-primary) !important;
+}
+
+.ig-btn--secondary {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--ig-border);
+  color: var(--ig-text) !important;
+}
+
+.ig-btn--secondary:hover {
+  border-color: rgba(255, 255, 255, 0.22);
+  color: var(--ig-text) !important;
+}
+
+/* Light-theme secondary override */
+html:not(.dark) .ig-btn--secondary {
+  background: rgba(0, 0, 0, 0.03);
+  border-color: var(--ig-border);
+}
+
+html:not(.dark) .ig-btn--secondary:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+/* Stats row */
+.ig-stats {
+  display: flex;
+  gap: var(--ig-s6);
+}
+
+.ig-stat__n {
+  font-size: var(--ig-fs-h3);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.ig-stat__l {
+  font-size: var(--ig-fs-caption);
+  color: var(--ig-text-3);
+  margin-top: var(--ig-s1);
+}
+
+/* ── Code window (always-dark; intentional non-token bg) ─────────────────── */
+.ig-code-win {
+  background: linear-gradient(180deg, #100D11, #0C0A0D);
+  border: 1px solid var(--ig-border);
+  border-radius: var(--ig-r-lg);
+  overflow: hidden;
+  box-shadow: 0 40px 80px -30px rgba(0, 0, 0, 0.8);
+  transform: perspective(1400px) rotateY(-4deg) rotateX(1.5deg);
+}
+
+.ig-code-win__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--ig-s2);
+  padding: var(--ig-s3) var(--ig-s4);
+  border-bottom: 1px solid var(--ig-border);
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.ig-code-win__dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ig-code-win__filename {
+  margin-left: var(--ig-s2);
+  font: 500 var(--ig-fs-sm) var(--ig-font-mono);
+  color: var(--ig-text-3);
+}
+
+.ig-code-win__tag {
+  margin-left: auto;
+  font: 600 var(--ig-fs-caption) var(--ig-font-mono);
+  color: var(--ig-coral);
+  background: rgba(217, 142, 106, 0.1);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+
+/* Override VitePress pre styles inside the code window */
+.ig-code-win pre {
+  font: 500 var(--ig-fs-sm) / var(--ig-lh-code) var(--ig-font-mono) !important;
+  padding: var(--ig-s5) !important;
+  color: #cfc4c9 !important;
+  overflow: auto;
+  margin: 0 !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  border: none !important;
+}
+
+/* Syntax highlight spans - scoped to code window only */
+.ig-k { color: var(--ig-gold); }
+.ig-d { color: var(--ig-coral); }
+.ig-s { color: #9DBF8E; }    /* sage - no token equivalent */
+.ig-c { color: var(--ig-rose-lt); }
+.ig-p { color: #c8b8be; }    /* muted param - no token equivalent */
+
+/* ── Feature cards ────────────────────────────────────────────────────────── */
+.ig-features {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--ig-s5);
+}
+
+.ig-fcard {
+  border: 1px solid var(--ig-border);
+  border-radius: var(--ig-r-md);
+  padding: var(--ig-s5);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.025), transparent);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.ig-fcard:hover {
+  border-color: rgba(175, 95, 95, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 24px 50px -30px rgba(175, 95, 95, 0.5);
+}
+
+.ig-fcard__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: var(--ig-r-md);
+  display: grid;
+  place-items: center;
+  font-size: 22px;
+  margin-bottom: var(--ig-s4);
+  background: rgba(175, 95, 95, 0.12);
+  border: 1px solid rgba(175, 95, 95, 0.25);
+}
+
+.ig-fcard h3 {
+  font-size: var(--ig-fs-h4) !important;
+  font-weight: 700;
+  margin-bottom: var(--ig-s2) !important;
+  color: var(--ig-text);
+}
+
+.ig-fcard p {
+  font-size: var(--ig-fs-sm);
+  color: var(--ig-text-2);
+  line-height: var(--ig-lh-body);
+  margin: 0;
+}
+
+.ig-fcard code {
+  font: 500 var(--ig-fs-caption) var(--ig-font-mono);
+  color: var(--ig-rose-lt);
+  background: transparent;
+  padding: 0;
+  border: none;
+}
+
+/* ── Performance band ─────────────────────────────────────────────────────── */
+.ig-perf {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: var(--ig-s7);
+  align-items: center;
+  padding: var(--ig-s9) 0;
+}
+
+.ig-perf__copy h2 {
+  font-size: var(--ig-fs-h1);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: var(--ig-lh-snug);
+  margin-bottom: var(--ig-s4) !important;
+  color: var(--ig-text);
+}
+
+.ig-perf__copy p {
+  font-size: var(--ig-fs-body);
+  color: var(--ig-text-2);
+  line-height: var(--ig-lh-body);
+  margin-bottom: var(--ig-s3);
+  max-width: 52ch;
+}
+
+.ig-fine {
+  font-size: var(--ig-fs-sm) !important;
+  color: var(--ig-text-3) !important;
+}
+
+.ig-bars {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ig-s4);
+}
+
+.ig-bar-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ig-s4);
+}
+
+.ig-bar-row__name {
+  width: 78px;
+  font-size: var(--ig-fs-sm);
+  color: var(--ig-text-2);
+  text-align: right;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.ig-bar-row--hl .ig-bar-row__name {
+  color: var(--ig-text);
+}
+
+.ig-track {
+  flex: 1;
+  height: 30px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: var(--ig-r-sm);
+  overflow: hidden;
+}
+
+html:not(.dark) .ig-track {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.ig-fill {
+  height: 100%;
+  border-radius: var(--ig-r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--ig-s3);
+  font-size: var(--ig-fs-caption);
+  font-weight: 700;
+}
+
+/* IGNIS bar: gradient fill, dark label for contrast on the gradient */
+.ig-fill--ig {
+  background: var(--ig-gradient);
+  color: #231013;  /* intentional: dark contrast on rose-gold gradient */
+}
+
+/* Other frameworks: neutral muted fill */
+.ig-fill--muted {
+  background: #3a3338;
+  color: var(--ig-text-2);
+  font-weight: 600;
+}
+
+html:not(.dark) .ig-fill--muted {
+  background: #c8bfc4;
+  color: var(--ig-text-3);
+}
+
+/* ── Honest-fit positioning ───────────────────────────────────────────────── */
+.ig-pos-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ig-s5);
+}
+
+.ig-pcard {
+  border: 1px solid var(--ig-border);
+  border-radius: var(--ig-r-lg);
+  padding: var(--ig-s6);
+}
+
+.ig-pcard--good {
+  background: linear-gradient(180deg, rgba(175, 95, 95, 0.07), transparent);
+  border-color: rgba(175, 95, 95, 0.3);
+}
+
+.ig-pcard h3 {
+  font-size: var(--ig-fs-h4) !important;
+  font-weight: 700;
+  margin-bottom: var(--ig-s4) !important;
+  color: var(--ig-text);
+}
+
+.ig-pcard--alt h3 {
+  color: var(--ig-text-2);
+}
+
+.ig-pcard ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--ig-s3);
+}
+
+.ig-pcard li {
+  font-size: var(--ig-fs-sm);
+  color: var(--ig-text-2);
+  display: flex;
+  gap: var(--ig-s3);
+  line-height: 1.5;
+  padding: 0;
+  border: none;
+}
+
+.ig-ic {
+  flex-shrink: 0;
+}
+
+/* ── Powered-by chips ─────────────────────────────────────────────────────── */
+.ig-powered {
+  text-align: center;
+}
+
+.ig-powered__head {
+  margin-bottom: var(--ig-s6) !important;
+}
+
+.ig-chips {
+  display: flex;
+  justify-content: center;
+  gap: var(--ig-s3);
+  flex-wrap: wrap;
+  margin-top: var(--ig-s2);
+}
+
+.ig-chip {
+  border: 1px solid var(--ig-border);
+  border-radius: var(--ig-r-md);
+  padding: var(--ig-s4) var(--ig-s5);
+  font-size: var(--ig-fs-body);
+  font-weight: 600;
+  color: var(--ig-text-3);
+}
+
+.ig-chip b {
+  color: var(--ig-text);
+}
+
+.ig-powered__footnote {
+  color: var(--ig-text-3);
+  font-size: var(--ig-fs-sm);
+  margin-top: var(--ig-s5) !important;
+  text-align: center;
+}
+
+/* ── Footer CTA ───────────────────────────────────────────────────────────── */
+.ig-footer-cta {
+  text-align: center;
+  border: 1px solid var(--ig-border);
+  border-radius: var(--ig-r-xl);
+  padding: var(--ig-s8) var(--ig-s7);
+  margin: var(--ig-s5) 0 var(--ig-s9);
+  background:
+    radial-gradient(600px 300px at 50% 0%, rgba(175, 95, 95, 0.14), transparent 70%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
+}
+
+.ig-footer-cta h2 {
+  font-size: var(--ig-fs-display);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: var(--ig-lh-snug);
+  margin-bottom: var(--ig-s4) !important;
+  color: var(--ig-text);
+}
+
+.ig-footer-cta > p {
+  font-size: var(--ig-fs-lede);
+  color: var(--ig-text-2);
+  margin-bottom: var(--ig-s6);
+}
+
+.ig-footer-cta .ig-cta {
+  justify-content: center;
+  margin-bottom: 0;
+}
+
+/* ── Responsive breakpoints ───────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .ig-hero {
+    grid-template-columns: 1fr;
+    gap: var(--ig-s6);
+    padding: var(--ig-s7) 0 var(--ig-s6);
+  }
+
+  .ig-hero h1 {
+    font-size: var(--ig-fs-display);
+  }
+
+  .ig-code-win {
+    transform: none;
+  }
+
+  .ig-features {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ig-perf {
+    grid-template-columns: 1fr;
+    padding: var(--ig-s7) 0;
+  }
+
+  .ig-pos-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .ig-wrap {
+    padding: 0 var(--ig-s4);
+  }
+
+  .ig-features {
+    grid-template-columns: 1fr;
+  }
+
+  .ig-hero h1 {
+    font-size: var(--ig-fs-h1);
+  }
+
+  .ig-footer-cta h2 {
+    font-size: var(--ig-fs-h1);
+  }
+
+  .ig-stats {
+    gap: var(--ig-s5);
+  }
+
+  .ig-chips {
+    gap: var(--ig-s2);
+  }
+
+  .ig-cta {
+    flex-direction: column;
+  }
 }

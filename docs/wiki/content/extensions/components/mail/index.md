@@ -107,9 +107,8 @@ import {
   Binding,
   CoreBindings,
   inject,
-  applicationEnvironment,
-  toBoolean,
 } from '@venizia/ignis';
+import { applicationEnvironment, toBoolean } from '@venizia/ignis-helpers';
 import { MailComponent, MailKeys, MailProviders } from '@venizia/ignis/mail';
 
 export class NodemailerComponent extends BaseComponent {

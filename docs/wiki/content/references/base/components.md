@@ -6,7 +6,7 @@ difficulty: advanced
 
 # Deep Dive: Components
 
-Technical reference for `BaseComponent`—the foundation for creating reusable, pluggable features in Ignis. Components are powerful containers that can group together multiple providers, services, controllers, repositories, and even entire mini-applications into a single, redistributable module.
+Technical reference for `BaseComponent`-the foundation for creating reusable, pluggable features in IGNIS. Components are powerful containers that can group together multiple providers, services, controllers, repositories, and even entire mini-applications into a single, redistributable module.
 
 **File:** `packages/core/src/base/components/base.ts`
 
@@ -17,7 +17,7 @@ Technical reference for `BaseComponent`—the foundation for creating reusable, 
 | **Encapsulation** | Bundle feature bindings (services, controllers) into single class |
 | **Lifecycle Management** | Auto-called `binding()` method during startup |
 | **Default Bindings** | Self-contained with automatic DI registration |
-| **Idempotent Configure** | `configure()` is safe to call multiple times — runs `binding()` only once |
+| **Idempotent Configure** | `configure()` is safe to call multiple times - runs `binding()` only once |
 | **Controller Transports** | `RestComponent` and `GrpcComponent` handle controller discovery per transport |
 
 
@@ -58,10 +58,10 @@ src/components/auth/
 │   │   └── auth.controller.ts
 │   ├── services/
 │   │   ├── index.ts
-│   │   └── jwt-token.service.ts
+│   │   └── jws.service.ts
 │   └── strategies/
 │       ├── index.ts
-│       ├── jwt.strategy.ts
+│       ├── jws.strategy.ts
 │       └── basic.strategy.ts
 └── models/
     ├── index.ts
@@ -74,7 +74,7 @@ src/components/auth/
 
 ### Controller Transport Component
 
-Transport components live under `src/components/controller/` and are instantiated directly by the application during `registerControllers()` — they are **not** registered via `this.component()`.
+Transport components live under `src/components/controller/` and are instantiated directly by the application during `registerControllers()` - they are **not** registered via `this.component()`.
 
 ```
 src/components/controller/
@@ -139,28 +139,31 @@ import { AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
 
 // Options interface for the component
 export interface IAuthenticateOptions {
-  jwtOptions?: IJWTTokenServiceOptions;
-  basicOptions?: IBasicTokenServiceOptions;
-  restOptions?: {
-    useAuthController?: boolean;
-    controllerOpts?: TDefineAuthControllerOpts;
-  };
+  jwtOptions?: TJWTTokenServiceOptions;
+  basicOptions?: TBasicTokenServiceOptions;
+  restOptions?: TAuthenticationRestOptions;
 }
 
-// Service options interface
-export interface IJWTTokenServiceOptions {
-  jwtSecret: string;
-  applicationSecret: string;
-  getTokenExpiresFn: () => ValueOrPromise<number>;
-}
+// Service options type (JWS or JWKS)
+export type TJWTTokenServiceOptions =
+  | { standard: 'JWS'; options: IJWSTokenServiceOptions }
+  | { standard: 'JWKS'; options: TJWKSTokenServiceOptions };
 
 // Service contract interface
 export interface IAuthService<
-  SIRQ = AnyObject,
+  E extends Env = Env,
+  SIRQ extends TSignInRequest = TSignInRequest,
   SIRS = AnyObject,
+  SURQ extends TSignUpRequest = TSignUpRequest,
+  SURS = AnyObject,
+  CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
+  CPRS = AnyObject,
 > {
-  signIn(context: Context, opts: SIRQ): Promise<SIRS>;
-  signUp(context: Context, opts: SIRQ): Promise<SIRS>;
+  signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
+  signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
+  changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
+  getUserInformation?(context: TContext<E>, opts: AnyObject): Promise<AnyObject>;
+  refreshToken?(context: TContext<E>): Promise<AnyObject>;
 }
 
 // Auth user type
@@ -269,7 +272,7 @@ The `super()` constructor in your component can take the following options:
 | Option | Type | Description |
 | :--- | :--- | :--- |
 | `scope` | `string` | **Required.** A unique name for the component, typically `MyComponent.name`. Used for logging. |
-| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) when `configure()` is called — but only if they are not already bound. Defaults to `{ enable: false }`. |
+| `initDefault` | `{ enable: false } \| { enable: true; container: Container }` | If `enable` is `true`, the `bindings` defined below will be automatically registered with the provided `container` (usually the application instance) when `configure()` is called - but only if they are not already bound. Defaults to `{ enable: false }`. |
 | `bindings` | `Record<string \| symbol, Binding>` | An object where keys are binding keys and values are `Binding` instances. These are the default services, values, or providers that your component offers. Defaults to `{}`. |
 
 ### Properties
@@ -278,14 +281,14 @@ The `super()` constructor in your component can take the following options:
 | :--- | :--- | :--- | :--- |
 | `bindings` | `Record<string \| symbol, Binding>` | `protected` | Default bindings the component provides. Can be set in constructor or assigned directly in the constructor body. |
 | `initDefault` | `TInitDefault` | `protected` | Controls whether default bindings are auto-registered to a container. |
-| `isConfigured` | `boolean` | `protected` | Guard flag — prevents `configure()` from running more than once. |
+| `isConfigured` | `boolean` | `protected` | Guard flag - prevents `configure()` from running more than once. |
 
 ### Methods
 
 | Method | Signature | Description |
 | :--- | :--- | :--- |
 | `binding()` | `abstract binding(): ValueOrPromise<void>` | **Abstract.** Override this to register services, controllers, and other resources. Called by `configure()`. |
-| `configure(opts?)` | `async configure(opts?: ConfigurableOptions): Promise<void>` | Entry point. Calls `initDefaultBindings()` (if enabled), then `binding()`. Idempotent — skips if already configured. |
+| `configure(opts?)` | `async configure(opts?: ConfigurableOptions): Promise<void>` | Entry point. Calls `initDefaultBindings()` (if enabled), then `binding()`. Idempotent - skips if already configured. |
 | `initDefaultBindings(opts)` | `protected initDefaultBindings(opts: { container: Container }): void` | Iterates `this.bindings` and registers each into the container if not already bound. |
 
 ### Lifecycle Flow
@@ -502,7 +505,7 @@ export class HealthCheckComponent extends BaseComponent {
 import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { AuthenticateBindingKeys, IAuthenticateOptions, IBasicTokenServiceOptions, IJWTTokenServiceOptions } from './common';
-import { BasicTokenService, JWTTokenService } from './services';
+import { BasicTokenService, JWSTokenService } from './services';
 import { defineAuthController } from './controllers';
 
 const DEFAULT_OPTIONS: IAuthenticateOptions = {
@@ -543,7 +546,7 @@ export class AuthenticateComponent extends BaseComponent {
     this.application
       .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
       .toValue(opts.jwtOptions);
-    this.application.service(JWTTokenService);
+    this.application.service(JWSTokenService);
   }
 
   // Configure Basic authentication if basicOptions is provided
@@ -649,8 +652,8 @@ In this pattern, `initDefault` defaults to `{ enable: false }`, so the bindings 
 |-----------|-------------|
 | **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
 | **SwaggerComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
-| **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWTTokenService`, `BasicTokenService`). |
-| **AuthorizationComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
+| **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWSTokenService`, `BasicTokenService`). |
+| **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
 | **RequestTrackerComponent** | Registers Hono `requestId()` middleware and a `RequestSpyMiddleware` for `x-request-id` header tracking and request body parsing. |
 
 ### Excluded from Barrel (Import Directly)
@@ -754,7 +757,7 @@ override binding(): ValueOrPromise<void> {
 | **Validation** | Validate required options in `binding()` |
 | **Logging** | Log binding activity with structured messages |
 | **Scope** | Always set `scope: ComponentName.name` |
-| **Idempotency** | `configure()` is already idempotent via `isConfigured` guard — no need to add your own |
+| **Idempotency** | `configure()` is already idempotent via `isConfigured` guard - no need to add your own |
 
 
 ## Quick Reference Template

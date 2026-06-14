@@ -1,6 +1,6 @@
 # Building a CRUD API: A Step-by-Step Tutorial
 
-Build a complete, database-backed REST API for managing todos. This guide covers Models, DataSources, Repositories, and Controllers - the core building blocks of Ignis applications.
+Build a complete, database-backed REST API for managing todos. This guide covers Models, DataSources, Repositories, and Controllers - the core building blocks of IGNIS applications.
 
 **Time to Complete:** ~45 minutes
 
@@ -66,9 +66,9 @@ HTTP Request (GET /api/todos/:id)
 | **Model** | Defines what the data looks like |
 
 **Benefits of this separation:**
-- **Testable** — Mock repository in tests
-- **Maintainable** — Clear responsibility for each layer
-- **Flexible** — Change database without touching business logic
+- **Testable** - Mock repository in tests
+- **Maintainable** - Clear responsibility for each layer
+- **Flexible** - Change database without touching business logic
 
 ## Step 1: Install Database Dependencies
 
@@ -149,7 +149,7 @@ const password = process.env.APP_ENV_DB_PASSWORD;
 const password = Bun.env.APP_ENV_DB_PASSWORD;
 ```
 
-Ignis uses `APP_ENV_` prefix to prevent conflicts with system variables.
+IGNIS uses `APP_ENV_` prefix to prevent conflicts with system variables.
 
 ### Create `.env` File
 
@@ -296,9 +296,9 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 Dependency Injection (DI) is a design pattern where objects receive their dependencies from outside rather than creating them internally. Instead of `new Repository()` inside a controller, you declare "I need a Repository" using `@inject`, and the framework provides it automatically.
 
 **Benefits:**
-- **Testable** — Replace real services with mocks in tests
-- **Flexible** — Swap implementations without changing code
-- **Maintainable** — Dependencies are explicit and centralized
+- **Testable** - Replace real services with mocks in tests
+- **Flexible** - Swap implementations without changing code
+- **Maintainable** - Dependencies are explicit and centralized
 
 [Learn more →](/guides/core-concepts/dependency-injection)
 :::
@@ -481,7 +481,7 @@ Add these scripts to your `package.json`:
 
 ### Run the Migration
 
-For development, use `push` — it reads your schema and applies changes directly to the database:
+For development, use `push` - it reads your schema and applies changes directly to the database:
 
 ```bash
 bun run db:push
@@ -516,7 +516,7 @@ Test the API endpoints:
 # Create a todo
 curl -X POST http://localhost:3000/api/todos \
   -H "Content-Type: application/json" \
-  -d '{"title":"Learn Ignis","description":"Complete tutorial"}'
+  -d '{"title":"Learn IGNIS","description":"Complete tutorial"}'
 
 # Get all todos
 curl http://localhost:3000/api/todos
@@ -616,7 +616,7 @@ path: { base: '/api', isStrict: true },  // All routes start with /api
 # Make sure you include the header:
 curl -X POST http://localhost:3000/api/todos \
   -H "Content-Type: application/json" \  # ← This line!
-  -d '{"title":"Learn Ignis"}'
+  -d '{"title":"Learn IGNIS"}'
 ```
 
 

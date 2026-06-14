@@ -47,7 +47,7 @@ const error = new ApplicationError({
 
 #### `getError()` Factory Function
 
-For convenience, use the standalone `getError()` function instead of calling `new ApplicationError()` directly. This is the preferred pattern throughout the Ignis codebase.
+For convenience, use the standalone `getError()` function instead of calling `new ApplicationError()` directly. This is the preferred pattern throughout the IGNIS codebase.
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';

@@ -7,7 +7,7 @@ description: Added HTTP Basic Authentication strategy for API authentication
 
 ## Basic Authentication Strategy
 
-This release adds HTTP Basic Authentication support to the Ignis authentication system.
+This release adds HTTP Basic Authentication support to the IGNIS authentication system.
 
 ## Overview
 

@@ -76,13 +76,13 @@ All error messages from the authorization module, organized by source:
 | `[CasbinAuthorizationEnforcer] request.action and request.resource are required.` | 500 | `evaluate` |
 | `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `buildRules`/cache management (via `resolveCacheKey`) |
 | <code v-pre>[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms) &#124; Received: {{value}}</code> | 500 | `configure` (via `validateExpiresIn`) |
-| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup — ...</code> | 500 | `configure` (via `assertMatcherCompilesSync`) |
+| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup - ...</code> | 500 | `configure` (via `assertMatcherCompilesSync`) |
 | <code v-pre>[resolveDomainMatchingFn] Unsupported func: {{name}} &#124; Valids: [...]</code> | 500 | `configure` (via `registerMatchers`) |
 | <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model. ...</code> | 500 | `configure` (via `registerMatchers`, only when `domainMatching` is set) |
 | <code v-pre>[resolveModel] Invalid model.driver &#124; Valids: [file, text]</code> | 500 | `configure` (via `resolveModel`) |
 | `[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.` | 500 | `invalidateUserCache`/`rebuildUserCache` (via `requireRedisCache`) |
 
-> The `Invalid cached.driver` errors were removed — `cached` is now a typed union
+> The `Invalid cached.driver` errors were removed - `cached` is now a typed union
 > (`{ use: false } | { use: true, driver: 'redis', ... }`), so an invalid driver is a compile-time
 > error, not a runtime one.
 
@@ -93,9 +93,9 @@ All error messages from the authorization module, organized by source:
 | `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `resolveCacheKey` (read + cache-management paths) |
 | `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 500 | `extractUserLines` |
 | `[loadPolicyLinesIntoModel] Not configured. Call configure() first.` | 500 | `loadPolicyLinesIntoModel` |
-| `[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.` | — (logged, not thrown) | `parseCachedPolicyLines` — corrupt entry is discarded + refetched |
+| `[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.` | - (logged, not thrown) | `parseCachedPolicyLines` - corrupt entry is discarded + refetched |
 
-> A corrupted Redis cache entry does **not** raise an error — it is logged and discarded, and the
+> A corrupted Redis cache entry does **not** raise an error - it is logged and discarded, and the
 > lines are refetched from the adapter (the request never 500s on cache corruption).
 
 ### Registry Errors (AuthorizationEnforcerRegistry)
@@ -360,7 +360,7 @@ keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
 
 **Fix:** Use `CasbinEnforcerModelDrivers.FILE` (`'file'`) or `CasbinEnforcerModelDrivers.TEXT` (`'text'`).
 
-> There is no longer an `Invalid cached.driver` runtime error — `cached` is a typed union, so an
+> There is no longer an `Invalid cached.driver` runtime error - `cached` is a typed union, so an
 > unsupported cache driver is caught at compile time. Caching is **Redis-only**.
 
 ## Common Patterns

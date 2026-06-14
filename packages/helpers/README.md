@@ -2,13 +2,13 @@
 
 # :fire: IGNIS - @venizia/ignis-helpers
 
-**Production-ready infrastructure utilities for the Ignis Framework**
+**Production-ready infrastructure utilities for the IGNIS Framework**
 
 [![npm](https://img.shields.io/npm/v/@venizia/ignis-helpers.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-helpers)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 
-Logging, Redis, queues (BullMQ/MQTT/Kafka), storage (MinIO/Disk/Memory), cryptography (AES/RSA/ECDH), networking (TCP/TLS/UDP/HTTP), cron, Socket.IO, WebSocket, UID generation, worker threads, and more. Designed to integrate seamlessly with the Ignis IoC container.
+Logging, Redis, queues (BullMQ/MQTT/Kafka), storage (MinIO/Disk/Memory), cryptography (AES/RSA/ECDH), networking (TCP/TLS/UDP/HTTP), cron, Socket.IO, WebSocket, UID generation, worker threads, and more. Designed to integrate seamlessly with the IGNIS IoC container.
 
 [Installation](#installation) &#8226; [Quick Start](#module-overview) &#8226; [API Reference](#logger) &#8226; [Documentation](https://venizia-ai.github.io/ignis)
 
@@ -112,7 +112,7 @@ import { CryptoHelper } from '@venizia/ignis-helpers/crypto';
   - [Module Utility](#module-utility)
 - [Common Types](#common-types)
 - [Key Patterns](#key-patterns)
-- [Integration with Ignis Core](#integration-with-ignis-core)
+- [Integration with IGNIS Core](#integration-with-ignis-core)
 - [Environment Variables Reference](#environment-variables-reference)
 - [Error Handling Patterns](#error-handling-patterns)
 - [Performance Tips](#performance-tips)
@@ -161,7 +161,7 @@ import { KafkaProducerHelper, KafkaConsumerHelper, KafkaAdminHelper } from '@ven
 | `ioredis`                                                     | Redis client                             |
 | `dayjs`                                                       | Date/time utilities                      |
 | `hono`                                                        | HTTP framework types, JSX re-exports     |
-| `drizzle-orm`                                                 | ORM types (used across Ignis)            |
+| `drizzle-orm`                                                 | ORM types (used across IGNIS)            |
 | `lodash`                                                      | Utility functions                        |
 | `reflect-metadata`                                            | Decorator metadata                       |
 | `@venizia/ignis-inversion`                                    | IoC container, `@inject`/`@injectable`   |
@@ -2899,9 +2899,9 @@ interface IConfigurable<Options, Result> {
 
 ---
 
-## Integration with Ignis Core
+## Integration with IGNIS Core
 
-The helpers package is designed to integrate with the Ignis framework's IoC container. Here is how helpers are typically used within an Ignis application:
+The helpers package is designed to integrate with the IGNIS framework's IoC container. Here is how helpers are typically used within an IGNIS application:
 
 **Binding helpers in the application lifecycle:**
 
@@ -3116,13 +3116,13 @@ try {
 
 ---
 
-## About Ignis
+## About IGNIS
 
-Ignis brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono** -- giving you the best of both worlds.
+IGNIS brings together the structured, enterprise development experience of **LoopBack 4** with the blazing speed and simplicity of **Hono** -- giving you the best of both worlds.
 
 ## Documentation
 
-- [Ignis Repository](https://github.com/VENIZIA-AI/ignis)
+- [IGNIS Repository](https://github.com/VENIZIA-AI/ignis)
 - [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
 - [Helpers Reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/helpers/index.md)
 

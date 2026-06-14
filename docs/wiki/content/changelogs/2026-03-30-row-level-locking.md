@@ -56,7 +56,7 @@ try {
 **Benefits:**
 - Type-safe lock strength via `TLockStrength` union type
 - Consistent with existing `RepositoryOperationScopes`, `RelationTypes` patterns
-- Zero overhead when not used — lock logic is skipped entirely
+- Zero overhead when not used - lock logic is skipped entirely
 
 ### Lock Wait Behavior
 

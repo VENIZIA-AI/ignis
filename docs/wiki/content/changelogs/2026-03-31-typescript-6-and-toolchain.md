@@ -7,7 +7,7 @@ description: Upgrade to TypeScript 6, ES2024 target, refreshed ESLint rules, and
 
 ## TypeScript 6 Upgrade & Toolchain Refresh
 
-The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshed shared compiler/lint configs, and a few small correctness fixes in the mail and redis helpers. These are maintenance changes — the framework's public API is unchanged.
+The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshed shared compiler/lint configs, and a few small correctness fixes in the mail and redis helpers. These are maintenance changes - the framework's public API is unchanged.
 
 ## Overview
 
@@ -43,7 +43,7 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshe
 ```jsonc
 {
   "compilerOptions": {
-    /* TypeScript 6.0 — suppress deprecation warnings for experimentalDecorators */
+    /* TypeScript 6.0 - suppress deprecation warnings for experimentalDecorators */
     "ignoreDeprecations": "6.0",
     "target": "ES2024",
     "lib": ["ES2024"],
@@ -55,11 +55,11 @@ The whole monorepo moves to **TypeScript 6** with an **ES2024** target, refreshe
 ```
 
 > [!NOTE]
-> TypeScript 6 deprecates `experimentalDecorators` in favor of standard decorators, but Ignis still relies on `experimentalDecorators` + `emitDecoratorMetadata` for its DI/metadata system. `ignoreDeprecations: "6.0"` keeps the legacy decorator semantics until a future migration.
+> TypeScript 6 deprecates `experimentalDecorators` in favor of standard decorators, but IGNIS still relies on `experimentalDecorators` + `emitDecoratorMetadata` for its DI/metadata system. `ignoreDeprecations: "6.0"` keeps the legacy decorator semantics until a future migration.
 
 ### `no-useless-assignment` ESLint rule
 
-The shared ESLint config now flags assignments whose value is never read before being overwritten. A handful of internal files (`controller.ts`, `app-error.middleware.ts`, `docs.helper.ts`) were cleaned up to satisfy it — for example, removing the unused binding in the Zod-error `catch` block.
+The shared ESLint config now flags assignments whose value is never read before being overwritten. A handful of internal files (`controller.ts`, `app-error.middleware.ts`, `docs.helper.ts`) were cleaned up to satisfy it - for example, removing the unused binding in the Zod-error `catch` block.
 
 ## Bug Fixes
 

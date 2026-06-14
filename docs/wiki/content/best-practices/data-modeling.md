@@ -1,6 +1,6 @@
 # Data Modeling
 
-Ignis streamlines data modeling with Drizzle ORM by providing powerful helpers and "enrichers" that reduce boilerplate code for common schema patterns.
+IGNIS streamlines data modeling with Drizzle ORM by providing powerful helpers and "enrichers" that reduce boilerplate code for common schema patterns.
 
 ## 1. Base Entity
 
@@ -29,7 +29,7 @@ export class User extends BaseEntity<typeof User.schema> {
 
 ## 2. Schema Enrichers
 
-Instead of manually defining common columns like primary keys, timestamps, or audit fields in every table, use Ignis "enrichers".
+Instead of manually defining common columns like primary keys, timestamps, or audit fields in every table, use IGNIS "enrichers".
 
 **Available Enrichers:**
 
@@ -283,7 +283,7 @@ const users = await userRepo.find({
 
 ## 4. Repositories and Auto-Discovery
 
-Ignis simplifies the connection between models, repositories, and datasources.
+IGNIS simplifies the connection between models, repositories, and datasources.
 
 ### DataSource Auto-Discovery
 

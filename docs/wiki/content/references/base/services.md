@@ -1,31 +1,35 @@
 ---
 title: Services Reference
-description: Technical reference for BaseService and business logic layer
+description: Technical reference for BaseService and the business logic layer in IGNIS
 difficulty: beginner
 ---
 
 # Deep Dive: Services
 
-Technical reference for `BaseService` - the foundation for business logic layers in Ignis.
+Technical reference for `BaseService` - the foundation for the business logic layer in IGNIS.
 
 **File:** `packages/core/src/base/services/base.ts`
 
 ## Quick Reference
 
-| Feature | Benefit |
-|---------|---------|
-| **Extends `BaseHelper`** | Auto-configured scoped logger (`this.logger`) |
-| **DI Integration** | Fits into framework's dependency injection system |
-| **Business Logic Layer** | Bridge between Controllers and Repositories |
-| **No built-in CRUD** | Services are for business logic, not data access — that's what Repositories are for |
+| Feature | Detail |
+|---------|--------|
+| **Import** | `import { BaseService, inject } from '@venizia/ignis'` |
+| **Extends** | `BaseHelper` from `@venizia/ignis-helpers` |
+| **Logging** | `this.logger` (scoped to constructor `scope`) |
+| **Registration** | `this.service(MyService)` in application lifecycle |
+| **Binding key** | `services.{ClassName}` (e.g., `services.AuthenticationService`) |
+| **DI decorator** | `@injectable` is NOT used on services - registration is imperative only |
+| **CRUD service** | Removed - use `DefaultCRUDRepository` for data access |
+
+---
 
 ## `BaseService` Class
 
-Abstract class that all application services should extend. It implements the `IService` interface (currently a marker interface with no required methods).
-
-### Class Definition
+Abstract class that all application services must extend.
 
 ```typescript
+// packages/core/src/base/services/base.ts
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { IService } from './types';
 
@@ -36,161 +40,350 @@ export abstract class BaseService extends BaseHelper implements IService {
 }
 ```
 
-### Key Features
+`BaseHelper` wires a scoped logger at `this.logger`. Pass `scope: ClassName.name` so log lines are tagged with the service name.
 
-| Feature | Description |
-| :--- | :--- |
-| **Standardization** | Common base for all services, fits framework architecture |
-| **Logging** | Extends `BaseHelper` from `@venizia/ignis-helpers` — auto-configured logger at `this.logger` (scope = class name) |
-| **Clarity** | Signals the class contains business logic |
+### `IService` Interface
 
-### Constructor
-
-The constructor requires an options object with a `scope` string, which is typically set to the class name:
-
-```typescript
-class UserService extends BaseService {
-  constructor() {
-    super({ scope: UserService.name });
-  }
-}
-```
-
-## `IService` Interface
-
-The `IService` interface is a marker interface with no required methods. It exists to provide a type-level contract for services.
+Marker interface with no required methods - it exists purely for type-level contracts:
 
 ```typescript
 export interface IService {}
 ```
 
-## No Built-in CRUD Service
+---
 
-Ignis intentionally does not provide a `BaseCrudService`. CRUD operations belong in the Repository layer (`DefaultCRUDRepository`). Services are for business logic that orchestrates one or more repositories, performs validation, handles transactions, or coordinates cross-cutting concerns.
+## Registering a Service
 
-## Registration
-
-Services are registered with the DI container using the `app.service()` method or via the boot system's auto-discovery:
+Services are registered imperatively in an application lifecycle method. There is no `@injectable` or `@service` decorator used on service classes in application code - `this.service()` handles everything.
 
 ```typescript
-// Manual registration (in preConfigure or registerComponents)
-app.service(UserService); // Binds as 'services.UserService'
-
-// Or via boot system auto-discovery:
-// Place file at src/services/user.service.ts → auto-discovered and bound
+// In your Application class (e.g., in preConfigure())
+this.service(AuthenticationService);  // binds as 'services.AuthenticationService'
+this.service(GreeterService);         // binds as 'services.GreeterService'
 ```
 
-## How Services Fit into the Architecture
-
-Services are the core of your application's logic. They act as a bridge between the presentation layer (Controllers) and the data access layer (Repositories).
-
-### Typical Service Flow
-
-1.  **Instantiated by DI Container**: When the application starts, the DI container creates instances of your services.
-2.  **Dependencies Injected**: The service's constructor receives instances of any repositories or other services it depends on.
-3.  **Called by a Controller**: An HTTP request comes into a controller, which then calls a method on a service to handle the business logic for that request.
-4.  **Orchestrates Logic**: The service method executes the business logic. This may involve:
-    -   Validating input data.
-    -   Calling one or more repository methods to fetch or save data.
-    -   Calling other services to perform related tasks.
-    -   Performing calculations or data transformations.
-5.  **Returns Data**: The service returns the result of the operation back to the controller, which then formats it into an HTTP response.
-
-### Example
+`this.service(Ctor)` is implemented in `ServiceMixin`:
 
 ```typescript
-import { BaseService, inject, injectable } from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
-import { UserRepository } from '../repositories/user.repository';
-import { TUser } from '../models/entities';
+// packages/core/src/base/mixins/service.mixin.ts
+service<Base extends IService>(ctor: TClass<Base>): Binding<Base> {
+  return this.bind<Base>({
+    key: BindingKeys.build({
+      namespace: BindingNamespaces.SERVICE, // 'services'
+      key: ctor.name,                       // class name
+    }),
+  }).toClass(ctor);
+}
+```
 
-// 1. Service is decorated with @injectable (or registered via app.service())
-@injectable()
-export class UserService extends BaseService {
-  // 2. Dependencies (like UserRepository) are injected
-  constructor(
-    @inject({ key: 'repositories.UserRepository' })
-    private _userRepository: UserRepository,
-  ) {
-    super({ scope: UserService.name });
-  }
+The resulting binding key is always `services.{ClassName}`.
 
-  // 3. Method is called by a controller
-  async getUserProfile(opts: { userId: string }): Promise<Partial<TUser>> {
-    this.logger.info(`Fetching profile for user ${opts.userId}`);
+### Lifecycle Placement
 
-    // 4. Orchestrates logic: calls the repository
-    const user = await this._userRepository.findById({ id: opts.userId });
+Register services before anything that depends on them. The correct hook is `preConfigure()`, or a private helper called from `preConfigure()`:
 
-    if (!user) {
-      throw getError({ message: 'User not found' });
-    }
+```typescript
+export class Application extends BaseApplication {
+  preConfigure(): void {
+    // DataSources and repositories that services depend on must come first
+    this.dataSource(PostgresDataSource);
+    this.repository(UserRepository);
 
-    // 5. Returns transformed data
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-    };
+    // Then register services
+    this.service(AuthenticationService);
   }
 }
 ```
 
-### Transaction Orchestration
+---
 
-A common service pattern is orchestrating transactions across multiple repositories:
+## Dependency Injection into Services
+
+Inject repositories, other services, or datasources via `@inject` in the constructor. Two equivalent key forms are available:
+
+### String-literal keys
 
 ```typescript
-@injectable()
+import { BaseService, inject } from '@venizia/ignis';
+import { UserRepository } from '../repositories';
+import { JWKSIssuerTokenService } from '@venizia/ignis';
+
+export class AuthenticationService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.UserRepository' })
+    private userRepository: UserRepository,
+
+    @inject({ key: 'services.JWKSIssuerTokenService' })
+    private jwksTokenService: JWKSIssuerTokenService,
+  ) {
+    super({ scope: AuthenticationService.name });
+  }
+}
+```
+
+### Programmatic keys with `BindingKeys.build`
+
+`BindingKeys.build({ namespace, key })` produces the same `namespace.key` string. Use this form when you want a compile-time reference to a class name rather than a plain string:
+
+```typescript
+import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { UserRepository } from '../repositories';
+
+export class AuthenticationService extends BaseService {
+  constructor(
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,   // 'repositories'
+        key: UserRepository.name,                  // 'UserRepository'
+      }),
+    })
+    private userRepository: UserRepository,
+  ) {
+    super({ scope: AuthenticationService.name });
+  }
+}
+```
+
+Both forms produce identical binding keys at runtime. The `BindingKeys.build` form avoids typo risk when the class name changes.
+
+### Available `BindingNamespaces`
+
+| Constant | Value |
+|----------|-------|
+| `BindingNamespaces.SERVICE` | `'services'` |
+| `BindingNamespaces.REPOSITORY` | `'repositories'` |
+| `BindingNamespaces.DATASOURCE` | `'datasources'` |
+| `BindingNamespaces.CONTROLLER` | `'controllers'` |
+| `BindingNamespaces.COMPONENT` | `'components'` |
+| `BindingNamespaces.PROVIDER` | `'providers'` |
+
+---
+
+## Logging
+
+`BaseService` inherits `this.logger` from `BaseHelper`. Log with method scope for structured output:
+
+```typescript
+export class AuthenticationService extends BaseService {
+  async signIn(opts: { identifier: string }): Promise<string> {
+    // Method-scoped log - produces tag "[signIn]" in log output
+    this.logger.for('signIn').info('SignIn called | identifier: %s', opts.identifier);
+
+    // ... business logic ...
+
+    this.logger.for('signIn').info('SignIn successful');
+    return token;
+  }
+}
+```
+
+Use `this.logger.for('methodName')` to scope log lines to the current method. This matches the project-wide convention seen in all examples.
+
+---
+
+## Service-to-Service Composition
+
+Services can inject other services to compose business logic. Inject them the same way as repositories, using the `services.*` namespace:
+
+```typescript
+import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+
 export class OrderService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.OrderRepository' })
-    private orderRepo: OrderRepository,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: OrderRepository.name,
+      }),
+    })
+    private orderRepository: OrderRepository,
 
-    @inject({ key: 'repositories.InventoryRepository' })
-    private inventoryRepo: InventoryRepository,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: InventoryRepository.name,
+      }),
+    })
+    private inventoryRepository: InventoryRepository,
 
-    @inject({ key: 'datasources.PostgresDataSource' })
-    private dataSource: PostgresDataSource,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.SERVICE,
+        key: NotificationService.name,
+      }),
+    })
+    private notificationService: NotificationService,
   ) {
     super({ scope: OrderService.name });
   }
 
-  async placeOrder(opts: { userId: string; items: OrderItem[] }) {
+  async createOrder(opts: { userId: string; items: OrderItem[] }): Promise<Order> {
+    this.logger.for('createOrder').info('Creating order | userId: %s', opts.userId);
+
+    const { data: order } = await this.orderRepository.create({ data: opts });
+
+    // Compose with another service
+    await this.notificationService.sendOrderConfirmation({ orderId: order.id });
+
+    return order;
+  }
+}
+```
+
+Register both services in `preConfigure()`:
+
+```typescript
+this.service(NotificationService);
+this.service(OrderService);
+```
+
+### Abstract Base Services
+
+For shared dependencies across multiple related services, define an abstract base:
+
+```typescript
+// Shared repository access for a group of test services
+export abstract class BaseTestService extends BaseService {
+  constructor(
+    scope: string,
+    @inject({
+      key: BindingKeys.build({
+        namespace: BindingNamespaces.REPOSITORY,
+        key: UserRepository.name,
+      }),
+    })
+    protected readonly userRepository: UserRepository,
+  ) {
+    super({ scope });
+  }
+
+  abstract run(): Promise<void>;
+}
+
+// Concrete subclass passes its own scope, forwards injected args to super
+export class UserAuditTestService extends BaseTestService {
+  constructor(userRepository: UserRepository) {
+    super(UserAuditTestService.name, userRepository);
+  }
+
+  async run(): Promise<void> {
+    this.logger.for('run').info('Running user audit tests');
+    // ...
+  }
+}
+```
+
+Register the concrete class - never the abstract base:
+
+```typescript
+this.service(UserAuditTestService);
+```
+
+---
+
+## Transaction Orchestration
+
+Services are the correct place to manage transactions that span multiple repository calls. Begin a transaction on the DataSource and pass it through repository options:
+
+```typescript
+import { BaseService, BindingKeys, BindingNamespaces, inject } from '@venizia/ignis';
+import { PostgresDataSource } from '../datasources';
+
+export class CheckoutService extends BaseService {
+  constructor(
+    @inject({ key: 'datasources.PostgresDataSource' })
+    private dataSource: PostgresDataSource,
+
+    @inject({ key: 'repositories.OrderRepository' })
+    private orderRepository: OrderRepository,
+
+    @inject({ key: 'repositories.InventoryRepository' })
+    private inventoryRepository: InventoryRepository,
+  ) {
+    super({ scope: CheckoutService.name });
+  }
+
+  async placeOrder(opts: { userId: string; items: OrderItem[] }): Promise<Order> {
+    const log = this.logger.for('placeOrder');
     const transaction = await this.dataSource.beginTransaction();
+
     try {
-      const order = await this.orderRepo.create({
-        data: { userId: opts.userId, items: opts.items },
+      const { data: order } = await this.orderRepository.create({
+        data: { userId: opts.userId },
         options: { transaction },
       });
 
       for (const item of opts.items) {
-        await this.inventoryRepo.updateById({
+        await this.inventoryRepository.updateById({
           id: item.productId,
-          data: { quantity: item.quantity },
+          data: { stock: item.quantity },
           options: { transaction },
         });
       }
 
       await transaction.commit();
+      log.info('Order placed | orderId: %s', order.id);
       return order;
     } catch (error) {
       await transaction.rollback();
+      log.error('Order failed, rolled back | error: %j', error);
       throw error;
     }
   }
 }
 ```
 
-By adhering to this pattern, you keep your code organized, testable, and maintainable. You can easily test `UserService` by providing a mock `UserRepository` without needing a real database connection.
+Pass `{ transaction }` in the `options` field of any repository call. The repository API is identical with or without a transaction - only the underlying Drizzle connector switches.
+
+---
+
+## Resolving a Service Imperatively
+
+When you need to pull a service out of the container at runtime (rather than through constructor injection), use `this.get<T>`:
+
+```typescript
+// In Application.postConfigure() or a lifecycle hook
+const testService = this.get<RowLockingTestService>({
+  key: BindingKeys.build({
+    namespace: BindingNamespaces.SERVICE,
+    key: RowLockingTestService.name,
+  }),
+});
+
+await testService.run();
+```
+
+This is useful for post-start hooks, one-off tasks that run after the server starts, or when the service is not a constructor dependency.
+
+---
+
+## No Built-in CRUD Service
+
+IGNIS intentionally does not provide a `BaseCrudService`. CRUD operations belong in the Repository layer (`DefaultCRUDRepository`). Services exist for business logic that cannot be expressed as pure data access: cross-cutting validation, multi-repository coordination, transaction management, and workflow orchestration.
+
+---
+
+## Provider vs Service
+
+| Aspect | Service | Provider |
+|--------|---------|----------|
+| **Purpose** | Business logic and orchestration | Factory - produces values or instances |
+| **Base class** | `BaseService` | `BaseProvider<T>` |
+| **Key method** | Business methods | `value(container): T` |
+| **Pattern** | Singleton in DI scope | Factory pattern |
+| **Registration** | `this.service(Ctor)` | `this.bind(...).toProvider(Ctor)` |
+
+See [Providers Reference](./providers.md) for the factory pattern details.
+
+---
 
 ## See Also
 
 - **Related References:**
-  - [Controllers](./controllers.md) - HTTP request handlers that call services
-  - [Repositories](./repositories/) - Data access layer used by services
-  - [Providers](./providers.md) - Factory pattern for runtime instantiation
-  - [Dependency Injection](./dependency-injection.md) - DI container and injection patterns
+  - [Controllers](./controllers.md) - HTTP handlers that call services
+  - [Repositories](./repositories/) - Data access layer injected into services
+  - [Providers](./providers.md) - Factory pattern, compare with services
+  - [Dependency Injection](./dependency-injection.md) - Container and injection system
 
 - **Guides:**
   - [Building Services](/guides/core-concepts/services.md)

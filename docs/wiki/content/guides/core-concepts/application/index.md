@@ -60,7 +60,7 @@ export class Application extends BaseApplication {
 
 ## Application Lifecycle
 
-The `Ignis` application has a well-defined lifecycle, managed primarily by the `start()` and `initialize()` methods.
+The `IGNIS` application has a well-defined lifecycle, managed primarily by the `start()` and `initialize()` methods.
 
 | Method | Description |
 | :--- | :--- |
@@ -190,10 +190,10 @@ this.controller(UserController, {
 The application detects the runtime automatically via `RuntimeModules.detect()`:
 
 ```typescript
-// Bun (default) — uses Bun.serve
+// Bun (default) - uses Bun.serve
 Bun.serve({ port, hostname, fetch: server.fetch })
 
-// Node.js — requires @hono/node-server
+// Node.js - requires @hono/node-server
 import { serve } from '@hono/node-server'
 serve({ fetch: server.fetch, port, hostname })
 ```

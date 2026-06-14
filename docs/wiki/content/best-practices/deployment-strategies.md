@@ -1,6 +1,6 @@
 # Deployment Strategies
 
-Deploy your Ignis application reliably, securely, and efficiently.
+Deploy your IGNIS application reliably, securely, and efficiently.
 
 ## 1. Building for Production
 
@@ -188,7 +188,7 @@ scp dist/my-app .env user@server:/app/
 ```ini
 # /etc/systemd/system/my-app.service
 [Unit]
-Description=My Ignis Application
+Description=My IGNIS Application
 After=network.target
 
 [Service]
@@ -634,7 +634,7 @@ kubectl logs -l app=ignis -f
 
 ### Health Check Endpoints
 
-Ignis provides built-in health checks:
+IGNIS provides built-in health checks:
 
 ```typescript
 // In application.ts

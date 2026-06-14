@@ -13,7 +13,7 @@ The generated authentication controller now exposes a `POST /token/refresh` rout
 
 - **New route**: `POST /token/refresh`, registered by `defineAuthController`
 - **JWT-protected**: requires a currently valid access token (`Authentication.STRATEGY_JWT`)
-- **Optional service hook**: `IAuthService.refreshToken?(context)` — returns `501 Not Implemented` if the service does not implement it
+- **Optional service hook**: `IAuthService.refreshToken?(context)` - returns `501 Not Implemented` if the service does not implement it
 - **Customizable response schema**: via `payload.refreshToken.response.schema`
 - **Consistency cleanup**: auth routes now use `HTTP.Methods.*` constants and carry OpenAPI `description`s
 
@@ -25,7 +25,7 @@ The generated authentication controller now exposes a `POST /token/refresh` rout
 
 **Problem:** There was no first-class way to renew an access token. Clients had to re-run the full sign-in flow when a token neared expiry.
 
-**Solution:** `defineAuthController` registers a JWT-authenticated refresh route that delegates to the auth service. Because the route requires a valid JWT, it re-issues a token for the current principal — there is no separate long-lived refresh token.
+**Solution:** `defineAuthController` registers a JWT-authenticated refresh route that delegates to the auth service. Because the route requires a valid JWT, it re-issues a token for the current principal - there is no separate long-lived refresh token.
 
 ```typescript
 this.defineRoute({

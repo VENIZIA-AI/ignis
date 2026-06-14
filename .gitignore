@@ -83,6 +83,8 @@ Desktop.ini
 .claude/
 **/*/.claude
 .prompts/
+.superpowers/
+.playwright-mcp/
 openspec
 
 # Local AI planning artifacts only (brainstorm specs / implementation plans).

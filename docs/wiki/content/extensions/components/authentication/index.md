@@ -21,9 +21,9 @@
 | **JWKSVerifierAuthenticationStrategy** | JWT verification via remote JWKS URL |
 | **BasicAuthenticationStrategy** | Basic HTTP authentication using `BasicTokenService` |
 | **AbstractBearerTokenService** | Base class for all Bearer token services (JWS, JWKS Issuer, JWKS Verifier) |
-| **JWSTokenService** | Symmetric JWT — sign, verify, optional AES encrypt/decrypt |
-| **JWKSIssuerTokenService** | Asymmetric JWT — sign with private key, verify with public key, serve JWKS endpoint |
-| **JWKSVerifierTokenService** | Asymmetric JWT — verify-only via remote JWKS URL |
+| **JWSTokenService** | Symmetric JWT - sign, verify, optional AES encrypt/decrypt |
+| **JWKSIssuerTokenService** | Asymmetric JWT - sign with private key, verify with public key, serve JWKS endpoint |
+| **JWKSVerifierTokenService** | Asymmetric JWT - verify-only via remote JWKS URL |
 | **BasicTokenService** | Extract and verify Basic auth credentials |
 | **JWKSController** | Serves `/.well-known/jwks.json`-style endpoint at `/certs` |
 | **IAuthService** | Interface for custom auth implementation (sign-in, sign-up) |
@@ -97,8 +97,8 @@ The authentication module supports two JOSE (JSON Object Signing and Encryption)
 | `JWKSKeyFormats` | `JWK` | `'jwk'` | JSON Web Key format |
 
 Each constants class also provides:
-- `SCHEME_SET: Set<string>` — set of all valid values
-- `isValid(input: string): boolean` — check if a value is recognized
+- `SCHEME_SET: Set<string>` - set of all valid values
+- `isValid(input: string): boolean` - check if a value is recognized
 
 #### Import Paths
 
@@ -244,7 +244,7 @@ this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
   standard: JOSEStandards.JWS,
   options: {
     jwtSecret: process.env.APP_ENV_JWT_SECRET,
-    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // Optional — enables AES payload encryption
+    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // Optional - enables AES payload encryption
     getTokenExpiresFn: () => Number(process.env.APP_ENV_JWT_EXPIRES_IN || 86400),
   },
 });
@@ -495,7 +495,7 @@ type TJWTTokenServiceOptions =
   | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
 ```
 
-This enables clean TypeScript narrowing — once you set `standard: JOSEStandards.JWS`, the `options` field is typed as `IJWSTokenServiceOptions`; with `standard: JOSEStandards.JWKS`, it becomes `TJWKSTokenServiceOptions`.
+This enables clean TypeScript narrowing - once you set `standard: JOSEStandards.JWS`, the `options` field is typed as `IJWSTokenServiceOptions`; with `standard: JOSEStandards.JWKS`, it becomes `TJWKSTokenServiceOptions`.
 
 ### JWS Options (IJWSTokenServiceOptions)
 

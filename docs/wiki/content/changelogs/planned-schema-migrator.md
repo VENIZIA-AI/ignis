@@ -542,7 +542,7 @@ if (process.env.NODE_ENV === 'development') {
 
 ## Comparison with Alternatives
 
-| Feature | Ignis Migrator | Drizzle Kit | LoopBack 4 |
+| Feature | IGNIS Migrator | Drizzle Kit | LoopBack 4 |
 |---------|----------------|-------------|------------|
 | CLI required | No | Yes | No |
 | Auto-discovery | Yes (from @model) | No (manual schema file) | Yes |
