@@ -33,8 +33,6 @@ import {
   IMiddlewareConfigs,
   JOSEStandards,
   JWKSIssuerAuthenticationStrategy,
-  JWKSKeyDrivers,
-  JWKSKeyFormats,
   JWKSModes,
   BasicAuthenticationStrategy,
   SwaggerComponent,
@@ -46,22 +44,13 @@ import {
   TJWKSKeyFormat,
 } from '@venizia/ignis';
 import {
-  StaticAssetComponent,
-  StaticAssetComponentBindingKeys,
-  StaticAssetStorageTypes,
-  TStaticAssetsComponentOptions,
-} from '@venizia/ignis/static-asset';
-import {
   applicationEnvironment,
-  DiskHelper,
   Environment,
   getError,
   HTTP,
   int,
+  RedisHelper,
 } from '@venizia/ignis-helpers';
-import { DefaultRedisHelper } from '@venizia/ignis-helpers';
-import { MinioHelper } from '@venizia/ignis-helpers/minio';
-import { Redis } from 'ioredis';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import packageJson from './../package.json';
@@ -340,19 +329,12 @@ export class Application extends BaseApplication {
     });
 
     // Redis connection for authorization cache
-    const redisClient = new Redis({
-      host: applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
-      port: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT)),
-      password:
-        applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD) || undefined,
-      db: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) || '8'),
-      maxRetriesPerRequest: null,
-    });
-
-    const redisHelper = new DefaultRedisHelper({
-      scope: 'AuthorizationRedis',
-      identifier: 'authorization-cache',
-      client: redisClient,
+    const redisHelper = new RedisHelper({
+      name: 'authorization-cache',
+      host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
+      port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
+      password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
+      database: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) || '8'),
     });
 
     this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
@@ -381,7 +363,7 @@ export class Application extends BaseApplication {
               driver: CasbinEnforcerModelDrivers.TEXT,
               definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL,
             },
-            scoped: true,
+            isScoped: true,
             adapter,
             cached: {
               use: true,

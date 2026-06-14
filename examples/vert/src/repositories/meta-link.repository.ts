@@ -1,5 +1,6 @@
 import { PostgresDataSource } from '@/datasources';
-import { BaseMetaLinkModel, BaseMetaLinkRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { BaseMetaLinkModel, BaseMetaLinkRepository } from '@venizia/ignis/static-asset';
 
 @repository({ model: BaseMetaLinkModel, dataSource: PostgresDataSource })
 export class MetaLinkRepository extends BaseMetaLinkRepository {}

@@ -1,15 +1,6 @@
+import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { User, TUserSchema } from '@/models/entities';
-import { IDataSource, inject, repository, ReadableRepository } from '@venizia/ignis';
+import { ReadableRepository, repository } from '@venizia/ignis';
 
-@repository({})
-export class UserRepository extends ReadableRepository<TUserSchema> {
-  constructor(
-    @inject({ key: 'datasources.PostgresDataSource' }) dataSource: IDataSource,
-  ) {
-    super({
-      dataSource,
-      entityClass: User,
-      relations: {},
-    });
-  }
-}
+@repository({ model: User, dataSource: PostgresDataSource })
+export class UserRepository extends ReadableRepository<TUserSchema> {}

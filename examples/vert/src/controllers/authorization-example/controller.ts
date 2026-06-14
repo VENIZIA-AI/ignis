@@ -1,6 +1,6 @@
 import {
   Authentication,
-  BaseController,
+  BaseRestController,
   controller,
   IControllerOptions,
   ValueOrPromise,
@@ -9,7 +9,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs } from './definitions';
 
 @controller({ path: '/authz-example' })
-export class AuthorizationExampleController extends BaseController {
+export class AuthorizationExampleController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({
       ...opts,

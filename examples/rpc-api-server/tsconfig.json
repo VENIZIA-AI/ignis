@@ -2,6 +2,7 @@
   "$schema": "http://json.schemastore.org/tsconfig",
   "extends": "@venizia/dev-configs/tsconfig.common.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "target": "ES2022",
     "outDir": "dist",
     "rootDir": "src",

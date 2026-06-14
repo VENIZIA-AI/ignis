@@ -52,6 +52,7 @@ coverage/
 .env
 .env.*
 !**/.env.example
+!**/.env.test
 
 # Cryptographic Keys
 *.pem
@@ -83,7 +84,10 @@ Desktop.ini
 **/*/.claude
 .prompts/
 openspec
-/docs
+
+# Local AI planning artifacts only (brainstorm specs / implementation plans).
+# NOTE: docs/wiki — the @venizia/ignis-docs package — is intentionally tracked.
+/docs/superpowers/
 
 CLAUDE.md
 CLAUDE.*.md

@@ -3123,8 +3123,8 @@ Ignis brings together the structured, enterprise development experience of **Loo
 ## Documentation
 
 - [Ignis Repository](https://github.com/VENIZIA-AI/ignis)
-- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/packages/docs/wiki/get-started/index.md)
-- [Helpers Reference](https://github.com/VENIZIA-AI/ignis/blob/main/packages/docs/wiki/references/helpers/index.md)
+- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
+- [Helpers Reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/helpers/index.md)
 
 ## License
 

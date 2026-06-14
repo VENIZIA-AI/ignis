@@ -2784,8 +2784,8 @@ describe('UserController', () => {
 ## Documentation
 
 - [Ignis Repository](https://github.com/VENIZIA-AI/ignis)
-- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/packages/docs/wiki/get-started/index.md)
-- [Core Concepts](https://github.com/VENIZIA-AI/ignis/blob/main/packages/docs/wiki/get-started/core-concepts/application.md)
+- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
+- [Core Concepts](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/core-concepts/application.md)
 - [Examples](https://github.com/VENIZIA-AI/ignis/tree/main/examples/vert)
 
 ---

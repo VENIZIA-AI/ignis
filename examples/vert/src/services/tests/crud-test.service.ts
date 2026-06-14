@@ -1074,7 +1074,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify PI with floating point precision
       const piRecord = await repo.findOne({ filter: { where: { code: `${group}_PI` } } });
-      if (piRecord?.nValue !== null && isCloseEnough(piRecord.nValue, pi)) {
+      if (piRecord?.nValue != null && isCloseEnough(piRecord.nValue, pi)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | PI value: %d (precision maintained)',
           piRecord.nValue,
@@ -1089,7 +1089,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify very small decimal
       const smallRecord = await repo.findOne({ filter: { where: { code: `${group}_SMALL` } } });
-      if (smallRecord?.nValue !== null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
+      if (smallRecord?.nValue != null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Small decimal: %d',
           smallRecord.nValue,
@@ -1104,7 +1104,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify large decimal
       const largeRecord = await repo.findOne({ filter: { where: { code: `${group}_LARGE` } } });
-      if (largeRecord?.nValue !== null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
+      if (largeRecord?.nValue != null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Large decimal: %d',
           largeRecord.nValue,
@@ -1119,7 +1119,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify negative decimal
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
-      if (negRecord?.nValue !== null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
+      if (negRecord?.nValue != null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Negative decimal: %d',
           negRecord.nValue,
@@ -1134,7 +1134,7 @@ export class CrudTestService extends BaseTestService {
 
       // Verify scientific notation
       const sciRecord = await repo.findOne({ filter: { where: { code: `${group}_SCIENTIFIC` } } });
-      if (sciRecord?.nValue !== null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
+      if (sciRecord?.nValue != null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
         this.logger.info(
           '[case19_DoublePrecisionValues] PASSED | Scientific notation: %d',
           sciRecord.nValue,

@@ -13,17 +13,13 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
+import { applicationEnvironment, Environment, HTTP, int, RedisHelper } from '@venizia/ignis-helpers';
 import {
-  applicationEnvironment,
-  Environment,
-  HTTP,
-  int,
-  RedisHelper,
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
   TSocketIOValidateRoomFn,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 import isEmpty from 'lodash/isEmpty';
 import packageJson from './../package.json';
 import { EnvironmentKeys } from './common/environments';

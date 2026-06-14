@@ -177,18 +177,18 @@ Update `package.json` to add build scripts:
     "server:prod": "NODE_ENV=production bun run dist/index.js"
   },
   "dependencies": {
-    "hono": "^4.12.1",
+    "hono": "^4.12.25",
     "@hono/zod-openapi": "latest",
     "@scalar/hono-api-reference": "latest",
     "@venizia/ignis": "latest",
     "@venizia/ignis-helpers": "latest"
   },
   "devDependencies": {
-    "typescript": "^5.5.3",
+    "typescript": "^6.0.3",
     "@types/bun": "latest",
     "@venizia/dev-configs": "latest",
-    "eslint": "^9.36.0",
-    "prettier": "^3.6.2",
+    "eslint": "^10.5.0",
+    "prettier": "^3.8.4",
     "tsc-alias": "^1.8.10"
   }
 }

@@ -1,5 +1,5 @@
 import {
-  BaseController,
+  BaseRestController,
   BindingKeys,
   BindingNamespaces,
   controller,
@@ -116,7 +116,7 @@ const RouteConfigs = {
 } as const;
 
 @controller({ path: '/socket' })
-export class SocketTestController extends BaseController {
+export class SocketTestController extends BaseRestController {
   constructor(
     @inject({
       key: BindingKeys.build({
@@ -189,6 +189,10 @@ export class SocketTestController extends BaseController {
     this.bindRoute({ configs: RouteConfigs.SEND_TO_ROOM }).to({
       handler: async (c: TRouteContext) => {
         const roomId = c.req.param('roomId');
+        if (!roomId) {
+          return c.json({ error: 'roomId is required' }, HTTP.ResultCodes.RS_4.BadRequest);
+        }
+
         const body = await c.req.json<{ topic: string; data: unknown }>();
         const { topic, data } = body;
 
@@ -212,6 +216,10 @@ export class SocketTestController extends BaseController {
     this.bindRoute({ configs: RouteConfigs.SEND_TO_CLIENT }).to({
       handler: async (c: TRouteContext) => {
         const clientId = c.req.param('clientId');
+        if (!clientId) {
+          return c.json({ error: 'clientId is required' }, HTTP.ResultCodes.RS_4.BadRequest);
+        }
+
         const body = await c.req.json<{ topic: string; data: unknown }>();
         const { topic, data } = body;
 
@@ -235,6 +243,10 @@ export class SocketTestController extends BaseController {
     this.bindRoute({ configs: RouteConfigs.JOIN_ROOM }).to({
       handler: async (c: TRouteContext) => {
         const clientId = c.req.param('clientId');
+        if (!clientId) {
+          return c.json({ error: 'clientId is required' }, HTTP.ResultCodes.RS_4.BadRequest);
+        }
+
         const body = await c.req.json<{ rooms: string[] }>();
         const { rooms } = body;
 
@@ -252,6 +264,10 @@ export class SocketTestController extends BaseController {
     this.bindRoute({ configs: RouteConfigs.LEAVE_ROOM }).to({
       handler: async (c: TRouteContext) => {
         const clientId = c.req.param('clientId');
+        if (!clientId) {
+          return c.json({ error: 'clientId is required' }, HTTP.ResultCodes.RS_4.BadRequest);
+        }
+
         const body = await c.req.json<{ rooms: string[] }>();
         const { rooms } = body;
 
@@ -269,6 +285,10 @@ export class SocketTestController extends BaseController {
     this.bindRoute({ configs: RouteConfigs.CLIENT_ROOMS }).to({
       handler: (c: TRouteContext) => {
         const clientId = c.req.param('clientId');
+        if (!clientId) {
+          return c.json({ error: 'clientId is required' }, HTTP.ResultCodes.RS_4.BadRequest);
+        }
+
         const result = this.socketEventService.getClientRooms({ clientId });
 
         return c.json(result, HTTP.ResultCodes.RS_2.Ok);

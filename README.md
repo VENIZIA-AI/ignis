@@ -147,7 +147,7 @@ export class UserController extends BaseController {
 ```
 
 > [!TIP]
-> See the [Philosophy page](packages/docs/wiki/guides/get-started/philosophy.md) for detailed Express vs NestJS vs Ignis code comparisons.
+> See the [Philosophy page](docs/wiki/content/guides/get-started/philosophy.md) for detailed Express vs NestJS vs Ignis code comparisons.
 
 ---
 
@@ -188,7 +188,7 @@ Each package builds on the previous. Changing `inversion` affects everything dow
 | **[@venizia/ignis-inversion](packages/inversion/)** | `@venizia/ignis-inversion` | Standalone DI/IoC container (~350 lines) -- Container, Binding, MetadataRegistry, decorators |
 | **[@venizia/ignis-helpers](packages/helpers/)** | `@venizia/ignis-helpers` | Production utilities -- Logger, Redis, Queue, Storage, Crypto, Cron, Socket.IO, UID, Network |
 | **[@venizia/dev-configs](packages/dev-configs/)** | `@venizia/dev-configs` | Shared ESLint v9, Prettier, and TypeScript configs |
-| **[@venizia/ignis-docs](packages/docs/)** | `@venizia/ignis-docs` | VitePress documentation site and MCP server |
+| **[@venizia/ignis-docs](docs/wiki/)** | `@venizia/ignis-docs` | VitePress documentation site and MCP server |
 
 > [!TIP]
 > Each package has its own detailed README with API reference, usage examples, and configuration options.
@@ -605,7 +605,7 @@ Ignis is at version 0.x, which means the API may have breaking changes between m
 
 The documentation covers getting started, core concepts (application lifecycle, controllers, DI, repositories, components), best practices (architecture, security, performance), API references, and deployment guides.
 
-Key links: [Philosophy](packages/docs/wiki/guides/get-started/philosophy.md) &#8226; [5-Minute Quickstart](packages/docs/wiki/guides/get-started/5-minute-quickstart.md) &#8226; [Building a CRUD API](packages/docs/wiki/guides/tutorials/building-a-crud-api.md) &#8226; [Core Concepts](packages/docs/wiki/references/base/application.md) &#8226; [Best Practices](packages/docs/wiki/best-practices/architectural-patterns.md)
+Key links: [Philosophy](docs/wiki/content/guides/get-started/philosophy.md) &#8226; [5-Minute Quickstart](docs/wiki/content/guides/get-started/5-minute-quickstart.md) &#8226; [Building a CRUD API](docs/wiki/content/guides/tutorials/building-a-crud-api.md) &#8226; [Core Concepts](docs/wiki/content/references/base/application.md) &#8226; [Best Practices](docs/wiki/content/best-practices/architectural-patterns.md)
 
 ---
 

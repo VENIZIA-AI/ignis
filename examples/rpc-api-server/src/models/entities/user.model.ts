@@ -9,7 +9,7 @@ import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity', skipMigrate: false })
 export class User extends BaseEntity<TUserSchema> {
-  static readonly TABLE_NAME = User.name;
+  static override readonly TABLE_NAME = User.name;
 
   constructor() {
     super({ name: User.name, schema: usersTable });

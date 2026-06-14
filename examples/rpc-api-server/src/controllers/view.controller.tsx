@@ -2,10 +2,10 @@ import {
   BaseController,
   controller,
   htmlContent,
-  HTTP,
   type IControllerOptions,
   type ValueOrPromise,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
 

@@ -1,12 +1,6 @@
-import {
-  BaseApplication,
-  BaseService,
-  CoreBindings,
-  inject,
-  SocketIOBindingKeys,
-  SocketIOServerHelper,
-} from '@venizia/ignis';
-import { ISocketIOClient } from '@venizia/ignis-helpers';
+import { BaseApplication, BaseService, CoreBindings, inject } from '@venizia/ignis';
+import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
+import { ISocketIOClient, SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { Socket } from 'socket.io';
 
 export class SocketEventService extends BaseService {

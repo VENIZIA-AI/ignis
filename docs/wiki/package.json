@@ -47,7 +47,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VENIZIA-AI/ignis.git",
-    "directory": "packages/docs"
+    "directory": "docs/wiki"
   },
   "bugs": {
     "url": "https://github.com/VENIZIA-AI/ignis/issues"
@@ -88,8 +88,8 @@
     "README.md",
     "LICENSE.md",
     "dist/mcp-server",
-    "wiki",
-    "!wiki/changelogs",
+    "content",
+    "!content/changelogs",
     "!**/*.tsbuildinfo"
   ],
   "publishConfig": {

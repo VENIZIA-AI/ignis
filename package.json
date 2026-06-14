@@ -44,11 +44,48 @@
   },
   "workspaces": [
     "packages/*",
-    "examples/*"
+    "examples/*",
+    "docs/*"
   ],
   "scripts": {
     "force-update": "bun run --filter \"@venizia/*\" force-update",
     "docs:dev": "bun run --filter \"@venizia/ignis-docs\" docs:dev",
     "mcp:dev": "bun run --filter \"@venizia/ignis-docs\" mcp:dev"
+  },
+  "dependencies": {
+    "@bufbuild/buf": "^1.70.0",
+    "@bufbuild/protobuf": "^2.12.0",
+    "@bufbuild/protoc-gen-es": "^2.12.0",
+    "@connectrpc/connect": "^2.1.2",
+    "@connectrpc/connect-web": "^2.1.2",
+    "@hono/node-server": "^2.0.4",
+    "@mastra/core": "^1.42.0",
+    "@mastra/mcp": "^1.10.0",
+    "@platformatic/kafka": "^2.3.0",
+    "@scalar/hono-api-reference": "^0.11.3",
+    "@tanstack/react-query": "^5.101.0",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19.2.17",
+    "antd": "^6.4.4",
+    "axios": "^1.17.0",
+    "bullmq": "^5.78.1",
+    "cytoscape": "^3.34.0",
+    "dayjs": "^1.11.21",
+    "dompurify": "^3.4.10",
+    "eslint-plugin-unicorn": "^65.0.1",
+    "fuse.js": "^7.4.2",
+    "hono": "^4.12.25",
+    "ioredis": "^5.11.1",
+    "jose": "^6.2.3",
+    "pg": "^8.21.0",
+    "prettier": "^3.8.4",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-router-dom": "^7.17.0",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.61.0",
+    "vue": "^3.5.38",
+    "zod": "^4.4.3"
   }
 }

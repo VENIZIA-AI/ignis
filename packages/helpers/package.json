@@ -158,9 +158,9 @@
   "dependencies": {
     "@venizia/ignis-inversion": "^0.0.6-2",
     "drizzle-orm": "^0.45.2",
-    "dayjs": "^1.11.20",
-    "hono": "^4.12.21",
-    "ioredis": "5.10.1",
+    "dayjs": "^1.11.21",
+    "hono": "^4.12.25",
+    "ioredis": "^5.11.1",
     "lodash": "^4.18.1",
     "reflect-metadata": "^0.2.2",
     "winston": "^3.17.0",

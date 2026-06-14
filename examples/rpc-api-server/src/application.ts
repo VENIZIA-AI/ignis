@@ -231,7 +231,7 @@ export class Application extends BaseApplication {
       where: {
         id: '89f1dceb-cb4b-44a6-af03-ea3a2472096c',
       },
-      options: { shouldReturn: false },
+      options: { shouldReturn: false as const },
     };
     const case6 = await configurationRepository.updateAll(case6Payload);
     this.logger.info(
@@ -243,7 +243,7 @@ export class Application extends BaseApplication {
     // ------------------------------------------------------------------------------------------------
     const case7Payload = {
       id: case3.data!.id,
-      options: { shouldReturn: true },
+      options: { shouldReturn: true as const },
     };
     const case7 = await configurationRepository.deleteById(case7Payload);
     this.logger.info(
@@ -254,7 +254,7 @@ export class Application extends BaseApplication {
 
     const case8Payload = {
       where: { dataType: DataTypes.NUMBER },
-      options: { shouldReturn: true },
+      options: { shouldReturn: true as const },
     };
     const case8 = await configurationRepository.deleteAll(case8Payload);
     this.logger.info(

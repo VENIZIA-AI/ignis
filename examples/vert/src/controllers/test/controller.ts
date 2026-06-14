@@ -1,6 +1,6 @@
 import {
   Authentication,
-  BaseController,
+  BaseRestController,
   controller,
   get,
   IControllerOptions,
@@ -12,7 +12,7 @@ import { HTTP } from '@venizia/ignis-helpers';
 import { RouteConfigs, TRoute5Body } from './definitions';
 
 @controller({ path: '/test' })
-export class TestController extends BaseController {
+export class TestController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({
       ...opts,

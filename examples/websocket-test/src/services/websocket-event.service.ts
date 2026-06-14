@@ -1,12 +1,10 @@
-import {
-  BaseApplication,
-  BaseService,
-  CoreBindings,
-  inject,
-  WebSocketBindingKeys,
+import { BaseApplication, BaseService, CoreBindings, inject } from '@venizia/ignis';
+import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
+import type {
+  IWebSocketClient,
+  IWebSocketMessage,
   WebSocketServerHelper,
-} from '@venizia/ignis';
-import type { IWebSocketClient, IWebSocketMessage } from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers';
 
 export class WebSocketEventService extends BaseService {
   private _wsHelper: WebSocketServerHelper | null = null;

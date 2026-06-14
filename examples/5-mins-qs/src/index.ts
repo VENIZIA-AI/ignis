@@ -6,6 +6,7 @@ import {
   get,
   IApplicationInfo,
   jsonContent,
+  SwaggerComponent,
 } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
 import { Context } from 'hono';
@@ -51,6 +52,7 @@ class App extends BaseApplication {
   }
 
   preConfigure() {
+    this.component(SwaggerComponent); // Interactive API docs at /doc/explorer
     this.controller(HelloController);
   }
 

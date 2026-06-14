@@ -3,11 +3,11 @@ import {
   Authentication,
   BaseController,
   controller,
-  HTTP,
   IControllerOptions,
   jsonContent,
   ValueOrPromise,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/test' })
 export class TestController extends BaseController {
@@ -43,7 +43,7 @@ export class TestController extends BaseController {
         },
       },
       handler: context => {
-        const { id } = context.req.valid('param');
+        const { id } = context.req.valid<{ id: string }>('param');
         return context.json(
           { message: `Hello there!`, id: id },
           HTTP.ResultCodes.RS_2.Ok,

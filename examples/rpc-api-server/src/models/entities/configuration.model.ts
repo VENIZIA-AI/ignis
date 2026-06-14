@@ -13,7 +13,7 @@ import { User, usersTable } from './user.model';
 
 @model({ type: 'entity', skipMigrate: false })
 export class Configuration extends BaseEntity<TConfigurationSchema> {
-  static readonly TABLE_NAME = Configuration.name;
+  static override readonly TABLE_NAME = Configuration.name;
 
   constructor() {
     super({ name: Configuration.TABLE_NAME, schema: configurationTable });
