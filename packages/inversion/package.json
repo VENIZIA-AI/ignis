@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-inversion",
-  "version": "0.0.6-2",
+  "version": "0.0.6-3",
   "description": "Lightweight, high-performance Dependency Injection and Inversion of Control container for TypeScript (~350 lines). Features decorator-based constructor and property injection, fluent Binding API, singleton/transient scoping, namespace auto-tagging, Provider pattern, tag-based discovery, and reflect-metadata integration. Inspired by LoopBack 4 and InversifyJS but simpler. Zero framework lock-in — works standalone or with Ignis.",
   "keywords": [
     "architecture",
@@ -110,7 +110,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "@types/lodash": "^4.17.23",
-    "@venizia/dev-configs": "^0.0.7-2",
+    "@venizia/dev-configs": "^0.0.7-3",
     "eslint": "^10.4.0",
     "prettier": "^3.8.3",
     "tsc-alias": "^1.8.17",
