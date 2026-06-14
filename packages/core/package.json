@@ -135,6 +135,7 @@
   "scripts": {
     "force-update": "sh ./scripts/force-update.sh",
     "build": "sh ./scripts/build.sh",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "clean": "sh ./scripts/clean.sh",
     "eslint": "eslint --report-unused-disable-directives .",
     "lint": "bun run eslint && bun run prettier:cli",

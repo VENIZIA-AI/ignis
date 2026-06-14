@@ -3,7 +3,7 @@ import { BaseHelper, Environment, getError, HTTP } from '@venizia/ignis-helpers'
 import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import { MiddlewareHandler } from 'hono/types';
-import { TContext } from '../controllers';
+import { TContext } from '../../controllers';
 
 /** Logs incoming/outgoing request details. Body/query only logged in non-production. */
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {

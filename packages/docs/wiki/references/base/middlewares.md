@@ -43,14 +43,14 @@ IGNIS provides a collection of built-in middlewares for common application needs
 
 The error handler middleware catches all unhandled errors in your application and formats them into consistent JSON responses.
 
-**File:** `packages/core/src/base/middlewares/app-error.middleware.ts`
+**File:** `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
 
 #### Features
 
 - **Automatic Error Formatting**: Converts all errors to structured JSON responses
-- **ZodError Support**: Special handling for Zod validation errors with detailed field-level messages
-- **Database Error Handling**: Automatically returns 400 for database constraint violations (unique, foreign key, not null, etc.)
-- **Environment-Aware**: Hides stack traces and error causes in production
+- **ZodError Support**: Validation errors surface a schema-driven `messageCode` and `message` (from `params.code`, else the raw Zod code), with the full per-field list under `details.cause`
+- **Database Error Handling**: Returns 400 for SQLSTATE class `22` (data exception) and `23` (integrity) errors, with a fallback message; other classes (e.g. `42` programming errors) stay 500
+- **Production-Safe**: Hides stack traces, error causes, DB driver internals (`detail`/`table`/`constraint`), and raw system messages in production
 - **Request Tracking**: Includes `requestId` for debugging and tracing
 - **Status Code Detection**: Automatically extracts `statusCode` from errors
 
@@ -87,9 +87,13 @@ app.onError(appErrorHandler({
 ```
 
 **Validation Error (ZodError):**
+
+Top-level `message`/`messageCode` come from the first failing issue — its `params.code` if the schema set one (see below), otherwise its raw Zod code. The full per-field list stays under `details.cause`. If `error.rootKey` is configured, the whole body is wrapped under that key.
+
 ```json
 {
-  "message": "ValidationError",
+  "message": "Invalid email address",
+  "messageCode": "invalid_type",
   "statusCode": 422,
   "requestId": "abc123",
   "details": {
@@ -100,45 +104,50 @@ app.onError(appErrorHandler({
       {
         "path": "email",
         "message": "Invalid email address",
-        "code": "invalid_string",
-        "expected": "string",
-        "received": "undefined"
+        "code": "invalid_type",
+        "expected": "string"
       }
     ]
   }
 }
 ```
 
+To emit a stable, domain-specific `messageCode`, attach `params.code` to a custom check:
+
+```typescript
+z.string().refine(isEmail, { message: 'Invalid email address', params: { code: 'user.email.invalid' } });
+// → "messageCode": "user.email.invalid"
+```
+
 **Database Constraint Error:**
 
-Database constraint violations (unique, foreign key, not null, check) are automatically detected and returned as 400 Bad Request with a human-readable message:
+Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint) are detected by **class** and returned as 400 Bad Request. A known code uses its specific message; any other in-class code uses `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE` (`"Invalid database request"`).
 
 ```json
+// non-production — full driver context for debugging
 {
   "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
   "statusCode": 400,
   "requestId": "abc123",
-  "details": {
-    "url": "http://localhost:3000/api/users",
-    "path": "/api/users",
-    "stack": "...",  // development only
-    "cause": { ... }  // development only
-  }
+  "details": { "url": "...", "path": "/api/users", "stack": "...", "cause": { } }
 }
 ```
 
-**Supported PostgreSQL Error Codes:**
+:::warning Production sanitizes database internals
+In **production** the message is the base message only — `Detail:`/`Table:`/`Constraint:` are stripped (they echo row values and schema names), and `details.stack`/`details.cause` are omitted. Codes outside class 22/23 (e.g. `42703` undefined column) and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak.
+:::
 
-| Code | Error Type |
-|------|------------|
-| 23505 | Unique constraint violation |
-| 23503 | Foreign key constraint violation |
-| 23502 | Not null constraint violation |
-| 23514 | Check constraint violation |
-| 23P01 | Exclusion constraint violation |
-| 22P02 | Invalid text representation |
-| 22003 | Numeric value out of range |
-| 22001 | String data too long |
+**Database client error classes** — codes in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION) map to HTTP 400. Common codes get a specific message; any other in-class code uses the fallback (`"Invalid database request"`).
+
+| Class | Codes with a specific message |
+|-------|-------------------------------|
+| `23` Integrity | `23505` unique · `23503` foreign key · `23502` not null · `23514` check · `23P01` exclusion · `23000` integrity · `23001` restrict |
+| `22` Data exception | `22001` string too long · `22003` numeric range · `22004` null not allowed · `22007` datetime format · `22008` datetime overflow · `22009` tz displacement · `22011` substring · `22012` division by zero · `22023` invalid parameter · `22025` invalid escape · `22026` length mismatch · `22030` duplicate JSON key · `22032` invalid JSON · `22P01` floating-point · `22P02` invalid text · `22P03` invalid binary · `22P05` untranslatable char |
+| `44` View check | `44000` WITH CHECK OPTION violation |
+
+:::tip Transient conflicts return 409, not 400/500
+Class `40` (`40001` serialization failure, `40P01` deadlock) is **transient/retryable** and returns **409 Conflict** with `messageCode: "database.conflict"` and a safe "please retry" message — the client can safely retry the same request. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) remain 500.
+:::
 
 #### API Reference
 

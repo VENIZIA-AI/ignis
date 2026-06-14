@@ -319,6 +319,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-06-14',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Validation Message Codes, SQLSTATE-Class DB Errors & Production Error Hardening',
+                  link: '/changelogs/2026-06-14-validation-codes-and-error-hardening',
+                },
+              ],
+            },
+            {
               text: '2026-06-02',
               collapsed: true,
               items: [

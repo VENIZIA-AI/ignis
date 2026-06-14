@@ -1,4 +1,5 @@
 #!/bin/bash
+set -e
 
 echo "\nCleaning up resources ..."
 bun run clean

@@ -1,8 +1,7 @@
-import { Logger, HTTP } from '@venizia/ignis-helpers';
+import { HTTP, Logger } from '@venizia/ignis-helpers';
 import { NotFoundHandler } from 'hono/types';
-import { RequestSpyMiddleware } from './request-spy.middleware';
+import { RequestSpyMiddleware } from '../request-spy';
 
-/** Logs unknown URLs and returns a JSON 404 response. */
 export const notFoundHandler = (opts: { logger?: Logger }) => {
   const { logger = console } = opts;
 
