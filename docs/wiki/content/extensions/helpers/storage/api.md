@@ -83,11 +83,11 @@ Returns the MIME type for a filename based on its extension. Extracts the extens
 isValidName(name: string): boolean
 ```
 
-Validates a bucket or file name against security rules. Logs specific error messages for each validation failure.
+Validates a **single path segment** (bucket name or bare file name - no slashes) against security rules. Used internally by `isValidPath` to validate each segment. Logs specific error messages for each validation failure.
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `name` | `string` | Name to validate. |
+| `name` | `string` | Single-segment name to validate (must not contain `/`). |
 
 **Returns:** `true` if the name passes all checks, `false` otherwise.
 
@@ -101,6 +101,30 @@ Validates a bucket or file name against security rules. Logs specific error mess
 6. Must not contain `\n`, `\r`, or `\0` (header injection)
 7. Must not exceed 255 characters (DoS prevention)
 8. Must not be whitespace-only
+
+#### isValidPath
+
+```typescript
+isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean
+```
+
+Validates a **full object path** that may include folder segments (e.g., `2025/uploads/report.pdf`). Splits the path on `/`, validates each segment with `isValidName`, and enforces a maximum folder depth. Used for object name validation where paths with folder structure are allowed.
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `pathStr` | `string` | Path string to validate (may contain `/` separators). |
+| `opts.maxDepth` | `number` | Maximum folder depth. Default: `2`. |
+
+**Returns:** `true` if the path and all its segments are valid, `false` otherwise.
+
+**Validation rules (checked in order):**
+
+1. Must be a non-empty string
+2. After stripping leading/trailing slashes, must not be empty
+3. Must not contain empty segments (double slashes, e.g., `a//b`)
+4. Folder depth must not exceed `maxDepth` (depth = number of `/` separators)
+5. Every segment must pass `isValidName()`
+6. Total path length must not exceed 1024 characters
 
 #### getFileType
 

@@ -4,7 +4,7 @@
 
 ## Name Validation
 
-All bucket and object names go through `helper.isValidName()` before any storage operation. The validation blocks:
+Bucket names are validated with `helper.isValidName()` (single segment - no path separators allowed). Object names, which may include folder segments (e.g., `2025/uploads/report.pdf`), are validated with `helper.isValidPath()`. The validation blocks:
 
 | Pattern | Example | Reason |
 |---------|---------|--------|
@@ -21,7 +21,7 @@ Every endpoint that accepts `bucketName` validates it and returns HTTP 400 `"Inv
 
 ### "Invalid bucket/object name"
 
-**Cause:** The name fails `isValidName()` validation. Names cannot contain `..`, `/`, `\`, shell special characters, or start with `.`. Names must be <= 255 characters and non-empty.
+**Cause:** Bucket name validation: fails `isValidName()` - bucket names are single segments and cannot contain `..`, `/`, or `\`, shell special characters, or start with `.`, and must be <= 255 characters. Object name validation: fails `isValidPath()` - object names may contain `/` for folder structure but each segment must pass the same single-segment rules, and the folder depth must not exceed the configured limit.
 
 **Fix:** Ensure names follow these rules:
 - No path separators (`..`, `/`, `\`)

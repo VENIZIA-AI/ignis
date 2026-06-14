@@ -119,6 +119,7 @@ All storage helpers implement this unified interface:
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
+  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
   // Bucket operations
   isBucketExists(opts: { name: string }): Promise<boolean>;

@@ -343,7 +343,7 @@ Both `WebSocketServerHelper` and `WebSocketEmitter` support Redis single instanc
 type TRedisClient = Redis | Cluster;
 ```
 
-The Redis client is obtained via `redisConnection.getClient().duplicate()`. The `duplicate()` call creates a fresh connection that inherits the parent's configuration (including cluster mode). This ensures WebSocket pub/sub traffic does not interfere with application Redis usage.
+The Redis client is obtained via `redisConnection.duplicateClient()`. This creates a fresh connection that inherits the parent's configuration (including cluster mode). This ensures WebSocket pub/sub traffic does not interfere with application Redis usage.
 
 ### Subscription Setup
 

@@ -127,7 +127,7 @@ const emitter = new WebSocketEmitter({
 The constructor:
 1. Calls `super({ scope })` with `identifier` (or `'WebSocketEmitter'` if not provided)
 2. Validates `redisConnection` is truthy (throws `"Invalid redis connection!"` if not)
-3. Calls `redisConnection.getClient().duplicate()` to create an isolated pub client
+3. Calls `redisConnection.duplicateClient()` to create an isolated pub client
 
 ### `EMITTER_SERVER_ID`
 

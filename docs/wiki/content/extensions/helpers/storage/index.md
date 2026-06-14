@@ -389,7 +389,14 @@ cache.clear();
 
 ### Name Validation
 
-All bucket and file operations validate names using `isValidName()` before execution. The following are rejected:
+Storage helpers use two validation methods depending on context:
+
+- **`isValidName(name)`** - validates a single path segment (bucket names, raw file names). Rejects names that contain `/`, `\`, or `..`.
+- **`isValidPath(pathStr)`** - validates a full object path that may include folder segments (e.g., `folder/file.pdf`). Splits on `/` and validates each segment with `isValidName`. Also enforces a max folder depth (default: 2).
+
+Bucket operations (create, remove, list) use `isValidName()`. Object name operations (upload, get, delete, download) use `isValidPath()` so that paths like `2025/uploads/report.pdf` are accepted.
+
+The following single-segment inputs are rejected by `isValidName()`:
 
 | Rule | Example | Reason |
 |------|---------|--------|
@@ -401,9 +408,15 @@ All bucket and file operations validate names using `isValidName()` before execu
 | Empty or whitespace-only | `""`, `"   "` | Invalid input |
 
 ```typescript
+// Single-segment name validation (buckets, raw file names)
 storage.isValidName('my-file.pdf');    // true
-storage.isValidName('../etc/passwd');  // false
-storage.isValidName('.hidden');        // false
+storage.isValidName('../etc/passwd');  // false - contains path separators
+storage.isValidName('.hidden');        // false - starts with dot
+
+// Multi-segment path validation (object names with folder structure)
+storage.isValidPath('folder/file.pdf');       // true
+storage.isValidPath('../etc/passwd');         // false - path traversal
+storage.isValidPath('a/b/c/d/file.pdf');     // false - exceeds max depth (2)
 ```
 
 ### MIME Type Detection

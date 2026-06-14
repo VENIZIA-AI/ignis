@@ -2,8 +2,8 @@
 
 The single source of truth for how the IGNIS documentation site looks. Every value is
 grounded in an established standard, not chosen by feel. Tokens live in
-[`site/.vitepress/theme/design-tokens.css`](./site/.vitepress/theme/design-tokens.css);
-a rendered reference is in [`design-system-preview.html`](./design-system-preview.html).
+[`site/.vitepress/theme/design-tokens.css`](./site/.vitepress/theme/design-tokens.css)
+and are applied live in the VitePress theme (`site/.vitepress/theme/style.css`).
 
 ## Principles
 
@@ -65,7 +65,7 @@ against the dark background `#0B0A0C`.
 ```ts
 // site/.vitepress/theme/index.ts
 import './design-tokens.css'   // FIRST - defines tokens + VitePress var mapping
-import './custom.css'          // component styles, consuming var(--ig-*)
+import './style.css'           // component + brand theming, consuming var(--ig-*)
 ```
 
 ```css

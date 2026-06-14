@@ -172,11 +172,13 @@ export class OrderRepository extends BaseRepository<Order> {
   async findPendingOrdersOlderThan(hours: number) {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
     return this.find({
-      where: {
-        status: 'pending',
-        createdAt: { lt: cutoff },
+      filter: {
+        where: {
+          status: 'pending',
+          createdAt: { lt: cutoff },
+        },
+        order: ['createdAt ASC'],
       },
-      orderBy: { createdAt: 'asc' },
     });
   }
 

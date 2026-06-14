@@ -187,7 +187,7 @@ All fields in the `IObjectInfo` response are optional. The `prefix` field is pre
 - `bucketName` (path): Bucket name
 - `objectName` (path): Object name (URL-encoded)
 
-**Validation:** Both bucket and object names validated with `isValidName()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
+**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
 
 **Response:**
 - Streams file content with appropriate headers
@@ -201,7 +201,7 @@ All fields in the `IObjectInfo` response are optional. The `prefix` field is pre
 - `bucketName` (path): Bucket name
 - `objectName` (path): Object name (URL-encoded)
 
-**Validation:** Both bucket and object names validated with `isValidName()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
+**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
 
 **Response:**
 - Streams file with download headers
@@ -223,7 +223,7 @@ window.open(downloadUrl, '_blank');
 - `bucketName` (path): Bucket name
 - `objectName` (path): Object to delete (URL-encoded)
 
-**Validation:** Both bucket and object names validated with `isValidName()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
+**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
 
 **Behavior:**
 - Deletes file from storage
@@ -255,7 +255,7 @@ await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectNa
 - `bucketName` (path): Bucket name
 - `objectName` (path): Object name (URL-encoded)
 
-**Validation:** Both bucket and object names validated with `isValidName()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
+**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name"` respectively if either is invalid.
 
 **Behavior:**
 - Fetches current file metadata from storage via `helper.getStat()`

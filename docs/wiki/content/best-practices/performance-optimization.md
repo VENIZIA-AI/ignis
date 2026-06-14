@@ -306,7 +306,7 @@ for (const item of items) {
 }
 
 // ✅ GOOD - Batch insert
-await repo.createMany({ data: items });
+await repo.createAll({ data: items });
 ```
 
 ## 9. Memory Management

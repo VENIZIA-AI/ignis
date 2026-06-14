@@ -11,7 +11,7 @@
  * Refs: w3.org/TR/WCAG21 · webaim.org/resources/contrastchecker
  *       designsystems.com/space-grids-and-layouts · baymard.com/blog/line-length-readability
  *
- * Usage: import in `theme/index.ts` BEFORE custom.css. The --vp-* mappings make
+ * Usage: import in `theme/index.ts` BEFORE style.css. The --vp-* mappings make
  * it drop-in for VitePress; the --ig-* tokens are the canonical primitives.
  * ============================================================================= */
 

@@ -432,8 +432,10 @@ extraPermissionColumns(opts?: { idType: 'string' | 'number' })
 | `code` | `text` (unique) | -- | Unique permission code |
 | `name` | `text` | -- | Permission name |
 | `subject` | `text` | -- | Permission subject (e.g., `'User'`, `'Order'`) |
+| `method` | `text` | -- | HTTP method (e.g., `'GET'`, `'POST'`) |
 | `action` | `text` | -- | Permitted action (e.g., `'read'`, `'write'`) |
 | `scope` | `text` | -- | Permission scope |
+| `description` | `text` | `null` | Optional permission description |
 | `parentId` | `text` or `integer` | `null` | Parent permission ID |
 
 ### extraPolicyDefinitionColumns
@@ -844,6 +846,7 @@ The built-in auth controller is created by the `defineAuthController()` factory 
 | `POST` | `/auth/sign-in` | No | Authenticate and receive a JWT token |
 | `POST` | `/auth/sign-up` | Configurable | Create a new user account |
 | `POST` | `/auth/change-password` | JWT | Change the authenticated user's password |
+| `POST` | `/auth/token/refresh` | JWT | Re-issue an access token using a valid JWT |
 | `GET` | `/auth/who-am-i` | JWT | Return the current user's JWT payload |
 | `GET` | `/certs` | No | JWKS endpoint (JWKS Issuer mode only) |
 
@@ -877,6 +880,42 @@ When `requireAuthenticatedSignUp: true`, requires JWT authentication. When `fals
 ### POST /auth/change-password
 
 **Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
+
+### POST /auth/token/refresh
+
+**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
+
+Re-issues an access token using the caller's currently valid JWT. There is no separate refresh token - the caller must send a valid Bearer token in the `Authorization` header.
+
+**Request Body:** None
+
+**Response 200:**
+
+Uses `payload.refreshToken.response.schema` if provided, otherwise `AnyObjectSchema`. The response shape is entirely defined by your `IAuthService.refreshToken()` implementation.
+
+**Response 501 (Not Implemented):**
+
+Returned when the bound `IAuthService` does not implement the optional `refreshToken` method.
+
+**Implementing `refreshToken` in your service:**
+
+```typescript
+export class AuthenticationService extends BaseService implements IAuthService {
+  async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
+    // The current user is already verified by JWT middleware
+    const currentUser = context.get(Authentication.CURRENT_USER);
+
+    // Re-issue a new token with the same payload
+    const token = await this._tokenService.generate({ payload: currentUser });
+    return { token };
+  }
+
+  // ... signIn, signUp, changePassword ...
+}
+```
+
+> [!NOTE]
+> The framework does not enforce rotation or revocation policy. If you need to invalidate old tokens after refresh, implement that logic (e.g., a token blocklist or short expiry) inside your `refreshToken` implementation.
 
 ### GET /auth/who-am-i
 
@@ -966,8 +1005,10 @@ All helpers that accept an `opts` parameter support `{ idType: 'string' | 'numbe
 | `code` | `code` | `text` (unique) | No | -- | Unique permission code |
 | `name` | `name` | `text` | No | -- | Permission display name |
 | `subject` | `subject` | `text` | No | -- | Permission subject (e.g., `'User'`, `'Order'`) |
+| `method` | `method` | `text` | No | -- | HTTP method (e.g., `'GET'`, `'POST'`) |
 | `action` | `action` | `text` | No | -- | Permitted action (e.g., `'read'`, `'write'`) |
 | `scope` | `scope` | `text` | No | -- | Permission scope |
+| `description` | `description` | `text` | Yes | `null` | Optional permission description |
 | `parentId` | `parent_id` | `text` or `integer` | Yes | `null` | Parent permission ID (type depends on `idType`) |
 
 ### extraPolicyDefinitionColumns

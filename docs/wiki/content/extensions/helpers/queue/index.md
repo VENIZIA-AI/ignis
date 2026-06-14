@@ -107,7 +107,7 @@ const worker = new BullMQHelper({
 | `queueName` | `string` | -- | Name of the BullMQ queue. Must be non-empty. |
 | `identifier` | `string` | -- | Unique identifier used for scoped logging. |
 | `role` | `TBullQueueRole` | -- | `'queue'` (producer) or `'worker'` (consumer). |
-| `redisConnection` | `DefaultRedisHelper` | -- | Redis helper instance. The helper calls `getClient().duplicate()` internally. |
+| `redisConnection` | `DefaultRedisHelper` | -- | Redis helper instance. The helper calls `duplicateClient()` internally. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (number of jobs processed in parallel). |
 | `lockDuration` | `number` | `5400000` | Job lock duration in milliseconds (default: 90 minutes). |
 | `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<any>` | `undefined` | Job processing callback. If omitted, the worker logs job details. |
@@ -115,7 +115,7 @@ const worker = new BullMQHelper({
 | `onWorkerDataFail` | `(job: Job<TQueueElement, TQueueResult> \| undefined, error: Error) => Promise<void>` | `undefined` | Callback fired when a job fails. |
 
 > [!IMPORTANT]
-> Pass the `DefaultRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. The helper internally calls `redisConnection.getClient().duplicate()` to create dedicated connections for the queue and worker.
+> Pass the `DefaultRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. The helper internally calls `redisConnection.duplicateClient()` to create dedicated connections for the queue and worker.
 
 ### MQTTClientHelper
 
