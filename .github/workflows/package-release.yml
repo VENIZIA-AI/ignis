@@ -181,6 +181,19 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
 
+      - name: Tag highest version on NPM
+        run: |
+          # Publishes are monotonic (npm version always increases), so the just-published
+          # version is always the highest overall — even a stable x.y.z released after its
+          # x.y.z-N prereleases (semver: x.y.z > x.y.z-N). Point the `highest` dist-tag at it
+          # so the README "Highest Version" badge (npm/v/<pkg>/highest) tracks it automatically.
+          # Non-fatal: a tagging hiccup must never roll back an already-successful publish.
+          npm dist-tag add "$PACKAGE_NAME@$NEW_VERSION" highest \
+            && echo "✓ Tagged $PACKAGE_NAME@$NEW_VERSION as 'highest'" \
+            || echo "⚠️  Could not set 'highest' dist-tag (non-fatal)"
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_ACCESS_TOKEN }}
+
       # =========================================================================
       # ROLLBACK
       # =========================================================================
