@@ -115,8 +115,8 @@
     "prepublishOnly": "bun run mcp:rebuild"
   },
   "dependencies": {
-    "@mastra/core": "^1.36.0",
-    "@mastra/mcp": "^1.8.0",
+    "@mastra/core": "1.42.0",
+    "@mastra/mcp": "1.10.0",
     "cytoscape": "^3.33.4",
     "cytoscape-cose-bilkent": "^4.1.0",
     "dayjs": "^1.11.20",
