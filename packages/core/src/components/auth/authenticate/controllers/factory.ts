@@ -156,17 +156,76 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         configs: {
           path: '/who-am-i',
           method: HTTP.Methods.GET,
+          request: {
+            query: z.object({
+              withUserInformation: z
+                .enum(['true', 'false', '1', '0'])
+                .transform(value => value === 'true' || value === '1')
+                .optional()
+                .openapi({
+                  description: 'Whether to attach user information to currentUser',
+                }),
+            }),
+          },
           responses: {
             [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
               description: 'Success Response',
-              schema: JWTTokenPayloadSchema,
+              schema: JWTTokenPayloadSchema.extend({
+                userInformation: (payload?.getUserInformation?.response?.schema ?? AnyObjectSchema)
+                  .optional()
+                  .openapi({
+                    description: 'Attached when withUserInformation is truthy',
+                  }),
+              }),
             }),
           },
           authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         },
-        handler: context => {
+        handler: async context => {
+          const { withUserInformation = false } = context.req.valid<{
+            withUserInformation?: boolean;
+          }>('query');
+
           const currentUser = context.get(Authentication.CURRENT_USER);
-          return context.json(currentUser, HTTP.ResultCodes.RS_2.Ok);
+          let rs = currentUser;
+
+          if (withUserInformation) {
+            if (!this.service.getUserInformation) {
+              throw getError({
+                statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
+                message: 'Method not implemented',
+              });
+            }
+
+            const userInformation = await this.service.getUserInformation(context, {});
+            rs = Object.assign({}, currentUser, { userInformation });
+          }
+
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
+        },
+      });
+
+      this.defineRoute({
+        configs: {
+          description: 'Get current user information',
+          path: '/me',
+          method: HTTP.Methods.GET,
+          responses: jsonResponse({
+            schema: payload?.getUserInformation?.response?.schema ?? AnyObjectSchema,
+            description: 'Success Response',
+          }),
+          authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+        },
+        handler: async context => {
+          if (!this.service.getUserInformation) {
+            throw getError({
+              statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
+              message: 'Method not implemented',
+            });
+          }
+
+          const rs = await this.service.getUserInformation(context, {});
+          return context.json(rs, HTTP.ResultCodes.RS_2.Ok);
         },
       });
     }

@@ -33,6 +33,9 @@ export type TDefineAuthControllerOpts = {
     refreshToken?: {
       response: { schema: TAnyObjectSchema };
     };
+    getUserInformation?: {
+      response: { schema: TAnyObjectSchema };
+    };
   };
 };
 

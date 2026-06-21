@@ -689,7 +689,7 @@ function defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthContr
 ```
 
 > [!NOTE]
-> The factory also exports `JWTTokenPayloadSchema`, a Zod schema used for the `/who-am-i` response validation.
+> The factory also exports `JWTTokenPayloadSchema`, a Zod schema used for the `/who-am-i` response validation. For `/who-am-i`, it is extended with an optional `userInformation` field that is populated when the request sets `?withUserInformation=true`. The same `getUserInformation` service method backs the dedicated `GET /me` route.
 
 **Service resolution:**
 

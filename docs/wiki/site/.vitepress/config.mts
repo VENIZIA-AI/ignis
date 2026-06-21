@@ -367,6 +367,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-06-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Current User Information Endpoint - GET /me & who-am-i Flag',
+                  link: '/changelogs/2026-06-18-auth-user-information-endpoint',
+                },
+              ],
+            },
+            {
               text: '2026-06-14',
               collapsed: true,
               items: [

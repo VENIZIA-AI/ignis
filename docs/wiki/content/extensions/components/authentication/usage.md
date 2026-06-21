@@ -837,6 +837,8 @@ const JWTTokenPayloadSchema = z.object({
 });
 ```
 
+For the `/who-am-i` response, this schema is extended at runtime with an optional `userInformation` field (typed from `payload.getUserInformation.response.schema`, falling back to `AnyObjectSchema`) so the `withUserInformation` shape is OpenAPI-documented.
+
 ## API Endpoints
 
 The built-in auth controller is created by the `defineAuthController()` factory function and is only available when `useAuthController: true` is set in `REST_OPTIONS`.
@@ -847,7 +849,8 @@ The built-in auth controller is created by the `defineAuthController()` factory 
 | `POST` | `/auth/sign-up` | Configurable | Create a new user account |
 | `POST` | `/auth/change-password` | JWT | Change the authenticated user's password |
 | `POST` | `/auth/token/refresh` | JWT | Re-issue an access token using a valid JWT |
-| `GET` | `/auth/who-am-i` | JWT | Return the current user's JWT payload |
+| `GET` | `/auth/who-am-i` | JWT | Return the current user's JWT payload (optionally with attached user information) |
+| `GET` | `/auth/me` | JWT | Return the current user's information from `getUserInformation` |
 | `GET` | `/certs` | No | JWKS endpoint (JWKS Issuer mode only) |
 
 > [!NOTE]
@@ -934,6 +937,57 @@ Returns the current user's decrypted JWT payload directly from context.
   "email": "user@example.com"
 }
 ```
+
+**Query Parameters:**
+
+| Name | Type | Description |
+|------|------|-------------|
+| `withUserInformation` | `true` \| `false` \| `1` \| `0` | When truthy, attaches a `userInformation` field built from `IAuthService.getUserInformation`. Defaults to `false`. |
+
+When `withUserInformation` is truthy, the response merges the `getUserInformation` result into the payload:
+
+```json
+{
+  "userId": "123",
+  "roles": [{ "id": "1", "identifier": "admin", "priority": 0 }],
+  "userInformation": { "fullName": "Ada Lovelace", "department": "R&D" }
+}
+```
+
+**Response 501 (Not Implemented):**
+
+Returned when `withUserInformation` is truthy but the bound `IAuthService` does not implement the optional `getUserInformation` method.
+
+### GET /auth/me
+
+**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
+
+Returns the current user's information by delegating to `IAuthService.getUserInformation(context, {})`. Unlike `who-am-i`, the response is entirely the service result -- it is not merged with the JWT payload.
+
+**Response 200:**
+
+Uses `payload.getUserInformation.response.schema` if provided, otherwise `AnyObjectSchema`. The shape is defined by your `getUserInformation` implementation.
+
+**Response 501 (Not Implemented):**
+
+Returned when the bound `IAuthService` does not implement the optional `getUserInformation` method.
+
+**Implementing `getUserInformation` in your service:**
+
+```typescript
+export class AuthenticationService extends BaseService implements IAuthService {
+  async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
+    // The current user is already verified by JWT middleware
+    const currentUser = context.get(Authentication.CURRENT_USER);
+    return this.userRepository.findById({ id: currentUser.userId });
+  }
+
+  // ... signIn, signUp, changePassword ...
+}
+```
+
+> [!TIP]
+> One `getUserInformation` implementation backs both routes. Use `GET /me` when you want the raw profile, or `GET /who-am-i?withUserInformation=true` when you want it merged into the principal in a single round-trip.
 
 ### GET /certs (JWKS Issuer Only)
 

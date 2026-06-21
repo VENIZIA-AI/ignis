@@ -152,6 +152,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
   private setCurrentUser(opts: { context: TContext; user: IAuthUser }) {
     const { context, user } = opts;
     context.set(Authentication.CURRENT_USER, user);
+
     if (user?.userId) {
       context.set(Authentication.AUDIT_USER_ID, user.userId);
     }
