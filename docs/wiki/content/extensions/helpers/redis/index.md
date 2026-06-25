@@ -705,9 +705,9 @@ import type {
 
 - [Helpers Index](../index) - All available helpers
 - [Queue Helper](../queue/) - BullMQ uses the Redis helper as its connection backend
-- [Socket.IO Component](/references/components/socket-io) - Uses `duplicateClient` for pub/sub adapter
-- [WebSocket Component](/references/components/websocket) - Uses `duplicateClient` for pub/sub channels
-- [Authorization Component](/references/components/authorization) - Casbin enforcer uses `getClient` for cache operations
+- [Socket.IO Component](/extensions/components/socket-io/) - Uses `duplicateClient` for pub/sub adapter
+- [WebSocket Component](/extensions/components/websocket/) - Uses `duplicateClient` for pub/sub channels
+- [Authorization Component](/extensions/components/authorization/) - Casbin enforcer uses the helper's `del`/`get`/`set` for cache operations
 - [ioredis documentation](https://github.com/redis/ioredis) - Underlying Redis client
 - [Redis Sentinel documentation](https://redis.io/docs/management/sentinel/) - Sentinel architecture reference
 - [RedisJSON documentation](https://redis.io/docs/stack/json/) - Required for `j*` methods
