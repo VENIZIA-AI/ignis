@@ -258,9 +258,9 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.0.5",
+      "version": "0.0.6-0",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.0.8",
+        "@venizia/ignis-helpers": "^0.0.9-0",
         "@venizia/ignis-inversion": "^0.0.6",
         "glob": "^13.0.6",
         "lodash": "^4.18.1",
@@ -278,10 +278,10 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.9",
+      "version": "0.0.10-0",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.0.5",
-        "@venizia/ignis-helpers": "^0.0.8",
+        "@venizia/ignis-boot": "^0.0.6-0",
+        "@venizia/ignis-helpers": "^0.0.9-0",
         "@venizia/ignis-inversion": "^0.0.6",
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
@@ -370,7 +370,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.8",
+      "version": "0.0.9-0",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.0.6",
         "dayjs": "^1.11.21",
