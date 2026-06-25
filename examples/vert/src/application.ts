@@ -49,7 +49,7 @@ import {
   getError,
   HTTP,
   int,
-  RedisHelper,
+  RedisSingleHelper,
 } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
@@ -329,7 +329,7 @@ export class Application extends BaseApplication {
     });
 
     // Redis connection for authorization cache
-    const redisHelper = new RedisHelper({
+    const redisHelper = new RedisSingleHelper({
       name: 'authorization-cache',
       host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
       port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),

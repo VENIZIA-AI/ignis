@@ -555,7 +555,7 @@ interface { use: false }
 interface ICasbinEnforcerCachedRedis {
   driver: 'redis';
   options: {
-    connection: DefaultRedisHelper;
+    connection: IRedisHelper;
     expiresIn: number;
     keyFn: (opts: { user: IAuthorizationUser }) => ValueOrPromise<string>;
   };

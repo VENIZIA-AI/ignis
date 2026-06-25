@@ -367,6 +367,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-06-25',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Redis Helpers Refactor - Abstract Base, Interfaces, Sentinel & Factory',
+                  link: '/changelogs/2026-06-25-redis-helpers-refactor',
+                },
+              ],
+            },
+            {
               text: '2026-06-18',
               collapsed: true,
               items: [
@@ -794,6 +804,7 @@ const config = defineConfig({
           collapsed: true,
           items: [
             { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
+            { text: 'Redis Helper API (rename + camelCase)', link: '/guides/migrations/redis-helpers-migration' },
           ],
         },
       ],

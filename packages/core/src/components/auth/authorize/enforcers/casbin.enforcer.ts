@@ -262,7 +262,7 @@ export class CasbinAuthorizationEnforcer<
   }): Promise<{ invalidatedKeys: number }> {
     const cached = this.requireRedisCache();
     const cacheKey = await this.resolveCacheKey({ user: opts.user, cached });
-    const invalidatedKeys = await cached.options.connection.client.del(cacheKey);
+    const invalidatedKeys = await cached.options.connection.del({ keys: [cacheKey] });
 
     this.logger
       .for(this.invalidateUserCache.name)
@@ -285,7 +285,7 @@ export class CasbinAuthorizationEnforcer<
     // throwaway enforcer (not a serving model), so a concurrent request cannot make us cache another
     // user's policies under this key.
     const cacheKey = await this.resolveCacheKey({ user: opts.user, cached });
-    await cached.options.connection.client.del(cacheKey);
+    await cached.options.connection.del({ keys: [cacheKey] });
 
     const lines = await this.extractUserLines({ user: opts.user });
     await this.writeCachedPolicyLines({ cacheKey, lines, options: cached.options });
@@ -472,11 +472,10 @@ export class CasbinAuthorizationEnforcer<
   }): Promise<string[]> {
     const { user, cached } = opts;
     const cacheKey = await this.resolveCacheKey({ user, cached });
-    const redisClient = cached.options.connection.client;
 
     // Cache hit — Redis owns expiry (PX on write), so a present key is fresh by definition.
     // A corrupted/legacy entry must NOT 500 the request: discard it and fall through to refetch.
-    const raw = await redisClient.get(cacheKey);
+    const raw = await cached.options.connection.get({ key: cacheKey });
     if (raw) {
       const lines = this.parseCachedPolicyLines({ raw, cacheKey });
 
@@ -512,12 +511,11 @@ export class CasbinAuthorizationEnforcer<
     lines: string[];
     options: ICasbinEnforcerCachedRedis['options'];
   }): Promise<void> {
-    await opts.options.connection.client.set(
-      opts.cacheKey,
-      JSON.stringify(opts.lines),
-      'PX',
-      opts.options.expiresIn,
-    );
+    await opts.options.connection.set({
+      key: opts.cacheKey,
+      value: opts.lines,
+      options: { expiresIn: opts.options.expiresIn },
+    });
   }
 
   /** Decode cached policy lines; on any corruption, log and return null so the caller refetches. */

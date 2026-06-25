@@ -1,46 +1,65 @@
 # Redis
 
-Powerful Redis abstraction supporting single instances and clusters via `ioredis`, with automatic JSON serialization, connection lifecycle callbacks, Pub/Sub with optional zlib compression, RedisJSON operations, and raw command execution.
+The Redis helper module provides a unified data API across three deployment topologies - single node, cluster, and Sentinel - via the `AbstractRedisHelper` base class. All three implement the same `IRedisHelper` interface, so a consumer written against `IRedisHelper` works with any topology and can be switched without changing application code.
 
-## Quick Reference
+Backed by **ioredis** under the hood.
 
-| Class | Extends | Use Case |
-|-------|---------|----------|
-| **`DefaultRedisHelper`** | `BaseHelper` | Base class with unified API for all Redis operations |
-| **`RedisHelper`** | `DefaultRedisHelper` | Single Redis instance with auto-connect and retry strategy |
-| **`RedisClusterHelper`** | `DefaultRedisHelper` | Redis cluster with multi-node support |
+## 1. Overview
 
-#### Import Paths
+### When to use which topology
+
+| Topology | Class | Use when |
+|----------|-------|----------|
+| **Single** | `RedisSingleHelper` | One Redis node - development, simple production setups |
+| **Cluster** | `RedisClusterHelper` | Sharded data across multiple nodes - horizontal scale or large datasets |
+| **Sentinel** | `RedisSentinelHelper` | One logical master + replicas with automatic failover - high availability |
+
+All three share the full data API defined in `IRedisHelper` (`get`, `set`, `hSet`, `publish`, etc.). Only the constructor options differ.
+
+## 2. Class and Interface Model
+
+### Class hierarchy
+
+| Class | Extends | Notes |
+|-------|---------|-------|
+| `AbstractRedisHelper` | `BaseHelper` | Base class; implements `IRedisHelper`; never constructed directly |
+| `RedisSingleHelper` | `AbstractRedisHelper` | ioredis `Redis` client; returns `Redis` from `getClient()` |
+| `RedisClusterHelper` | `AbstractRedisHelper` | ioredis `Cluster` client; returns `Cluster` from `getClient()` |
+| `RedisSentinelHelper` | `AbstractRedisHelper` | ioredis `Redis` client (Sentinel mode); returns `Redis` from `getClient()` |
+
+> **Typing rule:** Declare parameters and bindings as `IRedisHelper`. Use `instanceof AbstractRedisHelper` for runtime topology checks. Never type-check against the concrete subclasses unless you need topology-specific behavior.
+
+### TRedisClient
 
 ```typescript
-// From the helpers package
-import {
-  DefaultRedisHelper,
-  RedisHelper,
-  RedisClusterHelper,
-} from '@venizia/ignis-helpers';
-
-// Types are also available from the core package (via type-only re-export)
-import type {
-  IRedisHelperOptions,
-  IRedisClusterHelperOptions,
-  IRedisHelperCallbacks,
-  IRedisHelperProps,
-  IRedisClusterHelperProps,
-} from '@venizia/ignis-helpers'; // or from '@venizia/ignis'
+type TRedisClient = Redis | Cluster; // ioredis
 ```
 
-## Creating an Instance
+`RedisSingleHelper` and `RedisSentinelHelper` return a `Redis` instance. `RedisClusterHelper` returns a `Cluster` instance. Both satisfy `TRedisClient`.
 
-### Single Instance
+### IRedisHelper and its nine capability interfaces
 
-Use `RedisHelper` for connecting to a single Redis server.
+`IRedisHelper` extends all nine of the following:
+
+| Interface | Responsibility |
+|-----------|----------------|
+| `IRedisConnection` | Connection lifecycle - `connect`, `disconnect`, `ping`, `getClient`, `duplicateClient` |
+| `IRedisKey` | Key TTL and counters - `exists`, `expire`, `expireAt`, `ttl`, `persist`, `incr`/`decr` variants |
+| `IRedisKeyValue` | String key-value - `get`, `set`, `del`, `keys`, `getString(s)`, `getObject(s)`, `mSet`, `mGet` |
+| `IRedisHash` | Hash maps - `hSet`, `hGetAll`, `hGet`, `hDel`, `hExists`, `hKeys`, `hVals`, `hIncrBy`, `hLen` |
+| `IRedisSet` | Sets - `sAdd`, `sRem`, `sMembers`, `sIsMember`, `sCard` |
+| `IRedisList` | Lists - `lPush`, `rPush`, `lPop`, `rPop`, `lRange`, `lLen` |
+| `IRedisPubSub` | Pub/Sub with optional zlib compression - `publish`, `subscribe`, `unsubscribe` |
+| `IRedisJson` | RedisJSON module operations - `jSet`, `jGet`, `jDelete`, `jNumberIncreaseBy`, `jStringAppend`, `jPush`, `jPop` |
+| `IRedisCommand` | Raw escape hatch - `execute(command, params?)` |
+
+## 3. Construction - Single
 
 ```typescript
-import { RedisHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 
-const redis = new RedisHelper({
-  name: 'my-redis',
+const redis = new RedisSingleHelper({
+  name: 'cache',
   host: 'localhost',
   port: 6379,
   password: 'secret',
@@ -49,440 +68,646 @@ const redis = new RedisHelper({
   maxRetry: 5,
 
   onInitialized: ({ name, helper }) => {
-    console.log(`Redis "${name}" initialized`);
+    console.log(`[${name}] initialized`);
   },
   onConnected: ({ name }) => {
-    console.log(`Redis "${name}" connected`);
+    console.log(`[${name}] connected`);
   },
   onReady: ({ name }) => {
-    console.log(`Redis "${name}" ready`);
+    console.log(`[${name}] ready`);
   },
   onError: ({ name, error }) => {
-    console.error(`Redis "${name}" error:`, error);
+    console.error(`[${name}] error`, error);
   },
 });
 ```
 
-#### `IRedisHelperOptions`
+### IRedisSingleHelperOptions
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `name` | `string` | Yes | -- | Unique identifier for this client instance |
-| `host` | `string` | Yes | -- | Redis server hostname |
-| `port` | `string \| number` | Yes | -- | Redis server port |
-| `password` | `string` | Yes | -- | Redis password |
-| `user` | `string` | No | -- | Redis username (ACL authentication) |
-| `database` | `number` | No | `0` | Redis database index |
-| `autoConnect` | `boolean` | No | `true` | Connect immediately on creation. When `false`, uses ioredis `lazyConnect` mode |
-| `maxRetry` | `number` | No | `0` | Maximum reconnection attempts. `0` = unlimited retries. Values below `0` disable retry entirely |
-| `onInitialized` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called synchronously immediately after client construction |
-| `onConnected` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called when the TCP connection is established |
-| `onReady` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called when the client is ready to accept commands |
-| `onError` | `(opts: { name: string; helper: DefaultRedisHelper; error: any }) => void` | No | -- | Called on connection or command errors |
+Combines `IRedisSingleHelperProps` and `IRedisHelperCallbacks`.
 
-**Retry strategy:** Exponential backoff clamped between 1s and 5s: `Math.max(Math.min(attempt * 2000, 5000), 1000)`. The ioredis option `maxRetriesPerRequest` is set to `null` internally, which is required for compatibility with BullMQ.
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | Yes | - | Helper identifier used in logs and as `IRedisHelper.name` |
+| `host` | `string` | Yes | - | Redis server hostname |
+| `port` | `string \| number` | Yes | - | Redis server port |
+| `password` | `string` | Yes | - | Redis `requirepass` value |
+| `user` | `string` | No | - | Redis username (ACL authentication) |
+| `database` | `number` | No | `0` | Redis database index (0-15) |
+| `autoConnect` | `boolean` | No | `true` | Connect immediately; `false` uses ioredis `lazyConnect` |
+| `maxRetry` | `number` | No | `0` | Max reconnect attempts; `0` = unlimited; `-1` = no retry |
+| `onInitialized` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired synchronously after construction |
+| `onConnected` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired on TCP connection established |
+| `onReady` | `(opts: { name: string; helper: IRedisHelper }) => void` | No | - | Fired when client is ready for commands |
+| `onError` | `(opts: { name: string; helper: IRedisHelper; error: unknown }) => void` | No | - | Fired on connection or command errors |
 
-**ioredis configuration:** `RedisHelper` creates an ioredis `Redis` instance with `showFriendlyErrorStack: true` for better error diagnostics.
+### Retry strategy
 
-### Cluster
+Backoff formula: `Math.max(Math.min(attempt * 2000, 5000), 1000)` - starting at 1 s, capped at 5 s. Reconnect stops when `attempt > maxRetry` (if `maxRetry > -1`). The framework always sets `maxRetriesPerRequest: null` internally, which is required for BullMQ compatibility.
 
-Use `RedisClusterHelper` for connecting to a Redis cluster.
+## 4. Construction - Cluster
 
 ```typescript
 import { RedisClusterHelper } from '@venizia/ignis-helpers';
 
 const cluster = new RedisClusterHelper({
-  name: 'my-cluster',
+  name: 'cache-cluster',
   nodes: [
     { host: 'redis-node-1', port: 7000 },
-    { host: 'redis-node-2', port: 7001, password: 'node-specific-pass' },
+    { host: 'redis-node-2', port: 7001 },
     { host: 'redis-node-3', port: 7002 },
   ],
   clusterOptions: {
     redisOptions: { password: 'cluster-password' },
   },
-
   onReady: ({ name }) => {
-    console.log(`Cluster "${name}" ready`);
+    console.log(`[${name}] cluster ready`);
   },
 });
 ```
 
-#### `IRedisClusterHelperOptions`
+### IRedisClusterHelperOptions
 
-| Option | Type | Required | Default | Description |
-|--------|------|----------|---------|-------------|
-| `name` | `string` | Yes | -- | Unique identifier for this cluster client |
-| `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | -- | List of cluster node addresses |
-| `clusterOptions` | `ClusterOptions` | No | -- | ioredis `ClusterOptions` passed directly to the `Cluster` constructor |
-| `onInitialized` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called synchronously immediately after cluster client construction |
-| `onConnected` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called when connected |
-| `onReady` | `(opts: { name: string; helper: DefaultRedisHelper }) => void` | No | -- | Called when ready |
-| `onError` | `(opts: { name: string; helper: DefaultRedisHelper; error: any }) => void` | No | -- | Called on errors |
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | Yes | - | Helper identifier |
+| `nodes` | `Array<{ host: string; port: string \| number; password?: string }>` | Yes | - | Startup nodes - ioredis discovers the rest |
+| `clusterOptions` | `ClusterOptions` | No | - | Passed verbatim to `new Cluster(nodes, clusterOptions)` |
+| `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
 
-### Lifecycle Callbacks
+> **No framework defaults injected.** Cluster does not apply the backoff retry strategy or `maxRetriesPerRequest: null` automatically. Pass those inside `clusterOptions.redisOptions` if your consumers (e.g. BullMQ) require them.
 
-All Redis helpers accept the same lifecycle callbacks via `IRedisHelperCallbacks`:
+`duplicateClient()` on a cluster creates a **new** `Cluster` instance from the same startup nodes and options (because ioredis `Cluster` does not implement `.duplicate()`).
 
-```typescript
-interface IRedisHelperCallbacks {
-  onInitialized?: (opts: { name: string; helper: DefaultRedisHelper }) => void;
-  onConnected?: (opts: { name: string; helper: DefaultRedisHelper }) => void;
-  onReady?: (opts: { name: string; helper: DefaultRedisHelper }) => void;
-  onError?: (opts: { name: string; helper: DefaultRedisHelper; error: any }) => void;
-}
+## 5. Construction - Sentinel
+
+### What Redis Sentinel is
+
+Redis Sentinel is a high-availability (HA) architecture made of three process types:
+
+```
+  +------------------+      monitors      +--------------------+
+  |  Sentinel (1)    |<------------------>|  Master (primary)  |
+  +------------------+                    +--------------------+
+  +------------------+         replication        |
+  |  Sentinel (2)    |              +--------------+
+  +------------------+              v
+  +------------------+      +--------------------+
+  |  Sentinel (3)    |      |  Replica (standby) |
+  +------------------+      +--------------------+
 ```
 
-| Callback | Redis Event | When |
-|----------|-------------|------|
-| `onInitialized` | -- | Immediately after client construction (synchronous) |
-| `onConnected` | `connect` | TCP connection established |
-| `onReady` | `ready` | Client ready to accept commands |
-| `onError` | `error` | Connection or command error |
+- **Sentinels** form a quorum (typically 3 processes). They monitor the master, agree by majority vote when it is down, and promote a replica to master (failover).
+- **Master** accepts all writes.
+- **Replicas** replicate from master and serve reads when `role: 'slave'` is set.
 
-Additionally, the client internally logs a warning on `reconnecting` events.
+### Why your app connects to sentinels, not the master
 
-## Usage
+The master's address can change after a failover. Instead of hard-coding a master host, you give ioredis the sentinel addresses and the monitored master group name (`masterName`). ioredis asks a sentinel for the current master, connects to it, and re-queries sentinels automatically after a failover. **Your application code does not change during a failover** - the only observable effect is a few seconds of transient command failures, which the retry strategy handles.
 
-All operations below are available on both `RedisHelper` and `RedisClusterHelper` via the shared `DefaultRedisHelper` base class.
-
-### Connection Management
+### Constructor
 
 ```typescript
-// Manual connect (when autoConnect is false)
-const connected = await redis.connect();
-// => true if status becomes 'ready', false if already connected/connecting
+import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
-// Disconnect gracefully (sends QUIT command)
-const disconnected = await redis.disconnect();
-// => true if quit succeeded
-
-// Health check
-const pong = await redis.ping();
-// => 'PONG'
-
-// Access underlying ioredis client
-const ioredisClient = redis.getClient();
-// RedisHelper returns Redis, RedisClusterHelper returns Cluster
-```
-
-> [!NOTE]
-> `connect()` resolves to `false` without action if the client status is already `ready`, `reconnecting`, or `connecting`. Similarly, `disconnect()` resolves to `false` if the status is `end` or `close`.
-
-### Key-Value Operations
-
-```typescript
-// Set a value (auto-serialized to JSON)
-await redis.set({ key: 'user:1', value: { name: 'Alice', age: 30 } });
-
-// Set with logging enabled
-await redis.set({ key: 'user:1', value: { name: 'Alice' }, options: { log: true } });
-
-// Get raw string value
-const raw = await redis.get({ key: 'user:1' });
-// => '{"name":"Alice","age":30}'
-
-// Get with custom transform
-const parsed = await redis.get({
-  key: 'user:1',
-  transform: (input) => JSON.parse(input),
-});
-
-// Convenience: get as string (alias for get)
-const str = await redis.getString({ key: 'user:1' });
-
-// Convenience: get as parsed JSON object
-const user = await redis.getObject({ key: 'user:1' });
-// => { name: 'Alice', age: 30 }
-
-// Delete keys
-await redis.del({ keys: ['user:1', 'user:2'] });
-```
-
-### Multi-Key Operations
-
-```typescript
-// Set multiple keys at once
-await redis.mset({
-  payload: [
-    { key: 'user:1', value: { name: 'Alice' } },
-    { key: 'user:2', value: { name: 'Bob' } },
+const redis = new RedisSentinelHelper({
+  name: 'ha-cache',          // helper identifier (logging/scope)
+  masterName: 'mymaster',    // group name in sentinel.conf "sentinel monitor mymaster ..."
+  sentinels: [
+    { host: '10.0.0.1', port: 26379 },
+    { host: '10.0.0.2', port: 26379 },
+    { host: '10.0.0.3' },   // port defaults to 26379
   ],
-});
-
-// Get multiple raw values
-const values = await redis.mget({ keys: ['user:1', 'user:2'] });
-// => ['{"name":"Alice"}', '{"name":"Bob"}']
-
-// Get multiple with transform
-const users = await redis.mget({
-  keys: ['user:1', 'user:2'],
-  transform: (el) => JSON.parse(el),
-});
-
-// Convenience: get multiple strings
-const strings = await redis.getStrings({ keys: ['key1', 'key2'] });
-
-// Convenience: get multiple parsed objects
-const objects = await redis.getObjects({ keys: ['user:1', 'user:2'] });
-```
-
-> [!TIP]
-> `mSet()`, `mGet()`, `hSet()`, and `hGetAll()` are camelCase aliases for `mset()`, `mget()`, `hset()`, and `hgetall()` respectively. Both forms are valid.
-
-### Hash Operations
-
-```typescript
-// Set hash fields
-await redis.hset({
-  key: 'session:abc',
-  value: { userId: 'u1', token: 'tok123', createdAt: '2025-01-01' },
-});
-
-// Set hash fields with logging
-await redis.hset({
-  key: 'session:abc',
-  value: { userId: 'u1' },
-  options: { log: true },
-});
-
-// Get all hash fields
-const session = await redis.hgetall({ key: 'session:abc' });
-// => { userId: 'u1', token: 'tok123', createdAt: '2025-01-01' }
-
-// Get all hash fields with transform
-const transformed = await redis.hgetall({
-  key: 'session:abc',
-  transform: (input) => ({ ...input, extra: true }),
+  role: 'master',            // 'master' (default) or 'slave'
+  password: 'data-secret',   // master/replica requirepass
+  sentinelPassword: 'sentinel-secret', // sentinel.conf requirepass
+  database: 0,
+  autoConnect: true,
+  maxRetry: 5,
 });
 ```
 
-### Key Scanning
+### IRedisSentinelHelperOptions
 
-```typescript
-// Find keys matching a pattern
-const matchingKeys = await redis.keys({ key: 'user:*' });
-// => ['user:1', 'user:2', ...]
+| Field | Type | Required | Default | Description |
+|-------|------|----------|---------|-------------|
+| `name` | `string` | Yes | - | Helper identifier (logs, `IRedisHelper.name`) |
+| `masterName` | `string` | Yes | - | Sentinel-monitored master group name - maps to ioredis `name` |
+| `sentinels` | `Array<{ host: string; port?: string \| number }>` | Yes | - | Sentinel process addresses |
+| `role` | `TRedisSentinelRole` (`RedisSentinelRoles.MASTER \| SLAVE`) | No | `RedisSentinelRoles.MASTER` | Connect to master (writes) or a replica (reads) |
+| `password` | `string` | No | - | Data-node `requirepass` (master and replicas) |
+| `sentinelPassword` | `string` | No | - | Sentinel-process `requirepass` |
+| `sentinelUsername` | `string` | No | - | Sentinel ACL username |
+| `database` | `number` | No | `0` | Redis database index |
+| `autoConnect` | `boolean` | No | `true` | Connect immediately |
+| `maxRetry` | `number` | No | `0` | Max reconnect attempts |
+| `redisOptions` | `Partial<RedisOptions>` | No | - | Extra ioredis options; first-class fields above always override matching keys here |
+| `onInitialized` / `onConnected` / `onReady` / `onError` | callbacks | No | - | Same shape as single |
+
+### Field clarity - name vs masterName
+
+This is the most common source of confusion:
+
+| Field | What it is | Where it goes |
+|-------|-----------|---------------|
+| `name` | The helper's own identifier used for logging and `IRedisHelper.name` | `AbstractRedisHelper` identifier |
+| `masterName` | The master group being monitored by Sentinel processes, matching `sentinel monitor <name> ...` in sentinel.conf | Maps to ioredis `name` option |
+
+They are independent. You can name the helper `'ha-cache'` while `masterName` is `'mymaster'`.
+
+### The authentication model - 4 relationships
+
+Sentinel deployments have four separate authentication relationships. The app only configures two of them; the other two are server-side.
+
+| # | From | To | App field | Server config |
+|---|------|----|-----------|---------------|
+| 1 | **App** | **Sentinel processes** | `sentinelPassword` | `requirepass` in sentinel.conf |
+| 2 | **App** | **Data nodes** (master/replica) | `password` | `requirepass` in redis.conf |
+| 3 | **Sentinel** | **Data nodes** | (not set by app) | `sentinel auth-pass <group> <pass>` in sentinel.conf |
+| 4 | **Replica** | **Master** (replication) | (not set by app) | `masterauth` in redis.conf |
+
+**Relationship 3 is the silent failure.** If the data nodes require a password but sentinel.conf does not have `sentinel auth-pass`, the sentinel processes cannot check master health and will trigger false failovers. Configure it on the server side even when your app only sets `password`.
+
+**Common cases:**
+- Private network, sentinels unauthenticated: set only `password`.
+- Fully secured cluster: set both `password` and `sentinelPassword`; configure relationships 3 and 4 on the servers.
+
+### Failover behavior
+
+When the master fails:
+
+1. Sentinels reach quorum and promote a replica.
+2. ioredis detects the master change via sentinel notification.
+3. ioredis reconnects to the new master transparently.
+4. Any in-flight commands during the few-second window may fail transiently - the retry strategy retries them.
+5. **Your application code does not change.** The same `RedisSentinelHelper` instance continues to work after failover.
+
+### Local testing with Docker Compose
+
+The following Compose file starts a master, one replica, and one sentinel with full authentication. It demonstrates all four relationships.
+
+```yaml
+version: '3.8'
+
+services:
+  redis-master:
+    image: redis:7-alpine
+    command: redis-server --requirepass data-secret --masterauth data-secret
+    ports:
+      - '6379:6379'
+
+  redis-replica:
+    image: redis:7-alpine
+    command: >
+      redis-server
+      --requirepass data-secret
+      --masterauth data-secret
+      --replicaof redis-master 6379
+    depends_on:
+      - redis-master
+
+  redis-sentinel:
+    image: redis:7-alpine
+    command: >
+      sh -c "
+        echo 'sentinel monitor mymaster redis-master 6379 1' > /sentinel.conf &&
+        echo 'sentinel auth-pass mymaster data-secret' >> /sentinel.conf &&
+        echo 'sentinel down-after-milliseconds mymaster 3000' >> /sentinel.conf &&
+        echo 'sentinel failover-timeout mymaster 10000' >> /sentinel.conf &&
+        echo 'requirepass sentinel-secret' >> /sentinel.conf &&
+        redis-sentinel /sentinel.conf
+      "
+    ports:
+      - '26379:26379'
+    depends_on:
+      - redis-master
+      - redis-replica
 ```
 
-> [!WARNING]
-> `keys()` uses the Redis `KEYS` command, which scans the entire keyspace. Avoid using it in production on large databases -- prefer `SCAN` via `execute()` instead.
-
-### RedisJSON Operations
-
-If your Redis server has the [RedisJSON](https://redis.io/docs/stack/json/) module installed, you can use the `j*` methods for native JSON document operations.
+Connect and verify failover:
 
 ```typescript
-// Set a JSON document
-await redis.jSet({ key: 'doc:1', path: '$', value: { name: 'Alice', scores: [10, 20] } });
+import { RedisSentinelHelper } from '@venizia/ignis-helpers';
 
-// Get entire document (path defaults to '$')
-const doc = await redis.jGet({ key: 'doc:1' });
-
-// Get a nested path
-const scores = await redis.jGet({ key: 'doc:1', path: '$.scores' });
-
-// Delete a JSON path
-await redis.jDelete({ key: 'doc:1', path: '$.scores' });
-
-// Delete entire document (path defaults to '$')
-await redis.jDelete({ key: 'doc:1' });
-
-// Increment a number at a path
-await redis.jNumberIncreaseBy({ key: 'doc:1', path: '$.counter', value: 5 });
-
-// Append to a string at a path
-await redis.jStringAppend({ key: 'doc:1', path: '$.name', value: ' Smith' });
-
-// Push to an array at a path
-await redis.jPush({ key: 'doc:1', path: '$.tags', value: 'new-tag' });
-
-// Pop from an array at a path
-const popped = await redis.jPop({ key: 'doc:1', path: '$.tags' });
-```
-
-#### RedisJSON Method Signatures
-
-| Method | Parameters | Returns | Redis Command |
-|--------|-----------|---------|---------------|
-| `jSet<T>()` | `{ key: string; path: string; value: T }` | `Promise<string \| null>` | `JSON.SET` |
-| `jGet<T>()` | `{ key: string; path?: string }` | `Promise<T \| null>` | `JSON.GET` |
-| `jDelete()` | `{ key: string; path?: string }` | `Promise<number>` | `JSON.DEL` |
-| `jNumberIncreaseBy()` | `{ key: string; path: string; value: number }` | `Promise<string \| null>` | `JSON.NUMINCRBY` |
-| `jStringAppend()` | `{ key: string; path: string; value: string }` | `Promise<number[] \| null>` | `JSON.STRAPPEND` |
-| `jPush<T>()` | `{ key: string; path: string; value: T }` | `Promise<number[] \| null>` | `JSON.ARRAPPEND` |
-| `jPop<T>()` | `{ key: string; path: string }` | `Promise<T \| null>` | `JSON.ARRPOP` |
-
-`jGet` and `jDelete` default `path` to `'$'` (root) when omitted. All other `j*` methods require `path` explicitly.
-
-### Pub/Sub
-
-The helper supports Redis Pub/Sub for real-time messaging with optional zlib compression.
-
-```typescript
-// Subscribe to a topic
-redis.subscribe({ topic: 'events' });
-
-// Listen for messages on the underlying ioredis client
-redis.getClient().on('message', (channel, message) => {
-  if (channel === 'events') {
-    console.log('Received:', JSON.parse(message));
-  }
+const redis = new RedisSentinelHelper({
+  name: 'test',
+  masterName: 'mymaster',
+  sentinels: [{ host: 'localhost', port: 26379 }],
+  password: 'data-secret',
+  sentinelPassword: 'sentinel-secret',
+  onReady: ({ name }) => console.log(`[${name}] ready`),
 });
 
-// Publish to one or more topics
-await redis.publish({
-  topics: ['events', 'audit-log'],
-  payload: { action: 'user.created', userId: 'u1' },
-});
+await redis.set({ key: 'hello', value: 'world' });
+const val = await redis.get({ key: 'hello' });
+console.log(val); // "world"
 
-// Publish with zlib compression
-await redis.publish({
-  topics: ['compressed-channel'],
-  payload: { large: 'dataset' },
-  useCompress: true,
-});
-
-// Unsubscribe from a topic
-redis.unsubscribe({ topic: 'events' });
+// Stop the master container - wait ~5 s - the replica is promoted.
+// The same redis instance will reconnect automatically and continue working.
 ```
 
-> [!IMPORTANT]
-> When using Pub/Sub, the subscribing client enters subscriber mode and can only execute `SUBSCRIBE`, `PSUBSCRIBE`, `UNSUBSCRIBE`, `PUNSUBSCRIBE`, `PING`, and `QUIT` commands. Use a separate `RedisHelper` instance for Pub/Sub if you also need to perform regular data operations.
+## 6. Selecting a Topology - the Factory
 
-### Raw Command Execution
-
-For commands not wrapped by the helper, use `execute()` to call any Redis command directly.
+`createRedisHelper` is an overloaded factory that returns the concrete type when `mode` is a literal.
 
 ```typescript
-// Execute any Redis command
-const result = await redis.execute<string>('SET', ['mykey', 'myvalue', 'EX', 60]);
+import { createRedisHelper, RedisModes } from '@venizia/ignis-helpers';
 
-// Command without parameters
-const info = await redis.execute<string>('INFO');
+// Type inferred as RedisSingleHelper
+const single = createRedisHelper({
+  mode: RedisModes.SINGLE,
+  name: 'cache',
+  host: process.env.REDIS_HOST!,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD!,
+});
 
-// SCAN instead of KEYS for production use
-const [cursor, keys] = await redis.execute<[string, string[]]>(
-  'SCAN', [0, 'MATCH', 'user:*', 'COUNT', 100],
-);
+// Type inferred as RedisSentinelHelper
+const sentinel = createRedisHelper({
+  mode: RedisModes.SENTINEL,
+  name: 'cache-ha',
+  masterName: 'mymaster',
+  sentinels: [{ host: process.env.SENTINEL_HOST! }],
+  password: process.env.REDIS_PASSWORD!,
+});
 ```
 
-## API Summary
-
-| Method | Returns | Description |
-|--------|---------|-------------|
-| **Connection** | | |
-| `connect()` | `Promise<boolean>` | Manual connect (no-op if already connected/connecting/ready) |
-| `disconnect()` | `Promise<boolean>` | Graceful disconnect via `QUIT` (no-op if already ended/closed) |
-| `ping()` | `Promise<string>` | Health check, returns `'PONG'` |
-| `getClient()` | `Redis \| Cluster` | Access the underlying ioredis client |
-| **Key-Value** | | |
-| `set<T>(opts)` | `Promise<void>` | Set a key with JSON-serialized value. Options: `{ key, value, options?: { log } }` |
-| `get<T>(opts)` | `Promise<T \| null>` | Get raw value with optional transform. Options: `{ key, transform? }` |
-| `getString(opts)` | `Promise<string \| null>` | Get raw string value. Options: `{ key }` |
-| `getObject(opts)` | `Promise<object \| null>` | Get value parsed as JSON. Options: `{ key }` |
-| `del(opts)` | `Promise<number>` | Delete one or more keys. Options: `{ keys: string[] }` |
-| **Multi-Key** | | |
-| `mset<T>(opts)` / `mSet<T>(opts)` | `Promise<void>` | Set multiple key-value pairs. Options: `{ payload: Array<{ key, value }>, options?: { log } }` |
-| `mget<T>(opts)` / `mGet<T>(opts)` | `Promise<(T \| null)[]>` | Get multiple values with optional transform. Options: `{ keys, transform? }` |
-| `getStrings(opts)` | `Promise<(string \| null)[]>` | Get multiple raw string values. Options: `{ keys }` |
-| `getObjects(opts)` | `Promise<(object \| null)[]>` | Get multiple values parsed as JSON. Options: `{ keys }` |
-| **Hashes** | | |
-| `hset<T>(opts)` / `hSet<T>(opts)` | `Promise<number>` | Set hash fields. Options: `{ key, value: Record<string, unknown>, options?: { log } }` |
-| `hgetall(opts)` / `hGetAll(opts)` | `Promise<Record<string, string> \| null>` | Get all hash fields with optional transform. Options: `{ key, transform? }` |
-| **Key Scanning** | | |
-| `keys(opts)` | `Promise<string[]>` | Find keys matching a glob pattern. Options: `{ key }` |
-| **RedisJSON** | | |
-| `jSet<T>(opts)` | `Promise<string \| null>` | Set a JSON document at path (`JSON.SET`) |
-| `jGet<T>(opts)` | `Promise<T \| null>` | Get a JSON document or path (`JSON.GET`) |
-| `jDelete(opts)` | `Promise<number>` | Delete a JSON path (`JSON.DEL`) |
-| `jNumberIncreaseBy(opts)` | `Promise<string \| null>` | Increment a number at path (`JSON.NUMINCRBY`) |
-| `jStringAppend(opts)` | `Promise<number[] \| null>` | Append to a string at path (`JSON.STRAPPEND`) |
-| `jPush<T>(opts)` | `Promise<number[] \| null>` | Push to an array at path (`JSON.ARRAPPEND`) |
-| `jPop<T>(opts)` | `Promise<T \| null>` | Pop from an array at path (`JSON.ARRPOP`) |
-| **Pub/Sub** | | |
-| `subscribe(opts)` | `void` | Subscribe to a topic. Options: `{ topic }` |
-| `publish<T>(opts)` | `Promise<void>` | Publish to one or more topics with optional compression. Options: `{ topics, payload, useCompress? }` |
-| `unsubscribe(opts)` | `void` | Unsubscribe from a topic. Options: `{ topic }` |
-| **Raw** | | |
-| `execute<R>(command, parameters?)` | `Promise<R>` | Execute any Redis command directly |
-
-## Troubleshooting
-
-### "[execute] Invalid client to execute | command: ..."
-
-**Cause:** `execute()` was called when the ioredis client is `null` or `undefined`. This typically happens if the helper was not properly constructed or the connection was never established.
-
-**Fix:** Ensure the helper is instantiated correctly and, if using `autoConnect: false`, call `await redis.connect()` before issuing commands.
-
-### "[subscribe] Failed to subscribe to topic: ..."
-
-**Cause:** The ioredis `subscribe()` callback received an error. This can happen if the client lost its connection or the Redis server rejected the subscription.
-
-**Fix:** Check that the Redis server is reachable and the client is in a valid state. Monitor the `onError` callback for connection issues.
-
-### "[unsubscribe] Failed to unsubscribe from topic: ..."
-
-**Cause:** The ioredis `unsubscribe()` callback received an error, usually due to a broken connection.
-
-**Fix:** Same as above -- verify connectivity and client state.
-
-### Connection Refused / Timeout
-
-**Symptoms:** `ECONNREFUSED`, connection hangs, or `onError` fires immediately.
-
-**Checklist:**
-- Verify Redis is running and reachable at the configured `host:port`
-- Check firewall rules and network access between your application and the Redis server
-- If using `autoConnect: false`, ensure you call `await redis.connect()` before any operations
-- Verify `password` is correct (Redis returns a generic error for auth failure)
-- For clusters, ensure all node addresses are reachable and the cluster is healthy (`redis-cli cluster info`)
-
-### Pub/Sub Subscriber Mode Conflicts
-
-**Symptoms:** `ERR only (P|S)SUBSCRIBE / (P|S)UNSUBSCRIBE / PING / QUIT / RESET allowed in this context`
-
-**Cause:** You called `subscribe()` on a client and then attempted a regular command (`get`, `set`, etc.) on the same client.
-
-**Fix:** Use a separate connection for Pub/Sub:
+Switch by environment:
 
 ```typescript
-const dataClient = new RedisHelper({ name: 'data', host, port, password });
-const subClient = new RedisHelper({ name: 'sub', host, port, password });
+import { createRedisHelper, RedisModes, type IRedisHelper } from '@venizia/ignis-helpers';
 
-// Use subClient only for subscribe/unsubscribe
+const mode = (process.env.REDIS_MODE ?? RedisModes.SINGLE) as typeof RedisModes.SINGLE;
+
+const redis: IRedisHelper = createRedisHelper({
+  mode,
+  name: 'app-cache',
+  host: process.env.REDIS_HOST!,
+  port: Number(process.env.REDIS_PORT),
+  password: process.env.REDIS_PASSWORD!,
+});
+```
+
+| `mode` value | Returns |
+|---|---|
+| `RedisModes.SINGLE` (`'single'`) | `RedisSingleHelper` |
+| `RedisModes.CLUSTER` (`'cluster'`) | `RedisClusterHelper` |
+| `RedisModes.SENTINEL` (`'sentinel'`) | `RedisSentinelHelper` |
+
+Unknown mode throws an `ApplicationError`.
+
+## 7. Lifecycle and Events
+
+### autoConnect and manual connect
+
+When `autoConnect: true` (default), the ioredis client starts connecting immediately in the constructor. When `autoConnect: false`, ioredis uses `lazyConnect` mode and you must call `connect()` explicitly before issuing commands.
+
+```typescript
+// Lazy connect
+const redis = new RedisSingleHelper({
+  name: 'cache',
+  host: 'localhost',
+  port: 6379,
+  password: 'secret',
+  autoConnect: false,
+});
+
+await redis.connect(); // resolves true when status === 'ready'
+```
+
+### Connection methods
+
+| Method | Behavior |
+|--------|----------|
+| `connect()` | Resolves `false` (no-op) if status is `ready`, `reconnecting`, or `connecting`; otherwise calls ioredis `connect()` and resolves `true` when status reaches `ready` |
+| `disconnect()` | Resolves `false` (no-op) if status is `end` or `close`; otherwise sends `QUIT` and resolves `true` on `'OK'` |
+| `ping()` | Sends `PING`; returns `'PONG'` |
+
+### The four lifecycle callbacks
+
+All helpers accept `IRedisHelperCallbacks`:
+
+| Callback | Fired when | ioredis event |
+|----------|-----------|---------------|
+| `onInitialized` | Synchronously at the end of the constructor | - |
+| `onConnected` | TCP connection is established | `connect` |
+| `onReady` | Client is ready to accept commands | `ready` |
+| `onError` | A connection or command error occurs | `error` |
+
+The client also logs a `WARN` internally on `reconnecting` events (not surfaced as a callback).
+
+### duplicateClient
+
+```typescript
+const dedicated = redis.duplicateClient();
+```
+
+Creates an **independent** ioredis connection from the same configuration. The duplicate starts disconnected - ioredis auto-connects it on first use. Use this whenever a consumer needs its own dedicated connection (Pub/Sub, BullMQ, Socket.IO adapters). For `RedisClusterHelper`, `duplicateClient()` constructs a new `Cluster` from the same startup nodes and options.
+
+## 8. Full Method Reference
+
+### General notes (apply to all families)
+
+- **Empty-input no-ops:** Methods that accept an array (`keys`, `members`, `values`, `fields`, `payload`) return `0` or `[]` immediately when the array is empty, without calling ioredis. This prevents the "wrong number of arguments" error ioredis throws on empty varargs.
+- **Boolean mapping:** `expire`, `expireAt`, `persist`, `hExists`, `sIsMember` map ioredis numeric replies to `true` (`=== 1`) / `false`.
+- **JSON auto-serialization:** `set`, `mSet`, `jSet`, `jPush` call `JSON.stringify` before writing. `getObject`, `getObjects`, `jGet` parse on read. `get` and `mGet` return raw strings unless you pass `transform`.
+- **TTL units:** `set.options.expiresIn` is **milliseconds** (ioredis `PX`). `expire.seconds` is **seconds** (ioredis `EXPIRE`). `expireAt.atEpochSeconds` is a Unix epoch **in seconds** (ioredis `EXPIREAT`).
+- **Pub/Sub errors:** On subscription callback error, the helper **logs** the error and returns without throwing, because throwing inside an ioredis async callback would be an unhandled rejection.
+
+---
+
+### IRedisConnection - connection lifecycle
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `getClient` | `(): TRedisClient` | Returns the raw ioredis `Redis` or `Cluster` instance |
+| `duplicateClient` | `(): TRedisClient` | Creates an independent ioredis connection (same config, separate socket) |
+| `ping` | `(): Promise<string>` | Sends `PING`; returns `'PONG'` on success |
+| `connect` | `(): Promise<boolean>` | Connects the client; resolves `false` if already connected/connecting/ready |
+| `disconnect` | `(): Promise<boolean>` | Graceful `QUIT`; resolves `false` if already ended/closed |
+
+---
+
+### IRedisKey - key lifecycle and counters
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `exists` | `(opts: { keys: string[] }): Promise<number>` | Returns the count of keys that exist; empty `keys` returns `0` without calling Redis |
+| `expire` | `(opts: { key: string; seconds: number }): Promise<boolean>` | Sets expiry in seconds; `true` if applied |
+| `expireAt` | `(opts: { key: string; atEpochSeconds: number }): Promise<boolean>` | Sets expiry at an epoch second timestamp; `true` if applied |
+| `ttl` | `(opts: { key: string }): Promise<number>` | Returns remaining TTL in seconds; `-1` = no expiry; `-2` = key missing |
+| `persist` | `(opts: { key: string }): Promise<boolean>` | Removes expiry; `true` if the timeout was removed |
+| `incr` | `(opts: { key: string }): Promise<number>` | Atomically increments integer at key by 1; returns new value |
+| `decr` | `(opts: { key: string }): Promise<number>` | Atomically decrements integer at key by 1; returns new value |
+| `incrBy` | `(opts: { key: string; value: number }): Promise<number>` | Atomically increments by `value`; returns new value |
+| `decrBy` | `(opts: { key: string; value: number }): Promise<number>` | Atomically decrements by `value`; returns new value |
+
+---
+
+### IRedisKeyValue - string key-value
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `set<T>` | `(opts: { key: string; value: T; options?: { log?: boolean; expiresIn?: number } }): Promise<void>` | JSON-serializes `value` and writes it; `expiresIn` is in **milliseconds** (uses `PX`); `log: true` emits an info log |
+| `get<T>` | `(opts: { key: string; transform?: (input: string) => T }): Promise<T \| null>` | Returns raw string or applies `transform`; `null` if key missing |
+| `del` | `(opts: { keys: string[] }): Promise<number>` | Deletes one or more keys; empty `keys` returns `0` |
+| `keys` | `(opts: { key: string }): Promise<string[]>` | Runs Redis `KEYS` with a glob pattern; avoid on large keyspaces - prefer `SCAN` via `execute` |
+| `getString` | `(opts: { key: string }): Promise<string \| null>` | Alias for `get` without transform |
+| `getStrings` | `(opts: { keys: string[] }): Promise<(string \| null)[]>` | Alias for `mGet` without transform |
+| `getObject<T>` | `(opts: { key: string }): Promise<T \| null>` | `get` with `JSON.parse` transform |
+| `getObjects` | `(opts: { keys: string[] }): Promise<(unknown \| null)[]>` | `mGet` with `JSON.parse` transform |
+| `mSet<T>` | `(opts: { payload: Array<{ key: string; value: T }>; options?: { log?: boolean } }): Promise<void>` | Bulk write; each value is JSON-serialized; empty `payload` is a no-op |
+| `mGet<T>` | `(opts: { keys: string[]; transform?: (input: string) => T }): Promise<(T \| null)[]>` | Bulk read with optional transform; empty `keys` returns `[]` |
+
+---
+
+### IRedisHash - hash maps
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `hSet<T>` | `(opts: { key: string; value: T; options?: { log?: boolean } }): Promise<number>` | Sets all fields in a hash object; returns number of **new** fields added |
+| `hGetAll` | `(opts: { key: string; transform?: <T, R>(input: T) => R }): Promise<unknown>` | Returns all fields and values of a hash; applies optional transform |
+| `hGet` | `(opts: { key: string; field: string }): Promise<string \| null>` | Returns the value of a single hash field |
+| `hDel` | `(opts: { key: string; fields: string[] }): Promise<number>` | Deletes one or more hash fields; empty `fields` returns `0` |
+| `hExists` | `(opts: { key: string; field: string }): Promise<boolean>` | `true` if the field exists in the hash |
+| `hKeys` | `(opts: { key: string }): Promise<string[]>` | Returns all field names in the hash |
+| `hVals` | `(opts: { key: string }): Promise<string[]>` | Returns all field values in the hash |
+| `hIncrBy` | `(opts: { key: string; field: string; value: number }): Promise<number>` | Atomically increments a numeric hash field; returns new value |
+| `hLen` | `(opts: { key: string }): Promise<number>` | Returns the number of fields in the hash |
+
+---
+
+### IRedisSet - sets
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `sAdd` | `(opts: { key: string; members: Array<string \| number> }): Promise<number>` | Adds members to a set; returns count of new members; empty `members` returns `0` |
+| `sRem` | `(opts: { key: string; members: Array<string \| number> }): Promise<number>` | Removes members from a set; returns count removed; empty `members` returns `0` |
+| `sMembers` | `(opts: { key: string }): Promise<string[]>` | Returns all members of the set |
+| `sIsMember` | `(opts: { key: string; member: string \| number }): Promise<boolean>` | `true` if `member` belongs to the set |
+| `sCard` | `(opts: { key: string }): Promise<number>` | Returns the number of members in the set |
+
+---
+
+### IRedisList - lists
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `lPush` | `(opts: { key: string; values: Array<string \| number> }): Promise<number>` | Prepends values to the list head; returns list length after push; empty `values` returns `0` |
+| `rPush` | `(opts: { key: string; values: Array<string \| number> }): Promise<number>` | Appends values to the list tail; returns list length after push; empty `values` returns `0` |
+| `lPop` | `(opts: { key: string }): Promise<string \| null>` | Removes and returns the head element; `null` if list is empty |
+| `rPop` | `(opts: { key: string }): Promise<string \| null>` | Removes and returns the tail element; `null` if list is empty |
+| `lRange` | `(opts: { key: string; start: number; stop: number }): Promise<string[]>` | Returns elements from `start` to `stop` (inclusive, 0-indexed, `-1` = last) |
+| `lLen` | `(opts: { key: string }): Promise<number>` | Returns the number of elements in the list |
+
+---
+
+### IRedisPubSub - publish/subscribe
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `publish<T>` | `(opts: { topics: string[]; payload: T; useCompress?: boolean }): Promise<void>` | JSON-serializes `payload` into a `Buffer`; optionally zlib-deflates it; publishes to each topic; skips empty/blank topics (logs error, does not throw) |
+| `subscribe` | `(opts: { topic: string }): void` | Subscribes the client to `topic`; on subscription error the helper **logs** it and does not throw |
+| `unsubscribe` | `(opts: { topic: string }): void` | Unsubscribes from `topic`; on error the helper **logs** it and does not throw |
+
+> **Important:** A subscribed ioredis connection enters subscriber mode and cannot run regular commands. Use `duplicateClient()` to obtain a separate connection for pub/sub.
+
+```typescript
+// Correct pattern - separate connections for data and pub/sub
+const dataClient = new RedisSingleHelper({ name: 'data', host, port, password });
+const subClient = new RedisSingleHelper({ name: 'sub',  host, port, password });
+
 subClient.subscribe({ topic: 'events' });
-subClient.getClient().on('message', (channel, msg) => { /* ... */ });
+subClient.getClient().on('message', (channel, message) => {
+  const parsed = JSON.parse(message.toString());
+  console.log(channel, parsed);
+});
 
-// Use dataClient for everything else
 await dataClient.set({ key: 'foo', value: 'bar' });
 ```
 
-### RedisJSON Commands Return Errors
+---
 
-**Symptoms:** `ERR unknown command 'JSON.SET'`
+### IRedisJson - RedisJSON module
 
-**Cause:** The RedisJSON module is not installed on your Redis server.
+Requires the [RedisJSON module](https://redis.io/docs/stack/json/) on the server.
 
-**Fix:** Install Redis Stack or the RedisJSON module. See [RedisJSON documentation](https://redis.io/docs/stack/json/).
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `jSet<T>` | `(opts: { key: string; path: string; value: T }): Promise<string \| null>` | Sets a JSON document at `path` (`JSON.SET`); value is `JSON.stringify`-ed |
+| `jGet<T>` | `(opts: { key: string; path?: string }): Promise<T \| null>` | Retrieves the document or sub-path (`JSON.GET`); `path` defaults to `'$'` |
+| `jDelete` | `(opts: { key: string; path?: string }): Promise<number>` | Deletes the document or sub-path (`JSON.DEL`); `path` defaults to `'$'`; returns count deleted |
+| `jNumberIncreaseBy` | `(opts: { key: string; path: string; value: number }): Promise<string \| null>` | Increments a numeric field by `value` (`JSON.NUMINCRBY`) |
+| `jStringAppend` | `(opts: { key: string; path: string; value: string }): Promise<number[] \| null>` | Appends `value` to a string field (`JSON.STRAPPEND`); returns new string lengths |
+| `jPush<T>` | `(opts: { key: string; path: string; value: T }): Promise<number[] \| null>` | Appends `value` to an array field (`JSON.ARRAPPEND`); value is `JSON.stringify`-ed; returns new array lengths |
+| `jPop<T>` | `(opts: { key: string; path: string }): Promise<T \| null>` | Pops the last element from an array field (`JSON.ARRPOP`) |
+
+---
+
+### IRedisCommand - raw escape hatch
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `execute<R>` | `(command: string, parameters?: Array<string \| number \| Buffer>): Promise<R>` | Calls any ioredis command directly via `client.call(command, parameters)` |
+
+```typescript
+// Use SCAN instead of KEYS on large keyspaces
+const [cursor, keys] = await redis.execute<[string, string[]]>(
+  'SCAN',
+  [0, 'MATCH', 'user:*', 'COUNT', 100],
+);
+
+// Fetch server info
+const info = await redis.execute<string>('INFO');
+```
+
+## 9. Using the Helper Across IGNIS
+
+All three topologies implement `IRedisHelper` and are interchangeable in every integration below. Switch topology by changing the helper you construct; the consumer code does not change.
+
+### BullMQ (BullMQHelper)
+
+`BullMQHelper` accepts a `redisConnection: IRedisHelper`. Internally it:
+- Calls `redisConnection.duplicateClient()` to create dedicated `Queue` and `Worker` connections (BullMQ requires separate connections per role).
+- Calls `redisConnection.getClient() instanceof Cluster` to detect cluster topology and adjust BullMQ configuration.
+
+`RedisSingleHelper` (and `RedisSentinelHelper`) are BullMQ-compatible out of the box because the framework sets `maxRetriesPerRequest: null` in `buildDefaultOpts`.
+
+```typescript
+import { BullMQHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+
+const redis = new RedisSingleHelper({ name: 'queue-redis', host, port, password });
+
+const queue = BullMQHelper.newInstance({
+  queueName: 'email',
+  role: 'queue',
+  redisConnection: redis,
+});
+```
+
+### Socket.IO component (SocketIOServerHelper)
+
+The Socket.IO component resolves an `AbstractRedisHelper` from its Redis-connection binding key (value `@app/socket-io/redis-connection`). Internally `SocketIOServerHelper` calls `duplicateClient()` three times - once each for the pub channel, sub channel, and emitter adapter. Bind any topology (single/cluster/sentinel); the consumer code is identical:
+
+```typescript
+import { AbstractRedisHelper, RedisSentinelHelper } from '@venizia/ignis-helpers';
+
+// In your Application preConfigure:
+const redis = new RedisSentinelHelper({ name: 'socket-redis', masterName: 'mymaster', sentinels, password });
+this.bind<AbstractRedisHelper>({ key: '@app/socket-io/redis-connection' }).to(redis);
+```
+
+See the Socket.IO component documentation for the full component registration and adapter setup.
+
+### WebSocket component (WebSocket server and emitter)
+
+The WebSocket component resolves an `AbstractRedisHelper` from its Redis-connection binding key (value `@app/websocket/redis-connection`). The `WebSocketServerHelper` calls `duplicateClient()` for its pub and sub connections; the WebSocket emitter calls `duplicateClient()` for its pub connection. Bind any topology:
+
+```typescript
+import { AbstractRedisHelper, RedisClusterHelper } from '@venizia/ignis-helpers';
+
+const redis = new RedisClusterHelper({ name: 'ws-redis', nodes });
+this.bind<AbstractRedisHelper>({ key: '@app/websocket/redis-connection' }).to(redis);
+```
+
+See the WebSocket component documentation for the full component registration.
+
+### Casbin authorization enforcer
+
+The cached Casbin enforcer (`ICasbinEnforcerCachedRedis`) accepts `connection: IRedisHelper` inside its `options`. It calls the helper's direct methods - `get`, `set` (with `options.expiresIn`), and `del` - to read, write, and invalidate cached policy keys; it does not reach the raw client. Any topology works as the `connection`:
+
+```typescript
+import type { IRedisHelper } from '@venizia/ignis-helpers';
+
+// Shape of the cached-enforcer config (see the Authorization component docs for full setup):
+const cached = {
+  use: true,
+  driver: CasbinEnforcerCachedDrivers.REDIS,
+  options: {
+    connection: redis as IRedisHelper, // any RedisSingleHelper / RedisClusterHelper / RedisSentinelHelper
+    expiresIn: 300_000, // cached-policy TTL in milliseconds
+    keyFn: ({ user }) => `authz:policy:${user.id}`,
+  },
+};
+```
+
+### Binding into an application
+
+```typescript
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { BaseApplication } from '@venizia/ignis';
+
+class MyApp extends BaseApplication {
+  async preConfigure() {
+    const redis = new RedisSingleHelper({
+      name: 'cache',
+      host: process.env.REDIS_HOST!,
+      port: Number(process.env.REDIS_PORT),
+      password: process.env.REDIS_PASSWORD!,
+    });
+
+    // Bind so components and services can resolve it
+    this.bind<RedisSingleHelper>({ key: 'helpers.RedisCache' }).to(redis);
+  }
+}
+```
+
+## 10. Production Notes
+
+- **Use a singleton per logical connection.** Construct the helper once at startup and share it. Do not construct a new helper per request - each construction opens a new connection pool.
+
+- **`duplicateClient()` for Pub/Sub.** A subscribed ioredis connection cannot run normal commands. Always call `duplicateClient()` to get a dedicated subscriber connection and keep the main client for data operations.
+
+- **Sentinel for HA; Cluster for sharding.** These are different problems. Sentinel gives you automatic failover for a single logical master. Cluster shards data across nodes. They are not interchangeable.
+
+- **TTL unit reminder:** `set.options.expiresIn` is **milliseconds**; `expire.seconds` is **seconds**; `expireAt.atEpochSeconds` is a Unix epoch in **seconds**. Mixing these up causes unexpected key expirations.
+
+- **Sentinel `sentinel auth-pass` is a server-side requirement.** If your data nodes require a password, configure `sentinel auth-pass <group> <password>` in sentinel.conf in addition to the app-side `password` field. Missing it causes false failovers even when `password` is correct.
+
+- **Avoid `keys()` in production.** The Redis `KEYS` command scans the entire keyspace and blocks the server. Use `execute('SCAN', [...])` for production pattern matching.
+
+## Import Reference
+
+```typescript
+import {
+  // Classes
+  AbstractRedisHelper,
+  RedisSingleHelper,
+  RedisClusterHelper,
+  RedisSentinelHelper,
+  // Factory
+  createRedisHelper,
+  RedisModes,
+  // Sentinel role const-class
+  RedisSentinelRoles,
+} from '@venizia/ignis-helpers';
+
+import type {
+  // Interface
+  IRedisHelper,
+  // Option types
+  IRedisSingleHelperOptions,
+  IRedisSingleHelperProps,
+  IRedisClusterHelperOptions,
+  IRedisClusterHelperProps,
+  IRedisSentinelHelperOptions,
+  IRedisSentinelHelperProps,
+  IRedisHelperCallbacks,
+  // Client + enum types
+  TRedisClient,
+  TRedisMode,
+  TRedisSentinelRole,
+} from '@venizia/ignis-helpers';
+```
 
 ## See Also
 
-- **Related Concepts:**
-  - [Services](/guides/core-concepts/services) - Using Redis in services
-
-- **Other Helpers:**
-  - [Helpers Index](../index) - All available helpers
-  - [Queue Helper](../queue/) - BullMQ uses Redis as backend
-
-- **References:**
-  - [DataSources](/references/base/datasources) - Database connections
-
-- **External Resources:**
-  - [ioredis Documentation](https://github.com/redis/ioredis) - Redis client library
-  - [Redis Commands](https://redis.io/commands/) - Redis command reference
-  - [RedisJSON](https://redis.io/docs/stack/json/) - JSON module documentation
-
-- **Best Practices:**
-  - [Performance Optimization](/best-practices/performance-optimization) - Caching strategies
-  - [Security Guidelines](/best-practices/security-guidelines) - Redis security
+- [Helpers Index](../index) - All available helpers
+- [Queue Helper](../queue/) - BullMQ uses the Redis helper as its connection backend
+- [Socket.IO Component](/references/components/socket-io) - Uses `duplicateClient` for pub/sub adapter
+- [WebSocket Component](/references/components/websocket) - Uses `duplicateClient` for pub/sub channels
+- [Authorization Component](/references/components/authorization) - Casbin enforcer uses `getClient` for cache operations
+- [ioredis documentation](https://github.com/redis/ioredis) - Underlying Redis client
+- [Redis Sentinel documentation](https://redis.io/docs/management/sentinel/) - Sentinel architecture reference
+- [RedisJSON documentation](https://redis.io/docs/stack/json/) - Required for `j*` methods

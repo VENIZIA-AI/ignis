@@ -124,7 +124,13 @@ const redisOptions = (opts: {
     use: true,
     driver: 'redis',
     options: {
-      connection: { client: opts.client } as any,
+      connection: {
+        getClient: () => opts.client,
+        get: ({ key }: { key: string }) => opts.client.get(key),
+        set: ({ key, value }: { key: string; value: unknown }) =>
+          opts.client.set(key, JSON.stringify(value)),
+        del: ({ keys }: { keys: string[] }) => opts.client.del(...keys),
+      } as any,
       expiresIn: 60_000,
       keyFn: ({ user }) => `casbin:User:${user.userId}`,
     },
@@ -181,7 +187,17 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
         cached: {
           use: true,
           driver: 'redis',
-          options: { connection: { client } as any, expiresIn: 60_000, keyFn: () => '' },
+          options: {
+            connection: {
+              getClient: () => client,
+              get: ({ key }: { key: string }) => client.get(key),
+              set: ({ key, value }: { key: string; value: unknown }) =>
+                client.set(key, JSON.stringify(value)),
+              del: ({ keys }: { keys: string[] }) => client.del(...keys),
+            } as any,
+            expiresIn: 60_000,
+            keyFn: () => '',
+          },
         },
       });
 

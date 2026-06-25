@@ -500,9 +500,9 @@ Full-featured Redis client wrapper around IoRedis supporting single instances an
 ### Single Instance
 
 ```typescript
-import { RedisHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 
-const redis = new RedisHelper({
+const redis = new RedisSingleHelper({
   name: 'main-redis',
   host: '127.0.0.1',
   port: 6379,
@@ -536,7 +536,7 @@ const cluster = new RedisClusterHelper({
 });
 ```
 
-Both `RedisHelper` and `RedisClusterHelper` extend `DefaultRedisHelper`, which provides all data operations. They differ only in how the underlying IoRedis client is created.
+Both `RedisSingleHelper` and `RedisClusterHelper` extend `AbstractRedisHelper`, which provides all data operations. They differ only in how the underlying IoRedis client is created.
 
 ### String Operations
 
@@ -787,7 +787,7 @@ const producer = BullMQHelper.newInstance({
   queueName: 'email-queue',
   identifier: 'email-producer',
   role: 'queue',                  // 'queue' = producer, 'worker' = consumer
-  redisConnection: redis,          // DefaultRedisHelper instance
+  redisConnection: redis,          // IRedisHelper instance
 });
 
 // Add jobs to the queue
@@ -1660,7 +1660,7 @@ const io = new SocketIOServerHelper({
     cors: { origin: '*' },
     path: '/socket.io',
   },
-  redisConnection: redis,        // DefaultRedisHelper instance
+  redisConnection: redis,        // IRedisHelper instance
   defaultRooms: ['io-default', 'io-notification'],
   authenticateTimeout: 10_000,   // 10s to authenticate
   pingInterval: 30_000,          // 30s ping interval
@@ -1784,7 +1784,7 @@ import { WebSocketServerHelper } from '@venizia/ignis-helpers';
 const ws = new WebSocketServerHelper({
   identifier: 'realtime',
   server: bunServer,              // Bun server instance (IBunServer)
-  redisConnection: redis,         // DefaultRedisHelper instance
+  redisConnection: redis,         // IRedisHelper instance
   path: '/ws',                    // Default: '/ws'
   authTimeout: 5_000,             // 5s to authenticate (default)
   heartbeatInterval: 30_000,      // 30s between heartbeats (default)
@@ -2907,13 +2907,13 @@ The helpers package is designed to integrate with the IGNIS framework's IoC cont
 
 ```typescript
 import { BaseApplication, BootMixin } from '@venizia/ignis';
-import { RedisHelper, Logger } from '@venizia/ignis-helpers';
+import { RedisSingleHelper, Logger } from '@venizia/ignis-helpers';
 
 class MyApplication extends BootMixin(BaseApplication) {
   async preConfigure() {
     // Register Redis as a singleton binding
     this.container.bind('datasources.Redis').to(
-      new RedisHelper({
+      new RedisSingleHelper({
         name: 'main',
         host: process.env.REDIS_HOST,
         port: parseInt(process.env.REDIS_PORT),
@@ -3005,7 +3005,7 @@ Complete table of all environment variables used across all helpers modules.
 All connection helpers use lifecycle hooks for error handling. Errors are never swallowed -- they are logged and forwarded to your callback:
 
 ```typescript
-const redis = new RedisHelper({
+const redis = new RedisSingleHelper({
   // ...
   onError: ({ name, helper, error }) => {
     // Log to external monitoring

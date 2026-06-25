@@ -92,7 +92,7 @@ import {
   WebSocketBindingKeys,
 } from '@venizia/ignis/websocket';
 import {
-  RedisHelper,
+  RedisSingleHelper,
 } from '@venizia/ignis-helpers';
 import type {
   TWebSocketAuthenticateFn,
@@ -107,7 +107,7 @@ import type {
 } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
-  private redisHelper: RedisHelper;
+  private redisHelper: RedisSingleHelper;
 
   preConfigure(): ValueOrPromise<void> {
     this.setupWebSocket();
@@ -116,7 +116,7 @@ export class Application extends BaseApplication {
 
   setupWebSocket() {
     // 1. Redis connection (required for cross-instance messaging)
-    this.redisHelper = new RedisHelper({
+    this.redisHelper = new RedisSingleHelper({
       name: 'websocket-redis',
       host: process.env.REDIS_HOST ?? 'localhost',
       port: +(process.env.REDIS_PORT ?? 6379),
@@ -124,7 +124,7 @@ export class Application extends BaseApplication {
       autoConnect: false,
     });
 
-    this.bind<RedisHelper>({
+    this.bind<RedisSingleHelper>({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 
@@ -331,7 +331,7 @@ interface IServerOptions {
 | Binding Key | Constant | Type | Required | Default |
 |------------|----------|------|----------|---------|
 | `@app/websocket/server-options` | `WebSocketBindingKeys.SERVER_OPTIONS` | `Partial<IServerOptions>` | No | See [Configuration](#configuration) |
-| `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `DefaultRedisHelper` | **Yes** | `null` |
+| `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `IRedisHelper` | **Yes** | `null` |
 | `@app/websocket/authenticate-handler` | `WebSocketBindingKeys.AUTHENTICATE_HANDLER` | `TWebSocketAuthenticateFn` | **Yes** | `null` |
 | `@app/websocket/validate-room-handler` | `WebSocketBindingKeys.VALIDATE_ROOM_HANDLER` | `TWebSocketValidateRoomFn` | No | `null` |
 | `@app/websocket/client-connected-handler` | `WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | `null` |

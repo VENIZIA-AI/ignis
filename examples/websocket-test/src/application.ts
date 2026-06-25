@@ -17,7 +17,7 @@ import {
   Environment,
   HTTP,
   int,
-  RedisHelper,
+  RedisSingleHelper,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
   TWebSocketClientDisconnectedFn,
@@ -48,7 +48,7 @@ export const beConfigs: IApplicationConfigs = {
 
 // -----------------------------------------------------------------------------------------------
 export class Application extends BaseApplication {
-  private redisHelper: RedisHelper;
+  private redisHelper: RedisSingleHelper;
 
   // --------------------------------------------------------------------------------
   override getProjectRoot(): string {
@@ -129,7 +129,7 @@ export class Application extends BaseApplication {
       EnvironmentKeys.APP_ENV_REDIS_WS_PASSWORD,
     );
 
-    this.redisHelper = new RedisHelper({
+    this.redisHelper = new RedisSingleHelper({
       name: 'websocket-redis',
       host: redisHost,
       port: redisPort,
@@ -137,7 +137,7 @@ export class Application extends BaseApplication {
       autoConnect: false,
     });
 
-    this.bind<RedisHelper>({
+    this.bind<RedisSingleHelper>({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 

@@ -170,7 +170,7 @@ The helper uses a **discriminated union** for its constructor options, keyed on 
 interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   defaultRooms?: string[];               // Default: ['io-default', 'io-notification']
   authenticateTimeout?: number;           // Default: 10_000 (10 seconds)
   pingInterval?: number;                  // Default: 30_000 (30 seconds)
@@ -201,7 +201,7 @@ During construction:
 4. Calls `initRedisClients()` -- creates 3 duplicated Redis clients from the connection
 
 > [!IMPORTANT]
-> Redis clients are **duplicated** from the parent connection (`client.duplicate()`). This means the helper uses 3 independent connections (pub, sub, emitter) that inherit config from the parent but maintain separate state. The parent `RedisHelper` connection is not consumed.
+> Redis clients are **duplicated** from the parent connection (`client.duplicate()`). This means the helper uses 3 independent connections (pub, sub, emitter) that inherit config from the parent but maintain separate state. The parent `RedisSingleHelper` connection is not consumed.
 
 ### `configure()` -- Server Initialization
 
@@ -629,7 +629,7 @@ Reads all binding keys from the DI container and validates required ones:
 | Binding | Validation | Error on Failure |
 |---------|-----------|------------------|
 | `SERVER_OPTIONS` | Optional, merged with defaults via `Object.assign()` | -- |
-| `REDIS_CONNECTION` | Must be `instanceof DefaultRedisHelper` | `"Invalid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!"` |
+| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)"` |
 | `AUTHENTICATE_HANDLER` | Must be a function (non-null) | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, resolved from container, `null` coerced to `undefined` | -- |
 | `CLIENT_CONNECTED_HANDLER` | Optional, resolved from container, `null` coerced to `undefined` | -- |
@@ -681,10 +681,10 @@ Node mode is simpler because Socket.IO natively attaches to `node:http.Server`.
 
 ### Redis 3-Client Architecture
 
-The server helper creates 3 independent Redis connections from a single `DefaultRedisHelper`:
+The server helper creates 3 independent Redis connections from a single `AbstractRedisHelper` instance:
 
 ```
-RedisHelper (parent -- NOT consumed)
+RedisSingleHelper (parent -- NOT consumed)
   |
   +-- client.duplicate() --> redisPub    (for Redis adapter -- publishes)
   |
@@ -696,7 +696,7 @@ RedisHelper (parent -- NOT consumed)
 **Why 3 clients?**
 - `@socket.io/redis-adapter` requires separate pub and sub clients because a Redis connection in subscribe mode cannot execute other commands
 - `@socket.io/redis-emitter` uses its own client to emit messages independently of the adapter, enabling cross-instance broadcasting even from contexts without a direct Socket.IO reference
-- The parent `RedisHelper` connection remains independent and is not consumed -- it can be used for other purposes (e.g., caching, sessions)
+- The parent `RedisSingleHelper` connection remains independent and is not consumed -- it can be used for other purposes (e.g., caching, sessions)
 
 **`TRedisClient` type:**
 ```typescript
@@ -826,7 +826,7 @@ type TSocketIOServerOptions = ISocketIOServerNodeOptions | ISocketIOServerBunOpt
 interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   defaultRooms?: string[];
   authenticateTimeout?: number;
   pingInterval?: number;
@@ -915,7 +915,7 @@ interface IServerOptions extends ServerOptions {
 
 // Resolved binding values from DI container
 interface IResolvedBindings {
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   authenticateFn: TSocketIOAuthenticateFn;
   validateRoomFn?: TSocketIOValidateRoomFn;
   clientConnectedFn?: TSocketIOClientConnectedFn;

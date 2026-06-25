@@ -95,14 +95,14 @@ Client connects via WebSocket upgrade
 #### Redis 2-Client Architecture
 
 ```
-RedisHelper (parent -- NOT consumed)
+RedisSingleHelper (parent -- NOT consumed)
   |
   +-- client.duplicate() --> redisPub    (publishes cross-instance messages)
   |
   +-- client.duplicate() --> redisSub    (subscribes to cross-instance messages)
 ```
 
-Both single-instance `Redis` and `Cluster` connections from ioredis are supported. The parent `RedisHelper` connection remains independent.
+Both single-instance `Redis` and `Cluster` connections from ioredis are supported. The parent `RedisSingleHelper` connection remains independent.
 
 ## Server API
 
@@ -549,7 +549,7 @@ interface IWebSocketServerOptions<
 > {
   identifier: string;
   path?: string;                    // Default: '/ws'
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   server: IBunServer;
   defaultRooms?: string[];          // Default: ['ws-default', 'ws-notification']
   serverOptions?: IBunWebSocketConfig;
@@ -570,7 +570,7 @@ interface IWebSocketServerOptions<
 
 interface IWebSocketEmitterOptions {
   identifier?: string;              // Default: 'WebSocketEmitter'
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
 }
 ```
 

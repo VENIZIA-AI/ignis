@@ -1,9 +1,9 @@
 import { int } from '@/utilities';
 import { Cluster, type ClusterOptions } from 'ioredis';
-import { DefaultRedisHelper } from './default.helper';
-import { IRedisClusterHelperOptions } from './types';
+import { AbstractRedisHelper } from './../base';
+import { IRedisClusterHelperOptions } from './../common';
 
-export class RedisClusterHelper extends DefaultRedisHelper {
+export class RedisClusterHelper extends AbstractRedisHelper<Cluster> {
   private startupNodes: Array<{ host: string; port: number; password?: string }>;
   private clusterOpts?: ClusterOptions;
 

@@ -44,15 +44,16 @@ import type {
 
 ```typescript
 import { SocketIOServerHelper } from '@venizia/ignis-helpers';
-import { DefaultRedisHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import { createServer } from 'node:http';
 
 const httpServer = createServer();
 
-const redisHelper = new DefaultRedisHelper({
+const redisHelper = new RedisSingleHelper({
   name: 'socket-redis',
   host: 'localhost',
   port: 6379,
+  password: '',
 });
 
 const socketServer = new SocketIOServerHelper({
@@ -92,7 +93,7 @@ A discriminated union based on the `runtime` field:
 | `server` | `HTTPServer` | -- | Node.js HTTP server instance. **Required when `runtime` is `'node'`** |
 | `engine` | `any` | -- | `@socket.io/bun-engine` Server instance. **Required when `runtime` is `'bun'`** |
 | `serverOptions` | `Partial<ServerOptions>` | `{}` | Socket.IO `ServerOptions` (cors, path, transports, etc.) |
-| `redisConnection` | `DefaultRedisHelper` | -- | **Required.** Redis helper used to create pub, sub, and emitter clients |
+| `redisConnection` | `IRedisHelper` | -- | **Required.** Redis helper used to create pub, sub, and emitter clients |
 | `authenticateFn` | `TSocketIOAuthenticateFn` | -- | **Required.** Called with the client's handshake data. Return `true` to accept, `false` to reject |
 | `validateRoomFn` | `TSocketIOValidateRoomFn` | `undefined` | Called when a client requests to join rooms. Return the allowed subset |
 | `clientConnectedFn` | `TSocketIOClientConnectedFn` | `undefined` | Called after a client is fully authenticated and has joined default rooms |
@@ -481,7 +482,7 @@ client.shutdown();
 
 **Cause:** The `redisConnection` option is missing, `null`, or `undefined`.
 
-**Fix:** Pass a valid `DefaultRedisHelper` instance.
+**Fix:** Pass a valid `IRedisHelper` instance (e.g., `RedisSingleHelper` or `RedisClusterHelper`).
 
 ### `[on] Invalid topic to start binding handler`
 

@@ -12,7 +12,7 @@ import {
   WebSocketEmitter,
 } from '@/modules/socket/websocket';
 import type { IWebSocketServerOptions, IRedisSocketMessage } from '@/modules/socket/websocket';
-import { DefaultRedisHelper } from '@/modules/redis';
+import { type IRedisHelper } from '@/modules/redis';
 
 const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -85,12 +85,13 @@ class MockRedisClient extends EventEmitter {
   }
 }
 
-function createMockRedisHelper(): DefaultRedisHelper & { mockClient: MockRedisClient } {
+function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient } {
   const mockClient = new MockRedisClient();
   const helper = {
     getClient: () => mockClient,
+    duplicateClient: () => mockClient.duplicate(),
     mockClient,
-  } as unknown as DefaultRedisHelper & { mockClient: MockRedisClient };
+  } as unknown as IRedisHelper & { mockClient: MockRedisClient };
   return helper;
 }
 
@@ -354,7 +355,7 @@ describe('WebSocketServerHelper', () => {
   let helper: WebSocketServerHelper;
   let opts: IWebSocketServerOptions;
   let mockBunServer: ReturnType<typeof createMockBunServer>;
-  let mockRedisHelper: DefaultRedisHelper & { mockClient: MockRedisClient };
+  let mockRedisHelper: IRedisHelper & { mockClient: MockRedisClient };
 
   beforeEach(() => {
     mockBunServer = createMockBunServer();
@@ -444,7 +445,8 @@ describe('WebSocketServerHelper', () => {
 
       const waitRedisHelper = {
         getClient: () => waitClient,
-      } as unknown as DefaultRedisHelper;
+        duplicateClient: () => waitClient.duplicate(),
+      } as unknown as IRedisHelper;
 
       const waitHelper = new WebSocketServerHelper({
         ...opts,
@@ -2059,7 +2061,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
   let helper: WebSocketServerHelper;
   let opts: IWebSocketServerOptions;
   let mockBunServer: ReturnType<typeof createMockBunServer>;
-  let mockRedisHelper: DefaultRedisHelper & { mockClient: MockRedisClient };
+  let mockRedisHelper: IRedisHelper & { mockClient: MockRedisClient };
 
   beforeEach(() => {
     mockBunServer = createMockBunServer();
@@ -2194,7 +2196,7 @@ describe('Heartbeat — Application-Level Liveness Check', () => {
 
 describe('WebSocketEmitter', () => {
   let emitter: WebSocketEmitter;
-  let mockRedisHelper: DefaultRedisHelper & { mockClient: MockRedisClient };
+  let mockRedisHelper: IRedisHelper & { mockClient: MockRedisClient };
   let redisPub: MockRedisClient;
 
   beforeEach(() => {
@@ -2251,7 +2253,8 @@ describe('WebSocketEmitter', () => {
 
       const waitRedisHelper = {
         getClient: () => waitClient,
-      } as unknown as DefaultRedisHelper;
+        duplicateClient: () => waitClient.duplicate(),
+      } as unknown as IRedisHelper;
 
       const waitEmitter = new WebSocketEmitter({
         redisConnection: waitRedisHelper,

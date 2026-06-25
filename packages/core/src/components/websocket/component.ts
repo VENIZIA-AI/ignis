@@ -4,7 +4,7 @@ import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common/bindings';
 import { Binding } from '@/helpers/inversion';
 import {
-  DefaultRedisHelper,
+  AbstractRedisHelper,
   getError,
   HTTP,
   RuntimeModules,
@@ -41,7 +41,7 @@ export class WebSocketComponent extends BaseComponent {
           key: WebSocketBindingKeys.SERVER_OPTIONS,
         }).toValue(DEFAULT_SERVER_OPTIONS),
 
-        [WebSocketBindingKeys.REDIS_CONNECTION]: Binding.bind<DefaultRedisHelper | null>({
+        [WebSocketBindingKeys.REDIS_CONNECTION]: Binding.bind<AbstractRedisHelper | null>({
           key: WebSocketBindingKeys.REDIS_CONNECTION,
         }).toValue(null),
 
@@ -89,13 +89,13 @@ export class WebSocketComponent extends BaseComponent {
       }) ?? {};
     this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
 
-    const redisConnection = this.application.get<DefaultRedisHelper>({
+    const redisConnection = this.application.get<AbstractRedisHelper>({
       key: WebSocketBindingKeys.REDIS_CONNECTION,
     });
-    if (!(redisConnection instanceof DefaultRedisHelper)) {
+    if (!(redisConnection instanceof AbstractRedisHelper)) {
       throw getError({
         message:
-          '[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!',
+          '[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)!',
       });
     }
 

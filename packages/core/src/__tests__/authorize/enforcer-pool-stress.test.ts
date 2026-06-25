@@ -138,7 +138,13 @@ function redisCached(opts: {
     use: true,
     driver: 'redis',
     options: {
-      connection: { client: opts.client } as never,
+      connection: {
+        getClient: () => opts.client,
+        get: ({ key }: { key: string }) => opts.client.get(key),
+        set: ({ key, value }: { key: string; value: unknown }) =>
+          opts.client.set(key, JSON.stringify(value)),
+        del: ({ keys }: { keys: string[] }) => opts.client.del(...keys),
+      } as never,
       expiresIn: 60_000,
       keyFn: (opts.keyFn ?? (({ user }) => `casbin:User:${user.userId}`)) as never,
     },

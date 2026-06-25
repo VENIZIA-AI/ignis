@@ -109,10 +109,10 @@ It connects to Redis and publishes messages using the same `IRedisSocketMessage`
 #### Emitter Setup
 
 ```typescript
-import { WebSocketEmitter, RedisHelper } from '@venizia/ignis-helpers';
+import { WebSocketEmitter, RedisSingleHelper } from '@venizia/ignis-helpers';
 
 // 1. Create a Redis connection (same Redis instance as the WebSocket server)
-const redisHelper = new RedisHelper({
+const redisHelper = new RedisSingleHelper({
   name: 'emitter-redis',
   host: process.env.REDIS_HOST ?? 'localhost',
   port: +(process.env.REDIS_PORT ?? 6379),

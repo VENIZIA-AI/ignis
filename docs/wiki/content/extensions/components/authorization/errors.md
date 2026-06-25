@@ -389,7 +389,7 @@ Check that rules are being cached correctly. The middleware caches on `Authoriza
 
 ### Redis Cache Not Working
 
-1. **Check Redis connection** -- verify `DefaultRedisHelper` is properly connected
+1. **Check Redis connection** -- verify the `AbstractRedisHelper` subclass (`RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`) is properly connected
 2. **Check keyFn** -- ensure it returns a unique, non-empty key per user
 3. **Check expiresIn** -- must be >= 10,000 ms (`MIN_EXPIRES_IN`)
 4. **Verify cache hit** -- check logs for `"Loaded CACHED Policies"` vs `"Loaded ADAPTER + CACHED Policies"`

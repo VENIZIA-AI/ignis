@@ -28,7 +28,7 @@ The server can send `error` events or close the connection under the following c
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind WebSocketComponent"` |
 | `binding()` | Node.js runtime detected | `"[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime."` |
-| `resolveBindings()` | `REDIS_CONNECTION` not instanceof `DefaultRedisHelper` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!"` |
+| `resolveBindings()` | `REDIS_CONNECTION` not instanceof `AbstractRedisHelper` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)"` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!"` |
 | `registerBunHook()` | Bun server instance not available | `"[WebSocketComponent] Bun server instance not available!"` |
 
@@ -42,20 +42,20 @@ The server can send `error` events or close the connection under the following c
 
 ### "Invalid instance of redisConnection"
 
-**Cause**: The value bound to `REDIS_CONNECTION` is not an instance of `DefaultRedisHelper` (or its subclasses `RedisHelper` / `RedisClusterHelper`).
+**Cause**: The value bound to `REDIS_CONNECTION` is not an instance of `AbstractRedisHelper` (i.e. not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`).
 
-**Fix**: Use `RedisHelper` (single instance) or `RedisClusterHelper` (cluster mode):
+**Fix**: Use one of the concrete topology helpers:
 
 ```typescript
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 
 // Correct
 this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION })
-  .toValue(new RedisHelper({ name: 'websocket', host, port, password }));
+  .toValue(new RedisSingleHelper({ name: 'websocket', host, port, password }));
 
 // Wrong -- raw ioredis client
 this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION })
-  .toValue(new Redis(6379));  // This is NOT a DefaultRedisHelper!
+  .toValue(new Redis(6379));  // This is NOT an AbstractRedisHelper!
 ```
 
 ### "Invalid authenticateFn to setup WebSocket server!"

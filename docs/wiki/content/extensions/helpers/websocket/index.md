@@ -58,7 +58,7 @@ const helper = new WebSocketServerHelper({
   identifier: 'my-ws-server',
   path: '/ws',
   server: bunServerInstance,           // Bun.Server
-  redisConnection: myRedisHelper,      // DefaultRedisHelper
+  redisConnection: myRedisHelper,      // IRedisHelper
   authenticateFn: async (data) => {
     const { token } = data as { token: string };
     const user = await verifyJWT(token);
@@ -89,7 +89,7 @@ await helper.configure();
 | `identifier` | `string` | Yes | -- | Unique name for this WebSocket server instance |
 | `path` | `string` | No | `'/ws'` | URL path for WebSocket upgrade requests |
 | `server` | `IBunServer` | Yes | -- | Bun server instance (provides `publish()` for native pub/sub) |
-| `redisConnection` | `DefaultRedisHelper` | Yes | -- | Redis helper for cross-instance messaging. Creates 2 duplicate connections internally |
+| `redisConnection` | `IRedisHelper` | Yes | -- | Redis helper for cross-instance messaging. Creates 2 duplicate connections internally |
 | `defaultRooms` | `string[]` | No | `['ws-default', 'ws-notification']` | Rooms clients auto-join after authentication |
 | `serverOptions` | `IBunWebSocketConfig` | No | See defaults below | Bun native WebSocket configuration |
 | `authTimeout` | `number` | No | `5000` (5s) | Milliseconds before unauthenticated clients are disconnected (close code `4001`) |
@@ -155,7 +155,7 @@ await emitter.configure();
 | Option | Type | Required | Default | Description |
 |--------|------|----------|---------|-------------|
 | `identifier` | `string` | No | `'WebSocketEmitter'` | Unique name for logging |
-| `redisConnection` | `DefaultRedisHelper` | Yes | -- | Redis helper. Creates 1 duplicate connection internally |
+| `redisConnection` | `IRedisHelper` | Yes | -- | Redis helper. Creates 1 duplicate connection internally |
 
 ## Usage
 
@@ -555,20 +555,20 @@ Authentication succeeds but the client is immediately closed with code `4004`.
 
 ### "[WebSocketServerHelper] Invalid redis connection!"
 
-Thrown during construction when `redisConnection` is `null`/`undefined`. Ensure you pass a valid `DefaultRedisHelper` instance.
+Thrown during construction when `redisConnection` is `null`/`undefined`. Ensure you pass a valid `IRedisHelper` instance (e.g., `RedisSingleHelper`).
 
 ### "[WebSocketEmitter] Invalid redis connection!"
 
-Thrown during `WebSocketEmitter` construction when `redisConnection` is `null`/`undefined`. Ensure you pass a valid `DefaultRedisHelper` instance.
+Thrown during `WebSocketEmitter` construction when `redisConnection` is `null`/`undefined`. Ensure you pass a valid `IRedisHelper` instance (e.g., `RedisSingleHelper`).
 
 ### "Redis client did not become ready within 30000ms"
 
-Thrown during `configure()` when a Redis client fails to reach `ready` status. Check that the Redis server is reachable and the parent `DefaultRedisHelper` connection is properly configured.
+Thrown during `configure()` when a Redis client fails to reach `ready` status. Check that the Redis server is reachable and the `IRedisHelper` instance is properly configured.
 
 ## See Also
 
 - [API Reference](./api) -- Full method signatures, types, and constants
 - [Socket.IO Helper](../socket-io/) -- Socket.IO-based alternative with Node.js support
-- [Redis Helper](../redis/) -- `RedisHelper` used for cross-instance messaging
+- [Redis Helper](../redis/) -- `RedisSingleHelper` or `RedisClusterHelper` used for cross-instance messaging
 - [Crypto Helper](../crypto/) -- ECDH key exchange for WebSocket encryption
 - [WebSocket Component](/extensions/components/websocket/) -- Component-level lifecycle integration

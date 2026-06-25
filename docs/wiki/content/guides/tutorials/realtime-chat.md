@@ -966,7 +966,7 @@ import {
 import {
   applicationEnvironment,
   type ISocketIOServerBaseOptions,
-  RedisHelper,
+  RedisSingleHelper,
   SocketIOServerHelper,
 } from '@venizia/ignis-helpers';
 import { ChatService } from './services/chat.service';
@@ -976,7 +976,7 @@ import { RoomRepository, RoomMemberRepository } from './repositories/room.reposi
 import { MessageRepository, DirectMessageRepository } from './repositories/message.repository';
 
 export class ChatApp extends BaseApplication {
-  private redisHelper: RedisHelper;
+  private redisHelper: RedisSingleHelper;
 
   getAppInfo(): IApplicationInfo {
     return { name: 'chat-api', version: '1.0.0' };
@@ -1010,7 +1010,7 @@ export class ChatApp extends BaseApplication {
   private setupSocketIO() {
     // 1. Redis connection - SocketIOServerHelper creates 3 duplicate connections
     //    for adapter (pub/sub) and emitter automatically
-    this.redisHelper = new RedisHelper({
+    this.redisHelper = new RedisSingleHelper({
       name: 'chat-redis',
       host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
       port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
@@ -1018,7 +1018,7 @@ export class ChatApp extends BaseApplication {
       autoConnect: false,
     });
 
-    this.bind<RedisHelper>({
+    this.bind<RedisSingleHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 
@@ -1114,7 +1114,7 @@ Application Lifecycle
 preConfigure()
   ├── Register repositories, services, controllers
   └── setupSocketIO()
-        ├── Bind RedisHelper → REDIS_CONNECTION
+        ├── Bind RedisSingleHelper → REDIS_CONNECTION
         ├── Bind authenticateFn → AUTHENTICATE_HANDLER
         ├── Bind clientConnectedFn → CLIENT_CONNECTED_HANDLER
         ├── Bind server options → SERVER_OPTIONS
@@ -1464,7 +1464,7 @@ Redis scaling is **built-in** and **automatic** when using `SocketIOComponent`. 
 
 ### How It Works
 
-When you bind a `RedisHelper` to `SocketIOBindingKeys.REDIS_CONNECTION`, the `SocketIOServerHelper` automatically:
+When you bind a `RedisSingleHelper` (or any `AbstractRedisHelper` subclass) to `SocketIOBindingKeys.REDIS_CONNECTION`, the `SocketIOServerHelper` automatically:
 
 1. Creates 3 duplicate Redis connections from your helper
 2. Sets up `@socket.io/redis-adapter` for cross-instance pub/sub
@@ -1499,10 +1499,10 @@ All calls to `socketIOHelper.send()` go through the Redis emitter, so messages r
 
 ### Redis Configuration
 
-The only thing you need is a `RedisHelper` bound to the correct key (already done in the application setup):
+The only thing you need is a `RedisSingleHelper` bound to the correct key (already done in the application setup):
 
 ```typescript
-this.redisHelper = new RedisHelper({
+this.redisHelper = new RedisSingleHelper({
   name: 'chat-redis',
   host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
   port: +(process.env.APP_ENV_REDIS_PORT ?? 6379),
@@ -1510,7 +1510,7 @@ this.redisHelper = new RedisHelper({
   autoConnect: false,
 });
 
-this.bind<RedisHelper>({
+this.bind<RedisSingleHelper>({
   key: SocketIOBindingKeys.REDIS_CONNECTION,
 }).toValue(this.redisHelper);
 ```
@@ -1525,7 +1525,7 @@ this.bind<RedisHelper>({
 | Presence | `socketIOHelper.send()` broadcast on connect/disconnect |
 | History | REST API with cursor-based pagination |
 | Authentication | `SocketIOServerHelper` built-in flow (connect → authenticate → authenticated) |
-| Scaling | Redis adapter/emitter - automatic via `RedisHelper` binding |
+| Scaling | Redis adapter/emitter - automatic via `RedisSingleHelper` binding |
 | Runtime | Auto-detected (Node.js or Bun) by `SocketIOComponent` |
 
 ## Next Steps

@@ -1,7 +1,7 @@
 import { HTTP } from '@/common';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TRedisClient } from '@/modules/redis/types';
+import { TRedisClient } from '@/modules/redis';
 import { EventEmitter } from 'node:events';
 import {
   IRedisSocketMessage,

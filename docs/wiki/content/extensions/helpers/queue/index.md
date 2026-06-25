@@ -75,7 +75,7 @@ All queue helpers extend `BaseHelper` (Kafka helpers via `BaseKafkaHelper`), pro
 The `BullMQHelper` wraps the BullMQ library for Redis-backed job queuing. It operates in one of two roles: `'queue'` (producer) or `'worker'` (consumer). The role is set at construction time and determines which BullMQ primitives are initialized.
 
 ```typescript
-import { DefaultRedisHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
 const worker = new BullMQHelper({
@@ -107,7 +107,7 @@ const worker = new BullMQHelper({
 | `queueName` | `string` | -- | Name of the BullMQ queue. Must be non-empty. |
 | `identifier` | `string` | -- | Unique identifier used for scoped logging. |
 | `role` | `TBullQueueRole` | -- | `'queue'` (producer) or `'worker'` (consumer). |
-| `redisConnection` | `DefaultRedisHelper` | -- | Redis helper instance. The helper calls `duplicateClient()` internally. |
+| `redisConnection` | `IRedisHelper` | -- | Redis helper instance. The helper calls `duplicateClient()` internally. |
 | `numberOfWorker` | `number` | `1` | Worker concurrency (number of jobs processed in parallel). |
 | `lockDuration` | `number` | `5400000` | Job lock duration in milliseconds (default: 90 minutes). |
 | `onWorkerData` | `(job: Job<TQueueElement, TQueueResult>) => Promise<any>` | `undefined` | Job processing callback. If omitted, the worker logs job details. |
@@ -115,7 +115,7 @@ const worker = new BullMQHelper({
 | `onWorkerDataFail` | `(job: Job<TQueueElement, TQueueResult> \| undefined, error: Error) => Promise<void>` | `undefined` | Callback fired when a job fails. |
 
 > [!IMPORTANT]
-> Pass the `DefaultRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. The helper internally calls `redisConnection.duplicateClient()` to create dedicated connections for the queue and worker.
+> Pass an `IRedisHelper` instance to `redisConnection`, **not** the raw ioredis client. The helper internally calls `redisConnection.duplicateClient()` to create dedicated connections for the queue and worker.
 
 ### MQTTClientHelper
 
@@ -442,34 +442,28 @@ If `onWorkerData` is not provided, the worker logs the job's `id`, `name`, and `
 
 ### BullMQ -- Redis Cluster
 
-When using Redis Cluster with BullMQ, you must set `maxRetriesPerRequest: null` on the cluster config -- this is **required** by BullMQ.
+When using Redis Cluster with BullMQ, use `RedisClusterHelper`. Set `maxRetriesPerRequest: null` inside `clusterOptions.redisOptions` -- this is **required** by BullMQ.
 
 ```typescript
-import { Cluster } from 'ioredis';
-import { DefaultRedisHelper } from '@venizia/ignis-helpers';
+import { RedisClusterHelper } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 
-const cluster = new Cluster(
-  [
+const redisHelper = new RedisClusterHelper({
+  name: 'cluster-redis',
+  nodes: [
     { host: 'node1.redis.example.com', port: 6379 },
     { host: 'node2.redis.example.com', port: 6379 },
     { host: 'node3.redis.example.com', port: 6379 },
   ],
-  {
-    maxRetriesPerRequest: null,  // Required by BullMQ
+  clusterOptions: {
     enableReadyCheck: true,
     scaleReads: 'slave',
     redisOptions: {
       password: 'your-password',
       tls: {},
+      maxRetriesPerRequest: null,  // Required by BullMQ
     },
-  }
-);
-
-const redisHelper = new DefaultRedisHelper({
-  scope: 'BullMQ',
-  identifier: 'cluster-redis',
-  client: cluster,
+  },
 });
 
 const worker = BullMQHelper.newInstance({

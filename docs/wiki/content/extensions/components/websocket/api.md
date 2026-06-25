@@ -111,7 +111,7 @@ upgrade()  fetch(req, server)
 ```typescript
 interface IWebSocketEmitterOptions {
   identifier?: string;           // Default: 'WebSocketEmitter' (used as logger scope)
-  redisConnection: DefaultRedisHelper;  // Required -- same Redis as the server(s)
+  redisConnection: IRedisHelper;  // Required -- same Redis as the server(s)
 }
 ```
 
@@ -217,7 +217,7 @@ Reads all binding keys from the DI container and validates required ones:
 | Binding | Validation | Error on Failure |
 |---------|-----------|------------------|
 | `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
-| `REDIS_CONNECTION` | Must be `instanceof DefaultRedisHelper` | `"Invalid instance of redisConnection"` |
+| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection"` |
 | `AUTHENTICATE_HANDLER` | Must be truthy (non-null) | `"Invalid authenticateFn to setup WebSocket server!"` |
 | `VALIDATE_ROOM_HANDLER` | Optional, coerced `null` to `undefined` | -- |
 | `CLIENT_CONNECTED_HANDLER` | Optional, coerced `null` to `undefined` | -- |

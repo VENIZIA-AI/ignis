@@ -3,7 +3,7 @@ import { RuntimeModules, TRuntimeModule } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TRedisClient } from '@/modules/redis/types';
+import { TRedisClient } from '@/modules/redis';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import isEmpty from 'lodash/isEmpty';

@@ -76,7 +76,7 @@ import {
   SocketIOComponent,
   SocketIOBindingKeys,
 } from '@venizia/ignis/socket-io';
-import { RedisHelper, ValueOrPromise } from '@venizia/ignis-helpers';
+import { RedisSingleHelper, ValueOrPromise } from '@venizia/ignis-helpers';
 import type {
   TSocketIOAuthenticateFn,
   TSocketIOValidateRoomFn,
@@ -84,7 +84,7 @@ import type {
 } from '@venizia/ignis-helpers/socket-io';
 
 export class Application extends BaseApplication {
-  private redisHelper: RedisHelper;
+  private redisHelper: RedisSingleHelper;
 
   preConfigure(): ValueOrPromise<void> {
     this.setupSocketIO();
@@ -93,7 +93,7 @@ export class Application extends BaseApplication {
 
   setupSocketIO() {
     // 1. Redis connection (required for adapter + emitter)
-    this.redisHelper = new RedisHelper({
+    this.redisHelper = new RedisSingleHelper({
       name: 'socket-io-redis',
       host: process.env.REDIS_HOST ?? 'localhost',
       port: +(process.env.REDIS_PORT ?? 6379),
@@ -101,7 +101,7 @@ export class Application extends BaseApplication {
       autoConnect: false,
     });
 
-    this.bind<RedisHelper>({
+    this.bind<RedisSingleHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 
@@ -145,11 +145,11 @@ export class Application extends BaseApplication {
 
 #### `autoConnect: false` Rationale
 
-The `RedisHelper` is created with `autoConnect: false` because the server helper internally calls `client.duplicate()` to create 3 independent Redis connections (pub, sub, emitter). The duplicated clients inherit the `lazyConnect` setting from the parent. During `configure()`, the helper detects clients in `wait` status and explicitly calls `client.connect()` on each, then awaits all 3 to reach `ready` status before proceeding. This avoids race conditions where the parent connects before the duplicates are created.
+The `RedisSingleHelper` is created with `autoConnect: false` because the server helper internally calls `client.duplicate()` to create 3 independent Redis connections (pub, sub, emitter). The duplicated clients inherit the `lazyConnect` setting from the parent. During `configure()`, the helper detects clients in `wait` status and explicitly calls `client.connect()` on each, then awaits all 3 to reach `ready` status before proceeding. This avoids race conditions where the parent connects before the duplicates are created.
 
 #### Redis Connection Alternatives
 
-You can use either `RedisHelper` (single Redis instance) or `RedisClusterHelper` (Redis Cluster mode). Both extend `DefaultRedisHelper`, which is the type the component validates against:
+You can use `RedisSingleHelper` (single Redis instance), `RedisClusterHelper` (Redis Cluster mode), or `RedisSentinelHelper` (Sentinel HA). All extend `AbstractRedisHelper` and satisfy the `IRedisHelper` interface that the component validates against:
 
 ```typescript
 import { RedisClusterHelper } from '@venizia/ignis-helpers';
@@ -258,7 +258,7 @@ All binding keys are available in `SocketIOBindingKeys`:
 | Binding Key | Constant | Type | Required | Default |
 |------------|----------|------|----------|---------|
 | `@app/socket-io/server-options` | `SERVER_OPTIONS` | `Partial<ServerOptions>` | No | See defaults above |
-| `@app/socket-io/redis-connection` | `REDIS_CONNECTION` | `RedisHelper` / `RedisClusterHelper` / `DefaultRedisHelper` | **Yes** | `null` |
+| `@app/socket-io/redis-connection` | `REDIS_CONNECTION` | `IRedisHelper` (`RedisSingleHelper` / `RedisClusterHelper` / `RedisSentinelHelper`) | **Yes** | `null` |
 | `@app/socket-io/authenticate-handler` | `AUTHENTICATE_HANDLER` | `TSocketIOAuthenticateFn` | **Yes** | `null` |
 | `@app/socket-io/validate-room-handler` | `VALIDATE_ROOM_HANDLER` | `TSocketIOValidateRoomFn` | No | `null` |
 | `@app/socket-io/client-connected-handler` | `CLIENT_CONNECTED_HANDLER` | `TSocketIOClientConnectedFn` | No | `null` |
@@ -360,7 +360,7 @@ The component resolves all binding keys into a single `IResolvedBindings` object
 #### `IResolvedBindings` Interface
 ```typescript
 interface IResolvedBindings {
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   authenticateFn: TSocketIOAuthenticateFn;
   validateRoomFn?: TSocketIOValidateRoomFn;
   clientConnectedFn?: TSocketIOClientConnectedFn;

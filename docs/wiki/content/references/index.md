@@ -161,7 +161,7 @@ import {
 // Helpers
 import {
   LoggerFactory,
-  RedisHelper,
+  RedisSingleHelper,
   QueueHelper,
 } from '@venizia/ignis-helpers';
 

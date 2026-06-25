@@ -1,5 +1,5 @@
 import { TConstValue, ValueOrPromise } from '@/common/types';
-import { DefaultRedisHelper } from '@/modules/redis';
+import { IRedisHelper } from '@/modules/redis';
 import { TNullable } from '@venizia/ignis-inversion';
 import { TWebSocketMessageType, WebSocketClientStates } from './constants';
 
@@ -143,7 +143,7 @@ export interface IWebSocketServerOptions<
 > {
   identifier: string;
   path?: string; // Default: '/ws'
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   server: IBunServer;
   defaultRooms?: string[];
   serverOptions?: IBunWebSocketConfig;
@@ -164,5 +164,5 @@ export interface IWebSocketServerOptions<
 
 export interface IWebSocketEmitterOptions {
   identifier?: string;
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
 }

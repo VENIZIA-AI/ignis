@@ -10,7 +10,7 @@
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind SocketIOComponent"` |
 | `binding()` | Unsupported runtime | `"[SocketIOComponent] Unsupported runtime: <runtime>"` |
-| `resolveBindings()` | `REDIS_CONNECTION` not instanceof `DefaultRedisHelper` | `"Invalid instance of redisConnection | Please init connection with RedisHelper for single redis connection or RedisClusterHelper for redis cluster mode!"` |
+| `resolveBindings()` | `REDIS_CONNECTION` not instanceof `AbstractRedisHelper` | `"Invalid instance of redisConnection | Please init connection with RedisSingleHelper for single redis connection, RedisClusterHelper for cluster mode, or RedisSentinelHelper for sentinel mode!"` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[DANGER][SocketIOComponent] Invalid authenticateFn to setup io socket server!"` |
 | `registerNodeHook()` | HTTP server not available | `"[SocketIOComponent] HTTP server not available for Node.js runtime!"` |
 
@@ -54,16 +54,16 @@
 
 ### "Invalid instance of redisConnection"
 
-**Cause**: The value bound to `REDIS_CONNECTION` is not an instance of `DefaultRedisHelper` (or its subclasses `RedisHelper` / `RedisClusterHelper`).
+**Cause**: The value bound to `REDIS_CONNECTION` is not an instance of `AbstractRedisHelper` (i.e. not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`).
 
-**Fix**: Use `RedisHelper` (single instance) or `RedisClusterHelper` (cluster mode):
+**Fix**: Use one of the concrete topology helpers:
 
 ```typescript
 import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 
 // Correct -- single instance
 this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
-  .toValue(new RedisHelper({ name: 'socket-io', host, port, password }));
+  .toValue(new RedisSingleHelper({ name: 'socket-io', host, port, password }));
 
 // Correct -- cluster mode
 this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
@@ -71,7 +71,7 @@ this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
 
 // Wrong -- raw ioredis client
 this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION })
-  .toValue(new Redis(6379));  // This is NOT a DefaultRedisHelper!
+  .toValue(new Redis(6379));  // This is NOT an AbstractRedisHelper!
 ```
 
 ### "Cannot find module '@socket.io/bun-engine'"

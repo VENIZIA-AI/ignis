@@ -1,4 +1,9 @@
-import { BaseHelper, getError, IRedisHelperOptions, RedisHelper } from '@venizia/ignis-helpers';
+import {
+  BaseHelper,
+  getError,
+  IRedisSingleHelperOptions,
+  RedisSingleHelper,
+} from '@venizia/ignis-helpers';
 import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import {
@@ -19,7 +24,7 @@ interface IQueueJobPayload {
 }
 
 export interface IBullMQMailExecutorOpts {
-  redis: IRedisHelperOptions;
+  redis: IRedisSingleHelperOptions;
   queue: { identifier: string; name: string };
   mode: TConstValue<typeof BullMQExecutorModes>;
 }
@@ -31,7 +36,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
   private queueHelper?: BullMQHelper<IQueueJobPayload, IMailQueueResult>;
   private workerHelpers: BullMQHelper<IQueueJobPayload, IMailProcessorResult>[] = [];
-  private redisConnection: RedisHelper;
+  private redisConnection: RedisSingleHelper;
   private jobIdCounter = 0;
 
   private processor?: (email: string) => Promise<IMailProcessorResult>;
@@ -41,7 +46,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
     this.mode = opts.mode;
 
-    this.redisConnection = new RedisHelper({
+    this.redisConnection = new RedisSingleHelper({
       ...opts.redis,
       maxRetry: undefined,
     });

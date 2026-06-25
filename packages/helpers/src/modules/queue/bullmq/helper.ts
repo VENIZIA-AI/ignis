@@ -1,5 +1,5 @@
 import { BaseHelper } from '@/modules/base';
-import { DefaultRedisHelper } from '@/modules/redis';
+import { IRedisHelper } from '@/modules/redis';
 import { ConnectionOptions, Job, Queue, Worker } from 'bullmq';
 import { Cluster } from 'ioredis';
 import { TBullQueueRole } from '../common';
@@ -8,7 +8,7 @@ interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
   identifier: string;
   role: TBullQueueRole;
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
 
   numberOfWorker?: number;
   lockDuration?: number;
@@ -24,7 +24,7 @@ interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
 export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseHelper {
   protected queueName: string;
   protected role: TBullQueueRole;
-  protected redisConnection: DefaultRedisHelper;
+  protected redisConnection: IRedisHelper;
 
   queue: Queue<TQueueElement, TQueueResult>;
   worker: Worker<TQueueElement, TQueueResult>;

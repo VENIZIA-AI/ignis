@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-06-25 | [Redis Helpers Refactor - Abstract Base, Interfaces, Sentinel & Factory](./2026-06-25-redis-helpers-refactor) | Refactor, New Feature, Breaking Change |
 | 2026-06-18 | [Current User Information Endpoint - GET /me & who-am-i Flag](./2026-06-18-auth-user-information-endpoint) | New Feature |
 | 2026-06-14 | [Validation Message Codes, SQLSTATE-Class DB Errors & Production Error Hardening](./2026-06-14-validation-codes-and-error-hardening) | New Feature, Security, Breaking Change |
 | 2026-06-02 | [Scoped RBAC Authorization - Edge-Table Model, Pooled Enforcer, Redis-Only Cache](./2026-06-02-authorize-scoped-rbac) | New Feature, Breaking Change |

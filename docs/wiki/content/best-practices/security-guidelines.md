@@ -313,11 +313,11 @@ this.server.use('/api/*', rateLimiter({ windowMs: 60 * 1000, max: 100 }));
 **Production Recommendation:** Use Redis-backed rate limiting for distributed deployments:
 
 ```typescript
-import { RedisHelper } from '@venizia/ignis-helpers';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 
 // Rate limiter with Redis for multi-instance deployments
 const distributedRateLimiter = async (key: string, max: number, windowSec: number) => {
-  const redis = RedisHelper.getClient();
+  const redis = RedisSingleHelper.getClient();
   const current = await redis.incr(key);
   if (current === 1) {
     await redis.expire(key, windowSec);

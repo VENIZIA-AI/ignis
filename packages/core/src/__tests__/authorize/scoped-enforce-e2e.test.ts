@@ -182,7 +182,7 @@ describe('scoped + redis cache — cached payload completeness', () => {
         store.set(k, v);
         return 'OK';
       },
-      del: async (k: string) => (store.delete(k) ? 1 : 0),
+      del: async (...ks: string[]) => ks.reduce((n, k) => n + (store.delete(k) ? 1 : 0), 0),
     };
 
     const adapter = new FixedScopedAdapter([
@@ -203,7 +203,13 @@ describe('scoped + redis cache — cached payload completeness', () => {
         use: true,
         driver: 'redis',
         options: {
-          connection: { client } as any,
+          connection: {
+            getClient: () => client,
+            get: ({ key }: { key: string }) => client.get(key),
+            set: ({ key, value }: { key: string; value: unknown }) =>
+              client.set(key, JSON.stringify(value)),
+            del: ({ keys }: { keys: string[] }) => client.del(...keys),
+          } as any,
           expiresIn: 60_000,
           keyFn: ({ user }) => `casbin:User:${user.userId}`,
         },

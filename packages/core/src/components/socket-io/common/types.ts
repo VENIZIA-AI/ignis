@@ -1,4 +1,4 @@
-import type { DefaultRedisHelper } from '@venizia/ignis-helpers';
+import type { IRedisHelper } from '@venizia/ignis-helpers';
 import type {
   TSocketIOAuthenticateFn,
   TSocketIOClientConnectedFn,
@@ -32,7 +32,7 @@ export const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
 };
 
 export interface IResolvedBindings {
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   authenticateFn: TSocketIOAuthenticateFn;
   validateRoomFn?: TSocketIOValidateRoomFn;
   clientConnectedFn?: TSocketIOClientConnectedFn;

@@ -386,7 +386,7 @@ import {
   ApplicationLogger,
 
   // Caching
-  RedisHelper,
+  RedisSingleHelper,
 
   // Queues
   QueueHelper,

@@ -1,10 +1,6 @@
 import { IdType } from '@/base';
 import { TContext } from '@/base/controllers/common/types';
-import {
-  type DefaultRedisHelper,
-  type TNullable,
-  type ValueOrPromise,
-} from '@venizia/ignis-helpers';
+import { type IRedisHelper, type TNullable, type ValueOrPromise } from '@venizia/ignis-helpers';
 import { type Adapter } from 'casbin';
 import { Env, type MiddlewareHandler } from 'hono';
 import { IAuthUser } from '../../authenticate';
@@ -124,7 +120,7 @@ export type TAuthorizeFn<E extends Env = Env, TAction = string, TResource = stri
 export interface ICasbinEnforcerCachedRedis {
   driver: typeof CasbinEnforcerCachedDrivers.REDIS;
   options: {
-    connection: DefaultRedisHelper;
+    connection: IRedisHelper;
     expiresIn: number;
     keyFn: (opts: { user: IAuthorizationUser }) => ValueOrPromise<string>;
   };

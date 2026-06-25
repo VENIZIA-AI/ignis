@@ -1,6 +1,6 @@
 import { RuntimeModules } from '@/common/constants';
 import { TConstValue, ValueOrPromise } from '@/common/types';
-import { DefaultRedisHelper } from '@/modules/redis';
+import { IRedisHelper } from '@/modules/redis';
 import { Server as HTTPServer, IncomingHttpHeaders } from 'node:http';
 import { ParsedUrlQuery } from 'node:querystring';
 import type { Socket as IOSocket, ServerOptions } from 'socket.io';
@@ -59,7 +59,7 @@ export type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOr
 export interface ISocketIOServerBaseOptions {
   identifier: string;
   serverOptions: Partial<ServerOptions>;
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   defaultRooms?: string[];
   authenticateTimeout?: number;
   pingInterval?: number;

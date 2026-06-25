@@ -1,5 +1,5 @@
 import type {
-  DefaultRedisHelper,
+  IRedisHelper,
   IBunWebSocketConfig,
   TWebSocketAuthenticateFn,
   TWebSocketClientConnectedFn,
@@ -27,7 +27,7 @@ export const DEFAULT_SERVER_OPTIONS: IServerOptions = {
 };
 
 export interface IResolvedBindings {
-  redisConnection: DefaultRedisHelper;
+  redisConnection: IRedisHelper;
   authenticateFn: TWebSocketAuthenticateFn;
   validateRoomFn?: TWebSocketValidateRoomFn;
   clientConnectedFn?: TWebSocketClientConnectedFn;

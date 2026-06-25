@@ -13,7 +13,7 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
-import { applicationEnvironment, Environment, HTTP, int, RedisHelper } from '@venizia/ignis-helpers';
+import { applicationEnvironment, Environment, HTTP, int, RedisSingleHelper } from '@venizia/ignis-helpers';
 import {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,
@@ -43,7 +43,7 @@ export const beConfigs: IApplicationConfigs = {
 
 // -----------------------------------------------------------------------------------------------
 export class Application extends BaseApplication {
-  private redisHelper: RedisHelper;
+  private redisHelper: RedisSingleHelper;
 
   // --------------------------------------------------------------------------------
   override getProjectRoot(): string {
@@ -124,7 +124,7 @@ export class Application extends BaseApplication {
       EnvironmentKeys.APP_ENV_REDIS_SOCKETIO_PASSWORD,
     );
 
-    this.redisHelper = new RedisHelper({
+    this.redisHelper = new RedisSingleHelper({
       name: 'socket-io-redis',
       host: redisHost,
       port: redisPort,
@@ -132,7 +132,7 @@ export class Application extends BaseApplication {
       autoConnect: false,
     });
 
-    this.bind<RedisHelper>({
+    this.bind<RedisSingleHelper>({
       key: SocketIOBindingKeys.REDIS_CONNECTION,
     }).toValue(this.redisHelper);
 
