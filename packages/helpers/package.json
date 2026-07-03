@@ -70,7 +70,9 @@
     "venizia",
     "websocket",
     "winston",
-    "worker-thread"
+    "worker-thread",
+    "typesense",
+    "search-engine"
   ],
   "homepage": "https://venizia-ai.github.io/ignis",
   "repository": {
@@ -114,6 +116,10 @@
     "./bun-s3": {
       "types": "./dist/modules/storage/bun-s3/index.d.ts",
       "default": "./dist/modules/storage/bun-s3/index.js"
+    },
+    "./typesense": {
+      "types": "./dist/modules/search-engine/typesense/index.d.ts",
+      "default": "./dist/modules/search-engine/typesense/index.js"
     },
     "./axios": {
       "types": "./dist/modules/network/http-request/fetcher/axios-fetcher.d.ts",
@@ -177,7 +183,8 @@
     "mqtt": "^5.15.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "@platformatic/kafka": "^2.1.0"
+    "@platformatic/kafka": "^2.1.0",
+    "typesense": "^3.0.3"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
@@ -209,6 +216,9 @@
     },
     "@platformatic/kafka": {
       "optional": true
+    },
+    "typesense": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -229,6 +239,7 @@
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "tsc-alias": "^1.8.17",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typesense": "^3.0.3"
   }
 }

@@ -1396,6 +1396,32 @@ cache.keys();              // []
 
 ---
 
+## Search Engine (Typesense)
+
+Pluggable search-engine helper. The engine-agnostic contract (`ISearchEngineHelper`,
+`BaseSearchEngineHelper`) ships from the root export; the Typesense backend is exposed via the
+`@venizia/ignis-helpers/typesense` sub-path and requires the optional `typesense` peer dependency.
+
+```bash
+bun add typesense
+```
+
+```ts
+import { TypesenseHelper, TypesenseImportActions } from '@venizia/ignis-helpers/typesense';
+
+const search = new TypesenseHelper({
+  name: 'primary',
+  nodes: [{ host: 'localhost', port: 8108, protocol: 'http' }],
+  apiKey: process.env.APP_ENV_TYPESENSE_API_KEY!,
+});
+
+await search.ensureCollection({ schema: { name: 'products', fields: [{ name: 'title', type: 'string' }] } });
+await search.importDocuments({ collection: 'products', documents, action: TypesenseImportActions.UPSERT });
+const result = await search.search({ collection: 'products', params: { q: 'shoe', query_by: 'title' } });
+```
+
+---
+
 ## Crypto
 
 ### AES
