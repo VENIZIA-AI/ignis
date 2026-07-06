@@ -3,11 +3,11 @@ import { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { getError, TValueOrResolver } from '@venizia/ignis-helpers';
 import { createSchemaFactory } from 'drizzle-zod';
 import {
-    getIdType as _getIdType,
-    IEntity,
-    TTableInsert,
-    TTableObject,
-    TTableSchemaWithId,
+  getIdType as _getIdType,
+  IEntity,
+  TTableInsert,
+  TTableObject,
+  TTableSchemaWithId,
 } from './common';
 
 /** Base entity with Drizzle ORM support. Supports static schema or constructor-based schema. */
