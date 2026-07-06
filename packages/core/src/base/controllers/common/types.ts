@@ -188,10 +188,35 @@ export interface ICustomizableRoutes<
   deleteBy?: RouteConfig;
 }
 
+/**
+ * Read object inferred from an entity's engine-neutral `$inferData` phantom marker. Each entity
+ * family fills it with its own type (postgres: `TTableObject<Schema>`; search: the document),
+ * so the base layer needs no connector import. Falls back to `object` for entities without it.
+ */
+export type TEntityDataObject<TEntity> = TEntity extends { $inferData?: infer TData }
+  ? TData extends object
+    ? TData
+    : object
+  : object;
+
+/**
+ * Persist object inferred from an entity's engine-neutral `$inferPersist` phantom marker.
+ * Same contract + `object` fallback as {@link TEntityDataObject}.
+ */
+export type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: infer TPersist }
+  ? TPersist extends object
+    ? TPersist
+    : object
+  : object;
+
 /** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
-export interface ICrudControllerOptions<Routes extends ICustomizableRoutes = ICustomizableRoutes> {
-  /** Entity class or resolver function returning the entity class */
-  entity: TClass<AbstractEntity> | TResolver<TClass<AbstractEntity>>;
+export interface ICrudControllerOptions<
+  Routes extends ICustomizableRoutes = ICustomizableRoutes,
+  TEntity extends AbstractEntity = AbstractEntity,
+> {
+  /** Entity class or resolver function returning the entity class. Its schema drives the
+   * inferred DataObject/PersistObject types for the generated controller's `repository`. */
+  entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
 
   /** Repository binding configuration */
   repository: {

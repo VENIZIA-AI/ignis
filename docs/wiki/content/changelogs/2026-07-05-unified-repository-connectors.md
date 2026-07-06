@@ -17,9 +17,11 @@ The persistence layer has been restructured from a single PostgreSQL-and-Drizzle
 - **New typesense connector**: `defineSearchCollection`/`field` DSL, `TInferSearchDocument<T>` type inference, `search<TResult>()` raw passthrough, `TypesenseQueryDialect` translating `TFilter`/`TWhere` into Typesense's `filter_by`/`sort_by`/`per_page` syntax.
 - **Capabilities model**: every datasource exposes `getCapabilities(): { transactions: boolean }`; unsupported operations (transactions, row-level locks) uniformly throw `NotSupported` (HTTP 501, `messageCode: 'core.not_supported'`) via a new shared `throwNotSupported` utility.
 - **Dual-door exports**: root `@venizia/ignis` re-exports the framework plus `postgres` and `memory` connectors (compatibility default); `@venizia/ignis/postgres`, `@venizia/ignis/memory`, and `@venizia/ignis/typesense` are available as explicit subpaths. `typesense` is subpath-only (optional peer dependency) - never pulled in by importing from the root.
-- **Naming symmetry + compat aliases**: canonical engine-carrying names (`BasePostgresDataSource`, `BasePostgresEntity`) replace the old ambiguous `BaseDataSource`/`BaseEntity`, which now survive as re-export aliases of the exact same classes.
+- **Naming symmetry + compat aliases**: canonical engine-carrying names (`BasePostgresDataSource`, `BasePostgresEntity`) replace the old ambiguous `BaseDataSource`/`BaseEntity`, which now survive as re-export aliases of the exact same classes. The same pattern applies to `PostgresQueryOperators` (alias `RDBQueryOperators`).
 - **`AbstractRepository` generics renamed**: `TDataObject`/`TPersistObject`/`TOptions` replace the Drizzle-flavored `DataObject`/`PersistObject`/`ExtraOptions extends IExtraOptions` naming at the neutral base - PostgreSQL's `PostgresBaseRepository` narrows these into the familiar `EntitySchema`/`TTableObject`/`TTableInsert`-based signature.
 - **Auth controller factory**: unimplemented-endpoint responses (`/token/refresh`, `/who-am-i`, `/me` when the underlying service doesn't implement the method) now go through the same `throwNotSupported` convention instead of a hand-rolled error.
+- **`applicationEnvironment.get` is now options-based**: `get<ReturnType, BeforeTransformType>(key, { defaultValue?, transform? })` replaces the old positional `get(key, defaultValue)` signature, and ships alongside two companion transforms, `toDelimitedArray`/`toTrimmed`, for parsing list-shaped env values in one read.
+- **Typesense cluster-validation fixes**: `TypesenseQueryDialect` no longer emits malformed `filter_by` fragments for empty `where` members, and `ensureCollection` no longer read-back-races newly created collections on multi-node clusters - both found during live validation against a real 3-node Typesense cluster.
 
 ## Breaking Changes
 
@@ -126,6 +128,43 @@ The HTTP status code is unchanged (501), but the response `messageCode` and mess
 
 If client code pattern-matches on the literal `"Method not implemented"` message string, switch to matching on `messageCode === 'core.not_supported'` instead - message text is not a stable contract.
 
+### 4. `applicationEnvironment.get` takes an options object instead of a positional `defaultValue`
+
+`ApplicationEnvironment.get` (`@venizia/ignis-helpers`) changed from `get(key, defaultValue)` to `get<ReturnType, BeforeTransformType>(key, { defaultValue?, transform? })`. The new `transform` parameter runs before `defaultValue` is applied, letting a single `get()` call parse a raw env string into its final shape - e.g. a comma-separated node list into an array of `{ host, port }` objects.
+
+**Before:**
+```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
+const host = applicationEnvironment.get(EnvironmentKeys.APP_ENV_TYPESENSE_HOST, 'localhost');
+```
+
+**After:**
+```typescript
+import { applicationEnvironment, toDelimitedArray } from '@venizia/ignis-helpers';
+
+const host = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_TYPESENSE_HOST, {
+  defaultValue: 'localhost',
+});
+
+// transform: parse a comma-separated env value in the same read
+const tags = applicationEnvironment.get<string[]>(EnvironmentKeys.APP_ENV_FEATURE_TAGS, {
+  transform: toDelimitedArray,
+  defaultValue: [],
+});
+```
+
+Positional second-argument callers must wrap the value in `{ defaultValue }`. A bare `applicationEnvironment.get(key, 'localhost')` no longer type-checks - `opts` is now an object shape (`{ defaultValue?, transform? }`), so a plain string/number/boolean second argument fails `tsc` with an "is not assignable" error at every stale call site. This is a compile-time break, not a silent runtime one - a full rebuild (`tsc --noEmit` or the per-package `bun run rebuild`) surfaces every call site that needs updating.
+
+**Companion utilities:** `toDelimitedArray(input, separator = ',')` splits a delimited string into trimmed, non-empty entries (`toDelimitedArray(' a, b ,, c ')` -> `['a', 'b', 'c']`), and `toTrimmed(input)` normalizes a possibly-absent value to a trimmed string (`''` when absent). Both live in `@venizia/ignis-helpers`'s `parse.utility` and are designed to be passed directly as `transform`:
+
+```typescript
+const nodes = applicationEnvironment.get<string[]>(EnvironmentKeys.APP_ENV_TYPESENSE_NODES, {
+  transform: toDelimitedArray,
+  defaultValue: [],
+});
+```
+
 ## New Features
 
 ### Engine-neutral `AbstractRepository` / `AbstractDataSource` / `AbstractEntity`
@@ -147,6 +186,8 @@ abstract class AbstractDataSource<...> extends BaseHelper implements IDataSource
   }
 }
 ```
+
+`AbstractEntity.getIdType()` follows the same pattern: it defaults to `'string'`, and each entity family narrows it independently - `BasePostgresEntity.getIdType()` inspects the underlying `pgTable` column to return `'number'` or `'string'`, while `BaseSearchEntity` and the memory connector always resolve `'string'`. `ControllerFactory.defineCrudController` reads `entityInstance.getIdType()` to resolve the id path-param shape, so a generated CRUD controller gets the right `/{id}` type without an engine-specific branch.
 
 **Benefits:**
 - Adding a new engine no longer means depending on Drizzle/`pg` types you don't use
@@ -180,7 +221,7 @@ const { data } = await repo.find({ filter: { where: { archived: false } } });
 
 **Problem:** Full-text and faceted search didn't fit the SQL-shaped repository contract, and the previous `@venizia/ignis-helpers` search-engine module lived outside the framework's decorator/DI conventions.
 
-**Solution:** A first-class connector with its own entity DSL (`defineSearchCollection`/`field.*`), type inference (`TInferSearchDocument<T>`), and a repository ladder (`ReadableSearchRepository` -> `PersistableSearchRepository` -> `DefaultSearchRepository`) that reuses `@model` settings (`hiddenProperties`, `defaultFilter`, `defaultLimit`) and translates `TFilter`/`TWhere` into Typesense's native query syntax via `TypesenseQueryDialect`. A raw `search<TResult>()` passthrough covers full-text/facet queries the `TFilter` dialect doesn't model.
+**Solution:** A first-class connector with its own entity DSL (`defineSearchCollection`/`field.*`), type inference (`TInferSearchDocument<T>`), and a repository ladder (`ReadableSearchRepository` -> `PersistableSearchRepository` -> `DefaultSearchRepository`) that reuses `@model` settings (`hiddenProperties`, `defaultFilter`, `defaultLimit`) and translates `TFilter`/`TWhere` into Typesense's native query syntax via `TypesenseQueryDialect`. A raw `search<TResult = ISearchResult<TDocument>>()` passthrough covers full-text/facet queries the `TFilter` dialect doesn't model - the default type parameter returns the document's own `ISearchResult` shape, and callers override `TResult` for engine responses shaped differently (e.g. grouped hits).
 
 ```typescript
 export class ArticleDocument extends BaseSearchEntity {
@@ -201,24 +242,62 @@ const result = await articleRepository.search({ params: { q: 'typescript', query
 - `TInferSearchDocument<T>` derives the TypeScript document shape from the collection definition - no hand-maintained duplicate type
 - Optional peer dependency (`typesense`), subpath-only import (`@venizia/ignis/typesense`) - zero cost for apps that don't use search
 
+**Cluster mode:** `TypesenseDataSource` accepts multiple `nodes` for a multi-node cluster instead of a single `host`/`port`. The `examples/typesense-search` reference app resolves this from a single comma-separated env var, `APP_ENV_TYPESENSE_NODES`, falling back to the single-node host/port pair when unset - the same `applicationEnvironment.get` + `transform` pattern from the breaking change above:
+
+```typescript
+// APP_ENV_TYPESENSE_NODES=node1:8108,node2:8108,node3:8108
+const clusterNodes = applicationEnvironment.get<
+  Array<{ host: string; port: number; protocol: string }>,
+  string
+>(EnvironmentKeys.APP_ENV_TYPESENSE_NODES, {
+  defaultValue: [],
+  transform: value =>
+    toDelimitedArray(value).map(entry => {
+      const [host, port] = entry.split(':');
+      return { host, port: int(port), protocol };
+    }),
+});
+```
+
 ### Dual-door exports and naming symmetry
 
 **File:** `packages/core/package.json`, `packages/core/src/connectors/postgres/{datasources,models}/index.ts`
 
 **Problem:** Introducing engine-carrying canonical names (`BasePostgresDataSource`, `BasePostgresEntity`) risked breaking every existing import of `BaseDataSource`/`BaseEntity`.
 
-**Solution:** Canonical names are re-exported under their old names as compatibility aliases - `export { BasePostgresDataSource as BaseDataSource } from './base-datasource'` - so both names resolve to the identical class. New subpath exports (`./postgres`, `./memory`, `./typesense`) sit alongside the existing root barrel, which continues to re-export `postgres` + `memory` for compatibility.
+**Solution:** Canonical names are re-exported under their old names as compatibility aliases - `export { BasePostgresDataSource as BaseDataSource } from './base-datasource'` - so both names resolve to the identical class. The same alias pattern applies to `export { PostgresQueryOperators as RDBQueryOperators } from './query'`. New subpath exports (`./postgres`, `./memory`, `./typesense`) sit alongside the existing root barrel, which continues to re-export `postgres` + `memory` for compatibility.
 
 ```typescript
 // Both resolve to the exact same class:
 import { BaseDataSource } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+
+// Both resolve to the exact same operator table:
+import { RDBQueryOperators } from '@venizia/ignis/postgres';
+import { PostgresQueryOperators } from '@venizia/ignis/postgres';
 ```
 
 **Benefits:**
 - Zero required changes for existing PostgreSQL-only applications
 - New code can be explicit about which engine it depends on
-- Naming is unambiguous once more than one connector is in play
+- Naming is unambiguous once more than one connector is in play - this is a rename with a compatibility alias, not a breaking change in practice, since the old names keep resolving to the identical class
+
+## Performance Improvements
+
+### Typesense connector: filter_by and provisioning fixes found during live cluster validation
+
+**File:** `packages/core/src/connectors/typesense/query-dialect.ts`, `packages/core/src/connectors/typesense/driver.ts`
+
+**Problem:** Two issues surfaced only under real multi-node Typesense conditions, not the in-memory fakes the connector's unit tests run against: (1) a `where` clause containing an empty member - e.g. `{}` merged in by default-filter plumbing when a repository combines a caller's filter with `@model({ settings: { defaultFilter } })` - produced a malformed `filter_by` fragment that Typesense rejected, surfacing as a 503 on operations like `count()` with an otherwise-empty where; (2) `ensureCollection` read the newly created collection back immediately after `create()`, which raced Typesense's raft replication on a multi-node cluster - a follower node could still 404 the read before catching up, crashing boot-time schema provisioning.
+
+**Solution:** `TypesenseQueryDialect.buildLogicalGroup` now drops empty members before joining `and`/`or` clauses, so an empty `where` (or an empty branch inside one) never reaches `filter_by`. `TypesenseDriver.ensureCollection` uses the `create()` response directly as the return value instead of issuing a follow-up read - only the already-exists path (caught via the tolerated 409) still re-reads the collection.
+
+| Scenario | Fix |
+|----------|-----|
+| `count()`/`find()` where `where` contains an empty `{}` member (e.g. via default-filter merge) | No more malformed `filter_by` fragment / 503 - empty members are dropped before the clause is joined |
+| `ensureCollection` during boot provisioning on a 3-node cluster | No more read-after-write race - the create response is used directly, avoiding a follower-node 404 before raft catch-up |
+
+Both were found and fixed during live validation against a real 3-node Typesense cluster - the connector's existing unit-test suite (in-memory fakes) does not exercise multi-node replication timing.
 
 ## Files Changed
 
@@ -231,7 +310,10 @@ import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 | `src/base/models/base.ts` | New file - engine-neutral `AbstractEntity`, `getIdType()` |
 | `src/base/datasources/common/types.ts` | Neutral `ITransaction` (no `connector`), `IDataSourceCapabilities` |
 | `src/connectors/postgres/**` | New connector - `AbstractPostgresDataSource`/`BasePostgresDataSource`, `BasePostgresEntity`, `PostgresBaseRepository` tier ladder, `IDatabaseTransaction`/`IDatabaseTransactionOptions`/`IDatabaseExtraOptions` |
+| `src/connectors/postgres/repositories/operators/index.ts` | New compatibility alias - `export { PostgresQueryOperators as RDBQueryOperators }` |
 | `src/connectors/typesense/**` | New connector - search entity DSL, datasource/driver/query-dialect, repository tier ladder |
+| `src/connectors/typesense/query-dialect.ts` | Fix - `buildLogicalGroup` drops empty `where` members before joining `and`/`or` clauses, preventing malformed `filter_by` |
+| `src/connectors/typesense/driver.ts` | Fix - `ensureCollection` returns the `create()` response directly instead of re-reading, avoiding a read-after-write race on multi-node clusters |
 | `src/connectors/memory/**` | New connector - `MemoryDataSource`, `MemoryRepository`, `where-matcher.ts` |
 | `src/utilities/error.utility.ts` | New file - `throwNotSupported` shared utility |
 | `src/components/auth/authenticate/controllers/factory.ts` | Unimplemented-endpoint responses now use `throwNotSupported` |
@@ -242,6 +324,15 @@ import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 | File | Changes |
 |------|---------|
 | `src/modules/search-engine/` | Removed - functionality folded into `@venizia/ignis`'s typesense connector |
+| `src/modules/env/app-env.ts` | Breaking - `ApplicationEnvironment.get` changed from positional `get(key, defaultValue)` to `get<ReturnType, BeforeTransformType>(key, { defaultValue?, transform? })` |
+| `src/utilities/parse.utility.ts` | New exports - `toDelimitedArray(input, separator?)`, `toTrimmed(input)` transforms for env parsing |
+
+### Examples (all bun-run apps)
+
+| File | Changes |
+|------|---------|
+| `examples/*/tsconfig.json` | `experimentalDecorators`/`emitDecoratorMetadata` now declared directly in every app tsconfig instead of relying solely on `extends` (see Upgrade Notes below) |
+| `examples/typesense-search/src/datasources/search.datasource.ts` | New example - cluster-mode `SearchDataSource` resolving `APP_ENV_TYPESENSE_NODES` via `applicationEnvironment.get` + `toDelimitedArray` |
 
 ## Migration Guide
 
@@ -264,14 +355,53 @@ Replace any `@venizia/ignis-helpers` search-engine imports with `@venizia/ignis/
 
 If any client matches on the literal `"Method not implemented"` string for `/token/refresh`, `/who-am-i`, or `/me`, switch to matching `messageCode === 'core.not_supported'`.
 
-### Step 4: Purge stale incremental build caches
+### Step 4: Update `applicationEnvironment.get` call sites
+
+Find calls that pass a positional second argument instead of an options object:
+
+```bash
+grep -rn "applicationEnvironment\.get(\|Envs\.get(" src/ | grep -v "{ *defaultValue"
+```
+
+Wrap the positional value in `{ defaultValue }`:
+
+```typescript
+// Before
+applicationEnvironment.get(EnvironmentKeys.APP_ENV_HOST, 'localhost');
+
+// After
+applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_HOST, { defaultValue: 'localhost' });
+```
+
+A stale positional call fails `tsc` immediately (`opts` is now an object shape, not a scalar), so the grep above is a fast pre-check - the full rebuild in Step 5 is what confirms every call site across the codebase is updated.
+
+### Step 5: Purge stale incremental build caches
 
 ```bash
 find . -name '*.tsbuildinfo' -delete
 ```
 
-Then rebuild (`make build` or the per-package `bun run rebuild`) to force a full type-check against the new `ITransaction`/`IDatabaseTransaction` split.
+Then rebuild (`make build` or the per-package `bun run rebuild`) to force a full type-check against the new `ITransaction`/`IDatabaseTransaction` split and the new `applicationEnvironment.get` signature.
 
-### Step 5 (optional): Adopt canonical connector names
+### Step 6 (optional): Adopt canonical connector names
 
-No functional change is required, but new code should prefer `BasePostgresDataSource`/`BasePostgresEntity` over the `BaseDataSource`/`BaseEntity` aliases for clarity once more than one connector is in scope.
+No functional change is required, but new code should prefer `BasePostgresDataSource`/`BasePostgresEntity`/`PostgresQueryOperators` over the `BaseDataSource`/`BaseEntity`/`RDBQueryOperators` aliases for clarity once more than one connector is in scope.
+
+### Step 7: Guard against bun silently dropping `@inject` decorators
+
+> [!WARNING]
+> Bun 1.3.14 silently drops `@inject` constructor-parameter decorators when an app's `tsconfig.json` only inherits `experimentalDecorators` through a package-style `extends` (e.g. `"extends": "@venizia/dev-configs/tsconfig.common.json"`) that bun cannot resolve at compile time. Dependency injection then returns `undefined` at runtime for the affected constructor parameters, while boot itself completes and reports healthy - there is no compile error and no startup failure to point at the cause.
+
+Declare the decorator flags directly in every bun-run app's `tsconfig.json` `compilerOptions`, in addition to the `extends`:
+
+```json
+{
+  "extends": "@venizia/dev-configs/tsconfig.common.json",
+  "compilerOptions": {
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true
+  }
+}
+```
+
+All IGNIS example apps (`examples/vert`, `examples/5-mins-qs`, `examples/typesense-search`, `examples/grpc-test`, `examples/socket-io-test`, `examples/websocket-test`, `examples/rpc-api-server`) already declare both flags directly for this reason - treat their `tsconfig.json` as the reference, not just the shared `dev-configs` base.

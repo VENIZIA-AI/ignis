@@ -2,7 +2,7 @@ import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers';
 
 import { AbstractEntity, SchemaTypes, TSchemaType } from '@/base/models';
-import { ISearchCollectionDefinition } from './types';
+import { ISearchCollectionDefinition, TInferSearchDocument } from './types';
 import { deriveSearchDocumentSchema } from './zod-derivation';
 
 /**
@@ -15,6 +15,10 @@ export class BaseSearchEntity<
   Schema extends ISearchCollectionDefinition = ISearchCollectionDefinition,
 > extends AbstractEntity {
   schema: Schema;
+
+  // Phantom type carriers (no runtime value; `declare` emits nothing).
+  declare readonly $inferData?: TInferSearchDocument<Schema>;
+  declare readonly $inferPersist?: TInferSearchDocument<Schema>;
 
   static COLLECTION_NAME?: string;
   static AUTHORIZATION_SUBJECT?: string;

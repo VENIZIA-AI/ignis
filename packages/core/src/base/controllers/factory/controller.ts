@@ -1,3 +1,4 @@
+import { AbstractEntity } from '@/base/models';
 import { SchemaTypes } from '@/base/models/common/constants';
 import { AbstractRepository } from '@/base/repositories';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
@@ -14,7 +15,13 @@ import {
 } from '@venizia/ignis-helpers';
 import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
-import { ICrudControllerOptions, ICustomizableRoutes, TRouteContext } from '../common';
+import {
+  ICrudControllerOptions,
+  ICustomizableRoutes,
+  TEntityDataObject,
+  TEntityPersistObject,
+  TRouteContext,
+} from '../common';
 import { BaseRestController } from '../rest/base';
 import { defineControllerRouteConfigs } from './definition';
 
@@ -25,16 +32,19 @@ export class ControllerFactory extends BaseHelper {
   }
 
   /** Creates a CRUD controller with standard endpoints (count/find/findById/create/update/delete).
-   * `TDataObject`/`TPersistObject` can't be inferred from `entity` - pass them explicitly for typed fields. */
+   * `TDataObject`/`TPersistObject` are inferred from `entity`'s schema (`$inferSelect`/`$inferInsert`),
+   * so `this.repository` is fully typed with no explicit generics; they remain overridable as the
+   * trailing generics for the rare engine-neutral entity that carries no typed schema. */
   static defineCrudController<
-    TDataObject extends object = object,
-    TPersistObject extends object = TDataObject,
+    TEntity extends AbstractEntity = AbstractEntity,
     Routes extends ICustomizableRoutes = ICustomizableRoutes,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
-  >(defOpts: ICrudControllerOptions<Routes>) {
+    TDataObject extends object = TEntityDataObject<TEntity>,
+    TPersistObject extends object = TEntityPersistObject<TEntity>,
+  >(defOpts: ICrudControllerOptions<Routes, TEntity>) {
     const { controller, entity, authenticate, authorize, routes } = defOpts;
 
     const {

@@ -816,7 +816,8 @@ const config = defineConfig({
           text: 'Migrations',
           collapsed: true,
           items: [
-            { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
+            { text: 'Unified Connectors (BANA)', link: '/guides/migrations/unified-connectors-migration' },
+          { text: 'Scoped RBAC (from DrizzleCasbinAdapter)', link: '/guides/migrations/scoped-rbac-migration' },
             { text: 'Redis Helper API (rename + camelCase)', link: '/guides/migrations/redis-helpers-migration' },
           ],
         },

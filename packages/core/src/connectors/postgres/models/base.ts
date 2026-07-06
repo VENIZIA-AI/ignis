@@ -2,7 +2,13 @@ import { AbstractEntity, SchemaTypes, TIdSchemaType, TSchemaType } from '@/base/
 import { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { getError, TValueOrResolver } from '@venizia/ignis-helpers';
 import { createSchemaFactory } from 'drizzle-zod';
-import { getIdType as _getIdType, IEntity, TTableSchemaWithId } from './common';
+import {
+    getIdType as _getIdType,
+    IEntity,
+    TTableInsert,
+    TTableObject,
+    TTableSchemaWithId,
+} from './common';
 
 /** Base entity with Drizzle ORM support. Supports static schema or constructor-based schema. */
 export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
@@ -10,6 +16,10 @@ export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchema
   implements IEntity<Schema>
 {
   schema: Schema;
+
+  // Phantom type carriers (no runtime value; `declare` emits nothing).
+  declare readonly $inferData?: TTableObject<Schema>;
+  declare readonly $inferPersist?: TTableInsert<Schema>;
 
   static TABLE_NAME?: string;
   static AUTHORIZATION_SUBJECT?: string;
