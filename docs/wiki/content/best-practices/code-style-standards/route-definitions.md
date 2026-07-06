@@ -15,12 +15,14 @@ export class UserRestPaths {
 }
 
 // common/route-configs.ts
+// jsonResponse({ schema }) expands to a 200 response plus a '4xx | 5xx' error fallback
 export const RouteConfigs = {
   GET_USERS: {
     method: HTTP.Methods.GET,
     path: UserRestPaths.ROOT,
     responses: jsonResponse({
-      [HTTP.ResultCodes.RS_2.Ok]: UserListSchema,
+      description: 'List of users',
+      schema: UserListSchema,
     }),
   },
   GET_USER_BY_ID: {
@@ -30,8 +32,8 @@ export const RouteConfigs = {
       params: z.object({ id: z.string() }),
     },
     responses: jsonResponse({
-      [HTTP.ResultCodes.RS_2.Ok]: UserSchema,
-      [HTTP.ResultCodes.RS_4.NotFound]: ErrorSchema,
+      description: 'User detail',
+      schema: UserSchema,
     }),
   },
 } as const;
@@ -42,6 +44,9 @@ export const RouteConfigs = {
 ```typescript
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
+  constructor() {
+    super({ scope: UserController.name });
+  }
 
   @api({ configs: RouteConfigs.GET_USERS })
   list(context: TRouteContext) {
@@ -58,14 +63,18 @@ export class UserController extends BaseRestController {
 
 ## Method 3: Using `bindRoute` (Programmatic)
 
+Register routes in the `binding()` lifecycle method:
+
 ```typescript
 @controller({ path: '/health' })
 export class HealthCheckController extends BaseRestController {
   constructor() {
     super({ scope: HealthCheckController.name });
+  }
 
+  override binding(): ValueOrPromise<void> {
     this.bindRoute({ configs: RouteConfigs.GET_HEALTH }).to({
-      handler: context => context.json({ status: 'ok' }),
+      handler: context => context.json({ status: 'ok' }, HTTP.ResultCodes.RS_2.Ok),
     });
   }
 }
@@ -78,11 +87,13 @@ export class HealthCheckController extends BaseRestController {
 export class HealthCheckController extends BaseRestController {
   constructor() {
     super({ scope: HealthCheckController.name });
+  }
 
+  override binding(): ValueOrPromise<void> {
     this.defineRoute({
       configs: RouteConfigs.POST_PING,
       handler: context => {
-        const { message } = context.req.valid('json');
+        const { message } = context.req.valid<{ message: string }>('json');
         return context.json({ echo: message }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
@@ -124,6 +135,8 @@ const UserSchema = z.object({
 ## Request Validation
 
 ```typescript
+// Use an explicit status-code map (with jsonContent) when the success
+// code is not 200 - jsonResponse() always keys the success response at 200
 export const RouteConfigs = {
   CREATE_USER: {
     method: HTTP.Methods.POST,
@@ -134,11 +147,16 @@ export const RouteConfigs = {
         description: 'User data',
       }),
     },
-    responses: jsonResponse({
-      [HTTP.ResultCodes.RS_2.Created]: UserSchema,
-      [HTTP.ResultCodes.RS_4.BadRequest]: ErrorSchema,
-      [HTTP.ResultCodes.RS_4.Conflict]: ErrorSchema,
-    }),
+    responses: {
+      [HTTP.ResultCodes.RS_2.Created]: jsonContent({
+        description: 'Created user',
+        schema: UserSchema,
+      }),
+      ['4xx | 5xx']: jsonContent({
+        description: 'Error Response',
+        schema: ErrorSchema,
+      }),
+    },
   },
 } as const;
 ```

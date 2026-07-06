@@ -8,22 +8,29 @@ difficulty: intermediate
 
 Technical reference for model architecture and schema enrichers in IGNIS.
 
+> [!IMPORTANT] Base vs. Connectors
+> The engine-neutral root `AbstractEntity` (`packages/core/src/base/models/base.ts`) has no Drizzle, no `pgTable`, and no `drizzle-zod` - just a `name`, an abstract `getSchema()`, a `getIdType(): TIdSchemaType` method (default `'string'`), and `toObject()`/`toJSON()`. Everything described below - the Drizzle-backed `BaseEntity`, `drizzle-zod` schema generation, and all schema enrichers - belongs to the **PostgreSQL connector**'s `BasePostgresEntity`, not the neutral base. See [Connectors](./connectors) for the full base-vs-connectors architecture.
+
 **Files:**
-- `packages/core/src/base/models/base.ts`
-- `packages/core/src/base/models/enrichers/*.ts`
+- `packages/core/src/base/models/base.ts` (neutral `AbstractEntity`)
+- `packages/core/src/connectors/postgres/models/base.ts` (PostgreSQL `BasePostgresEntity`)
+- `packages/core/src/connectors/postgres/models/enrichers/*.ts`
 
 ## Quick Reference
 
 | Component | Purpose | Key Features |
 |-----------|---------|--------------|
-| **BaseEntity** | Wraps Drizzle schema | Schema encapsulation, Zod generation, `toObject()`/`toJSON()` |
+| **BasePostgresEntity** (alias: `BaseEntity`) | Wraps Drizzle schema | Schema encapsulation, Zod generation, `toObject()`/`toJSON()` |
 | **Schema Enrichers** | Add common columns to tables | `generateIdColumnDefs()`, `generateTzColumnDefs()`, etc. |
 
-## `BaseEntity` Class
+## `BasePostgresEntity` Class (alias: `BaseEntity`)
 
-Fundamental building block wrapping a Drizzle ORM schema.
+PostgreSQL connector's entity class, wrapping a Drizzle ORM schema. Extends the neutral `AbstractEntity`.
 
-**File:** `packages/core/src/base/models/base.ts`
+**File:** `packages/core/src/connectors/postgres/models/base.ts`
+
+> [!TIP] Naming
+> `BasePostgresEntity` is the canonical, engine-carrying name. `BaseEntity` is a compatibility alias re-exporting the same class from `connectors/postgres/models/index.ts` (`export { BasePostgresEntity as BaseEntity } from './base'`) - both resolve to identical runtime behavior. Code samples on this page use `BaseEntity` since it remains the most common import today.
 
 ### Purpose
 
@@ -126,11 +133,11 @@ export class User extends BaseEntity<typeof User.schema> {
 
 ```typescript
 // Repository query - password/secret NOT included
-const user = await userRepo.findById({ id: '123' });
+const user = await userRepository.findById({ id: '123' });
 // user = { id: '123', email: 'john@example.com' }
 
 // Direct connector query - ALL fields included
-const connector = userRepo.getConnector();
+const connector = userRepository.getConnector();
 const [fullUser] = await connector
   .select()
   .from(User.schema)
@@ -178,11 +185,11 @@ Use `shouldSkipDefaultFilter: true` to bypass:
 
 ```typescript
 // Normal query - includes default filter
-await postRepo.find({ filter: {} });
+await postRepository.find({ filter: {} });
 // WHERE isDeleted = false LIMIT 100
 
 // Admin query - bypass default filter
-await postRepo.find({
+await postRepository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true }
 });
@@ -307,12 +314,11 @@ The `schemaFactory` is a static lazy singleton created via `drizzle-zod`'s `crea
 ### Class Definition
 
 ```typescript
-export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
-  extends BaseHelper
+export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
+  extends AbstractEntity
   implements IEntity<Schema>
 {
-  // Instance properties
-  name: string;
+  // Instance property (name, toObject(), toJSON() are inherited from AbstractEntity)
   schema: Schema;
 
   // Static properties - override in subclass
@@ -325,23 +331,27 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   // Performance optimization: avoids creating new factory per entity
   private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
   protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
-    return (BaseEntity._schemaFactory ??= createSchemaFactory());
+    return (BasePostgresEntity._schemaFactory ??= createSchemaFactory());
   }
 
   // Constructor supports both patterns
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target as typeof BaseEntity;
+    const ctor = new.target as typeof BasePostgresEntity;
     // Resolution order: opts.name > static TABLE_NAME > class name
     const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
-    super({ scope: name });
+    super({ name });
 
-    this.name = name;
     this.schema = opts?.schema || (ctor.schema as Schema);
   }
 
+  // Maps the pgTable id column's Drizzle dataType to 'number' or 'string'
+  override getIdType(): TIdSchemaType {
+    return getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
+  }
+
   getSchema(opts: { type: TSchemaType }) {
-    const factory = BaseEntity.schemaFactory;  // Uses static singleton
+    const factory = BasePostgresEntity.schemaFactory;  // Uses static singleton
     switch (opts.type) {
       case SchemaTypes.CREATE:
         return factory.createInsertSchema(this.schema);
@@ -354,14 +364,6 @@ export class BaseEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
           message: `[getSchema] Invalid schema type | type: ${opts.type}`,
         });
     }
-  }
-
-  toObject() {
-    return { ...this };
-  }
-
-  toJSON() {
-    return this.toObject();
   }
 }
 ```
@@ -445,7 +447,7 @@ Used for `relations` on `BaseEntity` - store a function that returns the relatio
 
 ## Schema Enrichers
 
-Enrichers are helper functions located in `packages/core/src/base/models/enrichers/` that return an object of Drizzle ORM column definitions. They are designed to be spread into a `pgTable` definition to quickly add common, standardized fields to your models.
+Enrichers are helper functions located in `packages/core/src/connectors/postgres/models/enrichers/` that return an object of Drizzle ORM column definitions. They are designed to be spread into a `pgTable` definition to quickly add common, standardized fields to your models.
 
 ### Available Enrichers
 
@@ -488,7 +490,7 @@ export const myTable = pgTable('MyTable', {
 
 Adds a primary key `id` column with support for string UUID, integer, or big integer types with full TypeScript type inference.
 
-**File:** `packages/core/src/base/models/enrichers/id.enricher.ts`
+**File:** `packages/core/src/connectors/postgres/models/enrichers/id.enricher.ts`
 
 #### Signature
 
@@ -688,7 +690,7 @@ const columns = enrichId(
 
 Adds timestamp columns for tracking entity creation, modification, and soft deletion.
 
-**File:** `packages/core/src/base/models/enrichers/tz.enricher.ts`
+**File:** `packages/core/src/connectors/postgres/models/enrichers/tz.enricher.ts`
 
 #### Signature
 
@@ -722,7 +724,7 @@ The `modified` and `deleted` options use a discriminated union pattern:
 | Column | Type | Constraints | Default | Description |
 |--------|------|-------------|---------|-------------|
 | `createdAt` | `timestamp` | `NOT NULL` | `now()` | When the record was created (always included) |
-| `modifiedAt` | `timestamp` | `NOT NULL` | `now()`, auto-updates via `$onUpdate(() => new Date())` | When the record was last modified (optional, enabled by default) |
+| `modifiedAt` | `timestamp` | `NOT NULL` | `now()`, auto-updates via `$onUpdate(() => new Date().toISOString())` | When the record was last modified (optional, enabled by default) |
 | `deletedAt` | `timestamp` | nullable | `null` | When the record was soft-deleted (optional, **disabled by default**) |
 
 #### Usage Examples
@@ -831,8 +833,10 @@ await db.update(myTable)
 The enricher provides **conditional TypeScript type inference** based on the options:
 
 ```typescript
+type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>; // custom ISO 8601 timestamp column
+
 type TTzEnricherResult<Opts extends TTzEnricherOptions | undefined = undefined> = {
-  createdAt: NotNull<HasDefault<PgTimestampBuilderInitial<string>>>;
+  createdAt: NotNull<HasDefault<TIsoTimestampColumn>>;
 } & (/* modifiedAt included unless opts.modified.enable === false */)
   & (/* deletedAt included only when opts.deleted.enable === true */);
 ```
@@ -854,7 +858,7 @@ Merges timestamp columns into an existing column definitions object.
 
 Adds `createdBy` and `modifiedBy` columns to track which user created or modified a record.
 
-**File:** `packages/core/src/base/models/enrichers/user-audit.enricher.ts`
+**File:** `packages/core/src/connectors/postgres/models/enrichers/user-audit.enricher.ts`
 
 #### Signature
 
@@ -1023,7 +1027,7 @@ Merges user audit columns into an existing column definitions object with proper
 
 Adds polymorphic principal columns for associating a record with different entity types. This is the polymorphic association pattern where a row can belong to different parent types (e.g., a comment can belong to a Post, User, or Product).
 
-**File:** `packages/core/src/base/models/enrichers/principal.enricher.ts`
+**File:** `packages/core/src/connectors/postgres/models/enrichers/principal.enricher.ts`
 
 #### Signature
 
@@ -1142,7 +1146,7 @@ Merges principal columns into an existing column definitions object.
 
 Adds polymorphic data storage columns for entities that need to store values of different types in a single table. This is useful for key-value stores, settings tables, or any schema where a row's value type is determined at runtime.
 
-**File:** `packages/core/src/base/models/enrichers/data-type.enricher.ts`
+**File:** `packages/core/src/connectors/postgres/models/enrichers/data-type.enricher.ts`
 
 #### Signature
 
@@ -1276,7 +1280,7 @@ Generates a Zod schema for path parameters containing an `id` field, suitable fo
 #### Signature
 
 ```typescript
-idParamsSchema(opts?: { idType: string }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
+idParamsSchema(opts?: { idType: TIdSchemaType }): z.ZodObject<{ id: z.ZodNumber | z.ZodString }>
 ```
 
 | `idType` | Default | Zod Type | Examples |
@@ -1479,13 +1483,23 @@ try {
 
 ### `getIdType`
 
-Utility function to determine the data type of an entity's `id` column at runtime:
+There are two distinct `getIdType`s in the framework - don't confuse them:
+
+| | Neutral instance method | PostgreSQL utility function |
+|---|---|---|
+| **Location** | `AbstractEntity.getIdType()` (`packages/core/src/base/models/base.ts`) | `getIdType()` (`packages/core/src/connectors/postgres/models/common/types.ts`) |
+| **Signature** | `getIdType(): TIdSchemaType` | `getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string` |
+| **Purpose** | Neutral capability every engine's entity implements - returns `'string'` \| `'number'` at the entity level. Used by `idParamsSchema` to build the right Zod schema for path parameters. | PostgreSQL-specific: inspects a Drizzle table schema's `id` column and returns its `dataType` (e.g., `'number'`, `'string'`), or `'unknown'` if not determinable |
 
 ```typescript
-getIdType<T extends TTableSchemaWithId>(opts: { entity: T }): string
-```
+// Neutral - instance method every AbstractEntity subclass exposes (default 'string', BasePostgresEntity overrides based on the column)
+const entity = new User();
+entity.getIdType(); // 'string' | 'number'
 
-Returns the `dataType` property of the entity's `id` column (e.g., `'number'`, `'string'`), or `'unknown'` if not determinable.
+// PostgreSQL connector - standalone utility inspecting a raw Drizzle schema
+import { getIdType } from '@venizia/ignis/postgres';
+getIdType({ entity: User.schema }); // 'string' | 'number' | 'unknown'
+```
 
 ## See Also
 

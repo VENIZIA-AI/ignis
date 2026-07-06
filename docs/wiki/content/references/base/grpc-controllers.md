@@ -57,7 +57,7 @@ bun add @connectrpc/connect-web
 ```
 
 > [!NOTE]
-> These are **optional** peer dependencies. They are only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If the deps are missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `validateModule()`.
+> `@connectrpc/connect` is an **optional** peer dependency of `@venizia/ignis` - it is only loaded at runtime when a gRPC controller is configured, via `createRequire` from the application's `node_modules`. If it is missing, `GrpcRequestAdapter.build()` throws a clear error at startup via `validateModule()`. `@bufbuild/protobuf` is required by your generated protobuf code (e.g. `create()`), not by the framework itself.
 
 ### Protobuf Code Generation
 
@@ -335,7 +335,7 @@ type TRpcHandler<
 ```
 
 > [!NOTE]
-> When using decorator-based RPCs, the handler method signature is `(opts: { request: RequestType }) => Promise<ResponseType>`. The `context` parameter is injected internally by the adapter and is not passed to the decorator-based handler method directly. The full `TRpcHandler` signature (with `context`) applies when using `defineRoute()` or `bindRoute()`.
+> The adapter always calls handlers with `{ request, context }` - decorator-based handlers included. If your handler does not need the Hono context, declare only `(opts: { request: RequestType }) => Promise<ResponseType>` and ignore the `context` property.
 
 ### `IGrpcControllerOptions`
 
@@ -941,7 +941,7 @@ async sayHello(opts: { request: SayHelloRequest }): Promise<SayHelloResponse> {
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
 | `strategies` | `TAuthStrategy[]` | `[]` | Authentication strategies to apply (e.g., `['jwt']`, `['basic']`) |
-| `mode` | `TAuthMode` | `'any'` | `'required'` \| `'optional'` \| `'any'` \| `'all'` (defaults to `AuthenticationModes.ANY`) |
+| `mode` | `TAuthMode` | `'any'` | `'any'` \| `'all'` (defaults to `AuthenticationModes.ANY`) |
 
 ### Per-RPC Authorization
 

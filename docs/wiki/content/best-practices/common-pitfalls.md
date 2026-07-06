@@ -55,7 +55,7 @@ export class Application extends BaseApplication {
 })
 
 // ❌ BAD - typo in string (note: "Repository" is misspelled)
-@inject({ key: 'repositories.ConfigurationRepository' })
+@inject({ key: 'repositories.ConfigurationRepositry' })
 ```
 
 ## 3. Business Logic in Controllers
@@ -66,7 +66,7 @@ export class Application extends BaseApplication {
 
 -   **Bad:**
     ```typescript
-    import { ApplicationError, getError } from '@venizia/ignis-helpers';
+    import { getError, HTTP } from '@venizia/ignis-helpers';
 
     // In a Controller
     async createUser(c: Context) {
@@ -79,7 +79,9 @@ export class Application extends BaseApplication {
         }
         
         const company = await this.companyRepository.findOrCreate(companyName);
-        const user = await this.userRepository.create({ name, email, companyId: company.id });
+        const user = await this.userRepository.create({
+          data: { name, email, companyId: company.id },
+        });
         
         return c.json(user, HTTP.ResultCodes.RS_2.Ok);
     }
@@ -99,7 +101,7 @@ export class Application extends BaseApplication {
         // All the complex logic now resides in the service
         const existingUser = await this.userRepository.findByEmail(data.email);
         // ...
-        return await this.userRepository.create(...);
+        return await this.userRepository.create({ data });
     }
     ```
 
@@ -150,7 +152,8 @@ await userRepository.updateBy({
   data: { status: 'INACTIVE' },
   where: {},  // Empty where = targets ALL records
 });
-// Error: [updateBy] DENY to perform updateBy | Empty where condition
+// Error: [_update] Entity: User | DENY to perform update | Empty where condition
+// (updateBy is an alias that delegates to updateAll)
 
 // ✅ GOOD - Explicit where condition
 await userRepository.updateBy({
@@ -175,26 +178,27 @@ await userRepository.updateBy({
 
 **Error Message:**
 ```
-[UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post]
+[UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post] | Ensure the model's TABLE_NAME matches the schema registration key
 ```
 
-**Solution:** Ensure your entity class name matches the table name in `pgTable()`:
+**Solution:** The schema registration key follows the precedence `@model tableName metadata > static TABLE_NAME > class name`, while the repository looks the query interface up by the entity **class name**. Do not set `TABLE_NAME` (or `tableName` metadata) to a value that differs from the class name:
 
 ```typescript
-// ❌ BAD - Class name 'User' doesn't match table name 'users'
+// ❌ BAD - Schema is registered under 'users', but looked up as 'User'
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
-  static override schema = pgTable('users', { /* ... */ });  // Lowercase 'users'
+export class User extends BasePostgresEntity<typeof User.schema> {
+  static override TABLE_NAME = 'users';  // Differs from class name!
+  static override schema = pgTable('User', { /* ... */ });
 }
 
-// ✅ GOOD - Class name matches table name
+// ✅ GOOD - No TABLE_NAME override; registration key defaults to the class name
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
-  static override schema = pgTable('User', { /* ... */ });  // Matches class name
+export class User extends BasePostgresEntity<typeof User.schema> {
+  static override schema = pgTable('User', { /* ... */ });
 }
 ```
 
-**Why this matters:** The framework uses `entity.name` (class name) to look up the query interface in `connector.query`. If they don't match, the repository can't find its table.
+**Why this matters:** The framework uses `entity.name` (class name) to look up the query interface in `connector.query`, but registers the schema under the resolved table name. If they don't match, the repository can't find its table. The first argument of `pgTable()` is the physical SQL table name and is independent of this lookup - by convention it matches the class name.
 
 ## 8. Validation Error Response Structure
 
@@ -205,9 +209,12 @@ export class User extends BaseEntity<typeof User.schema> {
 ```json
 {
   "statusCode": 422,
-  "message": "ValidationError",
+  "message": "Invalid email",
+  "messageCode": "invalid_string",
   "requestId": "abc123",
   "details": {
+    "url": "http://localhost:3000/users",
+    "path": "/users",
     "cause": [
       {
         "path": "email",
@@ -252,10 +259,10 @@ try {
 
 ```typescript
 // ❌ BAD - Direct import causes circular dependency
-import { UserService } from './user.service';
+import { User } from './user.model';
 
 @model({ type: 'entity' })
-export class Order extends BaseEntity<typeof Order.schema> {
+export class Order extends BasePostgresEntity<typeof Order.schema> {
   static override relations = (): TRelationConfig[] => [
     { schema: User.schema, ... }, // User imports Order, Order imports User
   ];
@@ -263,7 +270,7 @@ export class Order extends BaseEntity<typeof Order.schema> {
 
 // ✅ GOOD - Lazy import breaks the cycle
 @model({ type: 'entity' })
-export class Order extends BaseEntity<typeof Order.schema> {
+export class Order extends BasePostgresEntity<typeof Order.schema> {
   static override relations = (): TRelationConfig[] => {
     const { User } = require('./user.model'); // Lazy require
     return [{ schema: User.schema, ... }];
@@ -283,15 +290,15 @@ export class Order extends BaseEntity<typeof Order.schema> {
 
 ```typescript
 // ❌ BAD - No error handling
-const tx = await repo.beginTransaction();
-await repo.create({ data, options: { transaction: tx } });
+const tx = await userRepository.beginTransaction();
+await userRepository.create({ data, options: { transaction: tx } });
 await tx.commit(); // If create fails, commit is never called but neither is rollback
 
 // ✅ GOOD - Proper transaction handling
-const tx = await repo.beginTransaction();
+const tx = await userRepository.beginTransaction();
 try {
-  await repo.create({ data, options: { transaction: tx } });
-  await otherRepo.update({ data: other, options: { transaction: tx } });
+  await userRepository.create({ data, options: { transaction: tx } });
+  await orderRepository.updateById({ id, data: other, options: { transaction: tx } });
   await tx.commit();
 } catch (error) {
   await tx.rollback();
@@ -342,40 +349,52 @@ async createOrder(c: Context) {
 
 **Problem:** Relations return empty arrays or `null` unexpectedly.
 
-**Cause:** Mismatch between `fields` and `references` in relation metadata.
+**Cause:** Mismatch between `fields` and `references` in relation metadata (or defining them on the wrong side).
 
-**Solution:** Double-check that foreign keys point to the correct columns:
+**Solution:** `fields`/`references` belong on the `RelationTypes.ONE` side (the entity holding the foreign key). The `RelationTypes.MANY` side only takes a `relationName` pointing at the matching `one` relation:
 
 ```typescript
-// ❌ BAD - fields and references swapped
+// ❌ BAD - fields and references swapped on the ONE side (on Post)
 static override relations = (): TRelationConfig[] => [
   {
-    name: 'posts',
-    type: RelationTypes.MANY,
-    schema: Post.schema,
+    name: 'author',
+    type: RelationTypes.ONE,
+    schema: User.schema,
     metadata: {
-      fields: [Post.schema.authorId],     // Wrong! This should be User.schema.id
-      references: [User.schema.id],        // Wrong! This should be Post.schema.authorId
+      fields: [User.schema.id],           // Wrong! This should be Post.schema.authorId
+      references: [Post.schema.authorId], // Wrong! This should be User.schema.id
     },
   },
 ];
 
 // ✅ GOOD - Correct configuration
-// "User has many Posts where User.id = Post.authorId"
+// On Post: "Post belongs to one User where Post.authorId = User.id"
+static override relations = (): TRelationConfig[] => [
+  {
+    name: 'author',
+    type: RelationTypes.ONE,
+    schema: User.schema,
+    metadata: {
+      fields: [Post.schema.authorId],  // Current entity's foreign key
+      references: [User.schema.id],    // Related entity's key
+    },
+  },
+];
+
+// On User: "User has many Posts" - MANY side references the one relation by name
 static override relations = (): TRelationConfig[] => [
   {
     name: 'posts',
     type: RelationTypes.MANY,
     schema: Post.schema,
     metadata: {
-      fields: [User.schema.id],            // Parent's key
-      references: [Post.schema.authorId],  // Child's foreign key
+      relationName: 'author', // Points to the 'one' relation name on Post
     },
   },
 ];
 ```
 
-**Rule of thumb:** `fields` is the key on the current entity, `references` is the key on the related entity.
+**Rule of thumb:** on the `ONE` side, `fields` is the foreign key on the current entity, `references` is the key on the related entity. The `MANY` side only names its inverse relation.
 
 ## 13. Overwriting Data with Partial Updates
 

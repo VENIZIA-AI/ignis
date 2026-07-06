@@ -1,6 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { Role } from '@/models/entities';
-import { DefaultCRUDRepository, inject, repository } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: Role, dataSource: PostgresDataSource })
 export class RoleRepository extends DefaultCRUDRepository<typeof Role.schema> {

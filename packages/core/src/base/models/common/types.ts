@@ -1,0 +1,117 @@
+import { z } from '@hono/zod-openapi';
+import { ErrorSchema, getError, HTTP, keysToCamel, toCamel } from '@venizia/ignis-helpers';
+
+export type NumberIdType = number;
+export type StringIdType = string;
+export type BigIntIdType = bigint;
+export type IdType = NumberIdType | StringIdType | BigIntIdType;
+
+/** Path-param id shape every entity family resolves to (`AbstractEntity.getIdType()`). */
+export type TIdSchemaType = 'number' | 'string';
+
+export const idParamsSchema = (opts?: { idType: TIdSchemaType }) => {
+  const { idType = 'number' } = opts || {};
+
+  switch (idType) {
+    case 'number': {
+      return z.object({
+        id: z.number().openapi({
+          param: {
+            name: 'id',
+            in: 'path',
+            description: 'The unique id of the resource',
+          },
+          examples: [1, 2, 3],
+        }),
+      });
+    }
+    case 'string': {
+      return z.object({
+        id: z.string().openapi({
+          param: {
+            name: 'id',
+            in: 'path',
+            description: 'The unique id of the resource',
+          },
+          examples: ['4651e634-a530-4484-9b09-9616a28f35e3', 'some_unique_id'],
+        }),
+      });
+    }
+    default: {
+      throw getError({
+        message: `[idParamsSchema] Invalid input idType | valid: [string | number] | idType: ${idType}`,
+      });
+    }
+  }
+};
+
+export const jsonContent = <T extends z.ZodType>(opts: {
+  schema: T;
+  description: string;
+  required?: boolean;
+}) => {
+  return {
+    description: opts.description,
+    content: { 'application/json': { schema: opts.schema } },
+    required: opts.required,
+  };
+};
+
+/** OpenAPI Header Object format */
+type THeaderObject = {
+  description?: string;
+  schema: { type: string; examples?: Array<string> };
+};
+
+/** Map of header names to Header Objects */
+type TResponseHeaders = Record<string, THeaderObject>;
+
+type TJsonResponseOpts<T extends z.ZodType, H extends TResponseHeaders | undefined> = {
+  schema: T;
+  description?: string;
+  required?: boolean;
+  headers?: H;
+};
+
+export const jsonResponse = <
+  ContentSchema extends z.ZodType,
+  HeaderSchema extends TResponseHeaders | undefined = undefined,
+>(
+  opts: TJsonResponseOpts<ContentSchema, HeaderSchema>,
+) => {
+  const baseResponse = jsonContent({
+    required: opts.required,
+    description: opts.description ?? 'Success Response',
+    schema: opts.schema,
+  });
+
+  const successResponse = opts.headers ? { ...baseResponse, headers: opts.headers } : baseResponse;
+
+  return {
+    [HTTP.ResultCodes.RS_2.Ok]: successResponse,
+    ['4xx | 5xx']: jsonContent({ description: 'Error Response', schema: ErrorSchema }),
+  };
+};
+
+type TSnakeToCamelCase<S extends string> = S extends `${infer T}_${infer U}`
+  ? `${T}${Capitalize<TSnakeToCamelCase<U>>}`
+  : S;
+
+type TCamelCaseKeys<T extends z.ZodRawShape> = {
+  [K in keyof T as K extends string ? TSnakeToCamelCase<K> : K]: T[K] extends z.ZodType<infer U>
+    ? z.ZodType<U>
+    : T[K];
+};
+
+export const snakeToCamel = <T extends z.ZodRawShape>(shape: T) => {
+  const camelShape = Object.fromEntries(
+    Object.entries(shape).map(([key, value]) => {
+      return [toCamel(key), value];
+    }),
+  ) as TCamelCaseKeys<T>;
+
+  return z
+    .object(shape)
+    .transform(data => keysToCamel(data))
+    .pipe(z.object(camelShape));
+};

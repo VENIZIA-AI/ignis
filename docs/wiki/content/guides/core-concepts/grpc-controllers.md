@@ -255,7 +255,8 @@ plugins:
 ```
 
 ```bash
-npx buf generate src/controllers/greeter/proto
+bun add -d @bufbuild/buf @bufbuild/protoc-gen-es
+node_modules/.bin/buf generate src/controllers/greeter/proto
 ```
 
 ### 3. Use the generated types in your controller

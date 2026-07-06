@@ -86,8 +86,8 @@ Find rows where the arrays share at least one common element.
 
 ## Empty Array Behavior
 
-| Operator | Empty Value `[]` | SQL Generated | Behavior |
-|----------|------------------|---------------|----------|
+| Operator | SQL Generated | Behavior |
+|----------|---------------|----------|
 | `contains: []` | `WHERE true` | Returns **ALL** rows |
 | `containedBy: []` | `WHERE "col" = '{}'` | Returns only rows with **empty arrays** |
 | `overlaps: []` | `WHERE false` | Returns **NO** rows |

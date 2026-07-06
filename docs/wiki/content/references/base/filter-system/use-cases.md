@@ -12,7 +12,7 @@ Real-world examples of filter usage with corresponding SQL.
 ## E-commerce Product Search
 
 ```typescript
-const products = await productRepo.find({
+const products = await productRepository.find({
   filter: {
     where: {
       category: 'electronics',
@@ -44,7 +44,7 @@ const products = await productRepo.find({
 const thirtyDaysAgo = new Date();
 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-const recentUsers = await userRepo.find({
+const recentUsers = await userRepository.find({
   filter: {
     where: {
       createdAt: { gte: thirtyDaysAgo },
@@ -71,7 +71,7 @@ const recentUsers = await userRepo.find({
 ## Task Management: Priority Tags
 
 ```typescript
-const priorityTasks = await taskRepo.find({
+const priorityTasks = await taskRepository.find({
   filter: {
     where: {
       status: { nin: ['completed', 'cancelled'] },
@@ -100,7 +100,7 @@ const priorityTasks = await taskRepo.find({
 
 ```typescript
 // Find active records (soft delete pattern)
-const activeRecords = await repo.find({
+const activeRecords = await repository.find({
   filter: {
     where: { deletedAt: { is: null } },
   }
@@ -112,7 +112,7 @@ const activeRecords = await repo.find({
 
 ```typescript
 // Find ONLY soft-deleted records
-const deletedRecords = await repo.find({
+const deletedRecords = await repository.find({
   filter: {
     where: { deletedAt: { isn: null } },
   }
@@ -142,7 +142,7 @@ const getAuthorizedFilter = (user: User): TWhere<TDocumentSchema> => {
   };
 };
 
-const documents = await documentRepo.find({
+const documents = await documentRepository.find({
   filter: {
     where: getAuthorizedFilter(currentUser),
     order: ['updatedAt DESC'],
@@ -206,7 +206,7 @@ const searchProducts = async (query: string, filters: {
     where.categories = { contains: filters.categories };
   }
 
-  return productRepo.find({
+  return productRepository.find({
     filter: {
       where,
       order: ['rating DESC', 'createdAt DESC'],
@@ -281,7 +281,7 @@ const massiveFilter: TFilter<TProductSchema> = {
   ],
 };
 
-const products = await productRepo.find({ filter: massiveFilter });
+const products = await productRepository.find({ filter: massiveFilter });
 
 // SQL:
 // SELECT "id", "name", "price", "rating", "tags", "metadata"
@@ -334,7 +334,7 @@ const products = await productRepo.find({ filter: massiveFilter });
 const startOfWeek = new Date('2024-12-29');
 const endOfWeek = new Date('2025-01-04');
 
-const weekEvents = await eventRepo.find({
+const weekEvents = await eventRepository.find({
   filter: {
     where: {
       eventDate: { between: [startOfWeek, endOfWeek] }
@@ -355,7 +355,7 @@ const weekEvents = await eventRepo.find({
 const sevenDaysAgo = new Date();
 sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-const recentOrders = await orderRepo.find({
+const recentOrders = await orderRepository.find({
   filter: {
     where: {
       createdAt: { gte: sevenDaysAgo },
@@ -382,7 +382,7 @@ const recentOrders = await orderRepo.find({
 
 ```typescript
 const getTenantProducts = async (tenantId: string, filter: TFilter<TProductSchema>) => {
-  return productRepo.find({
+  return productRepository.find({
     filter: {
       ...filter,
       where: {
@@ -415,7 +415,7 @@ await getTenantProducts('tenant-abc', {
 ## Inventory Low Stock Alert
 
 ```typescript
-const lowStockProducts = await productRepo.find({
+const lowStockProducts = await productRepository.find({
   filter: {
     where: {
       status: 'active',

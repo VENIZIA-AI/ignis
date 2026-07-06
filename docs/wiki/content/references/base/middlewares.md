@@ -11,9 +11,9 @@ IGNIS provides built-in middleware functions and a provider-based middleware cla
 
 **Files:**
 - `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
-- `packages/core/src/base/middlewares/not-found.middleware.ts`
-- `packages/core/src/base/middlewares/request-spy.middleware.ts`
-- `packages/core/src/base/middlewares/emoji-favicon.middleware.ts`
+- `packages/core/src/base/middlewares/not-found/not-found.middleware.ts`
+- `packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts`
+- `packages/core/src/base/middlewares/emoji-favicon/emoji-favicon.middleware.ts`
 
 ## Prerequisites
 
@@ -123,7 +123,7 @@ z.string().refine(isEmail, {
 
 #### 2. PostgreSQL Constraint Violations
 
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
+Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
 
 | Class | Codes with a specific message |
 |-------|-------------------------------|
@@ -136,7 +136,7 @@ Class `40` (`40001` serialization failure, `40P01` deadlock) is transient/retrya
 :::
 
 :::warning Production sanitizes database internals
-In **production** the message is the base message only - `Detail:`/`Table:`/`Constraint:` are stripped (they echo row values and schema names), and `details.stack`/`details.cause` are omitted. Codes outside class 22/23 (e.g. `42703` undefined column) and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak.
+In **production** the message is the base message only - `Detail:`/`Table:`/`Constraint:` are stripped (they echo row values and schema names), and `details.stack`/`details.cause` are omitted. Codes outside class 22/23/44 (e.g. `42703` undefined column) and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak.
 :::
 
 #### 3. Generic Errors
@@ -303,8 +303,11 @@ The middleware resolves the client IP from the connection info or falls back to 
 
 ### Accessing the Request ID
 
+`RequestSpyMiddleware.REQUEST_ID_KEY` is `'requestId'` - since the middleware class itself is not exported from `@venizia/ignis`, read the context variable by that key:
+
 ```typescript
-import { RequestSpyMiddleware, get, jsonResponse, TRouteContext, z } from '@venizia/ignis';
+import { get, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const ExampleConfig = {
@@ -317,7 +320,7 @@ const ExampleConfig = {
 
 @get({ configs: ExampleConfig })
 async example(c: TRouteContext) {
-  const requestId = c.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+  const requestId = c.get('requestId');
   return c.json({ requestId }, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
@@ -456,11 +459,10 @@ For middleware requiring dependency injection, implement `IProvider<MiddlewareHa
 
 ```typescript
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { IProvider, injectable } from '@venizia/ignis-inversion';
+import { IProvider } from '@venizia/ignis-inversion';
 import { createMiddleware } from 'hono/factory';
 import type { MiddlewareHandler } from 'hono';
 
-@injectable()
 export class MyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   constructor() {
     super({ scope: MyMiddleware.name });
@@ -475,13 +477,19 @@ export class MyMiddleware extends BaseHelper implements IProvider<MiddlewareHand
 }
 ```
 
-Register and use it inside `setupMiddlewares()`:
+Register it with `.toProvider()` (the same pattern `RequestTrackerComponent` uses for `RequestSpyMiddleware`), then use the resolved handler inside `setupMiddlewares()` - `get()` returns the produced `MiddlewareHandler` because the container calls `value()` for provider bindings:
 
 ```typescript
 export class MyApplication extends BaseApplication {
+  preConfigure() {
+    this.bind({ key: 'middlewares.MyMiddleware' })
+      .toProvider(MyMiddleware)
+      .setScope(BindingScopes.SINGLETON);
+  }
+
   async setupMiddlewares() {
-    const myMiddleware = this.get<MyMiddleware>({ key: 'services.MyMiddleware' });
-    this.getServer().use(myMiddleware.value());
+    const myMiddleware = this.get<MiddlewareHandler>({ key: 'middlewares.MyMiddleware' });
+    this.getServer().use(myMiddleware);
   }
 }
 ```

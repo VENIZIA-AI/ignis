@@ -119,13 +119,19 @@ with Drizzle ORM's type-safe SQL.
 ### Same Endpoint in IGNIS
 
 ```typescript
+import { BaseRestController, controller, get, inject, jsonResponse, TRouteContext } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers'; // HTTP is a value export -- only available from ignis-helpers
+import { z } from '@hono/zod-openapi';
+
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
+    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
   ) {
     super({ scope: 'UserController', path: '/users' });
   }
+
+  override binding() {}
 
   @get({
     configs: {
@@ -140,7 +146,7 @@ export class UserController extends BaseRestController {
   })
   async findById(c: TRouteContext) {
     const { id } = c.req.valid('param');
-    const user = await this.userRepo.findById({ id });
+    const user = await this.userRepository.findById({ id });
     return c.json(user, HTTP.ResultCodes.RS_2.Ok);
   }
 }
@@ -251,10 +257,10 @@ import {
   BaseRestController,
   controller,
   get,
-  HTTP,
   IApplicationInfo,
   jsonContent,
 } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers'; // HTTP is a value export -- only available from ignis-helpers
 import { Context } from 'hono';
 
 // 1. Define a controller
@@ -365,7 +371,7 @@ Open `http://localhost:3000/doc/explorer` in your browser for interactive Swagge
            v
   +------------------+
   |  Repository       |  <-- Type-safe data access (find, create, update, delete)
-  |  findById({ id }) |      Mixins: FieldsVisibility, DefaultFilter
+  |  findById({ id }) |      Hidden fields / default filter applied at SQL level
   +--------+---------+
            |
            v
@@ -393,7 +399,7 @@ export class UserController extends BaseRestController {
 }
 ```
 
-Bindings are namespaced: `"controllers.UserController"`, `"services.AuthService"`, `"repositories.UserRepo"`. The namespace automatically becomes a tag for discovery.
+Bindings are namespaced: `"controllers.UserController"`, `"services.AuthService"`, `"repositories.UserRepository"`. The namespace automatically becomes a tag for discovery.
 
 > [!NOTE]
 > See the [Core Concepts documentation](https://venizia-ai.github.io/ignis) for DI flow details, boot sequence, request lifecycle, repository pattern, transaction support, and models with enrichers.
@@ -434,42 +440,26 @@ class App extends BaseApplication {
 
 ### Component Catalog
 
-| Component | What It Provides | Endpoints |
-| :--- | :--- | :--- |
-| **HealthCheckComponent** | Health, liveness, and readiness probes | `GET /health`, `/health/live`, `/health/ready` |
-| **SwaggerComponent** | Interactive API documentation (Swagger UI or Scalar UI) | `GET /doc/explorer`, `/doc/openapi.json` |
-| **AuthenticateComponent** | JWT + Basic auth strategies, token services, auth middleware | Configurable |
-| **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware | N/A (middleware) |
-| **RequestTrackerComponent** | `x-request-id` header injection, request body parsing | N/A (middleware) |
-| **StaticAssetComponent** | File upload/download CRUD with MinIO, Disk, or Memory backend | Configurable CRUD |
-| **MailComponent** | Email via Nodemailer or Mailgun with Direct, BullMQ, or InternalQueue executors | N/A (service) |
-| **SocketIOComponent** | Socket.IO server with Redis adapter for horizontal scaling | WebSocket |
+| Component | What It Provides |
+| :--- | :--- |
+| **HealthCheckComponent** | Health check status and ping/pong |
+| **SwaggerComponent** | Interactive API documentation (Swagger UI or Scalar UI) |
+| **AuthenticateComponent** | JWT + Basic auth strategies, token services, auth middleware |
+| **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware |
+| **RequestTrackerComponent** | `x-request-id` header injection, request body parsing |
+| **StaticAssetComponent** | File upload/download CRUD with MinIO, Disk, or Bun S3 backend |
+| **MailComponent** | Email via Nodemailer or Mailgun with Direct, BullMQ, or InternalQueue executors |
+| **SocketIOComponent** | Socket.IO server with Redis adapter for horizontal scaling |
+| **GrpcComponent** | Auto-registered gRPC controller mounting (ConnectRPC) |
 
 > [!TIP]
-> See the [Core README](packages/core/README.md) for detailed component configuration, authentication setup, and ControllerFactory auto-generated CRUD.
+> See the [Core README](packages/core/README.md#components) for detailed component configuration, authentication setup, and ControllerFactory auto-generated CRUD.
 
 ---
 
 ## Helpers Ecosystem
 
-The `@venizia/ignis-helpers` package provides production-ready infrastructure utilities. Each helper extends `BaseHelper` and follows the same pattern:
-
-| Helper | Import Path | Description |
-| :--- | :--- | :--- |
-| **LoggerFactory** | `@venizia/ignis-helpers` | Winston-based logger with daily file rotation, UDP transport, and scoped logging |
-| **RedisHelper** | `@venizia/ignis-helpers/redis` | Redis Single + Cluster mode, pub/sub with zlib compression |
-| **QueueHelper (BullMQ)** | `@venizia/ignis-helpers/bullmq` | Redis-backed job queue with delayed jobs, retries, concurrency |
-| **QueueHelper (InMem)** | `@venizia/ignis-helpers/in-mem-queue` | In-memory generator-based queue for development/testing |
-| **QueueHelper (MQTT)** | `@venizia/ignis-helpers/mqtt` | MQTT message queue for IoT and lightweight pub/sub |
-| **QueueHelper (Kafka)** | `@venizia/ignis-helpers/kafka` | Apache Kafka producer/consumer/admin (experimental) |
-| **MinioHelper** | `@venizia/ignis-helpers/minio` | S3-compatible object storage with bucket management |
-| **DiskHelper** | `@venizia/ignis-helpers/disk-storage` | Local filesystem storage with common IStorageHelper interface |
-| **CryptoHelper** | `@venizia/ignis-helpers/crypto` | AES-256-CBC/GCM encryption, RSA with DER keys, ECDH P-256 |
-| **UIDHelper** | `@venizia/ignis-helpers/uid` | Snowflake 70-bit unique IDs, Base62 encoding |
-| **CronHelper** | `@venizia/ignis-helpers/cron` | Cron job scheduling with modification and duplication |
-| **SocketIOHelper** | `@venizia/ignis-helpers/socket-io` | Socket.IO server with Redis adapter, auth, room management |
-| **NetworkHelper** | `@venizia/ignis-helpers/network` | HTTP client, TCP server/client with TLS, UDP with multicast |
-| **WorkerHelper** | `@venizia/ignis-helpers/worker` | Thread pool management (max = CPU cores) |
+The `@venizia/ignis-helpers` package provides production-ready infrastructure utilities -- Logger, Redis (Single/Cluster/Sentinel), Queue (BullMQ/in-memory/MQTT/Kafka), Storage (MinIO/Disk/Bun S3), Crypto (AES/RSA/ECDH), Cron, Socket.IO, Network (TCP/TLS/UDP/HTTP), Snowflake UID, and Worker threads. Each helper extends `BaseHelper` and follows the same options-object, scoped-logging pattern.
 
 [Full helpers documentation ->](packages/helpers/README.md)
 
@@ -480,25 +470,14 @@ The `@venizia/ignis-helpers` package provides production-ready infrastructure ut
 ```
 my-ignis-app/
   src/
-    application.ts            # Application configuration and lifecycle
-    index.ts                  # Entry point
-    migration.ts              # Drizzle migration configuration
-    controllers/              # HTTP request handlers
-    services/                 # Business logic
-    repositories/             # Data access layer
-    models/entities/          # Database models (Drizzle pgTable + BaseEntity)
-    datasources/              # Database connections
-    components/               # Reusable modules
+    application.ts    # Application configuration and lifecycle
+    index.ts          # Entry point
+    controllers/ services/ repositories/ models/entities/ datasources/ components/
   .env.development
   tsconfig.json
 ```
 
-The boot system auto-discovers files by convention:
-
-- `controllers/*.controller.{ts,js}` -> Registered as transient bindings
-- `services/*.service.{ts,js}` -> Registered as transient bindings
-- `repositories/*.repository.{ts,js}` -> Registered as transient bindings
-- `datasources/*.datasource.{ts,js}` -> Registered as **singleton** bindings
+The boot system auto-discovers files by convention -- `*.controller.js`, `*.service.js`, `*.repository.js`, `*.datasource.js` (datasources as singletons, everything else transient). Details: [Bootstrapping guide](docs/wiki/content/guides/core-concepts/application/bootstrapping.md).
 
 ---
 

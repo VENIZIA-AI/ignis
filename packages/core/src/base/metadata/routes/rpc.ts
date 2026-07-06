@@ -24,9 +24,7 @@ export const unary = <RpcRouteConfigType extends Omit<IRpcMetadata, 'method'>>(o
   configs: RpcRouteConfigType;
 }) => {
   return rpc({
-    configs: { ...opts.configs, method: GRPC.Methods.UNARY } as RpcRouteConfigType & {
-      method: typeof GRPC.Methods.UNARY;
-    },
+    configs: { ...opts.configs, method: GRPC.Methods.UNARY },
   });
 };
 
@@ -35,9 +33,7 @@ export const serverStream = <RpcRouteConfigType extends Omit<IRpcMetadata, 'meth
   configs: RpcRouteConfigType;
 }) => {
   return rpc({
-    configs: { ...opts.configs, method: GRPC.Methods.SERVER_STREAMING } as RpcRouteConfigType & {
-      method: typeof GRPC.Methods.SERVER_STREAMING;
-    },
+    configs: { ...opts.configs, method: GRPC.Methods.SERVER_STREAMING },
   });
 };
 
@@ -46,9 +42,7 @@ export const clientStream = <RpcRouteConfigType extends Omit<IRpcMetadata, 'meth
   configs: RpcRouteConfigType;
 }) => {
   return rpc({
-    configs: { ...opts.configs, method: GRPC.Methods.CLIENT_STREAMING } as RpcRouteConfigType & {
-      method: typeof GRPC.Methods.CLIENT_STREAMING;
-    },
+    configs: { ...opts.configs, method: GRPC.Methods.CLIENT_STREAMING },
   });
 };
 
@@ -57,8 +51,6 @@ export const bidiStream = <RpcRouteConfigType extends Omit<IRpcMetadata, 'method
   configs: RpcRouteConfigType;
 }) => {
   return rpc({
-    configs: { ...opts.configs, method: GRPC.Methods.BIDI_STREAMING } as RpcRouteConfigType & {
-      method: typeof GRPC.Methods.BIDI_STREAMING;
-    },
+    configs: { ...opts.configs, method: GRPC.Methods.BIDI_STREAMING },
   });
 };

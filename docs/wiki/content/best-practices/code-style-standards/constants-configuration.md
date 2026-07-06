@@ -18,7 +18,6 @@ export class Authentication {
 export class HealthCheckRestPaths {
   static readonly ROOT = '/';
   static readonly PING = '/ping';
-  static readonly METRICS = '/metrics';
 }
 ```
 
@@ -162,12 +161,13 @@ const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
 
 ```typescript
 // In component constructor or binding
-const extraOptions = this.application.get<Partial<IServerOptions>>({
-  key: BindingKeys.SERVER_OPTIONS,
-  isOptional: true,
-}) ?? {};
+const extraServerOptions =
+  this.application.get<Partial<ServerOptions>>({
+    key: SocketIOBindingKeys.SERVER_OPTIONS,
+    isOptional: true,
+  }) ?? {};
 
-this.options = Object.assign({}, DEFAULT_OPTIONS, extraOptions);
+this.serverOptions = Object.assign({}, DEFAULT_SERVER_OPTIONS, extraServerOptions);
 ```
 
 ### Constructor Validation
@@ -175,20 +175,20 @@ this.options = Object.assign({}, DEFAULT_OPTIONS, extraOptions);
 Validate required options in the constructor:
 
 ```typescript
-constructor(options: IJWTTokenServiceOptions) {
-  super({ scope: JWTTokenService.name });
+constructor(options: IJWSTokenServiceOptions) {
+  super({ scope: JWSTokenService.name });
 
   if (!options.jwtSecret) {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      message: '[JWTTokenService] Invalid jwtSecret',
+      message: '[JWSTokenService] Invalid jwtSecret',
     });
   }
 
-  if (!options.applicationSecret) {
+  if (!options.getTokenExpiresFn) {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-      message: '[JWTTokenService] Invalid applicationSecret',
+      message: '[JWSTokenService] Invalid getTokenExpiresFn',
     });
   }
 

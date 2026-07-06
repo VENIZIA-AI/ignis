@@ -1,10 +1,4 @@
-import { FilterBuilder } from '@/base/repositories/operators';
-
-class TestableFilterBuilder extends FilterBuilder {
-  public testParseJsonPath(key: string) {
-    return (this as any).parseJsonPath(key);
-  }
-}
+import { parseJsonPath } from '@/connectors/postgres/repositories/operators/internal/json-utils';
 
 interface ITestCase {
   input: string;
@@ -164,7 +158,6 @@ const testCases: ITestCase[] = [
 ];
 
 function runTests() {
-  const filterBuilder = new TestableFilterBuilder();
   let passed = 0;
   let failed = 0;
 
@@ -173,7 +166,7 @@ function runTests() {
   console.log('='.repeat(60));
 
   for (const testCase of testCases) {
-    const result = filterBuilder.testParseJsonPath(testCase.input);
+    const result = parseJsonPath({ key: testCase.input });
 
     const isColumnMatch = result.columnName === testCase.expected.columnName;
     const isPathMatch =

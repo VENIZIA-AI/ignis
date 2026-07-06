@@ -17,7 +17,6 @@ import {
   AuthorizationEnforcerTypes,
   CasbinEnforcerModelDrivers,
   BaseApplication,
-  // BaseMetaLinkModel,
   BindingKeys,
   BindingNamespaces,
   CasbinAuthorizationEnforcer,

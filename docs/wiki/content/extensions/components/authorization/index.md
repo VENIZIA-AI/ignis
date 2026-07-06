@@ -264,6 +264,7 @@ import type {
 
   // Adapter types
   ICasbinPolicyFilter,
+  ICasbinPolicySource,
   IScopedCasbinEntities,
   IScopedCasbinPolicyFilter,
 

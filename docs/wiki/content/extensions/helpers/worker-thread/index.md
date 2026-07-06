@@ -94,7 +94,7 @@ const worker = new BaseWorkerHelper<MyMessageType>({
 | `identifier` | `string` | -- | A unique name for this worker instance, used in log output. Required. |
 | `path` | `string \| URL` | -- | Path to the worker script file. Required. |
 | `options` | `WorkerOptions` | -- | Node.js `WorkerOptions` passed directly to `new Worker()`. Required. Supports `workerData`, `transferList`, `env`, etc. |
-| `scope` | `string` | `'BaseWorkerHelper'` | Logger scope prefix. |
+| `scope` | `string` | `'BaseWorkerHelper'` | Accepted but currently ignored -- the constructor always sets the logger scope to `'BaseWorkerHelper'`. |
 | `eventHandlers` | `Partial<Pick<IWorker<MessageType>, ...>>` | `undefined` | Optional overrides for lifecycle event callbacks. Any handler not provided falls back to default logging behavior. |
 
 #### Event Handler Overrides
@@ -425,7 +425,7 @@ const bus = thread.getWorkerBus({ key: 'my-bus' });
 
 ### "Failed to post message to main | Invalid parentPort!"
 
-**Cause:** `BaseWorkerBusHelper.postMessage()` was called but the `port` property is null or undefined. This typically means the bus was constructed with an invalid `MessagePort`.
+**Cause:** `BaseWorkerBusHelper.postMessage()` was called but the `port` property is null or undefined. This typically means the bus was constructed with an invalid `MessagePort`. Note this is logged at error level, not thrown -- the message is silently dropped.
 
 **Fix:** Ensure a valid `MessagePort` (e.g., `parentPort` from `node:worker_threads` or a port from `new MessageChannel()`) is passed to the constructor:
 

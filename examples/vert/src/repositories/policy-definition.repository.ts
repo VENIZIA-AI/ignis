@@ -1,6 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { PolicyDefinition } from '@/models/entities';
-import { DefaultCRUDRepository, inject, repository } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 @repository({ model: PolicyDefinition, dataSource: PostgresDataSource })
 export class PolicyDefinitionRepository extends DefaultCRUDRepository<

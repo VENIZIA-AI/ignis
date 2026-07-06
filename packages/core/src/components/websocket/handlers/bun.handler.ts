@@ -1,5 +1,5 @@
-import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { TBunServerInstance } from '@/base/applications';
+import type { OpenAPIHono } from '@hono/zod-openapi';
 
 export function createBunFetchHandler(opts: {
   wsPath: string;
@@ -28,6 +28,6 @@ export function createBunFetchHandler(opts: {
       return new Response('WebSocket upgrade failed', { status: 500 });
     }
 
-    return undefined as unknown as Response;
+    return undefined;
   };
 }

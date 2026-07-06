@@ -132,7 +132,7 @@ interface IStorageHelper {
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string }) => string;
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
   }): Promise<IUploadResult[]>;
 
@@ -156,6 +156,7 @@ interface IUploadFile {
   buffer: Buffer;
   size: number;
   encoding?: string;
+  folderPath?: string;
   [key: string | symbol]: any;
 }
 
@@ -215,8 +216,8 @@ BaseStorageHelper (abstract class)
 | Field | Type | Nullable | Default | Description |
 |-------|------|----------|---------|-------------|
 | `id` | TEXT | No | -- | Primary key (UUID) |
-| `created_at` | TIMESTAMP | No | `NOW()` | When record was created |
-| `modified_at` | TIMESTAMP | No | `NOW()` | When record was last updated |
+| `created_at` | TIMESTAMPTZ | No | `NOW()` | When record was created |
+| `modified_at` | TIMESTAMPTZ | No | `NOW()` | When record was last updated |
 | `bucket_name` | TEXT | No | -- | Storage bucket name |
 | `object_name` | TEXT | No | -- | File object name |
 | `link` | TEXT | No | -- | Access URL to the file |

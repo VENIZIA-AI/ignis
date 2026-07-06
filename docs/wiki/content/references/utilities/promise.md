@@ -51,6 +51,21 @@ const result1 = await transformValueOrPromise(5, double); // => 10
 const result2 = await transformValueOrPromise(Promise.resolve(5), double); // => 10
 ```
 
+## `toError`
+
+Normalizes an unknown thrown value into an `Error` instance. Useful in `catch` blocks where the caught value is typed `unknown` and isn't guaranteed to already be an `Error`.
+
+```typescript
+import { toError } from '@venizia/ignis-helpers';
+
+try {
+  await riskyOperation();
+} catch (caught) {
+  const error = toError(caught);
+  console.error(error.message);
+}
+```
+
 ## `isPromiseLike`
 
 A type guard function to check if a given value is a Promise-like object (i.e., it has a `then` method). Checks that the value is non-null, is an object or function, and has a `then` property that is a function.

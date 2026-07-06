@@ -1,11 +1,10 @@
+import { model, RelationTypes } from '@venizia/ignis';
 import {
-  BaseEntity,
+  BasePostgresEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
-  model,
-  RelationTypes,
   TRelationConfig,
-} from '@venizia/ignis';
+} from '@venizia/ignis/postgres';
 import { boolean, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { SaleChannelProduct } from './sale-channel-product.model';
 
@@ -17,7 +16,7 @@ import { SaleChannelProduct } from './sale-channel-product.model';
  * - SaleChannel hasMany SaleChannelProduct
  */
 @model({ type: 'entity' })
-export class SaleChannel extends BaseEntity<typeof SaleChannel.schema> {
+export class SaleChannel extends BasePostgresEntity<typeof SaleChannel.schema> {
   static override schema = pgTable(
     'SaleChannel',
     {

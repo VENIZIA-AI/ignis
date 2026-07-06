@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import { asTypedContext } from '@/base/controllers/common/types';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@/components/auth/authorize/common/constants';
@@ -48,11 +49,14 @@ function poolEnforcer(adapter: FilteredAdapter, poolSize = 4) {
 }
 
 async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: string) {
-  const rules = await e.buildRules({ user: { principalType: 'User', userId }, context: {} as any });
+  const rules = await e.buildRules({
+    user: { principalType: 'User', userId },
+    context: asTypedContext({}),
+  });
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
-    context: {} as any,
+    context: asTypedContext({}),
   });
 }
 
@@ -141,7 +145,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     e.destroy();
     await new Promise(resolve => setTimeout(resolve, 0));
@@ -150,7 +154,7 @@ describe('CasbinAuthorizationEnforcer — fail-closed', () => {
       await e.evaluate({
         rules,
         request: { resource: 'A_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-        context: {} as any,
+        context: asTypedContext({}),
       });
     } catch (err) {
       error = err;

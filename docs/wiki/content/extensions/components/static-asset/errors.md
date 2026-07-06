@@ -15,7 +15,7 @@ Bucket names are validated with `helper.isValidName()` (single segment - no path
 | Long names | 256+ chars | Exceeds 255 character limit |
 | Empty names | `""`, `"  "` | Empty or whitespace-only |
 
-Every endpoint that accepts `bucketName` validates it and returns HTTP 400 `"Invalid bucket name"` on failure. Every endpoint that accepts `objectName` validates it separately and returns HTTP 400 `"Invalid object name"` on failure.
+Every endpoint that accepts `bucketName` validates it and returns HTTP 400 `"Invalid bucket name"` on failure. Every endpoint that accepts `objectName` validates it separately and returns HTTP 400 `"Invalid object name or path"` on failure.
 
 ## Troubleshooting
 
@@ -26,7 +26,7 @@ Every endpoint that accepts `bucketName` validates it and returns HTTP 400 `"Inv
 **Fix:** Ensure names follow these rules:
 - No path separators (`..`, `/`, `\`)
 - No leading dot (`.hidden`)
-- No shell special characters (`;`, `|`, `&`, `$`, `` ` ``, `<`, `>`, `(`, `)`, `{`, `}`, `[`, `]`, `!`, `#`)
+- No shell special characters (`;`, `|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#`)
 - No control characters (`\n`, `\r`, `\0`)
 - 255 characters or fewer
 - Not empty or whitespace-only

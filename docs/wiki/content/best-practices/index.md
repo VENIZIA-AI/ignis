@@ -112,7 +112,7 @@ request: { body: jsonContent({ schema: z.object({ email: z.string().email() }) }
 // ❌ Business logic in controllers
 @get({ configs: RouteConfigs.GET_USER })
 async getUser(c: Context) {
-  const user = await this.userRepo.findById(id);
+  const user = await this.userRepository.findById({ id });
   if (user.lastLogin < cutoff) await this.sendReminder(user); // Move to service!
   return c.json(user);
 }
@@ -130,7 +130,7 @@ const data: any = await fetchData(); // Use proper types!
 |-------|--------|
 | Secrets | Store in environment variables, never in code |
 | Input | Validate with Zod schemas at API boundaries |
-| Auth | Protect routes with `authStrategies: [Authentication.STRATEGY_JWT]` |
+| Auth | Protect routes with `authenticate: { strategies: [Authentication.STRATEGY_JWT] }` |
 | Sensitive data | Use `hiddenProperties` in model settings |
 | File uploads | Use `sanitizeFilename()` for all user-provided filenames |
 | CORS | Configure allowed origins explicitly |

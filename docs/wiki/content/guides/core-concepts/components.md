@@ -21,7 +21,7 @@ IGNIS includes ready-to-use components for common features. The following are ex
 | :--- | :--- |
 | **Authentication** | JWT + Basic auth strategies, token services, strategy registry |
 | **Authorization** | Casbin-based RBAC, permission mapping, `authorize()` middleware |
-| **HealthCheckComponent** | `GET /health`, `/health/live`, `/health/ready` |
+| **HealthCheckComponent** | `GET /health`, `POST /health/ping` |
 | **SwaggerComponent** | Swagger UI or Scalar UI for API documentation |
 | **RequestTrackerComponent** | `x-request-id` header, request body parsing |
 
@@ -29,17 +29,26 @@ The following components require direct subpath imports:
 
 | Component | Import From | Description |
 | :--- | :--- | :--- |
-| **MailComponent** | `@venizia/ignis/components/mail` | Nodemailer/Mailgun transporters with queue executors |
-| **SocketIOComponent** | `@venizia/ignis/components/socket-io` | Socket.IO server with Redis adapter |
-| **StaticAssetComponent** | `@venizia/ignis/components/static-asset` | File upload/download CRUD, MinIO/Disk storage |
-| **WebSocketComponent** | `@venizia/ignis/components/websocket` | Native WebSocket support |
+| **MailComponent** | `@venizia/ignis/mail` | Nodemailer/Mailgun transporters with queue executors |
+| **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage |
+| **WebSocketComponent** | `@venizia/ignis/websocket` | Native WebSocket support |
 
 See the [**Built-in Components Reference**](../../extensions/components/) for detailed documentation.
 
 ## Creating a Simple Component
 
 ```typescript
-import { BaseApplication, BaseComponent, inject, CoreBindings, ValueOrPromise, Binding } from '@venizia/ignis';
+import {
+  BaseApplication,
+  BaseComponent,
+  BaseRestController,
+  Binding,
+  controller,
+  CoreBindings,
+  inject,
+  ValueOrPromise,
+} from '@venizia/ignis';
 
 // Define a service
 class NotificationService {

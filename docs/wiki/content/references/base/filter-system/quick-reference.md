@@ -181,7 +181,7 @@ Numeric operators (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) use safe n
 ### Select Specific Fields
 
 ```typescript
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     where: { isActive: true },
     fields: ['id', 'name', 'email'], // Only return these fields
@@ -242,11 +242,11 @@ export class User extends BaseEntity<typeof User.schema> {
 }
 
 // All queries automatically include the default filter
-await userRepo.find({ filter: {} });
+await userRepository.find({ filter: {} });
 // WHERE isDeleted = false LIMIT 100
 
 // Skip default filter for admin operations
-await userRepo.find({
+await userRepository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true },
 });

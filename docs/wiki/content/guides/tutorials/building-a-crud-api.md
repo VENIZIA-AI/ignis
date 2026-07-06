@@ -21,16 +21,16 @@ Build a complete, database-backed REST API for managing todos. This guide covers
 **Endpoints:**
 - `POST /todos` - Create todo
 - `GET /todos` - List all todos
-- `GET /todos/:id` - Get single todo
-- `PATCH /todos/:id` - Update todo
-- `DELETE /todos/:id` - Delete todo
+- `GET /todos/{id}` - Get single todo
+- `PATCH /todos/{id}` - Update todo
+- `DELETE /todos/{id}` - Delete todo
 
 ### Architecture Flow
 
 Here's how a request flows through your application:
 
 ```
-HTTP Request (GET /api/todos/:id)
+HTTP Request (GET /api/todos/{id})
             │
             ▼
    ┌─────────────────┐
@@ -90,10 +90,10 @@ Create `src/models/todo.model.ts`:
 // src/models/todo.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
@@ -108,21 +108,16 @@ export const todoTable = pgTable('Todo', {
   isCompleted: boolean('is_completed').default(false),
 });
 
-// 2. Define relations (empty for now, but required)
-export const todoRelations = createRelations({
-  source: todoTable,
-  relations: [],
-});
-
-// 3. Define the TypeScript type for a Todo object
+// 2. Define the TypeScript type for a Todo object
 export type TTodoSchema = typeof todoTable;
 export type TTodo = TTableObject<TTodoSchema>;
 
-// 4. Create the Entity class, decorated with @model
+// 3. Create the Entity class, decorated with @model
 @model({ type: 'entity' })
 export class Todo extends BaseEntity<typeof Todo.schema> {
   static override schema = todoTable;
-  static override relations = () => todoRelations.definitions;
+  // 4. Define relations (empty array for now, but the resolver is still required)
+  static override relations = (): TRelationConfig[] => [];
   static override TABLE_NAME = 'Todo';
 }
 ```
@@ -361,13 +356,13 @@ export * from './todo.controller';
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/todos` | List all todos (find) |
-| GET | `/todos/:id` | Get todo by ID (findById) |
+| GET | `/todos/{id}` | Get todo by ID (findById) |
 | GET | `/todos/find-one` | Find one todo by filter (findOne) |
 | GET | `/todos/count` | Count todos (count) |
 | POST | `/todos` | Create todo (create) |
-| PATCH | `/todos/:id` | Update todo by ID (updateById) |
+| PATCH | `/todos/{id}` | Update todo by ID (updateById) |
 | PATCH | `/todos` | Update multiple todos by filter (updateBy) |
-| DELETE | `/todos/:id` | Delete todo by ID (deleteById) |
+| DELETE | `/todos/{id}` | Delete todo by ID (deleteById) |
 | DELETE | `/todos` | Delete multiple todos by filter (deleteBy) |
 
 > **Deep Dive:** See [ControllerFactory Reference](/references/base/controllers#controllerfactory) for customization options.

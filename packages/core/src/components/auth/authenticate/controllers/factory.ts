@@ -2,6 +2,7 @@ import { BaseRestController } from '@/base/controllers/rest/base';
 import { inject } from '@/base/metadata/injectors';
 import { controller } from '@/base/metadata/routes';
 import { jsonContent, jsonResponse } from '@/base/models/common/types';
+import { throwNotSupported } from '@/utilities';
 import { AnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, ValueOrPromise } from '@venizia/ignis-helpers';
@@ -141,9 +142,10 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async context => {
           if (!this.service.refreshToken) {
-            throw getError({
-              statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-              message: 'Method not implemented',
+            return throwNotSupported({
+              scope: AuthController.name,
+              feature: 'refreshToken',
+              logger: this.logger,
             });
           }
 
@@ -191,9 +193,10 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
 
           if (withUserInformation) {
             if (!this.service.getUserInformation) {
-              throw getError({
-                statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-                message: 'Method not implemented',
+              return throwNotSupported({
+                scope: AuthController.name,
+                feature: 'getUserInformation',
+                logger: this.logger,
               });
             }
 
@@ -218,9 +221,10 @@ export const defineAuthController = (opts: TDefineAuthControllerOpts) => {
         },
         handler: async context => {
           if (!this.service.getUserInformation) {
-            throw getError({
-              statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-              message: 'Method not implemented',
+            return throwNotSupported({
+              scope: AuthController.name,
+              feature: 'getUserInformation',
+              logger: this.logger,
             });
           }
 

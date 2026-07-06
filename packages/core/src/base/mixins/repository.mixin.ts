@@ -1,4 +1,5 @@
 import { BindingNamespaces } from '@/common/bindings';
+import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
 import {
   AnyObject,
   executeWithPerformanceMeasure,
@@ -8,14 +9,12 @@ import {
 } from '@venizia/ignis-helpers';
 import { AbstractApplication } from '../applications';
 import { IDataSource } from '../datasources';
-import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IRepositoryMixin, TMixinOpts } from './types';
-import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
 
 export const RepositoryMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T) => {
   class Mixed extends baseClass implements IRepositoryMixin {
-    repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+    repository<Base extends IRepository, Args extends AnyObject = any>(
       ctor: TClass<Base>,
       opts?: TMixinOpts<Args>,
     ): Binding<Base> {

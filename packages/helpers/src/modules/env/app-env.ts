@@ -48,8 +48,21 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
     }
   }
 
-  get<ReturnType>(key: string, defaultValue?: ReturnType): ReturnType {
-    return (this.arguments[key] as ReturnType) ?? (defaultValue as ReturnType);
+  get<ReturnType, BeforeTransformType = unknown>(
+    key: string,
+    opts?: {
+      defaultValue?: ReturnType;
+      transform?: (value: BeforeTransformType) => ReturnType;
+    },
+  ): ReturnType {
+    const rs = this.arguments[key];
+
+    if (!opts?.transform) {
+      return (rs ?? opts?.defaultValue) as ReturnType;
+    }
+
+    const transformed = opts.transform(rs);
+    return (transformed ?? opts?.defaultValue) as ReturnType;
   }
 
   set<ValueType>(key: string, value: ValueType) {

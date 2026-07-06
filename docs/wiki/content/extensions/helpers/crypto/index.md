@@ -18,7 +18,7 @@ Cryptographic utilities for AES symmetric encryption, RSA asymmetric encryption,
 | Type | Symmetric | Asymmetric | Asymmetric + Symmetric |
 | Key exchange | Shared secret | Public/private | Diffie-Hellman |
 | Speed | Fast | Slow (large keys) | Fast (small keys) |
-| Max message | Unlimited | ~190 bytes (2048-bit) | Unlimited |
+| Max message | Unlimited | ~214 bytes (2048-bit, OAEP) | Unlimited |
 | Async | No | No | Yes (Web Crypto) |
 | Runtime | Node.js `crypto` | Node.js `crypto` | `crypto.subtle` (Bun/Browser) |
 

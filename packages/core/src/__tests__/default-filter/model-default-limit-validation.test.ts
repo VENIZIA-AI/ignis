@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { model } from '@/base/metadata';
+import { IModelSettings } from '@/helpers/inversion';
 
 /**
  * `@model({ settings: { defaultLimit } })` validates at decoration (boot) time:
@@ -7,8 +8,8 @@ import { model } from '@/base/metadata';
  * fast so misconfiguration never reaches the query layer.
  */
 describe('@model - defaultLimit validation', () => {
-  const decorate = (settings: Record<string, unknown>) => () => {
-    @model({ type: 'entity', settings: settings as any })
+  const decorate = (settings: IModelSettings) => () => {
+    @model({ type: 'entity', settings })
     class _M {}
     return _M;
   };

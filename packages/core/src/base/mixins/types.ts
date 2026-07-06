@@ -3,7 +3,6 @@ import { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
 import { IApplication } from '../applications';
 import { BaseComponent } from '../components';
 import { IDataSource } from '../datasources';
-import { TTableSchemaWithId } from '../models';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 
@@ -40,7 +39,7 @@ export interface IRepositoryMixin {
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base>;
-  repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+  repository<Base extends IRepository, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base>;

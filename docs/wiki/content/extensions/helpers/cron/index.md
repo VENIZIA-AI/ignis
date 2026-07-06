@@ -147,7 +147,7 @@ hourlyJob.start();
 
 ### Accessing the Underlying CronJob
 
-The `instance` property exposes the underlying `CronJob` from the `cron` package, giving access to the full API (e.g., `stop()`, `running`, `lastDate()`).
+The `instance` property exposes the underlying `CronJob` from the `cron` package, giving access to the full API (e.g., `stop()`, `isActive`, `lastDate()`).
 
 ```typescript
 const job = new CronHelper({
@@ -158,7 +158,7 @@ const job = new CronHelper({
 job.start();
 
 // Access the underlying CronJob directly
-console.log(job.instance.running);  // true
+console.log(job.instance.isActive);  // true
 job.instance.stop();
 ```
 

@@ -68,7 +68,7 @@ IGNIS supports extensive query operators for filtering:
 **Complex Filter Example:**
 
 ```typescript
-await repo.find({
+await repository.find({
   filter: {
     where: {
       and: [
@@ -87,18 +87,18 @@ await repo.find({
 
 ### JSON Path Filtering
 
-Filter by nested JSON/JSONB fields using PostgreSQL's `#>` operator:
+Filter and sort by nested JSON/JSONB fields using PostgreSQL path extraction:
 
 ```typescript
 // Order by nested JSON path
-await repo.find({
+await repository.find({
   filter: {
     order: ['metadata.nested[0].field ASC'],
   },
 });
 
-// The framework uses PostgreSQL #> operator for path extraction
-// metadata #> '{nested,0,field}'
+// Ordering uses the #> operator: metadata #> '{nested,0,field}'
+// Where clauses on JSON paths use #>> (text extraction)
 ```
 
 > [!TIP]
@@ -132,11 +132,15 @@ Reduce database load with caching:
 
 **Example:**
 ```typescript
-// Cache expensive query results
-const cached = await redis.get('users:active');
+// Cache expensive query results (RedisHelper uses an options-object API)
+const cached = await redis.getObject<TUser[]>({ key: 'users:active' });
 if (!cached) {
-  const users = await userRepository.find({ where: { active: true } });
-  await redis.set('users:active', users, 300); // 5 min TTL
+  const users = await userRepository.find({ filter: { where: { active: true } } });
+  await redis.set({
+    key: 'users:active',
+    value: users,
+    options: { expiresIn: 5 * 60 * 1000 }, // 5 min TTL (milliseconds)
+  });
 }
 ```
 
@@ -204,13 +208,16 @@ Connection pooling significantly improves performance by reusing database connec
 ```typescript
 import { Pool } from 'pg';
 import { drizzle } from 'drizzle-orm/node-postgres';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 
-export class PostgresDataSource extends AbstractDataSource {
-  override connect(): void {
-    const pool = new Pool({
+// IDataSourceConfigs: your settings interface (host/port/user/password/database)
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+  override configure(): void {
+    // Keep the pool on `this.pool` - beginTransaction() uses it
+    this.pool = new Pool({
       host: this.settings.host,
       port: this.settings.port,
-      user: this.settings.username,
+      user: this.settings.user,
       password: this.settings.password,
       database: this.settings.database,
 
@@ -222,7 +229,7 @@ export class PostgresDataSource extends AbstractDataSource {
       maxUses: 7500,                // Close connection after 7500 queries
     });
 
-    this.connector = drizzle({ client: pool, schema: this.schema });
+    this.connector = drizzle({ client: this.pool, schema: this.getSchema() });
   }
 }
 ```
@@ -282,14 +289,14 @@ export const User = pgTable('User', {
 ### Avoid N+1 Queries
 
 ```typescript
-// ❌ BAD - N+1 queries
-const users = await userRepo.find({ filter: { limit: 100 } });
-for (const user of users.data) {
-  user.posts = await postRepo.find({ filter: { where: { authorId: user.id } } });
+// ❌ BAD - N+1 queries (find returns a plain array)
+const users = await userRepository.find({ filter: { limit: 100 } });
+for (const user of users) {
+  user.posts = await postRepository.find({ filter: { where: { authorId: user.id } } });
 }
 
 // ✅ GOOD - Single query with relations
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     limit: 100,
     include: [{ relation: 'posts' }],
@@ -302,11 +309,11 @@ const users = await userRepo.find({
 ```typescript
 // ❌ BAD - Many individual inserts
 for (const item of items) {
-  await repo.create({ data: item });
+  await repository.create({ data: item });
 }
 
 // ✅ GOOD - Batch insert
-await repo.createAll({ data: items });
+await repository.createAll({ data: items });
 ```
 
 ## 9. Memory Management
@@ -315,7 +322,7 @@ await repo.createAll({ data: items });
 
 ```typescript
 // ❌ BAD - Load all records into memory
-const allUsers = await userRepo.find({ filter: { limit: 100000 } });
+const allUsers = await userRepository.find({ filter: { limit: 100000 } });
 
 // ✅ GOOD - Process in batches
 const batchSize = 1000;
@@ -323,15 +330,16 @@ let offset = 0;
 let hasMore = true;
 
 while (hasMore) {
-  const batch = await userRepo.find({
+  // find returns a plain array
+  const batch = await userRepository.find({
     filter: { limit: batchSize, offset },
   });
 
-  for (const user of batch.data) {
+  for (const user of batch) {
     await processUser(user);
   }
 
-  hasMore = batch.data.length === batchSize;
+  hasMore = batch.length === batchSize;
   offset += batchSize;
 }
 ```

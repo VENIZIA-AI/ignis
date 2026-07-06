@@ -1,4 +1,10 @@
 export interface IApplicationEnvironment {
-  get<ReturnType>(key: string, defaultValue?: ReturnType): ReturnType;
+  get<ReturnType, BeforeTransformType = unknown>(
+    key: string,
+    opts?: {
+      defaultValue?: ReturnType;
+      transform?: (value: BeforeTransformType) => ReturnType;
+    },
+  ): ReturnType;
   set<ValueType>(key: string, value: ValueType): any;
 }

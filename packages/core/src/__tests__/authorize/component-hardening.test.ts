@@ -21,7 +21,7 @@ const createFakeApplication = (opts: {
   const application = {
     get<T>(getOpts: { key: string; isOptional?: boolean }): T | undefined {
       if (getOpts.key === AuthorizeBindingKeys.OPTIONS) {
-        return opts.options as unknown as T;
+        return opts.options as T;
       }
       return undefined;
     },
@@ -32,7 +32,9 @@ const createFakeApplication = (opts: {
         },
       };
     },
-  } as unknown as BaseApplication;
+    // Only .get()/.bind() are exercised by binding() — the full BaseApplication surface
+    // (Hono server, DI container, lifecycle hooks) is out of scope for this unit test.
+  } as BaseApplication;
 
   return { application, binds };
 };
@@ -93,10 +95,9 @@ describe('AuthorizeComponent.binding()', () => {
         messages.push(message);
       },
     };
-    // Intercept the scoped logger returned by logger.for(...)
-    (component as unknown as { logger: { for: (name: string) => unknown } }).logger = {
-      for: () => scopedLogger,
-    };
+    // Intercept the scoped logger returned by logger.for(...). Fake only implements .for();
+    // the full Winston-backed Logger surface is unnecessary for this assertion.
+    component.logger = { for: () => scopedLogger } as any;
 
     component.binding();
 

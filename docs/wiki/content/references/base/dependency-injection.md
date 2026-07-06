@@ -272,7 +272,7 @@ Marks a class as injectable and attaches optional metadata.
 class UserService extends BaseService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
-    private userRepo: UserRepository,
+    private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
   }

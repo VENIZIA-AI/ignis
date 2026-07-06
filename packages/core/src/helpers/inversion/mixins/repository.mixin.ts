@@ -1,38 +1,43 @@
 import { IDataSource } from '@/base/datasources';
-import { BaseEntity, TTableSchemaWithId } from '@/base/models';
-import { createRelations, TRelationConfig } from '@/base/repositories';
+import { AbstractEntity } from '@/base/models';
+import type { TTableSchemaWithId } from '@/connectors/postgres/models';
+// Deep import ON PURPOSE - the repositories barrel pulls PostgresBaseRepository, which extends
+// base AbstractRepository and would close a circular import back into this registry (TDZ at load).
+import { createRelations } from '@/connectors/postgres/repositories/operators/relation';
+import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { resolveValue, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
-import { relations as defineRelations } from 'drizzle-orm';
 import { MetadataKeys } from '../common/keys';
 import {
+  IModelMetadata,
   IModelRegistryEntry,
   IRepositoryBinding,
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
-  TDrizzleRelations,
 } from '../common/types';
 
 // Repository Metadata & Bindings
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
-    _MetadataRegistry & { modelRegistry: Map<string, IModelRegistryEntry> }
+    _MetadataRegistry & {
+      modelRegistry: Map<string, IModelRegistryEntry>;
+      getModelMetadata(opts: { target: object }): IModelMetadata | undefined;
+    }
   >,
 >(
   baseClass: BaseClass,
-  // mixinOpts: { },
 ) => {
   return class extends baseClass {
-    // Repository bindings: repository class name -> model + datasource binding
-    repositoryBindings: Map<string, IRepositoryBinding>;
+    repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
     // DataSource -> Models mapping: datasource name -> set of model table names
     datasourceModels: Map<string, Set<string>>;
 
-    setRepositoryMetadata<Target extends object = object>(opts: {
-      target: Target;
-      metadata: IRepositoryMetadata;
-    }): void {
+    setRepositoryMetadata<
+      Target extends object = object,
+      Model extends AbstractEntity = AbstractEntity,
+      DataSource extends IDataSource = IDataSource,
+    >(opts: { target: Target; metadata: IRepositoryMetadata<Model, DataSource> }): void {
       const { target, metadata } = opts;
       Reflect.defineMetadata(MetadataKeys.REPOSITORY, metadata, target);
     }
@@ -44,26 +49,20 @@ export const RepositoryMetadataMixin = <
       return Reflect.getMetadata(MetadataKeys.REPOSITORY, target);
     }
 
-    /**
-     * Register a repository binding that connects a repository to a model and datasource.
-     * This is called by the @repository decorator.
-     *
-     * Accepts either strongly typed classes or decorator targets.
-     */
+    /** Registers a repository binding (called by @repository) linking a repository to its model + datasource. */
     registerRepositoryBinding<
-      Schema extends TTableSchemaWithId = TTableSchemaWithId,
-      Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+      Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
-    >(opts: IRepositoryBinding<Schema, Model, DataSource>) {
-      // Store the binding - cast to IRepositoryBinding which has compatible structure
+    >(opts: IRepositoryBinding<Model, DataSource>) {
       this.repositoryBindings.set(opts.repository.name, opts);
 
       // Track which datasource owns which models
       const dsKey = typeof opts.dataSource === 'string' ? opts.dataSource : opts.dataSource.name;
 
-      // Cast model to access static properties
       const modelClass = resolveValue(opts.model);
-      const tableName = modelClass.TABLE_NAME || modelClass.name;
+
+      const modelMetadata = this.getModelMetadata({ target: modelClass });
+      const tableName = modelMetadata?.tableName || modelClass.TABLE_NAME || modelClass.name;
 
       if (!this.datasourceModels.has(dsKey)) {
         this.datasourceModels.set(dsKey, new Set());
@@ -72,55 +71,33 @@ export const RepositoryMetadataMixin = <
       this.datasourceModels.get(dsKey)!.add(tableName);
     }
 
-    /**
-     * Get repository binding by repository class name
-     */
-    getRepositoryBinding(opts: { name: string }): IRepositoryBinding | undefined {
+    getRepositoryBinding(opts: { name: string }): IRepositoryBinding<AbstractEntity> | undefined {
       return this.repositoryBindings.get(opts.name);
     }
 
     /**
-     * Resolve and build relations for a model entry, caching the result.
-     * This is called lazily when DataSource.buildSchema() requests the models,
-     * ensuring all models are loaded before relations are resolved.
-     *
-     * `resolveModelRelations` & `getModels`
-     * Lazy Resolution: resolveModelRelations correctly checks for _builtRelations (cache) before resolving.
-     * Execution Timing: getModels calls resolveModelRelations. getModels is called by buildSchema. buildSchema is called by DataSource.configure().
-     * Flow Verification:
-     * 1. @model decorators run (register classes, store resolvers).
-     * 2. App starts.
-     * 3. DataSource.configure() is called.
-     * 4. registry.buildSchema() is called.
-     * 5. registry.getModels() is called.
-     * 6. CRITICAL: At this point, all @model decorators have finished running.
-     * 7. resolveModelRelations() executes the stored arrow functions.
-     * 8. If ModelA needs ModelB, ModelB is already registered.
-     *
-     * @internal - Not intended for external use
+     * Resolves + caches relations for a model entry. Called lazily from buildSchema() so every
+     * @model class is registered first, avoiding circular-dependency ordering issues. @internal
      */
-    resolveModelRelations(modelMeta: IModelRegistryEntry): TDrizzleRelations | undefined {
-      // Return cached relations if already built
+    resolveModelRelations(modelMeta: IModelRegistryEntry): unknown {
       if (modelMeta._builtRelations !== undefined) {
         return modelMeta._builtRelations;
       }
 
-      // No relations resolver defined
       if (!modelMeta.relationsResolver) {
         return undefined;
       }
 
-      // Resolve the relations (execute the arrow function)
       const relations = resolveValue(modelMeta.relationsResolver) as Array<TRelationConfig>;
 
-      // Build Drizzle relations using createRelations utility
       if (relations && modelMeta.schema) {
+        // Registry stores schema as unknown (engine-neutral); this resolver only runs for
+        // drizzle-backed models, so the narrow is safe here.
         const builtRelations = createRelations({
-          source: modelMeta.schema,
+          source: modelMeta.schema as TTableSchemaWithId,
           relations,
         });
 
-        // Cache the built relations
         modelMeta._builtRelations = builtRelations?.relations;
         return modelMeta._builtRelations;
       }
@@ -129,15 +106,14 @@ export const RepositoryMetadataMixin = <
     }
 
     /**
-     * Get all models registered for a specific datasource.
-     * Relations are resolved lazily (on first access) to avoid circular dependency issues.
+     * Models registered for a datasource, relations resolved lazily. `schema`/`relations` are
+     * `unknown` because this registry is shared across connectors (SQL vs search); each connector
+     * narrows the type at its own call site (e.g. `BasePostgresDataSource.discoverSchema()`).
      */
-    getModels<Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {
-      dataSource: string | TClass<IDataSource>;
-    }): Array<{
+    getModels(opts: { dataSource: string | TClass<IDataSource> }): Array<{
       tableName: string;
-      schema: Schema;
-      relations?: ReturnType<typeof defineRelations>;
+      schema: unknown;
+      relations?: unknown;
     }> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
@@ -154,12 +130,11 @@ export const RepositoryMetadataMixin = <
             return null;
           }
 
-          // Resolve relations lazily - this ensures all models are loaded first
           const relations = this.resolveModelRelations(modelMeta);
 
           return {
             tableName,
-            schema: modelMeta.schema as Schema,
+            schema: modelMeta.schema,
             relations,
           };
         })
@@ -170,33 +145,44 @@ export const RepositoryMetadataMixin = <
       return rs;
     }
 
-    /**
-     * Build auto-discovery schema for a datasource.
-     * Assembles all table schemas and relations from registered models.
-     *
-     * Returns an object with:
-     * - schema: Record of table schemas keyed by table name
-     * - relations: Record of Drizzle relations keyed by `${tableName}Relations`
-     */
+    /** Like getModels but returns only resolved model classes — used by BaseSearchDataSource, which has no pgTable to resolve. */
+    getModelClasses(opts: { dataSource: string | TClass<IDataSource> }): Array<TClass<unknown>> {
+      const { dataSource } = opts;
+      const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
+      const modelNames = this.datasourceModels.get(dsKey) || new Set();
+
+      const rs = Array.from(modelNames)
+        .map(tableName => {
+          const modelMeta = this.modelRegistry.get(tableName);
+          if (!modelMeta) {
+            return null;
+          }
+
+          return resolveValue(modelMeta.target);
+        })
+        .filter(item => item !== null);
+
+      return rs;
+    }
+
+    /** Assembles table schemas + relations for a datasource's registered models. */
     buildSchema(opts: { dataSource: string | TClass<IDataSource> }): {
-      schema: Record<string, TTableSchemaWithId>;
-      relations: Record<string, TDrizzleRelations>;
+      schema: Record<string, unknown>;
+      relations: Record<string, unknown>;
     } {
       const { dataSource } = opts;
       const models = this.getModels({ dataSource });
 
       const rs: {
-        schema: Record<string, TTableSchemaWithId>;
-        relations: Record<string, TDrizzleRelations>;
+        schema: Record<string, unknown>;
+        relations: Record<string, unknown>;
       } = { schema: {}, relations: {} };
 
       for (const model of models) {
-        // Add table schema
         if (model.schema) {
           rs.schema[model.tableName] = model.schema;
         }
 
-        // Add relations if defined
         if (model.relations) {
           rs.relations[`${model.tableName}Relations`] = model.relations;
         }
@@ -205,9 +191,6 @@ export const RepositoryMetadataMixin = <
       return rs;
     }
 
-    /**
-     * Check if a datasource has any models registered
-     */
     hasModels(opts: { dataSource: string | TClass<IDataSource> }): boolean {
       const dsKey = typeof opts.dataSource === 'string' ? opts.dataSource : opts.dataSource.name;
       const modelNames = this.datasourceModels.get(dsKey);

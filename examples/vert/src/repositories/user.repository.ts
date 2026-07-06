@@ -1,6 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { User } from '@/models/entities';
-import { inject, PersistableRepository, repository } from '@venizia/ignis';
+import { inject, repository } from '@venizia/ignis';
+import { PersistableRepository } from '@venizia/ignis/postgres';
 
 /**
  * UserRepository with manual @inject.

@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { PersistableRepository } from '@/base/repositories';
+import { PersistableRepository } from '@/connectors/postgres/repositories';
+import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 const table = pgTable('test_entity', {
@@ -7,6 +8,12 @@ const table = pgTable('test_entity', {
   name: varchar('name', { length: 255 }),
   status: varchar('status', { length: 50 }),
 });
+
+/** Real entity (not a mock) so `this.entity.schema` resolves via the actual class. */
+class ValidateWhereFixtureEntity extends BasePostgresEntity {
+  static override schema = table;
+  static override TABLE_NAME = 'test_entity';
+}
 
 /**
  * validateWhereCondition must treat a where as empty when it resolves to NO SQL
@@ -16,7 +23,7 @@ const table = pgTable('test_entity', {
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(undefined, {});
-    this.entity = { name: 'test_entity', schema: table } as any;
+    this.entity = new ValidateWhereFixtureEntity();
   }
 
   callValidateWhere(where: any, force?: boolean) {
@@ -64,19 +71,19 @@ describe('updateAll / deleteAll reject an all-undefined where without force', ()
 
   test('updateAll rejects { status: undefined }', async () => {
     const message = await rejectionMessage(
-      repo.updateAll({ data: { name: 'x' }, where: { status: undefined } as any }),
+      repo.updateAll({ data: { name: 'x' }, where: { status: undefined } }),
     );
     expect(message).toMatch(/Empty where condition/);
   });
 
   test('deleteAll rejects { status: undefined }', async () => {
-    const message = await rejectionMessage(repo.deleteAll({ where: { status: undefined } as any }));
+    const message = await rejectionMessage(repo.deleteAll({ where: { status: undefined } }));
     expect(message).toMatch(/Empty where condition/);
   });
 
   test('updateBy (alias) rejects { status: undefined }', async () => {
     const message = await rejectionMessage(
-      repo.updateBy({ data: { name: 'x' }, where: { status: undefined } as any }),
+      repo.updateBy({ data: { name: 'x' }, where: { status: undefined } }),
     );
     expect(message).toMatch(/Empty where condition/);
   });

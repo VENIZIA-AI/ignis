@@ -52,7 +52,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       switch (mode) {
         case AuthenticationModes.ANY: {
           await this.executeAnyMode({
-            context: context as unknown as TContext,
+            context: context as TContext,
             strategies,
             registry,
             next,
@@ -61,7 +61,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         }
         case AuthenticationModes.ALL: {
           await this.executeAllMode({
-            context: context as unknown as TContext,
+            context: context as TContext,
             strategies,
             registry,
             next,

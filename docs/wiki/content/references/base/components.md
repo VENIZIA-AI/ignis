@@ -52,24 +52,37 @@ src/components/auth/
 │   │   ├── index.ts
 │   │   ├── keys.ts
 │   │   ├── types.ts
-│   │   └── constants.ts
+│   │   ├── constants.ts
+│   │   └── codecs.ts
 │   ├── controllers/
 │   │   ├── index.ts
-│   │   └── auth.controller.ts
+│   │   ├── factory.ts
+│   │   └── jwks/
+│   ├── middlewares/
+│   ├── providers/
 │   ├── services/
 │   │   ├── index.ts
-│   │   └── jws.service.ts
+│   │   ├── basic/
+│   │   └── bearer/
+│   │       ├── jws.service.ts
+│   │       └── jwks/
 │   └── strategies/
 │       ├── index.ts
 │       ├── jws.strategy.ts
-│       └── basic.strategy.ts
+│       ├── jwks.strategy.ts
+│       ├── basic.strategy.ts
+│       └── strategy-registry.ts
 └── models/
     ├── index.ts
     ├── entities/
-    │   └── user-token.model.ts
+    │   ├── user.model.ts
+    │   ├── role.model.ts
+    │   ├── permission.model.ts
+    │   └── policy-definition.model.ts
     └── requests/
         ├── sign-in.schema.ts
-        └── sign-up.schema.ts
+        ├── sign-up.schema.ts
+        └── change-password.schema.ts
 ```
 
 ### Controller Transport Component
@@ -110,14 +123,16 @@ export class HealthCheckBindingKeys {
 ```typescript
 // src/components/auth/authenticate/common/keys.ts
 export class AuthenticateBindingKeys {
-  static readonly AUTHENTICATE_OPTIONS = '@app/authenticate/options';
-  static readonly JWT_OPTIONS = '@app/authenticate/jwt/options';
+  static readonly REST_OPTIONS = '@app/authenticate/rest-options';
+  static readonly JWT_OPTIONS = '@app/authenticate/jwt-options';
+  static readonly JWKS_OPTIONS = '@app/authenticate/jwks-options';
+  static readonly BASIC_OPTIONS = '@app/authenticate/basic-options';
 }
 ```
 
 **Naming Convention:**
 - Class name: `[Feature]BindingKeys`
-- Key format: `@app/[component]/[feature]` or `@app/[component]/[sub-feature]/[name]`
+- Key format: `@app/[component]/[feature]`
 
 ### 2. Types (`types.ts`)
 
@@ -134,41 +149,49 @@ export interface IHealthCheckOptions {
 
 ```typescript
 // src/components/auth/authenticate/common/types.ts
-import { Context } from 'hono';
-import { AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
+import { AnyObject } from '@venizia/ignis-helpers';
+import { Env } from 'hono';
 
 // Options interface for the component
 export interface IAuthenticateOptions {
+  restOptions?: TAuthenticationRestOptions;
   jwtOptions?: TJWTTokenServiceOptions;
   basicOptions?: TBasicTokenServiceOptions;
-  restOptions?: TAuthenticationRestOptions;
 }
 
 // Service options type (JWS or JWKS)
 export type TJWTTokenServiceOptions =
-  | { standard: 'JWS'; options: IJWSTokenServiceOptions }
-  | { standard: 'JWKS'; options: TJWKSTokenServiceOptions };
+  | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
+  | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
 
 // Service contract interface
 export interface IAuthService<
   E extends Env = Env,
+  // SignIn types
   SIRQ extends TSignInRequest = TSignInRequest,
   SIRS = AnyObject,
+  // SignUp types
   SURQ extends TSignUpRequest = TSignUpRequest,
   SURS = AnyObject,
+  // ChangePassword types
   CPRQ extends TChangePasswordRequest = TChangePasswordRequest,
   CPRS = AnyObject,
+  // UserInformation types
+  UIRQ = AnyObject,
+  UIRS = AnyObject,
+  // RefreshToken types
+  RTRS = AnyObject,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
   changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
-  getUserInformation?(context: TContext<E>, opts: AnyObject): Promise<AnyObject>;
-  refreshToken?(context: TContext<E>): Promise<AnyObject>;
+  getUserInformation?(context: TContext<E>, opts: UIRQ): Promise<UIRS>;
+  refreshToken?(context: TContext<E>): Promise<RTRS>;
 }
 
 // Auth user type
 export interface IAuthUser {
-  userId: string;
+  userId: IdType;
   [extra: string | symbol]: any;
 }
 ```
@@ -202,8 +225,6 @@ export class Authentication {
 
 ```typescript
 // src/components/swagger/common/constants.ts
-import { TConstValue } from '@venizia/ignis-helpers';
-
 export class DocumentUITypes {
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
@@ -216,6 +237,9 @@ export class DocumentUITypes {
     return this.SCHEME_SET.has(value);
   }
 }
+
+// src/components/swagger/common/types.ts
+import { TConstValue } from '@venizia/ignis-helpers';
 
 // Extract union type: 'swagger' | 'scalar'
 export type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
@@ -230,7 +254,6 @@ Define route path constants for controllers.
 export class HealthCheckRestPaths {
   static readonly ROOT = '/';
   static readonly PING = '/ping';
-  static readonly METRICS = '/metrics';
 }
 ```
 
@@ -443,7 +466,7 @@ export class GrpcBindingKeys {
 }
 ```
 
-> **Note:** `GrpcComponent` is excluded from the barrel export at `src/components/controller/index.ts`. Import it directly from `@venizia/ignis/components/controller/grpc` if needed.
+> **Note:** `GrpcComponent` is excluded from the barrel export at `src/components/controller/index.ts`. You never import it in application code - `BaseApplication.registerControllers()` instantiates it automatically when `transports` includes `'grpc'`.
 
 
 ## Component Implementation Patterns
@@ -452,7 +475,7 @@ export class GrpcBindingKeys {
 
 ```typescript
 // src/components/health-check/component.ts
-import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, controller, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
 import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
 
@@ -504,15 +527,14 @@ export class HealthCheckComponent extends BaseComponent {
 // src/components/auth/authenticate/component.ts
 import { BaseApplication, BaseComponent, inject, CoreBindings, Binding, ValueOrPromise } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
-import { AuthenticateBindingKeys, IAuthenticateOptions, IBasicTokenServiceOptions, IJWTTokenServiceOptions } from './common';
+import {
+  AuthenticateBindingKeys,
+  TAuthenticationRestOptions,
+  TBasicTokenServiceOptions,
+  TJWTTokenServiceOptions,
+} from './common';
 import { BasicTokenService, JWSTokenService } from './services';
 import { defineAuthController } from './controllers';
-
-const DEFAULT_OPTIONS: IAuthenticateOptions = {
-  restOptions: {
-    useAuthController: false,
-  },
-};
 
 export class AuthenticateComponent extends BaseComponent {
   constructor(
@@ -522,66 +544,63 @@ export class AuthenticateComponent extends BaseComponent {
     super({
       scope: AuthenticateComponent.name,
       initDefault: { enable: true, container: application },
+      // Only restOptions gets a default here — jwtOptions/basicOptions are
+      // bound separately (by the app, before registration) since at least one is required.
       bindings: {
-        [AuthenticateBindingKeys.AUTHENTICATE_OPTIONS]: Binding.bind<IAuthenticateOptions>({
-          key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
-        }).toValue(DEFAULT_OPTIONS),
+        [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind<TAuthenticationRestOptions>({
+          key: AuthenticateBindingKeys.REST_OPTIONS,
+        }).toValue({ useAuthController: false }),
       },
     });
   }
 
-  // Validate at least one auth option is provided
-  private validateOptions(opts: IAuthenticateOptions): void {
-    if (!opts.jwtOptions && !opts.basicOptions) {
+  override binding(): ValueOrPromise<void> {
+    const jwtOptions = this.application.get<TJWTTokenServiceOptions>({
+      key: AuthenticateBindingKeys.JWT_OPTIONS,
+      isOptional: true,
+    });
+    const basicOptions = this.application.get<TBasicTokenServiceOptions>({
+      key: AuthenticateBindingKeys.BASIC_OPTIONS,
+      isOptional: true,
+    });
+
+    if (!jwtOptions && !basicOptions) {
       throw getError({
         message: '[AuthenticateComponent] At least one of jwtOptions or basicOptions must be provided',
       });
     }
-  }
 
-  // Configure JWT authentication if jwtOptions is provided
-  private defineJWTAuth(opts: IAuthenticateOptions): void {
-    if (!opts.jwtOptions) return;
-
-    this.application
-      .bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-      .toValue(opts.jwtOptions);
-    this.application.service(JWSTokenService);
-  }
-
-  // Configure Basic authentication if basicOptions is provided
-  private defineBasicAuth(opts: IAuthenticateOptions): void {
-    if (!opts.basicOptions) return;
-
-    this.application
-      .bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-      .toValue(opts.basicOptions);
-    this.application.service(BasicTokenService);
-  }
-
-  // Configure auth controllers if enabled
-  private defineControllers(opts: IAuthenticateOptions): void {
-    if (!opts.restOptions?.useAuthController) return;
-
-    // Auth controller requires JWT for token generation
-    if (!opts.jwtOptions) {
-      throw getError({
-        message: '[defineControllers] Auth controller requires jwtOptions to be configured',
-      });
+    // JWT auth supports both JWS (shared-secret) and JWKS (issuer/verifier) standards -
+    // see the real component for the full switch over `jwtOptions.standard`.
+    if (jwtOptions) {
+      this.application
+        .bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS })
+        .toValue(jwtOptions);
+      this.application.service(JWSTokenService);
     }
 
-    this.application.controller(defineAuthController(opts.restOptions.controllerOpts));
-  }
+    if (basicOptions) {
+      this.application
+        .bind<TBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
+        .toValue(basicOptions);
+      this.application.service(BasicTokenService);
+    }
 
-  override binding(): ValueOrPromise<void> {
-    const options = this.application.get<IAuthenticateOptions>({
-      key: AuthenticateBindingKeys.AUTHENTICATE_OPTIONS,
+    const restOptions = this.application.get<TAuthenticationRestOptions>({
+      key: AuthenticateBindingKeys.REST_OPTIONS,
+      isOptional: true,
     });
 
-    this.validateOptions(options);
-    this.defineJWTAuth(options);
-    this.defineBasicAuth(options);
-    this.defineControllers(options);
+    if (restOptions?.useAuthController) {
+      // Auth controller requires JWT for token generation
+      if (!jwtOptions) {
+        throw getError({
+          message: '[AuthenticateComponent] Auth controller requires jwtOptions to be configured',
+        });
+      }
+
+      this.application.controller(defineAuthController(restOptions.controllerOpts));
+    }
   }
 }
 ```
@@ -591,7 +610,7 @@ export class AuthenticateComponent extends BaseComponent {
 When controllers need to be dynamically configured:
 
 ```typescript
-// src/components/static-asset/component.ts
+// src/components/static-asset/component.ts (condensed)
 override binding(): ValueOrPromise<void> {
   const componentOptions = this.application.get<TStaticAssetsComponentOptions>({
     key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
@@ -599,18 +618,24 @@ override binding(): ValueOrPromise<void> {
 
   // Create multiple controllers from configuration
   for (const [key, opt] of Object.entries(componentOptions)) {
+    const { storage, controller, helper, extra } = opt;
+
     this.application.controller(
       AssetControllerFactory.defineAssetController({
-        controller: opt.controller,
-        storage: opt.storage,
-        helper: opt.helper,
+        controller,
+        storage,
+        helper,
+        useMetaLink: opt.useMetaLink,
+        metaLink: opt.useMetaLink ? opt.metaLink : undefined,
+        options: { ...extra /* , normalizeLinkFn fallback */ },
       }),
     );
 
     this.application.logger.info(
-      '[binding] Asset storage bound | Key: %s | Type: %s',
+      `[binding] Asset storage is bound | Key: %s | Storage type: %s | UseMetaLink: %s`,
       key,
-      opt.storage,
+      storage,
+      Boolean(opt.useMetaLink),
     );
   }
 }
@@ -660,10 +685,10 @@ In this pattern, `initDefault` defaults to `{ enable: false }`, so the bindings 
 
 | Component | Import Path | Key Features |
 |-----------|-------------|-------------|
-| **StaticAssetComponent** | `@venizia/ignis/components/static-asset` | File upload/download CRUD, MinIO/Disk storage. |
-| **MailComponent** | `@venizia/ignis/components/mail` | Nodemailer/Mailgun transporters, Direct/BullMQ/InternalQueue executors. |
-| **SocketIOComponent** | `@venizia/ignis/components/socket-io` | Socket.IO server with Redis adapter for horizontal scaling. |
-| **WebSocketComponent** | `@venizia/ignis/components/websocket` | WebSocket support. |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD, MinIO/Disk storage. |
+| **MailComponent** | `@venizia/ignis/mail` | Nodemailer/Mailgun transporters, Direct/BullMQ/InternalQueue executors. |
+| **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter for horizontal scaling. |
+| **WebSocketComponent** | `@venizia/ignis/websocket` | WebSocket support. |
 
 ### Controller Transport Components (Not Registered via `this.component()`)
 

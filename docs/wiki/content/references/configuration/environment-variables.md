@@ -96,9 +96,9 @@ APP_ENV_APPLICATION_ROLES=api,worker
 |----------|----------|---------|-------------|
 | `APP_ENV_SERVER_HOST` | No | `localhost` | Server bind address |
 | `APP_ENV_SERVER_PORT` | No | `3000` | Server port |
-| `APP_ENV_SERVER_BASE_PATH` | No | `/` | Base path for all routes |
-| `HOST` | No | - | Alternative to `APP_ENV_SERVER_HOST` |
-| `PORT` | No | - | Alternative to `APP_ENV_SERVER_PORT` |
+| `APP_ENV_SERVER_BASE_PATH` | No | - | Base path convention (`EnvironmentKeys` constant; not read by the framework itself) |
+| `HOST` | No | - | Alternative to `APP_ENV_SERVER_HOST` (takes precedence) |
+| `PORT` | No | - | Alternative to `APP_ENV_SERVER_PORT` (takes precedence) |
 
 ### Example
 
@@ -116,11 +116,11 @@ APP_ENV_SERVER_BASE_PATH=/v1/api
 
 ### Priority Order
 
-The server configuration uses this priority:
-1. Explicit config in `appConfigs`
-2. `APP_ENV_SERVER_*` variables
-3. `HOST`/`PORT` variables (for cloud platforms)
-4. Default values
+The server host/port resolution uses this priority (`packages/core/src/base/applications/abstract.ts`):
+1. Explicit config passed to the application constructor
+2. `HOST`/`PORT` variables (for cloud platforms)
+3. `APP_ENV_SERVER_HOST`/`APP_ENV_SERVER_PORT` variables
+4. Default values (`localhost`/`3000`)
 
 
 ## Database Variables (PostgreSQL)
@@ -179,13 +179,15 @@ export class PostgresDataSource extends BaseDataSource {
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `APP_ENV_APPLICATION_SECRET` | **Yes** | - | Secret for encrypting JWT payload |
-| `APP_ENV_JWT_SECRET` | **Yes** | - | Secret for signing JWT tokens |
-| `APP_ENV_JWT_EXPIRES_IN` | No | `86400` | Token expiration in seconds (24h default) |
+| `APP_ENV_APPLICATION_SECRET` | Yes* | - | Secret for encrypting JWT payload |
+| `APP_ENV_JWT_SECRET` | Yes* | - | Secret for signing JWT tokens |
+| `APP_ENV_JWT_EXPIRES_IN` | No | - | Token expiration in seconds (e.g., `86400` = 24h) |
+
+*Required by convention when using the authentication component - see below.
 
 ### Security Requirements
 
-Both `APP_ENV_APPLICATION_SECRET` and `APP_ENV_JWT_SECRET` are **mandatory** when using the authentication component. The application will fail to start if these are missing or empty.
+The `AuthenticateComponent` receives its secrets programmatically via the `jwtOptions` binding (`jwtSecret`, `getTokenExpiresFn`), not by reading these environment variables directly. These `EnvironmentKeys` constants are the conventional way for your application to supply those values. The component throws at startup if `jwtSecret` is missing or left at the placeholder value - so wiring it from an unset environment variable will fail the boot.
 
 ### Generate Strong Secrets
 
@@ -218,6 +220,11 @@ APP_ENV_JWT_EXPIRES_IN=86400
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_ENV_LOGGER_FOLDER_PATH` | No | `./` | Directory for log files |
+| `APP_ENV_LOGGER_FORMAT` | No | `text` | Log output format |
+| `APP_ENV_LOGGER_FILE_FREQUENCY` | No | `1h` | Log file rotation frequency |
+| `APP_ENV_LOGGER_FILE_MAX_SIZE` | No | `100m` | Max size per log file |
+| `APP_ENV_LOGGER_FILE_MAX_FILES` | No | `5d` | Log file retention |
+| `APP_ENV_LOGGER_FILE_DATE_PATTERN` | No | `YYYYMMDD_HH` | Rotated file date pattern |
 | `APP_ENV_LOGGER_DGRAM_HOST` | No | - | UDP log transport host |
 | `APP_ENV_LOGGER_DGRAM_PORT` | No | - | UDP log transport port |
 | `APP_ENV_LOGGER_DGRAM_LABEL` | No | - | Label for UDP logs |
@@ -240,6 +247,9 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 
 ## Storage Variables (MinIO/S3)
 
+> [!NOTE]
+> These are application-level conventions (used by the `vert` reference application), not variables read by the framework. `MinioHelper` and the StaticAsset component receive their configuration programmatically - your application wires these values in.
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `APP_ENV_MINIO_HOST` | Yes* | - | MinIO/S3 endpoint |
@@ -248,7 +258,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 | `APP_ENV_MINIO_SECRET_KEY` | Yes* | - | Secret key |
 | `APP_ENV_MINIO_USE_SSL` | No | `false` | Enable SSL |
 
-*Required when using StaticAsset component.
+*Required (by application convention) when wiring MinIO-backed storage.
 
 ### Example
 
@@ -271,17 +281,20 @@ APP_ENV_MINIO_USE_SSL=true
 
 ## Mail Variables
 
+> [!NOTE]
+> These are application-level conventions, not variables read by the framework. The Mail component's transporter receives its SMTP/OAuth2 configuration programmatically - your application wires these values in.
+
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `APP_ENV_MAIL_HOST` | Yes* | `smtp.gmail.com` | SMTP host |
-| `APP_ENV_MAIL_PORT` | No | `465` | SMTP port |
-| `APP_ENV_MAIL_SECURE` | No | `true` | Use TLS |
+| `APP_ENV_MAIL_HOST` | Yes* | - | SMTP host (e.g., `smtp.gmail.com`) |
+| `APP_ENV_MAIL_PORT` | No | - | SMTP port (e.g., `465`) |
+| `APP_ENV_MAIL_SECURE` | No | - | Use TLS |
 | `APP_ENV_MAIL_USER` | Yes* | - | SMTP username/email |
 | `APP_ENV_MAIL_CLIENT_ID` | Yes* | - | OAuth2 client ID |
 | `APP_ENV_MAIL_CLIENT_SECRET` | Yes* | - | OAuth2 client secret |
 | `APP_ENV_MAIL_REFRESH_TOKEN` | Yes* | - | OAuth2 refresh token |
 
-*Required when using Mail component with OAuth2.
+*Required (by application convention) when wiring the Mail component with OAuth2.
 
 ### Example (Gmail with OAuth2)
 
@@ -347,20 +360,20 @@ project/
 
 ## Custom Environment Prefix
 
-You can customize the prefix from `APP_ENV_` to something else:
+You can customize the prefix from `APP_ENV` to something else via the `APPLICATION_ENV_PREFIX` variable. It is read once when `@venizia/ignis-helpers` loads, so set it in the shell (or before any framework import):
 
-```typescript
-// Set custom prefix
-process.env.APPLICATION_ENV_PREFIX = 'MY_APP';
+```bash
+# Set custom prefix
+APPLICATION_ENV_PREFIX=MY_APP
 
-// Now use MY_APP_ prefix
-// MY_APP_POSTGRES_HOST=localhost
+# Now use MY_APP_ prefix
+MY_APP_POSTGRES_HOST=localhost
 ```
 
 
 ## Validation
 
-IGNIS validates `APP_ENV_*` variables on startup. Missing required variables will cause the application to fail with a clear error message.
+On startup, IGNIS iterates every `APP_ENV_*` (prefixed) variable that is set and throws if any has an empty value (`validateEnvs` in `packages/core/src/base/applications/abstract.ts`). It does not check for variables that are absent entirely - component-level validation (e.g., the authentication component's `jwtSecret` check) covers required values.
 
 ### Disable Validation
 

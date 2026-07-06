@@ -1,3 +1,25 @@
+import { IdType } from '@/base';
+import { AnyType } from '@venizia/ignis-helpers';
+import {
+  type NodePgClient,
+  type drizzle as nodePostgresConnector,
+} from 'drizzle-orm/node-postgres';
+
+/** Filter passed to loadFilteredPolicy: which principal's policies to load. */
+export interface ICasbinPolicyFilter {
+  principal: { type: string; id: IdType };
+}
+
+/** A drizzle connector able to run policy queries (pool- or transaction-backed). */
+export type TCasbinPolicyConnector = ReturnType<
+  typeof nodePostgresConnector<Record<string, AnyType>, NodePgClient>
+>;
+
+/** Minimal source the adapters depend on - any drizzle-backed datasource satisfies it. */
+export interface ICasbinPolicySource {
+  connector: TCasbinPolicyConnector;
+}
+
 /** Maps a logical table onto its physical name + schema. */
 export interface IScopedCasbinTable {
   tableName: string;

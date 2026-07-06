@@ -66,17 +66,22 @@ this.service(GreeterService);         // binds as 'services.GreeterService'
 
 ```typescript
 // packages/core/src/base/mixins/service.mixin.ts
-service<Base extends IService>(ctor: TClass<Base>): Binding<Base> {
+service<Base extends IService, Args extends AnyObject = any>(
+  ctor: TClass<Base>,
+  opts?: TMixinOpts<Args>,
+): Binding<Base> {
   return this.bind<Base>({
-    key: BindingKeys.build({
-      namespace: BindingNamespaces.SERVICE, // 'services'
-      key: ctor.name,                       // class name
-    }),
+    key: BindingKeys.build(
+      opts?.binding ?? {
+        namespace: BindingNamespaces.SERVICE, // 'services'
+        key: ctor.name,                       // class name
+      },
+    ),
   }).toClass(ctor);
 }
 ```
 
-The resulting binding key is always `services.{ClassName}`.
+The resulting binding key defaults to `services.{ClassName}` (overridable via `opts.binding`).
 
 ### Lifecycle Placement
 

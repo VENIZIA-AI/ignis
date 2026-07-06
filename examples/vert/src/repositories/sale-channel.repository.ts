@@ -1,6 +1,7 @@
 import { PostgresDataSource } from '@/datasources/postgres.datasource';
 import { SaleChannel } from '@/models/entities';
-import { DefaultCRUDRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { DefaultCRUDRepository } from '@venizia/ignis/postgres';
 
 /**
  * SaleChannelRepository with auto-resolution.

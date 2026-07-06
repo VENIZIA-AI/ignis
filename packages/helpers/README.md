@@ -20,7 +20,7 @@ Logging, Redis, queues (BullMQ/MQTT/Kafka), storage (MinIO/Disk/Memory), cryptog
 | :---: | :--- | :--- |
 | **1** | **14+ Production Modules** | Logger, Redis, Queue, Storage, Crypto, Network, and more |
 | **2** | **Pluggable Architecture** | Install only what you use via optional peer deps |
-| **3** | **Sub-Path Imports** | Tree-shake heavy modules with `@venizia/ignis-helpers/redis` |
+| **3** | **Sub-Path Imports** | Tree-shake heavy modules with `@venizia/ignis-helpers/bullmq`, `/minio`, `/kafka`, etc. |
 | **4** | **Consistent API** | Every helper extends `BaseHelper` with scoped logging |
 | **5** | **HfLogger** | Zero-allocation ring buffer logger for hot paths (~100-300ns) |
 | **6** | **Snowflake UID** | 70-bit distributed IDs at ~4M/sec/worker |
@@ -32,11 +32,9 @@ Logging, Redis, queues (BullMQ/MQTT/Kafka), storage (MinIO/Disk/Memory), cryptog
 The 5 most common imports:
 
 ```typescript
-import { LoggerFactory } from '@venizia/ignis-helpers';
-import { RedisHelper } from '@venizia/ignis-helpers/redis';
+import { LoggerFactory, RedisSingleHelper, AES } from '@venizia/ignis-helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import { MinioHelper } from '@venizia/ignis-helpers/minio';
-import { CryptoHelper } from '@venizia/ignis-helpers/crypto';
 ```
 
 ---
@@ -751,7 +749,7 @@ Additionally, the client logs `reconnecting` events automatically.
 
 ### Reconnection Behavior
 
-The `RedisHelper` uses exponential backoff for reconnection:
+The Redis helper (`AbstractRedisHelper`) uses exponential backoff for reconnection:
 
 ```
 Strategy: Math.max(Math.min(attempt * 2000, 5000), 1000) ms
@@ -840,7 +838,7 @@ await worker.close();
 - `removeOnComplete: true` -- clean up completed jobs automatically
 - `removeOnFail: true` -- clean up failed jobs automatically
 
-**Redis connection note:** BullMQ requires `maxRetriesPerRequest: null`. The `RedisHelper` sets this automatically. The BullMQ helper calls `redisConnection.getClient().duplicate()` for both queue and worker connections so they don't interfere with your main Redis client.
+**Redis connection note:** BullMQ requires `maxRetriesPerRequest: null`. The Redis helper sets this automatically. The BullMQ helper calls `redisConnection.getClient().duplicate()` for both queue and worker connections so they don't interfere with your main Redis client.
 
 **Supported roles:**
 
@@ -953,27 +951,7 @@ The MQTT client auto-connects on construction. If the client is already establis
 
 ### Kafka (Experimental)
 
-Apache Kafka helpers built on `@platformatic/kafka`. Import from the `@venizia/ignis-helpers/kafka` sub-path.
-
-**Constants and defaults:**
-
-| Constant                         | Default        | Description                           |
-| -------------------------------- | -------------- | ------------------------------------- |
-| `KafkaDefaults.CLIENT_ID`        | `ignis-kafka`  | Default client ID                     |
-| `KafkaDefaults.SESSION_TIMEOUT`  | `30000`        | Consumer session timeout (ms)         |
-| `KafkaDefaults.HEARTBEAT_INTERVAL` | `3000`       | Consumer heartbeat interval (ms)      |
-| `KafkaDefaults.MAX_WAIT_TIME`    | `5000`         | Max wait time for fetch (ms)          |
-| `KafkaDefaults.HIGH_WATER_MARK`  | `1024`         | Stream high water mark                |
-
-**Ack levels (`KafkaAcks`):**
-
-| Constant           | Value | Behavior               |
-| ------------------ | ----- | ---------------------- |
-| `KafkaAcks.NONE`   | `0`   | No acknowledgment      |
-| `KafkaAcks.LEADER` | `1`   | Leader only            |
-| `KafkaAcks.ALL`    | `-1`  | All in-sync replicas   |
-
-**Producer:**
+Apache Kafka helpers built on `@platformatic/kafka`, imported from the `@venizia/ignis-helpers/kafka` sub-path: `KafkaProducerHelper`, `KafkaConsumerHelper`, `KafkaAdminHelper`, and `KafkaSchemaRegistryHelper`, all extending a shared `BaseKafkaHelper` (scoped logging, per-broker health tracking, graceful shutdown, `newInstance()` factory pattern).
 
 ```typescript
 import { KafkaProducerHelper, KafkaAcks } from '@venizia/ignis-helpers/kafka';
@@ -981,173 +959,17 @@ import { KafkaProducerHelper, KafkaAcks } from '@venizia/ignis-helpers/kafka';
 const producer = KafkaProducerHelper.newInstance({
   identifier: 'my-producer',
   bootstrapBrokers: ['localhost:9092'],
-  clientId: 'my-app',               // Default: 'ignis-kafka'
-  acks: KafkaAcks.ALL,              // -1 = all replicas
-  timeout: 30000,                    // Connection timeout
-  retries: 5,                        // Connection retries
-  retryDelay: 100,                   // Delay between retries
-  autocreateTopics: true,            // Auto-create topics on send
-  onConnected: () => console.log('Producer connected'),
-  onDisconnected: () => console.log('Producer disconnected'),
-  onError: ({ error }) => console.error('Producer error:', error),
+  acks: KafkaAcks.ALL, // -1 = all in-sync replicas
 });
 
-// Send messages
 await producer.send({
-  messages: [
-    { topic: 'events', key: 'user-1', value: JSON.stringify({ action: 'login' }) },
-    { topic: 'events', key: 'user-2', value: JSON.stringify({ action: 'signup' }) },
-  ],
-  acks: KafkaAcks.ALL,
+  messages: [{ topic: 'events', key: 'user-1', value: JSON.stringify({ action: 'login' }) }],
 });
-
-// Send batch (grouped by topic)
-await producer.sendBatch({
-  topicMessages: [
-    {
-      topic: 'orders',
-      messages: [
-        { key: 'order-1', value: JSON.stringify({ total: 99.99 }) },
-        { key: 'order-2', value: JSON.stringify({ total: 149.50 }) },
-      ],
-    },
-    {
-      topic: 'notifications',
-      messages: [
-        { key: 'notif-1', value: JSON.stringify({ type: 'email' }) },
-      ],
-    },
-  ],
-});
-
-// Access underlying @platformatic/kafka Producer
-const rawProducer = producer.getProducer();
 
 await producer.close();
 ```
 
-**Consumer:**
-
-```typescript
-import { KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
-
-const consumer = KafkaConsumerHelper.newInstance({
-  identifier: 'my-consumer',
-  bootstrapBrokers: ['localhost:9092'],
-  groupId: 'my-group',
-  topics: ['events'],
-  mode: 'latest',                    // 'latest' | 'earliest' | 'committed'
-  autocommit: true,                  // Auto-commit offsets (default: true)
-  sessionTimeout: 30_000,
-  heartbeatInterval: 3_000,
-  highWaterMark: 1024,
-  maxWaitTime: 5_000,
-
-  onMessage: async ({ message }) => {
-    console.log(`[${message.topic}:${message.partition}]`, message.value);
-    console.log('  key:', message.key);
-    console.log('  offset:', message.offset);
-    console.log('  timestamp:', message.timestamp);
-    console.log('  headers:', message.headers);
-
-    // Manual commit (when autocommit: false)
-    // await message.commit();
-  },
-  onError: ({ error }) => console.error('Consumer error:', error),
-  onConnected: () => console.log('Consumer connected'),
-  onDisconnected: () => console.log('Consumer disconnected'),
-  onGroupJoin: ({ groupId, memberId }) => console.log(`Joined ${groupId} as ${memberId}`),
-  onGroupLeave: () => console.log('Left consumer group'),
-  onRebalance: () => console.log('Rebalance triggered'),
-  onLag: ({ offsets }) => console.log('Consumer lag:', offsets),
-});
-
-// Start consuming (fires up the async consume loop)
-await consumer.start();
-
-// Flow control
-consumer.pause();          // Pause the message stream
-consumer.resume();         // Resume the message stream
-consumer.isPaused();       // Check if paused
-consumer.isConsuming();    // Check if actively consuming
-
-// Manual commit (when autocommit: false)
-await consumer.commit({
-  offsets: [{ topic: 'events', partition: 0, offset: 42n, leaderEpoch: 0 }],
-});
-
-// Lag monitoring
-consumer.startLagMonitoring({ interval: 10_000 }); // Check every 10s
-consumer.stopLagMonitoring();
-
-// Access underlying @platformatic/kafka Consumer
-const rawConsumer = consumer.getConsumer();
-
-await consumer.close();
-```
-
-**Admin:**
-
-```typescript
-import { KafkaAdminHelper, KafkaConfigResourceTypes } from '@venizia/ignis-helpers/kafka';
-
-const admin = KafkaAdminHelper.newInstance({
-  identifier: 'my-admin',
-  bootstrapBrokers: ['localhost:9092'],
-  onConnected: () => console.log('Admin connected'),
-});
-
-// Topic management
-await admin.createTopics({ topics: ['events', 'orders'], partitions: 3, replicas: 1 });
-await admin.deleteTopics({ topics: ['old-topic'] });
-const topics = await admin.listTopics();                     // string[]
-const topicsWithInternal = await admin.listTopics({ includeInternals: true });
-const metadata = await admin.metadata({ topics: ['events'] });
-
-// Partition management
-await admin.createPartitions({
-  topics: [{ name: 'events', count: 6 }],   // Increase to 6 partitions
-  validateOnly: false,
-});
-
-// Consumer group management
-const groups = await admin.listGroups({ states: ['Stable'] });
-const groupInfo = await admin.describeGroups({ groups: ['my-group'] });
-await admin.deleteGroups({ groups: ['old-group'] });
-
-// Offset management
-const offsets = await admin.listConsumerGroupOffsets({ groups: ['my-group'] });
-await admin.alterConsumerGroupOffsets({
-  groupId: 'my-group',
-  topics: [{
-    name: 'events',
-    partitionOffsets: [{ partition: 0, offset: 100n }],
-  }],
-});
-
-// Config management
-const configs = await admin.describeConfigs({
-  resources: [{
-    resourceType: KafkaConfigResourceTypes.TOPIC,  // 2
-    resourceName: 'events',
-  }],
-  includeSynonyms: false,
-  includeDocumentation: true,
-});
-
-await admin.alterConfigs({
-  resources: [{
-    resourceType: KafkaConfigResourceTypes.TOPIC,
-    resourceName: 'events',
-    configs: [{ name: 'retention.ms', value: '604800000' }], // 7 days
-  }],
-});
-
-// Access underlying @platformatic/kafka Admin
-const rawAdmin = admin.getAdmin();
-
-await admin.close();
-```
+Consumers support consumer groups, lag monitoring, and manual/auto commit; admin covers topic/partition/group/config management. Full API, constants, and examples: [Kafka reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/helpers/kafka/index.md) ([producer](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/helpers/kafka/producer.md), [consumer](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/helpers/kafka/consumer.md), [admin](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/helpers/kafka/admin.md)).
 
 ---
 
@@ -2906,13 +2728,14 @@ The helpers package is designed to integrate with the IGNIS framework's IoC cont
 **Binding helpers in the application lifecycle:**
 
 ```typescript
-import { BaseApplication, BootMixin } from '@venizia/ignis';
-import { RedisSingleHelper, Logger } from '@venizia/ignis-helpers';
+import { BaseApplication } from '@venizia/ignis';
+import { BootMixin } from '@venizia/ignis-boot';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
 
 class MyApplication extends BootMixin(BaseApplication) {
   async preConfigure() {
-    // Register Redis as a singleton binding
-    this.container.bind('datasources.Redis').to(
+    // BaseApplication extends the IoC Container directly -- bind on `this`, not `this.container`.
+    this.bind({ key: 'datasources.Redis' }).toValue(
       new RedisSingleHelper({
         name: 'main',
         host: process.env.REDIS_HOST,
@@ -2931,12 +2754,15 @@ class MyApplication extends BootMixin(BaseApplication) {
 
 ```typescript
 import { inject } from '@venizia/ignis-inversion';
-import { RedisHelper } from '@venizia/ignis-helpers';
+import { BaseService } from '@venizia/ignis';
+import { IRedisHelper } from '@venizia/ignis-helpers';
 
-export class CacheService {
+export class CacheService extends BaseService {
   constructor(
-    @inject({ key: 'datasources.Redis' }) private redis: RedisHelper,
-  ) {}
+    @inject({ key: 'datasources.Redis' }) private redis: IRedisHelper,
+  ) {
+    super({ scope: CacheService.name });
+  }
 
   async getCached(key: string) {
     return this.redis.getObject({ key });
@@ -2947,19 +2773,30 @@ export class CacheService {
 **Using helpers in controllers:**
 
 ```typescript
-import { controller, get } from '@venizia/ignis';
+import { BaseRestController, controller, get, jsonResponse, TRouteContext } from '@venizia/ignis';
 import { inject } from '@venizia/ignis-inversion';
+import { IRedisHelper } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 
 @controller({ path: '/health' })
-export class HealthController extends BaseController {
+export class HealthController extends BaseRestController {
   constructor(
-    @inject({ key: 'datasources.Redis' }) private redis: RedisHelper,
-  ) { super(); }
+    @inject({ key: 'datasources.Redis' }) private redis: IRedisHelper,
+  ) {
+    super({ scope: HealthController.name });
+  }
 
-  @get('/')
-  async check() {
+  override binding() {}
+
+  @get({
+    configs: {
+      path: '/',
+      responses: jsonResponse({ schema: z.object({ redis: z.string() }) }),
+    },
+  })
+  async check(context: TRouteContext) {
     const ping = await this.redis.ping();
-    return { redis: ping === 'PONG' ? 'up' : 'down' };
+    return context.json({ redis: ping === 'PONG' ? 'up' : 'down' }, 200);
   }
 }
 ```
@@ -3077,7 +2914,7 @@ try {
 
 ### Redis Connection Pooling
 
-- `RedisHelper` creates a single IoRedis connection by default. For high-throughput, consider multiple `RedisHelper` instances with different roles (read vs write).
+- Each Redis helper instance creates a single IoRedis connection by default. For high-throughput, consider multiple instances with different roles (read vs write).
 - BullMQ calls `.duplicate()` automatically -- it does not share your main connection.
 - The `maxRetriesPerRequest: null` setting prevents blocking on failed requests.
 - Use `autoConnect: false` (lazy connect) when you need to control connection timing.
@@ -3123,8 +2960,8 @@ IGNIS brings together the structured, enterprise development experience of **Loo
 ## Documentation
 
 - [IGNIS Repository](https://github.com/VENIZIA-AI/ignis)
-- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
-- [Helpers Reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/helpers/index.md)
+- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/get-started/5-minute-quickstart.md)
+- [Reference Index](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/index.md)
 
 ## License
 

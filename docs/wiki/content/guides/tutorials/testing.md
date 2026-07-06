@@ -31,32 +31,52 @@ Before starting, ensure you have:
 
 ## Quick Examples with Popular Frameworks
 
+### Shared Test App Helper
+
+`BaseApplication` has no `request()` method of its own, and `getServer()` has no routes mounted on it until `start()` runs `server.route(basePath, rootRouter)`. The router that actually carries your bound controllers is `getRootRouter()` (an `OpenAPIHono` instance, which has Hono's in-process `request()` testing helper). Start the real application once and reuse it across test files:
+
+```typescript
+// __tests__/helpers/test-app.ts
+import { Application, appConfigs } from '../../src/application';
+
+export const testApp = new Application({ scope: 'TestApp', config: appConfigs });
+
+// getRootRouter() carries the bound controllers - request() exercises them in-process,
+// with no network socket involved.
+export const testServer = () => testApp.getRootRouter();
+```
+
 ### Using Vitest
 
 ```typescript
 // __tests__/todo.test.ts
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
-import { app } from '../src/application';
+import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
   beforeAll(async () => {
-    // Setup: start server, seed database, etc.
+    // start() runs the full lifecycle (preConfigure -> registerDataSources ->
+    // registerComponents -> registerControllers) and opens the HTTP server.
+    await testApp.start();
   });
 
   afterAll(async () => {
-    // Cleanup: close connections
+    await testApp.stop();
   });
 
   it('should return list of todos', async () => {
-    const response = await app.request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/api/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
+    // ControllerFactory's generated GET / wraps reads in { count, data } by default too
+    // (unless the caller sends `x-request-count-data: false`) - unlike the repository API,
+    // where find()/findOne()/findById() return rows directly.
     const body = await response.json();
-    expect(Array.isArray(body)).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
   });
 
   it('should create a new todo', async () => {
-    const response = await app.request('/api/todos', {
+    const response = await testServer().request('/api/todos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Test Todo' }),
@@ -64,7 +84,7 @@ describe('Todo API', () => {
 
     expect(response.status).toBe(201);
     const body = await response.json();
-    expect(body.title).toBe('Test Todo');
+    expect(body.data.title).toBe('Test Todo');
   });
 });
 ```
@@ -73,15 +93,23 @@ describe('Todo API', () => {
 
 ```typescript
 // __tests__/todo.test.ts
-import { app } from '../src/application';
+import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
+  beforeAll(async () => {
+    await testApp.start();
+  });
+
+  afterAll(async () => {
+    await testApp.stop();
+  });
+
   it('should return list of todos', async () => {
-    const response = await app.request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/api/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(Array.isArray(body)).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
   });
 });
 ```
@@ -90,16 +118,24 @@ describe('Todo API', () => {
 
 ```typescript
 // __tests__/todo.test.ts
-import { describe, it, expect } from 'bun:test';
-import { app } from '../src/application';
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { testApp, testServer } from './helpers/test-app';
 
 describe('Todo API', () => {
+  beforeAll(async () => {
+    await testApp.start();
+  });
+
+  afterAll(async () => {
+    await testApp.stop();
+  });
+
   it('should return list of todos', async () => {
-    const response = await app.request('/api/todos', { method: 'GET' });
+    const response = await testServer().request('/api/todos', { method: 'GET' });
 
     expect(response.status).toBe(200);
     const body = await response.json();
-    expect(Array.isArray(body)).toBe(true);
+    expect(Array.isArray(body.data)).toBe(true);
   });
 });
 ```
@@ -116,7 +152,7 @@ test.describe('Todo Application', () => {
 
     expect(response.ok()).toBeTruthy();
     const todos = await response.json();
-    expect(Array.isArray(todos)).toBe(true);
+    expect(Array.isArray(todos.data)).toBe(true);
   });
 });
 ```
@@ -226,13 +262,13 @@ import {
   TestCaseHandler,
   TestCaseDecisions,
 } from '@venizia/ignis-helpers';
-import { app } from '../src/application'; // Your IGNIS app
+import { testApp, testServer } from './helpers/test-app'; // See "Shared Test App Helper" above
 
 // Handler for testing GET /todos
 class GetTodosHandler extends TestCaseHandler {
   async execute() {
-    // Make HTTP request to your app
-    const response = await app.request('/api/todos', {
+    // Make an in-process HTTP request against the bound router
+    const response = await testServer().request('/api/todos', {
       method: 'GET',
     });
 
@@ -249,8 +285,8 @@ class GetTodosHandler extends TestCaseHandler {
         return TestCaseDecisions.FAIL;
       }
 
-      // Validate response is an array
-      if (!Array.isArray(result.body)) {
+      // ControllerFactory's generated GET / wraps reads in { count, data } by default
+      if (!Array.isArray(result.body.data)) {
         return TestCaseDecisions.FAIL;
       }
 
@@ -262,7 +298,7 @@ class GetTodosHandler extends TestCaseHandler {
 // Handler for testing POST /todos
 class CreateTodoHandler extends TestCaseHandler {
   async execute() {
-    const response = await app.request('/api/todos', {
+    const response = await testServer().request('/api/todos', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -283,7 +319,8 @@ class CreateTodoHandler extends TestCaseHandler {
         return TestCaseDecisions.FAIL;
       }
 
-      if (result.body.title !== 'Test Todo') {
+      // Write endpoints return { count, data } too
+      if (result.body.data.title !== 'Test Todo') {
         return TestCaseDecisions.FAIL;
       }
 
@@ -297,12 +334,10 @@ const todoControllerTests = TestPlan.newInstance({
   scope: 'Todo Controller',
   hooks: {
     before: async () => {
-      console.log('Setting up Todo controller tests...');
-      // Start server or setup test database
+      await testApp.start();
     },
     after: async () => {
-      console.log('Cleaning up...');
-      // Cleanup resources
+      await testApp.stop();
     },
   },
   testCases: [
@@ -326,7 +361,7 @@ TestDescribe.withTestPlan({ testPlan: todoControllerTests }).run();
 
 ## Testing with Shared Context
 
-Use the test plan's context to share data between tests (like authentication tokens):
+Use the test plan's context to share data between tests (like authentication tokens). A handler that reads shared context must be constructed via `testCaseResolver` (not a plain `testCases` array), because `testCaseResolver` is called with the test plan's own `context` object - the same instance `before` binds values onto. Constructing a handler with a placeholder `context: {} as any` before the test plan exists leaves it with nothing to read from.
 
 ```typescript
 // __tests__/auth.test.ts
@@ -338,6 +373,7 @@ import {
   TestCaseDecisions,
   ITestContext,
 } from '@venizia/ignis-helpers';
+import { testApp, testServer } from './helpers/test-app'; // See "Shared Test App Helper" above
 
 // Define context shape
 interface AuthContext {
@@ -351,7 +387,7 @@ class SecureEndpointHandler extends TestCaseHandler<AuthContext> {
     // Get token from context (set in before hook)
     const token = this.context.getSync<string>({ key: 'token' });
 
-    const response = await app.request('/api/profile', {
+    const response = await testServer().request('/api/profile', {
       method: 'GET',
       headers: {
         Authorization: `Bearer ${token}`,
@@ -378,8 +414,10 @@ const authTests = TestPlan.newInstance<AuthContext>({
   scope: 'Authentication Tests',
   hooks: {
     before: async (testPlan: ITestContext<AuthContext>) => {
+      await testApp.start();
+
       // Login and store token in context
-      const loginResponse = await app.request('/api/auth/login', {
+      const loginResponse = await testServer().request('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -394,13 +432,18 @@ const authTests = TestPlan.newInstance<AuthContext>({
       testPlan.bind({ key: 'token', value: token });
       testPlan.bind({ key: 'userId', value: userId });
     },
+    after: async () => {
+      await testApp.stop();
+    },
   },
-  testCases: [
+  // testCaseResolver receives the test plan's own context - handlers built here can read
+  // whatever `before` bound onto it via `this.context.getSync()`.
+  testCaseResolver: ({ context }) => [
     TestCase.withOptions({
       code: 'AUTH-001',
       description: 'Authenticated user can access profile',
       expectation: 'Returns user profile with status 200',
-      handler: new SecureEndpointHandler({ context: {} as any }),
+      handler: new SecureEndpointHandler({ context }),
     }),
   ],
 });
@@ -422,9 +465,13 @@ import {
   TestCaseDecisions,
 } from '@venizia/ignis-helpers';
 import { TodoRepository } from '../src/repositories/todo.repository';
+import { PostgresDataSource } from '../src/datasources/postgres.datasource';
 import { Container } from '@venizia/ignis-inversion';
 
-// Setup container for DI
+// Setup container for DI. `@repository({ model: Todo, dataSource: PostgresDataSource })`
+// auto-injects PostgresDataSource at TodoRepository's constructor param[0] - that binding is
+// NOT optional, so it must be registered under the exact key 'datasources.PostgresDataSource'
+// before the container can resolve TodoRepository.
 const container = new Container();
 
 class CreateTodoRepoHandler extends TestCaseHandler {
@@ -477,7 +524,12 @@ const repoTests = TestPlan.newInstance({
   scope: 'Todo Repository',
   hooks: {
     before: async () => {
-      // Setup DI container and database connection
+      // Bind + configure the real DataSource (a test database), then the repository that
+      // depends on it - order matters, the repository binding resolves the DataSource eagerly.
+      const dataSource = new PostgresDataSource();
+      await dataSource.configure();
+
+      container.bind({ key: 'datasources.PostgresDataSource' }).toValue(dataSource);
       container.bind({ key: 'repositories.TodoRepository' }).toClass(TodoRepository);
     },
     after: async () => {
@@ -507,6 +559,8 @@ TestDescribe.withTestPlan({ testPlan: repoTests }).run();
 
 Test business logic in isolation:
 
+This exercises the `TodoService` defined in [Building a CRUD API's "Adding Business Logic with Services"](./building-a-crud-api.md#adding-business-logic-with-services) - `createTodo()` is its only method, and it depends on `TodoRepository` via constructor injection. Since `@inject` only matters when the *DI container* resolves the class, a plain `new TodoService(mockRepository)` bypasses DI entirely and lets you pass a hand-rolled mock - no container, no real database:
+
 ```typescript
 // __tests__/todo.service.test.ts
 import {
@@ -517,36 +571,49 @@ import {
   TestCaseDecisions,
 } from '@venizia/ignis-helpers';
 import { TodoService } from '../src/services/todo.service';
+import { TodoRepository } from '../src/repositories/todo.repository';
 
-class CompleteTodoHandler extends TestCaseHandler {
+// createTodo() only calls findOne() and create() - the mock only needs those two.
+const mockTodoRepository = {
+  findOne: async () => null,
+  create: async (opts: { data: { title: string } }) => ({
+    count: 1,
+    data: { id: 'mock-id', ...opts.data },
+  }),
+} as unknown as TodoRepository;
+
+class CreateTodoHandler extends TestCaseHandler {
   async execute() {
-    const todoService = new TodoService();
-
-    // Create a todo first
-    const todo = await todoService.create({
-      title: 'Test completion',
-      isCompleted: false,
-    });
-
-    // Mark as complete
-    const completed = await todoService.markAsComplete(todo.id);
-
-    return { original: todo, completed };
+    const todoService = new TodoService(mockTodoRepository);
+    const { data: created } = await todoService.createTodo({ title: 'Write tests' });
+    return { created };
   }
 
   getValidator() {
-    return (result: { original: any; completed: any }) => {
-      // Original should be incomplete
-      if (result.original.isCompleted !== false) {
-        return TestCaseDecisions.FAIL;
+    return (result: { created: any }) => {
+      if (result.created?.title === 'Write tests') {
+        return TestCaseDecisions.SUCCESS;
       }
+      return TestCaseDecisions.FAIL;
+    };
+  }
+}
 
-      // Completed should be complete
-      if (result.completed.isCompleted !== true) {
-        return TestCaseDecisions.FAIL;
-      }
+class RejectShortTitleHandler extends TestCaseHandler {
+  async execute() {
+    const todoService = new TodoService(mockTodoRepository);
 
-      return TestCaseDecisions.SUCCESS;
+    try {
+      await todoService.createTodo({ title: 'ab' });
+      return { threw: false };
+    } catch {
+      return { threw: true };
+    }
+  }
+
+  getValidator() {
+    return (result: { threw: boolean }) => {
+      return result.threw ? TestCaseDecisions.SUCCESS : TestCaseDecisions.FAIL;
     };
   }
 }
@@ -556,9 +623,15 @@ const serviceTests = TestPlan.newInstance({
   testCases: [
     TestCase.withOptions({
       code: 'SVC-001',
-      description: 'Can mark todo as complete',
-      expectation: 'Todo isCompleted changes from false to true',
-      handler: new CompleteTodoHandler({ context: {} as any }),
+      description: 'Creates a todo when validation passes',
+      expectation: 'Returns the created todo',
+      handler: new CreateTodoHandler({ context: {} as any }),
+    }),
+    TestCase.withOptions({
+      code: 'SVC-002',
+      description: 'Rejects a title shorter than 3 characters',
+      expectation: 'Throws a validation error',
+      handler: new RejectShortTitleHandler({ context: {} as any }),
     }),
   ],
 });
@@ -711,7 +784,7 @@ class CreateAndUpdateAndDeleteHandler extends TestCaseHandler {
 
 | What to Test | How |
 |--------------|-----|
-| **Controllers** | Use `app.request()` to make HTTP calls |
+| **Controllers** | Use `getRootRouter().request()` to make in-process HTTP calls |
 | **Services** | Instantiate and call methods directly |
 | **Repositories** | Use DI container, test with real/mock DB |
 | **Integration** | Chain multiple operations with shared context |

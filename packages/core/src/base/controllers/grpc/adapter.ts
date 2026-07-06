@@ -141,6 +141,9 @@ export class GrpcRequestAdapter<
         return next();
       }
 
+      // `context` here is Hono's real Context<RouteEnv>; TRouteContext is a lightweight custom
+      // shape (different `json`/`req.valid` signatures) built on top of it - not a subtype, so
+      // handlers/middlewares expecting TRouteContext need this bridge at the middleware boundary.
       return storage.run(context as TRouteContext<RouteEnv>, async () => {
         try {
           const body = await context.req.arrayBuffer();
@@ -158,8 +161,11 @@ export class GrpcRequestAdapter<
 
           // Preserve gRPC status code from ConnectError (duck-type check avoids peer dep coupling)
           const code =
-            typeof (error as any)?.code === 'number'
-              ? (error as any).code
+            typeof error === 'object' &&
+            error !== null &&
+            'code' in error &&
+            typeof error.code === 'number'
+              ? error.code
               : GRPC.ResultCodes.INTERNAL;
 
           return new Response(JSON.stringify({ message, code }), {

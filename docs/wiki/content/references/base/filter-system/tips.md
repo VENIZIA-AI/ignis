@@ -65,7 +65,7 @@ const chunkSize = 500;
 const results = [];
 for (let i = 0; i < allIds.length; i += chunkSize) {
   const chunk = allIds.slice(i, i + chunkSize);
-  const chunkResults = await repo.find({
+  const chunkResults = await repository.find({
     filter: { where: { id: { in: chunk } } }
   });
   results.push(...chunkResults);
@@ -89,7 +89,7 @@ for (let i = 0; i < allIds.length; i += chunkSize) {
 
 ```typescript
 // Enable logging to see generated SQL
-const result = await repo.find({
+const result = await repository.find({
   filter: complexFilter,
   options: {
     log: { use: true, level: 'debug' },
@@ -97,7 +97,7 @@ const result = await repo.find({
 });
 
 // Or use buildQuery to inspect without executing
-const queryOptions = repo.buildQuery({ filter: complexFilter });
+const queryOptions = repository.buildQuery({ filter: complexFilter });
 console.log('Generated query options:', queryOptions);
 ```
 
@@ -124,7 +124,7 @@ console.log('Generated query options:', queryOptions);
 ## Tip 8: Combining Multiple Array Conditions
 
 ```typescript
-await productRepo.find({
+await productRepository.find({
   filter: {
     where: {
       // Must have ALL these categories
@@ -181,7 +181,7 @@ const createPaginationFilter = (page: number, size: number = 20) => ({
 });
 
 // Usage
-const products = await productRepo.find({
+const products = await productRepository.find({
   filter: {
     where: {
       ...createActiveFilter(),

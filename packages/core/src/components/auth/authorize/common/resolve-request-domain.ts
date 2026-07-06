@@ -21,7 +21,7 @@ export const readDeclarative = (opts: {
       return context.req.query(source.key) ?? null;
     }
     case 'context': {
-      const value = context.get(source.key as never);
+      const value = context.get(source.key as any);
       return value == null ? null : String(value);
     }
     default: {

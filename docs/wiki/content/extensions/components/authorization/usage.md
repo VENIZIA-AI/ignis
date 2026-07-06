@@ -597,13 +597,13 @@ flag, no-op write methods, and a `loadLines` helper. A subclass implements **onl
 import {
   BaseFilteredAdapter,
   ICasbinPolicyFilter,
-  type IDataSource,
+  type ICasbinPolicySource,
 } from '@venizia/ignis';
 import type { Model } from 'casbin';
 
 // Narrow the filter if you like, or use the default ICasbinPolicyFilter ({ principal: { type, id } }).
 class MyCustomAdapter extends BaseFilteredAdapter<ICasbinPolicyFilter> {
-  constructor(opts: { dataSource: IDataSource }) {
+  constructor(opts: { dataSource: ICasbinPolicySource }) {
     super({ scope: MyCustomAdapter.name, dataSource: opts.dataSource });
   }
 

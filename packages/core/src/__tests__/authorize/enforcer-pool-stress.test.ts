@@ -1,8 +1,12 @@
 import { describe, expect, test } from 'bun:test';
+import { asTypedContext } from '@/base/controllers/common/types';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@/components/auth/authorize/common/constants';
-import type { ICasbinEnforcerCachedRedis } from '@/components/auth/authorize/common/types';
+import type {
+  IAuthorizationUser,
+  ICasbinEnforcerCachedRedis,
+} from '@/components/auth/authorize/common/types';
 import type { Enforcer, FilteredAdapter, Model } from 'casbin';
 
 // ---------------------------------------------------------------------------
@@ -132,7 +136,7 @@ function poolEnforcer(adapter: FilteredAdapter, poolSize: number, poolAcquireTim
 
 function redisCached(opts: {
   client: FakeRedisClient;
-  keyFn?: (o: { user: { userId: string | number } }) => string | Promise<string>;
+  keyFn?: (o: { user: IAuthorizationUser }) => string | Promise<string>;
 }): ICasbinEnforcerCachedRedis & { use: true } {
   return {
     use: true,
@@ -144,9 +148,11 @@ function redisCached(opts: {
         set: ({ key, value }: { key: string; value: unknown }) =>
           opts.client.set(key, JSON.stringify(value)),
         del: ({ keys }: { keys: string[] }) => opts.client.del(...keys),
-      } as never,
+        // IRedisHelper aggregates connection/key/hash/set/list/pubsub/json/command surfaces (dozens
+        // of methods); this fixture only exercises get/set/del, so implementing the rest is not worth it.
+      } as any,
       expiresIn: 60_000,
-      keyFn: (opts.keyFn ?? (({ user }) => `casbin:User:${user.userId}`)) as never,
+      keyFn: opts.keyFn ?? (({ user }) => `casbin:User:${user.userId}`),
     },
   };
 }
@@ -155,7 +161,7 @@ function cachedEnforcer(opts: {
   adapter?: FilteredAdapter;
   client: FakeRedisClient;
   poolSize?: number;
-  keyFn?: (o: { user: { userId: string | number } }) => string | Promise<string>;
+  keyFn?: (o: { user: IAuthorizationUser }) => string | Promise<string>;
 }) {
   return new CasbinAuthorizationEnforcer({
     model: SCOPED_MODEL,
@@ -169,12 +175,12 @@ function cachedEnforcer(opts: {
 async function decide(e: CasbinAuthorizationEnforcer, userId: string, obj: string) {
   const rules = await e.buildRules({
     user: { principalType: 'User', userId },
-    context: {} as never,
+    context: asTypedContext({}),
   });
   return e.evaluate({
     rules,
     request: { resource: obj, action: 'read', domain: 'SYSTEM_WIDE' },
-    context: {} as never,
+    context: asTypedContext({}),
   });
 }
 
@@ -244,7 +250,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     const N = 12;
     const builds = await Promise.all(
       Array.from({ length: N }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'X' }, context: {} as never }),
+        e.buildRules({ user: { principalType: 'User', userId: 'X' }, context: asTypedContext({}) }),
       ),
     );
 
@@ -271,7 +277,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     const N = 8;
     const settled = await Promise.allSettled(
       Array.from({ length: N }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'Y' }, context: {} as never }),
+        e.buildRules({ user: { principalType: 'User', userId: 'Y' }, context: asTypedContext({}) }),
       ),
     );
     // All N reject (fail-closed: buildRules surfaces the adapter error, never silently returns []).
@@ -285,7 +291,7 @@ describe('enforcer-pool-stress — single-flight on cache miss', () => {
     adapter.shouldThrow = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'Y' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
     expect(ok.lines).toEqual(['p, User_Y, SYSTEM_WIDE, Y_secret, read, allow']);
     expect(adapter.calls).toBe(2); // proves the inflight slot was freed, not stuck on the rejected promise
@@ -307,7 +313,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
 
     const rulesA = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
 
     const evaluations = await Promise.all(
@@ -319,7 +325,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
             action: 'read',
             domain: 'SYSTEM_WIDE',
           },
-          context: {} as never,
+          context: asTypedContext({}),
         }),
       ),
     );
@@ -339,7 +345,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
 
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'A' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
 
     // Monkey-patch the pool's borrowed callback indirectly: occupy the slot by issuing an evaluate that
@@ -350,7 +356,7 @@ describe('enforcer-pool-stress — pool exhaustion', () => {
         .evaluate({
           rules,
           request: { resource: 'A_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-          context: {} as never,
+          context: asTypedContext({}),
         })
         .then(
           d => ({ ok: true as const, d }),
@@ -395,11 +401,11 @@ describe('enforcer-pool-stress — corrupt cache variants refetch (no 500)', () 
 
       const rules = await e.buildRules({
         user: { principalType: 'User', userId: 'Z' },
-        context: {} as never,
+        context: asTypedContext({}),
       });
       expect(rules.lines).toEqual(['p, User_Z, SYSTEM_WIDE, Z_secret, read, allow']);
       // Corrupt entry replaced by a clean array.
-      const cached = JSON.parse(client.store.get('casbin:User:Z') ?? 'null') as unknown;
+      const cached: unknown = JSON.parse(client.store.get('casbin:User:Z') ?? 'null');
       expect(Array.isArray(cached)).toBe(true);
 
       e.destroy();
@@ -417,7 +423,10 @@ describe('enforcer-pool-stress — redis fault injection', () => {
 
     let error: unknown;
     try {
-      await e.buildRules({ user: { principalType: 'User', userId: 'G' }, context: {} as never });
+      await e.buildRules({
+        user: { principalType: 'User', userId: 'G' },
+        context: asTypedContext({}),
+      });
     } catch (err) {
       error = err;
     }
@@ -429,7 +438,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     client.throwOnGet = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'G' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
     expect(ok.lines).toEqual(['p, User_G, SYSTEM_WIDE, G_secret, read, allow']);
 
@@ -445,7 +454,10 @@ describe('enforcer-pool-stress — redis fault injection', () => {
 
     let error: unknown;
     try {
-      await e.buildRules({ user: { principalType: 'User', userId: 'S' }, context: {} as never });
+      await e.buildRules({
+        user: { principalType: 'User', userId: 'S' },
+        context: asTypedContext({}),
+      });
     } catch (err) {
       error = err;
     }
@@ -455,7 +467,7 @@ describe('enforcer-pool-stress — redis fault injection', () => {
     client.throwOnSet = false;
     const ok = await e.buildRules({
       user: { principalType: 'User', userId: 'S' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
     expect(ok.lines).toEqual(['p, User_S, SYSTEM_WIDE, S_secret, read, allow']);
     expect(adapter.loadCounts.get('S')).toBe(2);
@@ -473,7 +485,10 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
 
     let error: unknown;
     try {
-      await e.buildRules({ user: { principalType: 'User', userId: 'K' }, context: {} as never });
+      await e.buildRules({
+        user: { principalType: 'User', userId: 'K' },
+        context: asTypedContext({}),
+      });
     } catch (err) {
       error = err;
     }
@@ -497,7 +512,10 @@ describe('enforcer-pool-stress — keyFn faults (fail-closed)', () => {
 
     let error: unknown;
     try {
-      await e.buildRules({ user: { principalType: 'User', userId: 'K' }, context: {} as never });
+      await e.buildRules({
+        user: { principalType: 'User', userId: 'K' },
+        context: asTypedContext({}),
+      });
     } catch (err) {
       error = err;
     }
@@ -515,7 +533,10 @@ describe('enforcer-pool-stress — extractUserLines adapter throws (no-cache pat
 
     let error: unknown;
     try {
-      await e.buildRules({ user: { principalType: 'User', userId: 'N' }, context: {} as never });
+      await e.buildRules({
+        user: { principalType: 'User', userId: 'N' },
+        context: asTypedContext({}),
+      });
     } catch (err) {
       error = err;
     }
@@ -596,12 +617,12 @@ describe('enforcer-pool-stress — malformed-but-loadable cached line', () => {
 
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'M' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
     const decision = await e.evaluate({
       rules,
       request: { resource: 'M_secret', action: 'read', domain: 'SYSTEM_WIDE' },
-      context: {} as never,
+      context: asTypedContext({}),
     });
     expect(decision).toBe('deny');
 
@@ -623,7 +644,7 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     await Promise.all([
       e.rebuildUserCache({ user: { principalType: 'User', userId: 'A' } }),
       ...Array.from({ length: 6 }, () =>
-        e.buildRules({ user: { principalType: 'User', userId: 'B' }, context: {} as never }),
+        e.buildRules({ user: { principalType: 'User', userId: 'B' }, context: asTypedContext({}) }),
       ),
     ]);
 
@@ -646,7 +667,7 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     expect(cacheKey).toBe('casbin:User:A');
     expect(lineCount).toBe(1);
 
-    const parsed = JSON.parse(client.store.get('casbin:User:A') ?? 'null') as unknown;
+    const parsed: unknown = JSON.parse(client.store.get('casbin:User:A') ?? 'null');
     expect(Array.isArray(parsed)).toBe(true); // bare array, not { expires, lines }
     expect(parsed).toEqual(['p, User_A, SYSTEM_WIDE, A_secret, read, allow']);
 
@@ -660,7 +681,10 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     await e.configure();
 
     // Warm the cache.
-    await e.buildRules({ user: { principalType: 'User', userId: 'A' }, context: {} as never });
+    await e.buildRules({
+      user: { principalType: 'User', userId: 'A' },
+      context: asTypedContext({}),
+    });
     expect(client.store.has('casbin:User:A')).toBe(true);
 
     const { invalidatedKeys } = await e.invalidateUserCache({
@@ -681,7 +705,10 @@ describe('enforcer-pool-stress — rebuild/invalidate isolation under concurrenc
     const client = new FakeRedisClient();
     const e = cachedEnforcer({ adapter: new CountingPerUserAdapter(0), client });
     await e.configure();
-    await e.buildRules({ user: { principalType: 'User', userId: 'A' }, context: {} as never });
+    await e.buildRules({
+      user: { principalType: 'User', userId: 'A' },
+      context: asTypedContext({}),
+    });
 
     const first = await e.invalidateUserCache({ user: { principalType: 'User', userId: 'A' } });
     const second = await e.invalidateUserCache({ user: { principalType: 'User', userId: 'A' } });

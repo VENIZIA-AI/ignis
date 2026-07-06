@@ -16,7 +16,7 @@ Control which fields are returned using `fields`:
 ### Array Format (Recommended)
 
 ```typescript
-await repo.find({
+await repository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'email', 'name']
@@ -29,7 +29,7 @@ await repo.find({
 
 ```typescript
 // Include specific fields (only keys with `true` are selected)
-await repo.find({
+await repository.find({
   filter: {
     fields: { id: true, email: true, name: true }
   }
@@ -46,17 +46,17 @@ await repo.find({
 
 ```typescript
 // Single column, descending
-await repo.find({
+await repository.find({
   filter: { order: ['createdAt DESC'] }
 });
 
 // Multiple columns
-await repo.find({
+await repository.find({
   filter: { order: ['status ASC', 'createdAt DESC'] }
 });
 
 // Default direction is ASC
-await repo.find({
+await repository.find({
   filter: { order: ['name'] }  // Same as 'name ASC'
 });
 ```
@@ -74,12 +74,12 @@ Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
 Order by nested fields in JSON columns:
 
 ```typescript
-await repo.find({
+await repository.find({
   filter: { order: ['metadata.priority DESC'] }
 });
 // SQL: ORDER BY "metadata" #> '{priority}' DESC
 
-await repo.find({
+await repository.find({
   filter: { order: ['settings.display.theme ASC'] }
 });
 ```
@@ -104,24 +104,24 @@ Both `skip` and `offset` are supported as aliases -- they both map to the SQL `O
 
 ```typescript
 // First 10 results (default limit is 10)
-await repo.find({
+await repository.find({
   filter: { limit: 10 }
 });
 
 // Page 2 (skip first 10, get next 10)
-await repo.find({
+await repository.find({
   filter: { limit: 10, skip: 10 }
 });
 
 // Using offset (equivalent to skip)
-await repo.find({
+await repository.find({
   filter: { limit: 10, offset: 10 }
 });
 
 // Page N formula: skip = (page - 1) * limit
 const page = 3;
 const pageSize = 20;
-await repo.find({
+await repository.find({
   filter: {
     limit: pageSize,
     skip: (page - 1) * pageSize
@@ -151,8 +151,8 @@ query.limit  ??  model settings.defaultLimit  ??  DEFAULT_LIMIT (10)
 })
 export class Country extends BaseEntity<typeof Country.schema> {}
 
-await countryRepo.find({ filter: {} });            // LIMIT 200
-await countryRepo.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
+await countryRepository.find({ filter: {} });            // LIMIT 200
+await countryRepository.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
 ```
 
 > [!NOTE]
@@ -184,7 +184,7 @@ When building paginated APIs, you often need to return the total count alongside
 ### Basic Usage
 
 ```typescript
-const result = await repo.find({
+const result = await repository.find({
   filter: { limit: 10, skip: 20 },
   options: { shouldQueryRange: true }
 });
@@ -205,7 +205,7 @@ const result = await repo.find({
 Use the range information to set standard HTTP headers:
 
 ```typescript
-const { data, range } = await repo.find({
+const { data, range } = await repository.find({
   filter: { limit: 10, skip: 20, where: { status: 'active' } },
   options: { shouldQueryRange: true }
 });
@@ -246,7 +246,7 @@ When `shouldQueryRange: true`, the repository executes the data query and count 
 ## Combined Example
 
 ```typescript
-await repo.find({
+await repository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'name', 'price', 'createdAt'],
@@ -260,7 +260,7 @@ await repo.find({
 ### With Range Information
 
 ```typescript
-const { data, range } = await repo.find({
+const { data, range } = await repository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'name', 'price', 'createdAt'],

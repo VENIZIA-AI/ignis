@@ -85,10 +85,11 @@ Models in IGNIS combine Drizzle ORM schemas with Entity classes.
 // src/models/category.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, text, varchar } from 'drizzle-orm/pg-core';
@@ -102,21 +103,28 @@ export const categoryTable = pgTable('Category', {
   parentId: text('parent_id'),
 });
 
-export const categoryRelations = createRelations({
-  source: categoryTable,
-  relations: [
-    { type: 'one', name: 'parent', target: () => categoryTable, fields: ['parentId'], references: ['id'] },
-    { type: 'many', name: 'children', target: () => categoryTable, fields: ['id'], references: ['parentId'] },
-  ],
-});
-
 export type TCategorySchema = typeof categoryTable;
 export type TCategory = TTableObject<TCategorySchema>;
 
 @model({ type: 'entity' })
 export class Category extends BaseEntity<typeof Category.schema> {
   static override schema = categoryTable;
-  static override relations = () => categoryRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'parent',
+      type: RelationTypes.ONE,
+      schema: categoryTable,
+      metadata: { fields: [categoryTable.parentId], references: [categoryTable.id] },
+    },
+    {
+      name: 'children',
+      type: RelationTypes.MANY,
+      schema: categoryTable,
+      metadata: { fields: [categoryTable.id], references: [categoryTable.parentId] },
+    },
+  ];
+
   static override TABLE_NAME = 'Category';
 }
 ```
@@ -127,14 +135,15 @@ export class Category extends BaseEntity<typeof Category.schema> {
 // src/models/product.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, text, varchar, decimal, integer, boolean } from 'drizzle-orm/pg-core';
-import { categoryTable, Category } from './category.model';
+import { categoryTable } from './category.model';
 
 export const productTable = pgTable('Product', {
   ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -150,20 +159,22 @@ export const productTable = pgTable('Product', {
   imageUrl: text('image_url'),
 });
 
-export const productRelations = createRelations({
-  source: productTable,
-  relations: [
-    { type: 'one', name: 'category', target: () => categoryTable, fields: ['categoryId'], references: ['id'] },
-  ],
-});
-
 export type TProductSchema = typeof productTable;
 export type TProduct = TTableObject<TProductSchema>;
 
 @model({ type: 'entity' })
 export class Product extends BaseEntity<typeof Product.schema> {
   static override schema = productTable;
-  static override relations = () => productRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'category',
+      type: RelationTypes.ONE,
+      schema: categoryTable,
+      metadata: { fields: [productTable.categoryId], references: [categoryTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'Product';
 }
 ```
@@ -174,10 +185,11 @@ export class Product extends BaseEntity<typeof Product.schema> {
 // src/models/cart.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, text, varchar, integer } from 'drizzle-orm/pg-core';
@@ -198,21 +210,6 @@ export const cartItemTable = pgTable('CartItem', {
   quantity: integer('quantity').default(1).notNull(),
 });
 
-export const cartRelations = createRelations({
-  source: cartTable,
-  relations: [
-    { type: 'many', name: 'items', target: () => cartItemTable, fields: ['id'], references: ['cartId'] },
-  ],
-});
-
-export const cartItemRelations = createRelations({
-  source: cartItemTable,
-  relations: [
-    { type: 'one', name: 'cart', target: () => cartTable, fields: ['cartId'], references: ['id'] },
-    { type: 'one', name: 'product', target: () => productTable, fields: ['productId'], references: ['id'] },
-  ],
-});
-
 export type TCartSchema = typeof cartTable;
 export type TCart = TTableObject<TCartSchema>;
 export type TCartItemSchema = typeof cartItemTable;
@@ -221,14 +218,38 @@ export type TCartItem = TTableObject<TCartItemSchema>;
 @model({ type: 'entity' })
 export class Cart extends BaseEntity<typeof Cart.schema> {
   static override schema = cartTable;
-  static override relations = () => cartRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'items',
+      type: RelationTypes.MANY,
+      schema: cartItemTable,
+      metadata: { fields: [cartTable.id], references: [cartItemTable.cartId] },
+    },
+  ];
+
   static override TABLE_NAME = 'Cart';
 }
 
 @model({ type: 'entity' })
 export class CartItem extends BaseEntity<typeof CartItem.schema> {
   static override schema = cartItemTable;
-  static override relations = () => cartItemRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'cart',
+      type: RelationTypes.ONE,
+      schema: cartTable,
+      metadata: { fields: [cartItemTable.cartId], references: [cartTable.id] },
+    },
+    {
+      name: 'product',
+      type: RelationTypes.ONE,
+      schema: productTable,
+      metadata: { fields: [cartItemTable.productId], references: [productTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'CartItem';
 }
 ```
@@ -239,10 +260,11 @@ export class CartItem extends BaseEntity<typeof CartItem.schema> {
 // src/models/order.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, text, varchar, decimal, integer, jsonb } from 'drizzle-orm/pg-core';
@@ -272,21 +294,6 @@ export const orderItemTable = pgTable('OrderItem', {
   quantity: integer('quantity').notNull(),
 });
 
-export const orderRelations = createRelations({
-  source: orderTable,
-  relations: [
-    { type: 'many', name: 'items', target: () => orderItemTable, fields: ['id'], references: ['orderId'] },
-  ],
-});
-
-export const orderItemRelations = createRelations({
-  source: orderItemTable,
-  relations: [
-    { type: 'one', name: 'order', target: () => orderTable, fields: ['orderId'], references: ['id'] },
-    { type: 'one', name: 'product', target: () => productTable, fields: ['productId'], references: ['id'] },
-  ],
-});
-
 export type TOrderSchema = typeof orderTable;
 export type TOrder = TTableObject<TOrderSchema>;
 export type TOrderItemSchema = typeof orderItemTable;
@@ -295,14 +302,38 @@ export type TOrderItem = TTableObject<TOrderItemSchema>;
 @model({ type: 'entity' })
 export class Order extends BaseEntity<typeof Order.schema> {
   static override schema = orderTable;
-  static override relations = () => orderRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'items',
+      type: RelationTypes.MANY,
+      schema: orderItemTable,
+      metadata: { fields: [orderTable.id], references: [orderItemTable.orderId] },
+    },
+  ];
+
   static override TABLE_NAME = 'Order';
 }
 
 @model({ type: 'entity' })
 export class OrderItem extends BaseEntity<typeof OrderItem.schema> {
   static override schema = orderItemTable;
-  static override relations = () => orderItemRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'order',
+      type: RelationTypes.ONE,
+      schema: orderTable,
+      metadata: { fields: [orderItemTable.orderId], references: [orderTable.id] },
+    },
+    {
+      name: 'product',
+      type: RelationTypes.ONE,
+      schema: productTable,
+      metadata: { fields: [orderItemTable.productId], references: [productTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'OrderItem';
 }
 ```
@@ -708,19 +739,21 @@ import { ProductService } from './product.service';
 import { PaymentService } from './payment.service';
 import { getError } from '@venizia/ignis-helpers';
 
+interface IOrderAddress {
+  name: string;
+  line1: string;
+  line2?: string;
+  city: string;
+  state: string;
+  postalCode: string;
+  country: string;
+}
+
 interface ICreateOrderInput {
   cartId: string;
   email: string;
-  shippingAddress: {
-    name: string;
-    line1: string;
-    line2?: string;
-    city: string;
-    state: string;
-    postalCode: string;
-    country: string;
-  };
-  billingAddress?: typeof shippingAddress;
+  shippingAddress: IOrderAddress;
+  billingAddress?: IOrderAddress;
 }
 
 @injectable({})
@@ -771,8 +804,8 @@ export class OrderService extends BaseService {
       amount: Math.round(total * 100), // Stripe uses cents
       currency: 'usd',
       metadata: {
-        cartId: input.cartId,
-        email: input.email,
+        cartId: opts.input.cartId,
+        email: opts.input.email,
       },
     });
 
@@ -874,7 +907,7 @@ export class OrderService extends BaseService {
 import { injectable } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import Stripe from 'stripe';
-import { EnvHelper } from '@venizia/ignis-helpers';
+import { applicationEnvironment } from '@venizia/ignis-helpers';
 
 @injectable({})
 export class PaymentService extends BaseService {
@@ -883,7 +916,7 @@ export class PaymentService extends BaseService {
   constructor() {
     super({ scope: PaymentService.name });
 
-    const secretKey = EnvHelper.get('APP_ENV_STRIPE_SECRET_KEY');
+    const secretKey = applicationEnvironment.get<string>('APP_ENV_STRIPE_SECRET_KEY');
     this._stripe = new Stripe(secretKey, {
       apiVersion: '2023-10-16',
     });
@@ -917,7 +950,7 @@ export class PaymentService extends BaseService {
   }
 
   async createWebhookEvent(opts: { payload: string; signature: string }) {
-    const webhookSecret = EnvHelper.get('APP_ENV_STRIPE_WEBHOOK_SECRET');
+    const webhookSecret = applicationEnvironment.get<string>('APP_ENV_STRIPE_WEBHOOK_SECRET');
     return this._stripe.webhooks.constructEvent(opts.payload, opts.signature, webhookSecret);
   }
 }
@@ -965,7 +998,7 @@ const ProductRoutes = {
   },
   GET_BY_ID: {
     method: HTTP.Methods.GET,
-    path: '/:id',
+    path: '/{id}',
     request: {
       params: z.object({ id: z.string().uuid() }),
     },
@@ -1063,7 +1096,7 @@ const CartRoutes = {
   },
   UPDATE_ITEM: {
     method: HTTP.Methods.PUT,
-    path: '/items/:productId',
+    path: '/items/{productId}',
     request: {
       params: z.object({ productId: z.string().uuid() }),
       body: jsonContent({
@@ -1081,7 +1114,7 @@ const CartRoutes = {
   },
   REMOVE_ITEM: {
     method: HTTP.Methods.DELETE,
-    path: '/items/:productId',
+    path: '/items/{productId}',
     request: {
       params: z.object({ productId: z.string().uuid() }),
     },
@@ -1202,7 +1235,7 @@ const OrderRoutes = {
   },
   CONFIRM: {
     method: HTTP.Methods.POST,
-    path: '/:id/confirm',
+    path: '/{id}/confirm',
     request: {
       params: z.object({ id: z.string().uuid() }),
       body: jsonContent({
@@ -1220,7 +1253,7 @@ const OrderRoutes = {
   },
   GET_BY_ID: {
     method: HTTP.Methods.GET,
-    path: '/:id',
+    path: '/{id}',
     request: {
       params: z.object({ id: z.string().uuid() }),
     },

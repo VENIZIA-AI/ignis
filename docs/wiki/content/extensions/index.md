@@ -10,7 +10,7 @@ Components are self-contained feature modules that plug into your application vi
 | :--- | :--- | :--- |
 | [Authentication](./components/authentication/) | Identity verification | JWT, Basic, JWKS strategies |
 | [Authorization](./components/authorization/) | Access control | Casbin-based RBAC, per-route policies |
-| [Health Check](./components/health-check) | Liveness & readiness | `/health`, `/health/live`, `/health/ready` |
+| [Health Check](./components/health-check) | Liveness check | `GET /health`, `POST /health/ping` |
 | [Mail](./components/mail/) | Email delivery | Nodemailer, Mailgun, queue support |
 | [Request Tracker](./components/request-tracker) | Request tracing | `x-request-id` header, body parsing |
 | [Socket.IO](./components/socket-io/) | Real-time (Socket.IO) | Redis adapter, room-based messaging |

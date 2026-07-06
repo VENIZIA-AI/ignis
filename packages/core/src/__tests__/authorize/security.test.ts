@@ -4,12 +4,18 @@ import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { authorize } from '@/components/auth/authorize/middlewares';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import { Container } from '@/helpers/inversion';
+import type { Context, MiddlewareHandler, Next } from 'hono';
 import {
   createMockContext,
   createFreshRegistry,
   TestAuthorizationEnforcer,
   type TTestRule,
 } from './helpers';
+
+// createMockContext() returns a minimal stand-in (get/set/req.path) — nowhere near the full Hono
+// Context — so every direct middleware invocation below needs this one bridge cast.
+const invokeMiddleware = (middleware: MiddlewareHandler, context: unknown, next: Next) =>
+  middleware(context as Context, next);
 
 describe('Security Tests', () => {
   const setupSecurityTest = (opts?: {
@@ -36,7 +42,7 @@ describe('Security Tests', () => {
       container,
       enforcers: [
         {
-          enforcer: TestAuthorizationEnforcer as any,
+          enforcer: TestAuthorizationEnforcer,
           name: 'test',
           type: AuthorizationEnforcerTypes.CUSTOM,
         },
@@ -56,7 +62,7 @@ describe('Security Tests', () => {
 
       const context = createMockContext({ isSkipAuthorize: true });
       let hasCalledNext = false;
-      await (middleware as any)(context, async () => {
+      await invokeMiddleware(middleware, context, async () => {
         hasCalledNext = true;
       });
 
@@ -81,7 +87,7 @@ describe('Security Tests', () => {
       });
 
       let hasCalledNext = false;
-      await (middleware as any)(context, async () => {
+      await invokeMiddleware(middleware, context, async () => {
         hasCalledNext = true;
       });
 
@@ -104,7 +110,7 @@ describe('Security Tests', () => {
 
       let rsError: any;
       try {
-        await (middleware as any)(context, async () => {});
+        await invokeMiddleware(middleware, context, async () => {});
       } catch (error) {
         rsError = error;
       }
@@ -127,7 +133,7 @@ describe('Security Tests', () => {
 
       let rsError: any;
       try {
-        await (middleware as any)(context, async () => {});
+        await invokeMiddleware(middleware, context, async () => {});
       } catch (error) {
         rsError = error;
       }
@@ -156,7 +162,7 @@ describe('Security Tests', () => {
 
       let hasCalledNext = false;
       try {
-        await (middleware as any)(context, async () => {
+        await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
       } catch {
@@ -182,7 +188,7 @@ describe('Security Tests', () => {
 
       let hasCalledNext = false;
       try {
-        await (middleware as any)(context, async () => {
+        await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
       } catch {
@@ -208,7 +214,7 @@ describe('Security Tests', () => {
 
       let hasCalledNext = false;
       try {
-        await (middleware as any)(context, async () => {
+        await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
       } catch {
@@ -234,7 +240,7 @@ describe('Security Tests', () => {
 
       let hasCalledNext = false;
       try {
-        await (middleware as any)(context, async () => {
+        await invokeMiddleware(middleware, context, async () => {
           hasCalledNext = true;
         });
       } catch {
@@ -270,7 +276,7 @@ describe('Security Tests', () => {
         let hasCalledNext = false;
         let rsError: any;
         try {
-          await (middleware as any)(context, async () => {
+          await invokeMiddleware(middleware, context, async () => {
             hasCalledNext = true;
           });
         } catch (error) {

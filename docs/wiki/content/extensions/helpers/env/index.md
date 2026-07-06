@@ -8,7 +8,7 @@ Structured access to application environment variables with prefix filtering, ty
 |------|-------|
 | **Package** | `@venizia/ignis-helpers` |
 | **Classes** | `ApplicationEnvironment`, `Environment` |
-| **Extends** | `IApplicationEnvironment` (interface) |
+| **Implements** | `IApplicationEnvironment` (interface) |
 | **Singleton** | `applicationEnvironment` (alias `Envs`) -- auto-initialized at module load |
 | **Runtimes** | Both |
 

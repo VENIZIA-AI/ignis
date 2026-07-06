@@ -1,2 +1,2 @@
-export * from './base';
+export * from './abstract-datasource';
 export * from './common';

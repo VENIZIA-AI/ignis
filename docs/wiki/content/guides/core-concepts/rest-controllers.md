@@ -9,8 +9,9 @@ REST controllers handle incoming HTTP requests and return JSON responses -- they
 Extend `BaseRestController` and use decorators to define routes:
 
 ```typescript
-import { BaseRestController, controller, get, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { BaseRestController, controller, get, jsonResponse, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
@@ -161,8 +162,9 @@ When using this method, you will override the `binding()` method in your control
 Use this method for defining a single API endpoint with all its configurations and handler. It also benefits from type inference when used with `TRouteContext`.
 
 ```typescript
-import { Authentication, jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { Authentication, jsonResponse, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 
 // ... inside the binding() method
 
@@ -189,8 +191,9 @@ this.defineRoute({
 This method offers a fluent API for defining routes, similar to `defineRoute`, but structured for chaining. It also benefits from `TRouteContext` for type safety.
 
 ```typescript
-import { jsonResponse, z, TRouteContext } from '@venizia/ignis';
+import { jsonResponse, TRouteContext } from '@venizia/ignis';
 import { HTTP } from '@venizia/ignis-helpers';
+import { z } from '@hono/zod-openapi';
 
 // ... inside the binding() method
 

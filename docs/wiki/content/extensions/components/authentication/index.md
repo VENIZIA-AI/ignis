@@ -759,16 +759,18 @@ interface IAuthService<
   CPRS = AnyObject,
   UIRQ = AnyObject,
   UIRS = AnyObject,
+  RTRS = AnyObject,
 > {
   signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
   signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
   changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
   getUserInformation?(context: TContext<E>, opts: UIRQ): Promise<UIRS>;
+  refreshToken?(context: TContext<E>): Promise<RTRS>;
 }
 ```
 
 > [!NOTE]
-> `IAuthService` is generic on the Hono `Env` type as well as all request/response types. The `getUserInformation` method is optional.
+> `IAuthService` is generic on the Hono `Env` type as well as all request/response types. The `getUserInformation` and `refreshToken` methods are both optional -- the auth controller factory returns a 501 (`core.not_supported`) when an endpoint that depends on one is called but the method is not implemented.
 
 #### IJWTTokenPayload -- Full Interface
 ```typescript

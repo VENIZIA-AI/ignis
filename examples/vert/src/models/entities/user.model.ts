@@ -1,10 +1,5 @@
-import {
-  BaseEntity,
-  extraUserColumns,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  model,
-} from '@venizia/ignis';
+import { extraUserColumns, model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 // ----------------------------------------------------------------
@@ -13,7 +8,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
  *
  * The schema is defined as a static property on the class.
  * Relations can be added via static relations property.
- * No constructor needed - BaseEntity auto-discovers from static properties.
+ * No constructor needed - BasePostgresEntity auto-discovers from static properties.
  *
  * Features:
  * - User audit tracking: createdBy/modifiedBy automatically populated
@@ -26,7 +21,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
     hiddenProperties: ['password', 'secret'],
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),

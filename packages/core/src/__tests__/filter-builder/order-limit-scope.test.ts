@@ -1,6 +1,7 @@
 import { describe, test, expect, spyOn } from 'bun:test';
-import { FilterBuilder } from '@/base/repositories/operators';
-import { DEFAULT_LIMIT, TDrizzleQueryOptions, TRelationConfig } from '@/base/repositories/common';
+import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { DEFAULT_LIMIT, TDrizzleQueryOptions } from '@/base/repositories/common';
+import { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 
@@ -12,13 +13,12 @@ const table = pgTable('categories', {
 
 // Same target schema, exercised as both a to-many and a to-one relation.
 const relations: Record<string, TRelationConfig> = {
-  categories: { name: 'categories', type: 'many', schema: table, metadata: {} } as any,
-  owner: { name: 'owner', type: 'one', schema: table, metadata: {} } as any,
+  categories: { name: 'categories', type: 'many', schema: table, metadata: undefined },
+  owner: { name: 'owner', type: 'one', schema: table, metadata: undefined },
 };
 
 const builder = new FilterBuilder();
 
-/** Builds top-level Drizzle options. */
 function buildTop(filter: any): TDrizzleQueryOptions {
   return builder.build({ tableName: 'categories', schema: table, filter });
 }
@@ -77,8 +77,10 @@ describe('to-many relation scope is capped at DEFAULT_LIMIT', () => {
 
 describe("to-many relation scope honors the relation model's defaultLimit", () => {
   test('no scope -> uses the relation model defaultLimit (not global DEFAULT_LIMIT)', () => {
+    // MetadataRegistry has a private constructor and a large mixin-composed surface; only
+    // getModelEntry is exercised, so a full structural fixture isn't practical - fixture-boundary cast.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
-      getModelEntry: () => ({ metadata: { settings: { defaultLimit: 7 } } }),
+      getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
     } as any);
 
     const result = builder.toInclude({ include: [{ relation: 'categories' }], relations });
@@ -89,8 +91,9 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
   });
 
   test('explicit scope limit still overrides the model defaultLimit', () => {
+    // Fixture-boundary cast - see comment on the first mock in this describe block.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
-      getModelEntry: () => ({ metadata: { settings: { defaultLimit: 7 } } }),
+      getModelEntry: () => ({ metadata: { type: 'entity', settings: { defaultLimit: 7 } } }),
     } as any);
 
     const q = buildScope('categories', { limit: 50 }) as TDrizzleQueryOptions;
@@ -100,8 +103,9 @@ describe("to-many relation scope honors the relation model's defaultLimit", () =
   });
 
   test('falls back to DEFAULT_LIMIT when relation model has no defaultLimit', () => {
+    // Fixture-boundary cast - see comment on the first mock in this describe block.
     const mockGetInstance = spyOn(MetadataRegistry, 'getInstance').mockReturnValue({
-      getModelEntry: () => ({ metadata: { settings: {} } }),
+      getModelEntry: () => ({ metadata: { type: 'entity', settings: {} } }),
     } as any);
 
     const result = builder.toInclude({ include: [{ relation: 'categories' }], relations });

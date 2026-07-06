@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import { newModelFromString } from 'casbin';
-import type { IDataSource } from '@/base/datasources';
-import {
-  BaseFilteredAdapter,
-  type ICasbinPolicyFilter,
-} from '@/components/auth/authorize/adapters/base-filtered';
+import { BaseFilteredAdapter } from '@/components/auth/authorize/adapters/base-filtered';
+import type {
+  ICasbinPolicyFilter,
+  ICasbinPolicySource,
+} from '@/components/auth/authorize/adapters/types';
 
 /**
  * The base is a thin, read-only template: datasource/connector plumbing, the FilteredAdapter
@@ -26,12 +26,13 @@ m = g(r.sub, p.sub, r.dom) && r.obj == p.obj && r.act == p.act
 `;
 
 const fakeDataSource = (connector: unknown = { tag: 'connector' }) =>
-  ({ connector }) as unknown as IDataSource;
+  // TCasbinPolicyConnector is the full drizzle NodePgDatabase surface - no structural fake covers it.
+  ({ connector }) as ICasbinPolicySource;
 
 class TestFilteredAdapter extends BaseFilteredAdapter {
   lines: string[] = [];
 
-  constructor(opts?: { dataSource?: IDataSource }) {
+  constructor(opts?: { dataSource?: ICasbinPolicySource }) {
     super({ scope: 'TestFilteredAdapter', dataSource: opts?.dataSource ?? fakeDataSource() });
   }
 
@@ -48,7 +49,8 @@ class TestFilteredAdapter extends BaseFilteredAdapter {
   }
 }
 
-const createAdapter = (opts?: { dataSource?: IDataSource }) => new TestFilteredAdapter(opts);
+const createAdapter = (opts?: { dataSource?: ICasbinPolicySource }) =>
+  new TestFilteredAdapter(opts);
 
 describe('BaseFilteredAdapter - FilteredAdapter contract', () => {
   test('isFiltered() returns true', () => {

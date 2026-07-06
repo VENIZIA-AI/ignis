@@ -2,6 +2,9 @@
 
 Core classes that power every IGNIS application - from the Application entry point to Repositories for data access.
 
+> [!IMPORTANT] Base vs. Connectors
+> The persistence layer (`BaseDataSource`/`BaseEntity`/CRUD repositories) is split into an engine-neutral root (`src/base`) and per-engine connectors (`src/connectors/{postgres,typesense,memory}`). `BaseDataSource` and `BaseEntity` below refer to the **PostgreSQL connector**'s canonical `BasePostgresDataSource`/`BasePostgresEntity` (re-exported under these compatibility names) - see [Connectors](./connectors) for the full picture, and [Search & Typesense](/guides/core-concepts/persistent/search-typesense) / [Memory Connector](/guides/core-concepts/persistent/memory-connector) for the other two engines.
+
 ## Quick Reference
 
 | Class | Purpose | Extends |
@@ -12,10 +15,10 @@ Core classes that power every IGNIS application - from the Application entry poi
 | `BaseService` | Business logic layer | - |
 | `BaseProvider` | Factory pattern for runtime instantiation | `BaseHelper` |
 | `BaseComponent` | Pluggable feature modules | - |
-| `BaseDataSource` | Database connections | - |
-| `BaseEntity` | Model definitions | - |
-| `DefaultCRUDRepository` | Full CRUD operations | `PersistableRepository` |
-| `ReadableRepository` | Read-only operations | `AbstractRepository` |
+| `BaseDataSource` (alias of `BasePostgresDataSource`) | PostgreSQL connections | `AbstractPostgresDataSource` -> `AbstractDataSource` |
+| `BaseEntity` (alias of `BasePostgresEntity`) | Drizzle model definitions | `AbstractEntity` |
+| `DefaultCRUDRepository` | Full CRUD operations (PostgreSQL connector) | `PersistableRepository` -> ... -> `AbstractRepository` |
+| `ReadableRepository` | Read-only operations (PostgreSQL connector) | `PostgresBaseRepository` -> `AbstractRepository` |
 
 ## Architecture
 
@@ -67,6 +70,7 @@ Core classes that power every IGNIS application - from the Application entry poi
 - [Components](./components.md) - Pluggable modules, component lifecycle
 
 ### Data Layer
+- [Connectors](./connectors.md) - Base-vs-connectors architecture, dual-door exports, adding an engine
 - [Models & Enrichers](./models.md) - `BaseEntity`, schema definitions, enrichers
 - [DataSources](./datasources.md) - Database connections, auto-discovery
 - [Repositories](./repositories/) - CRUD operations, filtering, relations
@@ -78,11 +82,15 @@ Core classes that power every IGNIS application - from the Application entry poi
 AbstractApplication
 └── BaseApplication ──────► Your Application
 
-AbstractRepository
-├── ReadableRepository
-│   └── PersistableRepository
-│       └── DefaultCRUDRepository ──────► Your Repository
-│
+AbstractRepository (engine-neutral, src/base)
+├── PostgresBaseRepository (connectors/postgres)
+│   ├── ReadableRepository
+│   │   └── PersistableRepository
+│   │       └── DefaultCRUDRepository ──────► Your Repository
+├── TypesenseBaseRepository (connectors/typesense)
+│   └── ReadableSearchRepository -> ... -> DefaultSearchRepository
+└── MemoryRepository (connectors/memory)
+
 AbstractRestController
 └── BaseRestController ──────► Your REST Controller
 
@@ -91,8 +99,14 @@ AbstractGrpcController
 BaseService ──────► Your Service
 BaseProvider ──────► Your Provider
 BaseComponent ──────► Your Component
-BaseDataSource ──────► Your DataSource
-BaseEntity ──────► Your Model
+
+AbstractDataSource (engine-neutral, src/base)
+├── AbstractPostgresDataSource -> BasePostgresDataSource (alias: BaseDataSource) ──────► Your DataSource
+├── AbstractSearchDataSource -> BaseSearchDataSource -> TypesenseDataSource
+└── MemoryDataSource
+
+AbstractEntity (engine-neutral, src/base)
+└── BasePostgresEntity (alias: BaseEntity) ──────► Your Model
 ```
 
 > **Related:** [Core Concepts Guide](../../guides/core-concepts/application/) | [Persistent Layer Guide](../../guides/core-concepts/persistent/)

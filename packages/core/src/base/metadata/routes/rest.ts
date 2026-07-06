@@ -24,9 +24,7 @@ export const get = <RestRouteConfigType extends Omit<IAuthRouteConfig, 'method'>
   configs: RestRouteConfigType;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.GET } as RestRouteConfigType & {
-      method: typeof HTTP.Methods.GET;
-    },
+    configs: { ...opts.configs, method: HTTP.Methods.GET },
   });
 };
 
@@ -35,9 +33,7 @@ export const post = <RestRouteConfigType extends Omit<IAuthRouteConfig, 'method'
   configs: RestRouteConfigType;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.POST } as RestRouteConfigType & {
-      method: typeof HTTP.Methods.POST;
-    },
+    configs: { ...opts.configs, method: HTTP.Methods.POST },
   });
 };
 
@@ -46,9 +42,7 @@ export const put = <RestRouteConfigType extends Omit<IAuthRouteConfig, 'method'>
   configs: RestRouteConfigType;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.PUT } as RestRouteConfigType & {
-      method: typeof HTTP.Methods.PUT;
-    },
+    configs: { ...opts.configs, method: HTTP.Methods.PUT },
   });
 };
 
@@ -57,9 +51,7 @@ export const patch = <RestRouteConfigType extends Omit<IAuthRouteConfig, 'method
   configs: RestRouteConfigType;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.PATCH } as RestRouteConfigType & {
-      method: typeof HTTP.Methods.PATCH;
-    },
+    configs: { ...opts.configs, method: HTTP.Methods.PATCH },
   });
 };
 
@@ -68,8 +60,6 @@ export const del = <RestRouteConfigType extends Omit<IAuthRouteConfig, 'method'>
   configs: RestRouteConfigType;
 }) => {
   return api({
-    configs: { ...opts.configs, method: HTTP.Methods.DELETE } as RestRouteConfigType & {
-      method: typeof HTTP.Methods.DELETE;
-    },
+    configs: { ...opts.configs, method: HTTP.Methods.DELETE },
   });
 };

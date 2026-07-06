@@ -52,7 +52,7 @@ Use the correct status code for each error type:
 | 401 | `RS_4.Unauthorized` | Missing or invalid authentication |
 | 403 | `RS_4.Forbidden` | Authenticated but insufficient permissions |
 | 404 | `RS_4.NotFound` | Resource does not exist |
-| 409 | `RS_4.Conflict` | Resource already exists (custom duplicate handling) |
+| 409 | `RS_4.Conflict` | Resource already exists (custom duplicate handling); transient DB conflicts (deadlock / serialization failure, auto-handled) |
 | 422 | `RS_4.UnprocessableEntity` | Validation failed (Zod errors) |
 | 429 | `RS_4.TooManyRequests` | Rate limit exceeded |
 | 500 | `RS_5.InternalServerError` | Unexpected server error |
@@ -60,7 +60,7 @@ Use the correct status code for each error type:
 | 503 | `RS_5.ServiceUnavailable` | Service temporarily down |
 
 :::tip Automatic Database Error Handling
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint - unique, foreign key, not null, check, exclusion) are automatically converted to HTTP 400 by the global error middleware. You don't need to catch these manually. Other classes (e.g. syntax / undefined column) stay 500, and production responses are sanitized - see [Repository Layer Errors](#repository-layer-errors).
+Database errors in SQLSTATE classes `22` (data exception), `23` (integrity constraint - unique, foreign key, not null, check, exclusion), and `44` (WITH CHECK OPTION violation) are automatically converted to HTTP 400 by the global error middleware. Transient conflicts (`40001` serialization failure, `40P01` deadlock) become HTTP 409 with a retryable message. You don't need to catch these manually. Other classes (e.g. syntax / undefined column) stay 500, and production responses are sanitized - see [Repository Layer Errors](#repository-layer-errors).
 :::
 
 ## 3. Error Handling Patterns
@@ -73,12 +73,12 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 
 export class UserService extends BaseService {
   async createUser(data: TCreateUserRequest): Promise<TUser> {
-    // Validate business rules
-    const existingUser = await this.userRepo.findOne({
+    // Validate business rules (findOne returns the record or null)
+    const existingUser = await this.userRepository.findOne({
       filter: { where: { email: data.email } },
     });
 
-    if (existingUser.data) {
+    if (existingUser) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
         message: 'Email already registered',
@@ -95,13 +95,16 @@ export class UserService extends BaseService {
         data.email, error.message);
     }
 
-    return this.userRepo.create({ data });
+    // create returns { count, data }
+    const created = await this.userRepository.create({ data });
+    return created.data;
   }
 
   async getUserOrFail(id: string): Promise<TUser> {
-    const user = await this.userRepo.findById({ id });
+    // findById returns the record or null (no wrapper object)
+    const user = await this.userRepository.findById({ id });
 
-    if (!user.data) {
+    if (!user) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.NotFound,
         message: 'User not found',
@@ -109,7 +112,7 @@ export class UserService extends BaseService {
       });
     }
 
-    return user.data;
+    return user;
   }
 }
 ```
@@ -148,7 +151,7 @@ export class UserController extends BaseRestController {
 
 ### Repository Layer Errors
 
-Database errors in SQLSTATE class `22` (data exception) and `23` (integrity constraint - unique, foreign key, not null, check, exclusion) are **automatically handled** by the global error middleware and return HTTP 400. Codes outside those classes (e.g. class `42` undefined column - an application/SQL bug) correctly stay 500.
+Database errors in SQLSTATE classes `22` (data exception), `23` (integrity constraint - unique, foreign key, not null, check, exclusion), and `44` (WITH CHECK OPTION violation) are **automatically handled** by the global error middleware and return HTTP 400. Transient conflicts (`40001` serialization failure, `40P01` deadlock) return HTTP 409 with a generic retryable message. Codes outside those classes (e.g. class `42` undefined column - an application/SQL bug) correctly stay 500.
 
 **Non-production** returns the full driver context for debugging:
 
@@ -275,11 +278,13 @@ interface ErrorResponse {
 }
 
 // 404 Not Found
+// Extra keys passed to getError(...) (e.g. `details`) surface under `extra`;
+// the top-level `details` object is reserved for middleware context (url, path, stack, cause).
 {
   "statusCode": 404,
   "message": "User not found",
   "requestId": "abc123",
-  "details": { "id": "user-uuid" }
+  "extra": { "details": { "id": "user-uuid" } }
 }
 
 // 422 Validation Error
@@ -358,7 +363,7 @@ this.logger.debug('[query] Executing | sql: %s | params: %j', sql, params);
 ```typescript
 // ✅ Good - Errors propagate naturally with async/await
 async function processOrder(orderId: string) {
-  const order = await orderRepo.findById({ id: orderId }); // Throws if fails
+  const order = await orderRepository.findById({ id: orderId }); // Throws if fails
   const payment = await paymentService.charge(order); // Throws if fails
   return payment;
 }
@@ -402,11 +407,11 @@ this.sendNotification(userId); // If this rejects, crash!
 
 ```typescript
 async function transferFunds(from: string, to: string, amount: number) {
-  const tx = await accountRepo.beginTransaction();
+  const tx = await accountRepository.beginTransaction();
 
   try {
-    await accountRepo.debit({ id: from, amount }, { transaction: tx });
-    await accountRepo.credit({ id: to, amount }, { transaction: tx });
+    await accountRepository.debit({ id: from, amount, options: { transaction: tx } });
+    await accountRepository.credit({ id: to, amount, options: { transaction: tx } });
 
     await tx.commit();
     return { success: true };

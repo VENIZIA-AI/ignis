@@ -21,7 +21,8 @@ describe('CasbinAuthorizationEnforcer — destroy() pool-reject guard (enforcer:
     });
 
     // Inject a fake pool whose destroy() rejects (no configure() needed — destroy() only touches this.pool).
-    (enforcer as unknown as { pool: { destroy: () => Promise<void> } }).pool = {
+    // @ts-expect-error intentional partial pool stub (only destroy) to force the reject-path branch
+    enforcer['pool'] = {
       destroy: () => Promise.reject(new Error('pool destroy boom')),
     };
 

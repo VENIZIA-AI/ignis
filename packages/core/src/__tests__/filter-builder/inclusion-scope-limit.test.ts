@@ -1,12 +1,10 @@
 import { describe, test, expect } from 'bun:test';
-import { DEFAULT_LIMIT, FilterSchema, ReadableRepository, TFilter } from '@/base/repositories';
+import { DEFAULT_LIMIT, FilterSchema, TFilter } from '@/base/repositories';
+import { ReadableRepository } from '@/connectors/postgres/repositories';
 
 /**
- * FilterSchema must NEVER inject a default limit — defaults are applied at the
- * query-building layer instead (top-level by ReadableRepository.find(), to-many
- * relations by FilterBuilder.toInclude), never baked into the recursively-reused
- * Zod schema. This keeps limit handling explicit and avoids the original bug where
- * the schema default leaked into (or skipped) relation scopes inconsistently.
+ * FilterSchema never injects a default limit - defaults are applied later at the query-building
+ * layer (ReadableRepository.find() top-level, FilterBuilder.toInclude for relations).
  */
 describe('FilterSchema - no default limit injection', () => {
   test('top-level filter does not inject a limit at parse time', () => {
@@ -56,16 +54,12 @@ describe('FilterSchema - no default limit injection', () => {
   });
 });
 
-/**
- * Behavioral guarantee: ReadableRepository.find() applies DEFAULT_LIMIT to the
- * TOP-LEVEL query only. It captures the filter handed to the underlying query
- * method without touching a database.
- */
+/** ReadableRepository.find() applies DEFAULT_LIMIT to the top-level query only. */
 class CapturingRepository extends ReadableRepository<any> {
   public captured?: TFilter<any>;
 
   constructor() {
-    super(undefined, { scope: 'CapturingRepository' } as any);
+    super();
   }
 
   // Avoid model-metadata / entity resolution.
@@ -101,9 +95,8 @@ describe('ReadableRepository.find - default limit application', () => {
     expect(repo.captured?.limit).toBe(50);
   });
 
-  // find() only defaults the TOP-LEVEL limit and passes relation scopes through
-  // untouched. Per-relation default limits are applied downstream by
-  // FilterBuilder.toInclude (see order-limit-scope.test.ts).
+  // find() only defaults the top-level limit; relation scopes pass through untouched
+  // (per-relation defaults are applied downstream by FilterBuilder.toInclude).
   test('defaults the top-level limit and leaves scopes for toInclude to handle', async () => {
     const repo = new CapturingRepository();
     await repo.find({

@@ -48,15 +48,15 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
     dataSource: PostgresDataSource, // Must be concrete type, not 'any'
 
     // After first arg, you can inject any additional dependencies
-    @inject({ key: 'some.cache' })
-    private cache: SomeCache,
+    @inject({ key: 'services.CacheService' })
+    private cacheService: CacheService,
   ) {
     super(dataSource);
   }
 
   async findByRealm(opts: { realm: string }) {
     // Use injected dependencies
-    const cached = await this.cache.get(`user:realm:${opts.realm}`);
+    const cached = await this.cacheService.get(`user:realm:${opts.realm}`);
     if (cached) {
       return cached;
     }
@@ -74,11 +74,15 @@ export class UserRepository extends ReadableRepository<typeof User.schema> {
 ## Repository Hierarchy
 
 ```
-AbstractRepository (base + mixins: FieldsVisibilityMixin + DefaultFilterMixin)
+AbstractRepository (engine-neutral base in src/base - lazy dataSource/entity resolution,
+                    @model settings getters: hiddenProperties, defaultFilter, defaultLimit)
+  ↓
+PostgresBaseRepository (postgres connector - filter building, hidden-column exclusion,
+                        default-filter merging, transaction-aware connector resolution)
   ↓
 ReadableRepository (read-only: find, findOne, findById, count, existsWith)
   ↓
-PersistableRepository (+ create, updateById, updateAll, deleteById, deleteAll)
+PersistableRepository (+ create, createAll, updateById, updateAll, deleteById, deleteAll)
   ↓
 DefaultCRUDRepository (no additional methods - recommended default)
   ↓
@@ -95,6 +99,8 @@ SoftDeletableRepository (overrides delete to set deletedAt timestamp)
 ## Querying Data
 
 For advanced filtering with operators like `gt`, `lt`, `like`, `in`, `between`, and more, see [Filter System](../../../references/base/filter-system/).
+
+Return shapes: read methods return values directly (`find` returns an array, `findOne`/`findById` return a record or `null`, `count` returns `{ count }`), while write methods (`create`, `updateById`, `deleteById`, ...) return a `{ count, data }` envelope.
 
 ```typescript
 const repo = this.get<ConfigurationRepository>({ key: 'repositories.ConfigurationRepository' });
@@ -128,8 +134,8 @@ const sorted = await repo.find({
   }
 });
 
-// Create a record
-const newConfig = await repo.create({
+// Create a record - write operations return a { count, data } envelope
+const { data: newConfig } = await repo.create({
   data: {
     code: 'NEW_SETTING',
     group: 'SYSTEM',
@@ -137,13 +143,13 @@ const newConfig = await repo.create({
   }
 });
 
-// Update by ID
-await repo.updateById({
+// Update by ID - also returns { count, data }
+const { data: updatedConfig } = await repo.updateById({
   id: 'uuid-here',
   data: { description: 'Updated description' }
 });
 
-// Delete by ID
+// Delete by ID - also returns { count, data }
 await repo.deleteById({ id: 'uuid-here' });
 ```
 
@@ -153,10 +159,13 @@ All repository operations accept an `options` parameter with these fields:
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
-| `transaction` | `ITransaction` | Transaction context for atomic operations |
-| `shouldReturn` | `boolean` | Whether to return created/updated data (default: `true`) |
-| `shouldQueryRange` | `boolean` | Return `{ data, range: { start, end, total } }` for pagination |
+| `transaction` | `IDatabaseTransaction` | Transaction context for atomic operations |
+| `shouldReturn` | `boolean` | Write methods only - whether to return created/updated data (default: `true`) |
+| `shouldQueryRange` | `boolean` | `find` only - return `{ data, range: { start, end, total } }` for pagination |
 | `shouldSkipDefaultFilter` | `boolean` | Bypass the model's default filter (e.g., soft delete) |
+| `force` | `boolean` | `updateAll`/`deleteAll` only - allow an empty `where` (table-wide operation) |
+| `lock` | `TLockOptions` | Row-level locking for reads (`{ strength: 'update' }`, ...). Requires a transaction; incompatible with `include`/`fields` |
+| `log` | `TRepositoryLogOptions` | Per-operation logging (`{ use: true, level?: 'info' }`) |
 
 ```typescript
 // Create without returning data (faster)
@@ -193,7 +202,7 @@ const configWithCreator = await repo.findOne({
   },
 });
 
-console.log('Created by:', configWithCreator.creator.name);
+console.log('Created by:', configWithCreator?.creator.name);
 ```
 
 ## Registering Repositories
@@ -214,8 +223,15 @@ export class Application extends BaseApplication {
 For soft-delete patterns, use `SoftDeletableRepository` which overrides delete operations to set a `deletedAt` timestamp instead of physically removing records:
 
 ```typescript
-import { SoftDeletableRepository, repository, model, BaseEntity } from '@venizia/ignis';
-import { pgTable, timestamp } from 'drizzle-orm/pg-core';
+import {
+  BasePostgresEntity,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+  model,
+  repository,
+  SoftDeletableRepository,
+} from '@venizia/ignis';
+import { pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 
 @model({
   type: 'entity',
@@ -224,7 +240,7 @@ import { pgTable, timestamp } from 'drizzle-orm/pg-core';
     defaultFilter: { where: { deletedAt: null } },
   },
 })
-export class Category extends BaseEntity<typeof Category.schema> {
+export class Category extends BasePostgresEntity<typeof Category.schema> {
   static override schema = pgTable('Category', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),
@@ -236,6 +252,8 @@ export class Category extends BaseEntity<typeof Category.schema> {
 @repository({ dataSource: PostgresDataSource, model: Category })
 export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
 ```
+
+Delete operations accept `shouldHardDelete: true` in options to physically remove a row, and soft-deleted records can be restored via `restoreById`/`restoreAll`.
 
 ## Repository Template
 
@@ -283,7 +301,6 @@ export class UserManagementComponent extends BaseComponent {
   - [Filter System](/references/base/filter-system/) - Query operators and filtering
   - [Relations & Includes](/references/base/repositories/relations) - Loading related data
   - [Advanced Features](/references/base/repositories/advanced) - JSON queries, performance tuning
-  - [Repository Mixins](/references/base/repositories/mixins) - Soft delete and auditing
 
 - **Best Practices:**
   - [Data Modeling](/best-practices/data-modeling) - Repository design patterns

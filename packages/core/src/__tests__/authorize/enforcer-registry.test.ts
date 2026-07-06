@@ -38,7 +38,7 @@ describe('AuthorizationEnforcerRegistry', () => {
         container,
         enforcers: [
           {
-            enforcer: TestAuthorizationEnforcer as any,
+            enforcer: TestAuthorizationEnforcer,
             name: 'test',
             type: AuthorizationEnforcerTypes.CUSTOM,
           },
@@ -63,7 +63,7 @@ describe('AuthorizationEnforcerRegistry', () => {
         container,
         enforcers: [
           {
-            enforcer: TestAuthorizationEnforcer as any,
+            enforcer: TestAuthorizationEnforcer,
             name: 'test',
             type: AuthorizationEnforcerTypes.CUSTOM,
           },
@@ -91,12 +91,12 @@ describe('AuthorizationEnforcerRegistry', () => {
         container,
         enforcers: [
           {
-            enforcer: TestAuthorizationEnforcer as any,
+            enforcer: TestAuthorizationEnforcer,
             name: 'test',
             type: AuthorizationEnforcerTypes.CUSTOM,
           },
           {
-            enforcer: CustomEnforcer as any,
+            enforcer: CustomEnforcer,
             name: 'custom',
             type: AuthorizationEnforcerTypes.CUSTOM,
           },

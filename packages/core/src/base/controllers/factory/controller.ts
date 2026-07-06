@@ -1,9 +1,6 @@
-import { BaseEntity } from '@/base/models/base';
 import { SchemaTypes } from '@/base/models/common/constants';
-import { getIdType, TTableObject, TTableSchemaWithId } from '@/base/models/common/types';
-import { AbstractRepository } from '@/base/repositories/core/abstract';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
-import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { AbstractRepository } from '@/base/repositories';
+import { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { z } from '@hono/zod-openapi';
 import {
   AnyType,
@@ -11,56 +8,15 @@ import {
   executeWithPerformanceMeasure,
   getError,
   HTTP,
-  TClass,
   TNullable,
   toBoolean,
-  TResolver,
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { isClass } from '@venizia/ignis-inversion';
 import { Env, Schema } from 'hono';
-import { ICustomizableRoutes, TRouteContext } from '../common';
+import { ICrudControllerOptions, ICustomizableRoutes, TRouteContext } from '../common';
 import { BaseRestController } from '../rest/base';
 import { defineControllerRouteConfigs } from './definition';
-
-/** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
-export interface ICrudControllerOptions<
-  EntitySchema extends TTableSchemaWithId,
-  Routes extends ICustomizableRoutes = ICustomizableRoutes,
-> {
-  /** Entity class or resolver function returning the entity class */
-  entity: TClass<BaseEntity<EntitySchema>> | TResolver<TClass<BaseEntity<EntitySchema>>>;
-
-  /** Repository binding configuration */
-  repository: {
-    name: string; // Repository binding name in the IoC container
-  };
-
-  controller: {
-    name: string;
-    basePath: string;
-    readonly?: boolean;
-    /**
-     * Whitelist of routes to enable. When provided, only the listed routes are registered.
-     * Takes priority over per-route `enabled` flag in `routes`.
-     * @example enabledRoutes: ['count'] // only registers GET /count
-     */
-    enabledRoutes?: Array<keyof ICustomizableRoutes>;
-    isStrict?: {
-      path?: boolean;
-      requestSchema?: boolean;
-    };
-  };
-
-  /** Authentication config applied to all routes (unless overridden per-route). */
-  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
-
-  /** Authorization config applied to all routes (unless overridden per-route). */
-  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-
-  /** Per-route configuration combining schema and auth overrides. */
-  routes?: Routes;
-}
 
 /** Factory for generating typed CRUD controllers from entity definitions. */
 export class ControllerFactory extends BaseHelper {
@@ -68,15 +24,17 @@ export class ControllerFactory extends BaseHelper {
     super({ scope: ControllerFactory.name });
   }
 
-  /** Creates a CRUD controller class with standard endpoints (count, find, findById, create, update, delete). */
+  /** Creates a CRUD controller with standard endpoints (count/find/findById/create/update/delete).
+   * `TDataObject`/`TPersistObject` can't be inferred from `entity` - pass them explicitly for typed fields. */
   static defineCrudController<
-    EntitySchema extends TTableSchemaWithId,
+    TDataObject extends object = object,
+    TPersistObject extends object = TDataObject,
     Routes extends ICustomizableRoutes = ICustomizableRoutes,
     RouteEnv extends Env = Env,
     RouteSchema extends Schema = {},
     BasePath extends string = '/',
     ConfigurableOptions extends object = {},
-  >(defOpts: ICrudControllerOptions<EntitySchema, Routes>) {
+  >(defOpts: ICrudControllerOptions<Routes>) {
     const { controller, entity, authenticate, authorize, routes } = defOpts;
 
     const {
@@ -90,19 +48,24 @@ export class ControllerFactory extends BaseHelper {
       });
     }
 
-    // 1. Resolve EntityClass
     const _entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new _entityClass();
 
-    // 2. Define required CRU (Create - Retrieve - Update) schema
+    // `getSchema()` is typed `unknown` to stay engine-neutral (both drizzle-zod and the search
+    // collection DSL return an object schema at runtime) - narrowed to TAnyObjectSchema here.
+    // getSchema() is typed unknown to stay engine-neutral - narrowed once at this boundary.
     const entitySchema = {
-      select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
-      create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
-      update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
+      select: entityInstance.getSchema({ type: SchemaTypes.SELECT }) as TAnyObjectSchema,
+      create: entityInstance.getSchema({ type: SchemaTypes.CREATE }) as TAnyObjectSchema,
+      update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }) as TAnyObjectSchema,
     };
+    // Each entity family resolves its own id shape via getIdType() (postgres: pgTable id column;
+    // document families like BaseSearchEntity: always 'string').
+    const idType = entityInstance.getIdType();
+
     const routeDefinitions = defineControllerRouteConfigs({
       isStrict: isStrict.requestSchema ?? true,
-      idType: getIdType({ entity: entityInstance.schema }),
+      idType,
       authenticate,
       authorize,
       routes,
@@ -129,23 +92,17 @@ export class ControllerFactory extends BaseHelper {
     type TDeleteByIdParams = z.infer<typeof routeDefinitions.DELETE_BY_ID.request.params>;
     type TDeleteByQuery = z.infer<typeof routeDefinitions.DELETE_BY.request.query>;
 
-    // 3. Define class
-    // Note: `Definitions` (5th generic) intentionally omitted — passing
-    // `typeof routeDefinitions` here makes the consumer-class `.definitions`
-    // property materialize the entire route-definitions tree (including all
-    // Zod schemas) into d.ts, blowing past TS's serialization cap (TS7056)
-    // for entities with complex schemas. Default `Record<string, IAuthRouteConfig>`
-    // keeps the type small; runtime value of `this.definitions = routeDefinitions`
-    // is unchanged.
+    // `Definitions` (5th generic) is intentionally omitted: passing `typeof routeDefinitions` would
+    // blow past TS's d.ts serialization cap (TS7056) for complex schemas; runtime value is unchanged.
     const _controller = class extends BaseRestController<
       RouteEnv,
       RouteSchema,
       BasePath,
       ConfigurableOptions
     > {
-      repository: AbstractRepository<EntitySchema>;
+      repository: AbstractRepository<TDataObject, TPersistObject>;
 
-      constructor(repository: AbstractRepository<EntitySchema>) {
+      constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
         super({ scope: name, path: basePath, isStrict: isStrict.path ?? true });
         this.repository = repository;
 
@@ -223,7 +180,7 @@ export class ControllerFactory extends BaseHelper {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<Array<TTableObject<EntitySchema>>>({
+            return this.normalizeCountData<Array<TDataObject>>({
               context,
               responseData: { count: data.length, data },
             });
@@ -252,7 +209,7 @@ export class ControllerFactory extends BaseHelper {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<TTableObject<EntitySchema>>({
+            return this.normalizeCountData<TDataObject>({
               context,
               responseData: { count: _rs ? 1 : 0, data: _rs },
             });
@@ -280,7 +237,7 @@ export class ControllerFactory extends BaseHelper {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<TTableObject<EntitySchema>>({
+            return this.normalizeCountData<TDataObject>({
               context,
               responseData: { count: _rs ? 1 : 0, data: _rs },
             });
@@ -302,13 +259,15 @@ export class ControllerFactory extends BaseHelper {
           description: 'execute create',
           args: data,
           task: async () => {
-            const _rs = await this.repository.create({ data });
+            // `data`'s static type comes from the runtime-computed request-body schema; `TPersistObject`
+            // is a caller-supplied generic with no structural link to it, so this cast narrows the same way.
+            const _rs = await this.repository.create({ data: data as TPersistObject });
 
             [{ key: HTTP.Headers.RESPONSE_FORMAT, value: 'object' }].forEach(el => {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<TTableObject<EntitySchema>>({
+            return this.normalizeCountData<TDataObject>({
               context,
               responseData: _rs,
             });
@@ -331,13 +290,17 @@ export class ControllerFactory extends BaseHelper {
           description: 'execute updateById',
           args: { id, data },
           task: async () => {
-            const _rs = await this.repository.updateById({ id, data });
+            // Same request-body-schema-vs-TPersistObject boundary as create() above.
+            const _rs = await this.repository.updateById({
+              id,
+              data: data as Partial<TPersistObject>,
+            });
 
             [{ key: HTTP.Headers.RESPONSE_FORMAT, value: 'object' }].forEach(el => {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<TTableObject<EntitySchema>>({
+            return this.normalizeCountData<TDataObject>({
               context,
               responseData: _rs,
             });
@@ -368,13 +331,17 @@ export class ControllerFactory extends BaseHelper {
           description: 'execute updateBy',
           args: { where, data },
           task: async () => {
-            const _rs = await this.repository.updateBy({ where, data });
+            // Same request-body-schema-vs-TPersistObject boundary as create() above.
+            const _rs = await this.repository.updateBy({
+              where,
+              data: data as Partial<TPersistObject>,
+            });
 
             [{ key: HTTP.Headers.RESPONSE_FORMAT, value: 'array' }].forEach(el => {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<Array<TTableObject<EntitySchema>>>({
+            return this.normalizeCountData<Array<TDataObject>>({
               context,
               responseData: _rs,
             });
@@ -402,7 +369,7 @@ export class ControllerFactory extends BaseHelper {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<TTableObject<EntitySchema>>({
+            return this.normalizeCountData<TDataObject>({
               context,
               responseData: _rs,
             });
@@ -437,7 +404,7 @@ export class ControllerFactory extends BaseHelper {
               context.header(el.key, el.value);
             });
 
-            return this.normalizeCountData<Array<TTableObject<EntitySchema>>>({
+            return this.normalizeCountData<Array<TDataObject>>({
               context,
               responseData: _rs,
             });
@@ -527,7 +494,6 @@ export class ControllerFactory extends BaseHelper {
       }
     };
 
-    // Set the class name dynamically
     Object.defineProperty(_controller, 'name', { value: name, configurable: true });
     return _controller;
   }

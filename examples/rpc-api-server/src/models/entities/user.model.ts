@@ -1,14 +1,9 @@
-import {
-  BaseEntity,
-  extraUserColumns,
-  generateIdColumnDefs,
-  model,
-  TTableObject,
-} from '@venizia/ignis';
+import { extraUserColumns, model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, TTableObject } from '@venizia/ignis/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity', skipMigrate: false })
-export class User extends BaseEntity<TUserSchema> {
+export class User extends BasePostgresEntity<TUserSchema> {
   static override readonly TABLE_NAME = User.name;
 
   constructor() {

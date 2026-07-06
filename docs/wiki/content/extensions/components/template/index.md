@@ -14,7 +14,7 @@ Guide for writing consistent, professional component reference docs for IGNIS.
 | Tier | Structure | When to Use | Examples |
 |------|-----------|-------------|----------|
 | **Tier 1** | [Single page](./single-page) | 5 or fewer config options, straightforward behavior | Health Check, Request Tracker, Swagger |
-| **Tier 2** | 4 pages | 6+ config options, multiple strategies/providers, architectural depth | Authentication, Mail, Socket.IO, WebSocket, Static Asset |
+| **Tier 2** | 4 pages | 6+ config options, multiple strategies/providers, architectural depth | Authentication, Authorization, Mail, Socket.IO, WebSocket, Static Asset |
 
 ### Tier 1 -- Single Page
 

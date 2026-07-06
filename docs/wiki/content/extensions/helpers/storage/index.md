@@ -281,7 +281,7 @@ console.log(stat);
 //   size: 204800,
 //   lastModified: 2025-01-15T10:30:00.000Z,
 //   metadata: { mimetype: 'application/pdf' },
-//   etag: 'abc123',       // MinioHelper only
+//   etag: 'abc123',       // MinioHelper and BunS3Helper only
 //   versionId: 'v1',      // MinioHelper only (if versioning enabled)
 // }
 ```
@@ -394,7 +394,7 @@ Storage helpers use two validation methods depending on context:
 - **`isValidName(name)`** - validates a single path segment (bucket names, raw file names). Rejects names that contain `/`, `\`, or `..`.
 - **`isValidPath(pathStr)`** - validates a full object path that may include folder segments (e.g., `folder/file.pdf`). Splits on `/` and validates each segment with `isValidName`. Also enforces a max folder depth (default: 2).
 
-Bucket operations (create, remove, list) use `isValidName()`. Object name operations (upload, get, delete, download) use `isValidPath()` so that paths like `2025/uploads/report.pdf` are accepted.
+Bucket operations (create, remove) validate the bucket name with `isValidName()`. `upload()` validates each file's `originalName` with `isValidName()` and, when provided, the file's `folderPath` with `isValidPath()` so that folder structures like `2025/uploads` are accepted. Read and delete operations (`getFile`, `getStat`, `removeObject`, `listObjects`) do not re-validate names.
 
 The following single-segment inputs are rejected by `isValidName()`:
 
@@ -549,7 +549,7 @@ await storage.removeBucket({ name: 'my-bucket' });
 
 ### "[upload] Bucket does not exist | name: {bucket}"
 
-**Cause:** The target bucket does not exist. Both DiskHelper and MinioHelper validate bucket existence before uploading.
+**Cause:** The target bucket does not exist. DiskHelper, MinioHelper, and BunS3Helper all validate bucket existence before uploading.
 
 **Fix:** Create the bucket before uploading:
 

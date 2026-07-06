@@ -218,3 +218,25 @@ export const parseArrayToMapWithKey = <T extends Record<K, PropertyKey>, K exten
 
   return resultMap;
 };
+
+/** Splits a delimited string into trimmed, non-empty entries - the transform for list-shaped
+ * env values (e.g. `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`). */
+export const toDelimitedArray = (input: unknown, separator = ','): string[] => {
+  if (input == null) {
+    return [];
+  }
+
+  return String(input)
+    .split(separator)
+    .map(entry => entry.trim())
+    .filter(entry => entry.length > 0);
+};
+
+/** Trims a possibly-undefined env value to a clean string ('' when absent). */
+export const toTrimmed = (input: unknown): string => {
+  if (input == null) {
+    return '';
+  }
+
+  return String(input).trim();
+};

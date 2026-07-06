@@ -38,7 +38,7 @@ describe('Route Config Integration', () => {
 
     test('authenticate can override strategies and mode', () => {
       const config: TRouteAuthConfig = {
-        authenticate: { strategies: ['jwt' as any], mode: 'any' as any },
+        authenticate: { strategies: ['jwt'], mode: 'any' },
       };
       expect(config.authenticate).toBeDefined();
       expect('skip' in config.authenticate!).toBe(false);
@@ -101,7 +101,7 @@ describe('Route Config Integration', () => {
         method: 'get' as const,
         path: '/users',
         responses: { 200: { description: 'OK' } },
-        authenticate: { strategies: ['jwt' as any], mode: 'any' as any },
+        authenticate: { strategies: ['jwt'], mode: 'any' },
         authorize: { action: 'read', resource: 'User' } as IAuthorizationSpec,
       };
 

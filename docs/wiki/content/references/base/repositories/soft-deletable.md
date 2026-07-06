@@ -8,7 +8,7 @@ difficulty: intermediate
 
 A repository that overrides delete operations to set a `deletedAt` timestamp instead of physically removing records. Extends `DefaultCRUDRepository` with restore capabilities.
 
-**File:** `packages/core/src/base/repositories/core/soft-deletable.ts`
+**File:** `packages/core/src/connectors/postgres/repositories/core/soft-deletable.ts` (PostgreSQL connector - soft delete via `deletedAt` is a Drizzle/SQL-specific pattern, not part of the engine-neutral `AbstractRepository`)
 
 
 ## Setup
@@ -70,17 +70,17 @@ All delete methods set `deletedAt = new Date()` instead of removing the row. The
 
 ```typescript
 // Soft delete - sets deletedAt timestamp
-const result = await repo.deleteById({ id: '123' });
+const result = await repository.deleteById({ id: '123' });
 // { count: 1, data: { id: '123', name: 'Electronics', deletedAt: '2026-03-06T...' } }
 
 // Without returning data
-const result = await repo.deleteById({
+const result = await repository.deleteById({
   id: '123',
   options: { shouldReturn: false },
 });
 
 // Hard delete - physically removes the row
-const result = await repo.deleteById({
+const result = await repository.deleteById({
   id: '123',
   options: { shouldHardDelete: true },
 });
@@ -90,13 +90,13 @@ const result = await repo.deleteById({
 
 ```typescript
 // Soft delete all matching records
-const result = await repo.deleteAll({
+const result = await repository.deleteAll({
   where: { status: 'archived' },
   options: { force: true },
 });
 
 // Hard delete all matching records
-const result = await repo.deleteAll({
+const result = await repository.deleteAll({
   where: { status: 'archived' },
   options: { shouldHardDelete: true, force: true },
 });
@@ -106,12 +106,12 @@ const result = await repo.deleteAll({
 
 ```typescript
 // Soft delete by where condition (alias for deleteAll)
-const result = await repo.deleteBy({
+const result = await repository.deleteBy({
   where: { name: 'Obsolete' },
 });
 
 // Hard delete by where condition
-const result = await repo.deleteBy({
+const result = await repository.deleteBy({
   where: { name: 'Obsolete' },
   options: { shouldHardDelete: true },
 });
@@ -125,11 +125,11 @@ Restore methods set `deletedAt = null` and automatically use `shouldSkipDefaultF
 ### restoreById
 
 ```typescript
-const result = await repo.restoreById({ id: '123' });
+const result = await repository.restoreById({ id: '123' });
 // { count: 1, data: { id: '123', name: 'Electronics', deletedAt: null } }
 
 // Without returning data
-const result = await repo.restoreById({
+const result = await repository.restoreById({
   id: '123',
   options: { shouldReturn: false },
 });
@@ -139,13 +139,13 @@ const result = await repo.restoreById({
 
 ```typescript
 // Restore all soft-deleted records (requires force for empty where)
-const result = await repo.restoreAll({
+const result = await repository.restoreAll({
   where: {},
   options: { force: true },
 });
 
 // Restore matching records
-const result = await repo.restoreAll({
+const result = await repository.restoreAll({
   where: { name: 'Electronics' },
 });
 ```
@@ -154,7 +154,7 @@ const result = await repo.restoreAll({
 
 ```typescript
 // Alias for restoreAll
-const result = await repo.restoreBy({
+const result = await repository.restoreBy({
   where: { status: 'archived' },
 });
 ```
@@ -168,10 +168,10 @@ const result = await repo.restoreBy({
 
 ```typescript
 // Returns null if not found (default)
-const category = await repo.findById({ id: '123' });
+const category = await repository.findById({ id: '123' });
 
 // Throws 404 if not found
-const category = await repo.findById({
+const category = await repository.findById({
   id: '123',
   options: { isStrict: true },
 });
@@ -226,8 +226,8 @@ All other read operations (`find`, `findOne`, `count`, `existsWith`) work as nor
 ```typescript
 const tx = await this.dataSource.beginTransaction();
 try {
-  await this.categoryRepo.deleteById({ id: '123', options: { transaction: tx } });
-  await this.auditRepo.create({
+  await this.categoryRepository.deleteById({ id: '123', options: { transaction: tx } });
+  await this.auditRepository.create({
     data: { action: 'soft_delete', entityId: '123' },
     options: { transaction: tx },
   });
@@ -259,11 +259,12 @@ If your schema does not have a `deletedAt` column, you will get a TypeScript com
 ## Class Hierarchy
 
 ```
-AbstractRepository
-  -> ReadableRepository
-    -> PersistableRepository
-      -> DefaultCRUDRepository
-        -> SoftDeletableRepository   <-- you are here
+AbstractRepository (engine-neutral, src/base)
+  -> PostgresBaseRepository (connectors/postgres)
+    -> ReadableRepository
+      -> PersistableRepository
+        -> DefaultCRUDRepository
+          -> SoftDeletableRepository   <-- you are here
 ```
 
 
@@ -271,19 +272,19 @@ AbstractRepository
 
 | Want to... | Code |
 |------------|------|
-| Soft delete by ID | `repo.deleteById({ id })` |
-| Hard delete by ID | `repo.deleteById({ id, options: { shouldHardDelete: true } })` |
-| Soft delete by condition | `repo.deleteAll({ where, options: { force: true } })` |
-| Restore by ID | `repo.restoreById({ id })` |
-| Restore by condition | `repo.restoreAll({ where })` |
-| Find including deleted | `repo.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
-| Strict findById (404) | `repo.findById({ id, options: { isStrict: true } })` |
+| Soft delete by ID | `repository.deleteById({ id })` |
+| Hard delete by ID | `repository.deleteById({ id, options: { shouldHardDelete: true } })` |
+| Soft delete by condition | `repository.deleteAll({ where, options: { force: true } })` |
+| Restore by ID | `repository.restoreById({ id })` |
+| Restore by condition | `repository.restoreAll({ where })` |
+| Find including deleted | `repository.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
+| Strict findById (404) | `repository.findById({ id, options: { isStrict: true } })` |
 
 
 ## Next Steps
 
 - [Advanced Features](./advanced.md) - Transactions, hidden properties
-- [Repository Mixins](./mixins.md) - Default filter and fields visibility
+- [Repository Mixins (Removed)](./mixins.md) - Where default-filter and fields-visibility behavior lives now
 - [Repository Overview](./index.md) - Repository basics
 
 ## See Also

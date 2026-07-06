@@ -160,7 +160,7 @@ import { inject, injectable, BindingScopes } from '@venizia/ignis-inversion';
 class UserService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
-    private userRepo: UserRepository,
+    private userRepository: UserRepository,
 
     @inject({ key: 'services.Logger', isOptional: true })
     private logger?: Logger,
@@ -178,7 +178,7 @@ import { inject, injectable } from '@venizia/ignis-inversion';
 @injectable({})
 class UserService {
   @inject({ key: 'repositories.UserRepository' })
-  private userRepo: UserRepository;
+  private userRepository: UserRepository;
 
   @inject({ key: 'services.Logger', isOptional: true })
   private logger?: Logger;

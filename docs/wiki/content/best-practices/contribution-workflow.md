@@ -97,7 +97,7 @@ make update-boot
 make update-helpers
 make update-inversion
 make update-dev-configs
-make update-docs
+make update-docs-mcp
 ```
 
 ## 2. Development Workflow
@@ -107,8 +107,8 @@ make update-docs
 ```bash
 # Sync with upstream
 git fetch upstream
-git checkout main
-git merge upstream/main
+git checkout develop
+git merge upstream/develop
 
 # Create feature branch
 git checkout -b feature/your-feature-name
@@ -155,14 +155,13 @@ git commit -m "chore: upgrade Hono to v4.0"
 ```bash
 # Lint and format (from root)
 make lint
-# Or: bun run lint:fix
+# Or run `bun run lint:fix` inside a package directory
 
-# Build all packages
+# Build all packages (from root)
 make build
-# Or: bun run build
 
-# Run tests
-bun run test
+# Run tests (from a package directory, e.g. packages/core or packages/boot)
+cd packages/core && bun test
 ```
 
 ## 3. Submit Pull Request
@@ -187,7 +186,7 @@ git push origin feature/your-feature-name
 - Code is linted and formatted
 - Documentation updated
 - Commit messages follow conventions
-- Branch is up-to-date with `main`
+- Branch is up-to-date with `develop`
 
 ## 4. Review Process
 
@@ -195,7 +194,7 @@ git push origin feature/your-feature-name
 1. Maintainer reviews your PR (usually within 2-3 days)
 2. Feedback or change requests may be provided
 3. Address feedback and push updates
-4. Once approved, maintainer merges to `main`
+4. Once approved, maintainer merges to `develop`
 
 **Responding to feedback:**
 ```bash

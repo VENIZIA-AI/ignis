@@ -6,6 +6,7 @@ import {
   SocketIOClientHelper,
   SocketIOConstants,
   SocketIOClientStates,
+  IOptions,
 } from '@venizia/ignis-helpers/socket-io';
 import { SocketIOBindingKeys } from '@/components/socket-io/common/keys';
 
@@ -172,7 +173,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       expect(client.getState()).toBe(SocketIOClientStates.UNAUTHORIZED);
@@ -186,7 +187,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       expect(client.identifier).toBe('my-unique-client');
@@ -200,7 +201,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       expect(client.getSocketClient()).toBeDefined();
@@ -218,7 +219,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
         onConnected: () => {
           isConnected = true;
         },
@@ -239,7 +240,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
         onConnected: onConnectedMock,
       });
 
@@ -260,7 +261,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
         onDisconnected: reason => {
           disconnectReason = reason;
         },
@@ -283,7 +284,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -305,7 +306,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       client.authenticate();
@@ -322,7 +323,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -349,7 +350,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -377,7 +378,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
         onAuthenticated: () => {
           isAuthenticated = true;
         },
@@ -408,7 +409,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
         onUnauthenticated: message => {
           unauthMessage = message;
         },
@@ -438,7 +439,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -467,7 +468,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -497,7 +498,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -528,7 +529,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -559,7 +560,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -592,7 +593,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -634,7 +635,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -680,7 +681,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -703,7 +704,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       expect(() => {
@@ -723,7 +724,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -747,7 +748,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -783,7 +784,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -812,7 +813,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -832,7 +833,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       client.joinRooms({ rooms: ['room-1'] });
@@ -847,7 +848,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       client.leaveRooms({ rooms: ['room-1'] });
@@ -864,7 +865,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -887,7 +888,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -910,7 +911,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -935,7 +936,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -965,11 +966,12 @@ describe('SocketIOClientHelper', () => {
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
         host: 'http://localhost:99999',
+        // reconnection is a valid socket.io-client Manager option not modeled by IOptions
         options: {
           path: '/io',
           extraHeaders: {},
           reconnection: false,
-        } as any,
+        } as IOptions,
         onError: error => {
           errorReceived = error;
         },
@@ -988,7 +990,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -1017,7 +1019,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -1045,11 +1047,12 @@ describe('SocketIOClientHelper', () => {
       const client = new SocketIOClientHelper({
         identifier: 'test-client',
         host: `http://localhost:${port}`,
+        // autoConnect is a valid socket.io-client Manager option not modeled by IOptions
         options: {
           path: '/io',
           extraHeaders: {},
           autoConnect: false,
-        } as any,
+        } as IOptions,
       });
 
       expect(client.getSocketClient().connected).toBe(false);
@@ -1069,7 +1072,7 @@ describe('SocketIOClientHelper', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
@@ -1137,7 +1140,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
 
       await waitFor(() => client.getSocketClient().connected, { timeout: 5000 });
@@ -1159,7 +1162,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
         options: {
           path: '/io',
           extraHeaders: {},
-        } as any,
+        },
       });
       clients.push(client);
     }
@@ -1178,14 +1181,15 @@ describe('SocketIOClientHelper - Edge Cases', () => {
       options: {
         path: '/io',
         extraHeaders: {},
-      } as any,
+      },
     });
 
     await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });
 
     client.subscribe({
       event: 'test-event',
-      handler: null as any,
+      // @ts-expect-error intentional null handler to test runtime guard against missing handlers
+      handler: null,
     });
 
     const clientSocket = Array.from(ioServer.sockets.sockets.values())[0];
@@ -1204,7 +1208,7 @@ describe('SocketIOClientHelper - Edge Cases', () => {
       options: {
         path: '/io',
         extraHeaders: {},
-      } as any,
+      },
     });
 
     await waitFor(() => client.getSocketClient().connected, { timeout: 3000 });

@@ -24,16 +24,16 @@ Orchestrate atomic operations across multiple repositories.
 ### Basic Transaction
 
 ```typescript
-const tx = await repo.beginTransaction();
+const tx = await repository.beginTransaction();
 
 try {
   // All operations use the same transaction
-  const user = await userRepo.create({
+  const user = await userRepository.create({
     data: { name: 'Alice', email: 'alice@example.com' },
     options: { transaction: tx }
   });
 
-  const profile = await profileRepo.create({
+  const profile = await profileRepository.create({
     data: { userId: user.data.id, bio: 'Hello!' },
     options: { transaction: tx }
   });
@@ -54,7 +54,7 @@ try {
 Control how transactions interact with concurrent operations:
 
 ```typescript
-const tx = await repo.beginTransaction({
+const tx = await repository.beginTransaction({
   isolationLevel: 'SERIALIZABLE'
 });
 ```
@@ -69,25 +69,25 @@ const tx = await repo.beginTransaction({
 
 ```typescript
 async function transferFunds(fromId: string, toId: string, amount: number) {
-  const tx = await accountRepo.beginTransaction();
+  const tx = await accountRepository.beginTransaction();
 
   try {
     // Debit source account
-    await accountRepo.updateById({
+    await accountRepository.updateById({
       id: fromId,
       data: { balance: sql`balance - ${amount}` },
       options: { transaction: tx }
     });
 
     // Credit destination account
-    await accountRepo.updateById({
+    await accountRepository.updateById({
       id: toId,
       data: { balance: sql`balance + ${amount}` },
       options: { transaction: tx }
     });
 
     // Record the transfer
-    await transferRepo.create({
+    await transferRepository.create({
       data: { fromId, toId, amount, status: 'completed' },
       options: { transaction: tx }
     });
@@ -110,11 +110,11 @@ Acquire pessimistic locks on selected rows within a transaction using PostgreSQL
 Pass `lock` in options alongside a `transaction`:
 
 ```typescript
-const tx = await repo.beginTransaction();
+const tx = await repository.beginTransaction();
 
 try {
   // Lock the row - other transactions will wait
-  const item = await repo.findOne({
+  const item = await repository.findOne({
     filter: { where: { id: '123' } },
     options: {
       transaction: tx,
@@ -123,7 +123,7 @@ try {
   });
 
   // Safe to modify - no concurrent changes possible
-  await repo.updateById({
+  await repository.updateById({
     id: '123',
     data: { quantity: item.quantity - 1 },
     options: { transaction: tx },
@@ -163,7 +163,7 @@ Control what happens when rows are already locked:
 
 ```typescript
 // Skip locked rows (queue-style worker pattern)
-const items = await repo.find({
+const items = await repository.find({
   filter: { where: { status: 'pending' }, limit: 10 },
   options: {
     transaction: tx,
@@ -172,7 +172,7 @@ const items = await repo.find({
 });
 
 // Fail immediately instead of waiting
-const item = await repo.findOne({
+const item = await repository.findOne({
   filter: { where: { id: '123' } },
   options: {
     transaction: tx,
@@ -194,13 +194,13 @@ const item = await repo.findOne({
 
 ```typescript
 // Error - no transaction
-await repo.findOne({
+await repository.findOne({
   filter: { where: { id: '123' } },
   options: { lock: { strength: 'update' } },
 });
 
 // Error - include uses Query API
-await repo.findOne({
+await repository.findOne({
   filter: { where: { id: '123' }, include: [{ relation: 'posts' }] },
   options: { transaction: tx, lock: { strength: 'update' } },
 });
@@ -235,12 +235,12 @@ Hidden properties are excluded at the **SQL level** for maximum security:
 
 ```typescript
 // Read operations exclude hidden properties
-const user = await userRepo.findById({ id: '123' });
+const user = await userRepository.findById({ id: '123' });
 // Result: { id: '123', email: 'john@example.com', name: 'John' }
 // Note: password, secret, apiKey are NOT included
 
 // Write operations exclude hidden from RETURNING clause
-const created = await userRepo.create({
+const created = await userRepository.create({
   data: { email: 'new@example.com', password: 'hashed_secret' }
 });
 // Result: { count: 1, data: { id: '456', email: 'new@example.com' } }
@@ -253,7 +253,7 @@ You **can** filter by hidden properties - you just can't see them in results:
 
 ```typescript
 // This works! Finds user but password not in result
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: { where: { password: 'hashed_value' } }
 });
 ```
@@ -263,7 +263,7 @@ const user = await userRepo.findOne({
 Hidden properties are also excluded from included relations:
 
 ```typescript
-const post = await postRepo.findOne({
+const post = await postRepository.findOne({
   filter: {
     include: [{ relation: 'author' }]
   }
@@ -277,7 +277,7 @@ When you need hidden fields (e.g., for authentication), bypass the repository:
 
 ```typescript
 // Direct connector access - includes all fields
-const connector = userRepo.getConnector();
+const connector = userRepository.getConnector();
 const [fullUser] = await connector
   .select()
   .from(User.schema)
@@ -294,7 +294,7 @@ The repository automatically uses Drizzle's Core API (faster) for simple queries
 
 ```typescript
 // Automatically optimized - uses Core API
-const users = await repo.find({
+const users = await repository.find({
   filter: {
     where: { status: 'active' },
     limit: 10,
@@ -304,7 +304,7 @@ const users = await repo.find({
 // Uses: db.select().from(table).where(...).orderBy(...).limit(10)
 
 // Uses Query API (has relations)
-const usersWithPosts = await repo.find({
+const usersWithPosts = await repository.find({
   filter: {
     where: { status: 'active' },
     include: [{ relation: 'posts' }]
@@ -325,7 +325,7 @@ Prevent memory exhaustion on large tables:
 
 ```typescript
 // Good - bounded result set
-await repo.find({
+await repository.find({
   filter: {
     where: { status: 'active' },
     limit: 100
@@ -333,7 +333,7 @@ await repo.find({
 });
 
 // Dangerous - could return millions of rows
-await repo.find({
+await repository.find({
   filter: { where: { status: 'active' } }
 });
 ```
@@ -346,7 +346,7 @@ await repo.find({
 Use `shouldQueryRange` to get both data and total count in a single call:
 
 ```typescript
-const result = await userRepo.find({
+const result = await userRepository.find({
   filter: {
     where: { status: 'active' },
     limit: 20,
@@ -361,7 +361,7 @@ const result = await userRepo.find({
 // Example: { data: [...20 users], range: { start: 40, end: 59, total: 150 } }
 ```
 
-This runs `find` and `count` in parallel via `Promise.all` for optimal performance.
+This runs `find` and `count` in parallel via `Promise.all` for optimal performance. Inside a transaction the two queries run sequentially instead - a transaction connector wraps a single client, so parallel queries on it are not safe.
 
 ### WeakMap Cache
 
@@ -382,14 +382,14 @@ Repository methods infer return types based on `shouldReturn`:
 
 ```typescript
 // shouldReturn: false - TypeScript knows data is null
-const result1 = await repo.create({
+const result1 = await repository.create({
   data: { name: 'John' },
   options: { shouldReturn: false }
 });
 // Type: Promise<{ count: number; data: undefined | null }>
 
 // shouldReturn: true (default) - TypeScript knows data is the entity
-const result2 = await repo.create({
+const result2 = await repository.create({
   data: { name: 'John' },
   options: { shouldReturn: true }
 });
@@ -397,7 +397,7 @@ const result2 = await repo.create({
 console.log(result2.data.name); // 'John' - fully typed!
 
 // Array operations
-const results = await repo.createAll({
+const results = await repository.createAll({
   data: [{ name: 'John' }, { name: 'Jane' }],
   options: { shouldReturn: true }
 });
@@ -415,7 +415,7 @@ type UserWithPosts = User & {
 };
 
 // Use generic override
-const user = await userRepo.findOne<UserWithPosts>({
+const user = await userRepository.findOne<UserWithPosts>({
   filter: {
     where: { id: '123' },
     include: [{ relation: 'posts' }]
@@ -443,7 +443,7 @@ Enable logging for specific operations:
 
 ```typescript
 // Enable debug logging
-await repo.create({
+await repository.create({
   data: { name: 'John', email: 'john@example.com' },
   options: {
     log: { use: true, level: 'debug' }
@@ -452,7 +452,7 @@ await repo.create({
 // Output: [_create] Executing with opts: { data: [...], options: {...} }
 
 // Available levels: 'debug', 'info', 'warn', 'error'
-await repo.updateById({
+await repository.updateById({
   id: '123',
   data: { name: 'Jane' },
   options: { log: { use: true, level: 'info' } }
@@ -482,10 +482,10 @@ Prevents accidental mass updates/deletes:
 
 ```typescript
 // Throws error - empty where without force
-await repo.deleteAll({ where: {} });
+await repository.deleteAll({ where: {} });
 
 // Explicit force flag - logs warning, proceeds
-await repo.deleteAll({
+await repository.deleteAll({
   where: {},
   options: { force: true }
 });
@@ -516,7 +516,7 @@ For advanced queries not supported by the repository API:
 
 ```typescript
 // Get the Drizzle connector
-const connector = repo.getConnector();
+const connector = repository.getConnector();
 
 // Raw Drizzle query
 const results = await connector
@@ -537,7 +537,8 @@ const results = await connector
 
 | Class | Scope | Description |
 |-------|-------|-------------|
-| `AbstractRepository` | N/A | Abstract base class, defines all method signatures, combines `FieldsVisibilityMixin` + `DefaultFilterMixin` |
+| `AbstractRepository` | N/A | Engine-neutral abstract base (`src/base`), defines all method signatures, lazy `dataSource`/`entity` resolution. No mixin composition - plain `BaseHelper` subclass. |
+| `PostgresBaseRepository` | N/A | PostgreSQL connector base. Adds `FilterBuilder`, hidden-column exclusion (`getHiddenProperties`/`getVisibleProperties`), default-filter application (`getDefaultFilter`/`applyDefaultFilter`) - the behavior formerly provided by the now-removed `FieldsVisibilityMixin`/`DefaultFilterMixin` (see [Repository Mixins](./mixins.md)). |
 | `ReadableRepository` | `READ_ONLY` | Read-only operations (`find`, `findOne`, `findById`, `count`, `existsWith`). Write operations throw errors. |
 | `PersistableRepository` | `READ_WRITE` | Adds write operations (`create`, `update`, `delete`) with `UpdateBuilder` |
 | `DefaultCRUDRepository` | `READ_WRITE` | Extends `PersistableRepository` with no additional logic - **recommended default** |
@@ -569,13 +570,13 @@ When models have a `defaultFilter` configured, you can bypass it for admin/maint
 
 ```typescript
 // Normal query - default filter applies
-await repo.find({
+await repository.find({
   filter: { where: { status: 'active' } }
 });
 // WHERE isDeleted = false AND status = 'active' (if model has soft-delete default)
 
 // Admin query - bypass default filter
-await repo.find({
+await repository.find({
   filter: { where: { status: 'active' } },
   options: { shouldSkipDefaultFilter: true }
 });
@@ -586,20 +587,20 @@ await repo.find({
 
 ```typescript
 // Read operations
-await repo.find({ filter, options: { shouldSkipDefaultFilter: true } });
-await repo.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
-await repo.count({ where, options: { shouldSkipDefaultFilter: true } });
+await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
+await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
+await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
 
 // Write operations
-await repo.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
-await repo.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
+await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
+await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 **Combined with transactions:**
 
 ```typescript
-const tx = await repo.beginTransaction();
-await repo.updateAll({
+const tx = await repository.beginTransaction();
+await repository.updateAll({
   where: { status: 'archived' },
   data: { isDeleted: true },
   options: {
@@ -626,7 +627,7 @@ Use dot notation keys to target nested properties:
 // Assume 'metadata' is a JSONB column
 // Current value: { theme: 'light', notifications: { email: true } }
 
-await repo.updateById({
+await repository.updateById({
   id: '123',
   data: {
     // Update only the theme, preserving other fields
@@ -651,7 +652,7 @@ await repo.updateById({
 #### Deeply Nested Updates
 
 ```typescript
-await repo.updateById({
+await repository.updateById({
   id: '123',
   data: {
     'metadata.settings.display.fontSize': 16,
@@ -663,7 +664,7 @@ await repo.updateById({
 #### Array Element Updates
 
 ```typescript
-await repo.updateById({
+await repository.updateById({
   id: '123',
   data: {
     // Set the first address as primary
@@ -677,7 +678,7 @@ await repo.updateById({
 You can mix regular column updates with JSON path updates:
 
 ```typescript
-await repo.updateById({
+await repository.updateById({
   id: '123',
   data: {
     status: 'active',           // Regular column
@@ -722,7 +723,7 @@ Write operations additionally support:
 
 | Feature | Code |
 |---------|------|
-| Start transaction | `const tx = await repo.beginTransaction()` |
+| Start transaction | `const tx = await repository.beginTransaction()` |
 | Use transaction | `options: { transaction: tx }` |
 | Commit | `await tx.commit()` |
 | Rollback | `await tx.rollback()` |
@@ -733,7 +734,7 @@ Write operations additionally support:
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |
 | Get data + count | `options: { shouldQueryRange: true }` |
-| Access connector | `repo.getConnector()` |
+| Access connector | `repository.getConnector()` |
 
 
 ## Next Steps
@@ -741,7 +742,7 @@ Write operations additionally support:
 - [Overview](./index.md) - Repository basics
 - [Filter System](../filter-system/) - Query operators
 - [Default Filter](../filter-system/default-filter.md) - Automatic filter configuration
-- [Repository Mixins](./mixins.md) - Composable features
+- [Repository Mixins (Removed)](./mixins.md) - Where mixin behavior lives now
 - [Relations & Includes](./relations.md) - Eager loading
 - [Soft-Deletable Repository](./soft-deletable.md) - Soft delete operations
 - [JSON Path Filtering](../filter-system/json-filtering) - JSONB queries
@@ -755,7 +756,7 @@ Write operations additionally support:
   - [DataSources](/guides/core-concepts/persistent/datasources) - Database connections
 
 - **Related Topics:**
-  - [Repository Mixins](./mixins) - Composable mixin features
+  - [Repository Mixins (Removed)](./mixins) - Where mixin behavior lives now
   - [Relations & Includes](./relations) - Loading related data
   - [Filter System](/references/base/filter-system/) - Query operators
 

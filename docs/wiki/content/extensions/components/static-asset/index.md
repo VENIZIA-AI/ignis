@@ -288,11 +288,13 @@ type TStaticAssetExtraOptions = {
   };
   normalizeNameFn?: (opts: { originalName: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
+  maxFolderDepth?: number;
   [key: string]: any;
 };
 
 type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
-  model: typeof BaseEntity<Schema>;
+  model: typeof BasePostgresEntity<Schema>;
   repository: DefaultCRUDRepository<Schema>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
@@ -406,18 +408,13 @@ export class FileMetaLinkModel extends BaseMetaLinkModel {
 
 ```typescript
 import { BaseMetaLinkRepository } from '@venizia/ignis/static-asset';
-import { repository, inject } from '@venizia/ignis';
-import type { IDataSource } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { FileMetaLinkModel } from './file-meta-link.model';
+import { PostgresDataSource } from '../datasources/postgres.datasource';
 
-@repository({})
+@repository({ model: FileMetaLinkModel, dataSource: PostgresDataSource })
 export class FileMetaLinkRepository extends BaseMetaLinkRepository {
-  constructor(@inject({ key: 'datasources.postgres' }) dataSource: IDataSource) {
-    super({
-      entityClass: FileMetaLinkModel,
-      relations: {},
-      dataSource,
-    });
-  }
+  // No constructor needed - dataSource auto-injected from @repository metadata
 }
 ```
 
@@ -428,8 +425,8 @@ The model has `skipMigrate: true`, so create the table manually:
 ```sql
 CREATE TABLE "MetaLink" (
   id              TEXT PRIMARY KEY,
-  created_at      TIMESTAMP NOT NULL DEFAULT NOW(),
-  modified_at     TIMESTAMP NOT NULL DEFAULT NOW(),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   bucket_name     TEXT NOT NULL,
   object_name     TEXT NOT NULL,
   link            TEXT NOT NULL,

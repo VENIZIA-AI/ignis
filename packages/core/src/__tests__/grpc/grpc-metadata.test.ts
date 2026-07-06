@@ -128,7 +128,9 @@ describe('GrpcControllerMetadataMixin', () => {
 
       expect(result).toBeDefined();
       expect(Array.isArray(result!.authorize)).toBe(true);
-      expect((result!.authorize as any[]).length).toBe(2);
+      if (Array.isArray(result!.authorize)) {
+        expect(result!.authorize.length).toBe(2);
+      }
     });
 
     test('should store RPC metadata with both authenticate and authorize', () => {

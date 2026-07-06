@@ -1,11 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import type { IDataSource } from '@/base/datasources';
-import {
-  ScopedCasbinAdapter,
-  type IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import type { ICasbinPolicySource } from '@/components/auth/authorize/adapters/types';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/types';
 import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/constants';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 
@@ -31,14 +29,12 @@ function makeAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[] 
       return { rows: rowsFor(text, params) };
     },
   };
-  const dataSource = { connector } as unknown as IDataSource;
+  // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
+  // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+  const dataSource = { connector } as ICasbinPolicySource;
   const adapter = new ScopedCasbinAdapter({ dataSource, entities: entities() });
   return { adapter, captured, getExecuteCalls: () => executeCalls };
 }
-
-// ---------------------------------------------------------------------------
-// expandRoleClosure — graph edge cases
-// ---------------------------------------------------------------------------
 
 describe('scoped-adapter-edges — expandRoleClosure', () => {
   test('empty roleIds → empty closure', () => {
@@ -108,10 +104,6 @@ describe('scoped-adapter-edges — expandRoleClosure', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// queryGrants — empty / default handling
-// ---------------------------------------------------------------------------
-
 describe('scoped-adapter-edges — queryGrants', () => {
   test('empty subjectIds short-circuits to [] without querying', async () => {
     const { adapter, getExecuteCalls } = makeAdapter(() => [{ objectCode: 'X', action: 'read' }]);
@@ -141,10 +133,6 @@ describe('scoped-adapter-edges — queryGrants', () => {
     expect(lines).toContain('p, User_u1, Merchant_7, B, write, deny');
   });
 });
-
-// ---------------------------------------------------------------------------
-// Line-emission shapes for every variant
-// ---------------------------------------------------------------------------
 
 describe('scoped-adapter-edges — line emission shapes', () => {
   test('assign_role: null domain → "*", explicit domain preserved (g)', async () => {
@@ -198,10 +186,6 @@ describe('scoped-adapter-edges — line emission shapes', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// Structural trees: read fresh each call (no in-process cache)
-// ---------------------------------------------------------------------------
-
 describe('scoped-adapter-edges — structural trees', () => {
   test('queries all four hierarchy tables every call (no caching)', async () => {
     let queryCalls = 0;
@@ -237,10 +221,6 @@ describe('scoped-adapter-edges — structural trees', () => {
     expect(await adapter['loadStructuralTrees']()).toEqual([]);
   });
 });
-
-// ---------------------------------------------------------------------------
-// loadFilteredPolicy — wiring: role closure feeds role grants
-// ---------------------------------------------------------------------------
 
 describe('scoped-adapter-edges — loadFilteredPolicy role-closure wiring', () => {
   test('role grant for a transitive PARENT role (via role_inherits) is loaded for the user', async () => {

@@ -57,9 +57,9 @@ export * from './types';
 |------|---------|---------|
 | Components | `[Feature]Component` | `HealthCheckComponent`, `AuthComponent` |
 | Controllers | `[Feature]Controller` | `UserController`, `AuthController` |
-| Services | `[Feature]Service` | `JWTTokenService`, `PaymentService` |
+| Services | `[Feature]Service` | `JWSTokenService`, `PaymentService` |
 | Repositories | `[Feature]Repository` | `UserRepository`, `OrderRepository` |
-| Strategies | `[Feature]Strategy` | `JWTAuthenticationStrategy` |
+| Strategies | `[Feature]Strategy` | `JWSAuthenticationStrategy`, `BasicAuthenticationStrategy` |
 | Factories | `[Feature]Factory` | `UIProviderFactory` |
 
 ## File Names
@@ -90,15 +90,17 @@ interface IHealthCheckOptions {
 }
 
 interface IAuthService {
-  signIn(context: Context): Promise<void>;
+  signIn(context: Context, opts: TSignInRequest): Promise<AnyObject>;
 }
 
 // Type aliases use 'T' prefix
 type TSignInRequest = z.infer<typeof SignInRequestSchema>;
-type TRouteContext = Context<Env, Path, Input>;
+type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
 
 // Generic constraints
-type TTableSchemaWithId = { id: PgColumn };
+type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
+  id: TIdColumn;
+};
 ```
 
 ## Binding Keys
@@ -123,14 +125,14 @@ Use underscore prefix (`_`) for private and protected class fields to distinguis
 ```typescript
 class MyRepository extends DefaultCRUDRepository {
   // Private fields with underscore prefix
-  private _dataSource: IDataSource;
-  private _entity: BaseEntity;
+  private _dataSource: AbstractDataSource;
+  private _entity: AbstractEntity;
   private _hiddenProperties: Set<string> | null = null;
 
   // Protected fields also use underscore prefix
   protected _schemaFactory?: ReturnType<typeof createSchemaFactory>;
 
-  constructor(dataSource: IDataSource) {
+  constructor(dataSource: AbstractDataSource) {
     // 'dataSource' (param) vs '_dataSource' (field)
     this._dataSource = dataSource;
   }

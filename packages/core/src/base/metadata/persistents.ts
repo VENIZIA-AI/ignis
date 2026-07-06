@@ -9,8 +9,7 @@ import {
 } from '@/helpers/inversion';
 import { getError, resolveClass, resolveValue } from '@venizia/ignis-helpers';
 import { AbstractDataSource, IDataSource } from '../datasources';
-import { BaseEntity } from '../models';
-import { TTableSchemaWithId } from '../models/common';
+import { AbstractEntity } from '../models';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {
@@ -25,7 +24,9 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      (target as any).AUTHORIZATION_SUBJECT = principal;
+      // `target` is the decorated class's constructor (typed `Function` here, per ClassDecorator);
+      // assigning a static property it doesn't statically declare needs a widened target type.
+      (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
 
     MetadataRegistry.getInstance().registerModel({ target, metadata });
@@ -41,11 +42,10 @@ export const datasource = (metadata: IDataSourceMetadata): ClassDecorator => {
 
 /** Validates that both model and dataSource are provided together. */
 const validateRepositoryMetadata = <
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(opts: {
-  metadata: IRepositoryMetadata<Schema, Model, DataSource>;
+  metadata: IRepositoryMetadata<Model, DataSource>;
   target: Function;
 }): void => {
   const { metadata, target } = opts;
@@ -128,14 +128,13 @@ const registerDataSourceInjection = (opts: {
 
 /** Resolves repository metadata and registers bindings for schema auto-discovery. */
 const resolveRepositoryMetadata = <
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(opts: {
-  metadata: IRepositoryMetadata<Schema, Model, DataSource>;
+  metadata: IRepositoryMetadata<Model, DataSource>;
   target: Function;
   registry: MetadataRegistry;
-}): IResolvedRepositoryMetadata<Schema, Model, DataSource> | undefined => {
+}): IResolvedRepositoryMetadata<Model, DataSource> | undefined => {
   const { metadata, target, registry } = opts;
 
   validateRepositoryMetadata({ metadata, target });
@@ -164,20 +163,21 @@ const resolveRepositoryMetadata = <
 
 /** Binds a repository to a model and datasource for schema auto-discovery. */
 export const repository = <
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 >(
-  metadata: IRepositoryMetadata<Schema, Model, DataSource>,
+  metadata: IRepositoryMetadata<Model, DataSource>,
 ): ClassDecorator => {
   return target => {
     const registry = MetadataRegistry.getInstance();
     const resolved = resolveRepositoryMetadata({ metadata, target, registry });
 
+    // `_resolved` is an internal cache field, not part of the public IRepositoryMetadata surface
+    // callers author - it's added here, so the merged literal needs the widened local type.
     registry.setRepositoryMetadata({
       target,
-      metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata & {
-        _resolved?: IResolvedRepositoryMetadata;
+      metadata: { ...metadata, _resolved: resolved } as IRepositoryMetadata<Model, DataSource> & {
+        _resolved?: IResolvedRepositoryMetadata<Model, DataSource>;
       },
     });
   };

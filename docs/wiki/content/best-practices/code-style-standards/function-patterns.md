@@ -55,13 +55,13 @@ Use consistent prefixes based on function purpose:
 | Prefix | Purpose | Examples |
 |--------|---------|----------|
 | `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
-| `build*` | Construct complex objects | `buildPrimitiveCondition()`, `buildJsonOrderBy()` |
+| `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
 | `to*` | Convert/transform data | `toCamel()`, `toBoolean()`, `toStringDecimal()` |
 | `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
 | `get*` | Retrieve/fetch data | `getSchema()`, `getConnector()`, `getError()` |
-| `resolve*` | Determine/compute value | `resolveValue()`, `resolvePath()` |
+| `resolve*` | Determine/compute value | `resolveValue()`, `resolveClass()` |
 
 **Examples:**
 
@@ -71,7 +71,7 @@ const idCols = generateIdColumnDefs({ id: { dataType: 'string' } });
 const tzCols = generateTzColumnDefs();
 
 // Builders - construct complex query objects
-const condition = buildPrimitiveCondition(column, operator, value);
+const condition = buildValueCondition(column, value);
 const orderBy = buildJsonOrderBy(schema, path, direction);
 
 // Converters - transform data types
@@ -94,9 +94,9 @@ const workerId = extractWorkerId(snowflakeId);
 Every class extending a base class should set its scope using `ClassName.name`:
 
 ```typescript
-export class JWTTokenService extends BaseService {
+export class PaymentService extends BaseService {
   constructor() {
-    super({ scope: JWTTokenService.name });
+    super({ scope: PaymentService.name });
   }
 }
 
@@ -135,7 +135,7 @@ await executeWithPerformanceMeasure({
     await syncAllUsers();
   },
 });
-// Logs: [DataSync] Sync user records | Took: 1234.56 (ms)
+// Logs: [DataSync] DONE | Sync user records | Took: 1234.56 (ms)
 ```
 
 **Method-scoped logging pattern:**
@@ -144,13 +144,13 @@ await executeWithPerformanceMeasure({
 class UserService {
   private logger = Logger.get('UserService');
 
-  async createUser(data: CreateUserDto) {
+  async createUser(data: TCreateUserRequest) {
     // Use .for() to add method context to all logs
     this.logger.for('createUser').info('Creating user: %j', data);
     // Output: [UserService-createUser] Creating user: {...}
 
     try {
-      const user = await this.userRepo.create({ data });
+      const { data: user } = await this.userRepository.create({ data });
       this.logger.for('createUser').info('User created: %s', user.id);
       return user;
     } catch (error) {

@@ -7,13 +7,13 @@ Advanced TypeScript patterns used throughout the IGNIS framework.
 Create reusable class extensions without deep inheritance:
 
 ```typescript
-import { TMixinTarget } from '@venizia/ignis-helpers';
+import { LoggerFactory, TMixinTarget } from '@venizia/ignis-helpers';
 
-export const LoggableMixin = <BaseClass extends TMixinTarget<Base>>(
+export const LoggableMixin = <BaseClass extends TMixinTarget<object>>(
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
-    protected logger = LoggerFactory.getLogger(this.constructor.name);
+    protected logger = LoggerFactory.getLogger([this.constructor.name]);
 
     log(message: string): void {
       this.logger.info(message);
@@ -32,7 +32,7 @@ class MyService extends LoggableMixin(BaseService) {
 ### Multiple Mixins
 
 ```typescript
-class MyRepository extends LoggableMixin(CacheableMixin(BaseRepository)) {
+class MyService extends LoggableMixin(CacheableMixin(BaseService)) {
   // Has both logging and caching capabilities
 }
 ```
@@ -61,46 +61,51 @@ export const TimestampMixin = <
 Generate classes dynamically with configuration:
 
 ```typescript
-class ControllerFactory {
-  static defineCrudController<Schema extends TTableSchemaWithId>(
-    opts: ICrudControllerOptions<Schema>,
-  ) {
+class ControllerFactory extends BaseHelper {
+  /** `TDataObject`/`TPersistObject` cannot be inferred from `entity` -
+   * pass them explicitly for typed CRUD handlers. */
+  static defineCrudController<
+    TDataObject extends object = object,
+    TPersistObject extends object = TDataObject,
+  >(defOpts: ICrudControllerOptions) {
+    const { controller, entity } = defOpts;
+
+    // `entity` accepts a class directly or a resolver function
+    const entityClass = isClass(entity) ? entity : entity();
+    const entityInstance = new entityClass();
+
+    // Derive request/response schemas + route configs from the entity instance
+    const routeDefinitions = buildRouteDefinitions({ entity: entityInstance });
+
     return class extends BaseRestController {
-      constructor(repository: AbstractRepository<Schema>) {
-        super({ scope: opts.controller.name });
+      repository: AbstractRepository<TDataObject, TPersistObject>;
+
+      constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
+        super({ scope: controller.name, path: controller.basePath });
         this.repository = repository;
-        this.setupRoutes();
       }
 
-      private setupRoutes(): void {
-        // Dynamically bind CRUD routes
+      /** Registers all CRUD route handlers. */
+      override binding(): ValueOrPromise<void> {
         this.defineRoute({
-          configs: { method: 'get', path: '/' },
-          handler: (c) => this.list(c),
+          configs: routeDefinitions.FIND,
+          handler: async context => this.find({ context }),
         });
         this.defineRoute({
-          configs: { method: 'get', path: '/:id' },
-          handler: (c) => this.getById(c),
+          configs: routeDefinitions.FIND_BY_ID,
+          handler: async context => this.findById({ context }),
         });
-        // ... more routes
-      }
-
-      async list(c: Context) {
-        const data = await this.repository.find({});
-        return c.json(data);
-      }
-
-      async getById(c: Context) {
-        const { id } = c.req.param();
-        const data = await this.repository.findById({ id });
-        return c.json(data);
+        // ... more routes (count/findOne/create/updateById/deleteById/...)
       }
     };
   }
 }
 
-// Usage
-const UserCrudController = ControllerFactory.defineCrudController({
+// Usage - type parameters are explicit, entity can be a class or a resolver
+type TUser = typeof User.schema.$inferSelect;
+type TNewUser = typeof User.schema.$inferInsert;
+
+const UserCrudController = ControllerFactory.defineCrudController<TUser, TNewUser>({
   controller: { name: 'UserController', basePath: '/users' },
   repository: { name: UserRepository.name },
   entity: () => User,
@@ -117,26 +122,28 @@ export class UserController extends UserCrudController {
 Support multiple input types that resolve to a single value:
 
 ```typescript
-// Type definitions
-export type TResolver<T> = () => T;
-export type TConstructor<T> = new (...args: any[]) => T;
-export type TValueOrResolver<T> = T | TResolver<T> | TConstructor<T>;
+// Type definitions (from @venizia/ignis-helpers)
+export type TResolver<T> = (...args: any[]) => T;
+export type TValueOrResolver<T> = T | TResolver<T>;
 
 // Resolver function
 export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
   if (typeof valueOrResolver !== 'function') {
     return valueOrResolver;  // Direct value
   }
-  if (isClassConstructor(valueOrResolver)) {
+
+  if (isClassConstructor(valueOrResolver as Function)) {
     return valueOrResolver as T;  // Class constructor (return as-is)
   }
+
   return (valueOrResolver as TResolver<T>)();  // Function resolver
 };
 
-// Helper to detect class constructors
-function isClassConstructor(fn: Function): boolean {
-  return fn.toString().startsWith('class ');
-}
+// Helper (from @venizia/ignis-inversion) - distinguishes class
+// constructors from arrow/regular functions via named prototype
+export const isClassConstructor = (fn: Function): boolean => {
+  return !!fn.prototype?.constructor?.name;
+};
 ```
 
 ### Usage
@@ -222,7 +229,7 @@ class StrategyRegistry<T> {
 
   register(name: string, strategy: T): void {
     if (this.strategies.has(name)) {
-      throw new Error(`Strategy '${name}' already registered`);
+      throw getError({ message: `[register] Strategy '${name}' already registered` });
     }
     this.strategies.set(name, strategy);
   }
@@ -230,7 +237,7 @@ class StrategyRegistry<T> {
   get(name: string): T {
     const strategy = this.strategies.get(name);
     if (!strategy) {
-      throw new Error(`Strategy '${name}' not found`);
+      throw getError({ message: `[get] Strategy '${name}' not found` });
     }
     return strategy;
   }
@@ -255,5 +262,5 @@ const strategy = authRegistry.get('jwt');
 ## See Also
 
 - [Type Safety](./type-safety) - Generic type patterns
-- [Repositories Reference](../../references/base/repositories/) - Mixin usage
+- [Repositories Reference](../../references/base/repositories/) - Repository hierarchy
 - [Architectural Patterns](../architectural-patterns) - High-level patterns

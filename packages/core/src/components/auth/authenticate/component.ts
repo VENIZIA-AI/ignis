@@ -3,12 +3,11 @@ import { BaseComponent } from '@/base/components/base';
 import { inject } from '@/base/metadata/injectors';
 import { controller } from '@/base/metadata/routes';
 import { CoreBindings } from '@/common/bindings';
-import { Binding } from '@venizia/ignis-inversion';
 import { getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import { Binding } from '@venizia/ignis-inversion';
 import {
   AuthenticateBindingKeys,
   IAuthenticateOptions,
-  TBasicTokenServiceOptions,
   IJWKSIssuerOptions,
   IJWKSVerifierOptions,
   IJWSTokenServiceOptions,
@@ -16,16 +15,17 @@ import {
   JWKSKeyFormats,
   JWKSModes,
   TAuthenticationRestOptions,
+  TBasicTokenServiceOptions,
   TJWKSTokenServiceOptions,
   TJWTTokenServiceOptions,
 } from './common';
+import { defineAuthController, JWKSController } from './controllers';
 import {
   BasicTokenService,
-  JWSTokenService,
   JWKSIssuerTokenService,
   JWKSVerifierTokenService,
+  JWSTokenService,
 } from './services';
-import { defineAuthController, JWKSController } from './controllers';
 
 const DEFAULT_SECRET = 'unknown_secret';
 
@@ -127,7 +127,7 @@ export class AuthenticateComponent extends BaseComponent {
 
     switch (jwksOptions.mode) {
       case JWKSModes.ISSUER: {
-        const issuerOpts = jwksOptions as IJWKSIssuerOptions;
+        const issuerOpts = jwksOptions;
 
         if (!issuerOpts.keys?.private || !issuerOpts.keys?.public) {
           throw getError({
@@ -170,7 +170,7 @@ export class AuthenticateComponent extends BaseComponent {
       }
 
       case JWKSModes.VERIFIER: {
-        const verifierOpts = jwksOptions as IJWKSVerifierOptions;
+        const verifierOpts = jwksOptions;
 
         if (!verifierOpts.jwksUrl) {
           throw getError({ message: '[defineJWKSAuth] jwksUrl is required for verifier mode' });
@@ -186,8 +186,9 @@ export class AuthenticateComponent extends BaseComponent {
       }
 
       default: {
+        // Same exhaustive-switch-narrows-to-never situation as the JOSE standard default above.
         throw getError({
-          message: `[defineJWKSAuth] Invalid JWKS mode: ${(jwksOptions as any).mode}`,
+          message: `[defineJWKSAuth] Invalid JWKS mode: ${(jwksOptions as { mode?: unknown }).mode}`,
         });
       }
     }

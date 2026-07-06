@@ -6,7 +6,8 @@ import {
   User,
   usersTable,
 } from '@/models/entities';
-import { BaseDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
@@ -21,7 +22,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
   constructor() {

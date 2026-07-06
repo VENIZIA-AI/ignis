@@ -1,7 +1,7 @@
 import { z } from '@hono/zod-openapi';
 import {
   Authentication,
-  BaseController,
+  BaseRestController,
   controller,
   IControllerOptions,
   jsonContent,
@@ -10,7 +10,7 @@ import {
 import { HTTP } from '@venizia/ignis-helpers';
 
 @controller({ path: '/test' })
-export class TestController extends BaseController {
+export class TestController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({
       ...opts,
@@ -55,7 +55,7 @@ export class TestController extends BaseController {
       configs: {
         path: '/2',
         method: 'get',
-        authStrategies: [Authentication.STRATEGY_JWT],
+        authenticate: { strategies: [Authentication.STRATEGY_JWT] },
         responses: {
           [HTTP.ResultCodes.RS_2.Ok]: jsonContent({
             description: 'Test message content 1',

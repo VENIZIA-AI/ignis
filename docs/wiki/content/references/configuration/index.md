@@ -11,8 +11,8 @@ Configuration options and environment variables for IGNIS applications.
 | Database | PostgreSQL connection | `APP_ENV_POSTGRES_HOST`, `APP_ENV_POSTGRES_DATABASE` |
 | Authentication | JWT tokens and secrets | `APP_ENV_JWT_SECRET`, `APP_ENV_APPLICATION_SECRET` |
 | Logging | Log file paths and transports | `APP_ENV_LOGGER_FOLDER_PATH` |
-| Storage | MinIO/S3 file storage | `APP_ENV_MINIO_HOST`, `APP_ENV_MINIO_ACCESS_KEY` |
-| Mail | SMTP email sending | `APP_ENV_MAIL_HOST`, `APP_ENV_MAIL_USER` |
+| Storage | MinIO/S3 file storage (application-level convention) | `APP_ENV_MINIO_HOST`, `APP_ENV_MINIO_ACCESS_KEY` |
+| Mail | SMTP email sending (application-level convention) | `APP_ENV_MAIL_HOST`, `APP_ENV_MAIL_USER` |
 
 ## Environment Variable Prefix
 
@@ -69,7 +69,7 @@ project/
 
 ### 3. Validation on Startup
 
-IGNIS validates required variables on startup. Missing values cause clear error messages.
+IGNIS validates every set `APP_ENV_*` variable on startup and fails with a clear error if any is empty (bypass with `ALLOW_EMPTY_ENV_VALUE=true`). Absent variables are not flagged - components validate their own required inputs.
 
 > **Related:** [Environment Variables Reference](./environment-variables.md) | [DataSources Guide](../../guides/core-concepts/persistent/datasources)
 

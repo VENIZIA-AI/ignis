@@ -91,7 +91,7 @@ class UserService extends BaseService {
 
   async getUser(id: string) {
     this.logger.info('Getting user', id);
-    return this.userRepo.findById({ id });
+    return this.userRepository.findById({ id });
   }
 }
 ```
@@ -102,13 +102,13 @@ class UserService extends BaseService {
 ### DefaultCRUDRepository
 
 ```typescript
-import { DefaultCRUDRepository } from '@venizia/ignis';
+import { DefaultCRUDRepository, repository } from '@venizia/ignis';
 import { User } from '../models';
+import { PostgresDataSource } from '../datasources';
 
-class UserRepository extends DefaultCRUDRepository<User> {
-  constructor() {
-    super(User);
-  }
+@repository({ model: User, dataSource: PostgresDataSource })
+class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+  // No constructor needed - dataSource auto-injected from @repository decorator
 }
 ```
 
@@ -254,7 +254,7 @@ class UserController extends BaseRestController {
 ### Basic Find
 
 ```typescript
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     where: { isActive: true },
     order: ['createdAt DESC'],
@@ -267,7 +267,7 @@ const users = await userRepo.find({
 ### With Multiple Conditions
 
 ```typescript
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     where: {
       and: [
@@ -283,7 +283,7 @@ const users = await userRepo.find({
 ### With Relations
 
 ```typescript
-const posts = await postRepo.find({
+const posts = await postRepository.find({
   filter: {
     where: { published: true },
     include: [
@@ -297,7 +297,7 @@ const posts = await postRepo.find({
 ### Selecting Fields
 
 ```typescript
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     where: { isActive: true },
     fields: ['id', 'name', 'email'],
@@ -464,7 +464,7 @@ getDashboard(c: Context) {
 import { Statuses } from '@venizia/ignis';
 
 // Create with status
-const { data: order } = await orderRepo.create({
+const { data: order } = await orderRepository.create({
   data: {
     items: [...],
     status: Statuses.PENDING,
@@ -472,7 +472,7 @@ const { data: order } = await orderRepo.create({
 });
 
 // Update status
-await orderRepo.updateById({
+await orderRepository.updateById({
   id: orderId,
   data: { status: Statuses.COMPLETED },
 });
@@ -564,7 +564,7 @@ class UserController extends BaseRestController {
 class UserService extends BaseService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
-    private userRepo: UserRepository,
+    private userRepository: UserRepository,
   ) {
     super({ scope: UserService.name });
   }
@@ -573,7 +573,7 @@ class UserService extends BaseService {
     // Business logic
     const hashedPassword = await hash({ value: data.password });
 
-    return this.userRepo.create({
+    return this.userRepository.create({
       data: {
         ...data,
         password: hashedPassword,

@@ -39,6 +39,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Middlewares', link: '/references/base/middlewares' },
       { text: 'Models & Enrichers', link: '/references/base/models' },
       { text: 'Providers', link: '/references/base/providers' },
+      { text: 'Connectors', link: '/references/base/connectors' },
       { text: 'DataSources', link: '/references/base/datasources' },
       {
         text: 'Repositories',
@@ -366,6 +367,16 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-07-05',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Unified Repository & Connectors Architecture - PostgreSQL, Typesense & Memory Engines',
+                  link: '/changelogs/2026-07-05-unified-repository-connectors',
+                },
+              ],
+            },
             {
               text: '2026-06-25',
               collapsed: true,
@@ -787,6 +798,8 @@ const config = defineConfig({
                 { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },
+                { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
+                { text: 'Memory Connector', link: '/guides/core-concepts/persistent/memory-connector' },
               ],
             },
           ],

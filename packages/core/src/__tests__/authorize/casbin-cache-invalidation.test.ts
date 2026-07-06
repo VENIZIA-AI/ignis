@@ -32,6 +32,10 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub) && r.obj == p.obj && r.act == p.act
 `;
 
+// None of these tests exercise a context-dependent normalizer/domain resolver, so an empty stub
+// stands in for the full Hono-backed TContext that buildRules requires.
+const fakeContext = {} as any;
+
 // In-memory stand-in for the ioredis client. Implements only the commands the enforcer touches.
 class FakeRedisClient {
   store = new Map<string, string>();
@@ -124,6 +128,8 @@ const redisOptions = (opts: {
     use: true,
     driver: 'redis',
     options: {
+      // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/del);
+      // the full IRedisHelper surface (hash/set/list/pubsub/json/command ops) is out of scope here.
       connection: {
         getClient: () => opts.client,
         get: ({ key }: { key: string }) => opts.client.get(key),
@@ -188,6 +194,9 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
           use: true,
           driver: 'redis',
           options: {
+            // Fake implements only the 4 methods the redis cache path touches (getClient/get/set/
+            // del); the full IRedisHelper surface (hash/set/list/pubsub/json/command ops) is out
+            // of scope here.
             connection: {
               getClient: () => client,
               get: ({ key }: { key: string }) => client.get(key),
@@ -262,7 +271,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
       // With the shared-model design these interleave and each cache ends up with BOTH users' lines.
       await Promise.all([
         enforcer.rebuildUserCache({ user: { principalType: 'User', userId: 'A' } }),
-        enforcer.buildRules({ user: { principalType: 'User', userId: 'B' }, context: {} as any }),
+        enforcer.buildRules({ user: { principalType: 'User', userId: 'B' }, context: fakeContext }),
       ]);
 
       const cacheA = JSON.parse(client.store.get('casbin:User:A') ?? 'null') as string[];
@@ -285,7 +294,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
 
       await enforcer.buildRules({
         user: { principalType: 'User', userId: 42 },
-        context: {} as any,
+        context: fakeContext,
       });
 
       // Unchanged entry → still the same cached array.
@@ -304,7 +313,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
 
       await enforcer.buildRules({
         user: { principalType: 'User', userId: 42 },
-        context: {} as any,
+        context: fakeContext,
       });
 
       // Corrupt entry replaced with a fresh, well-formed line array.
@@ -322,7 +331,7 @@ describe('CasbinAuthorizationEnforcer — cache invalidation', () => {
 
       await enforcer.buildRules({
         user: { principalType: 'User', userId: 42 },
-        context: {} as any,
+        context: fakeContext,
       });
 
       const cached = JSON.parse(client.store.get('casbin:User:42') ?? 'null') as string[];
@@ -388,7 +397,7 @@ describe('AuthorizationEnforcerRegistry — cache invalidation delegation', () =
       container,
       enforcers: [
         {
-          enforcer: FakeInvalidatableEnforcer as any,
+          enforcer: FakeInvalidatableEnforcer,
           name: 'fake',
           type: AuthorizationEnforcerTypes.CUSTOM,
         },
@@ -413,7 +422,7 @@ describe('AuthorizationEnforcerRegistry — cache invalidation delegation', () =
       container,
       enforcers: [
         {
-          enforcer: FakeInvalidatableEnforcer as any,
+          enforcer: FakeInvalidatableEnforcer,
           name: 'fake',
           type: AuthorizationEnforcerTypes.CUSTOM,
         },
@@ -437,7 +446,7 @@ describe('AuthorizationEnforcerRegistry — cache invalidation delegation', () =
       container,
       enforcers: [
         {
-          enforcer: FakePlainEnforcer as any,
+          enforcer: FakePlainEnforcer,
           name: 'plain',
           type: AuthorizationEnforcerTypes.CUSTOM,
         },

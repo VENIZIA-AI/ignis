@@ -37,6 +37,13 @@ const TodoRoutes = {
 
 @controller({ path: '/todos' })
 export class TodoController extends BaseRestController {
+  constructor(
+    @inject({ key: 'repositories.TodoRepository' })
+    private repository: TodoRepository,
+  ) {
+    super({ scope: TodoController.name });
+  }
+
   @get({ configs: TodoRoutes.GET_ALL })
   async getAll(c: TRouteContext) {
     const todos = await this.repository.find({});
@@ -64,7 +71,7 @@ Annotations starting with `@` that add behavior to classes/methods.
 | `@repository` | Marks class as repository |
 | `@datasource` | Marks class as datasource |
 | `@inject` | Requests dependency from container |
-| `@get`, `@post`, `@patch`, `@delete` | HTTP route handlers |
+| `@get`, `@post`, `@put`, `@patch`, `@del` | HTTP route handlers |
 
 ### Dependency Injection (DI)
 Classes receive dependencies from an external container instead of creating them internally. Benefits: testable, flexible, maintainable.
@@ -181,15 +188,15 @@ await repository.find({
 | Method | URL | Action |
 |--------|-----|--------|
 | GET | `/todos` | List all |
-| GET | `/todos/:id` | Get one |
+| GET | `/todos/{id}` | Get one |
 | POST | `/todos` | Create |
-| PATCH | `/todos/:id` | Update |
-| DELETE | `/todos/:id` | Delete |
+| PATCH | `/todos/{id}` | Update |
+| DELETE | `/todos/{id}` | Delete |
 
 ```typescript
 const TodoRoutes = {
   GET_ALL: { method: HTTP.Methods.GET, path: '/', responses: jsonResponse({ schema: z.array(z.any()) }) },
-  GET_BY_ID: { method: HTTP.Methods.GET, path: '/:id', request: { params: z.object({ id: z.string() }) }, responses: jsonResponse({ schema: z.any() }) },
+  GET_BY_ID: { method: HTTP.Methods.GET, path: '/{id}', request: { params: z.object({ id: z.string() }) }, responses: jsonResponse({ schema: z.any() }) },
   CREATE: { method: HTTP.Methods.POST, path: '/', request: { body: jsonContent({ schema: z.any() }) }, responses: jsonResponse({ schema: z.any() }) },
 } as const;
 
@@ -215,7 +222,7 @@ class TodoController extends BaseRestController {
 | Term | Description |
 |------|-------------|
 | **Endpoint** | URL path that API responds to (e.g., `GET /todos`) |
-| **Route Parameter** | Variable in URL marked with `:` (e.g., `:id`) |
+| **Route Parameter** | Variable in URL wrapped in braces (e.g., `{id}` in OpenAPI route configs) |
 | **Request Body** | JSON data sent with POST/PATCH requests |
 | **OpenAPI/Swagger** | Auto-generated API docs at `/doc/explorer` (default path via SwaggerComponent) |
 

@@ -9,7 +9,7 @@ describe('AuthorizeComponent Lifecycle', () => {
     test('should have empty registry when no enforcers are registered', () => {
       const registry = createFreshRegistry();
 
-      const enforcersMap = (registry as any).descriptors as Map<string, any>;
+      const enforcersMap = registry['descriptors'];
       expect(enforcersMap.size).toBe(0);
     });
   });
@@ -65,7 +65,7 @@ describe('AuthorizeComponent Lifecycle', () => {
         user: { userId: '42' },
         action: 'read',
         resource: 'User',
-        context: {} as any,
+        context: {},
       });
       expect(rs.subject).toBe('user_42');
     });

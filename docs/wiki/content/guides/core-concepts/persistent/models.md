@@ -6,11 +6,11 @@ Models define your data structure using Drizzle ORM schemas. A model is a single
 
 ```typescript
 // src/models/entities/user.model.ts
-import { BaseEntity, generateIdColumnDefs, generateTzColumnDefs, model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs, model } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   // Define schema as static property
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -28,7 +28,7 @@ export class User extends BaseEntity<typeof User.schema> {
 
 - Schema is defined inline as `static override schema`
 - Relations are defined as `static override relations`
-- No constructor needed - BaseEntity auto-discovers from static properties
+- No constructor needed - BasePostgresEntity auto-discovers from static properties
 - Type parameter uses `typeof User.schema` (self-referencing)
 
 ## Creating a Model with Relations
@@ -36,7 +36,7 @@ export class User extends BaseEntity<typeof User.schema> {
 ```typescript
 // src/models/entities/configuration.model.ts
 import {
-  BaseEntity,
+  BasePostgresEntity,
   generateDataTypeColumnDefs,
   generateIdColumnDefs,
   generateTzColumnDefs,
@@ -49,7 +49,7 @@ import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User } from './user.model';
 
 @model({ type: 'entity' })
-export class Configuration extends BaseEntity<typeof Configuration.schema> {
+export class Configuration extends BasePostgresEntity<typeof Configuration.schema> {
   static override schema = pgTable(
     'Configuration',
     {
@@ -114,11 +114,10 @@ Enrichers are helper functions that generate common database columns automatical
 ```typescript
 static override schema = pgTable('User', {
   id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
-  status: text('status').notNull().default('ACTIVE'),
-  createdBy: text('created_by'),
-  modifiedBy: text('modified_by'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   modifiedAt: timestamp('modified_at', { withTimezone: true }).notNull().defaultNow(),
+  createdBy: text('created_by'),
+  modifiedBy: text('modified_by'),
   // ... your fields
 });
 ```
@@ -127,9 +126,12 @@ static override schema = pgTable('User', {
 
 ```typescript
 static override schema = pgTable('User', {
-  ...generateIdColumnDefs({ id: { dataType: 'string' } }),  // id (text with UUID default)
+  ...generateIdColumnDefs({ id: { dataType: 'string' } }),   // id (text with UUID default)
   ...generateTzColumnDefs(),                                 // createdAt, modifiedAt
-  ...generateUserAuditColumnDefs(),                          // createdBy, modifiedBy
+  ...generateUserAuditColumnDefs({
+    created: { dataType: 'string', columnName: 'created_by' },
+    modified: { dataType: 'string', columnName: 'modified_by' },
+  }),                                                        // createdBy, modifiedBy
   // ... your fields
 });
 ```
@@ -144,7 +146,7 @@ static override schema = pgTable('User', {
 | `generateDataTypeColumnDefs()` | `dataType`, `tValue`, `nValue`, etc. | Configuration tables |
 
 :::note User Audit Options
-The `generateUserAuditColumnDefs` enricher supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
+The `generateUserAuditColumnDefs` enricher defaults both columns to `dataType: 'number'` (integer user ids) - pass `dataType: 'string'` for text ids. It also supports an `allowAnonymous` option (default: `true`). Set to `false` to require authenticated user context and throw errors for anonymous operations:
 ```typescript
 ...generateUserAuditColumnDefs({
   created: { dataType: 'string', columnName: 'created_by', allowAnonymous: false },
@@ -162,7 +164,7 @@ For a complete list of enrichers and options, see the [Schema Enrichers Referenc
 Protect sensitive data by configuring properties that are **never returned** through repository queries. Hidden properties are excluded at the SQL level for maximum security and performance.
 
 ```typescript
-import { BaseEntity, generateIdColumnDefs, model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
@@ -171,7 +173,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
     hiddenProperties: ['password', 'secret'],  // Never returned via repository
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -222,7 +224,7 @@ Apply automatic filters to all repository queries. This is commonly used for sof
     hiddenProperties: ['deletedAt'],
   },
 })
-export class Article extends BaseEntity<typeof Article.schema> {
+export class Article extends BasePostgresEntity<typeof Article.schema> {
   // ...
 }
 ```
@@ -231,10 +233,11 @@ The default filter is applied automatically to all read operations. Bypass it wi
 
 ```typescript
 // Normal query - auto-filters out soft-deleted records
-const articles = await articleRepo.find({});
+const articles = await articleRepo.find({ filter: {} });
 
 // Include deleted records
 const allArticles = await articleRepo.find({
+  filter: {},
   options: { shouldSkipDefaultFilter: true },
 });
 ```
@@ -244,7 +247,7 @@ const allArticles = await articleRepo.find({
 Declare your model's authorization principal directly in `@model` settings. The decorator auto-populates `AUTHORIZATION_SUBJECT` for type-safe references in route configs:
 
 ```typescript
-import { BaseEntity, generateIdColumnDefs, model, AuthorizationActions } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, model, AuthorizationActions } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
@@ -253,7 +256,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
     authorize: { principal: 'article' },
   },
 })
-export class Article extends BaseEntity<typeof Article.schema> {
+export class Article extends BasePostgresEntity<typeof Article.schema> {
   static override schema = pgTable('Article', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     title: text('title').notNull(),
@@ -282,16 +285,17 @@ The `@model` decorator accepts the following metadata:
 | `skipMigrate` | `boolean` | Skip this model during migrations |
 | `settings.hiddenProperties` | `string[]` | Properties excluded from all query results |
 | `settings.defaultFilter` | `TFilter` | Default filter auto-applied to all queries |
+| `settings.defaultLimit` | `number` | Default row limit when a query omits `limit` (must be a positive integer; falls back to `10`) |
 | `settings.authorize.principal` | `string` | Authorization subject name for this model |
 
 ## Model Template
 
 ```typescript
-import { BaseEntity, generateIdColumnDefs, model, TRelationConfig } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, model, TRelationConfig } from '@venizia/ignis';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
-export class MyModel extends BaseEntity<typeof MyModel.schema> {
+export class MyModel extends BasePostgresEntity<typeof MyModel.schema> {
   static override schema = pgTable('MyModel', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     name: text('name').notNull(),

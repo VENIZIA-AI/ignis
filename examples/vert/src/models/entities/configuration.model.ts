@@ -1,13 +1,12 @@
+import { model, RelationTypes } from '@venizia/ignis';
 import {
-  BaseEntity,
+  BasePostgresEntity,
   generateDataTypeColumnDefs,
   generateIdColumnDefs,
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
-  model,
-  RelationTypes,
   TRelationConfig,
-} from '@venizia/ignis';
+} from '@venizia/ignis/postgres';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User } from './user.model';
 
@@ -22,7 +21,7 @@ import { User } from './user.model';
  * - No constructor needed
  */
 @model({ type: 'entity' })
-export class Configuration extends BaseEntity<typeof Configuration.schema> {
+export class Configuration extends BasePostgresEntity<typeof Configuration.schema> {
   static override schema = pgTable(
     'Configuration',
     {

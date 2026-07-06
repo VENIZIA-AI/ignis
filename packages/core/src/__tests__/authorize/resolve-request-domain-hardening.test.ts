@@ -31,7 +31,8 @@ function ctxStub(opts: {
       query: (k: string) => opts.query?.[k],
     },
     get: (k: string) => opts.context?.[k],
-  } as unknown as Parameters<typeof resolveRequestDomain>[0]['context'];
+    // Cast is required: stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
+  } as Parameters<typeof resolveRequestDomain>[0]['context'];
 }
 
 const SW = AuthorizationDomainScopes.SYSTEM_WIDE;

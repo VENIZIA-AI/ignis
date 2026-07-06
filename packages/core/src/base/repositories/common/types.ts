@@ -1,9 +1,9 @@
-import { IDataSource, ITransaction } from '@/base/datasources';
-import { BaseEntity, IdType, TTableInsert, TTableObject, TTableSchemaWithId } from '@/base/models';
+import { AbstractDataSource, ITransaction } from '@/base/datasources';
+import { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
-import { Column, SQL, createTableRelationsHelpers } from 'drizzle-orm';
-import { RelationTypes, TLockStrength } from './constants';
+import { Column, SQL } from 'drizzle-orm';
+import { TLockStrength } from './constants';
 
 /** Zod schema for pagination skip parameter. */
 export const SkipSchema = z
@@ -27,11 +27,8 @@ export const OffsetSchema = z
 
 export type TOffset = z.infer<typeof OffsetSchema>;
 
-/**
- * Zod schema for pagination limit parameter. No schema-level default — the default
- * (DEFAULT_LIMIT) is applied by ReadableRepository.find() to the top-level query only,
- * so it never leaks into relation scopes.
- */
+/** Zod schema for pagination limit parameter - no schema-level default; ReadableRepository.find()
+ * applies DEFAULT_LIMIT only to the top-level query so it never leaks into relation scopes. */
 export const LimitSchema = z
   .number()
   .optional()
@@ -223,26 +220,6 @@ export type TDrizzleQueryOptions = Partial<{
   columns: Record<string, boolean>;
 }>;
 
-/** Configuration for entity relationships (one-to-one, one-to-many, many-to-one). */
-export type TRelationConfig = {
-  name: string;
-} & (
-  | {
-      type: typeof RelationTypes.ONE;
-      schema: TTableSchemaWithId;
-      metadata: Parameters<
-        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.ONE]
-      >[1];
-    }
-  | {
-      type: typeof RelationTypes.MANY;
-      schema: TTableSchemaWithId;
-      metadata: Parameters<
-        ReturnType<typeof createTableRelationsHelpers>[typeof RelationTypes.MANY]
-      >[1];
-    }
-);
-
 /** Configuration for repository operation logging. */
 export type TRepositoryLogOptions = {
   use: boolean;
@@ -261,7 +238,8 @@ export type TLockOptions = {
   config?: TLockConfig;
 };
 
-/** Interface for objects that can be associated with a database transaction. */
+/** Interface for objects that can be associated with a database transaction. Neutral - postgres
+ * narrows to its own `IDatabaseTransaction` internally (via `isDatabaseTransaction`) where it needs `.connector`. */
 export interface IWithTransaction {
   transaction?: ITransaction;
 }
@@ -277,112 +255,105 @@ export interface IExtraOptions extends IWithTransaction {
   lock?: TLockOptions;
 }
 
-/** @deprecated Use IExtraOptions instead. */
-export type TTransactionOption = IExtraOptions;
-
-/** Base repository interface defining core properties and methods. */
-export interface IRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> {
-  dataSource: IDataSource;
-  entity: BaseEntity<EntitySchema>;
-  getEntity(): BaseEntity<EntitySchema>;
-  getEntitySchema(): EntitySchema;
-  getConnector(): IDataSource['connector'];
+/** Base repository interface shared by every engine. Engine-specific accessors (postgres's
+ * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
+export interface IRepository {
+  dataSource: AbstractDataSource;
+  entity: AbstractEntity;
+  getEntity(): AbstractEntity;
 }
 
-/** Interface for read-only repository operations. */
+/** Interface for read-only repository operations. `TDataObject` is the row/document shape itself. */
 export interface IReadableRepository<
-  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
-  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
+  TDataObject extends object = object,
   ExtraOptions extends IExtraOptions = IExtraOptions,
-> extends IRepository<EntitySchema> {
-  buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions;
-  count(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<TCount>;
-  existsWith(opts: { where: TWhere<DataObject>; options?: ExtraOptions }): Promise<boolean>;
+> extends IRepository {
+  count(opts: { where: TWhere<TDataObject>; options?: ExtraOptions }): Promise<TCount>;
+  existsWith(opts: { where: TWhere<TDataObject>; options?: ExtraOptions }): Promise<boolean>;
 
-  find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
+  find<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
     options: ExtraOptions & { shouldQueryRange: true };
   }): Promise<{ data: Array<R>; range: TDataRange }>;
 
-  find<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
+  find<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
     options?: ExtraOptions & { shouldQueryRange?: false };
   }): Promise<Array<R>>;
 
-  findOne<R = DataObject>(opts: {
-    filter: TFilter<DataObject>;
+  findOne<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
     options?: ExtraOptions;
   }): Promise<TNullable<R>>;
 
-  findById<R = DataObject>(opts: {
+  findById<R = TDataObject>(opts: {
     id: IdType;
-    filter?: Omit<TFilter<DataObject>, 'where'>;
+    filter?: Omit<TFilter<TDataObject>, 'where'>;
     options?: ExtraOptions;
   }): Promise<TNullable<R>>;
 }
 
 /** Interface for full CRUD repository operations. */
 export interface IPersistableRepository<
-  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
-  DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
-  PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
+  TDataObject extends object = object,
+  TPersistObject extends object = TDataObject,
   ExtraOptions extends IExtraOptions = IExtraOptions,
-> extends IReadableRepository<EntitySchema, DataObject, ExtraOptions> {
+> extends IReadableRepository<TDataObject, ExtraOptions> {
   create(opts: {
-    data: PersistObject;
+    data: TPersistObject;
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
 
-  create<R = DataObject>(opts: {
-    data: PersistObject;
+  create<R = TDataObject>(opts: {
+    data: TPersistObject;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
   createAll(opts: {
-    data: Array<PersistObject>;
+    data: Array<TPersistObject>;
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
 
-  createAll<R = DataObject>(opts: {
-    data: Array<PersistObject>;
+  createAll<R = TDataObject>(opts: {
+    data: Array<TPersistObject>;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
 
   updateById(opts: {
     id: IdType;
-    data: Partial<PersistObject>;
+    data: Partial<TPersistObject>;
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
 
-  updateById<R = DataObject>(opts: {
+  updateById<R = TDataObject>(opts: {
     id: IdType;
-    data: Partial<PersistObject>;
+    data: Partial<TPersistObject>;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
   updateAll(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
+    data: Partial<TPersistObject>;
+    where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  updateAll<R = DataObject>(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
+  updateAll<R = TDataObject>(opts: {
+    data: Partial<TPersistObject>;
+    where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
   /** Alias for updateAll. */
   updateBy(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
+    data: Partial<TPersistObject>;
+    where: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
   /** Alias for updateAll. */
-  updateBy<R = DataObject>(opts: {
-    data: Partial<PersistObject>;
-    where: TWhere<DataObject>;
+  updateBy<R = TDataObject>(opts: {
+    data: Partial<TPersistObject>;
+    where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
@@ -391,33 +362,41 @@ export interface IPersistableRepository<
     options: ExtraOptions & { shouldReturn: false };
   }): Promise<TCount & { data: undefined | null }>;
 
-  deleteById<R = DataObject>(opts: {
+  deleteById<R = TDataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: R }>;
 
   deleteAll(opts: {
-    where?: TWhere<DataObject>;
+    where?: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
-  deleteAll<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  deleteAll<R = TDataObject>(opts: {
+    where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
   /** Alias for deleteAll. */
   deleteBy(opts: {
-    where?: TWhere<DataObject>;
+    where?: TWhere<TDataObject>;
     options: ExtraOptions & { shouldReturn: false; force?: boolean };
   }): Promise<TCount & { data: undefined | null }>;
 
   /** Alias for deleteAll. */
-  deleteBy<R = DataObject>(opts: {
-    where?: TWhere<DataObject>;
+  deleteBy<R = TDataObject>(opts: {
+    where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 }
+
+/** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the
+ * name both DefaultCRUDRepository and DefaultSearchRepository are meant to satisfy. */
+export interface ICrudRepository<
+  TDataObject extends object = object,
+  TPersistObject extends object = TDataObject,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+> extends IPersistableRepository<TDataObject, TPersistObject, ExtraOptions> {}
 
 /** Options passed to query operator handler functions. */
 export interface IQueryHandlerOptions<T = any> {

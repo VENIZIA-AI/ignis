@@ -77,16 +77,17 @@ type RouteKey = keyof typeof RouteConfigs; // 'GET_USERS' | 'GET_USER_BY_ID'
 
 ```typescript
 export class DefaultCRUDRepository<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId
+  EntitySchema extends TTableSchemaWithId = TTableSchemaWithId
 > {
-  // Schema is constrained to have an 'id' column
+  // EntitySchema is constrained to have an 'id' column
 }
 
 export interface IAuthService<
+  E extends Env = Env,
   SIRQ extends TSignInRequest = TSignInRequest,
   SIRS = AnyObject,
 > {
-  signIn(context: Context, opts: SIRQ): Promise<SIRS>;
+  signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
 }
 ```
 
@@ -96,21 +97,21 @@ Use TypeScript method overloads when return types depend on input options:
 
 ```typescript
 class Repository<T, R> {
-  // Overload 1: shouldReturn: false → data is null
-  create(opts: { data: T; options: { shouldReturn: false } }): Promise<{ count: number; data: null }>;
+  // Overload 1: shouldReturn: false → no data returned
+  create(opts: { data: T; options: { shouldReturn: false } }): Promise<{ count: number; data: undefined | null }>;
   // Overload 2: shouldReturn: true (default) → data is R
   create(opts: { data: T; options?: { shouldReturn?: true } }): Promise<{ count: number; data: R }>;
   // Implementation signature
-  create(opts: { data: T; options?: { shouldReturn?: boolean } }): Promise<{ count: number; data: R | null }> {
+  create(opts: { data: T; options?: { shouldReturn?: boolean } }): Promise<{ count: number; data: R | undefined | null }> {
     // implementation
   }
 }
 
 // Usage
-const result1 = await repo.create({ data: user, options: { shouldReturn: false } });
-// result1.data is typed as null
+const result1 = await userRepository.create({ data: user, options: { shouldReturn: false } });
+// result1.data is typed as undefined | null
 
-const result2 = await repo.create({ data: user });
+const result2 = await userRepository.create({ data: user });
 // result2.data is typed as R (the entity type)
 ```
 
@@ -151,10 +152,10 @@ function processResult<T>(result: TResult<T>) {
   if (result.success) {
     // TypeScript knows result.data exists
     return result.data;
-  } else {
-    // TypeScript knows result.error exists
-    throw new Error(result.error);
   }
+
+  // TypeScript knows result.error exists
+  throw getError({ message: result.error });
 }
 ```
 

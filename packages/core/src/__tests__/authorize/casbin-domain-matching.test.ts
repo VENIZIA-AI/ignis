@@ -1,10 +1,12 @@
 import { describe, test, expect } from 'bun:test';
+import type { TContext } from '@/base/controllers/common/types';
 import {
   CasbinAuthorizationEnforcer,
   CasbinDomainMatchingFunctions,
   CasbinEnforcerModelDrivers,
   type ICasbinEnforcerOptions,
 } from '@/components/auth/authorize';
+import type { FilteredAdapter, Model } from 'casbin';
 
 // Canonical "RBAC with domains" model (spec §2): domain scoping lives on the membership relation
 // `g` (3-arg, domain-aware); role permissions are domain-agnostic (`p.dom = "*"`). A request domain
@@ -27,6 +29,10 @@ e = some(where (p.eft == allow)) && !some(where (p.eft == deny))
 m = g(r.sub, p.sub, r.dom) && keyMatch(r.dom, p.dom) && r.obj == p.obj && r.act == p.act
 `;
 
+// None of these tests exercise a context-dependent normalizer/domain resolver, so an empty stub
+// stands in for the full Hono-backed TContext that buildRules/evaluate require.
+const fakeContext = {} as TContext;
+
 // Run the full request path (configure → buildRules → evaluate) on a pooled enforcer wired with a
 // fixed-line adapter + a domain-from-request normalizePayloadFn. The pool model has no shared casbin
 // enforcer to poke directly, so we exercise behavior through the public API.
@@ -37,21 +43,23 @@ const enforceWithDomain = async (opts: {
   resource: string;
   action: string;
 }): Promise<string> => {
+  const adapter: FilteredAdapter = {
+    isFiltered: () => true,
+    loadPolicy: async () => {},
+    loadFilteredPolicy: async (model: Model) => {
+      const { Helper } = await import('casbin');
+      opts.lines.forEach(line => Helper.loadPolicyLine(line, model));
+    },
+    savePolicy: async () => true,
+    addPolicy: async () => {},
+    removePolicy: async () => {},
+    removeFilteredPolicy: async () => {},
+  };
+
   const options: ICasbinEnforcerOptions = {
     model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: MODEL },
     cached: { use: false },
-    adapter: {
-      isFiltered: () => true,
-      loadPolicy: async () => {},
-      loadFilteredPolicy: async (model: import('casbin').Model) => {
-        const { Helper } = await import('casbin');
-        opts.lines.forEach(line => Helper.loadPolicyLine(line, model));
-      },
-      savePolicy: async () => true,
-      addPolicy: async () => {},
-      removePolicy: async () => {},
-      removeFilteredPolicy: async () => {},
-    } as unknown as import('casbin').Adapter,
+    adapter,
     domainMatching: opts.domainMatching,
     normalizePayloadFn: ({ user, resource, action }) => ({
       subject: `User_${user.userId}`,
@@ -64,13 +72,12 @@ const enforceWithDomain = async (opts: {
   const enforcer = new CasbinAuthorizationEnforcer(options);
   await enforcer.configure();
 
-  const user = { userId: 'u', principalType: 'User', roles: [] } as never;
-  const ctx = {} as never;
-  const rules = await enforcer.buildRules({ user, context: ctx });
+  const user = { userId: 'u', principalType: 'User', roles: [] };
+  const rules = await enforcer.buildRules({ user, context: fakeContext });
   return enforcer.evaluate({
     rules,
     request: { action: opts.action, resource: opts.resource },
-    context: ctx,
+    context: fakeContext,
   });
 };
 
@@ -216,10 +223,10 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
   // when policies are added directly to the model.
 
   // Minimal casbin FilteredAdapter that replays a fixed set of policy lines (per the model in §2).
-  const makeFilteredAdapter = (lines: string[]) => ({
+  const makeFilteredAdapter = (lines: string[]): FilteredAdapter => ({
     isFiltered: () => true,
     loadPolicy: async () => {},
-    loadFilteredPolicy: async (model: import('casbin').Model) => {
+    loadFilteredPolicy: async (model: Model) => {
       const { Helper } = await import('casbin');
       lines.forEach(line => Helper.loadPolicyLine(line, model));
     },
@@ -240,7 +247,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const options: ICasbinEnforcerOptions = {
       model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: MODEL },
       cached: { use: false },
-      adapter: makeFilteredAdapter(opts.lines) as unknown as import('casbin').Adapter,
+      adapter: makeFilteredAdapter(opts.lines),
       domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
       normalizePayloadFn: ({ user, resource, action }) => ({
         subject: `User_${user.userId}`,
@@ -252,14 +259,13 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const enforcer = new CasbinAuthorizationEnforcer(options);
     await enforcer.configure();
 
-    const user = { userId: 'u', principalType: 'User', roles: [] } as never;
-    const ctx = {} as never;
+    const user = { userId: 'u', principalType: 'User', roles: [] };
 
-    const rules = await enforcer.buildRules({ user, context: ctx });
+    const rules = await enforcer.buildRules({ user, context: fakeContext });
     return enforcer.evaluate({
       rules,
       request: { action: opts.action, resource: opts.resource },
-      context: ctx,
+      context: fakeContext,
     });
   };
 
@@ -311,20 +317,15 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     expect(allowedElsewhere).toBe('allow');
   });
 
-  // ── Shared-model concurrency race — FIXED by the pooled-enforcer rewrite (Plan 2) ─────────────
-  // Previously the enforcer was a shared singleton whose model was REPLACED per request, so a second
-  // request's buildRules between request A's buildRules and A's evaluate corrupted A's decision.
-  // Now buildRules returns a {user, lines} SNAPSHOT and evaluate loads those exact lines into its own
-  // pooled enforcer atomically — so an interleaved buildRules for another user CANNOT affect A.
+  // Concurrency guarantee: buildRules returns a {user, lines} snapshot and evaluate loads those
+  // exact lines into its own pooled enforcer - an interleaved buildRules for another user cannot
+  // corrupt this request's decision.
 
   // Filtered adapter returning a different policy set per user (keyed by filter.principal.id).
-  const makeMultiUserAdapter = (linesByUser: Record<string, string[]>) => ({
+  const makeMultiUserAdapter = (linesByUser: Record<string, string[]>): FilteredAdapter => ({
     isFiltered: () => true,
     loadPolicy: async () => {},
-    loadFilteredPolicy: async (
-      model: import('casbin').Model,
-      filter: { principal: { id: string | number } },
-    ) => {
+    loadFilteredPolicy: async (model: Model, filter: { principal: { id: string | number } }) => {
       const { Helper } = await import('casbin');
       (linesByUser[String(filter.principal.id)] ?? []).forEach(line =>
         Helper.loadPolicyLine(line, model),
@@ -344,7 +345,7 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
       adapter: makeMultiUserAdapter({
         a: ['g, User_a, Role_owner, Merchant_A', 'p, Role_owner, *, Material.find, read, allow'],
         b: ['g, User_b, Role_other, Merchant_B', 'p, Role_other, *, Other.find, read, allow'],
-      }) as unknown as import('casbin').Adapter,
+      }),
       domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH },
       normalizePayloadFn: ({ user, resource, action }) => ({
         subject: `User_${user.userId}`,
@@ -356,23 +357,22 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     const enforcer = new CasbinAuthorizationEnforcer(options);
     await enforcer.configure();
 
-    const userA = { userId: 'a', principalType: 'User', roles: [] } as never;
-    const userB = { userId: 'b', principalType: 'User', roles: [] } as never;
-    const ctx = {} as never;
+    const userA = { userId: 'a', principalType: 'User', roles: [] };
+    const userB = { userId: 'b', principalType: 'User', roles: [] };
 
     // Request A builds its rules → captures A's policy lines as a snapshot.
-    const rulesA = await enforcer.buildRules({ user: userA, context: ctx });
+    const rulesA = await enforcer.buildRules({ user: userA, context: fakeContext });
 
     // A concurrent request B completes its buildRules before A evaluates. With the pooled-enforcer
     // model this cannot touch A's snapshot or A's per-request enforcer.
-    await enforcer.buildRules({ user: userB, context: ctx });
+    await enforcer.buildRules({ user: userB, context: fakeContext });
 
     // A finally evaluates against its OWN snapshot on its own pooled enforcer. A legitimately has
     // Material.find at Merchant_A, so the correct answer is 'allow' — and the race is gone.
     const decisionA = await enforcer.evaluate({
       rules: rulesA,
       request: { action: 'read', resource: 'Material.find' },
-      context: ctx,
+      context: fakeContext,
     });
 
     expect(decisionA).toBe('allow');

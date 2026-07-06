@@ -1,18 +1,23 @@
-import { getIdType, idParamsSchema, jsonContent, jsonResponse } from '@/base/models/common/types';
+import {
+  idParamsSchema,
+  jsonContent,
+  jsonResponse,
+  TIdSchemaType,
+} from '@/base/models/common/types';
 import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories/common/types';
-import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import { z } from '@hono/zod-openapi';
+import { HTTP } from '@venizia/ignis-helpers';
 import {
   commonResponseHeaders,
-  RestPaths,
-  trackableHeaders,
-  ICustomizableRoutes,
   defaultRequestHeaders,
   findResponseHeaders,
+  ICustomizableRoutes,
+  RestPaths,
+  trackableHeaders,
 } from '../common';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
 
 /** Creates conditional count response schema. */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
@@ -28,10 +33,27 @@ export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) 
 
 /** Picks user-overridden response schema if present (and non-undefined), else the default. */
 type TResolvedResponseSchema<C, D extends z.ZodTypeAny> = C extends {
-  response: { schema: infer S extends z.ZodTypeAny };
+  response: {
+    schema: infer S extends z.ZodTypeAny;
+  };
 }
   ? S
   : D;
+
+/** Resolves a route's response schema: user override (preserving its literal type via
+ * `TResolvedResponseSchema`) or the default. Centralizes the one cast every `resolve*Config`
+ * needs - generic `C` can't be proven at the value level to collapse to the conditional type it
+ * names, since `C` is only known by its (wider) structural constraint, not its exact shape. */
+const resolveResponseSchema = <
+  C extends { response?: { schema?: z.ZodTypeAny } } | undefined,
+  D extends z.ZodTypeAny,
+>(opts: {
+  config: C;
+  defaultSchema: D;
+}): TResolvedResponseSchema<C, D> => {
+  const { config, defaultSchema } = opts;
+  return (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<C, D>;
+};
 
 export const resolveCountConfig = <C extends ICustomizableRoutes['count']>(opts: {
   config: C;
@@ -53,10 +75,7 @@ export const resolveCountConfig = <C extends ICustomizableRoutes['count']>(opts:
     },
     response: {
       description: 'Total count of matching records',
-      schema: (config?.response?.schema ?? CountSchema) as TResolvedResponseSchema<
-        C,
-        typeof CountSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema: CountSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -81,10 +100,7 @@ export const resolveFindConfig = <
     },
     response: {
       description: 'Array of matching records (with optional count)',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? findResponseHeaders,
     },
   };
@@ -94,7 +110,7 @@ export const resolveFindByIdConfig = <
   C extends ICustomizableRoutes['findById'],
   FindByIdSchema extends TAnyObjectSchema,
 >(opts: {
-  idType: ReturnType<typeof getIdType>;
+  idType: TIdSchemaType;
   config: C;
   selectSchema: FindByIdSchema;
 }) => {
@@ -111,10 +127,7 @@ export const resolveFindByIdConfig = <
     },
     response: {
       description: 'Single record matching ID or null',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -139,10 +152,7 @@ export const resolveFindOneConfig = <
     },
     response: {
       description: 'First matching record or null',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -166,10 +176,7 @@ export const resolveCreateConfig = <
     },
     response: {
       description: 'Created record with generated fields (id, createdAt, etc.)',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -180,7 +187,7 @@ const resolveUpdateByIdConfig = <
   SelectSchema extends TAnyObjectSchema,
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
-  idType: ReturnType<typeof getIdType>;
+  idType: TIdSchemaType;
   config: C;
   selectSchema: SelectSchema;
   updateSchema: UpdateSchema;
@@ -195,10 +202,7 @@ const resolveUpdateByIdConfig = <
     },
     response: {
       description: 'Updated record with all current fields',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -226,10 +230,7 @@ const resolveUpdateByConfig = <
     },
     response: {
       description: 'Array of updated records',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -239,7 +240,7 @@ const resolveDeleteByIdConfig = <
   C extends ICustomizableRoutes['deleteById'],
   SelectSchema extends TAnyObjectSchema,
 >(opts: {
-  idType: ReturnType<typeof getIdType>;
+  idType: TIdSchemaType;
   config: C;
   selectSchema: SelectSchema;
 }) => {
@@ -252,10 +253,7 @@ const resolveDeleteByIdConfig = <
     },
     response: {
       description: 'Deleted record data',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -280,10 +278,7 @@ const resolveDeleteByConfig = <
     },
     response: {
       description: 'Array of deleted records',
-      schema: (config?.response?.schema ?? defaultSchema) as TResolvedResponseSchema<
-        C,
-        typeof defaultSchema
-      >,
+      schema: resolveResponseSchema({ config, defaultSchema }),
       headers: config?.response?.headers ?? commonResponseHeaders,
     },
   };
@@ -297,14 +292,10 @@ export const defineControllerRouteConfigs = <
   UpdateSchema extends TAnyObjectSchema,
 >(opts: {
   isStrict: boolean;
-  idType: ReturnType<typeof getIdType>;
+  idType: TIdSchemaType;
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
-  schema: {
-    select: SelectSchema;
-    create: CreateSchema;
-    update: UpdateSchema;
-  };
+  schema: { select: SelectSchema; create: CreateSchema; update: UpdateSchema };
   routes?: Routes;
 }) => {
   const {
@@ -317,6 +308,9 @@ export const defineControllerRouteConfigs = <
   } = opts;
   const { strategies: defaultStrategies = [], mode: defaultMode } = controllerAuth;
 
+  // `Routes` is caller-bound (`extends ICustomizableRoutes`) but otherwise unconstrained here, so
+  // `{}` can't be proven to satisfy it structurally even though every field ICustomizableRoutes
+  // declares is optional - only the caller's own bound guarantees that.
   const routesConfig = (routes ?? {}) as Routes;
 
   type TAuthenticateConfig = { strategies?: TAuthStrategy[]; mode?: TAuthMode };
@@ -356,11 +350,15 @@ export const defineControllerRouteConfigs = <
       return controllerAuthorize;
     }
 
-    if (!Array.isArray(authorize) && 'skip' in authorize) {
+    if (Array.isArray(authorize)) {
+      return authorize;
+    }
+
+    if ('skip' in authorize) {
       return undefined;
     }
 
-    return authorize as TAuthorizeConfig;
+    return authorize;
   };
 
   const count = resolveCountConfig({ config: routesConfig.count, isStrict });
@@ -436,7 +434,6 @@ export const defineControllerRouteConfigs = <
       request: {
         body: jsonContent({
           description: 'Record data (required fields must be provided)',
-          // Cast to preserve the custom body schema type from routes config
           schema: create.request.body,
         }),
         headers: create.request.headers,

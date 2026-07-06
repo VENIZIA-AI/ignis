@@ -1,4 +1,6 @@
 import { BaseProvider } from '@/base/providers';
+import { Container } from '@/helpers';
+import { getError } from '@venizia/ignis-helpers';
 import {
   ICustomMailOptions,
   IMailgunMailOptions,
@@ -9,8 +11,6 @@ import {
   TMailOptions,
 } from '../common';
 import { MailgunTransportHelper, NodemailerTransportHelper } from '../helpers';
-import { Container } from '@/helpers';
-import { getError } from '@venizia/ignis-helpers';
 import { isMailTransport } from '../utilities';
 
 export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
@@ -89,11 +89,13 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
     if (!isMailTransport(options.config)) {
       const missingMethods: string[] = [];
+      const config = options.config as Record<string, unknown>;
 
-      if (typeof (options.config as any).send !== 'function') {
+      if (typeof config.send !== 'function') {
         missingMethods.push('send');
       }
-      if (typeof (options.config as any).verify !== 'function') {
+
+      if (typeof config.verify !== 'function') {
         missingMethods.push('verify');
       }
 

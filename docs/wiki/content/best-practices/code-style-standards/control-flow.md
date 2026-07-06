@@ -142,7 +142,7 @@ Include class/method context in error messages:
 // Format: [ClassName][methodName] Descriptive message
 throw getError({
   statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-  message: '[JWTTokenService][generate] Failed to generate token',
+  message: '[JWSTokenService][generate] Failed to generate token',
 });
 
 throw getError({
@@ -224,7 +224,7 @@ import dayjs from 'dayjs';
 
 // 3. Internal absolute imports (by domain/package)
 import { getError } from '@venizia/ignis-helpers';
-import { BaseEntity } from '@/base/models';
+import { AbstractEntity } from '@/base/models';
 import { UserService } from '@/services';
 
 // 4. Relative imports (same feature) - LAST

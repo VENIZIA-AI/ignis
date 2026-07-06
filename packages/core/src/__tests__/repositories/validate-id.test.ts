@@ -1,5 +1,17 @@
 import { describe, test, expect } from 'bun:test';
-import { PersistableRepository } from '@/base/repositories';
+import { PersistableRepository } from '@/connectors/postgres/repositories';
+import { BasePostgresEntity } from '@/connectors/postgres/models';
+import { pgTable, serial } from 'drizzle-orm/pg-core';
+
+const validateIdFixtureTable = pgTable('validate_id_fixture_entities', {
+  id: serial('id').primaryKey(),
+});
+
+/** Real entity (not a mock) so the guard's error message resolves via the actual `entity.name`. */
+class ValidateIdFixtureEntity extends BasePostgresEntity {
+  static override schema = validateIdFixtureTable;
+  static override TABLE_NAME = 'TestEntity';
+}
 
 /**
  * A null/undefined id must NOT reach the database: { id: undefined } collapses to an
@@ -9,8 +21,7 @@ import { PersistableRepository } from '@/base/repositories';
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(undefined, {});
-    // Mock entity so the guard's error message can resolve without DB metadata.
-    this.entity = { name: 'TestEntity' } as any;
+    this.entity = new ValidateIdFixtureEntity();
   }
 
   callValidateId(id: unknown) {
@@ -57,22 +68,26 @@ describe('updateById / deleteById reject null & undefined id before executing', 
   }
 
   test('updateById rejects undefined id', async () => {
-    const message = await rejectionMessage(repo.updateById({ id: undefined as any, data: {} }));
+    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
+    const message = await rejectionMessage(repo.updateById({ id: undefined, data: {} }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('updateById rejects null id', async () => {
-    const message = await rejectionMessage(repo.updateById({ id: null as any, data: {} }));
+    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
+    const message = await rejectionMessage(repo.updateById({ id: null, data: {} }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('deleteById rejects undefined id', async () => {
-    const message = await rejectionMessage(repo.deleteById({ id: undefined as any }));
+    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
+    const message = await rejectionMessage(repo.deleteById({ id: undefined }));
     expect(message).toMatch(/null or undefined/);
   });
 
   test('deleteById rejects null id', async () => {
-    const message = await rejectionMessage(repo.deleteById({ id: null as any }));
+    // @ts-expect-error id must be null/undefined to exercise the runtime guard.
+    const message = await rejectionMessage(repo.deleteById({ id: null }));
     expect(message).toMatch(/null or undefined/);
   });
 });

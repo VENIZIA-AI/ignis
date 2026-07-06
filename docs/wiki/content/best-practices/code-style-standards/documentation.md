@@ -24,14 +24,14 @@ Use JSDoc comments for public APIs to improve IDE support and generate documenta
  * @returns Promise resolving to the query result
  *
  * @example
- * const users = await userRepo.find({
+ * const users = await userRepository.find({
  *   filter: { where: { status: 'ACTIVE' }, limit: 10 },
  * });
  *
  * @throws {ApplicationError} When validation fails
  * @see {@link UserService} for business logic
  */
-async find(opts: TFindOptions): Promise<TFindResult<TUser>> {
+async find(opts: { filter: TFilter<TUser>; options?: IExtraOptions }): Promise<TUser[]> {
   // implementation
 }
 ```
@@ -87,15 +87,15 @@ async createUser(data: TCreateUserRequest): Promise<TUser> {
  * @param opts - Find options
  * @param opts.filter - Query filter
  * @param opts.filter.where - Conditions to match
- * @param opts.filter.limit - Maximum records to return (default: 100)
+ * @param opts.filter.limit - Maximum records to return
  * @param opts.filter.offset - Records to skip for pagination
  * @param opts.filter.order - Sort order (e.g., ['createdAt DESC'])
  * @param opts.filter.include - Relations to load
- * @returns Promise with data array and count
+ * @returns Promise resolving to the array of matching entities
  *
  * @example
  * // Find active users, sorted by name
- * const result = await userRepo.find({
+ * const users = await userRepository.find({
  *   filter: {
  *     where: { status: 'ACTIVE' },
  *     order: ['name ASC'],
@@ -103,7 +103,7 @@ async createUser(data: TCreateUserRequest): Promise<TUser> {
  *   },
  * });
  */
-async find(opts: TFindOpts<Schema>): Promise<TFindResult<TEntity>> {
+async find<R = TUser>(opts: { filter: TFilter<TUser>; options?: IExtraOptions }): Promise<R[]> {
   // ...
 }
 ```
@@ -116,13 +116,13 @@ async find(opts: TFindOpts<Schema>): Promise<TFindResult<TEntity>> {
  *
  * @example
  * // Before (deprecated)
- * const user = await repo.getById('123');
+ * const user = await userRepository.getById('123');
  *
  * // After (recommended)
- * const { data: user } = await repo.findById({ id: '123' });
+ * const user = await userRepository.findById({ id: '123' });
  */
 async getById(id: string): Promise<TUser | null> {
-  return this.findById({ id }).then(r => r.data);
+  return this.findById({ id });
 }
 ```
 
@@ -181,7 +181,7 @@ interface IJWTStrategyOptions {
  * Extends this class to create entity-specific repositories with
  * type-safe operations and automatic schema binding.
  *
- * @template Schema - The Drizzle table schema type
+ * @template EntitySchema - The Drizzle table schema type
  *
  * @example
  * @repository({ model: User, dataSource: PostgresDataSource })
@@ -189,10 +189,10 @@ interface IJWTStrategyOptions {
  *   // Custom methods here
  * }
  *
- * @see {@link BaseEntity} for model definition
- * @see {@link BaseDataSource} for database connection
+ * @see {@link BasePostgresEntity} for model definition
+ * @see {@link BasePostgresDataSource} for database connection
  */
-abstract class DefaultCRUDRepository<Schema extends TTableSchemaWithId> {
+class DefaultCRUDRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> {
   // ...
 }
 ```

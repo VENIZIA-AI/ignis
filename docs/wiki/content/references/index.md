@@ -123,7 +123,7 @@ class UserController extends BaseRestController {
 
 **Query with Repository:**
 ```typescript
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     where: { isActive: true },
     order: ['createdAt DESC'],

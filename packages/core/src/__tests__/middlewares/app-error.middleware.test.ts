@@ -1,10 +1,13 @@
 import { describe, test, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { z } from '@hono/zod-openapi';
-import { getError, type Logger } from '@venizia/ignis-helpers';
+import { getError, Logger } from '@venizia/ignis-helpers';
 import { appErrorHandler, RequestSpyMiddleware } from '@/base/middlewares';
 
-const logger = { error: () => undefined } as unknown as Logger;
+// Real Logger instance (private constructor forces the factory) with `error` silenced -
+// the handler only needs a working `.error`, not real transport output.
+const logger = Logger.get('app-error-middleware-test');
+logger.error = () => undefined;
 
 /** Reads a Hono Response body as a loosely-typed JSON object (Response.json() is `unknown`). */
 const readJson = async (res: Response): Promise<Record<string, any>> => {

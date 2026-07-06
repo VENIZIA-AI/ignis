@@ -97,6 +97,14 @@
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
+    "./postgres": {
+      "types": "./dist/connectors/postgres/index.d.ts",
+      "default": "./dist/connectors/postgres/index.js"
+    },
+    "./memory": {
+      "types": "./dist/connectors/memory/index.d.ts",
+      "default": "./dist/connectors/memory/index.js"
+    },
     "./socket-io": {
       "types": "./dist/components/socket-io/index.d.ts",
       "default": "./dist/components/socket-io/index.js"
@@ -116,6 +124,10 @@
     "./websocket": {
       "types": "./dist/components/websocket/index.d.ts",
       "default": "./dist/components/websocket/index.js"
+    },
+    "./typesense": {
+      "types": "./dist/connectors/typesense/index.d.ts",
+      "default": "./dist/connectors/typesense/index.js"
     },
     "./package.json": "./package.json"
   },
@@ -172,7 +184,8 @@
     "nodemailer": "^8.0.7",
     "pg": "^8.21.0",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "typesense": "^3.0.3"
   },
   "peerDependenciesMeta": {
     "@connectrpc/connect": {
@@ -216,6 +229,9 @@
     },
     "casbin": {
       "optional": true
+    },
+    "typesense": {
+      "optional": true
     }
   },
   "devDependencies": {
@@ -235,6 +251,7 @@
     "prettier": "^3.8.3",
     "tsc-alias": "^1.8.17",
     "tsx": "^4.22.3",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "typesense": "^3.0.3"
   }
 }

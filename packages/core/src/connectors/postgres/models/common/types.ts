@@ -1,0 +1,95 @@
+import { IdType } from '@/base/models';
+import { TRelationConfig } from '@/connectors/postgres/repositories/common';
+import { TValueOrResolver } from '@venizia/ignis-helpers';
+import { IsPrimaryKey, NotNull } from 'drizzle-orm';
+import {
+  AnyPgColumn,
+  PgColumnBuilderBase,
+  PgSequenceOptions,
+  PgTable,
+  TableConfig,
+} from 'drizzle-orm/pg-core';
+
+export type TColumnDefinition = PgColumnBuilderBase;
+export type TColumnDefinitions = {
+  [field: string | symbol]: TColumnDefinition;
+};
+export type TPrimaryKey<T extends TColumnDefinition> = IsPrimaryKey<NotNull<T>>;
+
+export type TIdColumn = AnyPgColumn<{ data: IdType }>;
+export type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
+  id: TIdColumn;
+};
+
+export type TTableObject<T extends TTableSchemaWithId> = T['$inferSelect'];
+
+export type TGetIdType<T extends TTableSchemaWithId> = TTableObject<T>['id'];
+
+export const getIdType = <T extends TTableSchemaWithId>(opts: { entity: T }) => {
+  return opts.entity?.id?.dataType ?? 'unknown';
+};
+
+export type TTableInsert<T extends TTableSchemaWithId> = T['$inferInsert'];
+
+/** Static schema + relations contract every entity model implements. */
+export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId> {
+  TABLE_NAME?: string;
+  schema: Schema;
+  relations?: TValueOrResolver<Array<TRelationConfig>>;
+}
+
+// -- Enricher option types (src/connectors/postgres/models/enrichers/*.enricher.ts) --
+
+export type TDataTypeEnricherOptions = {
+  defaultValue: Partial<{
+    dataType: string;
+    nValue: number;
+    tValue: string;
+    bValue: Buffer;
+    jValue: object;
+    boValue: boolean;
+  }>;
+};
+
+export type TIdEnricherOptions = {
+  id?: { columnName?: string } & (
+    | { dataType: 'string'; generator?: () => string }
+    | {
+        dataType: 'number';
+        sequenceOptions?: PgSequenceOptions;
+      }
+    | {
+        dataType: 'big-number';
+        numberMode: 'number' | 'bigint';
+        sequenceOptions?: PgSequenceOptions;
+      }
+  );
+};
+
+export type TPrincipalEnricherOptions<
+  Discriminator extends string = string,
+  IdType extends 'number' | 'string' = 'number' | 'string',
+  Nullable extends boolean = false,
+> = {
+  discriminator?: Discriminator;
+  defaultPolymorphic?: string;
+  polymorphicIdType: IdType;
+  isNullableId?: Nullable;
+};
+
+export type TTzEnricherOptions = {
+  created?: { columnName: string; withTimezone: boolean };
+  modified?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
+  deleted?: { enable: false } | { enable?: true; columnName: string; withTimezone: boolean };
+};
+
+export type TUserAuditColumnOpts = {
+  dataType: 'string' | 'number';
+  columnName: string;
+  allowAnonymous?: boolean;
+};
+
+export type TUserAuditEnricherOptions = {
+  created?: TUserAuditColumnOpts;
+  modified?: TUserAuditColumnOpts;
+};

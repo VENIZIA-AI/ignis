@@ -154,7 +154,7 @@ You can encapsulate your own logic or third-party integrations (like Socket.IO, 
 **Example (`SocketIOComponent`):**
 
 ```typescript
-import { BaseComponent, inject, CoreBindings, Binding } from '@venizia/ignis';
+import { BaseApplication, BaseComponent, inject, CoreBindings, Binding } from '@venizia/ignis';
 
 export class MySocketComponent extends BaseComponent {
   constructor(
@@ -171,7 +171,7 @@ export class MySocketComponent extends BaseComponent {
     });
   }
 
-  // The binding method is called during application startup (preConfigure)
+  // The binding method is called when the application configures components (registerComponents)
   override binding(): void {
     const options = this.application.get({ key: 'my.socket.options' });
     
@@ -254,19 +254,19 @@ export class Application extends BaseApplication {
   // Called after all registrations complete
   async postConfigure(): Promise<void> {
     // Access registered services
-    const userRepo = this.get<UserRepository>({
+    const userRepository = this.get<UserRepository>({
       key: BindingKeys.build({
         namespace: BindingNamespaces.REPOSITORY,
         key: UserRepository.name,
       }),
     });
 
-    // Seed initial data
-    const adminExists = await userRepo.findOne({
+    // Seed initial data (findOne returns the record or null)
+    const adminExists = await userRepository.findOne({
       filter: { where: { role: 'admin' } },
     });
-    if (!adminExists.data) {
-      await userRepo.create({ data: { name: 'Admin', role: 'admin' } });
+    if (!adminExists) {
+      await userRepository.create({ data: { name: 'Admin', role: 'admin' } });
     }
   }
 
@@ -307,22 +307,21 @@ const ServiceMixin = <T extends TMixinTarget<AbstractApplication>>(baseClass: T)
 |-------|---------------|---------|
 | `ServiceMixin` | `service()` | Register service classes |
 | `RepositoryMixin` | `repository()`, `dataSource()`, `registerDataSources()` | Register data layer |
-| `ControllerMixin` | `controller()` | Register HTTP controllers |
-| `ComponentMixin` | `component()` | Register modular components |
+| `ComponentMixin` | `component()`, `registerComponents()` | Register modular components |
 
 **Composing Mixins:**
 ```typescript
-// The framework composes mixins like this:
-class AbstractApplication extends ComponentMixin(
-  ControllerMixin(
-    ServiceMixin(
-      RepositoryMixin(BaseClass)
-    )
+// Compose mixins onto a custom application base class:
+class CustomApplication extends ComponentMixin(
+  ServiceMixin(
+    RepositoryMixin(AbstractApplication)
   )
 ) {
-  // Now has: service(), repository(), dataSource(), controller(), component()
+  // Now has: service(), repository(), dataSource(), component()
 }
 ```
+
+`BaseApplication` already implements the full registration surface (`service()`, `repository()`, `dataSource()`, `controller()`, `component()`, `booter()`) directly - the exported mixin functions exist for composing your own application base classes on top of `AbstractApplication`.
 
 **Why Mixins?**
 - Avoid "diamond inheritance" problems
@@ -337,13 +336,13 @@ class AbstractApplication extends ComponentMixin(
 **Basic Usage:**
 ```typescript
 const _Controller = ControllerFactory.defineCrudController({
-  entity: () => User,
+  entity: () => User, // Entity class or resolver function
   repository: { name: UserRepository.name },
   controller: {
     name: 'UserController',
     basePath: '/users',
-    isStrict: true,      // Enable strict validation
-    defaultLimit: 50,    // Default pagination limit
+    // Default: { path: true, requestSchema: true }
+    isStrict: { path: true, requestSchema: true },
   },
 });
 
@@ -366,14 +365,14 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: { name: 'UserController', basePath: '/users' },
 
   // Apply JWT to all routes by default
-  authStrategies: [Authentication.STRATEGY_JWT],
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] },
 
   // Override per-route
   routes: {
     // Public read endpoints
-    find: { skipAuth: true },
-    findById: { skipAuth: true },
-    count: { skipAuth: true },
+    find: { authenticate: { skip: true } },
+    findById: { authenticate: { skip: true } },
+    count: { authenticate: { skip: true } },
 
     // Protected write endpoints (use controller-level auth)
     create: {},
@@ -393,22 +392,26 @@ const _Controller = ControllerFactory.defineCrudController({
   routes: {
     // Custom request body schema for create
     create: {
-      authStrategies: [Authentication.STRATEGY_JWT],
-      requestBody: z.object({
-        email: z.string().email(),
-        name: z.string().min(2),
-        // Exclude sensitive fields from client input
-      }),
+      authenticate: { strategies: [Authentication.STRATEGY_JWT] },
+      request: {
+        body: z.object({
+          email: z.string().email(),
+          name: z.string().min(2),
+          // Exclude sensitive fields from client input
+        }),
+      },
     },
 
     // Custom response schema
     find: {
-      skipAuth: true,
-      schema: z.array(z.object({
-        id: z.string(),
-        name: z.string(),
-        // Exclude internal fields from response
-      })),
+      authenticate: { skip: true },
+      response: {
+        schema: z.array(z.object({
+          id: z.string(),
+          name: z.string(),
+          // Exclude internal fields from response
+        })),
+      },
     },
   },
 });
@@ -420,10 +423,13 @@ const _Controller = ControllerFactory.defineCrudController({
 |-------|--------|------|-------------|
 | `count` | GET | `/count` | Count records matching filter |
 | `find` | GET | `/` | List records with filter |
-| `findById` | GET | `/:id` | Get single record |
+| `findById` | GET | `/{id}` | Get single record |
 | `findOne` | GET | `/find-one` | Get first matching record |
 | `create` | POST | `/` | Create new record |
-| `updateById` | PATCH | `/:id` | Update record by ID |
+| `updateById` | PATCH | `/{id}` | Update record by ID |
 | `updateBy` | PATCH | `/` | Bulk update by filter |
-| `deleteById` | DELETE | `/:id` | Delete by ID |
+| `deleteById` | DELETE | `/{id}` | Delete by ID |
 | `deleteBy` | DELETE | `/` | Bulk delete by filter |
+
+> [!TIP]
+> `TDataObject`/`TPersistObject` cannot be inferred from `entity` - pass them explicitly for typed handlers: `ControllerFactory.defineCrudController<TUserRecord>({ ... })`. Use `controller.enabledRoutes` to whitelist routes and `controller.readonly` to disable all write routes.

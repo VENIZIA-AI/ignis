@@ -46,7 +46,7 @@ FROM oven/bun:1-slim
 WORKDIR /usr/src/app
 
 # Copy dependency files
-COPY package.json bun.lockb ./
+COPY package.json bun.lock ./
 
 # Install production dependencies
 RUN bun install --production --frozen-lockfile
@@ -109,7 +109,7 @@ services:
         condition: service_started
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health-check"]
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -225,7 +225,7 @@ Add health check endpoint for load balancers:
 this.component(HealthCheckComponent);
 ```
 
-Access at `/health-check` for liveness/readiness probes.
+Access at `/health` (default path, configurable) for liveness/readiness probes.
 
 ## 5. Build Debugging
 
@@ -273,30 +273,30 @@ Total time:        8.47s
 
 ### Force Update Strategy
 
-Keep dependencies in sync with the NPM registry using the force-update script:
+Keep dependencies in sync with the NPM registry using each package's force-update script (`packages/<name>/scripts/force-update.sh`, exposed as the `force-update` script in that package):
 
 ```bash
-# Update to latest stable versions
-./scripts/force-update.sh latest
+# Update to latest stable versions (from a package directory)
+bun run force-update latest
 
 # Update to pre-release versions (for testing new features)
-./scripts/force-update.sh next
+bun run force-update next
 ```
 
 **What it does:**
-1. Queries NPM registry for the specified tag (`latest` or `next`)
-2. Updates `package.json` with exact versions
-3. Applies to all `@venizia/*` packages
+1. Queries NPM registry for the specified tag (`latest`, `next`, or `highest`)
+2. Updates the package's `@venizia/*` dependencies in `package.json` with exact versions
 
 **When to use:**
 | Tag | Use Case |
 |-----|----------|
 | `latest` | Production deployments, stable releases |
 | `next` | Testing new features, pre-release validation |
+| `highest` | Highest released version by semver sort |
 
-**Makefile shortcuts:**
+**Makefile shortcuts (repo root):**
 ```bash
-make update           # Force update all packages (latest)
+make update           # Reinstall deps (postinstall runs force-update)
 make update-core      # Update only @venizia/ignis
 make update-helpers   # Update only @venizia/ignis-helpers
 ```
@@ -447,7 +447,7 @@ Railway provides simple deployments with automatic builds:
   },
   "deploy": {
     "startCommand": "bun run server:prod",
-    "healthcheckPath": "/health-check",
+    "healthcheckPath": "/health",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
@@ -495,7 +495,7 @@ primary_region = "sjc"
     interval = 10000
     grace_period = "5s"
     method = "get"
-    path = "/health-check"
+    path = "/health"
     protocol = "http"
     timeout = 2000
 ```
@@ -524,7 +524,7 @@ services:
         generateValue: true
       - key: APP_ENV_JWT_SECRET
         generateValue: true
-    healthCheckPath: /health-check
+    healthCheckPath: /health
     autoDeploy: true
 
 databases:
@@ -579,13 +579,13 @@ spec:
                   key: db-host
           livenessProbe:
             httpGet:
-              path: /health-check
+              path: /health
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 30
           readinessProbe:
             httpGet:
-              path: /health-check
+              path: /health
               port: 3000
             initialDelaySeconds: 5
             periodSeconds: 10
@@ -643,9 +643,9 @@ import { HealthCheckComponent } from '@venizia/ignis';
 this.component(HealthCheckComponent);
 ```
 
-**Endpoints:**
-- `GET /health-check` - Basic liveness check
-- `GET /health-check/ready` - Readiness (includes DB connection)
+**Endpoints (default path `/health`, configurable via component options):**
+- `GET /health` - Basic liveness check
+- `POST /health/ping` - Echo/ping check (send `{ "message": "..." }`, get a PONG back)
 
 ### Logging in Production
 
@@ -654,11 +654,12 @@ Configure structured logging:
 ```typescript
 import { LoggerFactory } from '@venizia/ignis-helpers';
 
-// Set log level via environment
-// APP_ENV_LOG_LEVEL=info (debug, info, warn, error)
+// Debug-level logs are gated by the DEBUG environment variable (DEBUG=true)
+// and the current NODE_ENV. File output is configured via APP_ENV_LOGGER_*
+// variables (e.g. APP_ENV_LOGGER_FOLDER_PATH, APP_ENV_LOGGER_FORMAT).
 
 const logger = LoggerFactory.getLogger(['MyService']);
-logger.info('Service started', { port: 3000, env: 'production' });
+logger.info('Service started | port: %d | env: %s', 3000, 'production');
 ```
 
 ### Metrics Collection
@@ -669,7 +670,7 @@ Add Prometheus metrics endpoint:
 // src/controllers/metrics.controller.ts
 @controller({ path: '/metrics' })
 export class MetricsController extends BaseRestController {
-  @get({ configs: { path: '/' } })
+  @get({ configs: { path: '/', responses: { 200: { description: 'Prometheus metrics' } } } })
   getMetrics(c: Context) {
     return c.text(`
 # HELP http_requests_total Total HTTP requests

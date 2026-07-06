@@ -136,10 +136,10 @@ class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 // ✅ Configuration-based instance creation
 class DatabaseProvider extends BaseProvider<Database> {
   value(container: Container): Database {
-    const config = container.get(ConfigService);
+    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
     return new Database({
-      host: config.get('DB_HOST'),
-      port: config.get('DB_PORT'),
+      host: config.host,
+      port: config.port,
     });
   }
 }
@@ -191,7 +191,6 @@ class OrderService extends BaseService {
 ```typescript
 import { BaseProvider } from '@venizia/ignis';
 import { Container } from '@venizia/ignis-inversion';
-import { injectable } from '@venizia/ignis-inversion';
 
 interface ILogger {
   log(message: string): void;
@@ -211,7 +210,6 @@ class FileLogger implements ILogger {
   }
 }
 
-@injectable()
 export class LoggerProvider extends BaseProvider<ILogger> {
   constructor() {
     super({ scope: LoggerProvider.name });
@@ -231,14 +229,25 @@ export class LoggerProvider extends BaseProvider<ILogger> {
 }
 ```
 
+Register the provider with `.toProvider()` - consumers then `get()` the **produced value**, not the provider instance (the container instantiates the provider and calls `value(container)` for you):
+
+```typescript
+// In your application (e.g. preConfigure)
+this.bind<ILogger>({ key: 'providers.Logger' }).toProvider(LoggerProvider);
+
+// Consumers receive the produced ILogger directly
+const logger = this.get<ILogger>({ key: 'providers.Logger' });
+```
+
 ### Factory Function Provider
 
 Providers can return factory functions for deferred instantiation:
 
 ```typescript
+import { getError } from '@venizia/ignis-helpers';
+
 type TGetMailTransportFn = (options: MailOptions) => IMailTransport;
 
-@injectable()
 export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   constructor() {
     super({ scope: MailTransportProvider.name });
@@ -255,14 +264,17 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
         case 'mailgun':
           return new MailgunTransport(options.config);
         default:
-          throw new Error(`Unknown provider: ${options.provider}`);
+          throw getError({ message: `Unknown provider: ${options.provider}` });
       }
     };
   }
 }
 
-// Usage
-const getTransport = app.get(MailTransportProvider).value(container);
+// Registration
+app.bind({ key: 'providers.MailTransport' }).toProvider(MailTransportProvider);
+
+// Usage - get() returns the factory function produced by value()
+const getTransport = app.get<TGetMailTransportFn>({ key: 'providers.MailTransport' });
 const transport = getTransport({ provider: 'nodemailer', config: {...} });
 ```
 
@@ -271,7 +283,6 @@ const transport = getTransport({ provider: 'nodemailer', config: {...} });
 Access other dependencies through the container:
 
 ```typescript
-@injectable()
 export class DatabaseProvider extends BaseProvider<Database> {
   constructor() {
     super({ scope: DatabaseProvider.name });
@@ -279,13 +290,11 @@ export class DatabaseProvider extends BaseProvider<Database> {
 
   value(container: Container): Database {
     // Resolve dependencies from container
-    const config = container.get(ConfigService);
-    const logger = container.get(LoggerService);
+    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
 
     const database = new Database({
-      host: config.get('DB_HOST'),
-      port: config.get('DB_PORT'),
-      logger: logger,
+      host: config.host,
+      port: config.port,
     });
 
     this.logger.info('[value] Database instance created');
@@ -303,51 +312,37 @@ Understanding the provider lifecycle helps you use them effectively.
 
 ```mermaid
 graph TD
-    A[Application Start] --> B[DI Container Scans Providers]
-    B --> C[Provider Instance Created]
-    C --> D[Provider Registered in Container]
-    D --> E[Application Calls provider.value]
+    A[Application Start] --> B[Binding Registered via toProvider]
+    B --> C[Consumer Calls container.get with key]
+    C --> D[Container Instantiates Provider Class]
+    D --> E[Container Calls provider.value container]
     E --> F[value Returns Factory/Instance]
     F --> G[Consumer Uses Returned Value]
-    G --> H{Need Another Instance?}
-    H -->|Yes| E
+    G --> H{Need the Value Again?}
+    H -->|Yes| C
     H -->|No| I[End]
 ```
 
 ### Key Points
 
-1. **Provider Instance Created Once**: The provider class itself is instantiated once by the DI container
-2. **`value()` Called When Needed**: The `value(container)` method is called when the application needs the produced value
-3. **Factory vs Instance**: Providers can return:
+1. **Registered via `.toProvider()`**: Providers are bound explicitly (`bind({ key }).toProvider(MyProvider)`), not auto-scanned
+2. **`value()` Called by the Container**: `container.get({ key })` instantiates the provider and calls `value(container)` - consumers receive the produced value, never the provider instance
+3. **Singleton Scope Caches the Produced Value**: With `.setScope(BindingScopes.SINGLETON)`, the container caches the result of `value()` and returns it on subsequent `get()` calls; with the default transient scope, `value()` runs on every `get()`
+4. **Factory vs Instance**: Providers can return:
    - Direct instances (created each time `value()` is called)
    - Factory functions (deferred creation)
-   - Singleton instances (same instance each time)
 
 ### Example: Singleton vs Factory
 
 ```typescript
-// Singleton: Same instance every time
-@injectable()
-export class SingletonDatabaseProvider extends BaseProvider<Database> {
-  private instance?: Database;
+// Singleton: value() runs once, produced instance is cached by the container
+app
+  .bind({ key: 'providers.Database' })
+  .toProvider(DatabaseProvider)
+  .setScope(BindingScopes.SINGLETON);
 
-  value(container: Container): Database {
-    if (!this.instance) {
-      this.instance = new Database({...});
-      this.logger.info('[value] Database singleton created');
-    }
-    return this.instance;
-  }
-}
-
-// Factory: New instance every time
-@injectable()
-export class FactoryDatabaseProvider extends BaseProvider<Database> {
-  value(container: Container): Database {
-    this.logger.info('[value] Creating new Database instance');
-    return new Database({...});
-  }
-}
+// Transient (default): value() runs on every get()
+app.bind({ key: 'providers.Database' }).toProvider(DatabaseProvider);
 ```
 
 
@@ -358,9 +353,8 @@ export class FactoryDatabaseProvider extends BaseProvider<Database> {
 From `packages/core/src/components/mail/providers/mail-transporter.provider.ts`:
 
 ```typescript
-type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
+export type TGetMailTransportFn = (options: TMailOptions) => IMailTransport;
 
-@injectable()
 export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
   constructor() {
     super({ scope: MailTransportProvider.name });
@@ -368,58 +362,59 @@ export class MailTransportProvider extends BaseProvider<TGetMailTransportFn> {
 
   value(_container: Container): TGetMailTransportFn {
     return (options: TMailOptions) => {
-      this.logger.info('[value] Creating mail transport: %s', options.provider);
+      this.logger
+        .for(this.value.name)
+        .info('Creating mail transport for provider: %s', options.provider);
 
       switch (options.provider) {
-        case MailProviders.NODEMAILER:
+        case MailProviders.NODEMAILER: {
           return this.createNodemailerTransport(options);
+        }
 
-        case MailProviders.MAILGUN:
+        case MailProviders.MAILGUN: {
           return this.createMailgunTransport(options);
+        }
 
-        case MailProviders.CUSTOM:
+        case MailProviders.CUSTOM: {
           return this.createCustomTransport(options);
+        }
 
-        default:
-          throw new Error(`Unsupported provider: ${options.provider}`);
+        default: {
+          throw getError({
+            statusCode: 500,
+            messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+            message: `Unsupported mail provider: ${options.provider}`,
+          });
+        }
       }
     };
   }
 
-  private createNodemailerTransport(options: INodemailerMailOptions) {
-    this.logger.info('[createNodemailerTransport] Initializing');
-    return new NodemailerTransportHelper(options.config);
-  }
-
-  private createMailgunTransport(options: IMailgunMailOptions) {
-    this.logger.info('[createMailgunTransport] Initializing');
-    return new MailgunTransportHelper(options.config);
-  }
-
-  private createCustomTransport(options: ICustomMailOptions) {
-    this.logger.info('[createCustomTransport] Using custom transport');
-    return options.config; // Already implements IMailTransport
-  }
+  // Each create* method validates the options shape (type guard) before constructing
+  // the transport helper, throwing MailErrorCodes.INVALID_CONFIGURATION on mismatch.
+  private createNodemailerTransport(options: TMailOptions): NodemailerTransportHelper { /* ... */ }
+  private createMailgunTransport(options: TMailOptions): MailgunTransportHelper { /* ... */ }
+  private createCustomTransport(options: TMailOptions): IMailTransport { /* ... */ }
 }
 ```
 
-**Usage:**
+**Usage** (how `MailComponent` registers and consumes it):
 
 ```typescript
-// In your service or application setup
-const getMailTransport = app.get(MailTransportProvider).value(container);
+// Registration - MailComponent.initProviders()
+this.application
+  .bind({ key: MailKeys.MAIL_TRANSPORT_PROVIDER })
+  .toProvider(MailTransportProvider)
+  .setScope('singleton');
 
-// Create Nodemailer transport
-const nodemailerTransport = getMailTransport({
-  provider: MailProviders.NODEMAILER,
-  config: { /* nodemailer config */ }
+// Consumption - MailComponent.createAndBindInstances()
+const transportGetter = this.application.get<TGetMailTransportFn>({
+  key: MailKeys.MAIL_TRANSPORT_PROVIDER,
 });
+const mailOptions = this.application.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
-// Create Mailgun transport
-const mailgunTransport = getMailTransport({
-  provider: MailProviders.MAILGUN,
-  config: { /* mailgun config */ }
-});
+const mailTransportInstance = transportGetter(mailOptions);
+this.application.bind({ key: MailKeys.MAIL_TRANSPORT_INSTANCE }).toValue(mailTransportInstance);
 ```
 
 ### Example 2: Queue Executor Provider
@@ -427,9 +422,8 @@ const mailgunTransport = getMailTransport({
 From `packages/core/src/components/mail/providers/mail-queue-executor.provider.ts`:
 
 ```typescript
-type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
+export type TGetMailQueueExecutorFn = (config: IMailQueueExecutorConfig) => IMailQueueExecutor;
 
-@injectable()
 export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecutorFn> {
   constructor() {
     super({ scope: MailQueueExecutorProvider.name });
@@ -437,22 +431,36 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
 
   value(_container: Container): TGetMailQueueExecutorFn {
     return (config: IMailQueueExecutorConfig) => {
-      this.logger.info('[value] Creating executor: %s', config.type);
+      this.logger
+        .for(this.value.name)
+        .info('Creating mail queue executor of type: %s', config.type);
 
       switch (config.type) {
-        case MailQueueExecutorTypes.DIRECT:
+        case MailQueueExecutorTypes.DIRECT: {
           return new DirectMailExecutorHelper();
+        }
 
-        case MailQueueExecutorTypes.INTERNAL_QUEUE:
+        case MailQueueExecutorTypes.INTERNAL_QUEUE: {
+          if (!config.internalQueue) {
+            throw getError({ message: 'Internal queue configuration is missing' });
+          }
+
           return new InternalQueueMailExecutorHelper({
             identifier: config.internalQueue.identifier,
           });
+        }
 
-        case MailQueueExecutorTypes.BULLMQ:
+        case MailQueueExecutorTypes.BULLMQ: {
+          if (!config.bullmq) {
+            throw getError({ message: 'BullMQ configuration is missing' });
+          }
+
           return new BullMQMailExecutorHelper(config.bullmq);
+        }
 
-        default:
-          throw new Error(`Unknown type: ${config.type}`);
+        default: {
+          throw getError({ message: `Unknown mail queue executor type: ${config.type}` });
+        }
       }
     };
   }
@@ -464,32 +472,42 @@ export class MailQueueExecutorProvider extends BaseProvider<TGetMailQueueExecuto
 Providers can also produce middleware. `RequestSpyMiddleware` is a real-world example that implements `IProvider<MiddlewareHandler>` directly (extending `BaseHelper`, not `BaseProvider`):
 
 ```typescript
-// From packages/core/src/base/middlewares/request-spy.middleware.ts
+// From packages/core/src/base/middlewares/request-spy/request-spy.middleware.ts
 export class RequestSpyMiddleware extends BaseHelper implements IProvider<MiddlewareHandler> {
   static readonly REQUEST_ID_KEY = 'requestId';
 
+  private isDebugMode: boolean;
+
   constructor() {
     super({ scope: 'SpyMW' });
+    this.isDebugMode = process.env.NODE_ENV?.toLowerCase() !== Environment.PRODUCTION;
   }
+
+  /** Parses request body based on Content-Type header. */
+  async parseBody(opts: { req: TContext['req'] }): Promise<unknown> { /* ... */ }
 
   /** Returns a Hono middleware that logs request details and duration. */
   value() {
     return createMiddleware(async (context, next) => {
       const t = performance.now();
       const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+      const clientIp = /* resolved from connection info or x-real-ip/x-forwarded-for */ '';
       const method = context.req.method;
       const path = context.req.path ?? '/';
+      const body = await this.parseBody(context);
 
-      this.logger.info('[%s][=>] %s %s', requestId, method, path);
+      this.logger.info('[%s][%s][=>] %s %s | query: %j | body: %j', requestId, clientIp, method, path, context.req.query(), body);
 
       await next();
 
       const duration = (performance.now() - t).toFixed(2);
-      this.logger.info('[%s][<=] %s %s | Took: %s (ms)', requestId, method, path, duration);
+      this.logger.info('[%s][%s][<=] %s %s | Took: %s (ms)', requestId, clientIp, method, path, duration);
     });
   }
 }
 ```
+
+See [Middlewares](./middlewares.md) for the full implementation (IP resolution, body-parsing rules, and production log redaction).
 
 Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter -- the `IProvider<T>` interface defines `value(container: Container): T`, but implementations may ignore the parameter when they don't need container access. In practice, `RequestSpyMiddleware` is registered via `RequestTrackerComponent`, which binds it as a provider in the DI container and resolves it automatically.
 
@@ -501,30 +519,25 @@ Note that `RequestSpyMiddleware.value()` does not accept a `container` parameter
 Validate configuration before creating instances:
 
 ```typescript
-@injectable()
 export class S3StorageProvider extends BaseProvider<S3Storage> {
   constructor() {
     super({ scope: S3StorageProvider.name });
   }
 
   value(container: Container): S3Storage {
-    const config = container.get(ConfigService);
-
-    const accessKey = config.get('AWS_ACCESS_KEY');
-    const secretKey = config.get('AWS_SECRET_KEY');
-    const bucket = config.get('AWS_S3_BUCKET');
+    const config = container.get<IS3Config>({ key: 'configs.s3' });
 
     // Validate configuration
-    if (!accessKey || !secretKey || !bucket) {
-      throw new Error('S3 configuration incomplete');
+    if (!config?.accessKey || !config?.secretKey || !config?.bucket) {
+      throw getError({ message: 'S3 configuration incomplete' });
     }
 
-    this.logger.info('[value] Creating S3 storage for bucket: %s', bucket);
+    this.logger.info('[value] Creating S3 storage for bucket: %s', config.bucket);
 
     return new S3Storage({
-      accessKeyId: accessKey,
-      secretAccessKey: secretKey,
-      bucket: bucket,
+      accessKeyId: config.accessKey,
+      secretAccessKey: config.secretKey,
+      bucket: config.bucket,
     });
   }
 }
@@ -532,18 +545,17 @@ export class S3StorageProvider extends BaseProvider<S3Storage> {
 
 ### Pattern 2: Lazy Singleton
 
-Create instance only once, lazily:
+Create instance only once, lazily (or simply bind with `.setScope(BindingScopes.SINGLETON)` and let the container cache the produced value):
 
 ```typescript
-@injectable()
 export class DatabaseConnectionProvider extends BaseProvider<DatabaseConnection> {
   private connection?: DatabaseConnection;
 
   value(container: Container): DatabaseConnection {
     if (!this.connection) {
       this.logger.info('[value] Creating database connection');
-      const config = container.get(ConfigService);
-      this.connection = new DatabaseConnection(config.get('DATABASE_URL'));
+      const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+      this.connection = new DatabaseConnection(config.url);
     } else {
       this.logger.debug('[value] Reusing existing connection');
     }
@@ -558,7 +570,6 @@ export class DatabaseConnectionProvider extends BaseProvider<DatabaseConnection>
 Select implementation based on environment:
 
 ```typescript
-@injectable()
 export class CacheProvider extends BaseProvider<ICache> {
   value(container: Container): ICache {
     const env = process.env.NODE_ENV;
@@ -570,10 +581,10 @@ export class CacheProvider extends BaseProvider<ICache> {
 
     if (env === 'production') {
       this.logger.info('[value] Using RedisCache for production');
-      const config = container.get(ConfigService);
+      const config = container.get<IRedisConfig>({ key: 'configs.redis' });
       return new RedisCache({
-        host: config.get('REDIS_HOST'),
-        port: config.get('REDIS_PORT'),
+        host: config.host,
+        port: config.port,
       });
     }
 
@@ -586,16 +597,15 @@ export class CacheProvider extends BaseProvider<ICache> {
 
 ## Common Pitfalls
 
-### Pitfall 1: Forgetting to Call `value()`
+### Pitfall 1: Expecting `get()` to Return the Provider Instance
 
 ```typescript
-// ❌ Wrong: Getting the provider instance
-const provider = app.get(MailTransportProvider);
-const transport = provider({ provider: 'nodemailer' }); // Error!
+// ❌ Wrong: Expecting the provider instance and calling value() yourself
+const provider = app.get<MailTransportProvider>({ key: 'providers.MailTransport' });
+const getTransport = provider.value(container); // provider is NOT the instance - this fails
 
-// ✅ Correct: Call value() first
-const provider = app.get(MailTransportProvider);
-const getTransport = provider.value(container);
+// ✅ Correct: get() already returns the produced value (the container calls value() for you)
+const getTransport = app.get<TGetMailTransportFn>({ key: 'providers.MailTransport' });
 const transport = getTransport({ provider: 'nodemailer' });
 ```
 
@@ -603,7 +613,6 @@ const transport = getTransport({ provider: 'nodemailer' });
 
 ```typescript
 // ❌ Wrong: Creating instances in constructor
-@injectable()
 export class BadProvider extends BaseProvider<Database> {
   private db: Database;
 
@@ -618,15 +627,14 @@ export class BadProvider extends BaseProvider<Database> {
 }
 
 // ✅ Correct: Create in value() method
-@injectable()
 export class GoodProvider extends BaseProvider<Database> {
   constructor() {
     super({ scope: GoodProvider.name });
   }
 
   value(container: Container): Database {
-    const config = container.get(ConfigService);
-    return new Database(config.get('DATABASE_URL'));
+    const config = container.get<IDatabaseConfig>({ key: 'configs.database' });
+    return new Database(config.url);
   }
 }
 ```
@@ -636,16 +644,15 @@ export class GoodProvider extends BaseProvider<Database> {
 ```typescript
 // ❌ Wrong: No error handling
 value(container: Container): IMailTransport {
-  return new MailTransport(config.get('MAIL_CONFIG')); // Might throw
+  return new MailTransport(container.get({ key: 'configs.mail' })); // Might throw
 }
 
 // ✅ Correct: Validate and handle errors
 value(container: Container): IMailTransport {
-  const config = container.get(ConfigService);
-  const mailConfig = config.get('MAIL_CONFIG');
+  const mailConfig = container.get<IMailConfig>({ key: 'configs.mail', isOptional: true });
 
   if (!mailConfig) {
-    throw new Error('Mail configuration is missing');
+    throw getError({ message: 'Mail configuration is missing' });
   }
 
   try {
@@ -682,7 +689,6 @@ value(container: Container): Service {
 
 ```typescript
 // Cache expensive operations
-@injectable()
 export class ConfigProvider extends BaseProvider<Config> {
   private cachedConfig?: Config;
 

@@ -120,7 +120,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@hono/zod-openapi": "^1.2.2",
-        "@venizia/ignis": "latest",
+        "@venizia/ignis": "workspace:*",
         "@venizia/ignis-helpers": "workspace:*",
         "dotenv-flow": "^4.1.0",
         "drizzle-orm": "^0.45.1",
@@ -134,7 +134,7 @@
         "@types/bun": "^1.3.9",
         "@types/lodash": "^4.17.23",
         "@types/pg": "^8.15.6",
-        "@venizia/dev-configs": "latest",
+        "@venizia/dev-configs": "workspace:*",
         "drizzle-kit": "^0.31.9",
         "eslint": "^9.39.3",
         "prettier": "^3.8.1",
@@ -196,6 +196,28 @@
         "eslint": "^9.39.3",
         "prettier": "^3.8.1",
         "tsc-alias": "^1.8.16",
+        "typescript": "^6.0.3",
+      },
+    },
+    "examples/typesense-search": {
+      "name": "typesense-search-example",
+      "version": "0.0.0",
+      "dependencies": {
+        "@hono/zod-openapi": "^1.4.0",
+        "@scalar/hono-api-reference": "^0.10.16",
+        "@venizia/ignis": "workspace:*",
+        "@venizia/ignis-boot": "workspace:*",
+        "@venizia/ignis-helpers": "workspace:*",
+        "@venizia/ignis-inversion": "workspace:*",
+        "hono": "^4.12.21",
+        "typesense": "^3.0.3",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@venizia/dev-configs": "workspace:*",
+        "eslint": "^10.5.0",
+        "prettier": "^3.8.4",
+        "tsc-alias": "^1.8.10",
         "typescript": "^6.0.3",
       },
     },
@@ -304,6 +326,7 @@
         "tsc-alias": "^1.8.17",
         "tsx": "^4.22.3",
         "typescript": "^6.0.3",
+        "typesense": "^3.0.3",
       },
       "peerDependencies": {
         "@asteasolutions/zod-to-openapi": "^8.5.0",
@@ -326,6 +349,7 @@
         "pg": "^8.21.0",
         "socket.io": "^4.8.1",
         "socket.io-client": "^4.8.1",
+        "typesense": "^3.0.3",
       },
       "optionalPeers": [
         "@connectrpc/connect",
@@ -342,6 +366,7 @@
         "pg",
         "socket.io",
         "socket.io-client",
+        "typesense",
       ],
     },
     "packages/dev-configs": {
@@ -402,7 +427,6 @@
         "socket.io-client": "^4.8.1",
         "tsc-alias": "^1.8.17",
         "typescript": "^6.0.3",
-        "typesense": "^3.0.3",
       },
       "peerDependencies": {
         "@platformatic/kafka": "^2.1.0",
@@ -2399,6 +2423,8 @@
 
     "typesense": ["typesense@3.0.6", "", { "dependencies": { "axios": "^1.15.0", "loglevel": "^1.9.2", "tslib": "^2.8.1" }, "peerDependencies": { "@babel/runtime": "^7.23.2" } }, "sha512-d3LL1qOLS8FCRxgAOqH+uDuK+VVA+/HYI1frU9fjYVwOg68mg/dX6XTtZ4yKKAkDCasB/se5uh/ZpMdOz/uJNg=="],
 
+    "typesense-search-example": ["typesense-search-example@workspace:examples/typesense-search"],
+
     "ufo": ["ufo@1.6.3", "", {}, "sha512-yDJTmhydvl5lJzBmy/hyOAA0d+aqCBuwl818haVdYCRrWV84o7YyeVm4QlVHStqNrrJSTb6jKuFAVqAFsr+K3Q=="],
 
     "uid2": ["uid2@1.0.0", "", {}, "sha512-+I6aJUv63YAcY9n4mQreLUt0d4lvwkkopDNmpomkAUz0fAkEMV9pRWxN0EjhW1YfRhcuyHg2v3mwddCDW1+LFQ=="],
@@ -2588,10 +2614,6 @@
     "@modelcontextprotocol/sdk/jose": ["jose@6.2.2", "", {}, "sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ=="],
 
     "@modelcontextprotocol/sdk/zod": ["zod@4.3.6", "", {}, "sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg=="],
-
-    "@nx/rpc-api-server/@venizia/dev-configs": ["@venizia/dev-configs@0.0.7", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.2", "eslint-plugin-unicorn": "^65.0.1" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0 || ^6.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-uk5u/41kxxIsNf3CJ3sT4NwKAUS2Yfiug5KubWxyBtdMqTCjIYiR5q1Zr7bOOyjDFumSorNBoAZdWtxY1aTIjg=="],
-
-    "@nx/rpc-api-server/@venizia/ignis": ["@venizia/ignis@0.0.9", "", { "dependencies": { "@venizia/ignis-boot": "^0.0.5", "@venizia/ignis-helpers": "^0.0.8", "@venizia/ignis-inversion": "^0.0.6", "lodash": "^4.18.1", "reflect-metadata": "^0.2.2" }, "peerDependencies": { "@asteasolutions/zod-to-openapi": "^8.5.0", "@connectrpc/connect": "^2.1.1", "@hono/node-server": "^2.0.3", "@hono/swagger-ui": "^0.6.1", "@hono/zod-openapi": "^1.4.0", "@scalar/hono-api-reference": "^0.10.16", "@socket.io/bun-engine": "^0.1.1", "@socket.io/redis-adapter": "^8.3.0", "@socket.io/redis-emitter": "^5.1.0", "bullmq": "^5.76.10", "casbin": "^5.50.0", "drizzle-orm": "^0.45.2", "drizzle-zod": "^0.8.3", "hono": "^4.12.21", "jose": "^6.2.3", "mailgun.js": "^13.0.1", "nodemailer": "^8.0.7", "pg": "^8.21.0", "socket.io": "^4.8.1", "socket.io-client": "^4.8.1" }, "optionalPeers": ["@connectrpc/connect", "@hono/node-server", "@hono/swagger-ui", "@scalar/hono-api-reference", "@socket.io/bun-engine", "@socket.io/redis-adapter", "@socket.io/redis-emitter", "bullmq", "casbin", "mailgun.js", "nodemailer", "pg", "socket.io", "socket.io-client"] }, "sha512-UoHysbONKxYWJJxM8K5i/U7of4LaOu/b+Hd2Q4YJ06cdZUgoipJnHCBoAhiwD+PiicjdswajvBC/HG0/IgRy5w=="],
 
     "@nx/rpc-api-server/eslint": ["eslint@9.39.4", "", { "dependencies": { "@eslint-community/eslint-utils": "^4.8.0", "@eslint-community/regexpp": "^4.12.1", "@eslint/config-array": "^0.21.2", "@eslint/config-helpers": "^0.4.2", "@eslint/core": "^0.17.0", "@eslint/eslintrc": "^3.3.5", "@eslint/js": "9.39.4", "@eslint/plugin-kit": "^0.4.1", "@humanfs/node": "^0.16.6", "@humanwhocodes/module-importer": "^1.0.1", "@humanwhocodes/retry": "^0.4.2", "@types/estree": "^1.0.6", "ajv": "^6.14.0", "chalk": "^4.0.0", "cross-spawn": "^7.0.6", "debug": "^4.3.2", "escape-string-regexp": "^4.0.0", "eslint-scope": "^8.4.0", "eslint-visitor-keys": "^4.2.1", "espree": "^10.4.0", "esquery": "^1.5.0", "esutils": "^2.0.2", "fast-deep-equal": "^3.1.3", "file-entry-cache": "^8.0.0", "find-up": "^5.0.0", "glob-parent": "^6.0.2", "ignore": "^5.2.0", "imurmurhash": "^0.1.4", "is-glob": "^4.0.0", "json-stable-stringify-without-jsonify": "^1.0.1", "lodash.merge": "^4.6.2", "minimatch": "^3.1.5", "natural-compare": "^1.4.0", "optionator": "^0.9.3" }, "peerDependencies": { "jiti": "*" }, "optionalPeers": ["jiti"], "bin": { "eslint": "bin/eslint.js" } }, "sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ=="],
 
@@ -2794,6 +2816,8 @@
     "through2/readable-stream": ["readable-stream@3.6.2", "", { "dependencies": { "inherits": "^2.0.3", "string_decoder": "^1.1.1", "util-deprecate": "^1.0.1" } }, "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="],
 
     "type-is/mime-types": ["mime-types@3.0.2", "", { "dependencies": { "mime-db": "^1.54.0" } }, "sha512-Lbgzdk0h4juoQ9fCKXW4by0UJqj+nOOrI9MJ1sSj4nI8aI2eo1qmvQEie4VD1glsS250n15LsWsYtCugiStS5A=="],
+
+    "typesense-search-example/@scalar/hono-api-reference": ["@scalar/hono-api-reference@0.10.20", "", { "dependencies": { "@scalar/client-side-rendering": "0.1.13" }, "peerDependencies": { "hono": "^4.12.5" } }, "sha512-/Ae0M9rOpsJJb5b121G8LX4vvBo1t2qFX1ffRKkTgCS9VWfpsfq11r0yBcYy1fmAn1x8YLO21Ls1/9h8LzHuDw=="],
 
     "vite/esbuild": ["esbuild@0.27.7", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.7", "@esbuild/android-arm": "0.27.7", "@esbuild/android-arm64": "0.27.7", "@esbuild/android-x64": "0.27.7", "@esbuild/darwin-arm64": "0.27.7", "@esbuild/darwin-x64": "0.27.7", "@esbuild/freebsd-arm64": "0.27.7", "@esbuild/freebsd-x64": "0.27.7", "@esbuild/linux-arm": "0.27.7", "@esbuild/linux-arm64": "0.27.7", "@esbuild/linux-ia32": "0.27.7", "@esbuild/linux-loong64": "0.27.7", "@esbuild/linux-mips64el": "0.27.7", "@esbuild/linux-ppc64": "0.27.7", "@esbuild/linux-riscv64": "0.27.7", "@esbuild/linux-s390x": "0.27.7", "@esbuild/linux-x64": "0.27.7", "@esbuild/netbsd-arm64": "0.27.7", "@esbuild/netbsd-x64": "0.27.7", "@esbuild/openbsd-arm64": "0.27.7", "@esbuild/openbsd-x64": "0.27.7", "@esbuild/openharmony-arm64": "0.27.7", "@esbuild/sunos-x64": "0.27.7", "@esbuild/win32-arm64": "0.27.7", "@esbuild/win32-ia32": "0.27.7", "@esbuild/win32-x64": "0.27.7" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-IxpibTjyVnmrIQo5aqNpCgoACA/dTKLTlhMHihVHhdkxKyPO1uBBthumT0rdHmcsk9uMonIWS0m4FljWzILh3w=="],
 
@@ -3197,6 +3221,8 @@
 
     "type-is/mime-types/mime-db": ["mime-db@1.54.0", "", {}, "sha512-aU5EJuIN2WDemCcAp2vFBfp/m4EAhWJnUNSSw0ixs7/kXbd6Pg64EmwJkNdFhB8aWt1sH2CTXrLxo/iAGV3oPQ=="],
 
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering": ["@scalar/client-side-rendering@0.1.13", "", { "dependencies": { "@scalar/schemas": "0.3.3", "@scalar/types": "0.12.3", "@scalar/validation": "0.6.0" } }, "sha512-p8V4HgEWjaCpqsnhclg1pTfjE9JA0AWRr0ocBQHexoHo+pqnSs1d83Mv9rjH7R0FZJrlCSandZZeY3DMX2gYXQ=="],
+
     "vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.27.7", "", { "os": "aix", "cpu": "ppc64" }, "sha512-EKX3Qwmhz1eMdEJokhALr0YiD0lhQNwDqkPYyPhiSwKrh7/4KRjQc04sZ8db+5DVVnZ1LmbNDI1uAMPEUBnQPg=="],
 
     "vite/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.27.7", "", { "os": "android", "cpu": "arm" }, "sha512-jbPXvB4Yj2yBV7HUfE2KHe4GJX51QplCN1pGbYjvsyCZbQmies29EoJbkEc+vYuU5o45AfQn37vZlyXy4YJ8RQ=="],
@@ -3517,6 +3543,10 @@
 
     "rpc-client-app/eslint/minimatch/brace-expansion": ["brace-expansion@1.1.13", "", { "dependencies": { "balanced-match": "^1.0.0", "concat-map": "0.0.1" } }, "sha512-9ZLprWS6EENmhEOpjCYW2c8VkmOvckIJZfkr7rBW6dObmfgJ/L1GpSYW5Hpo9lDz4D1+n0Ckz8rU7FwHDQiG/w=="],
 
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/schemas": ["@scalar/schemas@0.3.3", "", { "dependencies": { "@scalar/helpers": "0.8.1", "@scalar/validation": "0.6.0" } }, "sha512-qDcgFu6ta5Z90L9D2P6DFKzYesU+FW5+m55SGmdI4iRMRCwj5umHpec2Y2W/SJcCF6bbUZawMxuOH2Ja6rUNpQ=="],
+
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/types": ["@scalar/types@0.12.3", "", { "dependencies": { "@scalar/helpers": "0.8.1", "nanoid": "^5.1.6", "type-fest": "^5.3.1", "zod": "^4.3.5" } }, "sha512-7zaXafbgTFmsJ/9AwYeExUWzXoZNyKOL0SEVAUWRaOndcjxpFCtwzuPrc1elMEWdHopWbY1Qe5pWKbE2aqG2HA=="],
+
     "vitepress/vite/esbuild/@esbuild/aix-ppc64": ["@esbuild/aix-ppc64@0.21.5", "", { "os": "aix", "cpu": "ppc64" }, "sha512-1SDgH6ZSPTlggy1yI6+Dbkiz8xzpHJEVAlF/AM1tHPLsf5STom9rwtjE4hKAF20FfXXNTFqEYXyJNWh1GiZedQ=="],
 
     "vitepress/vite/esbuild/@esbuild/android-arm": ["@esbuild/android-arm@0.21.5", "", { "os": "android", "cpu": "arm" }, "sha512-vCPvzSjpPHEi1siZdlvAlsPxXl7WbOVUBBAowWug4rJHb68Ox8KualB+1ocNvT5fjv6wpkX6o/iEpbDrf68zcg=="],
@@ -3624,6 +3654,14 @@
     "grpc-test/eslint/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
 
     "rpc-client-app/eslint/minimatch/brace-expansion/balanced-match": ["balanced-match@1.0.2", "", {}, "sha512-3oSeUO0TMV67hN1AmbXsK4yaqU7tjiHlbxRDZOpH0KW9+CeX4bRAaX0Anxt0tx2MrpRpWwQaPwIlISEJhYU5Pw=="],
+
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/schemas/@scalar/helpers": ["@scalar/helpers@0.8.1", "", {}, "sha512-yuiuBCadP5bjAnIv23QvifVN/NaMi9xBF6b8Wdk4QOzwzLPJmp699MAdf33J0A5i2qKcvnu32iz/VkEJmQRe5g=="],
+
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/types/@scalar/helpers": ["@scalar/helpers@0.8.1", "", {}, "sha512-yuiuBCadP5bjAnIv23QvifVN/NaMi9xBF6b8Wdk4QOzwzLPJmp699MAdf33J0A5i2qKcvnu32iz/VkEJmQRe5g=="],
+
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/types/nanoid": ["nanoid@5.1.7", "", { "bin": { "nanoid": "bin/nanoid.js" } }, "sha512-ua3NDgISf6jdwezAheMOk4mbE1LXjm1DfMUDMuJf4AqxLFK3ccGpgWizwa5YV7Yz9EpXwEaWoRXSb/BnV0t5dQ=="],
+
+    "typesense-search-example/@scalar/hono-api-reference/@scalar/client-side-rendering/@scalar/types/type-fest": ["type-fest@5.5.0", "", { "dependencies": { "tagged-tag": "^1.0.0" } }, "sha512-PlBfpQwiUvGViBNX84Yxwjsdhd1TUlXr6zjX7eoirtCPIr08NAmxwa+fcYBTeRQxHo9YC9wwF3m9i700sHma8g=="],
 
     "vitepress/vue/@vue/compiler-dom/@vue/compiler-core/@babel/parser": ["@babel/parser@7.29.2", "", { "dependencies": { "@babel/types": "^7.29.0" }, "bin": "./bin/babel-parser.js" }, "sha512-4GgRzy/+fsBa72/RZVJmGKPmZu9Byn8o4MoLpmNe1m8ZfYnz5emHLQz3U4gLud6Zwl0RZIcgiLD7Uq7ySFuDLA=="],
   }

@@ -1,5 +1,4 @@
 import { IdType } from '@/base';
-import { IDataSource } from '@/base/datasources';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
 import {
@@ -8,10 +7,7 @@ import {
   AuthorizationPolicyVariants,
 } from '../common';
 import { BaseFilteredAdapter } from './base-filtered';
-import { type IScopedCasbinEntities } from './types';
-
-// Re-export so consumers can import the entity-mapping type straight from the adapter module.
-export type { IScopedCasbinEntities };
+import { ICasbinPolicySource, IScopedCasbinEntities } from './types';
 
 export interface IScopedCasbinPolicyFilter {
   principal: { type: string; id: IdType };
@@ -26,25 +22,18 @@ const DEFAULT_SCHEMA = 'public';
 export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
 
-  constructor(opts: { dataSource: IDataSource; entities: IScopedCasbinEntities }) {
+  constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities }) {
     super({ scope: ScopedCasbinAdapter.name, dataSource: opts.dataSource });
     this.entities = opts.entities;
   }
 
   /**
-   * Casbin's filtered-load entry point: build the full line set for ONE principal and load it into
-   * the model. Runs in two waves —
-   *   Wave 1 (parallel): the principal's own edges (role assignments → g, memberships → g2, direct
-   *     grants → p) plus the shared structural trees (role/resource/action/domain inherits).
-   *   Wave 2: expand the assigned roles to their transitive parents (role closure over role_inherits),
-   *     then fetch the grants those roles carry — so a user inherits permissions from parent roles.
-   * The concatenated lines are handed to {@link loadLines}; the enforcer caches the result per user
-   * in Redis, so this only runs on a cache MISS.
+   * Casbin's filtered-load entry point: builds the full line set for one principal (role assignments,
+   * memberships, direct grants, structural trees) then expands the role closure to fetch inherited grants.
    */
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void> {
     const { principal } = filter;
 
-    // Wave 1 — independent per-user queries + structural trees, in parallel.
     const [assignments, memberships, userGrants, structural] = await Promise.all([
       this.queryRoleAssignments({ principal }),
       this.queryMemberships({ principal }),
@@ -52,7 +41,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
       this.loadStructuralTrees(),
     ]);
 
-    // Wave 2 — role grants need the role closure (built from the role_inherits edges loaded above).
+    // Needs the role closure built above, so it can't join the batch of queries above.
     const roleClosure = this.expandRoleClosure({
       role: {
         ids: assignments.roleIds,
@@ -89,12 +78,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * `AND <alias>.<col> IS NULL` when soft-delete on; empty otherwise. The alias is emitted RAW (not
-   * quoted) so it matches the unquoted alias declared in the FROM clause (`FROM ... policyDefinition`):
-   * Postgres folds unquoted identifiers to lower-case, so a quoted `"policyDefinition"` would resolve
-   * to a DIFFERENT relation than the unquoted FROM alias → 42P01 "missing FROM-clause entry". The alias
-   * is always a hard-coded literal supplied by this adapter, never user input, so emitting it raw is
-   * safe; the (config-supplied) column name stays quoted via `sql.identifier`.
+   * `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. Alias is emitted raw (unquoted) to
+   * match the unquoted FROM alias — quoting it would fold to a different case and break the join.
    */
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;
@@ -106,10 +91,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Fetch the principal's `assign_role` edges and emit them as casbin `g` lines (role membership).
-   * Returns both the lines AND the raw `roleIds`, which Wave 2 feeds into {@link expandRoleClosure}.
-   * A null domain widens the assignment to every domain (`*`).
-   * e.g. `g, User_u1, Role_r1, *` — "u1 holds Role r1 in any domain".
+   * Fetch the principal's `assign_role` edges as casbin `g` lines, plus the raw `roleIds` for
+   * {@link expandRoleClosure}. A null domain widens the assignment to every domain (`*`).
    */
   protected async queryRoleAssignments(opts: {
     principal: { type: string; id: IdType };
@@ -147,9 +130,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Fetch the principal's `join_domain` edges (restricted to the configured `domainTypes`) and emit
-   * them as casbin `g2` lines — the membership relation the matcher uses to scope `ANY_MEMBER` grants.
-   * e.g. `g2, User_u1, Merchant_7` — "u1 is a member of Merchant 7".
+   * Fetch the principal's `join_domain` edges (restricted to `domainTypes`) as casbin `g2` lines —
+   * the membership relation the matcher uses to scope `ANY_MEMBER` grants.
    */
   protected async queryMemberships(opts: {
     principal: { type: string; id: IdType };
@@ -182,12 +164,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Fetch `grant` edges for the given subjects (a User or a set of Roles) joined to `Permission` for
-   * the object code, and emit them as casbin `p` policy lines. Used twice per load: once for the
-   * user's direct grants, once for the grants of every role in the closure. Rows with no `action` are
-   * skipped; a null effect defaults to allow, a null domain to `ANY_MEMBER`. Empty `ids` short-circuits
-   * without touching the DB.
-   * e.g. `p, Role_5, ANY_MEMBER, Order, read, allow` — "Role 5 may read Order in any joined domain".
+   * Fetch `grant` edges for the given subjects joined to `Permission`, as casbin `p` lines. Rows with
+   * no `action` are skipped; null effect defaults to allow, null domain to `ANY_MEMBER`.
    */
   protected async queryGrants(opts: {
     subject: { type: string; ids: IdType[] };
@@ -242,12 +220,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return lines;
   }
 
-  /**
-   * Load the system-wide hierarchy edges (role/resource/action/domain inherits) — read fresh on each
-   * call. These are the same for every user, but at this scale the four queries are cheap and run in
-   * the same parallel wave as the per-user queries; the per-user `lines` are themselves cached in Redis
-   * by the enforcer, so this only runs on a cache MISS. (No in-process cache → never goes stale.)
-   */
+  /** Load the system-wide hierarchy edges (role/resource/action/domain inherits), read fresh every call. */
   protected async loadStructuralTrees(): Promise<string[]> {
     const [roleEdges, resourceEdges, actionEdges, domainEdges] = await Promise.all([
       this.queryRoleInherits(),
@@ -259,11 +232,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     return [...roleEdges, ...resourceEdges, ...actionEdges, ...domainEdges];
   }
 
-  /**
-   * Shared role hierarchy: every `role_inherits` edge as a casbin `g` line with a wildcard domain.
-   * These are the SAME for all users (org structure, not a user) and also seed {@link expandRoleClosure}.
-   * e.g. `g, Role_r2, Role_r1, *` — "Role r2 inherits Role r1 in any domain".
-   */
+  /** Every `role_inherits` edge as a casbin `g` line with a wildcard domain; seeds {@link expandRoleClosure}. */
   protected async queryRoleInherits(): Promise<string[]> {
     const { policyDefinition, principals } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
@@ -285,10 +254,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Shared resource hierarchy: every `resource_inherits` edge as a casbin `g4` line, joining
-   * `Permission` twice (child + parent) to emit the resource CODES the `objectMatch` g4-func traverses.
-   * The `obj` axis — a permission on a parent resource also covers its children.
-   * e.g. `g4, OrderItem, Order` — "OrderItem is a child resource of Order".
+   * Every `resource_inherits` edge as a casbin `g4` line (resource codes, `obj` axis) — a permission
+   * on a parent resource also covers its children.
    */
   protected async queryResourceInherits(): Promise<string[]> {
     const { policyDefinition, permission } = this.entities;
@@ -311,10 +278,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Shared action hierarchy: every `action_inherits` edge as a casbin `g5` line. Same shape as
-   * resource_inherits but a DIFFERENT axis — the `act` axis (e.g. `manage` covers `read`/`update`).
-   * Kept separate so resource × action stays factored instead of exploding to R×A combined edges.
-   * e.g. `g5, read, manage` — "the read action is implied by manage".
+   * Every `action_inherits` edge as a casbin `g5` line (`act` axis, e.g. `manage` implies `read`).
+   * Kept separate from resource_inherits so resource x action doesn't explode into combined edges.
    */
   protected async queryActionInherits(): Promise<string[]> {
     const { policyDefinition } = this.entities;
@@ -333,11 +298,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     );
   }
 
-  /**
-   * Shared domain hierarchy: every `domain_inherits` edge as a casbin `g3` line, with typed
-   * `<type>_<id>` endpoints — lets a grant in a parent domain cascade to child domains.
-   * e.g. `g3, Branch_1, Company_2` — "Branch 1 sits under Company 2".
-   */
+  /** Every `domain_inherits` edge as a casbin `g3` line — lets a grant on a parent domain cascade down. */
   protected async queryDomainInherits(): Promise<string[]> {
     const { policyDefinition } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
@@ -368,11 +329,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const { role } = this.entities.principals;
     const prefix = `${role}_`;
 
-    // Build child → parents map from "g, Role_<child>, Role_<parent>, *" lines.
     const parentsOf = new Map<string, string[]>();
 
     for (const line of opts.role.edges) {
-      const parts = line.split(',').map(s => s.trim()); // ['g','Role_child','Role_parent','*']
+      const parts = line.split(',').map(s => s.trim());
       if (parts[0] !== AuthorizationPolicyVariants.ROLE_INHERITS.rule || parts.length < 3) {
         continue;
       }

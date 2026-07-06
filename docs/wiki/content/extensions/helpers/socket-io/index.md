@@ -92,7 +92,7 @@ A discriminated union based on the `runtime` field:
 | `runtime` | `'node' \| 'bun'` | -- | Runtime environment. Determines which server field is required |
 | `server` | `HTTPServer` | -- | Node.js HTTP server instance. **Required when `runtime` is `'node'`** |
 | `engine` | `any` | -- | `@socket.io/bun-engine` Server instance. **Required when `runtime` is `'bun'`** |
-| `serverOptions` | `Partial<ServerOptions>` | `{}` | Socket.IO `ServerOptions` (cors, path, transports, etc.) |
+| `serverOptions` | `Partial<ServerOptions>` | -- | **Required by the type.** Socket.IO `ServerOptions` (cors, path, transports, etc.). Pass `{}` when no options are needed; nullish values fall back to `{}` at runtime |
 | `redisConnection` | `IRedisHelper` | -- | **Required.** Redis helper used to create pub, sub, and emitter clients |
 | `authenticateFn` | `TSocketIOAuthenticateFn` | -- | **Required.** Called with the client's handshake data. Return `true` to accept, `false` to reject |
 | `validateRoomFn` | `TSocketIOValidateRoomFn` | `undefined` | Called when a client requests to join rooms. Return the allowed subset |

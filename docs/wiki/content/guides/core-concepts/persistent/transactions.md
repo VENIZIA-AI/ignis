@@ -2,6 +2,9 @@
 
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
+> [!NOTE] PostgreSQL-only capability
+> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense and memory connectors inherit the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on them throws a `501 Not Implemented` (`messageCode: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+
 ## Using Transactions
 
 To use transactions, start one from a datasource (via the repository's `beginTransaction` method), and then pass it to subsequent operations via the `options` parameter.
@@ -14,8 +17,8 @@ const tx = await userRepo.beginTransaction({
 
 try {
   // 2. Pass transaction to operations
-  // Create user
-  const user = await userRepo.create({
+  // Create user (write methods return a { count, data } envelope)
+  const { data: user } = await userRepo.create({
     data: userData,
     options: { transaction: tx }
   });
@@ -40,11 +43,11 @@ try {
 
 ## Transaction Object
 
-The transaction object returned by `beginTransaction()` has the following properties:
+`beginTransaction()` returns an `IDatabaseTransaction` with the following properties:
 
 | Property/Method | Type | Description |
 | :--- | :--- | :--- |
-| `connector` | `TNodePostgresConnector` | A Drizzle connector bound to the transaction's database client |
+| `connector` | `TNodePostgresTransactionConnector` | A Drizzle connector bound to the transaction's `PoolClient` |
 | `isolationLevel` | `TIsolationLevel` | The isolation level of this transaction |
 | `isActive` | `boolean` | Whether the transaction is still active (not yet committed/rolled back) |
 | `commit()` | `Promise<void>` | Commit the transaction and release the connection |
@@ -63,7 +66,7 @@ IGNIS supports standard PostgreSQL isolation levels:
 | `SERIALIZABLE` | Strictest level. Emulates serial execution. | Financial transactions, critical data integrity. |
 
 > [!NOTE]
-> IGNIS only supports these three levels. `READ UNCOMMITTED` is **not** accepted - PostgreSQL treats it as `READ COMMITTED` anyway, so IGNIS omits it to avoid confusion.
+> IGNIS only supports these three levels. The fourth SQL-standard level (uncommitted reads) is **not** accepted - PostgreSQL treats it as `READ COMMITTED` anyway, so IGNIS omits it to avoid confusion.
 
 ## Best Practices
 
@@ -73,7 +76,7 @@ IGNIS supports standard PostgreSQL isolation levels:
 
 ```typescript
 // Service method supporting transactions
-async createInitialOrder(opts: { userId: string; transaction?: ITransaction }) {
+async createInitialOrder(opts: { userId: string; transaction?: IDatabaseTransaction }) {
   return this.orderRepository.create({
     data: { userId: opts.userId, status: 'PENDING' },
     options: { transaction: opts.transaction } // Forward the transaction
@@ -99,12 +102,12 @@ export class OrderService extends BaseService {
   async createOrderWithItems(opts: {
     orderData: TOrderCreate;
     items: TOrderItemCreate[];
-    transaction?: ITransaction;
+    transaction?: IDatabaseTransaction;
   }) {
     const { orderData, items, transaction } = opts;
 
     // Create order
-    const order = await this._orderRepository.create({
+    const { data: order } = await this._orderRepository.create({
       data: orderData,
       options: { transaction },
     });
@@ -138,7 +141,7 @@ export class OrderController extends BaseRestController {
 
   @post({ configs: OrderRoutes.CREATE })
   async createOrder(c: TRouteContext) {
-    const body = c.req.valid<{ order: any; items: any[] }>('json');
+    const body = await c.req.json<{ order: TOrderCreate; items: TOrderItemCreate[] }>();
 
     const tx = await this._orderRepository.beginTransaction({
       isolationLevel: 'SERIALIZABLE',
@@ -166,12 +169,15 @@ export class OrderController extends BaseRestController {
 When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` (a Drizzle instance bound to the transaction's `PoolClient`) instead of the default datasource connector. This ensures all operations within the transaction use the same database connection and see a consistent view of the data.
 
 ```typescript
-// Inside AbstractRepository (simplified)
-protected resolveConnector(opts?: { transaction?: ITransaction }) {
-  if (opts?.transaction) {
-    return opts.transaction.connector;
+// Inside PostgresBaseRepository (simplified)
+protected resolveConnector(opts?: { transaction?: IDatabaseTransaction }) {
+  if (!opts?.transaction) {
+    return this.dataSource.connector;
   }
-  return this.dataSource.connector;
+
+  // Throws if the transaction has already been committed/rolled back,
+  // or if it is not a postgres transaction.
+  return opts.transaction.connector;
 }
 ```
 

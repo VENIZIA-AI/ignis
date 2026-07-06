@@ -1,9 +1,10 @@
+import { AbstractEntity } from '@/base/models';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
 import { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
-import { AnyType, IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
+import { AnyType, IConfigurable, TClass, TResolver, ValueOrPromise } from '@venizia/ignis-helpers';
 import type { TypedResponse } from 'hono';
 import { Context, Env, Schema } from 'hono';
 import { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
@@ -185,4 +186,38 @@ export interface ICustomizableRoutes<
   updateBy?: RouteConfig;
   deleteById?: RouteConfig;
   deleteBy?: RouteConfig;
+}
+
+/** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
+export interface ICrudControllerOptions<Routes extends ICustomizableRoutes = ICustomizableRoutes> {
+  /** Entity class or resolver function returning the entity class */
+  entity: TClass<AbstractEntity> | TResolver<TClass<AbstractEntity>>;
+
+  /** Repository binding configuration */
+  repository: {
+    name: string; // Repository binding name in the IoC container
+  };
+
+  controller: {
+    name: string;
+    basePath: string;
+    readonly?: boolean;
+
+    /** Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set. */
+    enabledRoutes?: Array<keyof ICustomizableRoutes>;
+
+    isStrict?: {
+      path?: boolean;
+      requestSchema?: boolean;
+    };
+  };
+
+  /** Authentication config applied to all routes (unless overridden per-route). */
+  authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
+  /** Authorization config applied to all routes (unless overridden per-route). */
+  authorize?: IAuthorizationSpec | IAuthorizationSpec[];
+
+  /** Per-route configuration combining schema and auth overrides. */
+  routes?: Routes;
 }

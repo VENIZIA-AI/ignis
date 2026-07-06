@@ -1,5 +1,5 @@
 import {
-  BaseController,
+  BaseRestController,
   controller,
   htmlContent,
   type IControllerOptions,
@@ -10,7 +10,7 @@ import { AboutPage } from '@/views/pages/about.page';
 import { HomePage } from '@/views/pages/home.page';
 
 @controller({ path: '/' })
-export class ViewController extends BaseController {
+export class ViewController extends BaseRestController {
   constructor(opts: IControllerOptions) {
     super({
       ...opts,

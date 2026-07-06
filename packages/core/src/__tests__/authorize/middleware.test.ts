@@ -59,7 +59,7 @@ describe('Enforcer Registry Middleware Flow', () => {
       container,
       enforcers: [
         {
-          enforcer: TestAuthorizationEnforcer as any,
+          enforcer: TestAuthorizationEnforcer,
           name: 'test',
           type: AuthorizationEnforcerTypes.CUSTOM,
         },
@@ -251,7 +251,7 @@ describe('Enforcer Registry Middleware Flow', () => {
       });
 
       const context = createMockContext({
-        user: { userId: 'user_bad_roles', roles: 'not-an-array' as any },
+        user: { userId: 'user_bad_roles', roles: 'not-an-array' },
       });
 
       const { hasCalledNext, error } = await runMiddleware(middleware, context);
@@ -741,7 +741,7 @@ describe('Enforcer Registry Middleware Flow', () => {
         container,
         enforcers: [
           {
-            enforcer: TestAuthorizationEnforcer as any,
+            enforcer: TestAuthorizationEnforcer,
             name: 'test',
             type: AuthorizationEnforcerTypes.CUSTOM,
           },

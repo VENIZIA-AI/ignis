@@ -64,7 +64,7 @@ const chunkSize = 500;
 const results = [];
 for (let i = 0; i < allIds.length; i += chunkSize) {
   const chunk = allIds.slice(i, i + chunkSize);
-  const chunkResults = await repo.find({
+  const chunkResults = await repository.find({
     filter: { where: { id: { in: chunk } } }
   });
   results.push(...chunkResults);

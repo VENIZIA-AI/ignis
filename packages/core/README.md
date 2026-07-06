@@ -34,11 +34,13 @@ IGNIS brings together the structured, enterprise development experience of **Loo
 ```typescript
 import {
   BaseApplication,       // Your app extends this
-  BaseRestController,        // Controllers extend this
-  DefaultCRUDRepository, // Repositories extend this
-  BaseEntity,            // Models extend this
-  BaseDataSource,        // DataSources extend this
+  BaseRestController,    // Controllers extend this
 } from '@venizia/ignis';
+import {
+  DefaultCRUDRepository, // Repositories extend this
+  BasePostgresEntity,            // Models extend this
+  BasePostgresDataSource,        // DataSources extend this
+} from '@venizia/ignis/postgres';
 ```
 
 ---
@@ -53,6 +55,8 @@ import {
 - [Repositories](#repositories)
 - [Models](#models)
 - [DataSources](#datasources)
+- [Search](#search)
+- [Memory Connector](#memory-connector)
 - [Services](#services)
 - [Components](#components)
 - [Request Context](#request-context)
@@ -63,6 +67,7 @@ import {
 - [Real-World Patterns](#real-world-patterns)
 - [Testing](#testing)
 - [Performance Tips](#performance-tips)
+- [Documentation](#documentation)
 - [License](#license)
 
 ---
@@ -104,6 +109,12 @@ bun add casbin
 
 # Email
 bun add nodemailer mailgun.js
+
+# Search (Typesense)
+bun add typesense
+
+# gRPC controller transport
+bun add @connectrpc/connect
 ```
 
 ---
@@ -114,7 +125,8 @@ bun add nodemailer mailgun.js
 
 ```typescript
 // models/user.model.ts
-import { BaseEntity, model, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
 import { pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({
@@ -123,7 +135,7 @@ import { pgTable, text } from 'drizzle-orm/pg-core';
     hiddenProperties: ['password'],
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),
@@ -140,7 +152,8 @@ export class User extends BaseEntity<typeof User.schema> {
 
 ```typescript
 // datasources/postgres.datasource.ts
-import { BaseDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -150,10 +163,14 @@ interface IDSConfigs {
   database: string;
   user: string;
   password: string;
+  // Optional pg Pool tuning (see "Complete DataSource Configuration" below)
+  max?: number;
+  idleTimeoutMillis?: number;
+  connectionTimeoutMillis?: number;
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -185,7 +202,8 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
 
 ```typescript
 // repositories/user.repository.ts
-import { PersistableRepository, repository } from '@venizia/ignis';
+import { repository } from '@venizia/ignis';
+import { PersistableRepository } from '@venizia/ignis/postgres';
 import { User } from '../models/user.model';
 import { PostgresDataSource } from '../datasources/postgres.datasource';
 
@@ -201,7 +219,7 @@ export class UserRepository extends PersistableRepository<typeof User.schema> {
 // controllers/user.controller.ts
 import {
   BaseRestController, controller, get, post,
-  inject, jsonContent, jsonResponse, HTTP, TRouteContext,
+  inject, jsonContent, jsonResponse, TRouteContext,
 } from '@venizia/ignis';
 import { z } from '@hono/zod-openapi';
 import { UserRepository } from '../repositories/user.repository';
@@ -209,7 +227,7 @@ import { UserRepository } from '../repositories/user.repository';
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
+    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
   ) {
     super({ scope: UserController.name });
   }
@@ -225,7 +243,7 @@ export class UserController extends BaseRestController {
     },
   })
   async listUsers(context: TRouteContext) {
-    const users = await this.userRepo.find({ filter: {} });
+    const users = await this.userRepository.find({ filter: {} });
     return context.json(users, 200);
   }
 
@@ -245,7 +263,7 @@ export class UserController extends BaseRestController {
   })
   async createUser(context: TRouteContext) {
     const body = context.req.valid<{ username: string; email: string; password: string }>('json');
-    const result = await this.userRepo.create({ data: body });
+    const result = await this.userRepository.create({ data: body });
     return context.json(result, 200);
   }
 }
@@ -352,7 +370,7 @@ app.start();
 
 **`registerComponents()`** -- Iterates all bindings tagged `components`, calls `configure()` on each. Components can register additional datasources during their configuration (the method re-fetches bindings after each component to pick up dynamically added datasources).
 
-**`registerControllers()`** -- Iterates all bindings tagged `controllers`. For each: validates that `@controller` metadata has a `path`, calls `configure()` (which triggers `binding()` and `registerRoutesFromRegistry()`), then mounts the controller's router at its configured path on the root router.
+**`registerControllers()`** -- Dispatches per configured transport (`configs.transports`, default `['rest']`): a `RestComponent` handles REST controllers (validates that `@controller` metadata has a `path`, calls `configure()` -- which triggers `binding()` and `registerRoutesFromRegistry()` -- then mounts the controller's router at its configured path on the root router), and, when `'grpc'` is included, a `GrpcComponent` handles gRPC controllers. A gRPC controller discovered without `'grpc'` in `transports` is logged as an error and skipped.
 
 ### Key Application Methods
 
@@ -456,13 +474,15 @@ The runtime is detected via `RuntimeModules.detect()` which checks for the prese
 
 ```typescript
 interface IApplicationConfigs {
-  host?: string;           // Server host (default: 'localhost' or APP_ENV_SERVER_HOST env)
+  host?: string;           // Server host (default: 'localhost' or APP_ENV_SERVER_HOST/HOST env)
   port?: number;           // Server port (default: 3000 or PORT/APP_ENV_SERVER_PORT env)
 
   path: {
     base: string;          // Base path for all routes (e.g., '/api')
-    isStrict: boolean;     // When true, '/users' and '/users/' are different routes
+    isStrict: boolean;     // Currently unused -- see strictPath below
   };
+
+  strictPath?: boolean;    // When true (default), '/users' and '/users/' are different routes
 
   requestId?: {
     isStrict: boolean;     // Enforce request ID on all requests
@@ -480,11 +500,15 @@ interface IApplicationConfigs {
 
   bootOptions?: IBootOptions;  // Convention-based auto-discovery options
 
+  transports?: ('rest' | 'grpc')[];  // Controller transports to enable (default: ['rest'])
+
   debug?: {
     shouldShowRoutes?: boolean;  // Print all registered routes on startup
   };
 }
 ```
+
+**Note:** the actual Hono strict-routing flag is read from the top-level `strictPath` (defaulting to `true`), not from `path.isStrict` -- `path.isStrict` is declared on the type but not currently read anywhere.
 
 ```typescript
 interface IApplicationInfo {
@@ -510,7 +534,7 @@ All controllers extend `BaseRestController`, which provides:
 - Zod-based request validation with automatic 422 error responses
 
 ```typescript
-abstract class BaseRestController extends AbstractController {
+abstract class BaseRestController extends AbstractRestController {
   // Register routes -- override this method
   abstract binding(): ValueOrPromise<void>;
 
@@ -538,7 +562,7 @@ Use `@get`, `@post`, `@put`, `@patch`, `@del`, or the generic `@api` decorators.
 @controller({ path: '/products' })
 class ProductController extends BaseRestController {
   constructor(
-    @inject({ key: 'repositories.ProductRepository' }) private productRepo: ProductRepository,
+    @inject({ key: 'repositories.ProductRepository' }) private productRepository: ProductRepository,
     @inject({ key: 'services.InventoryService' }) private inventoryService: InventoryService,
   ) {
     super({ scope: ProductController.name });
@@ -562,7 +586,7 @@ class ProductController extends BaseRestController {
     },
   })
   async list(context: TRouteContext) {
-    const products = await this.productRepo.find({
+    const products = await this.productRepository.find({
       filter: { order: ['createdAt DESC'], limit: 20 },
     });
     return context.json(products, 200);
@@ -586,7 +610,7 @@ class ProductController extends BaseRestController {
   })
   async getById(context: TRouteContext) {
     const { id } = context.req.valid<{ id: number }>('param');
-    const product = await this.productRepo.findById({ id });
+    const product = await this.productRepository.findById({ id });
     if (!product) {
       return context.json({ message: 'Product not found' }, 404);
     }
@@ -620,7 +644,7 @@ class ProductController extends BaseRestController {
       category: string;
       description?: string;
     }>('json');
-    const result = await this.productRepo.create({ data });
+    const result = await this.productRepository.create({ data });
     return context.json(result, 200);
   }
 }
@@ -640,7 +664,7 @@ override binding() {
       responses: jsonResponse({ schema: z.array(ProductSchema) }),
     },
     handler: async (context) => {
-      const products = await this.productRepo.find({ filter: {} });
+      const products = await this.productRepository.find({ filter: {} });
       return context.json(products, 200);
     },
   });
@@ -656,7 +680,7 @@ override binding() {
     },
     handler: async (context) => {
       const { id } = context.req.valid<{ id: number }>('param');
-      const result = await this.productRepo.deleteById({ id });
+      const result = await this.productRepository.deleteById({ id });
       return context.json(result, 200);
     },
   });
@@ -679,7 +703,7 @@ override binding() {
   }).to({
     handler: async (context) => {
       const { id } = context.req.valid<{ id: number }>('param');
-      const product = await this.productRepo.findById({ id });
+      const product = await this.productRepository.findById({ id });
       return context.json(product, 200);
     },
   });
@@ -703,7 +727,7 @@ This means you never manually wire auth middleware -- it is all declarative.
 You can pass additional Hono middleware to any route:
 
 ```typescript
-import { rateLimiter } from 'hono/rate-limiter';
+import { rateLimiter } from 'hono-rate-limiter'; // separate package -- Hono ships no built-in rate limiter
 import { cors } from 'hono/cors';
 
 @post({
@@ -737,6 +761,7 @@ Routes automatically validate request parameters, query strings, headers, and bo
           age: z.number().int().min(18, 'Must be at least 18'),
           role: z.enum(['admin', 'user', 'moderator']),
         }),
+        description: 'New user data',
       }),
       query: z.object({
         dryRun: z.string().optional().transform(v => v === 'true'),
@@ -760,17 +785,22 @@ On validation failure, the error handler returns:
 
 ```json
 {
-  "message": "ValidationError",
+  "message": "Invalid email format",
+  "messageCode": "invalid_format",
   "statusCode": 422,
   "requestId": "abc-123",
   "details": {
+    "url": "http://localhost:3000/api/users",
+    "path": "/api/users",
     "cause": [
-      { "path": "email", "message": "Invalid email format", "code": "invalid_string" },
+      { "path": "email", "message": "Invalid email format", "code": "invalid_format" },
       { "path": "age", "message": "Must be at least 18", "code": "too_small" }
     ]
   }
 }
 ```
+
+Top-level `message`/`messageCode` come from the first Zod issue (or a schema-supplied `params.code`, if present); `"ValidationError"` is only used as a fallback when no issue list can be parsed at all. `details.stack` is included alongside `cause` outside production.
 
 ### Accessing Hono Context
 
@@ -866,6 +896,7 @@ this.defineJSXRoute({
     method: 'get',
     description: 'User profile page',
     authenticate: { strategies: ['jwt'] },
+    responses: htmlResponse({ description: 'Rendered profile page' }),
   },
   handler: (context) => {
     const user = context.get('auth.current.user');
@@ -878,7 +909,7 @@ this.defineJSXRoute({
 
 | Decorator | Description |
 | --- | --- |
-| `@controller({ path, authenticate? })` | Class decorator -- registers controller path and optional default auth |
+| `@controller({ path })` | Class decorator -- registers controller base path |
 | `@get({ configs })` | GET route -- method is set automatically |
 | `@post({ configs })` | POST route |
 | `@put({ configs })` | PUT route |
@@ -974,7 +1005,7 @@ Each generated endpoint includes:
 - Conditional count response via `x-request-count` header -- send `x-request-count: false` to get data only without the wrapping `{ count, data }` object.
 - Content-Range header for paginated find results (e.g., `records 0-19/150`).
 - Authentication and authorization middleware from controller-level or route-level config.
-- `X-Response-Count-Data` response header with the count of returned records.
+- `X-Response-Count` response header with the count of returned records.
 
 #### Customizing Controller Factory Routes
 
@@ -1007,17 +1038,22 @@ routes: {
 ### Hierarchy
 
 ```
-AbstractRepository
-  extends DefaultFilterMixin(FieldsVisibilityMixin(BaseHelper))
+AbstractRepository<TDataObject, TPersistObject, TOptions>
+  extends BaseHelper                     (engine-neutral: lazy dataSource/entity resolution, class-keyed
+  |                                        @model settings getters -- hiddenFields/defaultWhere/defaultLimit --
+  |                                        all CRUD verbs abstract)
   |
-  +-- ReadableRepository        (read operations only -- write operations throw errors)
-  |     |
-  |     +-- PersistableRepository   (+ create, update, delete operations)
-  |           |
-  |           +-- DefaultCRUDRepository  (alias -- identical to PersistableRepository)
+  +-- PostgresBaseRepository              (+ FilterBuilder, hidden-column query/RETURNING plumbing, drizzle wiring)
+        |
+        +-- ReadableRepository        (read operations only -- write operations throw errors)
+              |
+              +-- PersistableRepository   (+ create, update, delete operations)
+                    |
+                    +-- DefaultCRUDRepository  (alias -- identical to PersistableRepository)
+                    +-- SoftDeletableRepository (extends DefaultCRUDRepository -- soft-delete semantics)
 ```
 
-`PersistableRepository` is the recommended base class for most use cases. `DefaultCRUDRepository` is a convenience alias. Use `ReadableRepository` when you need a repository that should only read data (e.g., reporting views, read replicas).
+`AbstractRepository` is the single engine-neutral base every connector's hierarchy extends directly -- the search branch (Typesense) re-parents its own `TypesenseBaseRepository` onto it the same way. `PersistableRepository` is the recommended base class for most use cases. `DefaultCRUDRepository` is a convenience alias. Use `ReadableRepository` when you need a repository that should only read data (e.g., reporting views, read replicas).
 
 ### Defining a Repository
 
@@ -1061,10 +1097,10 @@ export class UserRepository extends PersistableRepository<typeof User.schema> {
 
 ```typescript
 // Simple count
-const { count } = await repo.count({ where: { status: 'active' } });
+const { count } = await repository.count({ where: { status: 'active' } });
 
 // Count with complex conditions
-const { count } = await repo.count({
+const { count } = await repository.count({
   where: {
     and: [
       { role: { inq: ['admin', 'moderator'] } },
@@ -1075,7 +1111,7 @@ const { count } = await repo.count({
 });
 
 // Count within a transaction
-const { count } = await repo.count({
+const { count } = await repository.count({
   where: { status: 'pending' },
   options: { transaction: tx },
 });
@@ -1084,7 +1120,7 @@ const { count } = await repo.count({
 #### `existsWith()` -- Check Existence
 
 ```typescript
-const emailTaken = await repo.existsWith({
+const emailTaken = await repository.existsWith({
   where: { email: 'john@example.com' },
 });
 
@@ -1097,7 +1133,7 @@ if (emailTaken) {
 
 ```typescript
 // Basic find with filter
-const users = await repo.find({
+const users = await repository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'name', 'email'],
@@ -1108,7 +1144,7 @@ const users = await repo.find({
 });
 
 // Find with pagination range info
-const { data, range } = await repo.find({
+const { data, range } = await repository.find({
   filter: { where: { status: 'active' }, limit: 20, skip: 40 },
   options: { shouldQueryRange: true },
 });
@@ -1116,7 +1152,7 @@ const { data, range } = await repo.find({
 // range = { start: 40, end: 59, total: 150 }
 
 // Find with relation inclusion (uses Query API)
-const usersWithPosts = await repo.find({
+const usersWithPosts = await repository.find({
   filter: {
     where: { isActive: true },
     include: [
@@ -1126,21 +1162,21 @@ const usersWithPosts = await repo.find({
 });
 
 // Find all (bypass default filter for admin views)
-const allUsers = await repo.find({
+const allUsers = await repository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true },
 });
 
 // Find with transaction
-const users = await repo.find({
+const users = await repository.find({
   filter: { where: { batchId: currentBatch } },
   options: { transaction: tx },
 });
 
-// Find with debug logging
-const users = await repo.find({
+// Find with row-level locking (requires a transaction; incompatible with include/fields)
+const users = await repository.find({
   filter: { where: { status: 'active' } },
-  options: { log: { use: true, level: 'debug' } },
+  options: { transaction: tx, lock: { strength: 'update' } },
 });
 ```
 
@@ -1149,7 +1185,7 @@ const users = await repo.find({
 `findOne()` accepts a full filter with `where`, `fields`, `include`, and `order`. It returns the first matching record:
 
 ```typescript
-const user = await repo.findOne({
+const user = await repository.findOne({
   filter: {
     where: { email: 'john@example.com' },
     fields: ['id', 'name', 'email'],
@@ -1162,7 +1198,7 @@ const user = await repo.findOne({
 `findById()` is a convenience wrapper around `findOne()` that automatically sets `where: { id }`. It accepts an optional filter **without** the `where` clause:
 
 ```typescript
-const user = await repo.findById({
+const user = await repository.findById({
   id: 42,
   filter: {
     fields: ['id', 'name', 'email'],
@@ -1179,20 +1215,20 @@ const user = await repo.findById({
 
 ```typescript
 // Create and return the created record (default: shouldReturn = true)
-const { count, data } = await repo.create({
+const { count, data } = await repository.create({
   data: { username: 'john', email: 'john@example.com', role: 'user' },
 });
 // count = 1, data = { id: 1, username: 'john', ... }
 
 // Create without returning data (faster -- skips RETURNING clause)
-const { count } = await repo.create({
+const { count } = await repository.create({
   data: { username: 'john', email: 'john@example.com' },
   options: { shouldReturn: false },
 });
 // count = 1, data = null
 
 // Create within a transaction
-const { data: user } = await repo.create({
+const { data: user } = await repository.create({
   data: { username: 'john', email: 'john@example.com' },
   options: { transaction: tx },
 });
@@ -1202,7 +1238,7 @@ const { data: user } = await repo.create({
 
 ```typescript
 // Bulk create and return all records
-const { count, data } = await repo.createAll({
+const { count, data } = await repository.createAll({
   data: [
     { username: 'john', email: 'john@example.com' },
     { username: 'jane', email: 'jane@example.com' },
@@ -1212,7 +1248,7 @@ const { count, data } = await repo.createAll({
 // count = 3, data = [{ id: 1, ... }, { id: 2, ... }, { id: 3, ... }]
 
 // Bulk create without returning (faster for large inserts)
-const { count } = await repo.createAll({
+const { count } = await repository.createAll({
   data: largeDataArray,
   options: { shouldReturn: false },
 });
@@ -1222,14 +1258,14 @@ const { count } = await repo.createAll({
 
 ```typescript
 // Update by ID and return the updated record
-const { count, data } = await repo.updateById({
+const { count, data } = await repository.updateById({
   id: 42,
   data: { email: 'new@example.com', status: 'verified' },
 });
 // count = 1, data = { id: 42, email: 'new@example.com', ... }
 
 // Update JSON fields using dot notation
-const { data } = await repo.updateById({
+const { data } = await repository.updateById({
   id: 42,
   data: {
     'metadata.theme': 'dark',
@@ -1242,14 +1278,14 @@ const { data } = await repo.updateById({
 
 ```typescript
 // Update all matching records
-const { count, data } = await repo.updateAll({
+const { count, data } = await repository.updateAll({
   data: { status: 'inactive' },
   where: { lastLoginAt: { lt: new Date('2024-01-01') } },
 });
 // count = 25, data = [...25 updated records...]
 
 // updateBy is an alias for updateAll
-const { count } = await repo.updateBy({
+const { count } = await repository.updateBy({
   data: { isNotified: true },
   where: { role: 'subscriber' },
   options: { shouldReturn: false },
@@ -1257,7 +1293,7 @@ const { count } = await repo.updateBy({
 
 // SAFETY: Empty where throws an error to prevent accidental mass updates
 // Use force: true to explicitly allow it
-const { count } = await repo.updateAll({
+const { count } = await repository.updateAll({
   data: { version: 2 },
   where: {},
   options: { force: true },
@@ -1268,22 +1304,22 @@ const { count } = await repo.updateAll({
 
 ```typescript
 // Delete by ID (returns deleted record)
-const { count, data } = await repo.deleteById({ id: 42 });
+const { count, data } = await repository.deleteById({ id: 42 });
 // count = 1, data = { id: 42, username: 'john', ... }
 
 // Delete all matching records
-const { count, data } = await repo.deleteAll({
+const { count, data } = await repository.deleteAll({
   where: { status: 'inactive' },
 });
 
 // deleteBy is an alias for deleteAll
-const { count } = await repo.deleteBy({
+const { count } = await repository.deleteBy({
   where: { expiresAt: { lt: new Date() } },
   options: { shouldReturn: false },
 });
 
 // SAFETY: Empty where throws an error. Use force: true to allow.
-const { count } = await repo.deleteAll({
+const { count } = await repository.deleteAll({
   where: {},
   options: { force: true, shouldReturn: false },
 });
@@ -1299,95 +1335,28 @@ interface TFilter<T> {
   order?: string[];        // Sorting (e.g., ['createdAt DESC', 'name ASC'])
   limit?: number;          // Max results (default: 10)
   skip?: number;           // Offset
-  offset?: number;         // Alias for skip
+  offset?: number;         // Fallback for skip -- if both are set, skip wins
 }
 ```
 
-#### Where Operators -- Complete Reference
+#### Where Operators
 
-**Comparison operators:**
-
-| Operator | Description | Example |
-| --- | --- | --- |
-| _(equality)_ | Exact match | `{ status: 'active' }` |
-| `eq` | Equal | `{ age: { eq: 25 } }` |
-| `ne` / `neq` | Not equal | `{ role: { neq: 'guest' } }` |
-| `gt` | Greater than | `{ score: { gt: 90 } }` |
-| `gte` | Greater than or equal | `{ age: { gte: 18 } }` |
-| `lt` | Less than | `{ price: { lt: 100 } }` |
-| `lte` | Less than or equal | `{ priority: { lte: 5 } }` |
-
-**Pattern matching operators:**
-
-| Operator | Description | Example |
-| --- | --- | --- |
-| `like` | SQL LIKE (case-sensitive) | `{ name: { like: '%john%' } }` |
-| `ilike` | Case-insensitive LIKE | `{ email: { ilike: '%@GMAIL.COM' } }` |
-| `nlike` | NOT LIKE | `{ name: { nlike: '%test%' } }` |
-| `nilike` | NOT ILIKE | `{ email: { nilike: '%spam%' } }` |
-| `regexp` | POSIX regex (case-sensitive) | `{ code: { regexp: '^[A-Z]{3}' } }` |
-| `iregexp` | POSIX regex (case-insensitive) | `{ name: { iregexp: '^john' } }` |
-
-**Array/set operators:**
-
-| Operator | Description | Example |
-| --- | --- | --- |
-| `inq` / `in` | IN array | `{ status: { inq: ['active', 'pending'] } }` |
-| `nin` | NOT IN array | `{ role: { nin: ['banned', 'deleted'] } }` |
-| `between` | BETWEEN two values | `{ age: { between: [18, 65] } }` |
-| `notBetween` | NOT BETWEEN | `{ score: { notBetween: [0, 10] } }` |
-
-**Null check operators:**
-
-| Operator | Description | Example |
-| --- | --- | --- |
-| `is` | IS NULL (when value is null) | `{ deletedAt: { is: null } }` |
-| `isn` | IS NOT NULL (when value is null) | `{ email: { isn: null } }` |
-
-**Logical operators:**
-
-| Operator | Description | Example |
-| --- | --- | --- |
-| `and` | Logical AND | `{ and: [{ status: 'active' }, { role: 'admin' }] }` |
-| `or` | Logical OR | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` |
-
-**PostgreSQL array column operators** (for columns defined as `text[]`, `integer[]`, etc.):
-
-| Operator | SQL | Description | Example |
-| --- | --- | --- | --- |
-| `contains` | `@>` | Array contains all elements | `{ tags: { contains: ['urgent', 'bug'] } }` |
-| `containedBy` | `<@` | Array is contained by | `{ tags: { containedBy: ['a', 'b', 'c'] } }` |
-| `overlaps` | `&&` | Arrays have common elements | `{ categories: { overlaps: ['tech', 'science'] } }` |
-
-**JSON path queries** (for `json`/`jsonb` columns):
+Comparison (`eq`/`neq`/`gt`/`gte`/`lt`/`lte`), pattern matching (`like`/`ilike`/`regexp` and negations), array/set (`inq`/`nin`/`between`/`notBetween`), null checks (`is`/`isn`), logical (`and`/`or`), and PostgreSQL array-column operators (`contains`/`containedBy`/`overlaps`) are all supported. JSON path queries (dot notation into `json`/`jsonb` columns, with automatic numeric casting for comparison operators) and JSON path sorting work the same way. Full operator tables: [Filter System Quick Reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/base/filter-system/quick-reference.md).
 
 ```typescript
-// Query nested JSON fields using dot notation
-const users = await repo.find({
-  filter: {
-    where: {
-      'metadata.theme': 'dark',
-      'settings.notifications.email': true,
-      'preferences.items[0].enabled': { eq: true },
-      'metadata.score': { gt: 50, lte: 100 },
-    },
-  },
+// Comparison + pattern matching
+const users = await repository.find({
+  filter: { where: { age: { gte: 18 }, email: { ilike: '%@gmail.com' } } },
 });
-```
 
-JSON path queries automatically handle numeric casting: when a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`) is used with a numeric value, the extracted text is safely cast to `numeric` via a CASE expression.
+// Array/set + logical
+const users = await repository.find({
+  filter: { where: { and: [{ status: { inq: ['active', 'pending'] } }, { role: { neq: 'guest' } }] } },
+});
 
-**Sorting with JSON paths:**
-
-```typescript
-const products = await repo.find({
-  filter: {
-    order: [
-      'createdAt DESC',
-      'metadata.priority DESC',
-      'data.nested.score ASC',
-    ],
-  },
+// JSON path query (dot notation into a jsonb column)
+const users = await repository.find({
+  filter: { where: { 'metadata.score': { gt: 50, lte: 100 } } },
 });
 ```
 
@@ -1395,12 +1364,12 @@ const products = await repo.find({
 
 ```typescript
 // Array format -- include only these columns
-const users = await repo.find({
+const users = await repository.find({
   filter: { fields: ['id', 'name', 'email'] },
 });
 
 // Object format -- include/exclude
-const users = await repo.find({
+const users = await repository.find({
   filter: { fields: { id: true, name: true, password: false } },
 });
 ```
@@ -1409,14 +1378,14 @@ const users = await repo.find({
 
 ```typescript
 // Simple inclusion
-const users = await repo.find({
+const users = await repository.find({
   filter: {
     include: [{ relation: 'posts' }],
   },
 });
 
 // With nested filter (scope)
-const users = await repo.find({
+const users = await repository.find({
   filter: {
     include: [{
       relation: 'posts',
@@ -1431,7 +1400,7 @@ const users = await repo.find({
 });
 
 // Skip default filter on a specific relation
-const users = await repo.find({
+const users = await repository.find({
   filter: {
     include: [{
       relation: 'archivedPosts',
@@ -1448,7 +1417,7 @@ Note: Relations are defined on the model via `static relations`. The FilterBuild
 When `shouldQueryRange: true` is passed to `find()`, the method runs both the data fetch and a count query in parallel, then returns:
 
 ```typescript
-const result = await repo.find({
+const result = await repository.find({
   filter: { where: { status: 'active' }, limit: 10, skip: 20 },
   options: { shouldQueryRange: true },
 });
@@ -1465,19 +1434,19 @@ The `shouldSkipDefaultFilter` option bypasses the model's `defaultFilter`. Commo
 
 ```typescript
 // Admin panel showing all records (including soft-deleted)
-const allUsers = await repo.find({
+const allUsers = await repository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true },
 });
 
 // Data migration or cleanup script
-const deletedUsers = await repo.find({
+const deletedUsers = await repository.find({
   filter: { where: { isDeleted: true } },
   options: { shouldSkipDefaultFilter: true },
 });
 
 // Export all data for backup
-const everything = await repo.find({
+const everything = await repository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true, shouldQueryRange: true },
 });
@@ -1485,32 +1454,41 @@ const everything = await repo.find({
 
 ### ExtraOptions
 
-All repository operations accept an `options` parameter:
+All repository operations accept an `options` parameter. The base shape is `IExtraOptions`:
 
 ```typescript
 interface IExtraOptions {
   transaction?: ITransaction;          // Use within a transaction
-  shouldReturn?: boolean;              // Return data after create/update/delete (default: true)
-  shouldQueryRange?: boolean;          // Return { data, range: { total, start, end } }
+  log?: { use: boolean; level?: TLogLevel }; // Enable operation logging (write operations only)
   shouldSkipDefaultFilter?: boolean;   // Bypass model's default filter
-  log?: { use: boolean; level?: TLogLevel }; // Enable operation logging
+  lock?: {                             // Row-level locking. Requires a transaction; incompatible
+    strength: 'update' | 'no key update' | 'share' | 'key share'; // with include/fields (Query API)
+    config?: { noWait?: true } | { skipLocked?: true };
+  };
 }
 ```
 
-### Mixins
+`shouldReturn` and `shouldQueryRange` are **not** part of `IExtraOptions` -- they only exist as ad-hoc intersections on the specific methods that support them: `shouldReturn` on `create`/`createAll`/`updateById`/`updateAll`/`deleteById`/`deleteAll` (`options: IExtraOptions & { shouldReturn?: boolean }`), and `shouldQueryRange` only on `find` (`options: IExtraOptions & { shouldQueryRange?: boolean }`). `count`/`existsWith` accept neither.
 
-#### FieldsVisibilityMixin
+`log: { use: true }` is only honored by write operations (`create`/`updateById`/`deleteById`/etc.) -- read operations (`find`/`findOne`/`count`/`existsWith`) never inspect it.
+
+### Hidden Fields and Default Filter
+
+This behavior lives directly on the repository hierarchy now, not in separate mixins: `AbstractRepository` (`src/base/repositories/core/`) exposes the class-keyed `@model` settings as protected getters -- `hiddenFields`, `defaultWhere`, `defaultLimit` -- resolved once per entity class and memoized; `PostgresBaseRepository` (`src/connectors/postgres/repositories/core/`) is where those getters actually get applied to SQL, via its own `getHiddenProperties()`/`getVisibleProperties()`/`buildQuery()`/`applyDefaultFilter()`. The two mixins this section used to describe (`FieldsVisibilityMixin`, `DefaultFilterMixin`, under `src/connectors/postgres/repositories/mixins/`) are legacy -- no longer composed onto any repository class -- and are not exported from any barrel.
+
+#### Hidden fields
 
 Automatically excludes properties listed in `@model({ settings: { hiddenProperties } })` from all query results at the SQL level -- not post-processing:
 
 ```typescript
 @model({
+  type: 'entity',
   settings: { hiddenProperties: ['password', 'secretToken'] },
 })
-export class User extends BaseEntity<typeof User.schema> { ... }
+export class User extends BasePostgresEntity<typeof User.schema> { ... }
 
 // All repository queries automatically exclude 'password' and 'secretToken'
-const user = await userRepo.findById({ id: 1 });
+const user = await userRepository.findById({ id: 1 });
 // user.password === undefined (never selected from DB)
 
 // Hidden fields are excluded from:
@@ -1521,29 +1499,30 @@ const user = await userRepo.findById({ id: 1 });
 // - Included relation queries (applied recursively)
 ```
 
-The mixin caches the visible property set for performance. It computes it once from the schema columns minus hidden properties.
+`PostgresBaseRepository.getVisibleProperties()` caches the visible property set for performance. It computes it once from the schema columns minus hidden properties.
 
-#### DefaultFilterMixin
+#### Default filter
 
 Automatically applies a default filter to all queries. Common use case -- soft delete:
 
 ```typescript
 @model({
+  type: 'entity',
   settings: { defaultFilter: { where: { isDeleted: false } } },
 })
-export class User extends BaseEntity<typeof User.schema> { ... }
+export class User extends BasePostgresEntity<typeof User.schema> { ... }
 
 // All queries automatically add WHERE is_deleted = false
-const users = await userRepo.find({ filter: {} });
+const users = await userRepository.find({ filter: {} });
 
 // The default filter merges with user-provided filters:
-const activeAdmins = await userRepo.find({
+const activeAdmins = await userRepository.find({
   filter: { where: { role: 'admin' } },
 });
 // SQL: WHERE is_deleted = false AND role = 'admin'
 
 // Bypass when needed (e.g., admin panel showing all records)
-const allUsers = await userRepo.find({
+const allUsers = await userRepository.find({
   filter: {},
   options: { shouldSkipDefaultFilter: true },
 });
@@ -1581,13 +1560,14 @@ Multiple path updates to the same JSON column are chained into a single expressi
 
 ## Models
 
-### BaseEntity
+### BasePostgresEntity
 
-All entities extend `BaseEntity` and define a static `schema` using Drizzle's `pgTable`:
+All entities extend `BasePostgresEntity` and define a static `schema` using Drizzle's `pgTable`:
 
 ```typescript
-import { BaseEntity, model } from '@venizia/ignis';
-import { pgTable, text, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
+import { model } from '@venizia/ignis';
+import { BasePostgresEntity, TRelationConfig } from '@venizia/ignis/postgres';
+import { pgTable, text, jsonb, boolean } from 'drizzle-orm/pg-core';
 
 @model({
   type: 'entity',
@@ -1596,7 +1576,7 @@ import { pgTable, text, integer, jsonb, boolean } from 'drizzle-orm/pg-core';
     defaultFilter: { where: { isDeleted: false } },
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs({
@@ -1612,12 +1592,14 @@ export class User extends BaseEntity<typeof User.schema> {
     metadata: jsonb('metadata').$type<{ theme?: string; score?: number }>(),
   });
 
-  static override relations = () => [
-    { name: 'posts', type: 'many', schema: Post.schema, metadata: { fields: [Post.schema.authorId], references: [User.schema.id] } },
+  static override relations = (): TRelationConfig[] => [
+    // 'many' side: no fields/references -- relationName points at the 'one' relation declared on Post
+    { name: 'posts', type: 'many', schema: Post.schema, metadata: { relationName: 'author' } },
+    // 'one' side: fields/references establish the FK, since it's declared on this table
     { name: 'profile', type: 'one', schema: Profile.schema, metadata: { fields: [Profile.schema.userId], references: [User.schema.id] } },
   ];
 
-  static TABLE_NAME = 'User';
+  static override TABLE_NAME = 'User';
 }
 ```
 
@@ -1641,7 +1623,7 @@ When `@model` is applied, it registers the class with the `MetadataRegistry`, ex
 
 ### Schema Generation
 
-`BaseEntity` provides `getSchema()` for Zod schema generation from the Drizzle table using `drizzle-zod`:
+`BasePostgresEntity` provides `getSchema()` for Zod schema generation from the Drizzle table using `drizzle-zod`:
 
 ```typescript
 const entity = new User();
@@ -1651,26 +1633,25 @@ entity.getSchema({ type: 'create' });  // Zod schema for INSERT data -- required
 entity.getSchema({ type: 'update' });  // Zod schema for UPDATE data -- all fields optional (partial)
 ```
 
-These schemas are used by `ControllerFactory` to auto-generate OpenAPI documentation. The schema factory is lazily initialized and shared across all BaseEntity instances for performance.
+These schemas are used by `ControllerFactory` to auto-generate OpenAPI documentation. The schema factory is lazily initialized and shared across all BasePostgresEntity instances for performance.
 
 ### Static `relations` Definition
 
 Relations are defined as a static property or function returning an array of `TRelationConfig`:
 
 ```typescript
-static override relations = () => [
+static override relations = (): TRelationConfig[] => [
   {
     name: 'posts',
-    type: 'many',          // RelationTypes.MANY
-    schema: Post.schema,
+    type: 'many',          // RelationTypes.MANY -- no fields/references; relationName points
+    schema: Post.schema,    // at the 'one' relation declared on the other side (Post)
     metadata: {
-      fields: [Post.schema.authorId],
-      references: [User.schema.id],
+      relationName: 'author',
     },
   },
   {
     name: 'profile',
-    type: 'one',            // RelationTypes.ONE
+    type: 'one',            // RelationTypes.ONE -- the FK-owning side declares fields/references
     schema: Profile.schema,
     metadata: {
       fields: [Profile.schema.userId],
@@ -1682,134 +1663,30 @@ static override relations = () => [
 
 These relations are used by the `FilterBuilder` when processing `include` in filters, and by the DataSource's `discoverSchema()` to build Drizzle relation definitions.
 
-### Enrichers -- Complete Reference
+### Enrichers
 
-Column definition helpers that add common patterns to your table schemas.
+Column definition helpers that spread common column patterns into a `pgTable` schema:
 
-#### `generateIdColumnDefs()` -- ID Column
+| Enricher | Adds |
+| --- | --- |
+| `generateIdColumnDefs()` | Primary key column -- auto-increment integer (default), UUID string, big-number, or custom string generator |
+| `generateTzColumnDefs()` | `created_at`/`modified_at` timestamps (with timezone, auto `$onUpdate`), optional `deleted_at` for soft delete |
+| `generateUserAuditColumnDefs()` | `created_by`/`modified_by`, auto-populated from `context.get('audit.user.id')` on create/update |
+| `generatePrincipalColumnDefs()` | Polymorphic discriminator pair (`principal_id`/`principal_type` by default) |
+| `generateDataTypeColumnDefs()` | Multi-type value columns (`data_type` + `n_value`/`t_value`/`b_value`/`j_value`/`bo_value`) for key-value/settings tables |
 
-```typescript
-// Auto-incrementing integer ID (default)
-...generateIdColumnDefs()
-// Column: id integer PRIMARY KEY GENERATED ALWAYS AS IDENTITY
-
-// Auto-incrementing integer ID (explicit)
-...generateIdColumnDefs({ id: { dataType: 'number' } })
-
-// UUID string ID (uses crypto.randomUUID() by default)
-...generateIdColumnDefs({ id: { dataType: 'string' } })
-
-// Custom string ID generator
-...generateIdColumnDefs({
-  id: { dataType: 'string', generator: () => mySnowflakeGenerator() },
-})
-
-// BigInt ID (as JavaScript number)
-...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'number' } })
-
-// BigInt ID (as JavaScript bigint)
-...generateIdColumnDefs({ id: { dataType: 'big-number', numberMode: 'bigint' } })
-
-// With custom sequence options
-...generateIdColumnDefs({
-  id: { dataType: 'number', sequenceOptions: { startWith: 1000, increment: 1 } },
-})
-```
-
-#### `generateTzColumnDefs()` -- Timestamps
-
-```typescript
-// Default: createdAt + modifiedAt (with timezone, defaultNow)
-...generateTzColumnDefs()
-// Columns: created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-//          modified_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL (auto-updates via $onUpdate)
-
-// With deletedAt for soft delete
-...generateTzColumnDefs({
-  deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
-})
-// Adds: deleted_at TIMESTAMP WITH TIME ZONE (nullable)
-
-// Disable modifiedAt
-...generateTzColumnDefs({
-  modified: { enable: false },
-})
-// Only creates: created_at
-
-// Custom column names
-...generateTzColumnDefs({
-  created: { columnName: 'date_created', withTimezone: false },
-  modified: { enable: true, columnName: 'date_modified', withTimezone: false },
-})
-```
-
-#### `generateUserAuditColumnDefs()` -- Audit Trail
-
-Automatically populates `createdBy` and `modifiedBy` from the authenticated user in the request context:
-
-```typescript
-// Default: integer columns
-...generateUserAuditColumnDefs()
-// Columns: created_by integer, modified_by integer
-// Auto-populated from context.get('audit.user.id') on create/update
-
-// String IDs
-...generateUserAuditColumnDefs({
-  created: { dataType: 'string', columnName: 'created_by', allowAnonymous: true },
-  modified: { dataType: 'string', columnName: 'modified_by', allowAnonymous: true },
-})
-```
-
-When `allowAnonymous: false` (default is `true`), an error is thrown if there is no authenticated user in the request context. This is useful for columns that must always have an audit trail.
-
-**Important:** `createdBy` is only set on insert (`$default`). `modifiedBy` is set on both insert and update (`$default` + `$onUpdate`).
-
-#### `generatePrincipalColumnDefs()` -- Polymorphic Relations
-
-```typescript
-// Default discriminator name ('principal')
-...generatePrincipalColumnDefs({ polymorphicIdType: 'number' })
-// Columns: principal_id integer NOT NULL, principal_type text
-
-// Custom discriminator
-...generatePrincipalColumnDefs({
-  discriminator: 'owner',
-  polymorphicIdType: 'string',
-  defaultPolymorphic: 'user',
-})
-// Columns: owner_id text NOT NULL, owner_type text DEFAULT 'user'
-```
-
-#### `generateDataTypeColumnDefs()` -- Multi-type Value Columns
-
-For storing heterogeneous values (useful for key-value stores, settings tables):
-
-```typescript
-...generateDataTypeColumnDefs()
-// Columns:
-//   data_type text          -- type discriminator
-//   n_value double precision -- numeric values
-//   t_value text            -- text values
-//   b_value bytea           -- binary values
-//   j_value jsonb           -- JSON values
-//   bo_value boolean        -- boolean values
-
-// With defaults
-...generateDataTypeColumnDefs({
-  defaultValue: { dataType: 'text', tValue: 'default' },
-})
-```
+Full options and generated-column tables: [Models reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/base/models.md).
 
 ---
 
 ## DataSources
 
-### BaseDataSource
+### BasePostgresDataSource
 
 DataSources manage database connections and provide Drizzle connectors:
 
 ```typescript
-abstract class BaseDataSource<Settings, Schema> extends AbstractDataSource {
+abstract class BasePostgresDataSource<Settings, Schema> extends AbstractPostgresDataSource {
   // Implemented by subclass
   abstract configure(): ValueOrPromise<void>;
   abstract getConnectionString(): ValueOrPromise<string>;
@@ -1820,16 +1697,21 @@ abstract class BaseDataSource<Settings, Schema> extends AbstractDataSource {
   // Check if any repositories reference this datasource
   hasDiscoverableModels(): boolean;
 
-  // Transaction support
-  beginTransaction(opts?: ITransactionOptions): Promise<ITransaction>;
+  // Transaction support -- postgres's own IDatabaseTransactionOptions/IDatabaseTransaction<Schema>,
+  // narrowing the neutral ITransactionOptions/ITransaction from AbstractDataSource
+  beginTransaction(opts?: IDatabaseTransactionOptions): Promise<IDatabaseTransaction<Schema>>;
 }
 ```
+
+#### Capability Probe
+
+Every datasource -- regardless of connector -- exposes `getCapabilities(): { transactions: boolean }`. `AbstractDataSource` (the engine-neutral root every connector extends) defaults it to `{ transactions: false }`, paired with a `beginTransaction()` default that throws the standardized NotSupported error (`core.not_supported`, HTTP 501). `BasePostgresDataSource` (postgres) is the one connector that overrides both: `getCapabilities()` reports `{ transactions: true }`, and `beginTransaction()` is a real implementation (below) instead of the inherited throw. `TypesenseDataSource` adds no override -- it inherits the neutral NotSupported default from `AbstractDataSource` directly. Check `getCapabilities().transactions` before calling `beginTransaction()` on a datasource whose connector isn't known ahead of time.
 
 ### Complete DataSource Configuration
 
 ```typescript
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -1879,12 +1761,12 @@ const tx = await dataSource.beginTransaction({
 });
 
 try {
-  await userRepo.create({
+  await userRepository.create({
     data: { username: 'john', email: 'john@example.com' },
     options: { transaction: tx },
   });
 
-  await auditRepo.create({
+  await auditRepository.create({
     data: { action: 'user_created', userId: newUser.id },
     options: { transaction: tx },
   });
@@ -1896,16 +1778,7 @@ try {
 }
 ```
 
-**How transactions work internally:**
-
-1. `beginTransaction()` acquires a `PoolClient` from the `pg` Pool.
-2. Executes `BEGIN TRANSACTION ISOLATION LEVEL <level>` on that client.
-3. Creates a new Drizzle connector using that dedicated client.
-4. Returns an `ITransaction` object with `connector`, `commit()`, `rollback()`, and `isActive`.
-5. When `{ transaction: tx }` is passed to a repository method, `resolveConnector()` returns the transaction's connector instead of the default DataSource connector.
-6. `commit()` runs `COMMIT`, sets `isActive = false`, and releases the client back to the pool.
-7. `rollback()` runs `ROLLBACK`, sets `isActive = false`, and releases the client.
-8. Attempting to use a committed/rolled-back transaction throws an error.
+`beginTransaction()` acquires a dedicated `PoolClient` and returns an `IDatabaseTransaction<Schema>` (`connector`, `commit()`, `rollback()`, `isolationLevel`, `isActive`); passing `{ transaction: tx }` to a repository method routes it through that dedicated connector instead of the DataSource's shared pool, and `commit()`/`rollback()` always release the client back to the pool. Full internals: [Transactions guide](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/core-concepts/persistent/transactions.md).
 
 #### Isolation Levels
 
@@ -1921,6 +1794,191 @@ Connections are always released back to the pool in the `finally` block of both 
 
 ---
 
+## Search
+
+IGNIS has a second, engine-neutral branch for search-only entities backed by Typesense instead of Postgres. It mirrors the SQL branch -- same `@model`/`@repository` decorators, same `TFilter`/where-operator vocabulary, same hidden-field/default-filter/default-limit behavior -- but returns a slightly different envelope in a few places (see below).
+
+### Search Entities
+
+Search entities extend `BaseSearchEntity` and define a static `definition` via `defineSearchCollection` + the `field` DSL, instead of Drizzle's `pgTable`. Same as `BasePostgresEntity`, apply `@model` so `hiddenProperties`/`defaultFilter`/`defaultLimit` are registered:
+
+```typescript
+import { model } from '@venizia/ignis';
+import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/typesense';
+
+@model({
+  type: 'entity',
+  settings: { hiddenProperties: ['internalNotes'], defaultLimit: 20 },
+})
+export class Product extends BaseSearchEntity {
+  static override definition = defineSearchCollection({
+    name: 'products',
+    fields: [
+      field.id(),
+      field.string('name', { searchable: true, sortable: true }),
+      field.number('price', { filterable: true, sortable: true }),
+      field.string('internalNotes', { optional: true }),
+    ],
+    defaultSort: 'price',
+  });
+}
+```
+
+`field.id()` is optional -- `defineSearchCollection` prepends it automatically when missing. `defaultSort` must reference a `number` field; Typesense's `default_sorting_field` only accepts a scalar numeric field, never a string or array.
+
+### Search DataSources
+
+`TypesenseDataSource` is a `BaseSearchDataSource` subclass, imported from a dedicated sub-path so the root `@venizia/ignis` barrel never pulls in the `typesense` client:
+
+```typescript
+import { DataSourceDrivers, datasource } from '@venizia/ignis';
+import { TypesenseDataSource } from '@venizia/ignis/typesense';
+
+@datasource({ driver: DataSourceDrivers.TYPESENSE })
+export class ProductSearchDataSource extends TypesenseDataSource {
+  constructor() {
+    super({
+      name: ProductSearchDataSource.name,
+      config: {
+        nodes: [{ host: process.env.TYPESENSE_HOST!, port: +(process.env.TYPESENSE_PORT ?? 8108) }],
+        apiKey: process.env.TYPESENSE_API_KEY!,
+      },
+    });
+  }
+}
+```
+
+`typesense` is an optional peer dependency -- install it yourself (`bun add typesense`) if you use the search branch.
+
+Same as the postgres branch, collections are discovered from `@repository` bindings and auto-provisioned (via `ensureCollection()`, additive-only) when the DataSource's `configure()` runs during boot. Opt out with:
+
+- `autoProvision: false` in the `super({ ... })` call -- skips provisioning, discovery still runs.
+- `@datasource({ autoDiscovery: false })` -- skips discovery entirely (`getSchema()` returns `{}`).
+
+`getClient()` returns the raw typesense `Client`, an escape hatch symmetric to the SQL branch's `pg.Pool` access:
+
+```typescript
+const client = productSearchDataSource.getClient();
+```
+
+### Search Repositories
+
+Same tiered hierarchy as the SQL branch, over Typesense instead of Postgres:
+
+```
+ReadableSearchRepository        (read operations only)
+  |
+  +-- PersistableSearchRepository   (+ create, update)
+        |
+        +-- DefaultSearchRepository     (+ delete)
+```
+
+`TInferSearchDocument<typeof X.schema>` derives the document type straight from the collection definition -- same idea as postgres's `typeof User.schema` inference, no hand-written interface needed:
+
+```typescript
+import { repository } from '@venizia/ignis';
+import { DefaultSearchRepository, TInferSearchDocument } from '@venizia/ignis/typesense';
+
+type ProductDocument = TInferSearchDocument<typeof Product.schema>;
+// -> { id: string; name: string; price: number; internalNotes?: string }
+
+@repository({ model: Product, dataSource: ProductSearchDataSource })
+export class ProductSearchRepository extends DefaultSearchRepository<ProductDocument> {
+  // No constructor needed -- dataSource auto-injected from @repository metadata
+}
+```
+
+`TInferSearchDocument` only resolves field-level types when the collection is captured through `defineSearchCollection`'s `const` type param -- true as long as you call it directly on a `static schema = defineSearchCollection({ ... })` assignment, as above. `id` is always inferred as a required `string`; fields marked `{ optional: true }` become optional properties, everything else is required.
+
+`@repository`, `TFilter`, and the where operators (`eq`, `gt`, `inq`, `and`/`or`, ...) work the same as the SQL branch -- `TFilter`/`TWhere` is translated into Typesense search params by `TypesenseQueryDialect`. Operators that can't be expressed as a Typesense `filter_by` throw instead of silently degrading:
+
+- `like` / `ilike` (and their negations)
+- JSON-path fields (e.g. `'metadata.score'`)
+- `include` (relations)
+
+Reach for the repository's `search()` method when you need one of these -- it's a raw passthrough to the driver (no dialect translation, no default filter applied).
+
+`hiddenProperties`, `defaultFilter`, and `defaultLimit` from `@model` settings are honored the same way they are for the SQL branch: hidden fields become Typesense `exclude_fields`, `defaultFilter` is AND-merged into every query, and an omitted `limit` falls back to `defaultLimit` then `DEFAULT_LIMIT` (10).
+
+Note "the same way" covers hidden-fields/limit fallback, not the `where` merge policy: the search branch (like memory) always AND-merges `defaultFilter.where` with the user's `where`, while Postgres deep-merges with the user filter winning key-by-key (`merge({}, defaultWhere, userWhere)`, `filter.ts`) -- see the memory connector section below for the concrete difference.
+
+### Envelope Differences vs SQL
+
+`create()`/`createAll()` are overloaded by `shouldReturn` the same way on both branches, and every write verb now returns `{ count, data }` on both branches too -- but Typesense has no `RETURNING` equivalent, so a few return shapes and constraints still differ underneath that shared envelope:
+
+| Aspect | SQL | Search |
+| --- | --- | --- |
+| `deleteById()` `data` | The deleted row, straight from `RETURNING` | Populated only when the model has a `defaultFilter` -- its guard read (a `findById()` done to check the row isn't excluded) is the only document Typesense ever hands back. No `defaultFilter` means no guard read, so `data` is `null` even with `shouldReturn: true` |
+| `deleteAll()` / `deleteBy()` `data` | The deleted rows via `RETURNING`, always in lockstep with `count` | A `find()` snapshot taken *before* the delete, capped at `defaultLimit`/`DEFAULT_LIMIT` (10) like any other read -- `count` (the engine's real deleted-row count) can exceed `data.length` when more rows matched than the snapshot's page size. Truncating (no effective `where`) reports `{ count: 0, data: [] }` -- Typesense's truncate reports no per-document count at all |
+| `updateAll()` / `updateBy()` `data` | The updated rows via `RETURNING`, always in lockstep with `count` | A `find()` snapshot taken *after* the update, subject to the same pagination cap as `deleteAll()` -- can likewise diverge from `count` |
+| `skip` | Any offset | Must be a multiple of `limit` -- Typesense paginates by page, not row offset |
+| Transactions / row-level locks | `beginTransaction()` / `{ transaction }`, `{ lock }` in options | Neither is supported -- both throw the standardized NotSupported error |
+
+### Adding a Search Engine
+
+A new engine is one folder under `src/connectors/<engine>/` -- `DataSource`, `Driver`, a paired `QueryDialect` (never mixed with another engine's driver), a compiler (neutral DSL -> engine schema), a repository tier re-parented onto the shared `AbstractRepository`, and an internal error classifier -- sub-path exported (`@venizia/ignis/<engine>`) with the client as an optional peer dependency, the same convention `typesense/` follows today. Full contract (fixed `ISearchDriver` verb set, escape-hatch extras, transaction posture): [Connectors reference](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/references/base/connectors.md).
+
+---
+
+## Memory Connector
+
+`MemoryDataSource` + `MemoryRepository` (`src/connectors/memory/`) are a zero-dependency, Map-backed engine for prototyping and tests -- the same role LoopBack 4's memory connector plays. No client library, no network, no peer dependency. Import it from the root (`@venizia/ignis`) or from its explicit sub-path (`@venizia/ignis/memory`) - both doors resolve to the same modules. Only optional-peer connectors (typesense) are sub-path-only:
+
+```typescript
+import {
+  AbstractEntity,
+  SchemaTypes,
+  TSchemaType,
+  model,
+  repository,
+} from '@venizia/ignis';
+import { MemoryDataSource, MemoryRepository } from '@venizia/ignis/memory';
+import { z } from '@hono/zod-openapi';
+
+const ProductSelectSchema = z.object({ id: z.string(), title: z.string(), price: z.number() });
+type ProductDocument = z.infer<typeof ProductSelectSchema>;
+
+@model({ type: 'entity', settings: { defaultLimit: 20 } })
+class Product extends AbstractEntity {
+  static readonly COLLECTION_NAME = 'products';
+
+  constructor() {
+    super({ name: Product.COLLECTION_NAME });
+  }
+
+  getSchema(opts: { type: TSchemaType }) {
+    switch (opts.type) {
+      case SchemaTypes.SELECT:
+        return ProductSelectSchema;
+      default:
+        return ProductSelectSchema;
+    }
+  }
+}
+
+class ProductDataSource extends MemoryDataSource {
+  constructor() {
+    super({ name: ProductDataSource.name });
+  }
+}
+
+@repository({ model: Product, dataSource: ProductDataSource })
+class ProductRepository extends MemoryRepository<ProductDocument> {
+  // No constructor needed -- dataSource auto-injected from @repository metadata
+}
+
+const productRepository = new ProductRepository(new ProductDataSource());
+const products = await productRepository.find({ filter: { where: { price: { gt: 10 } }, order: ['price DESC'] } });
+```
+
+A static `COLLECTION_NAME` on the model is this connector's discoverable-model convention -- the equivalent of postgres's static `schema` or the search branch's static `definition`. `MemoryRepository` is a single, untiered class implementing every `AbstractRepository` verb (no Readable/Persistable/DefaultCRUD split -- there's no connection/dialect plumbing to layer progressively), supporting equality, comparison (`gt`/`gte`/`lt`/`lte`/`between`), pattern (`like`/`ilike` via anchored `RegExp`), array (`inq`/`nin`), and logical (`and`/`or`) operators, plus `order`/`skip`/`limit`/`fields`. Operators with no faithful plain-JS meaning (`is`/`isn`, `regexp`/`iregexp`, the PostgreSQL-only array operators, `include`) throw instead of guessing.
+
+`hiddenProperties`, `defaultFilter`, and `defaultLimit` from `@model` settings are honored the same way every connector honors them, with the same AND-merge default-filter policy as the search branch (narrows rather than overrides, unlike postgres's key-by-key deep merge). No transactions or row locks -- both reject with the standardized NotSupported error. Ids default to `crypto.randomUUID()` when a document is created without one.
+
+Full operator matrix and internals: [Memory Connector guide](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/core-concepts/persistent/memory-connector.md).
+
+---
+
 ## Services
 
 Services encapsulate business logic and are registered in the DI container:
@@ -1930,21 +1988,21 @@ import { BaseService, inject } from '@venizia/ignis';
 
 export class UserService extends BaseService {
   constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
-    @inject({ key: 'repositories.AuditRepository' }) private auditRepo: AuditRepository,
+    @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
+    @inject({ key: 'repositories.AuditRepository' }) private auditRepository: AuditRepository,
   ) {
     super({ scope: UserService.name });
   }
 
   async createUser(data: CreateUserInput) {
-    const tx = await this.userRepo.dataSource.beginTransaction();
+    const tx = await this.userRepository.dataSource.beginTransaction();
     try {
-      const { data: user } = await this.userRepo.create({
+      const { data: user } = await this.userRepository.create({
         data,
         options: { transaction: tx },
       });
 
-      await this.auditRepo.create({
+      await this.auditRepository.create({
         data: { action: 'user_created', userId: user.id },
         options: { transaction: tx },
       });
@@ -1959,7 +2017,7 @@ export class UserService extends BaseService {
 
   async deactivateInactiveUsers() {
     const cutoff = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // 90 days
-    const { count } = await this.userRepo.updateBy({
+    const { count } = await this.userRepository.updateBy({
       data: { status: 'inactive' },
       where: { lastLoginAt: { lt: cutoff }, status: 'active' },
     });
@@ -1987,35 +2045,29 @@ Components are self-contained modules that register controllers, services, bindi
 
 | Component | Import | Description |
 | --- | --- | --- |
-| **HealthCheckComponent** | `@venizia/ignis` | Health check endpoints (`GET /health`, `/health/live`, `/health/ready`) |
+| **HealthCheckComponent** | `@venizia/ignis` | Health check endpoints (`GET /health`, `POST /health/ping`) |
 | **SwaggerComponent** | `@venizia/ignis` | OpenAPI documentation with Swagger UI or Scalar UI |
-| **AuthenticateComponent** | `@venizia/ignis` | JWT + Basic authentication strategies, token services, auth middleware |
+| **AuthenticateComponent** | `@venizia/ignis` | JWS/JWKS + Basic authentication strategies, token services, auth middleware |
 | **AuthorizeComponent** | `@venizia/ignis` | Casbin-based RBAC authorization with enforcers |
 | **RequestTrackerComponent** | `@venizia/ignis` | `x-request-id` header injection, request body parsing |
-| **StaticAssetComponent** | `@venizia/ignis` | File upload/download CRUD with MinIO or disk storage |
+| **StaticAssetComponent** | `@venizia/ignis/static-asset` | File upload/download CRUD with MinIO, Disk, or Bun S3 storage |
 | **MailComponent** | `@venizia/ignis/mail` | Email sending via Nodemailer/Mailgun with Direct/BullMQ/InternalQueue executors |
-| **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with Redis adapter for horizontal scaling |
-| **WebSocketComponent** | `@venizia/ignis` | Native WebSocket support (Bun runtime) |
+| **SocketIOComponent** | `@venizia/ignis/socket-io` | Socket.IO server with a mandatory Redis adapter for horizontal scaling |
+| **WebSocketComponent** | `@venizia/ignis/websocket` | Native WebSocket support (Bun runtime) |
+| **GrpcComponent** | `@venizia/ignis/grpc` | Auto-registered by `BaseApplication` (like `RestComponent`) -- mounts controllers whose `@controller` metadata has `transport: 'grpc'` via ConnectRPC; never registered manually with `this.component()` |
 
 ### Health Check Component
 
 ```typescript
 import { HealthCheckComponent, HealthCheckBindingKeys, IHealthCheckOptions } from '@venizia/ignis';
 
-// Optional: customize path (default: /health)
 this.bind<IHealthCheckOptions>({ key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS }).toValue({
-  restOptions: { path: '/health-check' },
+  restOptions: { path: '/health-check' }, // optional, default: /health
 });
 this.component(HealthCheckComponent);
 ```
 
-**Endpoints:**
-
-| Endpoint | Description |
-| --- | --- |
-| `GET /health` | Basic health check -- returns `{ status: 'ok', uptime, timestamp }` |
-| `GET /health/live` | Liveness probe -- returns 200 if server is running |
-| `GET /health/ready` | Readiness probe -- returns 200 if server is ready to accept traffic |
+`GET /health` (basic status) and `POST /health/ping` (ping/pong echo) -- no separate liveness/readiness probe pair. Details: [Health Check](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/health-check.md).
 
 ### Swagger / OpenAPI Component
 
@@ -2023,260 +2075,60 @@ this.component(HealthCheckComponent);
 import { SwaggerComponent, SwaggerBindingKeys, ISwaggerOptions } from '@venizia/ignis';
 
 this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue({
-  restOptions: {
-    base: { path: '/doc' },
-    doc: { path: '/openapi.json' },
-    ui: { path: '/explorer', type: 'scalar' },  // 'scalar' or 'swagger'
-  },
-  explorer: { openapi: '3.0.0' },
+  restOptions: { base: { path: '/doc' }, doc: { path: '/openapi.json' }, ui: { path: '/explorer', type: 'scalar' } },
 });
 this.component(SwaggerComponent);
 ```
 
-The component auto-populates `info` from `getAppInfo()` and registers JWT/Basic security schemes in the OpenAPI registry. When `type: 'scalar'` is used, it serves Scalar UI; when `type: 'swagger'`, it serves Swagger UI.
-
-**Endpoints:**
-
-| Endpoint | Description |
-| --- | --- |
-| `GET /doc/openapi.json` | Raw OpenAPI spec in JSON |
-| `GET /doc/explorer` | Interactive API explorer (Scalar or Swagger UI) |
+Auto-populates `info` from `getAppInfo()`, registers JWT/Basic security schemes, and serves Scalar or Swagger UI depending on `ui.type`. Details: [Swagger](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/swagger.md).
 
 ### Authentication Component
 
-Supports JWT and Basic authentication strategies with encrypted JWT payloads:
+Basic auth plus Bearer tokens under two JOSE standards -- **JWS** (HMAC-signed, single shared secret) and **JWKS** (asymmetric, issuer/verifier split, `/certs` publishing) -- with optional AES-encrypted payloads:
 
 ```typescript
-import {
-  AuthenticateComponent, AuthenticateBindingKeys,
-  Authentication, AuthenticationStrategyRegistry,
-  JWTAuthenticationStrategy, BasicAuthenticationStrategy,
-  IJWTTokenServiceOptions, IBasicTokenServiceOptions,
-  TAuthenticationRestOptions,
-} from '@venizia/ignis';
+import { AuthenticateComponent, AuthenticateBindingKeys, JOSEStandards, TJWTTokenServiceOptions } from '@venizia/ignis';
 
-// 1. Configure JWT options
-this.bind<IJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
-  jwtSecret: process.env.JWT_SECRET!,           // Secret for signing JWTs
-  applicationSecret: process.env.APP_SECRET!,   // Secret for AES encrypting payload fields
-  headerAlgorithm: 'HS256',                     // JWT signing algorithm (default: HS256)
-  aesAlgorithm: 'aes-256-cbc',                 // Payload encryption algorithm (default: aes-256-cbc)
-  getTokenExpiresFn: () => 86400,               // Token expiration in seconds (24 hours)
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWS,
+  options: { jwtSecret: process.env.JWT_SECRET!, headerAlgorithm: 'HS256', getTokenExpiresFn: () => 86400 },
 });
-
-// 2. Configure Basic auth options (optional)
-this.bind<IBasicTokenServiceOptions>({ key: AuthenticateBindingKeys.BASIC_OPTIONS }).toValue({
-  verifyCredentials: async ({ credentials, context }) => {
-    const user = await userRepo.findOne({
-      filter: { where: { username: credentials.username } },
-    });
-    if (user && await verifyPassword(credentials.password, user.password)) {
-      return { userId: user.id, roles: user.roles };
-    }
-    return null;
-  },
-});
-
-// 3. Optionally enable auth controller (sign-in, sign-up, change-password)
-this.bind<TAuthenticationRestOptions>({ key: AuthenticateBindingKeys.REST_OPTIONS }).toValue({
-  useAuthController: true,
-  controllerOpts: {
-    restPath: '/auth',
-    payload: {
-      signIn: { request: { schema: SignInSchema }, response: { schema: TokenSchema } },
-      signUp: { request: { schema: SignUpSchema }, response: { schema: UserSchema } },
-    },
-  },
-});
-
-// 4. Register the component
 this.component(AuthenticateComponent);
-
-// 5. Register strategies
-AuthenticationStrategyRegistry.getInstance().register({
-  container: this,
-  strategies: [
-    { name: Authentication.STRATEGY_JWT, strategy: JWTAuthenticationStrategy },
-    { name: Authentication.STRATEGY_BASIC, strategy: BasicAuthenticationStrategy },
-  ],
-});
 ```
 
-#### JWT Token Service API
-
-```typescript
-// Generate a token
-const token = await jwtTokenService.generate({
-  payload: {
-    userId: user.id,
-    roles: [{ id: 1, identifier: 'admin', priority: 1 }],
-    email: user.email,
-  },
-});
-
-// Verify a token
-const payload = await jwtTokenService.verify({
-  type: 'Bearer',
-  token: 'eyJhbGciOiJ...',
-});
-// payload = { userId: '...', roles: [...], email: '...' }
-```
-
-JWT payloads are AES-encrypted: all non-standard JWT fields (userId, roles, email, etc.) are encrypted with the `applicationSecret` before signing. This prevents payload inspection without the application secret.
-
-#### Getting Current User from Context
-
-After authentication middleware runs, the current user is available via context variables:
-
-```typescript
-@get({
-  configs: {
-    path: '/profile',
-    authenticate: { strategies: ['jwt'], mode: 'any' },
-    responses: jsonResponse({ schema: UserProfileSchema }),
-  },
-})
-async getProfile(context: TRouteContext) {
-  const user = context.get('auth.current.user');
-  // user = { userId: '...', roles: [...], ... }
-
-  const auditId = context.get('audit.user.id');
-  // auditId = user.userId (set automatically for UserAuditEnricher)
-
-  // ...
-}
-```
-
-#### Authentication Modes
-
-| Mode | Behavior |
-| --- | --- |
-| `any` (default) | At least one strategy must succeed. Tries each strategy in order; first success wins. |
-| `all` | All specified strategies must succeed. All are tried; all must pass. |
-
-#### Route-Level vs Controller-Level Authentication
-
-```typescript
-// Controller-level (via ControllerFactory)
-const UserController = ControllerFactory.defineCrudController({
-  authenticate: { strategies: ['jwt'] },  // Applied to ALL routes
-  routes: {
-    find: { authenticate: { skip: true } },  // Override: public
-  },
-});
-
-// Route-level (via decorators)
-@controller({ path: '/products' })
-class ProductController extends BaseRestController {
-  @get({
-    configs: {
-      path: '/',
-      // No authenticate -- public route
-      responses: jsonResponse({ schema: z.array(ProductSchema) }),
-    },
-  })
-  async list(c: TRouteContext) { /* ... */ }
-
-  @post({
-    configs: {
-      path: '/',
-      authenticate: { strategies: ['jwt'] },  // Protected route
-      responses: jsonResponse({ schema: ProductSchema }),
-    },
-  })
-  async create(c: TRouteContext) { /* ... */ }
-}
-```
+Strategies (`jwt`/`basic`) register via `AuthenticationStrategyRegistry`; the current user is available via `context.get('auth.current.user')` after the middleware runs. Authentication mode is `any` (first success wins) or `all` (every strategy must pass). Full setup (JWKS issuer/verifier mode, token service API, route vs controller-level auth): [Authentication](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/authentication/index.md).
 
 ### Authorization Component
 
-Casbin-based RBAC authorization:
+Casbin-based RBAC. `IAuthorizeOptions` carries the component-wide decision policy; the enforcer is registered separately through `AuthorizationEnforcerRegistry`:
 
 ```typescript
-import {
-  AuthorizeComponent, AuthorizeBindingKeys, IAuthorizeOptions,
-  CasbinAuthorizationEnforcer,
-} from '@venizia/ignis';
+import { AuthorizeComponent, AuthorizeBindingKeys, AuthorizationDecisions } from '@venizia/ignis';
 
-this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  enforcer: CasbinAuthorizationEnforcer,
-  alwaysAllowRoles: ['superadmin'],         // Roles that bypass all authorization
-  casbinOptions: {
-    model: '/path/to/model.conf',           // Casbin model file
-    adapter: myAdapter,                     // e.g., FileAdapter, PostgresAdapter
-  },
+this.bind({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
+  defaultDecision: AuthorizationDecisions.DENY,
+  alwaysAllowRoles: ['superadmin'],
 });
 this.component(AuthorizeComponent);
 ```
 
-Use on routes:
-
-```typescript
-@get({
-  configs: {
-    path: '/admin/users',
-    authenticate: { strategies: ['jwt'] },
-    authorize: { action: 'read', resource: 'User' },
-    responses: jsonResponse({ schema: z.array(UserSchema) }),
-  },
-})
-async listUsers(context: TRouteContext) { /* ... */ }
-
-// Multiple authorization specs (all must pass)
-@del({
-  configs: {
-    path: '/admin/users/{id}',
-    authenticate: { strategies: ['jwt'] },
-    authorize: [
-      { action: 'delete', resource: 'User' },
-      { action: 'manage', resource: 'Admin' },
-    ],
-    // ...
-  },
-})
-async deleteUser(context: TRouteContext) { /* ... */ }
-```
+Apply with `authorize: { action, resource }` (or an array, all must pass) in a route's `configs`. Full enforcer registration and Casbin model setup: [Authorization](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/authorization/index.md).
 
 ### Static Asset Component
 
-File upload/download with MinIO or disk storage:
+File upload/download with MinIO, Disk, or Bun S3 storage. Sub-path only, like `mail`/`socket-io`/`websocket`:
 
 ```typescript
-import {
-  StaticAssetComponent, StaticAssetComponentBindingKeys,
-  StaticAssetStorageTypes, TStaticAssetsComponentOptions,
-} from '@venizia/ignis';
-import { MinioHelper, DiskHelper } from '@venizia/ignis-helpers';
+import { StaticAssetComponent, StaticAssetComponentBindingKeys, StaticAssetStorageTypes } from '@venizia/ignis/static-asset';
+import { DiskHelper } from '@venizia/ignis-helpers';
 
-// MinIO backend
-this.bind<TStaticAssetsComponentOptions>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({
-  staticAsset: {
-    controller: { name: 'AssetController', basePath: '/assets' },
-    storage: StaticAssetStorageTypes.MINIO,
-    helper: new MinioHelper({
-      endPoint: 'localhost',
-      port: 9000,
-      accessKey: 'minioadmin',
-      secretKey: 'minioadmin',
-      useSSL: false,
-    }),
-  },
+this.bind({ key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS }).toValue({
+  staticAsset: { controller: { name: 'AssetController', basePath: '/assets' }, storage: StaticAssetStorageTypes.DISK, helper: new DiskHelper({ basePath: './uploads' }) },
 });
 this.component(StaticAssetComponent);
-
-// Disk backend
-this.bind<TStaticAssetsComponentOptions>({
-  key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
-}).toValue({
-  staticAsset: {
-    controller: { name: 'AssetController', basePath: '/assets' },
-    storage: StaticAssetStorageTypes.DISK,
-    helper: new DiskHelper({ basePath: './uploads' }),
-  },
-});
 ```
+
+MinIO and Bun S3 backends follow the same shape, swapping `storage` and `helper`. Details: [Static Asset](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/static-asset/index.md).
 
 ### Mail Component
 
@@ -2284,27 +2136,21 @@ this.bind<TStaticAssetsComponentOptions>({
 import { MailComponent } from '@venizia/ignis/mail';
 ```
 
-Supports:
-
-- **Transporters**: Nodemailer (SMTP), Mailgun (API)
-- **Executors**: Direct (synchronous send), BullMQ (background queue with Redis), InternalQueue (in-memory queue)
+Transporters: Nodemailer (SMTP), Mailgun (API). Executors: Direct (synchronous), BullMQ (Redis-backed queue), InternalQueue (in-memory). Details: [Mail](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/mail/index.md).
 
 ### Socket.IO Component
 
 ```typescript
 import { SocketIOComponent, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 
-this.bind({ key: SocketIOBindingKeys.OPTIONS }).toValue({
-  cors: { origin: '*' },
-  adapter: redisAdapter,  // Optional: Redis adapter for scaling
-});
+this.bind({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue({ cors: { origin: '*' } });
+// A Redis connection and an authenticate handler are both mandatory (unlike most other components).
+this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(redisHelper);
+this.bind({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(authenticateSocket);
 this.component(SocketIOComponent);
 ```
 
-Provides Socket.IO server integration with:
-
-- Bun and Node.js runtime handlers (auto-detected)
-- Redis adapter support for horizontal scaling across multiple server instances
+Bun and Node.js runtime handlers (auto-detected), Redis adapter for horizontal scaling. Details: [Socket.IO](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/extensions/components/socket-io/index.md).
 
 ---
 
@@ -2313,7 +2159,7 @@ Provides Socket.IO server integration with:
 Access the Hono request context from anywhere using `useRequestContext()`:
 
 ```typescript
-import { useRequestContext } from '@venizia/ignis';
+import { useRequestContext, IAuthUser } from '@venizia/ignis';
 
 function getCurrentRequestId(): string | undefined {
   const context = useRequestContext();
@@ -2383,7 +2229,14 @@ setupMiddlewares(): ValueOrPromise<void> {
 
 ### Error Propagation
 
-Errors propagate through the layer stack and are caught by the global `appErrorHandler`:
+Errors propagate through the layer stack and are caught by the global `appErrorHandler` (Hono's `onError`), which routes each error to one of four shapes:
+
+```
+ZodError                              -> 422, via formatZodError()
+DB client error (SQLSTATE class 22/23/44) -> 400, via isDatabaseClientError()
+Transient DB conflict (40001/40P01)   -> 409, via isRetryableDatabaseError()
+Everything else (incl. getError())    -> its own statusCode, default 500
+```
 
 ```
 Controller throws -> appErrorHandler catches -> JSON error response
@@ -2396,8 +2249,10 @@ Repository throws -> Service doesn't catch -> Controller doesn't catch -> appErr
 ```json
 {
   "message": "Error description",
+  "messageCode": "some.message.code",
   "statusCode": 500,
   "requestId": "abc-123-def",
+  "extra": { "any": "extra context attached via getError({ extra })" },
   "details": {
     "url": "http://localhost:3000/api/users",
     "path": "/api/users",
@@ -2407,22 +2262,20 @@ Repository throws -> Service doesn't catch -> Controller doesn't catch -> appErr
 }
 ```
 
-In production (`NODE_ENV=production`), `stack` and `cause` are stripped from responses.
+In production (`NODE_ENV=production`), `stack` and `cause` are stripped from responses, and an unexpected (non-`getError`) 500 has its `message` replaced with a generic `"Internal Server Error"` so raw driver/connection errors never leak.
 
 ### PostgreSQL Constraint Errors
 
-The error handler automatically recognizes PostgreSQL constraint violations and returns HTTP 400 instead of 500:
+The error handler classifies by SQLSTATE **class** (the code's first two characters), not an exhaustive list of individual codes:
 
-| Error Code | Description |
-| --- | --- |
-| `23505` | Unique constraint violation |
-| `23503` | Foreign key constraint violation |
-| `23502` | Not null constraint violation |
-| `23514` | Check constraint violation |
-| `23P01` | Exclusion constraint violation |
-| `22P02` | Invalid text representation |
-| `22003` | Numeric value out of range |
-| `22001` | String data too long |
+| SQLSTATE class | Meaning | Resolved status |
+| --- | --- | --- |
+| `22` | Data exception (e.g. `22001` string too long, `22003` numeric out of range, `22P02` invalid text representation) | 400 |
+| `23` | Integrity constraint violation (e.g. `23505` unique, `23503` foreign key, `23502` not null, `23514` check, `23P01` exclusion) | 400 |
+| `44` | WITH CHECK OPTION violation | 400 |
+| `40001` / `40P01` (exact codes, not a class) | Serialization failure / deadlock detected -- transient, safe to retry | 409, `messageCode: 'database.conflict'` |
+
+In production, only the generic per-code message is returned; outside production, `detail`/`table`/`constraint` from the driver are appended for debugging.
 
 ### Throwing Application Errors
 
@@ -2442,16 +2295,18 @@ throw getError({
 });
 ```
 
+`throwNotSupported()` (`src/utilities/error.utility.ts`) is the standardized way connectors reject a capability they deliberately don't implement (e.g. Typesense/Memory transactions and locks): it logs a warning, then throws via `getError()` with `messageCode: 'core.not_supported'` and HTTP 501.
+
 ---
 
 ## Decorators Reference
 
 | Decorator | Target | Parameters | Description |
 | --- | --- | --- | --- |
-| `@model({ type?, settings? })` | Class | `type`: entity type string; `settings.hiddenProperties`: string[]; `settings.defaultFilter`: TFilter | Register entity model with hidden properties and default filters |
-| `@datasource({ driver?, autoDiscovery? })` | Class | `driver`: `'node-postgres'`; `autoDiscovery`: boolean (default true) | Register datasource with driver configuration |
+| `@model({ type, settings?, tableName?, skipMigrate? })` | Class | `type`: `'entity' \| 'view'` (required); `settings.hiddenProperties`: string[]; `settings.defaultFilter`: TFilter | Register entity model with hidden properties and default filters |
+| `@datasource({ driver, autoDiscovery? })` | Class | `driver`: e.g. `'node-postgres'`, `'typesense'` (required); `autoDiscovery`: boolean (default true) | Register datasource with driver configuration |
 | `@repository({ model, dataSource })` | Class | `model`: entity class; `dataSource`: datasource class | Bind repository to model and datasource; auto-injects datasource at param[0] |
-| `@controller({ path, authenticate? })` | Class | `path`: base path string; `authenticate`: `{ strategies, mode }` | Register controller with base path and optional default auth |
+| `@controller({ path })` | Class | `path`: base path string | Register controller with base path. Default authentication/authorization is set at the `ControllerFactory` level, not on this decorator |
 | `@get({ configs })` | Method | Full route config (path, request, responses, authenticate, authorize, middleware) | Define GET route |
 | `@post({ configs })` | Method | Same as `@get` | Define POST route |
 | `@put({ configs })` | Method | Same as `@get` | Define PUT route |
@@ -2469,6 +2324,7 @@ Utility functions for building OpenAPI-compliant response and request schemas:
 
 ```typescript
 import { jsonContent, jsonResponse, htmlResponse, idParamsSchema } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 
 // JSON request body
 jsonContent({
@@ -2505,255 +2361,84 @@ idParamsSchema({ idType: 'string' });
 
 ### Complete User CRUD with Auth, Validation, Soft Delete, Pagination
 
+A model with hidden fields + soft delete, a repository, a service enforcing a uniqueness rule, and a controller wiring auth/authorization onto routes -- the full layered pattern in one file group:
+
 ```typescript
 // models/user.model.ts
-@model({
-  type: 'entity',
-  settings: {
-    hiddenProperties: ['password'],
-    defaultFilter: { where: { isDeleted: false } },
-  },
-})
-export class User extends BaseEntity<typeof User.schema> {
+@model({ type: 'entity', settings: { hiddenProperties: ['password'], defaultFilter: { where: { isDeleted: false } } } })
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
-    ...generateTzColumnDefs({
-      deleted: { enable: true, columnName: 'deleted_at', withTimezone: true },
-    }),
-    ...generateUserAuditColumnDefs({
-      created: { dataType: 'string', columnName: 'created_by', allowAnonymous: true },
-      modified: { dataType: 'string', columnName: 'modified_by', allowAnonymous: true },
-    }),
+    ...generateTzColumnDefs({ deleted: { enable: true, columnName: 'deleted_at', withTimezone: true } }),
     username: text('username').notNull().unique(),
     email: text('email').notNull().unique(),
     password: text('password'),
-    role: text('role').default('user').notNull(),
     isDeleted: boolean('is_deleted').default(false).notNull(),
-    metadata: jsonb('metadata').$type<Record<string, any>>(),
   });
-
   static override relations = () => [];
-  static TABLE_NAME = 'User';
+  static override TABLE_NAME = 'User';
 }
 
 // repositories/user.repository.ts
 @repository({ model: User, dataSource: PostgresDataSource })
 export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {}
 
-// services/user.service.ts
+// services/user.service.ts -- enforces a uniqueness rule before delegating to the repository
 export class UserService extends BaseService {
-  constructor(
-    @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
-  ) {
+  constructor(@inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository) {
     super({ scope: UserService.name });
   }
 
   async createUser(data: { username: string; email: string; password: string }) {
-    const exists = await this.userRepo.existsWith({ where: { email: data.email } });
+    const exists = await this.userRepository.existsWith({ where: { email: data.email } });
     if (exists) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Conflict,
-        message: 'Email already in use',
-      });
+      throw getError({ statusCode: HTTP.ResultCodes.RS_4.Conflict, message: 'Email already in use' });
     }
-
-    const hashedPassword = await Bun.password.hash(data.password);
-    return this.userRepo.create({
-      data: { ...data, password: hashedPassword },
-    });
-  }
-
-  async softDeleteUser(id: string) {
-    return this.userRepo.updateById({
-      id,
-      data: { isDeleted: true, deletedAt: new Date() },
-    });
+    return this.userRepository.create({ data: { ...data, password: await Bun.password.hash(data.password) } });
   }
 }
 
-// controllers/user.controller.ts
+// controllers/user.controller.ts -- @get is public, @post requires jwt + authorization
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
-  constructor(
-    @inject({ key: 'services.UserService' }) private userService: UserService,
-    @inject({ key: 'repositories.UserRepository' }) private userRepo: UserRepository,
-  ) {
+  constructor(@inject({ key: 'services.UserService' }) private userService: UserService) {
     super({ scope: UserController.name });
   }
-
   override binding() {}
-
-  @get({
-    configs: {
-      path: '/',
-      description: 'List users with pagination',
-      request: {
-        query: z.object({
-          filter: FilterSchema,
-        }),
-      },
-      responses: jsonResponse({
-        schema: z.object({
-          data: z.array(z.object({
-            id: z.string(),
-            username: z.string(),
-            email: z.string(),
-            role: z.string(),
-          })),
-          range: z.object({ start: z.number(), end: z.number(), total: z.number() }),
-        }),
-      }),
-    },
-  })
-  async list(context: TRouteContext) {
-    const { filter = {} } = context.req.valid<{ filter?: any }>('query');
-    const result = await this.userRepo.find({
-      filter: { ...filter, fields: ['id', 'username', 'email', 'role'] },
-      options: { shouldQueryRange: true },
-    });
-    return context.json(result, 200);
-  }
-
-  @post({
-    configs: {
-      path: '/',
-      authenticate: { strategies: ['jwt'] },
-      authorize: { action: 'create', resource: 'User' },
-      request: {
-        body: jsonContent({
-          schema: z.object({
-            username: z.string().min(3).max(50),
-            email: z.string().email(),
-            password: z.string().min(8),
-          }),
-        }),
-      },
-      responses: jsonResponse({
-        schema: z.object({ count: z.number(), data: z.any() }),
-      }),
-    },
-  })
-  async create(context: TRouteContext) {
-    const data = context.req.valid<{ username: string; email: string; password: string }>('json');
-    const result = await this.userService.createUser(data);
-    return context.json(result, 200);
-  }
-
-  @del({
-    configs: {
-      path: '/{id}',
-      authenticate: { strategies: ['jwt'] },
-      authorize: { action: 'delete', resource: 'User' },
-      request: { params: idParamsSchema({ idType: 'string' }) },
-      responses: jsonResponse({ schema: z.object({ count: z.number() }) }),
-    },
-  })
-  async softDelete(context: TRouteContext) {
-    const { id } = context.req.valid<{ id: string }>('param');
-    const result = await this.userService.softDeleteUser(id);
-    return context.json({ count: result.count }, 200);
-  }
 }
 ```
+
+The full walkthrough (pagination, controller-level find/create/soft-delete routes, OpenAPI schemas) is the [Building a CRUD API tutorial](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/tutorials/building-a-crud-api.md).
 
 ---
 
 ## Testing
 
-### Testing Repositories
+IGNIS uses the Bun test runner throughout. A repository test needs only a configured DataSource:
 
 ```typescript
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, beforeAll } from 'bun:test';
 
 describe('UserRepository', () => {
-  let repo: UserRepository;
-  let dataSource: PostgresDataSource;
+  let repository: UserRepository;
 
   beforeAll(async () => {
-    dataSource = new PostgresDataSource();
+    const dataSource = new PostgresDataSource();
     await dataSource.configure();
-    repo = new UserRepository(dataSource, { entityClass: User });
+    repository = new UserRepository(dataSource, { entityClass: User });
   });
 
   test('create and find user', async () => {
-    const { data: user } = await repo.create({
-      data: { username: 'test', email: 'test@example.com' },
-    });
-
+    const { data: user } = await repository.create({ data: { username: 'test', email: 'test@example.com' } });
     expect(user.id).toBeDefined();
-    expect(user.username).toBe('test');
 
-    const found = await repo.findById({ id: user.id });
-    expect(found).not.toBeNull();
+    const found = await repository.findById({ id: user.id });
     expect(found!.email).toBe('test@example.com');
   });
-
-  test('hidden fields are excluded', async () => {
-    const { data: user } = await repo.create({
-      data: { username: 'secret', email: 'secret@example.com', password: 'hash123' },
-    });
-
-    // password should not be in the returned data
-    expect(user.password).toBeUndefined();
-  });
-
-  test('default filter excludes soft-deleted records', async () => {
-    const { data: user } = await repo.create({
-      data: { username: 'deleted', email: 'deleted@example.com', isDeleted: true },
-    });
-
-    // Default filter: { where: { isDeleted: false } }
-    const found = await repo.findById({ id: user.id });
-    expect(found).toBeNull();
-
-    // Bypass default filter
-    const foundAll = await repo.findById({
-      id: user.id,
-      options: { shouldSkipDefaultFilter: true },
-    });
-    expect(foundAll).not.toBeNull();
-  });
 });
 ```
 
-### Testing Controllers
-
-```typescript
-import { describe, test, expect } from 'bun:test';
-
-describe('UserController', () => {
-  let app: Application;
-
-  beforeAll(async () => {
-    app = new Application();
-    await app.initialize();
-  });
-
-  test('GET /api/users returns 200', async () => {
-    const server = app.getServer();
-    const res = await server.fetch(
-      new Request('http://localhost/api/users'),
-    );
-    expect(res.status).toBe(200);
-    const body = await res.json();
-    expect(Array.isArray(body)).toBe(true);
-  });
-
-  test('POST /api/users validates request body', async () => {
-    const server = app.getServer();
-    const res = await server.fetch(
-      new Request('http://localhost/api/users', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: '' }),  // Invalid: missing email, empty username
-      }),
-    );
-    expect(res.status).toBe(422);
-    const body = await res.json();
-    expect(body.message).toBe('ValidationError');
-  });
-});
-```
+Controller tests drive `app.getServer().fetch()` against a real running `Application` -- routes are only mounted inside `start()`. Full patterns (hidden-field/default-filter assertions, request validation, auth): [Testing tutorial](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/tutorials/testing.md).
 
 ---
 
@@ -2767,11 +2452,11 @@ describe('UserController', () => {
 
 4. **Core API vs Query API** -- The repository automatically uses the faster Core API (15--20% faster) when your filter does not include relations or explicit field selection. No manual optimization needed.
 
-5. **Visible Property Caching** -- The `FieldsVisibilityMixin` computes the visible property set once and caches it. Subsequent queries reuse the cached column selection.
+5. **Visible Property Caching** -- `PostgresBaseRepository.getVisibleProperties()` computes the visible property set once and caches it. Subsequent queries reuse the cached column selection.
 
 6. **Parallel Count + Data** -- When `shouldQueryRange: true`, the data fetch and count query run in parallel via `Promise.all`, not sequentially.
 
-7. **Schema Factory Sharing** -- `BaseEntity` uses a lazy singleton for the Drizzle-Zod schema factory, shared across all entity instances. Schema generation does not create redundant factory objects.
+7. **Schema Factory Sharing** -- `BasePostgresEntity` uses a lazy singleton for the Drizzle-Zod schema factory, shared across all entity instances. Schema generation does not create redundant factory objects.
 
 8. **Avoid `shouldReturn: true` for Bulk Inserts** -- When inserting large batches, pass `shouldReturn: false` to skip the `RETURNING` clause, which significantly reduces response payload size and memory usage.
 
@@ -2784,8 +2469,8 @@ describe('UserController', () => {
 ## Documentation
 
 - [IGNIS Repository](https://github.com/VENIZIA-AI/ignis)
-- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/index.md)
-- [Core Concepts](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/get-started/core-concepts/application.md)
+- [Getting Started](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/index.md)
+- [Core Concepts](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/core-concepts/application/index.md)
 - [Examples](https://github.com/VENIZIA-AI/ignis/tree/main/examples/vert)
 
 ---

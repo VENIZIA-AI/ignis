@@ -29,8 +29,9 @@ export default prettierConfigs;
 | Setting | Value | Description |
 |---------|-------|-------------|
 | `bracketSpacing` | `true` | `{ foo: bar }` |
-| `singleQuote` | `false` | `"string"` (double quotes) |
+| `singleQuote` | `true` | `'string'` (single quotes) |
 | `printWidth` | `100` | Maximum line length |
+| `tabWidth` | `2` | 2-space indentation |
 | `trailingComma` | `'all'` | `[1, 2, 3,]` |
 | `arrowParens` | `'avoid'` | `x => x` not `(x) => x` |
 | `semi` | `true` | Semicolons required |
@@ -65,6 +66,7 @@ export default eslintConfigs;
 **Includes:**
 - Pre-configured rules for Node.js/TypeScript (via `@minimaltech/eslint-node`)
 - Disables `@typescript-eslint/no-explicit-any` by default
+- Enforces mandatory braces: `curly: ['error', 'all']` and `unicorn/switch-case-braces: ['error', 'always']`
 
 **Customization:**
 ```javascript
@@ -113,9 +115,10 @@ Use the centralized TypeScript configs:
 
 | Option | Value | Purpose |
 |--------|-------|---------|
-| `target` | `ES2022` | Modern JavaScript features |
+| `target` | `ES2024` | Modern JavaScript features |
 | `experimentalDecorators` | `true` | Required for IGNIS decorators |
 | `emitDecoratorMetadata` | `true` | Metadata reflection for DI |
+| `useDefineForClassFields` | `false` | Decorator-compatible class fields |
 | `strict` | `true` | Strict type checking |
 | `skipLibCheck` | `true` | Faster compilation |
 

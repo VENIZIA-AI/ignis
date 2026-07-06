@@ -35,7 +35,7 @@ How filters flow through the application layers.
                                  v
 +-----------------------------------------------------------------+
 |                     Repository Layer                             |
-|   - DefaultFilterMixin merges default filter                     |
+|   - applyDefaultFilter() merges the @model default filter         |
 |   - FilterBuilder transforms Filter -> Drizzle query options     |
 |   - Executes query via Drizzle ORM                               |
 |   - Returns typed results                                        |
@@ -68,8 +68,7 @@ const _Controller = ControllerFactory.defineCrudController({
   controller: {
     name: 'ProductController',
     basePath: BASE_PATH,
-    isStrict: true,
-    defaultLimit: 20,
+    isStrict: { path: true, requestSchema: true },
   },
   entity: () => Product,
 });
@@ -95,18 +94,21 @@ export class ProductController extends _Controller {
 | Method | Endpoint | Filter Location |
 |--------|----------|-----------------|
 | GET | `/products` | Query param: `?filter={...}` |
-| GET | `/products/:id` | Query param: `?filter={...}` (for includes) |
-| GET | `/products/one` | Query param: `?filter={...}` |
+| GET | `/products/{id}` | Query param: `?filter={...}` (for includes) |
+| GET | `/products/find-one` | Query param: `?filter={...}` |
 | GET | `/products/count` | Query param: `?where={...}` |
 
 ### Custom Controller with Manual Filter Handling
 
 ```typescript
+import { z } from '@hono/zod-openapi';
+import { BaseRestController, controller, FilterSchema, inject, jsonResponse } from '@venizia/ignis';
+
 @controller({ path: '/products' })
 export class ProductController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
-    private _productRepo: ProductRepository,
+    private _productRepository: ProductRepository,
   ) {
     super({ scope: 'ProductController', path: '/products' });
   }
@@ -116,13 +118,14 @@ export class ProductController extends BaseRestController {
       configs: {
         path: '/search',
         method: 'get',
-        query: {
-          filter: FilterSchema,
+        request: {
+          query: z.object({ filter: FilterSchema }),
         },
+        responses: jsonResponse({ schema: z.array(z.object({ id: z.string() })) }),
       },
       handler: async (context) => {
         const { filter = {} } = context.req.valid('query');
-        const results = await this._productRepo.find({ filter });
+        const results = await this._productRepository.find({ filter });
         return context.json(results);
       },
     });
@@ -155,7 +158,7 @@ Services can modify filters before passing to repositories:
 export class ProductService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
-    private _productRepo: ProductRepository,
+    private _productRepository: ProductRepository,
   ) {}
 
   async findProducts(filter: TFilter<TProductSchema> = {}) {
@@ -168,7 +171,7 @@ export class ProductService {
       },
     };
 
-    return this._productRepo.find({ filter: enhancedFilter });
+    return this._productRepository.find({ filter: enhancedFilter });
   }
 
   async findProductsForTenant(
@@ -183,7 +186,7 @@ export class ProductService {
       },
     };
 
-    return this._productRepo.find({ filter: isolatedFilter });
+    return this._productRepository.find({ filter: isolatedFilter });
   }
 }
 ```
@@ -227,7 +230,7 @@ const response = await axios.get('/api/products', {
 
 ```typescript
 // Enable logging to see generated SQL
-const result = await repo.find({
+const result = await repository.find({
   filter: complexFilter,
   options: {
     log: { use: true, level: 'debug' },
@@ -235,6 +238,6 @@ const result = await repo.find({
 });
 
 // Or use buildQuery to inspect without executing
-const queryOptions = repo.buildQuery({ filter: complexFilter });
+const queryOptions = repository.buildQuery({ filter: complexFilter });
 console.log('Generated query options:', queryOptions);
 ```

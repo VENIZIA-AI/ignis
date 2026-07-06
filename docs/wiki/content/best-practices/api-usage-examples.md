@@ -28,7 +28,7 @@ export const RouteConfigs = {
   CREATE_ITEM: {
     method: HTTP.Methods.POST,
     path: '/items',
-    authStrategies: [Authentication.STRATEGY_JWT], // Secure this endpoint
+    authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // Secure this endpoint
     request: {
       body: jsonContent({
         description: 'Request body for POST',
@@ -378,18 +378,20 @@ export class UserService extends BaseService {
   }
 
   async getUserWithOrders(userId: string) {
+    // findById returns the record or null (no wrapper object)
     const user = await this.userRepository.findById({ id: userId });
-    if (!user.data) {
+    if (!user) {
       return null;
     }
 
+    // find returns a plain array
     const orders = await this.orderRepository.find({
       filter: { where: { userId } },
     });
 
     return {
-      ...user.data,
-      orders: orders.data,
+      ...user,
+      orders,
     };
   }
 
@@ -527,14 +529,14 @@ async getUser(c: TRouteContext) {
 
   const user = await this.userRepository.findById({ id });
 
-  if (!user.data) {
+  if (!user) {
     throw getError({
       statusCode: 404,
       message: `User with ID '${id}' not found`,
     });
   }
 
-  return c.json(user.data, HTTP.ResultCodes.RS_2.Ok);
+  return c.json(user, HTTP.ResultCodes.RS_2.Ok);
 }
 ```
 
@@ -592,3 +594,4 @@ async processOrder(c: Context) {
     });
   }
 }
+```

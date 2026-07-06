@@ -1,6 +1,6 @@
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { IDataSource, TDataSourceDriver } from '@/base/datasources/common';
-import { BaseEntity, IEntity, TTableSchemaWithId } from '@/base/models';
+import { IDataSource, TDataSourceDriver } from '@/base/datasources';
+import { AbstractEntity } from '@/base/models';
 import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
 import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
@@ -10,7 +10,6 @@ import {
   type IPropertyMetadata as _IPropertyMetadata,
   type TBindingScope,
 } from '@venizia/ignis-inversion';
-import { relations as defineRelations } from 'drizzle-orm';
 
 interface IBaseControllerMetadata {
   path: string;
@@ -32,10 +31,13 @@ export type TControllerMetadata = IRestControllerMetadata | IGrpcControllerMetad
 export interface IRpcMetadata {
   /** Proto method name. */
   name: string;
+
   /** RPC method type (unary, server_streaming, etc.). */
   method: TGrpcMethod;
+
   /** Authentication config for this RPC method. */
   authenticate?: { strategies?: TAuthStrategy[]; mode?: TAuthMode };
+
   /** Authorization spec(s) for this RPC method. */
   authorize?: IAuthorizationSpec | IAuthorizationSpec[];
 }
@@ -62,10 +64,13 @@ export interface IModelAuthorizeSettings {
 export interface IModelSettings {
   /** Properties excluded from all query results at SQL level. */
   hiddenProperties?: string[];
+
   /** Default filter auto-applied to all repository operations. Bypassable via shouldSkipDefaultFilter. */
   defaultFilter?: TFilter;
+
   /** Default row limit when a query omits `limit`. Must be a positive integer. Falls back to DEFAULT_LIMIT (10). */
   defaultLimit?: number;
+
   /** Authorization settings for this model (principal name, etc.). */
   authorize?: IModelAuthorizeSettings;
 }
@@ -77,16 +82,18 @@ export interface IModelMetadata {
   settings?: IModelSettings;
 }
 
-export type TModelClass<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
-> = TClass<Model> & IEntity<Schema>;
+export interface IEntityStatics {
+  schema?: unknown;
+  relations?: TValueOrResolver<Array<unknown>>;
+}
+
+export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<Model> &
+  IEntityStatics;
 
 /** Decorator target for model classes (supports both strongly typed and ClassDecorator patterns). */
-export type TDecoratorModelTarget<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
-> = TModelClass<Schema, Model> | (Function & Partial<IEntity<Schema>>);
+export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity> =
+  | TModelClass<Model>
+  | (Function & IEntityStatics);
 
 export interface IDataSourceMetadata {
   driver: TDataSourceDriver;
@@ -94,8 +101,7 @@ export interface IDataSourceMetadata {
 }
 
 export interface IRepositoryMetadata<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 > {
   model: TValueOrResolver<TClass<Model>>;
@@ -105,8 +111,7 @@ export interface IRepositoryMetadata<
 
 /** Resolved repository metadata after lazy evaluation. */
 export interface IResolvedRepositoryMetadata<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 > {
   model?: TClass<Model>;
@@ -115,27 +120,24 @@ export interface IResolvedRepositoryMetadata<
 }
 
 /** Drizzle relations return type. */
-export type TDrizzleRelations = ReturnType<typeof defineRelations>;
 
-export interface IModelRegistryEntry<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
-> {
+export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity> {
   target: TValueOrResolver<TClass<Model>>;
   metadata: IModelMetadata;
-  schema: Schema;
+  schema: unknown;
+
   /** Lazy resolver to avoid circular deps. Resolved when DataSource builds schema. */
   relationsResolver?: TValueOrResolver<Array<unknown>>;
+
   /** Cache populated on first buildSchema() call. */
-  _builtRelations?: TDrizzleRelations;
+  _builtRelations?: unknown;
 }
 
 export interface IRepositoryBinding<
-  Schema extends TTableSchemaWithId = TTableSchemaWithId,
-  Model extends BaseEntity<Schema> = BaseEntity<Schema>,
+  Model extends AbstractEntity = AbstractEntity,
   DataSource extends IDataSource = IDataSource,
 > {
-  model: TValueOrResolver<TDecoratorModelTarget<Schema, Model>>;
+  model: TValueOrResolver<TClass<Model>>;
   repository: TValueOrResolver<TDecoratorTarget<IRepository>>;
   dataSource: TValueOrResolver<string | TDecoratorTarget<DataSource>>;
 }

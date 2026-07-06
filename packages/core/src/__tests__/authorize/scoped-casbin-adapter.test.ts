@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import type { IDataSource } from '@/base/datasources';
-import {
-  ScopedCasbinAdapter,
-  type IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import type {
+  ICasbinPolicySource,
+  IScopedCasbinEntities,
+} from '@/components/auth/authorize/adapters/types';
 
 const dialect = new PgDialect();
 
@@ -17,9 +17,8 @@ const entities = (): IScopedCasbinEntities => ({
   softDelete: { use: true, columnName: 'deleted_at' },
 });
 
-// Stub connector. CRITICAL: Drizzle parameterizes interpolated VALUES — `sql\`... = ${'assign_role'}\``
-// compiles to `... = $1` with 'assign_role' in `params`, NOT in the SQL string. So a stub that needs
-// to pick rows per variant MUST branch on `params`, never on the SQL text. (Verified empirically.)
+// Drizzle parameterizes interpolated values into `params`, not the SQL text (`sql\`...=${'x'}\`` ->
+// `...=$1`), so a stub picking rows per variant must branch on `params`, never on the SQL text.
 function makeAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[] = () => []) {
   const captured: string[] = [];
   const connector = {
@@ -29,7 +28,9 @@ function makeAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[] 
       return { rows: rowsFor(text, params) };
     },
   };
-  const dataSource = { connector } as unknown as IDataSource;
+  // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
+  // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+  const dataSource = { connector } as ICasbinPolicySource;
   const adapter = new ScopedCasbinAdapter({ dataSource, entities: entities() });
   return { adapter, captured };
 }
@@ -50,9 +51,8 @@ describe('ScopedCasbinAdapter — queryRoleAssignments', () => {
   });
 
   test('soft-delete clause references the SAME unquoted alias as the FROM clause', async () => {
-    // The FROM alias is written unquoted (`FROM ... policyDefinition`), which Postgres folds to
-    // `policydefinition`. If the soft-delete clause quotes it (`"policyDefinition"`), Postgres treats
-    // that as a DIFFERENT relation → "missing FROM-clause entry for table policyDefinition" (42P01).
+    // The FROM alias is unquoted, so Postgres folds it to `policydefinition`; quoting the alias in
+    // the soft-delete clause would make Postgres see it as a different relation (error 42P01).
     const { adapter, captured } = makeAdapter();
     await adapter['queryRoleAssignments']({ principal: { type: 'User', id: 'u1' } });
     expect(captured[0]).toContain('FROM "identity"."PolicyDefinition" policyDefinition');
@@ -196,8 +196,8 @@ describe('ScopedCasbinAdapter — loadFilteredPolicy end-to-end', () => {
     const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
     const enforcer = await newEnforcer(model);
     await enforcer.addNamedDomainMatchingFunc('g', Util.keyMatchFunc);
-    // objectMatch must be BOTH a direct matcher function (graph-free prefix/wildcard) AND the g4
-    // matching func (stored-edge traversal) — see Plan 1 finding. Registering only one breaks enforce.
+    // objectMatch must be registered as both a direct matcher (prefix/wildcard) and the g4 matching
+    // func (stored-edge traversal) - registering only one breaks enforce.
     await enforcer.addFunction('objectMatch', objectMatch);
     await enforcer.addNamedMatchingFunc('g4', objectMatch);
 

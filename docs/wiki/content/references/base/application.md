@@ -167,7 +167,7 @@ service<Base extends IService, Args extends AnyObject = any>(
   opts?: TMixinOpts<Args>,
 ): Binding<Base>
 
-repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+repository<Base extends IRepository, Args extends AnyObject = any>(
   ctor: TClass<Base>,
   opts?: TMixinOpts<Args>,
 ): Binding<Base>
@@ -305,8 +305,7 @@ interface IApplicationConfigs {
   bootOptions?: IBootOptions;             // Boot system configuration
   debug?: { shouldShowRoutes?: boolean }; // Show registered routes on startup
   transports?: TControllerTransport[];    // Controller transports: 'rest' | 'grpc' (default: ['rest'])
-  strictPath?: boolean;                   // Hono strict path matching (default: true)
-  [key: string]: any;                     // Extensible
+  [key: string]: any;                     // Extensible (e.g. strictPath?: boolean - Hono strict path matching, default: true)
 }
 ```
 

@@ -75,7 +75,7 @@ export class Application extends BaseApplication {
 }
 ```
 
-`this.service(UserService)` binds the class at the key `services.UserService`. Any other binding that injects `@inject({ key: 'services.UserService' })` will receive the same singleton instance.
+`this.service(UserService)` binds the class at the key `services.UserService`. Any other binding that injects `@inject({ key: 'services.UserService' })` resolves an instance from this binding. Service bindings are **transient** by default - each resolution creates a new instance. If your service must be shared (e.g., it holds state), set the scope explicitly: `this.service(UserService).setScope(BindingScopes.SINGLETON)`.
 
 ---
 
@@ -360,7 +360,7 @@ Controllers call services. Services call other services and repositories. Reposi
 
 ## Provider vs Service
 
-**Services** contain business logic executed as singleton instances.
+**Services** contain business logic and are resolved from the DI container (transient scope by default).
 
 **Providers** implement the Factory pattern - their `value(container)` method produces a configured value or instance on demand (mail transport, cache driver, middleware). Use a Provider when you need to select between multiple implementations at runtime.
 

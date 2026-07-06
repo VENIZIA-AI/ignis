@@ -47,7 +47,7 @@ Now all queries automatically include the default filter:
 
 ```typescript
 // Your code
-await userRepo.find({
+await userRepository.find({
   filter: { where: { status: 'active' } }
 });
 
@@ -183,13 +183,13 @@ Use `shouldSkipDefaultFilter: true` to bypass the default filter:
 
 ```typescript
 // Normal query - default filter applies
-await repo.find({
+await repository.find({
   filter: { where: { role: 'admin' } }
 });
 // WHERE isDeleted = false AND role = 'admin'
 
 // Admin query - bypass default filter
-await repo.find({
+await repository.find({
   filter: { where: { role: 'admin' } },
   options: { shouldSkipDefaultFilter: true }
 });
@@ -202,18 +202,18 @@ await repo.find({
 
 ```typescript
 // Read operations
-await repo.find({ filter, options: { shouldSkipDefaultFilter: true } });
-await repo.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
-await repo.findById({ id, options: { shouldSkipDefaultFilter: true } });
-await repo.count({ where, options: { shouldSkipDefaultFilter: true } });
+await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
+await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
+await repository.findById({ id, options: { shouldSkipDefaultFilter: true } });
+await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
 
 // Update operations
-await repo.updateById({ id, data, options: { shouldSkipDefaultFilter: true } });
-await repo.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
+await repository.updateById({ id, data, options: { shouldSkipDefaultFilter: true } });
+await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
 
 // Delete operations
-await repo.deleteById({ id, options: { shouldSkipDefaultFilter: true } });
-await repo.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
+await repository.deleteById({ id, options: { shouldSkipDefaultFilter: true } });
+await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
 ```
 
 ### Use Cases for Bypassing
@@ -243,11 +243,11 @@ await repo.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: t
 export class Post extends BaseEntity<typeof Post.schema> {}
 
 // All queries exclude deleted posts
-await postRepo.find({ filter: {} });
+await postRepository.find({ filter: {} });
 // WHERE deletedAt IS NULL
 
 // Restore a deleted post
-await postRepo.updateById({
+await postRepository.updateById({
   id: postId,
   data: { deletedAt: null },
   options: { shouldSkipDefaultFilter: true }
@@ -268,11 +268,11 @@ await postRepo.updateById({
 export class Document extends BaseEntity<typeof Document.schema> {}
 
 // Queries scoped to tenant
-await docRepo.find({ filter: { where: { type: 'invoice' } } });
+await documentRepository.find({ filter: { where: { type: 'invoice' } } });
 // WHERE tenantId = 'current-tenant' AND type = 'invoice'
 
 // Cross-tenant admin query
-await docRepo.find({
+await documentRepository.find({
   filter: { where: { type: 'invoice' } },
   options: { shouldSkipDefaultFilter: true }
 });
@@ -311,8 +311,8 @@ Use the dedicated `settings.defaultLimit` to raise (or lower) the per-model defa
 export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
 
 // User can override limit, but there's always a sensible default
-await logRepo.find({ filter: {} });           // LIMIT 1000
-await logRepo.find({ filter: { limit: 50 } }); // LIMIT 50
+await logEntryRepository.find({ filter: {} });           // LIMIT 1000
+await logEntryRepository.find({ filter: { limit: 50 } }); // LIMIT 50
 ```
 
 > [!TIP]
@@ -324,7 +324,7 @@ await logRepo.find({ filter: { limit: 50 } }); // LIMIT 50
 When using `include` to load relations, the default filter of the related model is also applied. You can bypass it per-relation:
 
 ```typescript
-await repo.find({
+await repository.find({
   filter: {
     include: [
       // Default filter of related model applies
@@ -361,11 +361,11 @@ interface IWithTransaction {
 This allows combining with transactions:
 
 ```typescript
-const tx = await repo.beginTransaction();
+const tx = await repository.beginTransaction();
 
 try {
   // Both transaction and shouldSkipDefaultFilter
-  await repo.updateAll({
+  await repository.updateAll({
     where: { status: 'archived' },
     data: { isDeleted: true },
     options: {
@@ -387,10 +387,10 @@ try {
 ### Architecture
 
 ```
-+------------------+     +------------------+     +------------------+
-|  Model Settings  | --> | DefaultFilterMixin | --> | Repository Method |
-|  defaultFilter   |     | applyDefaultFilter |     | find/count/etc   |
-+------------------+     +------------------+     +------------------+
++------------------+     +----------------------+     +------------------+
+|  Model Settings  | --> | PostgresBaseRepository | --> | Repository Method |
+|  defaultFilter   |     | applyDefaultFilter()   |     | find/count/etc   |
++------------------+     +----------------------+     +------------------+
                                 |
                                 v
                          +------------------+
@@ -399,9 +399,9 @@ try {
                          +------------------+
 ```
 
-### DefaultFilterMixin
+### PostgresBaseRepository
 
-The `DefaultFilterMixin` provides:
+`PostgresBaseRepository` (`packages/core/src/connectors/postgres/repositories/core/postgres-base-repository.ts`) implements the default-filter behavior directly as protected methods - no mixin is composed onto it:
 
 ```typescript
 // Check if default filter is configured
@@ -417,7 +417,10 @@ applyDefaultFilter(opts: {
 }): TFilter
 ```
 
-The default filter is resolved from `MetadataRegistry` on first access and cached for subsequent calls.
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract-repository.ts`) resolved from `MetadataRegistry` keyed by the entity's constructor (not by name string) on first access, and cached for subsequent calls.
+
+> [!NOTE]
+> An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Legacy)](../repositories/mixins.md) for history.
 
 ### FilterBuilder.mergeFilter()
 
@@ -444,12 +447,12 @@ const merged = filterBuilder.mergeFilter({
 | Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
 | Bypass for relation | `include: [{ relation: 'x', shouldSkipDefaultFilter: true }]` |
 | Combine with transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
-| Check if model has default | `repo.hasDefaultFilter()` |
-| Get raw default filter | `repo.getDefaultFilter()` |
+| Check if model has default | `repository.hasDefaultFilter()` |
+| Get raw default filter | `repository.getDefaultFilter()` |
 
 
 ## Next Steps
 
 - [Filter System Overview](./index.md) - Filter structure and operators
-- [Repository Mixins](../repositories/mixins.md) - Mixin architecture
+- [Repository Mixins (Legacy)](../repositories/mixins.md) - Historical mixin architecture
 - [Advanced Features](../repositories/advanced.md) - Transactions, hidden properties

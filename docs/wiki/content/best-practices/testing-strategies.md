@@ -46,13 +46,16 @@ afterAll(async () => {
 
 **`test/helpers/test-database.ts`:**
 ```typescript
+import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
+import { PostgresDataSource } from '@/datasources';
 import * as schema from '@/models';
 
 export class TestDatabase {
   private static pool: Pool;
   private static db: ReturnType<typeof drizzle>;
+  private static dataSource: PostgresDataSource;
 
   static async initialize() {
     this.pool = new Pool({
@@ -63,10 +66,18 @@ export class TestDatabase {
       database: process.env.TEST_DB_NAME ?? 'ignis_test',
     });
     this.db = drizzle({ client: this.pool, schema });
+
+    // Application DataSource - repositories take a DataSource, not a raw Drizzle instance
+    this.dataSource = new PostgresDataSource();
+    await this.dataSource.configure();
   }
 
   static getDb() {
     return this.db;
+  }
+
+  static getDataSource() {
+    return this.dataSource;
   }
 
   static async truncateAll() {
@@ -116,19 +127,20 @@ import type { IUserRepository } from '@/repositories';
 
 describe('UserService', () => {
   let service: UserService;
-  let mockRepo: IUserRepository;
+  let mockRepository: IUserRepository;
 
   beforeEach(() => {
     // Create mock repository
-    mockRepo = {
-      findById: mock(() => Promise.resolve({ data: null })),
-      findOne: mock(() => Promise.resolve({ data: null })),
-      create: mock((opts) => Promise.resolve({ data: { id: 'new-id', ...opts.data }, count: 1 })),
-      updateById: mock(() => Promise.resolve({ data: null, count: 0 })),
+    // find/findOne/findById return the rows directly; create/updateById return { count, data }
+    mockRepository = {
+      findById: mock(() => Promise.resolve(null)),
+      findOne: mock(() => Promise.resolve(null)),
+      create: mock((opts) => Promise.resolve({ count: 1, data: { id: 'new-id', ...opts.data } })),
+      updateById: mock(() => Promise.resolve({ count: 0, data: null })),
     } as unknown as IUserRepository;
 
     // Inject mock
-    service = new UserService(mockRepo);
+    service = new UserService(mockRepository);
   });
 
   describe('createUser', () => {
@@ -142,13 +154,13 @@ describe('UserService', () => {
         email: 'test@example.com',
         name: 'Test User',
       });
-      expect(mockRepo.create).toHaveBeenCalledTimes(1);
+      expect(mockRepository.create).toHaveBeenCalledTimes(1);
     });
 
     it('should throw error for duplicate email', async () => {
-      mockRepo.findOne = mock(() => Promise.resolve({
-        data: { id: 'existing', email: 'test@example.com' },
-      }));
+      mockRepository.findOne = mock(() =>
+        Promise.resolve({ id: 'existing', email: 'test@example.com' }),
+      );
 
       await expect(
         service.createUser({ email: 'test@example.com', name: 'Test' })
@@ -160,7 +172,7 @@ describe('UserService', () => {
 
       await service.createUser(userData);
 
-      const createCall = (mockRepo.create as ReturnType<typeof mock>).mock.calls[0][0];
+      const createCall = (mockRepository.create as ReturnType<typeof mock>).mock.calls[0][0];
       expect(createCall.data.password).not.toBe('secret123');
       expect(createCall.data.password).toMatch(/^\$2[aby]?\$/); // bcrypt hash
     });
@@ -168,7 +180,7 @@ describe('UserService', () => {
 
   describe('updateUser', () => {
     it('should throw NotFound when user does not exist', async () => {
-      mockRepo.findById = mock(() => Promise.resolve({ data: null }));
+      mockRepository.findById = mock(() => Promise.resolve(null));
 
       await expect(
         service.updateUser('nonexistent', { name: 'New Name' })
@@ -176,17 +188,17 @@ describe('UserService', () => {
     });
 
     it('should only update provided fields', async () => {
-      mockRepo.findById = mock(() => Promise.resolve({
-        data: { id: '1', email: 'old@test.com', name: 'Old Name' },
-      }));
-      mockRepo.updateById = mock((opts) => Promise.resolve({
-        data: { ...opts.data, id: opts.id },
+      mockRepository.findById = mock(() =>
+        Promise.resolve({ id: '1', email: 'old@test.com', name: 'Old Name' }),
+      );
+      mockRepository.updateById = mock((opts) => Promise.resolve({
         count: 1,
+        data: { ...opts.data, id: opts.id },
       }));
 
       await service.updateUser('1', { name: 'New Name' });
 
-      const updateCall = (mockRepo.updateById as ReturnType<typeof mock>).mock.calls[0][0];
+      const updateCall = (mockRepository.updateById as ReturnType<typeof mock>).mock.calls[0][0];
       expect(updateCall.data).toEqual({ name: 'New Name' });
       expect(updateCall.data.email).toBeUndefined();
     });
@@ -206,11 +218,11 @@ import { TestDatabase } from '@test/helpers/test-database';
 import { User } from '@/models';
 
 describe('UserRepository', () => {
-  let repo: UserRepository;
+  let repository: UserRepository;
 
   beforeEach(async () => {
-    const db = TestDatabase.getDb();
-    repo = new UserRepository(db);
+    // Repositories take the application DataSource, not a raw Drizzle instance
+    repository = new UserRepository(TestDatabase.getDataSource());
   });
 
   afterEach(async () => {
@@ -219,7 +231,7 @@ describe('UserRepository', () => {
 
   describe('create', () => {
     it('should create a user and return with generated id', async () => {
-      const result = await repo.create({
+      const result = await repository.create({
         data: { email: 'test@example.com', name: 'Test User' },
       });
 
@@ -232,12 +244,12 @@ describe('UserRepository', () => {
     });
 
     it('should enforce unique email constraint', async () => {
-      await repo.create({
+      await repository.create({
         data: { email: 'test@example.com', name: 'First' },
       });
 
       await expect(
-        repo.create({ data: { email: 'test@example.com', name: 'Second' } })
+        repository.create({ data: { email: 'test@example.com', name: 'Second' } })
       ).rejects.toThrow(); // Unique constraint violation
     });
   });
@@ -245,7 +257,7 @@ describe('UserRepository', () => {
   describe('find', () => {
     beforeEach(async () => {
       // Seed test data
-      await repo.createAll({
+      await repository.createAll({
         data: [
           { email: 'alice@test.com', name: 'Alice', status: 'ACTIVE' },
           { email: 'bob@test.com', name: 'Bob', status: 'ACTIVE' },
@@ -255,31 +267,32 @@ describe('UserRepository', () => {
     });
 
     it('should filter by status', async () => {
-      const result = await repo.find({
+      // find() returns the rows directly (an array)
+      const users = await repository.find({
         filter: { where: { status: 'ACTIVE' } },
       });
 
-      expect(result.data).toHaveLength(2);
-      expect(result.data.map(u => u.name)).toContain('Alice');
-      expect(result.data.map(u => u.name)).toContain('Bob');
+      expect(users).toHaveLength(2);
+      expect(users.map(user => user.name)).toContain('Alice');
+      expect(users.map(user => user.name)).toContain('Bob');
     });
 
     it('should support pagination', async () => {
-      const page1 = await repo.find({
+      const page1 = await repository.find({
         filter: { limit: 2, offset: 0, order: ['name ASC'] },
       });
-      const page2 = await repo.find({
+      const page2 = await repository.find({
         filter: { limit: 2, offset: 2, order: ['name ASC'] },
       });
 
-      expect(page1.data).toHaveLength(2);
-      expect(page1.data[0].name).toBe('Alice');
-      expect(page2.data).toHaveLength(1);
-      expect(page2.data[0].name).toBe('Charlie');
+      expect(page1).toHaveLength(2);
+      expect(page1[0].name).toBe('Alice');
+      expect(page2).toHaveLength(1);
+      expect(page2[0].name).toBe('Charlie');
     });
 
     it('should support complex filters', async () => {
-      const result = await repo.find({
+      const users = await repository.find({
         filter: {
           where: {
             or: [
@@ -290,34 +303,35 @@ describe('UserRepository', () => {
         },
       });
 
-      expect(result.data).toHaveLength(2);
-      expect(result.data.map(u => u.name)).toContain('Alice');
-      expect(result.data.map(u => u.name)).toContain('Charlie');
+      expect(users).toHaveLength(2);
+      expect(users.map(user => user.name)).toContain('Alice');
+      expect(users.map(user => user.name)).toContain('Charlie');
     });
   });
 
   describe('relations', () => {
     it('should load related entities', async () => {
       // Assuming User has Posts relation
-      const user = await repo.create({
+      const created = await repository.create({
         data: { email: 'author@test.com', name: 'Author' },
       });
 
       // Create posts for the user
-      const postRepo = new PostRepository(TestDatabase.getDb());
-      await postRepo.createAll({
+      const postRepository = new PostRepository(TestDatabase.getDataSource());
+      await postRepository.createAll({
         data: [
-          { title: 'Post 1', authorId: user.data!.id },
-          { title: 'Post 2', authorId: user.data!.id },
+          { title: 'Post 1', authorId: created.data!.id },
+          { title: 'Post 2', authorId: created.data!.id },
         ],
       });
 
-      const result = await repo.findById({
-        id: user.data!.id,
+      // findById() returns the entity directly (or null)
+      const author = await repository.findById({
+        id: created.data!.id,
         filter: { include: [{ relation: 'posts' }] },
       });
 
-      expect(result.data?.posts).toHaveLength(2);
+      expect(author?.posts).toHaveLength(2);
     });
   });
 });
@@ -341,8 +355,8 @@ describe('UserController E2E', () => {
   beforeAll(async () => {
     await TestDatabase.initialize();
     app = new Application();
-    await app.boot();
-    client = testClient(app.server);
+    await app.initialize();
+    client = testClient(app.getServer());
   });
 
   afterEach(async () => {

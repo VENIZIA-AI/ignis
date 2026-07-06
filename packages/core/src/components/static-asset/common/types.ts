@@ -1,5 +1,6 @@
-import { BaseEntity } from '@/base/models';
-import { DefaultCRUDRepository } from '@/base/repositories';
+import { IAuthRouteConfig } from '@/base';
+import { BasePostgresEntity } from '@/connectors/postgres/models';
+import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import {
   AnyType,
   DiskHelper,
@@ -11,7 +12,6 @@ import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
 import { TMetaLinkSchema } from '../models';
 import { StaticAssetStorageTypes } from './constants';
-import { IAuthRouteConfig } from '@/base';
 
 export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {
@@ -37,7 +37,7 @@ export type TUploadQuery = {
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
-  model: typeof BaseEntity<Schema>;
+  model: typeof BasePostgresEntity<Schema>;
   repository: DefaultCRUDRepository<Schema>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;

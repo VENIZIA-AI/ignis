@@ -21,6 +21,9 @@ Guide for writing consistent, professional helper reference docs for IGNIS.
 | Socket.IO | 2 | Server + Client helpers, Redis integration |
 | WebSocket | 2 | Largest helper, Server + Emitter, complex internals |
 
+> [!NOTE]
+> Kafka uses an extended multi-page structure (`index.md` + `producer.md`, `consumer.md`, `admin.md`, `schema-registry.md`, `examples.md`) that goes beyond the Tier 2 two-page pattern.
+
 ## Principles
 
 - **Usage-first** -- Show working code early, not abstract API tables
@@ -54,13 +57,13 @@ Use **GitHub-style only**:
 |----------|---------|
 | [Single Page](./single-page) | Tier 1 template -- one file per helper |
 
-Tier 2 follows the same two-page pattern as [Component Tier 2](../../components/template/).
+Tier 2 helpers use two pages (`index.md` + `api.md`) -- see the existing Tier 2 helper docs (Network, Storage, Socket.IO, WebSocket) for the pattern. Note this differs from [Component Tier 2](../../components/template/), which is a four-page set.
 
 ## Source Paths
 
 | Package | Path |
 |---------|------|
-| Helpers | `packages/helpers/src/helpers/{name}/` |
+| Helpers | `packages/helpers/src/modules/{name}/` |
 | Inversion | `packages/inversion/src/` |
 | Common types | `packages/helpers/src/common/types.ts` |
 | Utilities | `packages/helpers/src/utilities/` |

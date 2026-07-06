@@ -370,23 +370,17 @@ DEBUG=1 ignis-docs-mcp
 All tools extend the `BaseTool` abstract class:
 
 ```typescript
-export abstract class BaseTool<
-  TInputSchema extends z.ZodType,
-  TOutputSchema extends z.ZodType
-> {
-  // Singleton pattern
-  static getInstance<T extends BaseTool>(this: new () => T): T {
-    // Returns cached instance or creates new one
-  }
+import type { Tool } from '@mastra/core/tools';
+import type { z } from 'zod';
 
-  // Required implementations
+export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema extends z.ZodType> {
   abstract readonly id: string;
   abstract readonly description: string;
   abstract readonly inputSchema: TInputSchema;
   abstract readonly outputSchema: TOutputSchema;
 
-  abstract execute(input: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
-  abstract getTool(): MastraTool;
+  abstract execute(opts: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
+  abstract getTool(): Tool<z.input<TInputSchema>, z.infer<TOutputSchema>>;
 }
 ```
 
@@ -397,9 +391,9 @@ export abstract class BaseTool<
 Create `tools/my-new-tool.tool.ts`:
 
 ```typescript
+import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { BaseTool, createTool, type MastraTool } from './base.tool';
-import { DocsHelper } from '../helpers';
+import { BaseTool } from '../base.tool';
 
 // Define schemas
 const InputSchema = z.object({
@@ -417,18 +411,18 @@ export class MyNewTool extends BaseTool<typeof InputSchema, typeof OutputSchema>
   readonly inputSchema = InputSchema;
   readonly outputSchema = OutputSchema;
 
-  async execute(input: z.infer<typeof InputSchema>) {
+  async execute(opts: z.infer<typeof InputSchema>) {
     // Your logic here
     return { result: 'output' };
   }
 
-  getTool(): MastraTool {
+  getTool() {
     return createTool({
       id: this.id,
       description: this.description,
-      inputSchema: InputSchema,
-      outputSchema: OutputSchema,
-      execute: async ({ context }) => this.execute(context),
+      inputSchema: this.inputSchema,
+      outputSchema: this.outputSchema,
+      execute: async input => this.execute(InputSchema.parse(input)),
     });
   }
 }

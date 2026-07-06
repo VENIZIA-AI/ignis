@@ -283,23 +283,18 @@ This ensures dependencies are available when artifacts are constructed.
 
 ## When Boot Runs
 
-### Integrated Boot
+### Explicit Boot (Standard Pattern)
 
-Boot runs as part of `BaseApplication` when `bootOptions` is configured. `BaseApplication.registerBooters()` is called during `initialize()`:
-
-```typescript
-const app = new Application();
-await app.start();  // initialize() → registerBooters() + boot() → start HTTP server
-```
-
-### Manual Boot
-
-Explicitly call `boot()` on the application:
+Boot does NOT run automatically inside `start()`. Call `boot()` explicitly before `start()` - `boot()` calls `registerBooters()` (which registers the four built-in booters plus the `Bootstrapper`) and then runs all boot phases:
 
 ```typescript
-const app = new Application();
-const report = await app.boot();
+const app = new Application({ scope: 'Application', config: appConfigs });
+app.init();                        // register core bindings
+const report = await app.boot();   // registerBooters() → configure/discover/load
+await app.start();                 // initialize() → middlewares → HTTP server
 ```
+
+This is the pattern used by the production reference app (`examples/vert/src/index.ts`).
 
 ### Using BootMixin (Alternative)
 
@@ -488,10 +483,12 @@ export class MiddlewareBooter extends BaseArtifactBooter {
 
 **Register Custom Booter:**
 
+Register it in `registerBooters()` - NOT in `preConfigure()`. `boot()` runs before `start()`, so `preConfigure()` (which runs during `initialize()` inside `start()`) is too late for the bootstrapper to discover the booter:
+
 ```typescript
 export class Application extends BaseApplication {
-  override preConfigure() {
-    // Register custom booter before boot runs
+  override async registerBooters() {
+    await super.registerBooters(); // built-in booters + bootstrapper
     this.booter(MiddlewareBooter);
   }
 }

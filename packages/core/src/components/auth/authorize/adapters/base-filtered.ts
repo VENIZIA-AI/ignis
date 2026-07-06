@@ -1,35 +1,23 @@
-import { IdType } from '@/base';
-import { IDataSource, TAnyConnector } from '@/base/datasources';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
-
-/** Filter passed to loadFilteredPolicy: which principal's policies to load. */
-export interface ICasbinPolicyFilter {
-  principal: { type: string; id: IdType };
-}
+import { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
 /**
- * Read-only base for casbin FilteredAdapters backed by a datasource.
- *
- * It owns the boilerplate every filtered adapter repeats — the datasource/connector plumbing, the
- * `isFiltered() === true` flag, the no-op write methods (read-only), and a `loadLines` helper — so a
- * subclass only implements {@link loadFilteredPolicy}: query the store for ONE principal's policies
- * and turn them into casbin lines.
- *
- * `TFilter` is the filter shape (defaults to {@link ICasbinPolicyFilter}); subclasses may narrow it.
+ * Read-only base for casbin FilteredAdapters backed by a datasource — owns the connector plumbing
+ * and no-op write methods; subclasses only implement {@link loadFilteredPolicy} per principal.
  */
 export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
   implements FilteredAdapter
 {
-  protected readonly dataSource: IDataSource;
+  protected readonly dataSource: ICasbinPolicySource;
 
-  constructor(opts: { scope: string; dataSource: IDataSource }) {
+  constructor(opts: { scope: string; dataSource: ICasbinPolicySource }) {
     super({ scope: opts.scope });
     this.dataSource = opts.dataSource;
   }
 
-  protected get connector(): TAnyConnector {
+  protected get connector(): TCasbinPolicyConnector {
     return this.dataSource.connector;
   }
 

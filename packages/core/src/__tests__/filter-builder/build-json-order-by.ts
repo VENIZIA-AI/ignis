@@ -1,4 +1,6 @@
-import { FilterBuilder } from '@/base/repositories/operators';
+import { Sorts } from '@/base/repositories';
+import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { TConstValue } from '@venizia/ignis-helpers';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
@@ -10,9 +12,14 @@ const testTable = pgTable('test_table', {
 });
 
 class TestableFilterBuilder extends FilterBuilder {
-  public testBuildJsonOrderBy(opts: { key: string; direction: string; tableName: string }) {
+  public testBuildJsonOrderBy(opts: {
+    key: string;
+    direction: TConstValue<typeof Sorts>;
+    tableName: string;
+  }) {
     const columns = getTableColumns(testTable);
-    return (this as any).buildJsonOrderBy({
+    // Bracket notation reaches FilterBuilder's private buildJsonOrderBy without a cast (TS does not enforce private/protected access via element access).
+    return this['buildJsonOrderBy']({
       ...opts,
       columns,
     });
@@ -21,7 +28,7 @@ class TestableFilterBuilder extends FilterBuilder {
 
 interface ITestCase {
   input: string;
-  direction: string;
+  direction: TConstValue<typeof Sorts>;
   shouldPass: boolean;
   description: string;
 }
@@ -29,130 +36,130 @@ interface ITestCase {
 const testCases: ITestCase[] = [
   {
     input: 'metadata.field',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Simple field path',
   },
   {
     input: 'metadata.nested_field',
-    direction: 'DESC',
+    direction: Sorts.DESC,
     shouldPass: true,
     description: 'Underscore in field name',
   },
   {
     input: 'data.items[0]',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index',
   },
   {
     input: 'metadata.items[0].name',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Array index with nested field',
   },
   {
     input: 'data.a.b.c.d',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Deep nesting',
   },
   {
     input: 'metadata._private',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Starts with underscore',
   },
   {
     input: 'data.field123',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: true,
     description: 'Field with numbers',
   },
 
   {
     input: 'metadata.field; DROP TABLE users;--',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - semicolon and DROP',
   },
   {
     input: "metadata.field' OR '1'='1",
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - quotes',
   },
   {
     input: 'metadata[0; DROP TABLE]',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection in array index',
   },
   {
     input: 'metadata.field-name',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Hyphen in field name',
   },
   {
     input: 'metadata.field name',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Space in field name',
   },
   {
     input: 'metadata.フィールド',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Unicode characters',
   },
   {
     input: 'metadata.field UNION SELECT',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL injection - UNION',
   },
   {
     input: 'metadata.`field`',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Backticks',
   },
   {
     input: 'metadata."field"',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Double quotes',
   },
   {
     input: 'metadata.field()',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Parentheses',
   },
   {
     input: 'metadata.field/*comment*/',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'SQL comment',
   },
   {
     input: 'metadata.field\nDROP',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Newline injection',
   },
 
   {
     input: 'name.field',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Non-JSON column (varchar)',
   },
 
   {
     input: 'nonexistent.field',
-    direction: 'ASC',
+    direction: Sorts.ASC,
     shouldPass: false,
     description: 'Non-existent column',
   },

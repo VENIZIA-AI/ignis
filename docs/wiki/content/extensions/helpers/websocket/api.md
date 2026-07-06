@@ -17,8 +17,8 @@ The WebSocket helper provides two classes: `WebSocketServerHelper` for managing 
                     |    |-- Store callbacks (auth, rooms, messages)   |
                     |    |-- Apply defaults (rooms, timeouts)          |
                     |    +-- initRedisClients(redisConnection)         |
-                    |          +-- redisPub = client.duplicate()       |
-                    |          +-- redisSub = client.duplicate()       |
+                    |          +-- redisPub = duplicateClient()        |
+                    |          +-- redisSub = duplicateClient()        |
                     |                                                   |
                     |  configure()  [async]                             |
                     |    |-- Connect Redis clients (if lazyConnect)    |
@@ -39,7 +39,7 @@ The WebSocket helper provides two classes: `WebSocketServerHelper` for managing 
                      WebSocketEmitter
                     +---------------------------------------------------+
                     |  constructor(opts)                                |
-                    |    +-- redisPub = client.duplicate()              |
+                    |    +-- redisPub = duplicateClient()               |
                     |                                                   |
                     |  configure()  [async]                             |
                     |    +-- await Redis ready                          |
@@ -97,9 +97,9 @@ Client connects via WebSocket upgrade
 ```
 RedisSingleHelper (parent -- NOT consumed)
   |
-  +-- client.duplicate() --> redisPub    (publishes cross-instance messages)
+  +-- duplicateClient() --> redisPub    (publishes cross-instance messages)
   |
-  +-- client.duplicate() --> redisSub    (subscribes to cross-instance messages)
+  +-- duplicateClient() --> redisSub    (subscribes to cross-instance messages)
 ```
 
 Both single-instance `Redis` and `Cluster` connections from ioredis are supported. The parent `RedisSingleHelper` connection remains independent.

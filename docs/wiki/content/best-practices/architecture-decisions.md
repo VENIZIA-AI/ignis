@@ -24,14 +24,14 @@ This guide helps you make informed architectural decisions when building applica
 export class ItemController extends BaseRestController {
   constructor(
     @inject({ key: 'repositories.ItemRepository' })
-    private itemRepo: ItemRepository,
+    private itemRepository: ItemRepository,
   ) {
     super({ scope: 'ItemController', path: '/items' });
   }
 
-  @get({ configs: { path: '/:id' } })
+  @get({ configs: RouteConfigs.GET_ITEM_BY_ID })
   async getItem(c: Context) {
-    const item = await this.itemRepo.findById(c.req.param('id'));
+    const item = await this.itemRepository.findById({ id: c.req.param('id') });
     return c.json(item);
   }
 }
@@ -56,7 +56,7 @@ export class OrderController extends BaseRestController {
     super({ scope: 'OrderController', path: '/orders' });
   }
 
-  @post({ configs: { path: '/' } })
+  @post({ configs: RouteConfigs.CREATE_ORDER })
   async createOrder(c: Context) {
     const data = await c.req.json();
     // Service handles: validation, inventory check, payment, notifications
@@ -96,22 +96,28 @@ export class OrderController extends BaseRestController {
 
 ```typescript
 // Component: Self-contained, configurable, reusable
-@component({ scope: 'NotificationComponent' })
 export class NotificationComponent extends BaseComponent {
-  private emailService: EmailService;
-  private smsService: SMSService;
-  private pushService: PushService;
-
-  override configure() {
-    // Setup services based on configuration
-    this.emailService = new EmailService(this.config.email);
-    if (this.config.sms?.enabled) {
-      this.smsService = new SMSService(this.config.sms);
-    }
+  constructor(
+    @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
+  ) {
+    super({
+      scope: NotificationComponent.name,
+      initDefault: { enable: true, container: application },
+      bindings: {
+        // Default configuration - applications can rebind to override
+        'notification.options': Binding.bind({ key: 'notification.options' }).toValue({
+          email: { enabled: true },
+          sms: { enabled: false },
+        }),
+      },
+    });
   }
 
-  async notify(opts: NotifyOptions) {
-    // Unified notification API
+  // Called when the application configures components (registerComponents)
+  override binding(): void {
+    const options = this.application.get({ key: 'notification.options' });
+    // Register notification services based on the resolved options
+    this.application.service(EmailNotificationService);
   }
 }
 ```
@@ -126,7 +132,7 @@ export class NotificationComponent extends BaseComponent {
 // Inline: Simple, one-off, no need for abstraction
 @controller({ path: '/health' })
 export class HealthController extends BaseRestController {
-  @get({ configs: { path: '/' } })
+  @get({ configs: RouteConfigs.HEALTH_CHECK })
   healthCheck(c: Context) {
     return c.json({ status: 'ok', timestamp: new Date() });
   }
@@ -146,17 +152,19 @@ export class HealthController extends BaseRestController {
 
 ### Start with Standard CRUD
 
-Every repository gets these methods from `BaseRepository`:
+Every repository gets these methods from `DefaultCRUDRepository`:
 
 ```typescript
-// Inherited methods - use these first
-find(filter)      // List with filters
-findById(id)      // Get by ID
-findOne(filter)   // Get first match
-create(data)      // Create new
-updateById(id, data)  // Update existing
-deleteById(id)    // Delete
-count(filter)     // Count matches
+// Inherited methods (options-object API) - use these first
+find({ filter })            // List with filters
+findById({ id })            // Get by ID
+findOne({ filter })         // Get first match
+create({ data })            // Create new
+updateById({ id, data })    // Update existing
+updateAll({ data, where })  // Bulk update (updateBy is an alias)
+deleteById({ id })          // Delete
+deleteAll({ where })        // Bulk delete (deleteBy is an alias)
+count({ where })            // Count matches
 ```
 
 ### Add Custom Methods When:
@@ -167,7 +175,7 @@ count(filter)     // Count matches
 
 ```typescript
 // Custom repository methods
-export class OrderRepository extends BaseRepository<Order> {
+export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> {
   // Complex query that's used in multiple places
   async findPendingOrdersOlderThan(hours: number) {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -182,9 +190,9 @@ export class OrderRepository extends BaseRepository<Order> {
     });
   }
 
-  // Performance-optimized query
+  // Performance-optimized query (raw SQL through the Drizzle connector)
   async getOrderStats(userId: string) {
-    return this.db.execute(sql`
+    return this.dataSource.connector.execute(sql`
       SELECT
         COUNT(*) as total,
         SUM(total) as revenue,
@@ -196,9 +204,12 @@ export class OrderRepository extends BaseRepository<Order> {
 
   // Business logic at data layer
   async softDelete(id: string) {
-    return this.updateById(id, {
-      deletedAt: new Date(),
-      status: 'deleted',
+    return this.updateById({
+      id,
+      data: {
+        deletedAt: new Date(),
+        status: 'deleted',
+      },
     });
   }
 }
@@ -212,7 +223,7 @@ export class OrderRepository extends BaseRepository<Order> {
 ```typescript
 @controller({ path: '/users' })
 export class UserController extends BaseRestController {
-  @post({ configs: { path: '/' } })
+  @post({ configs: RouteConfigs.CREATE_USER })
   async createUser(c: Context) {
     try {
       const data = await c.req.json();
@@ -220,7 +231,7 @@ export class UserController extends BaseRestController {
       return c.json(user, 201);
     } catch (error) {
       // Format error for API response
-      if (error.code === 'DUPLICATE_EMAIL') {
+      if (error instanceof ApplicationError && error.messageCode === 'DUPLICATE_EMAIL') {
         return c.json({ error: 'Email already exists' }, 400);
       }
       throw error; // Let global handler catch unknown errors
@@ -232,23 +243,29 @@ export class UserController extends BaseRestController {
 ### Service Level: Throw Domain Errors
 
 ```typescript
-@injectable()
 export class UserService extends BaseService {
+  constructor(
+    @inject({ key: 'repositories.UserRepository' })
+    private userRepository: UserRepository,
+  ) {
+    super({ scope: UserService.name });
+  }
+
   async create(data: CreateUserInput) {
     // Validate and throw domain-specific errors
-    const existing = await this.userRepo.findByEmail(data.email);
+    const existing = await this.userRepository.findByEmail(data.email);
     if (existing) {
       throw getError({
         statusCode: 400,
-        code: 'DUPLICATE_EMAIL',
+        messageCode: 'DUPLICATE_EMAIL',
         message: 'User with this email already exists',
       });
     }
 
     // Log operations
-    this.logger.info('Creating user', { email: data.email });
+    this.logger.info('Creating user | email: %s', data.email);
 
-    return this.userRepo.create(data);
+    return this.userRepository.create({ data });
   }
 }
 ```
@@ -256,11 +273,11 @@ export class UserService extends BaseService {
 ### Repository Level: Let Errors Bubble
 
 ```typescript
-export class UserRepository extends BaseRepository<User> {
+export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
   // Don't catch database errors here
   // Let them bubble up to service/controller
   async findByEmail(email: string) {
-    return this.findOne({ where: { email } });
+    return this.findOne({ filter: { where: { email } } });
   }
 }
 ```
@@ -358,25 +375,27 @@ OrderStatusRepository  // Probably doesn't need its own repo
 
 ```typescript
 // Use repository methods for most cases
-const orders = await orderRepo.find({ where: { userId } });
+const orders = await orderRepository.find({ filter: { where: { userId } } });
 
-// Use raw queries for:
+// Use raw queries (via the datasource's Drizzle connector) for:
+const connector = this.dataSource.connector;
+
 // 1. Complex aggregations
-const stats = await db.execute(sql`
+const stats = await connector.execute(sql`
   SELECT category, COUNT(*), AVG(price)
   FROM products
   GROUP BY category
 `);
 
 // 2. Performance-critical paths
-const results = await db.execute(sql`
+const results = await connector.execute(sql`
   SELECT * FROM products
   WHERE tsv @@ plainto_tsquery(${search})
   LIMIT 10
 `);
 
 // 3. Database-specific features
-const nearby = await db.execute(sql`
+const nearby = await connector.execute(sql`
   SELECT * FROM stores
   WHERE ST_DWithin(location, ${point}, 5000)
 `);
@@ -388,14 +407,16 @@ const nearby = await db.execute(sql`
 ### Environment Variables
 
 ```typescript
+import { applicationEnvironment } from '@venizia/ignis-helpers';
+
 // Use for: secrets, environment-specific values
 const config = {
   database: {
-    host: EnvHelper.get('APP_ENV_POSTGRES_HOST'),
-    password: EnvHelper.get('APP_ENV_POSTGRES_PASSWORD'),
+    host: applicationEnvironment.get<string>('APP_ENV_POSTGRES_HOST'),
+    password: applicationEnvironment.get<string>('APP_ENV_POSTGRES_PASSWORD'),
   },
   stripe: {
-    secretKey: EnvHelper.get('STRIPE_SECRET_KEY'),
+    secretKey: applicationEnvironment.get<string>('APP_ENV_STRIPE_SECRET_KEY'),
   },
 };
 ```
@@ -419,11 +440,19 @@ const appConfig = {
 
 ```typescript
 // Use for: component-specific settings
-this.component(SwaggerComponent, {
-  title: 'My API',
-  version: '1.0.0',
-  path: '/doc',
+// Components read their options from bindings - rebind before registering
+this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue({
+  restOptions: {
+    base: { path: '/doc' },
+    doc: { path: '/openapi.json' },
+    ui: { path: '/explorer', type: 'swagger' },
+  },
+  explorer: {
+    openapi: '3.1.0',
+    info: { title: 'My API', version: '1.0.0', description: 'My API documentation' },
+  },
 });
+this.component(SwaggerComponent);
 ```
 
 

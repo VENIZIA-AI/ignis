@@ -34,7 +34,6 @@ import { BaseComponent } from '../components';
 import { IDataSource } from '../datasources';
 import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
 import { TMixinOpts } from '../mixins';
-import { TTableSchemaWithId } from '../models/common';
 import { IRepository } from '../repositories';
 import { IService } from '../services';
 import { AbstractApplication } from './abstract';
@@ -235,7 +234,7 @@ export abstract class BaseApplication
   }
 
   // -----------------------------------------------------------------------------------------
-  repository<Base extends IRepository<TTableSchemaWithId>, Args extends AnyObject = any>(
+  repository<Base extends IRepository, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
   ): Binding<Base> {
@@ -300,7 +299,6 @@ export abstract class BaseApplication
         this.bind({ key: `@app/boot-options` }).toValue(this.configs.bootOptions ?? {});
         this.bind({ key: 'bootstrapper' }).toClass(Bootstrapper).setScope(BindingScopes.SINGLETON);
 
-        // Define default booters
         this.booter(DatasourceBooter);
         this.booter(RepositoryBooter);
         this.booter(ServiceBooter);
@@ -404,9 +402,8 @@ export abstract class BaseApplication
 
         server.notFound(notFoundHandler({ logger: this.logger }));
 
-        // Assign requestId for every single request from client
-        // NOTE: RequestTrackerComponent includes RequestSpyMiddleware which parses request body
-        // This also works around Bun + Hono body parsing bug: https://github.com/honojs/middleware/issues/81
+        // RequestTrackerComponent assigns request IDs and parses the request body (also works
+        // around the Bun + Hono body-parsing bug: https://github.com/honojs/middleware/issues/81).
         this.component(RequestTrackerComponent);
 
         server.use(emojiFavicon({ icon: this.configs.favicon ?? '🔥' }));
@@ -431,16 +428,13 @@ export abstract class BaseApplication
 
     await this.preConfigure();
 
-    // IMPORTANT: DataSources must be registered and configured before repositories
-    // This ensures datasources are available for auto-resolution
+    // DataSources must be registered before repositories so they're available for auto-resolution
     await this.registerDataSources();
     await this.registerComponents();
     await this.registerControllers();
 
-    // NOTE: Do not binding any new datasource(s), component(s) or controller(s) in postConfigure
-    // It will not be registered into application automatically
-    // In case, register processes are required to be in postConfigure, end-users have to init binding and call configure manually
-    // Refer registerDataSources, registerComponents, or registerControllers to know how to load binding
+    // Do not register new datasources/components/controllers in postConfigure - they won't be
+    // auto-registered; call configure() manually if needed (see registerDataSources/Components/Controllers).
     await this.postConfigure();
   }
 }

@@ -481,7 +481,11 @@ bun install
 ### 3. Run the MCP server in dev mode
 
 ```bash
-bun run docs:mcp:dev
+# From the repo root
+bun run mcp:dev
+
+# Or from docs/wiki
+cd docs/wiki && bun run mcp:dev
 ```
 
 ### 4. Configure your AI tool
@@ -755,7 +759,7 @@ If this works, the issue is specific to `@venizia/ignis-docs`.
 
 ## What's Next?
 
-- **Learn the Tools:** Read the [Deep Dive Guide](/extensions/src-details/mcp-server) to understand all 5 available tools
+- **Learn the Tools:** Read the [Deep Dive Guide](/extensions/src-details/mcp-server) to understand all 10 available tools
 - **Advanced Usage:** Explore how to chain tools for complex documentation queries
 - **Contribute:** Help improve the docs or add new features
 

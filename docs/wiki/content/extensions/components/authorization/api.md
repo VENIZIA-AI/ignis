@@ -119,8 +119,8 @@ classDiagram
 
     class BaseFilteredAdapter~TFilter~ {
         <<abstract>>
-        #dataSource: IDataSource
-        #connector: TAnyConnector
+        #dataSource: ICasbinPolicySource
+        #connector: TCasbinPolicyConnector
         +loadFilteredPolicy(model, filter)* void
         +isFiltered() boolean
         #loadLines(opts) void
@@ -642,10 +642,10 @@ abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
   implements FilteredAdapter
 {
-  protected readonly dataSource: IDataSource;
-  protected get connector(): TAnyConnector;
+  protected readonly dataSource: ICasbinPolicySource;
+  protected get connector(): TCasbinPolicyConnector;
 
-  constructor(opts: { scope: string; dataSource: IDataSource });
+  constructor(opts: { scope: string; dataSource: ICasbinPolicySource });
 
   // Subclasses implement ONLY this:
   abstract loadFilteredPolicy(model: Model, filter: TFilter): Promise<void>;
@@ -680,6 +680,26 @@ interface ICasbinPolicyFilter {
 }
 ```
 
+### ICasbinPolicySource
+
+The minimal contract `BaseFilteredAdapter` depends on for its `dataSource` -- **not** the framework's
+general `IDataSource` interface. Any drizzle-backed datasource (e.g. `BasePostgresDataSource`) satisfies
+it structurally; the adapter only ever needs the connector to run policy queries.
+
+```typescript
+interface ICasbinPolicySource {
+  connector: TCasbinPolicyConnector;
+}
+
+type TCasbinPolicyConnector = ReturnType<
+  typeof drizzle<Record<string, AnyType>, NodePgClient>
+>;
+```
+
+> [!NOTE]
+> Components that only need query execution depend on this minimal local contract rather than a
+> connector class -- keeps the casbin adapters decoupled from the full datasource surface.
+
 ### loadLines()
 
 The base's only orchestration helper - subclasses call it from `loadFilteredPolicy` after assembling
@@ -709,7 +729,7 @@ plus the **shared structural hierarchy** from a single `PolicyDefinition` edge t
 class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicyFilter> {
   protected readonly entities: IScopedCasbinEntities;
 
-  constructor(opts: { dataSource: IDataSource; entities: IScopedCasbinEntities });
+  constructor(opts: { dataSource: ICasbinPolicySource; entities: IScopedCasbinEntities });
 
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void>;
 

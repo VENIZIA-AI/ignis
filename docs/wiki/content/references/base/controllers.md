@@ -281,7 +281,11 @@ interface IControllerOptions {
 Lightweight typed context that provides type-safe `req.valid()` calls:
 
 ```typescript
-type TRouteContext<RouteEnv extends Env = Env> = TContext<RouteEnv, keyof IValidRequestProps>;
+type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<
+  RouteEnv,
+  keyof IValidRequestProps,
+  ResponseBody
+>;
 ```
 
 Where `IValidRequestProps` supports: `json`, `query`, `param`, `header`, `cookie`, `form`.
@@ -290,7 +294,7 @@ Where `IValidRequestProps` supports: `json`, `query`, `param`, `header`, `cookie
 
 ```typescript
 type TRouteHandler<ResponseType = unknown, RouteEnv extends Env = Env> = (
-  context: TRouteContext<RouteEnv>,
+  context: TRouteContext<RouteEnv, ResponseType>,
 ) => ValueOrPromise<Response | TypedResponse<ResponseType>>;
 ```
 
@@ -361,6 +365,8 @@ Per-route customization for CRUD controller endpoints:
 
 ```typescript
 type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;
@@ -628,7 +634,7 @@ class RestPaths {
 
 | Constant | Headers Included |
 | :--- | :--- |
-| `trackableHeaders` | `x-request-id`, `x-request-channel`, `x-request-device-info` (all optional) |
+| `trackableHeaders` | `x-request-id`, `x-request-channel`, `x-device-info` (all optional) |
 | `countableHeaders` | `x-request-count` - controls `{count, data}` vs data-only response format |
 | `defaultRequestHeaders` | `trackableHeaders` + `countableHeaders` combined |
 | `commonResponseHeaders` | `x-request-id` (echo), `x-response-count`, `x-response-format` |
@@ -636,13 +642,13 @@ class RestPaths {
 
 ## `ControllerFactory`
 
-The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `BaseEntity` and its corresponding repository.
+The `ControllerFactory` provides a static method `defineCrudController` to quickly generate a pre-configured CRUD controller for any given `AbstractEntity` subclass (e.g. `BaseEntity` for Postgres) and its corresponding repository.
 
 **File:** `packages/core/src/base/controllers/factory/controller.ts`
 
-### `static defineCrudController<EntitySchema>(opts: ICrudControllerOptions<EntitySchema>)`
+### `static defineCrudController<TDataObject, TPersistObject = TDataObject, Routes extends ICustomizableRoutes = ICustomizableRoutes>(opts: ICrudControllerOptions<Routes>)`
 
-Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configured. The returned class is dynamically named using `controller.name` from the options.
+Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configured. The returned class is dynamically named using `controller.name` from the options. `TDataObject`/`TPersistObject` can't be inferred from `entity` - pass them explicitly for typed fields.
 
 | Route Name | Method | Path | Description |
 | :--- | :--- | :--- | :--- |
@@ -656,15 +662,16 @@ Returns a `BaseRestController` subclass with standard CRUD endpoints pre-configu
 | `deleteById` | `DELETE` | `/{id}` | Delete a record by its ID |
 | `deleteBy` | `DELETE` | `/` | Bulk delete records matching a `where` filter |
 
-### `ICrudControllerOptions<EntitySchema>`
+### `ICrudControllerOptions<Routes>`
 
 | Option | Type | Description |
 | :--- | :--- | :--- |
-| `entity` | `TClass<BaseEntity<EntitySchema>> \| TResolver<TClass<BaseEntity<EntitySchema>>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
+| `entity` | `TClass<AbstractEntity> \| TResolver<TClass<AbstractEntity>>` | Entity class or resolver function returning it. Used to derive request/response schemas |
 | `repository.name` | `string` | Repository binding key name in the IoC container (e.g., `'ConfigurationRepository'`) |
 | `controller.name` | `string` | Unique name for the generated controller (e.g., `'ConfigurationController'`) |
 | `controller.basePath` | `string` | Base path for all routes (e.g., `'/configurations'`). Required |
 | `controller.readonly` | `boolean` | If `true`, only read operations (count, find, findOne, findById) are generated. Defaults to `false` |
+| `controller.enabledRoutes` | `Array<keyof ICustomizableRoutes>` | Whitelist of routes to register; overrides per-route `enabled` flags in `routes` when set |
 | `controller.isStrict` | `{ path?: boolean; requestSchema?: boolean }` | `path` (default `true`): strict path matching. `requestSchema` (default `true`): strict query parameter validation |
 | `authenticate` | `{ strategies?: TAuthStrategy[]; mode?: TAuthMode }` | Authentication config applied to all routes (unless overridden per-route) |
 | `authorize` | `IAuthorizationSpec \| IAuthorizationSpec[]` | Authorization config applied to all routes (unless overridden per-route) |
@@ -681,6 +688,8 @@ type TRouteAuthConfig = {
 };
 
 type TCustomizableRouteConfig = TRouteAuthConfig & {
+  /** Whether this route is registered. Defaults to true. */
+  enabled?: boolean;
   request?: {
     params?: TAnyObjectSchema;
     query?: TAnyObjectSchema;

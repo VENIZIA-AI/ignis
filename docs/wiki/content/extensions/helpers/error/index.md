@@ -40,10 +40,10 @@ const error = new ApplicationError({
 | `message` | `string` | -- (required) | Human-readable error message |
 | `statusCode` | `number` | `400` | HTTP status code |
 | `messageCode` | `string` | `undefined` | Machine-readable error code for client-side handling |
-| `name` | `string` | `undefined` | Error name |
+| `name` | `string` | `undefined` | Accepted by the schema but discarded by the constructor (the native `Error` name is kept) |
 
 > [!TIP]
-> The `TError` type is derived from `ErrorSchema` (a Zod schema) and uses `.catchall(z.any())`, so you can pass additional arbitrary properties beyond the four listed above.
+> The `TError` type is derived from `ErrorSchema` (a Zod schema) and uses `.catchall(z.any())`, so you can pass additional arbitrary properties beyond the four listed above. Extra properties are collected into the `extra` field on the resulting `ApplicationError` instance.
 
 #### `getError()` Factory Function
 
@@ -111,17 +111,23 @@ The built-in `appErrorHandler` middleware (from `@venizia/ignis`) catches `Appli
 
 #### Production Response
 
+In production (`NODE_ENV=production`), `stack` and `cause` are omitted from `details`. For unexpected errors without a `statusCode` (i.e., not thrown via `getError`), the raw message is replaced with a generic `"Internal Server Error"` so internals never leak.
+
 ```json
 {
   "message": "User not found",
   "statusCode": 404,
-  "requestId": "abc-123-def"
+  "requestId": "abc-123-def",
+  "details": {
+    "url": "http://localhost:3000/api/users/123",
+    "path": "/api/users/123"
+  }
 }
 ```
 
-#### Development Response
+#### Non-Production Response
 
-In development (`NODE_ENV=development`), additional debugging fields are included:
+In any non-production environment, `details` additionally includes debugging fields:
 
 ```json
 {
@@ -197,9 +203,9 @@ throw getError({
 
 ### Error response missing `stack` and `cause`
 
-**Cause:** The application is running in production mode. The `appErrorHandler` middleware strips `stack`, `cause`, `url`, and `path` from responses when `NODE_ENV` is not `development`.
+**Cause:** The application is running in production mode. The `appErrorHandler` middleware omits `stack` and `cause` from `details` when `NODE_ENV` is `production` (`url` and `path` are always included).
 
-**Fix:** Set `NODE_ENV=development` to see full error details during debugging.
+**Fix:** Run with a non-production `NODE_ENV` (e.g., `development`) to see full error details during debugging.
 
 ### Errors returning 500 instead of expected status code
 

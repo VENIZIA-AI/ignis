@@ -1,13 +1,11 @@
 import { describe, expect, test } from 'bun:test';
+import { asTypedContext } from '@/base/controllers/common/types';
 import { CasbinAuthorizationEnforcer } from '@/components/auth/authorize/enforcers/casbin.enforcer';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { CasbinEnforcerModelDrivers } from '@/components/auth/authorize/common/constants';
 import type { FilteredAdapter, Model } from 'casbin';
-import {
-  ScopedCasbinAdapter,
-  type IScopedCasbinEntities,
-} from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
-import type { IDataSource } from '@/base/datasources';
+import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
+import type { IScopedCasbinEntities } from '@/components/auth/authorize/adapters/types';
 import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 
@@ -51,13 +49,13 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: {} as any,
+      context: asTypedContext({}),
     });
 
     const decision = await e.evaluate({
       rules,
       request: { resource: 'Activation.findById', action: 'read', domain: 'Merchant_7' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     expect(decision).toBe('allow');
   });
@@ -72,16 +70,16 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await superE.configure();
     const superRules = await superE.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     const superDecision = await superE.evaluate({
       rules: superRules,
       request: { resource: 'Order', action: 'read' }, // no domain → defaults to SYSTEM_WIDE
-      context: {} as any,
+      context: asTypedContext({}),
     });
     expect(superDecision).toBe('allow');
 
-    // A regular ANY_MEMBER operator is correctly DENIED on a domain-less request (not arg-shifted).
+    // An ANY_MEMBER operator is correctly DENIED on a domain-less request.
     const memberE = scopedEnforcer([
       'g, User_2, Role_op, *',
       'g2, User_2, Merchant_7',
@@ -90,12 +88,12 @@ describe('CasbinAuthorizationEnforcer — scoped matchers', () => {
     await memberE.configure();
     const memberRules = await memberE.buildRules({
       user: { principalType: 'User', userId: 2 },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     const memberDecision = await memberE.evaluate({
       rules: memberRules,
       request: { resource: 'Order', action: 'read' }, // no domain → SYSTEM_WIDE → only super-admin grants match
-      context: {} as any,
+      context: asTypedContext({}),
     });
     expect(memberDecision).toBe('deny');
   });
@@ -118,7 +116,12 @@ function dbAdapter(rowsFor: (sqlText: string, params: unknown[]) => unknown[]) {
     domainTypes: ['Merchant', 'Organizer'],
     softDelete: { use: true, columnName: 'deleted_at' },
   };
-  return new ScopedCasbinAdapter({ dataSource: { connector } as unknown as IDataSource, entities });
+  return new ScopedCasbinAdapter({
+    // TCasbinPolicyConnector is drizzle's full generated node-postgres database type (select/insert/
+    // update/delete/transaction/...); the adapter only ever calls `.execute`, so the stub only implements that.
+    dataSource: { connector } as any,
+    entities,
+  });
 }
 
 describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
@@ -154,18 +157,18 @@ describe('scoped RBAC — full stack (adapter + enforcer + evaluate)', () => {
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 'u1' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
 
     const allow = await e.evaluate({
       rules,
       request: { resource: 'Order', action: 'read', domain: 'Merchant_7' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     const deny = await e.evaluate({
       rules,
       request: { resource: 'Order', action: 'read', domain: 'Merchant_99' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
 
     expect(allow).toBe('allow');
@@ -209,6 +212,8 @@ describe('scoped + redis cache — cached payload completeness', () => {
             set: ({ key, value }: { key: string; value: unknown }) =>
               client.set(key, JSON.stringify(value)),
             del: ({ keys }: { keys: string[] }) => client.del(...keys),
+            // IRedisHelper aggregates connection/key/hash/set/list/pubsub/json/command surfaces (dozens
+            // of methods); this fixture only exercises get/set/del, so implementing the rest is not worth it.
           } as any,
           expiresIn: 60_000,
           keyFn: ({ user }) => `casbin:User:${user.userId}`,
@@ -218,7 +223,10 @@ describe('scoped + redis cache — cached payload completeness', () => {
     await enforcer.configure();
 
     // First build → cache miss → writes the cache.
-    await enforcer.buildRules({ user: { principalType: 'User', userId: 1 }, context: {} as any });
+    await enforcer.buildRules({
+      user: { principalType: 'User', userId: 1 },
+      context: asTypedContext({}),
+    });
 
     const cached = JSON.parse(store.get('casbin:User:1') ?? 'null') as string[];
     // Completeness: membership (g2) and the resource edge (g4) MUST survive the cache round-trip.
@@ -229,12 +237,12 @@ describe('scoped + redis cache — cached payload completeness', () => {
     // Second build → cache HIT → enforce nested resource (OrderItem ⊂ Order via g4) in member domain.
     const rules = await enforcer.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     const decision = await enforcer.evaluate({
       rules,
       request: { resource: 'OrderItem', action: 'read', domain: 'Merchant_7' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
     expect(decision).toBe('allow');
   });
@@ -252,13 +260,13 @@ describe('scoped RBAC — explicit deny overrides allow (enforceExSync explain p
     await e.configure();
     const rules = await e.buildRules({
       user: { principalType: 'User', userId: 1 },
-      context: {} as any,
+      context: asTypedContext({}),
     });
 
     const decision = await e.evaluate({
       rules,
       request: { resource: 'Activation', action: 'read', domain: 'Merchant_7' },
-      context: {} as any,
+      context: asTypedContext({}),
     });
 
     // deny-override via casbin "allow-and-deny": the matched policy is the deny rule (non-empty explain).

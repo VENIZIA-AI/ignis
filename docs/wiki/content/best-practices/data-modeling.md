@@ -2,20 +2,23 @@
 
 IGNIS streamlines data modeling with Drizzle ORM by providing powerful helpers and "enrichers" that reduce boilerplate code for common schema patterns.
 
+> [!NOTE] Scope: PostgreSQL connector
+> This page covers Drizzle-backed models (`BasePostgresEntity`; the legacy `BaseEntity` export is a compatibility alias for the same class) and enrichers, which are specific to relational tables. Search documents (typesense connector) use `defineSearchCollection` instead - see [Search & Typesense](/guides/core-concepts/persistent/search-typesense). See [Connectors](/references/base/connectors) for how the engine-neutral `AbstractEntity` relates to each connector's concrete entity class.
+
 ## 1. Base Entity
 
-All entity models should extend `BaseEntity`. This provides integration with the framework's repository layer and automatic schema generation support.
+All PostgreSQL entity models should extend `BasePostgresEntity`. This provides integration with the framework's repository layer and automatic schema generation support.
 
 The recommended pattern is to define the schema and relations as **static properties** on the class. This keeps the definition self-contained and enables powerful type inference.
 
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BaseEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
+import { BasePostgresEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -50,7 +53,7 @@ import {
   generateTzColumnDefs,
   generateUserAuditColumnDefs,
 } from '@venizia/ignis';
-import { pgTable, text } from 'drizzle-orm/pg-core';
+import { pgTable, text, unique } from 'drizzle-orm/pg-core';
 
 export const configurationTable = pgTable(
   'Configuration',
@@ -151,7 +154,7 @@ export const commentTable = pgTable('Comment', {
 **Querying polymorphic relations:**
 ```typescript
 // Find all comments on a specific post
-const comments = await commentRepo.find({
+const comments = await commentRepository.find({
   filter: {
     where: {
       commentableType: 'Post',
@@ -161,7 +164,7 @@ const comments = await commentRepo.find({
 });
 
 // Find all comments on a product
-const productComments = await commentRepo.find({
+const productComments = await commentRepository.find({
   filter: {
     where: {
       commentableType: 'Product',
@@ -186,11 +189,11 @@ Relations are defined using the `TRelationConfig` structure within the static `r
 
 **One-to-One (belongsTo):**
 ```typescript
-import { BaseEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
+import { BasePostgresEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
 import { User } from './user.model';
 
 @model({ type: 'entity' })
-export class Configuration extends BaseEntity<typeof Configuration.schema> {
+export class Configuration extends BasePostgresEntity<typeof Configuration.schema> {
   static override schema = pgTable('Configuration', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     createdBy: text('created_by'),
@@ -215,7 +218,7 @@ export class Configuration extends BaseEntity<typeof Configuration.schema> {
 **One-to-Many (hasMany):**
 ```typescript
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     name: text('name').notNull(),
@@ -248,7 +251,7 @@ export class User extends BaseEntity<typeof User.schema> {
 
 ```typescript
 // Eager load single relation
-const configs = await configRepo.find({
+const configs = await configurationRepository.find({
   filter: {
     include: [{ relation: 'creator' }],
   },
@@ -256,7 +259,7 @@ const configs = await configRepo.find({
 // Result: [{ id, code, ..., creator: { id, name, email } }]
 
 // Eager load multiple relations
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     include: [
       { relation: 'posts' },
@@ -266,7 +269,7 @@ const users = await userRepo.find({
 });
 
 // Nested relations (up to 2 levels recommended)
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     include: [{
       relation: 'posts',
@@ -291,8 +294,21 @@ DataSources automatically discover their schema from the repositories that bind 
 
 ```typescript
 // src/datasources/postgres.datasource.ts
+import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { drizzle } from 'drizzle-orm/node-postgres';
+import { Pool } from 'pg';
+
+interface IDataSourceConfigs {
+  host: string;
+  port: number;
+  database: string;
+  user: string;
+  password: string;
+}
+
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -302,9 +318,17 @@ export class PostgresDataSource extends BaseDataSource<TNodePostgresConnector, I
   }
 
   override configure(): ValueOrPromise<void> {
-    // This method automatically collects all schemas from bound repositories
+    // getSchema() automatically collects all schemas from bound repositories
     const schema = this.getSchema();
-    this.connector = drizzle({ client: new Pool(this.settings), schema });
+
+    // Keep the pool reference - beginTransaction() needs it
+    this.pool = new Pool(this.settings);
+    this.connector = drizzle({ client: this.pool, schema });
+  }
+
+  override getConnectionString(): ValueOrPromise<string> {
+    const { host, port, user, password, database } = this.settings;
+    return `postgresql://${user}:${password}@${host}:${port}/${database}`;
   }
 }
 ```
@@ -356,7 +380,7 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
     hiddenProperties: ['password', 'secret'],
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -387,7 +411,7 @@ Declare your model's authorization principal in `@model` settings to make the mo
     hiddenProperties: ['password'],
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),

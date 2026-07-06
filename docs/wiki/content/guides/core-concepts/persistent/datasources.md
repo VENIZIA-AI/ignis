@@ -2,15 +2,15 @@
 
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
-> [!NOTE] PostgreSQL First
-> IGNIS currently focuses on **PostgreSQL** as the primary database. Support for other database systems (MySQL, SQLite, etc.) is planned for future releases.
+> [!NOTE] Connectors
+> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility) - the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)) and a zero-dependency **memory connector** for prototyping and tests (see [Memory Connector](./memory-connector)). All three implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Creating a DataSource
 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import {
-  BaseDataSource,
+  BasePostgresDataSource,
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
@@ -26,7 +26,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -75,7 +75,7 @@ If you need explicit control, you can still provide schema manually:
 
 ```typescript
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -93,16 +93,18 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
 ## DataSource Hierarchy
 
 ```
-AbstractDataSource extends BaseHelper
-  └── BaseDataSource
-        ├── configure()               # Setup pool + Drizzle connector (abstract)
-        ├── getConnectionString()     # Build connection URL (abstract)
-        ├── getSchema()               # Auto-discover from @repository bindings
-        ├── discoverSchema()          # Internal: reads MetadataRegistry
-        ├── hasDiscoverableModels()   # Check if any repos reference this DS
-        ├── beginTransaction(opts?)   # Start transaction with isolation level
-        ├── getConnector()            # Get Drizzle connector
-        └── getSettings()            # Get connection config
+AbstractDataSource extends BaseHelper        # engine-neutral, src/base - no pool, no Drizzle
+  └── AbstractPostgresDataSource              # connectors/postgres - adds pool, connector
+        └── BasePostgresDataSource (alias: BaseDataSource)
+              ├── configure()               # Setup pool + Drizzle connector (abstract)
+              ├── getConnectionString()     # Build connection URL (abstract)
+              ├── getSchema()               # Auto-discover from @repository bindings
+              ├── discoverSchema()          # Internal: reads MetadataRegistry
+              ├── hasDiscoverableModels()   # Check if any repos reference this DS
+              ├── getCapabilities()         # Returns { transactions: true }
+              ├── beginTransaction(opts?)   # Start transaction with isolation level
+              ├── getConnector()            # Get Drizzle connector
+              └── getSettings()            # Get connection config
 ```
 
 ## Registering a DataSource
@@ -118,18 +120,19 @@ export class Application extends BaseApplication {
 
 DataSources are bound as **singletons** to ensure connection pool sharing across the application.
 
-## Supported Drivers
+## Supported Engines
 
-| Driver | Package | Status |
-|--------|---------|--------|
-| `node-postgres` | `pg` | Supported |
-| `mysql2` | `mysql2` | Planned |
-| `better-sqlite3` | `better-sqlite3` | Planned |
+| Engine | Driver/Package | Import | Status |
+|--------|---------|--------|--------|
+| PostgreSQL | `node-postgres` (`pg`) | `@venizia/ignis` or `@venizia/ignis/postgres` | Supported, transactions + 3 isolation levels |
+| Typesense (search) | `typesense` (optional peer) | `@venizia/ignis/typesense` (subpath-only) | Supported, no transactions/locks |
+| Memory (Map-backed) | none - zero dependency | `@venizia/ignis` or `@venizia/ignis/memory` | Supported for prototyping/tests, no transactions/locks |
+| MySQL / SQLite | - | - | Not planned; would be a new connector under `src/connectors/` |
 
 ## DataSource Template
 
 ```typescript
-import { BaseDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
+import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
@@ -142,7 +145,7 @@ interface IDSConfigs {
 }
 
 @datasource({ driver: 'node-postgres' })
-export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
+export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -177,6 +180,8 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   - [Repositories](/guides/core-concepts/persistent/repositories) - Use DataSources for database access
   - [Models](/guides/core-concepts/persistent/models) - Entity schemas loaded by DataSource
   - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation database transactions
+  - [Search & Typesense](/guides/core-concepts/persistent/search-typesense) - The typesense connector
+  - [Memory Connector](/guides/core-concepts/persistent/memory-connector) - The zero-dependency in-memory connector
   - [Application](/guides/core-concepts/application/) - Registering DataSources
 
 - **References:**

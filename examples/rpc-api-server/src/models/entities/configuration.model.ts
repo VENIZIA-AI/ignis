@@ -1,18 +1,11 @@
-import {
-  BaseEntity,
-  generateDataTypeColumnDefs,
-  generateIdColumnDefs,
-  generateTzColumnDefs,
-  generateUserAuditColumnDefs,
-  model,
-  TTableObject,
-} from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import { BasePostgresEntity, generateDataTypeColumnDefs, generateIdColumnDefs, generateTzColumnDefs, generateUserAuditColumnDefs, TTableObject } from '@venizia/ignis/postgres';
 import { relations } from 'drizzle-orm';
 import { foreignKey, index, pgTable, text, unique } from 'drizzle-orm/pg-core';
 import { User, usersTable } from './user.model';
 
 @model({ type: 'entity', skipMigrate: false })
-export class Configuration extends BaseEntity<TConfigurationSchema> {
+export class Configuration extends BasePostgresEntity<TConfigurationSchema> {
   static override readonly TABLE_NAME = Configuration.name;
 
   constructor() {

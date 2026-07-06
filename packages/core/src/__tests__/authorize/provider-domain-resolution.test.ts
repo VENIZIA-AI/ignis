@@ -15,7 +15,6 @@ import type {
   IAuthorizationSpec,
   IAuthorizationRequest,
 } from '@/components/auth/authorize/common/types';
-import type { IDataSource } from '@/base/datasources';
 import { Authentication } from '@/components/auth/authenticate/common/constants';
 import type { IAuthUser } from '@/components/auth/authenticate/common/types';
 import { Container } from '@/helpers/inversion';
@@ -23,9 +22,8 @@ import type { TContext } from '@/base/controllers/common/types';
 import { createFreshRegistry, TestAuthorizationEnforcer, type TTestRule } from './helpers';
 
 /**
- * Full-context stub that exposes req.param/header/query (which the helpers' createMockContext
- * does NOT) so the provider's domain-resolution block can read declarative sources. Lets us
- * also seed/omit user.principalType and capture what the enforcer receives.
+ * Full-context stub exposing req.param/header/query (unlike helpers' createMockContext) so
+ * declarative domain sources can be read, plus seeding user/rules and capturing store writes.
  */
 const createFullContext = (overrides?: {
   user?: (IAuthUser & { principalType?: string }) | undefined;
@@ -101,7 +99,7 @@ const setup = (opts: {
     container,
     enforcers: [
       {
-        enforcer: (opts.enforcer ?? TestAuthorizationEnforcer) as never,
+        enforcer: opts.enforcer ?? TestAuthorizationEnforcer,
         name: 'test',
         type: AuthorizationEnforcerTypes.CUSTOM,
       },
@@ -121,10 +119,9 @@ const run = async (
     hasCalledNext = true;
   };
   try {
-    await (middleware as unknown as (c: unknown, n: () => Promise<void>) => Promise<void>)(
-      context,
-      next,
-    );
+    // context is a partial fake standing in for Hono's Context — cast to the real param type
+    // middleware expects rather than loosening middleware's own call signature.
+    await middleware(context as any, next);
     return { hasCalledNext };
   } catch (error) {
     return { hasCalledNext, error: error as { statusCode?: number; message?: string } };
@@ -214,7 +211,7 @@ describe('AuthorizationProvider — domain resolution block (lines 116-121, 149)
 
     expect(error).toBeUndefined();
     expect(hasCalledNext).toBe(true);
-    // Block skipped → DOMAIN never set; enforcer sees undefined domain (legacy behavior).
+    // Block skipped: DOMAIN stays unset, enforcer sees an undefined domain.
     expect(context._store.get(Authorization.DOMAIN)).toBeUndefined();
     expect(CapturingEnforcer.capturedRequest?.domain).toBeUndefined();
   });
@@ -265,8 +262,7 @@ describe('AuthorizationProvider — principalType guard (lines 128-132)', () => 
 
 describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () => {
   test('enforcer ABSTAIN resolves to defaultDecision=deny → 403', async () => {
-    // No rules → TestAuthorizationEnforcer.evaluate returns options.defaultDecision.
-    // Set defaultDecision to ABSTAIN so evaluate returns ABSTAIN, exercising line 155.
+    // No rules → evaluate() returns options.defaultDecision; set it to ABSTAIN here.
     const { middleware } = setup({
       spec: { action: 'read', resource: 'Order' },
       options: { defaultDecision: AuthorizationDecisions.ABSTAIN },
@@ -285,18 +281,18 @@ describe('AuthorizationProvider — ABSTAIN → defaultDecision (line 155)', () 
   });
 });
 
-// ---------------------------------------------------------------------------
-// Micro coverage-fill cases for sibling files.
-// ---------------------------------------------------------------------------
-
 describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-28)', () => {
   test('unrecognized declarative `from` → null → SYSTEM_WIDE', async () => {
     const dom = await resolveRequestDomain({
       spec: {
         action: 'read',
         resource: 'Order',
-        // `from` outside the known union exercises the switch default.
-        domain: { from: 'cookie' as never, key: 'merchantId', type: 'Merchant' },
+        domain: {
+          // @ts-expect-error `from` outside the known union exercises the switch default.
+          from: 'cookie',
+          key: 'merchantId',
+          type: 'Merchant',
+        },
       },
       context: {
         req: {
@@ -305,7 +301,8 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
           query: () => undefined,
         },
         get: () => undefined,
-      } as never,
+        // Stub only implements the accessors resolveRequestDomain reads, not the full Hono Context shape.
+      } as any,
       options: undefined,
     });
     expect(dom).toBe(AuthorizationDomainScopes.SYSTEM_WIDE);
@@ -314,9 +311,11 @@ describe('resolveRequestDomain — unknown `from` hits default branch (lines 27-
 
 describe('ScopedCasbinAdapter — no-op write methods (lines 43-48)', () => {
   test('loadPolicy/savePolicy/addPolicy/removePolicy/removeFilteredPolicy are no-ops', async () => {
+    // Cast is required: ICasbinPolicySource.connector is the full drizzle node-postgres connector
+    // type, which this no-op-focused fixture cannot structurally satisfy with just `execute`.
     const dataSource = {
       connector: { execute: async () => ({ rows: [] }) },
-    } as unknown as IDataSource;
+    } as any;
     const adapter = new ScopedCasbinAdapter({
       dataSource,
       entities: {

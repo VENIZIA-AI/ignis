@@ -9,7 +9,7 @@ Fetch related data using `include` for eager loading. This guide covers one-to-o
 
 ```typescript
 // Fetch user with their posts
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{ relation: 'posts' }]
@@ -31,7 +31,7 @@ const user = await userRepo.findOne({
 
 ```typescript
 // Fetch post with its author
-const post = await postRepo.findOne({
+const post = await postRepository.findOne({
   filter: {
     where: { id: 'p1' },
     include: [{ relation: 'author' }]
@@ -51,7 +51,7 @@ const post = await postRepo.findOne({
 
 ```typescript
 // Fetch post with author AND comments
-const post = await postRepo.findOne({
+const post = await postRepository.findOne({
   filter: {
     where: { id: 'p1' },
     include: [
@@ -74,7 +74,7 @@ Apply filters, ordering, and limits to included relations using `scope`:
 
 ```typescript
 // User with only published posts
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -91,7 +91,7 @@ const user = await userRepo.findOne({
 
 ```typescript
 // User with posts ordered by date
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -108,7 +108,7 @@ const user = await userRepo.findOne({
 
 ```typescript
 // User with their 5 most recent posts
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -125,7 +125,7 @@ const user = await userRepo.findOne({
 ### Combined Scope Options
 
 ```typescript
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -147,7 +147,7 @@ Each inclusion can independently bypass the related model's default filter:
 
 ```typescript
 // Include soft-deleted posts that would normally be filtered out
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -167,7 +167,7 @@ Include relations of relations (up to 2 levels recommended):
 
 ```typescript
 // User -> Posts -> Comments
-const user = await userRepo.findOne({
+const user = await userRepository.findOne({
   filter: {
     where: { id: '123' },
     include: [{
@@ -200,7 +200,7 @@ const user = await userRepo.findOne({
 
 ```typescript
 // Product -> SaleChannelProduct (junction) -> SaleChannel
-const product = await productRepo.findOne({
+const product = await productRepository.findOne({
   filter: {
     where: { id: 'prod1' },
     include: [{
@@ -236,7 +236,7 @@ const product = await productRepo.findOne({
 
 ## Defining Relations
 
-Relations are defined using the `createRelations` helper and the `TRelationConfig` type. These use Drizzle ORM's relation system under the hood.
+Relations are declared on the model as a static `relations` resolver returning an array of `TRelationConfig`. The framework translates them to Drizzle ORM relations internally during schema discovery.
 
 ### Relation Config Type
 
@@ -261,33 +261,31 @@ type TRelationConfig = {
 
 ```typescript
 // src/models/user.model.ts
-import { createRelations } from '@venizia/ignis';
-
-export const userTable = pgTable('User', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  email: text('email').notNull(),
-});
-
-const userRelationsConfig = createRelations({
-  source: userTable,
-  relations: [
-    {
-      type: 'many',
-      schema: postTable,
-      name: 'posts',
-      metadata: { relationName: 'posts' },
-    },
-  ],
-});
+import { model, RelationTypes } from '@venizia/ignis';
+import { BasePostgresEntity, TRelationConfig } from '@venizia/ignis/postgres';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { Post } from './post.model';
 
 @model({ type: 'entity' })
-export class User extends BaseEntity<typeof User.schema> {
-  static override schema = userTable;
-  static override relations = () => userRelationsConfig.definitions;
-  static override TABLE_NAME = 'User';
+export class User extends BasePostgresEntity<typeof User.schema> {
+  static override schema = pgTable('User', {
+    id: text('id').primaryKey(),
+    name: text('name').notNull(),
+    email: text('email').notNull(),
+  });
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'posts',
+      type: RelationTypes.MANY,
+      schema: Post.schema,
+      metadata: { relationName: 'posts' },
+    },
+  ];
 }
 ```
+
+The resolver form (`() => [...]`) defers evaluation until all `@model` classes are registered, avoiding circular-import ordering issues between related models.
 
 ### Relation Types
 
@@ -302,41 +300,33 @@ export class User extends BaseEntity<typeof User.schema> {
 ### Example: Post Model with Both Types
 
 ```typescript
-const postRelationsConfig = createRelations({
-  source: postTable,
-  relations: [
+@model({ type: 'entity' })
+export class Post extends BasePostgresEntity<typeof Post.schema> {
+  static override schema = postTable;
+
+  static override relations = (): TRelationConfig[] => [
     {
-      type: 'one',
-      schema: userTable,
       name: 'author',
+      type: RelationTypes.ONE,
+      schema: User.schema,
       metadata: {
-        fields: [postTable.authorId],
-        references: [userTable.id],
+        fields: [Post.schema.authorId],
+        references: [User.schema.id],
       },
     },
     {
-      type: 'many',
-      schema: commentTable,
       name: 'comments',
+      type: RelationTypes.MANY,
+      schema: Comment.schema,
       metadata: { relationName: 'comments' },
     },
-  ],
-});
+  ];
+}
 ```
 
-### createRelations Return Value
+### How Configs Become Drizzle Relations
 
-`createRelations` returns an object with two properties:
-
-```typescript
-const result = createRelations({ source, relations });
-
-result.definitions;  // Record<string, TRelationConfig> - keyed by relation name
-result.relations;    // Drizzle relations() call result - pass to DataSource schema
-```
-
-- **`definitions`**: Used by `BaseEntity.relations` for include resolution at runtime.
-- **`relations`**: The actual Drizzle ORM relations definition, needed for DataSource schema registration.
+During schema discovery, `MetadataRegistry` resolves each model's `relations` array and passes it to the `createRelations` helper (`packages/core/src/connectors/postgres/repositories/operators/relation.ts`), which builds the actual Drizzle `relations()` definition registered on the DataSource schema. You do not call `createRelations` yourself in application code.
 
 
 ## Auto-Resolution
@@ -362,7 +352,7 @@ When building include queries, the `FilterBuilder.toInclude()` method automatica
 
 ```typescript
 // User model has hiddenProperties: ['password']
-const post = await postRepo.findOne({
+const post = await postRepository.findOne({
   filter: {
     include: [{ relation: 'author' }]
   }
@@ -383,7 +373,7 @@ type UserWithPosts = User & {
 };
 
 // Use generic override
-const user = await userRepo.findOne<UserWithPosts>({
+const user = await userRepository.findOne<UserWithPosts>({
   filter: {
     where: { id: '123' },
     include: [{ relation: 'posts' }]
@@ -405,7 +395,7 @@ type ProductWithChannels = Product & {
   })[];
 };
 
-const product = await productRepo.findOne<ProductWithChannels>({
+const product = await productRepository.findOne<ProductWithChannels>({
   filter: {
     where: { id: 'prod1' },
     include: [{
@@ -441,7 +431,7 @@ type TInclusion = {
 
 ```typescript
 // Get users with post count
-const users = await userRepo.find({
+const users = await userRepository.find({
   filter: {
     include: [{
       relation: 'posts',
@@ -465,7 +455,7 @@ async function getUser(id: string, includePosts: boolean) {
     ? [{ relation: 'posts' }]
     : [];
 
-  return userRepo.findOne({
+  return userRepository.findOne({
     filter: {
       where: { id },
       include
@@ -483,7 +473,7 @@ If you try to include a relation that doesn't exist:
 
 ```typescript
 // Error: [FilterBuilder][toInclude] Relation NOT FOUND | relation: 'nonExistent'
-await userRepo.find({
+await userRepository.find({
   filter: {
     include: [{ relation: 'nonExistent' }]
   }
@@ -520,14 +510,14 @@ in connector.query | Available keys: [Post, Comment]
 
 ```typescript
 // Instead of deep nesting, use separate queries
-const user = await userRepo.findById({ id: '123' });
-const posts = await postRepo.find({
+const user = await userRepository.findById({ id: '123' });
+const posts = await postRepository.find({
   filter: {
     where: { authorId: '123' },
     limit: 10
   }
 });
-const comments = await commentRepo.find({
+const comments = await commentRepository.find({
   filter: {
     where: { postId: { inq: posts.map(p => p.id) } }
   }
@@ -563,7 +553,7 @@ const comments = await commentRepo.find({
 
 - **Related Topics:**
   - [Advanced Features](./advanced) - Hidden properties, transactions
-  - [Repository Mixins](./mixins) - Default filter and fields visibility
+  - [Repository Mixins (Removed)](./mixins) - Where default-filter and fields-visibility behavior lives now
   - [Filter System](/references/base/filter-system/) - Query operators
 
 - **External Resources:**

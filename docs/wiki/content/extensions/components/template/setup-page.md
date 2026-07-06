@@ -13,7 +13,7 @@ Paired with [Usage](./usage-page), [API Reference](./api-page), and [Error Refer
 ## Page Structure
 
 ```markdown
-# {Component Name}
+# {Component Name} -- Setup & Configuration
 
 {One-line description of what this component does.}
 

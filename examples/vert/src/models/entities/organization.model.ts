@@ -1,8 +1,9 @@
-import { BaseEntity, generateIdColumnDefs, generateTzColumnDefs, model } from '@venizia/ignis';
+import { model } from '@venizia/ignis';
+import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
 import { boolean, pgTable, text } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
-export class Organization extends BaseEntity<typeof Organization.schema> {
+export class Organization extends BasePostgresEntity<typeof Organization.schema> {
   static override schema = pgTable('Organization', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     ...generateTzColumnDefs(),

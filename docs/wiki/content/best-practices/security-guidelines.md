@@ -63,7 +63,7 @@ this.component(AuthenticateComponent);
 ```typescript
 const SecureRoute = {
   path: '/admin/users',
-  authStrategies: [Authentication.STRATEGY_JWT], // Requires JWT
+  authenticate: { strategies: [Authentication.STRATEGY_JWT] }, // Requires JWT
   // ...
 };
 ```
@@ -73,10 +73,10 @@ const SecureRoute = {
 **Access user in protected routes:**
 ```typescript
 import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
-import { ApplicationError, getError } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload;
-if (!user.roles.includes('admin')) {
+if (!user.roles.some(role => role.identifier === 'admin')) {
     throw getError({ statusCode: 403, message: 'Forbidden' });
 }
 ```
@@ -92,7 +92,7 @@ Configure model properties that should **never be returned** through repository 
     hiddenProperties: ['password', 'apiSecret', 'internalToken'],
   },
 })
-export class User extends BaseEntity<typeof User.schema> {
+export class User extends BasePostgresEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -113,7 +113,7 @@ export class User extends BaseEntity<typeof User.schema> {
 
 ```typescript
 // For authentication - access password via connector
-const connector = userRepo.getConnector();
+const connector = userRepository.getConnector();
 const [user] = await connector
   .select({ id: User.schema.id, password: User.schema.password })
   .from(User.schema)
@@ -227,14 +227,14 @@ Configure Cross-Origin Resource Sharing to control which domains can access your
 import { cors } from 'hono/cors';
 
 // Allow all origins (ONLY for development)
-this.server.use('*', cors());
+this.getServer().use('*', cors());
 ```
 
 **Production (Restrictive):**
 ```typescript
 import { cors } from 'hono/cors';
 
-this.server.use('/api/*', cors({
+this.getServer().use('/api/*', cors({
   origin: ['https://yourdomain.com', 'https://app.yourdomain.com'],
   allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowHeaders: ['Content-Type', 'Authorization', 'X-Request-ID'],
@@ -246,7 +246,7 @@ this.server.use('/api/*', cors({
 
 **Dynamic Origin Validation:**
 ```typescript
-this.server.use('/api/*', cors({
+this.getServer().use('/api/*', cors({
   origin: (origin) => {
     const allowedDomains = ['yourdomain.com', 'yourdomain.io'];
     try {
@@ -296,9 +296,10 @@ const rateLimiter = (opts: { windowMs: number; max: number }) => {
 };
 
 // Apply to sensitive endpoints
-this.server.use('/api/auth/login', rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }));
-this.server.use('/api/auth/register', rateLimiter({ windowMs: 60 * 60 * 1000, max: 10 }));
-this.server.use('/api/*', rateLimiter({ windowMs: 60 * 1000, max: 100 }));
+const server = this.getServer();
+server.use('/api/auth/login', rateLimiter({ windowMs: 15 * 60 * 1000, max: 5 }));
+server.use('/api/auth/register', rateLimiter({ windowMs: 60 * 60 * 1000, max: 10 }));
+server.use('/api/*', rateLimiter({ windowMs: 60 * 1000, max: 100 }));
 ```
 
 **Recommended Limits:**
@@ -316,13 +317,19 @@ this.server.use('/api/*', rateLimiter({ windowMs: 60 * 1000, max: 100 }));
 import { RedisSingleHelper } from '@venizia/ignis-helpers';
 
 // Rate limiter with Redis for multi-instance deployments
-const distributedRateLimiter = async (key: string, max: number, windowSec: number) => {
-  const redis = RedisSingleHelper.getClient();
-  const current = await redis.incr(key);
+const redisHelper = new RedisSingleHelper({
+  name: 'rate-limiter',
+  host: process.env.APP_ENV_REDIS_HOST ?? 'localhost',
+  port: process.env.APP_ENV_REDIS_PORT ?? '6379',
+  password: process.env.APP_ENV_REDIS_PASSWORD,
+});
+
+const distributedRateLimiter = async (opts: { key: string; max: number; windowSeconds: number }) => {
+  const current = await redisHelper.incr({ key: opts.key });
   if (current === 1) {
-    await redis.expire(key, windowSec);
+    await redisHelper.expire({ key: opts.key, seconds: opts.windowSeconds });
   }
-  return current <= max;
+  return current <= opts.max;
 };
 ```
 
@@ -369,7 +376,7 @@ Add security headers to protect against common attacks:
 import { secureHeaders } from 'hono/secure-headers';
 
 // Add security headers to all responses
-this.server.use('*', secureHeaders({
+this.getServer().use('*', secureHeaders({
   // Prevent clickjacking
   xFrameOptions: 'DENY',
   // Prevent MIME type sniffing
@@ -396,13 +403,13 @@ Prevent denial of service through large payloads:
 import { bodyLimit } from 'hono/body-limit';
 
 // Limit request body size
-this.server.use('/api/*', bodyLimit({
+this.getServer().use('/api/*', bodyLimit({
   maxSize: 1024 * 1024, // 1MB for general API
   onError: (c) => c.json({ message: 'Request body too large' }, 413),
 }));
 
 // Allow larger uploads for file endpoints
-this.server.use('/api/upload/*', bodyLimit({
+this.getServer().use('/api/upload/*', bodyLimit({
   maxSize: 50 * 1024 * 1024, // 50MB for file uploads
 }));
 ```
@@ -413,13 +420,14 @@ Log security-relevant events for monitoring and forensics:
 
 ```typescript
 import { BaseService } from '@venizia/ignis';
+import { getError } from '@venizia/ignis-helpers';
 
 export class AuthService extends BaseService {
   async login(email: string, password: string, context: Context) {
     const ip = context.req.header('x-forwarded-for') ?? 'unknown';
     const userAgent = context.req.header('user-agent') ?? 'unknown';
 
-    const user = await this.userRepo.findByEmail(email);
+    const user = await this.userRepository.findByEmail(email);
 
     if (!user || !await this.verifyPassword(password, user.password)) {
       // Log failed attempt

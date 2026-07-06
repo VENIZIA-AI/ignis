@@ -2,7 +2,10 @@
 
 Repositories are the data access layer in IGNIS - they provide type-safe CRUD operations for your database entities.
 
-**Files:** `packages/core/src/base/repositories/core/*.ts`
+> [!IMPORTANT] Base vs. Connectors
+> `AbstractRepository` (`packages/core/src/base/repositories/core/abstract-repository.ts`) is the engine-neutral root shared by all three connectors - it declares the CRUD contract but has no Drizzle, SQL, or mixin composition. The concrete classes documented on this page (`ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`) belong to the **PostgreSQL connector**, built on `PostgresBaseRepository`. Typesense and memory have their own parallel tiers - see [Connectors](/references/base/connectors), [Search & Typesense](/guides/core-concepts/persistent/search-typesense), and [Memory Connector](/guides/core-concepts/persistent/memory-connector).
+
+**Files:** `packages/core/src/base/repositories/core/abstract-repository.ts` (neutral) and `packages/core/src/connectors/postgres/repositories/core/*.ts` (PostgreSQL)
 
 
 ## Quick Start
@@ -25,7 +28,7 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 
 | Class | Capabilities | Use Case |
 |-------|--------------|----------|
-| **AbstractRepository** | Base class with properties, mixins, lazy resolution | Extend for custom repositories |
+| **AbstractRepository** | Engine-neutral base class with lazy dataSource/entity resolution and @model settings getters | Extend for custom repositories |
 | **ReadableRepository** | Read-only operations (write methods throw errors) | Views, external tables, read-only access |
 | **PersistableRepository** | Read + Write operations | Full CRUD access |
 | **DefaultCRUDRepository** | Extends PersistableRepository (no additions) | Standard data tables (recommended) |
@@ -37,18 +40,21 @@ export class TodoRepository extends DefaultCRUDRepository<typeof Todo.schema> {
 
 ```
 BaseHelper
-  + FieldsVisibilityMixin
-  + DefaultFilterMixin
-    = AbstractRepository (abstract base, declares all CRUD signatures)
+  = AbstractRepository (engine-neutral abstract base, declares all CRUD signatures, src/base)
         |
-        +-- ReadableRepository (implements read ops; write ops throw errors)
+        +-- PostgresBaseRepository (PostgreSQL connector; hidden-fields + default-filter logic, no mixins)
               |
-              +-- PersistableRepository (implements write + delete ops, READ_WRITE scope)
+              +-- ReadableRepository (implements read ops; write ops throw errors)
                     |
-                    +-- DefaultCRUDRepository (empty subclass, recommended entry point)
+                    +-- PersistableRepository (implements write + delete ops, READ_WRITE scope)
                           |
-                          +-- SoftDeletableRepository (overrides delete with soft-delete)
+                          +-- DefaultCRUDRepository (empty subclass, recommended entry point)
+                                |
+                                +-- SoftDeletableRepository (overrides delete with soft-delete)
 ```
+
+> [!NOTE]
+> Prior to the connectors restructure, `AbstractRepository` composed `FieldsVisibilityMixin`/`DefaultFilterMixin` directly onto `BaseHelper`. Those mixins have been **removed** - see [Repository Mixins](./mixins) - and the equivalent behavior lives in `AbstractRepository`'s settings getters and `PostgresBaseRepository` instead.
 
 ### Type Parameters
 
@@ -59,7 +65,7 @@ class DefaultCRUDRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
-  ExtraOptions extends IExtraOptions = IExtraOptions,
+  ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
 >
 ```
 
@@ -68,7 +74,7 @@ class DefaultCRUDRepository<
 | `EntitySchema` | The Drizzle `pgTable` schema type (e.g., `typeof User.schema`) |
 | `DataObject` | The inferred SELECT type from the schema |
 | `PersistObject` | The inferred INSERT type from the schema |
-| `ExtraOptions` | Extra options for operations (defaults to `IExtraOptions`) |
+| `ExtraOptions` | Extra options for operations (defaults to `IDatabaseExtraOptions`, which narrows `IExtraOptions.transaction` to `IDatabaseTransaction`) |
 
 
 ## Available Methods
@@ -76,24 +82,24 @@ class DefaultCRUDRepository<
 ### Read Operations
 | Method | Description | Example |
 |--------|-------------|---------|
-| `find(opts)` | Find multiple records | `repo.find({ filter: { where: { status: 'active' } } })` |
-| `find(opts)` with range | Find with pagination range | `repo.find({ filter, options: { shouldQueryRange: true } })` |
-| `findOne(opts)` | Find single record | `repo.findOne({ filter: { where: { email } } })` |
-| `findById(opts)` | Find by primary key | `repo.findById({ id: '123' })` |
-| `count(opts)` | Count matching records | `repo.count({ where: { status: 'active' } })` |
-| `existsWith(opts)` | Check if exists | `repo.existsWith({ where: { email } })` |
+| `find(opts)` | Find multiple records | `repository.find({ filter: { where: { status: 'active' } } })` |
+| `find(opts)` with range | Find with pagination range | `repository.find({ filter, options: { shouldQueryRange: true } })` |
+| `findOne(opts)` | Find single record | `repository.findOne({ filter: { where: { email } } })` |
+| `findById(opts)` | Find by primary key | `repository.findById({ id: '123' })` |
+| `count(opts)` | Count matching records | `repository.count({ where: { status: 'active' } })` |
+| `existsWith(opts)` | Check if exists | `repository.existsWith({ where: { email } })` |
 
 ### Write Operations
 | Method | Description | Example |
 |--------|-------------|---------|
-| `create(opts)` | Create single record | `repo.create({ data: { title: 'New' } })` |
-| `createAll(opts)` | Create multiple records | `repo.createAll({ data: [{ title: 'A' }, { title: 'B' }] })` |
-| `updateById(opts)` | Update by primary key | `repo.updateById({ id: '123', data: { title: 'Updated' } })` |
-| `updateAll(opts)` | Update matching records | `repo.updateAll({ data: { status: 'published' }, where: { status: 'draft' } })` |
-| `updateBy(opts)` | Alias for `updateAll` | `repo.updateBy({ data: { status: 'published' }, where: { status: 'draft' } })` |
-| `deleteById(opts)` | Delete by primary key | `repo.deleteById({ id: '123' })` |
-| `deleteAll(opts)` | Delete matching records | `repo.deleteAll({ where: { status: 'archived' } })` |
-| `deleteBy(opts)` | Alias for `deleteAll` | `repo.deleteBy({ where: { status: 'archived' } })` |
+| `create(opts)` | Create single record | `repository.create({ data: { title: 'New' } })` |
+| `createAll(opts)` | Create multiple records | `repository.createAll({ data: [{ title: 'A' }, { title: 'B' }] })` |
+| `updateById(opts)` | Update by primary key | `repository.updateById({ id: '123', data: { title: 'Updated' } })` |
+| `updateAll(opts)` | Update matching records | `repository.updateAll({ data: { status: 'published' }, where: { status: 'draft' } })` |
+| `updateBy(opts)` | Alias for `updateAll` | `repository.updateBy({ data: { status: 'published' }, where: { status: 'draft' } })` |
+| `deleteById(opts)` | Delete by primary key | `repository.deleteById({ id: '123' })` |
+| `deleteAll(opts)` | Delete matching records | `repository.deleteAll({ where: { status: 'archived' } })` |
+| `deleteBy(opts)` | Alias for `deleteAll` | `repository.deleteBy({ where: { status: 'archived' } })` |
 
 
 ## Method Signatures
@@ -238,8 +244,14 @@ interface IExtraOptions {
 
   /** If true, bypass the default filter configured in model settings (e.g., soft delete). */
   shouldSkipDefaultFilter?: boolean;
+
+  /** Row-level locking (requires transaction, incompatible with Query API). */
+  lock?: TLockOptions;
 }
 ```
+
+> [!NOTE]
+> Postgres narrows this via `IDatabaseExtraOptions` (`connectors/postgres/repositories/common`), which overrides `transaction` to `IDatabaseTransaction` so `options.transaction.connector` needs no cast.
 
 Additional fields are available as intersections on specific methods:
 
@@ -263,16 +275,21 @@ type TDataRange = {
 ```
 
 
-## AbstractRepository Properties
+## AbstractRepository / PostgresBaseRepository Properties
 
 ### dataSource
 
 Getter/setter for the repository's datasource. Throws if accessed before being set (either via constructor or `@repository` auto-injection).
 
 ```typescript
-get dataSource(): IDataSource;
-set dataSource(value: IDataSource);
-setDataSource(opts: { dataSource: IDataSource }): void;
+// AbstractRepository (engine-neutral, src/base)
+get dataSource(): AbstractDataSource;
+set dataSource(value: AbstractDataSource);
+setDataSource(opts: { dataSource: AbstractDataSource }): void;
+
+// PostgresBaseRepository narrows the return type
+get dataSource(): IPostgresDataSource;
+set dataSource(value: IPostgresDataSource);
 ```
 
 ### entity
@@ -280,11 +297,18 @@ setDataSource(opts: { dataSource: IDataSource }): void;
 Lazy-resolved from `@repository` metadata on first access. Can also be set explicitly via constructor `entityClass` option.
 
 ```typescript
-get entity(): BaseEntity<EntitySchema>;
-set entity(value: BaseEntity<EntitySchema>);
-getEntity(): BaseEntity<EntitySchema>;
+// AbstractRepository
+get entity(): AbstractEntity;
+set entity(value: AbstractEntity);
+getEntity(): AbstractEntity;
+
+// PostgresBaseRepository narrows the return type
+get entity(): BasePostgresEntity<EntitySchema>;
+set entity(value: BasePostgresEntity<EntitySchema>);
 getEntitySchema(): EntitySchema;
 ```
+
+`BaseEntity` is a compatibility alias re-exported for `BasePostgresEntity` - prefer `BasePostgresEntity` in new code.
 
 ### operationScope
 
@@ -297,21 +321,21 @@ get operationScope(): TRepositoryOperationScope;
 - `ReadableRepository` defaults to `READ_ONLY`
 - `PersistableRepository` and `DefaultCRUDRepository` default to `READ_WRITE`
 
-### filterBuilder
+### filterBuilder (PostgresBaseRepository+)
 
-Access to the `FilterBuilder` instance used for converting filter objects to Drizzle SQL.
+Access to the `FilterBuilder` instance used for converting filter objects to Drizzle SQL. Not present on the engine-neutral `AbstractRepository`.
 
 ```typescript
 get filterBuilder(): FilterBuilder;
 ```
 
-### connector
+### connector (PostgresBaseRepository+)
 
-Shortcut for `this.dataSource.connector`.
+Shortcut for `this.dataSource.connector`. Not present on the engine-neutral `AbstractRepository`.
 
 ```typescript
-get connector(): IDataSource['connector'];
-getConnector(): IDataSource['connector'];
+get connector(): IPostgresDataSource['connector'];
+getConnector(): IPostgresDataSource['connector'];
 ```
 
 ### updateBuilder (PersistableRepository+)
@@ -325,21 +349,21 @@ get updateBuilder(): UpdateBuilder;
 
 ## Key Methods
 
-### beginTransaction
+### beginTransaction (PostgresBaseRepository+)
 
-Start a new database transaction through the repository's datasource:
+Delegates to the repository's datasource. Not present on the engine-neutral `AbstractRepository` - each connector adds it with its own transaction type (or omits it, like typesense).
 
 ```typescript
-await repo.beginTransaction(opts?: ITransactionOptions): Promise<ITransaction>;
+beginTransaction(opts?: IDatabaseTransactionOptions): Promise<IDatabaseTransaction>;
 ```
 
 Usage:
 
 ```typescript
-const tx = await repo.beginTransaction();
+const tx = await repository.beginTransaction();
 try {
-  await repo.create({ data: { name: 'John' }, options: { transaction: tx } });
-  await repo.updateById({ id: '456', data: { count: 1 }, options: { transaction: tx } });
+  await repository.create({ data: { name: 'John' }, options: { transaction: tx } });
+  await repository.updateById({ id: '456', data: { count: 1 }, options: { transaction: tx } });
   await tx.commit();
 } catch (e) {
   await tx.rollback();
@@ -379,10 +403,10 @@ The selection is automatic based on filter complexity:
 
 ```typescript
 // Uses Core API (no include, no fields)
-await repo.find({ filter: { where: { status: 'active' }, limit: 10 } });
+await repository.find({ filter: { where: { status: 'active' }, limit: 10 } });
 
 // Uses Query API (has include)
-await repo.find({
+await repository.find({
   filter: {
     where: { status: 'active' },
     include: [{ relation: 'posts' }],
@@ -390,7 +414,7 @@ await repo.find({
 });
 
 // Uses Query API (has fields)
-await repo.find({
+await repository.find({
   filter: {
     fields: { id: true, name: true },
     where: { status: 'active' },
@@ -405,37 +429,37 @@ await repo.find({
 
 ```typescript
 constructor(
-  ds?: IDataSource,
+  dataSource?: AbstractDataSource,
   opts?: {
     scope?: string;
-    entityClass?: TClass<BaseEntity<EntitySchema>>;
+    entityClass?: TClass<AbstractEntity>;
     operationScope?: TRepositoryOperationScope;
   },
 )
 ```
 
-- `ds` -- DataSource instance (optional; auto-injected by `@repository` decorator)
+- `dataSource` -- DataSource instance (optional; auto-injected by `@repository` decorator)
 - `opts.scope` -- Logger scope name (defaults to class name)
 - `opts.entityClass` -- Entity class to instantiate (optional; lazy-resolved from `@repository` metadata)
 - `opts.operationScope` -- Defaults to `READ_ONLY`
 
-### ReadableRepository
+### ReadableRepository (PostgreSQL)
 
 ```typescript
 constructor(
-  ds?: IDataSource,
-  opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> },
+  ds?: IPostgresDataSource,
+  opts?: { entityClass?: TClass<BasePostgresEntity<EntitySchema>> },
 )
 ```
 
 Forces `operationScope` to `READ_ONLY`.
 
-### PersistableRepository
+### PersistableRepository (PostgreSQL)
 
 ```typescript
 constructor(
-  ds?: IDataSource,
-  opts?: { entityClass?: TClass<BaseEntity<EntitySchema>> },
+  ds?: IPostgresDataSource,
+  opts?: { entityClass?: TClass<BasePostgresEntity<EntitySchema>> },
 )
 ```
 
@@ -451,7 +475,7 @@ Complete reference for querying data - operators, JSON filtering, array operator
 
 ```typescript
 // Preview
-await repo.find({
+await repository.find({
   filter: {
     where: {
       status: 'active',
@@ -470,7 +494,7 @@ Fetch related data using `include` for eager loading and nested queries.
 
 ```typescript
 // Preview
-await repo.find({
+await repository.find({
   filter: {
     include: [{
       relation: 'posts',
@@ -489,11 +513,11 @@ Soft-delete and restore operations using `deletedAt` timestamps instead of physi
 export class CategoryRepository extends SoftDeletableRepository<typeof Category.schema> {}
 
 // Soft delete (sets deletedAt)
-await repo.deleteById({ id: '123' });
+await repository.deleteById({ id: '123' });
 // Restore
-await repo.restoreById({ id: '123' });
+await repository.restoreById({ id: '123' });
 // Hard delete (physical removal)
-await repo.deleteById({ id: '123', options: { shouldHardDelete: true } });
+await repository.deleteById({ id: '123', options: { shouldHardDelete: true } });
 ```
 
 ### [Advanced Features](./advanced.md)
@@ -501,17 +525,17 @@ Transactions, hidden properties, default filter bypass, performance optimization
 
 ```typescript
 // Preview
-const tx = await repo.beginTransaction();
+const tx = await repository.beginTransaction();
 try {
-  await repo.create({ data, options: { transaction: tx } });
+  await repository.create({ data, options: { transaction: tx } });
   await tx.commit();
 } catch (e) {
   await tx.rollback();
 }
 ```
 
-### [Repository Mixins](./mixins.md)
-Composable mixins for repository features - `DefaultFilterMixin` and `FieldsVisibilityMixin`.
+### [Repository Mixins (Removed)](./mixins.md)
+Tombstone for the removed `DefaultFilterMixin` and `FieldsVisibilityMixin` - where the equivalent behavior lives now.
 
 
 ## @repository Decorator
@@ -593,12 +617,12 @@ Prevents accidental mass updates/deletes (in `PersistableRepository` and above):
 
 ```typescript
 // Throws error - empty where without force flag
-await repo.deleteAll({ where: {} });
-await repo.updateAll({ data: { status: 'archived' }, where: {} });
+await repository.deleteAll({ where: {} });
+await repository.updateAll({ data: { status: 'archived' }, where: {} });
 
 // Explicitly allow with force flag (logs warning)
-await repo.deleteAll({ where: {}, options: { force: true } });
-await repo.updateAll({ data: { status: 'archived' }, where: {}, options: { force: true } });
+await repository.deleteAll({ where: {}, options: { force: true } });
+await repository.updateAll({ data: { status: 'archived' }, where: {}, options: { force: true } });
 ```
 
 | Scenario | `force: false` (default) | `force: true` |
@@ -634,24 +658,24 @@ type TFilter<T = any> = {
 
 | Want to... | Code |
 |------------|------|
-| Find all active | `repo.find({ filter: { where: { status: 'active' } } })` |
-| Find with range info | `repo.find({ filter, options: { shouldQueryRange: true } })` |
-| Find by ID | `repo.findById({ id: '123' })` |
-| Find with relations | `repo.find({ filter: { include: [{ relation: 'posts' }] } })` |
-| Create one | `repo.create({ data: { name: 'John' } })` |
-| Create without returning data | `repo.create({ data: { name: 'John' }, options: { shouldReturn: false } })` |
-| Create many | `repo.createAll({ data: [{ name: 'A' }, { name: 'B' }] })` |
-| Update by ID | `repo.updateById({ id: '123', data: { name: 'Jane' } })` |
-| Update by condition | `repo.updateAll({ data: { status: 'published' }, where: { status: 'draft' } })` |
-| Delete by ID | `repo.deleteById({ id: '123' })` |
-| Delete by condition | `repo.deleteBy({ where: { status: 'archived' } })` |
-| Soft delete | `repo.deleteById({ id: '123' })` (with `SoftDeletableRepository`) |
-| Restore soft-deleted | `repo.restoreById({ id: '123' })` (with `SoftDeletableRepository`) |
-| Hard delete (bypass soft) | `repo.deleteById({ id: '123', options: { shouldHardDelete: true } })` |
-| Count matching | `repo.count({ where: { status: 'active' } })` |
-| Check exists | `repo.existsWith({ where: { email: 'test@example.com' } })` |
-| Skip default filter | `repo.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
-| Use transaction | `repo.create({ data, options: { transaction: tx } })` |
+| Find all active | `repository.find({ filter: { where: { status: 'active' } } })` |
+| Find with range info | `repository.find({ filter, options: { shouldQueryRange: true } })` |
+| Find by ID | `repository.findById({ id: '123' })` |
+| Find with relations | `repository.find({ filter: { include: [{ relation: 'posts' }] } })` |
+| Create one | `repository.create({ data: { name: 'John' } })` |
+| Create without returning data | `repository.create({ data: { name: 'John' }, options: { shouldReturn: false } })` |
+| Create many | `repository.createAll({ data: [{ name: 'A' }, { name: 'B' }] })` |
+| Update by ID | `repository.updateById({ id: '123', data: { name: 'Jane' } })` |
+| Update by condition | `repository.updateAll({ data: { status: 'published' }, where: { status: 'draft' } })` |
+| Delete by ID | `repository.deleteById({ id: '123' })` |
+| Delete by condition | `repository.deleteBy({ where: { status: 'archived' } })` |
+| Soft delete | `repository.deleteById({ id: '123' })` (with `SoftDeletableRepository`) |
+| Restore soft-deleted | `repository.restoreById({ id: '123' })` (with `SoftDeletableRepository`) |
+| Hard delete (bypass soft) | `repository.deleteById({ id: '123', options: { shouldHardDelete: true } })` |
+| Count matching | `repository.count({ where: { status: 'active' } })` |
+| Check exists | `repository.existsWith({ where: { email: 'test@example.com' } })` |
+| Skip default filter | `repository.find({ filter, options: { shouldSkipDefaultFilter: true } })` |
+| Use transaction | `repository.create({ data, options: { transaction: tx } })` |
 
 
 ## Next Steps
@@ -673,7 +697,7 @@ type TFilter<T = any> = {
 - **Repository Topics:**
   - [Relations & Includes](./relations) - Loading related data
   - [Advanced Features](./advanced) - JSON updates, transactions, performance tuning
-  - [Repository Mixins](./mixins) - Soft delete and auditing
+  - [Repository Mixins (Removed)](./mixins) - Where mixin behavior lives now
 
 - **Filtering:**
   - [Filter System Overview](/references/base/filter-system/) - Complete filtering guide

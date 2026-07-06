@@ -23,7 +23,9 @@ export abstract class BaseRestController<
   ConfigurableOptions,
   Definitions
 > {
-  /** Casts handler to Hono OpenAPI Handler type. */
+  /** TRouteHandler's TRouteContext is a lightweight custom shape (different `json`/`req.valid`
+   * signatures) built on top of Hono's real Context, not a subtype of the RouteHandler Hono's
+   * `.openapi()` expects - genuinely different handler types being bridged at this call boundary. */
   toHonoHandler<ResponseType = unknown>(opts: { handler: TRouteHandler<ResponseType, RouteEnv> }) {
     return opts.handler as Parameters<OpenAPIHono<RouteEnv>['openapi']>[1];
   }
@@ -73,8 +75,11 @@ export abstract class BaseRestController<
 
     return {
       configs: routeConfigs,
-      // Cast handler: TTypedContext is a type overlay compatible at runtime
-      route: this.router.openapi(routeConfigs, opts.handler as any, opts.hook),
+      route: this.router.openapi(
+        routeConfigs,
+        this.toHonoHandler<ResponseType>({ handler: opts.handler }),
+        opts.hook,
+      ),
     };
   }
 }

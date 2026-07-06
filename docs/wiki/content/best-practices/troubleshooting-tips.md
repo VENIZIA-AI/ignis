@@ -31,8 +31,9 @@ lsof -ti:3000 | xargs kill -9
 ```typescript
 // In application.ts config
 export const appConfigs: IApplicationConfigs = {
+  path: { base: '/api', isStrict: true },
   debug: {
-    showRoutes: process.env.NODE_ENV !== 'production',
+    shouldShowRoutes: process.env.NODE_ENV !== 'production',
   },
 };
 ```
@@ -90,8 +91,8 @@ class UserService {
     // Output: [UserService-createUser] Creating user: {...}
 
     try {
-      const user = await this.userRepo.create({ data });
-      this.logger.for('createUser').info('User created: %s', user.id);
+      const user = await this.userRepository.create({ data });
+      this.logger.for('createUser').info('User created: %s', user.data.id);
       return user;
     } catch (error) {
       this.logger.for('createUser').error('Failed: %s', error);
@@ -122,21 +123,19 @@ cat .env | grep APP_ENV
 
 ## 6. Request ID Tracking
 
-Every request in IGNIS is automatically assigned a unique `requestId` for log correlation. The `RequestSpyMiddleware` logs this ID at the start and end of each request.
+Every request in IGNIS is automatically assigned a unique `requestId` for log correlation (via `RequestTrackerComponent`, which registers Hono's `requestId()` middleware plus a request-spy middleware). The spy middleware logs this ID when a request starts (`[=>]`) and finishes (`[<=]`).
 
 **Log output format:**
 ```
-[spy][abc123] START | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET
-[spy][abc123] DONE  | Handling Request | forwardedIp: 192.168.1.1 | path: /api/users | method: GET | Took: 45.2 (ms)
+[SpyMW] [abc123][192.168.1.1][=>] GET      /api/users | query: {}
+[SpyMW] [abc123][192.168.1.1][<=] GET      /api/users | Took: 45.20 (ms)
 ```
 
 **Access request ID in handlers:**
 ```typescript
-import { RequestSpyMiddleware } from '@venizia/ignis';
-
-// Inside a controller method
+// Inside a controller method - 'requestId' is the Hono request-id context variable
 async getUser(c: Context) {
-  const requestId = c.get(RequestSpyMiddleware.REQUEST_ID_KEY);
+  const requestId = c.get('requestId');
   this.logger.info('[%s] Processing user request', requestId);
   // ...
 }
@@ -148,53 +147,54 @@ async getUser(c: Context) {
 grep "abc123" logs/app.log
 
 # Extract request timing
-grep "\[spy\]\[abc123\]" logs/app.log
+grep "\[abc123\]" logs/app.log | grep "Took:"
 ```
 
 **Why this matters:**
 - Correlate logs across services in distributed systems
 - Debug specific user issues by their request ID
-- Measure request duration from START to DONE timestamps
+- Measure request duration from the `[=>]` / `[<=]` log pair
 
 ## 7. Validation Error Debugging
 
 When Zod validation fails, IGNIS returns a structured error response. Understanding this format helps debug client-side issues.
 
-**Error response structure:**
+**Error response structure** (top-level `message`/`messageCode` come from the first issue; the fallback message is `ValidationError`):
 ```json
 {
   "statusCode": 422,
-  "message": "ValidationError",
+  "message": "Invalid email address",
+  "messageCode": "invalid_format",
   "requestId": "abc123",
   "details": {
+    "url": "http://localhost:3000/api/users",
+    "path": "/api/users",
     "cause": [
       {
         "path": "email",
-        "message": "Invalid email",
-        "code": "invalid_string",
-        "expected": "email",
-        "received": "string"
+        "message": "Invalid email address",
+        "code": "invalid_format"
       }
     ]
   }
 }
 ```
 
-**Common validation error codes:**
+**Common validation error codes (Zod v4):**
 
 | Code | Meaning | Example |
 |------|---------|---------|
 | `invalid_type` | Wrong data type | Expected `number`, got `string` |
-| `invalid_string` | String format invalid | Invalid email or UUID format |
+| `invalid_format` | String format invalid | Invalid email or UUID format |
 | `too_small` | Value below minimum | String shorter than min length |
 | `too_big` | Value above maximum | Number exceeds max value |
-| `invalid_enum_value` | Value not in enum | Status must be 'ACTIVE' or 'INACTIVE' |
+| `invalid_value` | Value not in enum/literal | Status must be 'ACTIVE' or 'INACTIVE' |
 | `unrecognized_keys` | Extra fields in request | Strict schema rejects unknown fields |
 
 **Debugging tips:**
 
 1. **Check the `path` field** - Shows which field failed validation
-2. **Compare `expected` vs `received`** - Identifies type mismatches
+2. **Compare `expected` vs `received`** - Present on `invalid_type` issues, identifies type mismatches
 3. **Review schema definition** - Ensure client sends correct format
 
 **Example: Debugging nested validation errors:**

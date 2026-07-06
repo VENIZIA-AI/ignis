@@ -2,7 +2,7 @@
 
 ## Architecture
 
-The storage system uses a class hierarchy with an abstract base class providing shared logic and two concrete implementations for different backends. `MemoryStorageHelper` is a separate, standalone class that does not participate in the `IStorageHelper` hierarchy.
+The storage system uses a class hierarchy with an abstract base class providing shared logic and three concrete implementations for different backends. `MemoryStorageHelper` is a separate, standalone class that does not participate in the `IStorageHelper` hierarchy.
 
 ```
 BaseHelper
@@ -259,7 +259,7 @@ Uploads files to a MinIO bucket. Returns `[]` if `files` is empty. Validates the
 
 **Default name normalization:** Lowercased with spaces replaced by `_`. If `folderPath` is set, prepends `{folderPath}/`.
 
-**Default link format:** `/static-assets/{bucket}/{encodeURIComponent(normalizeName)}`
+**Default link format:** `/static-assets/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
 
 **Metadata stored:** `originalName`, `normalizeName`, `size`, `encoding`, `mimeType`.
 
@@ -430,7 +430,7 @@ async upload(opts: {
 
 Uploads files using `client.write(name, buffer, { bucket, type })`. Same validation and normalization behavior as MinioHelper.
 
-**Default link format:** `/static-assets/{bucket}/{encodeURIComponent(normalizeName)}`
+**Default link format:** `/static-assets/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
 
 #### getFile
 
@@ -584,7 +584,7 @@ Writes files to the bucket directory. Returns `[]` if `files` is empty. Validate
 
 **Default name normalization:** Same as MinioHelper -- lowercased with spaces replaced by `_`.
 
-**Default link format:** `/static-resources/{bucket}/{encodeURIComponent(normalizeName)}`
+**Default link format:** `/static-resources/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
 
 **Throws:**
 - `'[upload] Bucket does not exist | name: {bucket}'`
@@ -751,6 +751,7 @@ The unified interface implemented by `MinioHelper`, `BunS3Helper`, and `DiskHelp
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
+  isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
   isBucketExists(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
@@ -817,7 +818,7 @@ interface IFileStat {
   size: number;                     // File size in bytes
   metadata: Record<string, any>;    // Storage-specific metadata
   lastModified?: Date;              // Last modification date
-  etag?: string;                    // Entity tag (MinioHelper only)
+  etag?: string;                    // Entity tag (MinioHelper and BunS3Helper only)
   versionId?: string;               // Version ID (MinioHelper only)
 }
 ```

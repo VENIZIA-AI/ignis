@@ -78,14 +78,16 @@ export abstract class AbstractRestController<
     const logger = this.logger.for(this.registerRoutesFromRegistry.name);
     const routeDefs = routes.entries();
     for (const [methodName, routeConfigs] of routeDefs) {
-      const handler = (this as any)[methodName];
+      // Dynamic dispatch by decorator-recorded method name - the controller class has no static
+      // index signature for this, so reading it can't be typed narrower than `unknown` here.
+      const handler = (this as Record<string | symbol, unknown>)[methodName];
       if (typeof handler !== 'function') {
         logger.warn('Route method "%s" not found on controller', String(methodName));
         continue;
       }
 
       this.bindRoute({ configs: routeConfigs }).to({
-        handler: handler.bind(this),
+        handler: (handler as TRouteHandler<unknown, RouteEnv>).bind(this),
       });
     }
   }
@@ -154,12 +156,15 @@ export abstract class AbstractRestController<
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { tags = [] } = restConfig;
 
+    // `restConfig` already omitted `authenticate`/`authorize` via destructuring (they're this
+    // library's fields, not Hono's `createRoute` ones); reassembling it with the injected
+    // middleware/tags/security doesn't structurally overlap RouteConfig enough to assert directly.
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
         middleware: mws,
         tags: [...tags, this.scope],
         security,
-      }) as unknown as RouteConfig,
+      }) as any,
     );
   }
 
@@ -168,13 +173,14 @@ export abstract class AbstractRestController<
     const { restConfig, security, mws } = this.buildRouteMiddlewares(opts);
     const { responses, tags = [] } = restConfig;
 
+    // Same reassembled-vs-RouteConfig boundary as getRouteConfigs above.
     return createRoute<string, RouteConfig>(
       Object.assign({}, restConfig, {
         middleware: mws,
         responses: Object.assign({}, htmlResponse({ description: 'HTML page' }), responses),
         tags: [...tags, this.scope],
         security,
-      }) as unknown as RouteConfig,
+      }) as any,
     );
   }
   /** Override to register routes using bindRoute or defineRoute. */

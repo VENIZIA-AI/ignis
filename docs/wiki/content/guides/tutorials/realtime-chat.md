@@ -46,10 +46,10 @@ Models in IGNIS combine Drizzle ORM schemas with Entity classes.
 // src/models/user.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
@@ -64,18 +64,13 @@ export const userTable = pgTable('User', {
   lastSeenAt: timestamp('last_seen_at'),
 });
 
-export const userRelations = createRelations({
-  source: userTable,
-  relations: [],
-});
-
 export type TUserSchema = typeof userTable;
 export type TUser = TTableObject<TUserSchema>;
 
 @model({ type: 'entity' })
 export class User extends BaseEntity<typeof User.schema> {
   static override schema = userTable;
-  static override relations = () => userRelations.definitions;
+  static override relations = (): TRelationConfig[] => [];
   static override TABLE_NAME = 'User';
 }
 ```
@@ -86,10 +81,11 @@ export class User extends BaseEntity<typeof User.schema> {
 // src/models/room.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, varchar, text, timestamp, boolean } from 'drizzle-orm/pg-core';
@@ -113,22 +109,6 @@ export const roomMemberTable = pgTable('RoomMember', {
   lastReadAt: timestamp('last_read_at'),
 });
 
-export const roomRelations = createRelations({
-  source: roomTable,
-  relations: [
-    { type: 'one', name: 'creator', target: () => userTable, fields: ['createdBy'], references: ['id'] },
-    { type: 'many', name: 'members', target: () => roomMemberTable, fields: ['id'], references: ['roomId'] },
-  ],
-});
-
-export const roomMemberRelations = createRelations({
-  source: roomMemberTable,
-  relations: [
-    { type: 'one', name: 'room', target: () => roomTable, fields: ['roomId'], references: ['id'] },
-    { type: 'one', name: 'user', target: () => userTable, fields: ['userId'], references: ['id'] },
-  ],
-});
-
 export type TRoomSchema = typeof roomTable;
 export type TRoom = TTableObject<TRoomSchema>;
 export type TRoomMemberSchema = typeof roomMemberTable;
@@ -137,14 +117,44 @@ export type TRoomMember = TTableObject<TRoomMemberSchema>;
 @model({ type: 'entity' })
 export class Room extends BaseEntity<typeof Room.schema> {
   static override schema = roomTable;
-  static override relations = () => roomRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'creator',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: { fields: [roomTable.createdBy], references: [userTable.id] },
+    },
+    {
+      name: 'members',
+      type: RelationTypes.MANY,
+      schema: roomMemberTable,
+      metadata: { fields: [roomTable.id], references: [roomMemberTable.roomId] },
+    },
+  ];
+
   static override TABLE_NAME = 'Room';
 }
 
 @model({ type: 'entity' })
 export class RoomMember extends BaseEntity<typeof RoomMember.schema> {
   static override schema = roomMemberTable;
-  static override relations = () => roomMemberRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'room',
+      type: RelationTypes.ONE,
+      schema: roomTable,
+      metadata: { fields: [roomMemberTable.roomId], references: [roomTable.id] },
+    },
+    {
+      name: 'user',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: { fields: [roomMemberTable.userId], references: [userTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'RoomMember';
 }
 ```
@@ -155,10 +165,11 @@ export class RoomMember extends BaseEntity<typeof RoomMember.schema> {
 // src/models/message.model.ts
 import {
   BaseEntity,
-  createRelations,
   generateIdColumnDefs,
   generateTzColumnDefs,
   model,
+  RelationTypes,
+  TRelationConfig,
   TTableObject,
 } from '@venizia/ignis';
 import { pgTable, text, timestamp, varchar } from 'drizzle-orm/pg-core';
@@ -189,22 +200,6 @@ export const directMessageTable = pgTable('DirectMessage', {
   deletedAt: timestamp('deleted_at'),
 });
 
-export const messageRelations = createRelations({
-  source: messageTable,
-  relations: [
-    { type: 'one', name: 'room', target: () => roomTable, fields: ['roomId'], references: ['id'] },
-    { type: 'one', name: 'sender', target: () => userTable, fields: ['senderId'], references: ['id'] },
-  ],
-});
-
-export const directMessageRelations = createRelations({
-  source: directMessageTable,
-  relations: [
-    { type: 'one', name: 'sender', target: () => userTable, fields: ['senderId'], references: ['id'] },
-    { type: 'one', name: 'receiver', target: () => userTable, fields: ['receiverId'], references: ['id'] },
-  ],
-});
-
 export type TMessageSchema = typeof messageTable;
 export type TMessage = TTableObject<TMessageSchema>;
 export type TDirectMessageSchema = typeof directMessageTable;
@@ -213,14 +208,44 @@ export type TDirectMessage = TTableObject<TDirectMessageSchema>;
 @model({ type: 'entity' })
 export class Message extends BaseEntity<typeof Message.schema> {
   static override schema = messageTable;
-  static override relations = () => messageRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'room',
+      type: RelationTypes.ONE,
+      schema: roomTable,
+      metadata: { fields: [messageTable.roomId], references: [roomTable.id] },
+    },
+    {
+      name: 'sender',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: { fields: [messageTable.senderId], references: [userTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'Message';
 }
 
 @model({ type: 'entity' })
 export class DirectMessage extends BaseEntity<typeof DirectMessage.schema> {
   static override schema = directMessageTable;
-  static override relations = () => directMessageRelations.definitions;
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'sender',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: { fields: [directMessageTable.senderId], references: [userTable.id] },
+    },
+    {
+      name: 'receiver',
+      type: RelationTypes.ONE,
+      schema: userTable,
+      metadata: { fields: [directMessageTable.receiverId], references: [userTable.id] },
+    },
+  ];
+
   static override TABLE_NAME = 'DirectMessage';
 }
 ```
@@ -1233,7 +1258,7 @@ export class ChatController extends BaseRestController {
       },
     });
 
-    // GET /chat/rooms/:roomId/messages
+    // GET /chat/rooms/{roomId}/messages
     this.bindRoute({ configs: ChatRoutes.GET_MESSAGES }).to({
       handler: async (c: TRouteContext) => {
         const roomId = c.req.param('roomId');
@@ -1259,7 +1284,7 @@ export class ChatController extends BaseRestController {
       },
     });
 
-    // GET /chat/dm/:userId
+    // GET /chat/dm/{userId}
     this.bindRoute({ configs: ChatRoutes.GET_DIRECT_MESSAGES }).to({
       handler: async (c: TRouteContext) => {
         const currentUserId = c.get('userId');

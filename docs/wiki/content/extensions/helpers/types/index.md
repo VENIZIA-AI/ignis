@@ -8,6 +8,7 @@ Shared utility types, resolver functions, and constants exported from `@venizia/
 |------|-------|
 | **Package** | `@venizia/ignis-helpers` |
 | **Module** | Common types and constants |
+| **Source** | `packages/helpers/src/common/types.ts` (types + resolvers), `packages/helpers/src/common/constants/` (constants) |
 | **Runtimes** | Both |
 
 #### Import Paths
@@ -369,7 +370,7 @@ Schema data type constants with validation. `SCHEME_SET` contains all valid type
 
 The `HTTP` class groups all HTTP-related constants into nested objects.
 
-**Headers:**
+**Headers** (commonly used subset -- the full list in `packages/helpers/src/common/constants/http.ts` also covers content negotiation, CORS, security, proxy/forwarding, and rate-limit headers):
 
 | Constant | Value |
 |----------|-------|
@@ -389,7 +390,7 @@ The `HTTP` class groups all HTTP-related constants into nested objects.
 | `HTTP.Headers.RESPONSE_COUNT_DATA` | `'x-response-count'` |
 | `HTTP.Headers.RESPONSE_FORMAT` | `'x-response-format'` |
 
-**Header Values:**
+**Header Values** (commonly used subset -- the full list also covers XML, PDF, zip, image, CSS/CSV/HTML, and event-stream types):
 
 | Constant | Value |
 |----------|-------|
@@ -413,11 +414,13 @@ The `HTTP` class groups all HTTP-related constants into nested objects.
 
 **Result Codes:**
 
+Status codes are grouped by class under `HTTP.ResultCodes.RS_1` through `HTTP.ResultCodes.RS_5` (e.g. `HTTP.ResultCodes.RS_4.NotFound`).
+
 | Group | Constant | Value |
 |-------|----------|-------|
-| Top-level | `RS_FAIL` | `0` |
-| | `RS_SUCCESS` | `1` |
-| | `RS_UNKNOWN_ERROR` | `-199` |
+| **RS_1** (1xx) | `Continue` | `100` |
+| | `SwitchingProtocols` | `101` |
+| | `EarlyHints` | `103` |
 | **RS_2** (2xx) | `Ok` | `200` |
 | | `Created` | `201` |
 | | `Accepted` | `202` |
@@ -470,8 +473,8 @@ The `HTTP` class groups all HTTP-related constants into nested objects.
 **Derived Types:**
 
 ```typescript
-type THttpMethod = ValueOf<typeof HTTP.Methods>;       // 'get' | 'post' | 'put' | ...
-type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>; // 0 | 1 | -199 | { Ok: 200, ... } | ...
+type THttpMethod = ValueOf<typeof HTTP.Methods>;         // 'get' | 'post' | 'put' | ...
+type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>; // union of the RS_1..RS_5 group objects
 ```
 
 #### GRPC

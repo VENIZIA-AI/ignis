@@ -1,3 +1,3 @@
 export * from './constants';
-export * from './shared';
+export * from './operators';
 export * from './types';

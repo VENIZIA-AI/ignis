@@ -67,7 +67,7 @@ The log format follows this structure:
 The HTTP method is padded to 8 characters for consistent alignment in log output.
 
 > [!TIP]
-> The request ID is also available in error middleware contexts (`NotFoundMiddleware`, `AppErrorMiddleware`), making it easy to correlate error logs with the original request.
+> The request ID is also available in the framework's error handlers (`notFoundHandler`, `appErrorHandler`), making it easy to correlate error logs with the original request.
 
 ## Configuration
 
