@@ -1,7 +1,9 @@
 export * from './base';
 export * from './common';
 export * from './enrichers';
-export * from './base';
 
-// Compatibility alias - same class, historical public name kept for existing apps.
-export { BasePostgresEntity as BaseEntity } from './base';
+// Compatibility aliases - same class, historical public names kept for existing apps.
+export {
+  BaseRelationalEntity as BaseEntity,
+  BaseRelationalEntity as BasePostgresEntity,
+} from './base';

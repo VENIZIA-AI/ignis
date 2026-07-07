@@ -17,7 +17,12 @@ import {
   QueryOperators,
   Sorts,
 } from '@/base/repositories/common';
-import { getCachedColumns, TRelationConfig, TTableColumns } from '../common';
+import {
+  getCachedColumns,
+  IRelationalQueryDialect,
+  TRelationConfig,
+  TTableColumns,
+} from '../common';
 import {
   isJsonPath,
   parseJsonPath,
@@ -27,7 +32,7 @@ import {
 import { PostgresQueryOperators } from './query';
 
 /** Converts filter objects into Drizzle ORM query options (where, order, columns, relations). */
-export class FilterBuilder extends BaseHelper {
+export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect {
   constructor() {
     super({ scope: FilterBuilder.name });
   }

@@ -1,6 +1,7 @@
-import { getError } from '@venizia/ignis-helpers';
-import { QueryOperators, Sorts, TFields, TFilter, TWhere } from '@/base/repositories/common';
+import { QueryOperators, Sorts } from '@/base/repositories/common/operators';
+import { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
 import { ISearchQuery, ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import { getError } from '@venizia/ignis-helpers';
 
 /** Maximum number of `order` entries Typesense `sort_by` can express. */
 const MAX_SORT_FIELDS = 3;

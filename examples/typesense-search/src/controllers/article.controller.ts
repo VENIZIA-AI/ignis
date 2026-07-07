@@ -1,4 +1,4 @@
-import { ArticleDocument, TArticleDocument } from '@/models/entities';
+import { ArticleDocument } from '@/models/entities';
 import { ArticleRepository } from '@/repositories';
 import {
   BindingKeys,
@@ -11,11 +11,12 @@ import {
 const BASE_PATH = '/articles';
 
 /**
- * Typed generic - TArticleDocument (derived from ArticleDocument.schema via
- * TInferSearchDocument) flows through count/find/findById/create/updateById/deleteById with no cast.
+ * Same inference-only call as the Postgres branch: `TEntity` is inferred from `entity`, and because
+ * ArticleDocument parameterizes BaseSearchEntity with `typeof ArticleDocument.schema`, the document
+ * type flows through count/find/findById/create/updateById/deleteById with no cast.
  * Generates GET /count, GET /, GET /:id, POST /, PATCH /:id, DELETE /:id.
  */
-const _Controller = ControllerFactory.defineCrudController<TArticleDocument>({
+const _Controller = ControllerFactory.defineCrudController({
   entity: ArticleDocument,
   repository: { name: ArticleRepository.name },
   controller: {

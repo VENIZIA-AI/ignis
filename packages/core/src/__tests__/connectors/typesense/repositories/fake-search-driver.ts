@@ -2,12 +2,8 @@ import { getError } from '@venizia/ignis-helpers';
 
 import { model } from '@/base/metadata';
 import { TypesenseDataSource } from '@/connectors/typesense/datasources';
-import {
-  IImportResult,
-  ISearchDriver,
-  ISearchResult,
-  TypesenseDriver,
-} from '@/connectors/typesense/driver';
+import { TypesenseDriver } from '@/connectors/typesense/driver';
+import { IImportResult, ISearchDriver, ISearchResult } from '@/connectors/typesense/driver';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
 import { ITypesenseDataSourceSettings } from '@/connectors/typesense/types';
 

@@ -84,16 +84,16 @@ export type TTypesenseDirtyValue = TConstValue<typeof TypesenseDirtyValues>;
 
 // -- Datasource option types (src/connectors/typesense/datasources/*) --
 
-export interface ISearchDataSourceOptions<Settings extends object = {}> {
-  name: string;
-  config: Settings;
-  /** Auto-provision discovered collections on configure(). Defaults to true. */
-  autoProvision?: boolean;
-}
-
 export interface ITypesenseDataSourceSettings {
   nodes: Array<{ host: string; port: number; protocol?: string }>;
   apiKey: string;
   connectionTimeoutSeconds?: number;
   numRetries?: number;
+}
+
+export interface ISearchDataSourceOptions<Settings extends object = {}> {
+  name: string;
+  config: Settings;
+  /** Auto-provision discovered collections on configure(). Defaults to true. */
+  autoProvision?: boolean;
 }

@@ -1,9 +1,9 @@
-import { MetadataRegistry } from '@/helpers/inversion';
-import { TClass } from '@venizia/ignis-helpers';
 import { IDataSource } from '@/base/datasources';
 import { ISearchCollectionDefinition, TSearchSchema } from '@/connectors/typesense/models';
 import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
-import { AbstractSearchDataSource } from './abstract-datasource';
+import { MetadataRegistry } from '@/helpers/inversion';
+import { TClass } from '@venizia/ignis-helpers';
+import { AbstractSearchDataSource } from './abstract';
 
 /**
  * `searchCollection` is the dual-schema escape hatch: a postgres entity carrying a search index

@@ -1,7 +1,12 @@
 import { describe, test, expect } from 'bun:test';
 import { PersistableRepository } from '@/connectors/postgres/repositories';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
+
+/** Minimal datasource stub: the query dialect now lives on the datasource (getQueryDialect()), so a
+ * repository needs one to translate a where. Only getQueryDialect is exercised here. */
+const stubDataSource = { getQueryDialect: () => new FilterBuilder() } as any;
 
 const table = pgTable('test_entity', {
   id: serial('id').primaryKey(),
@@ -22,7 +27,7 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
  */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
-    super(undefined, {});
+    super(stubDataSource, {});
     this.entity = new ValidateWhereFixtureEntity();
   }
 

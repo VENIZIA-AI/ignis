@@ -12,13 +12,13 @@ The persistence layer has been restructured from a single PostgreSQL-and-Drizzle
 ## Overview
 
 - **Engine-neutral base**: `AbstractRepository<TDataObject, TPersistObject, TOptions>`, `AbstractDataSource`, and `AbstractEntity` in `src/base` no longer import Drizzle, `pg`, or SQL-shaped types. `AbstractDataSource.getCapabilities()` and `beginTransaction()` default to "not supported"; `AbstractEntity.getIdType()` defaults to `'string'`.
-- **Connectors architecture**: PostgreSQL (`AbstractPostgresDataSource` -> `BasePostgresDataSource`, `PostgresBaseRepository` -> `Readable`/`Persistable`/`DefaultCRUD`/`SoftDeletableRepository`), typesense (`AbstractSearchDataSource` -> `BaseSearchDataSource` -> `TypesenseDataSource`, `TypesenseBaseRepository` -> `Readable`/`Persistable`/`DefaultSearchRepository`), and memory (`MemoryDataSource`, `MemoryRepository`) each implement the neutral contracts independently.
+- **Connectors architecture**: PostgreSQL (`AbstractRelationalDataSource` -> `BaseRelationalDataSource`, `RelationalBaseRepository` -> `ReadableRelationalRepository`/`PersistableRelationalRepository`/`DefaultRelationalRepository`/`SoftDeletableRelationalRepository`), typesense (`AbstractSearchDataSource` -> `BaseSearchDataSource` -> `TypesenseDataSource`, `SearchBaseRepository` -> `ReadableSearchRepository`/`PersistableSearchRepository`/`DefaultSearchRepository`), and memory (`MemoryDataSource`, `MemoryRepository`) each implement the neutral contracts independently.
 - **New memory connector**: zero-dependency, `Map`-backed engine implementing full `TWhere` operator coverage (postgres-parity semantics) for prototyping and tests - no transactions, no locks.
 - **New typesense connector**: `defineSearchCollection`/`field` DSL, `TInferSearchDocument<T>` type inference, `search<TResult>()` raw passthrough, `TypesenseQueryDialect` translating `TFilter`/`TWhere` into Typesense's `filter_by`/`sort_by`/`per_page` syntax.
 - **Capabilities model**: every datasource exposes `getCapabilities(): { transactions: boolean }`; unsupported operations (transactions, row-level locks) uniformly throw `NotSupported` (HTTP 501, `messageCode: 'core.not_supported'`) via a new shared `throwNotSupported` utility.
 - **Dual-door exports**: root `@venizia/ignis` re-exports the framework plus `postgres` and `memory` connectors (compatibility default); `@venizia/ignis/postgres`, `@venizia/ignis/memory`, and `@venizia/ignis/typesense` are available as explicit subpaths. `typesense` is subpath-only (optional peer dependency) - never pulled in by importing from the root.
-- **Naming symmetry + compat aliases**: canonical engine-carrying names (`BasePostgresDataSource`, `BasePostgresEntity`) replace the old ambiguous `BaseDataSource`/`BaseEntity`, which now survive as re-export aliases of the exact same classes. The same pattern applies to `PostgresQueryOperators` (alias `RDBQueryOperators`).
-- **`AbstractRepository` generics renamed**: `TDataObject`/`TPersistObject`/`TOptions` replace the Drizzle-flavored `DataObject`/`PersistObject`/`ExtraOptions extends IExtraOptions` naming at the neutral base - PostgreSQL's `PostgresBaseRepository` narrows these into the familiar `EntitySchema`/`TTableObject`/`TTableInsert`-based signature.
+- **Naming symmetry + compat aliases**: canonical names are paradigm-family names (`Relational`, `Search`) - the engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`/`TypesenseQueryDialect`). All previous names - `BaseDataSource`, `BaseEntity`, and the interim `BasePostgresDataSource`/`BasePostgresEntity` - survive as aliases of the same classes. The same pattern applies to `PostgresQueryOperators` (alias `RDBQueryOperators`).
+- **`AbstractRepository` generics renamed**: `TDataObject`/`TPersistObject`/`TOptions` replace the Drizzle-flavored `DataObject`/`PersistObject`/`ExtraOptions extends IExtraOptions` naming at the neutral base - PostgreSQL's `RelationalBaseRepository` narrows these into the familiar `EntitySchema`/`TTableObject`/`TTableInsert`-based signature.
 - **Auth controller factory**: unimplemented-endpoint responses (`/token/refresh`, `/who-am-i`, `/me` when the underlying service doesn't implement the method) now go through the same `throwNotSupported` convention instead of a hand-rolled error.
 - **`applicationEnvironment.get` is now options-based**: `get<ReturnType, BeforeTransformType>(key, { defaultValue?, transform? })` replaces the old positional `get(key, defaultValue)` signature, and ships alongside two companion transforms, `toDelimitedArray`/`toTrimmed`, for parsing list-shaped env values in one read.
 - **Typesense cluster-validation fixes**: `TypesenseQueryDialect` no longer emits malformed `filter_by` fragments for empty `where` members, and `ensureCollection` no longer read-back-races newly created collections on multi-node clusters - both found during live validation against a real 3-node Typesense cluster.
@@ -187,12 +187,12 @@ abstract class AbstractDataSource<...> extends BaseHelper implements IDataSource
 }
 ```
 
-`AbstractEntity.getIdType()` follows the same pattern: it defaults to `'string'`, and each entity family narrows it independently - `BasePostgresEntity.getIdType()` inspects the underlying `pgTable` column to return `'number'` or `'string'`, while `BaseSearchEntity` and the memory connector always resolve `'string'`. `ControllerFactory.defineCrudController` reads `entityInstance.getIdType()` to resolve the id path-param shape, so a generated CRUD controller gets the right `/{id}` type without an engine-specific branch.
+`AbstractEntity.getIdType()` follows the same pattern: it defaults to `'string'`, and each entity family narrows it independently - `BaseRelationalEntity.getIdType()` inspects the underlying `pgTable` column to return `'number'` or `'string'`, while `BaseSearchEntity` and the memory connector always resolve `'string'`. `ControllerFactory.defineCrudController` reads `entityInstance.getIdType()` to resolve the id path-param shape, so a generated CRUD controller gets the right `/{id}` type without an engine-specific branch.
 
 **Benefits:**
 - Adding a new engine no longer means depending on Drizzle/`pg` types you don't use
 - Capability discovery (`getCapabilities()`) lets calling code branch on what an engine supports instead of guessing
-- PostgreSQL's real behavior (pool, transactions, isolation levels) is entirely opt-in, added by `AbstractPostgresDataSource`/`BasePostgresDataSource`
+- PostgreSQL's real behavior (pool, transactions, isolation levels) is entirely opt-in, added by `AbstractRelationalDataSource`/`BaseRelationalDataSource`
 
 ### Memory connector
 
@@ -263,23 +263,26 @@ const clusterNodes = applicationEnvironment.get<
 
 **File:** `packages/core/package.json`, `packages/core/src/connectors/postgres/{datasources,models}/index.ts`
 
-**Problem:** Introducing engine-carrying canonical names (`BasePostgresDataSource`, `BasePostgresEntity`) risked breaking every existing import of `BaseDataSource`/`BaseEntity`.
+**Problem:** Introducing engine-carrying canonical names (`BasePostgresDataSource`, `BasePostgresEntity`) risked breaking every existing import of `BaseDataSource`/`BaseEntity`, and still left the naming ambiguous once a second engine (typesense) needed the same ladder shape.
 
-**Solution:** Canonical names are re-exported under their old names as compatibility aliases - `export { BasePostgresDataSource as BaseDataSource } from './base-datasource'` - so both names resolve to the identical class. The same alias pattern applies to `export { PostgresQueryOperators as RDBQueryOperators } from './query'`. New subpath exports (`./postgres`, `./memory`, `./typesense`) sit alongside the existing root barrel, which continues to re-export `postgres` + `memory` for compatibility.
+**Solution:** Canonical names are the paradigm-family names (`Relational` for postgres, `Search` for typesense) - the engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`/`TypesenseQueryDialect`). Every previous name, including the interim engine-carrying names, is re-exported as a compatibility alias of the exact same class - `export { BaseRelationalDataSource as BasePostgresDataSource } from './base'`, and `BaseDataSource` is aliased the same way. The same alias pattern applies to `export { PostgresQueryOperators as RDBQueryOperators } from './dialect'` (the operators file moved from `repositories/operators/` to `repositories/dialect/`). New subpath exports (`./postgres`, `./memory`, `./typesense`) sit alongside the existing root barrel, which continues to re-export `postgres` + `memory` for compatibility.
 
 ```typescript
-// Both resolve to the exact same class:
-import { BaseDataSource } from '@venizia/ignis';
+// All three resolve to the exact same class:
+import { BaseRelationalDataSource } from '@venizia/ignis/postgres';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { BaseDataSource } from '@venizia/ignis';
 
 // Both resolve to the exact same operator table:
-import { RDBQueryOperators } from '@venizia/ignis/postgres';
 import { PostgresQueryOperators } from '@venizia/ignis/postgres';
+import { RDBQueryOperators } from '@venizia/ignis/postgres';
 ```
+
+Tier semantics are uniform across both connectors: `Persistable*` (`PersistableRelationalRepository`, `PersistableSearchRepository`) implements all writes including delete; `Default*` (`DefaultRelationalRepository`, `DefaultSearchRepository`) is a convenience subclass only - it adds no new verbs.
 
 **Benefits:**
 - Zero required changes for existing PostgreSQL-only applications
-- New code can be explicit about which engine it depends on
+- New code can be explicit about which paradigm family it depends on, without hardcoding an engine name into every class in the ladder
 - Naming is unambiguous once more than one connector is in play - this is a rename with a compatibility alias, not a breaking change in practice, since the old names keep resolving to the identical class
 
 ## Performance Improvements
@@ -309,8 +312,8 @@ Both were found and fixed during live validation against a real 3-node Typesense
 | `src/base/datasources/abstract-datasource.ts` | New file - engine-neutral `AbstractDataSource`, `getCapabilities()`, `NotSupported`-throwing `beginTransaction()` |
 | `src/base/models/base.ts` | New file - engine-neutral `AbstractEntity`, `getIdType()` |
 | `src/base/datasources/common/types.ts` | Neutral `ITransaction` (no `connector`), `IDataSourceCapabilities` |
-| `src/connectors/postgres/**` | New connector - `AbstractPostgresDataSource`/`BasePostgresDataSource`, `BasePostgresEntity`, `PostgresBaseRepository` tier ladder, `IDatabaseTransaction`/`IDatabaseTransactionOptions`/`IDatabaseExtraOptions` |
-| `src/connectors/postgres/repositories/operators/index.ts` | New compatibility alias - `export { PostgresQueryOperators as RDBQueryOperators }` |
+| `src/connectors/postgres/**` | New connector - `AbstractRelationalDataSource`/`BaseRelationalDataSource`, `BaseRelationalEntity`, `RelationalBaseRepository` tier ladder (`ReadableRelationalRepository`/`PersistableRelationalRepository`/`DefaultRelationalRepository`/`SoftDeletableRelationalRepository`), `IDatabaseTransaction`/`IDatabaseTransactionOptions`/`IDatabaseExtraOptions` |
+| `src/connectors/postgres/repositories/dialect/index.ts` | New compatibility alias - `export { PostgresQueryOperators as RDBQueryOperators }` |
 | `src/connectors/typesense/**` | New connector - search entity DSL, datasource/driver/query-dialect, repository tier ladder |
 | `src/connectors/typesense/query-dialect.ts` | Fix - `buildLogicalGroup` drops empty `where` members before joining `and`/`or` clauses, preventing malformed `filter_by` |
 | `src/connectors/typesense/driver.ts` | Fix - `ensureCollection` returns the `create()` response directly instead of re-reading, avoiding a read-after-write race on multi-node clusters |
@@ -385,7 +388,7 @@ Then rebuild (`make build` or the per-package `bun run rebuild`) to force a full
 
 ### Step 6 (optional): Adopt canonical connector names
 
-No functional change is required, but new code should prefer `BasePostgresDataSource`/`BasePostgresEntity`/`PostgresQueryOperators` over the `BaseDataSource`/`BaseEntity`/`RDBQueryOperators` aliases for clarity once more than one connector is in scope.
+No functional change is required, but new code should prefer the `Relational`-family names - `BaseRelationalDataSource`/`BaseRelationalEntity`/`DefaultRelationalRepository` - over the `BaseDataSource`/`BaseEntity`/`DefaultCRUDRepository`/`BasePostgresDataSource`/`BasePostgresEntity` aliases for clarity once more than one connector is in scope. `PostgresQueryOperators` remains the canonical query-operators name (alias `RDBQueryOperators`).
 
 ### Step 7: Guard against bun silently dropping `@inject` decorators
 

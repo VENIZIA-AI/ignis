@@ -1,6 +1,6 @@
 import { IAuthRouteConfig } from '@/base';
-import { BasePostgresEntity } from '@/connectors/postgres/models';
-import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
+import { BaseRelationalEntity } from '@/connectors/postgres/models';
+import { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
 import {
   AnyType,
   DiskHelper,
@@ -37,8 +37,8 @@ export type TUploadQuery = {
 export type TListQuery = { prefix?: string; recursive?: string; maxKeys?: string };
 
 export type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
-  model: typeof BasePostgresEntity<Schema>;
-  repository: DefaultCRUDRepository<Schema>;
+  model: typeof BaseRelationalEntity<Schema>;
+  repository: DefaultRelationalRepository<Schema>;
   createMetaLink?: (opts: {
     uploadResult: IUploadResult;
     fileStat: IFileStat;

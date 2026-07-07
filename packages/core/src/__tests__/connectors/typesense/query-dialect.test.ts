@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'bun:test';
-import { TypesenseQueryDialect } from '@/connectors/typesense/query-dialect';
+import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
 describe('TypesenseQueryDialect.translateWhere - translation table (spec 7.2)', () => {
   const dialect = new TypesenseQueryDialect();

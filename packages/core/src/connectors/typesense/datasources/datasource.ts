@@ -1,24 +1,22 @@
-import { getError } from '@venizia/ignis-helpers';
-// Type-only import - keeps the compiled runtime free of a hard `typesense` dependency.
-import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
-
 import { ISearchCollectionDefinition } from '@/connectors/typesense/models';
 import { ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import { getError } from '@venizia/ignis-helpers';
+import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 import { compileTypesenseCollection } from '../compiler';
 import { ITypesenseClientLike, TypesenseDriver } from '../driver';
+import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import {
-  ISearchDataSourceOptions,
-  ITypesenseDataSourceSettings,
-  ITypesenseDriverOptions,
+    ISearchDataSourceOptions,
+    ITypesenseDataSourceSettings,
+    ITypesenseDriverOptions,
 } from '../types';
-import { TypesenseQueryDialect } from '../query-dialect';
-import { BaseSearchDataSource } from './base-datasource';
-
-/** Stateless singleton - shared across every TypesenseDataSource instance. */
-const typesenseQueryDialect = new TypesenseQueryDialect();
+import { BaseSearchDataSource } from './base';
 
 /** Typesense-backed search datasource: builds/injects a driver, compiles the neutral DSL, and provisions discovered collections. */
 export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSourceSettings> {
+  /** Stateless dialect - shared across every TypesenseDataSource instance. */
+  private static readonly queryDialect: ISearchQueryDialect = new TypesenseQueryDialect();
+
   private readonly injectedDriver?: TypesenseDriver;
   private driver?: TypesenseDriver;
 
@@ -56,13 +54,12 @@ export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSour
     return this.driver;
   }
 
-  /** Raw typesense client escape hatch - parity with the SQL branch's pg.Pool access. */
   getClient(): ITypesenseClientLike {
     return this.getDriver().getClient();
   }
 
   getQueryDialect(): ISearchQueryDialect {
-    return typesenseQueryDialect;
+    return TypesenseDataSource.queryDialect;
   }
 
   compileCollection(opts: { definition: ISearchCollectionDefinition }): CollectionCreateSchema {

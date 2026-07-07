@@ -1,2 +1,2 @@
-export * from './search-driver-internal';
 export * from './driver-internal';
+export * from './search-driver-internal';

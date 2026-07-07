@@ -3,7 +3,7 @@ import { getError, TClass } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { PoolClient } from 'pg';
 import { IDataSource, TAnyDataSourceSchema } from '@/base/datasources';
-import { AbstractPostgresDataSource } from './abstract-datasource';
+import { AbstractRelationalDataSource } from './abstract';
 import {
   IDatabaseTransaction,
   IDatabaseTransactionOptions,
@@ -12,11 +12,11 @@ import {
 } from './common';
 
 /** Base DataSource with schema auto-discovery from registered repositories. */
-export abstract class BasePostgresDataSource<
+export abstract class BaseRelationalDataSource<
   Settings extends object = {},
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   ConfigurableOptions extends object = {},
-> extends AbstractPostgresDataSource<Settings, Schema, ConfigurableOptions> {
+> extends AbstractRelationalDataSource<Settings, Schema, ConfigurableOptions> {
   constructor(opts: { name: string; config: Settings; schema?: Schema }) {
     super({ scope: opts.name });
 

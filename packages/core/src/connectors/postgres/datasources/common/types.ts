@@ -7,6 +7,7 @@ import {
 import { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
 import { NodePgClient, type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { PoolClient } from 'pg';
+import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
 
 export type TNodePostgresConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
@@ -68,5 +69,6 @@ export interface IPostgresDataSource<
 
   getConnectionString(): ValueOrPromise<string>;
   getConnector(): TNodePostgresConnector<Schema>;
+  getQueryDialect(): IRelationalQueryDialect;
   beginTransaction(opts?: IDatabaseTransactionOptions): Promise<IDatabaseTransaction<Schema>>;
 }

@@ -15,7 +15,7 @@ IGNIS core was restructured around ONE engine-neutral repository family:
 
 - `src/base` now holds a single `AbstractRepository` / `AbstractDataSource` / `AbstractEntity` family. Every engine implements it under `src/connectors/{postgres,typesense,memory}`.
 - Postgres remains re-exported from the root barrel - **your imports keep working unchanged**. Every connector is also addressable explicitly: `@venizia/ignis/postgres`, `@venizia/ignis/memory`, `@venizia/ignis/typesense` (typesense is subpath-only; its client is an optional peer).
-- Canonical class names now carry the engine: `BasePostgresDataSource`, `BasePostgresEntity`, `PostgresQueryOperators`. The historical names (`BaseDataSource`, `BaseEntity`, `RDBQueryOperators`) remain as alias re-exports of the SAME classes - `instanceof`, metadata, and bindings are unaffected. No action required; prefer the canonical names in new code.
+- Canonical class names are the paradigm-family names (`BaseRelationalDataSource`, `BaseRelationalEntity`, `DefaultRelationalRepository`, ...); the engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`). The historical names (`BaseDataSource`, `BaseEntity`, `BasePostgresDataSource`, `BasePostgresEntity`, `RDBQueryOperators`, `DefaultCRUDRepository`, ...) all remain as alias re-exports of the SAME classes - `instanceof`, metadata, and bindings are unaffected. No action required; prefer the family names in new code.
 - New capabilities model: `dataSource.getCapabilities()` and a standardized NotSupported error (HTTP 501, messageCode `core.not_supported`) for engine gaps (e.g. transactions on search engines).
 - New engines: a zero-dependency **memory connector** (prototyping/tests) and the **Typesense search branch** (`BaseSearchEntity`, `defineSearchCollection`, typed `TInferSearchDocument`, `DefaultSearchRepository`). Neither affects existing postgres code.
 
@@ -38,7 +38,7 @@ grep -rl 'ITransaction\|IExtraOptions' packages/*/src --include='*.ts' \
   | xargs sed -i 's/\bITransaction\b/IDatabaseTransaction/g; s/\bIExtraOptions\b/IDatabaseExtraOptions/g'
 ```
 
-Note: `options?.transaction?.connector` inside `DefaultCRUDRepository` subclasses needs NO change - the postgres tiers now default their options generic to `IDatabaseExtraOptions`, so that path stays typed automatically.
+Note: `options?.transaction?.connector` inside `DefaultCRUDRepository` (alias of `DefaultRelationalRepository`) subclasses needs NO change - the postgres tiers now default their options generic to `IDatabaseExtraOptions`, so that path stays typed automatically.
 
 ### 2. `applicationEnvironment.get` - options object
 

@@ -8,10 +8,9 @@ import {
   RepositoryOperationScopes,
   TCount,
   TDataRange,
-  TFilter,
   TRepositoryOperationScope,
-  TWhere,
 } from '../common';
+import { TFilter, TWhere } from '../query-schemas';
 
 /** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
  * settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */
@@ -141,6 +140,7 @@ export abstract class AbstractRepository<
     return new ctor();
   }
 
+  /** Readable */
   abstract count(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<TCount>;
 
   abstract existsWith(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<boolean>;
@@ -166,6 +166,7 @@ export abstract class AbstractRepository<
     options?: TOptions;
   }): Promise<TNullable<R>>;
 
+  /** Creatable */
   abstract create(opts: {
     data: TPersistObject;
     options: TOptions & { shouldReturn: false };
@@ -186,6 +187,7 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
 
+  /** Updatable */
   abstract updateById(opts: {
     id: IdType;
     data: Partial<TPersistObject>;
@@ -235,6 +237,7 @@ export abstract class AbstractRepository<
     return this.updateAll<R>({ data, where, options });
   }
 
+  /** Deletable */
   abstract deleteById(opts: {
     id: IdType;
     options: TOptions & { shouldReturn: false };

@@ -23,7 +23,7 @@ import {
     defaultLimit: 20,
   },
 })
-export class ArticleDocument extends BaseSearchEntity {
+export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.schema> {
   static override schema = defineSearchCollection({
     name: 'articles',
     fields: [

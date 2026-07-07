@@ -4,7 +4,8 @@ import {
   jsonResponse,
   TIdSchemaType,
 } from '@/base/models/common/types';
-import { CountSchema, FilterSchema, WhereSchema } from '@/base/repositories/common/types';
+import { CountSchema } from '@/base/repositories/common';
+import { FilterSchema, WhereSchema } from '@/base/repositories/query-schemas';
 import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { TAnyObjectSchema } from '@/utilities/schema.utility';

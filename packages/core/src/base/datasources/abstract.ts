@@ -1,4 +1,5 @@
 import { MetadataRegistry } from '@/helpers/inversion';
+import { throwNotSupported } from '@/utilities';
 import { BaseHelper, getError, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   IDataSource,
@@ -7,7 +8,6 @@ import {
   ITransactionOptions,
   TAnyDataSourceSchema,
 } from './common';
-import { throwNotSupported } from '@/utilities';
 
 /** Engine-neutral datasource root - NO SQL members. Every connector family extends this. */
 export abstract class AbstractDataSource<
@@ -54,8 +54,9 @@ export abstract class AbstractDataSource<
 
   /** Model classes bound to this datasource via `@repository` metadata - paradigm-free (no schema/relation resolution). */
   protected getBoundModelClasses(): Array<TClass<unknown>> {
-    const registry = MetadataRegistry.getInstance();
-    return registry.getModelClasses({ dataSource: this.constructor as TClass<IDataSource> });
+    return MetadataRegistry.getInstance().getModelClasses({
+      dataSource: this.constructor as TClass<IDataSource>,
+    });
   }
 
   /** Walks model classes bound to this datasource, reads a connector-specific artifact via `read`,

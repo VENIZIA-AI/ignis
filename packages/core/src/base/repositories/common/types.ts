@@ -3,192 +3,8 @@ import { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import { Column, SQL } from 'drizzle-orm';
+import { TFilter, TWhere } from '../query-schemas';
 import { TLockStrength } from './constants';
-
-/** Zod schema for pagination skip parameter. */
-export const SkipSchema = z
-  .number()
-  .optional()
-  .openapi({
-    description: 'Number of items to skip for pagination.',
-    examples: [1, 2, 3],
-  });
-
-export type TSkip = z.infer<typeof SkipSchema>;
-
-/** Zod schema for pagination offset parameter. */
-export const OffsetSchema = z
-  .number()
-  .optional()
-  .openapi({
-    description: 'Number of items to offset for pagination.',
-    examples: [1, 2, 3],
-  });
-
-export type TOffset = z.infer<typeof OffsetSchema>;
-
-/** Zod schema for pagination limit parameter - no schema-level default; ReadableRepository.find()
- * applies DEFAULT_LIMIT only to the top-level query so it never leaks into relation scopes. */
-export const LimitSchema = z
-  .number()
-  .optional()
-  .openapi({
-    description: 'Maximum number of items to return. Defaults to 10 for top-level list queries.',
-    examples: [1, 2, 3],
-  });
-
-export type TLimit = z.infer<typeof LimitSchema>;
-
-/** Zod schema for query ordering. Supports regular columns and JSON/JSONB paths. */
-export const OrderBySchema = z
-  .array(z.string())
-  .optional()
-  .openapi({
-    description:
-      "Sorting order for results. Supports regular columns ('fieldName ASC') and JSON/JSONB paths ('metadata.field DESC', 'data.nested[0].value ASC').",
-    examples: [
-      'id DESC',
-      'createdAt ASC',
-      'metadata.priority DESC',
-      'data.nested.value ASC',
-      'items[0].score DESC',
-    ],
-  });
-
-export type TOrderBy = z.infer<typeof OrderBySchema>;
-
-/** @internal Recursive schema for where clause validation with nested AND/OR. */
-const _WhereSchema: z.ZodType<any> = z.lazy(() =>
-  z.record(z.string(), z.any()).and(
-    z.object({
-      and: z.array(_WhereSchema).optional(),
-      or: z.array(_WhereSchema).optional(),
-    }),
-  ),
-);
-
-/** Zod schema for query where conditions. Supports object format and JSON string format. */
-export const WhereSchema = z
-  .union([
-    _WhereSchema,
-    z
-      .string()
-      .transform(val => {
-        if (val) {
-          return JSON.parse(val);
-        }
-
-        return undefined;
-      })
-      .pipe(_WhereSchema),
-  ])
-  .openapi({
-    type: 'object',
-    description: 'Query conditions for selecting data.',
-  });
-
-/** Where clause conditions with field-level conditions and logical AND/OR grouping. */
-export type TWhere<T = any> = { [key in keyof T]?: any } & { and?: TWhere<T>[]; or?: TWhere<T>[] };
-
-/** Zod schema for field/column selection. Supports array format or object format. */
-export const FieldsSchema = z
-  .record(z.string(), z.boolean())
-  .or(z.array(z.string()))
-  .optional()
-  .openapi({
-    description:
-      'Fields selection - either an array of field names to include, or an object with field names as keys and boolean values (true to include, false to exclude)',
-    examples: [
-      JSON.stringify(['id', 'name', 'email']),
-      JSON.stringify({ id: true, name: true }),
-      JSON.stringify({ id: true, name: true, email: true, fullName: false }),
-    ],
-  });
-
-/** Field selection -- object mapping field names to booleans, or array of field names. */
-export type TFields<T = any> = Partial<{ [K in keyof T]: boolean }> | Array<keyof T>;
-
-/** Zod schema for including related entities in queries with optional nested filtering. */
-export const InclusionSchema = z
-  .array(
-    z.object({
-      relation: z.string().openapi({ description: 'Model relation name' }),
-      scope: z
-        .lazy(() => FilterSchema) // eslint-disable-line @typescript-eslint/no-use-before-define
-        .optional()
-        .openapi({ description: 'Model relation filter' }),
-      shouldSkipDefaultFilter: z
-        .boolean()
-        .optional()
-        .openapi({ description: 'Skip the default filter for this relation' }),
-    }),
-  )
-  .optional()
-  .openapi({
-    description: 'Define related models to include in the response.',
-    examples: [
-      JSON.stringify({ include: [{ relation: 'posts' }] }),
-      JSON.stringify({ include: [{ relation: 'posts', scope: { limit: 5 } }] }),
-    ],
-  });
-
-/** Single relation inclusion configuration. */
-export type TInclusion = { relation: string; scope?: TFilter; shouldSkipDefaultFilter?: boolean };
-
-/** @internal Filter schema object definition. */
-const _FilterSchema = z.object({
-  where: WhereSchema.optional(),
-  fields: FieldsSchema,
-  include: InclusionSchema,
-  order: OrderBySchema,
-  limit: LimitSchema,
-  offset: OffsetSchema,
-  skip: SkipSchema,
-});
-
-/** Comprehensive Zod schema for repository query filtering. Supports object and JSON string formats. */
-export const FilterSchema = z
-  .union([
-    _FilterSchema,
-    z
-      .string()
-      .transform(val => {
-        if (val) {
-          return JSON.parse(val);
-        }
-
-        return {};
-      })
-      .pipe(_FilterSchema),
-  ])
-  .optional()
-  .openapi({
-    type: 'object',
-    description:
-      'A comprehensive filter object for querying data, including conditions, field selection, relations, pagination, and sorting.',
-    examples: [
-      JSON.stringify({ where: { name: 'John Doe' }, limit: 10 }),
-      JSON.stringify({ fields: { id: true, name: true, email: true }, order: ['createdAt DESC'] }),
-      JSON.stringify({ include: [{ relation: 'posts', scope: { limit: 5 } }] }),
-      JSON.stringify({
-        where: { or: [{ status: 'active' }, { isPublished: true }] },
-        skip: 20,
-        limit: 10,
-      }),
-      JSON.stringify({ where: { and: [{ role: 'admin' }, { createdAt: { gte: 'YYYY-MM-DD' } }] } }),
-    ],
-  });
-
-/** Comprehensive filter configuration used across all repository query methods. */
-export type TFilter<T = any> = {
-  where?: TWhere<T>;
-  fields?: TFields;
-  include?: TInclusion[];
-  order?: string[];
-  limit?: number;
-  offset?: number;
-  skip?: number;
-};
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
 export type TUpdateData<T = any> = Partial<T> & {
@@ -293,12 +109,12 @@ export interface IReadableRepository<
   }): Promise<TNullable<R>>;
 }
 
-/** Interface for full CRUD repository operations. */
-export interface IPersistableRepository<
+/** Interface for create operations. */
+export interface ICreatableRepository<
   TDataObject extends object = object,
   TPersistObject extends object = TDataObject,
   ExtraOptions extends IExtraOptions = IExtraOptions,
-> extends IReadableRepository<TDataObject, ExtraOptions> {
+> extends IRepository {
   create(opts: {
     data: TPersistObject;
     options: ExtraOptions & { shouldReturn: false };
@@ -318,7 +134,14 @@ export interface IPersistableRepository<
     data: Array<TPersistObject>;
     options?: ExtraOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
+}
 
+/** Interface for update operations. */
+export interface IUpdatableRepository<
+  TDataObject extends object = object,
+  TPersistObject extends object = TDataObject,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+> extends IRepository {
   updateById(opts: {
     id: IdType;
     data: Partial<TPersistObject>;
@@ -356,7 +179,13 @@ export interface IPersistableRepository<
     where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
+}
 
+/** Interface for delete operations. */
+export interface IDeletableRepository<
+  TDataObject extends object = object,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+> extends IRepository {
   deleteById(opts: {
     id: IdType;
     options: ExtraOptions & { shouldReturn: false };
@@ -390,8 +219,20 @@ export interface IPersistableRepository<
   }): Promise<TCount & { data: Array<R> }>;
 }
 
+/** Interface for full CRUD repository operations - reads plus create, update, and delete. */
+export interface IPersistableRepository<
+  TDataObject extends object = object,
+  TPersistObject extends object = TDataObject,
+  ExtraOptions extends IExtraOptions = IExtraOptions,
+>
+  extends
+    IReadableRepository<TDataObject, ExtraOptions>,
+    ICreatableRepository<TDataObject, TPersistObject, ExtraOptions>,
+    IUpdatableRepository<TDataObject, TPersistObject, ExtraOptions>,
+    IDeletableRepository<TDataObject, ExtraOptions> {}
+
 /** Alias for IPersistableRepository (already the full create/read/update/delete surface) - the
- * name both DefaultCRUDRepository and DefaultSearchRepository are meant to satisfy. */
+ * name both DefaultRelationalRepository and DefaultSearchRepository are meant to satisfy. */
 export interface ICrudRepository<
   TDataObject extends object = object,
   TPersistObject extends object = TDataObject,

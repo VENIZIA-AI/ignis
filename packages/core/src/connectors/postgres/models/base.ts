@@ -11,7 +11,7 @@ import {
 } from './common';
 
 /** Base entity with Drizzle ORM support. Supports static schema or constructor-based schema. */
-export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
+export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   extends AbstractEntity
   implements IEntity<Schema>
 {
@@ -27,14 +27,14 @@ export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchema
   static schema: TTableSchemaWithId;
   static relations?: TValueOrResolver<Array<TRelationConfig>>;
 
-  /** Lazy singleton — shared across all BasePostgresEntity instances. */
+  /** Lazy singleton — shared across all BaseRelationalEntity instances. */
   private static _schemaFactory?: ReturnType<typeof createSchemaFactory>;
   protected static get schemaFactory(): ReturnType<typeof createSchemaFactory> {
-    return (BasePostgresEntity._schemaFactory ??= createSchemaFactory());
+    return (BaseRelationalEntity._schemaFactory ??= createSchemaFactory());
   }
 
   constructor(opts?: { name?: string; schema?: Schema }) {
-    const ctor = new.target as typeof BasePostgresEntity;
+    const ctor = new.target as typeof BaseRelationalEntity;
     const name = opts?.name ?? ctor.TABLE_NAME ?? ctor.name;
 
     super({ name });
@@ -49,7 +49,7 @@ export class BasePostgresEntity<Schema extends TTableSchemaWithId = TTableSchema
   }
 
   getSchema(opts: { type: TSchemaType }) {
-    const factory = BasePostgresEntity.schemaFactory;
+    const factory = BaseRelationalEntity.schemaFactory;
     switch (opts.type) {
       case SchemaTypes.CREATE: {
         return factory.createInsertSchema(this.schema);

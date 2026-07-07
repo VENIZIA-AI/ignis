@@ -9,7 +9,7 @@ import {
   TAnyConnector,
 } from '@/connectors/postgres/datasources';
 import {
-  BasePostgresEntity,
+  BaseRelationalEntity,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
@@ -27,12 +27,11 @@ import {
   TRepositoryOperationScope,
   TWhere,
 } from '@/base/repositories/common';
-import { FilterBuilder } from '../operators';
-import { IDatabaseExtraOptions } from '../common';
+import { IDatabaseExtraOptions, IRelationalQueryDialect } from '../common';
 
 /** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion
  * and defaults `ExtraOptions` to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */
-export abstract class PostgresBaseRepository<
+export abstract class RelationalBaseRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
@@ -41,8 +40,6 @@ export abstract class PostgresBaseRepository<
   extends AbstractRepository<DataObject, PersistObject, ExtraOptions>
   implements IPersistableRepository<DataObject, PersistObject, ExtraOptions>
 {
-  protected _filterBuilder: FilterBuilder;
-
   /** Memoized Set view of the base's `hiddenFields` array - built once on first access. */
   private _hiddenPropertySet: Set<string> | null = null;
   /** Memoized Drizzle column-selection map derived from hidden fields. `null` = not yet computed; `undefined` = computed, no hidden fields. */
@@ -52,12 +49,11 @@ export abstract class PostgresBaseRepository<
     dataSource?: IPostgresDataSource,
     opts?: {
       scope?: string;
-      entityClass?: TClass<BasePostgresEntity<EntitySchema>>;
+      entityClass?: TClass<BaseRelationalEntity<EntitySchema>>;
       operationScope?: TRepositoryOperationScope;
     },
   ) {
     super(dataSource, opts);
-    this._filterBuilder = new FilterBuilder();
   }
 
   override get dataSource(): IPostgresDataSource {
@@ -71,17 +67,17 @@ export abstract class PostgresBaseRepository<
     super.dataSource = value;
   }
 
-  override get entity(): BasePostgresEntity<EntitySchema> {
+  override get entity(): BaseRelationalEntity<EntitySchema> {
     // Same engine-neutral-base-vs-concrete-connector narrowing as the dataSource getter above.
-    return super.entity as BasePostgresEntity<EntitySchema>;
+    return super.entity as BaseRelationalEntity<EntitySchema>;
   }
 
-  override set entity(value: BasePostgresEntity<EntitySchema>) {
+  override set entity(value: BaseRelationalEntity<EntitySchema>) {
     super.entity = value;
   }
 
-  get filterBuilder(): FilterBuilder {
-    return this._filterBuilder;
+  get queryDialect(): IRelationalQueryDialect {
+    return this.dataSource.getQueryDialect();
   }
 
   get connector() {
@@ -169,7 +165,7 @@ export abstract class PostgresBaseRepository<
       return userFilter ?? {};
     }
 
-    return this.filterBuilder.mergeFilter({ defaultFilter, userFilter });
+    return this.queryDialect.mergeFilter({ defaultFilter, userFilter });
   }
 
   async beginTransaction(opts?: IDatabaseTransactionOptions): Promise<IDatabaseTransaction> {
@@ -178,7 +174,7 @@ export abstract class PostgresBaseRepository<
 
   /** Builds Drizzle query options from a filter, excluding hidden properties. */
   buildQuery(opts: { filter: TFilter<DataObject> }): TDrizzleQueryOptions {
-    const result = this.filterBuilder.build({
+    const result = this.queryDialect.build({
       tableName: this.entity.name,
       schema: this.entity.schema,
       filter: opts.filter,

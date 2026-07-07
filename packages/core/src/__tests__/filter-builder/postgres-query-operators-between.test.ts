@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { pgTable, serial, integer } from 'drizzle-orm/pg-core';
 import { ApplicationError } from '@venizia/ignis-helpers';
 
-import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 
 /**
  * `PostgresQueryOperators.FNS[BETWEEN/NOT_BETWEEN]` rejects invalid value arrays via

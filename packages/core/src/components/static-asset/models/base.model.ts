@@ -1,6 +1,6 @@
 import { model } from '@/base/metadata';
 import {
-  BasePostgresEntity,
+  BaseRelationalEntity,
   generateIdColumnDefs,
   generateTzColumnDefs,
   TTableObject,
@@ -9,7 +9,7 @@ import { boolean, index, integer, jsonb, pgTable, text } from 'drizzle-orm/pg-co
 
 /** Stores metadata about uploaded files/assets. */
 @model({ type: 'entity', skipMigrate: true })
-export class BaseMetaLinkModel extends BasePostgresEntity<typeof BaseMetaLinkModel.schema> {
+export class BaseMetaLinkModel extends BaseRelationalEntity<typeof BaseMetaLinkModel.schema> {
   static override schema = pgTable(
     'MetaLink',
     {

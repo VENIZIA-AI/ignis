@@ -10,7 +10,7 @@ import {
 } from '@/base/repositories/common';
 import { IPostgresDataSource } from '@/connectors/postgres/datasources';
 import {
-  BasePostgresEntity,
+  BaseRelationalEntity,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
@@ -18,18 +18,18 @@ import {
 import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
 import { PgTable } from 'drizzle-orm/pg-core';
 import { IDatabaseExtraOptions } from '../common';
-import { PostgresBaseRepository } from './base';
+import { RelationalBaseRepository } from './base';
 
 /** Read-only repository. Write operations throw errors. */
-export class ReadableRepository<
+export class ReadableRelationalRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
-> extends PostgresBaseRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
+> extends RelationalBaseRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
   constructor(
     ds?: IPostgresDataSource,
-    opts?: { entityClass?: TClass<BasePostgresEntity<EntitySchema>> },
+    opts?: { entityClass?: TClass<BaseRelationalEntity<EntitySchema>> },
   ) {
     super(ds, {
       entityClass: opts?.entityClass,
@@ -62,7 +62,7 @@ export class ReadableRepository<
     });
 
     const where = mergedFilter.where
-      ? this.filterBuilder.toWhere({
+      ? this.queryDialect.toWhere({
           tableName: this.entity.name,
           schema,
           where: mergedFilter.where,
@@ -70,7 +70,7 @@ export class ReadableRepository<
       : undefined;
 
     const orderBy = mergedFilter.order
-      ? this.filterBuilder.toOrderBy({
+      ? this.queryDialect.toOrderBy({
           tableName: this.entity.name,
           schema,
           order: mergedFilter.order,
@@ -258,7 +258,7 @@ export class ReadableRepository<
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
 
-    const where = this.filterBuilder.toWhere({
+    const where = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
       where: mergedFilter.where ?? {},

@@ -1,3 +1,3 @@
-export * from './abstract-datasource';
-export * from './base-datasource';
+export * from './abstract';
+export * from './base';
 export * from './datasource';

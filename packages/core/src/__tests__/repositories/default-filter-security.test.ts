@@ -5,12 +5,12 @@ import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { TFilter } from '@/base/repositories/common';
 
 /**
  * Adversarial coverage for the merge path actually used at runtime: `FilterBuilder.mergeFilter`
- * (src/connectors/postgres/repositories/operators/filter.ts) and
+ * (src/connectors/postgres/repositories/dialect/filter.ts) and
  * `PostgresBaseRepository.applyDefaultFilter` (src/connectors/postgres/repositories/core/base.ts).
  * A user-controlled filter must never be able to widen or erase a `@model` `defaultFilter`
  * (e.g. soft-delete, tenant scoping) regardless of the shape of the value it carries.

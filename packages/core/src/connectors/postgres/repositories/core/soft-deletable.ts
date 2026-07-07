@@ -4,7 +4,7 @@ import { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/pos
 import { getError, HTTP, TNullable } from '@venizia/ignis-helpers';
 import { AnyPgColumn } from 'drizzle-orm/pg-core';
 import { IDatabaseExtraOptions } from '../common';
-import { DefaultCRUDRepository } from './default-crud';
+import { DefaultRelationalRepository } from './default';
 
 export type TDeletedAtColumn = AnyPgColumn<{
   data: Date | string | null;
@@ -16,12 +16,12 @@ export type TSoftDeletableTableSchema = TTableSchemaWithId & {
 
 /** Repository that soft-deletes (sets `deletedAt`) instead of physically removing rows. Models need
  * a `deletedAt` column and `defaultFilter: { where: { deletedAt: null } }` in `@model` settings. */
-export class SoftDeletableRepository<
+export class SoftDeletableRelationalRepository<
   EntitySchema extends TSoftDeletableTableSchema = TSoftDeletableTableSchema,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
-> extends DefaultCRUDRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
+> extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
   // ---------------------------------------------------------------------------
   private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
     return { deletedAt } as any;

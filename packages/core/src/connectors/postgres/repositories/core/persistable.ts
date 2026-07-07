@@ -1,7 +1,7 @@
 import { IPostgresDataSource } from '@/connectors/postgres/datasources';
 import { IdType } from '@/base/models';
 import {
-  BasePostgresEntity,
+  BaseRelationalEntity,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
@@ -14,22 +14,22 @@ import {
   TRepositoryLogOptions,
   TWhere,
 } from '@/base/repositories/common';
-import { UpdateBuilder } from '../operators/update';
-import { ReadableRepository } from './readable';
+import { UpdateBuilder } from '../dialect/update';
+import { ReadableRelationalRepository } from './readable';
 import { IDatabaseExtraOptions } from '../common';
 
-/** Full CRUD repository extending ReadableRepository with create, update, and delete. */
-export class PersistableRepository<
+/** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
+export class PersistableRelationalRepository<
   EntitySchema extends TTableSchemaWithId = TTableSchemaWithId,
   DataObject extends TTableObject<EntitySchema> = TTableObject<EntitySchema>,
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
-> extends ReadableRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
+> extends ReadableRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
   protected _updateBuilder: UpdateBuilder;
 
   constructor(
     ds?: IPostgresDataSource,
-    opts?: { entityClass?: TClass<BasePostgresEntity<EntitySchema>> },
+    opts?: { entityClass?: TClass<BaseRelationalEntity<EntitySchema>> },
   ) {
     super(ds, { entityClass: opts?.entityClass });
     this._operationScope = RepositoryOperationScopes.READ_WRITE;
@@ -57,7 +57,7 @@ export class PersistableRepository<
     force?: boolean;
     operationName: string;
   }): boolean {
-    const resolvedWhere = this.filterBuilder.toWhere({
+    const resolvedWhere = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
       where: opts.where ?? {},
@@ -174,7 +174,7 @@ export class PersistableRepository<
       operationName: '_update',
     });
 
-    const where = this.filterBuilder.toWhere({
+    const where = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
       where: mergedWhere,
@@ -287,7 +287,7 @@ export class PersistableRepository<
       operationName: '_delete',
     });
 
-    const where = this.filterBuilder.toWhere({
+    const where = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
       where: mergedWhere,

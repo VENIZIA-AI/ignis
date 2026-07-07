@@ -9,12 +9,12 @@ import {
 } from '@/base/repositories/common';
 import { IdType } from '@/base/models';
 import { ISearchResult } from '../../driver';
-import { TypesenseBaseRepository } from './base-repository';
+import { SearchBaseRepository } from './base';
 
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the driver. */
 export class ReadableSearchRepository<
   TDocument extends object = object,
-> extends TypesenseBaseRepository<TDocument> {
+> extends SearchBaseRepository<TDocument> {
   async count(opts: { where: TWhere; options?: IExtraOptions }): Promise<TCount> {
     this.assertNoTransaction(opts.options);
     this.assertNoLock(opts.options);

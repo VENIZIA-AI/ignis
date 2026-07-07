@@ -1,5 +1,5 @@
 import { Sorts } from '@/base/repositories';
-import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { TConstValue } from '@venizia/ignis-helpers';
 import { getTableColumns } from 'drizzle-orm';
 import { jsonb, pgTable, serial, varchar } from 'drizzle-orm/pg-core';

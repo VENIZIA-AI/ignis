@@ -1,2 +1,2 @@
-export * from './abstract-datasource';
+export * from './abstract';
 export * from './common';

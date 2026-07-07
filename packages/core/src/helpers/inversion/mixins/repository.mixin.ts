@@ -1,10 +1,8 @@
 import { IDataSource } from '@/base/datasources';
 import { AbstractEntity } from '@/base/models';
 import type { TTableSchemaWithId } from '@/connectors/postgres/models';
-// Deep import ON PURPOSE - the repositories barrel pulls PostgresBaseRepository, which extends
-// base AbstractRepository and would close a circular import back into this registry (TDZ at load).
-import { createRelations } from '@/connectors/postgres/repositories/operators/relation';
 import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
+import { createRelations } from '@/connectors/postgres/repositories/dialect/relation';
 import { resolveValue, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
@@ -108,7 +106,7 @@ export const RepositoryMetadataMixin = <
     /**
      * Models registered for a datasource, relations resolved lazily. `schema`/`relations` are
      * `unknown` because this registry is shared across connectors (SQL vs search); each connector
-     * narrows the type at its own call site (e.g. `BasePostgresDataSource.discoverSchema()`).
+     * narrows the type at its own call site (e.g. `BaseRelationalDataSource.discoverSchema()`).
      */
     getModels(opts: { dataSource: string | TClass<IDataSource> }): Array<{
       tableName: string;

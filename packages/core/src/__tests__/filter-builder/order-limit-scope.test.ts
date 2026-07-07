@@ -1,5 +1,5 @@
 import { describe, test, expect, spyOn } from 'bun:test';
-import { FilterBuilder } from '@/connectors/postgres/repositories/operators';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { DEFAULT_LIMIT, TDrizzleQueryOptions } from '@/base/repositories/common';
 import { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
