@@ -6,9 +6,9 @@ import { compileTypesenseCollection } from '../compiler';
 import { ITypesenseClientLike, TypesenseDriver } from '../driver';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import {
-    ISearchDataSourceOptions,
-    ITypesenseDataSourceSettings,
-    ITypesenseDriverOptions,
+  ISearchDataSourceOptions,
+  ITypesenseDataSourceSettings,
+  ITypesenseDriverOptions,
 } from '../types';
 import { BaseSearchDataSource } from './base';
 
