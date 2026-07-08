@@ -1,6 +1,6 @@
 // Env-gated (skips unless APP_ENV_TYPESENSE_NODES / APP_ENV_TYPESENSE_API_KEY are set).
 import { describe, test, expect } from 'bun:test';
-import { TypesenseDriver } from '@/connectors/typesense/driver';
+import { TypesenseConnector } from '@/connectors/typesense/connector';
 import { TypesenseImportActions } from '@/connectors/typesense/types';
 
 const rawNodes = process.env['APP_ENV_TYPESENSE_NODES'];
@@ -17,8 +17,8 @@ const parseNodes = (value: string) =>
     };
   });
 
-describe.if(hasEnv)('TypesenseDriver integration (live)', () => {
-  const helper = new TypesenseDriver({
+describe.if(hasEnv)('TypesenseConnector integration (live)', () => {
+  const helper = new TypesenseConnector({
     name: 'integration',
     nodes: hasEnv ? parseNodes(rawNodes as string) : [{ host: 'localhost', port: 8108 }],
     apiKey: apiKey ?? '',
@@ -48,18 +48,16 @@ describe.if(hasEnv)('TypesenseDriver integration (live)', () => {
     });
     expect(importResult.successCount).toBe(2);
 
-    const search = await helper.search({
-      collection,
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      params: { q: 'shoe', query_by: 'title' },
-    });
+    const searchParams: Record<string, unknown> = { q: 'shoe' };
+    searchParams['query_by'] = 'title';
+    const search = await helper.search({ collection, params: searchParams });
     expect(search.found).toBeGreaterThanOrEqual(1);
 
     expect(await helper.deleteCollection({ name: collection })).toBe(true);
   });
 });
 
-describe.if(!hasEnv)('TypesenseDriver integration (skipped)', () => {
+describe.if(!hasEnv)('TypesenseConnector integration (skipped)', () => {
   test('skipped without APP_ENV_TYPESENSE_NODES / APP_ENV_TYPESENSE_API_KEY', () => {
     expect(hasEnv).toBe(false);
   });

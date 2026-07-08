@@ -122,6 +122,7 @@ export class UpdateBuilder extends BaseHelper {
     const { regularFields, jsonExpressions } = opts.transformed;
     return { ...regularFields, ...jsonExpressions };
   }
+
   /** Gets columns using shared cache utility. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
     return getCachedColumns(schema);

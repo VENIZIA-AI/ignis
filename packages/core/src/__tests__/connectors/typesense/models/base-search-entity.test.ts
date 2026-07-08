@@ -27,7 +27,7 @@ describe('BaseSearchEntity', () => {
 
   test('getSchema SELECT derives from the DSL and parses a full document', () => {
     const doc = new ProductDocument();
-    const schema = doc.getSchema({ type: SchemaTypes.SELECT });
+    const schema = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
     const result = schema.safeParse({ id: '1', title: 'x', price: 9 });
 
     expect(result.success).toBe(true);
@@ -35,7 +35,7 @@ describe('BaseSearchEntity', () => {
 
   test('getSchema UPDATE accepts a partial document', () => {
     const doc = new ProductDocument();
-    const schema = doc.getSchema({ type: SchemaTypes.UPDATE });
+    const schema = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.UPDATE });
     const result = schema.safeParse({ price: 10 });
 
     expect(result.success).toBe(true);
@@ -43,8 +43,8 @@ describe('BaseSearchEntity', () => {
 
   test('getSchema caches derived schemas per (class, type)', () => {
     const doc = new ProductDocument();
-    const first = doc.getSchema({ type: SchemaTypes.SELECT });
-    const second = doc.getSchema({ type: SchemaTypes.SELECT });
+    const first = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
+    const second = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
 
     expect(first).toBe(second);
   });
@@ -63,7 +63,8 @@ describe('BaseSearchEntity', () => {
 
     expect(doc.schema).toBe(override);
     expect(
-      doc.getSchema({ type: SchemaTypes.SELECT }).safeParse({ id: '1', sku: 'abc' }).success,
+      doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT }).safeParse({ id: '1', sku: 'abc' })
+        .success,
     ).toBe(true);
   });
 
@@ -74,8 +75,8 @@ describe('BaseSearchEntity', () => {
     });
     const doc = new ProductDocument({ schema: override });
 
-    const first = doc.getSchema({ type: SchemaTypes.SELECT });
-    const second = doc.getSchema({ type: SchemaTypes.SELECT });
+    const first = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
+    const second = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
 
     expect(first).not.toBe(second);
   });
@@ -90,8 +91,8 @@ describe('BaseSearchEntity', () => {
     }
 
     const doc = new OverriddenDocument();
-    const selectSchema = doc.getSchema({ type: SchemaTypes.SELECT });
-    const updateSchema = doc.getSchema({ type: SchemaTypes.UPDATE });
+    const selectSchema = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT });
+    const updateSchema = doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.UPDATE });
 
     expect(selectSchema).toBe(OverriddenDocument.documentSchema);
     expect(updateSchema).toBe(OverriddenDocument.documentSchema);
@@ -117,7 +118,7 @@ describe('BaseSearchEntity', () => {
     class BareDocument extends BaseSearchEntity {}
     const doc = new BareDocument({ name: 'bare' });
 
-    expect(() => doc.getSchema({ type: SchemaTypes.SELECT })).toThrow(
+    expect(() => doc.getSchema<z.ZodTypeAny>({ type: SchemaTypes.SELECT })).toThrow(
       /\[BaseSearchEntity\] Missing collection definition/,
     );
   });

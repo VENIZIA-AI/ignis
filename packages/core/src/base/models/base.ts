@@ -2,7 +2,7 @@ import { BaseHelper } from '@venizia/ignis-helpers';
 import { TIdSchemaType, TSchemaType } from './common';
 
 /** Engine-neutral entity root: named, scoped-logged, zod-schema-capable. */
-export abstract class AbstractEntity extends BaseHelper {
+export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {
   name: string;
 
   constructor(opts: { name: string }) {
@@ -10,7 +10,7 @@ export abstract class AbstractEntity extends BaseHelper {
     this.name = opts.name;
   }
 
-  abstract getSchema(opts: { type: TSchemaType }): unknown;
+  abstract getSchema<T = Schema>(opts: { type: TSchemaType }): T;
 
   /** Path-param id shape for this entity - default 'string' (every document-family id, e.g. Typesense's). */
   getIdType(): TIdSchemaType {

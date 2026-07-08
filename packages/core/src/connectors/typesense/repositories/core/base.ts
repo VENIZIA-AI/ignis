@@ -5,12 +5,12 @@ import { TypesenseDataSource } from '@/connectors/typesense/datasources';
 import { BaseSearchEntity } from '@/connectors/typesense/models';
 import { throwNotSupported } from '@/utilities';
 import { TClass } from '@venizia/ignis-helpers';
-import { ISearchQuery } from '../common';
+import { ISearchQuery, ISearchQueryDialect } from '../common';
 
 /**
  * Search-repository plumbing on `AbstractRepository`: narrows dataSource/entity to the concrete
- * `TypesenseDataSource`/`BaseSearchEntity` so `dataSource.getDriver()` stays typed to the
- * `ISearchDriver` contract end to end, no casts.
+ * `TypesenseDataSource`/`BaseSearchEntity` so `dataSource.getConnector()` stays typed to the
+ * `ISearchConnector` contract end to end, no casts.
  */
 export abstract class SearchBaseRepository<
   TDocument extends object = object,
@@ -40,6 +40,18 @@ export abstract class SearchBaseRepository<
 
   get collectionName(): string {
     return this.entity.name;
+  }
+
+  protected get connector() {
+    return this.dataSource.getConnector();
+  }
+
+  protected get queryDialect(): ISearchQueryDialect {
+    return this.dataSource.getQueryDialect();
+  }
+
+  get multiSearch(): TypesenseDataSource['multiSearch'] {
+    return this.dataSource.multiSearch.bind(this.dataSource);
   }
 
   override setDataSource(opts: { dataSource: TypesenseDataSource }): void {
@@ -90,7 +102,7 @@ export abstract class SearchBaseRepository<
         ? { where: mergedWhere }
         : undefined;
 
-    return this.dataSource.getQueryDialect().translate({
+    return this.queryDialect.build({
       filter: effectiveFilter,
       hiddenFields: this.hiddenFields,
     });

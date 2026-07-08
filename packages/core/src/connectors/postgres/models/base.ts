@@ -48,17 +48,18 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
     return _getIdType({ entity: this.schema }) === 'number' ? 'number' : 'string';
   }
 
-  getSchema(opts: { type: TSchemaType }) {
+  getSchema<T = unknown>(opts: { type: TSchemaType }): T {
     const factory = BaseRelationalEntity.schemaFactory;
+
     switch (opts.type) {
       case SchemaTypes.CREATE: {
-        return factory.createInsertSchema(this.schema);
+        return factory.createInsertSchema(this.schema) as T;
       }
       case SchemaTypes.UPDATE: {
-        return factory.createUpdateSchema(this.schema);
+        return factory.createUpdateSchema(this.schema) as T;
       }
       case SchemaTypes.SELECT: {
-        return factory.createSelectSchema(this.schema);
+        return factory.createSelectSchema(this.schema) as T;
       }
       default: {
         throw getError({

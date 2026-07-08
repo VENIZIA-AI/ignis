@@ -5,7 +5,7 @@ import { getError } from '@venizia/ignis-helpers';
 import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
 import { BaseSearchDataSource } from '@/connectors/typesense/datasources';
-import { ISearchDriver } from '@/connectors/typesense/driver';
+import { ISearchConnector } from '@/connectors/typesense/connector';
 import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
 import { BasePostgresEntity, TTableInsert, TTableObject } from '@/connectors/postgres/models';
 import {
@@ -108,8 +108,10 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
     // no-op fixture.
   }
 
-  getDriver(): ISearchDriver {
-    throw getError({ message: '[SearchDivergedDataSource][getDriver] Not needed for this test' });
+  getConnector(): ISearchConnector {
+    throw getError({
+      message: '[SearchDivergedDataSource][getConnector] Not needed for this test',
+    });
   }
 
   getQueryDialect(): ISearchQueryDialect {

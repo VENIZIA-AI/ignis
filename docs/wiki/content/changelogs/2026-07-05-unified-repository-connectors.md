@@ -14,7 +14,7 @@ The persistence layer has been restructured from a single PostgreSQL-and-Drizzle
 - **Engine-neutral base**: `AbstractRepository<TDataObject, TPersistObject, TOptions>`, `AbstractDataSource`, and `AbstractEntity` in `src/base` no longer import Drizzle, `pg`, or SQL-shaped types. `AbstractDataSource.getCapabilities()` and `beginTransaction()` default to "not supported"; `AbstractEntity.getIdType()` defaults to `'string'`.
 - **Connectors architecture**: PostgreSQL (`AbstractRelationalDataSource` -> `BaseRelationalDataSource`, `RelationalBaseRepository` -> `ReadableRelationalRepository`/`PersistableRelationalRepository`/`DefaultRelationalRepository`/`SoftDeletableRelationalRepository`), typesense (`AbstractSearchDataSource` -> `BaseSearchDataSource` -> `TypesenseDataSource`, `SearchBaseRepository` -> `ReadableSearchRepository`/`PersistableSearchRepository`/`DefaultSearchRepository`), and memory (`MemoryDataSource`, `MemoryRepository`) each implement the neutral contracts independently.
 - **New memory connector**: zero-dependency, `Map`-backed engine implementing full `TWhere` operator coverage (postgres-parity semantics) for prototyping and tests - no transactions, no locks.
-- **New typesense connector**: `defineSearchCollection`/`field` DSL, `TInferSearchDocument<T>` type inference, `search<TResult>()` raw passthrough, `TypesenseQueryDialect` translating `TFilter`/`TWhere` into Typesense's `filter_by`/`sort_by`/`per_page` syntax.
+- **New typesense connector**: `defineSearchCollection`/`field` DSL, `TSearchDocument<T>` type inference, `search<TResult>()` raw passthrough, `TypesenseQueryDialect` translating `TFilter`/`TWhere` into Typesense's `filter_by`/`sort_by`/`per_page` syntax.
 - **Capabilities model**: every datasource exposes `getCapabilities(): { transactions: boolean }`; unsupported operations (transactions, row-level locks) uniformly throw `NotSupported` (HTTP 501, `messageCode: 'core.not_supported'`) via a new shared `throwNotSupported` utility.
 - **Dual-door exports**: root `@venizia/ignis` re-exports the framework plus `postgres` and `memory` connectors (compatibility default); `@venizia/ignis/postgres`, `@venizia/ignis/memory`, and `@venizia/ignis/typesense` are available as explicit subpaths. `typesense` is subpath-only (optional peer dependency) - never pulled in by importing from the root.
 - **Naming symmetry + compat aliases**: canonical names are paradigm-family names (`Relational`, `Search`) - the engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`/`TypesenseQueryDialect`). All previous names - `BaseDataSource`, `BaseEntity`, and the interim `BasePostgresDataSource`/`BasePostgresEntity` - survive as aliases of the same classes. The same pattern applies to `PostgresQueryOperators` (alias `RDBQueryOperators`).
@@ -105,7 +105,7 @@ import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  TInferSearchDocument,
+  TSearchDocument,
   DefaultSearchRepository,
 } from '@venizia/ignis/typesense';
 ```
@@ -221,7 +221,7 @@ const { data } = await repo.find({ filter: { where: { archived: false } } });
 
 **Problem:** Full-text and faceted search didn't fit the SQL-shaped repository contract, and the previous `@venizia/ignis-helpers` search-engine module lived outside the framework's decorator/DI conventions.
 
-**Solution:** A first-class connector with its own entity DSL (`defineSearchCollection`/`field.*`), type inference (`TInferSearchDocument<T>`), and a repository ladder (`ReadableSearchRepository` -> `PersistableSearchRepository` -> `DefaultSearchRepository`) that reuses `@model` settings (`hiddenProperties`, `defaultFilter`, `defaultLimit`) and translates `TFilter`/`TWhere` into Typesense's native query syntax via `TypesenseQueryDialect`. A raw `search<TResult = ISearchResult<TDocument>>()` passthrough covers full-text/facet queries the `TFilter` dialect doesn't model - the default type parameter returns the document's own `ISearchResult` shape, and callers override `TResult` for engine responses shaped differently (e.g. grouped hits).
+**Solution:** A first-class connector with its own entity DSL (`defineSearchCollection`/`field.*`), type inference (`TSearchDocument<T>`), and a repository ladder (`ReadableSearchRepository` -> `PersistableSearchRepository` -> `DefaultSearchRepository`) that reuses `@model` settings (`hiddenProperties`, `defaultFilter`, `defaultLimit`) and translates `TFilter`/`TWhere` into Typesense's native query syntax via `TypesenseQueryDialect`. A raw `search<TResult = ISearchResult<TDocument>>()` passthrough covers full-text/facet queries the `TFilter` dialect doesn't model - the default type parameter returns the document's own `ISearchResult` shape, and callers override `TResult` for engine responses shaped differently (e.g. grouped hits).
 
 ```typescript
 export class ArticleDocument extends BaseSearchEntity {
@@ -239,7 +239,7 @@ const result = await articleRepository.search({ params: { q: 'typescript', query
 
 **Benefits:**
 - Search documents get the same `@model`/`@repository`/`@datasource` ergonomics as relational tables
-- `TInferSearchDocument<T>` derives the TypeScript document shape from the collection definition - no hand-maintained duplicate type
+- `TSearchDocument<T>` derives the TypeScript document shape from the collection definition - no hand-maintained duplicate type
 - Optional peer dependency (`typesense`), subpath-only import (`@venizia/ignis/typesense`) - zero cost for apps that don't use search
 
 **Cluster mode:** `TypesenseDataSource` accepts multiple `nodes` for a multi-node cluster instead of a single `host`/`port`. The `examples/typesense-search` reference app resolves this from a single comma-separated env var, `APP_ENV_TYPESENSE_NODES`, falling back to the single-node host/port pair when unset - the same `applicationEnvironment.get` + `transform` pattern from the breaking change above:

@@ -7,8 +7,10 @@ import type {
   ImportResponse,
   DocumentSchema,
 } from 'typesense/lib/Typesense/Documents';
+import type { UnionSearchResponse } from 'typesense/lib/Typesense/Types';
 import type { TConstValue } from '@venizia/ignis-helpers';
-import type { ISearchDriverCallbacks } from './driver';
+import type { ISearchConnectorCallbacks } from './connector';
+import type { ISearchQuery } from './repositories/common';
 
 // Re-export Typesense types under stable T-prefixed aliases (type-only; erased at runtime).
 // Note: CollectionFieldSchema is exported from Collection (singular), not Collections.
@@ -18,17 +20,24 @@ export type TCollectionSchema = CollectionSchema;
 export type TCollectionFieldSchema = CollectionFieldSchema;
 export type TSearchParams = SearchParams<TDocumentSchema>;
 export type TSearchResponse<T extends TDocumentSchema = TDocumentSchema> = SearchResponse<T>;
-// Per-request client options, forwarded verbatim by the driver alongside SearchParams.
+// Per-request client options, forwarded verbatim by the connector alongside SearchParams.
 export type TSearchOptions = SearchOptions;
 export type TImportResponse = ImportResponse;
 
-// Driver-owned (not re-exported): typesense's MultiSearchRequestsSchema/MultiSearchResponse are
-// conditional generics unsuitable for a clean passthrough API.
-// eslint-disable-next-line @typescript-eslint/naming-convention
-export type IMultiSearchEntry = Partial<TSearchParams> & { collection: string };
+// A per-collection multi-search entry: the target `collection` plus the same camelCase search params
+// as single-collection `search()`. The datasource maps these to the engine's snake_case wire format
+// at its boundary (via the dialect's `toWireParams`), so no snake_case appears in caller code.
+// (`T`-prefixed, not `I`-prefixed, because a mapped-type intersection can't be an `interface`.)
+export type TMultiSearchEntry = { collection: string } & Partial<ISearchQuery>;
 export interface IMultiSearchResult<T extends TDocumentSchema = TDocumentSchema> {
   results: TSearchResponse<T>[];
 }
+// Union multi-search merges every `searches` entry into ONE result set instead of side-by-side
+// `results[]` - extends typesense's own merged-response shape (SearchResponse minus
+// `request_params`, plus its own `union_request_params` describing each contributing search).
+export interface IUnionSearchResult<
+  T extends TDocumentSchema = TDocumentSchema,
+> extends UnionSearchResponse<T> {}
 
 export interface ITypesenseNode {
   host: string;
@@ -36,7 +45,7 @@ export interface ITypesenseNode {
   protocol?: string;
 }
 
-export interface ITypesenseDriverOptions extends ISearchDriverCallbacks {
+export interface ITypesenseConnectorOptions extends ISearchConnectorCallbacks {
   name: string;
   nodes: ITypesenseNode[];
   apiKey: string;
@@ -51,12 +60,14 @@ export class TypesenseImportActions {
   static readonly UPSERT = 'upsert';
   static readonly UPDATE = 'update';
   static readonly EMPLACE = 'emplace';
+
   static readonly SCHEME_SET = new Set<string>([
     this.CREATE,
     this.UPSERT,
     this.UPDATE,
     this.EMPLACE,
   ]);
+
   static isValid(value: string): value is TTypesenseImportAction {
     return this.SCHEME_SET.has(value);
   }
@@ -69,12 +80,14 @@ export class TypesenseDirtyValues {
   static readonly COERCE_OR_DROP = 'coerce_or_drop';
   static readonly DROP = 'drop';
   static readonly REJECT = 'reject';
+
   static readonly SCHEME_SET = new Set<string>([
     this.COERCE_OR_REJECT,
     this.COERCE_OR_DROP,
     this.DROP,
     this.REJECT,
   ]);
+
   static isValid(value: string): value is TTypesenseDirtyValue {
     return this.SCHEME_SET.has(value);
   }
@@ -94,6 +107,7 @@ export interface ITypesenseDataSourceSettings {
 export interface ISearchDataSourceOptions<Settings extends object = {}> {
   name: string;
   config: Settings;
+
   /** Auto-provision discovered collections on configure(). Defaults to true. */
   autoProvision?: boolean;
 }

@@ -1,6 +1,14 @@
 import { IDataSource } from '@/base/datasources';
 import { ISearchCollectionDefinition, TSearchSchema } from '@/connectors/typesense/models';
-import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
+import {
+  IMultiSearchResult,
+  ISearchDataSourceOptions,
+  IUnionSearchResult,
+  TDocumentSchema,
+  TMultiSearchEntry,
+  TSearchOptions,
+  TSearchParams,
+} from '@/connectors/typesense/types';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { TClass } from '@venizia/ignis-helpers';
 import { AbstractSearchDataSource } from './abstract';
@@ -53,6 +61,38 @@ export abstract class BaseSearchDataSource<
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
+  /** Cross-collection search, forwarded verbatim to the connector - lives on the datasource (not a single-collection repository) since it spans many collections at once. */
+  multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union: true;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IUnionSearchResult<T>>;
+  multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: false;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T>>;
+  // Callable overload for a runtime-decided `union` (e.g. an HTTP request body): returns the union
+  // of both result shapes so no cast is needed at the call site.
+  multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: boolean;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
+  multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: boolean;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
+    return this.getConnector().multiSearch(opts) as Promise<
+      IMultiSearchResult<T> | IUnionSearchResult<T>
+    >;
+  }
+
   /**
    * Reads `static searchCollection` (dual-schema escape: a postgres entity carrying a search index
    * beside its pgTable), falling back to `static schema` (shape-guarded so a
@@ -90,6 +130,12 @@ export abstract class BaseSearchDataSource<
 
     for (const definition of definitions) {
       await this.ensureCollection({ definition });
+
+      if (definition.synonyms?.length) {
+        for (const synonym of definition.synonyms) {
+          await this.getConnector().upsertSynonym({ collection: definition.name, synonym });
+        }
+      }
     }
 
     logger.info('Provisioned collection(s) | Name: %s | Count: %s', this.name, definitions.length);

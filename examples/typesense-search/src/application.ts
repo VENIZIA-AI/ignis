@@ -14,7 +14,7 @@ import { cors } from 'hono/cors';
 import packageJson from './../package.json';
 import { SearchDataSource } from './datasources';
 import { ArticleRepository } from './repositories';
-import { ArticleController, SearchController } from './controllers';
+import { ArticleController, ArticleSearchController } from './controllers';
 
 // -----------------------------------------------------------------------------------------------
 export const beConfigs: IApplicationConfigs = {
@@ -74,7 +74,7 @@ export class Application extends BaseApplication {
     this.repository(ArticleRepository);
 
     this.controller(ArticleController);
-    this.controller(SearchController);
+    this.controller(ArticleSearchController);
 
     this.bind<IHealthCheckOptions>({
       key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,

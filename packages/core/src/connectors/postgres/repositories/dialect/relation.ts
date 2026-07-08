@@ -1,3 +1,4 @@
+import { RelationTypes } from '@/base';
 import { TTableSchemaWithId } from '@/connectors/postgres/models';
 import { relations as defineRelations } from 'drizzle-orm';
 import { TRelationConfig } from '../common';
@@ -26,11 +27,11 @@ export const createRelations = <Schema extends TTableSchemaWithId = TTableSchema
         const { name, type, schema, metadata } = def;
 
         switch (type) {
-          case 'one': {
+          case RelationTypes.ONE: {
             curr[name] = one(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }
-          case 'many': {
+          case RelationTypes.MANY: {
             curr[name] = many(schema, Object.assign({}, { relationName: name }, metadata));
             break;
           }

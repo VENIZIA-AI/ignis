@@ -1,16 +1,18 @@
+import { ISynonym } from '@/connectors/typesense/models';
 import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
-import { TypesenseInternal } from './internal/driver-internal';
-import { SearchDriverInternal } from './internal/search-driver-internal';
+import { TypesenseInternal } from './internal/connector-internal';
+import { SearchConnectorInternal } from './internal/search-connector-internal';
 import {
-  IMultiSearchEntry,
   IMultiSearchResult,
-  ITypesenseDriverOptions,
+  ITypesenseConnectorOptions,
+  IUnionSearchResult,
   TCollectionCreateSchema,
   TCollectionFieldSchema,
   TCollectionSchema,
   TDocumentSchema,
   TImportResponse,
+  TMultiSearchEntry,
   TSearchOptions,
   TSearchParams,
   TSearchResponse,
@@ -19,9 +21,6 @@ import {
   TypesenseDirtyValues,
   TypesenseImportActions,
 } from './types';
-
-// Driver-contract types live here (sole consumer) instead of a common/ folder. LIFT RULE: move
-// to src/base/datasources if a second search connector appears.
 
 export interface IImportResult<TResponse = unknown> {
   successCount: number;
@@ -34,7 +33,7 @@ export interface IAliasInfo {
   collection: string;
 }
 
-export interface ISearchDriverCallbacks {
+export interface ISearchConnectorCallbacks {
   onInitialized?: (opts: { name: string }) => void;
   onError?: (opts: { name: string; error: unknown }) => void;
 }
@@ -42,14 +41,20 @@ export interface ISearchDriverCallbacks {
 /** Search-response envelope - the read-path counterpart to IImportResult, consumed by ReadableSearchRepository without a boundary cast. */
 export interface ISearchResult<TDocument extends object = object> {
   found: number;
-  hits?: Array<{ document: TDocument }>;
+  outOf?: number;
+  searchTimeMs?: number;
+  hits?: Array<{
+    document: TDocument;
+    highlight?: unknown;
+    highlights?: unknown[];
+    textMatch?: number;
+  }>;
+  facetCounts?: unknown[];
+  groupedHits?: unknown[];
 }
 
-/**
- * Verb contract every search-engine driver implements (`unknown` payload/result types).
- * Kept as an interface so tests can fake a driver without a real `typesense` `Client`.
- */
-export interface ISearchDriver {
+/** Verb contract every search-engine connector implements - kept as an interface so tests can fake one without a real typesense Client. */
+export interface ISearchConnector {
   getHealth(): Promise<{ ok: boolean }>;
   ping(): Promise<boolean>;
 
@@ -63,6 +68,11 @@ export interface ISearchDriver {
 
   upsertAlias(opts: { name: string; collection: string }): Promise<void>;
   getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
+
+  upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym>;
+  getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null>;
+  listSynonyms(opts: { collection: string }): Promise<ISynonym[]>;
+  deleteSynonym(opts: { collection: string; id: string }): Promise<boolean>;
 
   createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
   getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
@@ -99,11 +109,16 @@ export interface ISearchDriver {
     collection: string;
     params: unknown;
   }): Promise<ISearchResult<TDocument>>;
-  multiSearch(opts: { searches: unknown[]; commonParams?: unknown }): Promise<unknown>;
+  // `union` selects a single merged result set instead of federated per-search `results[]` -
+  // see TypesenseConnector.multiSearch for the typed overloads.
+  multiSearch(opts: {
+    searches: unknown[];
+    union?: boolean;
+    commonParams?: unknown;
+  }): Promise<unknown>;
 }
 
-/** Shared base every concrete search driver (e.g. TypesenseDriver) extends. */
-export abstract class BaseSearchDriver extends BaseHelper implements ISearchDriver {
+export abstract class BaseSearchConnector extends BaseHelper implements ISearchConnector {
   constructor(opts: { scope: string; identifier: string }) {
     super(opts);
   }
@@ -120,8 +135,7 @@ export abstract class BaseSearchDriver extends BaseHelper implements ISearchDriv
     }
   }
 
-  // Runs the engine verb; routes tolerated errors (benign 404/409) to the caller-provided branch,
-  // wraps everything else as a sanitized 503. `tolerate.handle` may return a fallback or throw.
+  // Runs the engine verb; tolerated errors route to the caller's branch, everything else becomes a sanitized 503.
   protected async runEngineCall<T>(opts: {
     method: string;
     run: () => ValueOrPromise<T>;
@@ -138,8 +152,42 @@ export abstract class BaseSearchDriver extends BaseHelper implements ISearchDriv
         return rs;
       }
 
-      SearchDriverInternal.wrapDependencyError({ method, error, logger: this.logger });
+      SearchConnectorInternal.wrapDependencyError({ method, error, logger: this.logger });
     }
+  }
+
+  /** Tolerated-404 branch shared by getCollection/patchCollectionSchema/getDocument/updateDocument: throws the sanitized not-found error. */
+  protected notFoundTolerance(opts: { method: string; subject: string }): {
+    when: (error: unknown) => boolean;
+    handle: (error: unknown) => never;
+  } {
+    const { method, subject } = opts;
+
+    return {
+      when: error => TypesenseInternal.isNotFoundError({ error }),
+      handle: () => {
+        this.logger.for(method).debug('%s not found', subject);
+        SearchConnectorInternal.throwNotFoundError({ method, subject });
+      },
+    };
+  }
+
+  /** Tolerated-404 branch shared by deleteCollection/getAlias/getSynonym/deleteSynonym/deleteDocument: logs and returns a benign sentinel instead of throwing. */
+  protected notFoundFallback<T>(opts: {
+    method: string;
+    message: string;
+    args?: unknown[];
+    fallback: T;
+  }): { when: (error: unknown) => boolean; handle: (error: unknown) => T } {
+    const { method, message, args, fallback } = opts;
+
+    return {
+      when: error => TypesenseInternal.isNotFoundError({ error }),
+      handle: () => {
+        this.logger.for(method).debug(message, ...(args ?? []));
+        return fallback;
+      },
+    };
   }
 
   abstract getHealth(): Promise<{ ok: boolean }>;
@@ -154,6 +202,11 @@ export abstract class BaseSearchDriver extends BaseHelper implements ISearchDriv
 
   abstract upsertAlias(opts: { name: string; collection: string }): Promise<void>;
   abstract getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
+
+  abstract upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym>;
+  abstract getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null>;
+  abstract listSynonyms(opts: { collection: string }): Promise<ISynonym[]>;
+  abstract deleteSynonym(opts: { collection: string; id: string }): Promise<boolean>;
 
   abstract createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
   abstract getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
@@ -187,7 +240,11 @@ export abstract class BaseSearchDriver extends BaseHelper implements ISearchDriv
     collection: string;
     params: unknown;
   }): Promise<ISearchResult<TDocument>>;
-  abstract multiSearch(opts: { searches: unknown[]; commonParams?: unknown }): Promise<unknown>;
+  abstract multiSearch(opts: {
+    searches: unknown[];
+    union?: boolean;
+    commonParams?: unknown;
+  }): Promise<unknown>;
 }
 
 // Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - each is the
@@ -209,15 +266,95 @@ function readNumberField(opts: { value: unknown; key: string }): number {
   return value[key];
 }
 
-// eslint-disable-next-line @typescript-eslint/naming-convention
-function isAliasResponse(value: unknown): value is { name: string; collection_name: string } {
-  return (
-    isRecord(value) && typeof value.name === 'string' && typeof value.collection_name === 'string'
-  );
+function readStringField(opts: { value: unknown; key: string }): string | undefined {
+  const { value, key } = opts;
+  if (!isRecord(value) || typeof value[key] !== 'string') {
+    return undefined;
+  }
+  return value[key];
 }
 
-// Narrow structural view of the client surface this driver needs; payloads/results are `unknown`
-// and cast at the boundary. Both the real Client and the in-test fake satisfy this shape without `as any`.
+/** Maps a raw Typesense search hit (snake_case `text_match`) onto the camelCase `ISearchResult` hit shape; read via bracket string access so no snake_case identifier is declared here. */
+function mapSearchHit<TDocument extends object>(
+  hit: unknown,
+): { document: TDocument; highlight?: unknown; highlights?: unknown[]; textMatch?: number } {
+  if (!isRecord(hit)) {
+    return { document: {} as TDocument };
+  }
+
+  const mapped: {
+    document: TDocument;
+    highlight?: unknown;
+    highlights?: unknown[];
+    textMatch?: number;
+  } = { document: hit['document'] as TDocument };
+
+  if (hit['highlight'] !== undefined) {
+    mapped.highlight = hit['highlight'];
+  }
+  if (Array.isArray(hit['highlights'])) {
+    mapped.highlights = hit['highlights'] as unknown[];
+  }
+  if (typeof hit['text_match'] === 'number') {
+    mapped.textMatch = hit['text_match'];
+  }
+
+  return mapped;
+}
+
+/** Maps a raw Typesense search response onto the camelCase `ISearchResult` - snake_case wire fields
+ * (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access,
+ * never as identifiers. Absent fields are omitted rather than mapped as `undefined`. */
+function mapSearchResult<TDocument extends object>(raw: unknown): ISearchResult<TDocument> {
+  if (!isRecord(raw)) {
+    return { found: 0 };
+  }
+
+  const result: ISearchResult<TDocument> = {
+    found: readNumberField({ value: raw, key: 'found' }),
+  };
+
+  if (typeof raw['out_of'] === 'number') {
+    result.outOf = raw['out_of'];
+  }
+  if (typeof raw['search_time_ms'] === 'number') {
+    result.searchTimeMs = raw['search_time_ms'];
+  }
+  if (Array.isArray(raw['facet_counts'])) {
+    result.facetCounts = raw['facet_counts'];
+  }
+  if (Array.isArray(raw['grouped_hits'])) {
+    result.groupedHits = raw['grouped_hits'];
+  }
+  if (Array.isArray(raw['hits'])) {
+    result.hits = raw['hits'].map(hit => mapSearchHit<TDocument>(hit));
+  }
+
+  return result;
+}
+
+/** Empty TSearchResponse shape returned when search() tolerates a missing collection; built via bracket assignment so no snake_case identifier is declared here. */
+function buildEmptySearchResponse(): unknown {
+  const response: Record<string, unknown> = { found: 0, page: 1, hits: [] };
+  response['out_of'] = 0;
+  response['search_time_ms'] = 0;
+  response['request_params'] = {};
+  return response;
+}
+
+// Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms.
+function isSynonymResponse(
+  value: unknown,
+): value is { id: string; synonyms: string[]; root?: string } {
+  return isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms);
+}
+
+function toSynonym(value: { id: string; synonyms: string[]; root?: string }): ISynonym {
+  const { id, synonyms, root } = value;
+  return root === undefined ? { id, synonyms } : { id, synonyms, root };
+}
+
+// Narrow structural view of the client surface this connector needs - both the real Client and the in-test fake satisfy it without `as any`.
 interface ITypesenseDocumentsApi {
   create(document: unknown, options?: unknown): Promise<unknown>;
   upsert(document: unknown, options?: unknown): Promise<unknown>;
@@ -232,9 +369,19 @@ interface ITypesenseDocumentApi {
   update(partialDocument: unknown, options?: unknown): Promise<unknown>;
   delete(options?: unknown): Promise<unknown>;
 }
+interface ITypesenseSynonymApi {
+  retrieve(): Promise<unknown>;
+  delete(): Promise<unknown>;
+}
+interface ITypesenseSynonymsApi {
+  upsert(synonymId: string, params: unknown): Promise<unknown>;
+  retrieve(): Promise<unknown>;
+}
 interface ITypesenseCollectionApi {
   documents(): ITypesenseDocumentsApi;
   documents(documentId: string): ITypesenseDocumentApi;
+  synonyms(): ITypesenseSynonymsApi;
+  synonyms(synonymId: string): ITypesenseSynonymApi;
   retrieve(): Promise<unknown>;
   update(schema: unknown): Promise<unknown>;
   delete(options?: unknown): Promise<unknown>;
@@ -261,13 +408,13 @@ export interface ITypesenseClientLike {
   };
 }
 
-/** Typesense engine driver - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
-export class TypesenseDriver extends BaseSearchDriver {
+/** Typesense engine connector - built/injected by TypesenseDataSource, which exposes the raw client via getClient(). */
+export class TypesenseConnector extends BaseSearchConnector {
   private readonly client: ITypesenseClientLike;
 
-  constructor(opts: ITypesenseDriverOptions & { client?: ITypesenseClientLike }) {
+  constructor(opts: ITypesenseConnectorOptions & { client?: ITypesenseClientLike }) {
     super({
-      scope: opts.scope ?? TypesenseDriver.name,
+      scope: opts.scope ?? TypesenseConnector.name,
       identifier: opts.identifier ?? opts.name,
     });
 
@@ -287,18 +434,15 @@ export class TypesenseDriver extends BaseSearchDriver {
         .for('constructor')
         .error(
           'Failed to initialize Typesense client | error: %j',
-          SearchDriverInternal.describeError({ error }),
+          SearchConnectorInternal.describeError({ error }),
         );
       opts.onError?.({ name: opts.name, error });
       throw error;
     }
   }
 
-  // -------------------------------------------------------------------------------------------
-  // Lifecycle
-  // -------------------------------------------------------------------------------------------
-  getClient(): ITypesenseClientLike {
-    return this.client;
+  getClient(): Client {
+    return this.client as Client;
   }
 
   async getHealth(): Promise<{ ok: boolean }> {
@@ -308,14 +452,11 @@ export class TypesenseDriver extends BaseSearchDriver {
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
-        .warn('Health probe failed | error: %j', SearchDriverInternal.describeError({ error }));
+        .warn('Health probe failed | error: %j', SearchConnectorInternal.describeError({ error }));
       return { ok: false };
     }
   }
 
-  // -------------------------------------------------------------------------------------------
-  // Collections
-  // -------------------------------------------------------------------------------------------
   async createCollection(opts: {
     schema: TCollectionCreateSchema;
   }): Promise<TCollectionSchema | void> {
@@ -325,7 +466,6 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall<TCollectionSchema | void>({
       method: this.createCollection.name,
       run: async () => {
-        // ITypesenseCollectionsApi.create() is `unknown` by contract (see interface above); the engine echoes back the created schema.
         const created = (await this.client.collections().create(schema)) as TCollectionSchema;
         logger.info('Created collection | name: %s', schema.name);
         return created;
@@ -362,25 +502,17 @@ export class TypesenseDriver extends BaseSearchDriver {
   async getCollection(opts: { name: string }): Promise<TCollectionSchema> {
     const { name } = opts;
     this.assertNonEmpty({ value: name, name: 'collection', method: this.getCollection.name });
-    const logger = this.logger.for(this.getCollection.name);
 
     const rs = await this.runEngineCall({
       method: this.getCollection.name,
       run: async () => {
-        // Client-facade retrieve() is `unknown` by contract; engine guarantees a collection schema shape.
         const collection = (await this.client.collections(name).retrieve()) as TCollectionSchema;
         return collection;
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Collection not found | name: %s', name);
-          SearchDriverInternal.throwNotFoundError({
-            method: this.getCollection.name,
-            subject: `Collection '${name}'`,
-          });
-        },
-      },
+      tolerate: this.notFoundTolerance({
+        method: this.getCollection.name,
+        subject: `Collection '${name}'`,
+      }),
     });
     return rs;
   }
@@ -389,7 +521,6 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.listCollections.name,
       run: async () => {
-        // Client-facade retrieve() is `unknown` by contract; engine guarantees an array of collection schemas.
         const collections = (await this.client.collections().retrieve()) as TCollectionSchema[];
         return collections;
       },
@@ -413,7 +544,7 @@ export class TypesenseDriver extends BaseSearchDriver {
         .warn(
           'Existence check failed, treating as absent | name: %s | error: %j',
           name,
-          SearchDriverInternal.describeError({ error }),
+          SearchConnectorInternal.describeError({ error }),
         );
       return false;
     }
@@ -437,16 +568,10 @@ export class TypesenseDriver extends BaseSearchDriver {
         await this.client.collections(name).update({ fields });
         logger.info('Patched schema | name: %s | fields: %d', name, fields.length);
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Collection not found | name: %s', name);
-          SearchDriverInternal.throwNotFoundError({
-            method: this.patchCollectionSchema.name,
-            subject: `Collection '${name}'`,
-          });
-        },
-      },
+      tolerate: this.notFoundTolerance({
+        method: this.patchCollectionSchema.name,
+        subject: `Collection '${name}'`,
+      }),
     });
   }
 
@@ -462,20 +587,16 @@ export class TypesenseDriver extends BaseSearchDriver {
         logger.info('Deleted collection | name: %s', name);
         return true;
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Collection not found, treating as already deleted | name: %s', name);
-          return false;
-        },
-      },
+      tolerate: this.notFoundFallback({
+        method: this.deleteCollection.name,
+        message: 'Collection not found, treating as already deleted | name: %s',
+        args: [name],
+        fallback: false,
+      }),
     });
     return rs;
   }
 
-  // -------------------------------------------------------------------------------------------
-  // Aliases (primitives only)
-  // -------------------------------------------------------------------------------------------
   async upsertAlias(opts: { name: string; collection: string }): Promise<void> {
     const { name, collection } = opts;
     this.assertNonEmpty({ value: name, name: 'alias', method: this.upsertAlias.name });
@@ -485,8 +606,9 @@ export class TypesenseDriver extends BaseSearchDriver {
     await this.runEngineCall<void>({
       method: this.upsertAlias.name,
       run: async () => {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        await this.client.aliases().upsert(name, { collection_name: collection });
+        const mapping: Record<string, unknown> = {};
+        mapping['collection_name'] = collection;
+        await this.client.aliases().upsert(name, mapping);
         logger.info('Upserted alias | %s -> %s', name, collection);
       },
     });
@@ -495,34 +617,126 @@ export class TypesenseDriver extends BaseSearchDriver {
   async getAlias(opts: { name: string }): Promise<IAliasInfo | null> {
     const { name } = opts;
     this.assertNonEmpty({ value: name, name: 'alias', method: this.getAlias.name });
-    const logger = this.logger.for(this.getAlias.name);
 
     const rs = await this.runEngineCall<IAliasInfo | null>({
       method: this.getAlias.name,
       run: async () => {
         const alias = await this.client.aliases(name).retrieve();
-        if (!isAliasResponse(alias)) {
-          SearchDriverInternal.throwNotFoundError({
+        const aliasName = readStringField({ value: alias, key: 'name' });
+        const collectionName = readStringField({ value: alias, key: 'collection_name' });
+
+        if (aliasName === undefined || collectionName === undefined) {
+          SearchConnectorInternal.throwNotFoundError({
             method: this.getAlias.name,
             subject: `Alias '${name}'`,
           });
         }
-        return { name: alias.name, collection: alias.collection_name };
+
+        return { name: aliasName, collection: collectionName };
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Alias not found | name: %s', name);
-          return null;
-        },
+      tolerate: this.notFoundFallback({
+        method: this.getAlias.name,
+        message: 'Alias not found | name: %s',
+        args: [name],
+        fallback: null,
+      }),
+    });
+    return rs;
+  }
+
+  async upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym> {
+    const { collection, synonym } = opts;
+    this.assertNonEmpty({ value: collection, name: 'collection', method: this.upsertSynonym.name });
+    this.assertNonEmpty({ value: synonym.id, name: 'synonym id', method: this.upsertSynonym.name });
+    const logger = this.logger.for(this.upsertSynonym.name);
+
+    const rs = await this.runEngineCall({
+      method: this.upsertSynonym.name,
+      run: async () => {
+        const params = synonym.root
+          ? { synonyms: synonym.synonyms, root: synonym.root }
+          : { synonyms: synonym.synonyms };
+
+        const upserted = await this.client
+          .collections(collection)
+          .synonyms()
+          .upsert(synonym.id, params);
+        logger.info('Upserted synonym | collection: %s | id: %s', collection, synonym.id);
+
+        if (!isSynonymResponse(upserted)) {
+          return synonym;
+        }
+        return toSynonym(upserted);
       },
     });
     return rs;
   }
 
-  // -------------------------------------------------------------------------------------------
-  // Documents
-  // -------------------------------------------------------------------------------------------
+  async getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null> {
+    const { collection, id } = opts;
+    this.assertNonEmpty({ value: collection, name: 'collection', method: this.getSynonym.name });
+    this.assertNonEmpty({ value: id, name: 'synonym id', method: this.getSynonym.name });
+
+    const rs = await this.runEngineCall<ISynonym | null>({
+      method: this.getSynonym.name,
+      run: async () => {
+        const synonym = await this.client.collections(collection).synonyms(id).retrieve();
+        if (!isSynonymResponse(synonym)) {
+          SearchConnectorInternal.throwNotFoundError({
+            method: this.getSynonym.name,
+            subject: `Synonym '${id}' in collection '${collection}'`,
+          });
+        }
+        return toSynonym(synonym);
+      },
+      tolerate: this.notFoundFallback({
+        method: this.getSynonym.name,
+        message: 'Synonym not found | collection: %s | id: %s',
+        args: [collection, id],
+        fallback: null,
+      }),
+    });
+    return rs;
+  }
+
+  async listSynonyms(opts: { collection: string }): Promise<ISynonym[]> {
+    const { collection } = opts;
+    this.assertNonEmpty({ value: collection, name: 'collection', method: this.listSynonyms.name });
+
+    const rs = await this.runEngineCall({
+      method: this.listSynonyms.name,
+      run: async () => {
+        const result = await this.client.collections(collection).synonyms().retrieve();
+        const synonyms = isRecord(result) && Array.isArray(result.synonyms) ? result.synonyms : [];
+        return synonyms.filter(isSynonymResponse).map(toSynonym);
+      },
+    });
+    return rs;
+  }
+
+  async deleteSynonym(opts: { collection: string; id: string }): Promise<boolean> {
+    const { collection, id } = opts;
+    this.assertNonEmpty({ value: collection, name: 'collection', method: this.deleteSynonym.name });
+    this.assertNonEmpty({ value: id, name: 'synonym id', method: this.deleteSynonym.name });
+    const logger = this.logger.for(this.deleteSynonym.name);
+
+    const rs = await this.runEngineCall({
+      method: this.deleteSynonym.name,
+      run: async () => {
+        await this.client.collections(collection).synonyms(id).delete();
+        logger.info('Deleted synonym | collection: %s | id: %s', collection, id);
+        return true;
+      },
+      tolerate: this.notFoundFallback({
+        method: this.deleteSynonym.name,
+        message: 'Synonym not found, treating as already deleted | collection: %s | id: %s',
+        args: [collection, id],
+        fallback: false,
+      }),
+    });
+    return rs;
+  }
+
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
     const { collection, document } = opts;
     this.assertNonEmpty({
@@ -534,7 +748,6 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
       run: async () => {
-        // Facade create() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
         const created = (await this.client
           .collections(collection)
           .documents()
@@ -549,25 +762,17 @@ export class TypesenseDriver extends BaseSearchDriver {
     const { collection, id } = opts;
     this.assertNonEmpty({ value: collection, name: 'collection', method: this.getDocument.name });
     this.assertNonEmpty({ value: id, name: 'document id', method: this.getDocument.name });
-    const logger = this.logger.for(this.getDocument.name);
 
     const rs = await this.runEngineCall({
       method: this.getDocument.name,
       run: async () => {
-        // Facade retrieve() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
         const document = (await this.client.collections(collection).documents(id).retrieve()) as T;
         return document;
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Document not found | collection: %s | id: %s', collection, id);
-          SearchDriverInternal.throwNotFoundError({
-            method: this.getDocument.name,
-            subject: `Document '${id}' in collection '${collection}'`,
-          });
-        },
-      },
+      tolerate: this.notFoundTolerance({
+        method: this.getDocument.name,
+        subject: `Document '${id}' in collection '${collection}'`,
+      }),
     });
     return rs;
   }
@@ -583,7 +788,6 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.upsertDocument.name,
       run: async () => {
-        // Facade upsert() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
         const upserted = (await this.client
           .collections(collection)
           .documents()
@@ -606,28 +810,20 @@ export class TypesenseDriver extends BaseSearchDriver {
       method: this.updateDocument.name,
     });
     this.assertNonEmpty({ value: id, name: 'document id', method: this.updateDocument.name });
-    const logger = this.logger.for(this.updateDocument.name);
 
     const rs = await this.runEngineCall({
       method: this.updateDocument.name,
       run: async () => {
-        // Facade update() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
         const updated = (await this.client
           .collections(collection)
           .documents(id)
           .update(document)) as T;
         return updated;
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug('Document not found | collection: %s | id: %s', collection, id);
-          SearchDriverInternal.throwNotFoundError({
-            method: this.updateDocument.name,
-            subject: `Document '${id}' in collection '${collection}'`,
-          });
-        },
-      },
+      tolerate: this.notFoundTolerance({
+        method: this.updateDocument.name,
+        subject: `Document '${id}' in collection '${collection}'`,
+      }),
     });
     return rs;
   }
@@ -640,7 +836,6 @@ export class TypesenseDriver extends BaseSearchDriver {
       method: this.deleteDocument.name,
     });
     this.assertNonEmpty({ value: id, name: 'document id', method: this.deleteDocument.name });
-    const logger = this.logger.for(this.deleteDocument.name);
 
     const rs = await this.runEngineCall({
       method: this.deleteDocument.name,
@@ -648,17 +843,12 @@ export class TypesenseDriver extends BaseSearchDriver {
         await this.client.collections(collection).documents(id).delete();
         return true;
       },
-      tolerate: {
-        when: error => TypesenseInternal.isNotFoundError({ error }),
-        handle: () => {
-          logger.debug(
-            'Document not found, returning false | collection: %s | id: %s',
-            collection,
-            id,
-          );
-          return false;
-        },
-      },
+      tolerate: this.notFoundFallback({
+        method: this.deleteDocument.name,
+        message: 'Document not found, returning false | collection: %s | id: %s',
+        args: [collection, id],
+        fallback: false,
+      }),
     });
     return rs;
   }
@@ -701,18 +891,12 @@ export class TypesenseDriver extends BaseSearchDriver {
       for (let start = 0; start < documents.length; start += batchSize) {
         const batch = documents.slice(start, start + batchSize);
 
-        // typesense defaults to throwOnFail:true (throws on any failed row); opt out so import() returns per-row responses to aggregate below.
-        const importParams: {
-          action: TTypesenseImportAction;
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          dirty_values?: TTypesenseDirtyValue;
-          throwOnFail: false;
-        } = { action, throwOnFail: false };
+        // opt out of typesense's default throwOnFail:true so import() returns per-row responses to aggregate below.
+        const importParams: Record<string, unknown> = { action, throwOnFail: false };
         if (dirtyValues) {
-          importParams.dirty_values = dirtyValues;
+          importParams['dirty_values'] = dirtyValues;
         }
 
-        // Facade import() is `unknown` by contract; engine guarantees one ImportResponse row per submitted document.
         const batchResult = (await this.client
           .collections(collection)
           .documents()
@@ -730,7 +914,7 @@ export class TypesenseDriver extends BaseSearchDriver {
       }
     } catch (error) {
       // Batches before the failure are already persisted server-side; attach partial progress so callers can decide to resume or retry.
-      SearchDriverInternal.wrapDependencyError({
+      SearchConnectorInternal.wrapDependencyError({
         method: this.importDocuments.name,
         error,
         logger: this.logger,
@@ -768,11 +952,13 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.updateByFilter.name,
       run: async () => {
+        const updateOptions: Record<string, unknown> = {};
+        updateOptions['filter_by'] = filterBy;
+
         const result = await this.client
           .collections(collection)
           .documents()
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          .update(document, { filter_by: filterBy });
+          .update(document, updateOptions);
 
         return { updatedCount: readNumberField({ value: result, key: 'num_updated' }) };
       },
@@ -797,20 +983,15 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.deleteByFilter.name,
       run: async () => {
-        /* eslint-disable @typescript-eslint/naming-convention */
-        const deleteParams: {
-          filter_by: string;
-          batch_size?: number;
-          ignore_not_found?: boolean;
-        } = { filter_by: filterBy };
-        /* eslint-enable @typescript-eslint/naming-convention */
+        const deleteParams: Record<string, unknown> = {};
+        deleteParams['filter_by'] = filterBy;
 
         if (batchSize && batchSize > 0) {
-          deleteParams.batch_size = batchSize;
+          deleteParams['batch_size'] = batchSize;
         }
 
         if (ignoreNotFound !== undefined) {
-          deleteParams.ignore_not_found = ignoreNotFound;
+          deleteParams['ignore_not_found'] = ignoreNotFound;
         }
 
         const result = await this.client.collections(collection).documents().delete(deleteParams);
@@ -864,18 +1045,16 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.exportDocuments.name,
       run: async () => {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        const exportParams: { filter_by?: string; include_fields?: string } = {};
+        const exportParams: Record<string, unknown> = {};
 
         if (filterBy) {
-          exportParams.filter_by = filterBy;
+          exportParams['filter_by'] = filterBy;
         }
 
         if (includeFields && includeFields.length > 0) {
-          exportParams.include_fields = includeFields.join(',');
+          exportParams['include_fields'] = includeFields.join(',');
         }
 
-        // Facade export() is `unknown` by contract; engine guarantees a JSONL string when no readable-stream option is passed.
         const exported = (await this.client
           .collections(collection)
           .documents()
@@ -886,14 +1065,11 @@ export class TypesenseDriver extends BaseSearchDriver {
     return rs;
   }
 
-  // -------------------------------------------------------------------------------------------
-  // Search (raw passthrough)
-  // -------------------------------------------------------------------------------------------
   async search<T extends TDocumentSchema = TDocumentSchema>(opts: {
     collection: string;
     params: TSearchParams;
     options?: TSearchOptions;
-  }): Promise<TSearchResponse<T>> {
+  }): Promise<ISearchResult<T>> {
     const { collection, params, options } = opts;
     this.assertNonEmpty({ value: collection, name: 'collection', method: this.search.name });
     const logger = this.logger.for(this.search.name);
@@ -901,7 +1077,6 @@ export class TypesenseDriver extends BaseSearchDriver {
     const rs = await this.runEngineCall({
       method: this.search.name,
       run: async () => {
-        // Facade search() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
         const result = (await this.client
           .collections(collection)
           .documents()
@@ -914,39 +1089,45 @@ export class TypesenseDriver extends BaseSearchDriver {
           logger.warn('Search on missing collection, returning empty | name: %s', collection);
 
           // Missing collection -> empty result (not a 500); shape fully so consumers don't see undefined fields.
-          /* eslint-disable @typescript-eslint/naming-convention */
-          return {
-            found: 0,
-            out_of: 0,
-            page: 1,
-            search_time_ms: 0,
-            request_params: {},
-            hits: [],
-          };
-          /* eslint-enable @typescript-eslint/naming-convention */
+          return buildEmptySearchResponse() as TSearchResponse<T>;
         },
       },
     });
-    return rs;
+    return mapSearchResult<T>(rs);
   }
 
+  // `union: true` merges every `searches` entry into ONE result set (IUnionSearchResult); the
+  // default federates them side-by-side into `results[]` (IMultiSearchResult) - overloaded so
+  // callers get the right shape back at compile time instead of a runtime-checked union.
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
-    searches: IMultiSearchEntry[];
+    searches: TMultiSearchEntry[];
+    union: true;
     commonParams?: Partial<TSearchParams>;
     options?: TSearchOptions;
-  }): Promise<IMultiSearchResult<T>> {
-    const { searches, commonParams, options } = opts;
+  }): Promise<IUnionSearchResult<T>>;
+  async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: false;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T>>;
+  async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: boolean;
+    commonParams?: Partial<TSearchParams>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
+    const { searches, union: isUnion, commonParams, options } = opts;
 
     const rs = await this.runEngineCall({
       method: this.multiSearch.name,
       run: async () => {
         const result = await this.client.multiSearch.perform(
-          { searches },
+          isUnion ? { union: true, searches } : { searches },
           commonParams ?? {},
           options,
         );
-        // Facade perform() is `unknown` by contract; caller-supplied T can't be runtime-validated generically.
-        return result as IMultiSearchResult<T>;
+        return result as IMultiSearchResult<T> | IUnionSearchResult<T>;
       },
     });
     return rs;

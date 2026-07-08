@@ -1,11 +1,12 @@
 import { describe, test, expect } from 'bun:test';
-import { TypesenseDriver } from '@/connectors/typesense/driver';
+import { Client } from 'typesense';
+import { TypesenseConnector } from '@/connectors/typesense/connector';
 import { createFakeClient, makeHelper } from './fake-client';
 
-describe('TypesenseDriver lifecycle', () => {
+describe('TypesenseConnector lifecycle', () => {
   test('getClient returns the injected client', () => {
     const { helper, fake } = makeHelper();
-    expect(helper.getClient()).toBe(fake.client);
+    expect(helper.getClient()).toBe(fake.client as Client);
   });
 
   test('getHealth maps to { ok }', async () => {
@@ -21,7 +22,7 @@ describe('TypesenseDriver lifecycle', () => {
   test('onInitialized callback fires with name', () => {
     let seen = '';
     const fake = createFakeClient();
-    new TypesenseDriver({
+    new TypesenseConnector({
       name: 'cb-test',
       nodes: [{ host: 'localhost', port: 8108 }],
       apiKey: 'k',
@@ -44,7 +45,7 @@ describe('TypesenseDriver lifecycle', () => {
     let received: unknown;
     expect(
       () =>
-        new TypesenseDriver({
+        new TypesenseConnector({
           name: 'err-test',
           nodes: [{ host: 'localhost', port: 8108 }],
           apiKey: 'k',

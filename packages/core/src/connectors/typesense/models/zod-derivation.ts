@@ -27,6 +27,9 @@ const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
     case SearchFieldTypes.BOOLEAN_ARRAY: {
       return z.array(z.boolean());
     }
+    case SearchFieldTypes.VECTOR: {
+      return z.array(z.number());
+    }
     default: {
       throw getError({
         message: `[deriveSearchDocumentSchema] Unsupported field type | field: ${field.name} | type: ${field.type}`,
@@ -35,14 +38,24 @@ const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
   }
 };
 
-const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
+// A vector field carrying `vector.embed` is server auto-embedded (mirrors TSearchDocument's
+// embed exclusion) - it is never part of client-supplied input/output, so it is dropped from the shape entirely.
+const buildFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny | undefined => {
+  if (field.type === SearchFieldTypes.VECTOR && field.vector?.embed) {
+    return undefined;
+  }
+
   const baseSchema = buildBaseFieldSchema(field);
 
   return field.optional ? baseSchema.optional() : baseSchema;
 };
 
 const buildShape = (fields: readonly ISearchFieldDefinition[]): Record<string, z.ZodTypeAny> => {
-  return Object.fromEntries(fields.map(field => [field.name, buildFieldSchema(field)]));
+  const entries = fields
+    .map(field => [field.name, buildFieldSchema(field)] as const)
+    .filter((entry): entry is [string, z.ZodTypeAny] => entry[1] !== undefined);
+
+  return Object.fromEntries(entries);
 };
 
 export const deriveSearchDocumentSchema = (opts: {

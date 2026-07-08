@@ -22,6 +22,7 @@ describe('compileTypesenseCollection', () => {
 
     const schema = compileTypesenseCollection({ definition });
 
+    // Computed key (not a declared identifier) - the Typesense wire field is a runtime string here.
     expect(schema).toEqual({
       name: 'products',
       fields: [
@@ -34,8 +35,7 @@ describe('compileTypesenseCollection', () => {
         { name: 'flags', type: 'bool[]' },
         { name: 'rating', type: 'float', optional: true, sort: true },
       ],
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-      default_sorting_field: 'rating',
+      ['default_sorting_field']: 'rating',
     });
   });
 
@@ -140,8 +140,7 @@ describe('compileTypesenseCollection', () => {
     expect(schema).toEqual({
       name: 'products',
       fields: [{ name: 'rating', type: 'float', sort: true }],
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-      default_sorting_field: 'rating',
+      ['default_sorting_field']: 'rating',
     });
   });
 
@@ -157,13 +156,13 @@ describe('compileTypesenseCollection', () => {
   });
 
   test('merges engineOverrides.typesense top-level keys, spread last over the compiled schema', () => {
+    const typesenseOverride: Record<string, unknown> = {};
+    typesenseOverride['token_separators'] = ['-'];
+
     const definition = defineSearchCollection({
       name: 'products',
       fields: [field.string('title')],
-      engineOverrides: {
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-        typesense: { token_separators: ['-'] },
-      },
+      engineOverrides: { typesense: typesenseOverride },
     });
 
     const schema = compileTypesenseCollection({ definition });
@@ -171,19 +170,20 @@ describe('compileTypesenseCollection', () => {
     expect(schema).toEqual({
       name: 'products',
       fields: [{ name: 'title', type: 'string' }],
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-      token_separators: ['-'],
+      ['token_separators']: ['-'],
     });
   });
 
   test('ignores engineOverrides.meilisearch and engineOverrides.opensearch entirely', () => {
+    const openSearchSettings: Record<string, unknown> = {};
+    openSearchSettings['number_of_shards'] = 3;
+
     const definition = defineSearchCollection({
       name: 'products',
       fields: [field.string('title')],
       engineOverrides: {
         meilisearch: { filterableAttributes: ['title'] },
-        // eslint-disable-next-line @typescript-eslint/naming-convention -- opensearch wire field.
-        opensearch: { settings: { number_of_shards: 3 } },
+        opensearch: { settings: openSearchSettings },
       },
     });
 
@@ -220,8 +220,7 @@ describe('compileTypesenseCollection', () => {
       fields: [field.string('title')],
       engineOverrides: {
         typesense: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-          fields: [{ name: 'embedding', type: 'float[]', num_dim: 384 }],
+          fields: [{ name: 'embedding', type: 'float[]', ['num_dim']: 384 }],
         },
       },
     });
@@ -230,8 +229,77 @@ describe('compileTypesenseCollection', () => {
 
     expect(schema.fields).toEqual([
       { name: 'title', type: 'string' },
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-      { name: 'embedding', type: 'float[]', num_dim: 384 },
+      { name: 'embedding', type: 'float[]', ['num_dim']: 384 },
+    ]);
+  });
+
+  test('compiles a client-provided vector field to float[] with num_dim and vec_dist', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [field.vector('vec', { dimensions: 384, distance: 'cosine' })],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    expect(schema.fields).toEqual([
+      { name: 'vec', type: 'float[]', ['num_dim']: 384, ['vec_dist']: 'cosine' },
+    ]);
+  });
+
+  test('defaults vec_dist to cosine when distance is not supplied', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [field.vector('vec', { dimensions: 128 })],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    expect(schema.fields).toEqual([
+      { name: 'vec', type: 'float[]', ['num_dim']: 128, ['vec_dist']: 'cosine' },
+    ]);
+  });
+
+  test('compiles an auto-embed vector field to float[] with embed.from/model_config, no vec_dist', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [
+        field.string('title'),
+        field.vector('vec', { embed: { from: ['title'], model: { name: 'ts/all-MiniLM-L6-v2' } } }),
+      ],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    expect(schema.fields).toEqual([
+      { name: 'title', type: 'string' },
+      {
+        name: 'vec',
+        type: 'float[]',
+        ['embed']: { from: ['title'], ['model_config']: { name: 'ts/all-MiniLM-L6-v2' } },
+      },
+    ]);
+  });
+
+  test('forwards an explicit dimensions alongside embed (e.g. a custom model Typesense cannot introspect)', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [
+        field.vector('vec', {
+          dimensions: 512,
+          embed: { from: ['title'], model: { name: 'custom/model' } },
+        }),
+      ],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    expect(schema.fields).toEqual([
+      {
+        name: 'vec',
+        type: 'float[]',
+        ['num_dim']: 512,
+        ['embed']: { from: ['title'], ['model_config']: { name: 'custom/model' } },
+      },
     ]);
   });
 

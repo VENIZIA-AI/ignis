@@ -7,6 +7,7 @@ import {
   ISearchFieldDefinition,
   SearchFieldTypes,
   TSearchFieldType,
+  VectorDistances,
 } from '@/connectors/typesense/models';
 
 /** Wire-shaped Typesense field entry, derived from the SDK's own schema type. */
@@ -40,6 +41,9 @@ const mapFieldType = (opts: { type: TSearchFieldType }): TTypesenseField['type']
     case SearchFieldTypes.BOOLEAN_ARRAY: {
       return 'bool[]';
     }
+    case SearchFieldTypes.VECTOR: {
+      return 'float[]';
+    }
     default: {
       // Unreachable under TSearchFieldType's typing - defensive against a widened caller.
       throw getError({
@@ -69,6 +73,29 @@ const compileField = (opts: { field: ISearchFieldDefinition }): TTypesenseField 
 
   if (field.sortable !== undefined) {
     compiled.sort = field.sortable;
+  }
+
+  if (field.vector) {
+    const { vector } = field;
+
+    if (vector.embed) {
+      // Typesense derives num_dim from the embedding model; still forwarded when the caller supplied it explicitly (e.g. a custom/self-hosted model Typesense can't introspect).
+      const embed: Record<string, unknown> = { from: vector.embed.from };
+      embed['model_config'] = vector.embed.model;
+      compiled.embed = embed;
+
+      if (vector.dimensions !== undefined) {
+        compiled.num_dim = vector.dimensions;
+      }
+    } else {
+      if (vector.dimensions === undefined) {
+        throw getError({
+          message: `[compileTypesenseCollection] vector field '${field.name}' requires 'dimensions' (or an 'embed' config)`,
+        });
+      }
+      compiled.num_dim = vector.dimensions;
+      compiled.vec_dist = vector.distance ?? VectorDistances.COSINE;
+    }
   }
 
   return compiled;
@@ -136,16 +163,14 @@ export const compileTypesenseCollection = (opts: {
   if (defaultSort !== undefined) {
     const sortField = fields.find(item => item.name === defaultSort);
 
-    // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array;
-    // checked here (not the neutral DSL) so a bad definition fails clearly, not with an opaque 400.
+    // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array.
     if (sortField && sortField.type !== SearchFieldTypes.NUMBER) {
       throw getError({
         message: `[compileTypesenseCollection] Invalid defaultSort | Typesense's default_sorting_field requires a scalar numeric field (int32/int64/float) - not string, not array | name: ${name} | defaultSort: ${defaultSort} | type: ${sortField.type}`,
       });
     }
 
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field.
-    schema = { ...schema, default_sorting_field: defaultSort };
+    schema.default_sorting_field = defaultSort;
   }
 
   const typesenseOverride = engineOverrides?.typesense;

@@ -13,7 +13,7 @@ import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/ty
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-import { FakeSearchDataSource } from './fake-search-driver';
+import { FakeSearchDataSource } from './fake-search-connector';
 
 // Own datasource class (not reused from another test file): the model registry is a process-wide singleton keyed by class name.
 class AppSearchDataSource extends FakeSearchDataSource {}
@@ -189,7 +189,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
 
       await repositoryInstance.find({ filter: { where: { title: 'foo' } } });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       expect(call.collection).toBe('sprockets');
 
       const params = call.params as Record<string, unknown>;
@@ -200,13 +200,13 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
     test('deleteAll with no where falls back to filter-delete (defaultWhere), not truncate', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-6', config: {} });
       const repositoryInstance = new SprocketSearchRepository(dataSource);
-      dataSource.fakeDriver.deleteByFilterResponse = 2;
+      dataSource.fakeConnector.deleteByFilterResponse = 2;
 
       const result = await repositoryInstance.deleteAll();
 
       expect(result).toEqual({ count: 2, data: [] });
-      expect(dataSource.fakeDriver.deleteByFilterCalls[0]?.filterBy).toBe('isActive:=true');
-      expect(dataSource.fakeDriver.deleteAllDocumentsCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteByFilterCalls[0]?.filterBy).toBe('isActive:=true');
+      expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
   });
 });

@@ -1,4 +1,4 @@
-import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
+import { getError, HTTP, TClass, TNullable } from '@venizia/ignis-helpers';
 import {
   IExtraOptions,
   RepositoryOperationScopes,
@@ -6,19 +6,19 @@ import {
   TWhere,
 } from '@/base/repositories/common';
 import { IdType } from '@/base/models';
-import { IImportResult } from '../../driver';
+import { IImportResult } from '../../connector';
 import { TypesenseDataSource } from '@/connectors/typesense/datasources';
 import { BaseSearchEntity } from '@/connectors/typesense/models';
 import { TTypesenseImportAction } from '@/connectors/typesense/types';
 import { ReadableSearchRepository } from './readable';
 
-/** Narrows one `IImportResult.responses` row (`unknown` - see driver.ts's `IImportResult<TResponse
+/** Narrows one `IImportResult.responses` row (`unknown` - see connector.ts's `IImportResult<TResponse
  * = unknown>`) enough to read the per-row `success` flag `createAll` filters on. */
 function isImportRowLike(value: unknown): value is { success?: boolean } {
   return typeof value === 'object' && value !== null;
 }
 
-/** Write-tier search-repository - creates/updates through the driver, dialect-translating `where` clauses. */
+/** Write-tier search-repository - creates/updates through the connector, dialect-translating `where` clauses. */
 export class PersistableSearchRepository<
   TDocument extends object = object,
 > extends ReadableSearchRepository<TDocument> {
@@ -47,7 +47,7 @@ export class PersistableSearchRepository<
     this.assertNoTransaction(opts.options);
     this.assertNoLock(opts.options);
 
-    const created = await this.dataSource.getDriver().createDocument<TDocument>({
+    const created = await this.connector.createDocument<TDocument>({
       collection: this.collectionName,
       document: opts.data,
     });
@@ -92,8 +92,6 @@ export class PersistableSearchRepository<
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
-    // R is the caller-chosen output shape; filtered TDocument rows can't be runtime-validated
-    // against an arbitrary caller-supplied R, and TDocument/R share no bound for a direct assertion.
     return { count: rs.successCount, data: created as any };
   }
 
@@ -125,14 +123,14 @@ export class PersistableSearchRepository<
 
       if (!found) {
         throw getError({
-          statusCode: 404,
+          statusCode: HTTP.ResultCodes.RS_4.NotFound,
           messageCode: 'core.search_engine.not_found',
           message: `[${this.constructor.name}][updateById] Document not found or excluded by the default filter | Collection: ${this.collectionName} | Id: ${id}`,
         });
       }
     }
 
-    const updated = await this.dataSource.getDriver().updateDocument<TDocument>({
+    const updated = await this.connector.updateDocument<TDocument>({
       collection: this.collectionName,
       id: String(id),
       document: data,
@@ -142,7 +140,6 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    // Same R-is-caller-chosen boundary as create() above.
     return { count: 1, data: updated as R };
   }
 
@@ -178,7 +175,7 @@ export class PersistableSearchRepository<
       });
     }
 
-    const result = await this.dataSource.getDriver().updateByFilter<TDocument>({
+    const result = await this.connector.updateByFilter<TDocument>({
       collection: this.collectionName,
       document: data,
       filterBy,
@@ -227,7 +224,7 @@ export class PersistableSearchRepository<
       }
     }
 
-    const didDelete = await this.dataSource.getDriver().deleteDocument({
+    const didDelete = await this.connector.deleteDocument({
       collection: this.collectionName,
       id: String(id),
     });
@@ -268,7 +265,7 @@ export class PersistableSearchRepository<
     });
 
     if (filterBy === undefined) {
-      const didTruncate = await this.dataSource.getDriver().deleteAllDocuments({
+      const didTruncate = await this.connector.deleteAllDocuments({
         collection: this.collectionName,
       });
 
@@ -293,7 +290,7 @@ export class PersistableSearchRepository<
             options: { shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter },
           });
 
-    const deletedCount = await this.dataSource.getDriver().deleteByFilter({
+    const deletedCount = await this.connector.deleteByFilter({
       collection: this.collectionName,
       filterBy,
     });
@@ -301,8 +298,8 @@ export class PersistableSearchRepository<
     return { count: deletedCount, data: affected };
   }
 
-  /** Bulk import passthrough to the driver. `action` is typed as Typesense's own
-   * `TTypesenseImportAction` - this tier is already Typesense-specific, and the driver is typed end to end (no `ISearchDriver` cast). */
+  /** Bulk import passthrough to the connector. `action` is typed as Typesense's own
+   * `TTypesenseImportAction` - this tier is already Typesense-specific, and the connector is typed end to end (no `ISearchConnector` cast). */
   import(opts: {
     documents: TDocument[];
     action?: TTypesenseImportAction;
@@ -328,10 +325,10 @@ export class PersistableSearchRepository<
       importOpts.action = action;
     }
 
-    return this.dataSource.getDriver().importDocuments<TDocument>(importOpts);
+    return this.connector.importDocuments<TDocument>(importOpts);
   }
 
-  /** Resolves filter_by, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateAll refuses; deleteAll truncates). */
+  /** Resolves filterBy, AND-merging defaultWhere unless shouldSkipDefaultFilter. Returns undefined when there's no effective where - callers decide (updateAll refuses; deleteAll truncates). */
   protected buildFilterBy(opts: {
     where?: TWhere;
     shouldSkipDefaultFilter?: boolean;
@@ -341,6 +338,6 @@ export class PersistableSearchRepository<
       filter: where !== undefined ? { where } : undefined,
       shouldSkipDefaultFilter,
     });
-    return query.filter_by;
+    return query.filterBy;
   }
 }

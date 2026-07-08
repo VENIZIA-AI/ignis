@@ -8,10 +8,11 @@ import {
   TWhere,
 } from '@/base/repositories/common';
 import { IdType } from '@/base/models';
-import { ISearchResult } from '../../driver';
+import { ISearchResult } from '../../connector';
+import { ISearchQuery, SearchModes, TSearchInput } from '../common';
 import { SearchBaseRepository } from './base';
 
-/** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the driver. */
+/** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
 export class ReadableSearchRepository<
   TDocument extends object = object,
 > extends SearchBaseRepository<TDocument> {
@@ -23,11 +24,11 @@ export class ReadableSearchRepository<
       filter: { where: opts.where },
       shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
     });
+    query.perPage = 0;
 
-    const result = await this.dataSource.getDriver().search({
+    const result = await this.connector.search({
       collection: this.collectionName,
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field name
-      params: { ...query, per_page: 0 },
+      params: this.queryDialect.toWireParams({ query }),
     });
 
     return { count: result.found };
@@ -69,14 +70,13 @@ export class ReadableSearchRepository<
       shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter,
     });
 
-    const result = await this.dataSource.getDriver().search<TDocument>({
+    const result = await this.connector.search<TDocument>({
       collection: this.collectionName,
-      params: query,
+      params: this.queryDialect.toWireParams({ query }),
     });
 
     const { hits, found } = result;
-    // R defaults to TDocument, so this cast is a no-op at the default call sites; an explicit
-    // `find<Other>()` call is the caller's own unchecked assertion.
+    // An explicit `find<Other>()` call is the caller's own unchecked assertion (R defaults to TDocument).
     const data = (hits ?? []).map(hit => hit.document) as any;
 
     if (!options?.shouldQueryRange) {
@@ -104,26 +104,173 @@ export class ReadableSearchRepository<
     return this.findOne<R>({ filter: { where: { id } }, options });
   }
 
-  /** Raw passthrough to the driver's search - no dialect translation, no default filter.
-   * `TResult` defaults to `ISearchResult<TDocument>`; override it when the engine response is shaped differently (e.g. grouped hits). */
-  search<TResult = ISearchResult<TDocument>>(opts: {
-    params: object;
-    options?: object;
-  }): Promise<TResult> {
-    const { params, options } = opts;
+  /** Unified search entry point, discriminated by `mode`:
+   * - `raw` - full-power passthrough straight to the connector, no dialect/defaultFilter/hiddenFields (unchanged legacy behavior).
+   * - `keyword` - full-text search, `where`/`defaultFilter`/`hiddenFields` translated via the dialect same as `find()`.
+   * - `semantic` - vector search; an explicit `nearVector` translates through the dialect, an omitted one falls back to `queryText` for server-side auto-embed.
+   * - `hybrid` - keyword + vector combined via the dialect's `alpha`-weighted `vector_query`.
+   *
+   * `mode` is read once into a `const` so TypeScript's aliased-discriminant narrowing carries
+   * through both the early `raw` return and the switch below - no casts needed. */
+  async search<R extends object = TDocument>(
+    opts: TSearchInput & { options?: IExtraOptions },
+  ): Promise<ISearchResult<R>> {
+    const { mode } = opts;
 
-    // ISearchDriver.search() only declares { collection, params }; concrete backends accept an
-    // extra options arg, so build via a typed local to sidestep the excess-property check.
-    const searchOpts: { collection: string; params: object; options?: object } = {
-      collection: this.collectionName,
-      params,
-    };
-
-    if (options) {
-      searchOpts.options = options;
+    if (mode === SearchModes.RAW) {
+      return this.connector.search<R>({
+        collection: this.collectionName,
+        params: opts.params,
+      });
     }
 
-    return this.dataSource.getDriver().search(searchOpts) as Promise<TResult>;
+    this.assertNoTransaction(opts.options);
+    this.assertNoLock(opts.options);
+
+    const base = this.buildQuery({
+      filter: opts.filter,
+      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
+    });
+    const params: ISearchQuery = { ...base };
+    const dialect = this.queryDialect;
+
+    switch (mode) {
+      case SearchModes.KEYWORD: {
+        if (opts.query) {
+          params.q = opts.query;
+        }
+        if (opts.queryBy) {
+          params.queryBy = opts.queryBy.join(',');
+        }
+        break;
+      }
+      case SearchModes.SEMANTIC: {
+        if (opts.nearVector) {
+          params.vectorQuery = dialect.toVectorQuery({
+            field: opts.vectorField,
+            nearVector: opts.nearVector,
+            k: opts.k,
+            distanceThreshold: opts.distanceThreshold,
+            ef: opts.ef,
+          }).vectorQuery;
+        } else if (opts.queryText) {
+          // Auto-embed: the engine vectorizes queryText against vectorField; vector_query carries k.
+          params.q = opts.queryText;
+          params.queryBy = opts.vectorField;
+          params.vectorQuery = dialect.toVectorQuery({
+            field: opts.vectorField,
+            k: opts.k,
+            distanceThreshold: opts.distanceThreshold,
+            ef: opts.ef,
+          }).vectorQuery;
+        } else {
+          throw getError({
+            message: `[ReadableSearchRepository][search] semantic mode requires 'nearVector' or 'queryText'`,
+          });
+        }
+        break;
+      }
+      case SearchModes.HYBRID: {
+        params.q = opts.query;
+        // Auto-embed (no nearVector) needs the embedding field in query_by; a supplied vector keeps text fields only.
+        params.queryBy = opts.nearVector
+          ? opts.queryBy.join(',')
+          : [...opts.queryBy, opts.vectorField].join(',');
+        params.vectorQuery = dialect.toVectorQuery({
+          field: opts.vectorField,
+          nearVector: opts.nearVector,
+          k: opts.k,
+          alpha: opts.alpha,
+          distanceThreshold: opts.distanceThreshold,
+          ef: opts.ef,
+        }).vectorQuery;
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+
+    this.applyCommonSearchParams({ params, input: opts });
+
+    return this.connector.search<R>({
+      collection: this.collectionName,
+      params: dialect.toWireParams({ query: params }),
+    });
+  }
+
+  /** Applies faceting/highlighting/grouping/search-tuning params (shared by keyword/semantic/hybrid,
+   * absent from `raw`) onto `params` - arrays are comma-joined the same way the dialect joins queryBy/fields. */
+  private applyCommonSearchParams(opts: {
+    params: ISearchQuery;
+    input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
+  }): void {
+    const { params, input } = opts;
+
+    if (input.facetBy) {
+      params.facetBy = input.facetBy.join(',');
+    }
+    if (input.facetQuery !== undefined) {
+      params.facetQuery = input.facetQuery;
+    }
+    if (input.maxFacetValues !== undefined) {
+      params.maxFacetValues = input.maxFacetValues;
+    }
+    if (input.highlightFields) {
+      params.highlightFields = input.highlightFields.join(',');
+    }
+    if (input.highlightFullFields) {
+      params.highlightFullFields = input.highlightFullFields.join(',');
+    }
+    if (input.highlightStartTag !== undefined) {
+      params.highlightStartTag = input.highlightStartTag;
+    }
+    if (input.highlightEndTag !== undefined) {
+      params.highlightEndTag = input.highlightEndTag;
+    }
+    if (input.snippetThreshold !== undefined) {
+      params.snippetThreshold = input.snippetThreshold;
+    }
+    if (input.groupBy) {
+      params.groupBy = input.groupBy.join(',');
+    }
+    if (input.groupLimit !== undefined) {
+      params.groupLimit = input.groupLimit;
+    }
+    if (input.groupMissingValues !== undefined) {
+      params.groupMissingValues = input.groupMissingValues;
+    }
+    if (input.numTypos !== undefined) {
+      params.numTypos = input.numTypos;
+    }
+    if (input.prefix !== undefined) {
+      params.prefix = input.prefix;
+    }
+    if (input.infix !== undefined) {
+      params.infix = input.infix;
+    }
+    if (input.useCache !== undefined) {
+      params.useCache = input.useCache;
+    }
+    if (input.cacheTtl !== undefined) {
+      params.cacheTtl = input.cacheTtl;
+    }
+    if (input.exhaustiveSearch !== undefined) {
+      params.exhaustiveSearch = input.exhaustiveSearch;
+    }
+    if (input.pinnedHits !== undefined) {
+      params.pinnedHits = input.pinnedHits;
+    }
+    if (input.hiddenHits !== undefined) {
+      params.hiddenHits = input.hiddenHits;
+    }
+  }
+
+  /** Throws the standardized NOT ALLOWED error for a disabled operation; callers pass their own method name for the message. */
+  protected denyOperation(methodName: string): never {
+    throw getError({
+      message: `[${methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
+    });
   }
 
   /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */
@@ -139,9 +286,7 @@ export class ReadableSearchRepository<
     data: TDocument;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.create.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.create.name);
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -157,9 +302,7 @@ export class ReadableSearchRepository<
     data: Array<TDocument>;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.createAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.createAll.name);
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -178,9 +321,7 @@ export class ReadableSearchRepository<
     data: Partial<TDocument>;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.updateById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateById.name);
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -199,9 +340,7 @@ export class ReadableSearchRepository<
     where?: TWhere;
     options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.updateAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateAll.name);
   }
 
   /** @throws Error - disabled in a read-only repository. */
@@ -217,9 +356,7 @@ export class ReadableSearchRepository<
     id: IdType;
     options?: IExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.deleteById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteById.name);
   }
 
   /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
@@ -235,8 +372,6 @@ export class ReadableSearchRepository<
     where?: TWhere;
     options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.deleteAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteAll.name);
   }
 }

@@ -1,21 +1,5 @@
 import { ITransaction } from '@/base/datasources';
-import { AbstractRepository } from '@/base/repositories/core';
 import { IdType } from '@/base/models';
-import {
-  IPostgresDataSource,
-  IDatabaseTransaction,
-  IDatabaseTransactionOptions,
-  isDatabaseTransaction,
-  TAnyConnector,
-} from '@/connectors/postgres/datasources';
-import {
-  BaseRelationalEntity,
-  TTableInsert,
-  TTableObject,
-  TTableSchemaWithId,
-} from '@/connectors/postgres/models';
-import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
-import { getTableColumns } from 'drizzle-orm';
 import {
   IExtraOptions,
   IPersistableRepository,
@@ -27,6 +11,22 @@ import {
   TRepositoryOperationScope,
   TWhere,
 } from '@/base/repositories/common';
+import { AbstractRepository } from '@/base/repositories/core';
+import {
+  IDatabaseTransaction,
+  IDatabaseTransactionOptions,
+  IPostgresDataSource,
+  isDatabaseTransaction,
+  TAnyConnector,
+} from '@/connectors/postgres/datasources';
+import {
+  BaseRelationalEntity,
+  TTableInsert,
+  TTableObject,
+  TTableSchemaWithId,
+} from '@/connectors/postgres/models';
+import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
+import { getTableColumns } from 'drizzle-orm';
 import { IDatabaseExtraOptions, IRelationalQueryDialect } from '../common';
 
 /** Postgres implementation of `AbstractRepository`: adds FilterBuilder + hidden-column exclusion
@@ -57,9 +57,6 @@ export abstract class RelationalBaseRepository<
   }
 
   override get dataSource(): IPostgresDataSource {
-    // AbstractRepository's getter is engine-neutral (AbstractDataSource); every postgres repository
-    // is only ever constructed with an IPostgresDataSource (see constructor), so the narrowing is
-    // sound but not provable from the base class's stored type alone.
     return super.dataSource as IPostgresDataSource;
   }
 
@@ -68,7 +65,6 @@ export abstract class RelationalBaseRepository<
   }
 
   override get entity(): BaseRelationalEntity<EntitySchema> {
-    // Same engine-neutral-base-vs-concrete-connector narrowing as the dataSource getter above.
     return super.entity as BaseRelationalEntity<EntitySchema>;
   }
 
@@ -90,10 +86,6 @@ export abstract class RelationalBaseRepository<
 
   getEntitySchema(): EntitySchema {
     return this.entity.schema;
-  }
-
-  getConnector(): IPostgresDataSource['connector'] {
-    return this.connector;
   }
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
@@ -134,8 +126,6 @@ export abstract class RelationalBaseRepository<
     return this._visibleColumns;
   }
 
-  /** Full @model settings.defaultFilter (where/order/limit/...) - unlike the base's narrower
-   * `defaultWhere`, this preserves FilterBuilder.mergeFilter's existing full-filter merge. */
   getDefaultFilter(): TFilter | undefined {
     return this.modelSettings?.defaultFilter;
   }

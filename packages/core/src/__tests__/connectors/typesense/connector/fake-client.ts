@@ -1,7 +1,7 @@
-// Minimal hand-rolled stand-in for the Typesense Client surface the driver uses.
+// Minimal hand-rolled stand-in for the Typesense Client surface the connector uses.
 // Records calls and returns programmed responses / injected errors.
 
-import { ITypesenseClientLike, TypesenseDriver } from '@/connectors/typesense/driver';
+import { ITypesenseClientLike, TypesenseConnector } from '@/connectors/typesense/connector';
 
 export interface IFakeBehavior {
   health?: { ok: boolean };
@@ -15,8 +15,9 @@ export interface IFakeBehavior {
   exportResult?: string;
   numDeleted?: number;
   numUpdated?: number;
-  // eslint-disable-next-line @typescript-eslint/naming-convention
-  aliasByName?: Record<string, { name: string; collection_name: string }>;
+  aliasByName?: Record<string, Record<string, string>>;
+  synonymById?: Record<string, { id: string; synonyms: string[]; root?: string }>;
+  synonymsList?: Array<{ id: string; synonyms: string[]; root?: string }>;
   // Inject an error keyed by operation name to exercise error paths.
   throwOn?: Partial<Record<string, unknown>>;
   // Inject an error on the Nth documents.import call (0-based) to exercise partial-batch failures.
@@ -61,8 +62,9 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       maybeThrow('documents.update');
       // Batch update (no id) returns { num_updated }; single update returns the patch.
       if (id === undefined) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        return { num_updated: behavior.numUpdated ?? 0 };
+        const result: Record<string, unknown> = {};
+        result['num_updated'] = behavior.numUpdated ?? 0;
+        return result;
       }
       return patch;
     },
@@ -70,8 +72,9 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       record('documents.delete', name, id, params);
       maybeThrow('documents.delete');
       if (id === undefined) {
-        // eslint-disable-next-line @typescript-eslint/naming-convention
-        return { num_deleted: behavior.numDeleted ?? 0 };
+        const result: Record<string, unknown> = {};
+        result['num_deleted'] = behavior.numDeleted ?? 0;
+        return result;
       }
       return { id };
     },
@@ -94,6 +97,27 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       record('documents.export', name, params);
       maybeThrow('documents.export');
       return behavior.exportResult ?? '';
+    },
+  });
+
+  const synonyms = (collectionName: string, id?: string) => ({
+    upsert: async (synonymId: string, params: unknown) => {
+      record('synonyms.upsert', collectionName, synonymId, params);
+      maybeThrow('synonyms.upsert');
+      return { id: synonymId, ...(params as object) };
+    },
+    retrieve: async () => {
+      record('synonyms.retrieve', collectionName, id);
+      maybeThrow('synonyms.retrieve');
+      if (id === undefined) {
+        return { synonyms: behavior.synonymsList ?? [] };
+      }
+      return behavior.synonymById?.[id];
+    },
+    delete: async () => {
+      record('synonyms.delete', collectionName, id);
+      maybeThrow('synonyms.delete');
+      return { id };
     },
   });
 
@@ -127,6 +151,7 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       return schema;
     },
     documents: (id?: string) => documents(name ?? '', id),
+    synonyms: (id?: string) => synonyms(name ?? '', id),
   });
 
   const aliases = (name?: string) => ({
@@ -164,11 +189,11 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
   return { client, calls };
 };
 
-// Shared driver-construction fixture — the single source of truth for test suites (do NOT
+// Shared connector-construction fixture — the single source of truth for test suites (do NOT
 // re-declare per test file; copies drift).
 export const makeHelper = (behavior: IFakeBehavior = {}) => {
   const fake = createFakeClient(behavior);
-  const helper = new TypesenseDriver({
+  const helper = new TypesenseConnector({
     name: 'test',
     nodes: [{ host: 'localhost', port: 8108 }],
     apiKey: 'k',

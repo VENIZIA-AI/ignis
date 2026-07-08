@@ -1,7 +1,7 @@
 import { getError, HTTP, Logger } from '@venizia/ignis-helpers';
 
-/** Engine-agnostic error plumbing shared by every search driver; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
-export class SearchDriverInternal {
+/** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
+export class SearchConnectorInternal {
   // Error/stack are non-enumerable, so `%j` on a raw Error yields `{}` — extract them so logs retain detail.
   static describeError(opts: { error: unknown }): unknown {
     const { error } = opts;
@@ -22,7 +22,7 @@ export class SearchDriverInternal {
       .for(method)
       .error(
         'Search engine dependency error | detail: %j',
-        SearchDriverInternal.describeError({ error }),
+        SearchConnectorInternal.describeError({ error }),
       );
 
     throw getError({

@@ -6,16 +6,18 @@ import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
 import { model, repository } from '@/base/metadata';
 import {
   TypesenseDataSource,
-  TypesenseDriver,
+  TypesenseConnector,
   TypesenseQueryDialect,
 } from '@/connectors/typesense';
 import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
 
-/** Minimal fake Typesense client-shaped driver - records `ensureCollection` calls. */
-class FakeTypesenseDriver {
+/** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/`upsertSynonym` calls. */
+class FakeTypesenseConnector {
   ensureCalls: unknown[] = [];
+  multiSearchCalls: unknown[] = [];
+  upsertSynonymCalls: Array<{ collection: string; synonym: unknown }> = [];
 
   async ensureCollection(opts: { schema: unknown }): Promise<unknown> {
     this.ensureCalls.push(opts.schema);
@@ -25,17 +27,28 @@ class FakeTypesenseDriver {
   async ping(): Promise<boolean> {
     return true;
   }
+
+  async multiSearch(opts: unknown): Promise<unknown> {
+    this.multiSearchCalls.push(opts);
+    return { results: [{ found: 1 }] };
+  }
+
+  async upsertSynonym(opts: { collection: string; synonym: unknown }): Promise<unknown> {
+    this.upsertSynonymCalls.push(opts);
+    return opts.synonym;
+  }
 }
 
-/** FakeTypesenseDriver only implements the two methods these tests exercise (`ensureCollection`,
- * `ping`); TypesenseDriver is a concrete class with a private `client` field, so no fake can be
- * structurally assignable to it - this is the single boundary cast every fake-driver injection in
- * this file funnels through. */
-const asTypesenseDriver = (fake: FakeTypesenseDriver): TypesenseDriver => fake as any;
+/** FakeTypesenseConnector only implements the methods these tests exercise (`ensureCollection`,
+ * `ping`, `multiSearch`, `upsertSynonym`); TypesenseConnector is a concrete class with a private
+ * `client` field, so no fake can be structurally assignable to it - this is the single boundary
+ * cast every fake-connector injection in this file funnels through. */
+const asTypesenseConnector = (fake: FakeTypesenseConnector): TypesenseConnector => fake as any;
 
 class AppSearchDataSource extends TypesenseDataSource {}
-class NoDriverDataSource extends TypesenseDataSource {}
+class NoConnectorDataSource extends TypesenseDataSource {}
 class SkipProvisionDataSource extends TypesenseDataSource {}
+class SynonymProvisionDataSource extends TypesenseDataSource {}
 
 @model({ type: 'entity' })
 class ProductDocument extends BaseSearchEntity {
@@ -59,21 +72,37 @@ class GizmoDocument extends BaseSearchEntity {
 @repository({ model: GizmoDocument, dataSource: SkipProvisionDataSource })
 class _GizmoRepo {}
 
+@model({ type: 'entity' })
+class WidgetDocument extends BaseSearchEntity {
+  static override schema = defineSearchCollection({
+    name: 'widgets',
+    fields: [field.string('title')],
+    synonyms: [
+      { id: 'widget-synonyms', synonyms: ['widget', 'gadget', 'gizmo'] },
+      { id: 'widget-oneway', synonyms: ['thingamajig'], root: 'widget' },
+    ],
+  });
+}
+
+@repository({ model: WidgetDocument, dataSource: SynonymProvisionDataSource })
+class _WidgetRepo {}
+
 describe('TypesenseDataSource', () => {
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
     expect(registry.getRepositoryBinding({ name: _ProductRepo.name })).toBeDefined();
     expect(registry.getRepositoryBinding({ name: _GizmoRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: _WidgetRepo.name })).toBeDefined();
   });
 
-  test('configure() builds the driver-less path only when no driver is injected, and provisions the compiled schema', async () => {
-    const fakeDriver = new FakeTypesenseDriver();
+  test('configure() builds the connector-less path only when no connector is injected, and provisions the compiled schema', async () => {
+    const fakeConnector = new FakeTypesenseConnector();
 
     const ds = new AppSearchDataSource({
       name: 'app-search',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(fakeDriver),
+      connector: asTypesenseConnector(fakeConnector),
     });
 
     await ds.configure();
@@ -81,59 +110,83 @@ describe('TypesenseDataSource', () => {
     const definition = ProductDocument.schema;
     const expectedSchema = compileTypesenseCollection({ definition });
 
-    expect(fakeDriver.ensureCalls).toEqual([expectedSchema]);
-    expect(ds.getDriver()).toBe(asTypesenseDriver(fakeDriver));
+    expect(fakeConnector.ensureCalls).toEqual([expectedSchema]);
+    expect(ds.getConnector()).toBe(asTypesenseConnector(fakeConnector));
   });
 
-  test('getDriver() throws before configure() has run', () => {
-    const ds = new NoDriverDataSource({
-      name: 'no-driver-ds',
+  test('getConnector() throws before configure() has run', () => {
+    const ds = new NoConnectorDataSource({
+      name: 'no-connector-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
     });
 
-    expect(() => ds.getDriver()).toThrow(/\[TypesenseDataSource\] Driver not initialized/);
+    expect(() => ds.getConnector()).toThrow(/\[TypesenseDataSource\] Connector not initialized/);
   });
 
   test('autoProvision: false skips ensureCollection entirely', async () => {
-    const fakeDriver = new FakeTypesenseDriver();
+    const fakeConnector = new FakeTypesenseConnector();
 
     const ds = new SkipProvisionDataSource({
       name: 'skip-provision-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(fakeDriver),
+      connector: asTypesenseConnector(fakeConnector),
       autoProvision: false,
     });
 
     await ds.configure();
 
-    expect(fakeDriver.ensureCalls).toEqual([]);
+    expect(fakeConnector.ensureCalls).toEqual([]);
   });
 
-  test('configure() is re-entrant-safe: a second call skips re-provisioning, same driver instance', async () => {
-    const fakeDriver = new FakeTypesenseDriver();
+  test('provisionCollections upserts each declarative synonym after ensureCollection', async () => {
+    const fakeConnector = new FakeTypesenseConnector();
+
+    const ds = new SynonymProvisionDataSource({
+      name: 'synonym-provision-ds',
+      config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
+      connector: asTypesenseConnector(fakeConnector),
+    });
+
+    await ds.configure();
+
+    expect(fakeConnector.ensureCalls.length).toBe(1);
+    expect(fakeConnector.upsertSynonymCalls).toEqual([
+      {
+        collection: 'widgets',
+        synonym: { id: 'widget-synonyms', synonyms: ['widget', 'gadget', 'gizmo'] },
+      },
+      {
+        collection: 'widgets',
+        synonym: { id: 'widget-oneway', synonyms: ['thingamajig'], root: 'widget' },
+      },
+    ]);
+  });
+
+  test('configure() is re-entrant-safe: a second call skips re-provisioning, same connector instance', async () => {
+    const fakeConnector = new FakeTypesenseConnector();
 
     const ds = new AppSearchDataSource({
       name: 'reentrant-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(fakeDriver),
+      connector: asTypesenseConnector(fakeConnector),
     });
 
     await ds.configure();
-    expect(ds.getDriver()).toBe(asTypesenseDriver(fakeDriver));
-    expect(fakeDriver.ensureCalls.length).toBe(1);
+    expect(ds.getConnector()).toBe(asTypesenseConnector(fakeConnector));
+    expect(fakeConnector.ensureCalls.length).toBe(1);
 
     await ds.configure();
 
-    // No second provisioning pass, and the driver instance is unchanged.
-    expect(fakeDriver.ensureCalls.length).toBe(1);
-    expect(ds.getDriver()).toBe(asTypesenseDriver(fakeDriver));
+    // No second provisioning pass, and the connector instance is unchanged.
+    expect(fakeConnector.ensureCalls.length).toBe(1);
+    expect(ds.getConnector()).toBe(asTypesenseConnector(fakeConnector));
   });
 
   test('getQueryDialect() returns a TypesenseQueryDialect', () => {
     const ds = new AppSearchDataSource({
       name: 'query-dialect-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(new FakeTypesenseDriver()),
+      connector: asTypesenseConnector(new FakeTypesenseConnector()),
     });
 
     expect(ds.getQueryDialect()).toBeInstanceOf(TypesenseQueryDialect);
@@ -143,7 +196,7 @@ describe('TypesenseDataSource', () => {
     const ds = new AppSearchDataSource({
       name: 'compile-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(new FakeTypesenseDriver()),
+      connector: asTypesenseConnector(new FakeTypesenseConnector()),
     });
 
     const definition = ProductDocument.schema;
@@ -153,22 +206,51 @@ describe('TypesenseDataSource', () => {
   });
 
   // Typesense adds no transaction support - it inherits AbstractDataSource's NotSupported-by-default
-  // beginTransaction()/getCapabilities().
-  test('getCapabilities() defaults to { transactions: false } - Typesense adds no override', () => {
+  // beginTransaction()/getCapabilities(). search.vector is true - Phase 2 landed first-class VECTOR
+  // fields (client-provided + server-side auto-embedding). search.multi/search.union are true -
+  // Phase 4 landed federated + union multi-search. synonyms is true - Phase 5 landed first-class
+  // multi-way/one-way synonym sets (declarative + runtime, auto-provisioned).
+  test('getCapabilities() reports no transactions and the search capability flags', () => {
     const ds = new AppSearchDataSource({
       name: 'capabilities-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(new FakeTypesenseDriver()),
+      connector: asTypesenseConnector(new FakeTypesenseConnector()),
     });
 
-    expect(ds.getCapabilities()).toEqual({ transactions: false });
+    expect(ds.getCapabilities()).toEqual({
+      transactions: false,
+      search: {
+        vector: true,
+        multi: true,
+        union: true,
+        synonyms: true,
+      },
+    });
+  });
+
+  test('multiSearch() forwards the cross-collection request verbatim to the connector', async () => {
+    const fakeConnector = new FakeTypesenseConnector();
+    const ds = new AppSearchDataSource({
+      name: 'multi-search-ds',
+      config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
+      connector: asTypesenseConnector(fakeConnector),
+    });
+    await ds.configure();
+
+    const searches = [
+      { collection: 'products', q: 'shoes' },
+      { collection: 'brands', q: 'shoe' },
+    ];
+    await ds.multiSearch({ searches, union: true });
+
+    expect(fakeConnector.multiSearchCalls).toEqual([{ searches, union: true }]);
   });
 
   test('beginTransaction() rejects with the standardized NotSupported error (501, core.not_supported)', async () => {
     const ds = new AppSearchDataSource({
       name: 'no-transaction-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
-      driver: asTypesenseDriver(new FakeTypesenseDriver()),
+      connector: asTypesenseConnector(new FakeTypesenseConnector()),
     });
 
     let caught: unknown;

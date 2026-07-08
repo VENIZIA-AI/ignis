@@ -102,7 +102,7 @@ export class AuthenticationService
 
     // Password is a hidden property, must use connector directly to retrieve it
     const usersWithPassword = await this.userRepository
-      .getConnector()
+      .connector
       .select({
         id: User.schema.id,
         password: User.schema.password,
@@ -166,7 +166,7 @@ export class AuthenticationService
 
     // Password is a hidden property, must use connector directly to retrieve it
     const usersWithPassword = await this.userRepository
-      .getConnector()
+      .connector
       .select()
       .from(User.schema)
       .where(eq(User.schema.id, opts.userId));
@@ -222,7 +222,7 @@ export class AuthenticationService
 
   private async getUserRoles(opts: { userId: string }) {
     const rows = await this.userRepository
-      .getConnector()
+      .connector
       .select({
         id: Role.schema.id,
         identifier: Role.schema.identifier,
@@ -242,7 +242,7 @@ export class AuthenticationService
 
   private async getUserOrganization(opts: { userId: string }) {
     const rows = await this.userRepository
-      .getConnector()
+      .connector
       .select({
         id: Organization.schema.id,
         identifier: Organization.schema.identifier,

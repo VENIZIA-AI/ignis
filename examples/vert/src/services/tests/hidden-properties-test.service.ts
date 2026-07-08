@@ -299,7 +299,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
         return;
       }
 
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResults = await connector
         .select()
         .from(User.schema)
@@ -572,7 +572,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
         },
       });
 
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResults = await connector
         .select()
         .from(User.schema)
@@ -729,7 +729,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
     this.logCase('[CASE 15] ExistsWith should work with hidden field in where clause');
 
     try {
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResults = await connector
         .select()
         .from(User.schema)
@@ -977,7 +977,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
         return;
       }
 
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResult = await connector
         .select()
         .from(User.schema)
@@ -1051,7 +1051,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
         return;
       }
 
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResult = await connector
         .select()
         .from(User.schema)
@@ -1167,7 +1167,7 @@ export class HiddenPropertiesTestService extends BaseTestService {
         this.logger.info('[CASE 21] Creator id: %s | realm: %s', creator.id, creator.realm);
       }
 
-      const connector = this.userRepository.getConnector();
+      const connector = this.userRepository.connector;
 
       const [dbUser] = await connector
         .select()

@@ -68,16 +68,16 @@ class MemoryEntityFixture extends AbstractEntity {
     super({ name: MemoryEntityFixture.COLLECTION_NAME });
   }
 
-  getSchema(opts: { type: TSchemaType }): z.ZodTypeAny {
+  getSchema<T = unknown>(opts: { type: TSchemaType }): T {
     switch (opts.type) {
       case SchemaTypes.SELECT: {
-        return MemorySelectSchema;
+        return MemorySelectSchema as T;
       }
       case SchemaTypes.CREATE: {
-        return MemoryCreateSchema;
+        return MemoryCreateSchema as T;
       }
       case SchemaTypes.UPDATE: {
-        return MemoryUpdateSchema;
+        return MemoryUpdateSchema as T;
       }
       default: {
         throw getError({

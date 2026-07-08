@@ -1,18 +1,18 @@
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { getError } from '@venizia/ignis-helpers';
 
-import { ReadableSearchRepository } from '@/connectors/typesense/repositories';
+import { ReadableSearchRepository, SearchModes } from '@/connectors/typesense/repositories';
 import { DEFAULT_LIMIT } from '@/base/repositories/common';
-import { TInferSearchDocument } from '@/connectors/typesense/models';
+import { TSearchDocument } from '@/connectors/typesense/models';
 import {
   FakeSearchDataSource,
   ProductDocument,
   ProductDocumentWithDefaultLimit,
-} from './fake-search-driver';
+} from './fake-search-connector';
 
-/** `TInferSearchDocument` derives `{ id: string; title: string }` directly from the collection
+/** `TSearchDocument` derives `{ id: string; title: string }` directly from the collection
  * definition - no hand-written document interface needed. */
-type TProductWithDefaultLimitDocument = TInferSearchDocument<
+type TProductWithDefaultLimitDocument = TSearchDocument<
   typeof ProductDocumentWithDefaultLimit.schema
 >;
 
@@ -27,7 +27,7 @@ describe('ReadableSearchRepository', () => {
 
   describe('find', () => {
     test('translates the filter and strips hidden fields via exclude_fields', async () => {
-      dataSource.fakeDriver.searchResponse = {
+      dataSource.fakeConnector.searchResponse = {
         found: 2,
         hits: [{ document: { id: '1', title: 'A' } }, { document: { id: '2', title: 'B' } }],
       };
@@ -39,7 +39,7 @@ describe('ReadableSearchRepository', () => {
         { id: '2', title: 'B' },
       ]);
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       expect(call.collection).toBe('products');
 
       const params = call.params as Record<string, unknown>;
@@ -50,7 +50,7 @@ describe('ReadableSearchRepository', () => {
     test('defaultFilter from @model settings is AND-merged into the where clause', async () => {
       await repository.find({ filter: { where: { status: 'active' } } });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('(isActive:=true && status:=`active`)');
     });
@@ -61,7 +61,7 @@ describe('ReadableSearchRepository', () => {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('status:=`active`');
     });
@@ -69,7 +69,7 @@ describe('ReadableSearchRepository', () => {
     test('no filter still applies the default filter and excludes hidden fields', async () => {
       await repository.find();
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('isActive:=true');
       expect(params['exclude_fields']).toBe('secret');
@@ -92,7 +92,7 @@ describe('ReadableSearchRepository', () => {
       test('an omitted limit falls back to DEFAULT_LIMIT when the model has no defaultLimit', async () => {
         await repository.find({ filter: { where: { status: 'active' } } });
 
-        const [call] = dataSource.fakeDriver.searchCalls;
+        const [call] = dataSource.fakeConnector.searchCalls;
         const params = call.params as Record<string, unknown>;
         expect(params['per_page']).toBe(DEFAULT_LIMIT);
       });
@@ -104,7 +104,7 @@ describe('ReadableSearchRepository', () => {
 
         await limitedRepository.find({ filter: { where: { title: 'x' } } });
 
-        const [call] = dataSource.fakeDriver.searchCalls;
+        const [call] = dataSource.fakeConnector.searchCalls;
         const params = call.params as Record<string, unknown>;
         expect(params['per_page']).toBe(5);
       });
@@ -116,7 +116,7 @@ describe('ReadableSearchRepository', () => {
 
         await limitedRepository.find({ filter: { limit: 25 } });
 
-        const [call] = dataSource.fakeDriver.searchCalls;
+        const [call] = dataSource.fakeConnector.searchCalls;
         const params = call.params as Record<string, unknown>;
         expect(params['per_page']).toBe(25);
       });
@@ -124,7 +124,7 @@ describe('ReadableSearchRepository', () => {
 
     describe('shouldQueryRange - postgres TDataRange envelope parity', () => {
       test('returns { data, range } shaped like postgres (start/end/total) instead of a bare array', async () => {
-        dataSource.fakeDriver.searchResponse = {
+        dataSource.fakeConnector.searchResponse = {
           found: 42,
           hits: [{ document: { id: '1', title: 'A' } }, { document: { id: '2', title: 'B' } }],
         };
@@ -144,15 +144,15 @@ describe('ReadableSearchRepository', () => {
       });
 
       test('reads `total` from the SAME search response as `hits` (no second count call)', async () => {
-        dataSource.fakeDriver.searchResponse = { found: 7, hits: [] };
+        dataSource.fakeConnector.searchResponse = { found: 7, hits: [] };
 
         await repository.find({ filter: {}, options: { shouldQueryRange: true } });
 
-        expect(dataSource.fakeDriver.searchCalls.length).toBe(1);
+        expect(dataSource.fakeConnector.searchCalls.length).toBe(1);
       });
 
       test('start/end reflect skip and the returned page size', async () => {
-        dataSource.fakeDriver.searchResponse = {
+        dataSource.fakeConnector.searchResponse = {
           found: 100,
           hits: [{ document: { id: '21' } }, { document: { id: '22' } }],
         };
@@ -169,7 +169,7 @@ describe('ReadableSearchRepository', () => {
       });
 
       test('shouldQueryRange falsy still returns a bare array (unchanged default behavior)', async () => {
-        dataSource.fakeDriver.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
+        dataSource.fakeConnector.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
 
         const result = await repository.find({ filter: {} });
 
@@ -180,7 +180,7 @@ describe('ReadableSearchRepository', () => {
 
   describe('findOne', () => {
     test('returns the first hit document', async () => {
-      dataSource.fakeDriver.searchResponse = {
+      dataSource.fakeConnector.searchResponse = {
         found: 1,
         hits: [{ document: { id: '1', title: 'A' } }],
       };
@@ -188,12 +188,12 @@ describe('ReadableSearchRepository', () => {
       const result = await repository.findOne({ filter: { where: { status: 'active' } } });
       expect(result).toEqual({ id: '1', title: 'A' });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       expect((call.params as Record<string, unknown>)['per_page']).toBe(1);
     });
 
     test('returns null when there are no hits', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
 
       const result = await repository.findOne({ filter: { where: { status: 'active' } } });
       expect(result).toBeNull();
@@ -202,31 +202,31 @@ describe('ReadableSearchRepository', () => {
 
   describe('count', () => {
     test('reads found and issues per_page: 0', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 5, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 5, hits: [] };
 
       const result = await repository.count({ where: { status: 'active' } });
       expect(result).toEqual({ count: 5 });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       expect((call.params as Record<string, unknown>)['per_page']).toBe(0);
     });
   });
 
   describe('existsWith', () => {
     test('true when count > 0', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 3, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 3, hits: [] };
       expect(await repository.existsWith({ where: { status: 'active' } })).toBe(true);
     });
 
     test('false when count is 0', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
       expect(await repository.existsWith({ where: { status: 'active' } })).toBe(false);
     });
   });
 
   describe('findById', () => {
     test('returns the document when found - delegates to findOne/search (postgres parity)', async () => {
-      dataSource.fakeDriver.searchResponse = {
+      dataSource.fakeConnector.searchResponse = {
         found: 1,
         hits: [{ document: { id: '1', title: 'A' } }],
       };
@@ -234,7 +234,7 @@ describe('ReadableSearchRepository', () => {
       const result = await repository.findById({ id: '1' });
       expect(result).toEqual({ id: '1', title: 'A' });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('(isActive:=true && id:=`1`)');
       expect(params['exclude_fields']).toBe('secret');
@@ -246,32 +246,32 @@ describe('ReadableSearchRepository', () => {
     });
 
     test('a defaultFilter-excluded (soft-deleted) document resolves to null', async () => {
-      // The fake driver doesn't filter; this asserts the wire query carries defaultWhere AND-merged with the id lookup, which is what makes a real engine exclude it.
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+      // The fake connector doesn't filter; this asserts the wire query carries defaultWhere AND-merged with the id lookup, which is what makes a real engine exclude it.
+      dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
 
       const result = await repository.findById({ id: 'soft-deleted' });
       expect(result).toBeNull();
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('(isActive:=true && id:=`soft-deleted`)');
     });
 
     test('shouldSkipDefaultFilter bypasses the default filter', async () => {
-      dataSource.fakeDriver.searchResponse = {
+      dataSource.fakeConnector.searchResponse = {
         found: 1,
         hits: [{ document: { id: '1', title: 'A' } }],
       };
 
       await repository.findById({ id: '1', options: { shouldSkipDefaultFilter: true } });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
+      const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
       expect(params['filter_by']).toBe('id:=`1`');
     });
 
     test('propagates errors from the underlying search', async () => {
-      dataSource.fakeDriver.search = async () => {
+      dataSource.fakeConnector.search = async () => {
         throw getError({ statusCode: 500, message: 'boom' });
       };
 
@@ -289,46 +289,183 @@ describe('ReadableSearchRepository', () => {
   });
 
   describe('search', () => {
-    test('is a raw passthrough - no dialect translation, no default filter', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+    describe('mode: raw', () => {
+      test('is a raw passthrough - no dialect translation, no default filter', async () => {
+        dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
 
-      // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field name
-      const params = { q: 'shoes', query_by: 'title' };
-      const result = await repository.search({ params });
+        const params: Record<string, unknown> = { q: 'shoes' };
+        params['query_by'] = 'title';
+        const result = await repository.search({ mode: SearchModes.RAW, params });
 
-      expect(result).toEqual({ found: 0, hits: [] });
+        expect(result).toEqual({ found: 0, hits: [] });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
-      expect(call.collection).toBe('products');
-      expect(call.params).toBe(params);
+        const [call] = dataSource.fakeConnector.searchCalls;
+        expect(call.collection).toBe('products');
+        expect(call.params).toBe(params);
+      });
     });
 
-    test('forwards options through to the driver', async () => {
-      const params = { q: '*' };
-      const options = { cacheSearchResultsForSeconds: 60 };
+    describe('mode: keyword - common search params (facet/highlight/group/tuning)', () => {
+      test('facetBy/highlightFields/groupBy/numTypos/useCache flow through to wire params', async () => {
+        await repository.search({
+          mode: SearchModes.KEYWORD,
+          query: 'shoes',
+          facetBy: ['brand'],
+          highlightFields: ['title'],
+          groupBy: ['brand'],
+          numTypos: 2,
+          useCache: true,
+        });
 
-      await repository.search({ params, options });
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['facet_by']).toBe('brand');
+        expect(params['highlight_fields']).toBe('title');
+        expect(params['group_by']).toBe('brand');
+        expect(params['num_typos']).toBe(2);
+        expect(params['use_cache']).toBe(true);
+      });
+    });
 
-      const [call] = dataSource.fakeDriver.searchCalls;
-      expect(call.options).toBe(options);
+    describe('mode: keyword', () => {
+      test('goes through buildQuery - defaultFilter and hiddenFields apply', async () => {
+        dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
+
+        await repository.search({
+          mode: SearchModes.KEYWORD,
+          query: 'shoes',
+          queryBy: ['title'],
+          filter: { where: { status: 'active' } },
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['q']).toBe('shoes');
+        expect(params['query_by']).toBe('title');
+        expect(params['filter_by']).toBe('(isActive:=true && status:=`active`)');
+        expect(params['exclude_fields']).toBe('secret');
+      });
+
+      test('omitted query/queryBy leaves q/query_by unset (bare filter listing)', async () => {
+        await repository.search({ mode: SearchModes.KEYWORD });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['q']).toBe('*');
+        expect(params['query_by']).toBeUndefined();
+      });
+    });
+
+    describe('mode: semantic', () => {
+      test('client-supplied nearVector translates through the dialect into vector_query', async () => {
+        await repository.search({
+          mode: SearchModes.SEMANTIC,
+          vectorField: 'embedding',
+          nearVector: [0.1, 0.2],
+          k: 10,
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['vector_query']).toBe('embedding:([0.1, 0.2], k: 10)');
+        expect(params['filter_by']).toBe('isActive:=true');
+      });
+
+      test('queryText auto-embed path sets q/query_by and a vector_query carrying k', async () => {
+        await repository.search({
+          mode: SearchModes.SEMANTIC,
+          vectorField: 'embedding',
+          queryText: 'running shoes',
+          k: 5,
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['q']).toBe('running shoes');
+        expect(params['query_by']).toBe('embedding');
+        expect(params['vector_query']).toBe('embedding:([], k: 5)');
+      });
+
+      test('distanceThreshold/ef land in the vector_query clause', async () => {
+        await repository.search({
+          mode: SearchModes.SEMANTIC,
+          vectorField: 'embedding',
+          nearVector: [0.1, 0.2],
+          distanceThreshold: 0.3,
+          ef: 64,
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['vector_query']).toBe(
+          'embedding:([0.1, 0.2], distance_threshold: 0.3, ef: 64)',
+        );
+      });
+
+      test('rejects semantic mode given neither nearVector nor queryText', async () => {
+        let caught: unknown;
+        try {
+          await repository.search({ mode: SearchModes.SEMANTIC, vectorField: 'embedding' });
+        } catch (error) {
+          caught = error;
+        }
+        expect((caught as Error | undefined)?.message).toMatch(
+          /requires 'nearVector' or 'queryText'/,
+        );
+      });
+    });
+
+    describe('mode: hybrid', () => {
+      test('auto-embed (no nearVector) appends vectorField to query_by', async () => {
+        await repository.search({
+          mode: SearchModes.HYBRID,
+          query: 'shoes',
+          queryBy: ['title'],
+          vectorField: 'embedding',
+          k: 10,
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['query_by']).toBe('title,embedding');
+        expect(params['vector_query']).toBe('embedding:([], k: 10)');
+      });
+
+      test('combines keyword q/query_by with a dialect-translated vector_query', async () => {
+        await repository.search({
+          mode: SearchModes.HYBRID,
+          query: 'shoes',
+          queryBy: ['title'],
+          vectorField: 'embedding',
+          nearVector: [0.1, 0.2],
+          alpha: 0.5,
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['q']).toBe('shoes');
+        expect(params['query_by']).toBe('title');
+        expect(params['vector_query']).toBe('embedding:([0.1, 0.2], alpha: 0.5)');
+        expect(params['filter_by']).toBe('isActive:=true');
+      });
     });
   });
 
-  describe('TInferSearchDocument ergonomics', () => {
+  describe('TSearchDocument ergonomics', () => {
     test('find() resolves the compile-time-inferred document shape end to end', async () => {
       const typedRepository = new ReadableSearchRepository<TProductWithDefaultLimitDocument>(
         dataSource,
         { entityClass: ProductDocumentWithDefaultLimit },
       );
 
-      dataSource.fakeDriver.searchResponse = {
+      dataSource.fakeConnector.searchResponse = {
         found: 1,
         hits: [{ document: { id: '1', title: 'Widget' } }],
       };
 
       const [result] = await typedRepository.find({ filter: { where: { title: 'Widget' } } });
 
-      // `result.title` type-checks as `string` purely from `TInferSearchDocument<...schema>` -
+      // `result.title` type-checks as `string` purely from `TSearchDocument<...schema>` -
       // no hand-written document interface anywhere in this file.
       expect(result.title.toUpperCase()).toBe('WIDGET');
       expect(result).toEqual({ id: '1', title: 'Widget' });
@@ -337,20 +474,20 @@ describe('ReadableSearchRepository', () => {
 });
 
 describe('search - generic result typing', () => {
-  test('default TResult is ISearchResult-shaped; explicit override is honored', async () => {
+  test('default R is TDocument-shaped; explicit override is honored', async () => {
     const dataSource = new FakeSearchDataSource({ name: 'search-generic-ds', config: {} });
     const repository = new ReadableSearchRepository(dataSource, { entityClass: ProductDocument });
-    dataSource.fakeDriver.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
+    dataSource.fakeConnector.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
 
-    const defaultTyped = await repository.search({ params: { q: '*' } });
+    const defaultTyped = await repository.search({ mode: SearchModes.RAW, params: { q: '*' } });
     // Compile-time pin: hits/document are reachable without a cast.
     const hitDocument: object | undefined = defaultTyped.hits?.[0]?.document;
     expect(hitDocument).toEqual({ id: '1' });
     expect(defaultTyped.found).toBe(1);
 
-    // eslint-disable-next-line @typescript-eslint/naming-convention -- Typesense wire field name
-    type TGroupedResult = { grouped_hits: Array<{ hits: unknown[] }> };
-    const overridden: Promise<TGroupedResult> = repository.search<TGroupedResult>({
+    type TGroupedDocument = { groupKey: string };
+    const overridden = repository.search<TGroupedDocument>({
+      mode: SearchModes.RAW,
       params: { q: '*' },
     });
     await overridden;

@@ -9,7 +9,7 @@ IGNIS example depends on implicitly.
 
 - **The entity DSL** (`src/models/entities/article.model.ts`) - `ArticleDocument extends BaseSearchEntity`
   defines its shape with `defineSearchCollection` + the `field` builder instead of a Drizzle `pgTable`.
-- **`TInferSearchDocument`** - `TArticleDocument` is derived straight from `ArticleDocument.schema`,
+- **`TSearchDocument`** - `TArticleDocument` is derived straight from `ArticleDocument.schema`,
   no hand-written interface duplicating the field list.
 - **`@model` settings on a search entity** - `hiddenProperties: ['internalNote']` strips that field
   from every response via Typesense `exclude_fields`; `defaultFilter: { where: { status: 'published' } }`

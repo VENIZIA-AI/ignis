@@ -4,7 +4,7 @@ import {
   defineSearchCollection,
   deriveSearchDocumentSchema,
   field,
-  TInferSearchDocument,
+  TSearchDocument,
 } from '@/connectors/typesense/models';
 
 /**
@@ -22,9 +22,9 @@ const collection = defineSearchCollection({
   ],
 });
 
-type TProductDocument = TInferSearchDocument<typeof collection>;
+type TProductDocument = TSearchDocument<typeof collection>;
 
-describe('TInferSearchDocument', () => {
+describe('TSearchDocument', () => {
   test('required fields must be present; optional fields may be omitted', () => {
     const withoutTags: TProductDocument = { id: '1', title: 'x', price: 1, location: [1, 2] };
     const withTags: TProductDocument = { ...withoutTags, tags: ['a'] };
@@ -72,7 +72,7 @@ describe('TInferSearchDocument', () => {
 });
 
 // engineOverrides has both known engine keys and an index signature for arbitrary ones -
-// both must compile without breaking TInferSearchDocument.
+// both must compile without breaking TSearchDocument.
 const collectionWithEngineOverrides = defineSearchCollection({
   name: 'products-with-overrides',
   fields: [field.id(), field.string('title'), field.number('price')],
@@ -82,15 +82,81 @@ const collectionWithEngineOverrides = defineSearchCollection({
   },
 });
 
-type TProductWithOverridesDocument = TInferSearchDocument<typeof collectionWithEngineOverrides>;
+type TProductWithOverridesDocument = TSearchDocument<typeof collectionWithEngineOverrides>;
 
 describe('engineOverrides - open index signature (H1)', () => {
-  test('a known engine key and an arbitrary engine key both compile, TInferSearchDocument still infers', () => {
+  test('a known engine key and an arbitrary engine key both compile, TSearchDocument still infers', () => {
     const doc: TProductWithOverridesDocument = { id: '1', title: 'x', price: 1 };
 
     expect(doc).toEqual({ id: '1', title: 'x', price: 1 });
     expect(collectionWithEngineOverrides.engineOverrides?.customEngine).toEqual({
       anything: true,
     });
+  });
+});
+
+// A client-provided vector field (no `embed`) participates in the document shape as `number[]`.
+const collectionWithClientVector = defineSearchCollection({
+  name: 'products-with-vector',
+  fields: [
+    field.id(),
+    field.string('title'),
+    field.vector('embedding', { dimensions: 384, distance: 'cosine' }),
+  ],
+});
+
+type TProductWithClientVectorDocument = TSearchDocument<typeof collectionWithClientVector>;
+
+describe('TSearchDocument - client-provided vector field', () => {
+  test('the vector field is required and typed number[]', () => {
+    const doc: TProductWithClientVectorDocument = {
+      id: '1',
+      title: 'x',
+      embedding: [0.1, 0.2, 0.3],
+    };
+
+    const badEmbedding: TProductWithClientVectorDocument = {
+      id: '1',
+      title: 'x',
+      // @ts-expect-error - embedding must be number[], not string[]
+      embedding: ['a'],
+    };
+
+    // @ts-expect-error - embedding is required (not marked optional)
+    const missingEmbedding: TProductWithClientVectorDocument = { id: '1', title: 'x' };
+
+    expect([doc, badEmbedding, missingEmbedding]).toHaveLength(3);
+    expect(collectionWithClientVector.name).toBe('products-with-vector');
+  });
+});
+
+// A server auto-embedded vector field (`embed` set) is Typesense-generated - it must be entirely
+// absent from the compile-time document shape, not merely optional.
+const collectionWithAutoEmbedVector = defineSearchCollection({
+  name: 'products-with-auto-embed',
+  fields: [
+    field.id(),
+    field.string('title'),
+    field.vector('embedding', {
+      embed: { from: ['title'], model: { name: 'ts/all-MiniLM-L6-v2' } },
+    }),
+  ],
+});
+
+type TProductWithAutoEmbedDocument = TSearchDocument<typeof collectionWithAutoEmbedVector>;
+
+describe('TSearchDocument - auto-embed vector field is omitted entirely', () => {
+  test('the document type has no embedding key at all - assigning one is a compile error', () => {
+    const doc: TProductWithAutoEmbedDocument = { id: '1', title: 'x' };
+
+    const withEmbedding: TProductWithAutoEmbedDocument = {
+      id: '1',
+      title: 'x',
+      // @ts-expect-error - embedding is server-generated (embed present); it must not be a settable key on the document type
+      embedding: [0.1, 0.2],
+    };
+
+    expect([doc, withEmbedding]).toHaveLength(2);
+    expect(collectionWithAutoEmbedVector.name).toBe('products-with-auto-embed');
   });
 });

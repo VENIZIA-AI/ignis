@@ -238,7 +238,7 @@ export class UserAuditTestService extends BaseTestService {
       }
 
       // Verify via direct connector query to see actual DB values
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const directResults = await connector
         .select()
         .from(Configuration.schema)
@@ -320,7 +320,7 @@ export class UserAuditTestService extends BaseTestService {
       }
 
       // Verify each record has correct audit fields
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const records = await connector
         .select()
         .from(Configuration.schema)
@@ -404,7 +404,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Verify changes
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -481,7 +481,7 @@ export class UserAuditTestService extends BaseTestService {
         });
 
         // Verify createdBy was NOT changed
-        const connector = repo.getConnector();
+        const connector = repo.connector;
         const [dbRecord] = await connector
           .select()
           .from(Configuration.schema)
@@ -576,7 +576,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Verify all records have updated modifiedBy
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const records = await connector
         .select()
         .from(Configuration.schema)
@@ -661,7 +661,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Verify regular user's update
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       let [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -734,7 +734,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Find the record
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       let [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -811,7 +811,7 @@ export class UserAuditTestService extends BaseTestService {
       });
 
       // Query directly from database
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -1012,7 +1012,7 @@ export class UserAuditTestService extends BaseTestService {
       await transaction.commit();
 
       // Verify after commit
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -1067,7 +1067,7 @@ export class UserAuditTestService extends BaseTestService {
         },
       });
 
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       let [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -1181,7 +1181,7 @@ export class UserAuditTestService extends BaseTestService {
       await Promise.all(updatePromises);
 
       // Verify final state
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const [dbRecord] = await connector
         .select()
         .from(Configuration.schema)
@@ -1335,7 +1335,7 @@ export class UserAuditTestService extends BaseTestService {
       }
 
       const recordId = created.data.id;
-      const connector = repo.getConnector();
+      const connector = repo.connector;
 
       // Sequential updates by different users
       for (let i = 0; i < users.length; i++) {
@@ -1435,7 +1435,7 @@ export class UserAuditTestService extends BaseTestService {
             },
           });
 
-          const connector = repo.getConnector();
+          const connector = repo.connector;
           const [dbRecord] = await connector
             .select()
             .from(Configuration.schema)
@@ -1647,7 +1647,7 @@ export class UserAuditTestService extends BaseTestService {
           });
 
           // Verify it was stored safely (as literal string, not executed)
-          const connector = repo.getConnector();
+          const connector = repo.connector;
           const [dbRecord] = await connector
             .select()
             .from(Configuration.schema)
@@ -1737,7 +1737,7 @@ export class UserAuditTestService extends BaseTestService {
       }
 
       // Verify via direct query
-      const connector = repo.getConnector();
+      const connector = repo.connector;
       const records = await connector
         .select()
         .from(Configuration.schema)

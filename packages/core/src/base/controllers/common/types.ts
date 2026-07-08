@@ -211,8 +211,8 @@ export type TEntityPersistObject<TEntity> = TEntity extends { $inferPersist?: in
 
 /** Configuration options for creating a CRUD controller via ControllerFactory.defineCrudController. */
 export interface ICrudControllerOptions<
-  Routes extends ICustomizableRoutes = ICustomizableRoutes,
   TEntity extends AbstractEntity = AbstractEntity,
+  Routes extends ICustomizableRoutes = ICustomizableRoutes,
 > {
   /** Entity class or resolver function returning the entity class. Its schema drives the
    * inferred DataObject/PersistObject types for the generated controller's `repository`. */

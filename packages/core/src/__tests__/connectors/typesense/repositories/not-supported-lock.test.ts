@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
 import { LockStrengths, TLockOptions } from '@/base/repositories/common';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
-import { FakeSearchDataSource, ProductDocument } from './fake-search-driver';
+import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
 /**
  * Typesense has no row-level locking primitive - every verb rejects `options.lock` via the

@@ -1,8 +1,8 @@
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers';
 
-import { AbstractEntity, SchemaTypes, TSchemaType } from '@/base/models';
-import { ISearchCollectionDefinition, TInferSearchDocument } from './types';
+import { AbstractEntity, TSchemaType } from '@/base/models';
+import { ISearchCollectionDefinition, TSearchDocument } from './types';
 import { deriveSearchDocumentSchema } from './zod-derivation';
 
 /**
@@ -17,8 +17,8 @@ export class BaseSearchEntity<
   schema: Schema;
 
   // Phantom type carriers (no runtime value; `declare` emits nothing).
-  declare readonly $inferData?: TInferSearchDocument<Schema>;
-  declare readonly $inferPersist?: TInferSearchDocument<Schema>;
+  declare readonly $inferData?: TSearchDocument<Schema>;
+  declare readonly $inferPersist?: TSearchDocument<Schema>;
 
   static COLLECTION_NAME?: string;
   static AUTHORIZATION_SUBJECT?: string;
@@ -37,11 +37,11 @@ export class BaseSearchEntity<
     this.schema = opts?.schema ?? (ctor.schema as Schema);
   }
 
-  getSchema(opts: { type: TSchemaType }): z.ZodTypeAny {
+  getSchema<T = unknown>(opts: { type: TSchemaType }): T {
     const ctor = this.constructor as typeof BaseSearchEntity;
 
     if (ctor.documentSchema) {
-      return ctor.documentSchema;
+      return ctor.documentSchema as T;
     }
 
     if (!this.schema) {
@@ -51,7 +51,7 @@ export class BaseSearchEntity<
     }
 
     if (this.schema !== ctor.schema) {
-      return BaseSearchEntity._deriveSchema({ definition: this.schema, type: opts.type });
+      return deriveSearchDocumentSchema({ definition: this.schema, type: opts.type }) as T;
     }
 
     let byType = BaseSearchEntity._schemaCache.get(ctor);
@@ -62,29 +62,11 @@ export class BaseSearchEntity<
 
     const cached = byType.get(opts.type);
     if (cached) {
-      return cached;
+      return cached as T;
     }
 
-    const derived = BaseSearchEntity._deriveSchema({ definition: this.schema, type: opts.type });
+    const derived = deriveSearchDocumentSchema({ definition: this.schema, type: opts.type });
     byType.set(opts.type, derived);
-    return derived;
-  }
-
-  private static _deriveSchema(opts: {
-    definition: ISearchCollectionDefinition;
-    type: TSchemaType;
-  }): z.ZodTypeAny {
-    switch (opts.type) {
-      case SchemaTypes.SELECT:
-      case SchemaTypes.CREATE:
-      case SchemaTypes.UPDATE: {
-        return deriveSearchDocumentSchema({ definition: opts.definition, type: opts.type });
-      }
-      default: {
-        throw getError({
-          message: `[BaseSearchEntity] Invalid schema type | type: ${opts.type} | valid: ${[SchemaTypes.SELECT, SchemaTypes.UPDATE, SchemaTypes.CREATE]}`,
-        });
-      }
-    }
+    return derived as T;
   }
 }

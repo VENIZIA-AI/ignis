@@ -2,13 +2,18 @@ import { getError } from '@venizia/ignis-helpers';
 
 import { model } from '@/base/metadata';
 import { TypesenseDataSource } from '@/connectors/typesense/datasources';
-import { TypesenseDriver } from '@/connectors/typesense/driver';
-import { IImportResult, ISearchDriver, ISearchResult } from '@/connectors/typesense/driver';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
+import { TypesenseConnector } from '@/connectors/typesense/connector';
+import { IImportResult, ISearchConnector, ISearchResult } from '@/connectors/typesense/connector';
+import {
+  BaseSearchEntity,
+  defineSearchCollection,
+  field,
+  ISynonym,
+} from '@/connectors/typesense/models';
 import { ITypesenseDataSourceSettings } from '@/connectors/typesense/types';
 
-/** Records every driver call and serves canned responses; shared across the repository test suites so the fake stays in one place. */
-export class FakeSearchEngineHelper implements ISearchDriver {
+/** Records every connector call and serves canned responses; shared across the repository test suites so the fake stays in one place. */
+export class FakeSearchEngineHelper implements ISearchConnector {
   searchCalls: Array<{ collection: string; params: unknown; options?: unknown }> = [];
   searchResponse: ISearchResult = { found: 0, hits: [] };
   documents: Record<string, unknown> = {};
@@ -78,6 +83,22 @@ export class FakeSearchEngineHelper implements ISearchDriver {
 
   async getAlias(): Promise<null> {
     return null;
+  }
+
+  async upsertSynonym(opts: { synonym: ISynonym }): Promise<ISynonym> {
+    return opts.synonym;
+  }
+
+  async getSynonym(): Promise<null> {
+    return null;
+  }
+
+  async listSynonyms(): Promise<ISynonym[]> {
+    return [];
+  }
+
+  async deleteSynonym(): Promise<boolean> {
+    return true;
   }
 
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
@@ -165,7 +186,7 @@ export class FakeSearchEngineHelper implements ISearchDriver {
   }
 }
 
-/** Canned, never-dialed settings - the fake driver is always injected below, so `configure()`'s
+/** Canned, never-dialed settings - the fake connector is always injected below, so `configure()`'s
  * real Typesense-client construction path never runs; this only exists to satisfy the type. */
 const FAKE_TYPESENSE_SETTINGS: ITypesenseDataSourceSettings = {
   nodes: [{ host: 'localhost', port: 8108 }],
@@ -173,11 +194,11 @@ const FAKE_TYPESENSE_SETTINGS: ITypesenseDataSourceSettings = {
 };
 
 /**
- * Real `TypesenseDataSource` with its driver swapped for `FakeSearchEngineHelper`, keeping
- * `dataSource.getDriver()` typed as `TypesenseDriver` without a live Typesense server.
+ * Real `TypesenseDataSource` with its connector swapped for `FakeSearchEngineHelper`, keeping
+ * `dataSource.getConnector()` typed as `TypesenseConnector` without a live Typesense server.
  */
 export class FakeSearchDataSource extends TypesenseDataSource {
-  readonly fakeDriver = new FakeSearchEngineHelper();
+  readonly fakeConnector = new FakeSearchEngineHelper();
 
   constructor(opts: { name: string; config?: {}; autoProvision?: boolean }) {
     super({
@@ -187,10 +208,10 @@ export class FakeSearchDataSource extends TypesenseDataSource {
     });
   }
 
-  override getDriver(): TypesenseDriver {
-    // TypesenseDriver is a concrete class with a private `client` field, so no ISearchDriver
+  override getConnector(): TypesenseConnector {
+    // TypesenseConnector is a concrete class with a private `client` field, so no ISearchConnector
     // implementer can be structurally assignable to it - this boundary cast is unavoidable.
-    return this.fakeDriver as any;
+    return this.fakeConnector as any;
   }
 }
 

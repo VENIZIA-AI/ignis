@@ -9,7 +9,7 @@ import {
   FakeSearchDataSource,
   ProductDocument,
   ProductDocumentNoDefaultFilter,
-} from './fake-search-driver';
+} from './fake-search-connector';
 
 describe('PersistableSearchRepository', () => {
   let dataSource: FakeSearchDataSource;
@@ -21,21 +21,21 @@ describe('PersistableSearchRepository', () => {
   });
 
   describe('create', () => {
-    test('calls driver.createDocument and wraps the result', async () => {
+    test('calls connector.createDocument and wraps the result', async () => {
       const data = { title: 'A' };
       const result = await repository.create({ data });
 
       expect(result).toEqual({ count: 1, data });
 
-      const [call] = dataSource.fakeDriver.createDocumentCalls;
+      const [call] = dataSource.fakeConnector.createDocumentCalls;
       expect(call.collection).toBe('products');
       expect(call.document).toBe(data);
     });
   });
 
   describe('createAll', () => {
-    test('calls driver.importDocuments and wraps successCount', async () => {
-      dataSource.fakeDriver.importDocumentsResponse = {
+    test('calls connector.importDocuments and wraps successCount', async () => {
+      dataSource.fakeConnector.importDocumentsResponse = {
         successCount: 2,
         failCount: 0,
         responses: [],
@@ -48,35 +48,35 @@ describe('PersistableSearchRepository', () => {
       // rows filtered to the ones the batch accepted (all of them here, since responses is empty).
       expect(result).toEqual({ count: 2, data });
 
-      const [call] = dataSource.fakeDriver.importDocumentsCalls;
+      const [call] = dataSource.fakeConnector.importDocumentsCalls;
       expect(call.collection).toBe('products');
       expect(call.documents).toBe(data);
       expect(call.batchSize).toBeUndefined();
     });
 
-    test('forwards options.batchSize to the driver', async () => {
+    test('forwards options.batchSize to the connector', async () => {
       await repository.createAll({ data: [{ title: 'A' }], options: { batchSize: 40 } });
 
-      const [call] = dataSource.fakeDriver.importDocumentsCalls;
+      const [call] = dataSource.fakeConnector.importDocumentsCalls;
       expect(call.batchSize).toBe(40);
     });
   });
 
   describe('updateById', () => {
     // ProductDocument has a defaultFilter - the filter-guard reads the document back through
-    // findById/search first, so the fake driver must report a matching hit before it passes.
+    // findById/search first, so the fake connector must report a matching hit before it passes.
     const seedFoundDocument = (doc: { id: string; title: string }) => {
-      dataSource.fakeDriver.searchResponse = { found: 1, hits: [{ document: doc }] };
+      dataSource.fakeConnector.searchResponse = { found: 1, hits: [{ document: doc }] };
     };
 
-    test('calls driver.updateDocument and wraps the result', async () => {
+    test('calls connector.updateDocument and wraps the result', async () => {
       seedFoundDocument({ id: '1', title: 'A' });
       const data = { title: 'Updated' };
       const result = await repository.updateById({ id: '1', data });
 
       expect(result).toEqual({ count: 1, data });
 
-      const [call] = dataSource.fakeDriver.updateDocumentCalls;
+      const [call] = dataSource.fakeConnector.updateDocumentCalls;
       expect(call.collection).toBe('products');
       expect(call.id).toBe('1');
       expect(call.document).toBe(data);
@@ -95,13 +95,13 @@ describe('PersistableSearchRepository', () => {
 
       expect(caught).toBeInstanceOf(ApplicationError);
       expect((caught as ApplicationError).statusCode).toBe(404);
-      expect(dataSource.fakeDriver.updateDocumentCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.updateDocumentCalls.length).toBe(0);
     });
 
     test('throws a sanitized 404 for a defaultFilter-excluded (soft-deleted) document', async () => {
       // Same wire shape as "genuinely missing" from the repository's point of view - the guard
       // can't distinguish "no such id" from "id exists but excluded by defaultWhere".
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
 
       let caught: unknown;
 
@@ -113,12 +113,12 @@ describe('PersistableSearchRepository', () => {
 
       expect(caught).toBeInstanceOf(ApplicationError);
       expect((caught as ApplicationError).statusCode).toBe(404);
-      expect(dataSource.fakeDriver.updateDocumentCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.updateDocumentCalls.length).toBe(0);
     });
 
     test('shouldSkipDefaultFilter bypasses the filter-guard entirely', async () => {
       // No search seeded - if the guard ran, it would 404. shouldSkipDefaultFilter means it
-      // never runs at all, and the driver is called directly.
+      // never runs at all, and the connector is called directly.
       const data = { title: 'Updated' };
       const result = await repository.updateById({
         id: 'soft-deleted',
@@ -127,9 +127,9 @@ describe('PersistableSearchRepository', () => {
       });
 
       expect(result).toEqual({ count: 1, data });
-      expect(dataSource.fakeDriver.searchCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
-      const [call] = dataSource.fakeDriver.updateDocumentCalls;
+      const [call] = dataSource.fakeConnector.updateDocumentCalls;
       expect(call.id).toBe('soft-deleted');
     });
 
@@ -142,13 +142,13 @@ describe('PersistableSearchRepository', () => {
       const result = await noFilterRepository.updateById({ id: 'any-id', data });
 
       expect(result).toEqual({ count: 1, data });
-      expect(dataSource.fakeDriver.searchCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
     });
   });
 
   describe('updateBy - postgres-parity alias for updateAll (factory PATCH / route)', () => {
-    test('routes through translateWhere with the default-filter merge, same as updateAll', async () => {
-      dataSource.fakeDriver.updateByFilterResponse = { updatedCount: 3 };
+    test('routes through toWhere with the default-filter merge, same as updateAll', async () => {
+      dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 3 };
 
       const result = await repository.updateBy({
         data: { title: 'x' },
@@ -159,7 +159,7 @@ describe('PersistableSearchRepository', () => {
       // searchResponse was never seeded).
       expect(result).toEqual({ count: 3, data: [] });
 
-      const [call] = dataSource.fakeDriver.updateByFilterCalls;
+      const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.collection).toBe('products');
       expect(call.filterBy).toBe('(isActive:=true && status:=`active`)');
       expect(call.document).toEqual({ title: 'x' });
@@ -167,8 +167,8 @@ describe('PersistableSearchRepository', () => {
   });
 
   describe('updateAll', () => {
-    test('merges defaultWhere and forwards translateWhere output as filterBy', async () => {
-      dataSource.fakeDriver.updateByFilterResponse = { updatedCount: 3 };
+    test('merges defaultWhere and forwards toWhere output as filterBy', async () => {
+      dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 3 };
 
       const result = await repository.updateAll({
         data: { title: 'x' },
@@ -179,18 +179,18 @@ describe('PersistableSearchRepository', () => {
       // via find() over the same filter ([] here since searchResponse was never seeded).
       expect(result).toEqual({ count: 3, data: [] });
 
-      const [call] = dataSource.fakeDriver.updateByFilterCalls;
+      const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.collection).toBe('products');
       expect(call.filterBy).toBe('(isActive:=true && status:=`active`)');
       expect(call.document).toEqual({ title: 'x' });
     });
 
     test('no where still applies the default filter', async () => {
-      dataSource.fakeDriver.updateByFilterResponse = { updatedCount: 1 };
+      dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 1 };
 
       await repository.updateAll({ data: { title: 'x' } });
 
-      const [call] = dataSource.fakeDriver.updateByFilterCalls;
+      const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.filterBy).toBe('isActive:=true');
     });
 
@@ -208,13 +208,13 @@ describe('PersistableSearchRepository', () => {
       }
 
       expect(caught).toBeInstanceOf(Error);
-      expect(dataSource.fakeDriver.updateByFilterCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.updateByFilterCalls.length).toBe(0);
     });
   });
 
   describe('import', () => {
     test('passes through action/batchSize and returns the raw IImportResult', async () => {
-      dataSource.fakeDriver.importDocumentsResponse = {
+      dataSource.fakeConnector.importDocumentsResponse = {
         successCount: 5,
         failCount: 1,
         responses: ['x'],
@@ -223,19 +223,19 @@ describe('PersistableSearchRepository', () => {
 
       const result = await repository.import({ documents, action: 'upsert', batchSize: 10 });
 
-      expect(result).toEqual(dataSource.fakeDriver.importDocumentsResponse);
+      expect(result).toEqual(dataSource.fakeConnector.importDocumentsResponse);
 
-      const [call] = dataSource.fakeDriver.importDocumentsCalls;
+      const [call] = dataSource.fakeConnector.importDocumentsCalls;
       expect(call.collection).toBe('products');
       expect(call.documents).toBe(documents);
       expect(call.action).toBe('upsert');
       expect(call.batchSize).toBe(10);
     });
 
-    test('omits action/batchSize from the driver call when not provided', async () => {
+    test('omits action/batchSize from the connector call when not provided', async () => {
       await repository.import({ documents: [{ title: 'A' }] });
 
-      const [call] = dataSource.fakeDriver.importDocumentsCalls;
+      const [call] = dataSource.fakeConnector.importDocumentsCalls;
       expect(call.action).toBeUndefined();
       expect(call.batchSize).toBeUndefined();
     });
@@ -254,9 +254,9 @@ describe('DefaultSearchRepository', () => {
   describe('deleteById', () => {
     // ProductDocument has a defaultFilter - deleteById's filter-guard reads the document back
     // through findById/search first (see default-search.ts), same as updateById.
-    test('driver returns true -> count 1', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
-      dataSource.fakeDriver.deleteDocumentResult = true;
+    test('connector returns true -> count 1', async () => {
+      dataSource.fakeConnector.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
+      dataSource.fakeConnector.deleteDocumentResult = true;
 
       const result = await repository.deleteById({ id: '1' });
 
@@ -264,39 +264,39 @@ describe('DefaultSearchRepository', () => {
       // reuses that read rather than issuing a second one just to satisfy shouldReturn.
       expect(result).toEqual({ count: 1, data: { id: '1' } });
 
-      const [call] = dataSource.fakeDriver.deleteDocumentCalls;
+      const [call] = dataSource.fakeConnector.deleteDocumentCalls;
       expect(call.collection).toBe('products');
       expect(call.id).toBe('1');
     });
 
-    test('driver returns false (404, no throw) -> count 0', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
-      dataSource.fakeDriver.deleteDocumentResult = false;
+    test('connector returns false (404, no throw) -> count 0', async () => {
+      dataSource.fakeConnector.searchResponse = { found: 1, hits: [{ document: { id: '1' } }] };
+      dataSource.fakeConnector.deleteDocumentResult = false;
 
       const result = await repository.deleteById({ id: '1' });
 
       expect(result).toEqual({ count: 0, data: null });
     });
 
-    test('filter-guard: a genuinely missing document -> count 0 without calling the driver', async () => {
+    test('filter-guard: a genuinely missing document -> count 0 without calling the connector', async () => {
       // Default fake searchResponse is { found: 0, hits: [] }.
       const result = await repository.deleteById({ id: 'missing' });
 
       expect(result).toEqual({ count: 0, data: null });
-      expect(dataSource.fakeDriver.deleteDocumentCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteDocumentCalls.length).toBe(0);
     });
 
     test('filter-guard: a defaultFilter-excluded (soft-deleted) document -> count 0', async () => {
-      dataSource.fakeDriver.searchResponse = { found: 0, hits: [] };
+      dataSource.fakeConnector.searchResponse = { found: 0, hits: [] };
 
       const result = await repository.deleteById({ id: 'soft-deleted' });
 
       expect(result).toEqual({ count: 0, data: null });
-      expect(dataSource.fakeDriver.deleteDocumentCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteDocumentCalls.length).toBe(0);
     });
 
     test('shouldSkipDefaultFilter bypasses the filter-guard entirely', async () => {
-      dataSource.fakeDriver.deleteDocumentResult = true;
+      dataSource.fakeConnector.deleteDocumentResult = true;
 
       const result = await repository.deleteById({
         id: 'soft-deleted',
@@ -306,25 +306,25 @@ describe('DefaultSearchRepository', () => {
       // No guard read happened (skipped), so there is nothing to report back as `data` even
       // though shouldReturn wasn't explicitly false - deleteById never reads purely to populate it.
       expect(result).toEqual({ count: 1, data: null });
-      expect(dataSource.fakeDriver.searchCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
     });
 
     test('skips the guard entirely when the model has no defaultFilter', async () => {
       const noFilterRepository = new DefaultSearchRepository<any>(dataSource, {
         entityClass: ProductDocumentNoDefaultFilter,
       });
-      dataSource.fakeDriver.deleteDocumentResult = true;
+      dataSource.fakeConnector.deleteDocumentResult = true;
 
       const result = await noFilterRepository.deleteById({ id: 'any-id' });
 
       expect(result).toEqual({ count: 1, data: null });
-      expect(dataSource.fakeDriver.searchCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
     });
   });
 
   describe('deleteBy - postgres-parity alias for deleteAll (factory DELETE / route)', () => {
-    test('routes through translateWhere with the default-filter merge, same as deleteAll', async () => {
-      dataSource.fakeDriver.deleteByFilterResponse = 7;
+    test('routes through toWhere with the default-filter merge, same as deleteAll', async () => {
+      dataSource.fakeConnector.deleteByFilterResponse = 7;
 
       const result = await repository.deleteBy({ where: { status: 'inactive' } });
 
@@ -332,7 +332,7 @@ describe('DefaultSearchRepository', () => {
       // searchResponse never seeded).
       expect(result).toEqual({ count: 7, data: [] });
 
-      const [call] = dataSource.fakeDriver.deleteByFilterCalls;
+      const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.collection).toBe('products');
       expect(call.filterBy).toBe('(isActive:=true && status:=`inactive`)');
     });
@@ -340,46 +340,46 @@ describe('DefaultSearchRepository', () => {
 
   describe('deleteAll', () => {
     test('with where -> merges default filter and uses deleteByFilter', async () => {
-      dataSource.fakeDriver.deleteByFilterResponse = 7;
+      dataSource.fakeConnector.deleteByFilterResponse = 7;
 
       const result = await repository.deleteAll({ where: { status: 'inactive' } });
 
       expect(result).toEqual({ count: 7, data: [] });
 
-      const [call] = dataSource.fakeDriver.deleteByFilterCalls;
+      const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.collection).toBe('products');
       expect(call.filterBy).toBe('(isActive:=true && status:=`inactive`)');
-      expect(dataSource.fakeDriver.deleteAllDocumentsCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
 
     test('no where but a default filter is present -> filter delete, NOT truncate', async () => {
-      dataSource.fakeDriver.deleteByFilterResponse = 4;
+      dataSource.fakeConnector.deleteByFilterResponse = 4;
 
       const result = await repository.deleteAll();
 
       expect(result).toEqual({ count: 4, data: [] });
 
-      const [call] = dataSource.fakeDriver.deleteByFilterCalls;
+      const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.filterBy).toBe('isActive:=true');
-      expect(dataSource.fakeDriver.deleteAllDocumentsCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
 
     test('no where and no default filter -> truncate path via deleteAllDocuments', async () => {
       const noFilterRepository = new DefaultSearchRepository<any>(dataSource, {
         entityClass: ProductDocumentNoDefaultFilter,
       });
-      dataSource.fakeDriver.deleteAllDocumentsResponse = true;
+      dataSource.fakeConnector.deleteAllDocumentsResponse = true;
 
       const result = await noFilterRepository.deleteAll();
 
       // Truncate reports neither a real count nor the removed rows (an engine limitation) - data
       // is `[]` here (the default/"true" shouldReturn branch), not null.
       expect(result).toEqual({ count: 0, data: [] });
-      expect(dataSource.fakeDriver.deleteAllDocumentsCalls.length).toBe(1);
-      expect(dataSource.fakeDriver.deleteAllDocumentsCalls[0].collection).toBe(
+      expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(1);
+      expect(dataSource.fakeConnector.deleteAllDocumentsCalls[0].collection).toBe(
         'products_no_default_filter',
       );
-      expect(dataSource.fakeDriver.deleteByFilterCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.deleteByFilterCalls.length).toBe(0);
     });
   });
 });

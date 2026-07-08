@@ -3,7 +3,7 @@ import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  TInferSearchDocument,
+  TSearchDocument,
 } from '@venizia/ignis/typesense';
 
 /**
@@ -43,4 +43,4 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
   });
 }
 
-export type TArticleDocument = TInferSearchDocument<typeof ArticleDocument.schema>;
+export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;

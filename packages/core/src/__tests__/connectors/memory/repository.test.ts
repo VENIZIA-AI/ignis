@@ -38,16 +38,16 @@ class MemoryOperatorProductEntity extends AbstractEntity {
     super({ name: 'memory_operator_products' });
   }
 
-  getSchema(opts: { type: TSchemaType }): z.ZodTypeAny {
+  getSchema<T = unknown>(opts: { type: TSchemaType }): T {
     switch (opts.type) {
       case SchemaTypes.SELECT: {
-        return ProductSelectSchema;
+        return ProductSelectSchema as T;
       }
       case SchemaTypes.CREATE: {
-        return ProductCreateSchema;
+        return ProductCreateSchema as T;
       }
       case SchemaTypes.UPDATE: {
-        return ProductCreateSchema.partial();
+        return ProductCreateSchema.partial() as T;
       }
       default: {
         throw getError({
@@ -491,16 +491,16 @@ describe('MemoryRepository - edge case hardening', () => {
       super({ name: 'memory_edge_case_docs' });
     }
 
-    getSchema(opts: { type: TSchemaType }): z.ZodTypeAny {
+    getSchema<T = unknown>(opts: { type: TSchemaType }): T {
       switch (opts.type) {
         case SchemaTypes.SELECT: {
-          return EdgeSelectSchema;
+          return EdgeSelectSchema as T;
         }
         case SchemaTypes.CREATE: {
-          return EdgeCreateSchema;
+          return EdgeCreateSchema as T;
         }
         case SchemaTypes.UPDATE: {
-          return EdgeCreateSchema.partial();
+          return EdgeCreateSchema.partial() as T;
         }
         default: {
           throw getError({

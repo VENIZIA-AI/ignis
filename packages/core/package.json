@@ -129,6 +129,10 @@
       "types": "./dist/connectors/typesense/index.d.ts",
       "default": "./dist/connectors/typesense/index.js"
     },
+    "./typesense/controllers": {
+      "types": "./dist/connectors/typesense/controllers/index.d.ts",
+      "default": "./dist/connectors/typesense/controllers/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [

@@ -5,7 +5,7 @@ import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 import { datasource, model, repository } from '@/base/metadata';
 import { DataSourceDrivers } from '@/base/datasources';
 import { BaseSearchDataSource } from '@/connectors/typesense/datasources';
-import { ISearchDriver } from '@/connectors/typesense/driver';
+import { ISearchConnector } from '@/connectors/typesense/connector';
 import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
 import { BasePostgresEntity } from '@/connectors/postgres/models';
 import {
@@ -30,8 +30,8 @@ class FakeSearchDataSource extends BaseSearchDataSource<{}> {
     // no-op: this fixture never touches a real search engine.
   }
 
-  getDriver(): ISearchDriver {
-    throw getError({ message: '[FakeSearchDataSource][getDriver] Not needed for this test' });
+  getConnector(): ISearchConnector {
+    throw getError({ message: '[FakeSearchDataSource][getConnector] Not needed for this test' });
   }
 
   getQueryDialect(): ISearchQueryDialect {

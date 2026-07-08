@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
 import { ITransaction } from '@/base/datasources';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
-import { FakeSearchDataSource, ProductDocument } from './fake-search-driver';
+import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
 /**
  * Typesense has no transaction primitive - every verb rejects `options.transaction` loudly via

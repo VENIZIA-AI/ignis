@@ -8,7 +8,7 @@ interface IProduct {
   title: string;
 }
 
-describe('TypesenseDriver documents', () => {
+describe('TypesenseConnector documents', () => {
   test('createDocument forwards to documents().create', async () => {
     const { helper, fake } = makeHelper();
     const doc: IProduct = { id: '1', title: 'Shoe' };
@@ -80,8 +80,9 @@ describe('TypesenseDriver documents', () => {
       await helper.deleteByFilter({ collection: 'products', filterBy: 'status:=archived' }),
     ).toBe(7);
     const delCall = fake.calls.find(c => c.op === 'documents.delete');
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    expect(delCall?.args[2]).toEqual({ filter_by: 'status:=archived' });
+    const expected: Record<string, unknown> = {};
+    expected['filter_by'] = 'status:=archived';
+    expect(delCall?.args[2]).toEqual(expected);
   });
 
   test('updateByFilter returns updatedCount', async () => {
@@ -93,8 +94,9 @@ describe('TypesenseDriver documents', () => {
     });
     expect(result.updatedCount).toBe(4);
     const updCall = fake.calls.find(c => c.op === 'documents.update');
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    expect(updCall?.args[3]).toEqual({ filter_by: 'status:=draft' });
+    const expected: Record<string, unknown> = {};
+    expected['filter_by'] = 'status:=draft';
+    expect(updCall?.args[3]).toEqual(expected);
   });
 
   test('exportDocuments returns JSONL string', async () => {
@@ -126,13 +128,9 @@ describe('TypesenseDriver documents', () => {
     const call = fake.calls.find(c => c.op === 'documents.import');
     // call.args = [collection, documents, importParams]
 
-    /* eslint-disable @typescript-eslint/naming-convention */
-    expect(call?.args[2]).toMatchObject({
-      action: 'create',
-      dirty_values: 'coerce_or_drop',
-      throwOnFail: false,
-    });
-    /* eslint-enable @typescript-eslint/naming-convention */
+    const expected: Record<string, unknown> = { action: 'create', throwOnFail: false };
+    expected['dirty_values'] = 'coerce_or_drop';
+    expect(call?.args[2]).toMatchObject(expected);
   });
 
   test('importDocuments rejects an invalid dirtyValues', async () => {
@@ -243,12 +241,10 @@ describe('TypesenseDriver documents', () => {
     });
     const call = fake.calls.find(c => c.op === 'documents.delete');
 
-    /* eslint-disable @typescript-eslint/naming-convention */
-    expect(call?.args[2]).toEqual({
-      filter_by: 'status:=archived',
-      batch_size: 500,
-      ignore_not_found: true,
-    });
-    /* eslint-enable @typescript-eslint/naming-convention */
+    const expected: Record<string, unknown> = {};
+    expected['filter_by'] = 'status:=archived';
+    expected['batch_size'] = 500;
+    expected['ignore_not_found'] = true;
+    expect(call?.args[2]).toEqual(expected);
   });
 });

@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { SearchDriverInternal } from '@/connectors/typesense/internal/search-driver-internal';
-import { TypesenseInternal } from '@/connectors/typesense/internal/driver-internal';
+import { SearchConnectorInternal } from '@/connectors/typesense/internal/search-connector-internal';
+import { TypesenseInternal } from '@/connectors/typesense/internal/connector-internal';
 import { Logger, LoggerFactory, ApplicationError } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['SearchDriverInternalTest']);
@@ -52,12 +52,12 @@ describe('TypesenseInternal.isNotFoundError', () => {
   });
 });
 
-describe('SearchDriverInternal.wrapDependencyError', () => {
+describe('SearchConnectorInternal.wrapDependencyError', () => {
   test('throws a sanitized 503 ApplicationError without raw detail', () => {
     const raw = new Error('connection refused at typesense-internal-host:8108 secret-api-key');
     let thrown: unknown;
     try {
-      SearchDriverInternal.wrapDependencyError({ method: 'search', error: raw, logger });
+      SearchConnectorInternal.wrapDependencyError({ method: 'search', error: raw, logger });
     } catch (e) {
       thrown = e;
     }
@@ -85,7 +85,7 @@ describe('SearchDriverInternal.wrapDependencyError', () => {
 
     let thrown: unknown;
     try {
-      SearchDriverInternal.wrapDependencyError({
+      SearchConnectorInternal.wrapDependencyError({
         method: 'search',
         error: raw,
         logger: mockLogger,
@@ -103,7 +103,7 @@ describe('SearchDriverInternal.wrapDependencyError', () => {
   test('attaches caller-actionable details to the thrown error extra payload', () => {
     let thrown: unknown;
     try {
-      SearchDriverInternal.wrapDependencyError({
+      SearchConnectorInternal.wrapDependencyError({
         method: 'importDocuments',
         error: new Error('blip'),
         logger,
@@ -121,11 +121,11 @@ describe('SearchDriverInternal.wrapDependencyError', () => {
   });
 });
 
-describe('SearchDriverInternal.throwNotFoundError', () => {
+describe('SearchConnectorInternal.throwNotFoundError', () => {
   test('throws a sanitized 404 with the not_found messageCode', () => {
     let thrown: unknown;
     try {
-      SearchDriverInternal.throwNotFoundError({
+      SearchConnectorInternal.throwNotFoundError({
         method: 'getDocument',
         subject: "Document 'd1' in collection 'products'",
       });

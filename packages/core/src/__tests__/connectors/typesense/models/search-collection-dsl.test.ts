@@ -5,6 +5,7 @@ import {
   field,
   ISearchFieldDefinition,
   SearchFieldTypes,
+  VectorDistances,
 } from '@/connectors/typesense/models';
 
 describe('search-collection DSL', () => {
@@ -45,10 +46,45 @@ describe('search-collection DSL', () => {
     test('field.geopoint() produces geopoint type', () => {
       expect(field.geopoint('location').type).toBe('geopoint');
     });
+
+    test('field.vector() produces vector type carrying dimensions/distance for a client-provided vector', () => {
+      expect(field.vector('vec', { dimensions: 384, distance: 'cosine' })).toEqual({
+        name: 'vec',
+        type: 'vector',
+        vector: { dimensions: 384, distance: 'cosine' },
+      });
+    });
+
+    test('field.vector() produces vector type carrying embed for a server auto-embedded vector', () => {
+      expect(
+        field.vector('vec', { embed: { from: ['title'], model: { name: 'ts/all-MiniLM-L6-v2' } } }),
+      ).toEqual({
+        name: 'vec',
+        type: 'vector',
+        vector: { embed: { from: ['title'], model: { name: 'ts/all-MiniLM-L6-v2' } } },
+      });
+    });
+
+    test('field.vector() carries optional at the top level, not nested under vector', () => {
+      const result = field.vector('vec', { dimensions: 384, optional: true });
+
+      expect(result).toEqual({
+        name: 'vec',
+        type: 'vector',
+        vector: { dimensions: 384 },
+        optional: true,
+      });
+    });
+
+    test('field.vector() omits the optional key entirely when not set', () => {
+      const result = field.vector('vec', { dimensions: 384 });
+
+      expect(result).not.toHaveProperty('optional');
+    });
   });
 
   describe('SearchFieldTypes.isValid', () => {
-    test('accepts all seven canonical types', () => {
+    test('accepts all eight canonical types', () => {
       expect(SearchFieldTypes.isValid('string')).toBe(true);
       expect(SearchFieldTypes.isValid('number')).toBe(true);
       expect(SearchFieldTypes.isValid('boolean')).toBe(true);
@@ -56,11 +92,25 @@ describe('search-collection DSL', () => {
       expect(SearchFieldTypes.isValid('string[]')).toBe(true);
       expect(SearchFieldTypes.isValid('number[]')).toBe(true);
       expect(SearchFieldTypes.isValid('boolean[]')).toBe(true);
+      expect(SearchFieldTypes.isValid('vector')).toBe(true);
     });
 
     test('rejects unknown types', () => {
       expect(SearchFieldTypes.isValid('object')).toBe(false);
       expect(SearchFieldTypes.isValid('')).toBe(false);
+    });
+  });
+
+  describe('VectorDistances.isValid', () => {
+    test('accepts all three canonical distance metrics', () => {
+      expect(VectorDistances.isValid('cosine')).toBe(true);
+      expect(VectorDistances.isValid('ip')).toBe(true);
+      expect(VectorDistances.isValid('l2')).toBe(true);
+    });
+
+    test('rejects unknown distance metrics', () => {
+      expect(VectorDistances.isValid('euclidean')).toBe(false);
+      expect(VectorDistances.isValid('')).toBe(false);
     });
   });
 

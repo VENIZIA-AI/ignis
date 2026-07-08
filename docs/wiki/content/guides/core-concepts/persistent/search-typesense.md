@@ -20,7 +20,7 @@ import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
-  TInferSearchDocument,
+  TSearchDocument,
 } from '@venizia/ignis/typesense';
 
 @model({
@@ -49,7 +49,7 @@ export class ArticleDocument extends BaseSearchEntity {
   });
 }
 
-export type TArticleDocument = TInferSearchDocument<typeof ArticleDocument.schema>;
+export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
 ```
 
 The same `@model` settings you use with Drizzle entities - `hiddenProperties`, `defaultFilter`, `defaultLimit` - work identically here. `hiddenProperties` compiles to Typesense's `exclude_fields`; `defaultFilter.where` is AND-merged into every read's `filter_by` unless the caller passes `shouldSkipDefaultFilter: true`.
@@ -73,12 +73,12 @@ Each `flags` object may set `searchable`, `filterable`, `facet`, `sortable`, `op
 
 `defineSearchCollection` validates at call time: throws on an empty `name`, empty `fields`, duplicate field names, a non-`string` `id` field, or an unknown `defaultSort` field reference.
 
-### `TInferSearchDocument<T>`
+### `TSearchDocument<T>`
 
 Derives the document's TypeScript shape directly from the collection definition - no hand-maintained duplicate type:
 
 ```typescript
-export type TArticleDocument = TInferSearchDocument<typeof ArticleDocument.schema>;
+export type TArticleDocument = TSearchDocument<typeof ArticleDocument.schema>;
 // {
 //   id: string;
 //   title: string;

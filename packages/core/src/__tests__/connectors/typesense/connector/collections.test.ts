@@ -4,7 +4,7 @@ import { makeHelper } from './fake-client';
 
 const schema = { name: 'products', fields: [{ name: 'title', type: 'string' as const }] };
 
-describe('TypesenseDriver collections', () => {
+describe('TypesenseConnector collections', () => {
   test('createCollection calls collections().create', async () => {
     const { helper, fake } = makeHelper();
     await helper.createCollection({ schema });
@@ -32,10 +32,12 @@ describe('TypesenseDriver collections', () => {
   });
 
   test('ensureCollection returns existing when present', async () => {
+    const existingCollection: Record<string, unknown> = { name: 'products' };
+    existingCollection['num_documents'] = 5;
+
     const { helper } = makeHelper({
       existsByName: { products: true },
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      collectionByName: { products: { name: 'products', num_documents: 5 } },
+      collectionByName: { products: existingCollection },
     });
     const result = await helper.ensureCollection({ schema });
     expect(result.name).toBe('products');
@@ -78,8 +80,9 @@ describe('TypesenseDriver collections', () => {
     const { helper, fake } = makeHelper();
     await helper.upsertAlias({ name: 'products', collection: 'products_v2' });
     const call = fake.calls.find(c => c.op === 'aliases.upsert');
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    expect(call?.args).toEqual(['products', { collection_name: 'products_v2' }]);
+    const expectedMapping: Record<string, unknown> = {};
+    expectedMapping['collection_name'] = 'products_v2';
+    expect(call?.args).toEqual(['products', expectedMapping]);
   });
 
   test('getCollection throws a sanitized 404 (not 503) when the collection is missing', async () => {
@@ -108,9 +111,11 @@ describe('TypesenseDriver collections', () => {
   });
 
   test('getAlias maps collection_name → IAliasInfo, null when missing', async () => {
+    const aliasResponse: Record<string, string> = { name: 'products' };
+    aliasResponse['collection_name'] = 'products_v2';
+
     const present = makeHelper({
-      // eslint-disable-next-line @typescript-eslint/naming-convention
-      aliasByName: { products: { name: 'products', collection_name: 'products_v2' } },
+      aliasByName: { products: aliasResponse },
     });
     expect(await present.helper.getAlias({ name: 'products' })).toEqual({
       name: 'products',

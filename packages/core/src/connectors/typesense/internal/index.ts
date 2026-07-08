@@ -1,2 +1,2 @@
-export * from './driver-internal';
-export * from './search-driver-internal';
+export * from './connector-internal';
+export * from './search-connector-internal';

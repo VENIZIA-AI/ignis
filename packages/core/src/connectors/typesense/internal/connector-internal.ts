@@ -5,7 +5,7 @@ interface IHttpLikeError {
   message?: string;
 }
 
-// Typesense-specific error classification only; engine-agnostic plumbing lives in SearchDriverInternal.
+// Typesense-specific error classification only; engine-agnostic plumbing lives in SearchConnectorInternal.
 export class TypesenseInternal {
   private static asHttpLike(opts: { error: unknown }): IHttpLikeError {
     const { error } = opts;
@@ -34,25 +34,28 @@ export class TypesenseInternal {
 
   // Status-first and strict: if httpStatus is present, classify solely on it - a 5xx whose
   // passed-through message happens to contain the phrase must not be mistaken for a benign miss.
-  static isAlreadyExistsError(opts: { error: unknown }): boolean {
-    const { error } = opts;
+  private static classify(opts: { error: unknown; status: number; phrase: string }): boolean {
+    const { error, status, phrase } = opts;
 
-    const status = this.asHttpLike({ error }).httpStatus;
-    if (typeof status === 'number') {
-      return status === HTTP.ResultCodes.RS_4.Conflict;
+    const httpStatus = this.asHttpLike({ error }).httpStatus;
+    if (typeof httpStatus === 'number') {
+      return httpStatus === status;
     }
 
-    return this.messageOf({ error }).includes('already exists');
+    return this.messageOf({ error }).includes(phrase);
+  }
+
+  static isAlreadyExistsError(opts: { error: unknown }): boolean {
+    const { error } = opts;
+    return this.classify({
+      error,
+      status: HTTP.ResultCodes.RS_4.Conflict,
+      phrase: 'already exists',
+    });
   }
 
   static isNotFoundError(opts: { error: unknown }): boolean {
     const { error } = opts;
-
-    const status = this.asHttpLike({ error }).httpStatus;
-    if (typeof status === 'number') {
-      return status === HTTP.ResultCodes.RS_4.NotFound;
-    }
-
-    return this.messageOf({ error }).includes('not found');
+    return this.classify({ error, status: HTTP.ResultCodes.RS_4.NotFound, phrase: 'not found' });
   }
 }

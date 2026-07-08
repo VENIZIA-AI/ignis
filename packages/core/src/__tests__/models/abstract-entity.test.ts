@@ -6,8 +6,8 @@ class NoteDocument extends AbstractEntity {
   constructor() {
     super({ name: 'notes' });
   }
-  getSchema(): unknown {
-    return { name: 'notes' };
+  getSchema<T = unknown>(): T {
+    return { name: 'notes' } as T;
   }
 }
 

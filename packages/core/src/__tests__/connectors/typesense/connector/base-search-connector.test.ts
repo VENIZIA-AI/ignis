@@ -1,11 +1,12 @@
 import { describe, test, expect } from 'bun:test';
-import { BaseSearchDriver } from '@/connectors/typesense/driver';
-import type { IImportResult, IAliasInfo, ISearchResult } from '@/connectors/typesense/driver';
+import { BaseSearchConnector } from '@/connectors/typesense/connector';
+import type { IImportResult, IAliasInfo, ISearchResult } from '@/connectors/typesense/connector';
+import type { ISynonym } from '@/connectors/typesense/models';
 
-class StubDriver extends BaseSearchDriver {
+class StubConnector extends BaseSearchConnector {
   healthOk = true;
   constructor() {
-    super({ scope: 'StubDriver', identifier: 'stub' });
+    super({ scope: 'StubConnector', identifier: 'stub' });
   }
   getHealth(): Promise<{ ok: boolean }> {
     return Promise.resolve({ ok: this.healthOk });
@@ -36,6 +37,18 @@ class StubDriver extends BaseSearchDriver {
     throw new Error('nyi');
   }
   getAlias(): Promise<IAliasInfo | null> {
+    throw new Error('nyi');
+  }
+  upsertSynonym(): Promise<ISynonym> {
+    throw new Error('nyi');
+  }
+  getSynonym(): Promise<ISynonym | null> {
+    throw new Error('nyi');
+  }
+  listSynonyms(): Promise<ISynonym[]> {
+    throw new Error('nyi');
+  }
+  deleteSynonym(): Promise<boolean> {
     throw new Error('nyi');
   }
   createDocument<T extends object>(): Promise<T> {
@@ -76,39 +89,43 @@ class StubDriver extends BaseSearchDriver {
   }
 }
 
-describe('BaseSearchDriver', () => {
+describe('BaseSearchConnector', () => {
   test('ping() returns true when health ok', async () => {
-    const driver = new StubDriver();
-    expect(await driver.ping()).toBe(true);
+    const connector = new StubConnector();
+    expect(await connector.ping()).toBe(true);
   });
 
   test('ping() returns false when health not ok', async () => {
-    const driver = new StubDriver();
-    driver.healthOk = false;
-    expect(await driver.ping()).toBe(false);
+    const connector = new StubConnector();
+    connector.healthOk = false;
+    expect(await connector.ping()).toBe(false);
   });
 
   test('assertNonEmpty throws on empty value', () => {
-    const driver = new StubDriver();
+    const connector = new StubConnector();
     expect(() =>
-      driver['assertNonEmpty']({ value: '', name: 'collection', method: 'getCollection' }),
+      connector['assertNonEmpty']({ value: '', name: 'collection', method: 'getCollection' }),
     ).toThrow();
     expect(() =>
-      driver['assertNonEmpty']({ value: '  ', name: 'collection', method: 'getCollection' }),
+      connector['assertNonEmpty']({ value: '  ', name: 'collection', method: 'getCollection' }),
     ).toThrow();
   });
 
   test('assertNonEmpty includes the calling method in the thrown message', () => {
-    const driver = new StubDriver();
+    const connector = new StubConnector();
     expect(() =>
-      driver['assertNonEmpty']({ value: '', name: 'collection', method: 'getCollection' }),
+      connector['assertNonEmpty']({ value: '', name: 'collection', method: 'getCollection' }),
     ).toThrow('[getCollection] Missing or empty value | name: collection');
   });
 
   test('assertNonEmpty passes on non-empty value', () => {
-    const driver = new StubDriver();
+    const connector = new StubConnector();
     expect(() =>
-      driver['assertNonEmpty']({ value: 'products', name: 'collection', method: 'getCollection' }),
+      connector['assertNonEmpty']({
+        value: 'products',
+        name: 'collection',
+        method: 'getCollection',
+      }),
     ).not.toThrow();
   });
 });

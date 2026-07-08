@@ -48,7 +48,23 @@ export interface ITransaction {
   rollback(): Promise<void>;
 }
 
-/** Capability flags a datasource reports at runtime instead of callers assuming support at the type level. */
 export interface IDataSourceCapabilities {
   transactions: boolean;
+}
+
+export interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities {
+  // Options for search engine
+  search?: {
+    /** Vector / semantic / hybrid search (search engines). */
+    vector?: boolean;
+
+    /** Batched multi-query search across collections. */
+    multi?: boolean;
+
+    /** Merged (union) result set across a multi-search. */
+    union?: boolean;
+
+    /** Synonym sets (multi-way / one-way). */
+    synonyms?: boolean;
+  };
 }

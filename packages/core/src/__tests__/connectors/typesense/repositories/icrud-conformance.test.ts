@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { ICrudRepository } from '@/base/repositories';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
-import { FakeSearchDataSource, ProductDocument } from './fake-search-driver';
+import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
 /**
  * `DefaultSearchRepository` must satisfy the neutral `ICrudRepository` contract - fails to

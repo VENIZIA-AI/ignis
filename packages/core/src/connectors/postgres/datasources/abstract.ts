@@ -1,15 +1,12 @@
+import { AbstractDataSource, TAnyDataSourceSchema } from '@/base/datasources';
+import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
+import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 import { ValueOrPromise } from '@venizia/ignis-helpers';
 import { Pool } from 'pg';
-import { AbstractDataSource, TAnyDataSourceSchema } from '@/base/datasources';
-// Deep import (not the repositories barrel): FilterBuilder -> repositories/common -> datasources
-// barrel closes a module cycle. Instantiated lazily below, never in a static initializer, so the
-// class body references no half-initialized binding at load time.
-import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
-import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
 import {
-  IPostgresDataSource,
   IDatabaseTransaction,
   IDatabaseTransactionOptions,
+  IPostgresDataSource,
   TNodePostgresConnector,
 } from './common';
 
@@ -26,10 +23,6 @@ export abstract class AbstractRelationalDataSource<
 
   protected pool: Pool;
 
-  /** Shared across every relational datasource - FilterBuilder is stateless (its only field is a
-   * logger scope). Unlike the search branch's eager `static readonly`, this is assigned lazily on
-   * first use: an eager static initializer would run at module load, when the FilterBuilder ->
-   * repositories/common -> datasources cycle leaves the binding half-initialized (TDZ). */
   private static queryDialect?: IRelationalQueryDialect;
 
   abstract getConnectionString(): ValueOrPromise<string>;
@@ -41,8 +34,10 @@ export abstract class AbstractRelationalDataSource<
     return this.connector;
   }
 
-  /** The relational query dialect (FilterBuilder), obtained by repositories via the datasource -
-   * mirrors the search branch's `getQueryDialect()`. Returns the shared singleton. */
+  getClient(): Pool {
+    return this.pool;
+  }
+
   getQueryDialect(): IRelationalQueryDialect {
     if (!AbstractRelationalDataSource.queryDialect) {
       AbstractRelationalDataSource.queryDialect = new FilterBuilder();

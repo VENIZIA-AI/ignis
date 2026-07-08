@@ -1,65 +1,85 @@
+import { ISearchableDataSourceCapabilities } from '@/base/datasources';
 import { ISearchCollectionDefinition } from '@/connectors/typesense/models';
 import { ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
+import { Client } from 'typesense';
 import { compileTypesenseCollection } from '../compiler';
-import { ITypesenseClientLike, TypesenseDriver } from '../driver';
+import { TypesenseConnector } from '../connector';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import {
   ISearchDataSourceOptions,
   ITypesenseDataSourceSettings,
-  ITypesenseDriverOptions,
+  ITypesenseConnectorOptions,
 } from '../types';
 import { BaseSearchDataSource } from './base';
 
-/** Typesense-backed search datasource: builds/injects a driver, compiles the neutral DSL, and provisions discovered collections. */
+/** Typesense-backed search datasource: builds/injects a connector, compiles the neutral DSL, and provisions discovered collections. */
 export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSourceSettings> {
   /** Stateless dialect - shared across every TypesenseDataSource instance. */
   private static readonly queryDialect: ISearchQueryDialect = new TypesenseQueryDialect();
 
-  private readonly injectedDriver?: TypesenseDriver;
-  private driver?: TypesenseDriver;
+  private readonly injectedConnector?: TypesenseConnector;
+  private connector?: TypesenseConnector;
 
   constructor(
-    opts: ISearchDataSourceOptions<ITypesenseDataSourceSettings> & { driver?: TypesenseDriver },
+    opts: ISearchDataSourceOptions<ITypesenseDataSourceSettings> & {
+      connector?: TypesenseConnector;
+    },
   ) {
     super(opts);
 
-    this.injectedDriver = opts.driver;
+    this.injectedConnector = opts.connector;
   }
 
-  /** Builds the driver (unless injected, e.g. for tests), then provisions collections. Re-entrant-safe: a second call is a logged no-op, not a re-provision. */
+  /** Builds the connector (unless injected, e.g. for tests), then provisions collections. Re-entrant-safe: a second call is a logged no-op, not a re-provision. */
   async configure(): Promise<void> {
-    if (this.driver) {
+    if (this.connector) {
       this.logger
         .for(this.configure.name)
         .info('Already configured | Name: %s | Skipping re-provisioning', this.name);
       return;
     }
 
-    this.driver =
-      this.injectedDriver ??
-      new TypesenseDriver({ name: this.name, ...this.settings } satisfies ITypesenseDriverOptions);
+    this.connector =
+      this.injectedConnector ??
+      new TypesenseConnector({
+        name: this.name,
+        ...this.settings,
+      } satisfies ITypesenseConnectorOptions);
 
     await this.provisionCollections();
   }
 
-  getDriver(): TypesenseDriver {
-    if (!this.driver) {
+  getConnector(): TypesenseConnector {
+    if (!this.connector) {
       throw getError({
-        message: `[TypesenseDataSource] Driver not initialized | Name: ${this.name} | Call configure() first`,
+        message: `[TypesenseDataSource] Connector not initialized | Name: ${this.name} | Call configure() first`,
       });
     }
 
-    return this.driver;
+    return this.connector;
   }
 
-  getClient(): ITypesenseClientLike {
-    return this.getDriver().getClient();
+  getClient(): Client {
+    return this.getConnector().getClient();
   }
 
   getQueryDialect(): ISearchQueryDialect {
     return TypesenseDataSource.queryDialect;
+  }
+
+  /** Search capabilities Typesense supports. */
+  override getCapabilities(): ISearchableDataSourceCapabilities {
+    return {
+      transactions: false,
+      search: {
+        vector: true,
+        multi: true,
+        union: true,
+        synonyms: true,
+      },
+    };
   }
 
   compileCollection(opts: { definition: ISearchCollectionDefinition }): CollectionCreateSchema {
@@ -68,6 +88,6 @@ export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSour
 
   async ensureCollection(opts: { definition: ISearchCollectionDefinition }): Promise<void> {
     const schema = this.compileCollection(opts);
-    await this.getDriver().ensureCollection({ schema });
+    await this.getConnector().ensureCollection({ schema });
   }
 }

@@ -1873,13 +1873,13 @@ ReadableSearchRepository        (read operations only)
         +-- DefaultSearchRepository     (+ delete)
 ```
 
-`TInferSearchDocument<typeof X.schema>` derives the document type straight from the collection definition -- same idea as postgres's `typeof User.schema` inference, no hand-written interface needed:
+`TSearchDocument<typeof X.schema>` derives the document type straight from the collection definition -- same idea as postgres's `typeof User.schema` inference, no hand-written interface needed:
 
 ```typescript
 import { repository } from '@venizia/ignis';
-import { DefaultSearchRepository, TInferSearchDocument } from '@venizia/ignis/typesense';
+import { DefaultSearchRepository, TSearchDocument } from '@venizia/ignis/typesense';
 
-type ProductDocument = TInferSearchDocument<typeof Product.schema>;
+type ProductDocument = TSearchDocument<typeof Product.schema>;
 // -> { id: string; name: string; price: number; internalNotes?: string }
 
 @repository({ model: Product, dataSource: ProductSearchDataSource })
@@ -1888,7 +1888,7 @@ export class ProductSearchRepository extends DefaultSearchRepository<ProductDocu
 }
 ```
 
-`TInferSearchDocument` only resolves field-level types when the collection is captured through `defineSearchCollection`'s `const` type param -- true as long as you call it directly on a `static schema = defineSearchCollection({ ... })` assignment, as above. `id` is always inferred as a required `string`; fields marked `{ optional: true }` become optional properties, everything else is required.
+`TSearchDocument` only resolves field-level types when the collection is captured through `defineSearchCollection`'s `const` type param -- true as long as you call it directly on a `static schema = defineSearchCollection({ ... })` assignment, as above. `id` is always inferred as a required `string`; fields marked `{ optional: true }` become optional properties, everything else is required.
 
 `@repository`, `TFilter`, and the where operators (`eq`, `gt`, `inq`, `and`/`or`, ...) work the same as the SQL branch -- `TFilter`/`TWhere` is translated into Typesense search params by `TypesenseQueryDialect`. Operators that can't be expressed as a Typesense `filter_by` throw instead of silently degrading:
 
