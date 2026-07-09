@@ -110,6 +110,7 @@ describe('TypesenseDataSource', () => {
       name: 'app-search',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();
@@ -152,6 +153,7 @@ describe('TypesenseDataSource', () => {
       name: 'synonym-provision-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();
@@ -178,6 +180,7 @@ describe('TypesenseDataSource', () => {
       name: 'reentrant-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
       connector: asTypesenseConnector(fakeConnector),
+      autoProvision: true,
     });
 
     await ds.configure();

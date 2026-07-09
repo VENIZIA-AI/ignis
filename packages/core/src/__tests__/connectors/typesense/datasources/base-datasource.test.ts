@@ -180,7 +180,11 @@ describe('BaseSearchDataSource - provisionCollections', () => {
   });
 
   test('provisionCollections() calls ensureCollection once per discovered collection', async () => {
-    const dataSource = new ProvisionDataSource({ name: 'provision-ds', config: {} });
+    const dataSource = new ProvisionDataSource({
+      name: 'provision-ds',
+      config: {},
+      autoProvision: true,
+    });
 
     await dataSource['provisionCollections']();
 
