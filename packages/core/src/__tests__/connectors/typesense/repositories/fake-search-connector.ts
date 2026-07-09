@@ -3,7 +3,15 @@ import { getError } from '@venizia/ignis-helpers';
 import { model } from '@/base/metadata';
 import { TypesenseDataSource } from '@/connectors/typesense/datasources';
 import { TypesenseConnector } from '@/connectors/typesense/connector';
-import { IImportResult, ISearchConnector, ISearchResult } from '@/connectors/typesense/connector';
+import {
+  IImportResult,
+  ISearchAliasScoped,
+  ISearchCollectionScoped,
+  ISearchConnector,
+  ISearchDocumentScoped,
+  ISearchResult,
+  ISearchSynonymSetScoped,
+} from '@/connectors/typesense/connector';
 import {
   BaseSearchEntity,
   defineSearchCollection,
@@ -31,8 +39,7 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     action?: string;
   }> = [];
   importDocumentsResponse: IImportResult<unknown> = {
-    successCount: 0,
-    failCount: 0,
+    count: { success: 0, fail: 0 },
     responses: [],
   };
 
@@ -44,6 +51,42 @@ export class FakeSearchEngineHelper implements ISearchConnector {
 
   deleteAllDocumentsCalls: Array<{ collection: string }> = [];
   deleteAllDocumentsResponse = true;
+
+  readonly collection: ISearchCollectionScoped = {
+    create: () => this.createCollection(),
+    ensure: () => this.ensureCollection(),
+    get: () => this.getCollection(),
+    list: () => this.listCollections(),
+    exists: () => this.collectionExists(),
+    patchSchema: () => this.patchCollectionSchema(),
+    delete: () => this.deleteCollection(),
+  };
+
+  readonly alias: ISearchAliasScoped = {
+    upsert: () => this.upsertAlias(),
+    get: () => this.getAlias(),
+  };
+
+  readonly synonymSet: ISearchSynonymSetScoped = {
+    upsert: () => this.upsertSynonymSet(),
+    get: () => this.getSynonymSet(),
+    list: () => this.listSynonymSets(),
+    delete: () => this.deleteSynonymSet(),
+    link: () => this.linkSynonymSets(),
+  };
+
+  readonly document: ISearchDocumentScoped = {
+    create: opts => this.createDocument(opts),
+    get: opts => this.getDocument(opts),
+    upsert: opts => this.upsertDocument(opts),
+    update: opts => this.updateDocument(opts),
+    delete: opts => this.deleteDocument(opts),
+    import: opts => this.importDocuments(opts),
+    updateBy: opts => this.updateByFilter(opts),
+    deleteBy: opts => this.deleteByFilter(opts),
+    deleteAll: opts => this.deleteAllDocuments(opts),
+    export: () => this.exportDocuments(),
+  };
 
   async getHealth(): Promise<{ ok: boolean }> {
     return { ok: true };

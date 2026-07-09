@@ -34,10 +34,9 @@ describe('PersistableSearchRepository', () => {
   });
 
   describe('createAll', () => {
-    test('calls connector.importDocuments and wraps successCount', async () => {
+    test('calls connector.importDocuments and wraps count.success', async () => {
       dataSource.fakeConnector.importDocumentsResponse = {
-        successCount: 2,
-        failCount: 0,
+        count: { success: 2, fail: 0 },
         responses: [],
       };
       const data = [{ title: 'A' }, { title: 'B' }];
@@ -215,8 +214,7 @@ describe('PersistableSearchRepository', () => {
   describe('import', () => {
     test('passes through action/batchSize and returns the raw IImportResult', async () => {
       dataSource.fakeConnector.importDocumentsResponse = {
-        successCount: 5,
-        failCount: 1,
+        count: { success: 5, fail: 1 },
         responses: ['x'],
       };
       const documents = [{ title: 'A' }];

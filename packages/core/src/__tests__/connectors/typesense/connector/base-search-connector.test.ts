@@ -1,7 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 import { BaseSearchConnector } from '@/connectors/typesense/connector';
-import type { IImportResult, IAliasInfo, ISearchResult } from '@/connectors/typesense/connector';
-import type { ISynonym } from '@/connectors/typesense/models';
+import type { ISearchResult } from '@/connectors/typesense/connector';
+
+const nyi = (): never => {
+  throw new Error('nyi');
+};
 
 class StubConnector extends BaseSearchConnector {
   healthOk = true;
@@ -11,79 +14,30 @@ class StubConnector extends BaseSearchConnector {
   getHealth(): Promise<{ ok: boolean }> {
     return Promise.resolve({ ok: this.healthOk });
   }
-  // Minimal stubs for the remaining abstract verbs (throw — not exercised here).
-  createCollection(): Promise<unknown> {
-    throw new Error('nyi');
-  }
-  ensureCollection(): Promise<unknown> {
-    throw new Error('nyi');
-  }
-  getCollection(): Promise<unknown> {
-    throw new Error('nyi');
-  }
-  listCollections(): Promise<unknown[]> {
-    throw new Error('nyi');
-  }
-  collectionExists(): Promise<boolean> {
-    throw new Error('nyi');
-  }
-  patchCollectionSchema(): Promise<void> {
-    throw new Error('nyi');
-  }
-  deleteCollection(): Promise<boolean> {
-    throw new Error('nyi');
-  }
-  upsertAlias(): Promise<void> {
-    throw new Error('nyi');
-  }
-  getAlias(): Promise<IAliasInfo | null> {
-    throw new Error('nyi');
-  }
-  upsertSynonymSet(): Promise<void> {
-    throw new Error('nyi');
-  }
-  getSynonymSet(): Promise<ISynonym[] | null> {
-    throw new Error('nyi');
-  }
-  listSynonymSets(): Promise<string[]> {
-    throw new Error('nyi');
-  }
-  deleteSynonymSet(): Promise<boolean> {
-    throw new Error('nyi');
-  }
-  linkSynonymSets(): Promise<void> {
-    throw new Error('nyi');
-  }
-  createDocument<T extends object>(): Promise<T> {
-    throw new Error('nyi');
-  }
-  getDocument<T extends object>(): Promise<T> {
-    throw new Error('nyi');
-  }
-  upsertDocument<T extends object>(): Promise<T> {
-    throw new Error('nyi');
-  }
-  updateDocument<T extends object>(): Promise<T> {
-    throw new Error('nyi');
-  }
-  deleteDocument(): Promise<boolean> {
-    throw new Error('nyi');
-  }
-  importDocuments(): Promise<IImportResult<unknown>> {
-    throw new Error('nyi');
-  }
-  updateByFilter(): Promise<{ updatedCount: number }> {
-    throw new Error('nyi');
-  }
-  deleteByFilter(): Promise<number> {
-    throw new Error('nyi');
-  }
-  deleteAllDocuments(): Promise<boolean> {
-    throw new Error('nyi');
-  }
-  exportDocuments(): Promise<string> {
-    throw new Error('nyi');
-  }
+  // Minimal scoped stubs for the remaining abstract fields (throw — not exercised here).
+  collection = {
+    create: nyi,
+    ensure: nyi,
+    get: nyi,
+    list: nyi,
+    exists: nyi,
+    patchSchema: nyi,
+    delete: nyi,
+  };
+  alias = { upsert: nyi, get: nyi };
+  synonymSet = { upsert: nyi, get: nyi, list: nyi, delete: nyi, link: nyi };
+  document = {
+    create: nyi,
+    get: nyi,
+    upsert: nyi,
+    update: nyi,
+    delete: nyi,
+    import: nyi,
+    updateBy: nyi,
+    deleteBy: nyi,
+    deleteAll: nyi,
+    export: nyi,
+  };
   search<TDocument extends object = object>(): Promise<ISearchResult<TDocument>> {
     throw new Error('nyi');
   }

@@ -53,8 +53,8 @@ describe('TypesenseConnector documents', () => {
     // 5 docs / batch 2 => 3 import calls.
     expect(fake.calls.filter(c => c.op === 'documents.import').length).toBe(3);
     // Each call returns 1 success + 1 fail => 3 success, 3 fail.
-    expect(result.successCount).toBe(3);
-    expect(result.failCount).toBe(3);
+    expect(result.count.success).toBe(3);
+    expect(result.count.fail).toBe(3);
   });
 
   test('importDocuments rejects an invalid action', async () => {

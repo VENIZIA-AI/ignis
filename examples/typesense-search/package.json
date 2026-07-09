@@ -17,7 +17,7 @@
     "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
     "prettier:fix": "bun run prettier:cli --write",
     "rebuild": "bun run clean && bun run build",
-    "seed": "NODE_ENV=development bun run scripts/seed.ts",
+    "seed": "NODE_ENV=development bun run src/seed.ts",
     "server:dev": "NODE_ENV=development bun .",
     "server:prod": "NODE_ENV=production bun ."
   },

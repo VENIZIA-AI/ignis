@@ -177,7 +177,7 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
  * everything else passes through. The dialect then maps the result to snake_case wire, so single
  * `search()` and `multiSearch()` share one friendly-to-wire path. Also used for `commonParams`.
  */
-export function toSearchQueryParams(input: Record<string, unknown>): Partial<ISearchQuery> {
+export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
   const params: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(input)) {
@@ -195,7 +195,7 @@ export function toSearchQueryParams(input: Record<string, unknown>): Partial<ISe
   }
 
   return params as Partial<ISearchQuery>;
-}
+};
 
 /** Cross-collection multi-search input: friendly `searches` entries plus the union flag. */
 export const MultiSearchInputSchema = z

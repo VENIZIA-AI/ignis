@@ -11,9 +11,9 @@ import { ReadableSearchRepository } from './readable';
 
 /** Narrows one `IImportResult.responses` row (`unknown` - see connector.ts's `IImportResult<TResponse
  * = unknown>`) enough to read the per-row `success` flag `createAll` filters on. */
-function isImportRowLike(value: unknown): value is { success?: boolean } {
+const isImportRowLike = (value: unknown): value is { success?: boolean } => {
   return typeof value === 'object' && value !== null;
-}
+};
 
 /** Write-tier search-repository - creates/updates through the connector, dialect-translating `where` clauses. */
 export class PersistableSearchRepository<
@@ -53,8 +53,6 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    // R is the caller-chosen output shape (defaults to TDocument, unrelated by any bound); the
-    // engine-echoed document can't be runtime-validated against an arbitrary caller-supplied R.
     return { count: 1, data: created as R };
   }
 
@@ -81,7 +79,7 @@ export class PersistableSearchRepository<
     const rs = await this.import({ documents: data, batchSize: options?.batchSize });
 
     if (options?.shouldReturn === false) {
-      return { count: rs.successCount, data: null };
+      return { count: rs.count.success, data: null };
     }
 
     const created = data.filter((_document, index) => {
@@ -89,7 +87,7 @@ export class PersistableSearchRepository<
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
-    return { count: rs.successCount, data: created as any };
+    return { count: rs.count.success, data: created as any };
   }
 
   override updateById(opts: {
@@ -272,13 +270,9 @@ export class PersistableSearchRepository<
         didTruncate,
       );
 
-      // Truncate reports neither a count nor the removed rows - `[]` (not null) keeps `data` an
-      // Array<R> like every other path; `null` is reserved for the explicit shouldReturn:false contract.
       return { count: 0, data: options?.shouldReturn === false ? null : [] };
     }
 
-    // Typesense's delete-by-filter has no RETURNING equivalent - snapshots the about-to-be-deleted
-    // rows via find() over the same filter before deleting; skipped when shouldReturn is false.
     const affected =
       options?.shouldReturn === false
         ? null
@@ -331,10 +325,12 @@ export class PersistableSearchRepository<
     shouldSkipDefaultFilter?: boolean;
   }): string | undefined {
     const { where, shouldSkipDefaultFilter } = opts;
+
     const query = this.buildQuery({
       filter: where !== undefined ? { where } : undefined,
       shouldSkipDefaultFilter,
     });
+
     return query.filterBy;
   }
 }

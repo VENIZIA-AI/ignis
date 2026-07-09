@@ -19,6 +19,7 @@ export type TCollectionSchema = CollectionSchema;
 export type TCollectionFieldSchema = CollectionFieldSchema;
 export type TSearchParams = SearchParams<TDocumentSchema>;
 export type TSearchResponse<T extends TDocumentSchema = TDocumentSchema> = SearchResponse<T>;
+
 // Per-request client options, forwarded verbatim by the connector alongside SearchParams.
 export type TSearchOptions = SearchOptions;
 export type TImportResponse = ImportResponse;

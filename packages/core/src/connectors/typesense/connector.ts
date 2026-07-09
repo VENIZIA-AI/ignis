@@ -22,8 +22,7 @@ import type {
 import { TypesenseDirtyValues, TypesenseImportActions } from './types';
 
 export interface IImportResult<TResponse = unknown> {
-  successCount: number;
-  failCount: number;
+  count: { success: number; fail: number };
   responses: TResponse[];
 }
 
@@ -38,18 +37,88 @@ export interface ISearchConnectorCallbacks {
 }
 
 /** Search-response envelope - the read-path counterpart to IImportResult, consumed by ReadableSearchRepository without a boundary cast. */
-export interface ISearchResult<TDocument extends object = object> {
+export interface ISearchResult<
+  DocumentType extends object = object,
+  HighlightType = unknown,
+  FacetCountType = unknown,
+  GroupedHitType = unknown,
+> {
   found: number;
   outOf?: number;
   searchTimeMs?: number;
   hits?: Array<{
-    document: TDocument;
-    highlight?: unknown;
-    highlights?: unknown[];
+    document: DocumentType;
+    highlight?: HighlightType;
+    highlights?: HighlightType[];
     textMatch?: number;
   }>;
-  facetCounts?: unknown[];
-  groupedHits?: unknown[];
+  facetCounts?: FacetCountType[];
+  groupedHits?: GroupedHitType[];
+}
+
+// The schema/field types are engine-specific, not caller-owned - so they are interface-level
+// generics (the engine's connector fills them), not per-method generics like `document`. They
+// default to `unknown` so the neutral `ISearchConnector` stays engine-agnostic.
+export interface ISearchCollectionScoped<
+  CreateSchema = unknown,
+  Schema = unknown,
+  FieldSchema = unknown,
+> {
+  create(opts: { schema: CreateSchema }): Promise<Schema | void>;
+  ensure(opts: { schema: CreateSchema }): Promise<Schema>;
+  get(opts: { name: string }): Promise<Schema>;
+  list(): Promise<Schema[]>;
+  exists(opts: { name: string }): Promise<boolean>;
+  patchSchema(opts: { name: string; fields: FieldSchema[] }): Promise<void>;
+  delete(opts: { name: string }): Promise<boolean>;
+}
+
+export interface ISearchAliasScoped {
+  upsert(opts: { name: string; collection: string }): Promise<void>;
+  get(opts: { name: string }): Promise<IAliasInfo | null>;
+}
+
+// Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. Replaces
+// the removed per-collection synonyms API. `ISynonym` is the item shape ({ id, synonyms, root? }).
+export interface ISearchSynonymSetScoped {
+  upsert(opts: { name: string; items: ISynonym[] }): Promise<void>;
+  get(opts: { name: string }): Promise<ISynonym[] | null>;
+  list(): Promise<string[]>;
+  delete(opts: { name: string }): Promise<boolean>;
+  link(opts: { collection: string; synonymSets: string[] }): Promise<void>;
+}
+
+export interface ISearchDocumentScoped {
+  get<T extends object>(opts: { collection: string; id: string }): Promise<T>;
+
+  create<T extends object>(opts: { collection: string; document: T }): Promise<T>;
+
+  upsert<T extends object>(opts: { collection: string; document: T }): Promise<T>;
+  update<T extends object>(opts: {
+    collection: string;
+    id: string;
+    document: Partial<T>;
+  }): Promise<T>;
+  updateBy<T extends object>(opts: {
+    collection: string;
+    document: Partial<T>;
+    filterBy: string;
+  }): Promise<{ updatedCount: number }>;
+
+  delete(opts: { collection: string; id: string }): Promise<boolean>;
+  deleteBy(opts: { collection: string; filterBy: string }): Promise<number>;
+  deleteAll(opts: { collection: string }): Promise<boolean>;
+
+  import<T extends object>(opts: {
+    collection: string;
+    documents: T[];
+    batchSize?: number;
+  }): Promise<IImportResult<unknown>>;
+  export(opts: {
+    collection: string;
+    filterBy?: string;
+    includeFields?: string[];
+  }): Promise<string>;
 }
 
 /** Verb contract every search-engine connector implements - kept as an interface so tests can fake one without a real typesense Client. */
@@ -57,62 +126,16 @@ export interface ISearchConnector {
   getHealth(): Promise<{ ok: boolean }>;
   ping(): Promise<boolean>;
 
-  createCollection(opts: { schema: unknown }): Promise<unknown>;
-  ensureCollection(opts: { schema: unknown }): Promise<unknown>;
-  getCollection(opts: { name: string }): Promise<unknown>;
-  listCollections(): Promise<unknown[]>;
-  collectionExists(opts: { name: string }): Promise<boolean>;
-  patchCollectionSchema(opts: { name: string; fields: unknown[] }): Promise<void>;
-  deleteCollection(opts: { name: string }): Promise<boolean>;
+  collection: ISearchCollectionScoped;
+  alias: ISearchAliasScoped;
+  synonymSet: ISearchSynonymSetScoped;
+  document: ISearchDocumentScoped;
 
-  upsertAlias(opts: { name: string; collection: string }): Promise<void>;
-  getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
-
-  // Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. Replaces
-  // the removed per-collection synonyms API. `ISynonym` is the item shape ({ id, synonyms, root? }).
-  upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
-  getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
-  listSynonymSets(): Promise<string[]>;
-  deleteSynonymSet(opts: { name: string }): Promise<boolean>;
-  linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
-
-  createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
-  upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  updateDocument<T extends object>(opts: {
-    collection: string;
-    id: string;
-    document: Partial<T>;
-  }): Promise<T>;
-  deleteDocument(opts: { collection: string; id: string }): Promise<boolean>;
-  // Engine-specific import tuning (e.g. typesense's action/dirtyValues) is added by each
-  // backend's widened override, keeping this contract engine-agnostic.
-  importDocuments<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    batchSize?: number;
-  }): Promise<IImportResult<unknown>>;
-  updateByFilter<T extends object>(opts: {
-    collection: string;
-    document: Partial<T>;
-    filterBy: string;
-  }): Promise<{ updatedCount: number }>;
-  deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number>;
-  deleteAllDocuments(opts: { collection: string }): Promise<boolean>;
-  exportDocuments(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string>;
-
-  // Raw passthrough; TDocument lets typed callers get ISearchResult<TDocument> without a cast.
-  // Backends may widen further as long as it stays assignable to ISearchResult.
   search<TDocument extends object = object>(opts: {
     collection: string;
     params: unknown;
   }): Promise<ISearchResult<TDocument>>;
-  // `union` selects a single merged result set instead of federated per-search `results[]` -
-  // see TypesenseConnector.multiSearch for the typed overloads.
+
   multiSearch(opts: {
     searches: unknown[];
     union?: boolean;
@@ -195,55 +218,17 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
 
   abstract getHealth(): Promise<{ ok: boolean }>;
 
-  abstract createCollection(opts: { schema: unknown }): Promise<unknown | void>;
-  abstract ensureCollection(opts: { schema: unknown }): Promise<unknown>;
-  abstract getCollection(opts: { name: string }): Promise<unknown>;
-  abstract listCollections(): Promise<unknown[]>;
-  abstract collectionExists(opts: { name: string }): Promise<boolean>;
-  abstract patchCollectionSchema(opts: { name: string; fields: unknown[] }): Promise<void>;
-  abstract deleteCollection(opts: { name: string }): Promise<boolean>;
-
-  abstract upsertAlias(opts: { name: string; collection: string }): Promise<void>;
-  abstract getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
-
-  abstract upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
-  abstract getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
-  abstract listSynonymSets(): Promise<string[]>;
-  abstract deleteSynonymSet(opts: { name: string }): Promise<boolean>;
-  abstract linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
-
-  abstract createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  abstract getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
-  abstract upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  abstract updateDocument<T extends object>(opts: {
-    collection: string;
-    id: string;
-    document: Partial<T>;
-  }): Promise<T>;
-  abstract deleteDocument(opts: { collection: string; id: string }): Promise<boolean>;
-  // Engine-specific import tuning (e.g. typesense's action/dirtyValues) lives on each backend's widened override.
-  abstract importDocuments<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    batchSize?: number;
-  }): Promise<IImportResult<unknown>>;
-  abstract updateByFilter<T extends object>(opts: {
-    collection: string;
-    document: Partial<T>;
-    filterBy: string;
-  }): Promise<{ updatedCount: number }>;
-  abstract deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number>;
-  abstract deleteAllDocuments(opts: { collection: string }): Promise<boolean>;
-  abstract exportDocuments(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string>;
+  // Resource-scoped verb groups; the concrete connector supplies each as a facade object.
+  abstract collection: ISearchCollectionScoped;
+  abstract alias: ISearchAliasScoped;
+  abstract synonymSet: ISearchSynonymSetScoped;
+  abstract document: ISearchDocumentScoped;
 
   abstract search<TDocument extends object = object>(opts: {
     collection: string;
     params: unknown;
   }): Promise<ISearchResult<TDocument>>;
+
   abstract multiSearch(opts: {
     searches: unknown[];
     union?: boolean;
@@ -253,35 +238,40 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
 
 // Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - each is the
 // single narrowest cast for its field, isolated here instead of repeated ad hoc at every call site.
-function isRecord(value: unknown): value is Record<string, unknown> {
+const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
-}
+};
 
-function readBooleanFlag(opts: { value: unknown; key: string }): boolean {
+const readBooleanFlag = (opts: { value: unknown; key: string }): boolean => {
   const { value, key } = opts;
   return isRecord(value) ? Boolean(value[key]) : false;
-}
+};
 
-function readNumberField(opts: { value: unknown; key: string }): number {
+const readNumberField = (opts: { value: unknown; key: string }): number => {
   const { value, key } = opts;
   if (!isRecord(value) || typeof value[key] !== 'number') {
     return 0;
   }
   return value[key];
-}
+};
 
-function readStringField(opts: { value: unknown; key: string }): string | undefined {
+const readStringField = (opts: { value: unknown; key: string }): string | undefined => {
   const { value, key } = opts;
   if (!isRecord(value) || typeof value[key] !== 'string') {
     return undefined;
   }
   return value[key];
-}
+};
 
 /** Maps a raw Typesense search hit (snake_case `text_match`) onto the camelCase `ISearchResult` hit shape; read via bracket string access so no snake_case identifier is declared here. */
-function mapSearchHit<TDocument extends object>(
+const mapSearchHit = <TDocument extends object>(
   hit: unknown,
-): { document: TDocument; highlight?: unknown; highlights?: unknown[]; textMatch?: number } {
+): {
+  document: TDocument;
+  highlight?: unknown;
+  highlights?: unknown[];
+  textMatch?: number;
+} => {
   if (!isRecord(hit)) {
     return { document: {} as TDocument };
   }
@@ -291,25 +281,29 @@ function mapSearchHit<TDocument extends object>(
     highlight?: unknown;
     highlights?: unknown[];
     textMatch?: number;
-  } = { document: hit['document'] as TDocument };
+  } = {
+    document: hit['document'] as TDocument,
+  };
 
   if (hit['highlight'] !== undefined) {
     mapped.highlight = hit['highlight'];
   }
+
   if (Array.isArray(hit['highlights'])) {
-    mapped.highlights = hit['highlights'] as unknown[];
+    mapped.highlights = hit['highlights'];
   }
+
   if (typeof hit['text_match'] === 'number') {
     mapped.textMatch = hit['text_match'];
   }
 
   return mapped;
-}
+};
 
 /** Maps a raw Typesense search response onto the camelCase `ISearchResult` - snake_case wire fields
  * (`out_of`/`search_time_ms`/`facet_counts`/`grouped_hits`) are read only via bracket string access,
  * never as identifiers. Absent fields are omitted rather than mapped as `undefined`. */
-function mapSearchResult<TDocument extends object>(raw: unknown): ISearchResult<TDocument> {
+const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
     return { found: 0 };
   }
@@ -335,29 +329,29 @@ function mapSearchResult<TDocument extends object>(raw: unknown): ISearchResult<
   }
 
   return result;
-}
+};
 
 /** Empty TSearchResponse shape returned when search() tolerates a missing collection; built via bracket assignment so no snake_case identifier is declared here. */
-function buildEmptySearchResponse(): unknown {
+const buildEmptySearchResponse = (): unknown => {
   const response: Record<string, unknown> = { found: 0, page: 1, hits: [] };
   response['out_of'] = 0;
   response['search_time_ms'] = 0;
   response['request_params'] = {};
   return response;
-}
+};
 
 // Typesense's wire shape for a synonym set; `root` is only present for one-way synonyms.
-function isSynonymResponse(
+const isSynonymResponse = (
   value: unknown,
-): value is { id: string; synonyms: string[]; root?: string } {
+): value is { id: string; synonyms: string[]; root?: string } => {
   return isRecord(value) && typeof value.id === 'string' && Array.isArray(value.synonyms);
-}
+};
 
-function toSynonym(value: { id: string; synonyms: string[]; root?: string }): ISynonym {
+const toSynonym = (value: { id: string; synonyms: string[]; root?: string }): ISynonym => {
   const { id, synonyms, root } = value;
   // Multi-way sets come back with root: "" - treat empty/absent alike so only one-way keeps a root.
   return root ? { id, synonyms, root } : { id, synonyms };
-}
+};
 
 // Narrow structural view of the client surface this connector needs - both the real Client and the in-test fake satisfy it without `as any`.
 interface ITypesenseDocumentsApi {
@@ -433,6 +427,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           connectionTimeoutSeconds: opts.connectionTimeoutSeconds ?? 5,
           numRetries: opts.numRetries,
         });
+
       opts.onInitialized?.({ name: opts.name });
     } catch (error) {
       this.logger
@@ -441,6 +436,7 @@ export class TypesenseConnector extends BaseSearchConnector {
           'Failed to initialize Typesense client | error: %j',
           SearchConnectorInternal.describeError({ error }),
         );
+
       opts.onError?.({ name: opts.name, error });
       throw error;
     }
@@ -449,6 +445,54 @@ export class TypesenseConnector extends BaseSearchConnector {
   getClient(): Client {
     return this.client as Client;
   }
+
+  readonly collection: ISearchCollectionScoped<
+    TCollectionCreateSchema,
+    TCollectionSchema,
+    TCollectionFieldSchema
+  > = {
+    create: opts => this.createCollection(opts),
+    ensure: opts => this.ensureCollection(opts),
+    get: opts => this.getCollection(opts),
+    list: () => this.listCollections(),
+    exists: opts => this.collectionExists(opts),
+    patchSchema: opts => this.patchCollectionSchema(opts),
+    delete: opts => this.deleteCollection(opts),
+  };
+
+  readonly alias: ISearchAliasScoped = {
+    upsert: opts => this.upsertAlias(opts),
+    get: opts => this.getAlias(opts),
+  };
+
+  readonly synonymSet: ISearchSynonymSetScoped = {
+    upsert: opts => this.upsertSynonymSet(opts),
+    get: opts => this.getSynonymSet(opts),
+    list: () => this.listSynonymSets(),
+    delete: opts => this.deleteSynonymSet(opts),
+    link: opts => this.linkSynonymSets(opts),
+  };
+
+  readonly document: ISearchDocumentScoped = {
+    create: <T extends object>(opts: { collection: string; document: T }) =>
+      this.createDocument(opts),
+    get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
+    upsert: <T extends object>(opts: { collection: string; document: T }) =>
+      this.upsertDocument(opts),
+    update: <T extends object>(opts: { collection: string; id: string; document: Partial<T> }) =>
+      this.updateDocument(opts),
+    delete: opts => this.deleteDocument(opts),
+    import: <T extends object>(opts: { collection: string; documents: T[]; batchSize?: number }) =>
+      this.importDocuments(opts),
+    updateBy: <T extends object>(opts: {
+      collection: string;
+      document: Partial<T>;
+      filterBy: string;
+    }) => this.updateByFilter(opts),
+    deleteBy: opts => this.deleteByFilter(opts),
+    deleteAll: opts => this.deleteAllDocuments(opts),
+    export: opts => this.exportDocuments(opts),
+  };
 
   async getHealth(): Promise<{ ok: boolean }> {
     try {
@@ -948,7 +992,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       successCount,
       failCount,
     );
-    return { successCount, failCount, responses };
+    return { count: { success: successCount, fail: failCount }, responses };
   }
 
   async updateByFilter<T extends object>(opts: {

@@ -46,7 +46,7 @@ describe.if(hasEnv)('TypesenseConnector integration (live)', () => {
       ],
       action: TypesenseImportActions.UPSERT,
     });
-    expect(importResult.successCount).toBe(2);
+    expect(importResult.count.success).toBe(2);
 
     const searchParams: Record<string, unknown> = { q: 'shoe' };
     searchParams['query_by'] = 'title';

@@ -13,11 +13,11 @@ interface IProductDocument {
   secret?: string;
 }
 
-function assertDefaultSearchSatisfiesICrudRepository(
+const assertDefaultSearchSatisfiesICrudRepository = (
   repo: DefaultSearchRepository<IProductDocument>,
-): ICrudRepository<IProductDocument> {
+): ICrudRepository<IProductDocument> => {
   return repo;
-}
+};
 
 describe('DefaultSearchRepository satisfies ICrudRepository (type-level, compile-time only)', () => {
   test('assignment compiles - see assertDefaultSearchSatisfiesICrudRepository above', () => {

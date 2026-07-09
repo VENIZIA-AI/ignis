@@ -1,5 +1,6 @@
 import type { IDataSource } from '@/base/datasources';
 import type { ISearchCollectionDefinition, TSearchSchema } from '@/connectors/typesense/models';
+import { toSearchQueryParams } from '@/connectors/typesense/repositories/common';
 import type {
   IMultiSearchResult,
   ISearchDataSourceOptions,
@@ -8,7 +9,6 @@ import type {
   TMultiSearchEntry,
   TSearchOptions,
 } from '@/connectors/typesense/types';
-import { toSearchQueryParams } from '@/connectors/typesense/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass } from '@venizia/ignis-helpers';
 import { AbstractSearchDataSource } from './abstract';
@@ -151,12 +151,12 @@ export abstract class BaseSearchDataSource<
         // auto-migration name (`<collection>_synonyms_index`) so the two never clash.
         const synonymSetName = `${definition.name}_synonyms`;
 
-        await this.getConnector().upsertSynonymSet({
+        await this.getConnector().synonymSet.upsert({
           name: synonymSetName,
           items: definition.synonyms,
         });
 
-        await this.getConnector().linkSynonymSets({
+        await this.getConnector().synonymSet.link({
           collection: definition.name,
           synonymSets: [synonymSetName],
         });

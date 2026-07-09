@@ -20,10 +20,21 @@ class FakeTypesenseConnector {
   synonymSetCalls: Array<{ name: string; items: unknown }> = [];
   linkCalls: Array<{ collection: string; synonymSets: string[] }> = [];
 
-  async ensureCollection(opts: { schema: unknown }): Promise<unknown> {
-    this.ensureCalls.push(opts.schema);
-    return opts.schema;
-  }
+  collection = {
+    ensure: async (opts: { schema: unknown }): Promise<unknown> => {
+      this.ensureCalls.push(opts.schema);
+      return opts.schema;
+    },
+  };
+
+  synonymSet = {
+    upsert: async (opts: { name: string; items: unknown }): Promise<void> => {
+      this.synonymSetCalls.push(opts);
+    },
+    link: async (opts: { collection: string; synonymSets: string[] }): Promise<void> => {
+      this.linkCalls.push(opts);
+    },
+  };
 
   async ping(): Promise<boolean> {
     return true;
@@ -32,14 +43,6 @@ class FakeTypesenseConnector {
   async multiSearch(opts: unknown): Promise<unknown> {
     this.multiSearchCalls.push(opts);
     return { results: [{ found: 1 }] };
-  }
-
-  async upsertSynonymSet(opts: { name: string; items: unknown }): Promise<void> {
-    this.synonymSetCalls.push(opts);
-  }
-
-  async linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void> {
-    this.linkCalls.push(opts);
   }
 }
 

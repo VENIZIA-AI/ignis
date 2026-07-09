@@ -88,6 +88,6 @@ export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSour
 
   async ensureCollection(opts: { definition: ISearchCollectionDefinition }): Promise<void> {
     const schema = this.compileCollection(opts);
-    await this.getConnector().ensureCollection({ schema });
+    await this.getConnector().collection.ensure({ schema });
   }
 }
