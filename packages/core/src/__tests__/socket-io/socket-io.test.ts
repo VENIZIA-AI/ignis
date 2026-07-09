@@ -1,12 +1,13 @@
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { createServer, Server as HTTPServer } from 'node:http';
-import { AddressInfo } from 'node:net';
+import type { Server as HTTPServer } from 'node:http';
+import { createServer } from 'node:http';
+import type { AddressInfo } from 'node:net';
 import { Server as IOServer } from 'socket.io';
+import type { IOptions } from '@venizia/ignis-helpers/socket-io';
 import {
   SocketIOClientHelper,
   SocketIOConstants,
   SocketIOClientStates,
-  IOptions,
 } from '@venizia/ignis-helpers/socket-io';
 import { SocketIOBindingKeys } from '@/components/socket-io/common/keys';
 

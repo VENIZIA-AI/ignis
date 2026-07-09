@@ -1,15 +1,16 @@
 import { BindingNamespaces } from '@/common/bindings';
-import { Binding, BindingKeys, BindingScopes } from '@/helpers/inversion';
-import {
+import type { Binding } from '@/helpers/inversion';
+import { BindingKeys, BindingScopes } from '@/helpers/inversion';
+import type {
   AnyObject,
-  executeWithPerformanceMeasure,
   IConfigurable,
   TAbstractMixinTarget,
   TClass,
 } from '@venizia/ignis-helpers';
-import { AbstractApplication } from '../applications';
-import { BaseComponent } from '../components';
-import { IComponentMixin, TMixinOpts } from './types';
+import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
+import type { AbstractApplication } from '../applications';
+import type { BaseComponent } from '../components';
+import type { IComponentMixin, TMixinOpts } from './types';
 
 export const ComponentMixin = <T extends TAbstractMixinTarget<AbstractApplication>>(
   baseClass: T,

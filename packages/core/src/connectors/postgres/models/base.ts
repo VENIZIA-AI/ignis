@@ -1,14 +1,11 @@
-import { AbstractEntity, SchemaTypes, TIdSchemaType, TSchemaType } from '@/base/models';
-import { TRelationConfig } from '@/connectors/postgres/repositories/common';
-import { getError, TValueOrResolver } from '@venizia/ignis-helpers';
+import type { TIdSchemaType, TSchemaType } from '@/base/models';
+import { AbstractEntity, SchemaTypes } from '@/base/models';
+import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
+import type { TValueOrResolver } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 import { createSchemaFactory } from 'drizzle-zod';
-import {
-  getIdType as _getIdType,
-  IEntity,
-  TTableInsert,
-  TTableObject,
-  TTableSchemaWithId,
-} from './common';
+import type { IEntity, TTableInsert, TTableObject, TTableSchemaWithId } from './common';
+import { getIdType as _getIdType } from './common';
 
 /** Base entity with Drizzle ORM support. Supports static schema or constructor-based schema. */
 export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>

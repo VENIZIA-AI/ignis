@@ -4,7 +4,7 @@ import {
   POSTGRES_CLIENT_ERROR_CLASSES,
   POSTGRES_RETRYABLE_ERROR_CODES,
 } from './definition';
-import { IDatabaseError } from './types';
+import type { IDatabaseError } from './types';
 
 /**
  * Checks if error is a database constraint error caused by the request (SQLSTATE class 22/23/44)

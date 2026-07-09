@@ -275,9 +275,61 @@ describe('compileTypesenseCollection', () => {
       {
         name: 'vec',
         type: 'float[]',
-        ['embed']: { from: ['title'], ['model_config']: { name: 'ts/all-MiniLM-L6-v2' } },
+        ['embed']: { from: ['title'], ['model_config']: { ['model_name']: 'ts/all-MiniLM-L6-v2' } },
       },
     ]);
+  });
+
+  test('maps a remote embed model config to snake_case model_config (apiKey -> api_key)', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [
+        field.vector('vec', {
+          embed: {
+            from: ['title'],
+            model: { name: 'google/embedding-gecko-001', apiKey: 'SECRET' },
+          },
+        }),
+      ],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    const vec = schema.fields.find(f => f.name === 'vec') as Record<string, unknown>;
+    expect(vec['embed']).toEqual({
+      from: ['title'],
+      ['model_config']: { ['model_name']: 'google/embedding-gecko-001', ['api_key']: 'SECRET' },
+    });
+  });
+
+  test('maps an OpenAI-compatible embed config with a custom url (e.g. Gemini via the OpenAI endpoint)', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [
+        field.vector('vec', {
+          embed: {
+            from: ['title'],
+            model: {
+              url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+              name: 'openai/gemini-embedding-001',
+              apiKey: 'AIza-test',
+            },
+          },
+        }),
+      ],
+    });
+
+    const schema = compileTypesenseCollection({ definition });
+
+    const vec = schema.fields.find(f => f.name === 'vec') as Record<string, unknown>;
+    expect(vec['embed']).toEqual({
+      from: ['title'],
+      ['model_config']: {
+        url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+        ['model_name']: 'openai/gemini-embedding-001',
+        ['api_key']: 'AIza-test',
+      },
+    });
   });
 
   test('forwards an explicit dimensions alongside embed (e.g. a custom model Typesense cannot introspect)', () => {
@@ -298,7 +350,7 @@ describe('compileTypesenseCollection', () => {
         name: 'vec',
         type: 'float[]',
         ['num_dim']: 512,
-        ['embed']: { from: ['title'], ['model_config']: { name: 'custom/model' } },
+        ['embed']: { from: ['title'], ['model_config']: { ['model_name']: 'custom/model' } },
       },
     ]);
   });

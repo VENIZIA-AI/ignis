@@ -1,8 +1,8 @@
-import { IdType } from '@/base/models';
-import { TRelationConfig } from '@/connectors/postgres/repositories/common';
-import { TValueOrResolver } from '@venizia/ignis-helpers';
-import { IsPrimaryKey, NotNull } from 'drizzle-orm';
-import {
+import type { IdType } from '@/base/models';
+import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
+import type { TValueOrResolver } from '@venizia/ignis-helpers';
+import type { IsPrimaryKey, NotNull } from 'drizzle-orm';
+import type {
   AnyPgColumn,
   PgColumnBuilderBase,
   PgSequenceOptions,
@@ -68,12 +68,12 @@ export type TIdEnricherOptions = {
 
 export type TPrincipalEnricherOptions<
   Discriminator extends string = string,
-  IdType extends 'number' | 'string' = 'number' | 'string',
+  PolymorphicIdType extends 'number' | 'string' = 'number' | 'string',
   Nullable extends boolean = false,
 > = {
   discriminator?: Discriminator;
   defaultPolymorphic?: string;
-  polymorphicIdType: IdType;
+  polymorphicIdType: PolymorphicIdType;
   isNullableId?: Nullable;
 };
 

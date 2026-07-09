@@ -13,11 +13,12 @@ import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
 
-/** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/`upsertSynonym` calls. */
+/** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/synonym-set calls. */
 class FakeTypesenseConnector {
   ensureCalls: unknown[] = [];
   multiSearchCalls: unknown[] = [];
-  upsertSynonymCalls: Array<{ collection: string; synonym: unknown }> = [];
+  synonymSetCalls: Array<{ name: string; items: unknown }> = [];
+  linkCalls: Array<{ collection: string; synonymSets: string[] }> = [];
 
   async ensureCollection(opts: { schema: unknown }): Promise<unknown> {
     this.ensureCalls.push(opts.schema);
@@ -33,14 +34,17 @@ class FakeTypesenseConnector {
     return { results: [{ found: 1 }] };
   }
 
-  async upsertSynonym(opts: { collection: string; synonym: unknown }): Promise<unknown> {
-    this.upsertSynonymCalls.push(opts);
-    return opts.synonym;
+  async upsertSynonymSet(opts: { name: string; items: unknown }): Promise<void> {
+    this.synonymSetCalls.push(opts);
+  }
+
+  async linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void> {
+    this.linkCalls.push(opts);
   }
 }
 
 /** FakeTypesenseConnector only implements the methods these tests exercise (`ensureCollection`,
- * `ping`, `multiSearch`, `upsertSynonym`); TypesenseConnector is a concrete class with a private
+ * `ping`, `multiSearch`, synonym sets); TypesenseConnector is a concrete class with a private
  * `client` field, so no fake can be structurally assignable to it - this is the single boundary
  * cast every fake-connector injection in this file funnels through. */
 const asTypesenseConnector = (fake: FakeTypesenseConnector): TypesenseConnector => fake as any;
@@ -138,7 +142,7 @@ describe('TypesenseDataSource', () => {
     expect(fakeConnector.ensureCalls).toEqual([]);
   });
 
-  test('provisionCollections upserts each declarative synonym after ensureCollection', async () => {
+  test('provisionCollections creates one synonym set from the declarative synonyms and links it after ensureCollection', async () => {
     const fakeConnector = new FakeTypesenseConnector();
 
     const ds = new SynonymProvisionDataSource({
@@ -150,15 +154,17 @@ describe('TypesenseDataSource', () => {
     await ds.configure();
 
     expect(fakeConnector.ensureCalls.length).toBe(1);
-    expect(fakeConnector.upsertSynonymCalls).toEqual([
+    expect(fakeConnector.synonymSetCalls).toEqual([
       {
-        collection: 'widgets',
-        synonym: { id: 'widget-synonyms', synonyms: ['widget', 'gadget', 'gizmo'] },
+        name: 'widgets_synonyms',
+        items: [
+          { id: 'widget-synonyms', synonyms: ['widget', 'gadget', 'gizmo'] },
+          { id: 'widget-oneway', synonyms: ['thingamajig'], root: 'widget' },
+        ],
       },
-      {
-        collection: 'widgets',
-        synonym: { id: 'widget-oneway', synonyms: ['thingamajig'], root: 'widget' },
-      },
+    ]);
+    expect(fakeConnector.linkCalls).toEqual([
+      { collection: 'widgets', synonymSets: ['widgets_synonyms'] },
     ]);
   });
 
@@ -228,7 +234,7 @@ describe('TypesenseDataSource', () => {
     });
   });
 
-  test('multiSearch() forwards the cross-collection request verbatim to the connector', async () => {
+  test('multiSearch() maps camelCase search params + commonParams to the engine wire (snake_case)', async () => {
     const fakeConnector = new FakeTypesenseConnector();
     const ds = new AppSearchDataSource({
       name: 'multi-search-ds',
@@ -237,13 +243,27 @@ describe('TypesenseDataSource', () => {
     });
     await ds.configure();
 
-    const searches = [
-      { collection: 'products', q: 'shoes' },
-      { collection: 'brands', q: 'shoe' },
-    ];
-    await ds.multiSearch({ searches, union: true });
+    await ds.multiSearch({
+      searches: [
+        { collection: 'products', query: 'shoes', filterBy: 'price:>100', queryBy: ['name'] },
+        { collection: 'brands', query: 'shoe' },
+      ],
+      commonParams: { perPage: 20 },
+      union: true,
+    });
 
-    expect(fakeConnector.multiSearchCalls).toEqual([{ searches, union: true }]);
+    // Friendly in (query/queryBy: string[]/filterBy/perPage) -> snake_case wire out
+    // (q/query_by/filter_by/per_page), same mapping single-collection search() uses.
+    expect(fakeConnector.multiSearchCalls).toEqual([
+      {
+        searches: [
+          { collection: 'products', q: 'shoes', ['filter_by']: 'price:>100', ['query_by']: 'name' },
+          { collection: 'brands', q: 'shoe' },
+        ],
+        union: true,
+        commonParams: { ['per_page']: 20 },
+      },
+    ]);
   });
 
   test('beginTransaction() rejects with the standardized NotSupported error (501, core.not_supported)', async () => {

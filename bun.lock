@@ -280,7 +280,7 @@
     },
     "packages/boot": {
       "name": "@venizia/ignis-boot",
-      "version": "0.0.6-0",
+      "version": "0.0.6-1",
       "dependencies": {
         "@venizia/ignis-helpers": "^0.0.9-0",
         "@venizia/ignis-inversion": "^0.0.6",
@@ -300,7 +300,7 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.10-1",
+      "version": "0.0.10-3",
       "dependencies": {
         "@venizia/ignis-boot": "^0.0.6-0",
         "@venizia/ignis-helpers": "^0.0.9-0",
@@ -371,7 +371,7 @@
     },
     "packages/dev-configs": {
       "name": "@venizia/dev-configs",
-      "version": "0.0.7",
+      "version": "0.0.8-0",
       "dependencies": {
         "@minimaltech/eslint-node": "^0.2.2",
         "eslint-plugin-unicorn": "^65.0.1",
@@ -395,7 +395,7 @@
     },
     "packages/helpers": {
       "name": "@venizia/ignis-helpers",
-      "version": "0.0.9-0",
+      "version": "0.0.9-1",
       "dependencies": {
         "@venizia/ignis-inversion": "^0.0.6",
         "dayjs": "^1.11.21",
@@ -455,7 +455,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.0.6",
+      "version": "0.0.7-0",
       "dependencies": {
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
@@ -2700,6 +2700,8 @@
     "@types/dompurify/dompurify": ["dompurify@3.3.3", "", { "optionalDependencies": { "@types/trusted-types": "^2.0.7" } }, "sha512-Oj6pzI2+RqBfFG+qOaOLbFXLQ90ARpcGG6UePL82bJLtdsa6CYJD7nmiU8MW9nQNOtCHV3lZ/Bzq1X0QYbBZCA=="],
 
     "@types/pg/pg-protocol": ["pg-protocol@1.13.0", "", {}, "sha512-zzdvXfS6v89r6v7OcFCHfHlyG/wvry1ALxZo4LqgUoy7W9xhBDMaqOuMiF3qEV45VqsN6rdlcehHrfDtlCPc8w=="],
+
+    "@venizia/ignis-docs/@venizia/dev-configs": ["@venizia/dev-configs@0.0.7", "", { "dependencies": { "@minimaltech/eslint-node": "^0.2.2", "eslint-plugin-unicorn": "^65.0.1" }, "peerDependencies": { "eslint": "^9.0.0 || ^10.0.0", "prettier": "^3.0.0", "typescript": "^5.0.0 || ^6.0.0" }, "optionalPeers": ["eslint", "prettier", "typescript"] }, "sha512-uk5u/41kxxIsNf3CJ3sT4NwKAUS2Yfiug5KubWxyBtdMqTCjIYiR5q1Zr7bOOyjDFumSorNBoAZdWtxY1aTIjg=="],
 
     "@venizia/ignis-helpers/@platformatic/kafka": ["@platformatic/kafka@2.1.0", "", { "dependencies": { "@platformatic/dynamic-buffer": "^0.3.1", "@platformatic/wasm-utils": "^0.2.1", "ajv": "^8.17.1", "avsc": "^5.7.9", "debug": "^4.4.3", "fastq": "^1.19.1", "mnemonist": "^0.40.3", "scule": "^1.3.0" }, "optionalDependencies": { "@node-rs/crc32": "^1.10.6", "protobufjs": "^8.0.0" } }, "sha512-3v4DugPy/24mZE9App8mI9CV24lbIfPsWMZpIswt9VnZ6gUWh+TDdjc6NYpacn7aMbs/B1sYeQRdPaLFgctPFQ=="],
 

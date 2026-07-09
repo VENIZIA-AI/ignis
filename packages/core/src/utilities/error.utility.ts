@@ -1,4 +1,5 @@
-import { getError, HTTP, Logger } from '@venizia/ignis-helpers';
+import type { Logger } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 /**
  * Standardized NotSupported error (HTTP 501) for a capability an implementation deliberately does

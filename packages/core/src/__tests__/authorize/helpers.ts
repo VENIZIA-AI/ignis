@@ -1,4 +1,4 @@
-import { TContext } from '@/base/controllers/common/types';
+import type { TContext } from '@/base/controllers/common/types';
 import { Authentication } from '@/components/auth/authenticate/common/constants';
 import type { IAuthUser } from '@/components/auth/authenticate/common/types';
 import {
@@ -15,7 +15,7 @@ import type {
 import { AuthorizationEnforcerRegistry } from '@/components/auth/authorize/enforcers/enforcer-registry';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+import type { Env } from 'hono';
 
 export type TTestRule = {
   action: string;

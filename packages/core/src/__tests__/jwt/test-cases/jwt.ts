@@ -1,11 +1,7 @@
-import { IJWTTokenPayload, JWSTokenService } from '@/components/auth';
-import {
-  getError,
-  TestCaseDecisions,
-  TestCaseHandler,
-  TTestCaseDecision,
-  ValueOrPromise,
-} from '@venizia/ignis-helpers';
+import type { IJWTTokenPayload } from '@/components/auth';
+import { JWSTokenService } from '@/components/auth';
+import type { TTestCaseDecision, ValueOrPromise } from '@venizia/ignis-helpers';
+import { getError, TestCaseDecisions, TestCaseHandler } from '@venizia/ignis-helpers';
 
 interface IArg {
   payload: IJWTTokenPayload;

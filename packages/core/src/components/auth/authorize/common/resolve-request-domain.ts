@@ -1,8 +1,8 @@
-import { TContext } from '@/base/controllers/common/types';
-import { TNullable } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+import type { TContext } from '@/base/controllers/common/types';
+import type { TNullable } from '@venizia/ignis-helpers';
+import type { Env } from 'hono';
 import { AuthorizationDomainScopes } from './constants';
-import { IAuthorizationDomainSource, IAuthorizationSpec, IAuthorizeOptions } from './types';
+import type { IAuthorizationDomainSource, IAuthorizationSpec, IAuthorizeOptions } from './types';
 
 /** Read a domain value from a declarative source on the Hono context. */
 export const readDeclarative = (opts: {

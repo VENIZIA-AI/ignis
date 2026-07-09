@@ -1,10 +1,10 @@
-import { AbstractDataSource, ITransaction } from '@/base/datasources';
-import { AbstractEntity, IdType } from '@/base/models';
+import type { AbstractDataSource, ITransaction } from '@/base/datasources';
+import type { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import { TLogLevel, TNullable } from '@venizia/ignis-helpers';
-import { Column, SQL } from 'drizzle-orm';
-import { TFilter, TWhere } from '../query-schemas';
-import { TLockStrength } from './constants';
+import type { TLogLevel, TNullable } from '@venizia/ignis-helpers';
+import type { Column, SQL } from 'drizzle-orm';
+import type { TFilter, TWhere } from '../query-schemas';
+import type { TLockStrength } from './constants';
 
 /** Update data supporting both regular fields and JSON path updates via dot notation. */
 export type TUpdateData<T = any> = Partial<T> & {

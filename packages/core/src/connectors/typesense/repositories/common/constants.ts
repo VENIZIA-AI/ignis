@@ -1,5 +1,3 @@
-import { z } from '@hono/zod-openapi';
-import { TConstValue } from '@venizia/ignis-helpers';
 import {
   FieldsSchema,
   LimitSchema,
@@ -8,6 +6,9 @@ import {
   SkipSchema,
   WhereSchema,
 } from '@/base/repositories/query-schemas';
+import { z } from '@hono/zod-openapi';
+import type { TConstValue } from '@venizia/ignis-helpers';
+import type { ISearchQuery } from './types';
 
 /** Discriminant values for `TSearchInput.mode` - which search strategy `ReadableSearchRepository.search()` runs. */
 export class SearchModes {
@@ -72,6 +73,11 @@ const commonSearchParamsShape = {
   exhaustiveSearch: z.boolean().optional(),
   pinnedHits: z.string().optional(),
   hiddenHits: z.string().optional(),
+
+  queryByWeights: z.array(z.number()).optional(),
+  prioritizeExactMatch: z.boolean().optional(),
+  dropTokensThreshold: z.number().optional(),
+  preset: z.string().optional(),
 };
 
 const KeywordSearchSchema = z
@@ -130,14 +136,71 @@ export const SearchInputSchema = z.discriminatedUnion('mode', [
 export type TSearchInput = z.infer<typeof SearchInputSchema>;
 
 /**
- * Cross-collection multi-search input. Each entry is `{ collection }` plus arbitrary NATIVE engine
- * params via `.catchall` - the deliberate escape hatch for multi-search (unlike single-collection
- * `TSearchInput`, there is no per-engine dialect translation here; entries are forwarded verbatim
- * to `dataSource.multiSearch()`, same raw-passthrough contract as `SearchModes.RAW`).
+ * A single collection's query within a multi-search. Uses the SAME friendly field names as
+ * single-collection `search()` - `query` (not `q`), `queryBy: string[]`, and the array-shaped
+ * `commonSearchParamsShape` (`facetBy`/`highlightFields`/...) - so the two APIs read identically.
+ * `filterBy` is a raw engine filter string: a cross-collection search has no per-collection model to
+ * translate a `TFilter` against. The datasource maps every entry to snake_case wire via the dialect.
  */
+export const MultiSearchEntrySchema = z
+  .object({
+    collection: z.string(),
+    query: z.string().optional(),
+    queryBy: z.array(z.string()).optional(),
+    filterBy: z.string().optional(),
+    sortBy: z.string().optional(),
+    page: z.number().optional(),
+    perPage: z.number().optional(),
+    offset: z.number().optional(),
+    includeFields: z.array(z.string()).optional(),
+    excludeFields: z.array(z.string()).optional(),
+    vectorQuery: z.string().optional(),
+    ...commonSearchParamsShape,
+  })
+  .openapi({ description: 'A single collection query within a multi-search' });
+export type TMultiSearchEntry = z.infer<typeof MultiSearchEntrySchema>;
+
+/** List-shaped friendly fields that are comma-joined into their single `ISearchQuery` wire form. */
+const MULTI_SEARCH_LIST_FIELDS = new Set([
+  'queryBy',
+  'includeFields',
+  'excludeFields',
+  'facetBy',
+  'highlightFields',
+  'highlightFullFields',
+  'groupBy',
+  'queryByWeights',
+]);
+
+/**
+ * Friendly multi-search params -> `ISearchQuery`: `query` becomes `q`, list fields are comma-joined,
+ * everything else passes through. The dialect then maps the result to snake_case wire, so single
+ * `search()` and `multiSearch()` share one friendly-to-wire path. Also used for `commonParams`.
+ */
+export function toSearchQueryParams(input: Record<string, unknown>): Partial<ISearchQuery> {
+  const params: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(input)) {
+    if (value === undefined || key === 'collection') {
+      continue;
+    }
+
+    if (key === 'query') {
+      params.q = value;
+      continue;
+    }
+
+    params[key] =
+      MULTI_SEARCH_LIST_FIELDS.has(key) && Array.isArray(value) ? value.join(',') : value;
+  }
+
+  return params as Partial<ISearchQuery>;
+}
+
+/** Cross-collection multi-search input: friendly `searches` entries plus the union flag. */
 export const MultiSearchInputSchema = z
   .object({
-    searches: z.array(z.object({ collection: z.string() }).catchall(z.any())).min(1),
+    searches: z.array(MultiSearchEntrySchema).min(1),
     union: z.boolean().optional(),
   })
   .openapi({

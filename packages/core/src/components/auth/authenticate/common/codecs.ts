@@ -1,5 +1,5 @@
 import { int } from '@venizia/ignis-helpers';
-import { IJWTTokenPayload, IPayloadFieldCodec } from './types';
+import type { IJWTTokenPayload, IPayloadFieldCodec } from './types';
 
 export class AuthenticationFieldCodecs {
   static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']> = {

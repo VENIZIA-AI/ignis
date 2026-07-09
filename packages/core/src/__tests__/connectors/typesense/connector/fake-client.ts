@@ -1,7 +1,8 @@
 // Minimal hand-rolled stand-in for the Typesense Client surface the connector uses.
 // Records calls and returns programmed responses / injected errors.
 
-import { ITypesenseClientLike, TypesenseConnector } from '@/connectors/typesense/connector';
+import type { ITypesenseClientLike } from '@/connectors/typesense/connector';
+import { TypesenseConnector } from '@/connectors/typesense/connector';
 
 export interface IFakeBehavior {
   health?: { ok: boolean };
@@ -16,8 +17,11 @@ export interface IFakeBehavior {
   numDeleted?: number;
   numUpdated?: number;
   aliasByName?: Record<string, Record<string, string>>;
-  synonymById?: Record<string, { id: string; synonyms: string[]; root?: string }>;
-  synonymsList?: Array<{ id: string; synonyms: string[]; root?: string }>;
+  synonymSetByName?: Record<
+    string,
+    { name: string; items: Array<{ id: string; synonyms: string[]; root?: string }> }
+  >;
+  synonymSetsList?: Array<{ name: string }>;
   // Inject an error keyed by operation name to exercise error paths.
   throwOn?: Partial<Record<string, unknown>>;
   // Inject an error on the Nth documents.import call (0-based) to exercise partial-batch failures.
@@ -100,24 +104,24 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
     },
   });
 
-  const synonyms = (collectionName: string, id?: string) => ({
-    upsert: async (synonymId: string, params: unknown) => {
-      record('synonyms.upsert', collectionName, synonymId, params);
-      maybeThrow('synonyms.upsert');
-      return { id: synonymId, ...(params as object) };
+  const synonymSets = (setName?: string) => ({
+    upsert: async (params: unknown) => {
+      record('synonymSets.upsert', setName, params);
+      maybeThrow('synonymSets.upsert');
+      return { name: setName, ...(params as object) };
     },
     retrieve: async () => {
-      record('synonyms.retrieve', collectionName, id);
-      maybeThrow('synonyms.retrieve');
-      if (id === undefined) {
-        return { synonyms: behavior.synonymsList ?? [] };
+      record('synonymSets.retrieve', setName);
+      maybeThrow('synonymSets.retrieve');
+      if (setName === undefined) {
+        return behavior.synonymSetsList ?? [];
       }
-      return behavior.synonymById?.[id];
+      return behavior.synonymSetByName?.[setName];
     },
     delete: async () => {
-      record('synonyms.delete', collectionName, id);
-      maybeThrow('synonyms.delete');
-      return { id };
+      record('synonymSets.delete', setName);
+      maybeThrow('synonymSets.delete');
+      return { name: setName };
     },
   });
 
@@ -151,7 +155,6 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
       return schema;
     },
     documents: (id?: string) => documents(name ?? '', id),
-    synonyms: (id?: string) => synonyms(name ?? '', id),
   });
 
   const aliases = (name?: string) => ({
@@ -184,6 +187,7 @@ export const createFakeClient = (behavior: IFakeBehavior = {}) => {
     },
     collections,
     aliases,
+    synonymSets,
   };
 
   return { client, calls };

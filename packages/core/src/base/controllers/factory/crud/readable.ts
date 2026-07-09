@@ -1,9 +1,9 @@
-import { AbstractEntity, IdType } from '@/base/models';
-import { TFilter, TWhere } from '@/base/repositories/query-schemas';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { AbstractEntity, IdType } from '@/base/models';
+import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
+import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
-import { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
+import type { Env, Schema } from 'hono';
+import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { AbstractCrudController } from './abstract';
 
 /** Read tier: count / find / findById / findOne. Read-only controllers can extend this directly. */

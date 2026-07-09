@@ -1,6 +1,6 @@
-import { IAuthRouteConfig } from '@/base/controllers/common/types';
-import { TMixinTarget } from '@venizia/ignis-helpers';
-import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
+import type { IAuthRouteConfig } from '@/base/controllers/common/types';
+import type { TMixinTarget } from '@venizia/ignis-helpers';
+import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../../common/keys';
 
 export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(

@@ -1,14 +1,14 @@
 import { getError } from '@venizia/ignis-helpers';
 
-import {
-    ISearchCollectionDefinition,
-    ISearchEmbedConfig,
-    ISearchFieldDefinition,
-    SearchFieldTypes,
-    TFieldFlags,
-    TSearchFieldType,
-    TVectorDistance,
+import type {
+  ISearchCollectionDefinition,
+  ISearchEmbedConfig,
+  ISearchFieldDefinition,
+  TFieldFlags,
+  TSearchFieldType,
+  TVectorDistance,
 } from './types';
+import { SearchFieldTypes } from './types';
 
 /**
  * `<const N, const O>` preserve the field's name/flag literals in the return type - a widened

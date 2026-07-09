@@ -1,7 +1,7 @@
-import { TMixinTarget } from '@venizia/ignis-helpers';
-import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
+import type { TMixinTarget } from '@venizia/ignis-helpers';
+import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../../common/keys';
-import { IRpcMetadata } from '../../common/types';
+import type { IRpcMetadata } from '../../common/types';
 
 export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,

@@ -1,4 +1,4 @@
-import { TFilter, TWhere } from '@/base/repositories/common';
+import type { TFilter, TWhere } from '@/base/repositories/common';
 
 /** Search-engine query parameters produced by translating a repository-level TFilter. Shaped after
  * Typesense's search params, but pure data - no SDK import. Field names here are camelCase; the
@@ -18,6 +18,9 @@ export interface ISearchQuery {
 
   // Field-list form of `q` for keyword/hybrid search (Typesense's comma-joined `query_by` wire field).
   queryBy?: string;
+
+  // Per-field relevance weights paralleling `queryBy`, comma-joined (Typesense `query_by_weights`, e.g. '2,1').
+  queryByWeights?: string;
 
   // Vector-search clause produced by `toVectorQuery` (Typesense's `<field>:([...], k: N, alpha: A)` syntax).
   vectorQuery?: string;
@@ -43,11 +46,16 @@ export interface ISearchQuery {
   numTypos?: number | string;
   prefix?: boolean | string;
   infix?: string;
+  prioritizeExactMatch?: boolean;
+  dropTokensThreshold?: number;
   useCache?: boolean;
   cacheTtl?: number;
   exhaustiveSearch?: boolean;
   pinnedHits?: string;
   hiddenHits?: string;
+
+  // Saved server-side search preset (Typesense `preset`); passes through unmapped (same wire name).
+  preset?: string;
 }
 
 /** Translates repository-level `TFilter`/`TWhere` into a search-engine-specific query. */
@@ -67,5 +75,5 @@ export interface ISearchQueryDialect {
 
   /** Maps a camelCase `ISearchQuery` (or any camelCase query record) onto the engine's wire-format
    * field names (e.g. Typesense's snake_case) via a key lookup, never via a snake_case identifier. */
-  toWireParams(opts: { query: Record<string, unknown> }): Record<string, unknown>;
+  toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown>;
 }

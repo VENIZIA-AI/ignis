@@ -1,6 +1,6 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { HTTP } from '@venizia/ignis-helpers';
-import { IAuthRouteConfig } from '../../controllers';
+import type { IAuthRouteConfig } from '../../controllers';
 
 /** Generic route decorator. Registers route config in metadata registry. */
 export const api = <RestRouteConfigType extends IAuthRouteConfig>(opts: {

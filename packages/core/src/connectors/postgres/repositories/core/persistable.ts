@@ -1,22 +1,23 @@
-import { IPostgresDataSource } from '@/connectors/postgres/datasources';
-import { IdType } from '@/base/models';
-import {
+import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
+import type { IdType } from '@/base/models';
+import type {
   BaseRelationalEntity,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
 } from '@/connectors/postgres/models';
-import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
-import {
+import type { TClass, TNullable } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import type {
   IExtraOptions,
-  RepositoryOperationScopes,
   TCount,
   TRepositoryLogOptions,
   TWhere,
 } from '@/base/repositories/common';
+import { RepositoryOperationScopes } from '@/base/repositories/common';
 import { UpdateBuilder } from '../dialect/update';
 import { ReadableRelationalRepository } from './readable';
-import { IDatabaseExtraOptions } from '../common';
+import type { IDatabaseExtraOptions } from '../common';
 
 /** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
 export class PersistableRelationalRepository<

@@ -1,15 +1,14 @@
 import { BaseProvider } from '@/base/providers';
-import { Container } from '@/helpers';
+import type { Container } from '@/helpers';
 import { getError } from '@venizia/ignis-helpers';
-import {
+import type {
   ICustomMailOptions,
   IMailgunMailOptions,
   IMailTransport,
   INodemailerMailOptions,
-  MailErrorCodes,
-  MailProviders,
   TMailOptions,
 } from '../common';
+import { MailErrorCodes, MailProviders } from '../common';
 import { MailgunTransportHelper, NodemailerTransportHelper } from '../helpers';
 import { isMailTransport } from '../utilities';
 

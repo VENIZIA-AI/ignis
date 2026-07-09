@@ -1,5 +1,5 @@
 import { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
-import { BaseMetaLinkModel } from '../models';
+import type { BaseMetaLinkModel } from '../models';
 
 /** Base MetaLink repository — bind a model + datasource via @repository in a subclass. */
 export class BaseMetaLinkRepository extends DefaultRelationalRepository<

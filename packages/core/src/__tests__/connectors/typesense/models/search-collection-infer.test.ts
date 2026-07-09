@@ -1,10 +1,10 @@
 import { describe, test, expect } from 'bun:test';
 
+import type { TSearchDocument } from '@/connectors/typesense/models';
 import {
   defineSearchCollection,
   deriveSearchDocumentSchema,
   field,
-  TSearchDocument,
 } from '@/connectors/typesense/models';
 
 /**

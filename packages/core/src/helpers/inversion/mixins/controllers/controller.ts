@@ -1,8 +1,8 @@
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { TMixinTarget } from '@venizia/ignis-helpers';
-import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
+import type { TMixinTarget } from '@venizia/ignis-helpers';
+import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../../common/keys';
-import {
+import type {
   IGrpcControllerMetadata,
   IRestControllerMetadata,
   TControllerMetadata,

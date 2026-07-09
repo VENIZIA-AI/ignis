@@ -39,16 +39,19 @@ class StubConnector extends BaseSearchConnector {
   getAlias(): Promise<IAliasInfo | null> {
     throw new Error('nyi');
   }
-  upsertSynonym(): Promise<ISynonym> {
+  upsertSynonymSet(): Promise<void> {
     throw new Error('nyi');
   }
-  getSynonym(): Promise<ISynonym | null> {
+  getSynonymSet(): Promise<ISynonym[] | null> {
     throw new Error('nyi');
   }
-  listSynonyms(): Promise<ISynonym[]> {
+  listSynonymSets(): Promise<string[]> {
     throw new Error('nyi');
   }
-  deleteSynonym(): Promise<boolean> {
+  deleteSynonymSet(): Promise<boolean> {
+    throw new Error('nyi');
+  }
+  linkSynonymSets(): Promise<void> {
     throw new Error('nyi');
   }
   createDocument<T extends object>(): Promise<T> {

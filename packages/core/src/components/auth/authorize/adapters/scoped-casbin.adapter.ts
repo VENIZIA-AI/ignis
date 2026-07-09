@@ -1,4 +1,4 @@
-import { IdType } from '@/base';
+import type { IdType } from '@/base';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
 import {
@@ -7,7 +7,7 @@ import {
   AuthorizationPolicyVariants,
 } from '../common';
 import { BaseFilteredAdapter } from './base-filtered';
-import { ICasbinPolicySource, IScopedCasbinEntities } from './types';
+import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
 
 export interface IScopedCasbinPolicyFilter {
   principal: { type: string; id: IdType };

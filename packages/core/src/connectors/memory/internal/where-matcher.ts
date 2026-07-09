@@ -1,5 +1,6 @@
 import { getError } from '@venizia/ignis-helpers';
-import { QueryOperators, Sorts, TWhere } from '@/base/repositories/common';
+import type { TWhere } from '@/base/repositories/common';
+import { QueryOperators, Sorts } from '@/base/repositories/common';
 
 // Deliberately scoped operator set - the neutral vocabulary (`QueryOperators`) also lists
 // operators with no faithful plain-JS meaning (`is`/`isn` null semantics, `regexp`/`iregexp`,

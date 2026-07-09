@@ -1,16 +1,18 @@
-import { AbstractDataSource } from '@/base/datasources';
-import { AbstractEntity, IdType } from '@/base/models';
-import { IModelMetadata, MetadataRegistry } from '@/helpers/inversion';
-import { BaseHelper, getError, resolveValue, TClass, TNullable } from '@venizia/ignis-helpers';
-import {
+import type { AbstractDataSource } from '@/base/datasources';
+import type { AbstractEntity, IdType } from '@/base/models';
+import type { IModelMetadata } from '@/helpers/inversion';
+import { MetadataRegistry } from '@/helpers/inversion';
+import type { TClass, TNullable } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, resolveValue } from '@venizia/ignis-helpers';
+import type {
   IExtraOptions,
   IPersistableRepository,
-  RepositoryOperationScopes,
   TCount,
   TDataRange,
   TRepositoryOperationScope,
 } from '../common';
-import { TFilter, TWhere } from '../query-schemas';
+import { RepositoryOperationScopes } from '../common';
+import type { TFilter, TWhere } from '../query-schemas';
 
 /** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
  * settings, operation scope. `TOptions` defaults to `IExtraOptions` so connectors can narrow it while staying assignable to this base. */

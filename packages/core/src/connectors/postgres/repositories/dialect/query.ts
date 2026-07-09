@@ -1,4 +1,5 @@
-import { IQueryHandlerOptions, QueryOperators } from '@/base/repositories/common';
+import type { IQueryHandlerOptions } from '@/base/repositories/common';
+import { QueryOperators } from '@/base/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 import {
   between,

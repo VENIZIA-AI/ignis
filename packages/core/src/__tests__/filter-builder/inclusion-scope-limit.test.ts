@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'bun:test';
-import { DEFAULT_LIMIT, FilterSchema, TFilter } from '@/base/repositories';
+import type { TFilter } from '@/base/repositories';
+import { DEFAULT_LIMIT, FilterSchema } from '@/base/repositories';
 import { ReadableRepository } from '@/connectors/postgres/repositories';
 
 /**

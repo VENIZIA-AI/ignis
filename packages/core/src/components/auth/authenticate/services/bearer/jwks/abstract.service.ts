@@ -1,4 +1,4 @@
-import { Env } from 'hono';
+import type { Env } from 'hono';
 import { AbstractBearerTokenService } from '../abstract.service';
 
 /**

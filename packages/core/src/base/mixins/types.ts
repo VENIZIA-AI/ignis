@@ -1,10 +1,10 @@
-import { Binding } from '@/helpers/inversion';
-import { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
-import { IApplication } from '../applications';
-import { BaseComponent } from '../components';
-import { IDataSource } from '../datasources';
-import { IRepository } from '../repositories';
-import { IService } from '../services';
+import type { Binding } from '@/helpers/inversion';
+import type { AnyObject, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { IApplication } from '../applications';
+import type { BaseComponent } from '../components';
+import type { IDataSource } from '../datasources';
+import type { IRepository } from '../repositories';
+import type { IService } from '../services';
 
 export type TMixinOpts<Args extends AnyObject = any> = {
   binding: { namespace: string; key: string };

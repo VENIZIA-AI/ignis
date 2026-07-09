@@ -1,11 +1,11 @@
-import { ITransaction } from '@/base/datasources';
-import { TFilter, TLockOptions, TWhere } from '@/base/repositories/common';
+import type { ITransaction } from '@/base/datasources';
+import type { TFilter, TLockOptions, TWhere } from '@/base/repositories/common';
 import { AbstractRepository } from '@/base/repositories/core';
-import { TypesenseDataSource } from '@/connectors/typesense/datasources';
-import { BaseSearchEntity } from '@/connectors/typesense/models';
+import type { TypesenseDataSource } from '@/connectors/typesense/datasources';
+import type { BaseSearchEntity } from '@/connectors/typesense/models';
 import { throwNotSupported } from '@/utilities';
-import { TClass } from '@venizia/ignis-helpers';
-import { ISearchQuery, ISearchQueryDialect } from '../common';
+import type { TClass } from '@venizia/ignis-helpers';
+import type { ISearchQuery, ISearchQueryDialect } from '../common';
 
 /**
  * Search-repository plumbing on `AbstractRepository`: narrows dataSource/entity to the concrete

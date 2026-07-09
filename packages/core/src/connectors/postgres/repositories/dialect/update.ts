@@ -1,7 +1,9 @@
-import { TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import { sql, SQL } from 'drizzle-orm';
-import { getCachedColumns, ITransformedUpdateData, TTableColumns } from '../common';
+import type { SQL } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
+import type { ITransformedUpdateData, TTableColumns } from '../common';
+import { getCachedColumns } from '../common';
 import {
   isJsonPath,
   parseJsonPath,

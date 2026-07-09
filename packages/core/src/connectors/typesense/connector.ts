@@ -1,9 +1,10 @@
-import { ISynonym } from '@/connectors/typesense/models';
-import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { ISynonym } from '@/connectors/typesense/models';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
 import { TypesenseInternal } from './internal/connector-internal';
 import { SearchConnectorInternal } from './internal/search-connector-internal';
-import {
+import type {
   IMultiSearchResult,
   ITypesenseConnectorOptions,
   IUnionSearchResult,
@@ -12,15 +13,13 @@ import {
   TCollectionSchema,
   TDocumentSchema,
   TImportResponse,
-  TMultiSearchEntry,
   TSearchOptions,
   TSearchParams,
   TSearchResponse,
   TTypesenseDirtyValue,
   TTypesenseImportAction,
-  TypesenseDirtyValues,
-  TypesenseImportActions,
 } from './types';
+import { TypesenseDirtyValues, TypesenseImportActions } from './types';
 
 export interface IImportResult<TResponse = unknown> {
   successCount: number;
@@ -69,10 +68,13 @@ export interface ISearchConnector {
   upsertAlias(opts: { name: string; collection: string }): Promise<void>;
   getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
 
-  upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym>;
-  getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null>;
-  listSynonyms(opts: { collection: string }): Promise<ISynonym[]>;
-  deleteSynonym(opts: { collection: string; id: string }): Promise<boolean>;
+  // Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. Replaces
+  // the removed per-collection synonyms API. `ISynonym` is the item shape ({ id, synonyms, root? }).
+  upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
+  getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
+  listSynonymSets(): Promise<string[]>;
+  deleteSynonymSet(opts: { name: string }): Promise<boolean>;
+  linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
 
   createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
   getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
@@ -115,6 +117,7 @@ export interface ISearchConnector {
     searches: unknown[];
     union?: boolean;
     commonParams?: unknown;
+    options?: unknown;
   }): Promise<unknown>;
 }
 
@@ -172,7 +175,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
     };
   }
 
-  /** Tolerated-404 branch shared by deleteCollection/getAlias/getSynonym/deleteSynonym/deleteDocument: logs and returns a benign sentinel instead of throwing. */
+  /** Tolerated-404 branch shared by deleteCollection/getAlias/getSynonymSet/deleteSynonymSet/deleteDocument: logs and returns a benign sentinel instead of throwing. */
   protected notFoundFallback<T>(opts: {
     method: string;
     message: string;
@@ -203,10 +206,11 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
   abstract upsertAlias(opts: { name: string; collection: string }): Promise<void>;
   abstract getAlias(opts: { name: string }): Promise<IAliasInfo | null>;
 
-  abstract upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym>;
-  abstract getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null>;
-  abstract listSynonyms(opts: { collection: string }): Promise<ISynonym[]>;
-  abstract deleteSynonym(opts: { collection: string; id: string }): Promise<boolean>;
+  abstract upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void>;
+  abstract getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null>;
+  abstract listSynonymSets(): Promise<string[]>;
+  abstract deleteSynonymSet(opts: { name: string }): Promise<boolean>;
+  abstract linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void>;
 
   abstract createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T>;
   abstract getDocument<T extends object>(opts: { collection: string; id: string }): Promise<T>;
@@ -351,7 +355,8 @@ function isSynonymResponse(
 
 function toSynonym(value: { id: string; synonyms: string[]; root?: string }): ISynonym {
   const { id, synonyms, root } = value;
-  return root === undefined ? { id, synonyms } : { id, synonyms, root };
+  // Multi-way sets come back with root: "" - treat empty/absent alike so only one-way keeps a root.
+  return root ? { id, synonyms, root } : { id, synonyms };
 }
 
 // Narrow structural view of the client surface this connector needs - both the real Client and the in-test fake satisfy it without `as any`.
@@ -369,19 +374,17 @@ interface ITypesenseDocumentApi {
   update(partialDocument: unknown, options?: unknown): Promise<unknown>;
   delete(options?: unknown): Promise<unknown>;
 }
-interface ITypesenseSynonymApi {
+interface ITypesenseSynonymSetApi {
+  upsert(params: unknown): Promise<unknown>;
   retrieve(): Promise<unknown>;
   delete(): Promise<unknown>;
 }
-interface ITypesenseSynonymsApi {
-  upsert(synonymId: string, params: unknown): Promise<unknown>;
+interface ITypesenseSynonymSetsApi {
   retrieve(): Promise<unknown>;
 }
 interface ITypesenseCollectionApi {
   documents(): ITypesenseDocumentsApi;
   documents(documentId: string): ITypesenseDocumentApi;
-  synonyms(): ITypesenseSynonymsApi;
-  synonyms(synonymId: string): ITypesenseSynonymApi;
   retrieve(): Promise<unknown>;
   update(schema: unknown): Promise<unknown>;
   delete(options?: unknown): Promise<unknown>;
@@ -402,6 +405,8 @@ export interface ITypesenseClientLike {
   collections(collectionName: string): ITypesenseCollectionApi;
   aliases(): ITypesenseAliasesApi;
   aliases(aliasName: string): ITypesenseAliasApi;
+  synonymSets(): ITypesenseSynonymSetsApi;
+  synonymSets(synonymSetName: string): ITypesenseSynonymSetApi;
   health: { retrieve(): Promise<unknown> };
   multiSearch: {
     perform(searchRequests: unknown, commonParams?: unknown, options?: unknown): Promise<unknown>;
@@ -644,97 +649,107 @@ export class TypesenseConnector extends BaseSearchConnector {
     return rs;
   }
 
-  async upsertSynonym(opts: { collection: string; synonym: ISynonym }): Promise<ISynonym> {
-    const { collection, synonym } = opts;
-    this.assertNonEmpty({ value: collection, name: 'collection', method: this.upsertSynonym.name });
-    this.assertNonEmpty({ value: synonym.id, name: 'synonym id', method: this.upsertSynonym.name });
-    const logger = this.logger.for(this.upsertSynonym.name);
+  async upsertSynonymSet(opts: { name: string; items: ISynonym[] }): Promise<void> {
+    const { name, items } = opts;
+    this.assertNonEmpty({
+      value: name,
+      name: 'synonym set name',
+      method: this.upsertSynonymSet.name,
+    });
+    const logger = this.logger.for(this.upsertSynonymSet.name);
 
-    const rs = await this.runEngineCall({
-      method: this.upsertSynonym.name,
+    await this.runEngineCall({
+      method: this.upsertSynonymSet.name,
       run: async () => {
-        const params = synonym.root
-          ? { synonyms: synonym.synonyms, root: synonym.root }
-          : { synonyms: synonym.synonyms };
-
-        const upserted = await this.client
-          .collections(collection)
-          .synonyms()
-          .upsert(synonym.id, params);
-        logger.info('Upserted synonym | collection: %s | id: %s', collection, synonym.id);
-
-        if (!isSynonymResponse(upserted)) {
-          return synonym;
-        }
-        return toSynonym(upserted);
+        const payload = items.map(item =>
+          item.root
+            ? { id: item.id, synonyms: item.synonyms, root: item.root }
+            : { id: item.id, synonyms: item.synonyms },
+        );
+        await this.client.synonymSets(name).upsert({ items: payload });
+        logger.info('Upserted synonym set | name: %s | items: %s', name, items.length);
       },
     });
-    return rs;
   }
 
-  async getSynonym(opts: { collection: string; id: string }): Promise<ISynonym | null> {
-    const { collection, id } = opts;
-    this.assertNonEmpty({ value: collection, name: 'collection', method: this.getSynonym.name });
-    this.assertNonEmpty({ value: id, name: 'synonym id', method: this.getSynonym.name });
+  async getSynonymSet(opts: { name: string }): Promise<ISynonym[] | null> {
+    const { name } = opts;
+    this.assertNonEmpty({ value: name, name: 'synonym set name', method: this.getSynonymSet.name });
 
-    const rs = await this.runEngineCall<ISynonym | null>({
-      method: this.getSynonym.name,
+    const rs = await this.runEngineCall<ISynonym[] | null>({
+      method: this.getSynonymSet.name,
       run: async () => {
-        const synonym = await this.client.collections(collection).synonyms(id).retrieve();
-        if (!isSynonymResponse(synonym)) {
-          SearchConnectorInternal.throwNotFoundError({
-            method: this.getSynonym.name,
-            subject: `Synonym '${id}' in collection '${collection}'`,
-          });
-        }
-        return toSynonym(synonym);
+        const result = await this.client.synonymSets(name).retrieve();
+        const items = isRecord(result) && Array.isArray(result.items) ? result.items : [];
+        return items.filter(isSynonymResponse).map(toSynonym);
       },
       tolerate: this.notFoundFallback({
-        method: this.getSynonym.name,
-        message: 'Synonym not found | collection: %s | id: %s',
-        args: [collection, id],
+        method: this.getSynonymSet.name,
+        message: 'Synonym set not found | name: %s',
+        args: [name],
         fallback: null,
       }),
     });
     return rs;
   }
 
-  async listSynonyms(opts: { collection: string }): Promise<ISynonym[]> {
-    const { collection } = opts;
-    this.assertNonEmpty({ value: collection, name: 'collection', method: this.listSynonyms.name });
-
+  async listSynonymSets(): Promise<string[]> {
     const rs = await this.runEngineCall({
-      method: this.listSynonyms.name,
+      method: this.listSynonymSets.name,
       run: async () => {
-        const result = await this.client.collections(collection).synonyms().retrieve();
-        const synonyms = isRecord(result) && Array.isArray(result.synonyms) ? result.synonyms : [];
-        return synonyms.filter(isSynonymResponse).map(toSynonym);
+        const result = await this.client.synonymSets().retrieve();
+        const sets = Array.isArray(result) ? result : [];
+        return sets
+          .filter(isRecord)
+          .map(set => set.name)
+          .filter((setName): setName is string => typeof setName === 'string');
       },
     });
     return rs;
   }
 
-  async deleteSynonym(opts: { collection: string; id: string }): Promise<boolean> {
-    const { collection, id } = opts;
-    this.assertNonEmpty({ value: collection, name: 'collection', method: this.deleteSynonym.name });
-    this.assertNonEmpty({ value: id, name: 'synonym id', method: this.deleteSynonym.name });
-    const logger = this.logger.for(this.deleteSynonym.name);
+  async deleteSynonymSet(opts: { name: string }): Promise<boolean> {
+    const { name } = opts;
+    this.assertNonEmpty({
+      value: name,
+      name: 'synonym set name',
+      method: this.deleteSynonymSet.name,
+    });
+    const logger = this.logger.for(this.deleteSynonymSet.name);
 
     const rs = await this.runEngineCall({
-      method: this.deleteSynonym.name,
+      method: this.deleteSynonymSet.name,
       run: async () => {
-        await this.client.collections(collection).synonyms(id).delete();
-        logger.info('Deleted synonym | collection: %s | id: %s', collection, id);
+        await this.client.synonymSets(name).delete();
+        logger.info('Deleted synonym set | name: %s', name);
         return true;
       },
       tolerate: this.notFoundFallback({
-        method: this.deleteSynonym.name,
-        message: 'Synonym not found, treating as already deleted | collection: %s | id: %s',
-        args: [collection, id],
+        method: this.deleteSynonymSet.name,
+        message: 'Synonym set not found, treating as already deleted | name: %s',
+        args: [name],
         fallback: false,
       }),
     });
     return rs;
+  }
+
+  async linkSynonymSets(opts: { collection: string; synonymSets: string[] }): Promise<void> {
+    const { collection, synonymSets } = opts;
+    this.assertNonEmpty({
+      value: collection,
+      name: 'collection',
+      method: this.linkSynonymSets.name,
+    });
+    const logger = this.logger.for(this.linkSynonymSets.name);
+
+    await this.runEngineCall({
+      method: this.linkSynonymSets.name,
+      run: async () => {
+        await this.client.collections(collection).update({ ['synonym_sets']: synonymSets });
+        logger.info('Linked synonym set(s) | collection: %s | sets: %j', collection, synonymSets);
+      },
+    });
   }
 
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
@@ -1099,20 +1114,23 @@ export class TypesenseConnector extends BaseSearchConnector {
   // `union: true` merges every `searches` entry into ONE result set (IUnionSearchResult); the
   // default federates them side-by-side into `results[]` (IMultiSearchResult) - overloaded so
   // callers get the right shape back at compile time instead of a runtime-checked union.
+  // Wire boundary: `searches`/`commonParams` are the engine's NATIVE snake_case params (the datasource
+  // maps camelCase -> here). Typed as TSearchParams (not a loose record) so the raw getConnector()
+  // escape hatch still gets full LSP on the snake_case wire fields.
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
-    searches: TMultiSearchEntry[];
+    searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union: true;
     commonParams?: Partial<TSearchParams>;
     options?: TSearchOptions;
   }): Promise<IUnionSearchResult<T>>;
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
-    searches: TMultiSearchEntry[];
+    searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union?: false;
     commonParams?: Partial<TSearchParams>;
     options?: TSearchOptions;
   }): Promise<IMultiSearchResult<T>>;
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
-    searches: TMultiSearchEntry[];
+    searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union?: boolean;
     commonParams?: Partial<TSearchParams>;
     options?: TSearchOptions;

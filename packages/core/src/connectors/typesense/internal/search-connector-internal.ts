@@ -1,4 +1,5 @@
-import { getError, HTTP, Logger } from '@venizia/ignis-helpers';
+import type { Logger } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
 export class SearchConnectorInternal {

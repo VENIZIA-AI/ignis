@@ -1,7 +1,7 @@
-import { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
-import { IExtraOptions } from '@/base/repositories/common';
+import type { TTableInsert, TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { IExtraOptions } from '@/base/repositories/common';
 import { PersistableRelationalRepository } from './persistable';
-import { IDatabaseExtraOptions } from '../common';
+import type { IDatabaseExtraOptions } from '../common';
 
 /** Recommended base class for most repositories - full CRUD via PersistableRelationalRepository.
  * `ExtraOptions` defaults to `IDatabaseExtraOptions` so `options.transaction.connector` needs no cast. */

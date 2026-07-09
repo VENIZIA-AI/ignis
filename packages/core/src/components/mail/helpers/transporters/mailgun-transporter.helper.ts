@@ -1,6 +1,7 @@
-import { AnyType, BaseHelper } from '@venizia/ignis-helpers';
-import { Stream } from 'node:stream';
-import {
+import type { AnyType } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers';
+import type { Stream } from 'node:stream';
+import type {
   IMailAttachment,
   IMailMessage,
   IMailSendResult,

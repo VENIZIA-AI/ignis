@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 
 /** Engine-neutral field type vocabulary for the search-collection DSL. */
 export class SearchFieldTypes {
@@ -45,9 +45,34 @@ export class VectorDistances {
 export type TVectorDistance = TConstValue<typeof VectorDistances>;
 
 /** Server-side auto-embedding config (Typesense generates + queries embeddings from source fields). */
+/**
+ * Embedding-model config for an auto-embedded vector field. Two families, one shape:
+ * - Local built-in model (runs on the Typesense server, no key): just `name`, e.g. 'ts/all-MiniLM-L6-v2'.
+ * - Remote provider (OpenAI/Google/Azure/GCP Vertex): `name` (e.g. 'google/embedding-gecko-001') plus
+ *   `apiKey` and/or the provider's auth fields.
+ * camelCase here is mapped to Typesense's snake_case `model_config` at compile time. Source `apiKey`
+ * and the other secrets from env - never hardcode them into a committed schema.
+ */
+export interface ISearchEmbedModelConfig {
+  /** Maps to Typesense `model_name`. Built-in (`ts/...`) or remote (`openai/...`, `google/...`, `azure/...`). */
+  name: string;
+  /** Maps to `api_key`. Remote providers (OpenAI, Google, Azure). */
+  apiKey?: string;
+  /** Maps to `url`. Azure / self-hosted endpoints. */
+  url?: string;
+  // GCP Vertex AI auth (each maps to its snake_case wire key).
+  accessToken?: string;
+  refreshToken?: string;
+  clientId?: string;
+  clientSecret?: string;
+  projectId?: string;
+  /** Escape for any provider field not modeled above; pass it already in Typesense's snake_case form. */
+  [key: string]: unknown;
+}
+
 export interface ISearchEmbedConfig {
   from: string[];
-  model: { name: string; [key: string]: unknown };
+  model: ISearchEmbedModelConfig;
 }
 
 export interface ISearchFieldDefinition {

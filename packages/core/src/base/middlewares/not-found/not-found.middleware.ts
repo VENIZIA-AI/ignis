@@ -1,5 +1,6 @@
-import { HTTP, Logger } from '@venizia/ignis-helpers';
-import { NotFoundHandler } from 'hono/types';
+import type { Logger } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
+import type { NotFoundHandler } from 'hono/types';
 import { RequestSpyMiddleware } from '../request-spy';
 
 export const notFoundHandler = (opts: { logger?: Logger }) => {

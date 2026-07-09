@@ -1,13 +1,19 @@
-import { AbstractEntity } from '@/base/models';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
+import type { AbstractEntity } from '@/base/models';
+import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common/constants';
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { RouteConfig as HonoRouteConfig } from '@hono/zod-openapi';
-import { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
-import { AnyType, IConfigurable, TClass, TResolver, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { createRoute, Hook, OpenAPIHono, z } from '@hono/zod-openapi';
+import type {
+  AnyType,
+  IConfigurable,
+  TClass,
+  TResolver,
+  ValueOrPromise,
+} from '@venizia/ignis-helpers';
 import type { TypedResponse } from 'hono';
-import { Context, Env, Schema } from 'hono';
-import { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
+import type { Context, Env, Schema } from 'hono';
+import type { ContentfulStatusCode, StatusCode } from 'hono/utils/http-status';
 
 /** Typed validation results for route handlers. */
 export interface IValidRequestProps<
@@ -46,10 +52,10 @@ export type TContext<
   ResponseBody = unknown,
 > = Omit<Context<RouteEnv>, 'req' | 'json'> & {
   req: Omit<Context<RouteEnv>['req'], 'valid'> & { valid<T = unknown>(target: ValidTargetKey): T };
-  json<StatusCode extends ContentfulStatusCode = 200>(
+  json<TStatusCode extends ContentfulStatusCode = 200>(
     body: ResponseBody,
-    status?: StatusCode,
-  ): TJsonResponse<ResponseBody, StatusCode>;
+    status?: TStatusCode,
+  ): TJsonResponse<ResponseBody, TStatusCode>;
 };
 
 export type TRouteContext<RouteEnv extends Env = Env, ResponseBody = unknown> = TContext<

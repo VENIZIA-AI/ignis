@@ -1,15 +1,13 @@
-import { HasDefault, HasRuntimeDefault, IsIdentity, IsPrimaryKey, NotNull } from 'drizzle-orm';
-import {
-  bigint,
-  integer,
+import type { HasDefault, HasRuntimeDefault, IsIdentity, IsPrimaryKey, NotNull } from 'drizzle-orm';
+import type {
   PgBigInt53BuilderInitial,
   PgBigInt64BuilderInitial,
   PgIntegerBuilderInitial,
   PgSerialBuilderInitial,
   PgTextBuilderInitial,
-  text,
 } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions, TIdEnricherOptions, TPrimaryKey } from '../common/types';
+import { bigint, integer, text } from 'drizzle-orm/pg-core';
+import type { TColumnDefinitions, TIdEnricherOptions, TPrimaryKey } from '../common/types';
 import { getError } from '@venizia/ignis-helpers';
 
 type TStringIdCol = HasRuntimeDefault<

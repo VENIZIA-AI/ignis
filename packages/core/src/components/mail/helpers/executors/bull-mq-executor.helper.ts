@@ -1,19 +1,15 @@
-import {
-  BaseHelper,
-  getError,
-  IRedisSingleHelperOptions,
-  RedisSingleHelper,
-} from '@venizia/ignis-helpers';
+import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, RedisSingleHelper } from '@venizia/ignis-helpers';
 import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
-import {
-  BullMQExecutorModes,
+import type {
   IMailProcessorResult,
   IMailQueueExecutor,
   IMailQueueOptions,
   IMailQueueResult,
 } from '../../common';
-import { Job } from 'bullmq';
+import { BullMQExecutorModes } from '../../common';
+import type { Job } from 'bullmq';
 
 interface IQueueJobPayload {
   id: string;

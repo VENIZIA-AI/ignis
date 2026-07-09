@@ -1,4 +1,5 @@
-import { getError, TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
 
 // Neutral filter vocabulary shared by every connector. Support differs per engine - unsupported
 // operators throw at translation time rather than being removed from this list.

@@ -1,8 +1,8 @@
-import { IRpcMetadata } from '@/helpers/inversion/common/types';
+import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { getError, GRPC } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
+import type { Env, Schema } from 'hono';
 import { AbstractGrpcController } from './abstract';
-import { IGrpcBindRouteOptions, IGrpcDefineRouteOptions, TRpcHandler } from './common/types';
+import type { IGrpcBindRouteOptions, IGrpcDefineRouteOptions, TRpcHandler } from './common/types';
 
 /** Recommended base class for gRPC controllers with concrete bindRoute and defineRoute implementations. */
 export abstract class BaseGrpcController<

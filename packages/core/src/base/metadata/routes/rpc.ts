@@ -1,4 +1,4 @@
-import { IRpcMetadata } from '@/helpers/inversion/common/types';
+import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { GRPC } from '@venizia/ignis-helpers';
 

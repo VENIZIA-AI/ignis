@@ -1,6 +1,7 @@
 import { z } from '@hono/zod-openapi';
-import { HTTP, TConstValue } from '@venizia/ignis-helpers';
-import { TResponseHeaders } from './types';
+import type { TConstValue } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
+import type { TResponseHeaders } from './types';
 
 /** Transport protocol constants for controllers. */
 export class ControllerTransports {

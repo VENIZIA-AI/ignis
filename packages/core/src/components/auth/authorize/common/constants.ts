@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 import { AuthorizationRole } from '../models/authorization-role.model';
 
 export class Authorization {

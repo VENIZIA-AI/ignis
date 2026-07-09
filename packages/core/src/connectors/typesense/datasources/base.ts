@@ -1,16 +1,16 @@
-import { IDataSource } from '@/base/datasources';
-import { ISearchCollectionDefinition, TSearchSchema } from '@/connectors/typesense/models';
-import {
+import type { IDataSource } from '@/base/datasources';
+import type { ISearchCollectionDefinition, TSearchSchema } from '@/connectors/typesense/models';
+import type {
   IMultiSearchResult,
   ISearchDataSourceOptions,
   IUnionSearchResult,
   TDocumentSchema,
   TMultiSearchEntry,
   TSearchOptions,
-  TSearchParams,
 } from '@/connectors/typesense/types';
+import { toSearchQueryParams } from '@/connectors/typesense/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
-import { TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers';
 import { AbstractSearchDataSource } from './abstract';
 
 /**
@@ -65,32 +65,46 @@ export abstract class BaseSearchDataSource<
   multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: TMultiSearchEntry[];
     union: true;
-    commonParams?: Partial<TSearchParams>;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
     options?: TSearchOptions;
   }): Promise<IUnionSearchResult<T>>;
   multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: TMultiSearchEntry[];
     union?: false;
-    commonParams?: Partial<TSearchParams>;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
     options?: TSearchOptions;
   }): Promise<IMultiSearchResult<T>>;
-  // Callable overload for a runtime-decided `union` (e.g. an HTTP request body): returns the union
-  // of both result shapes so no cast is needed at the call site.
   multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: TMultiSearchEntry[];
     union?: boolean;
-    commonParams?: Partial<TSearchParams>;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
     options?: TSearchOptions;
   }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
   multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: TMultiSearchEntry[];
     union?: boolean;
-    commonParams?: Partial<TSearchParams>;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
     options?: TSearchOptions;
   }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
-    return this.getConnector().multiSearch(opts) as Promise<
-      IMultiSearchResult<T> | IUnionSearchResult<T>
-    >;
+    const { searches, union: isUnion, commonParams, options } = opts;
+    const dialect = this.getQueryDialect();
+
+    // Friendly camelCase (query/queryBy: string[]/...) -> engine wire (snake_case) at the datasource
+    // boundary via the same path single search() uses: friendly -> ISearchQuery -> dialect wire map.
+    const wireSearches = searches.map(entry => ({
+      collection: entry.collection,
+      ...dialect.toWireParams({ query: toSearchQueryParams(entry) }),
+    }));
+    const wireCommonParams = commonParams
+      ? dialect.toWireParams({ query: toSearchQueryParams(commonParams) })
+      : undefined;
+
+    return this.getConnector().multiSearch({
+      searches: wireSearches,
+      union: isUnion,
+      commonParams: wireCommonParams,
+      options,
+    }) as Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
   }
 
   /**
@@ -132,9 +146,20 @@ export abstract class BaseSearchDataSource<
       await this.ensureCollection({ definition });
 
       if (definition.synonyms?.length) {
-        for (const synonym of definition.synonyms) {
-          await this.getConnector().upsertSynonym({ collection: definition.name, synonym });
-        }
+        // v30+: declared synonyms become one named set linked to the collection (the pre-v30
+        // per-collection synonyms API was removed). Set name stays distinct from Typesense's own
+        // auto-migration name (`<collection>_synonyms_index`) so the two never clash.
+        const synonymSetName = `${definition.name}_synonyms`;
+
+        await this.getConnector().upsertSynonymSet({
+          name: synonymSetName,
+          items: definition.synonyms,
+        });
+
+        await this.getConnector().linkSynonymSets({
+          collection: definition.name,
+          synonymSets: [synonymSetName],
+        });
       }
     }
 

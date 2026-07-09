@@ -1,10 +1,10 @@
-import { IdType } from '@/base/models';
-import { AbstractEntity } from '@/base/models/base';
-import { TWhere } from '@/base/repositories/query-schemas';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { IdType } from '@/base/models';
+import type { AbstractEntity } from '@/base/models/base';
+import type { TWhere } from '@/base/repositories/query-schemas';
+import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import { HTTP } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
-import { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
+import type { Env, Schema } from 'hono';
+import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { ReadableCrudController } from './readable';
 
 /** Write tier: create / updateById / updateBy / deleteById / deleteBy. Inherits the read verbs. */

@@ -1,12 +1,13 @@
-import {
+import type {
   AbstractDataSource,
   ITransaction,
   ITransactionOptions,
   TAnyDataSourceSchema,
 } from '@/base/datasources';
 import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
-import { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
-import { NodePgClient, type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
+import type { TConstValue, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { NodePgClient } from 'drizzle-orm/node-postgres';
+import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres';
 import type { Pool, PoolClient } from 'pg';
 
 export type TNodePostgresConnector<

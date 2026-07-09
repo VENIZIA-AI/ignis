@@ -1,5 +1,5 @@
-import { IdType } from '@/base';
-import { AnyType } from '@venizia/ignis-helpers';
+import type { IdType } from '@/base';
+import type { AnyType } from '@venizia/ignis-helpers';
 import {
   type NodePgClient,
   type drizzle as nodePostgresConnector,

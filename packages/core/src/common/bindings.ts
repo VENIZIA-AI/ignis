@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 import { BindingKeys } from '@/helpers/inversion';
 
 export type TBindingNamespace = TConstValue<typeof BindingNamespaces>;

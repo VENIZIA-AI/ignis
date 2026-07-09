@@ -1,16 +1,16 @@
-import { Container } from '@/helpers/inversion/container';
-import { getError, TClass } from '@venizia/ignis-helpers';
-import { IAuthUser } from '../../authenticate';
+import type { Container } from '@/helpers/inversion/container';
+import type { TClass } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import type { IAuthUser } from '../../authenticate';
 import { AbstractAuthRegistry } from '../../base';
-import {
-  Authorization,
+import type {
   AuthorizationEnforcerTypes,
-  AuthorizeBindingKeys,
   IAuthorizationEnforcer,
   IAuthorizationUser,
   IAuthorizeOptions,
   ICasbinEnforcerOptions,
 } from '../common';
+import { Authorization, AuthorizeBindingKeys } from '../common';
 
 // Authorization Enforcer Registry — manages enforcer registration and resolution
 

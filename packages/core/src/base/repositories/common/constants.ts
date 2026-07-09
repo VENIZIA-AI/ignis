@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 
 /** Default pagination limit for repository queries. */
 export const DEFAULT_LIMIT = 10;

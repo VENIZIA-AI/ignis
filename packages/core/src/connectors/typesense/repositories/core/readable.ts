@@ -1,15 +1,17 @@
-import { getError, TNullable } from '@venizia/ignis-helpers';
-import {
-  DEFAULT_LIMIT,
+import type { TNullable } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import type {
   IExtraOptions,
   TCount,
   TDataRange,
   TFilter,
   TWhere,
 } from '@/base/repositories/common';
-import { IdType } from '@/base/models';
-import { ISearchResult } from '../../connector';
-import { ISearchQuery, SearchModes, TSearchInput } from '../common';
+import { DEFAULT_LIMIT } from '@/base/repositories/common';
+import type { IdType } from '@/base/models';
+import type { ISearchResult } from '../../connector';
+import type { ISearchQuery, TSearchInput } from '../common';
+import { SearchModes } from '../common';
 import { SearchBaseRepository } from './base';
 
 /** Read-only search-repository tier - translates filters via the datasource's dialect and executes through the connector. */
@@ -145,6 +147,10 @@ export class ReadableSearchRepository<
         break;
       }
       case SearchModes.SEMANTIC: {
+        // Vector search: prefix matching is meaningless, and remote embedders reject it outright
+        // ("Prefix search is not supported for remote embedders"). Default off; caller can override.
+        params.prefix = false;
+
         if (opts.nearVector) {
           params.vectorQuery = dialect.toVectorQuery({
             field: opts.vectorField,
@@ -171,11 +177,16 @@ export class ReadableSearchRepository<
         break;
       }
       case SearchModes.HYBRID: {
+        // Same as semantic: the embedded query hits the remote embedder, which rejects prefix search.
+        params.prefix = false;
+
         params.q = opts.query;
+
         // Auto-embed (no nearVector) needs the embedding field in query_by; a supplied vector keeps text fields only.
         params.queryBy = opts.nearVector
           ? opts.queryBy.join(',')
           : [...opts.queryBy, opts.vectorField].join(',');
+
         params.vectorQuery = dialect.toVectorQuery({
           field: opts.vectorField,
           nearVector: opts.nearVector,
@@ -184,6 +195,7 @@ export class ReadableSearchRepository<
           distanceThreshold: opts.distanceThreshold,
           ef: opts.ef,
         }).vectorQuery;
+
         break;
       }
       default: {
@@ -210,59 +222,93 @@ export class ReadableSearchRepository<
     if (input.facetBy) {
       params.facetBy = input.facetBy.join(',');
     }
+
     if (input.facetQuery !== undefined) {
       params.facetQuery = input.facetQuery;
     }
+
     if (input.maxFacetValues !== undefined) {
       params.maxFacetValues = input.maxFacetValues;
     }
+
     if (input.highlightFields) {
       params.highlightFields = input.highlightFields.join(',');
     }
+
     if (input.highlightFullFields) {
       params.highlightFullFields = input.highlightFullFields.join(',');
     }
+
     if (input.highlightStartTag !== undefined) {
       params.highlightStartTag = input.highlightStartTag;
     }
+
     if (input.highlightEndTag !== undefined) {
       params.highlightEndTag = input.highlightEndTag;
     }
+
     if (input.snippetThreshold !== undefined) {
       params.snippetThreshold = input.snippetThreshold;
     }
+
     if (input.groupBy) {
       params.groupBy = input.groupBy.join(',');
     }
+
     if (input.groupLimit !== undefined) {
       params.groupLimit = input.groupLimit;
     }
+
     if (input.groupMissingValues !== undefined) {
       params.groupMissingValues = input.groupMissingValues;
     }
+
     if (input.numTypos !== undefined) {
       params.numTypos = input.numTypos;
     }
+
     if (input.prefix !== undefined) {
       params.prefix = input.prefix;
     }
+
     if (input.infix !== undefined) {
       params.infix = input.infix;
     }
+
     if (input.useCache !== undefined) {
       params.useCache = input.useCache;
     }
+
     if (input.cacheTtl !== undefined) {
       params.cacheTtl = input.cacheTtl;
     }
+
     if (input.exhaustiveSearch !== undefined) {
       params.exhaustiveSearch = input.exhaustiveSearch;
     }
+
     if (input.pinnedHits !== undefined) {
       params.pinnedHits = input.pinnedHits;
     }
+
     if (input.hiddenHits !== undefined) {
       params.hiddenHits = input.hiddenHits;
+    }
+
+    if (input.queryByWeights) {
+      params.queryByWeights = input.queryByWeights.join(',');
+    }
+
+    if (input.prioritizeExactMatch !== undefined) {
+      params.prioritizeExactMatch = input.prioritizeExactMatch;
+    }
+
+    if (input.dropTokensThreshold !== undefined) {
+      params.dropTokensThreshold = input.dropTokensThreshold;
+    }
+
+    if (input.preset !== undefined) {
+      params.preset = input.preset;
     }
   }
 

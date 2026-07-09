@@ -1,6 +1,6 @@
-import { IdType } from '@/base/models/common/types';
-import { Authentication } from './authenticate/common/constants';
-import { Authorization } from './authorize/common/constants';
+import type { IdType } from '@/base/models/common/types';
+import type { Authentication } from './authenticate/common/constants';
+import type { Authorization } from './authorize/common/constants';
 import type { IAuthUser } from './authenticate/common/types';
 
 declare module 'hono' {

@@ -1,8 +1,9 @@
-import { z } from '@hono/zod-openapi';
+import type { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers';
 
-import { AbstractEntity, TSchemaType } from '@/base/models';
-import { ISearchCollectionDefinition, TSearchDocument } from './types';
+import type { TSchemaType } from '@/base/models';
+import { AbstractEntity } from '@/base/models';
+import type { ISearchCollectionDefinition, TSearchDocument } from './types';
 import { deriveSearchDocumentSchema } from './zod-derivation';
 
 /**

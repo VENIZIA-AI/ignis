@@ -1,6 +1,6 @@
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
-import { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
+import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
 /**
  * Read-only base for casbin FilteredAdapters backed by a datasource — owns the connector plumbing

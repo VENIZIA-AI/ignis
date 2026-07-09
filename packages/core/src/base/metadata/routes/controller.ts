@@ -1,4 +1,5 @@
-import { MetadataRegistry, TControllerMetadata } from '@/helpers/inversion';
+import type { TControllerMetadata } from '@/helpers/inversion';
+import { MetadataRegistry } from '@/helpers/inversion';
 
 export const controller = (metadata: TControllerMetadata): ClassDecorator => {
   return target => {

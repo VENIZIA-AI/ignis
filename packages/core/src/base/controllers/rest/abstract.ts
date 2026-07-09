@@ -1,13 +1,15 @@
 import { AuthenticationModes } from '@/components/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
-import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
-import { createRoute, Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
-import {
+import type { Hook } from '@hono/zod-openapi';
+import { createRoute, OpenAPIHono } from '@hono/zod-openapi';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { Env, Schema } from 'hono';
+import type {
   IAuthRouteConfig,
   IBindRouteOptions,
   IController,

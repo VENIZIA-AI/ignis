@@ -1,4 +1,4 @@
-import { IAuthorizationSpec } from '../common';
+import type { IAuthorizationSpec } from '../common';
 import { AuthorizationProvider } from '../providers';
 
 // Convenience function — singleton provider instance

@@ -85,20 +85,24 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     return null;
   }
 
-  async upsertSynonym(opts: { synonym: ISynonym }): Promise<ISynonym> {
-    return opts.synonym;
+  async upsertSynonymSet(): Promise<void> {
+    return undefined;
   }
 
-  async getSynonym(): Promise<null> {
+  async getSynonymSet(): Promise<ISynonym[] | null> {
     return null;
   }
 
-  async listSynonyms(): Promise<ISynonym[]> {
+  async listSynonymSets(): Promise<string[]> {
     return [];
   }
 
-  async deleteSynonym(): Promise<boolean> {
+  async deleteSynonymSet(): Promise<boolean> {
     return true;
+  }
+
+  async linkSynonymSets(): Promise<void> {
+    return undefined;
   }
 
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {

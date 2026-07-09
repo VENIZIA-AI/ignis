@@ -1,7 +1,8 @@
-import { Container } from '@/helpers/inversion/container';
-import { TClass } from '@venizia/ignis-helpers';
+import type { Container } from '@/helpers/inversion/container';
+import type { TClass } from '@venizia/ignis-helpers';
 import { AbstractAuthRegistry } from '../../base';
-import { Authentication, IAuthenticationStrategy } from '../common';
+import type { IAuthenticationStrategy } from '../common';
+import { Authentication } from '../common';
 
 // Authentication Strategy Registry — manages strategy registration and resolution
 

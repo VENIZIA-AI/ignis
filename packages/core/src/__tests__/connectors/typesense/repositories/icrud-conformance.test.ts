@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { ICrudRepository } from '@/base/repositories';
+import type { ICrudRepository } from '@/base/repositories';
 import { DefaultSearchRepository } from '@/connectors/typesense/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 

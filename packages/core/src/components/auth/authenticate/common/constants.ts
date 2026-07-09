@@ -1,4 +1,4 @@
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 
 export class AuthenticateStrategy {
   static readonly BASIC = 'basic';

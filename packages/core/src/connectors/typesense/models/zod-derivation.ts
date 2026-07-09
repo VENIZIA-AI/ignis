@@ -1,8 +1,10 @@
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers';
 
-import { SchemaTypes, TSchemaType } from '@/base/models';
-import { ISearchCollectionDefinition, ISearchFieldDefinition, SearchFieldTypes } from './types';
+import type { TSchemaType } from '@/base/models';
+import { SchemaTypes } from '@/base/models';
+import type { ISearchCollectionDefinition, ISearchFieldDefinition } from './types';
+import { SearchFieldTypes } from './types';
 
 const buildBaseFieldSchema = (field: ISearchFieldDefinition): z.ZodTypeAny => {
   switch (field.type) {

@@ -1,5 +1,5 @@
 import { RoleStatuses } from '@/common/statuses';
-import { TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
 import { integer, text } from 'drizzle-orm/pg-core';
 
 export const extraRoleColumns = () => {

@@ -1,4 +1,5 @@
-import { HTTP, TConstValue } from '@venizia/ignis-helpers';
+import type { TConstValue } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
 
 export const WHITELIST_HEADERS = [
   HTTP.Headers.CONTENT_TYPE,

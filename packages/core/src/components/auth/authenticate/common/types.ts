@@ -1,17 +1,13 @@
-import { TContext } from '@/base/controllers/common/types';
-import { IdType } from '@/base/models/common/types';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
-import { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env, type MiddlewareHandler } from 'hono';
-import { JWTPayload } from 'jose';
-import { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
-import {
-  JOSEStandards,
-  JWKSModes,
-  type TAuthMode,
-  type TJWKSKeyDriver,
-  type TJWKSKeyFormat,
-} from './constants';
+import type { TContext } from '@/base/controllers/common/types';
+import type { IdType } from '@/base/models/common/types';
+import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { AESAlgorithmType, AnyObject, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { Env } from 'hono';
+import { type MiddlewareHandler } from 'hono';
+import type { JWTPayload } from 'jose';
+import type { TChangePasswordRequest, TSignInRequest, TSignUpRequest } from '../../models/requests';
+import type { JOSEStandards, JWKSModes } from './constants';
+import { type TAuthMode, type TJWKSKeyDriver, type TJWKSKeyFormat } from './constants';
 
 export type TDefineAuthControllerOpts = {
   restPath?: string;

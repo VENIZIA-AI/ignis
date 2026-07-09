@@ -146,12 +146,15 @@ describe('SearchControllerFactory.defineSearchController', () => {
     });
     const controller = new ProductSearchController(repositoryInstance);
 
-    const searches = [{ collection: 'products', q: 'foo' }];
+    const searches = [{ collection: 'products', query: 'foo' }];
     const { context, getJsonBody, getJsonStatus } = fakeContext({ searches, union: true });
 
     await controller['multiSearch']({ context });
 
-    expect(dataSource.multiSearchCalls).toEqual([{ searches, union: true }]);
+    // Controller passes the friendly body through; the datasource maps `query` -> wire `q`.
+    expect(dataSource.multiSearchCalls).toEqual([
+      { searches: [{ collection: 'products', q: 'foo' }], union: true },
+    ]);
     expect(getJsonBody()).toEqual({ results: [{ found: 2, hits: [] }] });
     expect(getJsonStatus()).toBe(HTTP.ResultCodes.RS_2.Ok);
   });

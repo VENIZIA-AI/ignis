@@ -1,5 +1,5 @@
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { IService } from './types';
+import type { IService } from './types';
 
 /**
  * Base service class

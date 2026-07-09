@@ -1,7 +1,8 @@
 import { describe, test, expect, spyOn } from 'bun:test';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
-import { DEFAULT_LIMIT, TDrizzleQueryOptions } from '@/base/repositories/common';
-import { TRelationConfig } from '@/connectors/postgres/repositories/common';
+import type { TDrizzleQueryOptions } from '@/base/repositories/common';
+import { DEFAULT_LIMIT } from '@/base/repositories/common';
+import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { MetadataRegistry } from '@/helpers/inversion';
 import { pgTable, serial, timestamp, varchar } from 'drizzle-orm/pg-core';
 

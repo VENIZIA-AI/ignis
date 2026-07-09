@@ -1,12 +1,13 @@
-import { BaseApplication } from '@/base/applications';
+import type { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { AbstractGrpcController } from '@/base/controllers/grpc';
+import type { AbstractGrpcController } from '@/base/controllers/grpc';
 import { BindingNamespaces } from '@/common/bindings';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
-import { GrpcBindingKeys, IGrpcComponentConfig } from './common/types';
+import type { IGrpcComponentConfig } from './common/types';
+import { GrpcBindingKeys } from './common/types';
 
 const DEFAULT_OPTIONS: IGrpcComponentConfig = {};
 

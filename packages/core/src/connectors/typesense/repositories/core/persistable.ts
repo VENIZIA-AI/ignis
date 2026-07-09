@@ -1,15 +1,12 @@
-import { getError, HTTP, TClass, TNullable } from '@venizia/ignis-helpers';
-import {
-  IExtraOptions,
-  RepositoryOperationScopes,
-  TCount,
-  TWhere,
-} from '@/base/repositories/common';
-import { IdType } from '@/base/models';
-import { IImportResult } from '../../connector';
-import { TypesenseDataSource } from '@/connectors/typesense/datasources';
-import { BaseSearchEntity } from '@/connectors/typesense/models';
-import { TTypesenseImportAction } from '@/connectors/typesense/types';
+import type { IdType } from '@/base/models';
+import type { IExtraOptions, TCount, TWhere } from '@/base/repositories/common';
+import { RepositoryOperationScopes } from '@/base/repositories/common';
+import type { TypesenseDataSource } from '@/connectors/typesense/datasources';
+import type { BaseSearchEntity } from '@/connectors/typesense/models';
+import type { TTypesenseImportAction } from '@/connectors/typesense/types';
+import type { TClass, TNullable } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
+import type { IImportResult } from '../../connector';
 import { ReadableSearchRepository } from './readable';
 
 /** Narrows one `IImportResult.responses` row (`unknown` - see connector.ts's `IImportResult<TResponse

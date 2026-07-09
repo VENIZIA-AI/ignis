@@ -1,6 +1,6 @@
 import { QueryOperators, Sorts } from '@/base/repositories/common/operators';
-import { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
-import { ISearchQuery, ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import type { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
+import type { ISearchQuery, ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 
 /** Maximum number of `order` entries Typesense `sort_by` can express. */
@@ -38,6 +38,15 @@ class SearchWireKeys {
   static readonly EXHAUSTIVE_SEARCH = { from: 'exhaustiveSearch', to: 'exhaustive_search' };
   static readonly PINNED_HITS = { from: 'pinnedHits', to: 'pinned_hits' };
   static readonly HIDDEN_HITS = { from: 'hiddenHits', to: 'hidden_hits' };
+  static readonly QUERY_BY_WEIGHTS = { from: 'queryByWeights', to: 'query_by_weights' };
+  static readonly PRIORITIZE_EXACT_MATCH = {
+    from: 'prioritizeExactMatch',
+    to: 'prioritize_exact_match',
+  };
+  static readonly DROP_TOKENS_THRESHOLD = {
+    from: 'dropTokensThreshold',
+    to: 'drop_tokens_threshold',
+  };
 
   private static readonly ENTRIES = [
     SearchWireKeys.FILTER_BY,
@@ -64,6 +73,9 @@ class SearchWireKeys {
     SearchWireKeys.EXHAUSTIVE_SEARCH,
     SearchWireKeys.PINNED_HITS,
     SearchWireKeys.HIDDEN_HITS,
+    SearchWireKeys.QUERY_BY_WEIGHTS,
+    SearchWireKeys.PRIORITIZE_EXACT_MATCH,
+    SearchWireKeys.DROP_TOKENS_THRESHOLD,
   ];
 
   /** Resolves a camelCase field to its wire key; unmapped keys (`q`, `page`, `offset`) pass through. */
@@ -125,7 +137,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
   }
 
   /** Maps a camelCase `ISearchQuery` onto Typesense's snake_case wire params via `SearchWireKeys.wireKey`; unmapped keys (`q`, `page`, `offset`) pass through unchanged. */
-  toWireParams(opts: { query: Record<string, unknown> }): Record<string, unknown> {
+  toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
     const wire: Record<string, unknown> = {};
 

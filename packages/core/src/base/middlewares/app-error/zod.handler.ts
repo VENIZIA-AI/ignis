@@ -1,6 +1,6 @@
 import { HTTP } from '@venizia/ignis-helpers';
-import { HTTPResponseError } from 'hono/types';
-import { IZodIssueLike } from './types';
+import type { HTTPResponseError } from 'hono/types';
+import type { IZodIssueLike } from './types';
 
 const DEFAULT_VALIDATION_MESSAGE = 'ValidationError';
 

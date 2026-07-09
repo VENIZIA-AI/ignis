@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { Client } from 'typesense';
+import type { Client } from 'typesense';
 import { TypesenseConnector } from '@/connectors/typesense/connector';
 import { createFakeClient, makeHelper } from './fake-client';
 

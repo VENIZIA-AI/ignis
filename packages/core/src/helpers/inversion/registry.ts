@@ -1,12 +1,12 @@
 import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
-import { IModelRegistryEntry, IRepositoryBinding } from './common/types';
+import type { IModelRegistryEntry, IRepositoryBinding } from './common/types';
 import {
-  ControllerMetadataMixin,
-  DatasourceMetadataMixin,
-  GrpcControllerMetadataMixin,
-  ModelMetadataMixin,
-  RepositoryMetadataMixin,
-  RestControllerMetadataMixin,
+    ControllerMetadataMixin,
+    DatasourceMetadataMixin,
+    GrpcControllerMetadataMixin,
+    ModelMetadataMixin,
+    RepositoryMetadataMixin,
+    RestControllerMetadataMixin,
 } from './mixins';
 
 const _BaseRegistry = GrpcControllerMetadataMixin(

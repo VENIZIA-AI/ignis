@@ -1,7 +1,7 @@
-import { Hook, OpenAPIHono } from '@hono/zod-openapi';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
-import {
+import type { Hook, OpenAPIHono } from '@hono/zod-openapi';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { Env, Schema } from 'hono';
+import type {
   IAuthRouteConfig,
   IBindRouteOptions,
   IDefineRouteOptions,

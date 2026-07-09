@@ -10,7 +10,6 @@ import type {
 import type { UnionSearchResponse } from 'typesense/lib/Typesense/Types';
 import type { TConstValue } from '@venizia/ignis-helpers';
 import type { ISearchConnectorCallbacks } from './connector';
-import type { ISearchQuery } from './repositories/common';
 
 // Re-export Typesense types under stable T-prefixed aliases (type-only; erased at runtime).
 // Note: CollectionFieldSchema is exported from Collection (singular), not Collections.
@@ -24,11 +23,9 @@ export type TSearchResponse<T extends TDocumentSchema = TDocumentSchema> = Searc
 export type TSearchOptions = SearchOptions;
 export type TImportResponse = ImportResponse;
 
-// A per-collection multi-search entry: the target `collection` plus the same camelCase search params
-// as single-collection `search()`. The datasource maps these to the engine's snake_case wire format
-// at its boundary (via the dialect's `toWireParams`), so no snake_case appears in caller code.
-// (`T`-prefixed, not `I`-prefixed, because a mapped-type intersection can't be an `interface`.)
-export type TMultiSearchEntry = { collection: string } & Partial<ISearchQuery>;
+// The friendly multi-search entry type is inferred from the zod schema it lives beside; re-exported
+// here so `@venizia/ignis/typesense` consumers keep importing it from the connector's types barrel.
+export type { TMultiSearchEntry } from './repositories/common';
 export interface IMultiSearchResult<T extends TDocumentSchema = TDocumentSchema> {
   results: TSearchResponse<T>[];
 }

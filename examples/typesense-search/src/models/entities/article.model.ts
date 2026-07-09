@@ -38,8 +38,35 @@ export class ArticleDocument extends BaseSearchEntity<typeof ArticleDocument.sch
       // Indexed/filterable like any other field, but never leaves the server: hiddenProperties
       // excludes it via Typesense exclude_fields on every read, with no per-request override.
       field.string('internalNote', { optional: true }),
+      // Auto-embedding - Typesense builds the vector from title+content at index time, so
+      // `search({ mode: 'semantic', queryText })` works with no embedding pipeline in the app.
+      // Remote provider (Google/Gemini) - the API key is read from env, NEVER hardcoded into the schema:
+      field.vector('embedding', {
+        // gemini-embedding-001 defaults to 3072; 1536 (Matryoshka) is requested via num_dim.
+        dimensions: 1536,
+        embed: {
+          from: ['title', 'content'],
+          model: {
+            url: 'https://generativelanguage.googleapis.com/v1beta/openai',
+            name: 'openai/gemini-embedding-001',
+            apiKey: process.env.APP_ENV_GOOGLE_API_KEY ?? '',
+          },
+        },
+      }),
+      // Local built-in model instead (runs on the Typesense server, no key, no external calls):
+      //   field.vector('embedding', { embed: { from: ['title', 'content'], model: { name: 'ts/all-MiniLM-L6-v2' } } })
+      // Or client-provided vectors (you compute + send the embedding yourself):
+      //   field.vector('embedding', { dimensions: 384, distance: VectorDistances.COSINE })
+      // Auto-embedded fields are omitted from TSearchDocument (the server owns them).
     ],
     defaultSort: 'publishedAt',
+
+    // Query-time expansion, provisioned alongside the collection. Multi-way (no `root`): every term
+    // matches the others. One-way (`root` set): a query for the root also matches the synonyms.
+    synonyms: [
+      { id: 'ml', synonyms: ['ml', 'machine learning', 'deep learning'] },
+      { id: 'js', root: 'javascript', synonyms: ['js', 'ecmascript', 'nodejs'] },
+    ],
   });
 }
 

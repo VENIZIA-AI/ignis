@@ -1,43 +1,40 @@
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { BindingNamespaces, TBindingNamespace } from '@/common/bindings';
+import type { TBindingNamespace } from '@/common/bindings';
+import { BindingNamespaces } from '@/common/bindings';
 import { RequestTrackerComponent } from '@/components';
 import { GrpcComponent } from '@/components/controller/grpc';
 import { RestComponent } from '@/components/controller/rest';
+import type { Binding } from '@/helpers/inversion';
 import {
-  Binding,
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
   MetadataRegistry,
 } from '@/helpers/inversion';
+import type { IBootableApplication, IBooter, IBootReport } from '@venizia/ignis-boot';
 import {
   Bootstrapper,
   ControllerBooter,
   DatasourceBooter,
-  IBootableApplication,
-  IBooter,
-  IBootReport,
   RepositoryBooter,
   ServiceBooter,
 } from '@venizia/ignis-boot';
+import type { AnyObject, IConfigurable, TClass } from '@venizia/ignis-helpers';
 import {
-  AnyObject,
   executeWithPerformanceMeasure,
   getError,
   HTTP,
-  IConfigurable,
   RuntimeModules,
-  TClass,
 } from '@venizia/ignis-helpers';
 import { contextStorage } from 'hono/context-storage';
-import { BaseComponent } from '../components';
-import { IDataSource } from '../datasources';
+import type { BaseComponent } from '../components';
+import type { IDataSource } from '../datasources';
 import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
-import { TMixinOpts } from '../mixins';
-import { IRepository } from '../repositories';
-import { IService } from '../services';
+import type { TMixinOpts } from '../mixins';
+import type { IRepository } from '../repositories';
+import type { IService } from '../services';
 import { AbstractApplication } from './abstract';
-import { IRestApplication } from './types';
+import type { IRestApplication } from './types';
 
 const {
   NODE_ENV,

@@ -1,10 +1,13 @@
-import { ControllerTransports } from '@/base/controllers/common/constants';
-import { IDataSource, TDataSourceDriver } from '@/base/datasources';
-import { AbstractEntity } from '@/base/models';
-import { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
-import { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
-import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
-import { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
+// All type-only (this file only declares metadata interfaces). Kept as `import type` so the DI
+// Container's module graph (registry -> this file) never pulls the @/base/* value barrels at load,
+// which would cycle back through AbstractApplication `extends Container` into a TDZ.
+import type { ControllerTransports } from '@/base/controllers/common/constants';
+import type { IDataSource, TDataSourceDriver } from '@/base/datasources';
+import type { AbstractEntity } from '@/base/models';
+import type { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
+import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
+import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,

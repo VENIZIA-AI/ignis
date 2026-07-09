@@ -1,9 +1,10 @@
-import { AbstractDataSource, TAnyDataSourceSchema } from '@/base/datasources';
+import type { TAnyDataSourceSchema } from '@/base/datasources';
+import { AbstractDataSource } from '@/base/datasources';
 import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
-import { ValueOrPromise } from '@venizia/ignis-helpers';
-import { Pool } from 'pg';
-import {
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import type { Pool } from 'pg';
+import type {
   IDatabaseTransaction,
   IDatabaseTransactionOptions,
   IPostgresDataSource,

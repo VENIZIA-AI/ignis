@@ -1,6 +1,7 @@
 import { BindingScopes } from '@venizia/ignis-inversion';
-import { Container } from '@/helpers/inversion/container';
-import { BaseHelper, getError, TClass } from '@venizia/ignis-helpers';
+import type { Container } from '@/helpers/inversion/container';
+import type { TClass } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
 
 // Abstract Auth Registry — shared base for authentication and authorization registries

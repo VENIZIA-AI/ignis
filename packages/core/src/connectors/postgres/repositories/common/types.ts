@@ -1,13 +1,13 @@
-import {
+import type {
   IExtraOptions,
   RelationTypes,
   TDrizzleQueryOptions,
   TFilter,
   TWhere,
 } from '@/base/repositories/common';
-import { IDatabaseTransaction } from '@/connectors/postgres/datasources';
-import { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
-import { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
+import type { IDatabaseTransaction } from '@/connectors/postgres/datasources';
+import type { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
 
 /** The postgres query-dialect surface a repository consumes via `dataSource.getQueryDialect()`,
  * implemented by FilterBuilder. Relational-branch parity to the search branch's `ISearchQueryDialect`:

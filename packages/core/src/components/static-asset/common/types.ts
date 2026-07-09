@@ -1,7 +1,7 @@
-import { IAuthRouteConfig } from '@/base';
-import { BaseRelationalEntity } from '@/connectors/postgres/models';
-import { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
-import {
+import type { IAuthRouteConfig } from '@/base';
+import type { BaseRelationalEntity } from '@/connectors/postgres/models';
+import type { DefaultRelationalRepository } from '@/connectors/postgres/repositories';
+import type {
   AnyType,
   DiskHelper,
   IFileStat,
@@ -10,8 +10,8 @@ import {
 } from '@venizia/ignis-helpers';
 import type { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 import type { MinioHelper } from '@venizia/ignis-helpers/minio';
-import { TMetaLinkSchema } from '../models';
-import { StaticAssetStorageTypes } from './constants';
+import type { TMetaLinkSchema } from '../models';
+import type { StaticAssetStorageTypes } from './constants';
 
 export type TStaticAssetExtraOptions = {
   parseMultipartBody?: {

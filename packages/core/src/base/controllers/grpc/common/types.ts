@@ -1,6 +1,6 @@
-import { TRouteContext } from '@/base/controllers/common/types';
-import { IRpcMetadata } from '@/helpers/inversion/common/types';
-import { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { TRouteContext } from '@/base/controllers/common/types';
+import type { IRpcMetadata } from '@/helpers/inversion/common/types';
+import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import type { Env, Hono, Input, MiddlewareHandler, Next, Schema } from 'hono';
 
 /** Configuration options for gRPC controller instantiation. */

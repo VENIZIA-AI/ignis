@@ -1,10 +1,12 @@
 import { z } from '@hono/zod-openapi';
-import { FieldsSchema, TFields } from './fields';
+import type { TFields } from './fields';
+import { FieldsSchema } from './fields';
 import { LimitSchema } from './limit';
 import { OffsetSchema } from './offset';
 import { OrderBySchema } from './order-by';
 import { SkipSchema } from './skip';
-import { TWhere, WhereSchema } from './where';
+import type { TWhere } from './where';
+import { WhereSchema } from './where';
 
 /** Zod schema for including related entities in queries with optional nested filtering. */
 export const InclusionSchema = z

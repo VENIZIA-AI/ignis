@@ -1,15 +1,17 @@
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import { AuthenticationModes } from '@/components/auth/authenticate/common/constants';
 import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
-import { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
+import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
-import { IRpcMetadata } from '@/helpers/inversion/common/types';
+import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { ConnectRouter } from '@connectrpc/connect';
-import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
-import { Env, Hono, Schema } from 'hono';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type { Env, Schema } from 'hono';
+import { Hono } from 'hono';
 import { GrpcRequestAdapter } from './adapter';
-import {
+import type {
   IGrpcBindRouteOptions,
   IGrpcController,
   IGrpcControllerOptions,
@@ -85,6 +87,7 @@ export abstract class AbstractGrpcController<
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
       if (strategies.length > 0) {
         const authMw = authenticateFn({ strategies, mode });
+
         // authMw is a Hono MiddlewareHandler built for the REST branch's raw Context<Env>;
         // TRouteContext is a lightweight custom shape (different `json`/`req.valid` signatures), not
         // a subtype of it - genuinely different context types being bridged at this call boundary.

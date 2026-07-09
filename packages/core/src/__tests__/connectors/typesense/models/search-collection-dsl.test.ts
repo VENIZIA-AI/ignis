@@ -1,9 +1,9 @@
 import { describe, test, expect } from 'bun:test';
+import type { ISearchFieldDefinition } from '@/connectors/typesense/models';
 import {
   defineSearchCollection,
   deriveSearchDocumentSchema,
   field,
-  ISearchFieldDefinition,
   SearchFieldTypes,
   VectorDistances,
 } from '@/connectors/typesense/models';

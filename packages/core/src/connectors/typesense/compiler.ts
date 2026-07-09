@@ -2,18 +2,28 @@ import { getError } from '@venizia/ignis-helpers';
 // Type-only import - keeps the compiled runtime free of a hard `typesense` dependency.
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 
-import {
+import type {
   ISearchCollectionDefinition,
   ISearchFieldDefinition,
-  SearchFieldTypes,
   TSearchFieldType,
-  VectorDistances,
 } from '@/connectors/typesense/models';
+import { SearchFieldTypes, VectorDistances } from '@/connectors/typesense/models';
 
 /** Wire-shaped Typesense field entry, derived from the SDK's own schema type. */
 type TTypesenseField = CollectionCreateSchema['fields'][number];
 
 const RESERVED_ID_FIELD_NAME = 'id';
+
+/** camelCase embed model-config field -> Typesense `model_config` snake_case wire key; unmapped keys pass through. */
+const EMBED_MODEL_WIRE_KEYS: Record<string, string> = {
+  name: 'model_name',
+  apiKey: 'api_key',
+  accessToken: 'access_token',
+  refreshToken: 'refresh_token',
+  clientId: 'client_id',
+  clientSecret: 'client_secret',
+  projectId: 'project_id',
+};
 
 /** DSL field type -> Typesense wire type. */
 const mapFieldType = (opts: { type: TSearchFieldType }): TTypesenseField['type'] => {
@@ -79,9 +89,17 @@ const compileField = (opts: { field: ISearchFieldDefinition }): TTypesenseField 
     const { vector } = field;
 
     if (vector.embed) {
-      // Typesense derives num_dim from the embedding model; still forwarded when the caller supplied it explicitly (e.g. a custom/self-hosted model Typesense can't introspect).
-      const embed: Record<string, unknown> = { from: vector.embed.from };
-      embed['model_config'] = vector.embed.model;
+      const modelConfig: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(vector.embed.model)) {
+        if (value !== undefined) {
+          modelConfig[EMBED_MODEL_WIRE_KEYS[key] ?? key] = value;
+        }
+      }
+
+      const embed: Record<string, unknown> = {
+        from: vector.embed.from,
+        ['model_config']: modelConfig,
+      };
       compiled.embed = embed;
 
       if (vector.dimensions !== undefined) {

@@ -1,6 +1,7 @@
 import { getError } from '@venizia/ignis-helpers';
-import { NotNull } from 'drizzle-orm';
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
+import type { NotNull } from 'drizzle-orm';
+import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
+import { integer, text } from 'drizzle-orm/pg-core';
 
 export type TPermissionOptions = {
   idType?: 'string' | 'number';

@@ -1,15 +1,15 @@
 import { BindingNamespaces } from '@/common/bindings';
-import {
-  BindingKeys,
+import type {
   IDataSourceMetadata,
   IModelMetadata,
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
-  MetadataRegistry,
 } from '@/helpers/inversion';
+import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
 import { getError, resolveClass, resolveValue } from '@venizia/ignis-helpers';
-import { AbstractDataSource, IDataSource } from '../datasources';
-import { AbstractEntity } from '../models';
+import type { IDataSource } from '../datasources';
+import { AbstractDataSource } from '../datasources';
+import type { AbstractEntity } from '../models';
 
 /** Registers a model class with its static schema and relations. */
 export const model = (metadata: IModelMetadata): ClassDecorator => {

@@ -1,5 +1,11 @@
-import { AnyType, BaseHelper } from '@venizia/ignis-helpers';
-import { IMailMessage, IMailSendResult, IMailTransport, TNodemailerConfig } from '../../common';
+import type { AnyType } from '@venizia/ignis-helpers';
+import { BaseHelper } from '@venizia/ignis-helpers';
+import type {
+  IMailMessage,
+  IMailSendResult,
+  IMailTransport,
+  TNodemailerConfig,
+} from '../../common';
 
 export class NodemailerTransportHelper extends BaseHelper implements IMailTransport {
   private transporter: AnyType;

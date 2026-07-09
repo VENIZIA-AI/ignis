@@ -1,6 +1,7 @@
-import { integer, PgIntegerBuilderInitial, PgTextBuilderInitial, text } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
-import { HasDefault, NotNull } from 'drizzle-orm';
+import type { PgIntegerBuilderInitial, PgTextBuilderInitial } from 'drizzle-orm/pg-core';
+import { integer, text } from 'drizzle-orm/pg-core';
+import type { TColumnDefinitions, TPrincipalEnricherOptions } from '../common/types';
+import type { HasDefault, NotNull } from 'drizzle-orm';
 
 type TPrincipalColumnDef<
   Discriminator extends string,

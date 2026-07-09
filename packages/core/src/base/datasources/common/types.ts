@@ -1,4 +1,4 @@
-import { IConfigurable, TConstValue } from '@venizia/ignis-helpers';
+import type { IConfigurable, TConstValue } from '@venizia/ignis-helpers';
 
 export class DataSourceDrivers {
   static readonly NODE_POSTGRES = 'node-postgres';

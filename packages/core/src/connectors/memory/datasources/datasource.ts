@@ -1,4 +1,4 @@
-import { TClass } from '@venizia/ignis-helpers';
+import type { TClass } from '@venizia/ignis-helpers';
 import { AbstractDataSource } from '@/base/datasources';
 
 /** Discoverable-model shape: a static `COLLECTION_NAME` is this connector's equivalent of

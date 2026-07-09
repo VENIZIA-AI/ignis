@@ -102,6 +102,73 @@ const articles: TArticleDocument[] = [
   },
 ];
 
+const logResult = (
+  label: string,
+  result: { found: number; hits?: Array<{ document: { title?: string } }> },
+) => {
+  const titles = (result.hits ?? []).map(hit => hit.document.title).slice(0, 3);
+  logger.for('demo').info('%s | found: %d | top: %j', label, result.found, titles);
+};
+
+/**
+ * Exercises every search mode + multi-search after seeding, so `bun run seed` doubles as a
+ * live-cluster smoke test. Semantic/hybrid need the vector field's embedding configured
+ * (APP_ENV_GOOGLE_API_KEY + a Typesense build with remote embedding) and are skipped otherwise.
+ */
+const demo = async (opts: { repository: ArticleRepository; dataSource: SearchDataSource }) => {
+  const { repository, dataSource } = opts;
+
+  // Keyword - full-text; defaultFilter (status: published) + hiddenProperties apply.
+  logResult(
+    'keyword "typescript"',
+    await repository.search({ mode: 'keyword', query: 'typescript', queryBy: ['title', 'content'] }),
+  );
+
+  // Multi-search - federated (one result set per search) then union (one merged, ranked set).
+  const federated = await dataSource.multiSearch({
+    searches: [
+      { collection: 'articles', query: 'typescript', queryBy: ['title'] },
+      { collection: 'articles', query: 'postgres', queryBy: ['title'] },
+    ],
+  });
+  logger.for('demo').info('multiSearch federated | result sets: %d', federated.results.length);
+
+  const merged = await dataSource.multiSearch({
+    searches: [
+      { collection: 'articles', query: 'typescript', queryBy: ['title'] },
+      { collection: 'articles', query: 'postgres', queryBy: ['title'] },
+    ],
+    union: true,
+  });
+  logger.for('demo').info('multiSearch union | found: %d', merged.found);
+
+  // Semantic + hybrid - depend on the embedding pipeline; guarded so the smoke test still finishes.
+  try {
+    logResult(
+      'semantic "catching bugs with static types"',
+      await repository.search({
+        mode: 'semantic',
+        vectorField: 'embedding',
+        queryText: 'catching bugs with static types',
+        k: 3,
+      }),
+    );
+    logResult(
+      'hybrid "fast search engine"',
+      await repository.search({
+        mode: 'hybrid',
+        query: 'fast search engine',
+        queryBy: ['title', 'content'],
+        vectorField: 'embedding',
+        alpha: 0.5,
+        k: 3,
+      }),
+    );
+  } catch (error) {
+    logger.for('demo').warn('semantic/hybrid skipped (embedding not configured?) | error: %s', error);
+  }
+};
+
 const seed = async () => {
   // Same SearchDataSource the app boots with - configure() discovers the ArticleDocument
   // collection from ArticleRepository's @repository binding and provisions it (additive-only).
@@ -117,6 +184,8 @@ const seed = async () => {
   logger
     .for('seed')
     .info('Seeded %d article(s) | collection: %s', count, repository.collectionName);
+
+  await demo({ repository, dataSource });
 };
 
 seed()

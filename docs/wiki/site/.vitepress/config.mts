@@ -368,6 +368,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-07-08',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Typesense Advanced Search - Vector/Semantic, Multi-Search, Synonyms',
+                  link: '/changelogs/2026-07-08-typesense-advanced-search',
+                },
+              ],
+            },
+            {
               text: '2026-07-05',
               collapsed: true,
               items: [

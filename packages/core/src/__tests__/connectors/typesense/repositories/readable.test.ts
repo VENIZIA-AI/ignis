@@ -3,7 +3,7 @@ import { getError } from '@venizia/ignis-helpers';
 
 import { ReadableSearchRepository, SearchModes } from '@/connectors/typesense/repositories';
 import { DEFAULT_LIMIT } from '@/base/repositories/common';
-import { TSearchDocument } from '@/connectors/typesense/models';
+import type { TSearchDocument } from '@/connectors/typesense/models';
 import {
   FakeSearchDataSource,
   ProductDocument,
@@ -325,6 +325,25 @@ describe('ReadableSearchRepository', () => {
         expect(params['num_typos']).toBe(2);
         expect(params['use_cache']).toBe(true);
       });
+
+      test('queryByWeights/prioritizeExactMatch/dropTokensThreshold/preset flow through to wire params', async () => {
+        await repository.search({
+          mode: SearchModes.KEYWORD,
+          query: 'shoes',
+          queryBy: ['title', 'brand'],
+          queryByWeights: [2, 1],
+          prioritizeExactMatch: true,
+          dropTokensThreshold: 1,
+          preset: 'my_preset',
+        });
+
+        const [call] = dataSource.fakeConnector.searchCalls;
+        const params = call.params as Record<string, unknown>;
+        expect(params['query_by_weights']).toBe('2,1');
+        expect(params['prioritize_exact_match']).toBe(true);
+        expect(params['drop_tokens_threshold']).toBe(1);
+        expect(params['preset']).toBe('my_preset');
+      });
     });
 
     describe('mode: keyword', () => {
@@ -369,6 +388,27 @@ describe('ReadableSearchRepository', () => {
         const params = call.params as Record<string, unknown>;
         expect(params['vector_query']).toBe('embedding:([0.1, 0.2], k: 10)');
         expect(params['filter_by']).toBe('isActive:=true');
+      });
+
+      test('defaults prefix=false (remote embedders reject prefix search), overridable by the caller', async () => {
+        await repository.search({
+          mode: SearchModes.SEMANTIC,
+          vectorField: 'embedding',
+          queryText: 'x',
+        });
+        expect(
+          (dataSource.fakeConnector.searchCalls[0]?.params as Record<string, unknown>)['prefix'],
+        ).toBe(false);
+
+        await repository.search({
+          mode: SearchModes.SEMANTIC,
+          vectorField: 'embedding',
+          queryText: 'x',
+          prefix: true,
+        });
+        expect(
+          (dataSource.fakeConnector.searchCalls[1]?.params as Record<string, unknown>)['prefix'],
+        ).toBe(true);
       });
 
       test('queryText auto-embed path sets q/query_by and a vector_query carrying k', async () => {

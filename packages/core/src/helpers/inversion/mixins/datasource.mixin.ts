@@ -1,7 +1,7 @@
-import { TMixinTarget } from '@venizia/ignis-helpers';
-import { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
+import type { TMixinTarget } from '@venizia/ignis-helpers';
+import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
-import { IDataSourceMetadata } from '../common/types';
+import type { IDataSourceMetadata } from '../common/types';
 
 export const DatasourceMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,

@@ -1,6 +1,6 @@
-import { TTableSchemaWithId } from '@/connectors/postgres/models';
+import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import { getTableColumns } from 'drizzle-orm';
-import { TTableColumns } from './types';
+import type { TTableColumns } from './types';
 
 /** @internal WeakMap cache for table columns. */
 const columnCache = new WeakMap<TTableSchemaWithId, TTableColumns>();

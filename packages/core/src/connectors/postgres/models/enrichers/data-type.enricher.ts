@@ -1,6 +1,6 @@
-import { AnyType } from '@venizia/ignis-helpers';
+import type { AnyType } from '@venizia/ignis-helpers';
 import { boolean, customType, doublePrecision, jsonb, text } from 'drizzle-orm/pg-core';
-import { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
+import type { TColumnDefinitions, TDataTypeEnricherOptions } from '../common/types';
 
 const byteaType = customType<{ data: Buffer }>({
   dataType() {

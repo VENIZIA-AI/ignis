@@ -1,8 +1,8 @@
-import { Readable } from 'node:stream';
-import SMTPTransport from 'nodemailer/lib/smtp-transport';
-import { MailQueueExecutorTypes } from './constants';
-import { AnyType, TConstValue } from '@venizia/ignis-helpers';
-import { IBullMQMailExecutorOpts } from '../helpers';
+import type { Readable } from 'node:stream';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
+import type { MailQueueExecutorTypes } from './constants';
+import type { AnyType, TConstValue } from '@venizia/ignis-helpers';
+import type { IBullMQMailExecutorOpts } from '../helpers';
 
 export class MailProviders {
   static readonly NODEMAILER = 'nodemailer';

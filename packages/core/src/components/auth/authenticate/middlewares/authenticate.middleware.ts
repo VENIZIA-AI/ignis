@@ -1,5 +1,5 @@
-import { Env } from 'hono';
-import { TAuthMode } from '../common';
+import type { Env } from 'hono';
+import type { TAuthMode } from '../common';
 import { AuthenticationProvider } from '../providers';
 
 // Convenience function — singleton provider instance

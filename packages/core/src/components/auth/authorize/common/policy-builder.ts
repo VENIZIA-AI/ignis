@@ -1,11 +1,7 @@
-import { IdType } from '@/base';
-import { TNullable } from '@/helpers';
-import {
-  AuthorizationActions,
-  AuthorizationPolicyVariants,
-  TAuthorizationAction,
-  TAuthorizationDecision,
-} from './constants';
+import type { IdType } from '@/base';
+import type { TNullable } from '@/helpers';
+import type { TAuthorizationAction, TAuthorizationDecision } from './constants';
+import { AuthorizationActions, AuthorizationPolicyVariants } from './constants';
 
 /** A grant/assignment domain: a scope literal (`SYSTEM_WIDE`/`ANY_MEMBER`) or a typed domain entity. */
 export type TPolicyDomainInput = string | { type: string; id: IdType };

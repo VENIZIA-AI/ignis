@@ -1,19 +1,19 @@
 import { CoreBindings } from '@/common/bindings';
-import { Container } from '@/helpers/inversion';
+import { Container } from '@/helpers/inversion/container';
 import { OpenAPIHono } from '@hono/zod-openapi';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
 import {
   applicationEnvironment,
   getError,
   int,
   RuntimeModules,
   toBoolean,
-  ValueOrPromise,
 } from '@venizia/ignis-helpers';
-import { Env, Schema } from 'hono';
+import type { Env, Schema } from 'hono';
 import { showRoutes as showApplicationRoutes } from 'hono/dev';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
-import {
+import type {
   IApplication,
   IApplicationConfigs,
   IApplicationInfo,

@@ -1,5 +1,6 @@
-import { HasDefault, NotNull, sql } from 'drizzle-orm';
-import { TColumnDefinitions, TTzEnricherOptions } from '../common/types';
+import type { HasDefault, NotNull } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
+import type { TColumnDefinitions, TTzEnricherOptions } from '../common/types';
 import { isoTimestamp } from '../common/columns';
 
 type TIsoTimestampColumn = ReturnType<typeof isoTimestamp>;

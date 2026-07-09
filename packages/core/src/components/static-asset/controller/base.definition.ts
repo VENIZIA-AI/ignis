@@ -1,4 +1,4 @@
-import { IAuthRouteConfig } from '@/base';
+import type { IAuthRouteConfig } from '@/base';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { z } from '@hono/zod-openapi';
 import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';

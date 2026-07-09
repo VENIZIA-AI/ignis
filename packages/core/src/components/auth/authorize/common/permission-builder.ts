@@ -1,6 +1,7 @@
-import { IdType } from '@/base';
-import { TNullable } from '@/helpers';
-import { AuthorizationActions, TAuthorizationAction } from './constants';
+import type { IdType } from '@/base';
+import type { TNullable } from '@/helpers';
+import type { TAuthorizationAction } from './constants';
+import { AuthorizationActions } from './constants';
 
 /**
  * Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves).

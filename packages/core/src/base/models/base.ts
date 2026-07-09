@@ -1,5 +1,5 @@
 import { BaseHelper } from '@venizia/ignis-helpers';
-import { TIdSchemaType, TSchemaType } from './common';
+import type { TIdSchemaType, TSchemaType } from './common';
 
 /** Engine-neutral entity root: named, scoped-logged, zod-schema-capable. */
 export abstract class AbstractEntity<Schema = unknown> extends BaseHelper {

@@ -1,12 +1,13 @@
-import { BaseApplication } from '@/base/applications';
+import type { BaseApplication } from '@/base/applications';
 import { BaseComponent } from '@/base/components';
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { AbstractRestController } from '@/base/controllers/rest';
+import type { AbstractRestController } from '@/base/controllers/rest';
 import { BindingNamespaces } from '@/common/bindings';
 import { Binding, BindingValueTypes, MetadataRegistry } from '@/helpers/inversion';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import isEmpty from 'lodash/isEmpty';
-import { IRestComponentConfig, RestBindingKeys } from './common/types';
+import type { IRestComponentConfig } from './common/types';
+import { RestBindingKeys } from './common/types';
 
 const DEFAULT_OPTIONS: IRestComponentConfig = {};
 

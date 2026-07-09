@@ -1,23 +1,23 @@
-import { IdType } from '@/base/models';
-import {
-  DEFAULT_LIMIT,
+import type { IdType } from '@/base/models';
+import type {
   IExtraOptions,
-  RepositoryOperationScopes,
   TCount,
   TDataRange,
   TFilter,
   TWhere,
 } from '@/base/repositories/common';
-import { IPostgresDataSource } from '@/connectors/postgres/datasources';
-import {
+import { DEFAULT_LIMIT, RepositoryOperationScopes } from '@/base/repositories/common';
+import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
+import type {
   BaseRelationalEntity,
   TTableInsert,
   TTableObject,
   TTableSchemaWithId,
 } from '@/connectors/postgres/models';
-import { getError, TClass, TNullable } from '@venizia/ignis-helpers';
-import { PgTable } from 'drizzle-orm/pg-core';
-import { IDatabaseExtraOptions } from '../common';
+import type { TClass, TNullable } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import type { PgTable } from 'drizzle-orm/pg-core';
+import type { IDatabaseExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';
 
 /** Read-only repository. Write operations throw errors. */

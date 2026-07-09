@@ -1,7 +1,9 @@
-import { RelationTypes } from '@/base';
-import { TTableSchemaWithId } from '@/connectors/postgres/models';
+// Deep import (not the `@/base` barrel): the barrel re-exports applications, forming an init cycle
+// inversion mixins -> this file -> @/base -> applications -> Container. This file only needs the enum.
+import { RelationTypes } from '@/base/repositories/common/constants';
+import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import { relations as defineRelations } from 'drizzle-orm';
-import { TRelationConfig } from '../common';
+import type { TRelationConfig } from '../common';
 
 /** Creates Drizzle ORM relations from a declarative configuration array. */
 export const createRelations = <Schema extends TTableSchemaWithId = TTableSchemaWithId>(opts: {

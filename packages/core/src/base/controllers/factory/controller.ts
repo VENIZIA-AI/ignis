@@ -1,11 +1,12 @@
-import { AbstractEntity } from '@/base/models';
+import type { AbstractEntity } from '@/base/models';
 import { SchemaTypes } from '@/base/models/common/constants';
-import { AbstractRepository } from '@/base/repositories';
-import { TAnyObjectSchema } from '@/utilities/schema.utility';
-import { BaseHelper, getError, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AbstractRepository } from '@/base/repositories';
+import type { TAnyObjectSchema } from '@/utilities/schema.utility';
+import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { isClass } from '@venizia/ignis-inversion';
-import { Env, Schema } from 'hono';
-import {
+import type { Env, Schema } from 'hono';
+import type {
   ICrudControllerOptions,
   ICustomizableRoutes,
   TEntityDataObject,

@@ -1,4 +1,4 @@
-import { BaseApplication } from '@/base/applications/base';
+import type { BaseApplication } from '@/base/applications/base';
 import { BaseComponent } from '@/base/components/base';
 import { inject } from '@/base/metadata/injectors';
 import { CoreBindings } from '@/common/bindings';

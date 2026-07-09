@@ -1,13 +1,13 @@
-import { ISearchableDataSourceCapabilities } from '@/base/datasources';
-import { ISearchCollectionDefinition } from '@/connectors/typesense/models';
-import { ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import type { ISearchableDataSourceCapabilities } from '@/base/datasources';
+import type { ISearchCollectionDefinition } from '@/connectors/typesense/models';
+import type { ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
-import { Client } from 'typesense';
+import type { Client } from 'typesense';
 import { compileTypesenseCollection } from '../compiler';
 import { TypesenseConnector } from '../connector';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
-import {
+import type {
   ISearchDataSourceOptions,
   ITypesenseDataSourceSettings,
   ITypesenseConnectorOptions,
