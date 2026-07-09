@@ -48,7 +48,10 @@ export abstract class BaseSearchDataSource<
 
     const autoProvision = (process.env.APP_ENV_AUTO_PROVISION_COLLECTION ?? 'false').toLowerCase();
     this.autoProvision = opts.autoProvision ?? (autoProvision === 'true' || autoProvision === '1');
-    this.logger.info('[constructor] Auto Provision Collection - autoProvision: %s', this.autoProvision);
+    this.logger.info(
+      '[constructor] Auto Provision Collection - autoProvision: %s',
+      this.autoProvision,
+    );
   }
 
   /** Auto-discovers collections from repositories if not manually provided. */
