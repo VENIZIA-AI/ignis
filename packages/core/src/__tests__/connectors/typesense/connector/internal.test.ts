@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'bun:test';
-import { SearchConnectorInternal } from '@/connectors/typesense/internal/search-connector-internal';
+import { SearchConnectorInternal } from '@/connectors/search/internal';
 import { TypesenseInternal } from '@/connectors/typesense/internal/connector-internal';
 import type { Logger } from '@venizia/ignis-helpers';
 import { LoggerFactory, ApplicationError } from '@venizia/ignis-helpers';

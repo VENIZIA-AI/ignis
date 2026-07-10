@@ -809,6 +809,10 @@ const config = defineConfig({
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },
                 { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
+                {
+                  text: 'Search & Meilisearch',
+                  link: '/guides/core-concepts/persistent/search-meilisearch',
+                },
                 { text: 'Memory Connector', link: '/guides/core-concepts/persistent/memory-connector' },
               ],
             },

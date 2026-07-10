@@ -282,8 +282,8 @@
       "name": "@venizia/ignis-boot",
       "version": "0.0.6-1",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.0.9-0",
-        "@venizia/ignis-inversion": "^0.0.6",
+        "@venizia/ignis-helpers": "^0.0.9-1",
+        "@venizia/ignis-inversion": "^0.0.7-0",
         "glob": "^13.0.6",
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
@@ -291,7 +291,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.14",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7",
+        "@venizia/dev-configs": "^0.0.8-0",
         "eslint": "^10.4.0",
         "prettier": "^3.8.3",
         "tsc-alias": "^1.8.17",
@@ -300,11 +300,11 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.0.10-3",
+      "version": "0.0.10-4",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.0.6-0",
-        "@venizia/ignis-helpers": "^0.0.9-0",
-        "@venizia/ignis-inversion": "^0.0.6",
+        "@venizia/ignis-boot": "^0.0.6-1",
+        "@venizia/ignis-helpers": "^0.0.9-1",
+        "@venizia/ignis-inversion": "^0.0.7-0",
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
       },
@@ -318,10 +318,11 @@
         "@types/lodash": "^4.17.23",
         "@types/nodemailer": "^8.0.0",
         "@types/pg": "^8.20.0",
-        "@venizia/dev-configs": "^0.0.7",
+        "@venizia/dev-configs": "^0.0.8-0",
         "casbin": "^5.50.0",
         "drizzle-kit": "^0.31.10",
         "eslint": "^10.4.0",
+        "meilisearch": "^0.59.0",
         "prettier": "^3.8.3",
         "tsc-alias": "^1.8.17",
         "tsx": "^4.22.3",
@@ -397,7 +398,7 @@
       "name": "@venizia/ignis-helpers",
       "version": "0.0.9-1",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.0.6",
+        "@venizia/ignis-inversion": "^0.0.7-0",
         "dayjs": "^1.11.21",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.12.25",
@@ -415,7 +416,7 @@
         "@socket.io/redis-emitter": "^5.1.0",
         "@types/bun": "^1.3.14",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7",
+        "@venizia/dev-configs": "^0.0.8-0",
         "axios": "^1.16.1",
         "bullmq": "^5.76.10",
         "cron": "^4.3.3",
@@ -464,7 +465,7 @@
       "devDependencies": {
         "@types/bun": "^1.3.14",
         "@types/lodash": "^4.17.23",
-        "@venizia/dev-configs": "^0.0.7",
+        "@venizia/dev-configs": "^0.0.8-0",
         "eslint": "^10.4.0",
         "prettier": "^3.8.3",
         "tsc-alias": "^1.8.17",
@@ -1926,6 +1927,8 @@
     "mdast-util-to-string": ["mdast-util-to-string@4.0.0", "", { "dependencies": { "@types/mdast": "^4.0.0" } }, "sha512-0H44vDimn51F0YwvxSJSm0eCDOJTRlmN0R1yBh4HLj9wiV1Dn0QoXGbvFAWj2hSItVTlCmBF1hqKlIyUBVFLPg=="],
 
     "media-typer": ["media-typer@1.1.0", "", {}, "sha512-aisnrDP4GNe06UcKFnV5bfMNPBUw4jsLGaWwWfnH3v02GnBuXX2MCVn5RbrWo0j3pczUilYblq7fQ7Nw2t5XKw=="],
+
+    "meilisearch": ["meilisearch@0.59.0", "", {}, "sha512-9KxasX98+qYhOVa4PPeaX/yY/ukM9DMuJlUJRgJVwrdCkWw+mkkiIh6EJmYyCxU8nXhj0VEzdYr3dNUJT1BQow=="],
 
     "merge-descriptors": ["merge-descriptors@2.0.0", "", {}, "sha512-Snk314V5ayFLhp3fkUREub6WtjBfPdCPY1Ln8/8munuLuiYhsABgBVWsozAG+MWMbVEvcdcpbi9R7ww22l9Q3g=="],
 

@@ -1,9 +1,18 @@
-import type { ISynonym } from '@/connectors/typesense/models';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { BaseHelper, getError } from '@venizia/ignis-helpers';
+import type {
+  IAliasInfo,
+  IImportResult,
+  ISearchAliasScoped,
+  ISearchCollectionScoped,
+  ISearchDocumentScoped,
+  ISearchResult,
+  ISearchSynonymSetScoped,
+} from '@/connectors/search';
+import { BaseSearchConnector } from '@/connectors/search';
+import { SearchConnectorInternal } from '@/connectors/search/internal';
+import type { ISynonym } from '@/connectors/search/models';
+import { getError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
 import { TypesenseInternal } from './internal/connector-internal';
-import { SearchConnectorInternal } from './internal/search-connector-internal';
 import type {
   IMultiSearchResult,
   ITypesenseConnectorOptions,
@@ -20,221 +29,6 @@ import type {
   TTypesenseImportAction,
 } from './types';
 import { TypesenseDirtyValues, TypesenseImportActions } from './types';
-
-export interface IImportResult<TResponse = unknown> {
-  count: { success: number; fail: number };
-  responses: TResponse[];
-}
-
-export interface IAliasInfo {
-  name: string;
-  collection: string;
-}
-
-export interface ISearchConnectorCallbacks {
-  onInitialized?: (opts: { name: string }) => void;
-  onError?: (opts: { name: string; error: unknown }) => void;
-}
-
-/** Search-response envelope - the read-path counterpart to IImportResult, consumed by ReadableSearchRepository without a boundary cast. */
-export interface ISearchResult<
-  DocumentType extends object = object,
-  HighlightType = unknown,
-  FacetCountType = unknown,
-  GroupedHitType = unknown,
-> {
-  found: number;
-  outOf?: number;
-  searchTimeMs?: number;
-  hits?: Array<{
-    document: DocumentType;
-    highlight?: HighlightType;
-    highlights?: HighlightType[];
-    textMatch?: number;
-  }>;
-  facetCounts?: FacetCountType[];
-  groupedHits?: GroupedHitType[];
-}
-
-// The schema/field types are engine-specific, not caller-owned - so they are interface-level
-// generics (the engine's connector fills them), not per-method generics like `document`. They
-// default to `unknown` so the neutral `ISearchConnector` stays engine-agnostic.
-export interface ISearchCollectionScoped<
-  CreateSchema = unknown,
-  Schema = unknown,
-  FieldSchema = unknown,
-> {
-  create(opts: { schema: CreateSchema }): Promise<Schema | void>;
-  ensure(opts: { schema: CreateSchema }): Promise<Schema>;
-  get(opts: { name: string }): Promise<Schema>;
-  list(): Promise<Schema[]>;
-  exists(opts: { name: string }): Promise<boolean>;
-  patchSchema(opts: { name: string; fields: FieldSchema[] }): Promise<void>;
-  delete(opts: { name: string }): Promise<boolean>;
-}
-
-export interface ISearchAliasScoped {
-  upsert(opts: { name: string; collection: string }): Promise<void>;
-  get(opts: { name: string }): Promise<IAliasInfo | null>;
-}
-
-// Synonym SETS (Typesense v30+): a named set of items, linked to one or more collections. Replaces
-// the removed per-collection synonyms API. `ISynonym` is the item shape ({ id, synonyms, root? }).
-export interface ISearchSynonymSetScoped {
-  upsert(opts: { name: string; items: ISynonym[] }): Promise<void>;
-  get(opts: { name: string }): Promise<ISynonym[] | null>;
-  list(): Promise<string[]>;
-  delete(opts: { name: string }): Promise<boolean>;
-  link(opts: { collection: string; synonymSets: string[] }): Promise<void>;
-}
-
-export interface ISearchDocumentScoped {
-  get<T extends object>(opts: { collection: string; id: string }): Promise<T>;
-
-  create<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-
-  upsert<T extends object>(opts: { collection: string; document: T }): Promise<T>;
-  update<T extends object>(opts: {
-    collection: string;
-    id: string;
-    document: Partial<T>;
-  }): Promise<T>;
-  updateBy<T extends object>(opts: {
-    collection: string;
-    document: Partial<T>;
-    filterBy: string;
-  }): Promise<{ updatedCount: number }>;
-
-  delete(opts: { collection: string; id: string }): Promise<boolean>;
-  deleteBy(opts: { collection: string; filterBy: string }): Promise<number>;
-  deleteAll(opts: { collection: string }): Promise<boolean>;
-
-  import<T extends object>(opts: {
-    collection: string;
-    documents: T[];
-    batchSize?: number;
-  }): Promise<IImportResult<unknown>>;
-  export(opts: {
-    collection: string;
-    filterBy?: string;
-    includeFields?: string[];
-  }): Promise<string>;
-}
-
-/** Verb contract every search-engine connector implements - kept as an interface so tests can fake one without a real typesense Client. */
-export interface ISearchConnector {
-  getHealth(): Promise<{ ok: boolean }>;
-  ping(): Promise<boolean>;
-
-  collection: ISearchCollectionScoped;
-  alias: ISearchAliasScoped;
-  synonymSet: ISearchSynonymSetScoped;
-  document: ISearchDocumentScoped;
-
-  search<TDocument extends object = object>(opts: {
-    collection: string;
-    params: unknown;
-  }): Promise<ISearchResult<TDocument>>;
-
-  multiSearch(opts: {
-    searches: unknown[];
-    union?: boolean;
-    commonParams?: unknown;
-    options?: unknown;
-  }): Promise<unknown>;
-}
-
-export abstract class BaseSearchConnector extends BaseHelper implements ISearchConnector {
-  constructor(opts: { scope: string; identifier: string }) {
-    super(opts);
-  }
-
-  async ping(): Promise<boolean> {
-    const health = await this.getHealth();
-    return health.ok;
-  }
-
-  protected assertNonEmpty(opts: { value?: string | null; name: string; method: string }): void {
-    const { value, name, method } = opts;
-    if (!value || value.trim().length === 0) {
-      throw getError({ message: `[${method}] Missing or empty value | name: ${name}` });
-    }
-  }
-
-  // Runs the engine verb; tolerated errors route to the caller's branch, everything else becomes a sanitized 503.
-  protected async runEngineCall<T>(opts: {
-    method: string;
-    run: () => ValueOrPromise<T>;
-    tolerate?: { when: (error: unknown) => boolean; handle: (error: unknown) => ValueOrPromise<T> };
-  }) {
-    const { method, run, tolerate } = opts;
-
-    try {
-      const rs = await run();
-      return rs;
-    } catch (error) {
-      if (tolerate?.when(error)) {
-        const rs = await tolerate.handle(error);
-        return rs;
-      }
-
-      SearchConnectorInternal.wrapDependencyError({ method, error, logger: this.logger });
-    }
-  }
-
-  /** Tolerated-404 branch shared by getCollection/patchCollectionSchema/getDocument/updateDocument: throws the sanitized not-found error. */
-  protected notFoundTolerance(opts: { method: string; subject: string }): {
-    when: (error: unknown) => boolean;
-    handle: (error: unknown) => never;
-  } {
-    const { method, subject } = opts;
-
-    return {
-      when: error => TypesenseInternal.isNotFoundError({ error }),
-      handle: () => {
-        this.logger.for(method).debug('%s not found', subject);
-        SearchConnectorInternal.throwNotFoundError({ method, subject });
-      },
-    };
-  }
-
-  /** Tolerated-404 branch shared by deleteCollection/getAlias/getSynonymSet/deleteSynonymSet/deleteDocument: logs and returns a benign sentinel instead of throwing. */
-  protected notFoundFallback<T>(opts: {
-    method: string;
-    message: string;
-    args?: unknown[];
-    fallback: T;
-  }): { when: (error: unknown) => boolean; handle: (error: unknown) => T } {
-    const { method, message, args, fallback } = opts;
-
-    return {
-      when: error => TypesenseInternal.isNotFoundError({ error }),
-      handle: () => {
-        this.logger.for(method).debug(message, ...(args ?? []));
-        return fallback;
-      },
-    };
-  }
-
-  abstract getHealth(): Promise<{ ok: boolean }>;
-
-  // Resource-scoped verb groups; the concrete connector supplies each as a facade object.
-  abstract collection: ISearchCollectionScoped;
-  abstract alias: ISearchAliasScoped;
-  abstract synonymSet: ISearchSynonymSetScoped;
-  abstract document: ISearchDocumentScoped;
-
-  abstract search<TDocument extends object = object>(opts: {
-    collection: string;
-    params: unknown;
-  }): Promise<ISearchResult<TDocument>>;
-
-  abstract multiSearch(opts: {
-    searches: unknown[];
-    union?: boolean;
-    commonParams?: unknown;
-  }): Promise<unknown>;
-}
 
 // Narrow runtime readers for the `unknown` payloads ITypesenseClientLike hands back - each is the
 // single narrowest cast for its field, isolated here instead of repeated ad hoc at every call site.
@@ -270,7 +64,7 @@ const mapSearchHit = <TDocument extends object>(
   document: TDocument;
   highlight?: unknown;
   highlights?: unknown[];
-  textMatch?: number;
+  score?: number;
 } => {
   if (!isRecord(hit)) {
     return { document: {} as TDocument };
@@ -280,7 +74,7 @@ const mapSearchHit = <TDocument extends object>(
     document: TDocument;
     highlight?: unknown;
     highlights?: unknown[];
-    textMatch?: number;
+    score?: number;
   } = {
     document: hit['document'] as TDocument,
   };
@@ -294,7 +88,7 @@ const mapSearchHit = <TDocument extends object>(
   }
 
   if (typeof hit['text_match'] === 'number') {
-    mapped.textMatch = hit['text_match'];
+    mapped.score = hit['text_match'];
   }
 
   return mapped;
@@ -305,11 +99,13 @@ const mapSearchHit = <TDocument extends object>(
  * never as identifiers. Absent fields are omitted rather than mapped as `undefined`. */
 const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
-    return { found: 0 };
+    return { found: 0, isFoundExact: true };
   }
 
+  // Typesense's `found` is an exhaustive count, so it is never an estimate.
   const result: ISearchResult<TDocument> = {
     found: readNumberField({ value: raw, key: 'found' }),
+    isFoundExact: true,
   };
 
   if (typeof raw['out_of'] === 'number') {
@@ -446,6 +242,10 @@ export class TypesenseConnector extends BaseSearchConnector {
     return this.client as Client;
   }
 
+  protected isNotFoundError(opts: { error: unknown }): boolean {
+    return TypesenseInternal.isNotFoundError(opts);
+  }
+
   readonly collection: ISearchCollectionScoped<
     TCollectionCreateSchema,
     TCollectionSchema,
@@ -477,6 +277,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     create: <T extends object>(opts: { collection: string; document: T }) =>
       this.createDocument(opts),
     get: <T extends object>(opts: { collection: string; id: string }) => this.getDocument<T>(opts),
+    count: opts => this.countDocuments(opts),
     upsert: <T extends object>(opts: { collection: string; document: T }) =>
       this.upsertDocument(opts),
     update: <T extends object>(opts: { collection: string; id: string; document: Partial<T> }) =>
@@ -834,6 +635,26 @@ export class TypesenseConnector extends BaseSearchConnector {
       }),
     });
     return rs;
+  }
+
+  /** Typesense's `found` is exhaustive, so a `per_page: 0` search is already an exact count - no separate endpoint needed. */
+  async countDocuments(opts: { collection: string; filterBy?: string }): Promise<number> {
+    const { collection, filterBy } = opts;
+    this.assertNonEmpty({
+      value: collection,
+      name: 'collection',
+      method: this.countDocuments.name,
+    });
+
+    const params: Record<string, unknown> = { q: '*' };
+    params['per_page'] = 0;
+
+    if (filterBy) {
+      params['filter_by'] = filterBy;
+    }
+
+    const result = await this.search({ collection, params });
+    return result.found;
   }
 
   async upsertDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {

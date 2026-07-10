@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test';
 
 import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
-import { defineSearchCollection, field } from '@/connectors/typesense/models';
+import { defineSearchCollection, field } from '@/connectors/search/models';
 
 describe('compileTypesenseCollection', () => {
   test('compiles a full definition to the exact expected CollectionCreateSchema', () => {

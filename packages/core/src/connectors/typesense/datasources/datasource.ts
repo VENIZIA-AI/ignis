@@ -1,6 +1,9 @@
 import type { ISearchableDataSourceCapabilities } from '@/base/datasources';
-import type { ISearchCollectionDefinition } from '@/connectors/typesense/models';
-import type { ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import type { ISearchCollectionDefinition } from '@/connectors/search/models';
+import type {
+  ISearchQueryDialect,
+  TMultiSearchEntry,
+} from '@/connectors/search/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 import type { CollectionCreateSchema } from 'typesense/lib/Typesense/Collections';
 import type { Client } from 'typesense';
@@ -8,11 +11,15 @@ import { compileTypesenseCollection } from '../compiler';
 import { TypesenseConnector } from '../connector';
 import { TypesenseQueryDialect } from '../repositories/dialect/query-dialect';
 import type {
-  ISearchDataSourceOptions,
+  IMultiSearchResult,
   ITypesenseDataSourceSettings,
   ITypesenseConnectorOptions,
+  IUnionSearchResult,
+  TDocumentSchema,
+  TSearchOptions,
 } from '../types';
-import { BaseSearchDataSource } from './base';
+import type { ISearchDataSourceOptions } from '@/connectors/search/datasources/common';
+import { BaseSearchDataSource } from '@/connectors/search/datasources';
 
 /** Typesense-backed search datasource: builds/injects a connector, compiles the neutral DSL, and provisions discovered collections. */
 export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSourceSettings> {
@@ -67,6 +74,35 @@ export class TypesenseDataSource extends BaseSearchDataSource<ITypesenseDataSour
 
   getQueryDialect(): ISearchQueryDialect {
     return TypesenseDataSource.queryDialect;
+  }
+
+  /** Narrows the neutral `Promise<unknown>` to Typesense's own multi-search envelopes: `results[]`
+   * side by side, or ONE merged result set when `union` is set. */
+  override multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union: true;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
+    options?: TSearchOptions;
+  }): Promise<IUnionSearchResult<T>>;
+  override multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: false;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T>>;
+  override multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: boolean;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
+  override multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
+    searches: TMultiSearchEntry[];
+    union?: boolean;
+    commonParams?: Omit<TMultiSearchEntry, 'collection'>;
+    options?: TSearchOptions;
+  }): Promise<IMultiSearchResult<T> | IUnionSearchResult<T>> {
+    return super.multiSearch(opts) as Promise<IMultiSearchResult<T> | IUnionSearchResult<T>>;
   }
 
   /** Search capabilities Typesense supports. */

@@ -1,13 +1,23 @@
 import { QueryOperators, Sorts } from '@/base/repositories/common/operators';
 import type { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
-import type { ISearchQuery, ISearchQueryDialect } from '@/connectors/typesense/repositories/common';
+import type {
+  ISearchQuery,
+  ISearchQueryDialect,
+  TSearchInput,
+} from '@/connectors/search/repositories/common';
+import { SearchModes } from '@/connectors/search/repositories/common';
+import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
+
+/** The non-raw search inputs the dialect translates; `raw` bypasses the dialect entirely. */
+type TTranslatableSearchInput = Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;
 
 /** Maximum number of `order` entries Typesense `sort_by` can express. */
 const MAX_SORT_FIELDS = 3;
 
 /** camelCase `ISearchQuery` field -> Typesense wire (snake_case) field; the snake_case strings are values only, never identifiers. */
 class SearchWireKeys {
+  static readonly QUERY = { from: 'query', to: 'q' };
   static readonly FILTER_BY = { from: 'filterBy', to: 'filter_by' };
   static readonly SORT_BY = { from: 'sortBy', to: 'sort_by' };
   static readonly PER_PAGE = { from: 'perPage', to: 'per_page' };
@@ -49,6 +59,7 @@ class SearchWireKeys {
   };
 
   private static readonly ENTRIES = [
+    SearchWireKeys.QUERY,
     SearchWireKeys.FILTER_BY,
     SearchWireKeys.SORT_BY,
     SearchWireKeys.PER_PAGE,
@@ -78,7 +89,7 @@ class SearchWireKeys {
     SearchWireKeys.DROP_TOKENS_THRESHOLD,
   ];
 
-  /** Resolves a camelCase field to its wire key; unmapped keys (`q`, `page`, `offset`) pass through. */
+  /** Resolves a camelCase field to its wire key; unmapped keys (`page`, `offset`) pass through. */
   static wireKey(field: string): string {
     return SearchWireKeys.ENTRIES.find(entry => entry.from === field)?.to ?? field;
   }
@@ -87,11 +98,11 @@ class SearchWireKeys {
 /** Translates repository-level TFilter/TWhere into Typesense search params. Pure string building
  * - no dependency on the `typesense` package. Untranslatable shapes (relations, pattern/regex, JSON-path) throw. */
 export class TypesenseQueryDialect implements ISearchQueryDialect {
-  build(opts: { filter?: TFilter; hiddenFields?: string[] }): ISearchQuery {
+  build(opts: { filter?: TFilter; hiddenFields?: string[] }): ITypesenseSearchQuery {
     const { filter, hiddenFields } = opts;
 
     if (!filter) {
-      return { q: '*' };
+      return { query: '*' };
     }
 
     const { where, fields, order, limit, skip, offset, include } = filter;
@@ -103,7 +114,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       });
     }
 
-    const query: ISearchQuery = { q: '*' };
+    const query: ITypesenseSearchQuery = { query: '*' };
 
     if (where) {
       const filterBy = this.toWhere({ where });
@@ -136,12 +147,14 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     return query;
   }
 
-  /** Maps a camelCase `ISearchQuery` onto Typesense's snake_case wire params via `SearchWireKeys.wireKey`; unmapped keys (`q`, `page`, `offset`) pass through unchanged. */
+  /** Maps a camelCase `ISearchQuery` onto Typesense's snake_case wire params via `SearchWireKeys.wireKey`;
+   * unmapped keys (`page`, `offset`) pass through unchanged, and `engineParams` merges last, verbatim. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
+    const { engineParams, ...rest } = query;
     const wire: Record<string, unknown> = {};
 
-    for (const [key, value] of Object.entries(query)) {
+    for (const [key, value] of Object.entries(rest)) {
       if (value === undefined) {
         continue;
       }
@@ -149,22 +162,81 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       wire[SearchWireKeys.wireKey(key)] = value;
     }
 
-    return wire;
+    return engineParams ? { ...wire, ...engineParams } : wire;
+  }
+
+  /** Writes the mode dispatch, the vector clause and Typesense's tuning knobs onto `query`. Everything
+   * engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
+  applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
+    const { input } = opts;
+    const searchQuery = opts.query as ITypesenseSearchQuery;
+
+    switch (input.mode) {
+      case SearchModes.KEYWORD: {
+        if (input.query) {
+          searchQuery.query = input.query;
+        }
+
+        if (input.queryBy) {
+          searchQuery.queryBy = input.queryBy.join(',');
+        }
+        break;
+      }
+      case SearchModes.SEMANTIC: {
+        // Vector search: prefix matching is meaningless, and remote embedders reject it outright
+        // ("Prefix search is not supported for remote embedders"). Default off; applyCommonParams
+        // still lets an explicit caller override it.
+        searchQuery.prefix = false;
+
+        if (input.nearVector) {
+          searchQuery.vectorQuery = this.buildVectorClause({ ...input, field: input.vectorField });
+          break;
+        }
+
+        if (!input.queryText) {
+          throw getError({
+            message: `[TypesenseQueryDialect][applySearchInput] semantic mode requires 'nearVector' or 'queryText'`,
+          });
+        }
+
+        // Auto-embed: the engine vectorizes queryText against vectorField; vector_query carries k.
+        searchQuery.query = input.queryText;
+        searchQuery.queryBy = input.vectorField;
+        searchQuery.vectorQuery = this.buildVectorClause({ ...input, field: input.vectorField });
+        break;
+      }
+      case SearchModes.HYBRID: {
+        // Same as semantic: the embedded query hits the remote embedder, which rejects prefix search.
+        searchQuery.prefix = false;
+        searchQuery.query = input.query;
+
+        // Auto-embed (no nearVector) needs the embedding field in query_by; a supplied vector keeps text fields only.
+        searchQuery.queryBy = input.nearVector
+          ? input.queryBy.join(',')
+          : [...input.queryBy, input.vectorField].join(',');
+
+        searchQuery.vectorQuery = this.buildVectorClause({ ...input, field: input.vectorField });
+        break;
+      }
+      default: {
+        break;
+      }
+    }
+
+    this.applyCommonParams({ query: searchQuery, input });
   }
 
   /** Builds Typesense's `<field>:([v1, v2, ...], k: N, alpha: A)` vector-search clause. An
    * omitted `nearVector` emits an empty `[]` - Typesense's auto-embed path (server-side query
    * vectorization) - rather than requiring the caller to already hold a vector. */
-  toVectorQuery(opts: {
+  private buildVectorClause(opts: {
     field: string;
     nearVector?: number[];
     k?: number;
     alpha?: number;
     distanceThreshold?: number;
     ef?: number;
-  }): {
-    vectorQuery: string;
-  } {
+  }): string {
     const { field, nearVector, k, alpha, distanceThreshold, ef } = opts;
 
     const vectorCsv = (nearVector ?? [])
@@ -191,7 +263,108 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
 
     clause += ')';
 
-    return { vectorQuery: clause };
+    return clause;
+  }
+
+  /** Copies faceting/highlighting/grouping/tuning params (shared by keyword/semantic/hybrid, absent
+   * from `raw`) onto the query - arrays are comma-joined the same way `build` joins queryBy/fields. */
+  private applyCommonParams(opts: {
+    query: ITypesenseSearchQuery;
+    input: TTranslatableSearchInput;
+  }): void {
+    const { query, input } = opts;
+
+    if (input.facetBy) {
+      query.facetBy = input.facetBy.join(',');
+    }
+
+    if (input.facetQuery !== undefined) {
+      query.facetQuery = input.facetQuery;
+    }
+
+    if (input.maxFacetValues !== undefined) {
+      query.maxFacetValues = input.maxFacetValues;
+    }
+
+    if (input.highlightFields) {
+      query.highlightFields = input.highlightFields.join(',');
+    }
+
+    if (input.highlightFullFields) {
+      query.highlightFullFields = input.highlightFullFields.join(',');
+    }
+
+    if (input.highlightStartTag !== undefined) {
+      query.highlightStartTag = input.highlightStartTag;
+    }
+
+    if (input.highlightEndTag !== undefined) {
+      query.highlightEndTag = input.highlightEndTag;
+    }
+
+    if (input.snippetThreshold !== undefined) {
+      query.snippetThreshold = input.snippetThreshold;
+    }
+
+    if (input.groupBy) {
+      query.groupBy = input.groupBy.join(',');
+    }
+
+    if (input.groupLimit !== undefined) {
+      query.groupLimit = input.groupLimit;
+    }
+
+    if (input.groupMissingValues !== undefined) {
+      query.groupMissingValues = input.groupMissingValues;
+    }
+
+    if (input.numTypos !== undefined) {
+      query.numTypos = input.numTypos;
+    }
+
+    if (input.prefix !== undefined) {
+      query.prefix = input.prefix;
+    }
+
+    if (input.infix !== undefined) {
+      query.infix = input.infix;
+    }
+
+    if (input.useCache !== undefined) {
+      query.useCache = input.useCache;
+    }
+
+    if (input.cacheTtl !== undefined) {
+      query.cacheTtl = input.cacheTtl;
+    }
+
+    if (input.exhaustiveSearch !== undefined) {
+      query.exhaustiveSearch = input.exhaustiveSearch;
+    }
+
+    if (input.pinnedHits !== undefined) {
+      query.pinnedHits = input.pinnedHits;
+    }
+
+    if (input.hiddenHits !== undefined) {
+      query.hiddenHits = input.hiddenHits;
+    }
+
+    if (input.queryByWeights) {
+      query.queryByWeights = input.queryByWeights.join(',');
+    }
+
+    if (input.prioritizeExactMatch !== undefined) {
+      query.prioritizeExactMatch = input.prioritizeExactMatch;
+    }
+
+    if (input.dropTokensThreshold !== undefined) {
+      query.dropTokensThreshold = input.dropTokensThreshold;
+    }
+
+    if (input.preset !== undefined) {
+      query.preset = input.preset;
+    }
   }
 
   /** Translates a `TWhere` into a Typesense `filter_by` expression. Public — reused by updateByFilter/deleteByFilter. */

@@ -1,0 +1,175 @@
+# Search & Meilisearch
+
+IGNIS ships a **meilisearch connector** under `@venizia/ignis/meilisearch`. It shares the entire search paradigm with the Typesense connector - the same `@model`/`@repository`/`@datasource` decorators, the same `defineSearchCollection` field DSL, the same repository tiers and controller factory - all of which live in the engine-neutral `@venizia/ignis/search` module.
+
+What it does **not** share is the pretence that the two engines are the same. Where Meilisearch differs from Typesense, IGNIS surfaces the difference rather than papering over it.
+
+> [!IMPORTANT] Subpath-only import
+> `meilisearch` is an **optional peer dependency**. The connector is never re-exported from the `@venizia/ignis` root barrel, so apps that don't use it never pull in the client.
+>
+> ```typescript
+> import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
+> import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+> ```
+>
+> Install it alongside the framework:
+>
+> ```bash
+> bun add meilisearch
+> ```
+
+## Defining a Collection
+
+The collection DSL is the same one the Typesense connector uses. What changes is which flags matter.
+
+```typescript
+import { BaseSearchEntity, defineSearchCollection, field } from '@venizia/ignis/search';
+import { model } from '@venizia/ignis';
+
+@model({ type: 'entity' })
+export class ArticleDocument extends BaseSearchEntity {
+  static override schema = defineSearchCollection({
+    name: 'articles',
+    fields: [
+      field.id(),
+      field.string('title', { searchable: true }),
+      field.string('body', { searchable: true }),
+      field.number('score', { filterable: true, sortable: true }),
+    ],
+    synonyms: [{ id: 'jacket', synonyms: ['jacket', 'coat', 'blazer'] }],
+  });
+}
+```
+
+Meilisearch is **schemaless**: it has no field schema at all. A collection therefore compiles to an index uid plus a settings object, not to a list of typed fields.
+
+| DSL | Meilisearch |
+| --- | --- |
+| `field.id()` | `primaryKey` |
+| `searchable: true` | `searchableAttributes` |
+| `filterable: true` | `filterableAttributes` |
+| `sortable: true` | `sortableAttributes` |
+| `field.vector(...)` | an `embedders` entry |
+| `synonyms` | a flat `synonyms` dictionary |
+| `engineOverrides.meilisearch` | merged last onto settings |
+
+The `searchable` and `filterable` flags are **load-bearing here** and are silently dropped by the Typesense compiler, which indexes every field by default. If no field declares `searchable`, IGNIS leaves `searchableAttributes` at Meilisearch's own `['*']` default rather than emitting an empty array, which would disable search entirely.
+
+## The DataSource
+
+```typescript
+import { datasource } from '@venizia/ignis';
+import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
+
+@datasource({ driver: 'meilisearch' })
+export class ArticleSearchDataSource extends MeilisearchDataSource {}
+```
+
+Configured through `IMeilisearchDataSourceSettings`:
+
+```typescript
+new ArticleSearchDataSource({
+  name: 'search',
+  config: {
+    host: process.env.APP_ENV_MEILISEARCH_HOST,
+    apiKey: process.env.APP_ENV_MEILISEARCH_API_KEY,
+    taskTimeoutMs: 5 * 60_000,
+  },
+});
+```
+
+Provisioning is governed by the same `APP_ENV_AUTO_PROVISION_COLLECTION` flag as every other search datasource. It is **off** unless set to `true` or `1`.
+
+## Writes await their task
+
+Every Meilisearch write returns a `taskUid` and the document is **not searchable until that task reaches `succeeded`**. Typesense writes are synchronous.
+
+IGNIS resolves this by awaiting the task inside the connector, so the repository contract is identical on both engines:
+
+```typescript
+await repository.create({ data: article });
+// The document is retrievable here. No sleep, no retry loop.
+```
+
+The cost is real and worth knowing: each write polls until its task completes. The client SDK's own `waitForTask` defaults to a 5-second timeout, which is far too short for a bulk import, so IGNIS never relies on it - configure `taskTimeoutMs` instead. A task that fails raises the standard sanitized dependency error; one that never terminates raises a `core.search_engine.task_timeout`.
+
+If you want fire-and-forget writes, reach the raw client:
+
+```typescript
+const client = dataSource.getClient(); // the raw `Meilisearch` SDK client
+await client.index('articles').addDocuments([article]); // returns a taskUid, does not await
+```
+
+## `count()` is exact
+
+Meilisearch's search route reports `estimatedTotalHits`, and its exhaustive `totalHits` is capped by the index-level `pagination.maxTotalHits` setting (default **1000**).
+
+IGNIS never counts through the search route. `count()` calls `POST /documents/fetch` with `limit: 0` and reads the exact `total`, which the engine's own documentation states is unaffected by `maxTotalHits`. A filtered count over 50,000 matching documents returns 50,000.
+
+`ISearchResult.isFoundExact` reports the truth for the **search** route: always `true` on Typesense, and on Meilisearch `true` only in the exhaustive page mode. It travels all the way out through the generated REST response, so an API consumer paginating your endpoint can tell an estimate from an exhaustive count.
+
+## Capability differences are compile-time, not runtime
+
+`SearchBaseRepository` is generic on its datasource, so `this.connector` resolves to the concrete connector type. Engine-only verbs are therefore a matter for the compiler, not a runtime capability check:
+
+```typescript
+class ArticleRepository extends DefaultSearchRepository<TArticle, MeilisearchDataSource> {
+  swap() {
+    return this.connector.swap.indexes({ pairs: [['articles', 'articles_next']] }); // required
+    // this.connector.alias -> compile error: property does not exist
+  }
+}
+
+class PortableRepository extends DefaultSearchRepository<TDocument> {
+  swap() {
+    return this.connector.alias?.upsert({ name, collection }); // the `?.` is forced
+  }
+}
+```
+
+| Verb group | Typesense | Meilisearch |
+| --- | --- | --- |
+| `collection`, `document`, `search`, `multiSearch` | required | required |
+| `document.updateBy` | native | emulated (see below) |
+| `document.count` | `per_page: 0` search | `documents/fetch` `limit: 0` |
+| `alias` | required | **absent** |
+| `swap` | absent | **required** |
+| `synonymSet` (named, linkable) | required | absent |
+| `synonyms` (flat dictionary) | absent | required |
+
+## Behaviours to know before you commit
+
+**`create()` rejects duplicates, but the check is not atomic.** Meilisearch's `addDocuments` is add-or-replace; it has no conditional insert. To honour the neutral contract (Typesense's `create()` returns 409 on a duplicate id), IGNIS reads the id first and throws `409 core.search_engine.already_exists` if it exists. Two concurrent creates of the same id can both pass that check, and the second write wins. If you want last-write-wins, call `upsert()` and say so.
+
+**`updateBy` is emulated and is not atomic.** Meilisearch has no update-by-filter endpoint. IGNIS pages primary keys out of `documents/fetch`, then issues merge-`PUT` batches. A concurrent write to a matched document may be overwritten. The experimental `documents/edit` route would do this server-side, but it is gated behind a feature flag, is documented as breaking between minor versions, and has an open correctness bug - so IGNIS does not use it.
+
+**`hiddenProperties` is incompatible with Meilisearch.** Meilisearch cannot exclude fields per query; it only has the index-level `displayedAttributes` setting. A model declaring `@model({ settings: { hiddenProperties: [...] } })` against a Meilisearch datasource throws at query-build time rather than silently returning the hidden field.
+
+**A geopoint field must be named `_geo`.** Meilisearch supports exactly one geo field, shaped `{ lat, lng }`, under that reserved name. The compiler throws on any other name, and on a second geo field.
+
+**Vector distance is cosine only.** `field.vector(..., { distance: 'l2' })` throws.
+
+**Typesense-only search knobs throw rather than being dropped.** `numTypos`, `pinnedHits`, `preset`, `infix`, `useCache`, `cacheTtl`, `exhaustiveSearch`, `prioritizeExactMatch`, `dropTokensThreshold`, `queryByWeights` and `prefix` have no Meilisearch equivalent. Setting one raises a named error naming the knob. Reach the raw client, or `mode: 'raw'`, for engine-specific tuning.
+
+**`multiSearch` batches but does not merge.** `union: true` throws. Meilisearch merges results through its `federation` option, which this connector does not model, so `getCapabilities()` honestly reports `union: false`.
+
+**Result grouping does not exist.** `groupBy`, `groupLimit` and `groupMissingValues` all throw. Meilisearch's `distinct` search param deduplicates on one attribute; it does not group hits. Reach the raw client if that is what you want.
+
+## Vector and hybrid search
+
+Vector fields compile to `embedders`, and `mode: 'semantic'` / `mode: 'hybrid'` translate to Meilisearch's `hybrid: { semanticRatio, embedder }` plus an optional `vector`. The neutral `alpha` maps to `semanticRatio`; `mode: 'semantic'` pins it to `1.0`, and an omitted `alpha` on `hybrid` defaults to `0.5`.
+
+This path is compiled and translated but is **not exercised end to end** by the framework's test suite, and Meilisearch has moved its vector store in and out of `/experimental-features` across server versions. Verify against your target server version before depending on it.
+
+## Adding another search engine
+
+The neutral paradigm lives in `@venizia/ignis/search` and imports no engine. To add one:
+
+1. Implement `ISearchConnector`, declaring **only** the optional verb groups your engine actually has.
+2. Write a compiler from `ISearchCollectionDefinition` to the engine's schema or settings.
+3. Write an `ISearchQueryDialect` - `build`, `toWhere`, `applySearchInput`, `toWireParams`.
+4. Subclass `BaseSearchDataSource`.
+5. Register a sub-path export and an optional peer dependency.
+6. Pass `runConnectorConformance`.
+
+That last step is the contract. A seam only one engine can satisfy is not a seam.

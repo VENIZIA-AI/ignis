@@ -1,4 +1,6 @@
 import { describe, expect, test } from 'bun:test';
+import { SearchModes } from '@/connectors/search/repositories/common';
+import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
 describe('TypesenseQueryDialect.toWhere - translation table (spec 7.2)', () => {
@@ -301,13 +303,13 @@ describe('TypesenseQueryDialect.build - fields/hiddenFields -> includeFields/exc
 describe('TypesenseQueryDialect.build - overall shape', () => {
   const dialect = new TypesenseQueryDialect();
 
-  test('no filter -> q: "*" only', () => {
-    expect(dialect.build({})).toEqual({ q: '*' });
+  test('no filter -> query: "*" only', () => {
+    expect(dialect.build({})).toEqual({ query: '*' });
   });
 
-  test('filter with where -> filterBy populated, q still "*"', () => {
+  test('filter with where -> filterBy populated, query still "*"', () => {
     const result = dialect.build({ filter: { where: { status: 'active' } } });
-    expect(result).toEqual({ q: '*', filterBy: 'status:=`active`' });
+    expect(result).toEqual({ query: '*', filterBy: 'status:=`active`' });
   });
 });
 
@@ -332,39 +334,71 @@ describe('empty where members - regression from live cluster run', () => {
   });
 });
 
-describe('TypesenseQueryDialect.toVectorQuery', () => {
+describe('TypesenseQueryDialect.applySearchInput - vector clause', () => {
   const dialect = new TypesenseQueryDialect();
 
-  test('client-supplied vector with k and alpha', () => {
-    const result = dialect.toVectorQuery({
-      field: 'embedding',
+  /** Runs the dialect over a fresh query and hands back the Typesense-typed result. */
+  const applySemantic = (
+    input: Parameters<TypesenseQueryDialect['applySearchInput']>[0]['input'],
+  ): ITypesenseSearchQuery => {
+    const query = dialect.build({});
+    dialect.applySearchInput({ query, input });
+    return query;
+  };
+
+  test('client-supplied vector with k and alpha (hybrid)', () => {
+    const query = applySemantic({
+      mode: SearchModes.HYBRID,
+      query: 'shoes',
+      queryBy: ['title'],
+      vectorField: 'embedding',
       nearVector: [1, 2, 3],
       k: 10,
       alpha: 0.5,
     });
 
-    expect(result).toEqual({ vectorQuery: 'embedding:([1, 2, 3], k: 10, alpha: 0.5)' });
+    expect(query.vectorQuery).toBe('embedding:([1, 2, 3], k: 10, alpha: 0.5)');
   });
 
   test('omitted nearVector emits an empty vector - the auto-embed path', () => {
-    const result = dialect.toVectorQuery({ field: 'embedding', k: 10 });
-    expect(result).toEqual({ vectorQuery: 'embedding:([], k: 10)' });
+    const query = applySemantic({
+      mode: SearchModes.SEMANTIC,
+      vectorField: 'embedding',
+      queryText: 'shoes',
+      k: 10,
+    });
+
+    expect(query.vectorQuery).toBe('embedding:([], k: 10)');
+    expect(query.query).toBe('shoes');
+    expect(query.queryBy).toBe('embedding');
   });
 
   test('omitted k and alpha emit neither clause', () => {
-    const result = dialect.toVectorQuery({ field: 'embedding', nearVector: [1, 2] });
-    expect(result).toEqual({ vectorQuery: 'embedding:([1, 2])' });
+    const query = applySemantic({
+      mode: SearchModes.SEMANTIC,
+      vectorField: 'embedding',
+      nearVector: [1, 2],
+    });
+
+    expect(query.vectorQuery).toBe('embedding:([1, 2])');
   });
 
   test('non-finite number in nearVector throws', () => {
     expect(() =>
-      dialect.toVectorQuery({ field: 'embedding', nearVector: [1, Number.NaN] }),
+      applySemantic({
+        mode: SearchModes.SEMANTIC,
+        vectorField: 'embedding',
+        nearVector: [1, Number.NaN],
+      }),
     ).toThrow(/non-finite/);
   });
 
   test('distanceThreshold and ef append after k/alpha', () => {
-    const result = dialect.toVectorQuery({
-      field: 'embedding',
+    const query = applySemantic({
+      mode: SearchModes.HYBRID,
+      query: 'shoes',
+      queryBy: ['title'],
+      vectorField: 'embedding',
       nearVector: [1, 2],
       k: 10,
       alpha: 0.5,
@@ -372,19 +406,65 @@ describe('TypesenseQueryDialect.toVectorQuery', () => {
       ef: 64,
     });
 
-    expect(result).toEqual({
-      vectorQuery: 'embedding:([1, 2], k: 10, alpha: 0.5, distance_threshold: 0.3, ef: 64)',
-    });
+    expect(query.vectorQuery).toBe(
+      'embedding:([1, 2], k: 10, alpha: 0.5, distance_threshold: 0.3, ef: 64)',
+    );
   });
 
   test('distanceThreshold/ef emitted without k/alpha', () => {
-    const result = dialect.toVectorQuery({
-      field: 'embedding',
+    const query = applySemantic({
+      mode: SearchModes.SEMANTIC,
+      vectorField: 'embedding',
+      queryText: 'shoes',
       distanceThreshold: 0.3,
       ef: 64,
     });
 
-    expect(result).toEqual({ vectorQuery: 'embedding:([], distance_threshold: 0.3, ef: 64)' });
+    expect(query.vectorQuery).toBe('embedding:([], distance_threshold: 0.3, ef: 64)');
+  });
+
+  test('semantic mode disables prefix - remote embedders reject prefix search', () => {
+    const query = applySemantic({
+      mode: SearchModes.SEMANTIC,
+      vectorField: 'embedding',
+      nearVector: [0.1],
+    });
+
+    expect(query.prefix).toBe(false);
+  });
+
+  test('semantic mode without nearVector or queryText throws', () => {
+    expect(() => applySemantic({ mode: SearchModes.SEMANTIC, vectorField: 'embedding' })).toThrow(
+      /nearVector.*queryText/,
+    );
+  });
+
+  test('keyword mode copies the Typesense-only tuning knobs onto the query', () => {
+    const query = applySemantic({
+      mode: SearchModes.KEYWORD,
+      query: 'shoes',
+      queryBy: ['title', 'brand'],
+      numTypos: 2,
+      preset: 'p1',
+      pinnedHits: '1:1',
+    });
+
+    expect(query.query).toBe('shoes');
+    expect(query.queryBy).toBe('title,brand');
+    expect(query.numTypos).toBe(2);
+    expect(query.preset).toBe('p1');
+    expect(query.pinnedHits).toBe('1:1');
+  });
+
+  test('hybrid mode without nearVector appends the vector field to queryBy for auto-embed', () => {
+    const query = applySemantic({
+      mode: SearchModes.HYBRID,
+      query: 'shoes',
+      queryBy: ['title'],
+      vectorField: 'embedding',
+    });
+
+    expect(query.queryBy).toBe('title,embedding');
   });
 });
 
@@ -415,38 +495,38 @@ describe('TypesenseQueryDialect.toWireParams', () => {
   });
 
   test('drops undefined fields instead of forwarding them as literal undefined', () => {
-    const wire = dialect.toWireParams({ query: { q: '*' } });
+    const wire = dialect.toWireParams({ query: { query: '*' } });
     expect(wire).toEqual({ q: '*' });
   });
 
-  test('passes q/page/offset through unchanged (no wire-key mapping)', () => {
-    const wire = dialect.toWireParams({ query: { q: 'shoe', page: 2, offset: 20 } });
+  test('maps query -> q; passes page/offset through unchanged', () => {
+    const wire = dialect.toWireParams({ query: { query: 'shoe', page: 2, offset: 20 } });
     expect(wire).toEqual({ q: 'shoe', page: 2, offset: 20 });
   });
 
   test('maps faceting/highlighting/grouping/search-tuning fields to their Typesense wire keys', () => {
-    const wire = dialect.toWireParams({
-      query: {
-        q: '*',
-        facetBy: 'brand',
-        facetQuery: 'brand:nike',
-        maxFacetValues: 10,
-        highlightFields: 'title',
-        highlightFullFields: 'title,description',
-        highlightStartTag: '<em>',
-        highlightEndTag: '</em>',
-        snippetThreshold: 30,
-        groupBy: 'brand',
-        groupLimit: 3,
-        groupMissingValues: false,
-        numTypos: 2,
-        useCache: true,
-        cacheTtl: 60,
-        exhaustiveSearch: true,
-        pinnedHits: '1:1',
-        hiddenHits: '2',
-      },
-    });
+    const tuned: ITypesenseSearchQuery = {
+      query: '*',
+      facetBy: 'brand',
+      facetQuery: 'brand:nike',
+      maxFacetValues: 10,
+      highlightFields: 'title',
+      highlightFullFields: 'title,description',
+      highlightStartTag: '<em>',
+      highlightEndTag: '</em>',
+      snippetThreshold: 30,
+      groupBy: 'brand',
+      groupLimit: 3,
+      groupMissingValues: false,
+      numTypos: 2,
+      useCache: true,
+      cacheTtl: 60,
+      exhaustiveSearch: true,
+      pinnedHits: '1:1',
+      hiddenHits: '2',
+    };
+
+    const wire = dialect.toWireParams({ query: tuned });
 
     expect(wire['facet_by']).toBe('brand');
     expect(wire['facet_query']).toBe('brand:nike');
@@ -468,8 +548,18 @@ describe('TypesenseQueryDialect.toWireParams', () => {
   });
 
   test('prefix/infix pass through unchanged (single-word fields, no wire-key mapping)', () => {
-    const wire = dialect.toWireParams({ query: { q: '*', prefix: true, infix: 'always' } });
+    const tuned: ITypesenseSearchQuery = { query: '*', prefix: true, infix: 'always' };
+    const wire = dialect.toWireParams({ query: tuned });
     expect(wire['prefix']).toBe(true);
     expect(wire['infix']).toBe('always');
+  });
+
+  test('engineParams merge last, verbatim, under the engine’s own wire names', () => {
+    const wire = dialect.toWireParams({
+      query: { query: '*', engineParams: { ['num_typos']: 4, ['some_future_flag']: true } },
+    });
+
+    expect(wire['num_typos']).toBe(4);
+    expect(wire['some_future_flag']).toBe(true);
   });
 });

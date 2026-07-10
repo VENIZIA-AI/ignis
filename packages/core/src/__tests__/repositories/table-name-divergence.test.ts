@@ -4,16 +4,16 @@ import { getError } from '@venizia/ignis-helpers';
 
 import { model, repository } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
-import { BaseSearchDataSource } from '@/connectors/typesense/datasources';
-import { ISearchConnector } from '@/connectors/typesense/connector';
-import { ISearchDataSourceOptions } from '@/connectors/typesense/types';
+import { BaseSearchDataSource } from '@/connectors/search/datasources';
+import { ISearchConnector } from '@/connectors/search';
+import { ISearchDataSourceOptions } from '@/connectors/search/datasources';
 import { BasePostgresEntity, TTableInsert, TTableObject } from '@/connectors/postgres/models';
 import {
   BaseSearchEntity,
   defineSearchCollection,
   field,
   ISearchCollectionDefinition,
-} from '@/connectors/typesense/models';
+} from '@/connectors/search/models';
 import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import { ISearchQueryDialect } from '@/connectors/typesense/repositories';
 import { ICrudRepository } from '@/base/repositories';

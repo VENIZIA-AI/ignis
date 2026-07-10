@@ -1,48 +1,13 @@
-import type { TFilter, TWhere } from '@/base/repositories/common';
+import type { ISearchQuery } from '@/connectors/search/repositories/common';
 
-/** Search-engine query parameters produced by translating a repository-level TFilter. Shaped after
- * Typesense's search params, but pure data - no SDK import. Field names here are camelCase; the
- * engine's snake_case wire format is produced only at the dialect's `toWireParams` boundary. */
-export interface ISearchQuery {
-  /** Search query string. Use '*' for pure filter listings (no full-text search term). */
-  q: string;
-  filterBy?: string;
-  sortBy?: string;
-  page?: number;
-  perPage?: number;
-  includeFields?: string;
-  excludeFields?: string;
-
-  // Native offset pagination for engines that support it; the Typesense dialect keeps page/perPage and never sets this.
-  offset?: number;
-
-  // Field-list form of `q` for keyword/hybrid search (Typesense's comma-joined `query_by` wire field).
-  queryBy?: string;
-
-  // Per-field relevance weights paralleling `queryBy`, comma-joined (Typesense `query_by_weights`, e.g. '2,1').
-  queryByWeights?: string;
-
-  // Vector-search clause produced by `toVectorQuery` (Typesense's `<field>:([...], k: N, alpha: A)` syntax).
+/**
+ * Typesense-only search parameters. Neutral callers never see these - `TypesenseQueryDialect` is the
+ * only writer, via `applySearchInput`, and `toWireParams` maps them onto Typesense's snake_case wire.
+ */
+export interface ITypesenseSearchQuery extends ISearchQuery {
+  /** Typesense's `<field>:([v1, v2], k: N, alpha: A)` vector-search clause. */
   vectorQuery?: string;
 
-  // Faceting
-  facetBy?: string;
-  facetQuery?: string;
-  maxFacetValues?: number;
-
-  // Highlighting
-  highlightFields?: string;
-  highlightFullFields?: string;
-  highlightStartTag?: string;
-  highlightEndTag?: string;
-  snippetThreshold?: number;
-
-  // Grouping
-  groupBy?: string;
-  groupLimit?: number;
-  groupMissingValues?: boolean;
-
-  // Search tuning
   numTypos?: number | string;
   prefix?: boolean | string;
   infix?: string;
@@ -54,26 +19,6 @@ export interface ISearchQuery {
   pinnedHits?: string;
   hiddenHits?: string;
 
-  // Saved server-side search preset (Typesense `preset`); passes through unmapped (same wire name).
+  /** Saved server-side search preset; passes through unmapped (same wire name). */
   preset?: string;
-}
-
-/** Translates repository-level `TFilter`/`TWhere` into a search-engine-specific query. */
-export interface ISearchQueryDialect {
-  build(opts: { filter?: TFilter; hiddenFields?: string[] }): ISearchQuery;
-  toWhere(opts: { where: TWhere }): string;
-
-  /** Builds the engine-specific vector-search clause. Empty `nearVector`/omitted means auto-embed (server-side vector generation). */
-  toVectorQuery(opts: {
-    field: string;
-    nearVector?: number[];
-    k?: number;
-    alpha?: number;
-    distanceThreshold?: number;
-    ef?: number;
-  }): { vectorQuery: string };
-
-  /** Maps a camelCase `ISearchQuery` (or any camelCase query record) onto the engine's wire-format
-   * field names (e.g. Typesense's snake_case) via a key lookup, never via a snake_case identifier. */
-  toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown>;
 }

@@ -11,7 +11,7 @@ import {
 } from '@/connectors/typesense';
 import { compileTypesenseCollection } from '@/connectors/typesense/compiler';
 import { MetadataRegistry } from '@/helpers/inversion';
-import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/typesense/models';
+import { BaseSearchEntity, defineSearchCollection, field } from '@/connectors/search/models';
 
 /** Minimal fake Typesense client-shaped connector - records `ensureCollection`/`multiSearch`/synonym-set calls. */
 class FakeTypesenseConnector {

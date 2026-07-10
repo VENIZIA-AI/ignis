@@ -6,8 +6,8 @@ import type {
   ISearchCollectionDefinition,
   ISearchFieldDefinition,
   TSearchFieldType,
-} from '@/connectors/typesense/models';
-import { SearchFieldTypes, VectorDistances } from '@/connectors/typesense/models';
+} from '@/connectors/search/models';
+import { SearchFieldTypes, VectorDistances } from '@/connectors/search/models';
 
 /** Wire-shaped Typesense field entry, derived from the SDK's own schema type. */
 type TTypesenseField = CollectionCreateSchema['fields'][number];
