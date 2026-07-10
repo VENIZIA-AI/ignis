@@ -35,11 +35,27 @@ try {
   // 3. Commit the transaction
   await tx.commit();
 } catch (err) {
-  // 4. Rollback on error
-  await tx.rollback();
-  throw err;
+  // 4. Rollback on error. Nest it: rollback() throws if ROLLBACK itself fails, and a bare
+  //    `await tx.rollback()` here would replace `err` with the rollback error.
+  try {
+    await tx.rollback();
+  } catch (rollbackError) {
+    logger.error('Rollback failed | %s', rollbackError);
+  }
+
+  throw err; // the original cause survives
 }
 ```
+
+> [!WARNING] `commit()` and `rollback()` throw on failure
+> `COMMIT` can genuinely fail - a deadlock, a serialization failure under `SERIALIZABLE`, a dropped
+> connection, a deferred constraint firing at commit time. When it does, `commit()` throws rather
+> than resolving, so you never report success on a write that was never persisted. The connection is
+> then destroyed instead of being returned to the pool, because it may still hold an open
+> transaction that the next borrower would inherit.
+>
+> `rollback()` behaves the same way. Since it is normally called from a `catch` block, nest it as
+> shown above, or the rollback error replaces the original cause.
 
 ## Transaction Object
 
@@ -50,8 +66,8 @@ try {
 | `connector` | `TNodePostgresTransactionConnector` | A Drizzle connector bound to the transaction's `PoolClient` |
 | `isolationLevel` | `TIsolationLevel` | The isolation level of this transaction |
 | `isActive` | `boolean` | Whether the transaction is still active (not yet committed/rolled back) |
-| `commit()` | `Promise<void>` | Commit the transaction and release the connection |
-| `rollback()` | `Promise<void>` | Rollback the transaction and release the connection |
+| `commit()` | `Promise<void>` | Commit and release the connection. **Throws** if `COMMIT` fails, and destroys the connection rather than pooling it |
+| `rollback()` | `Promise<void>` | Rollback and release the connection. **Throws** if `ROLLBACK` fails, and destroys the connection rather than pooling it |
 
 Calling `commit()` or `rollback()` on an already-ended transaction throws an error.
 
@@ -70,7 +86,7 @@ IGNIS supports standard PostgreSQL isolation levels:
 
 ## Best Practices
 
-1.  **Always use `try...catch`**: Ensure `rollback()` is called on error to release the connection back to the pool.
+1.  **Always use `try...catch`, and nest the rollback**: `rollback()` throws when `ROLLBACK` fails, so a bare `await tx.rollback()` inside a `catch` would discard the error that sent you there. Wrap it in its own `try...catch`, log the rollback failure, and rethrow the original cause.
 2.  **Keep it short**: Long-running transactions hold database connections from the pool and can cause connection exhaustion.
 3.  **Pass explicit options**: When calling other services inside a transaction, ensure they accept and use the `transaction` option.
 
@@ -157,7 +173,12 @@ export class OrderController extends BaseRestController {
       await tx.commit();
       return c.json(order, HTTP.ResultCodes.RS_2.Created);
     } catch (err) {
-      await tx.rollback();
+      try {
+        await tx.rollback();
+      } catch (rollbackError) {
+        this.logger.error('Rollback failed | %s', rollbackError);
+      }
+
       throw err;
     }
   }

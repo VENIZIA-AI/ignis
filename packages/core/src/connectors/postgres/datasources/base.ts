@@ -102,10 +102,15 @@ export abstract class BaseRelationalDataSource<
           await client.query('COMMIT');
         } catch (error) {
           this.logger.for('commit').error('Failed to COMMIT transaction | Error: %s', error);
-        } finally {
           isActive = false;
-          client.release();
+          // COMMIT failed, so the session may still hold an open transaction. Returning it to the
+          // pool would hand that transaction to the next borrower; a truthy arg destroys it instead.
+          client.release(error as Error);
+          throw error;
         }
+
+        isActive = false;
+        client.release();
       },
 
       rollback: async () => {
@@ -117,10 +122,13 @@ export abstract class BaseRelationalDataSource<
           await client.query('ROLLBACK');
         } catch (error) {
           this.logger.for('rollback').error('Failed to ROLLBACK transaction | Error: %s', error);
-        } finally {
           isActive = false;
-          client.release();
+          client.release(error as Error);
+          throw error;
         }
+
+        isActive = false;
+        client.release();
       },
     };
   }
