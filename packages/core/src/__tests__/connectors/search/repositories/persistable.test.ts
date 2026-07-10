@@ -31,6 +31,20 @@ describe('PersistableSearchRepository', () => {
       expect(call.collection).toBe('products');
       expect(call.document).toBe(data);
     });
+
+    test('strips hiddenProperties from the write response', async () => {
+      // A write response never passes through the engine's exclude-fields, so the repository must
+      // strip them itself - otherwise `hiddenProperties: ['secret']` leaks straight back to the caller.
+      const data = { title: 'A', secret: 'do-not-leak' };
+      const result = await repository.create({ data });
+
+      expect(result.data).toEqual({ title: 'A' });
+      expect(Reflect.get(result.data ?? {}, 'secret')).toBeUndefined();
+
+      // The document actually sent to the engine still carries the hidden field.
+      const [call] = dataSource.fakeConnector.createDocumentCalls;
+      expect(Reflect.get(call.document as object, 'secret')).toBe('do-not-leak');
+    });
   });
 
   describe('createAll', () => {
@@ -51,6 +65,21 @@ describe('PersistableSearchRepository', () => {
       expect(call.collection).toBe('products');
       expect(call.documents).toBe(data);
       expect(call.batchSize).toBeUndefined();
+    });
+
+    test('strips hiddenProperties from every returned document', async () => {
+      dataSource.fakeConnector.importDocumentsResponse = {
+        count: { success: 2, fail: 0 },
+        responses: [],
+      };
+      const data = [
+        { title: 'A', secret: 'leak-a' },
+        { title: 'B', secret: 'leak-b' },
+      ];
+
+      const result = await repository.createAll({ data });
+
+      expect(result.data).toEqual([{ title: 'A' }, { title: 'B' }]);
     });
 
     test('forwards options.batchSize to the connector', async () => {
@@ -83,6 +112,16 @@ describe('PersistableSearchRepository', () => {
       expect(call.collection).toBe('products');
       expect(call.id).toBe('1');
       expect(call.document).toBe(data);
+    });
+
+    test('strips hiddenProperties from the write response', async () => {
+      seedFoundDocument({ id: '1', title: 'A' });
+      const data = { title: 'Updated', secret: 'do-not-leak' };
+
+      const result = await repository.updateById({ id: '1', data });
+
+      expect(result.data).toEqual({ title: 'Updated' });
+      expect(Reflect.get(result.data ?? {}, 'secret')).toBeUndefined();
     });
 
     // Intentional SQL-parity break: SQL's updateById reports { count: 0 } on a missing row and

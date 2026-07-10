@@ -61,6 +61,36 @@ export abstract class SearchBaseRepository<
   }
 
   /**
+   * Reads exclude `hiddenProperties` at query time via the engine's exclude-fields, but a WRITE
+   * response comes back from the write itself and never passes through that filter. Strip them here
+   * so `@model({ settings: { hiddenProperties } })` holds on every path - the relational branch gets
+   * the same guarantee from `.returning(visibleProperties)`.
+   */
+  protected omitHiddenFields<R>(document: R): R {
+    const hiddenFields = this.hiddenFields;
+
+    if (hiddenFields.length === 0 || document === null || typeof document !== 'object') {
+      return document;
+    }
+
+    const visible: Record<string, unknown> = { ...(document as Record<string, unknown>) };
+
+    for (const field of hiddenFields) {
+      delete visible[field];
+    }
+
+    return visible as R;
+  }
+
+  protected omitHiddenFieldsAll<R>(documents: R[]): R[] {
+    if (this.hiddenFields.length === 0) {
+      return documents;
+    }
+
+    return documents.map(document => this.omitHiddenFields(document));
+  }
+
+  /**
    * Typesense has no transaction primitive - a caller-supplied options.transaction is rejected
    * loudly instead of silently running outside the transaction the caller expects.
    */

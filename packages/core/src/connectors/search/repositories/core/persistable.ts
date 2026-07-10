@@ -50,7 +50,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    return { count: 1, data: created as R };
+    return { count: 1, data: this.omitHiddenFields(created as R) };
   }
 
   override createAll(opts: {
@@ -84,7 +84,9 @@ export class PersistableSearchRepository<
       return isImportRowLike(response) ? response.success !== false : true;
     });
 
-    return { count: rs.count.success, data: created as any };
+    // `created` is the caller's own input rows (bulk import echoes nothing back), so R is the
+    // caller's unchecked assertion here exactly as it is on the non-hidden path.
+    return { count: rs.count.success, data: this.omitHiddenFieldsAll(created) as any };
   }
 
   override updateById(opts: {
@@ -132,7 +134,7 @@ export class PersistableSearchRepository<
       return { count: 1, data: null };
     }
 
-    return { count: 1, data: updated as R };
+    return { count: 1, data: this.omitHiddenFields(updated as R) };
   }
 
   override updateAll(opts: {
