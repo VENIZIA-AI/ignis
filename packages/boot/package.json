@@ -98,8 +98,8 @@
     "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test dist/cjs/__tests__/{**/**,**}/*.test.js"
   },
   "dependencies": {
-    "@venizia/ignis-helpers": "^0.0.9-1",
-    "@venizia/ignis-inversion": "^0.0.7-0",
+    "@venizia/ignis-helpers": "^0.1.0",
+    "@venizia/ignis-inversion": "^0.1.0",
     "glob": "^13.0.6",
     "lodash": "^4.18.1",
     "reflect-metadata": "^0.2.2"
@@ -107,7 +107,7 @@
   "devDependencies": {
     "@types/bun": "^1.3.14",
     "@types/lodash": "^4.17.23",
-    "@venizia/dev-configs": "^0.0.8-0",
+    "@venizia/dev-configs": "^0.1.0",
     "eslint": "^10.7.0",
     "prettier": "^3.9.5",
     "tsc-alias": "^1.9.0",
