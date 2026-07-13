@@ -1,15 +1,15 @@
 import { QueryOperators } from '@/base/repositories/common/operators';
 import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
 import type {
-    ISearchQuery,
-    ISearchQueryDialect,
-    TSearchInput,
+  ISearchQuery,
+  ISearchQueryDialect,
+  TSearchInput,
 } from '@/connectors/search/repositories/common';
 import { SearchModes } from '@/connectors/search/repositories/common';
 import {
-    isOperatorObject,
-    toFieldsCsv,
-    toSearchPage,
+  isOperatorObject,
+  toFieldsCsv,
+  toSearchPage,
 } from '@/connectors/search/repositories/common/dialect-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import type { IMeilisearchSearchQuery } from '../common';

@@ -9,9 +9,9 @@ import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/co
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
 import {
-    type IInjectMetadata as _IInjectMetadata,
-    type IPropertyMetadata as _IPropertyMetadata,
-    type TBindingScope,
+  type IInjectMetadata as _IInjectMetadata,
+  type IPropertyMetadata as _IPropertyMetadata,
+  type TBindingScope,
 } from '@venizia/ignis-inversion';
 
 interface IBaseControllerMetadata {
