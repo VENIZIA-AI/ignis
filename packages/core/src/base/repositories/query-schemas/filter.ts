@@ -40,7 +40,7 @@ export type TInclusion = {
 };
 
 /** @internal Filter schema object definition. */
-const _FilterSchema = z.object({
+const InternalFilterSchema = z.object({
   where: WhereSchema.optional(),
   fields: FieldsSchema,
   include: InclusionSchema,
@@ -53,7 +53,7 @@ const _FilterSchema = z.object({
 /** Comprehensive Zod schema for repository query filtering. Supports object and JSON string formats. */
 export const FilterSchema = z
   .union([
-    _FilterSchema,
+    InternalFilterSchema,
     z
       .string()
       .transform(val => {
@@ -63,7 +63,7 @@ export const FilterSchema = z
 
         return {};
       })
-      .pipe(_FilterSchema),
+      .pipe(InternalFilterSchema),
   ])
   .optional()
   .openapi({

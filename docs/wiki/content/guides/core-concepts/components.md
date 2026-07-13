@@ -22,7 +22,7 @@ IGNIS includes ready-to-use components for common features. The following are ex
 | **Authentication** | JWT + Basic auth strategies, token services, strategy registry |
 | **Authorization** | Casbin-based RBAC, permission mapping, `authorize()` middleware |
 | **HealthCheckComponent** | `GET /health`, `POST /health/ping` |
-| **SwaggerComponent** | Swagger UI or Scalar UI for API documentation |
+| **ApiReferenceComponent** | Swagger UI or Scalar UI for API documentation |
 | **RequestTrackerComponent** | `x-request-id` header, request body parsing |
 
 The following components require direct subpath imports:
@@ -107,7 +107,7 @@ Register components in your application's `preConfigure` method:
 export class Application extends BaseApplication {
   preConfigure(): ValueOrPromise<void> {
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
     this.component(NotificationComponent);
   }
 }
@@ -148,7 +148,7 @@ export class Application extends BaseApplication {
   - [BaseComponent API](/references/base/components) - Complete API reference
   - [Authentication Component](/extensions/components/authentication/) - JWT authentication
   - [Health Check Component](/extensions/components/health-check) - Health endpoints
-  - [Swagger Component](/extensions/components/swagger) - API documentation
+  - [Swagger Component](/extensions/components/api-reference) - API documentation
   - [Socket.IO Component](/extensions/components/socket-io/) - WebSocket support
 
 - **Best Practices:**

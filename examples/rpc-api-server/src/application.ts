@@ -8,8 +8,8 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  SwaggerBindingKeys,
-  SwaggerComponent,
+  ApiReferenceBindingKeys,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { DataTypes, Environment, getUID, HTTP, int } from '@venizia/ignis-helpers';
@@ -114,7 +114,7 @@ export class Application extends BaseApplication {
       restOptions: { path: '/health-check' },
     });
 
-    const swaggerOptions = {
+    const apiReferenceOptions = {
       restOptions: {
         base: { path: '/doc' },
         doc: { path: '/openapi.json' },
@@ -130,9 +130,9 @@ export class Application extends BaseApplication {
       },
     };
 
-    this.bind({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue(swaggerOptions);
+    this.bind({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue(apiReferenceOptions);
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   async postConfigure(): Promise<void> {

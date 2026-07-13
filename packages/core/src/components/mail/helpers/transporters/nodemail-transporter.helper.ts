@@ -17,13 +17,13 @@ export class NodemailerTransportHelper extends BaseHelper implements IMailTransp
   }
 
   configure(config: TNodemailerConfig) {
-    // validateModule({
-    //   scope: NodemailerTransportHelper.name,
-    //   modules: ['nodemailer'],
-    // });
+    this.transporter = this.buildTransporter(config);
+  }
 
+  /** Client factory seam - overridden in tests to run the helper without a real SMTP client. */
+  protected buildTransporter(config: TNodemailerConfig): AnyType {
     const nodemailer = require('nodemailer');
-    this.transporter = nodemailer.createTransport(config);
+    return nodemailer.createTransport(config);
   }
 
   async send(message: IMailMessage): Promise<IMailSendResult> {

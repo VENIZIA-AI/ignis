@@ -156,6 +156,7 @@ abstract upload(opts: {
   files: IUploadFile[];
   normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  maxFolderDepth?: number;
 }): Promise<IUploadResult[]>;
 
 abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
@@ -252,10 +253,15 @@ async upload(opts: {
   files: IUploadFile[];
   normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  maxFolderDepth?: number;
 }): Promise<IUploadResult[]>
 ```
 
 Uploads files to a MinIO bucket. Returns `[]` if `files` is empty. Validates the bucket exists and all file names/sizes before uploading. Uploads run in parallel via `Promise.all()`.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `opts.maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder nesting the caller allows, for both `folderPath` and the normalized object name. |
 
 **Default name normalization:** Lowercased with spaces replaced by `_`. If `folderPath` is set, prepends `{folderPath}/`.
 
@@ -268,6 +274,7 @@ Uploads files to a MinIO bucket. Returns `[]` if `files` is empty. Validates the
 - `'[upload] Invalid original file name'`
 - `'[upload] Invalid folder path'`
 - `'[upload] Invalid file size'`
+- `'[upload] Invalid normalized object name | name: {name}'` -- the value returned by a custom `normalizeNameFn` is path-validated before use; a traversal payload is rejected here even if the original name passed validation.
 
 #### getFile
 
@@ -425,10 +432,11 @@ async upload(opts: {
   files: IUploadFile[];
   normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  maxFolderDepth?: number;
 }): Promise<IUploadResult[]>
 ```
 
-Uploads files using `client.write(name, buffer, { bucket, type })`. Same validation and normalization behavior as MinioHelper.
+Uploads files using `client.write(name, buffer, { bucket, type })`. Same validation and normalization behavior as MinioHelper, including `maxFolderDepth` and the normalized-name path validation.
 
 **Default link format:** `/static-assets/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
 
@@ -577,6 +585,7 @@ async upload(opts: {
   files: IUploadFile[];
   normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
   normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  maxFolderDepth?: number;
 }): Promise<IUploadResult[]>
 ```
 
@@ -591,6 +600,7 @@ Writes files to the bucket directory. Returns `[]` if `files` is empty. Validate
 - `'[upload] Invalid original file name'`
 - `'[upload] Invalid folder path'`
 - `'[upload] Invalid file size'`
+- `'[upload] Invalid normalized object name | name: {name}'` -- the value returned by a custom `normalizeNameFn` is path-validated before it is written to disk; an unvalidated `../../../etc/cron.d/pwn` would otherwise write outside `basePath`.
 
 #### getFile
 
@@ -764,6 +774,7 @@ interface IStorageHelper {
     files: IUploadFile[];
     normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
   getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;

@@ -1,6 +1,6 @@
+import { BaseHelper } from '@/modules/base';
 import type { Deserializers, Serializers } from '@platformatic/kafka';
 import { ConfluentSchemaRegistry } from '@platformatic/kafka';
-import { BaseHelper } from '@venizia/ignis-helpers';
 import type { IKafkaSchemaRegistryOptions } from '../common/types';
 
 /**

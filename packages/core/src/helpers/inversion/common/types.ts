@@ -9,9 +9,9 @@ import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/co
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpers';
 import {
-  type IInjectMetadata as _IInjectMetadata,
-  type IPropertyMetadata as _IPropertyMetadata,
-  type TBindingScope,
+    type IInjectMetadata as _IInjectMetadata,
+    type IPropertyMetadata as _IPropertyMetadata,
+    type TBindingScope,
 } from '@venizia/ignis-inversion';
 
 interface IBaseControllerMetadata {
@@ -95,8 +95,7 @@ export type TModelClass<Model extends AbstractEntity = AbstractEntity> = TClass<
 
 /** Decorator target for model classes (supports both strongly typed and ClassDecorator patterns). */
 export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity> =
-  | TModelClass<Model>
-  | (Function & IEntityStatics);
+  TModelClass<Model> | (Function & IEntityStatics);
 
 export interface IDataSourceMetadata {
   driver: TDataSourceDriver;
@@ -121,8 +120,6 @@ export interface IResolvedRepositoryMetadata<
   dataSource?: string | TClass<DataSource>;
   operationScope?: TRepositoryOperationScope;
 }
-
-/** Drizzle relations return type. */
 
 export interface IModelRegistryEntry<Model extends AbstractEntity = AbstractEntity> {
   target: TValueOrResolver<TClass<Model>>;

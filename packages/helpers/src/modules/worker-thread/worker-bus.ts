@@ -1,5 +1,6 @@
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
+import { voidExecution } from '@/utilities/promise.utility';
 import { MessagePort, Transferable } from 'node:worker_threads';
 import { IWorkerBus, IWorkerMessageBusHandler } from './types';
 
@@ -27,19 +28,19 @@ export class BaseWorkerMessageBusHandlerHelper<
 
     this.onMessage = opts.onMessage;
 
-    this.onClose = opts?.onClose ? opts.onClose : () => {};
+    this.onClose = opts?.onClose ?? (() => {});
 
-    this.onExit = opts?.onExit
-      ? opts.onExit
-      : (_opts: { exitCode: string | number }) => {
-          this.logger.for(this.onExit.name).warn('worker EXITED | exitCode: %s', _opts.exitCode);
-        };
+    this.onExit =
+      opts?.onExit ??
+      ((_opts: { exitCode: string | number }) => {
+        this.logger.for(this.onExit.name).warn('worker EXITED | exitCode: %s', _opts.exitCode);
+      });
 
-    this.onError = opts?.onError
-      ? opts.onError
-      : (_opts: { error: Error }) => {
-          this.logger.for(this.onError.name).error('worker error: %s', _opts.error);
-        };
+    this.onError =
+      opts?.onError ??
+      ((_opts: { error: Error }) => {
+        this.logger.for(this.onError.name).error('worker error: %s', _opts.error);
+      });
   }
 }
 
@@ -73,24 +74,39 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     this.handler = opts.busHandler;
 
     this.port.on('message', message => {
-      this.handler.onMessage({ message });
+      this.invokeHook({ scope: 'onMessage', execution: () => this.handler.onMessage({ message }) });
     });
 
     this.port.on('error', error => {
-      this.handler.onError({ error });
+      this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
     });
 
     this.port.on('messageerror', error => {
-      this.handler.onError({ error });
+      this.invokeHook({ scope: 'onError', execution: () => this.handler.onError({ error }) });
     });
 
     this.port.on('exit', exitCode => {
-      this.handler.onExit({ exitCode });
+      this.invokeHook({ scope: 'onExit', execution: () => this.handler.onExit({ exitCode }) });
     });
 
     this.port.on('close', () => {
-      this.handler.onClose();
+      this.invokeHook({ scope: 'onClose', execution: () => this.handler.onClose() });
     });
+  }
+
+  /**
+   * Bus handlers run inside MessagePort event listeners: a synchronous throw there is an uncaught
+   * exception that takes the worker thread down. voidExecution only settles promises, it never
+   * sees a sync throw because its argument is already evaluated at the call site.
+   */
+  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+    const { scope, execution } = opts;
+
+    try {
+      voidExecution({ logger: this.logger, scope, execution: execution() });
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
   }
 
   onBeforePostMessage?(opts: { message: IPublishPayload }): ValueOrPromise<void>;
@@ -107,12 +123,20 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
       return;
     }
 
-    this.onBeforePostMessage?.(opts);
+    this.invokeHook({
+      scope: this.postMessage.name,
+      execution: () => this.onBeforePostMessage?.(opts),
+    });
+
     if (opts.transferList) {
       this.port.postMessage(opts.message, [...opts.transferList]);
     } else {
       this.port.postMessage(opts.message);
     }
-    this.onAfterPostMessage?.(opts);
+
+    this.invokeHook({
+      scope: this.postMessage.name,
+      execution: () => this.onAfterPostMessage?.(opts),
+    });
   }
 }

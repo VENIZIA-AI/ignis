@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 /** WebSocket Helpers Test Suite */
 
 import { describe, test, expect, beforeEach, afterEach, mock } from 'bun:test';
@@ -91,7 +92,7 @@ function createMockRedisHelper(): IRedisHelper & { mockClient: MockRedisClient }
     getClient: () => mockClient,
     duplicateClient: () => mockClient.duplicate(),
     mockClient,
-  } as unknown as IRedisHelper & { mockClient: MockRedisClient };
+  } as AnyType as IRedisHelper & { mockClient: MockRedisClient };
   return helper;
 }
 
@@ -107,7 +108,7 @@ function createMockSocket(clientId: string) {
     subscribe: mock(() => {}),
     unsubscribe: mock(() => {}),
     isSubscribed: mock(() => false),
-    cork: mock((cb: Function) => cb()),
+    cork: mock((callback: Function) => callback()),
     remoteAddress: '127.0.0.1',
     readyState: 1,
   };
@@ -446,7 +447,7 @@ describe('WebSocketServerHelper', () => {
       const waitRedisHelper = {
         getClient: () => waitClient,
         duplicateClient: () => waitClient.duplicate(),
-      } as unknown as IRedisHelper;
+      } as AnyType as IRedisHelper;
 
       const waitHelper = new WebSocketServerHelper({
         ...opts,
@@ -1621,16 +1622,16 @@ describe('WebSocketServerHelper', () => {
     });
 
     test('should invoke callback after sending', async () => {
-      const cb = mock(() => {});
+      const callback = mock(() => {});
 
       helper.send({
         destination: 'client-1',
         payload: { topic: 'test', data: {} },
-        cb,
+        callback,
       });
 
       await wait(10);
-      expect(cb).toHaveBeenCalled();
+      expect(callback).toHaveBeenCalled();
     });
   });
 
@@ -2254,7 +2255,7 @@ describe('WebSocketEmitter', () => {
       const waitRedisHelper = {
         getClient: () => waitClient,
         duplicateClient: () => waitClient.duplicate(),
-      } as unknown as IRedisHelper;
+      } as AnyType as IRedisHelper;
 
       const waitEmitter = new WebSocketEmitter({
         redisConnection: waitRedisHelper,

@@ -6,6 +6,7 @@ import type {
 } from '@/connectors/search/models';
 import { SearchFieldTypes, VectorDistances } from '@/connectors/search/models';
 import { getError } from '@venizia/ignis-helpers';
+import omit from 'lodash/omit';
 
 /** Meilisearch's single reserved geo field. It is an object `{ lat, lng }`, not a named tuple. */
 const RESERVED_GEO_FIELD_NAME = '_geo';
@@ -45,7 +46,7 @@ const buildEmbedder = (opts: {
     });
   }
 
-  const { name: _name, ...providerConfig } = embed.model;
+  const providerConfig = omit(embed.model, ['name']);
   const documentTemplate = embed.from.map(item => `{{doc.${item}}}`).join(' ');
 
   return { source, model: modelParts.join('/'), ...providerConfig, documentTemplate };

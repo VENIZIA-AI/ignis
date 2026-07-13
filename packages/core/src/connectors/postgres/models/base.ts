@@ -36,7 +36,7 @@ export class BaseRelationalEntity<Schema extends TTableSchemaWithId = TTableSche
 
     super({ name });
 
-    this.schema = opts?.schema || (ctor.schema as Schema);
+    this.schema = opts?.schema ?? (ctor.schema as Schema);
   }
 
   /** Maps the pgTable id column's Drizzle `dataType` to 'number' (serial/integer) or 'string'

@@ -384,7 +384,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     let err: unknown;
     try {
       await pool.use({
-        fn: async () => {
+        execution: async () => {
           throw new Error('callback boom');
         },
       });
@@ -394,7 +394,7 @@ describe('BasePoolHelper — fault injection: use() + destroy both throw', () =>
     expect((err as Error).message).toBe('callback boom');
     expect(pool.getStats()).toEqual({ size: 1, available: 0, borrowed: 0, pending: 0 });
     // Pool recovers with a fresh resource.
-    const r = await pool.use({ fn: async x => x });
+    const r = await pool.use({ execution: async x => x });
     expect(r).toBe(2);
   });
 });
@@ -436,7 +436,7 @@ describe('BasePoolHelper — degenerate size: 0', () => {
     });
     let err: unknown;
     try {
-      await pool.use({ fn: async r => r });
+      await pool.use({ execution: async r => r });
     } catch (e) {
       err = e;
     }
@@ -451,7 +451,7 @@ describe('BasePoolHelper — size: 1 heavy reuse', () => {
     const seen: number[] = [];
     for (let i = 0; i < 25; i++) {
       await pool.use({
-        fn: async r => {
+        execution: async r => {
           seen.push(r);
         },
       });
@@ -553,7 +553,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 2, create: () => ++n });
     const result = await pool.use({
-      fn: async outer => {
+      execution: async outer => {
         const inner = await pool.acquire();
         expect(inner).not.toBe(outer);
         pool.release({ resource: inner });
@@ -575,7 +575,7 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
     let err: unknown;
     try {
       await pool.use({
-        fn: async () => {
+        execution: async () => {
           // self-deadlock without the timeout safety valve
           await pool.acquire();
         },
@@ -615,7 +615,7 @@ describe('BasePoolHelper — operations after destroy()', () => {
     await pool.destroy();
     let err: unknown;
     try {
-      await pool.use({ fn: async r => r });
+      await pool.use({ execution: async r => r });
     } catch (e) {
       err = e;
     }
@@ -706,7 +706,7 @@ describe('BasePoolHelper — mixed-op stress', () => {
           })(),
         );
       } else if (mode === 1) {
-        tasks.push(pool.use({ fn: async r => r }).catch(() => undefined));
+        tasks.push(pool.use({ execution: async r => r }).catch(() => undefined));
       } else {
         tasks.push(
           (async () => {

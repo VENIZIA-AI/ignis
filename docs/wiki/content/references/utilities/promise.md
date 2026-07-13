@@ -38,19 +38,6 @@ const results = await executePromiseWithLimit({
 console.log('All tasks finished:', results);
 ```
 
-## `transformValueOrPromise`
-
-This async function applies a transformation function to a value that might be a direct value or a Promise. It always returns a Promise.
-
-```typescript
-import { transformValueOrPromise } from '@venizia/ignis-helpers';
-
-const double = (n: number) => n * 2;
-
-const result1 = await transformValueOrPromise(5, double); // => 10
-const result2 = await transformValueOrPromise(Promise.resolve(5), double); // => 10
-```
-
 ## `toError`
 
 Normalizes an unknown thrown value into an `Error` instance. Useful in `catch` blocks where the caught value is typed `unknown` and isn't guaranteed to already be an `Error`.

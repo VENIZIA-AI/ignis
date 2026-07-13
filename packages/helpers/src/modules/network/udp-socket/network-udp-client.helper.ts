@@ -1,5 +1,6 @@
-import { BaseHelper } from '@/modules/base';
 import { ValueOrPromise } from '@/common';
+import { BaseHelper } from '@/modules/base';
+import { voidExecution } from '@/utilities/promise.utility';
 import dgram from 'node:dgram';
 
 interface INetworkUdpClientProps {
@@ -138,10 +139,15 @@ export class NetworkUdpClient extends BaseHelper {
       return;
     }
 
-    if (!this.port) {
+    // Port 0 is a VALID request for an OS assigned port - only a missing / negative port is invalid.
+    if (!Number.isInteger(this.port) || this.port < 0) {
       this.logger
         .for(this.connect.name)
-        .info('[%s] Cannot init UDP Client with null options', this.identifier);
+        .info(
+          '[%s] Cannot init UDP Client with invalid port | Port: %s',
+          this.identifier,
+          this.port,
+        );
       return;
     }
 
@@ -157,31 +163,69 @@ export class NetworkUdpClient extends BaseHelper {
 
     this.client = dgram.createSocket({ type: 'udp4', reuseAddr: this.reuseAddr });
     this.client.on('close', () => {
-      this.onClosed?.({ identifier: this.identifier, host: this.host, port: this.port });
+      this.invokeHook({
+        scope: this.handleClosed.name,
+        execution: () => {
+          this.onClosed?.({ identifier: this.identifier, host: this.host, port: this.port });
+        },
+      });
     });
 
     this.client.on('error', error => {
-      this.onError?.({ identifier: this.identifier, host: this.host, port: this.port, error });
+      this.invokeHook({
+        scope: this.handleError.name,
+        execution: () => {
+          this.onError?.({ identifier: this.identifier, host: this.host, port: this.port, error });
+        },
+      });
     });
 
     this.client.on('listening', () => {
-      this.onConnected?.({ identifier: this.identifier, host: this.host, port: this.port });
+      this.invokeHook({
+        scope: this.handleConnected.name,
+        execution: () => {
+          this.onConnected?.({ identifier: this.identifier, host: this.host, port: this.port });
+        },
+      });
     });
 
     this.client.on('message', (message: string | Buffer, remoteInfo: dgram.RemoteInfo) => {
-      this.onData?.({ identifier: this.identifier, message, remoteInfo });
+      this.invokeHook({
+        scope: this.handleData.name,
+        execution: () => {
+          this.onData?.({ identifier: this.identifier, message, remoteInfo });
+        },
+      });
     });
 
     this.client.bind({ port: this.port, address: this.host }, () => {
-      this.onBind?.({
-        identifier: this.identifier,
-        socket: this.client!,
-        host: this.host,
-        port: this.port,
-        reuseAddr: this.reuseAddr,
-        multicastAddress: this.multicastAddress,
+      voidExecution({
+        logger: this.logger,
+        scope: 'bind',
+        // The async wrapper turns a SYNCHRONOUS throw from onBind into a rejection; calling it bare
+        // would throw out of the dgram listening listener as an uncaught exception.
+        execution: (async () =>
+          this.onBind?.({
+            identifier: this.identifier,
+            socket: this.client!,
+            host: this.host,
+            port: this.port,
+            reuseAddr: this.reuseAddr,
+            multicastAddress: this.multicastAddress,
+          }))(),
       });
     });
+  }
+
+  // Hooks run inside dgram event listeners: a synchronous throw there is an uncaught exception.
+  private invokeHook(opts: { scope: string; execution: () => void }) {
+    const { scope, execution } = opts;
+
+    try {
+      execution();
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
   }
 
   disconnect() {

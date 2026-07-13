@@ -74,7 +74,7 @@ const container = new Container({ scope: 'MyApp' }); // scope is optional, defau
 
 When `container.instantiate(MyClass)` is called:
 
-1. **Constructor injection** - Reads `@inject` metadata from the class, sorts by parameter index, resolves each dependency from the container, and passes them as constructor arguments.
+1. **Constructor injection** - Reads `@inject` metadata from the class by parameter index (the `Reflect`-stored array is already index-keyed, so there is no sort step), resolves each dependency from the container, and passes them as constructor arguments. If any index in range has no `@inject` metadata, `instantiate()` throws immediately rather than passing `undefined`.
 2. **Property injection** - After the instance is created, reads property metadata, resolves each dependency, and assigns them directly to the instance properties.
 
 ```typescript
@@ -89,6 +89,18 @@ class UserController {
   ) {}
 }
 ```
+
+> [!IMPORTANT]
+> **Every constructor parameter of a container-instantiated class must carry `@inject`.** Mixing decorated and undecorated parameters is forbidden - `@inject` stores its metadata at the parameter's index, so an undecorated parameter leaves a hole in that array, and there is no channel through which the container could supply it anyway (it would resolve to `undefined`). `instantiate()` refuses the shape by class name and parameter index instead of silently dereferencing the hole:
+>
+> ```
+> [NoteController] Constructor parameter 0 has no @inject | Every parameter of a container-instantiated
+> class must be decorated - the container cannot supply an undecorated one
+> ```
+>
+> The check lives in `instantiate()`, not in the `@inject` decorator itself: parameter decorators run right-to-left, so when `@inject` on parameter 1 runs, parameter 0 has not been visited yet and nothing at that point can know whether it will end up decorated.
+>
+> This does not apply to `@repository`-decorated classes whose constructor appears undecorated at index 0 - the `@repository` decorator programmatically writes that inject metadata (`registry.setInjectMetadata({ target, index: 0, ... })`) even though no literal `@inject` appears in source. See [Repositories](./repositories/).
 
 ## `Binding` Class
 

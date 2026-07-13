@@ -221,6 +221,7 @@ APP_ENV_JWT_EXPIRES_IN=86400
 |----------|----------|---------|-------------|
 | `APP_ENV_LOGGER_FOLDER_PATH` | No | `./` | Directory for log files |
 | `APP_ENV_LOGGER_FORMAT` | No | `text` | Log output format |
+| `APP_ENV_LOGGER_INSPECT_DEPTH` | No | `5` | How deep a `%s` argument is inspected. Node hard-codes depth `0` for `%s`, which prints `[Object]` one level in; IGNIS widens it. Non-negative integers only - an absent, invalid or negative value falls back to `5` |
 | `APP_ENV_LOGGER_FILE_FREQUENCY` | No | `1h` | Log file rotation frequency |
 | `APP_ENV_LOGGER_FILE_MAX_SIZE` | No | `100m` | Max size per log file |
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | No | `5d` | Log file retention |
@@ -323,14 +324,16 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `DEBUG` | No | - | Enable debug mode |
-| `NODE_ENV` | No | `development` | Environment mode |
+| `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
 | `ALLOW_EMPTY_ENV_VALUE` | No | `false` | Allow empty env values |
+
+The gate is fail-closed: an environment IGNIS does not recognise is treated as production, so error responses are sanitized. `local`, `debug`, `development`, `dev` and `sit` are the development environments - only they expose internal error detail. `alpha`, `beta`, `staging` and `production` stay sanitized.
 
 ### Example
 
 ```bash
-# Development
-NODE_ENV=development
+# Development - `dev` is an alias of `development`, and gets the same error detail
+NODE_ENV=dev
 DEBUG=true
 
 # Production

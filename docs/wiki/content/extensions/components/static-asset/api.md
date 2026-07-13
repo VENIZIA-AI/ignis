@@ -112,6 +112,17 @@ Content-Disposition: attachment; filename="..."  (download endpoint only)
 
 Whitelisted metadata headers forwarded from storage: `content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified`. All other metadata headers are dropped. Header values are sanitized (see [Header Sanitization](#header-sanitization)).
 
+## Object Name Decoding
+
+Hono already percent-decodes the `:objectName` path param before the handler reads it, so the controller does not decode it again - the value read from `ctx.req.valid<TObjectParams>('param')` is used as-is.
+
+A prior second `decodeURIComponent()` was actively wrong:
+
+- `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`; Hono hands the handler back `report_100%.pdf`, and a second decode would hit the invalid escape `%.p` and throw - the object would become unfetchable and undeletable.
+- An object named `a%2Fb.png` would decode twice into `a/b.png` - a different object than the one requested.
+
+`isValidName()`/`isValidPath()` still run on the (singly-decoded) value, so a traversal payload is rejected exactly as before - what changes is that legal names with `%` in them stop being mangled.
+
 ## IStorageHelper Interface
 
 All storage helpers implement this unified interface:

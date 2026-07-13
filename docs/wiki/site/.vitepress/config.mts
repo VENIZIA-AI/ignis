@@ -161,7 +161,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Error Reference', link: '/extensions/components/static-asset/errors' },
         ],
       },
-      { text: 'Swagger', link: '/extensions/components/swagger' },
+      { text: 'API Reference', link: '/extensions/components/api-reference' },
       {
         text: 'WebSocket',
         collapsed: true,
@@ -201,6 +201,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Producer', link: '/extensions/helpers/kafka/producer' },
           { text: 'Consumer', link: '/extensions/helpers/kafka/consumer' },
           { text: 'Admin', link: '/extensions/helpers/kafka/admin' },
+          { text: 'Schema Registry', link: '/extensions/helpers/kafka/schema-registry' },
           { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
         ],
       },
@@ -222,7 +223,6 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'API Reference', link: '/extensions/helpers/storage/api' },
         ],
       },
-      { text: 'Testing', link: '/extensions/helpers/testing/' },
       { text: 'Types', link: '/extensions/helpers/types/' },
       { text: 'UID', link: '/extensions/helpers/uid/' },
       {
@@ -368,6 +368,40 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-07-13',
+              collapsed: true,
+              items: [
+                {
+                  text: 'The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks',
+                  link: '/changelogs/2026-07-13-hardening-round',
+                },
+              ],
+            },
+            {
+              text: '2026-07-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError',
+                  link: '/changelogs/2026-07-12-core-consolidation-dedup',
+                },
+              ],
+            },
+            {
+              text: '2026-07-11',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Postgres Driver Seam & Supabase - Transaction Correctness, postgres-js, RLS Auth Context',
+                  link: '/changelogs/2026-07-11-postgres-driver-seam-supabase',
+                },
+                {
+                  text: 'Connectors Consistency Hardening - Strict find(), engineParams, SQL-Semantics Parity',
+                  link: '/changelogs/2026-07-11-connectors-consistency-hardening',
+                },
+              ],
+            },
+            {
               text: '2026-07-08',
               collapsed: true,
               items: [
@@ -511,6 +545,16 @@ const config = defineConfig({
               collapsed: true,
               items: [
                 { text: 'gRPC Controller System', link: '/changelogs/2026-03-15-grpc-controller-system' },
+              ],
+            },
+            {
+              text: '2026-03-12',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Kafka Helpers Enhancement',
+                  link: '/changelogs/2026-03-12-kafka-helpers-enhancement',
+                },
               ],
             },
             {
@@ -808,12 +852,15 @@ const config = defineConfig({
                 { text: 'DataSources', link: '/guides/core-concepts/persistent/datasources' },
                 { text: 'Repositories', link: '/guides/core-concepts/persistent/repositories' },
                 { text: 'Transactions', link: '/guides/core-concepts/persistent/transactions' },
+                {
+                  text: 'Postgres Drivers & Supabase',
+                  link: '/guides/core-concepts/persistent/postgres-drivers',
+                },
                 { text: 'Search & Typesense', link: '/guides/core-concepts/persistent/search-typesense' },
                 {
                   text: 'Search & Meilisearch',
                   link: '/guides/core-concepts/persistent/search-meilisearch',
                 },
-                { text: 'Memory Connector', link: '/guides/core-concepts/persistent/memory-connector' },
               ],
             },
           ],

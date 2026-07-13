@@ -1,5 +1,7 @@
+import { readResultRows } from '@/utilities';
 import { BaseHelper } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
+import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
 /**
@@ -19,6 +21,16 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
 
   protected get connector(): TCasbinPolicyConnector {
     return this.dataSource.connector;
+  }
+
+  /**
+   * Runs a raw statement and returns its rows. Drizzle's `execute()` result shape differs per driver
+   * - node-postgres yields `{ rows }`, postgres-js yields the row list itself - so adapters must never
+   * read `.rows` directly.
+   */
+  protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
+    const result = await this.connector.execute(opts.statement);
+    return readResultRows<TRow>({ result });
   }
 
   /** Load ONLY the policies matching `filter` into `model` (the store is read for one principal). */

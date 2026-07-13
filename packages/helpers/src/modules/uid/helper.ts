@@ -136,6 +136,13 @@ export class SnowflakeUidHelper extends BaseHelper {
 
   /** Decode a Base62 string to bigint. */
   decodeBase62(str: string): bigint {
+    if (!str) {
+      throw getError({
+        statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+        message: '[IdGenerator][decodeBase62] Base62 input must not be empty',
+      });
+    }
+
     let result = BigInt(0);
     const base = BigInt(BASE62_CHARS.length);
 
@@ -200,10 +207,14 @@ export class SnowflakeUidHelper extends BaseHelper {
   }
 
   private validateWorkerId(workerId: number): void {
-    if (workerId < 0 || workerId > Number(SnowflakeConfig.MAX_WORKER_ID)) {
+    if (
+      !Number.isInteger(workerId) ||
+      workerId < 0 ||
+      workerId > Number(SnowflakeConfig.MAX_WORKER_ID)
+    ) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-        message: `[IdGenerator][validateWorkerId] Worker ID must be between 0 and ${SnowflakeConfig.MAX_WORKER_ID} | received: ${workerId}`,
+        message: `[IdGenerator][validateWorkerId] Worker ID must be an integer between 0 and ${SnowflakeConfig.MAX_WORKER_ID} | received: ${workerId}`,
       });
     }
   }

@@ -504,7 +504,7 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 
 // Basic error
 throw getError({ message: 'Something went wrong' });
-// Returns: { statusCode: 400, message: 'Something went wrong' }
+// Returns: { statusCode: 400, message: 'Something went wrong', messageCode: 'core.system_error' }
 
 // With status code
 throw getError({
@@ -516,7 +516,7 @@ throw getError({
 throw getError({
   statusCode: 404,
   message: 'User not found',
-  messageCode: 'USER_NOT_FOUND',
+  messageCode: 'core.user.not_found',
 });
 ```
 
@@ -548,7 +548,7 @@ All errors are automatically formatted:
 {
   "statusCode": 404,
   "message": "User not found",
-  "messageCode": "USER_NOT_FOUND",
+  "messageCode": "core.user.not_found",
   "requestId": "abc123"
 }
 ```

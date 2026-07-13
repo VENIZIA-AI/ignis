@@ -1,3 +1,4 @@
+import { SearchErrorCodes } from '@/common';
 import type { Logger } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
@@ -22,16 +23,26 @@ export class SearchConnectorInternal {
     logger
       .for(method)
       .error(
-        'Search engine dependency error | detail: %j',
+        'Search engine dependency error | detail: %s',
         SearchConnectorInternal.describeError({ error }),
       );
 
-    throw getError({
+    const wrapped = getError({
       statusCode: HTTP.ResultCodes.RS_5.ServiceUnavailable,
-      messageCode: 'core.search_engine.dependency_unavailable',
+      messageCode: SearchErrorCodes.DEPENDENCY_UNAVAILABLE,
       message: `[${method}] Search engine is temporarily unavailable.`,
       ...(details ? { details } : {}),
     });
+
+    // The original engine error carries the code the CALLER may need to classify on - Meilisearch
+    // reports `index_already_exists` as a failed TASK, and a connector that tolerates it (an
+    // idempotent createCollection on the second boot) can only see it through here.
+    //
+    // Assigned AFTER construction on purpose: passing `cause` to getError() would land it in
+    // `extra`, which the error middleware puts on the WIRE. As a plain `cause` it reaches the
+    // response only in a development environment, where stack and cause are already exposed.
+    (wrapped as { cause?: unknown }).cause = error;
+    throw wrapped;
   }
 
   // Throws a sanitized 404; `subject` must only contain caller-provided identifiers, never engine internals.
@@ -40,7 +51,7 @@ export class SearchConnectorInternal {
 
     throw getError({
       statusCode: HTTP.ResultCodes.RS_4.NotFound,
-      messageCode: 'core.search_engine.not_found',
+      messageCode: SearchErrorCodes.NOT_FOUND,
       message: `[${method}] ${subject} not found.`,
     });
   }

@@ -109,13 +109,11 @@ export interface IJWTTokenPayload extends JWTPayload, IAuthUser {
   userId: IdType;
   roles: { id: IdType; identifier: string; priority: number }[];
 
-  // Optional extra fields
   clientId?: string;
   provider?: string;
   email?: string;
   name?: string;
 
-  // Unknow extra fields
   [extra: string | symbol]: any;
 }
 

@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test';
+import type { AnyType } from '@venizia/ignis-helpers';
 import { MeilisearchQueryDialect } from '@/connectors/meilisearch';
 import { SearchModes } from '@/connectors/search/repositories/common';
 
@@ -160,17 +161,19 @@ describe('MeilisearchQueryDialect.applySearchInput', () => {
   test('an explicitly set Typesense-only knob throws NotSupported rather than being dropped', () => {
     const query = dialect.build({});
 
+    // These knobs are no longer part of the neutral typed input (they moved to engineParams), so a
+    // typed caller can't set them; the cast simulates a raw/JS caller reaching the defensive guard.
     expect(() =>
       dialect.applySearchInput({
         query,
-        input: { mode: SearchModes.KEYWORD, query: 'shoes', numTypos: 2 },
+        input: { mode: SearchModes.KEYWORD, query: 'shoes', numTypos: 2 } as AnyType,
       }),
     ).toThrow(/numTypos/);
 
     expect(() =>
       dialect.applySearchInput({
         query,
-        input: { mode: SearchModes.KEYWORD, query: 'shoes', pinnedHits: '1:1' },
+        input: { mode: SearchModes.KEYWORD, query: 'shoes', pinnedHits: '1:1' } as AnyType,
       }),
     ).toThrow(/pinnedHits/);
   });

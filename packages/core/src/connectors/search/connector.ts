@@ -1,6 +1,6 @@
 import type { ISynonym } from '@/connectors/search/models';
 import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { ApplicationError, BaseHelper, getError } from '@venizia/ignis-helpers';
+import { BaseHelper, getError, isApplicationError } from '@venizia/ignis-helpers';
 import { SearchConnectorInternal } from './internal';
 
 export interface IImportResult<TResponse = unknown> {
@@ -197,7 +197,7 @@ export abstract class BaseSearchConnector extends BaseHelper implements ISearchC
       // An ApplicationError was raised by the framework, not the engine: it is already sanitized and
       // carries its own statusCode/messageCode (a task timeout, a not-supported verb). Re-wrapping it
       // as a generic 503 would destroy that. Only raw engine failures get sanitized here.
-      if (error instanceof ApplicationError) {
+      if (isApplicationError(error)) {
         throw error;
       }
 

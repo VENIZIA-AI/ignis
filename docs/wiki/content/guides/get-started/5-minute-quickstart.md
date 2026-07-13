@@ -86,7 +86,7 @@ import {
   get,
   IApplicationInfo,
   jsonContent,
-  SwaggerComponent,
+  ApiReferenceComponent,
 } from "@venizia/ignis";
 import { HTTP } from "@venizia/ignis-helpers";
 import { Context } from "hono";
@@ -130,7 +130,7 @@ class App extends BaseApplication {
   }
 
   preConfigure() {
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
     this.controller(HelloController);
   }
 
@@ -240,7 +240,7 @@ Open `http://localhost:3000/doc/explorer` to see interactive Swagger UI document
 | `Zod schema` | Validates request/response and auto-generates OpenAPI docs |
 | `BaseRestController` | Provides lifecycle hooks, route binding, and OpenAPI integration for REST controllers |
 | `BaseApplication` | Manages dependency injection, middleware, and server startup |
-| `SwaggerComponent` | Generates interactive API docs at `/doc/explorer` |
+| `ApiReferenceComponent` | Generates interactive API docs at `/doc/explorer` |
 | `app.start()` | Runs the full lifecycle (preConfigure → register resources → middlewares) then starts HTTP server on port 3000 |
 
 ### Why Development Configs?

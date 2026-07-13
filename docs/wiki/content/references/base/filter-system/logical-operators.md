@@ -105,9 +105,38 @@ Combine AND and OR for complex logic:
 ```
 
 
+## Empty Groups
+
+An empty `and`/`or` array is not a no-op -- each empty case resolves to what the operator means with zero conditions:
+
+```typescript
+// Empty AND is vacuously TRUE - dropped from the query entirely
+{ where: { and: [] } }
+// SQL: (no condition added)
+
+// Empty OR is vacuously FALSE - compiles to a condition that matches nothing
+{ where: { or: [] } }
+// SQL: WHERE false
+```
+
+This matters when the array is built from a caller-supplied list, e.g. `{ or: permittedOrgIds.map(id => ({ orgId: id })) }`: an empty permission list must return zero rows, not every row, so `or: []` matching nothing is the safe default.
+
+
 ## NOT Logic
 
-IGNIS does not have a standalone `not` logical operator. Instead, use negation operators for NOT conditions:
+IGNIS has a general-purpose `not` operator that negates whatever condition it wraps - a bare value negates `eq`, and a nested operator object negates that operator. It is supported on the PostgreSQL connector:
+
+```typescript
+// NOT equal (bare value negates eq)
+{ where: { status: { not: 'archived' } } }
+// SQL: WHERE NOT ("status" = 'archived')
+
+// Negate a nested operator condition
+{ where: { views: { not: { gt: 100 } } } }
+// SQL: WHERE NOT ("views" > 100)
+```
+
+The dedicated negation operators remain available and are often clearer for a single condition:
 
 ```typescript
 // NOT equal
@@ -130,6 +159,9 @@ IGNIS does not have a standalone `not` logical operator. Instead, use negation o
 // NOT BETWEEN
 { where: { score: { notBetween: [40, 60] } } }
 ```
+
+> [!NOTE]
+> `ne`/`neq`/`nin` follow SQL three-valued logic - a row whose field is `NULL` never matches them (`NULL <> value` is UNKNOWN, not TRUE). Use `exists`/`notExists` or an explicit `{ field: null }` branch when you need NULL rows in the result.
 
 
 ## Complex Example

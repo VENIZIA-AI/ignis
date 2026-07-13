@@ -47,7 +47,7 @@ export class WorkerPoolHelper extends BaseHelper {
       });
     }
 
-    if (this.registry.size === this.numberOfCPUs && !this.ignoreMaxWarning) {
+    if (this.registry.size >= this.numberOfCPUs && !this.ignoreMaxWarning) {
       this.logger
         .for(this.register.name)
         .warn(
@@ -55,7 +55,7 @@ export class WorkerPoolHelper extends BaseHelper {
           this.numberOfCPUs,
           this.ignoreMaxWarning,
         );
-      return;
+      return false;
     }
 
     const { key, worker } = opts;
@@ -63,13 +63,15 @@ export class WorkerPoolHelper extends BaseHelper {
       this.logger
         .for(this.register.name)
         .error('SKIP register worker | Worker key existed in pool | key: %s', key);
-      return;
+      return false;
     }
 
     this.registry.set(key, worker);
     this.logger
       .for(this.register.name)
       .info('Successfully register worker | key: %s | poolSize: %s', key, this.registry.size);
+
+    return true;
   }
 
   async unregister(opts: { key: string }) {
@@ -82,9 +84,16 @@ export class WorkerPoolHelper extends BaseHelper {
       return;
     }
 
-    const w = this.get({ key });
-    if (w?.worker) {
-      await w.worker.terminate();
+    const registered = this.get({ key });
+
+    // The registry entry must go even if the thread refuses to die, otherwise the key is
+    // unusable forever and the pool never drops back below its max-workers bound
+    try {
+      await registered?.worker?.terminate();
+    } catch (error) {
+      this.logger
+        .for(this.unregister.name)
+        .error('Failed to terminate worker | key: %s | error: %s', key, error);
     }
 
     this.registry.delete(key);

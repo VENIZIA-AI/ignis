@@ -45,7 +45,7 @@ const mcpReosources = {
     });
   },
 
-  getResourceContent: async ({ uri }) => {
+  getResourceContent: async ({ uri }: { uri: string }) => {
     const id = uri.replace('ignis://docs/', '');
     const content = await DocsHelper.getDocumentContent({ id });
 
@@ -75,7 +75,7 @@ const main = async () => {
   const { branch } = parseArgs();
   MCPConfigs.setBranch({ branch });
 
-  Logger.info('[main] Initializing Ignis MCP Documentation Server...');
+  Logger.info('[main] Initializing IGNIS MCP Documentation Server...');
   Logger.info(`[main] GitHub branch: ${MCPConfigs.github.branch}`);
 
   try {
@@ -90,4 +90,9 @@ const main = async () => {
   }
 };
 
-main();
+// A rejection escaping main() - one thrown before the try block, e.g. by parseArgs() - would
+// otherwise surface as an unhandled rejection and take the process down with no diagnostic.
+main().catch(error => {
+  Logger.error('[main] Startup failed:', error);
+  process.exit(1);
+});

@@ -129,17 +129,32 @@ if (Environment.is({ name: 'staging' })) {
 
 #### Available Stages
 
-| Constant | Value |
-|----------|-------|
-| `Environment.LOCAL` | `'local'` |
-| `Environment.DEBUG` | `'debug'` |
-| `Environment.DEVELOPMENT` | `'development'` |
-| `Environment.ALPHA` | `'alpha'` |
-| `Environment.BETA` | `'beta'` |
-| `Environment.STAGING` | `'staging'` |
-| `Environment.PRODUCTION` | `'production'` |
+| Constant | Value | Development stage |
+|----------|-------|-------------------|
+| `Environment.LOCAL` | `'local'` | yes |
+| `Environment.DEBUG` | `'debug'` | yes |
+| `Environment.DEVELOPMENT` | `'development'` | yes |
+| `Environment.DEV` | `'dev'` | yes - the short spelling of `development` |
+| `Environment.SIT` | `'sit'` | yes |
+| `Environment.UAT` | `'uat'` | no |
+| `Environment.ALPHA` | `'alpha'` | no |
+| `Environment.BETA` | `'beta'` | no |
+| `Environment.STAGING` | `'staging'` | no |
+| `Environment.PRODUCTION` | `'production'` | no |
 
-All stages are collected in `Environment.COMMON_ENVS` (a `Set<string>`), which is used internally by the Logger to determine whether debug logging should be active.
+All stages are collected in `Environment.COMMON_ENVS` (a `Set<string>`), which is used internally by the Logger to determine whether debug logging should be active. A `NODE_ENV` outside this set silences `DEBUG=true` entirely.
+
+#### `Environment.DEVELOPMENT_ENVS` - the error-detail boundary
+
+The stages marked "development stage" above form `Environment.DEVELOPMENT_ENVS`. IGNIS's error handler consults this set to decide whether an error response may carry internal detail - a stack trace, a SQL constraint name, a raw driver message.
+
+The rule is fail-closed. A leak is opt-in by an explicit development name, so **anything else is sanitized as production**, including:
+
+- `alpha`, `beta`, `uat`, `staging` - real users reach these
+- an unrecognized name (a typo, a stage nobody added to the set)
+- `NODE_ENV` left unset
+
+Running a local service under `NODE_ENV=alpha` therefore gives you the same stripped-down error responses your users see. If you want the details while developing, set `NODE_ENV` to `development`, `dev`, or `local`.
 
 ### Configuring the Prefix
 

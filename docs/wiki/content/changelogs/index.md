@@ -17,6 +17,11 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-13 | [The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks](./2026-07-13-hardening-round) | Security, Breaking Change, Bug Fix, Enhancement |
+| 2026-07-12 | [Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError](./2026-07-12-core-consolidation-dedup) | Breaking Change, Enhancement, Bug Fix |
+| 2026-07-11 | [Postgres Driver Seam & Supabase - Transaction Correctness, postgres-js, RLS Auth Context](./2026-07-11-postgres-driver-seam-supabase) | New Feature, Refactor, Breaking Change, Security |
+| 2026-07-11 | [Connectors Consistency Hardening - Strict find(), engineParams, SQL-Semantics Parity](./2026-07-11-connectors-consistency-hardening) | Bug Fix, Enhancement, Breaking Change |
+| 2026-07-08 | [Typesense Advanced Search - Vector/Semantic, Multi-Search, Synonyms](./2026-07-08-typesense-advanced-search) | New Feature, Breaking Change |
 | 2026-07-05 | [Unified Repository & Connectors Architecture - PostgreSQL, Typesense & Memory Engines](./2026-07-05-unified-repository-connectors) | New Feature, Refactor, Breaking Change |
 | 2026-06-25 | [Redis Helpers Refactor - Abstract Base, Interfaces, Sentinel & Factory](./2026-06-25-redis-helpers-refactor) | Refactor, New Feature, Breaking Change |
 | 2026-06-18 | [Current User Information Endpoint - GET /me & who-am-i Flag](./2026-06-18-auth-user-information-endpoint) | New Feature |

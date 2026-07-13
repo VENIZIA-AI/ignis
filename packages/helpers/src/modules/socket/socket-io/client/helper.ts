@@ -17,6 +17,11 @@ export class SocketIOClientHelper extends BaseHelper {
   private client: Socket;
   private state: TSocketIOClientState = SocketIOClientStates.UNAUTHORIZED;
 
+  // subscribe() registers a wrapper, never the caller handler: without this map unsubscribe()
+  // has nothing to hand to socket.off() and the listener stays bound forever
+  private wrappedHandlers: Map<string, Map<TSocketIOEventHandler<any>, (data: any) => void>> =
+    new Map();
+
   private onConnected?: () => ValueOrPromise<void>;
   private onDisconnected?: (reason: string) => ValueOrPromise<void>;
   private onError?: (error: Error) => ValueOrPromise<void>;
@@ -153,6 +158,11 @@ export class SocketIOClientHelper extends BaseHelper {
       }
     };
 
+    if (!this.wrappedHandlers.has(event)) {
+      this.wrappedHandlers.set(event, new Map());
+    }
+    this.wrappedHandlers.get(event)!.set(handler, wrappedHandler);
+
     this.client.on(event, wrappedHandler);
     logger.info('Subscribed | event: %s', event);
   }
@@ -182,12 +192,25 @@ export class SocketIOClientHelper extends BaseHelper {
     }
 
     if (handler) {
-      this.client.off(event, handler as (...args: unknown[]) => void);
+      const wrappedHandler = this.wrappedHandlers.get(event)?.get(handler);
+      if (!wrappedHandler) {
+        logger.info('Handler was not subscribed through this helper | event: %s', event);
+        return;
+      }
+
+      this.client.off(event, wrappedHandler);
+      this.wrappedHandlers.get(event)?.delete(handler);
+
+      if (!this.wrappedHandlers.get(event)?.size) {
+        this.wrappedHandlers.delete(event);
+      }
+
       logger.info('Removed specific handler | event: %s', event);
       return;
     }
 
     this.client.off(event);
+    this.wrappedHandlers.delete(event);
     logger.info('Removed all handlers | event: %s', event);
   }
 
@@ -219,9 +242,9 @@ export class SocketIOClientHelper extends BaseHelper {
     this.client.disconnect();
   }
 
-  emit<T = unknown>(opts: { topic: string; data: T; doLog?: boolean; cb?: () => void }) {
+  emit<T = unknown>(opts: { topic: string; data: T; doLog?: boolean; callback?: () => void }) {
     const logger = this.logger.for(this.emit.name);
-    const { topic, data, doLog = false, cb } = opts;
+    const { topic, data, doLog = false, callback } = opts;
 
     if (!this.client?.connected) {
       throw getError({
@@ -239,8 +262,8 @@ export class SocketIOClientHelper extends BaseHelper {
 
     this.client.emit(topic, data);
 
-    if (cb) {
-      setImmediate(cb);
+    if (callback) {
+      setImmediate(callback);
     }
 
     if (doLog) {
@@ -286,6 +309,7 @@ export class SocketIOClientHelper extends BaseHelper {
       }
     }
 
+    this.wrappedHandlers.clear();
     this.state = SocketIOClientStates.UNAUTHORIZED;
     logger.info('SocketIO client shutdown complete | id: %s', this.identifier);
   }

@@ -162,6 +162,9 @@ const mqttClient = new MQTTClientHelper({
 | `onError` | `(error: Error) => void` | `undefined` | Callback fired on client errors. |
 | `onClose` | `(error?: Error) => void` | `undefined` | Callback fired when the connection is closed. |
 
+> [!NOTE]
+> At connect time, `MQTTClientHelper` logs the broker `url` through `redactUrlCredentials()` and the `options` object through `redactSecrets()`. If `url` embeds a password (e.g. `mqtts://user:hunter2@broker:8883`), the password never reaches the log -- only `mqtts://user:[REDACTED]@broker:8883` does.
+
 ### QueueHelper
 
 The `QueueHelper` is a generator-based, in-memory queue with a built-in state machine. It processes enqueued items one at a time, making it suitable for sequential task processing within a single process.

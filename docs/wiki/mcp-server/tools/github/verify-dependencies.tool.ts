@@ -1,6 +1,7 @@
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { BaseTool } from '../base.tool';
+import { isNonEmptyString } from '@/mcp-server/common';
 import { GithubHelper, Logger } from '@/mcp-server/helpers';
 
 const TOOL_DESCRIPTION = `
@@ -72,7 +73,8 @@ export class VerifyDependenciesTool extends BaseTool<typeof InputSchema, typeof 
         return 'unknown';
       }
       const data = (await response.json()) as INpmRegistryResponse;
-      return data.version || 'unknown';
+      // The registry can answer with the key present but empty; that is still "unknown".
+      return isNonEmptyString(data.version) ? data.version : 'unknown';
     } catch (error) {
       Logger.warn(`Could not fetch latest version for ${opts.packageName}:`, error);
       return 'unknown';

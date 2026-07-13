@@ -19,12 +19,10 @@ export abstract class AbstractJWKSTokenService<
       return;
     }
 
-    if (!this.initPromise) {
-      this.initPromise = this.initialize().catch(error => {
-        this.initPromise = null;
-        throw error;
-      });
-    }
+    this.initPromise ??= this.initialize().catch(error => {
+      this.initPromise = null;
+      throw error;
+    });
 
     await this.initPromise;
   }

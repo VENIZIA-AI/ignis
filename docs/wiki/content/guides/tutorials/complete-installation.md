@@ -167,7 +167,7 @@ Each controller gets its own folder: `definitions.ts` for route configs and Zod 
 Create `src/application.ts` - this is where you configure and register all your application resources:
 
 ```typescript
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers';
 import packageJson from '../package.json';
 
@@ -212,8 +212,8 @@ export class Application extends BaseApplication {
 
   // Hook 3: Register your resources (THIS IS THE MOST IMPORTANT ONE)
   preConfigure(): ValueOrPromise<void> {
-    // Register SwaggerComponent for API documentation at /doc/explorer
-    this.component(SwaggerComponent);
+    // Register ApiReferenceComponent for API documentation at /doc/explorer
+    this.component(ApiReferenceComponent);
 
     // As your app grows, you'll add:
     // this.dataSource(PostgresDataSource);    // Database connection

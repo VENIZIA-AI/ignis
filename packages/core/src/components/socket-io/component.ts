@@ -126,7 +126,6 @@ export class SocketIOComponent extends BaseComponent {
           .bind({ key: SocketIOBindingKeys.SOCKET_IO_INSTANCE })
           .toValue(socketIOHelper);
 
-        // Wire engine into the running Bun server via reload
         const serverInstance = this.application.getServerInstance<TBunServerInstance>();
         const honoServer = this.application.getServer();
         const enginePath = serverOptions.path ?? '/socket.io/';

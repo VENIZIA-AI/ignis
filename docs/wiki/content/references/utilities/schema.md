@@ -14,7 +14,8 @@ The `jsonContent` function creates a standard OpenAPI content object for `applic
     -   `required` (boolean, optional): Whether the content is required.
 
 ```typescript
-import { jsonContent, z } from '@venizia/ignis';
+import { jsonContent } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 
 const UserSchema = z.object({
   id: z.number(),
@@ -40,7 +41,8 @@ The `jsonResponse` function generates a standard OpenAPI response object that in
     -   `headers` (Record&lt;string, THeaderObject&gt;, optional): Custom response headers to include in the success response.
 
 ```typescript
-import { jsonResponse, z } from '@venizia/ignis';
+import { jsonResponse } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 
 const UserSchema = z.object({
   id: z.number(),

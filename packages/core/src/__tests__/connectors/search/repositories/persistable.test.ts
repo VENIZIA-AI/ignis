@@ -197,9 +197,10 @@ describe('PersistableSearchRepository', () => {
         where: { status: 'active' },
       });
 
-      // updateBy aliases updateAll; `data` is a post-update snapshot via find() ([] here since
-      // searchResponse was never seeded).
-      expect(result).toEqual({ count: 3, data: [] });
+      // updateBy aliases updateAll: bulk writes on search engines have no RETURNING, so data is
+      // always null and no extra engine read happens.
+      expect(result).toEqual({ count: 3, data: null });
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
       const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.collection).toBe('products');
@@ -217,9 +218,9 @@ describe('PersistableSearchRepository', () => {
         where: { status: 'active' },
       });
 
-      // Typesense's update-by-filter has no RETURNING equivalent - data is a post-update snapshot
-      // via find() over the same filter ([] here since searchResponse was never seeded).
-      expect(result).toEqual({ count: 3, data: [] });
+      // Bulk update on a search engine returns count only - no RETURNING, no bolted-on read.
+      expect(result).toEqual({ count: 3, data: null });
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
       const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.collection).toBe('products');
@@ -234,6 +235,27 @@ describe('PersistableSearchRepository', () => {
 
       const [call] = dataSource.fakeConnector.updateByFilterCalls;
       expect(call.filterBy).toBe('isActive:=true');
+    });
+
+    test('performs NO engine read even when hits exist to be read - count is the whole contract', async () => {
+      dataSource.fakeConnector.updateByFilterResponse = { updatedCount: 2 };
+      dataSource.fakeConnector.searchResponse = {
+        found: 2,
+        isFoundExact: true,
+        hits: [
+          { document: { id: '1', title: 'A', status: 'active' } },
+          { document: { id: '2', title: 'B', status: 'active' } },
+        ],
+      };
+
+      const result = await repository.updateAll({
+        data: { status: 'inactive' },
+        where: { status: 'active' },
+      });
+
+      expect(result).toEqual({ count: 2, data: null });
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
+      expect(dataSource.fakeConnector.updateByFilterCalls.length).toBe(1);
     });
 
     test('throws when there is no effective where (no where, no default filter)', async () => {
@@ -251,6 +273,22 @@ describe('PersistableSearchRepository', () => {
 
       expect(caught).toBeInstanceOf(Error);
       expect(dataSource.fakeConnector.updateByFilterCalls.length).toBe(0);
+    });
+  });
+
+  describe('deleteAll', () => {
+    test('returns count only - data is always null, no engine read', async () => {
+      dataSource.fakeConnector.deleteByFilterResponse = 4;
+      dataSource.fakeConnector.searchResponse = {
+        found: 4,
+        isFoundExact: true,
+        hits: [{ document: { id: '1', title: 'A', status: 'active' } }],
+      };
+
+      const result = await repository.deleteAll({ where: { status: 'active' } });
+
+      expect(result).toEqual({ count: 4, data: null });
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
     });
   });
 
@@ -379,9 +417,9 @@ describe('DefaultSearchRepository', () => {
 
       const result = await repository.deleteBy({ where: { status: 'inactive' } });
 
-      // deleteBy aliases deleteAll; `data` is a pre-delete snapshot via find() ([] here,
-      // searchResponse never seeded).
-      expect(result).toEqual({ count: 7, data: [] });
+      // deleteBy aliases deleteAll: count-only, no RETURNING on search engines.
+      expect(result).toEqual({ count: 7, data: null });
+      expect(dataSource.fakeConnector.searchCalls.length).toBe(0);
 
       const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.collection).toBe('products');
@@ -395,7 +433,7 @@ describe('DefaultSearchRepository', () => {
 
       const result = await repository.deleteAll({ where: { status: 'inactive' } });
 
-      expect(result).toEqual({ count: 7, data: [] });
+      expect(result).toEqual({ count: 7, data: null });
 
       const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.collection).toBe('products');
@@ -408,24 +446,25 @@ describe('DefaultSearchRepository', () => {
 
       const result = await repository.deleteAll();
 
-      expect(result).toEqual({ count: 4, data: [] });
+      expect(result).toEqual({ count: 4, data: null });
 
       const [call] = dataSource.fakeConnector.deleteByFilterCalls;
       expect(call.filterBy).toBe('isActive:=true');
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });
 
-    test('no where and no default filter -> truncate path via deleteAllDocuments', async () => {
+    test('no where and no default filter -> truncate ONLY on an explicit force', async () => {
       const noFilterRepository = new DefaultSearchRepository<any>(dataSource, {
         entityClass: ProductDocumentNoDefaultFilter,
       });
       dataSource.fakeConnector.deleteAllDocumentsResponse = true;
 
-      const result = await noFilterRepository.deleteAll();
+      // Without `force` this is refused: an unfiltered delete used to wipe the collection while
+      // reporting `{ count: 0 }`, so nothing surfaced the damage.
+      const result = await noFilterRepository.deleteAll({ options: { force: true } });
 
-      // Truncate reports neither a real count nor the removed rows (an engine limitation) - data
-      // is `[]` here (the default/"true" shouldReturn branch), not null.
-      expect(result).toEqual({ count: 0, data: [] });
+      // Truncate reports no per-document count (an engine limitation) - count stays 0.
+      expect(result).toEqual({ count: 0, data: null });
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(1);
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls[0].collection).toBe(
         'products_no_default_filter',

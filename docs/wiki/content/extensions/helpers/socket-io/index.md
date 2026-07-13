@@ -17,7 +17,7 @@ import {
   SocketIOClientHelper,
   SocketIOConstants,
   SocketIOClientStates,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 
 import type {
   TSocketIOServerOptions,
@@ -33,7 +33,7 @@ import type {
   TSocketIOClientConnectedFn,
   TSocketIOEventHandler,
   TSocketIOClientState,
-} from '@venizia/ignis-helpers';
+} from '@venizia/ignis-helpers/socket-io';
 ```
 
 ## Creating an Instance
@@ -43,7 +43,7 @@ import type {
 `SocketIOServerHelper` requires a Redis connection for the pub/sub adapter, an HTTP server (Node.js) or Bun engine instance, and an authentication function.
 
 ```typescript
-import { SocketIOServerHelper } from '@venizia/ignis-helpers';
+import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import { createServer } from 'node:http';
 
@@ -109,7 +109,7 @@ A discriminated union based on the `runtime` field:
 `SocketIOClientHelper` connects to a Socket.IO server. Configuration is done entirely via the constructor -- `configure()` is called automatically.
 
 ```typescript
-import { SocketIOClientHelper } from '@venizia/ignis-helpers';
+import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io';
 
 const socketClient = new SocketIOClientHelper({
   identifier: 'my-client',
@@ -192,7 +192,7 @@ httpServer.listen(3000, () => {
 For Bun, pass the `@socket.io/bun-engine` instance instead of an HTTP server:
 
 ```typescript
-import { SocketIOServerHelper } from '@venizia/ignis-helpers';
+import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 
 const socketServer = new SocketIOServerHelper({
   identifier: 'my-bun-server',
@@ -425,6 +425,9 @@ The server uses `@socket.io/redis-adapter` and `@socket.io/redis-emitter` for ho
 - **redisEmitter** -- Powers `send()` for cross-instance message delivery
 
 All three connections are initialized and awaited during `configure()`. If the parent client uses `lazyConnect`, the duplicated clients will connect automatically.
+
+> [!NOTE]
+> `configure()` fails fast: if any of the three Redis clients never reaches the `ready` state, it rejects after **30 seconds** rather than hanging boot indefinitely.
 
 ```typescript
 // Messages sent via send() use the Redis emitter,

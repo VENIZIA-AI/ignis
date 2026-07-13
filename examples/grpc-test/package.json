@@ -27,22 +27,22 @@
     "client:dev": "NODE_ENV=development bun run dist/client.js"
   },
   "dependencies": {
-    "@bufbuild/protobuf": "^2.5.2",
+    "@bufbuild/protobuf": "^2.12.1",
     "@connectrpc/connect": "^2.0.3",
     "@connectrpc/connect-web": "^2.0.3",
     "@hono/zod-openapi": "latest",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
-    "hono": "^4.12.1"
+    "hono": "^4.12.29"
   },
   "devDependencies": {
     "@bufbuild/buf": "^1.50.0",
-    "@bufbuild/protoc-gen-es": "^2.5.2",
+    "@bufbuild/protoc-gen-es": "^2.12.1",
     "@types/bun": "latest",
     "@venizia/dev-configs": "workspace:*",
-    "eslint": "^9.39.3",
-    "prettier": "^3.8.1",
-    "tsc-alias": "^1.8.10",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
+    "tsc-alias": "^1.9.0",
     "typescript": "^6.0.3"
   }
 }

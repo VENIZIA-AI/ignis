@@ -1,4 +1,5 @@
 import type { TConstValue } from '@venizia/ignis-helpers';
+import { MessageCode } from '@venizia/ignis-helpers';
 
 /** Default pagination limit for repository queries. */
 export const DEFAULT_LIMIT = 10;
@@ -17,6 +18,20 @@ export class RepositoryOperationScopes {
 
 /** Valid repository operation scope values. */
 export type TRepositoryOperationScope = TConstValue<typeof RepositoryOperationScopes>;
+
+/**
+ * Machine-readable codes for repository-level failures, in the same dotted namespace core already
+ * uses (`core.not_supported`, `core.search_engine.*`) - a client maps the code, never the message.
+ */
+export class RepositoryErrorCodes {
+  /** A verb the repository's `operationScope` does not permit (e.g. `create()` on a READ_ONLY one). */
+  static readonly OPERATION_NOT_ALLOWED = MessageCode.build({
+    parts: ['core', 'repository', 'operation_not_allowed'],
+  });
+}
+
+/** Valid repository error code values. */
+export type TRepositoryErrorCode = TConstValue<typeof RepositoryErrorCodes>;
 
 /** Entity relation types (one-to-one/many-to-one, one-to-many). */
 export class RelationTypes {

@@ -186,7 +186,8 @@ export class PageController extends BaseRestController {
 ### HTML Email Preview
 
 ```typescript
-import { BaseRestController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { BaseRestController, get, htmlResponse, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const EmailRoutes = {
@@ -225,7 +226,8 @@ export class EmailController extends BaseRestController {
 ### Documentation Page
 
 ```typescript
-import { BaseRestController, get, htmlResponse, TRouteContext, z } from '@venizia/ignis';
+import { BaseRestController, get, htmlResponse, TRouteContext } from '@venizia/ignis';
+import { z } from '@hono/zod-openapi';
 import { HTTP } from '@venizia/ignis-helpers';
 
 const DocsRoutes = {
@@ -564,7 +566,7 @@ async getUsers() {
 - **Related References:**
   - [Schema Utility](./schema.md) - JSON content and response helpers
   - [Controllers](../base/controllers.md) - Defining routes and handlers
-  - [OpenAPI Component](/extensions/components/swagger) - API documentation
+  - [OpenAPI Component](/extensions/components/api-reference) - API documentation
 
 - **External Resources:**
   - [Hono JSX Documentation](https://hono.dev/guides/jsx)

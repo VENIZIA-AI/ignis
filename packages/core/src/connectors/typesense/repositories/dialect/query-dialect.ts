@@ -1,11 +1,16 @@
 import { QueryOperators, Sorts } from '@/base/repositories/common/operators';
-import type { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
+import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
 import type {
   ISearchQuery,
   ISearchQueryDialect,
   TSearchInput,
 } from '@/connectors/search/repositories/common';
 import { SearchModes } from '@/connectors/search/repositories/common';
+import {
+  isOperatorObject,
+  toFieldsCsv,
+  toSearchPage,
+} from '@/connectors/search/repositories/common/dialect-helpers';
 import type { ITypesenseSearchQuery } from '@/connectors/typesense/repositories/common';
 import { getError } from '@venizia/ignis-helpers';
 
@@ -42,21 +47,7 @@ class SearchWireKeys {
     from: 'groupMissingValues',
     to: 'group_missing_values',
   };
-  static readonly NUM_TYPOS = { from: 'numTypos', to: 'num_typos' };
-  static readonly USE_CACHE = { from: 'useCache', to: 'use_cache' };
-  static readonly CACHE_TTL = { from: 'cacheTtl', to: 'cache_ttl' };
-  static readonly EXHAUSTIVE_SEARCH = { from: 'exhaustiveSearch', to: 'exhaustive_search' };
-  static readonly PINNED_HITS = { from: 'pinnedHits', to: 'pinned_hits' };
-  static readonly HIDDEN_HITS = { from: 'hiddenHits', to: 'hidden_hits' };
   static readonly QUERY_BY_WEIGHTS = { from: 'queryByWeights', to: 'query_by_weights' };
-  static readonly PRIORITIZE_EXACT_MATCH = {
-    from: 'prioritizeExactMatch',
-    to: 'prioritize_exact_match',
-  };
-  static readonly DROP_TOKENS_THRESHOLD = {
-    from: 'dropTokensThreshold',
-    to: 'drop_tokens_threshold',
-  };
 
   private static readonly ENTRIES = [
     SearchWireKeys.QUERY,
@@ -78,20 +69,17 @@ class SearchWireKeys {
     SearchWireKeys.GROUP_BY,
     SearchWireKeys.GROUP_LIMIT,
     SearchWireKeys.GROUP_MISSING_VALUES,
-    SearchWireKeys.NUM_TYPOS,
-    SearchWireKeys.USE_CACHE,
-    SearchWireKeys.CACHE_TTL,
-    SearchWireKeys.EXHAUSTIVE_SEARCH,
-    SearchWireKeys.PINNED_HITS,
-    SearchWireKeys.HIDDEN_HITS,
     SearchWireKeys.QUERY_BY_WEIGHTS,
-    SearchWireKeys.PRIORITIZE_EXACT_MATCH,
-    SearchWireKeys.DROP_TOKENS_THRESHOLD,
   ];
+
+  /** camelCase field -> wire key, built once from ENTRIES so `wireKey` is O(1) per lookup, not O(n) per field per query. */
+  private static readonly WIRE_BY_FIELD: Record<string, string> = Object.fromEntries(
+    SearchWireKeys.ENTRIES.map(entry => [entry.from, entry.to]),
+  );
 
   /** Resolves a camelCase field to its wire key; unmapped keys (`page`, `offset`) pass through. */
   static wireKey(field: string): string {
-    return SearchWireKeys.ENTRIES.find(entry => entry.from === field)?.to ?? field;
+    return SearchWireKeys.WIRE_BY_FIELD[field] ?? field;
   }
 }
 
@@ -101,11 +89,10 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): ITypesenseSearchQuery {
     const { filter, hiddenFields } = opts;
 
-    if (!filter) {
-      return { query: '*' };
-    }
-
-    const { where, fields, order, limit, skip, offset, include } = filter;
+    // No early return on a missing filter: `search({ mode: 'keyword', query: 'john' })` carries no
+    // filter at all, and short-circuiting here skipped the exclude-fields block below - so every
+    // filterless search returned the model's `hiddenProperties`.
+    const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
       throw getError({
@@ -133,11 +120,11 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
 
     const effectiveSkip = skip ?? offset;
     if (effectiveSkip !== undefined) {
-      query.page = this.toPage({ skip: effectiveSkip, limit });
+      query.page = toSearchPage({ skip: effectiveSkip, limit });
     }
 
     if (fields) {
-      query.includeFields = this.toFieldsCsv({ fields });
+      query.includeFields = toFieldsCsv({ fields });
     }
 
     if (hiddenFields && hiddenFields.length > 0) {
@@ -165,7 +152,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
     return engineParams ? { ...wire, ...engineParams } : wire;
   }
 
-  /** Writes the mode dispatch, the vector clause and Typesense's tuning knobs onto `query`. Everything
+  /** Writes the mode dispatch, the vector clause and the `prefix` default onto `query`. Everything
    * engine-specific about a non-raw search lives here, so the repository tier stays neutral. */
   applySearchInput(opts: { query: ISearchQuery; input: TTranslatableSearchInput }): void {
     const { input } = opts;
@@ -318,52 +305,14 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       query.groupMissingValues = input.groupMissingValues;
     }
 
-    if (input.numTypos !== undefined) {
-      query.numTypos = input.numTypos;
-    }
-
-    if (input.prefix !== undefined) {
-      query.prefix = input.prefix;
-    }
-
-    if (input.infix !== undefined) {
-      query.infix = input.infix;
-    }
-
-    if (input.useCache !== undefined) {
-      query.useCache = input.useCache;
-    }
-
-    if (input.cacheTtl !== undefined) {
-      query.cacheTtl = input.cacheTtl;
-    }
-
-    if (input.exhaustiveSearch !== undefined) {
-      query.exhaustiveSearch = input.exhaustiveSearch;
-    }
-
-    if (input.pinnedHits !== undefined) {
-      query.pinnedHits = input.pinnedHits;
-    }
-
-    if (input.hiddenHits !== undefined) {
-      query.hiddenHits = input.hiddenHits;
-    }
-
     if (input.queryByWeights) {
       query.queryByWeights = input.queryByWeights.join(',');
     }
 
-    if (input.prioritizeExactMatch !== undefined) {
-      query.prioritizeExactMatch = input.prioritizeExactMatch;
-    }
-
-    if (input.dropTokensThreshold !== undefined) {
-      query.dropTokensThreshold = input.dropTokensThreshold;
-    }
-
-    if (input.preset !== undefined) {
-      query.preset = input.preset;
+    // engineParams carries Typesense's own wire-keyed tuning params (num_typos/prefix/pinned_hits/preset/...),
+    // merged verbatim by toWireParams; carried onto the query here so the single-search path reaches that merge.
+    if (input.engineParams) {
+      query.engineParams = input.engineParams;
     }
   }
 
@@ -396,26 +345,9 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       }
     }
 
-    return clauses.join(' && ');
-  }
-
-  private toPage(opts: { skip: number; limit?: number }): number {
-    const { skip, limit } = opts;
-
-    if (limit === undefined) {
-      throw getError({
-        message:
-          '[TypesenseQueryDialect][build] skip/offset requires limit for search() pagination - a page cannot be expressed without a page size',
-      });
-    }
-
-    if (skip % limit !== 0) {
-      throw getError({
-        message: '[build] skip must be a multiple of limit for search pagination',
-      });
-    }
-
-    return Math.floor(skip / limit) + 1;
+    // An empty logical group (`and: []`, `or: [{}]`) compiles to '' - joining it would emit a
+    // dangling '&&' Typesense rejects as a malformed filter_by.
+    return clauses.filter(clause => clause.length > 0).join(' && ');
   }
 
   private toOrderBy(opts: { order: string[] }): string {
@@ -441,23 +373,6 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
         return `${field}:${normalizedDirection}`;
       })
       .join(',');
-  }
-
-  private toFieldsCsv(opts: { fields: TFields }): string {
-    const { fields } = opts;
-
-    if (Array.isArray(fields)) {
-      return fields.join(',');
-    }
-
-    const included: string[] = [];
-    for (const key in fields) {
-      if (fields[key] === true) {
-        included.push(key);
-      }
-    }
-
-    return included.join(',');
   }
 
   private buildLogicalGroup(opts: { value: unknown; joiner: string }): string {
@@ -488,7 +403,7 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
       return `${field}:=[${this.escapeArray({ field, value })}]`;
     }
 
-    if (!this.isOperatorObject(value)) {
+    if (!isOperatorObject(value)) {
       return `${field}:=${this.escapeValue({ field, value })}`;
     }
 
@@ -557,14 +472,6 @@ export class TypesenseQueryDialect implements ISearchQueryDialect {
         });
       }
     }
-  }
-
-  private isOperatorObject(value: unknown): value is Record<string, unknown> {
-    if (value === null || Array.isArray(value) || typeof value !== 'object') {
-      return false;
-    }
-
-    return Object.keys(value).length > 0;
   }
 
   private escapeValue(opts: { field?: string; value: unknown }): string {

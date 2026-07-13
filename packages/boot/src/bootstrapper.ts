@@ -21,28 +21,50 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
 
   async boot(opts: IBootExecutionOptions): Promise<IBootReport> {
     const { phases = BOOT_PHASES, booters } = opts;
+    const startedAt = performance.now();
 
-    await this.discoverBooters();
+    await this.discoverBooters({ booterNames: booters });
     this.logger
       .for(this.boot.name)
       .debug(`Starting boot | Number of booters: %d`, this.booters.length);
+
     for (const phase of phases) {
-      await this.runPhase({ phase, booterNames: booters });
+      await this.runPhase({ phase });
     }
-    return this.generateReport();
+
+    return this.generateReport({ phases, totalDurationMs: performance.now() - startedAt });
   }
 
-  private async discoverBooters(): Promise<void> {
+  private async discoverBooters(opts: { booterNames?: string[] }): Promise<void> {
+    const { booterNames } = opts;
+
+    // Reset first: pushing onto the previous run's list would register every artifact again -
+    // duplicate controllers, duplicate repository bindings - on a second boot().
+    this.booters = [];
+    this.phaseStartTimings.clear();
+    this.phaseEndTimings.clear();
+
+    const wanted = booterNames?.length ? new Set(booterNames) : undefined;
     const booterBindings = this.application.findByTag<IBooter>({ tag: 'booter' });
 
     for (const binding of booterBindings) {
-      this.booters.push(binding.getValue(this.application));
+      const booter = binding.getValue(this.application);
+
+      // An ignored filter is worse than no filter: the caller believes it scoped the boot.
+      if (wanted && !wanted.has(booter.constructor.name)) {
+        this.logger
+          .for(this.discoverBooters.name)
+          .debug(`SKIP booter not in filter | Booter: %s`, booter.constructor.name);
+        continue;
+      }
+
+      this.booters.push(booter);
       this.logger.for(this.discoverBooters.name).debug(`Discovered booter: %s`, binding.key);
     }
   }
 
-  private async runPhase(opts: { phase: TBootPhase; booterNames?: string[] }): Promise<void> {
-    const { phase } = opts; // TODO: booterNames filtering can be implemented later
+  private async runPhase(opts: { phase: TBootPhase }): Promise<void> {
+    const { phase } = opts;
     this.phaseStartTimings.set(phase, performance.now());
     this.logger.for(this.runPhase.name).debug(`Starting phase: %s`, phase.toUpperCase());
 
@@ -77,8 +99,11 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
       } catch (error) {
         const errorMessage = (error as Error)?.message || String(error);
 
+        // Without the cause, a boot failure reaches the operator as a bare message: the stack of the
+        // booter that actually threw - the real diagnosis - is gone.
         throw getError({
           message: `[Bootstrapper][runPhase] Error during phase '${phase}' on booter '${booter.constructor.name}': ${errorMessage}`,
+          cause: error,
         });
       }
     }
@@ -93,8 +118,19 @@ export class Bootstrapper extends BaseHelper implements IBootstrapper {
       .debug(`Completed phase: %s | Took: %d ms`, phase.toUpperCase(), duration);
   }
 
-  private generateReport(): IBootReport {
-    const report: IBootReport = {};
+  private generateReport(opts: { phases: TBootPhase[]; totalDurationMs: number }): IBootReport {
+    const { phases, totalDurationMs } = opts;
+
+    const report: IBootReport = {
+      booters: this.booters.map(booter => booter.constructor.name),
+      phases: phases.map(phase => ({
+        phase,
+        durationMs:
+          (this.phaseEndTimings.get(phase) ?? 0) - (this.phaseStartTimings.get(phase) ?? 0),
+      })),
+      totalDurationMs,
+    };
+
     this.logger.for(this.generateReport.name).debug(`Boot report: %j`, report);
 
     return report;

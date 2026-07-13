@@ -136,8 +136,7 @@ export interface IControllerOptions {
 
 /** Per-route authentication config: { skip: true } or { strategies, mode }. */
 export type TRouteAuthenticateConfig =
-  | { skip: true }
-  | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+  { skip: true } | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
 
 /** Per-route authorization config: { skip: true }, single spec, or array of specs. */
 export type TRouteAuthorizeConfig = { skip: true } | IAuthorizationSpec | IAuthorizationSpec[];

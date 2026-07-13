@@ -91,9 +91,7 @@ export abstract class RelationalBaseRepository<
 
   /** Hidden fields as a memoized Set, derived from the base's class-keyed `hiddenFields` array. */
   getHiddenProperties(): Set<string> {
-    if (this._hiddenPropertySet === null) {
-      this._hiddenPropertySet = new Set(this.hiddenFields);
-    }
+    this._hiddenPropertySet ??= new Set(this.hiddenFields);
     return this._hiddenPropertySet;
   }
 
@@ -178,7 +176,6 @@ export abstract class RelationalBaseRepository<
     const hiddenProps = this.getHiddenProperties();
 
     if (result.columns) {
-      // User specified fields - filter out hidden (single loop)
       const filteredColumns: Record<string, boolean> = {};
       for (const key in result.columns) {
         if (!hiddenProps.has(key)) {
@@ -189,7 +186,6 @@ export abstract class RelationalBaseRepository<
       return result;
     }
 
-    // No fields specified - use cached visible properties keys
     const visibleProps = this.getVisibleProperties();
     if (visibleProps) {
       const filteredColumns: Record<string, boolean> = {};
@@ -344,7 +340,31 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // updateBy is inherited as-is - it already delegates to this class's overridden updateAll.
+  // Re-declared (not just inherited): the base alias was widened to `Array<R> | null` for the
+  // search family; postgres HAS RETURNING, so its alias surface must stay exactly `Array<R>`.
+  override updateBy(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override updateBy<R = DataObject>(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override updateBy<R = DataObject>(opts: {
+    data: Partial<PersistObject>;
+    where: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { data, where, options } = opts;
+
+    if (options?.shouldReturn === false) {
+      return this.updateAll({ data, where, options: { ...options, shouldReturn: false } });
+    }
+
+    return this.updateAll<R>({ data, where, options });
+  }
 
   abstract override deleteById(opts: {
     id: IdType;
@@ -366,5 +386,25 @@ export abstract class RelationalBaseRepository<
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
   }): Promise<TCount & { data: Array<R> }>;
 
-  // deleteBy is inherited as-is - same rationale as updateBy above.
+  // Same rationale as updateBy above: keep the postgres alias surface at `Array<R>`.
+  override deleteBy(opts: {
+    where?: TWhere<DataObject>;
+    options: ExtraOptions & { shouldReturn: false; force?: boolean };
+  }): Promise<TCount & { data: undefined | null }>;
+  override deleteBy<R = DataObject>(opts: {
+    where?: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
+  }): Promise<TCount & { data: Array<R> }>;
+  override deleteBy<R = DataObject>(opts: {
+    where?: TWhere<DataObject>;
+    options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
+  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    const { where, options } = opts;
+
+    if (options?.shouldReturn === false) {
+      return this.deleteAll({ where, options: { ...options, shouldReturn: false } });
+    }
+
+    return this.deleteAll<R>({ where, options });
+  }
 }

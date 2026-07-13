@@ -1,10 +1,26 @@
 import type { IConfigurable, TConstValue } from '@venizia/ignis-helpers';
 
 export class DataSourceDrivers {
+  // Relational
   static readonly NODE_POSTGRES = 'node-postgres';
-  static readonly TYPESENSE = 'typesense';
+  static readonly POSTGRES_JS = 'postgres-js';
 
-  static readonly SCHEME_SET = new Set([this.NODE_POSTGRES, this.TYPESENSE]);
+  // Search
+  static readonly TYPESENSE = 'typesense';
+  static readonly MEILISEARCH = 'meilisearch';
+
+  static readonly RELATIONAL_SCHEME_SET = new Set([this.NODE_POSTGRES, this.POSTGRES_JS]);
+  static readonly SEARCH_SCHEME_SET = new Set([this.TYPESENSE, this.MEILISEARCH]);
+
+  static readonly SCHEME_SET = new Set([
+    // Relational
+    this.NODE_POSTGRES,
+    this.POSTGRES_JS,
+
+    // Search
+    this.TYPESENSE,
+    this.MEILISEARCH,
+  ]);
 
   static isValid(value: string): boolean {
     return this.SCHEME_SET.has(value);
@@ -43,7 +59,6 @@ export interface ITransactionOptions {
 /** Neutral transaction handle - the minimum shape every connector's transaction satisfies. */
 export interface ITransaction {
   isActive: boolean;
-
   commit(): Promise<void>;
   rollback(): Promise<void>;
 }
@@ -53,7 +68,6 @@ export interface IDataSourceCapabilities {
 }
 
 export interface ISearchableDataSourceCapabilities extends IDataSourceCapabilities {
-  // Options for search engine
   search?: {
     /** Vector / semantic / hybrid search (search engines). */
     vector?: boolean;

@@ -1,11 +1,12 @@
 import { Defaults } from '@/common/constants';
 import { TConstValue } from '@/common/types';
 import { int } from '@/utilities/parse.utility';
+import { getError } from '@venizia/ignis-inversion';
 import path from 'node:path';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
+import { deepSplat } from './formatters/';
 import { DgramTransport, IDgramTransportOptions } from './transports';
-import { getError } from '@venizia/ignis-inversion';
 
 const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? './';
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
@@ -35,7 +36,7 @@ export const defineJsonLoggerFormatter = (opts: { label: string }) => {
   return f.combine(
     f.label({ label: opts.label }),
     f.timestamp(),
-    f.splat(),
+    deepSplat(),
     f.errors({ stack: true }),
     f.json(),
     f.colorize(),
@@ -47,7 +48,7 @@ export const definePrettyLoggerFormatter = (opts: { label: string }) => {
     f.simple(),
     f.label({ label: opts.label }),
     f.timestamp(),
-    f.splat(),
+    deepSplat(),
     f.align(),
     f.colorize(),
     f.printf(({ level, message, label, timestamp }) => {

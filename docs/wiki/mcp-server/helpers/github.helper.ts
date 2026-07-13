@@ -25,7 +25,7 @@ interface IGithubApiResponse {
 
 const getError = (opts: { message: string; status?: number }): IGithubError => ({
   error: opts.message,
-  status: opts.status || 500,
+  status: opts.status ?? 500,
 });
 
 export class GithubHelper {

@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 /** High-Frequency Logger Test Suite */
 
 import { describe, test, expect, beforeEach, spyOn, afterEach } from 'bun:test';
@@ -231,7 +232,7 @@ describe('High-Frequency Logger', () => {
     test('TC-030: should start background flush loop', () => {
       const flusher = new HfLogFlusher();
       const setIntervalSpy = spyOn(globalThis, 'setInterval').mockImplementation(
-        () => 1 as unknown as ReturnType<typeof setInterval>,
+        () => 1 as AnyType as ReturnType<typeof setInterval>,
       );
 
       flusher.start(100);
@@ -244,7 +245,7 @@ describe('High-Frequency Logger', () => {
     test('TC-031: should use default interval of 100ms', () => {
       const flusher = new HfLogFlusher();
       const setIntervalSpy = spyOn(globalThis, 'setInterval').mockImplementation(
-        () => 1 as unknown as ReturnType<typeof setInterval>,
+        () => 1 as AnyType as ReturnType<typeof setInterval>,
       );
 
       flusher.start();
@@ -257,7 +258,7 @@ describe('High-Frequency Logger', () => {
     test('TC-032: should use custom interval', () => {
       const flusher = new HfLogFlusher();
       const setIntervalSpy = spyOn(globalThis, 'setInterval').mockImplementation(
-        () => 1 as unknown as ReturnType<typeof setInterval>,
+        () => 1 as AnyType as ReturnType<typeof setInterval>,
       );
 
       flusher.start(50);

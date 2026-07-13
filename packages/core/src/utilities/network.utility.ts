@@ -17,7 +17,6 @@ export const getIncomingIp = (context: Context): string | null => {
     const connInfo = getConnInfo(context);
     return connInfo?.remote?.address ?? null;
   } catch {
-    // getConnInfo not available or failed
     return null;
   }
 };

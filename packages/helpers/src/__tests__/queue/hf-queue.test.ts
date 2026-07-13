@@ -68,6 +68,40 @@ describe('HfQueueHelper — generic FIFO queue (O(1) enqueue/dequeue/cancel)', (
     expect(q.dequeue()).toBeNull();
   });
 
+  test('BUG: cancelling a node that drain() already handed out must not corrupt size', () => {
+    const q = new HfQueueHelper<string>();
+    const a = q.enqueue({ value: 'a' });
+    const b = q.enqueue({ value: 'b' });
+
+    expect(q.drain()).toEqual(['a', 'b']);
+    expect(q.size).toBe(0);
+
+    // A drained owner (e.g. a pool waiter whose acquire timer fires after destroy()) still holds its
+    // node handle. dequeue() marks consumed nodes so a late cancel() is a no-op; drain() must too.
+    q.cancel({ node: a });
+    q.cancel({ node: b });
+    expect(q.size).toBe(0);
+
+    q.enqueue({ value: 'c' });
+    expect(q.size).toBe(1);
+    expect(q.dequeue()).toBe('c');
+    expect(q.size).toBe(0);
+    expect(q.dequeue()).toBeNull();
+  });
+
+  test('backing array stays bounded under sustained one-in/one-out traffic (no head-index leak)', () => {
+    const q = new HfQueueHelper<number>();
+    const nodes = q['nodes'] as Array<unknown>;
+
+    for (let index = 0; index < 5_000; index += 1) {
+      q.enqueue({ value: index });
+      expect(q.dequeue()).toBe(index);
+    }
+
+    expect(q.size).toBe(0);
+    expect(nodes.length).toBeLessThanOrEqual(HfQueueHelper['COMPACT_THRESHOLD'] + 1);
+  });
+
   test('interleaved enqueue/dequeue with cancellations stays consistent', () => {
     const q = new HfQueueHelper<number>();
     q.enqueue({ value: 1 });

@@ -50,4 +50,14 @@ export interface IBootstrapper {
   boot(opts: IBootExecutionOptions): Promise<IBootReport>;
 }
 
-export interface IBootReport {}
+export interface IBootPhaseReport {
+  phase: TBootPhase;
+  durationMs: number;
+}
+
+export interface IBootReport {
+  /** Class names of the booters that actually ran, in execution order. */
+  booters: string[];
+  phases: IBootPhaseReport[];
+  totalDurationMs: number;
+}

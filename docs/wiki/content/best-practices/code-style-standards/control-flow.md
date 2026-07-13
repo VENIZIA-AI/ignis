@@ -107,6 +107,9 @@ this.logger.info('[create] User created | ID: %s | Email: %s', user.id, user.ema
 this.logger.debug('[config] Server options: %j', this.serverOptions);
 ```
 
+> [!NOTE]
+> `%j` on an `Error` instance drops `message` and `stack` -- they are non-enumerable, so `JSON.stringify` never sees them. Use `%s` for errors, `%j`/`%o` for plain data objects. An object passed to `%s` is inspected up to `APP_ENV_LOGGER_INSPECT_DEPTH` levels deep (default `5`) instead of Node's hard-coded `depth: 0`, so nested fields print instead of collapsing to `[Object]`. See [Logger Helper](/extensions/helpers/logger/) for details.
+
 ### Log Levels
 
 | Level | Use For |

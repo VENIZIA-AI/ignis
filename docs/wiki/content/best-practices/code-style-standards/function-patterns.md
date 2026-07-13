@@ -56,7 +56,7 @@ Use consistent prefixes based on function purpose:
 |--------|---------|----------|
 | `generate*` | Create column definitions / schemas | `generateIdColumnDefs()`, `generateTzColumnDefs()` |
 | `build*` | Construct complex objects | `buildValueCondition()`, `buildJsonOrderBy()` |
-| `to*` | Convert/transform data | `toCamel()`, `toBoolean()`, `toStringDecimal()` |
+| `to*` | Convert/transform data | `toCamel()`, `toBoolean()` |
 | `is*` | Boolean validation/check | `isWeekday()`, `isInt()`, `isFloat()`, `isPromiseLike()` |
 | `extract*` | Pull out specific parts | `extractTimestamp()`, `extractWorkerId()`, `extractSequence()` |
 | `enrich*` | Enhance with additional data | `enrichUserAudit()`, `enrichWithMetadata()` |
@@ -77,7 +77,6 @@ const orderBy = buildJsonOrderBy(schema, path, direction);
 // Converters - transform data types
 const camelCase = toCamel('snake_case');
 const bool = toBoolean('true');
-const decimal = toStringDecimal(123.456, 2);
 
 // Validators - boolean checks
 if (isWeekday(date)) { /* ... */ }

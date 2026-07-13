@@ -2,7 +2,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import { BaseStorageHelper } from '@/modules/storage/base';
-import { IBucketInfo, IUploadFile, IUploadResult, IFileStat } from '@/modules';
+import { IBucketInfo, IUploadFile, IFileStat } from '@/modules';
 import { Readable } from 'node:stream';
 
 // Concrete subclass to test abstract base methods
@@ -22,12 +22,14 @@ class TestHelper extends BaseStorageHelper {
   override removeBucket(_opts: { name: string }): Promise<boolean> {
     throw new Error('Method not implemented.');
   }
-  override upload(_opts: {
+  protected override get defaultLinkPrefix(): string {
+    return '/test-assets/';
+  }
+  protected override writeObject(_opts: {
     bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (_opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (_opts: { bucketName: string; normalizeName: string }) => string;
-  }): Promise<IUploadResult[]> {
+    normalizeName: string;
+    file: IUploadFile;
+  }): Promise<void> {
     throw new Error('Method not implemented.');
   }
   override getFile(_opts: { bucket: string; name: string; options?: any }): Promise<Readable> {

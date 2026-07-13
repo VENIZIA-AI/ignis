@@ -51,14 +51,18 @@ describe('PersistableRepository.validateWhereCondition (resolved-SQL emptiness)'
     expect(() => repo.callValidateWhere({ and: [] })).toThrow(/Empty where condition/);
   });
 
-  test('does NOT throw for a real condition; returns false', () => {
+  test('does NOT throw for a real condition; reports isEmptyWhere false', () => {
     expect(() => repo.callValidateWhere({ status: 'active' })).not.toThrow();
-    expect(repo.callValidateWhere({ status: 'active' })).toBe(false);
+    expect(repo.callValidateWhere({ status: 'active' }).isEmptyWhere).toBe(false);
   });
 
-  test('force bypasses the guard and reports empty (true)', () => {
+  test('does NOT throw for a real condition; returns the built condition', () => {
+    expect(repo.callValidateWhere({ status: 'active' }).condition).toBeDefined();
+  });
+
+  test('force bypasses the guard and reports empty (isEmptyWhere true)', () => {
     expect(() => repo.callValidateWhere({}, true)).not.toThrow();
-    expect(repo.callValidateWhere({ status: undefined }, true)).toBe(true);
+    expect(repo.callValidateWhere({ status: undefined }, true).isEmptyWhere).toBe(true);
   });
 });
 

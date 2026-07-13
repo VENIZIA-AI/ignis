@@ -70,10 +70,10 @@ class PostgresDivergedDataSource extends BasePostgresDataSource<{}> {
 }
 
 @repository({ model: DivergedEntity, dataSource: PostgresDivergedDataSource })
-class _DivergedRepo {}
+class DivergedRepo {}
 
 @repository({ model: PlainEntity, dataSource: PostgresDivergedDataSource })
-class _PlainRepo {}
+class PlainRepo {}
 
 describe('registry dual-key: registerRepositoryBinding keys by the SAME formula as registerModel', () => {
   test('postgres buildSchema() sees a model whose @model tableName diverges from its class/static name', () => {
@@ -94,8 +94,8 @@ describe('registry dual-key: registerRepositoryBinding keys by the SAME formula 
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _DivergedRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _PlainRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: DivergedRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: PlainRepo.name })).toBeDefined();
   });
 });
 
@@ -104,13 +104,9 @@ class SearchDivergedDataSource extends BaseSearchDataSource<{}> {
     super(opts);
   }
 
-  configure(): void {
-    // no-op fixture.
-  }
-
-  getConnector(): ISearchConnector {
+  protected createConnector(): ISearchConnector {
     throw getError({
-      message: '[SearchDivergedDataSource][getConnector] Not needed for this test',
+      message: '[SearchDivergedDataSource][createConnector] Not needed for this test',
     });
   }
 
@@ -136,7 +132,7 @@ class DivergedSearchDocument extends BaseSearchEntity {
 }
 
 @repository({ model: DivergedSearchDocument, dataSource: SearchDivergedDataSource })
-class _DivergedSearchRepo {}
+class DivergedSearchRepo {}
 
 describe('registry dual-key: search-branch discovery sees a diverged tableName model', () => {
   test('getSchema() (getModelClasses -> discoverCollections) sees the collection', () => {
@@ -149,7 +145,7 @@ describe('registry dual-key: search-branch discovery sees a diverged tableName m
 
   test('@repository binding was registered', () => {
     const registry = MetadataRegistry.getInstance();
-    expect(registry.getRepositoryBinding({ name: _DivergedSearchRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: DivergedSearchRepo.name })).toBeDefined();
   });
 });
 

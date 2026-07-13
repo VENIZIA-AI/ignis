@@ -2,13 +2,13 @@ import type { AbstractEntity } from '@/base/models/base';
 import type { AbstractRepository } from '@/base/repositories';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { AnyType, TNullable } from '@venizia/ignis-helpers';
-import { executeWithPerformanceMeasure, HTTP, toBoolean } from '@venizia/ignis-helpers';
+import { HTTP, toBoolean } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';
 import type { TEntityDataObject, TEntityPersistObject, TRouteContext } from '../../common';
 import { BaseRestController } from '../../rest/base';
 
-/** Base tier of a generated CRUD controller: the repository handle plus the shared response/measure
- * helpers. Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
+/** Base tier of a generated CRUD controller: the repository handle plus the shared response helpers.
+ * Read and write verbs are layered on by ReadableCrudController / PersistableCrudController. */
 export abstract class AbstractCrudController<
   TEntity extends AbstractEntity<TAnyObjectSchema> = AbstractEntity<TAnyObjectSchema>,
   RouteEnv extends Env = Env,
@@ -52,18 +52,6 @@ export abstract class AbstractCrudController<
     }
 
     return responseData.data;
-  }
-
-  /** Runs a handler task under performance measurement (fixed logger/level/description). */
-  measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R> }) {
-    return executeWithPerformanceMeasure({
-      logger: this.logger,
-      level: 'debug',
-      scope: opts.scope,
-      description: `execute ${opts.scope}`,
-      args: opts.args,
-      task: opts.task,
-    });
   }
 
   /** Sets the response-format header, then normalizes count/data per the request-count header. */

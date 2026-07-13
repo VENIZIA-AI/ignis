@@ -3,7 +3,8 @@ import { RuntimeModules, TRuntimeModule } from '@/common/constants';
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TRedisClient } from '@/modules/redis';
+import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
+import { voidExecution } from '@/utilities/promise.utility';
 import { createAdapter } from '@socket.io/redis-adapter';
 import { Emitter } from '@socket.io/redis-emitter';
 import isEmpty from 'lodash/isEmpty';
@@ -117,6 +118,21 @@ export class SocketIOServerHelper extends BaseHelper {
     return this.io;
   }
 
+  /**
+   * User handlers run inside socket.io event listeners: a synchronous throw there is an uncaught
+   * exception that takes the process down. voidExecution only settles promises, it never sees a
+   * sync throw because its argument is already evaluated at the call site.
+   */
+  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+    const { scope, execution } = opts;
+
+    try {
+      voidExecution({ logger: this.logger, scope, execution: execution() });
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
+  }
+
   getEngine() {
     if (this.runtime !== RuntimeModules.BUN) {
       throw getError({
@@ -156,19 +172,6 @@ export class SocketIOServerHelper extends BaseHelper {
     this.io.on(topic, handler);
   }
 
-  private waitForRedisReady(client: TRedisClient): Promise<void> {
-    return new Promise((resolve, reject) => {
-      if (client.status === 'ready') {
-        resolve();
-        return;
-      }
-
-      const emitter = client as EventEmitter;
-      emitter.once('ready', () => resolve());
-      emitter.once('error', (error: Error) => reject(error));
-    });
-  }
-
   async configure() {
     const logger = this.logger.for(this.configure.name);
     logger.info('Configuring IO Server | id: %s | runtime: %s', this.identifier, this.runtime);
@@ -185,17 +188,16 @@ export class SocketIOServerHelper extends BaseHelper {
       logger.error('Redis emitter error | error: %s', error);
     });
 
-    // Ensure duplicated clients connect (they inherit lazyConnect from parent)
-    for (const client of [this.redisPub, this.redisSub, this.redisEmitter]) {
-      if (client.status === 'wait') {
-        client.connect();
-      }
-    }
+    ensureRedisClientsConnecting({
+      clients: [this.redisPub, this.redisSub, this.redisEmitter],
+      logger: this.logger,
+      scope: this.configure.name,
+    });
 
     await Promise.all([
-      this.waitForRedisReady(this.redisPub),
-      this.waitForRedisReady(this.redisSub),
-      this.waitForRedisReady(this.redisEmitter),
+      waitForRedisReady({ client: this.redisPub }),
+      waitForRedisReady({ client: this.redisSub }),
+      waitForRedisReady({ client: this.redisEmitter }),
     ]);
     logger.info('All Redis connections ready');
 
@@ -310,7 +312,8 @@ export class SocketIOServerHelper extends BaseHelper {
 
       currentClient.state = SocketIOClientStates.AUTHENTICATING;
 
-      Promise.resolve(this.authenticateFn(handshake))
+      Promise.resolve()
+        .then(() => this.authenticateFn(handshake))
         .then((rs: boolean) => {
           if (!this.clients.has(id)) {
             authLogger.info('Client disconnected during authentication | id: %s', id);
@@ -338,7 +341,7 @@ export class SocketIOServerHelper extends BaseHelper {
                 time: new Date().toISOString(),
               },
             },
-            cb: () => {
+            callback: () => {
               this.disconnect({ socket });
             },
           });
@@ -361,7 +364,7 @@ export class SocketIOServerHelper extends BaseHelper {
               },
             },
             doLog: true,
-            cb: () => {
+            callback: () => {
               this.disconnect({ socket });
             },
           });
@@ -386,8 +389,14 @@ export class SocketIOServerHelper extends BaseHelper {
       return;
     }
 
-    // Update state & clear auth timeout
     client.state = SocketIOClientStates.AUTHENTICATED;
+
+    // The authenticate deadline is over: leaving it armed keeps a timer per client alive
+    if (client.authenticateTimeout) {
+      clearTimeout(client.authenticateTimeout);
+      client.authenticateTimeout = undefined;
+    }
+
     this.ping({ socket, doIgnoreAuth: true });
 
     logger.info(
@@ -427,11 +436,10 @@ export class SocketIOServerHelper extends BaseHelper {
       },
     });
 
-    this.onClientConnected?.({ socket })
-      ?.then(() => {})
-      .catch(error => {
-        this.logger.for('clientConnectedFn').error('Handler error | error: %s', error);
-      });
+    this.invokeHook({
+      scope: 'clientConnectedFn',
+      execution: () => this.onClientConnected?.({ socket }),
+    });
   }
 
   private registerRoomHandlers(opts: { socket: IOSocket; clientId: string }) {
@@ -439,12 +447,13 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const joinLogger = this.logger.for(SocketIOConstants.EVENT_JOIN);
     socket.on(SocketIOConstants.EVENT_JOIN, (payload: any) => {
-      const { rooms = [] } = payload || { rooms: [] };
+      const { rooms = [] } = payload ?? { rooms: [] };
       if (!rooms?.length) {
         return;
       }
 
-      if (!this.validateRoomFn) {
+      const validateRoomFn = this.validateRoomFn;
+      if (!validateRoomFn) {
         joinLogger.warn(
           'Join rejected | id: %s | rooms: %j | reason: no validateRoomFn configured',
           id,
@@ -453,7 +462,8 @@ export class SocketIOServerHelper extends BaseHelper {
         return;
       }
 
-      Promise.resolve(this.validateRoomFn({ socket, rooms }))
+      Promise.resolve()
+        .then(() => validateRoomFn({ socket, rooms }))
         .then((allowedRooms: string[]) => {
           if (!allowedRooms?.length) {
             joinLogger.warn(
@@ -467,7 +477,11 @@ export class SocketIOServerHelper extends BaseHelper {
           joinLogger.info('Joining rooms | id: %s | rooms: %j', id, allowedRooms);
 
           for (const room of allowedRooms) {
-            socket.join(room);
+            voidExecution({
+              logger: this.logger,
+              scope: SocketIOConstants.EVENT_JOIN,
+              execution: socket.join(room),
+            });
           }
 
           joinLogger.info('Joined rooms | id: %s | rooms: %s', id, allowedRooms);
@@ -484,7 +498,7 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const leaveLogger = this.logger.for(SocketIOConstants.EVENT_LEAVE);
     socket.on(SocketIOConstants.EVENT_LEAVE, (payload: any) => {
-      const { rooms = [] } = payload || { rooms: [] };
+      const { rooms = [] } = payload ?? { rooms: [] };
       if (!rooms?.length) {
         return;
       }
@@ -561,10 +575,10 @@ export class SocketIOServerHelper extends BaseHelper {
     destination?: string;
     payload: { topic: string; data: any };
     doLog?: boolean;
-    cb?: () => void;
+    callback?: () => void;
   }) {
     const logger = this.logger.for(this.send.name);
-    const { destination, payload, doLog, cb } = opts;
+    const { destination, payload, doLog, callback } = opts;
 
     if (!payload) {
       return;
@@ -572,6 +586,14 @@ export class SocketIOServerHelper extends BaseHelper {
 
     const { topic, data } = payload;
     if (!topic || !data) {
+      return;
+    }
+
+    if (!this.emitter) {
+      logger.error(
+        'Cannot emit | Redis emitter is not initialized | call configure() first | topic: %s',
+        topic,
+      );
       return;
     }
 
@@ -583,8 +605,8 @@ export class SocketIOServerHelper extends BaseHelper {
       sender.emit(topic, data);
     }
 
-    if (cb) {
-      setImmediate(cb);
+    if (callback) {
+      setImmediate(callback);
     }
 
     if (doLog) {
@@ -599,12 +621,25 @@ export class SocketIOServerHelper extends BaseHelper {
 
   private close() {
     return new Promise<void>((resolve, reject) => {
-      this.io.close(err => {
-        if (err) {
-          reject(err);
-          return;
-        }
+      // configure() may never have run (or may have failed): there is nothing to close, but the
+      // redis clients still have to be released by the caller
+      if (!this.io) {
+        this.logger.for('close').info('SKIP close | IOServer was never initialized');
         resolve();
+        return;
+      }
+
+      voidExecution({
+        logger: this.logger,
+        scope: 'close',
+        execution: this.io.close(error => {
+          if (error) {
+            reject(error);
+            return;
+          }
+
+          resolve();
+        }),
       });
     });
   }
@@ -626,9 +661,13 @@ export class SocketIOServerHelper extends BaseHelper {
     }
     this.clients.clear();
 
-    await this.close();
-
-    await Promise.all([this.redisPub?.quit(), this.redisSub?.quit(), this.redisEmitter?.quit()]);
+    try {
+      await this.close();
+    } finally {
+      // close() rejects when io.close() reports a lingering handle. Skipping the quits there leaves
+      // three live Redis sockets holding the event loop open, and a SIGTERM handler never returns.
+      await Promise.all([this.redisPub?.quit(), this.redisSub?.quit(), this.redisEmitter?.quit()]);
+    }
 
     logger.info('SocketIO server shutdown complete');
   }

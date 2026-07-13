@@ -48,8 +48,16 @@ const SearchFilterSchema = z
       'Search-scoped filter - same shape as the repository TFilter minus include (search has no relations)',
   });
 
-/** Shape object (NOT a z.object) so it can be spread into each mode's z.object - faceting/highlighting/
- * grouping/tuning params shared by keyword/semantic/hybrid. `raw` mode skips this - params go verbatim. */
+/**
+ * Shape object (NOT a z.object) so it can be spread into each mode's z.object - the faceting /
+ * highlighting / grouping params shared by keyword/semantic/hybrid. `raw` mode skips this - params
+ * go verbatim.
+ *
+ * Neutral means "supported by every search engine". Only genuinely cross-engine params live here.
+ * Engine-specific tuning (Typesense's `num_typos`/`prefix`/`pinned_hits`/`preset`, ... ) is NOT
+ * neutral - it goes through `engineParams`, keyed by the engine's OWN wire names, merged verbatim
+ * into the wire query by each dialect's `toWireParams`.
+ */
 const commonSearchParamsShape = {
   facetBy: z.array(z.string()).optional(),
   facetQuery: z.string().optional(),
@@ -65,19 +73,11 @@ const commonSearchParamsShape = {
   groupLimit: z.number().optional(),
   groupMissingValues: z.boolean().optional(),
 
-  numTypos: z.union([z.number(), z.string()]).optional(),
-  prefix: z.union([z.boolean(), z.string()]).optional(),
-  infix: z.string().optional(),
-  useCache: z.boolean().optional(),
-  cacheTtl: z.number().optional(),
-  exhaustiveSearch: z.boolean().optional(),
-  pinnedHits: z.string().optional(),
-  hiddenHits: z.string().optional(),
-
   queryByWeights: z.array(z.number()).optional(),
-  prioritizeExactMatch: z.boolean().optional(),
-  dropTokensThreshold: z.number().optional(),
-  preset: z.string().optional(),
+
+  /** Escape hatch for engine-specific tuning: keys are the engine's OWN wire names (`num_typos`,
+   * not `numTypos`), merged verbatim (unvalidated) into the wire query after every neutral param. */
+  engineParams: z.record(z.string(), z.unknown()).optional(),
 };
 
 const KeywordSearchSchema = z

@@ -1,3 +1,5 @@
+import type { AnyType } from '@/common/types';
+import { voidExecution } from '@/utilities/promise.utility';
 import { BaseHelper } from '@/modules/base';
 import isEmpty from 'lodash/isEmpty';
 import { EventEmitter } from 'node:events';
@@ -218,7 +220,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return null;
     }
 
-    return transform ? transform(value) : (value as unknown as T);
+    return transform ? transform(value) : (value as AnyType);
   }
 
   del(opts: { keys: Array<string> }): Promise<number> {
@@ -290,7 +292,7 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return [];
     }
 
-    return values.map(el => (el ? (transform ? transform(el) : (el as unknown as T)) : null));
+    return values.map(el => (el ? (transform ? transform(el) : (el as AnyType)) : null));
   }
 
   keys(opts: { key: string }): Promise<string[]> {
@@ -532,13 +534,17 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    this.client.subscribe(topic, (error, count) => {
-      if (error) {
-        logger.error('Failed to subscribe to topic: %s | Error: %s', topic, error);
-        return;
-      }
+    voidExecution({
+      logger: this.logger,
+      scope: this.subscribe.name,
+      execution: this.client.subscribe(topic, (error, count) => {
+        if (error) {
+          logger.error('Failed to subscribe to topic: %s | Error: %s', topic, error);
+          return;
+        }
 
-      logger.info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
+        logger.info('Subscribed to %s channel(s). Listening to channel: %s', count, topic);
+      }),
     });
   }
 
@@ -551,13 +557,17 @@ export class AbstractRedisHelper<ClientType extends TRedisClient = TRedisClient>
       return;
     }
 
-    this.client.unsubscribe(topic, (error, count) => {
-      if (error) {
-        logger.error('Failed to unsubscribe from topic: %s | Error: %s', topic, error);
-        return;
-      }
+    voidExecution({
+      logger: this.logger,
+      scope: this.unsubscribe.name,
+      execution: this.client.unsubscribe(topic, (error, count) => {
+        if (error) {
+          logger.error('Failed to unsubscribe from topic: %s | Error: %s', topic, error);
+          return;
+        }
 
-      logger.info('Unsubscribed from %s channel(s).', count);
+        logger.info('Unsubscribed from %s channel(s).', count);
+      }),
     });
   }
 }

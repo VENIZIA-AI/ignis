@@ -1,6 +1,7 @@
 import type { IRpcMetadata } from '@/helpers/inversion/common/types';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { GRPC } from '@venizia/ignis-helpers';
+import { isLegacyMethodDecoratorCall } from './common';
 
 /** Generic RPC decorator. Registers RPC config in metadata registry. */
 export const rpc = <RpcRouteConfigType extends IRpcMetadata>(opts: {
@@ -11,6 +12,10 @@ export const rpc = <RpcRouteConfigType extends IRpcMetadata>(opts: {
     propertyKey: string | symbol,
     _descriptor: PropertyDescriptor,
   ): void {
+    if (!isLegacyMethodDecoratorCall({ decorator: 'rpc', propertyKey })) {
+      return;
+    }
+
     MetadataRegistry.getInstance().addRpc({
       target,
       methodName: propertyKey,

@@ -3,7 +3,7 @@ import { BaseRestController } from '@/base/controllers';
 import type { AbstractEntity } from '@/base/models';
 import type { TAnyObjectSchema } from '@/utilities/schema.utility';
 import type { AnyType } from '@venizia/ignis-helpers';
-import { executeWithPerformanceMeasure, HTTP } from '@venizia/ignis-helpers';
+import { HTTP } from '@venizia/ignis-helpers';
 import type { Env, Schema } from 'hono';
 import type { TMultiSearchInput, TSearchInput } from '@/connectors/search/repositories/common';
 import type { ReadableSearchRepository } from '../repositories/core/readable';
@@ -32,18 +32,6 @@ export abstract class AbstractSearchController<
     super({ scope: opts.scope, path: opts.path, isStrict: opts.isStrict });
     this.repository = opts.repository;
     this.definitions = opts.definitions;
-  }
-
-  /** Runs a handler task under performance measurement (fixed logger/level/description). */
-  measure<R>(opts: { scope: string; args: unknown; task: () => Promise<R> }) {
-    return executeWithPerformanceMeasure({
-      logger: this.logger,
-      level: 'debug',
-      scope: opts.scope,
-      description: `execute ${opts.scope}`,
-      args: opts.args,
-      task: opts.task,
-    });
   }
 
   /** POST /search - single-collection keyword/semantic/hybrid/raw search. */

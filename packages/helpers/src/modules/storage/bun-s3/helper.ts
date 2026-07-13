@@ -1,6 +1,6 @@
+import { getError } from '@/modules/error';
 import { S3Client } from 'bun';
 import { Readable } from 'node:stream';
-import { getError } from '@/modules/error';
 import { BaseStorageHelper } from '../base';
 import type {
   IBucketInfo,
@@ -8,7 +8,6 @@ import type {
   IObjectInfo,
   IStorageHelperOptions,
   IUploadFile,
-  IUploadResult,
 } from '../types';
 import { buildSignedRequest } from './utility';
 
@@ -80,10 +79,10 @@ export class BunS3Helper extends BaseStorageHelper {
       sessionToken,
     });
 
-    const res = await fetch(url, { method: 'GET', headers });
-    const xml = await res.text();
+    const response = await fetch(url, { method: 'GET', headers });
+    const xml = await response.text();
 
-    if (!res.ok) {
+    if (!response.ok) {
       throw getError({ message: `[getBuckets] S3 error: ${xml}` });
     }
 
@@ -130,10 +129,10 @@ export class BunS3Helper extends BaseStorageHelper {
       sessionToken,
     });
 
-    const res = await fetch(url, { method: 'PUT', headers });
+    const response = await fetch(url, { method: 'PUT', headers });
 
-    if (!res.ok) {
-      const xml = await res.text();
+    if (!response.ok) {
+      const xml = await response.text();
       throw getError({ message: `[createBucket] S3 error: ${xml}` });
     }
 
@@ -158,84 +157,29 @@ export class BunS3Helper extends BaseStorageHelper {
       sessionToken,
     });
 
-    const res = await fetch(url, { method: 'DELETE', headers });
+    const response = await fetch(url, { method: 'DELETE', headers });
 
-    if (!res.ok) {
-      const xml = await res.text();
+    if (!response.ok) {
+      const xml = await response.text();
       throw getError({ message: `[removeBucket] S3 error: ${xml}` });
     }
 
     return true;
   }
 
-  async upload(opts: {
+  protected get defaultLinkPrefix(): string {
+    return '/static-assets/';
+  }
+
+  protected async writeObject(opts: {
     bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  }): Promise<IUploadResult[]> {
-    const { bucket, files, normalizeNameFn, normalizeLinkFn } = opts;
+    normalizeName: string;
+    file: IUploadFile;
+  }): Promise<void> {
+    const { bucket, normalizeName, file } = opts;
+    const { mimetype: mimeType, buffer } = file;
 
-    if (!files || files.length === 0) {
-      return [];
-    }
-
-    const isExists = await this.isBucketExists({ name: bucket });
-    if (!isExists) {
-      throw getError({ message: `[upload] Bucket does not exist | name: ${bucket}` });
-    }
-
-    for (const file of files) {
-      const { originalName, size, folderPath } = file;
-
-      if (!this.isValidName(originalName)) {
-        throw getError({ message: '[upload] Invalid original file name' });
-      }
-
-      if (folderPath && !this.isValidPath(folderPath)) {
-        throw getError({ message: '[upload] Invalid folder path' });
-      }
-
-      if (!size) {
-        throw getError({ message: '[upload] Invalid file size' });
-      }
-    }
-
-    const uploadPromises = files.map(async file => {
-      const { folderPath, originalName, mimetype: mimeType, buffer, size, encoding } = file;
-      const t = performance.now();
-
-      const normalizeName = normalizeNameFn
-        ? normalizeNameFn({ originalName, folderPath })
-        : folderPath
-          ? `${folderPath.toLowerCase().replace(/ /g, '_')}/${originalName.toLowerCase().replace(/ /g, '_')}`
-          : originalName.toLowerCase().replace(/ /g, '_');
-
-      const normalizeLink = normalizeLinkFn
-        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
-        : `/static-assets/${bucket}/${normalizeName
-            .split('/')
-            .map(s => encodeURIComponent(s))
-            .join('/')}`;
-
-      await this.client.write(normalizeName, buffer, { bucket, type: mimeType });
-
-      this.logger
-        .for(this.upload.name)
-        .info(
-          'Uploaded: %j | Took: %s (ms)',
-          { normalizeName, normalizeLink, mimeType, encoding, size },
-          performance.now() - t,
-        );
-
-      return {
-        bucketName: bucket,
-        objectName: normalizeName,
-        link: normalizeLink,
-      };
-    });
-
-    return Promise.all(uploadPromises);
+    await this.client.write(normalizeName, buffer, { bucket, type: mimeType });
   }
 
   async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable> {

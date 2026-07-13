@@ -5,7 +5,11 @@ export class Environment {
   static readonly DEBUG = 'debug';
 
   static readonly DEVELOPMENT = 'development';
+  /** The abbreviation deployments actually write. The same environment as {@link DEVELOPMENT}. */
+  static readonly DEV = 'dev';
+  static readonly SIT = 'sit';
 
+  static readonly UAT = 'uat';
   static readonly ALPHA = 'alpha';
   static readonly BETA = 'beta';
   static readonly STAGING = 'staging';
@@ -16,15 +20,29 @@ export class Environment {
     this.LOCAL,
     this.DEBUG,
     this.DEVELOPMENT,
+    this.DEV,
+    this.SIT,
+    this.UAT,
     this.ALPHA,
     this.BETA,
     this.STAGING,
     this.PRODUCTION,
   ]);
 
+  /**
+   * The environments whose users are our own engineers - the only ones an error response may reach
+   * carrying a stack trace, a SQL constraint name or a raw driver message. Everything absent from
+   * this set, INCLUDING an unrecognized name, is sanitized as production.
+   */
+  static DEVELOPMENT_ENVS = new Set([this.LOCAL, this.DEBUG, this.DEVELOPMENT, this.DEV, this.SIT]);
+
   static get current(): string {
     const { NODE_ENV } = process.env;
-    return NODE_ENV || Environment.DEVELOPMENT;
+    if (!NODE_ENV) {
+      return Environment.DEVELOPMENT;
+    }
+
+    return NODE_ENV;
   }
 
   static is(opts: { name: string }) {

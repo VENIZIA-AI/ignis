@@ -23,6 +23,24 @@ APP_ENV_POSTGRES_PASSWORD=database_password_here
 node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"
 ```
 
+### Redaction at Log Time
+
+Never hard-coding a secret is not enough on its own -- an options object holding one still ends up in a log line the moment it is passed to `logger.info('...: %s', opts)`. `@venizia/ignis-helpers` provides two primitives for exactly this:
+
+| Function | Use For | Behavior |
+|----------|---------|----------|
+| `redactSecrets(value)` | Any object/array being logged | Recursively replaces every value whose key matches a secret-looking name (`password`, `token`, `apiKey`, `authorization`, HTTP header spellings like `x-api-key`/`cookie`/`proxy-authorization`, etc., case-insensitive) with `'[REDACTED]'` |
+| `redactUrlCredentials(url)` | A connection/broker URL string | Strips the password out of a URL's authority section (`mqtts://user:hunter2@broker:8883` becomes `mqtts://user:[REDACTED]@broker:8883`); a value that doesn't parse as a URL is returned unchanged |
+
+```typescript
+import { redactSecrets, redactUrlCredentials } from '@venizia/ignis-helpers';
+
+this.logger.info('[connect] Options: %s', redactSecrets(connectionOptions));
+this.logger.info('[connect] Broker: %s', redactUrlCredentials(brokerUrl));
+```
+
+These are the primitives the framework itself uses -- outbound HTTP request configs (`NodeFetcher`/`AxiosFetcher`, see [Network Helper](/extensions/helpers/network/)) and MQTT broker URLs (`MQTTClientHelper`, see [Queue Helper](/extensions/helpers/queue/)) are both redacted this way before they reach a log line.
+
 ## 2. Input Validation
 
 **Always validate incoming data** with Zod schemas. IGNIS automatically rejects invalid requests.
@@ -451,6 +469,9 @@ export class AuthService extends BaseService {
 - Permission changes
 - Suspicious activity (rate limit hits, invalid tokens)
 - Admin actions
+
+> [!NOTE]
+> When logging a request or connection config that might carry credentials, wrap it in `redactSecrets()` (or `redactUrlCredentials()` for a URL) rather than logging it raw -- see [Redaction at Log Time](#redaction-at-log-time) above. This is what the framework's own outbound HTTP and MQTT logging already does automatically.
 
 ## Security Checklist
 

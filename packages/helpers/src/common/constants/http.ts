@@ -119,6 +119,13 @@ export class HTTP {
     DELETE: 'delete',
     HEAD: 'head',
     OPTIONS: 'options',
+    QUERY: 'query',
+  } as const;
+
+  /** Standard HTTP protocols (lowercase). */
+  static readonly Protocols = {
+    HTTP: 'http',
+    HTTPS: 'https',
   } as const;
 
   /** HTTP status codes grouped by class (1xx–5xx). */
@@ -196,5 +203,7 @@ export class HTTP {
   } as const;
 }
 
-export type THttpMethod = ValueOf<typeof HTTP.Methods>;
+export type THttpMethod = ValueOf<typeof HTTP.Methods> | Uppercase<ValueOf<typeof HTTP.Methods>>;
+export type THttpProtocol =
+  ValueOf<typeof HTTP.Protocols> | Uppercase<ValueOf<typeof HTTP.Protocols>>;
 export type THttpResultCode = ValueOf<typeof HTTP.ResultCodes>;

@@ -56,6 +56,9 @@ Matches records where field does NOT equal the value. Both `ne` and `neq` are al
 // SQL: WHERE "deleted_at" IS NOT NULL
 ```
 
+> [!NOTE]
+> When compared against a **real value** (not `null`), `ne`/`neq` follow SQL three-valued logic: a row whose field is `NULL` never matches `{ field: { neq: value } }`, because `NULL <> value` evaluates to UNKNOWN rather than TRUE. To include NULL rows, add an explicit branch: `{ or: [{ field: { neq: value } }, { field: null }] }`.
+
 
 ## gt - Greater Than
 

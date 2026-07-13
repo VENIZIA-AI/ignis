@@ -1,29 +1,16 @@
-import type { IRedisSingleHelperOptions } from '@venizia/ignis-helpers';
 import { BaseHelper, getError, RedisSingleHelper } from '@venizia/ignis-helpers';
 import type { TConstValue } from '@/helpers';
 import { BullMQHelper } from '@venizia/ignis-helpers/bullmq';
 import type {
+  IBullMQMailExecutorOpts,
   IMailProcessorResult,
   IMailQueueExecutor,
   IMailQueueOptions,
   IMailQueueResult,
+  IQueueJobPayload,
 } from '../../common';
-import { BullMQExecutorModes } from '../../common';
+import { BullMQExecutorModes, MailErrorCodes, MailExecutorErrors } from '../../common';
 import type { Job } from 'bullmq';
-
-interface IQueueJobPayload {
-  id: string;
-  email: string;
-  options?: IMailQueueOptions;
-  attempts: number;
-  scheduledAt: number;
-}
-
-export interface IBullMQMailExecutorOpts {
-  redis: IRedisSingleHelperOptions;
-  queue: { identifier: string; name: string };
-  mode: TConstValue<typeof BullMQExecutorModes>;
-}
 
 export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queueIdentifier: string;
@@ -88,12 +75,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
   }
 
   async setProcessor(
-    processor: (email: string) => Promise<{
-      success: boolean;
-      message: string;
-      expiresInMinutes: number;
-      nextResendAt?: string;
-    }>,
+    processor: (email: string) => Promise<IMailProcessorResult>,
     opts?: {
       numberOfWorkers?: number;
       concurrencyPerWorker?: number;
@@ -135,7 +117,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
 
   addWorker(opts: { workerIdentifier: string; concurrency?: number; lockDuration?: number }): void {
     if (!this.processor) {
-      throw getError({ message: 'Processor not set. Call setProcessor() first.' });
+      throw getError({ message: MailExecutorErrors.PROCESSOR_NOT_SET });
     }
 
     const workerIdentifier = opts.workerIdentifier;
@@ -163,7 +145,28 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
             maxAttempts,
           );
 
-        return this.processor?.(job.data.email);
+        if (!this.processor) {
+          // Returning undefined here would let BullMQ mark the job COMPLETED and (with
+          // removeOnComplete) delete it - a mail silently dropped because the worker was misbuilt.
+          throw getError({
+            messageCode: MailErrorCodes.SEND_FAILED,
+            message: `[onWorkerData] ${MailExecutorErrors.PROCESSOR_NOT_SET} | jobId: ${job.data.id}`,
+          });
+        }
+
+        const result = await this.processor(job.data.email);
+
+        // A processor reports an SMTP rejection by RETURNING `{ success: false }` - that is what
+        // `IMailProcessorResult` is for. BullMQ only sees a REJECTION as a failure, so resolving
+        // with `success: false` completed the job: no retry, no DLQ, mail gone.
+        if (result?.success === false) {
+          throw getError({
+            messageCode: MailErrorCodes.SEND_FAILED,
+            message: `[onWorkerData] Processor reported failure | jobId: ${job.data.id} | reason: ${result.message}`,
+          });
+        }
+
+        return result;
       },
       onWorkerDataCompleted: async (job: Job<IQueueJobPayload, IMailProcessorResult>) => {
         this.logger
@@ -222,8 +225,10 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
       return false;
     }
 
-    await this.workerHelpers[index].worker.close();
-    this.workerHelpers.splice(index, 1);
+    // Dropped from the list BEFORE the close is awaited: a close that rejects must not leave a
+    // half-closed worker behind, still counted and still handed jobs.
+    const [workerHelper] = this.workerHelpers.splice(index, 1);
+    await workerHelper.worker.close();
 
     this.logger
       .for(this.removeWorker.name)
@@ -232,13 +237,81 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     return true;
   }
 
-  async clearWorkers(): Promise<void> {
-    const count = this.workerHelpers.length;
-    await Promise.all(this.workerHelpers.map(workerHelper => workerHelper.worker.close()));
-
+  /**
+   * Closes every worker, never stopping at the first failure, and always empties the list. Returns
+   * the failures instead of throwing so a caller mid-teardown can keep going.
+   */
+  private async closeWorkers(): Promise<Error[]> {
+    const workerHelpers = this.workerHelpers;
     this.workerHelpers = [];
 
+    const results = await Promise.allSettled(
+      workerHelpers.map(workerHelper => workerHelper.worker.close()),
+    );
+
+    const failures: Error[] = [];
+
+    for (const result of results) {
+      if (result.status !== 'rejected') {
+        continue;
+      }
+
+      const error =
+        result.reason instanceof Error
+          ? result.reason
+          : getError({ message: `Worker close failed | reason: ${String(result.reason)}` });
+
+      failures.push(error);
+      this.logger.for('closeWorkers').error('Failed to close worker | error: %s', error.message);
+    }
+
+    return failures;
+  }
+
+  async clearWorkers(): Promise<void> {
+    const count = this.workerHelpers.length;
+    await this.closeWorkers();
+
     this.logger.for(this.clearWorkers.name).info('All workers cleared | Count: %d', count);
+  }
+
+  /**
+   * Full teardown: workers, then the queue, then the Redis connection. Every step is attempted even
+   * if an earlier one failed - skipping the rest would leak a queue client and a Redis socket - and
+   * the collected failures are reported once, at the end.
+   */
+  async close(): Promise<void> {
+    const failures: Error[] = [...(await this.closeWorkers())];
+
+    if (this.queueHelper) {
+      try {
+        await this.queueHelper.queue.close();
+      } catch (error) {
+        const closeError = error instanceof Error ? error : getError({ message: String(error) });
+        failures.push(closeError);
+        this.logger.for(this.close.name).error('Failed to close queue | error: %s', closeError);
+      }
+    }
+
+    try {
+      await this.redisConnection.disconnect();
+    } catch (error) {
+      const disconnectError = error instanceof Error ? error : getError({ message: String(error) });
+      failures.push(disconnectError);
+      this.logger
+        .for(this.close.name)
+        .error('Failed to disconnect redis | error: %s', disconnectError);
+    }
+
+    if (failures.length > 0) {
+      throw getError({
+        message: `[close] Incomplete BullMQ mail executor teardown | failures: ${failures
+          .map(failure => failure.message)
+          .join(' | ')}`,
+      });
+    }
+
+    this.logger.for(this.close.name).info('BullMQ mail executor closed | Mode: %s', this.mode);
   }
 
   getWorkerCount(): number {
@@ -266,7 +339,7 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
     }
 
     if (!this.processor && this.mode !== BullMQExecutorModes.QUEUE_ONLY) {
-      throw getError({ message: 'Processor not set. Call setProcessor() first.' });
+      throw getError({ message: MailExecutorErrors.PROCESSOR_NOT_SET });
     }
 
     const jobId = `job_${++this.jobIdCounter}_${Date.now()}`;

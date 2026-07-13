@@ -158,6 +158,7 @@ Database errors in SQLSTATE classes `22` (data exception), `23` (integrity const
 ```json
 {
   "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
+  "messageCode": "core.system_error",
   "statusCode": 400,
   "requestId": "abc123"
 }
@@ -167,7 +168,7 @@ Database errors in SQLSTATE classes `22` (data exception), `23` (integrity const
 In production the message is the **base message only** - `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` + server logs to diagnose.
 
 ```json
-{ "message": "Unique constraint violation", "statusCode": 400, "requestId": "abc123" }
+{ "message": "Unique constraint violation", "messageCode": "core.system_error", "statusCode": 400, "requestId": "abc123" }
 ```
 :::
 
@@ -201,7 +202,7 @@ IGNIS includes a built-in error handler. Customize behavior in your application:
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import { ApplicationError } from '@venizia/ignis-helpers';
+import { ApplicationError, MessageCode } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   override setupMiddlewares(): void {
@@ -219,6 +220,7 @@ export class Application extends BaseApplication {
         return c.json({
           statusCode: error.statusCode,
           message: error.message,
+          messageCode: error.messageCode, // already lower-cased, never undefined
           details: error.details,
           requestId,
         }, error.statusCode as StatusCode);
@@ -229,6 +231,7 @@ export class Application extends BaseApplication {
         return c.json({
           statusCode: 422,
           message: 'Validation failed',
+          messageCode: MessageCode.DEFAULT,
           details: { cause: error.errors },
           requestId,
         }, 422);
@@ -238,6 +241,7 @@ export class Application extends BaseApplication {
       return c.json({
         statusCode: 500,
         message: 'Internal server error',
+        messageCode: MessageCode.DEFAULT,
         requestId,
       }, 500);
     });
@@ -274,6 +278,7 @@ interface ErrorResponse {
 {
   "statusCode": 400,
   "message": "Invalid request body",
+  "messageCode": "core.system_error",
   "requestId": "abc123"
 }
 
@@ -283,6 +288,7 @@ interface ErrorResponse {
 {
   "statusCode": 404,
   "message": "User not found",
+  "messageCode": "core.system_error",
   "requestId": "abc123",
   "extra": { "details": { "id": "user-uuid" } }
 }
@@ -310,11 +316,24 @@ interface ErrorResponse {
 {
   "statusCode": 500,
   "message": "Internal server error",
+  "messageCode": "core.system_error",
   "requestId": "abc123"
 }
 ```
 
 ## 6. Logging Errors
+
+### `%s`, Never `%j`, for an `Error`
+
+`message` and `stack` are non-enumerable properties on a native `Error` (and on `ApplicationError`, which extends it). `%j` serializes via `JSON.stringify`, which only visits enumerable own properties - so `logger.error('... | error: %j', error)` silently drops both `message` and `stack`, logging little more than `{}`. Always use `%s` to log an `Error` instance; reserve `%j`/`%o` for plain data objects.
+
+```typescript
+// ✅ Good - %s prints message + stack
+this.logger.error('[createOrder] Failed | error: %s', error);
+
+// ❌ Bad - %j drops message and stack (non-enumerable)
+this.logger.error('[createOrder] Failed | error: %j', error);
+```
 
 ### What to Log
 

@@ -101,9 +101,17 @@
       "types": "./dist/connectors/postgres/index.d.ts",
       "default": "./dist/connectors/postgres/index.js"
     },
-    "./memory": {
-      "types": "./dist/connectors/memory/index.d.ts",
-      "default": "./dist/connectors/memory/index.js"
+    "./postgres/node-postgres": {
+      "types": "./dist/connectors/postgres/drivers/node-postgres.d.ts",
+      "default": "./dist/connectors/postgres/drivers/node-postgres.js"
+    },
+    "./postgres/postgres-js": {
+      "types": "./dist/connectors/postgres/drivers/postgres-js.d.ts",
+      "default": "./dist/connectors/postgres/drivers/postgres-js.js"
+    },
+    "./postgres/supabase": {
+      "types": "./dist/connectors/postgres/supabase/index.d.ts",
+      "default": "./dist/connectors/postgres/supabase/index.js"
     },
     "./search": {
       "types": "./dist/connectors/search/index.d.ts",
@@ -126,8 +134,8 @@
       "default": "./dist/components/mail/index.js"
     },
     "./grpc": {
-      "types": "./dist/components/grpc/index.d.ts",
-      "default": "./dist/components/grpc/index.js"
+      "types": "./dist/components/controller/grpc/index.d.ts",
+      "default": "./dist/components/controller/grpc/index.js"
     },
     "./static-asset": {
       "types": "./dist/components/static-asset/index.d.ts",
@@ -200,6 +208,7 @@
     "meilisearch": "^0.59.0",
     "nodemailer": "^8.0.7",
     "pg": "^8.21.0",
+    "postgres": "^3.4.0",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
     "typesense": "^3.0.3"
@@ -229,6 +238,9 @@
     "bullmq": {
       "optional": true
     },
+    "casbin": {
+      "optional": true
+    },
     "mailgun.js": {
       "optional": true
     },
@@ -241,13 +253,13 @@
     "pg": {
       "optional": true
     },
+    "postgres": {
+      "optional": true
+    },
     "socket.io": {
       "optional": true
     },
     "socket.io-client": {
-      "optional": true
-    },
-    "casbin": {
       "optional": true
     },
     "typesense": {
@@ -257,7 +269,7 @@
   "devDependencies": {
     "@asteasolutions/zod-to-openapi": "^8.5.0",
     "@connectrpc/connect": "^2.1.1",
-    "@hono/node-server": "^2.0.3",
+    "@hono/node-server": "^2.0.8",
     "@hono/swagger-ui": "^0.6.1",
     "@socket.io/bun-engine": "^0.1.1",
     "@types/bun": "^1.3.14",
@@ -267,11 +279,12 @@
     "@venizia/dev-configs": "^0.0.8-0",
     "casbin": "^5.50.0",
     "drizzle-kit": "^0.31.10",
-    "eslint": "^10.4.0",
+    "eslint": "^10.7.0",
     "meilisearch": "^0.59.0",
-    "prettier": "^3.8.3",
-    "tsc-alias": "^1.8.17",
-    "tsx": "^4.22.3",
+    "postgres": "^3.4.0",
+    "prettier": "^3.9.5",
+    "tsc-alias": "^1.9.0",
+    "tsx": "^4.23.0",
     "typescript": "^6.0.3",
     "typesense": "^3.0.3"
   }

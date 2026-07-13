@@ -132,17 +132,22 @@ export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
     return valueOrResolver;  // Direct value
   }
 
-  if (isClassConstructor(valueOrResolver as Function)) {
+  if (isClass(valueOrResolver as Function)) {
     return valueOrResolver as T;  // Class constructor (return as-is)
   }
 
   return (valueOrResolver as TResolver<T>)();  // Function resolver
 };
 
-// Helper (from @venizia/ignis-inversion) - distinguishes class
-// constructors from arrow/regular functions via named prototype
-export const isClassConstructor = (fn: Function): boolean => {
-  return !!fn.prototype?.constructor?.name;
+// isClass (from @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
+// constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
+// since every non-arrow function has a prototype
+export const isClass = <T>(target: any): target is TClass<T> => {
+  if (typeof target !== 'function' || target.prototype === undefined) {
+    return false;
+  }
+
+  return /^class[\s{]/.test(Function.prototype.toString.call(target));
 };
 ```
 

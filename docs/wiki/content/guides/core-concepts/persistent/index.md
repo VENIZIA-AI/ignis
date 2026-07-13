@@ -3,7 +3,7 @@
 The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/) for type-safe database access and the Repository pattern for data abstraction.
 
 > [!NOTE] Connectors
-> This page and the ones below it focus on the **PostgreSQL connector** (Drizzle + relational tables), the default and most common engine. The persistence layer also ships a **typesense connector** for search (see [Search & Typesense](./search-typesense)) and a zero-dependency **memory connector** for prototyping/tests (see [Memory Connector](./memory-connector)). All three share the same engine-neutral `AbstractRepository`/`AbstractDataSource`/`AbstractEntity` contracts - see [Connectors](/references/base/connectors) for the architecture.
+> This page and the ones below it focus on the **PostgreSQL connector** (Drizzle + relational tables), the default and most common engine. The persistence layer also ships a **typesense connector** for search (see [Search & Typesense](./search-typesense)). Both share the same engine-neutral `AbstractRepository`/`AbstractDataSource`/`AbstractEntity` contracts - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Architecture Overview
 
@@ -32,7 +32,6 @@ The persistent layer manages data using [Drizzle ORM](https://orm.drizzle.team/)
 | **Repositories** | Provide type-safe CRUD operations | [Repositories Guide](./repositories.md) |
 | **Transactions** | Handle atomic multi-step operations (PostgreSQL connector only) | [Transactions Guide](./transactions.md) |
 | **Search & Typesense** | Full-text/faceted search over documents | [Search & Typesense Guide](./search-typesense.md) |
-| **Memory Connector** | Zero-dependency Map-backed engine for prototyping/tests | [Memory Connector Guide](./memory-connector.md) |
 
 ## Quick Example
 
@@ -67,8 +66,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 
   override configure(): ValueOrPromise<void> {
     const schema = this.getSchema();
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -111,7 +110,6 @@ export class Application extends BaseApplication {
   - [Repositories](./repositories) - Data access layer
   - [Transactions](./transactions) - Atomic operations
   - [Search & Typesense](./search-typesense) - The typesense connector
-  - [Memory Connector](./memory-connector) - The zero-dependency in-memory connector
 
 - **Related Concepts:**
   - [Services](/guides/core-concepts/services) - Use repositories for business logic

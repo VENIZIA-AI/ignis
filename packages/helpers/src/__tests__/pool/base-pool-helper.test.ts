@@ -198,7 +198,7 @@ describe('BasePoolHelper — use()', () => {
   test('use() releases the resource on success', async () => {
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n });
-    const result = await pool.use({ fn: async r => `used-${r}` });
+    const result = await pool.use({ execution: async r => `used-${r}` });
     expect(result).toBe('used-1');
     expect(pool.getStats()).toEqual({ size: 1, available: 1, borrowed: 0, pending: 0 });
   });
@@ -216,7 +216,7 @@ describe('BasePoolHelper — use()', () => {
     let error: unknown;
     try {
       await pool.use({
-        fn: async () => {
+        execution: async () => {
           throw new Error('boom');
         },
       });
@@ -228,7 +228,7 @@ describe('BasePoolHelper — use()', () => {
     expect(pool.getStats().available).toBe(0);
     expect(pool.getStats().borrowed).toBe(0);
     // a fresh resource is created on the next use
-    const result = await pool.use({ fn: async r => r });
+    const result = await pool.use({ execution: async r => r });
     expect(result).toBe(2);
   });
 });

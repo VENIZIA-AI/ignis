@@ -103,7 +103,12 @@ export class KafkaProducerHelper<
     this.logger.info('[runInTransaction] Transaction STARTED | Id: %s', transaction.id);
 
     try {
-      const ctx: IKafkaTransactionContext<KeyType, ValueType, HeaderKeyType, HeaderValueType> = {
+      const transactionContext: IKafkaTransactionContext<
+        KeyType,
+        ValueType,
+        HeaderKeyType,
+        HeaderValueType
+      > = {
         transaction,
         send: (opts: SendOptions<KeyType, ValueType, HeaderKeyType, HeaderValueType>) => {
           return transaction.send(opts);
@@ -135,7 +140,7 @@ export class KafkaProducerHelper<
         },
       };
 
-      const result = await callback(ctx);
+      const result = await callback(transactionContext);
       await transaction.commit();
 
       this.logger.info('[runInTransaction] Transaction COMMITTED | Id: %s', transaction.id);
@@ -154,15 +159,7 @@ export class KafkaProducerHelper<
   }
 
   protected override closeClient(): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      this.client.close(true, (err?: Error | null) => {
-        if (err) {
-          reject(err);
-        } else {
-          resolve();
-        }
-      });
-    });
+    return this.closeClientWithCallback();
   }
 
   async close(opts?: { isForce?: boolean }): Promise<void> {

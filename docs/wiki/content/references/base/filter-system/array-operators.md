@@ -121,6 +121,11 @@ No casting needed for numeric arrays.
 ```
 
 
+## Security: Parameterized Values
+
+Every element of `contains`/`containedBy`/`overlaps` is bound as a query parameter -- only the operator token (`@>`/`<@`/`&&`) is raw SQL. See [The Hardening Round](../../../changelogs/2026-07-13-hardening-round) for the prior injection this closed.
+
+
 ## Defining Array Columns
 
 In your Drizzle schema:

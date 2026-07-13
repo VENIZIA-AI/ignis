@@ -11,7 +11,6 @@ import type {
   TModelClass,
 } from '../common/types';
 
-// Model Metadata & Registry
 export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegistry>>(
   baseClass: BaseClass,
 ) => {
@@ -50,7 +49,8 @@ export const ModelMetadataMixin = <BaseClass extends TMixinTarget<_MetadataRegis
       // kept out of IEntityStatics deliberately (not part of the neutral contract) but still
       // honored here via a local cast - real consumers set it in hundreds of places.
       const tableName =
-        metadata.tableName || (modelClass as { TABLE_NAME?: string }).TABLE_NAME || modelClass.name;
+        [metadata.tableName, (modelClass as { TABLE_NAME?: string }).TABLE_NAME].find(Boolean) ??
+        modelClass.name;
 
       // Resolver, not resolved value — executed lazily in buildSchema() once all models are loaded
       const relationsResolver = modelClass.relations;

@@ -3,7 +3,7 @@ import type { AbstractEntity } from '@/base/models';
 import type { TTableSchemaWithId } from '@/connectors/postgres/models';
 import type { TRelationConfig } from '@/connectors/postgres/repositories/common';
 import { createRelations } from '@/connectors/postgres/repositories/dialect/relation';
-import type { TClass, TMixinTarget } from '@venizia/ignis-helpers';
+import type { AnyType, TClass, TMixinTarget } from '@venizia/ignis-helpers';
 import { resolveValue } from '@venizia/ignis-helpers';
 import type { MetadataRegistry as _MetadataRegistry } from '@venizia/ignis-inversion';
 import { MetadataKeys } from '../common/keys';
@@ -15,7 +15,6 @@ import type {
   IResolvedRepositoryMetadata,
 } from '../common/types';
 
-// Repository Metadata & Bindings
 export const RepositoryMetadataMixin = <
   BaseClass extends TMixinTarget<
     _MetadataRegistry & {
@@ -30,7 +29,13 @@ export const RepositoryMetadataMixin = <
     repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
     // DataSource -> Models mapping: datasource name -> set of model table names
-    datasourceModels: Map<string, Set<string>>;
+    /**
+     * The model CLASSES a datasource owns - never their names. Two classes may share a name (a
+     * `Product` document in one module, a `Product` entity in another) and the name-keyed
+     * `modelRegistry` can only hold one of them; keying by name here made the loser's datasource
+     * silently resolve the WRONG class - wrong settings, wrong hiddenProperties, empty schema.
+     */
+    datasourceModels: Map<string, Set<TClass<AnyType>>>;
 
     setRepositoryMetadata<
       Target extends object = object,
@@ -53,21 +58,22 @@ export const RepositoryMetadataMixin = <
       Model extends AbstractEntity = AbstractEntity,
       DataSource extends IDataSource = IDataSource,
     >(opts: IRepositoryBinding<Model, DataSource>) {
-      this.repositoryBindings.set(opts.repository.name, opts);
+      // Every member of the binding may be a resolver (the documented escape hatch for circular
+      // imports). Reading `.name` off the resolver itself would key the registry by the ARROW's
+      // inferred name - the datasource would then discover no schema at all, silently.
+      const repositoryClass = resolveValue(opts.repository);
+      this.repositoryBindings.set(repositoryClass.name, opts);
 
-      // Track which datasource owns which models
-      const dsKey = typeof opts.dataSource === 'string' ? opts.dataSource : opts.dataSource.name;
+      const dataSourceRef = resolveValue(opts.dataSource);
+      const dsKey = typeof dataSourceRef === 'string' ? dataSourceRef : dataSourceRef.name;
 
       const modelClass = resolveValue(opts.model);
-
-      const modelMetadata = this.getModelMetadata({ target: modelClass });
-      const tableName = modelMetadata?.tableName || modelClass.TABLE_NAME || modelClass.name;
 
       if (!this.datasourceModels.has(dsKey)) {
         this.datasourceModels.set(dsKey, new Set());
       }
 
-      this.datasourceModels.get(dsKey)!.add(tableName);
+      this.datasourceModels.get(dsKey)!.add(modelClass);
     }
 
     getRepositoryBinding(opts: { name: string }): IRepositoryBinding<AbstractEntity> | undefined {
@@ -116,25 +122,30 @@ export const RepositoryMetadataMixin = <
     }> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-      const modelNames = this.datasourceModels.get(dsKey) || new Set();
+      const modelClasses = this.datasourceModels.get(dsKey) ?? new Set();
 
-      const rs = Array.from(modelNames)
-        .map(tableName => {
-          if (!this.modelRegistry.has(tableName)) {
+      const rs = Array.from(modelClasses)
+        .map(modelClass => {
+          // Read straight off the CLASS. Going `class -> table name -> modelRegistry` round-trips
+          // through a process-wide, name-keyed map: two same-named models collapse onto one entry
+          // and the datasource that registered first silently gets the other one's schema.
+          // `modelRegistry` stays name-keyed for the by-name APIs (authorize principals) that need it.
+          const entry: IModelRegistryEntry = {
+            target: modelClass as AnyType,
+            metadata:
+              this.getModelMetadata({ target: modelClass }) ?? ({ settings: {} } as AnyType),
+            schema: (modelClass as AnyType).schema,
+            relationsResolver: (modelClass as AnyType).relations,
+          };
+
+          if (entry.schema === undefined) {
             return null;
           }
-
-          const modelMeta = this.modelRegistry.get(tableName);
-          if (!modelMeta) {
-            return null;
-          }
-
-          const relations = this.resolveModelRelations(modelMeta);
 
           return {
-            tableName,
-            schema: modelMeta.schema,
-            relations,
+            tableName: this.resolveModelKey({ modelClass }),
+            schema: entry.schema,
+            relations: this.resolveModelRelations(entry),
           };
         })
         .filter((item): item is NonNullable<typeof item> => {
@@ -148,20 +159,21 @@ export const RepositoryMetadataMixin = <
     getModelClasses(opts: { dataSource: string | TClass<IDataSource> }): Array<TClass<unknown>> {
       const { dataSource } = opts;
       const dsKey = typeof dataSource === 'string' ? dataSource : dataSource.name;
-      const modelNames = this.datasourceModels.get(dsKey) || new Set();
 
-      const rs = Array.from(modelNames)
-        .map(tableName => {
-          const modelMeta = this.modelRegistry.get(tableName);
-          if (!modelMeta) {
-            return null;
-          }
+      // Straight from the stored class refs: a name round-trip through the shared modelRegistry
+      // would hand back whichever same-named class happened to register last.
+      return Array.from(this.datasourceModels.get(dsKey) ?? new Set());
+    }
 
-          return resolveValue(modelMeta.target);
-        })
-        .filter(item => item !== null);
+    /** The key a model occupies in `modelRegistry` - its table name, or its class name when it has none. */
+    resolveModelKey(opts: { modelClass: TClass<AnyType> }): string {
+      const { modelClass } = opts;
+      const modelMetadata = this.getModelMetadata({ target: modelClass });
 
-      return rs;
+      return (
+        [modelMetadata?.tableName, (modelClass as AnyType).TABLE_NAME].find(Boolean) ??
+        modelClass.name
+      );
     }
 
     /** Assembles table schemas + relations for a datasource's registered models. */

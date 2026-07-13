@@ -1,0 +1,54 @@
+{
+  "name": "supabase-example",
+  "version": "0.0.0",
+  "private": true,
+  "description": "IGNIS reference example for Supabase - postgres-js driver seam, pooler-mode presets, and Row Level Security gated by auth.uid() through withAuthContext",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "engines": {
+    "bun": ">=1.3"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && tsc-alias -p tsconfig.json",
+    "clean": "sh ./scripts/clean.sh",
+    "eslint": "eslint --report-unused-disable-directives .",
+    "lint": "bun run eslint && bun run prettier:cli",
+    "lint:fix": "bun run eslint --fix && bun run prettier:fix",
+    "prettier:cli": "prettier \"**/*.{js,ts}\" -l",
+    "prettier:fix": "bun run prettier:cli --write",
+    "rebuild": "bun run clean && bun run build",
+    "migrate:generate": "NODE_ENV=development drizzle-kit generate --config=src/migration.ts",
+    "migrate:dev": "NODE_ENV=development drizzle-kit migrate --config=src/migration.ts",
+    "seed": "NODE_ENV=development bun run src/seed.ts",
+    "server:dev": "NODE_ENV=development bun .",
+    "server:prod": "NODE_ENV=production bun ."
+  },
+  "author": {
+    "name": "VENIZIA AI Developer",
+    "email": "developer@venizia.ai",
+    "url": "https://venizia.ai"
+  },
+  "license": "MIT",
+  "dependencies": {
+    "@hono/zod-openapi": "^1.4.0",
+    "@scalar/hono-api-reference": "^0.11.9",
+    "@venizia/ignis": "workspace:*",
+    "@venizia/ignis-boot": "workspace:*",
+    "@venizia/ignis-helpers": "workspace:*",
+    "@venizia/ignis-inversion": "workspace:*",
+    "dotenv-flow": "^4.1.0",
+    "drizzle-orm": "^0.45.2",
+    "drizzle-zod": "^0.8.3",
+    "hono": "^4.12.29",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@venizia/dev-configs": "workspace:*",
+    "drizzle-kit": "^0.31.9",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
+    "tsc-alias": "^1.9.0",
+    "typescript": "^6.0.3"
+  }
+}

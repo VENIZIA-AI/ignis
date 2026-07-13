@@ -10,8 +10,7 @@ import type { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/mod
 import type { createTableRelationsHelpers, getTableColumns, SQL } from 'drizzle-orm';
 
 /** The postgres query-dialect surface a repository consumes via `dataSource.getQueryDialect()`,
- * implemented by FilterBuilder. Relational-branch parity to the search branch's `ISearchQueryDialect`:
- * both are obtained from the datasource rather than constructed inside the repository. */
+ * obtained from the datasource rather than constructed inside the repository. */
 export interface IRelationalQueryDialect {
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T>;
   build<Schema extends TTableSchemaWithId>(opts: {
@@ -38,8 +37,7 @@ export interface IDatabaseExtraOptions extends IExtraOptions {
   transaction?: IDatabaseTransaction;
 }
 
-/** Entity relationship config (one-to-one/many-to-one, one-to-many). Drizzle-specific, so it lives
- * in the postgres connector rather than the neutral base repository types. */
+/** Entity relationship config (one-to-one/many-to-one, one-to-many); Drizzle-specific. */
 export type TRelationConfig = {
   name: string;
 } & (
@@ -59,10 +57,8 @@ export type TRelationConfig = {
     }
 );
 
-/** Cached table columns type. */
 export type TTableColumns = ReturnType<typeof getTableColumns>;
 
-/** Result of transforming update data for Drizzle. */
 export interface ITransformedUpdateData {
   /** Regular field updates (non-JSON-path keys) */
   regularFields: Record<string, any>;

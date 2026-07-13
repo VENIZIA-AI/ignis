@@ -12,8 +12,6 @@ import type {
 } from '../common';
 import { Authorization, AuthorizeBindingKeys } from '../common';
 
-// Authorization Enforcer Registry — manages enforcer registration and resolution
-
 export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthorizationEnforcer> {
   private static instance: AuthorizationEnforcerRegistry;
 
@@ -60,7 +58,6 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
   }) {
     const { container, enforcers } = opts;
 
-    // Validate no duplicate names in this batch
     const names = enforcers.map(e => e.name);
     const duplicateNames = names.filter((n, i) => names.indexOf(n) !== i);
     if (duplicateNames.length) {
@@ -70,7 +67,6 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     }
 
     for (const { enforcer, name, options } of enforcers) {
-      // Validate name not already registered
       if (this.descriptors.has(name)) {
         throw getError({
           message: `[AuthorizationEnforcerRegistry] Enforcer already registered: ${name}`,

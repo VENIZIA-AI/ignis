@@ -1,26 +1,20 @@
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
-import type { IMailQueueExecutor, IMailQueueOptions, IMailQueueResult } from '../../common';
+import type {
+  IMailProcessorResult,
+  IMailQueueExecutor,
+  IMailQueueOptions,
+  IMailQueueResult,
+} from '../../common';
+import { MailExecutorErrors } from '../../common';
 
 export class DirectMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
-  private processor?: (email: string) => Promise<{
-    success: boolean;
-    message: string;
-    expiresInMinutes: number;
-    nextResendAt?: string;
-  }>;
+  private processor?: (email: string) => Promise<IMailProcessorResult>;
 
   constructor() {
     super({ scope: DirectMailExecutorHelper.name });
   }
 
-  setProcessor(
-    processor: (email: string) => Promise<{
-      success: boolean;
-      message: string;
-      expiresInMinutes: number;
-      nextResendAt?: string;
-    }>,
-  ): void {
+  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void {
     this.processor = processor;
   }
 
@@ -29,7 +23,7 @@ export class DirectMailExecutorHelper extends BaseHelper implements IMailQueueEx
     _options?: IMailQueueOptions,
   ): Promise<IMailQueueResult> {
     if (!this.processor) {
-      throw getError({ message: 'Processor not set. Call setProcessor() first.' });
+      throw getError({ message: MailExecutorErrors.PROCESSOR_NOT_SET });
     }
 
     this.logger

@@ -1,11 +1,12 @@
 import { BindingNamespaces } from '@/common/bindings';
 import type {
   IDataSourceMetadata,
+  IInjectMetadata,
   IModelMetadata,
   IRepositoryMetadata,
   IResolvedRepositoryMetadata,
 } from '@/helpers/inversion';
-import { BindingKeys, MetadataRegistry } from '@/helpers/inversion';
+import { BindingKeys, MetadataKeys, MetadataRegistry } from '@/helpers/inversion';
 import { getError, resolveClass, resolveValue } from '@venizia/ignis-helpers';
 import type { IDataSource } from '../datasources';
 import { AbstractDataSource } from '../datasources';
@@ -24,8 +25,6 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
     // Auto-populate AUTHORIZATION_SUBJECT from authorize.principal if not already set
     const principal = metadata.settings?.authorize?.principal;
     if (principal && !Object.hasOwn(target, 'AUTHORIZATION_SUBJECT')) {
-      // `target` is the decorated class's constructor (typed `Function` here, per ClassDecorator);
-      // assigning a static property it doesn't statically declare needs a widened target type.
       (target as Record<string, unknown>).AUTHORIZATION_SUBJECT = principal;
     }
 
@@ -98,8 +97,14 @@ const registerDataSourceInjection = (opts: {
     }
   }
 
-  const existingInjects = registry.getInjectMetadata({ target });
-  const injectAtIndex0 = existingInjects?.find(m => m.index === 0);
+  // Own metadata only: `getInjectMetadata` walks the prototype chain, so a repository extending
+  // another @repository class would see the BASE class's injection at param[0], skip its own
+  // auto-injection, and silently resolve the base's dataSource.
+  const ownInjects: IInjectMetadata[] | undefined = Reflect.getOwnMetadata(
+    MetadataKeys.INJECT,
+    target,
+  );
+  const injectAtIndex0 = ownInjects?.find(entry => entry?.index === 0);
 
   if (injectAtIndex0) {
     const injectKey = injectAtIndex0.key;
@@ -118,6 +123,13 @@ const registerDataSourceInjection = (opts: {
   const dsName =
     typeof resolvedDataSource === 'string' ? resolvedDataSource : resolvedDataSource.name;
   const dsBindingKey = BindingKeys.build({ namespace: BindingNamespaces.DATASOURCE, key: dsName });
+
+  // Copy-on-write for the same reason: setInjectMetadata mutates the array it reads through the
+  // prototype chain, which would rewrite the base repository's param[0] with this class's key.
+  if (!ownInjects) {
+    const inheritedInjects = registry.getInjectMetadata({ target });
+    Reflect.defineMetadata(MetadataKeys.INJECT, [...(inheritedInjects ?? [])], target);
+  }
 
   registry.setInjectMetadata({
     target,

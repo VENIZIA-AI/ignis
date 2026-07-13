@@ -80,5 +80,5 @@ export class Logger {
 }
 
 export const ApplicationLogger = Logger;
-// eslint-disable-next-line @typescript-eslint/naming-convention
+
 export type ApplicationLogger = Logger;

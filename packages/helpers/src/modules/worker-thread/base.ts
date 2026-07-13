@@ -1,3 +1,4 @@
+import { toError, voidExecution } from '@/utilities/promise.utility';
 import { isMainThread, Worker, WorkerOptions } from 'node:worker_threads';
 
 import { AnyType, ValueOrPromise } from '@/common/types';
@@ -40,9 +41,27 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     this.binding();
   }
 
+  /**
+   * User handlers run inside worker event listeners: a synchronous throw there is an uncaught
+   * exception that takes the process down. voidExecution only settles promises, it never sees
+   * a sync throw because its argument is already evaluated at the call site.
+   */
+  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+    const { scope, execution } = opts;
+
+    try {
+      voidExecution({ logger: this.logger, scope, execution: execution() });
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
+  }
+
   override onOnline(): ValueOrPromise<void> {
     if (this.eventHandlers?.onOnline) {
-      this.eventHandlers.onOnline();
+      this.invokeHook({
+        scope: this.onOnline.name,
+        execution: () => this.eventHandlers?.onOnline?.(),
+      });
       return;
     }
 
@@ -51,7 +70,10 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
 
   override onExit(opts: { code: string | number }): ValueOrPromise<void> {
     if (this.eventHandlers?.onExit) {
-      this.eventHandlers.onExit({ code: opts.code });
+      this.invokeHook({
+        scope: this.onExit.name,
+        execution: () => this.eventHandlers?.onExit?.({ code: opts.code }),
+      });
       return;
     }
 
@@ -60,7 +82,10 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
 
   override onError(opts: { error: Error }): ValueOrPromise<void> {
     if (this.eventHandlers?.onError) {
-      this.eventHandlers.onError({ error: opts.error });
+      this.invokeHook({
+        scope: this.onError.name,
+        execution: () => this.eventHandlers?.onError?.({ error: opts.error }),
+      });
       return;
     }
 
@@ -69,7 +94,10 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
 
   override onMessage(opts: { message: MessageType }): ValueOrPromise<void> {
     if (this.eventHandlers?.onMessage) {
-      this.eventHandlers.onMessage({ message: opts.message });
+      this.invokeHook({
+        scope: this.onMessage.name,
+        execution: () => this.eventHandlers?.onMessage?.({ message: opts.message }),
+      });
       return;
     }
 
@@ -78,7 +106,10 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
 
   override onMessageError(opts: { error: Error }): ValueOrPromise<void> {
     if (this.eventHandlers?.onMessageError) {
-      this.eventHandlers.onMessageError({ error: opts.error });
+      this.invokeHook({
+        scope: this.onMessageError.name,
+        execution: () => this.eventHandlers?.onMessageError?.({ error: opts.error }),
+      });
       return;
     }
 
@@ -91,23 +122,29 @@ export class BaseWorkerHelper<MessageType> extends AbstractWorkerHelper<MessageT
     }
 
     this.worker.on('online', () => {
-      this.onOnline();
+      this.invokeHook({ scope: this.binding.name, execution: () => this.onOnline() });
     });
 
     this.worker.on('exit', code => {
-      this.onExit({ code });
+      this.invokeHook({ scope: this.binding.name, execution: () => this.onExit({ code }) });
     });
 
     this.worker.on('error', error => {
-      this.onError({ error: error instanceof Error ? error : new Error(String(error)) });
+      this.invokeHook({
+        scope: this.binding.name,
+        execution: () => this.onError({ error: toError(error) }),
+      });
     });
 
     this.worker.on('message', message => {
-      this.onMessage({ message });
+      this.invokeHook({ scope: this.binding.name, execution: () => this.onMessage({ message }) });
     });
 
     this.worker.on('messageerror', error => {
-      this.onMessageError({ error });
+      this.invokeHook({
+        scope: this.binding.name,
+        execution: () => this.onMessageError({ error }),
+      });
     });
   }
 }

@@ -321,9 +321,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
     // getSchema() automatically collects all schemas from bound repositories
     const schema = this.getSchema();
 
-    // Keep the pool reference - beginTransaction() needs it
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    // Keep the pool on this.client - beginTransaction() resolves its driver from it
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

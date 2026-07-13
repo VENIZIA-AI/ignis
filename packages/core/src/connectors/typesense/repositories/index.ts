@@ -1,4 +1,4 @@
-// Back-compat: the neutral repository contracts and tiers used to be exported from this path.
+// Back-compat: apps importing from this path expect the neutral repository contracts here.
 export * from '@/connectors/search/repositories';
 
 export * from './common';

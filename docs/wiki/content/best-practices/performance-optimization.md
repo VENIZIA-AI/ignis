@@ -213,8 +213,8 @@ import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 // IDataSourceConfigs: your settings interface (host/port/user/password/database)
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   override configure(): void {
-    // Keep the pool on `this.pool` - beginTransaction() uses it
-    this.pool = new Pool({
+    // Keep the pool on `this.client` - beginTransaction() resolves its driver from it
+    this.client = new Pool({
       host: this.settings.host,
       port: this.settings.port,
       user: this.settings.user,
@@ -229,7 +229,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       maxUses: 7500,                // Close connection after 7500 queries
     });
 
-    this.connector = drizzle({ client: this.pool, schema: this.getSchema() });
+    this.connector = drizzle({ client: this.client, schema: this.getSchema() });
   }
 }
 ```

@@ -58,31 +58,39 @@ export class BasicTokenService<E extends Env = Env> extends BaseService {
 
     const [, base64Credentials] = parts;
 
-    try {
-      const decoded = Buffer.from(base64Credentials, 'base64').toString('utf-8');
-      const colonIndex = decoded.indexOf(':');
-
-      if (colonIndex === -1) {
-        throw new Error('Invalid format: missing colon separator');
-      }
-
-      const username = decoded.substring(0, colonIndex);
-      const password = decoded.substring(colonIndex + 1);
-
-      if (!username) {
-        throw new Error('Username is empty');
-      }
-
-      return { username, password };
-    } catch (error) {
+    // The rejection reason stays in the LOG, never in the response: telling a caller which half of
+    // its credential was malformed is a probing oracle.
+    const reject = (reason: string): never => {
       this.logger
         .for(this.extractCredentials.name)
-        .debug('Failed to decode credentials | Error: %s', error);
+        .debug('Failed to decode credentials | Reason: %s', reason);
+
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
         message: 'Unauthorized! Invalid base64 credentials format',
       });
+    };
+
+    let decoded: string;
+    try {
+      decoded = Buffer.from(base64Credentials, 'base64').toString('utf-8');
+    } catch (error) {
+      return reject(`Base64 decode failed | Error: ${error}`);
     }
+
+    const colonIndex = decoded.indexOf(':');
+    if (colonIndex === -1) {
+      return reject('Missing colon separator');
+    }
+
+    const username = decoded.substring(0, colonIndex);
+    const password = decoded.substring(colonIndex + 1);
+
+    if (!username) {
+      return reject('Empty username');
+    }
+
+    return { username, password };
   }
 
   /** Verifies credentials via the user-provided verification function. */

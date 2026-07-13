@@ -7,19 +7,24 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
-    /** Store RPC method metadata on a controller prototype. */
     addRpc<Target extends object = object>(opts: {
       target: Target;
       methodName: string | symbol;
       configs: IRpcMetadata;
     }): void {
       const { target, methodName, configs } = opts;
-      const rpcs = this.getRpcs({ target }) || new Map();
+
+      // Copy-on-write, same reason as RestControllerMetadataMixin.addRoute: getRpcs() walks the
+      // prototype chain, so mutating the Map it returns would leak a subclass's rpcs onto its base.
+      const inherited = this.getRpcs({ target });
+      const rpcs: Map<string | symbol, IRpcMetadata> =
+        Reflect.getOwnMetadata(MetadataKeys.CONTROLLER_GRPC_ROUTE, target) ??
+        new Map(inherited ?? []);
+
       rpcs.set(methodName, configs);
       Reflect.defineMetadata(MetadataKeys.CONTROLLER_GRPC_ROUTE, rpcs, target);
     }
 
-    /** Get all RPC methods from a controller class prototype. */
     getRpcs<Target extends object = object>(opts: {
       target: Target;
     }): Map<string | symbol, IRpcMetadata> | undefined {
@@ -27,7 +32,6 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       return Reflect.getMetadata(MetadataKeys.CONTROLLER_GRPC_ROUTE, target);
     }
 
-    /** Get a specific RPC method by name. */
     getRpc<Target extends object = object>(opts: {
       target: Target;
       methodName: string | symbol;
@@ -37,7 +41,6 @@ export const GrpcControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       return rpcs?.get(methodName);
     }
 
-    /** Check if a class has any RPC methods defined. */
     hasRpcs<Target extends object = object>(opts: { target: Target }): boolean {
       const rpcs = this.getRpcs(opts);
       return rpcs !== undefined && rpcs.size > 0;

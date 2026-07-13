@@ -15,7 +15,7 @@ Components are self-contained feature modules that plug into your application vi
 | [Request Tracker](./components/request-tracker) | Request tracing | `x-request-id` header, body parsing |
 | [Socket.IO](./components/socket-io/) | Real-time (Socket.IO) | Redis adapter, room-based messaging |
 | [Static Asset](./components/static-asset/) | File management | Upload/download, MinIO, Disk, BunS3 |
-| [Swagger](./components/swagger) | API docs | OpenAPI UI, Swagger UI, Scalar UI |
+| [Swagger](./components/api-reference) | API docs | OpenAPI UI, Swagger UI, Scalar UI |
 | [WebSocket](./components/websocket/) | Real-time (native) | Bun native WebSocket, encryption |
 
 ## Helpers
@@ -36,7 +36,6 @@ Helpers are standalone utility classes for infrastructure concerns. They extend 
 | [Redis](./helpers/redis/) | Redis client | `ioredis` |
 | [Socket.IO](./helpers/socket-io/) | Socket.IO server | `socket.io` |
 | [Storage](./helpers/storage/) | File storage | `minio` (optional) |
-| [Testing](./helpers/testing/) | Test utilities | Built-in |
 | [Types](./helpers/types/) | Shared types | Built-in |
 | [UID](./helpers/uid/) | Snowflake IDs | Built-in |
 | [WebSocket](./helpers/websocket/) | WebSocket server | Built-in |

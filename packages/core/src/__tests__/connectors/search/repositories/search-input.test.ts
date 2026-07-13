@@ -46,4 +46,36 @@ describe('SearchInputSchema', () => {
     const result = SearchInputSchema.safeParse({ mode: 'fuzzy', query: 'shoes' });
     expect(result.success).toBe(false);
   });
+
+  test('engineParams (the engine-specific escape hatch) parses on every non-raw mode', () => {
+    const result = SearchInputSchema.safeParse({
+      mode: SearchModes.KEYWORD,
+      query: 'shoes',
+      engineParams: { ['num_typos']: 2, ['pinned_hits']: '1:1' },
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success && result.data.mode === SearchModes.KEYWORD) {
+      expect(result.data.engineParams).toEqual({ ['num_typos']: 2, ['pinned_hits']: '1:1' });
+    }
+  });
+
+  test('Typesense-only knobs are no longer neutral params - they are stripped, not carried', () => {
+    // numTypos/prefix/preset/... left the neutral shape; passing them at the top level drops them
+    // (they belong in engineParams under wire names). Zod strips unknown keys from the object.
+    const result = SearchInputSchema.safeParse({
+      mode: SearchModes.KEYWORD,
+      query: 'shoes',
+      numTypos: 2,
+      preset: 'p1',
+      prefix: true,
+    });
+
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).not.toHaveProperty('numTypos');
+      expect(result.data).not.toHaveProperty('preset');
+      expect(result.data).not.toHaveProperty('prefix');
+    }
+  });
 });

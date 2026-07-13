@@ -93,40 +93,82 @@ export class User extends BaseEntity<typeof User.schema> {}
 
 ## Merge Behavior
 
-When a user provides a filter, it is merged with the default filter using `FilterBuilder.mergeFilter()`:
+When a user provides a filter, it is merged with the default filter using `FilterBuilder.mergeFilter()`. Non-`where` properties are user-wins; the `where` clause follows a **narrowing** collision law so a default scope can never be widened or dropped.
 
 | Property | Merge Strategy |
 |----------|----------------|
-| `where` | **Deep merge** (via lodash `merge`) -- user values override matching keys |
+| `where` | **Per-key narrowing** -- non-colliding keys carry over; a colliding key is composed so the default condition always survives (see below) |
 | `limit` | User replaces default (if provided) |
 | `offset`/`skip` | User replaces default (if provided) |
 | `order` | User replaces default (if provided) |
 | `fields` | User replaces default (if provided) |
 | `include` | User replaces default (if provided) |
 
-### Where Clause Merging
+A user value of `undefined` **never** overrides a defined default -- a caller cannot blow away a tenant or soft-delete scope by passing `undefined`.
 
-The `where` clause uses deep merge with user values taking precedence:
+### Where Clause Collision Law
+
+Within `where`, keys present on only one side pass through untouched. When the **same key** appears in both the default and the user filter, the outcome depends on the shapes:
+
+| Default | User | Result |
+|---------|------|--------|
+| scalar | scalar | **User wins** (the soft-delete opt-out -- e.g. `isDeleted: false` becomes `isDeleted: true`) |
+| operator | operator | **AND-composed** into an `and: [...]` group (both conditions enforced) |
+| scalar | operator | **AND-composed** |
+| operator | scalar | **AND-composed** |
+
+A colliding `and` key concatenates both conjunct lists (both survive). A colliding `or` key AND-composes the two disjunction groups as separate conjuncts -- the user's `or` cannot swallow the default's `or`. Every AND-composed pair is appended to any existing `and` group.
+
+> [!IMPORTANT]
+> Because operator collisions AND-compose rather than replace, a default scope (a `createdAt` floor, a tenant `inq`) can no longer be widened or dropped by a user filter. Only a bare scalar-over-scalar collision is a true override.
+
+### Narrowing Example
 
 ```typescript
-// Default filter
-{ where: { isDeleted: false, status: 'pending' }, limit: 100 }
+// Default filter: a floor on createdAt plus a tenant scope
+const defaultFilter = {
+  where: { createdAt: { gte: '2024-01-01' }, tenantId: { inq: ['t1', 't2'] } },
+};
 
-// User filter
-{ where: { status: 'active', role: 'admin' }, limit: 10 }
+// User filter: an upper bound on createdAt
+const userFilter = {
+  where: { createdAt: { lte: '2024-12-31' } },
+};
+```
 
-// Merged result
+**Before** (old wholesale-replace law) -- the user key replaced the default's `createdAt`, dropping the floor:
+
+```typescript
+// { where: { createdAt: { lte: '2024-12-31' }, tenantId: { inq: ['t1', 't2'] } } }
+```
+
+**After** (narrowing law) -- operator over operator is AND-composed, so the floor survives:
+
+```typescript
 {
   where: {
-    isDeleted: false,    // From default (preserved)
-    status: 'active',    // User overrides default
-    role: 'admin'        // From user (added)
+    tenantId: { inq: ['t1', 't2'] },
+    and: [
+      { createdAt: { gte: '2024-01-01' } },
+      { createdAt: { lte: '2024-12-31' } },
+    ],
   },
-  limit: 10              // User overrides default
 }
 ```
 
+### Scalar Override (soft-delete opt-out)
+
+A plain scalar on both sides is the one case where the user still wins outright -- this is what lets an admin flip a soft-delete flag:
+
+```typescript
+// Default: { where: { isDeleted: false } }
+// User:    { where: { isDeleted: true } }
+// Result:  { where: { isDeleted: true } }
+```
+
 ### Complex Where Conditions
+
+Keys that do not collide combine with an implicit AND:
 
 ```typescript
 // Default: soft delete and tenant isolation
@@ -137,7 +179,7 @@ const defaultFilter = {
   }
 };
 
-// User: OR conditions
+// User: OR conditions (a distinct key, so it carries through)
 const userFilter = {
   where: {
     or: [{ status: 'active' }, { priority: 'high' }]
@@ -147,33 +189,6 @@ const userFilter = {
 // Result: AND of default + OR from user
 // WHERE isDeleted = false AND tenantId = 'tenant-123'
 //   AND (status = 'active' OR priority = 'high')
-```
-
-### Operator Object Merging
-
-Operator objects are deep merged, allowing range combinations:
-
-```typescript
-// Default: created after 2024
-const defaultFilter = {
-  where: {
-    createdAt: { gte: '2024-01-01' }
-  }
-};
-
-// User: created before end of 2024
-const userFilter = {
-  where: {
-    createdAt: { lte: '2024-12-31' }
-  }
-};
-
-// Result: date range
-{
-  where: {
-    createdAt: { gte: '2024-01-01', lte: '2024-12-31' }
-  }
-}
 ```
 
 
@@ -401,7 +416,7 @@ try {
 
 ### PostgresBaseRepository
 
-`PostgresBaseRepository` (`packages/core/src/connectors/postgres/repositories/core/postgres-base-repository.ts`) implements the default-filter behavior directly as protected methods - no mixin is composed onto it:
+`PostgresBaseRepository` (`packages/core/src/connectors/postgres/repositories/core/base.ts`) implements the default-filter behavior directly as protected methods - no mixin is composed onto it:
 
 ```typescript
 // Check if default filter is configured
@@ -417,7 +432,7 @@ applyDefaultFilter(opts: {
 }): TFilter
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract-repository.ts`) resolved from `MetadataRegistry` keyed by the entity's constructor (not by name string) on first access, and cached for subsequent calls.
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` keyed by the entity's constructor (not by name string) on first access, and cached for subsequent calls.
 
 > [!NOTE]
 > An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Legacy)](../repositories/mixins.md) for history.

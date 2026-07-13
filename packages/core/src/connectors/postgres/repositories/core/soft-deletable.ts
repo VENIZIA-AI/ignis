@@ -23,14 +23,9 @@ export class SoftDeletableRelationalRepository<
   PersistObject extends TTableInsert<EntitySchema> = TTableInsert<EntitySchema>,
   ExtraOptions extends IExtraOptions = IDatabaseExtraOptions,
 > extends DefaultRelationalRepository<EntitySchema, DataObject, PersistObject, ExtraOptions> {
-  // ---------------------------------------------------------------------------
   private softDeletePatch(deletedAt: Date | null): Partial<PersistObject> {
     return { deletedAt } as any;
   }
-
-  // ---------------------------------------------------------------------------
-  // Read Operations
-  // ---------------------------------------------------------------------------
 
   override async findById<R = DataObject>(opts: {
     id: IdType;
@@ -58,10 +53,6 @@ export class SoftDeletableRelationalRepository<
 
     return result;
   }
-
-  // ---------------------------------------------------------------------------
-  // Delete Operations
-  // ---------------------------------------------------------------------------
 
   override deleteById(opts: {
     id: IdType;
@@ -140,10 +131,6 @@ export class SoftDeletableRelationalRepository<
     });
   }
 
-  // ---------------------------------------------------------------------------
-  // Restore Operations
-  // ---------------------------------------------------------------------------
-
   async restoreById<R = DataObject>(opts: {
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean };
@@ -152,8 +139,7 @@ export class SoftDeletableRelationalRepository<
     const { shouldReturn = true, ...restOptions } = opts.options ?? {};
 
     // `updateById` is overloaded on the literal `shouldReturn: true | false`; the spread below
-    // widens it back to `boolean`, so this calls `_update` directly instead - the same move
-    // `createAll` makes into `_create` for the equivalent widened-options cast.
+    // widens it back to `boolean`, so this calls `_update` directly instead.
     const options = {
       ...restOptions,
       shouldReturn,
@@ -175,8 +161,7 @@ export class SoftDeletableRelationalRepository<
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
     const { shouldReturn = true, force, ...restOptions } = opts.options ?? {};
 
-    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical -
-    // it just accepts the widened (non-literal) `shouldReturn: boolean` `_update` itself declares.
+    // `updateAll` forwards straight to `_update`, so calling it here directly is behavior-identical.
     const options = {
       ...restOptions,
       shouldReturn,

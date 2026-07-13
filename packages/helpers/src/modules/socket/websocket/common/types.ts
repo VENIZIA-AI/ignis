@@ -16,7 +16,7 @@ export interface IWebSocket<T = unknown> {
   unsubscribe(topic: string): void;
   isSubscribed(topic: string): boolean;
   close(code?: number, reason?: string): void;
-  cork(cb: (ws: IWebSocket<T>) => void): void;
+  cork(callback: (ws: IWebSocket<T>) => void): void;
 }
 
 export interface IBunServer {

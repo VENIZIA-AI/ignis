@@ -1,4 +1,8 @@
-import { isClassConstructor } from '@venizia/ignis-inversion';
+import { isClass } from '@venizia/ignis-inversion';
+
+// Declared in inversion (the container branches on it), re-exported here so the rest of the stack
+// reaches it through the one package it already depends on, instead of each layer redeclaring it.
+export { isClass };
 
 export type TNullable<T> = T | undefined | null;
 
@@ -38,7 +42,7 @@ export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
     return valueOrResolver;
   }
 
-  if (isClassConstructor(valueOrResolver as Function)) {
+  if (isClass(valueOrResolver)) {
     return valueOrResolver as T;
   }
 
@@ -53,7 +57,7 @@ export const resolveValueAsync = async <T>(
     return valueOrResolver;
   }
 
-  if (isClassConstructor(valueOrResolver as Function)) {
+  if (isClass(valueOrResolver)) {
     return valueOrResolver as T;
   }
 

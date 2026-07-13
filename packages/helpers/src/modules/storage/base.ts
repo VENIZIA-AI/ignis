@@ -1,5 +1,6 @@
 import { MimeTypes } from '@/common';
 import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
 import isEmpty from 'lodash/isEmpty';
 import path from 'node:path';
 import { Readable } from 'node:stream';
@@ -137,7 +138,6 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       return false;
     }
 
-    // Validate each segment individually with isValidName()
     for (const segment of segments) {
       if (!this.isValidName(segment)) {
         this.logger
@@ -147,7 +147,6 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
       }
     }
 
-    // Enforce total path length
     if (normalized.length > 1024) {
       this.logger
         .for(this.isValidPath.name)
@@ -175,18 +174,146 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
     return MimeTypes.UNKNOWN;
   }
 
+  /** Backend specific public URL prefix of an uploaded object; must keep its trailing slash. */
+  protected abstract get defaultLinkPrefix(): string;
+
+  /** Backend specific write step; owns its own metadata persistence and error handling. */
+  protected abstract writeObject(opts: {
+    bucket: string;
+    normalizeName: string;
+    file: IUploadFile;
+  }): Promise<void>;
+
+  protected normalizeObjectName(opts: { originalName: string; folderPath?: string }): string {
+    const { originalName, folderPath } = opts;
+    const normalizedFileName = originalName.toLowerCase().replace(/ /g, '_');
+
+    if (!folderPath) {
+      return normalizedFileName;
+    }
+
+    return `${folderPath.toLowerCase().replace(/ /g, '_')}/${normalizedFileName}`;
+  }
+
+  protected normalizeObjectLink(opts: { bucketName: string; normalizeName: string }): string {
+    const { bucketName, normalizeName } = opts;
+    const encodedName = normalizeName
+      .split('/')
+      .map(segment => encodeURIComponent(segment))
+      .join('/');
+
+    return `${this.defaultLinkPrefix}${bucketName}/${encodedName}`;
+  }
+
+  protected validateUploadFiles(opts: { files: IUploadFile[]; maxFolderDepth?: number }): void {
+    const { files, maxFolderDepth } = opts;
+
+    for (const file of files) {
+      const { originalName, size, folderPath } = file;
+
+      if (!this.isValidName(originalName)) {
+        throw getError({ message: '[upload] Invalid original file name' });
+      }
+
+      // Honour the CALLER's depth: validating against the hard default here meant an app configured
+      // for a deeper tree accepted the request, spooled the whole body, and only then failed inside
+      // this helper.
+      //
+      // `isValidPath` measures an OBJECT path - folders plus a filename - so it reads the last
+      // segment as the file and allows one folder more than asked. `folderPath` carries no filename,
+      // so its depth is the segment count itself and is checked here directly.
+      if (folderPath) {
+        const depthLimit = maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
+        const folderSegments = folderPath.replace(/^\/+|\/+$/g, '').split('/');
+
+        if (folderSegments.length > depthLimit) {
+          throw getError({
+            message: `[upload] Invalid folder path | depth: ${folderSegments.length} | max: ${depthLimit}`,
+          });
+        }
+
+        if (!this.isValidPath(folderPath, { maxDepth: depthLimit })) {
+          throw getError({ message: '[upload] Invalid folder path' });
+        }
+      }
+
+      // `!size` also rejected a legitimate EMPTY file (size === 0). What is invalid is a missing or
+      // negative size, not a zero-byte upload.
+      if (size === undefined || size === null || size < 0) {
+        throw getError({ message: `[upload] Invalid file size | size: ${size}` });
+      }
+    }
+  }
+
+  async upload(opts: {
+    bucket: string;
+    files: IUploadFile[];
+    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
+    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    /** Folder nesting the CALLER allows. Omitted -> DEFAULT_MAX_FOLDER_DEPTH. */
+    maxFolderDepth?: number;
+  }): Promise<IUploadResult[]> {
+    const { bucket, files, normalizeNameFn, normalizeLinkFn, maxFolderDepth } = opts;
+
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    const isExists = await this.isBucketExists({ name: bucket });
+    if (!isExists) {
+      throw getError({
+        message: `[upload] Bucket does not exist | name: ${bucket}`,
+      });
+    }
+
+    this.validateUploadFiles({ files, maxFolderDepth });
+
+    const uploadPromises = files.map(async file => {
+      const { originalName, mimetype: mimeType, size, encoding, folderPath } = file;
+      const t = performance.now();
+
+      const normalizeName = normalizeNameFn
+        ? normalizeNameFn({ originalName, folderPath })
+        : this.normalizeObjectName({ originalName, folderPath });
+
+      // The caller's normalizeNameFn output is what DiskHelper path.join()s under the bucket root:
+      // an unvalidated `../../../etc/cron.d/pwn` writes outside it. The original name was validated
+      // above; this validates what actually reaches the filesystem.
+      if (!this.isValidPath(normalizeName, { maxDepth: maxFolderDepth })) {
+        throw getError({
+          message: `[upload] Invalid normalized object name | name: ${normalizeName}`,
+        });
+      }
+
+      const normalizeLink = normalizeLinkFn
+        ? normalizeLinkFn({ bucketName: bucket, normalizeName })
+        : this.normalizeObjectLink({ bucketName: bucket, normalizeName });
+
+      await this.writeObject({ bucket, normalizeName, file });
+
+      this.logger
+        .for(this.upload.name)
+        .info(
+          'Uploaded: %j | Took: %s (ms)',
+          { normalizeName, normalizeLink, mimeType, encoding, size },
+          performance.now() - t,
+        );
+
+      return {
+        bucketName: bucket,
+        objectName: normalizeName,
+        link: normalizeLink,
+      };
+    });
+
+    return Promise.all(uploadPromises);
+  }
+
   abstract isBucketExists(opts: { name: string }): Promise<boolean>;
   abstract getBuckets(): Promise<IBucketInfo[]>;
   abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   abstract createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   abstract removeBucket(opts: { name: string }): Promise<boolean>;
-
-  abstract upload(opts: {
-    bucket: string;
-    files: IUploadFile[];
-    normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-    normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  }): Promise<IUploadResult[]>;
 
   abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
   abstract getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;

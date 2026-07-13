@@ -14,7 +14,7 @@ Reusable, pluggable modules that group together related features. A component ca
 | [Socket.IO](./socket-io/) | Real-time communication | WebSocket support, Redis adapter, event-based |
 | [WebSocket](./websocket/) | Real-time communication | Bun native WebSocket, Redis Pub/Sub, heartbeat |
 | [Static Asset](./static-asset/) | File management | Upload/download files, MinIO, Bun S3 & local filesystem support |
-| [Swagger](./swagger) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
+| [Swagger](./api-reference) | API documentation | OpenAPI generation, Swagger UI, Scalar UI |
 | [gRPC](/references/base/grpc-controllers) | gRPC transport | ConnectRPC integration, unary RPC, decorator-based |
 
 ## Creating a Component
@@ -81,7 +81,7 @@ Using components is a great way to organize your application's features into mod
   - [Socket.IO](./socket-io/) - Socket.IO WebSocket support
   - [WebSocket](./websocket/) - Bun native WebSocket
   - [Static Asset](./static-asset/) - File upload/download management
-  - [Swagger](./swagger) - API documentation
+  - [Swagger](./api-reference) - API documentation
   - [gRPC](/references/base/grpc-controllers) - gRPC transport (ConnectRPC)
 
 - **References:**

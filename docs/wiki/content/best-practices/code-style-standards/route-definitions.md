@@ -165,4 +165,4 @@ export const RouteConfigs = {
 
 - [API Usage Examples](../api-usage-examples) - Full API patterns
 - [Controllers Reference](../../references/base/controllers) - Controller API
-- [Swagger Component](../../extensions/components/swagger) - OpenAPI setup
+- [Swagger Component](../../extensions/components/api-reference) - OpenAPI setup

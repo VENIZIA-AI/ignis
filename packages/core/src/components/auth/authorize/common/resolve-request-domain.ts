@@ -42,7 +42,6 @@ export const resolveRequestDomain = async (opts: {
 }): Promise<string> => {
   const { spec, context, options } = opts;
 
-  // (1) spec.domain as a method
   if (typeof spec.domain === 'function') {
     const resolved = await spec.domain({ context });
     return resolved
@@ -50,13 +49,11 @@ export const resolveRequestDomain = async (opts: {
       : AuthorizationDomainScopes.SYSTEM_WIDE;
   }
 
-  // (2) spec.domain as declarative
   if (spec.domain) {
     const id = readDeclarative({ source: spec.domain, context });
     return id ? [spec.domain.type, id].join('_') : AuthorizationDomainScopes.SYSTEM_WIDE;
   }
 
-  // (3) global resolver
   const globalResolver = options?.domainResolver ?? null;
   if (globalResolver) {
     const resolved = await globalResolver({ context });
@@ -65,6 +62,5 @@ export const resolveRequestDomain = async (opts: {
       : AuthorizationDomainScopes.SYSTEM_WIDE;
   }
 
-  // (4) nothing → SYSTEM_WIDE
   return AuthorizationDomainScopes.SYSTEM_WIDE;
 };

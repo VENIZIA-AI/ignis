@@ -62,13 +62,11 @@ export abstract class BaseApplication
 {
   private registeredBindings: Record<string, Set<string>> = {};
 
-  // -----------------------------------------------------------------------------------------
   protected normalizePath(...segments: string[]): string {
     const joined = segments.join('/').replace(/\/+/g, '/').replace(/\/$/, '');
     return joined || '/';
   }
 
-  // -----------------------------------------------------------------------------------------
   protected async registerDynamicBindings<T extends IConfigurable = IConfigurable>(
     opts: IRegisterDynamicBindingsOptions<T>,
   ): Promise<void> {
@@ -111,7 +109,6 @@ export abstract class BaseApplication
     }
   }
 
-  // -----------------------------------------------------------------------------------------
   component<Base extends BaseComponent, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -142,7 +139,6 @@ export abstract class BaseApplication
     });
   }
 
-  // -----------------------------------------------------------------------------------------
   controller<Base, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -215,7 +211,6 @@ export abstract class BaseApplication
     });
   }
 
-  // -----------------------------------------------------------------------------------------
   service<Base extends IService, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -230,7 +225,6 @@ export abstract class BaseApplication
     }).toClass(ctor);
   }
 
-  // -----------------------------------------------------------------------------------------
   repository<Base extends IRepository, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -245,7 +239,6 @@ export abstract class BaseApplication
     }).toClass(ctor);
   }
 
-  // -----------------------------------------------------------------------------------------
   dataSource<Base extends IDataSource, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -273,7 +266,6 @@ export abstract class BaseApplication
     });
   }
 
-  // -----------------------------------------------------------------------------------------
   booter<Base extends IBooter, Args extends AnyObject = any>(
     ctor: TClass<Base>,
     opts?: TMixinOpts<Args>,
@@ -304,7 +296,6 @@ export abstract class BaseApplication
     });
   }
 
-  // -----------------------------------------------------------------------------------------
   static(opts: { restPath?: string; folderPath: string }) {
     const { restPath = '*', folderPath } = opts;
     const server = this.getServer();
@@ -345,7 +336,6 @@ export abstract class BaseApplication
     return this;
   }
 
-  // -----------------------------------------------------------------------------------------
   protected printStartUpInfo(opts: { scope: string }) {
     const { scope } = opts;
     this.logger
@@ -377,7 +367,6 @@ export abstract class BaseApplication
       .info('------------------------------------------------------------------------');
   }
 
-  // -----------------------------------------------------------------------------------------
   protected async registerDefaultMiddlewares() {
     await executeWithPerformanceMeasure({
       logger: this.logger,
@@ -408,14 +397,12 @@ export abstract class BaseApplication
     });
   }
 
-  // -----------------------------------------------------------------------------------------
   async boot(): Promise<IBootReport> {
     await this.registerBooters();
     const bootstrapper = this.get<Bootstrapper>({ key: 'bootstrapper' });
     return bootstrapper.boot({});
   }
 
-  // -----------------------------------------------------------------------------------------
   override async initialize() {
     this.printStartUpInfo({ scope: this.initialize.name });
     this.validateEnvs();

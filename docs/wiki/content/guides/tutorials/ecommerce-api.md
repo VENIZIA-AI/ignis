@@ -392,8 +392,10 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
       Object.keys(schema),
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // The client must land on this.client - a local would leave beginTransaction() with nothing
+    // to resolve a driver from, and it would throw `No driver and no client`.
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 }
 ```
@@ -1309,7 +1311,7 @@ export class OrderController extends BaseRestController {
 ```typescript
 // src/application.ts
 import { BaseApplication, IApplicationInfo } from '@venizia/ignis';
-import { HealthCheckComponent, SwaggerComponent } from '@venizia/ignis';
+import { HealthCheckComponent, ApiReferenceComponent } from '@venizia/ignis';
 
 import { ProductController } from './controllers/product';
 import { CartController } from './controllers/cart';
@@ -1355,7 +1357,7 @@ export class EcommerceApp extends BaseApplication {
 
     // Components
     this.component(HealthCheckComponent);
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
   }
 
   postConfigure() {}

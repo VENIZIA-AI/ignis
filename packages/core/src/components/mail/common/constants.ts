@@ -1,14 +1,36 @@
+import { MessageCode } from '@venizia/ignis-helpers';
+
 export class MailDefaults {
   static readonly BATCH_CONCURRENCY = 5;
+  static readonly FALLBACK_FROM = 'noreply@example.com';
 }
 
+/**
+ * Built through {@link MessageCode.build}, like every other framework code: `ApplicationError`
+ * lower-cases whatever it is handed, so a SCREAMING_CASE literal here would reach the client in a
+ * spelling no const in this file matches.
+ */
 export class MailErrorCodes {
-  static readonly INVALID_CONFIGURATION = 'MAIL_INVALID_CONFIGURATION';
-  static readonly SEND_FAILED = 'MAIL_SEND_FAILED';
-  static readonly VERIFICATION_FAILED = 'MAIL_VERIFICATION_FAILED';
-  static readonly INVALID_RECIPIENT = 'MAIL_INVALID_RECIPIENT';
-  static readonly BATCH_SEND_FAILED = 'MAIL_BATCH_SEND_FAILED';
-  static readonly TEMPLATE_NOT_FOUND = 'TEMPLATE_NOT_FOUND';
+  static readonly INVALID_CONFIGURATION = MessageCode.build({
+    parts: ['core', 'mail', 'invalid_configuration'],
+  });
+  static readonly SEND_FAILED = MessageCode.build({ parts: ['core', 'mail', 'send_failed'] });
+  static readonly VERIFICATION_FAILED = MessageCode.build({
+    parts: ['core', 'mail', 'verification_failed'],
+  });
+  static readonly INVALID_RECIPIENT = MessageCode.build({
+    parts: ['core', 'mail', 'invalid_recipient'],
+  });
+  static readonly BATCH_SEND_FAILED = MessageCode.build({
+    parts: ['core', 'mail', 'batch_send_failed'],
+  });
+  static readonly TEMPLATE_NOT_FOUND = MessageCode.build({
+    parts: ['core', 'mail', 'template_not_found'],
+  });
+}
+
+export class MailExecutorErrors {
+  static readonly PROCESSOR_NOT_SET = 'Processor not set. Call setProcessor() first.';
 }
 
 export class MailQueueExecutorTypes {

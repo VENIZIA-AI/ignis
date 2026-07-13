@@ -7,8 +7,6 @@ import type { IAuthUser, TAuthenticateFn, TAuthMode } from '../common';
 import { Authentication, AuthenticationModes } from '../common';
 import { AuthenticationStrategyRegistry } from '../strategies';
 
-// Authentication Provider — produces middleware factory via IProvider pattern
-
 export class AuthenticationProvider<RouteEnv extends Env = Env>
   extends BaseHelper
   implements IProvider<TAuthenticateFn<RouteEnv>>
@@ -28,7 +26,6 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
     const registry = AuthenticationStrategyRegistry.getInstance();
 
     return createMiddleware(async (context, next) => {
-      // 1. Check skip flag
       const isSkipAuthenticate = context.get(Authentication.SKIP_AUTHENTICATION);
       if (isSkipAuthenticate) {
         this.logger
@@ -37,13 +34,11 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
         return next();
       }
 
-      // 2. Check if already authenticated
       const isAuthenticated = context.get(Authentication.CURRENT_USER);
       if (isAuthenticated) {
         return next();
       }
 
-      // 3. Execute strategies based on mode
       switch (mode) {
         case AuthenticationModes.ANY: {
           await this.executeAnyMode({
@@ -120,9 +115,7 @@ export class AuthenticationProvider<RouteEnv extends Env = Env>
       const strategy = registry.resolveStrategy({ name: strategyName });
       const user = await strategy.authenticate(context);
 
-      if (!authUser) {
-        authUser = user;
-      }
+      authUser ??= user;
     }
 
     if (authUser?.userId) {

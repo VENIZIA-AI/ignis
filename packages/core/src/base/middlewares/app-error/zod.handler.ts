@@ -1,4 +1,4 @@
-import { HTTP } from '@venizia/ignis-helpers';
+import { HTTP, MessageCode } from '@venizia/ignis-helpers';
 import type { HTTPResponseError } from 'hono/types';
 import type { IZodIssueLike } from './types';
 
@@ -55,7 +55,9 @@ export const formatZodError = (opts: {
     statusCode,
     response: {
       message,
-      messageCode,
+      // A ZodError we could not parse into issues yields no code of its own; the response still
+      // carries one, so no error response anywhere is missing the field a client branches on.
+      messageCode: MessageCode.resolve(messageCode),
       statusCode,
       requestId,
       details: {

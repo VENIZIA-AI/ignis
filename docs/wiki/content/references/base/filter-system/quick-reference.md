@@ -21,6 +21,9 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 | `lt` | `<` | `{ price: { lt: 100 } }` | Less than |
 | `lte` | `<=` | `{ price: { lte: 100 } }` | Less than or equal |
 
+> [!NOTE]
+> `ne`/`neq` follow SQL three-valued logic: a row whose field is `NULL` **never** matches `{ field: { neq: value } }` (`NULL <> value` evaluates to UNKNOWN, not TRUE). To include NULL rows, add `{ or: [{ field: { neq: value } }, { field: null }] }`.
+
 **See:** [Comparison Operators Guide](./comparison-operators.md)
 
 
@@ -88,12 +91,27 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 **See:** [Null Operators Guide](./null-operators.md)
 
 
+## Presence & Negation Operators
+
+| Operator | SQL | TypeScript Example | Description |
+|----------|-----|-------------------|-------------|
+| `exists` | `IS NOT NULL` / `IS NULL` | `{ deletedAt: { exists: false } }` | `exists: true` -> IS NOT NULL, `exists: false` -> IS NULL |
+| `notExists` | `IS NULL` / `IS NOT NULL` | `{ verifiedAt: { notExists: true } }` | Inverse of `exists` (`notExists: true` -> IS NULL) |
+| `not` | `NOT (...)` | `{ status: { not: 'archived' } }` / `{ views: { not: { gt: 100 } } }` | Negates the nested condition; a bare value negates `eq` |
+
+`exists`/`notExists`/`not` are supported on the PostgreSQL connector. `not` recurses: `{ not: { gt: 100 } }` becomes `NOT (col > 100)`, and `{ not: 5 }` becomes `NOT (col = 5)`. `exists` also works over JSON paths on PostgreSQL (`{ 'metadata.score': { exists: true } }`).
+
+**See:** [Null Operators Guide](./null-operators.md)
+
+
 ## Logical Operators
 
 | Operator | SQL | TypeScript Example | Description |
 |----------|-----|-------------------|-------------|
 | `and` | `AND` | `{ and: [{ age: { gt: 18 } }, { status: 'active' }] }` | All conditions must be true |
 | `or` | `OR` | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` | At least one condition must be true |
+| `and: []` | (dropped) | `{ and: [] }` | Vacuously true - no condition added to the query |
+| `or: []` | `false` | `{ or: [] }` | Vacuously false - matches no rows |
 
 **Implicit AND:**
 ```typescript
@@ -106,7 +124,7 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 // WHERE status = 'active' AND age >= 18 AND role = 'user'
 ```
 
-**NOT logic** is expressed via negation operators (`ne`, `neq`, `nin`, `nlike`, `nilike`, `notBetween`, `isn`).
+**NOT logic** is expressed via the general-purpose `not` operator (`{ field: { not: <value | operatorObject> } }`) or the dedicated negation operators (`ne`, `neq`, `nin`, `nlike`, `nilike`, `notBetween`, `isn`).
 
 **See:** [Logical Operators Guide](./logical-operators.md)
 
@@ -170,6 +188,7 @@ All comparison operators work with JSON path queries:
 - `between`, `notBetween`
 - `regexp`, `iregexp`
 - `is`, `isn`
+- `exists`, `notExists`, `not`
 
 Numeric operators (`gt`, `gte`, `lt`, `lte`, `between`, `notBetween`) use safe numeric casting to handle mixed JSON value types.
 

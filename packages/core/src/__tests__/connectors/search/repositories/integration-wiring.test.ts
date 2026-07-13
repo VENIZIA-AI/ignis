@@ -60,10 +60,10 @@ class Product extends BasePostgresEntity {
 
 // Underscore-prefixed: registered purely for the @repository decorator's side effect (binding registration), never constructed directly.
 @repository({ model: Product, dataSource: AppSqlDataSource })
-class _ProductSqlRepository {}
+class ProductSqlRepository {}
 
 @repository({ model: Product, dataSource: AppSearchDataSource })
-class _ProductDualSearchRepository {}
+class ProductDualSearchRepository {}
 
 // --- Scenario 3: class name / collection name diverge, no `tableName` alignment ------------
 // Class name and collection name diverge on purpose - settings are keyed by class, not name,
@@ -138,15 +138,15 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
     test('both @repository bindings were registered for the dual-schema entity', () => {
       const registry = MetadataRegistry.getInstance();
 
-      expect(registry.getRepositoryBinding({ name: _ProductSqlRepository.name })).toBeDefined();
+      expect(registry.getRepositoryBinding({ name: ProductSqlRepository.name })).toBeDefined();
       expect(
-        registry.getRepositoryBinding({ name: _ProductDualSearchRepository.name }),
+        registry.getRepositoryBinding({ name: ProductDualSearchRepository.name }),
       ).toBeDefined();
     });
   });
 
   describe('3. ControllerFactory.defineCrudController over a search entity/repository', () => {
-    test('constructs without throwing and mounts the six CRUD routes', () => {
+    test('constructs without throwing and mounts the six CRUD routes', async () => {
       const dataSource = new AppSearchDataSource({ name: 'wiring-search-ds-3', config: {} });
       const repositoryInstance = new ProductSearchRepository(dataSource);
 
@@ -162,16 +162,14 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
         },
       });
 
-      expect(() => {
-        const controller = new ProductSearchController(repositoryInstance);
+      const controller = new ProductSearchController(repositoryInstance);
 
-        controller['binding']();
+      await controller['binding']();
 
-        const distinctRoutes = new Set(
-          controller.router.routes.map(route => `${route.method} ${route.path}`),
-        );
-        expect(distinctRoutes.size).toBe(6);
-      }).not.toThrow();
+      const distinctRoutes = new Set(
+        controller.router.routes.map(route => `${route.method} ${route.path}`),
+      );
+      expect(distinctRoutes.size).toBe(6);
     });
   });
 
@@ -204,7 +202,7 @@ describe('End-to-end search wiring - dual-schema, @repository, controller factor
 
       const result = await repositoryInstance.deleteAll();
 
-      expect(result).toEqual({ count: 2, data: [] });
+      expect(result).toEqual({ count: 2, data: null });
       expect(dataSource.fakeConnector.deleteByFilterCalls[0]?.filterBy).toBe('isActive:=true');
       expect(dataSource.fakeConnector.deleteAllDocumentsCalls.length).toBe(0);
     });

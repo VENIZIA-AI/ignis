@@ -1,6 +1,7 @@
 import { MetadataRegistry } from '@/helpers/inversion';
 import { HTTP } from '@venizia/ignis-helpers';
 import type { IAuthRouteConfig } from '../../controllers';
+import { isLegacyMethodDecoratorCall } from './common';
 
 /** Generic route decorator. Registers route config in metadata registry. */
 export const api = <RestRouteConfigType extends IAuthRouteConfig>(opts: {
@@ -11,6 +12,10 @@ export const api = <RestRouteConfigType extends IAuthRouteConfig>(opts: {
     propertyKey: string | symbol,
     _descriptor: PropertyDescriptor,
   ): void {
+    if (!isLegacyMethodDecoratorCall({ decorator: 'api', propertyKey })) {
+      return;
+    }
+
     MetadataRegistry.getInstance().addRoute({
       target,
       methodName: propertyKey,

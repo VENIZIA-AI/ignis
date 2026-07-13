@@ -1,8 +1,10 @@
 import { HTTP } from '@/common';
+import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
-import { TRedisClient } from '@/modules/redis';
+import { ensureRedisClientsConnecting, TRedisClient, waitForRedisReady } from '@/modules/redis';
 import { executePromiseWithLimit } from '@/utilities';
+import { voidExecution } from '@/utilities/promise.utility';
 import { EventEmitter } from 'node:events';
 import {
   IBunServer,
@@ -156,35 +158,19 @@ export class WebSocketServerHelper<
     return this.path;
   }
 
-  private waitForRedisReady(client: TRedisClient, opts?: { timeoutMs?: number }): Promise<void> {
-    const timeoutMs = opts?.timeoutMs ?? 30_000;
+  /**
+   * User hooks run inside Bun socket handlers: a synchronous throw there is an uncaught exception
+   * that takes the process down. voidExecution only settles promises, it never sees a sync throw
+   * because its argument is already evaluated at the call site.
+   */
+  protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
+    const { scope, execution } = opts;
 
-    return new Promise((resolve, reject) => {
-      if (client.status === 'ready') {
-        resolve();
-        return;
-      }
-
-      const timer = setTimeout(() => {
-        reject(
-          new Error(
-            `Redis client did not become ready within ${timeoutMs}ms (status: ${client.status})`,
-          ),
-        );
-      }, timeoutMs);
-
-      const emitter = client as EventEmitter;
-
-      emitter.once('ready', () => {
-        clearTimeout(timer);
-        resolve();
-      });
-
-      emitter.once('error', (error: Error) => {
-        clearTimeout(timer);
-        reject(error);
-      });
-    });
+    try {
+      voidExecution({ logger: this.logger, scope, execution: execution() });
+    } catch (error) {
+      this.logger.for(scope).error('Hook execution FAILED | Error: %s', error);
+    }
   }
 
   async configure() {
@@ -198,20 +184,18 @@ export class WebSocketServerHelper<
       logger.error('Redis sub error | error: %s', error);
     });
 
-    // Ensure duplicated clients connect (they inherit lazyConnect from parent)
-    for (const client of [this.redisPub, this.redisSub]) {
-      if (client.status === 'wait') {
-        client.connect();
-      }
-    }
+    ensureRedisClientsConnecting({
+      clients: [this.redisPub, this.redisSub],
+      logger: this.logger,
+      scope: this.configure.name,
+    });
 
     await Promise.all([
-      this.waitForRedisReady(this.redisPub),
-      this.waitForRedisReady(this.redisSub),
+      waitForRedisReady({ client: this.redisPub }),
+      waitForRedisReady({ client: this.redisSub }),
     ]);
     logger.info('All Redis connections ready');
 
-    // Setup Redis subscriptions for cross-instance messaging
     await this.setupRedisSubscriptions();
 
     this.startHeartbeatTimer();
@@ -345,7 +329,11 @@ export class WebSocketServerHelper<
       }
     }
 
-    this.redisPub.publish(channel, JSON.stringify(message));
+    voidExecution({
+      logger: this.logger,
+      scope: this.publishToRedis.name,
+      execution: this.redisPub.publish(channel, JSON.stringify(message)),
+    });
   }
 
   getBunWebSocketHandler(): IBunWebSocketHandler {
@@ -404,7 +392,6 @@ export class WebSocketServerHelper<
 
     const now = Date.now();
 
-    // Create client entry — unauthorized until authenticate event
     const client: IWebSocketClient<MetadataType> = {
       id: clientId,
       socket,
@@ -420,7 +407,6 @@ export class WebSocketServerHelper<
     // Auto-join client's own room (same as Socket.IO: socket.id room)
     socket.subscribe(clientId);
 
-    // Start auth timeout — disconnect if not authenticated in time
     client.authTimer = setTimeout(() => {
       const c = this.clients.get(clientId);
       if (c?.state === WebSocketClientStates.UNAUTHORIZED) {
@@ -489,14 +475,14 @@ export class WebSocketServerHelper<
           break;
         }
 
-        Promise.resolve(
-          this.messageHandler({
-            clientId,
-            userId: client.userId,
-            message,
-          }),
-        ).catch(error => {
-          logger.error('Message handler error | id: %s | error: %s', clientId, error);
+        this.invokeHook({
+          scope: 'messageHandler',
+          execution: () =>
+            this.messageHandler?.({
+              clientId,
+              userId: client.userId,
+              message,
+            }),
         });
         break;
       }
@@ -541,11 +527,10 @@ export class WebSocketServerHelper<
       client.userId ?? 'anonymous',
     );
 
-    Promise.resolve(this.onClientDisconnected?.({ clientId, userId: client.userId })).catch(
-      error => {
-        this.logger.for('clientDisconnectedFn').error('Handler error | error: %s', error);
-      },
-    );
+    this.invokeHook({
+      scope: 'clientDisconnectedFn',
+      execution: () => this.onClientDisconnected?.({ clientId, userId: client.userId }),
+    });
   }
 
   joinRoom(opts: { clientId: string; room: string }) {
@@ -582,7 +567,6 @@ export class WebSocketServerHelper<
 
     client.rooms.delete(room);
 
-    // Bun native pub/sub
     client.socket.unsubscribe(room);
   }
 
@@ -625,7 +609,7 @@ export class WebSocketServerHelper<
 
     client.state = WebSocketClientStates.AUTHENTICATING;
 
-    // Replace auth timeout with a longer in-progress timeout (prevents DoS via hanging authenticateFn)
+    // Replace with a longer in-progress timeout — prevents DoS via a hanging authenticateFn
     if (client.authTimer) {
       clearTimeout(client.authTimer);
     }
@@ -661,7 +645,6 @@ export class WebSocketServerHelper<
         client.metadata = result.metadata;
         client.state = WebSocketClientStates.AUTHENTICATED;
 
-        // Handshake — if requireEncryption is true, run handshakeFn before finalizing
         if (this.requireEncryption) {
           if (!this.handshakeFn) {
             logger.error(
@@ -697,7 +680,6 @@ export class WebSocketServerHelper<
             return;
           }
 
-          // Handshake succeeded — enable encryption
           this.enableClientEncryption({ clientId });
           client.serverPublicKey = handshakeResult.serverPublicKey;
           client.salt = handshakeResult.salt;
@@ -742,14 +724,14 @@ export class WebSocketServerHelper<
           client.encrypted,
         );
 
-        Promise.resolve(
-          this.onClientConnected?.({
-            clientId,
-            userId: client.userId,
-            metadata: client.metadata,
-          }),
-        ).catch(error => {
-          this.logger.for('clientConnectedFn').error('Handler error | error: %s', error);
+        this.invokeHook({
+          scope: 'clientConnectedFn',
+          execution: () =>
+            this.onClientConnected?.({
+              clientId,
+              userId: client.userId,
+              metadata: client.metadata,
+            }),
         });
       })
       .catch(error => {
@@ -796,7 +778,8 @@ export class WebSocketServerHelper<
       return;
     }
 
-    if (!this.validateRoomFn) {
+    const validateRoomFn = this.validateRoomFn;
+    if (!validateRoomFn) {
       logger.warn(
         'Join rejected | id: %s | rooms: %j | reason: no validateRoomFn configured',
         clientId,
@@ -805,7 +788,8 @@ export class WebSocketServerHelper<
       return;
     }
 
-    Promise.resolve(this.validateRoomFn({ clientId, userId: client.userId, rooms: sanitizedRooms }))
+    Promise.resolve()
+      .then(() => validateRoomFn({ clientId, userId: client.userId, rooms: sanitizedRooms }))
       .then((allowedRooms: string[]) => {
         if (!allowedRooms?.length) {
           logger.warn(
@@ -870,11 +854,19 @@ export class WebSocketServerHelper<
     }
 
     // Async path — transformer intercepts before socket.send()
-    if (this.outboundTransformer && client.encrypted) {
-      Promise.resolve(this.outboundTransformer({ client, event, data }))
+    const outboundTransformer = this.outboundTransformer;
+    if (outboundTransformer && client.encrypted) {
+      Promise.resolve()
+        .then(() => outboundTransformer({ client, event, data }))
         .then(transformed => {
-          const msg = transformed ?? { event, data };
-          this.deliverToSocket({ client, payload: JSON.stringify(msg), doLog, event, data });
+          const outboundMessage = transformed ?? { event, data };
+          this.deliverToSocket({
+            client,
+            payload: JSON.stringify(outboundMessage),
+            doLog,
+            event,
+            data,
+          });
         })
         .catch(error => {
           logger.error('Outbound transformer error | id: %s | error: %s', clientId, error);
@@ -900,8 +892,8 @@ export class WebSocketServerHelper<
 
     try {
       const transformed = await Promise.resolve(this.outboundTransformer({ client, event, data }));
-      const msg = transformed ?? { event, data };
-      this.deliverToSocket({ client, payload: JSON.stringify(msg), event, data });
+      const outboundMessage = transformed ?? { event, data };
+      this.deliverToSocket({ client, payload: JSON.stringify(outboundMessage), event, data });
     } catch (error) {
       this.logger
         .for(this.sendToClientAsync.name)
@@ -990,7 +982,11 @@ export class WebSocketServerHelper<
     }
 
     if (tasks.length) {
-      executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit });
+      voidExecution({
+        logger: this.logger,
+        scope: this.sendToRoom.name,
+        execution: executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit }),
+      });
     }
   }
 
@@ -1031,7 +1027,11 @@ export class WebSocketServerHelper<
     }
 
     if (tasks.length) {
-      executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit });
+      voidExecution({
+        logger: this.logger,
+        scope: this.broadcast.name,
+        execution: executePromiseWithLimit({ tasks, limit: this.encryptedBatchLimit }),
+      });
     }
   }
 
@@ -1039,10 +1039,10 @@ export class WebSocketServerHelper<
     destination?: string;
     payload: { topic: string; data: T };
     doLog?: boolean;
-    cb?: () => void;
+    callback?: () => void;
   }) {
     const logger = this.logger.for(this.send.name);
-    const { destination, payload, doLog, cb } = opts;
+    const { destination, payload, doLog, callback } = opts;
 
     if (!payload) {
       return;
@@ -1053,12 +1053,10 @@ export class WebSocketServerHelper<
       return;
     }
 
-    // Broadcast — send to all local + publish to Redis
     if (!destination) {
       this.broadcast({ event: topic, data });
       this.publishToRedis({ type: WebSocketMessageTypes.BROADCAST, event: topic, data });
     } else if (this.clients.has(destination)) {
-      // Local client — send directly + publish to Redis
       this.sendToClient({ clientId: destination, event: topic, data, doLog });
       this.publishToRedis({
         type: WebSocketMessageTypes.CLIENT,
@@ -1067,7 +1065,6 @@ export class WebSocketServerHelper<
         data,
       });
     } else if (this.rooms.has(destination)) {
-      // Room — fan-out locally + publish to Redis
       this.sendToRoom({ room: destination, event: topic, data });
       this.publishToRedis({
         type: WebSocketMessageTypes.ROOM,
@@ -1085,8 +1082,8 @@ export class WebSocketServerHelper<
       });
     }
 
-    if (cb) {
-      setTimeout(cb, 0);
+    if (callback) {
+      setTimeout(callback, 0);
     }
 
     if (doLog) {
@@ -1148,7 +1145,7 @@ export class WebSocketServerHelper<
     for (const [clientId, client] of this.clients) {
       try {
         client.socket.close(1001, 'Server shutting down');
-      } catch (_error) {
+      } catch {
         logger.error('Client may already be disconnected | clientId: %s', clientId);
       }
     }

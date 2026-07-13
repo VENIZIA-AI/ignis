@@ -66,6 +66,8 @@ export interface IStorageHelper {
     files: IUploadFile[];
     normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    /** Folder nesting the caller allows. Omitted -> `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH`. */
+    maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
   getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;

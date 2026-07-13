@@ -1,3 +1,4 @@
+import { CoreErrorCodes } from '@/common';
 /**
  * PostgreSQL SQLSTATE error codes that represent a CLIENT error (HTTP 400) — i.e. caused by the
  * request/data — rather than a server fault. Grouped by SQLSTATE class.
@@ -97,4 +98,4 @@ export const POSTGRES_RETRYABLE_ERROR_CODES: readonly string[] = [
 /** Safe, generic message + stable code for a retryable DB conflict (never leaks internals). */
 export const DATABASE_RETRYABLE_ERROR_MESSAGE =
   'The request conflicted with a concurrent operation; please retry.';
-export const DATABASE_RETRYABLE_ERROR_CODE = 'database.conflict';
+export const DATABASE_RETRYABLE_ERROR_CODE = CoreErrorCodes.DATABASE_CONFLICT;

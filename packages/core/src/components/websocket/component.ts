@@ -218,7 +218,6 @@ export class WebSocketComponent extends BaseComponent {
 
     logger.info('Binding WebSocket for application...');
 
-    // Runtime check — Bun only
     const runtime = RuntimeModules.detect();
     if (runtime === RuntimeModules.NODE) {
       throw getError({

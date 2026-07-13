@@ -2,10 +2,9 @@ import type { TTableObject, TTableSchemaWithId } from '@/connectors/postgres/mod
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TConstValue } from '@venizia/ignis-helpers';
 import { BaseHelper, getError, resolveValue } from '@venizia/ignis-helpers';
-import { and, asc, desc, eq, inArray, isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, asc, desc, eq, inArray, isNull, not, or, sql, type SQL } from 'drizzle-orm';
 import { getTableConfig } from 'drizzle-orm/pg-core';
 import isEmpty from 'lodash/isEmpty';
-import merge from 'lodash/merge';
 import set from 'lodash/set';
 import type {
   TDrizzleQueryOptions,
@@ -25,12 +24,44 @@ import {
 } from './internal/json-utils';
 import { PostgresQueryOperators } from './query';
 
+/** Operators whose scalar operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
+const SCALAR_EQUALITY_OPERATORS = new Set<string>([
+  QueryOperators.EQ,
+  QueryOperators.NE,
+  QueryOperators.NEQ,
+]);
+/** Operators whose array operand determines the JSON numeric-cast need in jsonNeedsNumericCast. */
+const MEMBERSHIP_OPERATORS = new Set<string>([
+  QueryOperators.IN,
+  QueryOperators.INQ,
+  QueryOperators.NIN,
+]);
+
 /** Converts filter objects into Drizzle ORM query options (where, order, columns, relations). */
 export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect {
+  /** Per-schema memo of resolved relations. `@model` settings are immutable after boot, so the
+   * registry lookup + resolver invocation runs once per schema (mirrors getCachedColumns). */
+  private readonly _relationsCache = new WeakMap<
+    TTableSchemaWithId,
+    Record<string, TRelationConfig>
+  >();
+
   constructor() {
     super({ scope: FilterBuilder.name });
   }
-  /** Merges default filter with user filter. Where is deep-merged; other fields user-wins. */
+  /**
+   * Merges default filter with user filter. `where` merges at the TOP KEY LEVEL, never index-wise
+   * (that would corrupt operator arrays like `inq`/`or`), with one NARROWING rule on collisions:
+   *
+   * - both sides carry an operator object on the same key -> the two conditions are AND-composed,
+   *   so a default scope can only ever be narrowed, never widened or dropped by a user filter
+   *   (`{createdAt: {gte: floor}}` + `{createdAt: {lte: ceil}}` keeps the floor);
+   * - otherwise the user's value wins the key, as it always has (scalar overrides);
+   * - a user value of `undefined` never overrides a defined default - a user must not be able to
+   *   blow away a tenant/soft-delete scope by passing undefined.
+   *
+   * Other filter parts are user-wins.
+   */
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
 
@@ -47,7 +78,7 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     let mergedWhere: TWhere<T> | undefined;
 
     if (defaultWhere && userWhere) {
-      mergedWhere = merge({}, defaultWhere, userWhere);
+      mergedWhere = this.mergeWhere({ defaultWhere, userWhere });
     } else {
       mergedWhere = userWhere ?? defaultWhere;
     }
@@ -61,6 +92,71 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
       fields: userFilter.fields ?? defaultFilter.fields,
       include: userFilter.include ?? defaultFilter.include,
     };
+  }
+
+  /**
+   * Top-key merge of two `where` clauses. Collisions where BOTH sides hold an operator object are
+   * AND-composed into a `{ and: [...] }` group so the default condition survives intact; every
+   * other collision is a user-wins replacement. The AND group is appended under the reserved `and`
+   * key, and merges with an existing `and` rather than clobbering it.
+   */
+  private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
+    const { defaultWhere, userWhere } = opts;
+
+    const merged: TWhere = { ...defaultWhere };
+    const composed: TWhere[] = [];
+
+    for (const key in userWhere) {
+      const userValue = userWhere[key];
+
+      if (userValue === undefined) {
+        continue;
+      }
+
+      const defaultValue = defaultWhere[key];
+
+      // A scalar-over-scalar collision stays a plain override (`isDeleted: false` -> `true`): that
+      // is the long-standing way a caller opts out of a soft-delete style default. Every other
+      // collision AND-composes, so a condition the default expressed can only be narrowed - a user
+      // operator object can no longer swallow a scalar default (`status: 'active'` +
+      // `status: { neq: 'archived' }` must keep BOTH), and two operator objects both survive.
+      const isCollision = defaultValue !== undefined;
+
+      // `and`/`or` are the shapes a SCOPE is written in (soft-delete, tenant, ownership/visibility),
+      // and both sides are arrays - which `isPrimitiveValue` counts as scalar, so without these two
+      // branches the caller's group replaced the default's outright and the scope was simply gone.
+      if (isCollision && key === QueryOperators.AND) {
+        // Both conjunct lists must hold: concatenating them IS the AND of the two groups.
+        merged.and = [...defaultValue, ...userValue];
+        continue;
+      }
+
+      if (isCollision && key === QueryOperators.OR) {
+        // Two disjunctions cannot be concatenated - that would UNION them, widening the query. Each
+        // group has to hold on its own, so they become two separate conjuncts.
+        delete merged[key];
+        composed.push({ [key]: defaultValue }, { [key]: userValue });
+        continue;
+      }
+
+      const isScalarOverride =
+        !this.isOperatorObject({ value: defaultValue }) &&
+        !this.isOperatorObject({ value: userValue });
+
+      if (isCollision && !isScalarOverride) {
+        delete merged[key];
+        composed.push({ [key]: defaultValue }, { [key]: userValue });
+        continue;
+      }
+
+      merged[key] = userValue;
+    }
+
+    if (composed.length) {
+      merged.and = merged.and ? [...merged.and, ...composed] : composed;
+    }
+
+    return merged as TWhere<T>;
   }
 
   /** Resolves hidden properties by SQL table name, not class - `toInclude` only has a relation's
@@ -109,8 +205,23 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     }
   }
 
-  /** Resolves relation configurations for a schema from MetadataRegistry. */
+  /** Resolves relation configurations for a schema from MetadataRegistry. Memoized per schema. */
   resolveRelations(opts: { schema: TTableSchemaWithId }): Record<string, TRelationConfig> {
+    const { schema } = opts;
+
+    const cached = this._relationsCache.get(schema);
+    if (cached) {
+      return cached;
+    }
+
+    const resolved = this.resolveRelationsUncached({ schema });
+    this._relationsCache.set(schema, resolved);
+    return resolved;
+  }
+
+  private resolveRelationsUncached(opts: {
+    schema: TTableSchemaWithId;
+  }): Record<string, TRelationConfig> {
     const { schema } = opts;
 
     try {
@@ -148,7 +259,6 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     const { tableName, schema, filter } = opts;
     const { limit, skip, offset, order, fields, where, include } = filter;
 
-    const relations = this.resolveRelations({ schema });
     const effectiveOffset = skip ?? offset;
 
     return {
@@ -157,7 +267,9 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
       ...(fields && { columns: this.toColumns({ fields }) }),
       ...(order && { orderBy: this.toOrderBy({ tableName, schema, order }) }),
       ...(where && { where: this.toWhere({ tableName, schema, where }) }),
-      ...(include && { with: this.toInclude({ include, relations }) }),
+      ...(include && {
+        with: this.toInclude({ include, relations: this.resolveRelations({ schema }) }),
+      }),
     };
   }
 
@@ -365,11 +477,9 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
 
     return result;
   }
-  /** Gets columns using shared cache utility. */
   private getColumns<Schema extends TTableSchemaWithId>(schema: Schema) {
     return getCachedColumns(schema);
   }
-  /** Checks if a value is a primitive (not an operator object). */
   private isPrimitiveValue(opts: { value: any }): boolean {
     const { value } = opts;
     return (
@@ -411,6 +521,13 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     const conditions: SQL[] = [];
 
     for (const op in value) {
+      // `not` needs recursion into a nested condition, which the static FNS handlers can't reach -
+      // build it here where buildOperatorConditions/buildValueCondition are available.
+      if (op === QueryOperators.NOT) {
+        conditions.push(this.buildNotCondition({ column, value: value[op] }));
+        continue;
+      }
+
       const opFn = PostgresQueryOperators.FNS[op];
       if (!opFn) {
         throw getError({
@@ -427,6 +544,20 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     return conditions;
   }
 
+  /** Negates a nested condition: `not: <operatorObject>` recurses into the operators; `not: <bareValue>`
+   * negates the equality/array/null condition for that value. */
+  private buildNotCondition(opts: { column: any; value: any }): SQL {
+    const { column, value } = opts;
+
+    if (this.isOperatorObject({ value })) {
+      const nested = this.buildOperatorConditions({ column, value });
+      const combined = nested.length === 1 ? nested[0] : and(...nested)!;
+      return not(combined);
+    }
+
+    return not(this.buildValueCondition({ column, value }));
+  }
+
   /** Builds SQL conditions for logical groups (AND/OR). */
   private buildLogicalGroupCondition<Schema extends TTableSchemaWithId>(opts: {
     key: string;
@@ -441,7 +572,10 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
       .filter((c): c is SQL => !!c);
 
     if (clauses.length === 0) {
-      return undefined;
+      // An empty conjunction is vacuously TRUE, so dropping it is correct. An empty DISJUNCTION is
+      // FALSE - dropping it WIDENS the query. `or: permittedOrgIds.map(id => ({ orgId: id }))` with
+      // an empty permission list must return nothing, not everything.
+      return key === QueryOperators.AND ? undefined : sql`false`;
     }
 
     return key === QueryOperators.AND ? and(...clauses)! : or(...clauses)!;
@@ -480,6 +614,36 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     return { column, path: parsed.path };
   }
 
+  /** JSON `#>>` extraction is text; a numeric operand needs a numeric cast to avoid Postgres
+   * 'operator does not exist: text = integer'. True for numeric comparisons and for eq/ne/neq/in/inq/nin
+   * whose operand is a number (or all-number array). */
+  private jsonNeedsNumericCast(opts: { operators: Record<string, any> }): boolean {
+    const { operators } = opts;
+
+    if (QueryOperators.hasNumericComparison({ operators })) {
+      return true;
+    }
+
+    for (const op in operators) {
+      const operand = operators[op];
+
+      if (SCALAR_EQUALITY_OPERATORS.has(op) && typeof operand === 'number') {
+        return true;
+      }
+
+      if (
+        MEMBERSHIP_OPERATORS.has(op) &&
+        Array.isArray(operand) &&
+        operand.length > 0 &&
+        operand.every(entry => typeof entry === 'number')
+      ) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
   private buildJsonWhereCondition(opts: {
     key: string;
     value: any;
@@ -504,11 +668,59 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
       return [this.buildValueCondition({ column: jsonExtraction, value })];
     }
 
-    const jsonExtraction = QueryOperators.hasNumericComparison({ operators: value })
-      ? sql.raw(safeNumericCast)
-      : sql.raw(jsonPath);
+    return this.buildJsonOperatorConditions({ jsonPath, safeNumericCast, operators: value });
+  }
 
-    return this.buildOperatorConditions({ column: jsonExtraction, value });
+  /**
+   * The cast belongs to each OPERATOR, not to the operator object.
+   *
+   * Choosing it once for the whole object breaks two ways: `{ not: { gt: 50 } }` hides its numeric
+   * operand behind a wrapper the check never looks inside (-> `text > integer` at runtime), and
+   * `{ gte: 1, like: '%a%' }` casts the extraction the `like` also uses (-> `numeric ~~ text`).
+   */
+  private buildJsonOperatorConditions(opts: {
+    jsonPath: string;
+    safeNumericCast: string;
+    operators: Record<string, any>;
+  }): SQL[] {
+    const { jsonPath, safeNumericCast, operators } = opts;
+    const conditions: SQL[] = [];
+
+    for (const op in operators) {
+      const operand = operators[op];
+
+      if (op === QueryOperators.NOT) {
+        const nested = this.isOperatorObject({ value: operand })
+          ? this.buildJsonOperatorConditions({ jsonPath, safeNumericCast, operators: operand })
+          : [
+              this.buildValueCondition({
+                column: sql.raw(typeof operand === 'number' ? safeNumericCast : jsonPath),
+                value: operand,
+              }),
+            ];
+
+        conditions.push(not(nested.length === 1 ? nested[0] : and(...nested)!));
+        continue;
+      }
+
+      const opFn = PostgresQueryOperators.FNS[op];
+      if (!opFn) {
+        throw getError({
+          message: `[FilterBuilder][buildJsonOperatorConditions] Invalid query operator | operator: '${op}'`,
+        });
+      }
+
+      const extraction = this.jsonNeedsNumericCast({ operators: { [op]: operand } })
+        ? sql.raw(safeNumericCast)
+        : sql.raw(jsonPath);
+
+      const result = opFn({ column: extraction, value: operand });
+      if (result) {
+        conditions.push(result);
+      }
+    }
+
+    return conditions;
   }
 
   private buildJsonOrderBy(opts: {

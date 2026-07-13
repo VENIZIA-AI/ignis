@@ -8,7 +8,7 @@ import {
   IApplicationConfigs,
   IApplicationInfo,
   IMiddlewareConfigs,
-  SwaggerComponent,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { WebSocketBindingKeys, WebSocketComponent } from '@venizia/ignis/websocket';
@@ -238,7 +238,7 @@ export class Application extends BaseApplication {
     this.component(HealthCheckComponent);
 
     // Swagger
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
 
     // WebSocket
     this.setupWebSocket();

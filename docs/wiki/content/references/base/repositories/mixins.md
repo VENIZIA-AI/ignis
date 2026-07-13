@@ -25,7 +25,7 @@ The functionality was not dropped - it was folded directly into the repository h
 
 ### Engine-neutral: `AbstractRepository`
 
-**File:** `packages/core/src/base/repositories/core/abstract-repository.ts`
+**File:** `packages/core/src/base/repositories/core/abstract.ts`
 
 `AbstractRepository` resolves `@model` settings by class (Reflect target) via `MetadataRegistry` and exposes them as protected getters, memoized after first access:
 
@@ -38,7 +38,7 @@ protected get defaultLimit(): number | undefined;           // settings.defaultL
 
 ### PostgreSQL: `PostgresBaseRepository`
 
-**File:** `packages/core/src/connectors/postgres/repositories/core/postgres-base-repository.ts`
+**File:** `packages/core/src/connectors/postgres/repositories/core/base.ts`
 
 Builds on those getters to implement SQL-level column exclusion and full-filter merging for Drizzle:
 
@@ -56,7 +56,7 @@ applyDefaultFilter(opts: {
 }): TFilter;                                              // merges via FilterBuilder.mergeFilter
 ```
 
-Hidden columns are excluded from `select()` and `returning()` calls at query time - the same SQL-level guarantee the mixins provided. Other connectors (typesense, memory) implement their own equivalents natively since they are not Drizzle-aware.
+Hidden columns are excluded from `select()` and `returning()` calls at query time - the same SQL-level guarantee the mixins provided. The typesense connector implements its own equivalent natively since it is not Drizzle-aware.
 
 ## Migration
 

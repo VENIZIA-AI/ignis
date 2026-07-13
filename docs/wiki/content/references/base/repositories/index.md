@@ -3,9 +3,9 @@
 Repositories are the data access layer in IGNIS - they provide type-safe CRUD operations for your database entities.
 
 > [!IMPORTANT] Base vs. Connectors
-> `AbstractRepository` (`packages/core/src/base/repositories/core/abstract-repository.ts`) is the engine-neutral root shared by all three connectors - it declares the CRUD contract but has no Drizzle, SQL, or mixin composition. The concrete classes documented on this page (`ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`) belong to the **PostgreSQL connector**, built on `PostgresBaseRepository`. Typesense and memory have their own parallel tiers - see [Connectors](/references/base/connectors), [Search & Typesense](/guides/core-concepts/persistent/search-typesense), and [Memory Connector](/guides/core-concepts/persistent/memory-connector).
+> `AbstractRepository` (`packages/core/src/base/repositories/core/abstract.ts`) is the engine-neutral root shared by both connectors - it declares the CRUD contract but has no Drizzle, SQL, or mixin composition. The concrete classes documented on this page (`ReadableRepository`, `PersistableRepository`, `DefaultCRUDRepository`, `SoftDeletableRepository`) belong to the **PostgreSQL connector**, built on `PostgresBaseRepository`. Typesense has its own parallel tier - see [Connectors](/references/base/connectors) and [Search & Typesense](/guides/core-concepts/persistent/search-typesense).
 
-**Files:** `packages/core/src/base/repositories/core/abstract-repository.ts` (neutral) and `packages/core/src/connectors/postgres/repositories/core/*.ts` (PostgreSQL)
+**Files:** `packages/core/src/base/repositories/core/abstract.ts` (neutral) and `packages/core/src/connectors/postgres/repositories/core/*.ts` (PostgreSQL)
 
 
 ## Quick Start
@@ -632,7 +632,7 @@ await repository.updateAll({ data: { status: 'archived' }, where: {}, options: {
 
 ### ReadableRepository Write Protection
 
-All write methods (`create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`) throw errors on `ReadableRepository`, enforcing the read-only scope at runtime.
+All write methods (`create`, `createAll`, `updateById`, `updateAll`, `deleteById`, `deleteAll`) throw errors on `ReadableRepository`, enforcing the read-only scope at runtime. The thrown error carries `messageCode: 'core.repository.operation_not_allowed'` (`RepositoryErrorCodes.OPERATION_NOT_ALLOWED`).
 
 
 ## TFilter Reference

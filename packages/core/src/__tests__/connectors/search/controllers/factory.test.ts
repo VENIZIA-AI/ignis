@@ -62,7 +62,7 @@ const fakeContext = <TInput>(input: TInput) => {
 };
 
 describe('SearchControllerFactory.defineSearchController', () => {
-  test('registers exactly the search + multiSearch POST routes', () => {
+  test('registers exactly the search + multiSearch POST routes', async () => {
     const dataSource = new SearchFactoryDataSource({ name: 'factory-test-ds-1', config: {} });
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
@@ -73,7 +73,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
     });
 
     const controller = new ProductSearchController(repositoryInstance);
-    controller['binding']();
+    await controller['binding']();
 
     // OpenAPIHono.openapi() registers more than one internal `.routes` entry per call (pre-existing
     // Hono behavior, also visible on ControllerFactory.defineCrudController) - dedupe via Set, same
@@ -86,7 +86,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
     expect(distinctRoutes).toContain('POST /multi-search');
   });
 
-  test('routes.multiSearch.enabled: false disables only the multi-search route', () => {
+  test('routes.multiSearch.enabled: false disables only the multi-search route', async () => {
     const dataSource = new SearchFactoryDataSource({ name: 'factory-test-ds-2', config: {} });
     const repositoryInstance = new SearchFactoryProductRepository(dataSource);
 
@@ -98,7 +98,7 @@ describe('SearchControllerFactory.defineSearchController', () => {
     });
 
     const controller = new SearchOnlyController(repositoryInstance);
-    controller['binding']();
+    await controller['binding']();
 
     const distinctRoutes = new Set(
       controller.router.routes.map(route => `${route.method} ${route.path}`),
@@ -156,9 +156,13 @@ describe('SearchControllerFactory.defineSearchController', () => {
 
     await controller['multiSearch']({ context });
 
-    // Controller passes the friendly body through; the datasource maps `query` -> wire `q`.
+    // Controller passes the friendly body through; the datasource maps `query` -> wire `q` and
+    // injects the collection's @model hiddenProperties (`secret`) into exclude_fields.
     expect(dataSource.multiSearchCalls).toEqual([
-      { searches: [{ collection: 'products', q: 'foo' }], union: true },
+      {
+        searches: [{ collection: 'products', q: 'foo', ['exclude_fields']: 'secret' }],
+        union: true,
+      },
     ]);
     expect(getJsonBody()).toEqual({ results: [{ found: 2, isFoundExact: true, hits: [] }] });
     expect(getJsonStatus()).toBe(HTTP.ResultCodes.RS_2.Ok);

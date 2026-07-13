@@ -181,8 +181,16 @@ export const compileTypesenseCollection = (opts: {
   if (defaultSort !== undefined) {
     const sortField = fields.find(item => item.name === defaultSort);
 
+    // A defaultSort naming a field the collection does not declare would otherwise be forwarded to
+    // the engine verbatim and rejected there - fail here with the field named, same as the type check.
+    if (!sortField) {
+      throw getError({
+        message: `[compileTypesenseCollection] Invalid defaultSort | references a field that does not exist in the collection | name: ${name} | defaultSort: ${defaultSort}`,
+      });
+    }
+
     // Typesense's default_sorting_field accepts only a scalar numeric field, never string/array.
-    if (sortField && sortField.type !== SearchFieldTypes.NUMBER) {
+    if (sortField.type !== SearchFieldTypes.NUMBER) {
       throw getError({
         message: `[compileTypesenseCollection] Invalid defaultSort | Typesense's default_sorting_field requires a scalar numeric field (int32/int64/float) - not string, not array | name: ${name} | defaultSort: ${defaultSort} | type: ${sortField.type}`,
       });

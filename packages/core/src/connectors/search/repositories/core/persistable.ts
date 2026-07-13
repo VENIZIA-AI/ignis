@@ -1,3 +1,4 @@
+import { SearchErrorCodes } from '@/common';
 import type { IdType } from '@/base/models';
 import type { IExtraOptions, TCount, TWhere } from '@/base/repositories/common';
 import { RepositoryOperationScopes } from '@/base/repositories/common';
@@ -118,7 +119,7 @@ export class PersistableSearchRepository<
       if (!found) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_4.NotFound,
-          messageCode: 'core.search_engine.not_found',
+          messageCode: SearchErrorCodes.NOT_FOUND,
           message: `[${this.constructor.name}][updateById] Document not found or excluded by the default filter | Collection: ${this.collectionName} | Id: ${id}`,
         });
       }
@@ -137,23 +138,17 @@ export class PersistableSearchRepository<
     return { count: 1, data: this.omitHiddenFields(updated as R) };
   }
 
-  override updateAll(opts: {
+  /**
+   * Bulk update on a search engine has no RETURNING and this tier refuses to bolt an extra
+   * engine read onto every call: the contract is count-only, `data` is always `null`, and
+   * `shouldReturn` is rejected at the type level. Callers that need the affected documents
+   * read them explicitly (and pay that cost visibly) before updating.
+   */
+  override async updateAll(opts: {
     data: Partial<TDocument>;
     where?: TWhere;
-    options: IExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  override updateAll<R = TDocument>(opts: {
-    data: Partial<TDocument>;
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-
-  override async updateAll<R = TDocument>(opts: {
-    data: Partial<TDocument>;
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
+  }): Promise<TCount & { data: null }> {
     this.assertNoTransaction(opts.options);
     this.assertNoLock(opts.options);
 
@@ -175,18 +170,7 @@ export class PersistableSearchRepository<
       filterBy,
     });
 
-    if (options?.shouldReturn === false) {
-      return { count: result.updatedCount, data: null };
-    }
-
-    // Typesense's update-by-filter has no RETURNING equivalent - snapshots the (now-updated) rows
-    // via find() over the same filter, subject to the same pagination default as any other read.
-    const updated = await this.find<R>({
-      filter: { where },
-      options: { shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter },
-    });
-
-    return { count: result.updatedCount, data: updated };
+    return { count: result.updatedCount, data: null };
   }
 
   override deleteById(opts: {
@@ -233,21 +217,16 @@ export class PersistableSearchRepository<
     return { count: 1, data };
   }
 
-  override deleteAll(opts: {
+  /**
+   * Count-only, like updateAll: no RETURNING on search engines, no bolted-on read, `data` is
+   * always `null`. Filter-delete when there is an effective where (opts.where and/or
+   * defaultFilter); truncates the whole collection only when neither is present - truncate
+   * reports no per-document count, so that path returns { count: 0, data: null }.
+   */
+  override async deleteAll(opts?: {
     where?: TWhere;
-    options: IExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-
-  override deleteAll<R = TDocument>(opts?: {
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-
-  /** Filter-delete when there's an effective where (opts.where and/or defaultFilter); truncates the whole collection only when neither is present. Truncate reports no per-document count or data, so that path always returns { count: 0, data: null }. */
-  override async deleteAll<R = TDocument>(opts?: {
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
+  }): Promise<TCount & { data: null }> {
     this.assertNoTransaction(opts?.options);
     this.assertNoLock(opts?.options);
 
@@ -259,33 +238,35 @@ export class PersistableSearchRepository<
     });
 
     if (filterBy === undefined) {
+      // `where: {}` compiles to NO filter, which used to read as "truncate everything" - and the
+      // truncate reports no count, so the call returned `{ count: 0 }` and nothing surfaced the
+      // damage. Wiping a collection has to be asked for, exactly as Postgres demands `force` for an
+      // empty-where delete.
+      if (!options?.force) {
+        throw getError({
+          message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model defaultFilter) - pass options.force to truncate the collection`,
+        });
+      }
+
       const didTruncate = await this.connector.document.deleteAll({
         collection: this.collectionName,
       });
 
-      logger.info(
-        'Truncated collection (engine does not report a per-document count) | Collection: %s | Truncated: %s',
+      logger.warn(
+        'TRUNCATED collection on explicit force (engine reports no per-document count) | Collection: %s | Truncated: %s',
         this.collectionName,
         didTruncate,
       );
 
-      return { count: 0, data: options?.shouldReturn === false ? null : [] };
+      return { count: 0, data: null };
     }
-
-    const affected =
-      options?.shouldReturn === false
-        ? null
-        : await this.find<R>({
-            filter: { where },
-            options: { shouldSkipDefaultFilter: options?.shouldSkipDefaultFilter },
-          });
 
     const deletedCount = await this.connector.document.deleteBy({
       collection: this.collectionName,
       filterBy,
     });
 
-    return { count: deletedCount, data: affected };
+    return { count: deletedCount, data: null };
   }
 
   /**

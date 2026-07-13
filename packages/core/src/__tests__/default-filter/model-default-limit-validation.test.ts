@@ -10,8 +10,8 @@ import { IModelSettings } from '@/helpers/inversion';
 describe('@model - defaultLimit validation', () => {
   const decorate = (settings: IModelSettings) => () => {
     @model({ type: 'entity', settings })
-    class _M {}
-    return _M;
+    class M {}
+    return M;
   };
 
   test('accepts a positive integer', () => {

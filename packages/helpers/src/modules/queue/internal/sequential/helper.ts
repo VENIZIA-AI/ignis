@@ -1,6 +1,7 @@
 import { ValueOrPromise } from '@/common/types';
 import { BaseHelper } from '@/modules/base';
 import isEmpty from 'lodash/isEmpty';
+import { awaitHook, invokeHook } from '../../common';
 import { IQueueCallback, QueueStatuses, TQueueElement, TQueueStatus } from './types';
 
 export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
@@ -56,6 +57,28 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     this.onStateChange = opts.onStateChange;
   }
 
+  /** Announce a state transition, awaiting the hook but never letting it break the caller. */
+  protected notifyStateChange(opts: { scope: string; from: TQueueStatus }): Promise<void> {
+    const { scope, from } = opts;
+
+    return awaitHook({
+      logger: this.logger,
+      scope,
+      execution: () => this.onStateChange?.({ identifier: this.identifier, from, to: this.state }),
+    });
+  }
+
+  /** Announce a state transition from a synchronous caller (lock/unlock/settle) - fire-and-forget. */
+  protected notifyStateChangeAsync(opts: { scope: string; from: TQueueStatus }): void {
+    const { scope, from } = opts;
+
+    invokeHook({
+      logger: this.logger,
+      scope,
+      execution: () => this.onStateChange?.({ identifier: this.identifier, from, to: this.state }),
+    });
+  }
+
   protected async handleMessage() {
     const current = this.getElementAt(0);
     if (!current) {
@@ -74,13 +97,22 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     if (this.state !== QueueStatuses.LOCKED && this.state !== QueueStatuses.SETTLED) {
       const snap = this.state;
       this.state = QueueStatuses.PROCESSING;
-      await this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+      await this.notifyStateChange({ scope: this.handleMessage.name, from: snap });
     }
 
     this.getElementAt(0).isLocked = true;
 
     this.processingEvents.add(this.getElementAt(0));
-    await this.onMessage?.({ identifier: this.identifier, queueElement: this.getElementAt(0) });
+
+    // A failing handler must never leave the queue PROCESSING forever: the element would stay LOCKED at
+    // the head, nextMessage() would refuse every dispatch and storage would grow without bound. The
+    // handler owns its own retry policy - here the element is logged, dropped and the queue moves on.
+    await awaitHook({
+      logger: this.logger,
+      scope: this.handleMessage.name,
+      execution: () =>
+        this.onMessage?.({ identifier: this.identifier, queueElement: this.getElementAt(0) }),
+    });
 
     const doneElement = this.dequeue();
     if (doneElement) {
@@ -90,14 +122,14 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     if (this.state !== QueueStatuses.LOCKED && this.state !== QueueStatuses.SETTLED) {
       const snap = this.state;
       this.state = QueueStatuses.WAITING;
-      await this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+      await this.notifyStateChange({ scope: this.handleMessage.name, from: snap });
     }
 
     if (!this.storage.length) {
       if (this.isSettleRequested) {
         const snap = this.state;
         this.state = QueueStatuses.SETTLED;
-        await this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+        await this.notifyStateChange({ scope: this.handleMessage.name, from: snap });
       }
 
       return;
@@ -156,7 +188,11 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     const queueElement: TQueueElement<TElementPayload> = { isLocked: false, payload };
     this.storage.push(queueElement);
     this.totalEvent++;
-    await this.onDataEnqueue?.({ identifier: this.identifier, queueElement: queueElement });
+    await awaitHook({
+      logger: this.logger,
+      scope: this.enqueue.name,
+      execution: () => this.onDataEnqueue?.({ identifier: this.identifier, queueElement }),
+    });
 
     if (this.autoDispatch) {
       this.nextMessage();
@@ -167,7 +203,11 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     const value = this.storage.shift();
 
     if (value && !isEmpty(value)) {
-      this.onDataDequeue?.({ identifier: this.identifier, queueElement: value });
+      invokeHook({
+        logger: this.logger,
+        scope: this.dequeue.name,
+        execution: () => this.onDataDequeue?.({ identifier: this.identifier, queueElement: value }),
+      });
     }
 
     return value;
@@ -187,7 +227,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
 
     const snap = this.state;
     this.state = QueueStatuses.LOCKED;
-    this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+    this.notifyStateChangeAsync({ scope: this.lock.name, from: snap });
   }
 
   unlock(opts: { shouldProcessNextElement?: boolean }) {
@@ -206,7 +246,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
 
     const snap = this.state;
     this.state = QueueStatuses.WAITING;
-    this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+    this.notifyStateChangeAsync({ scope: this.unlock.name, from: snap });
 
     if (!shouldProcessNextElement) {
       return;
@@ -221,7 +261,7 @@ export class SequentialQueueHelper<TElementPayload> extends BaseHelper {
     if (this.state !== QueueStatuses.PROCESSING) {
       const snap = this.state;
       this.state = QueueStatuses.SETTLED;
-      this.onStateChange?.({ identifier: this.identifier, from: snap, to: this.state });
+      this.notifyStateChangeAsync({ scope: this.settle.name, from: snap });
     }
   }
 

@@ -5,15 +5,9 @@ import type {
   IMailProcessorResult,
   IInternalQueueMailExecutorOpts,
   IMailQueueResult,
+  IQueueJobPayload,
 } from '../../common';
-
-interface IQueueJobPayload {
-  id: string;
-  email: string;
-  options?: IMailQueueOptions;
-  attempts: number;
-  scheduledAt: number;
-}
+import { MailErrorCodes, MailExecutorErrors } from '../../common';
 
 export class InternalQueueMailExecutorHelper extends BaseHelper implements IMailQueueExecutor {
   private queue: SequentialQueueHelper<IQueueJobPayload>;
@@ -48,14 +42,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     this.logger.for(this.constructor.name).info('Internal queue executor initialized');
   }
 
-  setProcessor(
-    processor: (email: string) => Promise<{
-      success: boolean;
-      message: string;
-      expiresInMinutes: number;
-      nextResendAt?: string;
-    }>,
-  ): void {
+  setProcessor(processor: (email: string) => Promise<IMailProcessorResult>): void {
     this.processor = processor;
     this.logger.for(this.setProcessor.name).info('Processor registered');
   }
@@ -65,7 +52,7 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
     options?: IMailQueueOptions,
   ): Promise<IMailQueueResult> {
     if (!this.processor) {
-      throw getError({ message: 'Processor not set. Call setProcessor() first.' });
+      throw getError({ message: MailExecutorErrors.PROCESSOR_NOT_SET });
     }
 
     const jobId = `job_${++this.jobIdCounter}_${Date.now()}`;
@@ -83,7 +70,11 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
 
     if (options?.delay && options.delay > 0) {
       const timeout = setTimeout(() => {
-        this.queue.enqueue(job);
+        this.queue.enqueue(job).catch(error => {
+          this.logger
+            .for(this.enqueueVerificationEmail.name)
+            .error('Failed to enqueue delayed job | jobId: %s | error: %s', jobId, error);
+        });
         this.delayedJobs.delete(jobId);
       }, options.delay);
 
@@ -101,6 +92,22 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       queued: true,
       message: 'Email queued successfully (internal queue)',
     };
+  }
+
+  /**
+   * Releases every pending delayed/backoff timer. Without this an unsent (or retrying) job keeps a
+   * live `setTimeout` handle, which holds the event loop open and outlives the executor.
+   */
+  async close(): Promise<void> {
+    const pendingCount = this.delayedJobs.size;
+
+    for (const timeout of this.delayedJobs.values()) {
+      clearTimeout(timeout);
+    }
+
+    this.delayedJobs.clear();
+
+    this.logger.for(this.close.name).info('Executor closed | Cleared timers: %d', pendingCount);
   }
 
   private async processJob(job: IQueueJobPayload): Promise<void> {
@@ -122,7 +129,18 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       );
 
     try {
-      await this.processor(job.email);
+      const result = await this.processor(job.email);
+
+      // A processor reports an SMTP rejection by RETURNING `{ success: false }` - that is what
+      // `IMailProcessorResult` is for. Watching only for throws marked the job completed, so the
+      // mail was dropped with no retry and no trace.
+      if (result?.success === false) {
+        throw getError({
+          messageCode: MailErrorCodes.SEND_FAILED,
+          message: `[processJob] Processor reported failure | jobId: ${job.id} | reason: ${result.message}`,
+        });
+      }
+
       this.logger.for(this.processJob.name).info('Job completed successfully | jobId: %s', job.id);
     } catch (error) {
       const errorMsg = error instanceof Error ? error.message : error;
@@ -142,9 +160,12 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
             errorMsg,
           );
 
-        // Re-enqueue with delay
         const timeout = setTimeout(() => {
-          this.queue.enqueue(job);
+          this.queue.enqueue(job).catch(reenqueueError => {
+            this.logger
+              .for(this.processJob.name)
+              .error('Failed to re-enqueue job | jobId: %s | error: %s', job.id, reenqueueError);
+          });
           this.delayedJobs.delete(job.id);
         }, backoffDelay);
 
@@ -173,7 +194,6 @@ export class InternalQueueMailExecutorHelper extends BaseHelper implements IMail
       return backoff.delay * Math.pow(2, job.attempts - 1);
     }
 
-    // Fixed delay
     return backoff.delay;
   }
 }

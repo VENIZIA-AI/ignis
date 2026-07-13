@@ -1,18 +1,18 @@
 import { z } from '@hono/zod-openapi';
 
 /** @internal Recursive schema for where clause validation with nested AND/OR. */
-const _WhereSchema: z.ZodType<any> = z.lazy(() =>
+const RecursiveWhereSchema: z.ZodType<any> = z.lazy(() =>
   z.record(z.string(), z.any()).and(
     z.object({
-      and: z.array(_WhereSchema).optional(),
-      or: z.array(_WhereSchema).optional(),
+      and: z.array(RecursiveWhereSchema).optional(),
+      or: z.array(RecursiveWhereSchema).optional(),
     }),
   ),
 );
 
 export const WhereSchema = z
   .union([
-    _WhereSchema,
+    RecursiveWhereSchema,
     z
       .string()
       .transform(val => {
@@ -22,7 +22,7 @@ export const WhereSchema = z
 
         return undefined;
       })
-      .pipe(_WhereSchema),
+      .pipe(RecursiveWhereSchema),
   ])
   .openapi({
     type: 'object',

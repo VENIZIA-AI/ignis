@@ -1,5 +1,5 @@
 import type { Logger } from '@venizia/ignis-helpers';
-import { Environment, HTTP } from '@venizia/ignis-helpers';
+import { Environment, HTTP, MessageCode } from '@venizia/ignis-helpers';
 import type { ErrorHandler } from 'hono/types';
 import { RequestSpyMiddleware } from '../request-spy';
 import { isDatabaseClientError, isRetryableDatabaseError } from './database.handler';
@@ -23,7 +23,7 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     const requestId = context.get(RequestSpyMiddleware.REQUEST_ID_KEY);
 
     logger.error(
-      '[onError][%s] REQUEST ERROR | path: %s | method: %s | url: %s | Error: %j',
+      '[appErrorHandler][%s] REQUEST ERROR | path: %s | method: %s | url: %s | Error: %s',
       requestId,
       context.req.path,
       context.req.method,
@@ -32,12 +32,28 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
     );
 
     const { NODE_ENV } = process.env;
-    const env = context.env?.NODE_ENV || NODE_ENV;
-    const isProduction = env?.toLowerCase() === Environment.PRODUCTION;
+    const env = [context.env?.NODE_ENV, NODE_ENV].find(Boolean);
+
+    if (!env) {
+      logger.error(
+        '[appErrorHandler][%s] INVALID ENV IDENTIFIER | env: %s | path: %s | method: %s | url: %s | Error: %s',
+        requestId,
+        env,
+        context.req.path,
+        context.req.method,
+        context.req.url,
+        error,
+      );
+    }
+
+    const isProduction = !env || !Environment.DEVELOPMENT_ENVS.has(env.toLowerCase());
 
     const statusCode =
       'statusCode' in error ? error.statusCode : HTTP.ResultCodes.RS_5.InternalServerError;
-    const messageCode = 'messageCode' in error ? error.messageCode : undefined;
+
+    const messageCode = MessageCode.resolve(
+      'messageCode' in error ? (error.messageCode as string) : undefined,
+    );
 
     if (error.name === 'ZodError') {
       const rs = formatZodError({

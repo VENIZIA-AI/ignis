@@ -1,5 +1,6 @@
 import { z } from '@hono/zod-openapi';
 import { getError } from '@venizia/ignis-helpers';
+import omit from 'lodash/omit';
 
 import type { TSchemaType } from '@/base/models';
 import { SchemaTypes } from '@/base/models';
@@ -75,9 +76,7 @@ export const deriveSearchDocumentSchema = (opts: {
       return z.object({ ...shape, id: z.string() });
     }
     case SchemaTypes.UPDATE: {
-      const { id: _id, ...rest } = shape;
-
-      return z.object(rest).partial();
+      return z.object(omit(shape, ['id'])).partial();
     }
     default: {
       throw getError({

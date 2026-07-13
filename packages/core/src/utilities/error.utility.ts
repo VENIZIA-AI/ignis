@@ -1,3 +1,4 @@
+import { CoreErrorCodes } from '@/common';
 import type { Logger } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
@@ -16,7 +17,7 @@ export const throwNotSupported = (opts: {
 
   throw getError({
     statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-    messageCode: 'core.not_supported',
+    messageCode: CoreErrorCodes.NOT_SUPPORTED,
     message: `[${scope}] ${feature} is not supported.`,
   });
 };

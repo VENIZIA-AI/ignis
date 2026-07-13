@@ -10,6 +10,10 @@ export abstract class BaseTool<TInputSchema extends z.ZodType, TOutputSchema ext
 
   abstract execute(opts: z.infer<TInputSchema>): Promise<z.infer<TOutputSchema>>;
 
-  /** Converts this tool instance to a Mastra-compatible tool object. */
-  abstract getTool(): Tool<z.input<TInputSchema>, z.infer<TOutputSchema>>;
+  /**
+   * Converts this tool instance to a Mastra-compatible tool object. Typed on `z.infer` (the parsed
+   * side, defaults applied) - @mastra/core >= 1.50 infers `createTool` results there, so a schema
+   * field with `.default()` is non-optional in the Tool type.
+   */
+  abstract getTool(): Tool<z.infer<TInputSchema>, z.infer<TOutputSchema>>;
 }

@@ -169,7 +169,7 @@ const nodes = applicationEnvironment.get<string[]>(EnvironmentKeys.APP_ENV_TYPES
 
 ### Engine-neutral `AbstractRepository` / `AbstractDataSource` / `AbstractEntity`
 
-**File:** `packages/core/src/base/repositories/core/abstract-repository.ts`, `packages/core/src/base/datasources/abstract-datasource.ts`, `packages/core/src/base/models/base.ts`
+**File:** `packages/core/src/base/repositories/core/abstract.ts`, `packages/core/src/base/datasources/abstract.ts`, `packages/core/src/base/models/base.ts`
 
 **Problem:** The base classes every connector had to extend were themselves PostgreSQL-and-Drizzle-aware (`pool`, Drizzle `connector`, SQL-shaped `TWhere`/`TFilter`), making it impossible to add a non-relational engine without carrying dead weight or forking the base classes.
 
@@ -308,8 +308,8 @@ Both were found and fixed during live validation against a real 3-node Typesense
 
 | File | Changes |
 |------|---------|
-| `src/base/repositories/core/abstract-repository.ts` | Generics renamed to `TDataObject`/`TPersistObject`/`TOptions`; no Drizzle imports |
-| `src/base/datasources/abstract-datasource.ts` | New file - engine-neutral `AbstractDataSource`, `getCapabilities()`, `NotSupported`-throwing `beginTransaction()` |
+| `src/base/repositories/core/abstract.ts` | Generics renamed to `TDataObject`/`TPersistObject`/`TOptions`; no Drizzle imports |
+| `src/base/datasources/abstract.ts` | New file - engine-neutral `AbstractDataSource`, `getCapabilities()`, `NotSupported`-throwing `beginTransaction()` |
 | `src/base/models/base.ts` | New file - engine-neutral `AbstractEntity`, `getIdType()` |
 | `src/base/datasources/common/types.ts` | Neutral `ITransaction` (no `connector`), `IDataSourceCapabilities` |
 | `src/connectors/postgres/**` | New connector - `AbstractRelationalDataSource`/`BaseRelationalDataSource`, `BaseRelationalEntity`, `RelationalBaseRepository` tier ladder (`ReadableRelationalRepository`/`PersistableRelationalRepository`/`DefaultRelationalRepository`/`SoftDeletableRelationalRepository`), `IDatabaseTransaction`/`IDatabaseTransactionOptions`/`IDatabaseExtraOptions` |

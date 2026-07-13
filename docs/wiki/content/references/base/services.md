@@ -62,10 +62,10 @@ this.service(AuthenticationService);  // binds as 'services.AuthenticationServic
 this.service(GreeterService);         // binds as 'services.GreeterService'
 ```
 
-`this.service(Ctor)` is implemented in `ServiceMixin`:
+`this.service(Ctor)` is implemented directly on `BaseApplication`:
 
 ```typescript
-// packages/core/src/base/mixins/service.mixin.ts
+// packages/core/src/base/applications/base.ts
 service<Base extends IService, Args extends AnyObject = any>(
   ctor: TClass<Base>,
   opts?: TMixinOpts<Args>,
@@ -244,31 +244,33 @@ this.service(OrderService);
 
 ### Abstract Base Services
 
-For shared dependencies across multiple related services, define an abstract base:
+For shared dependencies across multiple related services, define an abstract base. The container only ever `instantiate()`s the **concrete** class (`this.service(UserAuditTestService)` registers `UserAuditTestService`, never `BaseTestService`), and the hard DI rule - every constructor parameter of a container-instantiated class must carry `@inject` - applies to that concrete constructor. A `scope: string` computed from `ClassName.name` is not something the container can supply anyway, so it cannot sit as a bare constructor parameter next to an `@inject`-decorated one. The shared repository is injected as a **property** on the base instead, and the concrete subclass's constructor is left with zero parameters - nothing to decorate, nothing to violate:
 
 ```typescript
-// Shared repository access for a group of test services
+// Shared repository access for a group of test services - property injection,
+// so the concrete subclass's constructor stays free of undecorated parameters
 export abstract class BaseTestService extends BaseService {
-  constructor(
-    scope: string,
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.REPOSITORY,
-        key: UserRepository.name,
-      }),
-    })
-    protected readonly userRepository: UserRepository,
-  ) {
-    super({ scope });
+  @inject({
+    key: BindingKeys.build({
+      namespace: BindingNamespaces.REPOSITORY,
+      key: UserRepository.name,
+    }),
+  })
+  protected userRepository!: UserRepository;
+
+  constructor(opts: { scope: string }) {
+    super(opts);
   }
 
   abstract run(): Promise<void>;
 }
 
-// Concrete subclass passes its own scope, forwards injected args to super
+// Concrete subclass takes no constructor parameters - only container-instantiated
+// classes are subject to the "every parameter decorated" rule, and an empty
+// parameter list trivially satisfies it
 export class UserAuditTestService extends BaseTestService {
-  constructor(userRepository: UserRepository) {
-    super(UserAuditTestService.name, userRepository);
+  constructor() {
+    super({ scope: UserAuditTestService.name });
   }
 
   async run(): Promise<void> {
@@ -283,6 +285,9 @@ Register the concrete class - never the abstract base:
 ```typescript
 this.service(UserAuditTestService);
 ```
+
+> [!IMPORTANT]
+> `BaseTestService`'s own constructor (`opts: { scope: string }`) is never processed by the container - `BaseTestService` is abstract and is never passed to `instantiate()`. Only the concrete class the container actually instantiates is subject to the "every parameter decorated" rule. See [Dependency Injection Reference](./dependency-injection.md#instantiation-algorithm-two-phase) for the full rule.
 
 ---
 
@@ -331,7 +336,7 @@ export class CheckoutService extends BaseService {
       return order;
     } catch (error) {
       await transaction.rollback();
-      log.error('Order failed, rolled back | error: %j', error);
+      log.error('Order failed, rolled back | error: %s', error);
       throw error;
     }
   }

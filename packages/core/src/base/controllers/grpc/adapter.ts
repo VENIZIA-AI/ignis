@@ -5,7 +5,7 @@ import type {
   UniversalServerResponse,
 } from '@connectrpc/connect/protocol';
 import type { ValueOrPromise } from '@venizia/ignis-helpers';
-import { GRPC, HTTP, validateModule } from '@venizia/ignis-helpers';
+import { getError, GRPC, HTTP, validateModule } from '@venizia/ignis-helpers';
 import type { Env, Input, MiddlewareHandler, Schema } from 'hono';
 import { AsyncLocalStorage } from 'node:async_hooks';
 import { createRequire } from 'node:module';
@@ -92,7 +92,10 @@ export class GrpcRequestAdapter<
       handlers[name] = async (request: unknown, _connectContext: HandlerContext) => {
         const context = opts.storage.getStore();
         if (!context) {
-          throw new Error(`[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`);
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+            message: `[GrpcRequestAdapter] Missing Hono context for RPC "${name}"`,
+          });
         }
 
         // Run pre-built auth middlewares (built by AbstractGrpcController.buildRpcMiddlewares)
@@ -244,8 +247,6 @@ export class GrpcRequestAdapter<
       paths,
       middleware: adapter.buildMiddleware({
         handlerMap,
-        // Compute full mount prefix: basePath + controllerPath
-        // context.req.path returns the original full URL, so we need to strip the full prefix.
         controllerPath: [
           adapter.controller.basePath.replace(/\/$/, ''),
           adapter.controller.path,

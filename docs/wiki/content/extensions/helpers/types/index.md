@@ -196,7 +196,7 @@ Synchronously resolves a lazy value:
 - **Class constructors** -- returned as-is (not invoked)
 - **Resolver functions** -- invoked and result returned
 
-Class constructors are detected via `isClassConstructor()` from `@venizia/ignis-inversion` and are never called as resolver functions.
+Class constructors are detected via `isClass()` (a source-level class-syntax check), which lives in `@venizia/ignis-inversion` and is re-exported by `helpers`; they are never called as resolver functions. `isClassConstructor` does not exist.
 
 #### resolveValueAsync
 

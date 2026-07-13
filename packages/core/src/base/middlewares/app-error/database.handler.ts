@@ -18,7 +18,7 @@ export const isDatabaseClientError = (opts: {
   const { error, isProduction } = opts;
   const dbError = error as IDatabaseError;
   const cause = dbError.cause;
-  const code = dbError.code || cause?.code;
+  const code = [dbError.code, cause?.code].find(Boolean);
 
   // Only SQLSTATE classes caused by the request — 22 (data exception) and 23 (integrity violation) —
   // are client errors. Anything else (e.g. class 42 syntax/undefined-column, 53 resources) stays 500.
@@ -63,6 +63,6 @@ export const isDatabaseClientError = (opts: {
  */
 export const isRetryableDatabaseError = (opts: { error: Error }): boolean => {
   const dbError = opts.error as IDatabaseError;
-  const code = dbError.code || dbError.cause?.code;
+  const code = [dbError.code, dbError.cause?.code].find(Boolean);
   return typeof code === 'string' && POSTGRES_RETRYABLE_ERROR_CODES.includes(code);
 };

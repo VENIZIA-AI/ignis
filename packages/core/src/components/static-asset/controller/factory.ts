@@ -13,6 +13,7 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
+import { readFileSync, rmSync } from 'node:fs';
 import {
   TBucketParams,
   TListQuery,
@@ -36,32 +37,26 @@ export interface IAssetControllerOptions {
 }
 
 /**
- * Safely decodes an object path captured by Hono's regex catch-all param.
- * Decodes each segment individually to avoid double-encoding issues.
+ * Hono ALREADY percent-decodes a path param before the handler reads it, so there is nothing left to
+ * decode - and decoding a second time is actively wrong:
+ *
+ * - `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`, Hono
+ *   hands the handler back `report_100%.pdf`, and a second `decodeURIComponent` hits the invalid
+ *   escape `%.p` and throws: the object becomes unfetchable and undeletable, forever.
+ * - an object named `a%2Fb.png` would decode twice into `a/b.png` - a DIFFERENT object.
+ *
+ * Validation still runs on this value (`isValidName`/`isValidPath`), so a traversal payload is
+ * rejected exactly as before - what changes is that legal names stop being mangled.
  */
-const decodeObjectPath: (rawPath: string) => string = rawPath => {
-  try {
-    return rawPath
-      .split('/')
-      .map(segment => decodeURIComponent(segment))
-      .join('/');
-  } catch (_error) {
-    throw getError({
-      statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-      message: 'Invalid object path encoding',
-    });
-  }
-};
+const readObjectName: (rawObjectName: string) => string = rawObjectName => rawObjectName;
 
 /**
- * Encodes each segment of an object path for use in URLs.
- * Preserves `/` as folder separator while encoding individual segments.
+ * Encodes an object path into a SINGLE url path segment. The object routes bind `{objectName}`,
+ * which Hono matches within one segment only - a folder separator left raw would not match, so `/`
+ * must be percent-encoded too (Hono decodes it back before the handler reads the param).
  */
 const encodeObjectPath: (objectPath: string) => string = objectPath => {
-  return objectPath
-    .split('/')
-    .map(segment => encodeURIComponent(segment))
-    .join('/');
+  return encodeURIComponent(objectPath);
 };
 
 /** Sets whitelisted metadata headers on the response context. */
@@ -87,14 +82,30 @@ export class AssetControllerFactory extends BaseHelper {
     const { name, basePath, routes, isStrict = true } = controller;
     const maxFolderDepth = options?.maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
 
+    // The mount path may be declared with or without a leading slash; a link must carry exactly one.
+    const normalizedBasePath = basePath.startsWith('/') ? basePath : `/${basePath}`;
+
     @controllerDecorator({ path: basePath })
-    class _controller extends BaseRestController {
+    class GeneratedStaticAssetController extends BaseRestController {
       constructor() {
         super({
           scope: name,
           path: basePath,
           isStrict,
         });
+      }
+
+      /** Clears the multipart spool files written by `parseMultipartBody({ storage: 'disk' })`. */
+      removeSpoolFiles(spoolOptions: { paths: string[] }): void {
+        for (const filePath of spoolOptions.paths) {
+          try {
+            rmSync(filePath, { force: true });
+          } catch (error) {
+            this.logger
+              .for('UPLOAD')
+              .error('Failed to remove spool file | path: %s | Error: %s', filePath, error);
+          }
+        }
       }
 
       override binding(): ValueOrPromise<void> {
@@ -130,7 +141,7 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
-            const objectName = decodeObjectPath(rawObjectName);
+            const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -172,7 +183,7 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
-            const objectName = decodeObjectPath(rawObjectName);
+            const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -197,7 +208,6 @@ export class AssetControllerFactory extends BaseHelper {
             }
             ctx.header(HTTP.Headers.CONTENT_LENGTH, size.toString());
 
-            // Use only the filename (last segment) for the Content-Disposition header
             const fileName = objectName.split('/').pop() ?? objectName;
             ctx.header(
               HTTP.Headers.CONTENT_DISPOSITION,
@@ -245,7 +255,6 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
-            // Validate folderPath if provided
             const folderPath = query.folderPath;
             if (folderPath) {
               const normalizedFolder = folderPath.replace(/^\/+|\/+$/g, '');
@@ -255,7 +264,7 @@ export class AssetControllerFactory extends BaseHelper {
                   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
                 });
               }
-              // Validate folder segments (depth excludes filename, so use maxDepth directly)
+              // maxFolderDepth excludes the filename, so it is compared directly against segment count.
               const folderSegments = normalizedFolder.split('/');
               if (folderSegments.length > maxFolderDepth) {
                 throw getError({
@@ -279,23 +288,47 @@ export class AssetControllerFactory extends BaseHelper {
               uploadDir: options?.parseMultipartBody?.uploadDir,
             });
 
-            const modifiedFiles: IUploadFile[] = filesArray.map(file => {
-              return {
-                originalName: file.originalname,
-                mimetype: file.mimetype,
-                buffer: file.buffer ?? Buffer.alloc(0),
-                size: file.size,
-                encoding: file.encoding,
-                folderPath: folderPath ?? undefined,
-              };
-            });
+            const spoolPaths = filesArray
+              .map(file => file.path)
+              .filter((filePath): filePath is string => Boolean(filePath));
 
-            const uploaded = await helper.upload({
-              bucket: bucketName,
-              files: modifiedFiles,
-              normalizeNameFn: options?.normalizeNameFn,
-              normalizeLinkFn: options?.normalizeLinkFn,
-            });
+            let uploaded: IUploadResult[];
+            try {
+              // `storage: 'disk'` spools the payload to `uploadDir` and returns `path` instead of
+              // `buffer`; the storage helpers only ever write `buffer`, so it must be read back.
+              const modifiedFiles: IUploadFile[] = filesArray.map(file => {
+                const buffer = file.buffer ?? (file.path ? readFileSync(file.path) : undefined);
+
+                if (!buffer?.length) {
+                  throw getError({
+                    statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                    message: `Empty file content | name: ${file.originalname}`,
+                  });
+                }
+
+                return {
+                  originalName: file.originalname,
+                  mimetype: file.mimetype,
+                  buffer,
+                  size: file.size,
+                  encoding: file.encoding,
+                  folderPath: folderPath ?? undefined,
+                };
+              });
+
+              uploaded = await helper.upload({
+                bucket: bucketName,
+                files: modifiedFiles,
+                normalizeNameFn: options?.normalizeNameFn,
+                normalizeLinkFn: options?.normalizeLinkFn,
+                // Without this the helper re-validates against its own hard default of 2, so an app
+                // configured for a deeper tree accepted the request, spooled the body, and only then
+                // failed inside the helper.
+                maxFolderDepth,
+              });
+            } finally {
+              this.removeSpoolFiles({ paths: spoolPaths });
+            }
 
             if (!useMetaLink || !metaLink) {
               return ctx.json(uploaded, HTTP.ResultCodes.RS_2.Ok);
@@ -338,7 +371,11 @@ export class AssetControllerFactory extends BaseHelper {
               } catch (error) {
                 this.logger
                   .for('UPLOAD')
-                  .error('Failed to create MetaLink for %s: %j', uploadResult.objectName, error);
+                  .error(
+                    'Failed to create MetaLink | objectName: %s | Error: %s',
+                    uploadResult.objectName,
+                    error,
+                  );
                 results.push({
                   ...uploadResult,
                   metaLink: null,
@@ -375,7 +412,7 @@ export class AssetControllerFactory extends BaseHelper {
         }).to({
           handler: async ctx => {
             const { bucketName, objectName: rawObjectName } = ctx.req.valid<TObjectParams>('param');
-            const objectName = decodeObjectPath(rawObjectName);
+            const objectName = readObjectName(rawObjectName);
 
             if (!helper.isValidName(bucketName)) {
               throw getError({
@@ -391,7 +428,6 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
-            // Delete from storage
             await helper.removeObject({ bucket: bucketName, name: objectName });
 
             if (!useMetaLink || !metaLink) {
@@ -413,7 +449,12 @@ export class AssetControllerFactory extends BaseHelper {
               .catch(error => {
                 this.logger
                   .for('DELETE_OBJECT')
-                  .error('Failed to delete MetaLink for %s/%s: %o', bucketName, objectName, error);
+                  .error(
+                    'Failed to delete MetaLink | bucket: %s | objectName: %s | Error: %s',
+                    bucketName,
+                    objectName,
+                    error,
+                  );
               });
 
             return ctx.json({ success: true }, HTTP.ResultCodes.RS_2.Ok);
@@ -434,11 +475,25 @@ export class AssetControllerFactory extends BaseHelper {
               });
             }
 
+            // A NaN or 0 maxKeys is silently treated as "unlimited" by the storage backends,
+            // so an unparsable value must be rejected instead of forwarded.
+            let resolvedMaxKeys: number | undefined;
+            if (maxKeys !== undefined) {
+              resolvedMaxKeys = Number(maxKeys);
+
+              if (!Number.isInteger(resolvedMaxKeys) || resolvedMaxKeys < 1) {
+                throw getError({
+                  message: `Invalid maxKeys | Expected a positive integer | value: ${maxKeys}`,
+                  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+                });
+              }
+            }
+
             const objects = await helper.listObjects({
               bucket: bucketName,
               prefix,
               useRecursive: recursive === 'true',
-              maxKeys: maxKeys ? parseInt(maxKeys, 10) : undefined,
+              maxKeys: resolvedMaxKeys,
             });
 
             return ctx.json(objects, HTTP.ResultCodes.RS_2.Ok);
@@ -452,7 +507,7 @@ export class AssetControllerFactory extends BaseHelper {
             handler: async ctx => {
               const { bucketName, objectName: rawObjectName } =
                 ctx.req.valid<TObjectParams>('param');
-              const objectName = decodeObjectPath(rawObjectName);
+              const objectName = readObjectName(rawObjectName);
 
               if (!helper.isValidName(bucketName)) {
                 throw getError({
@@ -468,18 +523,15 @@ export class AssetControllerFactory extends BaseHelper {
                 });
               }
 
-              // Get file stat from storage
               const fileStat = await helper.getStat({
                 bucket: bucketName,
                 name: objectName,
               });
 
-              // Generate link
               const link = options?.normalizeLinkFn
                 ? options.normalizeLinkFn({ bucketName, normalizeName: objectName })
-                : `/${basePath}/buckets/${bucketName}/objects/${encodeObjectPath(objectName)}`;
+                : `${normalizedBasePath}/buckets/${bucketName}/objects/${encodeObjectPath(objectName)}`;
 
-              // Check if MetaLink already exists
               const existing = await metaLink.repository.findOne({
                 filter: {
                   where: {
@@ -490,7 +542,6 @@ export class AssetControllerFactory extends BaseHelper {
               });
 
               if (existing) {
-                // Update existing MetaLink
                 await metaLink.repository.updateById({
                   id: existing.id,
                   data: {
@@ -509,7 +560,6 @@ export class AssetControllerFactory extends BaseHelper {
                   HTTP.ResultCodes.RS_2.Ok,
                 );
               } else {
-                // Create new MetaLink
                 const createdMetaLink = await metaLink.repository.create({
                   data: {
                     bucketName,
@@ -534,8 +584,10 @@ export class AssetControllerFactory extends BaseHelper {
       }
     }
 
-    // Set the class name dynamically
-    Object.defineProperty(_controller, 'name', { value: name, configurable: true });
-    return _controller;
+    Object.defineProperty(GeneratedStaticAssetController, 'name', {
+      value: name,
+      configurable: true,
+    });
+    return GeneratedStaticAssetController;
   }
 }

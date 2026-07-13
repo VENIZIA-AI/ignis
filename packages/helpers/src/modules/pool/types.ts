@@ -11,14 +11,19 @@ export interface IPoolStats {
 export interface IPool<T> {
   /** Borrow a resource (creating/waiting as needed). Single-borrower until released/discarded. */
   acquire(): Promise<T>;
+
   /** Return a borrowed resource to the pool (or destroy it if the pool is being torn down). */
   release(opts: { resource: T }): void;
-  /** acquire → run fn → release on success; on ANY error DISCARD (destroy) the resource + rethrow. */
-  use<R>(opts: { fn: (resource: T) => ValueOrPromise<R> }): Promise<R>;
+
+  /** acquire → run execution → release on success; on ANY error DISCARD (destroy) the resource + rethrow. */
+  use<R>(opts: { execution: (resource: T) => ValueOrPromise<R> }): Promise<R>;
+
   /** Remove a borrowed resource from the pool and destroy it. */
   discard(opts: { resource: T }): Promise<void>;
+
   /** Pre-create resources up to `size` and place them idle. */
   warmup(): Promise<void>;
+
   /** Drain the pool: reject waiters, destroy idle resources, block new acquires. */
   destroy(): Promise<void>;
   getStats(): IPoolStats;
@@ -44,10 +49,13 @@ export interface IPoolControlOptions {
 export interface IPoolOptions<T> extends IPoolControlOptions {
   /** Factory to create one resource. */
   create: () => ValueOrPromise<T>;
+
   /** Teardown on destroy()/discard()/validate-fail/reset-fail. */
   destroy?: (resource: T) => ValueOrPromise<void>;
+
   /** Checked when an idle resource is about to be handed out; false → destroyed + replaced. */
   validate?: (resource: T) => ValueOrPromise<boolean>;
+
   /** Run on an idle resource just before hand-out (e.g. clear state). Throw → resource discarded. */
   reset?: (resource: T) => ValueOrPromise<void>;
 }

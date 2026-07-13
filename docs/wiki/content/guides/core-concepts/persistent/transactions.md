@@ -3,7 +3,7 @@
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
 > [!NOTE] PostgreSQL-only capability
-> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense and memory connectors inherit the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on them throws a `501 Not Implemented` (`messageCode: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on it throws a `501 Not Implemented` (`messageCode: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
 
 ## Using Transactions
 
@@ -54,8 +54,17 @@ try {
 > then destroyed instead of being returned to the pool, because it may still hold an open
 > transaction that the next borrower would inherit.
 >
-> `rollback()` behaves the same way. Since it is normally called from a `catch` block, nest it as
-> shown above, or the rollback error replaces the original cause.
+> `rollback()` behaves the same way when it is the FIRST verb to fail. One deliberate exception
+> keeps the everyday `catch { await tx.rollback(); throw error; }` pattern safe: calling
+> `rollback()` on a transaction that already ended BY FAILURE (a failed `COMMIT` or a failed prior
+> `ROLLBACK`) is a silent no-op - nothing was committed and the connection is already destroyed, so
+> the rollback's goal is achieved and your original error survives. The nested-try form above is
+> still the safest general pattern, because a FIRST rollback that itself fails does throw.
+>
+> The destroy half is **driver-specific**: node-postgres (`pg`) discards the poisoned connection,
+> but postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so under the
+> postgres-js driver the connection returns to the pool anyway. See
+> [Postgres Drivers & Supabase](./postgres-drivers) for the full asymmetry.
 
 ## Transaction Object
 
@@ -63,13 +72,13 @@ try {
 
 | Property/Method | Type | Description |
 | :--- | :--- | :--- |
-| `connector` | `TNodePostgresTransactionConnector` | A Drizzle connector bound to the transaction's `PoolClient` |
+| `connector` | `TRelationalConnector<Schema>` | A Drizzle connector bound to the transaction's dedicated connection |
 | `isolationLevel` | `TIsolationLevel` | The isolation level of this transaction |
 | `isActive` | `boolean` | Whether the transaction is still active (not yet committed/rolled back) |
 | `commit()` | `Promise<void>` | Commit and release the connection. **Throws** if `COMMIT` fails, and destroys the connection rather than pooling it |
 | `rollback()` | `Promise<void>` | Rollback and release the connection. **Throws** if `ROLLBACK` fails, and destroys the connection rather than pooling it |
 
-Calling `commit()` or `rollback()` on an already-ended transaction throws an error.
+Calling `commit()` or `rollback()` on an already-ended transaction throws an error, with one exception: `rollback()` after the transaction ended BY FAILURE is a silent no-op (see the warning above).
 
 ## Isolation Levels
 
@@ -187,7 +196,7 @@ export class OrderController extends BaseRestController {
 
 ## How Transactions Work Internally
 
-When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` (a Drizzle instance bound to the transaction's `PoolClient`) instead of the default datasource connector. This ensures all operations within the transaction use the same database connection and see a consistent view of the data.
+When you pass a `transaction` option to a repository method, the repository uses the transaction's `connector` (a Drizzle instance bound to the transaction's dedicated connection) instead of the default datasource connector. This ensures all operations within the transaction use the same database connection and see a consistent view of the data.
 
 ```typescript
 // Inside PostgresBaseRepository (simplified)

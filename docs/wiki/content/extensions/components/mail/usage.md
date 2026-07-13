@@ -81,7 +81,7 @@ await mailService.send({
   subject: '', // Empty subject triggers validation error
   html: '<p>Hello</p>',
 });
-// Error: { statusCode: 400, messageCode: 'MAIL_INVALID_CONFIGURATION', message: 'Email subject is required' }
+// Error: { statusCode: 400, messageCode: 'core.mail.invalid_configuration', message: 'Email subject is required' }
 ```
 
 ## Template Engine

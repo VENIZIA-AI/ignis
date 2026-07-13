@@ -224,7 +224,7 @@ export class Authentication {
 **With validation (for user-configurable values):**
 
 ```typescript
-// src/components/swagger/common/constants.ts
+// src/components/api-reference/common/constants.ts
 export class DocumentUITypes {
   static readonly SWAGGER = 'swagger';
   static readonly SCALAR = 'scalar';
@@ -238,7 +238,7 @@ export class DocumentUITypes {
   }
 }
 
-// src/components/swagger/common/types.ts
+// src/components/api-reference/common/types.ts
 import { TConstValue } from '@venizia/ignis-helpers';
 
 // Extract union type: 'swagger' | 'scalar'
@@ -544,7 +544,7 @@ export class AuthenticateComponent extends BaseComponent {
     super({
       scope: AuthenticateComponent.name,
       initDefault: { enable: true, container: application },
-      // Only restOptions gets a default here — jwtOptions/basicOptions are
+      // Only restOptions gets a default here - jwtOptions/basicOptions are
       // bound separately (by the app, before registration) since at least one is required.
       bindings: {
         [AuthenticateBindingKeys.REST_OPTIONS]: Binding.bind<TAuthenticationRestOptions>({
@@ -643,30 +643,31 @@ override binding(): ValueOrPromise<void> {
 
 ### Component without `initDefault` (Manual Binding Assignment)
 
-Some components skip `initDefault` and assign `this.bindings` directly in the constructor body:
+A component may instead declare its defaults but NOT register them, by omitting `initDefault` and assigning `this.bindings` in the constructor body:
 
 ```typescript
-// src/components/swagger/component.ts
-export class SwaggerComponent extends BaseComponent {
+export class CustomComponent extends BaseComponent {
   constructor(
     @inject({ key: CoreBindings.APPLICATION_INSTANCE }) private application: BaseApplication,
   ) {
-    super({ scope: SwaggerComponent.name });
+    super({ scope: CustomComponent.name });
 
     this.bindings = {
-      [SwaggerBindingKeys.SWAGGER_OPTIONS]: Binding.bind<ISwaggerOptions>({
-        key: SwaggerBindingKeys.SWAGGER_OPTIONS,
-      }).toValue(DEFAULT_SWAGGER_OPTIONS),
+      [CustomBindingKeys.OPTIONS]: Binding.bind<ICustomOptions>({
+        key: CustomBindingKeys.OPTIONS,
+      }).toValue(DEFAULT_CUSTOM_OPTIONS),
     };
   }
 
   override async binding() {
-    // Read options, configure OpenAPI doc endpoint, UI endpoint, etc.
+    // Read options, then wire the component's routes/services.
   }
 }
 ```
 
-In this pattern, `initDefault` defaults to `{ enable: false }`, so the bindings are defined but not auto-registered. The component manages its own option reading and setup in `binding()`.
+With `initDefault` omitted it defaults to `{ enable: false }`, so the bindings are defined but not auto-registered - the component takes over its own option reading and setup in `binding()`.
+
+The shipped `ApiReferenceComponent` does **not** use this pattern: it passes `initDefault: { enable: true, container: application }` and its `bindings` through `super()`, so its default `IApiReferenceOptions` binding lands in the container immediately (see [API Reference](/extensions/components/api-reference)).
 
 
 ## Built-in Components
@@ -676,7 +677,7 @@ In this pattern, `initDefault` defaults to `{ enable: false }`, so the bindings 
 | Component | Key Features |
 |-----------|-------------|
 | **HealthCheckComponent** | `GET /health` (default path, configurable). Registers `HealthCheckController` with `GET /` and `POST /ping` endpoints. |
-| **SwaggerComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
+| **ApiReferenceComponent** | OpenAPI doc at `/doc/openapi.json`, UI at `/doc/explorer` (Scalar by default, Swagger UI also supported). Auto-populates app info and server URL. Registers JWT and Basic security schemes. |
 | **AuthenticateComponent** | JWT and/or Basic auth strategies. Optional auth controller (`signIn`/`signUp`). Token services (`JWSTokenService`, `BasicTokenService`). |
 | **AuthorizeComponent** | Casbin-based RBAC, permission mapping, `authorize()` middleware. |
 | **RequestTrackerComponent** | Registers Hono `requestId()` middleware and a `RequestSpyMiddleware` for `x-request-id` header tracking and request body parsing. |
@@ -747,13 +748,13 @@ For complex nested configurations:
 
 ```typescript
 override binding(): ValueOrPromise<void> {
-  const extraOptions = this.application.get<Partial<ISwaggerOptions>>({
-    key: SwaggerBindingKeys.SWAGGER_OPTIONS,
+  const extraOptions = this.application.get<Partial<IApiReferenceOptions>>({
+    key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
     isOptional: true,
   }) ?? {};
 
   // Deep merge nested objects
-  const options: ISwaggerOptions = {
+  const options: IApiReferenceOptions = {
     ...DEFAULT_OPTIONS,
     ...extraOptions,
     restOptions: {
@@ -871,7 +872,7 @@ export * from './controller';
 - **Built-in Components:**
   - [Authentication Component](/extensions/components/authentication/) - JWT authentication
   - [Health Check Component](/extensions/components/health-check) - Health endpoints
-  - [Swagger Component](/extensions/components/swagger) - API documentation
+  - [Swagger Component](/extensions/components/api-reference) - API documentation
   - [Socket.IO Component](/extensions/components/socket-io/) - WebSocket support
 
 - **Best Practices:**

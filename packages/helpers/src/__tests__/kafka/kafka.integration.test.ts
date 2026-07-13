@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 /**
  * Kafka Helpers — LIVE integration tests.
  *
@@ -431,7 +432,7 @@ describe('KafkaConsumerHelper (live)', () => {
         );
         await withTimeout(errPromise, 25_000, 'error');
         expect(errorSeen).not.toBeNull();
-        expect((errorSeen as unknown as Error).message).toBe('handler-failure');
+        expect((errorSeen as AnyType as Error).message).toBe('handler-failure');
       } finally {
         await withTimeout(consumer.close(), 15_000, 'consumer.close').catch(() => {});
       }

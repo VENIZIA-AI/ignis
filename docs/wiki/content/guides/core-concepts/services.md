@@ -318,7 +318,7 @@ export class CheckoutService extends BaseService {
       return order;
     } catch (error) {
       await transaction.rollback();
-      log.error('Order failed, rolled back | error: %j', error);
+      log.error('Order failed, rolled back | error: %s', error);
       throw error;
     }
   }

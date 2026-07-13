@@ -227,8 +227,10 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
       schemaKeys,
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // The client must land on this.client - a local would leave beginTransaction() with nothing
+    // to resolve a driver from, and it would throw `No driver and no client`.
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 }
 ```
@@ -373,7 +375,7 @@ Update `src/application.ts` to register all components:
 
 ```typescript
 // src/application.ts
-import { BaseApplication, IApplicationConfigs, IApplicationInfo, SwaggerComponent, ValueOrPromise } from '@venizia/ignis';
+import { BaseApplication, IApplicationConfigs, IApplicationInfo, ApiReferenceComponent, ValueOrPromise } from '@venizia/ignis';
 import { HelloController } from './controllers/hello';
 import packageJson from '../package.json';
 
@@ -398,8 +400,8 @@ export class Application extends BaseApplication {
   setupMiddlewares(): ValueOrPromise<void> {}
 
   preConfigure(): ValueOrPromise<void> {
-    // 1. Register SwaggerComponent for API docs
-    this.component(SwaggerComponent);
+    // 1. Register ApiReferenceComponent for API docs
+    this.component(ApiReferenceComponent);
 
     // 2. Register datasource
     this.dataSource(PostgresDataSource);

@@ -303,8 +303,10 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
       Object.keys(schema),
     );
 
-    const client = new Pool(this.settings);
-    this.connector = drizzle({ client, schema });
+    // The client must land on this.client - a local would leave beginTransaction() with nothing
+    // to resolve a driver from, and it would throw `No driver and no client`.
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 }
 ```
@@ -477,7 +479,8 @@ import {
   BindingKeys,
   BindingNamespaces,
 } from '@venizia/ignis';
-import { ISocketIOClient, getError, SocketIOServerHelper } from '@venizia/ignis-helpers';
+import { getError } from '@venizia/ignis-helpers';
+import { ISocketIOClient, SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 import { Socket } from 'socket.io';
 import { MessageRepository } from '../repositories/message.repository';
 import { RoomRepository } from '../repositories/room.repository';
@@ -1448,7 +1451,7 @@ const chat = new ChatClient({ token: 'your-jwt-token' });
 For server-to-server or microservice communication, use the built-in `SocketIOClientHelper`:
 
 ```typescript
-import { SocketIOClientHelper } from '@venizia/ignis-helpers';
+import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io';
 
 const client = new SocketIOClientHelper({
   identifier: 'chat-service-client',

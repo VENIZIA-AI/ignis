@@ -8,6 +8,7 @@ import type {
 } from '@/connectors/postgres/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
+import type { SQL } from 'drizzle-orm';
 import type {
   IExtraOptions,
   TCount,
@@ -17,6 +18,7 @@ import type {
 import { RepositoryOperationScopes } from '@/base/repositories/common';
 import { UpdateBuilder } from '../dialect/update';
 import { ReadableRelationalRepository } from './readable';
+import { readAffectedRowCount } from '@/utilities';
 import type { IDatabaseExtraOptions } from '../common';
 
 /** Full CRUD repository extending ReadableRelationalRepository with create, update, and delete. */
@@ -52,18 +54,19 @@ export class PersistableRelationalRepository<
     });
   }
 
-  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag */
+  /** Prevents accidental table-wide updates/deletes by requiring an explicit force flag. Returns the
+   * built where SQL so callers reuse it instead of rebuilding on identical input. */
   protected validateWhereCondition(opts: {
     where: TWhere<DataObject>;
     force?: boolean;
     operationName: string;
-  }): boolean {
-    const resolvedWhere = this.queryDialect.toWhere({
+  }): { condition: SQL | undefined; isEmptyWhere: boolean } {
+    const condition = this.queryDialect.toWhere({
       tableName: this.entity.name,
       schema: this.entity.schema,
       where: opts.where ?? {},
     });
-    const isEmptyWhere = resolvedWhere === undefined;
+    const isEmptyWhere = condition === undefined;
 
     if (!opts.force && isEmptyWhere) {
       throw getError({
@@ -71,7 +74,7 @@ export class PersistableRelationalRepository<
       });
     }
 
-    return isEmptyWhere;
+    return { condition, isEmptyWhere };
   }
 
   protected async _create<R = DataObject>(opts: {
@@ -92,7 +95,7 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_create')
         .debug('INSERT result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-      return { count: rs.rowCount ?? 0, data: null };
+      return { count: readAffectedRowCount({ result: rs }), data: null };
     }
 
     const visibleProps = this.getVisibleProperties();
@@ -169,16 +172,10 @@ export class PersistableRelationalRepository<
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
-    const isEmptyWhere = this.validateWhereCondition({
+    const { condition: where, isEmptyWhere } = this.validateWhereCondition({
       where: mergedWhere,
       force,
       operationName: '_update',
-    });
-
-    const where = this.queryDialect.toWhere({
-      tableName: this.entity.name,
-      schema: this.entity.schema,
-      where: mergedWhere,
     });
 
     if (isEmptyWhere) {
@@ -206,7 +203,7 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_update')
         .debug('UPDATE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-      return { count: rs?.rowCount ?? 0, data: null };
+      return { count: readAffectedRowCount({ result: rs }), data: null };
     }
 
     const visibleProps = this.getVisibleProperties();
@@ -282,16 +279,10 @@ export class PersistableRelationalRepository<
     });
     const mergedWhere = mergedFilter.where ?? opts.where;
 
-    const isEmptyWhere = this.validateWhereCondition({
+    const { condition: where, isEmptyWhere } = this.validateWhereCondition({
       where: mergedWhere,
       force,
       operationName: '_delete',
-    });
-
-    const where = this.queryDialect.toWhere({
-      tableName: this.entity.name,
-      schema: this.entity.schema,
-      where: mergedWhere,
     });
 
     if (isEmptyWhere) {
@@ -308,7 +299,7 @@ export class PersistableRelationalRepository<
       this.logger
         .for('_delete')
         .debug('DELETE result | shouldReturn: %s | rs: %j', shouldReturn, rs);
-      return { count: rs?.rowCount ?? 0, data: null };
+      return { count: readAffectedRowCount({ result: rs }), data: null };
     }
 
     const visibleProps = this.getVisibleProperties();

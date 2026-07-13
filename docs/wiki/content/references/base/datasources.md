@@ -9,7 +9,7 @@ difficulty: intermediate
 Technical reference for DataSource classes - managing database and search engine connections in IGNIS.
 
 > [!IMPORTANT] Base vs. Connectors
-> IGNIS splits datasources into an **engine-neutral root** (`src/base/datasources/`) and **per-engine connectors** (`src/connectors/{postgres,typesense,memory}/datasources/`). `AbstractDataSource` has no SQL, no Drizzle, and no `pool` - those live only in the PostgreSQL connector. See [Connectors](./connectors) for the full base-vs-connectors architecture, dual-door exports, and how to add a new engine. This page documents the neutral contract plus the PostgreSQL connector in depth; see [Search & Typesense](/guides/core-concepts/persistent/search-typesense) and [Memory Connector](/guides/core-concepts/persistent/memory-connector) for the other two engines.
+> IGNIS splits datasources into an **engine-neutral root** (`src/base/datasources/`) and **per-engine connectors** (`src/connectors/{postgres,typesense}/datasources/`). `AbstractDataSource` has no SQL, no Drizzle, and no `pool` - those live only in the PostgreSQL connector. See [Connectors](./connectors) for the full base-vs-connectors architecture, dual-door exports, and how to add a new engine. This page documents the neutral contract plus the PostgreSQL connector in depth; see [Search & Typesense](/guides/core-concepts/persistent/search-typesense) for the other engine.
 
 **Files:** `packages/core/src/base/datasources/*.ts` (neutral) and `packages/core/src/connectors/postgres/datasources/*.ts` (PostgreSQL)
 
@@ -19,7 +19,7 @@ Technical reference for DataSource classes - managing database and search engine
 |-----------------|---------|-------------|
 | **IDataSource** | Engine-neutral contract for all datasources | `name`, `settings`, `schema`, `getSchema()`, `getSettings()`, `configure()` |
 | **AbstractDataSource** | Engine-neutral base implementation with logging | Extends `BaseHelper`, `getCapabilities()` defaults to `{ transactions: false }`, `beginTransaction()` defaults to `throwNotSupported(...)` |
-| **AbstractPostgresDataSource** | PostgreSQL-aware abstraction | Adds `connector`, `pool`, abstract `getConnectionString()`/`beginTransaction()` |
+| **AbstractPostgresDataSource** | PostgreSQL-aware abstraction | Adds `connector`, `client`, `driver`, abstract `getConnectionString()`/`beginTransaction()` |
 | **BasePostgresDataSource** | Concrete class to extend for PostgreSQL | Auto-discovery, real transaction support, constructor with config. Canonical name - `BaseDataSource` is a compatibility alias re-exporting the same class |
 | **ITransaction** | Engine-neutral transaction contract | `isActive`, `commit()`, `rollback()` (no connector field) |
 | **IDatabaseTransaction** | PostgreSQL transaction object | Extends `ITransaction`, adds `connector`, `isolationLevel` |
@@ -44,7 +44,7 @@ interface IDataSource<
 | Type Parameter | Default | Description |
 |----------------|---------|-------------|
 | `Settings` | `{}` | Connection configuration type (host, port, etc.) |
-| `Schema` | `TAnyDataSourceSchema` | Combined schema type (shape depends on the connector - Drizzle tables for PostgreSQL, collection definitions for typesense/memory) |
+| `Schema` | `TAnyDataSourceSchema` | Combined schema type (shape depends on the connector - Drizzle tables for PostgreSQL, collection definitions for typesense) |
 | `ConfigurableOptions` | `{}` | Options passed to `configure()` |
 
 ### Properties & Methods
@@ -63,7 +63,7 @@ interface IDataSource<
 
 ## `AbstractDataSource` (Engine-Neutral Root)
 
-**File:** `packages/core/src/base/datasources/abstract-datasource.ts`
+**File:** `packages/core/src/base/datasources/abstract.ts`
 
 Top-level abstract class implemented by every engine. Extends `BaseHelper` for scoped logging. Contains **no SQL, no Drizzle, and no connection-pool members** - those are added by each connector.
 
@@ -100,7 +100,7 @@ abstract class AbstractDataSource<
 | `beginTransaction(opts?)` | `Promise<ITransaction>` | Calls `throwNotSupported({ scope: this.constructor.name, feature: 'Transactions', logger: this.logger })` - throws HTTP 501 with `messageCode: 'core.not_supported'` |
 
 > [!NOTE] NotSupported convention
-> Every capability an engine doesn't implement - transactions, row-level locking - uses the same `throwNotSupported` utility (`packages/core/src/utilities/error.utility.ts`), producing a consistent `501 Not Implemented` with `messageCode: 'core.not_supported'`. This is how `MemoryDataSource` and the typesense connector signal "not applicable to this engine" instead of silently no-op-ing.
+> Every capability an engine doesn't implement - transactions, row-level locking - uses the same `throwNotSupported` utility (`packages/core/src/utilities/error.utility.ts`), producing a consistent `501 Not Implemented` with `messageCode: 'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
 
 ### `IDataSourceCapabilities`
 
@@ -110,11 +110,11 @@ interface IDataSourceCapabilities {
 }
 ```
 
-Only `BasePostgresDataSource` overrides `getCapabilities()` to return `{ transactions: true }`. `MemoryDataSource` and the typesense datasources inherit the neutral default.
+Only `BasePostgresDataSource` overrides `getCapabilities()` to return `{ transactions: true }`. The typesense datasources inherit the neutral default.
 
 ## PostgreSQL Connector: `AbstractPostgresDataSource` & `BasePostgresDataSource`
 
-**Files:** `packages/core/src/connectors/postgres/datasources/abstract-datasource.ts`, `packages/core/src/connectors/postgres/datasources/base-datasource.ts`
+**Files:** `packages/core/src/connectors/postgres/datasources/abstract.ts`, `packages/core/src/connectors/postgres/datasources/base.ts`
 
 ### `AbstractPostgresDataSource`
 
@@ -132,8 +132,12 @@ abstract class AbstractPostgresDataSource<
 
 | Property | Type | Visibility | Description |
 |----------|------|------------|-------------|
-| `connector` | `TNodePostgresConnector<Schema>` | public | Drizzle ORM instance |
-| `pool` | `Pool` | protected | node-postgres connection pool |
+| `connector` | `TRelationalConnector<Schema>` | public | Drizzle ORM instance (any Drizzle pg driver satisfies this - see the driver seam below) |
+| `driver` | `IRelationalDriver` | protected | The connection driver (`node-postgres` or `postgres-js`); built by `useDriver()` |
+| `client` | `Client` (`Pool` by default) | protected | The raw driver client `configure()` built - a `pg.Pool`, or a postgres-js `Sql`. Assigning it alone is enough: a driver is resolved from it on first use. Absent once `useDriver()` wired a driver instead |
+
+> [!NOTE] Driver seam
+> `AbstractRelationalDataSource`/`BaseRelationalDataSource` (exported as `AbstractPostgresDataSource`/`BasePostgresDataSource`) now take a fourth generic - `<Settings, Schema, ConfigurableOptions, Client = Pool>` - so a `postgres-js` datasource can declare `Client = Sql` and keep `getClient()` honest. The protected `useDriver({ driver, schema? })` assigns `this.driver` **and** builds `this.connector` in one step. `pg` and `postgres` are both optional peer dependencies; concrete drivers live at `@venizia/ignis/postgres/node-postgres` and `@venizia/ignis/postgres/postgres-js`, and Supabase support at `@venizia/ignis/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
 **Additional abstract method:**
 
@@ -162,7 +166,7 @@ abstract class BasePostgresDataSource<
 |---------|--------------|
 | **Schema Auto-Discovery** | Schema is automatically built from registered `@repository` decorators |
 | **Manual Override** | You can manually provide schema in constructor for full control |
-| **Built-in Transaction Support** | `beginTransaction()` implemented using the `pool` property; overrides `getCapabilities()` to return `{ transactions: true }` |
+| **Built-in Transaction Support** | `beginTransaction()` acquires its connection from the resolved driver; overrides `getCapabilities()` to return `{ transactions: true }` |
 
 > [!TIP]
 > Set `autoDiscovery` to `false` in the `@datasource` decorator to disable automatic schema discovery. This is useful when you want to manually provide the schema.
@@ -199,8 +203,8 @@ When you use `@repository({ model: YourModel, dataSource: YourDataSource })`, th
 
 3.  **Your `configure()` method runs**:
     -   Call `this.getSchema()` to get the auto-discovered schema
-    -   Create a `Pool` instance and assign it to `this.pool` (required for transaction support)
-    -   Create the Drizzle connector with the pool and schema
+    -   Create a `Pool` instance and assign it to `this.client` (required for transaction support)
+    -   Create the Drizzle connector from that client and the schema
 
 ### Example Implementations
 
@@ -262,9 +266,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       dataSourceSchema,
     );
 
-    // Store pool reference for transaction support
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    // The client slot is what beginTransaction() resolves its driver from
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -320,8 +324,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
   override configure(): ValueOrPromise<void> {
     // When schema is manually provided, getSchema() returns it directly
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema: this.getSchema() });
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema: this.getSchema() });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -331,7 +335,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 ```
 
 > [!IMPORTANT]
-> You must assign `this.pool` in your `configure()` method. The built-in `beginTransaction()` uses `this.pool` to acquire a `PoolClient` for transaction isolation. If `this.pool` is not set, `beginTransaction()` will throw an error.
+> Your `configure()` must leave the datasource with a way to reach the database: either assign the raw client to `this.client`, or wire a driver with `this.useDriver({ driver })`. `beginTransaction()` resolves a driver lazily from whichever you provided. With neither, it throws `No driver and no client`.
 
 ### `@datasource` Decorator
 
@@ -346,7 +350,7 @@ The `@datasource` decorator registers datasource metadata:
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `driver` | `TDataSourceDriver` | - | Driver name - `'node-postgres'` (PostgreSQL) and `'typesense'` are the known `DataSourceDrivers` constants; any other engine-driver string is also accepted |
+| `driver` | `TDataSourceDriver` | - | Driver name - `DataSourceDrivers` defines four constants: `'node-postgres'` and `'postgres-js'` (relational), `'typesense'` and `'meilisearch'` (search); any other engine-driver string is also accepted |
 | `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
 
 ### Abstract Methods
@@ -355,7 +359,7 @@ When extending `BasePostgresDataSource`, these methods must be implemented:
 
 | Method | Return Type | Description |
 |--------|-------------|-------------|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize pool and Drizzle connector. Must set `this.pool` and `this.connector`. |
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client and Drizzle connector. Must set `this.client` (or call `this.useDriver()`) and `this.connector`. |
 | `getConnectionString()` | `ValueOrPromise<string>` | Return the database connection string. |
 
 ### Helper Methods
@@ -379,9 +383,10 @@ When extending `BasePostgresDataSource`, these methods must be implemented:
 
 | Type | Description |
 |------|-------------|
-| `TNodePostgresConnector<Schema>` | Drizzle connector using `NodePgClient` (Pool or PoolClient) |
-| `TNodePostgresTransactionConnector<Schema>` | Drizzle connector using `PoolClient` specifically (for transaction isolation) |
-| `TAnyConnector<Schema>` | Union of both connector types |
+| `TRelationalConnector<Schema>` | Canonical connector type - a Drizzle `PgDatabase` that **every** pg driver (`node-postgres`, `postgres-js`) satisfies. Use this in new code. |
+| `TNodePostgresConnector<Schema>` | **`@deprecated`** compat alias for `TRelationalConnector<Schema>` |
+| `TNodePostgresTransactionConnector<Schema>` | **`@deprecated`** compat alias - was the `PoolClient`-specific transaction connector; now aliases `TRelationalConnector<Schema>` |
+| `TAnyConnector<Schema>` | Alias of `TRelationalConnector<Schema>` |
 | `TAnyDataSourceSchema` | `Record<string, any>` - base type for all schema objects (defined in `src/base/datasources/common/types.ts`, shared across engines) |
 
 ### `DataSourceDrivers`
@@ -390,24 +395,29 @@ Static class for driver validation (defined in `src/base/datasources/common/type
 
 ```typescript
 DataSourceDrivers.NODE_POSTGRES  // 'node-postgres'
+DataSourceDrivers.POSTGRES_JS    // 'postgres-js'
 DataSourceDrivers.TYPESENSE      // 'typesense'
+DataSourceDrivers.MEILISEARCH    // 'meilisearch'
 DataSourceDrivers.isValid('node-postgres')  // true
 ```
 
 ## Transaction Support
 
-Only engines that declare `getCapabilities().transactions === true` implement real transactions - currently just the PostgreSQL connector. Calling `beginTransaction()` on the typesense or memory connectors throws `NotSupported` (HTTP 501).
+Only engines that declare `getCapabilities().transactions === true` implement real transactions - currently just the PostgreSQL connector. Calling `beginTransaction()` on the typesense connector throws `NotSupported` (HTTP 501).
 
 ### How It Works
 
 `BasePostgresDataSource.beginTransaction()` does the following:
 
-1. Acquires a `PoolClient` from `this.pool`
+1. Resolves a driver from `this.client` (or the one `useDriver()` wired) and acquires a connection from it
 2. Executes `BEGIN TRANSACTION ISOLATION LEVEL <level>` on the client
 3. Creates a separate Drizzle connector scoped to that client
 4. Returns an `IDatabaseTransaction` object with `commit()`, `rollback()`, and the scoped `connector`
 
-When `commit()` or `rollback()` is called, the client is released back to the pool.
+When `commit()` or `rollback()` succeeds, the client is released back to the pool.
+
+> [!WARNING] `commit()`/`rollback()` throw on failure
+> A failed `COMMIT` or `ROLLBACK` **throws** (a failed `COMMIT` no longer resolves as success), and the poisoned connection is **destroyed** rather than returned to the pool - under the `node-postgres` driver, which can discard a connection; `postgres-js` has no destroy semantics and pools it anyway. A failed `BEGIN` also destroys the acquired connection rather than leaking it. Because `rollback()` can throw and is normally called from a `catch`, nest it in its own `try...catch` so the rollback error does not replace the original cause. See [Transactions](/guides/core-concepts/persistent/transactions) and [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
 ### Neutral vs. PostgreSQL Transaction Types
 
@@ -424,7 +434,7 @@ interface ITransaction<_Schema = unknown> {
 // packages/core/src/connectors/postgres/datasources/common/types.ts - PostgreSQL
 interface IDatabaseTransaction<Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema>
   extends ITransaction<Schema> {
-  connector: TNodePostgresTransactionConnector<Schema>;
+  connector: TRelationalConnector<Schema>;
   isolationLevel: TIsolationLevel;
 }
 ```
@@ -476,7 +486,12 @@ try {
 
   await tx.commit();
 } catch (error) {
-  await tx.rollback();
+  // rollback() throws if ROLLBACK itself fails - nest it so it never replaces the original cause
+  try {
+    await tx.rollback();
+  } catch (rollbackError) {
+    logger.error('Rollback failed | %s', rollbackError);
+  }
   throw error;
 }
 ```
@@ -494,7 +509,6 @@ This architecture ensures that datasources are configured consistently and that 
   - [Models](/guides/core-concepts/persistent/models) - Entity schemas loaded by DataSource
   - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation database transactions
   - [Search & Typesense](/guides/core-concepts/persistent/search-typesense) - The typesense connector
-  - [Memory Connector](/guides/core-concepts/persistent/memory-connector) - The zero-dependency in-memory connector
 
 - **References:**
   - [Repositories API](/references/base/repositories/) - Data access layer

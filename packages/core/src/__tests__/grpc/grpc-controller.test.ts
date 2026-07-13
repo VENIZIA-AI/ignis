@@ -73,7 +73,7 @@ describe('BaseGrpcController', () => {
   });
 
   describe('defineRoute', () => {
-    test('should register an implementation handler and track definition', () => {
+    test('should register an implementation handler and track definition', async () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           this.defineRoute({
@@ -84,14 +84,14 @@ describe('BaseGrpcController', () => {
       }
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-      ctrl['binding']();
+      await ctrl['binding']();
 
       expect(ctrl.definitions['SayHello']).toBeDefined();
       expect(typeof ctrl.definitions['SayHello'].handler).toBe('function');
       expect(ctrl.definitions['SayHello'].configs.method).toBe('unary');
     });
 
-    test('should register handler with full IRpcMetadata including authenticate and authorize', () => {
+    test('should register handler with full IRpcMetadata including authenticate and authorize', async () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           this.defineRoute({
@@ -107,7 +107,7 @@ describe('BaseGrpcController', () => {
       }
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-      ctrl['binding']();
+      await ctrl['binding']();
 
       const def = ctrl.definitions['SecureMethod'].configs;
       expect(def.authenticate?.strategies).toEqual(['jwt']);
@@ -116,7 +116,7 @@ describe('BaseGrpcController', () => {
   });
 
   describe('bindRoute', () => {
-    test('should register handler via fluent API', () => {
+    test('should register handler via fluent API', async () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           this.bindRoute({
@@ -128,14 +128,14 @@ describe('BaseGrpcController', () => {
       }
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-      ctrl['binding']();
+      await ctrl['binding']();
 
       expect(ctrl.definitions['GetUser']).toBeDefined();
       expect(typeof ctrl.definitions['GetUser'].handler).toBe('function');
       expect(ctrl.definitions['GetUser'].configs.name).toBe('GetUser');
     });
 
-    test('should return configs from fluent API', () => {
+    test('should return configs from fluent API', async () => {
       class TestCtrl extends BaseGrpcController {
         async binding() {
           const binding = this.bindRoute({
@@ -151,7 +151,7 @@ describe('BaseGrpcController', () => {
       }
 
       const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-      ctrl['binding']();
+      await ctrl['binding']();
     });
 
     test('should throw on non-unary streaming methods', () => {
@@ -168,7 +168,7 @@ describe('BaseGrpcController', () => {
     });
   });
 
-  test('should warn when overwriting an RPC with the same name', () => {
+  test('should warn when overwriting an RPC with the same name', async () => {
     class TestCtrl extends BaseGrpcController {
       async binding() {
         this.defineRoute({
@@ -183,7 +183,7 @@ describe('BaseGrpcController', () => {
     }
 
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    ctrl['binding']();
+    await ctrl['binding']();
 
     // Second handler should overwrite first
     expect(ctrl.definitions['Duplicate']).toBeDefined();
@@ -281,7 +281,7 @@ describe('BaseGrpcController', () => {
     expect(ctrl.definitions).toEqual({});
   });
 
-  test('definitions should contain both configs and handler for each registered RPC', () => {
+  test('definitions should contain both configs and handler for each registered RPC', async () => {
     class TestCtrl extends BaseGrpcController {
       async binding() {
         this.defineRoute({
@@ -296,7 +296,7 @@ describe('BaseGrpcController', () => {
     }
 
     const ctrl = new TestCtrl({ scope: 'TestCtrl', path: '/grpc' });
-    ctrl['binding']();
+    await ctrl['binding']();
 
     expect(Object.keys(ctrl.definitions)).toEqual(['Method1', 'Method2']);
     expect(ctrl.definitions['Method1'].configs.method).toBe('unary');

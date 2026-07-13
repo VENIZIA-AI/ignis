@@ -40,16 +40,14 @@ export class StaticAssetComponent extends BaseComponent {
           metaLink: opt.useMetaLink ? opt.metaLink : undefined,
           options: {
             ...extra,
-            normalizeLinkFn: extra?.normalizeLinkFn
-              ? extra.normalizeLinkFn
-              : opts => {
-                  // Encode each path segment individually to preserve folder separators
-                  const encodedPath = opts.normalizeName
-                    .split('/')
-                    .map(s => encodeURIComponent(s))
-                    .join('/');
-                  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
-                },
+            normalizeLinkFn:
+              extra?.normalizeLinkFn ??
+              (opts => {
+                // The object route binds `{objectName}` as one Hono path segment, so a nested
+                // object path must be encoded whole - a raw `/` here would produce a 404 link.
+                const encodedPath = encodeURIComponent(opts.normalizeName);
+                return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
+              }),
           },
         }),
       );

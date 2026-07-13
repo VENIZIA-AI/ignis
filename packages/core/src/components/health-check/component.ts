@@ -7,8 +7,9 @@ import { HealthCheckBindingKeys, IHealthCheckOptions } from './common';
 import { HealthCheckController } from './controller';
 import { Binding } from '@/helpers/inversion';
 
+const DEFAULT_REST_PATH = '/health';
 const DEFAULT_OPTIONS: IHealthCheckOptions = {
-  restOptions: { path: '/health' },
+  restOptions: { path: DEFAULT_REST_PATH },
 };
 
 export class HealthCheckComponent extends BaseComponent {
@@ -27,13 +28,15 @@ export class HealthCheckComponent extends BaseComponent {
   }
 
   override binding(): ValueOrPromise<void> {
-    const healthOptions =
-      this.application.get<IHealthCheckOptions>({
-        key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
-        isOptional: true,
-      }) ?? DEFAULT_OPTIONS;
+    const healthOptions = this.application.get<IHealthCheckOptions>({
+      key: HealthCheckBindingKeys.HEALTH_CHECK_OPTIONS,
+      isOptional: true,
+    });
 
-    Reflect.decorate([controller({ path: healthOptions.restOptions.path })], HealthCheckController);
+    // A partially filled options binding (env/config driven) must not take the app down at boot.
+    const path = healthOptions?.restOptions?.path ?? DEFAULT_REST_PATH;
+
+    Reflect.decorate([controller({ path })], HealthCheckController);
     this.application.controller(HealthCheckController);
   }
 }

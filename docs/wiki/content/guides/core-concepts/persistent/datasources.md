@@ -3,7 +3,7 @@
 A DataSource manages database connections and supports **schema auto-discovery** from repositories.
 
 > [!NOTE] Connectors
-> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility) - the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)) and a zero-dependency **memory connector** for prototyping and tests (see [Memory Connector](./memory-connector)). All three implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
+> This guide covers the **PostgreSQL connector** (`BasePostgresDataSource`, aliased as `BaseDataSource` for backward compatibility) - the primary relational engine and the one used by most applications. IGNIS also ships a **typesense connector** for full-text/vector search (see [Search & Typesense](./search-typesense)). Both implement the same engine-neutral `AbstractDataSource` contract - see [Connectors](/references/base/connectors) for the architecture.
 
 ## Creating a DataSource
 
@@ -50,8 +50,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
       Object.keys(schema),
     );
 
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -60,6 +60,9 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   }
 }
 ```
+
+> [!NOTE] Driver seam: the raw client goes on `this.client`
+> `this.client = new Pool(...)` is the short path: IGNIS resolves a `node-postgres` driver from that client on first use. There is no `pool` field - the raw-client slot is `client`, whatever the client happens to be. The alternative is to wire a driver yourself: `configure()` calls `this.useDriver({ driver, schema? })`, which assigns `this.driver` **and** builds `this.connector` in one step (so the half-wired state cannot exist). That is also how you select the `postgres-js` driver or run on Supabase. See [Postgres Drivers & Supabase](./postgres-drivers).
 
 **How auto-discovery works:**
 
@@ -126,7 +129,6 @@ DataSources are bound as **singletons** to ensure connection pool sharing across
 |--------|---------|--------|--------|
 | PostgreSQL | `node-postgres` (`pg`) | `@venizia/ignis` or `@venizia/ignis/postgres` | Supported, transactions + 3 isolation levels |
 | Typesense (search) | `typesense` (optional peer) | `@venizia/ignis/typesense` (subpath-only) | Supported, no transactions/locks |
-| Memory (Map-backed) | none - zero dependency | `@venizia/ignis` or `@venizia/ignis/memory` | Supported for prototyping/tests, no transactions/locks |
 | MySQL / SQLite | - | - | Not planned; would be a new connector under `src/connectors/` |
 
 ## DataSource Template
@@ -161,8 +163,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 
   override configure(): ValueOrPromise<void> {
     const schema = this.getSchema();
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -181,7 +183,6 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   - [Models](/guides/core-concepts/persistent/models) - Entity schemas loaded by DataSource
   - [Transactions](/guides/core-concepts/persistent/transactions) - Multi-operation database transactions
   - [Search & Typesense](/guides/core-concepts/persistent/search-typesense) - The typesense connector
-  - [Memory Connector](/guides/core-concepts/persistent/memory-connector) - The zero-dependency in-memory connector
   - [Application](/guides/core-concepts/application/) - Registering DataSources
 
 - **References:**

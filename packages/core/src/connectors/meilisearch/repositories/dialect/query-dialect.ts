@@ -1,11 +1,16 @@
 import { QueryOperators } from '@/base/repositories/common/operators';
-import type { TFields, TFilter, TWhere } from '@/base/repositories/query-schemas';
+import type { TFilter, TWhere } from '@/base/repositories/query-schemas';
 import type {
-  ISearchQuery,
-  ISearchQueryDialect,
-  TSearchInput,
+    ISearchQuery,
+    ISearchQueryDialect,
+    TSearchInput,
 } from '@/connectors/search/repositories/common';
 import { SearchModes } from '@/connectors/search/repositories/common';
+import {
+    isOperatorObject,
+    toFieldsCsv,
+    toSearchPage,
+} from '@/connectors/search/repositories/common/dialect-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import type { IMeilisearchSearchQuery } from '../common';
 
@@ -92,19 +97,16 @@ const UNSUPPORTED_QUERY_FIELDS: Record<string, string> = {
  */
 export class MeilisearchQueryDialect implements ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): IMeilisearchSearchQuery {
-    const { filter, hiddenFields } = opts;
+    const { filter } = opts;
 
-    if (hiddenFields && hiddenFields.length > 0) {
-      throw getError({
-        message: `[MeilisearchQueryDialect][build] hiddenProperties cannot be excluded per query - Meilisearch controls returned fields through the index-level displayedAttributes setting | hidden: ${hiddenFields.join(',')}`,
-      });
-    }
-
-    if (!filter) {
-      return { query: '*' };
-    }
-
-    const { where, fields, order, limit, skip, offset, include } = filter;
+    // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field
+    // exclusion (only the index-level `displayedAttributes`). Throwing here made every read of a
+    // model with `hiddenProperties` fail - find, findOne, findById, count, search, and the
+    // default-filter guard inside updateById - while writes happily kept working.
+    //
+    // The guarantee is upheld one layer up instead: `SearchBaseRepository` strips hidden fields from
+    // every document it returns, so nothing escapes regardless of index settings.
+    const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
       throw getError({
@@ -132,11 +134,11 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
 
     const effectiveSkip = skip ?? offset;
     if (effectiveSkip !== undefined) {
-      query.page = this.toPage({ skip: effectiveSkip, limit });
+      query.page = toSearchPage({ skip: effectiveSkip, limit });
     }
 
     if (fields) {
-      query.includeFields = this.toFieldsCsv({ fields });
+      query.includeFields = toFieldsCsv({ fields });
     }
 
     return query;
@@ -248,6 +250,12 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     if (input.highlightEndTag !== undefined) {
       searchQuery.highlightEndTag = input.highlightEndTag;
     }
+
+    // Engine-specific tuning arrives keyed by Meilisearch's own wire names in engineParams; carried
+    // onto the query here so the single-search path reaches toWireParams' verbatim merge.
+    if (input.engineParams) {
+      searchQuery.engineParams = input.engineParams;
+    }
   }
 
   /** Translates a `TWhere` into a Meilisearch filter expression. Public - reused by updateBy/deleteBy. */
@@ -295,26 +303,6 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     }
   }
 
-  private toPage(opts: { skip: number; limit?: number }): number {
-    const { skip, limit } = opts;
-
-    if (limit === undefined) {
-      throw getError({
-        message:
-          '[MeilisearchQueryDialect][build] skip/offset requires limit for search() pagination - a page cannot be expressed without a page size',
-      });
-    }
-
-    if (skip % limit !== 0) {
-      throw getError({
-        message:
-          '[MeilisearchQueryDialect][build] skip must be a multiple of limit for search pagination',
-      });
-    }
-
-    return Math.floor(skip / limit) + 1;
-  }
-
   private toOrderBy(opts: { order: string[] }): string {
     return opts.order
       .map(entry => {
@@ -330,23 +318,6 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
         return `${field}:${normalizedDirection}`;
       })
       .join(',');
-  }
-
-  private toFieldsCsv(opts: { fields: TFields }): string {
-    const { fields } = opts;
-
-    if (Array.isArray(fields)) {
-      return fields.join(',');
-    }
-
-    const included: string[] = [];
-    for (const key in fields) {
-      if (fields[key] === true) {
-        included.push(key);
-      }
-    }
-
-    return included.join(',');
   }
 
   private buildLogicalGroup(opts: { value: unknown; joiner: string }): string {
@@ -377,7 +348,7 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
       return `${field} IN [${this.escapeArray({ field, value })}]`;
     }
 
-    if (!this.isOperatorObject(value)) {
+    if (!isOperatorObject(value)) {
       return `${field} = ${this.escapeValue({ field, value })}`;
     }
 
@@ -439,14 +410,6 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
         });
       }
     }
-  }
-
-  private isOperatorObject(value: unknown): value is Record<string, unknown> {
-    if (value === null || Array.isArray(value) || typeof value !== 'object') {
-      return false;
-    }
-
-    return Object.keys(value).length > 0;
   }
 
   private escapeValue(opts: { field?: string; value: unknown }): string {

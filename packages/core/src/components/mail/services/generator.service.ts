@@ -1,13 +1,16 @@
 import { inject } from '@/base/metadata';
 import crypto from 'node:crypto';
-import {
+// Interfaces are `import type`: with emitDecoratorMetadata on, a value import of a type-only name
+// survives transpilation and the ESM named-import check then fails at load - the interface is not a
+// runtime export.
+import type {
   IVerificationCodeGenerator,
   IVerificationData,
   IVerificationDataGenerator,
   IVerificationGenerationOptions,
   IVerificationTokenGenerator,
-  MailKeys,
 } from '../common';
+import { MailKeys } from '../common';
 import { getExpiryTime, getExpiryTimeInHours } from '../utilities';
 
 export class NumericCodeGenerator implements IVerificationCodeGenerator {

@@ -10,7 +10,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 | **Date** | `ignis-helpers` | Date/time manipulation | `dayjs`, `sleep()`, `isWeekday()`, `getDateTz()`, `hrTime()` |
 | **JSX** | `ignis` | HTML/JSX responses | `htmlContent()`, `htmlResponse()` |
 | **Module** | `ignis-helpers` | Module validation | `validateModule()` |
-| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()`, `getNumberValue()` |
+| **Parse** | `ignis-helpers` | Data type conversion | `int()`, `float()`, `toBoolean()`, `toCamel()` |
 | **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
@@ -47,7 +47,7 @@ Utilities are imported from `@venizia/ignis` (schema, JSX, and status helpers) o
 
 ```typescript
 import { jsonContent, jsonResponse, htmlResponse, requiredString, Statuses } from '@venizia/ignis';
-import { hash, dayjs, sleep, int, float, toBoolean, getNumberValue } from '@venizia/ignis-helpers';
+import { hash, dayjs, sleep, int, float, toBoolean } from '@venizia/ignis-helpers';
 
 // Crypto
 const md5Hash = hash('some text', { algorithm: 'MD5', outputType: 'hex' });

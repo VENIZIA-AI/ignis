@@ -1,5 +1,8 @@
+import type { AnyType } from '@/common';
+import { getError } from '@/modules/error';
+import { BaseHelper } from '@/modules/base';
 import type { Base, BaseOptions, ConnectionPoolEventPayload } from '@platformatic/kafka';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { invokeHook } from '../common';
 import {
   KafkaClientEvents,
   KafkaDefaults,
@@ -66,13 +69,19 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
       const brokerKey = `${payload.broker.host}:${payload.broker.port}`;
       this.connectedBrokers.add(brokerKey);
       this.healthStatus = KafkaHealthStatuses.CONNECTED;
+
       this.logger.info(
         '[configureBrokerConnect] Broker CONNECTED | Host: %s | Port: %d | Connected: %d',
         payload.broker.host,
         payload.broker.port,
         this.connectedBrokers.size,
       );
-      this.onBrokerConnect?.({ broker: payload.broker });
+
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerConnect',
+        execution: () => this.onBrokerConnect?.({ broker: payload.broker }),
+      });
     });
   }
 
@@ -91,7 +100,12 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
         payload.broker.port,
         this.connectedBrokers.size,
       );
-      this.onBrokerDisconnect?.({ broker: payload.broker });
+
+      invokeHook({
+        logger: this.logger,
+        scope: 'configureBrokerDisconnect',
+        execution: () => this.onBrokerDisconnect?.({ broker: payload.broker }),
+      });
     });
   }
 
@@ -141,12 +155,44 @@ export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends
     return this.client.close();
   }
 
-  protected gracefulCloseClient(): Promise<void> {
-    return Promise.race([
-      this.closeClient(),
-      new Promise<void>((_, reject) => {
-        setTimeout(() => reject(new Error('Shutdown timed out')), this.shutdownTimeout);
-      }),
-    ]);
+  /**
+   * Force-close through the callback overload. Only Producer and Consumer expose `close(force, cb)`;
+   * the `Base` type this class is generic over declares no such overload, hence the cast.
+   */
+  protected closeClientWithCallback(): Promise<void> {
+    const client = this.client as AnyType;
+
+    return new Promise<void>((resolve, reject) => {
+      client.close(true, (error?: Error | null) => {
+        if (error) {
+          reject(error);
+          return;
+        }
+
+        resolve();
+      });
+    });
+  }
+
+  protected async gracefulCloseClient(): Promise<void> {
+    let timeoutHandle: NodeJS.Timeout | null = null;
+
+    try {
+      // The timer MUST be cleared once close() wins: an armed shutdownTimeout timer keeps the event
+      // loop alive long after a successful shutdown, so the process refuses to exit.
+      await Promise.race([
+        this.closeClient(),
+        new Promise<void>((_, reject) => {
+          timeoutHandle = setTimeout(
+            () => reject(getError({ message: '[gracefulCloseClient] Shutdown timed out' })),
+            this.shutdownTimeout,
+          );
+        }),
+      ]);
+    } finally {
+      if (timeoutHandle !== null) {
+        clearTimeout(timeoutHandle);
+      }
+    }
   }
 }

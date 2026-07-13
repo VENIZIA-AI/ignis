@@ -1,4 +1,4 @@
-import { MCPConfigs } from '@/mcp-server/common';
+import { isNonEmptyString, MCPConfigs } from '@/mcp-server/common';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
 import { BaseTool } from '../base.tool';
@@ -166,7 +166,10 @@ export class SearchCodeTool extends BaseTool<typeof InputSchema, typeof OutputSc
           query,
           totalCount: 0,
           results: [],
-          error: errorData.message || `GitHub API error: ${response.statusText}`,
+          // An error body with an empty `message` is as useless as one without the key at all.
+          error: isNonEmptyString(errorData.message)
+            ? errorData.message
+            : `GitHub API error: ${response.statusText}`,
           rateLimitWarning,
         };
       }

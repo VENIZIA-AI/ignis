@@ -9,7 +9,7 @@ import {
   IApplicationInfo,
   IHealthCheckOptions,
   IMiddlewareConfigs,
-  SwaggerComponent,
+  ApiReferenceComponent,
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
@@ -199,7 +199,7 @@ export class Application extends BaseApplication {
     this.component(HealthCheckComponent);
 
     // Swagger
-    this.component(SwaggerComponent);
+    this.component(ApiReferenceComponent);
 
     // Socket.IO
     this.setupSocketIO();

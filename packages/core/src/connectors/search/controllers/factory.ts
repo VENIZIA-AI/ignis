@@ -26,7 +26,6 @@ export interface ISearchControllerOptions<
    * `hits[].document` shape in the generated search route's response. */
   entity: TClass<TEntity> | TResolver<TClass<TEntity>>;
 
-  /** Repository binding configuration */
   repository: {
     name: string; // Repository binding name in the IoC container
   };
@@ -74,13 +73,13 @@ export class SearchControllerFactory extends BaseHelper {
       });
     }
 
-    const _entityClass = isClass(entity) ? entity : entity();
-    const entityInstance = new _entityClass();
+    const entityClass = isClass(entity) ? entity : entity();
+    const entityInstance = new entityClass();
 
     const selectSchema = entityInstance.getSchema({ type: SchemaTypes.SELECT });
     const routeDefinitions = defineSearchRouteConfigs({ selectSchema, authenticate, authorize });
 
-    const _controller = class extends AbstractSearchController<
+    const controllerClass = class extends AbstractSearchController<
       TEntity,
       RouteEnv,
       RouteSchema,
@@ -120,7 +119,7 @@ export class SearchControllerFactory extends BaseHelper {
       }
     };
 
-    Object.defineProperty(_controller, 'name', { value: name, configurable: true });
-    return _controller;
+    Object.defineProperty(controllerClass, 'name', { value: name, configurable: true });
+    return controllerClass;
   }
 }

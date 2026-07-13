@@ -1,3 +1,4 @@
+import omit from 'lodash/omit';
 import { z } from 'zod';
 
 export const ErrorSchema = z
@@ -17,11 +18,13 @@ export class ApplicationError extends Error {
   extra?: Record<string, unknown>;
 
   constructor(opts: TError) {
-    const { message, messageCode, statusCode = 400, name: _name, ...extra } = opts;
+    const { message, messageCode, statusCode = 400, ...rest } = opts;
     super(message);
 
     this.statusCode = statusCode;
     this.messageCode = messageCode;
+
+    const extra = omit(rest, ['name']);
     this.extra = Object.keys(extra).length > 0 ? extra : undefined;
   }
 

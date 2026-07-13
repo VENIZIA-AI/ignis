@@ -101,10 +101,11 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
     const { principal } = opts;
 
-    const result = await this.connector.execute<{
+    const rows = await this.query<{
       roleId: IdType;
       domain: string | null;
-    }>(sql`
+    }>({
+      statement: sql`
       SELECT 
         policyDefinition.target_id AS "roleId", 
         policyDefinition.domain
@@ -113,11 +114,12 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         AND policyDefinition.subject_type = ${principal.type}
         AND policyDefinition.subject_id = ${principal.id}
         AND policyDefinition.target_type = ${principals.role}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
     const lines: string[] = [];
     const roleIds: IdType[] = [];
-    for (const row of result.rows) {
+    for (const row of rows) {
       roleIds.push(row.roleId);
       const domain = row.domain ?? '*';
 
@@ -140,10 +142,11 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
     const { principal } = opts;
 
-    const result = await this.connector.execute<{
+    const rows = await this.query<{
       domainType: string;
       domainId: IdType;
-    }>(sql`
+    }>({
+      statement: sql`
       SELECT 
         policyDefinition.target_type AS "domainType", 
         policyDefinition.target_id AS "domainId"
@@ -155,9 +158,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
           domainTypes.map(t => sql`${t}`),
           sql`, `,
         )})${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
-    return result.rows.map(
+    return rows.map(
       row =>
         `${AuthorizationPolicyVariants.JOIN_DOMAIN.rule}, ${principal.type}_${principal.id}, ${row.domainType}_${row.domainId}`,
     );
@@ -179,13 +183,14 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const permissionTable = this.qualifiedTable({ table: permission });
     const { subject } = opts;
 
-    const result = await this.connector.execute<{
+    const rows = await this.query<{
       subjectId: IdType;
       objectCode: string;
       action: string | null;
       effect: string | null;
       domain: string | null;
-    }>(sql`
+    }>({
+      statement: sql`
       SELECT
         policyDefinition.subject_id AS "subjectId",
         permission.code AS "objectCode",
@@ -201,10 +206,11 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
           subject.ids.map(id => sql`${id}`),
           sql`, `,
         )})${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
     const lines: string[] = [];
-    for (const row of result.rows) {
+    for (const row of rows) {
       if (!row.action) {
         continue;
       }
@@ -237,18 +243,20 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const { policyDefinition, principals } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
 
-    const result = await this.connector.execute<{
+    const rows = await this.query<{
       childId: IdType;
       parentId: IdType;
-    }>(sql`
+    }>({
+      statement: sql`
       SELECT
         policyDefinition.subject_id AS "childId",
         policyDefinition.target_id AS "parentId"
       FROM ${policyDefinitionTable} policyDefinition
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ROLE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
-    return result.rows.map(r => {
+    return rows.map(r => {
       return `${AuthorizationPolicyVariants.ROLE_INHERITS.rule}, ${principals.role}_${r.childId}, ${principals.role}_${r.parentId}, *`;
     });
   }
@@ -262,7 +270,8 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
     const permissionTable = this.qualifiedTable({ table: permission });
 
-    const result = await this.connector.execute<{ childCode: string; parentCode: string }>(sql`
+    const rows = await this.query<{ childCode: string; parentCode: string }>({
+      statement: sql`
       SELECT
         child_permission.code AS "childCode",
         parent_permission.code AS "parentCode"
@@ -270,9 +279,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         INNER JOIN ${permissionTable} child_permission ON policyDefinition.subject_id = child_permission.id
         INNER JOIN ${permissionTable} parent_permission ON policyDefinition.target_id = parent_permission.id
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.RESOURCE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
-    return result.rows.map(
+    return rows.map(
       r => `${AuthorizationPolicyVariants.RESOURCE_INHERITS.rule}, ${r.childCode}, ${r.parentCode}`,
     );
   }
@@ -285,15 +295,17 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const { policyDefinition } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
 
-    const result = await this.connector.execute<{ childCode: string; parentCode: string }>(sql`
+    const rows = await this.query<{ childCode: string; parentCode: string }>({
+      statement: sql`
       SELECT
         policyDefinition.subject_id AS "childCode",
         policyDefinition.target_id AS "parentCode"
       FROM ${policyDefinitionTable} policyDefinition
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ACTION_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
-    return result.rows.map(
+    return rows.map(
       r => `${AuthorizationPolicyVariants.ACTION_INHERITS.rule}, ${r.childCode}, ${r.parentCode}`,
     );
   }
@@ -303,12 +315,13 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
     const { policyDefinition } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
 
-    const result = await this.connector.execute<{
+    const rows = await this.query<{
       childType: string;
       childId: IdType;
       parentType: string;
       parentId: IdType;
-    }>(sql`
+    }>({
+      statement: sql`
       SELECT
         policyDefinition.subject_type AS "childType",
         policyDefinition.subject_id AS "childId",
@@ -316,9 +329,10 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
         policyDefinition.target_id AS "parentId"
       FROM ${policyDefinitionTable} policyDefinition
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.DOMAIN_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `);
+    `,
+    });
 
-    return result.rows.map(
+    return rows.map(
       r =>
         `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${r.childType}_${r.childId}, ${r.parentType}_${r.parentId}`,
     );

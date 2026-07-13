@@ -1,5 +1,6 @@
 import { getError } from '@/common/app-error';
-import { IInjectableMetadata } from '@/common/types';
+import { TBindingKey } from '@/common/types';
+import { IInjectableMetadata } from '@/registry/common/types';
 import { MetadataRegistry, metadataRegistry } from '@/registry';
 
 export const injectable = (
@@ -13,7 +14,7 @@ export const injectable = (
 
 /** Marks a property or constructor parameter for dependency injection. */
 export const inject = (opts: {
-  key: string | symbol;
+  key: TBindingKey;
   isOptional?: boolean;
   registry?: MetadataRegistry;
 }) => {

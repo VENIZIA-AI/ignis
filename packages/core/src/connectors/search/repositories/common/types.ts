@@ -6,8 +6,7 @@ import type { SearchModes, TSearchInput } from './constants';
  * this interface. Field names are camelCase; the engine's wire format is produced only at the
  * dialect's `toWireParams` boundary. */
 export interface ISearchQuery {
-  /** Full-text search term. Use '*' for pure filter listings. Both engines happen to spell this `q`
-   * on the wire, but the neutral name stays friendly - the dialect maps it like every other field. */
+  /** Full-text search term. Use '*' for pure filter listings. */
   query: string;
   filterBy?: string;
   sortBy?: string;

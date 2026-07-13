@@ -2,6 +2,7 @@ import { AuthenticationModes } from '@/components/auth/authenticate/common/const
 import { authenticate as authenticateFn } from '@/components/auth/authenticate/middlewares/authenticate.middleware';
 import type { IAuthorizationSpec } from '@/components/auth/authorize/common/types';
 import { authorize as authorizeFn } from '@/components/auth/authorize/middlewares/authorize.middleware';
+import { reportDroppedRouteDecorators } from '@/base/metadata/routes/common';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import { htmlResponse } from '@/utilities/jsx.utility';
 import type { Hook } from '@hono/zod-openapi';
@@ -17,6 +18,11 @@ import type {
   IDefineRouteOptions,
   TRouteHandler,
 } from '../common/types';
+
+/** True for a route path carrying a path parameter, in either supported syntax: `/{id}` or `/:id`. */
+const hasPathParam = (opts: { path: string }): boolean => {
+  return /\{[^}]+\}|:[^/]+/.test(opts.path);
+};
 
 /** Abstract base class for all REST controllers, providing route registration and auth middleware integration. */
 export abstract class AbstractRestController<
@@ -38,7 +44,6 @@ export abstract class AbstractRestController<
     super(opts);
     const { isStrict = true } = opts;
 
-    // Resolve path: decorator metadata takes priority, then constructor option
     const decoratorMetadata = MetadataRegistry.getInstance().getControllerMetadata({
       target: new.target,
     });
@@ -67,8 +72,16 @@ export abstract class AbstractRestController<
     return this.router;
   }
 
-  /** Registers routes defined via decorators (@get, @post, etc.) from the metadata registry. */
-  registerRoutesFromRegistry(): void {
+  /**
+   * Registers routes defined via decorators (@get, @post, etc.) from the metadata registry.
+   * `paths` selects which of them by shape - see the two-phase call in {@link configure}.
+   */
+  registerRoutesFromRegistry(opts?: { paths?: 'static' | 'param' | 'all' }): void {
+    const { paths = 'all' } = opts ?? {};
+
+    const logger = this.logger.for(this.registerRoutesFromRegistry.name);
+    reportDroppedRouteDecorators({ logger });
+
     const routes = MetadataRegistry.getInstance().getRoutes({
       target: Object.getPrototypeOf(this),
     });
@@ -77,9 +90,12 @@ export abstract class AbstractRestController<
       return;
     }
 
-    const logger = this.logger.for(this.registerRoutesFromRegistry.name);
     const routeDefs = routes.entries();
     for (const [methodName, routeConfigs] of routeDefs) {
+      if (paths !== 'all' && hasPathParam({ path: routeConfigs.path }) !== (paths === 'param')) {
+        continue;
+      }
+
       // Dynamic dispatch by decorator-recorded method name - the controller class has no static
       // index signature for this, so reading it can't be typed narrower than `unknown` here.
       const handler = (this as Record<string | symbol, unknown>)[methodName];
@@ -108,8 +124,14 @@ export abstract class AbstractRestController<
     const configureOptions = opts ?? {};
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
+    // Hono matches in registration order, so a param route always swallows a same-shaped static
+    // path registered after it. Registration therefore runs by SHAPE, not by source: every static
+    // path first (a decorator's `/unsubscribe` would otherwise be eaten by an inherited CRUD
+    // `/{id}`), then binding()'s own routes, then the decorator param routes last (registering a
+    // decorator's `/{id}` early would eat binding()'s `/count` and `/find-one`).
+    this.registerRoutesFromRegistry({ paths: 'static' });
     await this.binding();
-    this.registerRoutesFromRegistry();
+    this.registerRoutesFromRegistry({ paths: 'param' });
 
     this.isConfigured = true;
     logger.info('DONE | Binding controller | Took: %s (ms)', performance.now() - t);
@@ -124,7 +146,6 @@ export abstract class AbstractRestController<
     const security = strategies.map((strategy: string) => ({ [strategy]: [] }));
     const mws: ReturnType<typeof authenticateFn>[] = [];
 
-    // Inject authenticate middleware
     if (strategies.length > 0) {
       mws.push(authenticateFn({ strategies, mode }));
     }
@@ -137,7 +158,6 @@ export abstract class AbstractRestController<
       }
     }
 
-    // Inject custom middleware
     if (restConfig.middleware) {
       const extraMws = Array.isArray(restConfig.middleware)
         ? restConfig.middleware

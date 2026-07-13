@@ -332,6 +332,12 @@ class PaymentGateway extends AxiosNetworkRequest {
 }
 ```
 
+#### Request Logging & Redaction
+
+Both `NodeFetcher` and `AxiosFetcher` log every outbound request at `info` level (`URL: %s | Props: %s | ...`), including the request config -- headers, body, and any other options passed to `send()`. Before that log line is written, the request config is run through `redactSecrets()`, so values under secret-looking keys never reach the log.
+
+Redaction matches by key name, case-insensitively, at any depth -- both options-object spellings (`apiKey`, `token`, `password`, `authorization`, ...) and HTTP header spellings (`x-api-key`, `x-csrf-token`, `cookie`, `set-cookie`, `proxy-authorization`, `www-authenticate`, ...). A header like `'X-API-Key': process.env.PAYMENT_API_KEY` or `'Authorization': 'Bearer my-token'` (as in the examples above) is logged as `'[REDACTED]'`, not the real value. This redaction happens automatically -- there is nothing to configure.
+
 #### Convenience Methods
 
 ```typescript

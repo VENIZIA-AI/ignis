@@ -11,8 +11,7 @@ import type { UnionSearchResponse } from 'typesense/lib/Typesense/Types';
 import type { TConstValue } from '@venizia/ignis-helpers';
 import type { ISearchConnectorCallbacks } from '@/connectors/search';
 
-// Re-export Typesense types under stable T-prefixed aliases (type-only; erased at runtime).
-// Note: CollectionFieldSchema is exported from Collection (singular), not Collections.
+// CollectionFieldSchema is exported from Collection (singular), not Collections.
 export type TDocumentSchema = DocumentSchema;
 export type TCollectionCreateSchema = CollectionCreateSchema;
 export type TCollectionSchema = CollectionSchema;
@@ -89,8 +88,6 @@ export class TypesenseDirtyValues {
 }
 
 export type TTypesenseDirtyValue = TConstValue<typeof TypesenseDirtyValues>;
-
-// -- Datasource option types (src/connectors/typesense/datasources/*) --
 
 export interface ITypesenseDataSourceSettings {
   nodes: Array<{ host: string; port: number; protocol?: string }>;

@@ -35,7 +35,7 @@
   "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "^1.2.2",
-    "@scalar/hono-api-reference": "^0.9.44",
+    "@scalar/hono-api-reference": "^0.11.9",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
@@ -44,10 +44,10 @@
     "dotenv-flow": "^4.1.0",
     "drizzle-orm": "^0.45.1",
     "drizzle-zod": "^0.8.3",
-    "hono": "^4.12.1",
-    "ioredis": "5.9.3",
+    "hono": "^4.12.29",
+    "ioredis": "^5.11.1",
     "lodash": "^4.17.23",
-    "pg": "^8.18.0",
+    "pg": "^8.22.0",
     "rxjs": "^7.8.2"
   },
   "devDependencies": {
@@ -57,9 +57,9 @@
     "@types/pg": "^8.16.0",
     "@venizia/dev-configs": "workspace:*",
     "drizzle-kit": "^0.31.9",
-    "eslint": "^9.39.3",
-    "prettier": "^3.8.1",
-    "tsc-alias": "^1.8.16",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
+    "tsc-alias": "^1.9.0",
     "typescript": "^6.0.3"
   }
 }

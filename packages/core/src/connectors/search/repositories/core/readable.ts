@@ -1,5 +1,4 @@
 import type { TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
 import type {
   IExtraOptions,
   TCount,
@@ -7,7 +6,7 @@ import type {
   TFilter,
   TWhere,
 } from '@/base/repositories/common';
-import { DEFAULT_LIMIT } from '@/base/repositories/common';
+import { buildDataRange, DEFAULT_LIMIT } from '@/base/repositories/common';
 import type { IdType } from '@/base/models';
 import type { ISearchResult } from '@/connectors/search';
 import type { TSearchInput } from '@/connectors/search/repositories/common';
@@ -45,22 +44,22 @@ export class ReadableSearchRepository<
   }
 
   find<R = TDocument>(opts: {
-    filter?: TFilter;
+    filter: TFilter;
     options: IExtraOptions & { shouldQueryRange: true };
   }): Promise<{ data: Array<R>; range: TDataRange }>;
 
-  find<R = TDocument>(opts?: {
-    filter?: TFilter;
+  find<R = TDocument>(opts: {
+    filter: TFilter;
     options?: IExtraOptions & { shouldQueryRange?: false };
   }): Promise<Array<R>>;
 
   /** Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense's `found`
    * already comes back in the same call as `hits`, so unlike SQL no second count query is needed. */
-  async find<R = TDocument>(opts?: {
-    filter?: TFilter;
+  async find<R = TDocument>(opts: {
+    filter: TFilter;
     options?: IExtraOptions & { shouldQueryRange?: boolean };
   }): Promise<Array<R> | { data: Array<R>; range: TDataRange }> {
-    const { filter, options } = opts ?? {};
+    const { filter, options } = opts;
     this.assertNoTransaction(options);
     this.assertNoLock(options);
 
@@ -82,23 +81,30 @@ export class ReadableSearchRepository<
 
     const { hits, found } = result;
     // An explicit `find<Other>()` call is the caller's own unchecked assertion (R defaults to TDocument).
-    const data = (hits ?? []).map(hit => hit.document) as any;
+    // Stripped in JS as well as engine-side: Typesense honours `exclude_fields`, but Meilisearch has
+    // no per-query exclusion at all, so the engine is not the last line of defence here.
+    const data = this.omitHiddenFieldsAll((hits ?? []).map(hit => hit.document)) as any;
 
     if (!options?.shouldQueryRange) {
       return data;
     }
 
-    const start = effectiveFilter.skip ?? effectiveFilter.offset ?? 0;
-    const end = data.length > 0 ? start + data.length - 1 : start;
-
-    return { data, range: { start, end, total: found } };
+    return {
+      data,
+      range: buildDataRange({
+        skip: effectiveFilter.skip,
+        offset: effectiveFilter.offset,
+        dataLength: data.length,
+        total: found,
+      }),
+    };
   }
 
-  async findOne<R = TDocument>(opts?: {
-    filter?: TFilter;
+  async findOne<R = TDocument>(opts: {
+    filter: TFilter;
     options?: IExtraOptions;
   }): Promise<TNullable<R>> {
-    const { filter, options } = opts ?? {};
+    const { filter, options } = opts;
     const results = await this.find<R>({ filter: { ...filter, limit: 1 }, options });
     return results[0] ?? null;
   }
@@ -136,17 +142,18 @@ export class ReadableSearchRepository<
 
     this.queryDialect.applySearchInput({ query, input: opts });
 
-    return this.connector.search<R>({
+    const result = await this.connector.search<R>({
       collection: this.collectionName,
       params: this.queryDialect.toWireParams({ query }),
     });
-  }
 
-  /** Throws the standardized NOT ALLOWED error for a disabled operation; callers pass their own method name for the message. */
-  protected denyOperation(methodName: string): never {
-    throw getError({
-      message: `[${methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return {
+      ...result,
+      hits: (result.hits ?? []).map(hit => ({
+        ...hit,
+        document: this.omitHiddenFields(hit.document),
+      })),
+    };
   }
 
   /** @throws Error - disabled in a read-only repository; unlocked progressively by Persistable/DefaultSearchRepository. */
@@ -201,21 +208,11 @@ export class ReadableSearchRepository<
   }
 
   /** @throws Error - disabled in a read-only repository. */
-  updateAll(opts: {
+  updateAll(_opts: {
     data: Partial<TDocument>;
     where?: TWhere;
-    options: IExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  updateAll<R = TDocument>(opts: {
-    data: Partial<TDocument>;
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  updateAll<R = TDocument>(_opts: {
-    data: Partial<TDocument>;
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
+  }): Promise<TCount & { data: null }> {
     return this.denyOperation(this.updateAll.name);
   }
 
@@ -236,18 +233,10 @@ export class ReadableSearchRepository<
   }
 
   /** @throws Error - disabled in a read-only repository. Unlocked by DefaultSearchRepository. */
-  deleteAll(opts: {
+  deleteAll(_opts?: {
     where?: TWhere;
-    options: IExtraOptions & { shouldReturn: false; force?: boolean };
-  }): Promise<TCount & { data: undefined | null }>;
-  deleteAll<R = TDocument>(opts?: {
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
-  deleteAll<R = TDocument>(_opts?: {
-    where?: TWhere;
-    options?: IExtraOptions & { shouldReturn?: boolean; force?: boolean };
-  }): Promise<TCount & { data: TNullable<Array<R>> }> {
+    options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
+  }): Promise<TCount & { data: null }> {
     return this.denyOperation(this.deleteAll.name);
   }
 }

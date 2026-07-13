@@ -105,6 +105,9 @@ const filter = {
 | Less or equal | `{ field: { lte: value } }` |
 | Is null | `{ field: null }` or `{ field: { is: null } }` |
 | Is not null | `{ field: { isn: null } }` or `{ field: { ne: null } }` |
+| Field present (`IS NOT NULL`) | `{ field: { exists: true } }` (or `{ field: { notExists: false } }`) |
+| Field missing/null (`IS NULL`) | `{ field: { exists: false } }` or `{ field: { notExists: true } }` |
+| Negate a condition | `{ field: { not: value } }` (negates `eq`) or `{ field: { not: { gt: 10 } } }` |
 | In list | `{ field: { in: [a, b, c] } }` or `{ field: { inq: [a, b, c] } }` |
 | Not in list | `{ field: { nin: [a, b, c] } }` |
 | Range | `{ field: { between: [min, max] } }` |

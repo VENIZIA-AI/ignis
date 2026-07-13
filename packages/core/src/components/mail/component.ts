@@ -3,13 +3,10 @@ import { BaseComponent } from '@/base/components';
 import { inject } from '@/base/metadata';
 import { CoreBindings } from '@/common';
 import { getError } from '@venizia/ignis-helpers';
-import { IMailQueueExecutorConfig, MailKeys, TMailOptions } from './common';
-import {
-  MailQueueExecutorProvider,
-  MailTransportProvider,
-  TGetMailQueueExecutorFn,
-  TGetMailTransportFn,
-} from './providers';
+import type { IMailQueueExecutorConfig, TMailOptions } from './common';
+import { MailKeys, MailQueueExecutorTypes } from './common';
+import type { TGetMailQueueExecutorFn, TGetMailTransportFn } from './providers';
+import { MailQueueExecutorProvider, MailTransportProvider } from './providers';
 import {
   DefaultVerificationDataGenerator,
   MailService,
@@ -92,7 +89,12 @@ export class MailComponent extends BaseComponent {
     });
     const mailOptions = this.application.get<TMailOptions>({ key: MailKeys.MAIL_OPTIONS });
 
-    this.logger.for(this.createAndBindInstances.name).info('Mail Options: %j', mailOptions);
+    // Only the provider is logged: the options carry SMTP / API credentials, which must never reach
+    // a log sink.
+    this.logger
+      .for(this.createAndBindInstances.name)
+      .info('Mail provider: %s', mailOptions.provider);
+
     const mailTransportInstance = transportGetter(mailOptions);
     this.application.bind({ key: MailKeys.MAIL_TRANSPORT_INSTANCE }).toValue(mailTransportInstance);
 
@@ -100,14 +102,20 @@ export class MailComponent extends BaseComponent {
     const queueGetter = this.application.get<TGetMailQueueExecutorFn>({
       key: MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER,
     });
-    const queueConf = this.application.get<IMailQueueExecutorConfig>({
-      key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
-    });
 
+    // Queueing is opt-in: an application that only sends mail binds no executor config, and gets the
+    // direct (inline) executor rather than a "binding is not bounded" crash at boot.
+    const queueConfig = this.application.get<IMailQueueExecutorConfig>({
+      key: MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG,
+      isOptional: true,
+    }) ?? { type: MailQueueExecutorTypes.DIRECT };
+
+    // Same reason as above: a bullmq config carries the Redis password.
     this.logger
       .for(this.createAndBindInstances.name)
-      .info('Mail Queue Executor Config: %j', queueConf);
-    const queueExecutorInstance = queueGetter(queueConf);
+      .info('Mail queue executor type: %s', queueConfig.type);
+
+    const queueExecutorInstance = queueGetter(queueConfig);
     this.application
       .bind({ key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE })
       .toValue(queueExecutorInstance);

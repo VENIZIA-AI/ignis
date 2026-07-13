@@ -137,11 +137,11 @@ describe('SocketIOClientHelper', () => {
     }
     activeClients = [];
 
-    try {
-      ioServer.close();
-    } catch {
-      // ignore cleanup errors
-    }
+    // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the
+    // race below drives - awaiting here would deadlock. Surface (never swallow) a cleanup failure.
+    ioServer.close().catch((closeError: unknown) => {
+      console.error('[socket-io.test afterEach] ioServer.close cleanup error:', closeError);
+    });
 
     await Promise.race([
       new Promise<void>(resolve => {
@@ -757,7 +757,7 @@ describe('SocketIOClientHelper', () => {
       client.emit({
         topic: 'test',
         data: {},
-        cb: () => {
+        callback: () => {
           didCallbackExecute = true;
         },
       });
@@ -1119,11 +1119,11 @@ describe('SocketIOClientHelper - Edge Cases', () => {
     }
     activeClients = [];
 
-    try {
-      ioServer.close();
-    } catch {
-      // ignore cleanup errors
-    }
+    // Fire-and-forget: io.close() only settles once the underlying httpServer closes, which the
+    // race below drives - awaiting here would deadlock. Surface (never swallow) a cleanup failure.
+    ioServer.close().catch((closeError: unknown) => {
+      console.error('[socket-io.test afterEach] ioServer.close cleanup error:', closeError);
+    });
 
     await Promise.race([
       new Promise<void>(resolve => {

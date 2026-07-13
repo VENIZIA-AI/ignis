@@ -7,7 +7,6 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
-    /** Get all routes from a controller class. */
     getRoutes<Target extends object = object>(opts: {
       target: Target;
     }): Map<string | symbol, IAuthRouteConfig> | undefined {
@@ -15,7 +14,6 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       return Reflect.getMetadata(MetadataKeys.CONTROLLER_REST_ROUTE, target);
     }
 
-    /** Get a specific route by method name. */
     getRoute<Target extends object = object>(opts: {
       target: Target;
       methodName: string | symbol;
@@ -25,13 +23,11 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
       return routes?.get(methodName);
     }
 
-    /** Check if a class has any routes defined. */
     hasRoutes<Target extends object = object>(opts: { target: Target }): boolean {
       const routes = this.getRoutes(opts);
       return routes !== undefined && routes.size > 0;
     }
 
-    /** Add a route to a controller class. */
     addRoute<Target extends object = object>(opts: {
       target: Target;
       methodName: string | symbol;
@@ -39,7 +35,14 @@ export const RestControllerMetadataMixin = <BaseClass extends TMixinTarget<_Meta
     }): void {
       const { target, methodName, configs } = opts;
 
-      const routes = this.getRoutes({ target }) || new Map();
+      // Copy-on-write: getRoutes() walks the prototype chain, so a subclass would otherwise mutate
+      // the Map its base class owns - leaking its routes onto the base and onto every sibling
+      // subclass. Inherited routes stay visible (they are copied in, base first).
+      const inherited = this.getRoutes({ target });
+      const routes: Map<string | symbol, IAuthRouteConfig> =
+        Reflect.getOwnMetadata(MetadataKeys.CONTROLLER_REST_ROUTE, target) ??
+        new Map(inherited ?? []);
+
       routes.set(methodName, configs);
 
       Reflect.defineMetadata(MetadataKeys.CONTROLLER_REST_ROUTE, routes, target);

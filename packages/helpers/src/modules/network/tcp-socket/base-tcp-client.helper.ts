@@ -1,3 +1,4 @@
+import { redactSecrets } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { ValueOrPromise } from '@/common';
 import isEmpty from 'lodash/isEmpty';
@@ -83,10 +84,23 @@ export class BaseNetworkTcpClient<
     return this.client;
   }
 
+  /**
+   * The options as they may appear in a log line. A TLS client's options ARE its private key
+   * (`key`/`cert`/`passphrase`), so logging them verbatim writes the key into every log file and
+   * aggregator downstream.
+   */
+  protected getLoggableOptions(): unknown {
+    return redactSecrets(this.options);
+  }
+
   handleConnected() {
     this.logger
       .for(this.handleConnected.name)
-      .info('[%s] Connected to TCP Server | Options: %j', this.identifier, this.options);
+      .info(
+        '[%s] Connected to TCP Server | Options: %j',
+        this.identifier,
+        this.getLoggableOptions(),
+      );
     this.retry.currentReconnect = 0;
   }
 
@@ -95,7 +109,11 @@ export class BaseNetworkTcpClient<
   handleClosed() {
     this.logger
       .for(this.handleClosed.name)
-      .info('[%s] Closed connection TCP Server | Options: %j', this.identifier, this.options);
+      .info(
+        '[%s] Closed connection TCP Server | Options: %j',
+        this.identifier,
+        this.getLoggableOptions(),
+      );
   }
 
   handleError(error: any) {
@@ -104,7 +122,7 @@ export class BaseNetworkTcpClient<
       .error(
         '[%s] Connection error | Options: %j | Error: %s',
         this.identifier,
-        this.options,
+        this.getLoggableOptions(),
         error,
       );
 
@@ -133,7 +151,7 @@ export class BaseNetworkTcpClient<
         .info(
           '[%s] Retrying to establish TCP Connection | Options: %j',
           this.identifier,
-          this.options,
+          this.getLoggableOptions(),
         );
 
       this.connect({ resetReconnectCounter: false });
@@ -158,7 +176,11 @@ export class BaseNetworkTcpClient<
 
     this.logger
       .for(this.connect.name)
-      .info('[%s] New network tcp client | Options: %s', this.identifier, this.options);
+      .info(
+        '[%s] New network tcp client | Options: %j',
+        this.identifier,
+        this.getLoggableOptions(),
+      );
 
     if (opts?.resetReconnectCounter) {
       this.retry.currentReconnect = 0;
@@ -169,32 +191,27 @@ export class BaseNetworkTcpClient<
       this.client = null;
     }
 
-    this.client = this.createClientFn(this.options, () => {
-      if (!this.client) {
-        this.logger.for(this.createClientFn.name).error('Failed to initialize socket client!');
-        return;
-      }
-
-      this.onConnected?.({ client: this.client });
+    // The listeners close over THIS socket: `this.client` is nulled by disconnect() and swapped by a
+    // reconnect, so reading it back would drop the close hook - or hand it the wrong socket.
+    const client = this.createClientFn(this.options, () => {
+      this.onConnected?.({ client });
     });
 
+    this.client = client;
+
     if (this.encoding) {
-      this.client.setEncoding(this.encoding);
+      client.setEncoding(this.encoding);
     }
 
-    this.client.on('data', (message: string | Buffer) => {
+    client.on('data', (message: string | Buffer) => {
       this.onData({ identifier: this.identifier, message });
     });
 
-    this.client.on('close', () => {
-      if (!this.client) {
-        return;
-      }
-
-      this.onClosed?.({ client: this.client });
+    client.on('close', () => {
+      this.onClosed?.({ client });
     });
 
-    this.client.on('error', error => {
+    client.on('error', error => {
       this.onError?.(error);
     });
   }

@@ -28,7 +28,7 @@ export interface ISocketIOClient {
   socket: IOSocket;
   state: TSocketIOClientState;
   interval?: NodeJS.Timeout;
-  authenticateTimeout: NodeJS.Timeout;
+  authenticateTimeout?: NodeJS.Timeout;
 }
 
 export interface IOptions extends SocketOptions {

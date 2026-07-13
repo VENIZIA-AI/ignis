@@ -1,3 +1,4 @@
+import { SearchErrorCodes } from '@/common';
 import type {
   IAliasInfo,
   IImportResult,
@@ -10,7 +11,7 @@ import type {
 import { BaseSearchConnector } from '@/connectors/search';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
-import { getError } from '@venizia/ignis-helpers';
+import { HTTP, getError, isApplicationError } from '@venizia/ignis-helpers';
 import { Client } from 'typesense';
 import { TypesenseInternal } from './internal/connector-internal';
 import type {
@@ -229,7 +230,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       this.logger
         .for('constructor')
         .error(
-          'Failed to initialize Typesense client | error: %j',
+          'Failed to initialize Typesense client | error: %s',
           SearchConnectorInternal.describeError({ error }),
         );
 
@@ -302,7 +303,7 @@ export class TypesenseConnector extends BaseSearchConnector {
     } catch (error) {
       this.logger
         .for(this.getHealth.name)
-        .warn('Health probe failed | error: %j', SearchConnectorInternal.describeError({ error }));
+        .warn('Health probe failed | error: %s', SearchConnectorInternal.describeError({ error }));
       return { ok: false };
     }
   }
@@ -340,7 +341,7 @@ export class TypesenseConnector extends BaseSearchConnector {
 
     // The create response IS the collection schema. Reading it back immediately instead is a
     // read-after-write race on multi-node clusters (follower may 404 before the raft log catches
-    // up) - found live on a real 3-node cluster. Only the tolerated already-exists path re-reads.
+    // up). Only the tolerated already-exists path re-reads.
     const created = await this.createCollection({ schema });
     if (created) {
       return created;
@@ -392,7 +393,7 @@ export class TypesenseConnector extends BaseSearchConnector {
       this.logger
         .for(this.collectionExists.name)
         .warn(
-          'Existence check failed, treating as absent | name: %s | error: %j',
+          'Existence check failed, treating as absent | name: %s | error: %s',
           name,
           SearchConnectorInternal.describeError({ error }),
         );
@@ -605,6 +606,8 @@ export class TypesenseConnector extends BaseSearchConnector {
       method: this.createDocument.name,
     });
 
+    const id = (document as Record<string, unknown>)['id'];
+
     const rs = await this.runEngineCall({
       method: this.createDocument.name,
       run: async () => {
@@ -613,6 +616,18 @@ export class TypesenseConnector extends BaseSearchConnector {
           .documents()
           .create(document)) as T;
         return created;
+      },
+      // Typesense rejects a duplicate id with 409; surface the neutral already_exists conflict
+      // instead of the generic sanitized 503 - same contract Meilisearch's createDocument throws.
+      tolerate: {
+        when: error => TypesenseInternal.isAlreadyExistsError({ error }),
+        handle: () => {
+          throw getError({
+            statusCode: HTTP.ResultCodes.RS_4.Conflict,
+            messageCode: SearchErrorCodes.ALREADY_EXISTS,
+            message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
+          });
+        },
       },
     });
     return rs;
@@ -793,6 +808,12 @@ export class TypesenseConnector extends BaseSearchConnector {
         }
       }
     } catch (error) {
+      // A framework ApplicationError (already sanitized, carrying its own statusCode/messageCode) must
+      // surface as-is; only raw engine failures get wrapped as a 503. Mirrors runEngineCall's guard.
+      if (isApplicationError(error)) {
+        throw error;
+      }
+
       // Batches before the failure are already persisted server-side; attach partial progress so callers can decide to resume or retry.
       SearchConnectorInternal.wrapDependencyError({
         method: this.importDocuments.name,

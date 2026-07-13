@@ -1,3 +1,4 @@
+import type { AnyType } from '@/common/types';
 /** Kafka Consumer lifecycle & reconnect regression tests (no broker required) */
 
 import { sleep } from '@/utilities/date.utility';
@@ -15,7 +16,7 @@ const newConsumer = () =>
   });
 
 const asStream = (readable: Readable) =>
-  readable as unknown as MessagesStream<string, string, string, string>;
+  readable as AnyType as MessagesStream<string, string, string, string>;
 
 const guard = (signal: Promise<void>, ms: number, label: string) =>
   Promise.race([
@@ -190,7 +191,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     // Build a synthetic new client by reusing the same options.
     const newClient = (
-      KafkaConsumerHelper as unknown as {
+      KafkaConsumerHelper as AnyType as {
         buildConsumerClient: (opts: unknown) => typeof oldClient;
       }
     ).buildConsumerClient(helper['initialOptions']);
@@ -228,7 +229,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     // Stub the consume() call to avoid touching the network.
     (
-      helper.getConsumer() as unknown as {
+      helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
       }
     ).consume = async () => null;
@@ -274,7 +275,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     helper['consumeStartOptions'] = { topics: ['t'] };
     (
-      helper.getConsumer() as unknown as {
+      helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
       }
     ).consume = async () => null;
@@ -306,7 +307,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
       /* stub: don't touch the client for this test */
     };
     (
-      helper.getConsumer() as unknown as {
+      helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
       }
     ).consume = async () => null;
@@ -348,7 +349,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     };
     helper['consumeStartOptions'] = { topics: ['t'] };
     (
-      helper.getConsumer() as unknown as {
+      helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
       }
     ).consume = async () => null;
@@ -386,11 +387,11 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     // Stub the original client's lag-monitoring methods so calling
     // startLagMonitoring() doesn't touch the network.
     let oldStartCalls = 0;
-    (helper.getConsumer() as unknown as { startLagMonitoring: () => void }).startLagMonitoring =
+    (helper.getConsumer() as AnyType as { startLagMonitoring: () => void }).startLagMonitoring =
       () => {
         oldStartCalls += 1;
       };
-    (helper.getConsumer() as unknown as { stopLagMonitoring: () => void }).stopLagMonitoring =
+    (helper.getConsumer() as AnyType as { stopLagMonitoring: () => void }).stopLagMonitoring =
       () => {};
 
     helper.startLagMonitoring({ topics: ['t'], interval: 5000 });
@@ -400,7 +401,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
 
     // Intercept the factory so we can spy on the NEW client's startLagMonitoring.
     // Restore at the end so other tests aren't affected.
-    const KCH = KafkaConsumerHelper as unknown as {
+    const KCH = KafkaConsumerHelper as AnyType as {
       buildConsumerClient: (opts: unknown) => unknown;
     };
     const origFactory = KCH.buildConsumerClient;
@@ -468,7 +469,7 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     helper['consumeStartOptions'] = { topics: ['t'] };
     // consume() keeps failing — simulating brokers still being down.
     (
-      helper.getConsumer() as unknown as {
+      helper.getConsumer() as AnyType as {
         consume: (opts: unknown) => Promise<unknown>;
       }
     ).consume = async () => {

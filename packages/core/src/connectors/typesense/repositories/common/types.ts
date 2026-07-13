@@ -1,24 +1,15 @@
 import type { ISearchQuery } from '@/connectors/search/repositories/common';
 
 /**
- * Typesense-only search parameters. Neutral callers never see these - `TypesenseQueryDialect` is the
- * only writer, via `applySearchInput`, and `toWireParams` maps them onto Typesense's snake_case wire.
+ * Typesense-only search parameters written by `TypesenseQueryDialect` and mapped onto Typesense's
+ * snake_case wire by `toWireParams`. Neutral callers never see these: engine-specific tuning
+ * (`num_typos`, `pinned_hits`, `use_cache`, ...) travels through `engineParams` under the engine's
+ * own wire names, so it needs no typed field here.
  */
 export interface ITypesenseSearchQuery extends ISearchQuery {
   /** Typesense's `<field>:([v1, v2], k: N, alpha: A)` vector-search clause. */
   vectorQuery?: string;
 
-  numTypos?: number | string;
+  /** Forced off for semantic/hybrid - remote embedders reject prefix search; passes through unmapped (same wire name). */
   prefix?: boolean | string;
-  infix?: string;
-  prioritizeExactMatch?: boolean;
-  dropTokensThreshold?: number;
-  useCache?: boolean;
-  cacheTtl?: number;
-  exhaustiveSearch?: boolean;
-  pinnedHits?: string;
-  hiddenHits?: string;
-
-  /** Saved server-side search preset; passes through unmapped (same wire name). */
-  preset?: string;
 }

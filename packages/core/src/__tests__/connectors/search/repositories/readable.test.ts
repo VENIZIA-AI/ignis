@@ -67,8 +67,8 @@ describe('ReadableSearchRepository', () => {
       expect(params['filter_by']).toBe('status:=`active`');
     });
 
-    test('no filter still applies the default filter and excludes hidden fields', async () => {
-      await repository.find();
+    test('an empty filter still applies the default filter and excludes hidden fields', async () => {
+      await repository.find({ filter: {} });
 
       const [call] = dataSource.fakeConnector.searchCalls;
       const params = call.params as Record<string, unknown>;
@@ -327,15 +327,13 @@ describe('ReadableSearchRepository', () => {
     });
 
     describe('mode: keyword - common search params (facet/highlight/group/tuning)', () => {
-      test('facetBy/highlightFields/groupBy/numTypos/useCache flow through to wire params', async () => {
+      test('neutral facet/highlight/group params flow through to wire params', async () => {
         await repository.search({
           mode: SearchModes.KEYWORD,
           query: 'shoes',
           facetBy: ['brand'],
           highlightFields: ['title'],
           groupBy: ['brand'],
-          numTypos: 2,
-          useCache: true,
         });
 
         const [call] = dataSource.fakeConnector.searchCalls;
@@ -343,24 +341,28 @@ describe('ReadableSearchRepository', () => {
         expect(params['facet_by']).toBe('brand');
         expect(params['highlight_fields']).toBe('title');
         expect(params['group_by']).toBe('brand');
-        expect(params['num_typos']).toBe(2);
-        expect(params['use_cache']).toBe(true);
       });
 
-      test('queryByWeights/prioritizeExactMatch/dropTokensThreshold/preset flow through to wire params', async () => {
+      test('neutral queryByWeights flows through; engine-specific tuning goes via engineParams (wire names)', async () => {
         await repository.search({
           mode: SearchModes.KEYWORD,
           query: 'shoes',
           queryBy: ['title', 'brand'],
           queryByWeights: [2, 1],
-          prioritizeExactMatch: true,
-          dropTokensThreshold: 1,
-          preset: 'my_preset',
+          engineParams: {
+            ['num_typos']: 2,
+            ['use_cache']: true,
+            ['prioritize_exact_match']: true,
+            ['drop_tokens_threshold']: 1,
+            preset: 'my_preset',
+          },
         });
 
         const [call] = dataSource.fakeConnector.searchCalls;
         const params = call.params as Record<string, unknown>;
         expect(params['query_by_weights']).toBe('2,1');
+        expect(params['num_typos']).toBe(2);
+        expect(params['use_cache']).toBe(true);
         expect(params['prioritize_exact_match']).toBe(true);
         expect(params['drop_tokens_threshold']).toBe(1);
         expect(params['preset']).toBe('my_preset');
@@ -411,7 +413,7 @@ describe('ReadableSearchRepository', () => {
         expect(params['filter_by']).toBe('isActive:=true');
       });
 
-      test('defaults prefix=false (remote embedders reject prefix search), overridable by the caller', async () => {
+      test('defaults prefix=false (remote embedders reject prefix search), overridable via engineParams', async () => {
         await repository.search({
           mode: SearchModes.SEMANTIC,
           vectorField: 'embedding',
@@ -421,11 +423,12 @@ describe('ReadableSearchRepository', () => {
           (dataSource.fakeConnector.searchCalls[0]?.params as Record<string, unknown>)['prefix'],
         ).toBe(false);
 
+        // prefix is engine-specific tuning now; engineParams merges last and overrides the default.
         await repository.search({
           mode: SearchModes.SEMANTIC,
           vectorField: 'embedding',
           queryText: 'x',
-          prefix: true,
+          engineParams: { prefix: true },
         });
         expect(
           (dataSource.fakeConnector.searchCalls[1]?.params as Record<string, unknown>)['prefix'],

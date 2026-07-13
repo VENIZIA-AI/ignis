@@ -1,4 +1,5 @@
-import { getError } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
+import { MeilisearchApiError } from 'meilisearch';
 import type { IMeilisearchClientLike } from '@/connectors/meilisearch/connector';
 
 interface IFakeTask {
@@ -15,16 +16,23 @@ interface IFakeIndex {
   settings: Record<string, unknown>;
 }
 
-/** Mirrors Meilisearch's error body shape so `MeilisearchInternal` can classify it. */
+/**
+ * The REAL `MeilisearchApiError`, not a hand-rolled lookalike.
+ *
+ * A fake that invents its own error shape is worse than no fake: this one used to synthesize a flat
+ * `{ code, httpStatus }` - which the SDK never produces - so the whole suite stayed green while the
+ * classifier read two fields that do not exist and answered `false` to every 404 against a live
+ * engine. Construct the SDK's own class and the fake can no longer lie about the contract.
+ */
 const engineError = (opts: { code: string; message: string; httpStatus?: number }): Error => {
-  const error = new Error(opts.message) as Error & { code: string; httpStatus?: number };
-  error.code = opts.code;
+  const { code, message, httpStatus = HTTP.ResultCodes.RS_4.BadRequest } = opts;
 
-  if (opts.httpStatus !== undefined) {
-    error.httpStatus = opts.httpStatus;
-  }
-
-  return error;
+  return new MeilisearchApiError(new Response(null, { status: httpStatus }), {
+    message,
+    code,
+    type: 'invalid_request',
+    link: '',
+  });
 };
 
 /**
@@ -71,6 +79,8 @@ const matchesFilter = (opts: { document: Record<string, unknown>; filter: string
 export class FakeMeilisearchClient implements IMeilisearchClientLike {
   taskPollCount = 0;
   multiSearchCalls: unknown[] = [];
+  /** Every payload passed to `updateDocuments`, in call order - lets a test read exactly what reached the SDK. */
+  updateDocumentsCalls: unknown[][] = [];
 
   private readonly indexes = new Map<string, IFakeIndex>();
   private readonly tasks = new Map<
@@ -78,15 +88,24 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
     { statuses: string[]; error?: unknown; details?: Record<string, unknown> }
   >();
   private nextTaskUid = 1;
+  private addDocumentsCallCount = 0;
 
   private readonly taskStatuses: string[];
   private readonly repeatLast: boolean;
   private readonly taskError?: unknown;
+  private readonly failAddDocumentsCall?: number;
 
-  constructor(opts?: { taskStatuses?: string[]; repeatLast?: boolean; taskError?: unknown }) {
+  constructor(opts?: {
+    taskStatuses?: string[];
+    repeatLast?: boolean;
+    taskError?: unknown;
+    /** 1-based ordinal of the `addDocuments` call whose task should terminate as `failed` (batch-atomic: its documents do not land). */
+    failAddDocumentsCall?: number;
+  }) {
     this.taskStatuses = opts?.taskStatuses ?? ['succeeded'];
     this.repeatLast = opts?.repeatLast ?? false;
     this.taskError = opts?.taskError;
+    this.failAddDocumentsCall = opts?.failAddDocumentsCall;
   }
 
   private enqueue(details?: Record<string, unknown>): IFakeTask {
@@ -95,11 +114,24 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
     return { taskUid, status: 'enqueued' };
   }
 
+  private enqueueFailed(): IFakeTask {
+    const taskUid = this.nextTaskUid++;
+    this.tasks.set(taskUid, {
+      statuses: ['failed'],
+      error: { code: 'internal', message: 'batch failed' },
+    });
+    return { taskUid, status: 'enqueued' };
+  }
+
   private requireIndex(uid: string): IFakeIndex {
     const index = this.indexes.get(uid);
 
     if (!index) {
-      throw engineError({ code: 'index_not_found', message: `Index \`${uid}\` not found.` });
+      throw engineError({
+        code: 'index_not_found',
+        message: `Index \`${uid}\` not found.`,
+        httpStatus: HTTP.ResultCodes.RS_4.NotFound,
+      });
     }
 
     return index;
@@ -182,6 +214,13 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
         const index = self.requireIndex(uid);
         const primaryKey = index.primaryKey ?? 'id';
 
+        self.addDocumentsCallCount += 1;
+
+        // Batch-atomic failure: the failing batch's documents do not land.
+        if (self.failAddDocumentsCall === self.addDocumentsCallCount) {
+          return self.enqueueFailed();
+        }
+
         for (const raw of documents) {
           const document = raw as Record<string, unknown>;
           index.documents.set(String(document[primaryKey]), { ...document });
@@ -191,6 +230,7 @@ export class FakeMeilisearchClient implements IMeilisearchClientLike {
       },
 
       async updateDocuments(documents: unknown[]): Promise<IFakeTask> {
+        self.updateDocumentsCalls.push([...documents]);
         const index = self.requireIndex(uid);
         const primaryKey = index.primaryKey ?? 'id';
 

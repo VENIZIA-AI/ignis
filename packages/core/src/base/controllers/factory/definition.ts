@@ -16,6 +16,35 @@ import {
   trackableHeaders,
 } from '../common';
 
+/**
+ * Path params always reach the validator as strings, so a number-typed id must be coerced before
+ * `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7` with "expected number,
+ * received string".
+ */
+const idPathParamsSchema = (opts: { idType: TIdSchemaType }) => {
+  const { idType } = opts;
+
+  if (idType !== 'number') {
+    return idParamsSchema({ idType });
+  }
+
+  return z.object({
+    id: z.coerce.number().openapi({
+      param: { name: 'id', in: 'path', description: 'The unique id of the resource' },
+      examples: [1, 2, 3],
+    }),
+  });
+};
+
+/** Picks the caller's per-route `request.params` override, else the entity's id path-param schema. */
+const resolveIdParams = <C extends { request?: { params?: TAnyObjectSchema } } | undefined>(opts: {
+  config: C;
+  idType: TIdSchemaType;
+}) => {
+  const { config, idType } = opts;
+  return config?.request?.params ?? idPathParamsSchema({ idType });
+};
+
 /** Creates conditional count response schema. */
 export const conditionalCountResponse = <T extends z.ZodTypeAny>(dataSchema: T) => {
   return z.union([
@@ -118,7 +147,7 @@ export const resolveFindByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       query: config?.request?.query ?? defaultQuery,
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
@@ -193,7 +222,7 @@ const resolveUpdateByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       body: config?.request?.body ?? updateSchema,
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
@@ -245,7 +274,7 @@ const resolveDeleteByIdConfig = <
   const defaultSchema = conditionalCountResponse(selectSchema);
   return {
     request: {
-      params: idParamsSchema({ idType }),
+      params: resolveIdParams({ config, idType }),
       headers: config?.request?.headers ?? defaultRequestHeaders,
     },
     response: {

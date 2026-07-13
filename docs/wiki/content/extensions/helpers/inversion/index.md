@@ -50,7 +50,7 @@ import type {
 ```
 
 > [!NOTE]
-> The framework package `@venizia/ignis` re-exports DI-specific symbols (`Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `isClassConstructor`, `TBindingScope`, `TBindingValueType`, `IBindingTag`) from `@venizia/ignis-inversion` and adds higher-level helpers (`app.controller()`, `app.service()`, etc.). All types from inversion are also available via type-only re-exports.
+> The framework package `@venizia/ignis` re-exports DI-specific symbols (`Binding`, `BindingKeys`, `BindingScopes`, `BindingValueTypes`, `IProvider`, `isClass`, `isClassProvider`, `TBindingScope`, `TBindingValueType`, `IBindingTag`) from `@venizia/ignis-inversion` and adds higher-level helpers (`app.controller()`, `app.service()`, etc.). All types from inversion are also available via type-only re-exports.
 
 ## Creating an Instance
 
@@ -168,7 +168,10 @@ class UserService {
 }
 ```
 
-The container reads `@inject` metadata during `instantiate()`, sorts by parameter index, resolves each dependency, and passes them as constructor arguments.
+The container reads `@inject` metadata during `instantiate()` by constructor index (the `Reflect`-stored array is already index-keyed - no sort is performed), resolves each dependency, and passes them as constructor arguments.
+
+> [!IMPORTANT]
+> Every constructor parameter of a container-instantiated class must carry `@inject`. Mixing decorated and undecorated parameters is refused: an undecorated parameter leaves a hole in the index-keyed metadata array, and there is no channel through which the container could supply it anyway. `instantiate()` throws `[ClassName] Constructor parameter N has no @inject | Every parameter of a container-instantiated class must be decorated - the container cannot supply an undecorated one`.
 
 ### Property Injection
 
@@ -189,7 +192,7 @@ class UserService {
 > Property-injected classes must be instantiated through the container (`container.resolve()` or `container.instantiate()`). Using `new MyClass()` directly will leave `@inject` properties as `undefined`.
 
 The instantiation algorithm is two-phase:
-1. **Constructor injection** -- reads `@inject` metadata on the constructor, sorts by parameter index, resolves from container
+1. **Constructor injection** -- reads `@inject` metadata on the constructor by parameter index (no sort - the metadata is already index-keyed), resolves from container
 2. **Property injection** -- reads property metadata, resolves and assigns each dependency to the instance
 
 ### Scopes (Singleton / Transient)
@@ -511,7 +514,6 @@ interface IInjectableMetadata {
 // Type guards
 function isClass<T>(target: any): target is TClass<T>;
 function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
-function isClassConstructor(fn: Function): boolean;
 ```
 
 ## Troubleshooting
@@ -554,6 +556,12 @@ function isClassConstructor(fn: Function): boolean;
 **Cause:** Called `BindingKeys.build()` with an empty `key` value.
 
 **Fix:** Provide a non-empty `key` string: `BindingKeys.build({ namespace: 'services', key: 'UserService' })`.
+
+### "[ClassName] Constructor parameter N has no @inject"
+
+**Cause:** A container-instantiated class has a constructor with a mix of decorated and undecorated parameters. `@inject` stores its metadata at the parameter's index, so an undecorated parameter leaves a hole in that index-keyed array; there is no channel through which the container could supply it anyway. `instantiate()` refuses the shape by name and index rather than passing `undefined`.
+
+**Fix:** Decorate every constructor parameter of the class with `@inject`. There is no partial-injection escape hatch - if a value does not come from the container (e.g. a plain `scope: string`), pass it through a factory/provider instead of a bare constructor parameter, or have the subclass forward it via its own `@inject`-decorated parameter.
 
 ### "@inject decorator can only be used on class properties or constructor parameters"
 

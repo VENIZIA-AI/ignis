@@ -332,6 +332,24 @@ describe('empty where members - regression from live cluster run', () => {
     const query = dialect.build({ filter: { where: { and: [{}, {}] } } });
     expect(query.filterBy).toBeUndefined();
   });
+
+  test('an empty logical group beside a field never leaks a dangling && into filterBy', () => {
+    const leading = dialect.toWhere({ where: { and: [], status: 'active' } });
+    const trailing = dialect.toWhere({ where: { status: 'active', or: [{}, {}] } });
+
+    expect(leading).toBe('status:=`active`');
+    expect(trailing).toBe('status:=`active`');
+  });
+
+  test('build drops the empty top-level group rather than emitting a malformed filter_by', () => {
+    const query = dialect.build({ filter: { where: { and: [], status: 'active' } } });
+    expect(query.filterBy).toBe('status:=`active`');
+  });
+
+  test('only-empty top-level groups produce no filterBy', () => {
+    const query = dialect.build({ filter: { where: { and: [], or: [] } } });
+    expect(query.filterBy).toBeUndefined();
+  });
 });
 
 describe('TypesenseQueryDialect.applySearchInput - vector clause', () => {
@@ -439,21 +457,26 @@ describe('TypesenseQueryDialect.applySearchInput - vector clause', () => {
     );
   });
 
-  test('keyword mode copies the Typesense-only tuning knobs onto the query', () => {
-    const query = applySemantic({
-      mode: SearchModes.KEYWORD,
-      query: 'shoes',
-      queryBy: ['title', 'brand'],
-      numTypos: 2,
-      preset: 'p1',
-      pinnedHits: '1:1',
+  test('keyword mode carries engineParams (Typesense wire names) onto the query for the verbatim merge', () => {
+    const query = dialect.build({});
+    dialect.applySearchInput({
+      query,
+      input: {
+        mode: SearchModes.KEYWORD,
+        query: 'shoes',
+        queryBy: ['title', 'brand'],
+        engineParams: { ['num_typos']: 2, preset: 'p1', ['pinned_hits']: '1:1' },
+      },
     });
 
     expect(query.query).toBe('shoes');
-    expect(query.queryBy).toBe('title,brand');
-    expect(query.numTypos).toBe(2);
-    expect(query.preset).toBe('p1');
-    expect(query.pinnedHits).toBe('1:1');
+    expect((query as ITypesenseSearchQuery).queryBy).toBe('title,brand');
+
+    // engineParams reach the wire verbatim, under their own Typesense names, via toWireParams.
+    const wire = dialect.toWireParams({ query });
+    expect(wire['num_typos']).toBe(2);
+    expect(wire['preset']).toBe('p1');
+    expect(wire['pinned_hits']).toBe('1:1');
   });
 
   test('hybrid mode without nearVector appends the vector field to queryBy for auto-embed', () => {
@@ -504,7 +527,7 @@ describe('TypesenseQueryDialect.toWireParams', () => {
     expect(wire).toEqual({ q: 'shoe', page: 2, offset: 20 });
   });
 
-  test('maps faceting/highlighting/grouping/search-tuning fields to their Typesense wire keys', () => {
+  test('maps faceting/highlighting/grouping fields to their Typesense wire keys', () => {
     const tuned: ITypesenseSearchQuery = {
       query: '*',
       facetBy: 'brand',
@@ -518,12 +541,7 @@ describe('TypesenseQueryDialect.toWireParams', () => {
       groupBy: 'brand',
       groupLimit: 3,
       groupMissingValues: false,
-      numTypos: 2,
-      useCache: true,
-      cacheTtl: 60,
-      exhaustiveSearch: true,
-      pinnedHits: '1:1',
-      hiddenHits: '2',
+      queryByWeights: '2,1',
     };
 
     const wire = dialect.toWireParams({ query: tuned });
@@ -539,19 +557,13 @@ describe('TypesenseQueryDialect.toWireParams', () => {
     expect(wire['group_by']).toBe('brand');
     expect(wire['group_limit']).toBe(3);
     expect(wire['group_missing_values']).toBe(false);
-    expect(wire['num_typos']).toBe(2);
-    expect(wire['use_cache']).toBe(true);
-    expect(wire['cache_ttl']).toBe(60);
-    expect(wire['exhaustive_search']).toBe(true);
-    expect(wire['pinned_hits']).toBe('1:1');
-    expect(wire['hidden_hits']).toBe('2');
+    expect(wire['query_by_weights']).toBe('2,1');
   });
 
-  test('prefix/infix pass through unchanged (single-word fields, no wire-key mapping)', () => {
-    const tuned: ITypesenseSearchQuery = { query: '*', prefix: true, infix: 'always' };
+  test('prefix passes through unchanged (single-word field, no wire-key mapping)', () => {
+    const tuned: ITypesenseSearchQuery = { query: '*', prefix: false };
     const wire = dialect.toWireParams({ query: tuned });
-    expect(wire['prefix']).toBe(true);
-    expect(wire['infix']).toBe('always');
+    expect(wire['prefix']).toBe(false);
   });
 
   test('engineParams merge last, verbatim, under the engine’s own wire names', () => {

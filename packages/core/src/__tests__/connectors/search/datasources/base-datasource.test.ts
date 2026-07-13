@@ -1,4 +1,7 @@
 import { describe, test, expect } from 'bun:test';
+import { readdirSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import type { AnyType } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
@@ -21,16 +24,12 @@ import { MetadataRegistry } from '@/helpers/inversion';
 class FakeSearchDataSource extends BaseSearchDataSource<{}> {
   ensureCalls: ISearchCollectionDefinition[] = [];
 
-  constructor(opts: ISearchDataSourceOptions<{}>) {
+  constructor(opts: ISearchDataSourceOptions<{}> & { connector?: ISearchConnector }) {
     super(opts);
   }
 
-  configure(): void {
-    // no-op: this fixture never touches a real search engine.
-  }
-
-  getConnector(): ISearchConnector {
-    throw getError({ message: '[FakeSearchDataSource][getConnector] Not needed for this test' });
+  protected createConnector(): ISearchConnector {
+    throw getError({ message: '[FakeSearchDataSource][createConnector] Not needed for this test' });
   }
 
   getQueryDialect(): ISearchQueryDialect {
@@ -95,16 +94,16 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
   }
 
   @repository({ model: ProductDocument, dataSource: DiscoveryDataSource })
-  class _ProductRepo {}
+  class ProductRepo {}
 
   @repository({ model: CategoryDocument, dataSource: DiscoveryDataSource })
-  class _CategoryRepo {}
+  class CategoryRepo {}
 
   @repository({ model: DualEntity, dataSource: DiscoveryDataSource })
-  class _DualRepo {}
+  class DualRepo {}
 
   @repository({ model: UndiscoverableDocument, dataSource: DiscoveryDataSource })
-  class _UndiscoverableRepo {}
+  class UndiscoverableRepo {}
 
   const dataSource = new DiscoveryDataSource({ name: 'discovery-ds', config: {} });
 
@@ -131,10 +130,10 @@ describe('BaseSearchDataSource - discoverCollections / getSchema', () => {
   test('@repository bindings were registered for every fixture repository', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _ProductRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _CategoryRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _DualRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _UndiscoverableRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: ProductRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: CategoryRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: DualRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: UndiscoverableRepo.name })).toBeDefined();
   });
 
   test('getSchema() is lazy and cached across calls', () => {
@@ -172,16 +171,16 @@ describe('BaseSearchDataSource - provisionCollections', () => {
   }
 
   @repository({ model: WidgetDocument, dataSource: ProvisionDataSource })
-  class _WidgetRepo {}
+  class WidgetRepo {}
 
   @repository({ model: GadgetDocument, dataSource: ProvisionDataSource })
-  class _GadgetRepo {}
+  class GadgetRepo {}
 
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _WidgetRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _GadgetRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: WidgetRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: GadgetRepo.name })).toBeDefined();
   });
 
   test('provisionCollections() calls ensureCollection once per discovered collection', async () => {
@@ -226,16 +225,16 @@ describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
   }
 
   @repository({ model: LampDocument, dataSource: AutoDiscoveryDataSource })
-  class _LampRepoEnabled {}
+  class LampRepoEnabled {}
 
   @repository({ model: LampDocument, dataSource: DisabledAutoDiscoveryDataSource })
-  class _LampRepoDisabled {}
+  class LampRepoDisabled {}
 
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _LampRepoEnabled.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _LampRepoDisabled.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: LampRepoEnabled.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: LampRepoDisabled.name })).toBeDefined();
   });
 
   test('discovers normally when @datasource is absent (autoDiscovery unset)', () => {
@@ -267,6 +266,99 @@ describe('BaseSearchDataSource - TDataSourceDriver accepts unknown engine string
   });
 });
 
+describe('BaseSearchDataSource - multiSearch injects @model hidden fields into exclude_fields', () => {
+  class MultiSearchDataSource extends FakeSearchDataSource {
+    capturedSearches: Array<Record<string, unknown>> = [];
+    discoverHiddenFieldsCalls = 0;
+
+    /** Counts the registry/model walk so memoization is observable across requests. */
+    protected override discoverHiddenFieldsByCollection(): Record<string, string[]> {
+      this.discoverHiddenFieldsCalls += 1;
+      return super.discoverHiddenFieldsByCollection();
+    }
+
+    override getQueryDialect(): ISearchQueryDialect {
+      return {
+        build: () => ({ query: '*' }),
+        toWhere: () => '',
+        applySearchInput: () => undefined,
+        // Echo the neutral query verbatim so the merged excludeFields is observable on the captured entry.
+        toWireParams: ({ query }) => ({ ...query }),
+      };
+    }
+
+    override getConnector(): ISearchConnector {
+      const capture = (searches: Array<Record<string, unknown>>): void => {
+        this.capturedSearches = searches;
+      };
+
+      // Only multiSearch is exercised here; the rest of the surface is unreachable in this test.
+      return {
+        multiSearch: async (opts: { searches: Array<Record<string, unknown>> }) => {
+          capture(opts.searches);
+          return {};
+        },
+      } as AnyType;
+    }
+  }
+
+  @model({ type: 'entity', settings: { hiddenProperties: ['secret'] } })
+  class SecretDocument extends BaseSearchEntity {
+    static override schema = defineSearchCollection({
+      name: 'secret-collection',
+      fields: [field.string('title'), field.string('secret')],
+    });
+  }
+
+  @repository({ model: SecretDocument, dataSource: MultiSearchDataSource })
+  class SecretRepo {}
+
+  test('@repository binding was registered for the fixture repository', () => {
+    const registry = MetadataRegistry.getInstance();
+    expect(registry.getRepositoryBinding({ name: SecretRepo.name })).toBeDefined();
+  });
+
+  test("unions the collection's hiddenProperties into exclude_fields; unknown collections pass through", async () => {
+    const dataSource = new MultiSearchDataSource({ name: 'multi-search-hidden-ds', config: {} });
+
+    await dataSource.multiSearch({
+      searches: [
+        { collection: 'secret-collection', query: 'x', excludeFields: ['other'] },
+        { collection: 'unknown-collection', query: 'y' },
+      ],
+    });
+
+    // toSearchQueryParams comma-joins excludeFields; the injected 'secret' unions with caller 'other'.
+    const known = dataSource.capturedSearches[0];
+    expect(String(known['excludeFields']).split(',').sort()).toEqual(['other', 'secret']);
+
+    // A collection with no discovered definition is left untouched - the caller owns exclusion there.
+    const unknown = dataSource.capturedSearches[1];
+    expect(unknown['excludeFields']).toBeUndefined();
+  });
+
+  test('injects hidden fields even when the caller passes no excludeFields', async () => {
+    const dataSource = new MultiSearchDataSource({ name: 'multi-search-hidden-ds-2', config: {} });
+
+    await dataSource.multiSearch({
+      searches: [{ collection: 'secret-collection', query: 'x' }],
+    });
+
+    expect(dataSource.capturedSearches[0]['excludeFields']).toBe('secret');
+  });
+
+  test('the registry/model walk runs once per datasource, not once per multiSearch call', async () => {
+    const dataSource = new MultiSearchDataSource({ name: 'multi-search-hidden-ds-3', config: {} });
+
+    await dataSource.multiSearch({ searches: [{ collection: 'secret-collection', query: 'x' }] });
+    await dataSource.multiSearch({ searches: [{ collection: 'secret-collection', query: 'y' }] });
+
+    expect(dataSource.discoverHiddenFieldsCalls).toBe(1);
+    // Parity: the memoized map still injects the hidden field on the second call.
+    expect(dataSource.capturedSearches[0]['excludeFields']).toBe('secret');
+  });
+});
+
 describe('BaseSearchDataSource - duplicate collection name (loud, not silent last-wins)', () => {
   class DuplicateNameDataSource extends FakeSearchDataSource {}
 
@@ -287,16 +379,16 @@ describe('BaseSearchDataSource - duplicate collection name (loud, not silent las
   }
 
   @repository({ model: FirstDocument, dataSource: DuplicateNameDataSource })
-  class _FirstDocRepo {}
+  class FirstDocRepo {}
 
   @repository({ model: SecondDocument, dataSource: DuplicateNameDataSource })
-  class _SecondDocRepo {}
+  class SecondDocRepo {}
 
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _FirstDocRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _SecondDocRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: FirstDocRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: SecondDocRepo.name })).toBeDefined();
   });
 
   test('getSchema() throws naming both offending classes', () => {
@@ -304,5 +396,93 @@ describe('BaseSearchDataSource - duplicate collection name (loud, not silent las
 
     expect(() => dataSource.getSchema()).toThrow(/shared-collection-name/);
     expect(() => dataSource.getSchema()).toThrow(/FirstDocument/);
+  });
+});
+
+describe('BaseSearchDataSource - connector lifecycle (shared by every engine datasource)', () => {
+  /** Counts createConnector() so the injected path is observably taken instead. */
+  class LifecycleDataSource extends FakeSearchDataSource {
+    createConnectorCalls = 0;
+
+    protected override createConnector(): ISearchConnector {
+      this.createConnectorCalls += 1;
+      return { name: 'built-connector' } as AnyType;
+    }
+  }
+
+  const injectedConnector = { name: 'injected-connector' } as AnyType as ISearchConnector;
+
+  test('getConnector() before configure() throws the not-initialized error', () => {
+    const dataSource = new LifecycleDataSource({ name: 'lifecycle-ds', config: {} });
+
+    expect(() => dataSource.getConnector()).toThrow(/Connector not initialized/);
+    expect(() => dataSource.getConnector()).toThrow(/Call configure\(\) first/);
+    expect(() => dataSource.getConnector()).toThrow(/lifecycle-ds/);
+  });
+
+  test('an injected connector is used verbatim - createConnector() is never called', async () => {
+    const dataSource = new LifecycleDataSource({
+      name: 'injected-ds',
+      config: {},
+      connector: injectedConnector,
+    });
+
+    await dataSource.configure();
+
+    expect(dataSource.getConnector()).toBe(injectedConnector);
+    expect(dataSource.createConnectorCalls).toBe(0);
+  });
+
+  test('with no injected connector, configure() builds one through createConnector()', async () => {
+    const dataSource = new LifecycleDataSource({ name: 'built-ds', config: {} });
+
+    await dataSource.configure();
+
+    expect(dataSource.createConnectorCalls).toBe(1);
+    expect(dataSource.getConnector()).toEqual({ name: 'built-connector' } as AnyType);
+  });
+
+  test('configure() is re-entrant - a second call is a no-op, not a rebuild', async () => {
+    const dataSource = new LifecycleDataSource({ name: 'reentrant-ds', config: {} });
+
+    await dataSource.configure();
+    const first = dataSource.getConnector();
+    await dataSource.configure();
+
+    expect(dataSource.createConnectorCalls).toBe(1);
+    expect(dataSource.getConnector()).toBe(first);
+  });
+});
+
+/** Recursively lists every .ts file under `dir` (relative to the package root). */
+const listTsFiles = (dir: string): string[] => {
+  const files: string[] = [];
+
+  for (const entry of readdirSync(dir)) {
+    const fullPath = join(dir, entry);
+
+    if (statSync(fullPath).isDirectory()) {
+      files.push(...listTsFiles(fullPath));
+      continue;
+    }
+
+    if (entry.endsWith('.ts')) {
+      files.push(fullPath);
+    }
+  }
+
+  return files;
+};
+
+describe('BaseSearchDataSource - paradigm seam (connectors/search imports no engine)', () => {
+  test('no file under src/connectors/search imports typesense or meilisearch', async () => {
+    for (const file of listTsFiles('src/connectors/search')) {
+      const content = await Bun.file(file).text();
+
+      expect(content).not.toContain('connectors/typesense');
+      expect(content).not.toContain('connectors/meilisearch');
+      expect(content).not.toContain("from 'typesense");
+      expect(content).not.toContain("from 'meilisearch");
+    }
   });
 });

@@ -3,7 +3,7 @@
 IGNIS ships a **typesense connector** under `@venizia/ignis/typesense` for full-text and faceted search. It plugs into the same `@model`/`@repository`/`@datasource` decorators as the PostgreSQL connector, but documents replace Drizzle tables and the query surface is intentionally narrower - search engines are not relational databases.
 
 > [!IMPORTANT] Subpath-only import
-> `typesense` is an **optional peer dependency** - the typesense connector is not re-exported from the `@venizia/ignis` root barrel (unlike `postgres`/`memory`), so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis/typesense`:
+> `typesense` is an **optional peer dependency** - the typesense connector is not re-exported from the `@venizia/ignis` root barrel (unlike `postgres`), so apps that don't use search never pull in the `typesense` client. Always import from `@venizia/ignis/typesense`:
 >
 > ```typescript
 > import {
@@ -246,9 +246,15 @@ export class ArticleRepository extends DefaultSearchRepository<TArticleDocument>
 |                                            | PostgreSQL repositories                             | Search repositories                                                                                                                            |
 | ------------------------------------------ | --------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
 | Range queries                              | Extra `COUNT(*)` query for `shouldQueryRange: true` | Single search call already returns `found` - no second query needed                                                                            |
-| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws); `deleteAll` with no effective filter performs a full **truncate** instead |
-| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - the repository re-`find()`s the same filter (or snapshots before delete) to populate `data`                        |
+| `updateAll`/`deleteAll` with empty `where` | Requires `force: true`                              | `updateAll` **refuses** an unfiltered bulk update outright (throws, no override); `deleteAll` with no effective filter (no `where` and no `@model defaultFilter`) also throws unless `options.force: true` is passed - only then does it truncate the whole collection |
+| Returning updated/deleted rows             | Native SQL `RETURNING`                              | No `RETURNING` equivalent - `updateAll`/`deleteAll` are **count-only**: `data` is always `null` and `shouldReturn` is rejected at the type level (no hidden engine read is bolted on). Read the affected documents explicitly before the write when you need them |
 | `createAll`                                | Native bulk insert, returns each row                | Delegates to Typesense's bulk import; "created" rows are the input rows whose per-row response didn't report `success: false`                  |
+
+### Write error semantics (shared by both search engines)
+
+- **`create()` with a duplicate id throws `409` (`messageCode: 'core.search_engine.already_exists'`)** on both Typesense and Meilisearch - a duplicate is a conflict, never a silent overwrite. If you want last-write-wins, call `upsert()` explicitly. (On Meilisearch the pre-check is not atomic - see the [Meilisearch guide](./search-meilisearch); use `upsert()` when concurrent same-id creates are possible.)
+- **`updateById()` against a missing id throws `404` (`messageCode: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
+- **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
 
 ## Searching with `search({ mode })`
 
@@ -291,7 +297,7 @@ await repository.search({
 ```
 
 > [!NOTE]
-> `semantic` and `hybrid` default `prefix=false`: prefix matching is meaningless for vector search, and remote embedders (OpenAI/Google/...) reject it (`Prefix search is not supported for remote embedders`). Pass `prefix` explicitly to override.
+> `semantic` and `hybrid` default `prefix=false`: prefix matching is meaningless for vector search, and remote embedders (OpenAI/Google/...) reject it (`Prefix search is not supported for remote embedders`). Pass `engineParams: { prefix: true }` to override.
 
 **`raw`** - native Typesense params, no `TFilter`/`defaultFilter`/`hiddenProperties` translation. Use it for any engine feature the modes above do not model:
 
@@ -305,7 +311,18 @@ await repository.search({
 > [!NOTE]
 > `raw` skips `@model defaultFilter`, so it can surface documents the `find()`/`keyword` tiers would hide (for example non-`published` articles). Apply any tenant or visibility filtering explicitly in `params.filter_by` when exposing raw search over HTTP.
 
-All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary: faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and matching/ranking (`numTypos`, `prefix`, `infix`, `queryByWeights`, `prioritizeExactMatch`, `dropTokensThreshold`, `useCache`, `cacheTtl`, `exhaustiveSearch`, `pinnedHits`, `hiddenHits`, `preset`).
+All non-`raw` modes accept the same optional camelCase tuning fields, mapped to Typesense's snake_case at the dialect boundary: faceting (`facetBy`, `facetQuery`, `maxFacetValues`), highlighting (`highlightFields`, `highlightFullFields`, `highlightStartTag`/`highlightEndTag`, `snippetThreshold`), grouping (`groupBy`, `groupLimit`, `groupMissingValues`), and `queryByWeights`. These are the ENGINE-NEUTRAL fields - every search engine supports them.
+
+Typesense-specific tuning (`num_typos`, `prefix`, `infix`, `use_cache`, `cache_ttl`, `exhaustive_search`, `pinned_hits`, `hidden_hits`, `prioritize_exact_match`, `drop_tokens_threshold`, `preset`) goes through `engineParams`, passed verbatim to the engine with WIRE names - the neutral input schema no longer carries knobs only one engine understands:
+
+```typescript
+await repository.search({
+  mode: 'keyword',
+  query: 'shoes',
+  queryBy: ['name'],
+  engineParams: { num_typos: 1, prefix: false, preset: 'listing' },
+});
+```
 
 ```typescript
 await repository.search({
@@ -361,6 +378,9 @@ await repository.dataSource.multiSearch({
 
 Both `searches` entries and `commonParams` are camelCase (`filterBy`, `queryBy`, `perPage`); the datasource maps them to Typesense's snake_case wire format the same way single-collection `search()` does. For native snake_case access, `getConnector().multiSearch(...)` takes the engine's own params.
 
+> [!NOTE]
+> `multiSearch` injects each collection's `@model hiddenProperties` into that entry's `excludeFields` automatically - hidden fields never leak on the multi-search route, just as they don't on single-collection `search()`. An entry naming a collection IGNIS did not discover (not a bound `@repository` model) passes through untouched: the **caller owns exclusion** for unknown collections. The raw `getConnector().multiSearch(...)` escape hatch performs no injection at all.
+
 ## Search Controller Factory
 
 `SearchControllerFactory.defineSearchController` generates turnkey search endpoints, mirroring how `ControllerFactory.defineCrudController` generates CRUD endpoints:
@@ -402,7 +422,6 @@ This is the same `throwNotSupported` convention used everywhere in the framework
 - **Related Concepts:**
   - [Connectors](/references/base/connectors) - Base-vs-connectors architecture, dual-door exports
   - [DataSources](/references/base/datasources) - Engine-neutral DataSource contract + PostgreSQL connector
-  - [Memory Connector](./memory-connector) - The zero-dependency in-memory connector
   - [Repositories](/references/base/repositories/) - PostgreSQL connector repository reference (for comparison)
   - [Models](./models) - `@model` settings shared across connectors
 

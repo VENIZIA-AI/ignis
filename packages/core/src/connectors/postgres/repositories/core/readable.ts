@@ -6,7 +6,11 @@ import type {
   TFilter,
   TWhere,
 } from '@/base/repositories/common';
-import { DEFAULT_LIMIT, RepositoryOperationScopes } from '@/base/repositories/common';
+import {
+  buildDataRange,
+  DEFAULT_LIMIT,
+  RepositoryOperationScopes,
+} from '@/base/repositories/common';
 import type { IPostgresDataSource } from '@/connectors/postgres/datasources';
 import type {
   BaseRelationalEntity,
@@ -15,7 +19,7 @@ import type {
   TTableSchemaWithId,
 } from '@/connectors/postgres/models';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { getError } from '@venizia/ignis-helpers';
+import omit from 'lodash/omit';
 import type { PgTable } from 'drizzle-orm/pg-core';
 import type { IDatabaseExtraOptions } from '../common';
 import { RelationalBaseRepository } from './base';
@@ -190,13 +194,14 @@ export class ReadableRelationalRepository<
       [data, { count: total }] = await Promise.all([dataPromise, countPromise()]);
     }
 
-    // Build range following HTTP Content-Range standard (inclusive end index)
-    const start = mergedFilter.skip ?? mergedFilter.offset ?? 0;
-    const end = data.length > 0 ? start + data.length - 1 : start;
-
     return {
       data,
-      range: { start, end, total },
+      range: buildDataRange({
+        skip: mergedFilter.skip,
+        offset: mergedFilter.offset,
+        dataLength: data.length,
+        total,
+      }),
     };
   }
 
@@ -205,31 +210,31 @@ export class ReadableRelationalRepository<
     filter: TFilter<DataObject>;
     options?: ExtraOptions;
   }): Promise<TNullable<R>> {
-    const useCoreAPI = this.canUseCoreAPI(opts.filter);
+    const filter = opts.filter;
+    const useCoreAPI = this.canUseCoreAPI(filter);
 
     this.validateLockOptions({
-      lock: opts.options?.lock,
-      transaction: opts.options?.transaction,
+      lock: opts?.options?.lock,
+      transaction: opts?.options?.transaction,
       usesQueryAPI: !useCoreAPI,
     });
 
-    // Use Core API for flat queries (no relations, no field selection)
     if (useCoreAPI) {
       const results = await this.findWithCoreAPI<R>({
-        filter: opts.filter,
+        filter,
         isFindOne: true,
-        options: opts.options,
+        options: opts?.options,
       });
       return results[0] ?? null;
     }
 
     const mergedFilter = this.applyDefaultFilter({
-      userFilter: opts.filter,
-      shouldSkipDefaultFilter: opts.options?.shouldSkipDefaultFilter,
+      userFilter: filter,
+      shouldSkipDefaultFilter: opts?.options?.shouldSkipDefaultFilter,
     });
 
-    const { limit: _limit, ...queryOptions } = this.buildQuery({ filter: mergedFilter });
-    const queryInterface = this.getQueryInterface({ options: opts.options });
+    const queryOptions = omit(this.buildQuery({ filter: mergedFilter }), ['limit']);
+    const queryInterface = this.getQueryInterface({ options: opts?.options });
     const result = await queryInterface.findFirst(queryOptions);
     // Same drizzle-relational-query-vs-caller-generic boundary as findWithQueryAPI above.
     return (result ?? null) as TNullable<R>;
@@ -289,9 +294,7 @@ export class ReadableRelationalRepository<
     data: PersistObject;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<DataObject> }> {
-    throw getError({
-      message: `[${this.create.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.create.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -307,9 +310,7 @@ export class ReadableRelationalRepository<
     data: Array<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<Array<DataObject>> }> {
-    throw getError({
-      message: `[${this.createAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.createAll.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -328,9 +329,7 @@ export class ReadableRelationalRepository<
     data: Partial<PersistObject>;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.updateById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateById.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -349,9 +348,7 @@ export class ReadableRelationalRepository<
     where: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.updateAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.updateAll.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -367,9 +364,7 @@ export class ReadableRelationalRepository<
     id: IdType;
     options?: ExtraOptions & { shouldReturn?: boolean };
   }): Promise<TCount & { data: TNullable<R> }> {
-    throw getError({
-      message: `[${this.deleteById.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteById.name);
   }
 
   /** @throws Error - disabled in read-only repository. */
@@ -385,8 +380,6 @@ export class ReadableRelationalRepository<
     where?: TWhere<DataObject>;
     options?: ExtraOptions & { shouldReturn?: boolean; force?: boolean };
   }): Promise<TCount & { data: TNullable<Array<R>> }> {
-    throw getError({
-      message: `[${this.deleteAll.name}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
-    });
+    return this.denyOperation(this.deleteAll.name);
   }
 }

@@ -114,6 +114,25 @@ When a numeric comparison operator (`gt`, `gte`, `lt`, `lte`, `between`, `notBet
 
 Non-numeric operators (`eq`, `ne`, `like`, `ilike`, `in`, etc.) use text comparison via `#>>` without numeric casting.
 
+The cast is decided **per operator**, not once for the whole operator object -- a mixed object casts only the operators that need it:
+
+```typescript
+// Mixed operator object: gte casts, like does not
+{ where: { 'metadata.score': { gte: 1, like: '%a%' } } }
+// SQL: CASE WHEN ("metadata" #>> '{score}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//      THEN ("metadata" #>> '{score}')::numeric ELSE NULL END >= 1
+//   AND "metadata" #>> '{score}' LIKE '%a%'
+```
+
+`not` recurses into whatever it wraps, so a numeric operator nested under `not` still gets cast:
+
+```typescript
+// not wrapping an operator - the nested gt still gets the numeric cast
+{ where: { 'metadata.score': { not: { gt: 50 } } } }
+// SQL: NOT (CASE WHEN ("metadata" #>> '{score}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//           THEN ("metadata" #>> '{score}')::numeric ELSE NULL END > 50)
+```
+
 
 ## Numeric Value Equality
 

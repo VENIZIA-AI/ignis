@@ -116,7 +116,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case1_CreateSingle] FAILED | Error: %j', error);
+      this.logger.error('[case1_CreateSingle] FAILED | Error: %s', error);
     }
   }
 
@@ -147,7 +147,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group: 'REPO_BATCH_TEST' } });
     } catch (error) {
-      this.logger.error('[case2_CreateAll] FAILED | Error: %j', error);
+      this.logger.error('[case2_CreateAll] FAILED | Error: %s', error);
     }
   }
 
@@ -186,7 +186,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case3_FindOne] FAILED | Error: %j', error);
+      this.logger.error('[case3_FindOne] FAILED | Error: %s', error);
     }
   }
 
@@ -273,7 +273,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case4_FindWithFilter] FAILED | Error: %j', error);
+      this.logger.error('[case4_FindWithFilter] FAILED | Error: %s', error);
     }
   }
 
@@ -309,7 +309,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case5_FindById] FAILED | Error: %j', error);
+      this.logger.error('[case5_FindById] FAILED | Error: %s', error);
     }
   }
 
@@ -351,7 +351,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case6_UpdateById] FAILED | Error: %j', error);
+      this.logger.error('[case6_UpdateById] FAILED | Error: %s', error);
     }
   }
 
@@ -408,7 +408,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case7_UpdateAll] FAILED | Error: %j', error);
+      this.logger.error('[case7_UpdateAll] FAILED | Error: %s', error);
     }
   }
 
@@ -479,7 +479,7 @@ export class CrudTestService extends BaseTestService {
         );
       }
     } catch (error) {
-      this.logger.error('[case8_DeleteByIdAndDeleteAll] FAILED | Error: %j', error);
+      this.logger.error('[case8_DeleteByIdAndDeleteAll] FAILED | Error: %s', error);
     }
   }
 
@@ -527,7 +527,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case9_CreateWithNullValues] FAILED | Error: %j', error);
+      this.logger.error('[case9_CreateWithNullValues] FAILED | Error: %s', error);
     }
   }
 
@@ -707,7 +707,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case13_BoundaryValues] FAILED | Error: %j', error);
+      this.logger.error('[case13_BoundaryValues] FAILED | Error: %s', error);
     }
   }
 
@@ -767,7 +767,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case14_CountOperation] FAILED | Error: %j', error);
+      this.logger.error('[case14_CountOperation] FAILED | Error: %s', error);
     }
   }
 
@@ -812,7 +812,7 @@ export class CrudTestService extends BaseTestService {
         this.logger.error('[case15_ExistsWithOperation] FAILED | Should not exist after delete');
       }
     } catch (error) {
-      this.logger.error('[case15_ExistsWithOperation] FAILED | Error: %j', error);
+      this.logger.error('[case15_ExistsWithOperation] FAILED | Error: %s', error);
     }
   }
 
@@ -925,7 +925,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code: duplicateCode } });
     } catch (error) {
-      this.logger.error('[case16_ConcurrentCreates] FAILED | Error: %j', error);
+      this.logger.error('[case16_ConcurrentCreates] FAILED | Error: %s', error);
     }
   }
 
@@ -974,7 +974,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case17_UpdateWithPartialData] FAILED | Error: %j', error);
+      this.logger.error('[case17_UpdateWithPartialData] FAILED | Error: %s', error);
     }
   }
 
@@ -1027,7 +1027,7 @@ export class CrudTestService extends BaseTestService {
         );
       }
     } catch (error) {
-      this.logger.error('[case18_FindWithEmptyResult] FAILED | Error: %j', error);
+      this.logger.error('[case18_FindWithEmptyResult] FAILED | Error: %s', error);
     }
   }
 
@@ -1191,7 +1191,7 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case19_DoublePrecisionValues] FAILED | Error: %j', error);
+      this.logger.error('[case19_DoublePrecisionValues] FAILED | Error: %s', error);
     }
   }
 }

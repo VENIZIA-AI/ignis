@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { z } from '@hono/zod-openapi';
-import { getError, Logger } from '@venizia/ignis-helpers';
+import { getError, HTTP, Logger, MessageCode } from '@venizia/ignis-helpers';
 import { appErrorHandler, RequestSpyMiddleware } from '@/base/middlewares';
 
 // Real Logger instance (private constructor forces the factory) with `error` silenced -
@@ -89,7 +89,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     expect(body.details.cause).toHaveLength(2);
   });
 
-  test('malformed (non-JSON) ZodError → messageCode omitted, message "ValidationError"', async () => {
+  test('malformed (non-JSON) ZodError → default messageCode, message "ValidationError"', async () => {
     const res = await mount({
       thrower: () => {
         const e = new Error('totally not json');
@@ -99,7 +99,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     }).request('/x');
     const body = await readJson(res);
     expect(body.message).toBe('ValidationError');
-    expect(body.messageCode).toBeUndefined();
+    expect(body.messageCode).toBe(MessageCode.DEFAULT);
   });
 
   test('non-Zod (domain getError) response is unchanged', async () => {
@@ -183,7 +183,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
   test('programming error (class 42 undefined_column) is NOT a client error → stays 500', async () => {
     const res = await mount({
       thrower: dbThrower({ code: '42703', message: 'column "x" does not exist' }),
-    }).request('/x');
+    }).request('/x', undefined, { NODE_ENV: 'development' });
     expect(res.status).toBe(500);
     const body = await readJson(res);
     expect(body.message).toBe('column "x" does not exist');
@@ -211,6 +211,8 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
   test('error without a SQLSTATE code is NOT a client error → stays 500', async () => {
     const res = await mount({ thrower: dbThrower({ message: 'connection terminated' }) }).request(
       '/x',
+      undefined,
+      { NODE_ENV: 'development' },
     );
     expect(res.status).toBe(500);
     const body = await readJson(res);
@@ -281,7 +283,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
         e.code = 5;
         throw e;
       },
-    }).request('/x');
+    }).request('/x', undefined, { NODE_ENV: 'development' });
     expect(res.status).toBe(500);
     const body = await readJson(res);
     expect(body.message).toBe('grpc failure');
@@ -335,5 +337,145 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
   test('non-retryable class-40 code (40002) is not treated as retryable → stays 500', async () => {
     const res = await mount({ thrower: dbThrower({ code: '40002', message: 'x' }) }).request('/x');
     expect(res.status).toBe(500);
+  });
+});
+
+describe('appErrorHandler - every response carries a messageCode', () => {
+  test('a RAW throw (no ApplicationError) still gets the default code, never an absent field', async () => {
+    const res = await mount({
+      thrower: () => {
+        // A library or a bug throwing a plain Error - the client must still get a mappable code.
+        throw new TypeError('cannot read properties of undefined');
+      },
+    }).request('/x', undefined, { NODE_ENV: 'production' });
+
+    const body = await readJson(res);
+
+    expect(body.messageCode).toBe(MessageCode.DEFAULT);
+    expect(body.messageCode).toBe('core.system_error');
+  });
+
+  test('an error raised through getError WITHOUT a code also carries the default', async () => {
+    const res = await mount({
+      thrower: () => {
+        throw getError({ message: 'domain failure', statusCode: 409 });
+      },
+    }).request('/x');
+
+    const body = await readJson(res);
+
+    expect(res.status).toBe(409);
+    expect(body.messageCode).toBe(MessageCode.DEFAULT);
+  });
+
+  test('an explicit code is passed through untouched', async () => {
+    const res = await mount({
+      thrower: () => {
+        throw getError({ message: 'nope', messageCode: 'core.repository.operation_not_allowed' });
+      },
+    }).request('/x');
+
+    const body = await readJson(res);
+
+    expect(body.messageCode).toBe('core.repository.operation_not_allowed');
+  });
+
+  test('a retryable DB conflict keeps its own retry code, not the default', async () => {
+    const res = await mount({
+      thrower: () => {
+        const error = new Error('deadlock') as Error & { code?: string };
+        error.code = '40P01';
+        throw error;
+      },
+    }).request('/x', undefined, { NODE_ENV: 'production' });
+
+    const body = await readJson(res);
+
+    expect(res.status).toBe(HTTP.ResultCodes.RS_4.Conflict);
+    expect(body.messageCode).toBe('database.conflict');
+  });
+});
+
+/**
+ * Which NODE_ENV values may see an unsanitized error. The rule is fail-closed: the leak is opt-in
+ * by an explicit development name, so a typo, a new environment nobody added to the list, or an
+ * unset variable all land on the safe side.
+ */
+describe('appErrorHandler — the NODE_ENV leak boundary', () => {
+  /** A unique-violation carrying the row data, the table and the constraint - all of it internal. */
+  const leakyDatabaseThrower = () => {
+    const error = new Error('database error') as Error & { cause?: unknown };
+    error.cause = {
+      code: '23505',
+      detail: 'Key (email)=(a@b.com) already exists.',
+      table: 'users',
+      constraint: 'users_email_key',
+    };
+    throw error;
+  };
+
+  const requestUnder = async (nodeEnv: string) => {
+    const res = await mount({ thrower: leakyDatabaseThrower }).request('/x', undefined, {
+      NODE_ENV: nodeEnv,
+    });
+    return readJson(res);
+  };
+
+  // `dev` is the abbreviation deployments actually write; it means `development`.
+  const DEVELOPMENT_ENVS = ['local', 'debug', 'development', 'dev', 'sit'];
+
+  // Real users reach alpha/beta/uat/staging, so they are production as far as leaking goes.
+  const PRODUCTION_ENVS = ['production', 'alpha', 'beta', 'uat', 'staging', 'a-typo', 'test'];
+
+  for (const nodeEnv of DEVELOPMENT_ENVS) {
+    test(`${nodeEnv}: an engineer sees the row data, the table and the constraint`, async () => {
+      const body = await requestUnder(nodeEnv);
+
+      expect(body.message).toContain('Detail:');
+      expect(body.message).toContain('a@b.com');
+      expect(body.message).toContain('Table: users');
+      expect(body.message).toContain('Constraint: users_email_key');
+    });
+  }
+
+  for (const nodeEnv of PRODUCTION_ENVS) {
+    test(`${nodeEnv}: the response carries the base message and NOTHING internal`, async () => {
+      const body = await requestUnder(nodeEnv);
+
+      expect(body.message).toBe('Unique constraint violation');
+      expect(body.message).not.toContain('a@b.com');
+      expect(body.message).not.toContain('users');
+      expect(body.details.stack).toBeUndefined();
+      expect(body.details.cause).toBeUndefined();
+    });
+  }
+
+  test('the env name is matched case-insensitively (DEV, Development)', async () => {
+    for (const nodeEnv of ['DEV', 'Development', 'LOCAL']) {
+      const body = await requestUnder(nodeEnv);
+      expect(body.message).toContain('a@b.com');
+    }
+  });
+
+  test('NODE_ENV unset entirely: fail closed, sanitized like production', async () => {
+    const original = process.env.NODE_ENV;
+    delete process.env.NODE_ENV;
+
+    try {
+      // No context env either - the handler has nothing at all to go on.
+      const res = await mount({ thrower: leakyDatabaseThrower }).request('/x', undefined, {});
+      const body = await readJson(res);
+
+      expect(body.message).toBe('Unique constraint violation');
+      expect(body.message).not.toContain('a@b.com');
+    } finally {
+      // Assigning an undefined `original` back would write the STRING "undefined" and quietly
+      // poison every later test in this process.
+      if (original === undefined) {
+        delete process.env.NODE_ENV;
+      } else {
+        process.env.NODE_ENV = original;
+      }
+    }
   });
 });

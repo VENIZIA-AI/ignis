@@ -1,3 +1,4 @@
+import { CoreErrorCodes, SearchErrorCodes } from '@/common';
 import type {
   IImportResult,
   ISearchCollectionScoped,
@@ -10,6 +11,7 @@ import { BaseSearchConnector } from '@/connectors/search';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import type { ISynonym } from '@/connectors/search/models';
 import type { AnyType } from '@venizia/ignis-helpers';
+import { isApplicationError } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 import { Meilisearch } from 'meilisearch';
 import type { IMeilisearchIndexPlan } from './compiler';
@@ -23,6 +25,8 @@ import {
 
 const DEFAULT_TASK_TIMEOUT_MS = 5 * 60_000;
 const DEFAULT_TASK_INTERVAL_MS = 50;
+/** Ceiling for the exponential poll backoff - one poll per second once a task runs long. */
+const MAX_TASK_INTERVAL_MS = 1000;
 
 interface IMeilisearchTask {
   taskUid: number;
@@ -199,7 +203,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
       this.logger
         .for('constructor')
         .error(
-          'Failed to initialize Meilisearch client | error: %j',
+          'Failed to initialize Meilisearch client | error: %s',
           SearchConnectorInternal.describeError({ error }),
         );
 
@@ -287,6 +291,9 @@ export class MeilisearchConnector extends BaseSearchConnector {
   private async waitForTask(opts: { taskUid: number; method: string }): Promise<IMeilisearchTask> {
     const { taskUid, method } = opts;
     const deadline = Date.now() + this.taskTimeoutMs;
+    // Exponential backoff: a fast task still resolves in the first poll or two, but a long-running
+    // one is not polled ~20x/s for its whole duration - the interval doubles up to a 1 s ceiling.
+    let intervalMs = this.taskIntervalMs;
 
     for (;;) {
       const task = await this.client.getTask(taskUid);
@@ -299,7 +306,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
         this.logger
           .for(method)
           .error(
-            'Task did not succeed | uid: %s | status: %s | error: %j',
+            'Task did not succeed | uid: %s | status: %s | error: %s',
             taskUid,
             task.status,
             SearchConnectorInternal.describeError({ error: task.error }),
@@ -315,13 +322,28 @@ export class MeilisearchConnector extends BaseSearchConnector {
       if (Date.now() >= deadline) {
         throw getError({
           statusCode: HTTP.ResultCodes.RS_5.GatewayTimeout,
-          messageCode: 'core.search_engine.task_timeout',
+          messageCode: SearchErrorCodes.TASK_TIMEOUT,
           message: `[${method}] Search engine task timed out after ${this.taskTimeoutMs}ms.`,
         });
       }
 
-      await new Promise(resolve => setTimeout(resolve, this.taskIntervalMs));
+      await new Promise(resolve => setTimeout(resolve, intervalMs));
+      intervalMs = Math.min(intervalMs * 2, MAX_TASK_INTERVAL_MS);
     }
+  }
+
+  /**
+   * Every Meilisearch write returns a task uid and only becomes visible once that task succeeds. This
+   * runs the write, awaits its task to completion, and returns the FINISHED task - callers that read
+   * `details` (e.g. deleteByFilter's `deletedDocuments`) get the terminal record.
+   */
+  private async awaitWrite(opts: {
+    method: string;
+    run: () => Promise<{ taskUid: number }>;
+  }): Promise<IMeilisearchTask> {
+    const { method, run } = opts;
+    const enqueued = await run();
+    return this.waitForTask({ taskUid: enqueued.taskUid, method });
   }
 
   async createCollection(opts: { schema: IMeilisearchIndexPlan }): Promise<void> {
@@ -331,8 +353,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.createCollection.name,
       run: async () => {
-        const task = await this.client.createIndex(schema.uid, { primaryKey: schema.primaryKey });
-        await this.waitForTask({ taskUid: task.taskUid, method: this.createCollection.name });
+        await this.awaitWrite({
+          method: this.createCollection.name,
+          run: () => this.client.createIndex(schema.uid, { primaryKey: schema.primaryKey }),
+        });
         this.logger.for(this.createCollection.name).info('Created index | uid: %s', schema.uid);
       },
       tolerate: {
@@ -359,8 +383,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.ensureCollection.name,
       run: async () => {
-        const task = await this.client.index(schema.uid).updateSettings(schema.settings);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.ensureCollection.name });
+        await this.awaitWrite({
+          method: this.ensureCollection.name,
+          run: () => this.client.index(schema.uid).updateSettings(schema.settings),
+        });
       },
     });
 
@@ -419,7 +445,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
   patchCollectionSchema(): Promise<void> {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-      messageCode: 'core.not_supported',
+      messageCode: CoreErrorCodes.NOT_SUPPORTED,
       message: `[${MeilisearchConnector.name}] Field-schema patching is not supported - Meilisearch is schemaless; change index settings via ensureCollection instead.`,
     });
   }
@@ -430,8 +456,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.deleteCollection.name,
       run: async () => {
-        const task = await this.client.deleteIndex(name);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.deleteCollection.name });
+        await this.awaitWrite({
+          method: this.deleteCollection.name,
+          run: () => this.client.deleteIndex(name),
+        });
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -451,8 +479,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.swapIndexes.name,
       run: async () => {
-        const task = await this.client.swapIndexes(pairs.map(indexes => ({ indexes })));
-        await this.waitForTask({ taskUid: task.taskUid, method: this.swapIndexes.name });
+        await this.awaitWrite({
+          method: this.swapIndexes.name,
+          run: () => this.client.swapIndexes(pairs.map(indexes => ({ indexes }))),
+        });
         this.logger
           .for(this.swapIndexes.name)
           .info('Swapped index pair(s) | count: %s', pairs.length);
@@ -478,8 +508,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.setSynonyms.name,
       run: async () => {
-        const task = await this.client.index(collection).updateSynonyms(dictionary);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.setSynonyms.name });
+        await this.awaitWrite({
+          method: this.setSynonyms.name,
+          run: () => this.client.index(collection).updateSynonyms(dictionary),
+        });
       },
     });
   }
@@ -513,8 +545,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.resetSynonyms.name,
       run: async () => {
-        const task = await this.client.index(collection).resetSynonyms();
-        await this.waitForTask({ taskUid: task.taskUid, method: this.resetSynonyms.name });
+        await this.awaitWrite({
+          method: this.resetSynonyms.name,
+          run: () => this.client.index(collection).resetSynonyms(),
+        });
       },
     });
   }
@@ -569,7 +603,6 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Add-or-replace. Awaits the task, so the document is retrievable when this resolves. */
   /**
    * Create-only, matching the neutral contract (and Typesense, whose `documents().create()` rejects a
    * duplicate id). Meilisearch has no conditional insert - `addDocuments` is add-or-REPLACE - so the id
@@ -590,7 +623,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     if (id !== undefined && (await this.documentExists({ collection, id: String(id) }))) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
-        messageCode: 'core.search_engine.already_exists',
+        messageCode: SearchErrorCodes.ALREADY_EXISTS,
         message: `[${this.createDocument.name}] Document '${String(id)}' already exists in collection '${collection}'.`,
       });
     }
@@ -630,8 +663,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     await this.runEngineCall({
       method: this.upsertDocument.name,
       run: async () => {
-        const task = await this.client.index(collection).addDocuments([document]);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.upsertDocument.name });
+        await this.awaitWrite({
+          method: this.upsertDocument.name,
+          run: () => this.client.index(collection).addDocuments([document]),
+        });
       },
     });
 
@@ -659,14 +694,25 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
     const primaryKey = await this.resolvePrimaryKey({ collection });
 
+    // Meilisearch's updateDocuments is add-or-update, so a missing id would silently upsert; the
+    // neutral contract (and Typesense) throws 404 instead. Existence is checked before any write.
+    if (!(await this.documentExists({ collection, id }))) {
+      SearchConnectorInternal.throwNotFoundError({
+        method: this.updateDocument.name,
+        subject: `Document '${id}' in collection '${collection}'`,
+      });
+    }
+
     await this.runEngineCall({
       method: this.updateDocument.name,
-      run: async () => {
-        const task = await this.client
-          .index(collection)
-          .updateDocuments([{ [primaryKey]: id, ...document }]);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.updateDocument.name });
-      },
+      // `[primaryKey]: id` last: the path id is authoritative, so a patch carrying its own primary
+      // key cannot redirect the write onto a different row.
+      run: () =>
+        this.awaitWrite({
+          method: this.updateDocument.name,
+          run: () =>
+            this.client.index(collection).updateDocuments([{ ...document, [primaryKey]: id }]),
+        }),
     });
 
     return this.getDocument<T>({ collection, id });
@@ -700,9 +746,12 @@ export class MeilisearchConnector extends BaseSearchConnector {
 
         for (let index = 0; index < ids.length; index += MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE) {
           const batch = ids.slice(index, index + MEILISEARCH_DEFAULT_UPDATE_BATCH_SIZE);
-          const documents = batch.map(id => ({ [primaryKey]: id, ...document }));
-          const task = await this.client.index(collection).updateDocuments(documents);
-          await this.waitForTask({ taskUid: task.taskUid, method: this.updateByFilter.name });
+          // `[primaryKey]: id` last: each matched row keeps its own id even if the patch carries one.
+          const documents = batch.map(id => ({ ...document, [primaryKey]: id }));
+          await this.awaitWrite({
+            method: this.updateByFilter.name,
+            run: () => this.client.index(collection).updateDocuments(documents),
+          });
         }
 
         this.logger
@@ -780,8 +829,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.deleteDocument.name,
       run: async () => {
-        const task = await this.client.index(collection).deleteDocument(id);
-        await this.waitForTask({ taskUid: task.taskUid, method: this.deleteDocument.name });
+        await this.awaitWrite({
+          method: this.deleteDocument.name,
+          run: () => this.client.index(collection).deleteDocument(id),
+        });
         return true;
       },
       tolerate: this.notFoundFallback({
@@ -807,17 +858,16 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.deleteByFilter.name,
       run: async () => {
-        const enqueued = await this.client.index(collection).deleteDocuments({ filter: filterBy });
-        const task = await this.waitForTask({
-          taskUid: enqueued.taskUid,
+        const task = await this.awaitWrite({
           method: this.deleteByFilter.name,
+          run: () => this.client.index(collection).deleteDocuments({ filter: filterBy }),
         });
 
         const deleted = task.details?.['deletedDocuments'];
 
         if (typeof deleted !== 'number') {
           throw getError({
-            message: `[${this.deleteByFilter.name}] Task ${enqueued.taskUid} reported no deletedDocuments count | collection: ${collection}`,
+            message: `[${this.deleteByFilter.name}] Task ${task.taskUid} reported no deletedDocuments count | collection: ${collection}`,
           });
         }
 
@@ -834,8 +884,10 @@ export class MeilisearchConnector extends BaseSearchConnector {
     const rs = await this.runEngineCall({
       method: this.deleteAllDocuments.name,
       run: async () => {
-        const task = await this.client.index(collection).deleteAllDocuments();
-        await this.waitForTask({ taskUid: task.taskUid, method: this.deleteAllDocuments.name });
+        await this.awaitWrite({
+          method: this.deleteAllDocuments.name,
+          run: () => this.client.index(collection).deleteAllDocuments(),
+        });
         return true;
       },
     });
@@ -843,7 +895,12 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /** Batches through addDocuments, awaiting each batch's task before starting the next. */
+  /**
+   * Batches through addDocuments, awaiting each batch's task before starting the next. Meilisearch
+   * import is batch-atomic, so `count.fail` is structurally always 0: a batch either lands whole or
+   * throws. A thrown import means the batches after the failure point did not land - the error's
+   * `details` carry `processedCount` so callers can resume from there.
+   */
   async importDocuments<T extends object>(opts: {
     collection: string;
     documents: T[];
@@ -856,12 +913,41 @@ export class MeilisearchConnector extends BaseSearchConnector {
       method: this.importDocuments.name,
       run: async () => {
         const responses: unknown[] = [];
+        let processedCount = 0;
 
         for (let index = 0; index < documents.length; index += size) {
           const batch = documents.slice(index, index + size);
-          const task = await this.client.index(collection).addDocuments(batch);
-          await this.waitForTask({ taskUid: task.taskUid, method: this.importDocuments.name });
-          responses.push(task);
+
+          try {
+            const task = await this.awaitWrite({
+              method: this.importDocuments.name,
+              run: () => this.client.index(collection).addDocuments(batch),
+            });
+            responses.push(task);
+            processedCount += batch.length;
+          } catch (error) {
+            // Earlier batches are already persisted server-side, so EVERY failure carries partial
+            // progress - callers decide to resume from processedCount or retry the whole import.
+            const details = { totalCount: documents.length, processedCount };
+
+            // An error the framework already shaped (waitForTask's 504 task_timeout, its
+            // task-failed 503, a sanitized 4xx) keeps its statusCode/messageCode - re-wrapping
+            // would erase those semantics behind a generic 503. Progress is merged onto it.
+            if (isApplicationError(error)) {
+              error.extra = {
+                ...error.extra,
+                details: { ...(error.extra?.['details'] as object), ...details },
+              };
+              throw error;
+            }
+
+            SearchConnectorInternal.wrapDependencyError({
+              method: this.importDocuments.name,
+              error,
+              logger: this.logger,
+              details,
+            });
+          }
         }
 
         this.logger
@@ -947,7 +1033,7 @@ export class MeilisearchConnector extends BaseSearchConnector {
     if (isUnion) {
       throw getError({
         statusCode: HTTP.ResultCodes.RS_5.NotImplemented,
-        messageCode: 'core.not_supported',
+        messageCode: CoreErrorCodes.NOT_SUPPORTED,
         message: `[${MeilisearchConnector.name}] Union multi-search is not supported - Meilisearch merges results through its federation option, which this connector does not model.`,
       });
     }
@@ -980,7 +1066,12 @@ export class MeilisearchConnector extends BaseSearchConnector {
       return cached;
     }
 
-    const index = await this.client.getIndex(collection);
+    // Wrapped so a raw getIndex failure is sanitized here rather than escaping through whichever
+    // write (create/update/updateBy) triggered the lookup and leaking engine detail.
+    const index = await this.runEngineCall({
+      method: this.resolvePrimaryKey.name,
+      run: () => this.client.getIndex(collection),
+    });
     const primaryKey = isRecord(index) ? index['primaryKey'] : undefined;
 
     if (typeof primaryKey !== 'string' || primaryKey.length === 0) {

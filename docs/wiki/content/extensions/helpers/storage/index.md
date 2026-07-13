@@ -209,6 +209,23 @@ const results = await storage.upload({
 });
 ```
 
+> [!NOTE]
+> The output of `normalizeNameFn` is validated with `isValidPath()` before it reaches the filesystem or object store - a traversal payload returned from a custom function (e.g. `../../../etc/cron.d/pwn`) is rejected with `'[upload] Invalid normalized object name | name: {name}'`, not trusted just because it came from application code.
+
+#### Controlling Folder Depth
+
+`upload()` accepts an optional `maxFolderDepth` that overrides `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) for that call. It bounds both the incoming `folderPath` on each file and the folder depth of the resulting normalized object name:
+
+```typescript
+const results = await storage.upload({
+  bucket: 'my-bucket',
+  files: files,
+  maxFolderDepth: 4, // allow up to 4 folder segments instead of the default 2
+});
+```
+
+Omit it to keep the default of `2`.
+
 #### Upload with Folder Path
 
 When `folderPath` is provided in an `IUploadFile`, the default normalization creates subdirectory-based paths:
@@ -579,7 +596,7 @@ await storage.upload({
 
 ### "[upload] Invalid file size"
 
-**Cause:** A file's `size` property is `0`, `undefined`, or falsy.
+**Cause:** A file's `size` property is `undefined`, `null`, or negative. A zero-byte file is a legal upload - it is not what triggers this error.
 
 **Fix:** Ensure every file in the upload array has a valid `size` value:
 
@@ -588,9 +605,15 @@ const file: IUploadFile = {
   originalName: 'doc.pdf',
   mimetype: 'application/pdf',
   buffer: fileBuffer,
-  size: fileBuffer.length, // Must be > 0
+  size: fileBuffer.length, // Must be a number >= 0
 };
 ```
+
+### "[upload] Invalid normalized object name | name: {name}"
+
+**Cause:** A custom `normalizeNameFn` returned a value that fails `isValidPath()` - typically a path-traversal payload (e.g. `../../../etc/cron.d/pwn`) or a name exceeding `maxFolderDepth`.
+
+**Fix:** Ensure `normalizeNameFn` returns a plain relative name/path with no `..` segments, no leading `/`, and no more folder segments than `maxFolderDepth` (default `2`) allows.
 
 ### "[getFile] File not found | bucket: {bucket} | name: {name}"
 

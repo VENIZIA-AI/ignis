@@ -262,10 +262,26 @@ interface IBootstrapper {
 Report generated after boot completion.
 
 ```typescript
-interface IBootReport {}
+interface IBootReport {
+  /** Class names of the booters that actually ran, in execution order. */
+  booters: string[];
+  phases: IBootPhaseReport[];
+  totalDurationMs: number;
+}
+
+interface IBootPhaseReport {
+  phase: TBootPhase;
+  durationMs: number;
+}
 ```
 
-Currently an empty interface, reserved for future enhancements (timing, errors, artifact counts, etc.).
+| Property | Type | Description |
+|----------|------|-------------|
+| `booters` | `string[]` | Class names of the booters that actually ran, in execution order |
+| `phases` | `IBootPhaseReport[]` | Per-phase timing: `{ phase, durationMs }` for each executed phase |
+| `totalDurationMs` | `number` | Total wall-clock duration of the whole `boot()` call |
+
+Built by `Bootstrapper.generateReport()` (private) at the end of `boot()`.
 
 
 ### IApplication
@@ -674,14 +690,12 @@ Load class constructors from files.
 ```typescript
 async function loadClasses(opts: {
   files: string[];
-  root: string;
 }): Promise<AnyType[]>
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
 | `files` | `string[]` | Array of file paths to load |
-| `root` | `string` | Project root (for error messages) |
 
 **Returns:** `Promise<AnyType[]>` - Array of loaded class constructors (filtered by `isClass` type guard)
 
@@ -693,7 +707,6 @@ const classes = await loadClasses({
     '/path/to/project/controllers/user.controller.js',
     '/path/to/project/controllers/product.controller.js'
   ],
-  root: '/path/to/project'
 });
 // [UserController, ProductController]
 ```

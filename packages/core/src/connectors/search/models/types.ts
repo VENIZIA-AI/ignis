@@ -144,15 +144,19 @@ export type TSearchFieldTsType<T extends TSearchFieldType> = T extends 'string'
  * A vector field carrying `vector.embed` is server auto-embedded - the engine generates and queries it, so it is omitted entirely from the document shape (neither the required nor optional remap admits it); a vector field without `embed` is client-provided and infers as `number[]`.
  */
 export type TSearchDocument<T extends ISearchCollectionDefinition> = { id: string } & {
-  [F in Exclude<T['fields'][number], { optional: true }> as F['name'] extends 'id'
-    ? never
-    : F extends { vector: { embed: object } }
+  [
+    F in Exclude<T['fields'][number], { optional: true }> as F['name'] extends 'id'
       ? never
-      : F['name']]: TSearchFieldTsType<F['type']>;
+      : F extends { vector: { embed: object } }
+        ? never
+        : F['name']
+  ]: TSearchFieldTsType<F['type']>;
 } & {
-  [F in Extract<T['fields'][number], { optional: true }> as F['name'] extends 'id'
-    ? never
-    : F extends { vector: { embed: object } }
+  [
+    F in Extract<T['fields'][number], { optional: true }> as F['name'] extends 'id'
       ? never
-      : F['name']]?: TSearchFieldTsType<F['type']>;
+      : F extends { vector: { embed: object } }
+        ? never
+        : F['name']
+  ]?: TSearchFieldTsType<F['type']>;
 };

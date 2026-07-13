@@ -29,20 +29,20 @@
   "license": "MIT",
   "dependencies": {
     "@hono/zod-openapi": "^1.4.0",
-    "@scalar/hono-api-reference": "^0.10.16",
+    "@scalar/hono-api-reference": "^0.11.9",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "@venizia/ignis-inversion": "workspace:*",
-    "hono": "^4.12.21",
+    "hono": "^4.12.29",
     "typesense": "^3.0.3"
   },
   "devDependencies": {
     "@types/bun": "latest",
     "@venizia/dev-configs": "workspace:*",
-    "eslint": "^10.5.0",
-    "prettier": "^3.8.4",
-    "tsc-alias": "^1.8.10",
+    "eslint": "^10.7.0",
+    "prettier": "^3.9.5",
+    "tsc-alias": "^1.9.0",
     "typescript": "^6.0.3"
   }
 }

@@ -1,4 +1,4 @@
-import type { Binding, Container } from '@/helpers/inversion';
+import type { Binding, Container, TBindingKey } from '@/helpers/inversion';
 import type { IConfigurable, ValueOrPromise } from '@venizia/ignis-helpers';
 import { BaseHelper, getError } from '@venizia/ignis-helpers';
 
@@ -8,7 +8,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   extends BaseHelper
   implements IConfigurable<ConfigurableOptions>
 {
-  protected bindings: Record<string | symbol, Binding>;
+  protected bindings: Record<TBindingKey, Binding>;
 
   protected initDefault: TInitDefault;
   protected isConfigured = false;
@@ -16,7 +16,7 @@ export abstract class BaseComponent<ConfigurableOptions extends object = {}>
   constructor(opts: {
     scope: string;
     initDefault?: TInitDefault;
-    bindings?: Record<string | symbol, Binding>;
+    bindings?: Record<TBindingKey, Binding>;
   }) {
     super(opts);
 

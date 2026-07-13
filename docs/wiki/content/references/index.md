@@ -63,7 +63,7 @@ Complete reference documentation for the IGNIS framework. Find detailed API docs
 <span class="stage-num">3</span>
 <h4>Adding Features</h4>
 </div>
-<p><a href="/ignis/extensions/components/authentication/">Auth</a> → <a href="/ignis/extensions/components/socket-io/">Real-time</a> → <a href="/ignis/extensions/components/mail/">Email</a> → <a href="/ignis/extensions/components/swagger">API Docs</a></p>
+<p><a href="/ignis/extensions/components/authentication/">Auth</a> → <a href="/ignis/extensions/components/socket-io/">Real-time</a> → <a href="/ignis/extensions/components/mail/">Email</a> → <a href="/ignis/extensions/components/api-reference">API Docs</a></p>
 <span class="stage-desc">Pre-built components for common features</span>
 </div>
 
@@ -99,7 +99,7 @@ Complete reference documentation for the IGNIS framework. Find detailed API docs
 <span class="stage-num">7</span>
 <h4>Testing & Quality</h4>
 </div>
-<p><a href="/ignis/extensions/helpers/testing/">Unit Testing</a> → <a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
+<p><a href="./base/repositories/advanced">Mocking & Stubs</a> → <a href="./quick-reference">Best Practices</a></p>
 <span class="stage-desc">Testing strategies, quality assurance, and code review</span>
 </div>
 

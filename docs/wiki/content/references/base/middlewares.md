@@ -121,6 +121,9 @@ z.string().refine(isEmail, {
 // produces "messageCode": "user.email.invalid"
 ```
 
+> [!NOTE]
+> When `error.message` cannot be parsed as the expected Zod issue array (a malformed or unrecognized `ZodError`), no issue-derived `messageCode` exists - the response still carries one, resolved to `MessageCode.DEFAULT` (`"core.system_error"`) via `MessageCode.resolve(undefined)`. No error response from this middleware is ever missing `messageCode`.
+
 #### 2. PostgreSQL Constraint Violations
 
 Database errors in SQLSTATE class `22` (data exception), `23` (integrity constraint), and `44` (WITH CHECK OPTION violation) are detected by class and returned as HTTP `400 Bad Request`. A known code uses its specific message; any other in-class code uses `"Invalid database request"` as a fallback.
@@ -148,6 +151,7 @@ All other errors use the `statusCode` property from the error if present, otherw
 ```json
 {
   "message": "Error message",
+  "messageCode": "core.system_error",
   "statusCode": 500,
   "requestId": "abc-123",
   "details": {
@@ -165,6 +169,7 @@ When `rootKey` is provided (e.g., `rootKey: 'error'`), the response is wrapped:
 {
   "error": {
     "message": "Error message",
+    "messageCode": "core.system_error",
     "statusCode": 500,
     "requestId": "abc-123",
     "details": { ... }

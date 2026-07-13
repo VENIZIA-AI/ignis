@@ -31,13 +31,13 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
 
-// Casbin Authorization Enforcer — wraps casbin (optional peer dep)
+// Casbin Authorization Enforcer — wraps casbin (optional peer dep).
 //
-// Each request evaluates on its OWN enforcer borrowed from a BasePoolHelper<Enforcer>. This kills the
-// shared-model concurrency race: a borrowed enforcer is clearPolicy'd + loaded with THIS user's lines +
-// buildRoleLinks'd + enforceSync'd atomically inside the same pool.use callback, and the pool destroys
-// the enforcer on any error (fail-closed). Pooled enforcers are created WITHOUT an adapter (no DB load at
-// warmup); the adapter is only used by the isolated throwaway extractor (extractUserLines).
+// Each request evaluates on its OWN enforcer borrowed from a BasePoolHelper<Enforcer>: a borrowed
+// enforcer is clearPolicy'd + loaded with THIS user's lines + buildRoleLinks'd + enforceSync'd
+// atomically inside the same pool.use callback, and the pool destroys the enforcer on any error
+// (fail-closed). Pooled enforcers are created WITHOUT an adapter (no DB load at warmup); the adapter
+// is only used by the isolated throwaway extractor (extractUserLines).
 
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
@@ -89,8 +89,6 @@ export class CasbinAuthorizationEnforcer<
 
     this.helper = casbin.Helper;
 
-    // Memoize the payload normalizer once — options.{normalizePayloadFn,scoped} are fixed after configure(),
-    // so evaluate() reads this field instead of rebuilding a closure per request (hot path).
     this.resolvedPayloadFn = this.options.normalizePayloadFn ?? this.defaultScopedPayloadFn();
 
     const { cached } = this.options;
@@ -131,15 +129,10 @@ export class CasbinAuthorizationEnforcer<
   }
 
   /**
-   * Boot-time smoke test for the matcher. casbin compiles the matcher expression LAZILY — not in
-   * newEnforcer() or buildRoleLinks(), but on the first enforce — so a broken matcher would otherwise
-   * only surface on the first real request (a 500 for a real user). Running one dummy enforceSync here
-   * forces that compile at warmup, turning these into a fail-at-boot for an authz component:
-   *   - matcher syntax errors in the model,
-   *   - references to functions that registerMatchers() didn't register (e.g. a renamed g-relation),
-   *   - request arity mismatch (4-token scoped model vs the 3/4 args we pass).
-   * Bonus: enforceSync also throws if a matcher func is async — but every func we register is a sync
-   * built-in, so that branch is effectively unreachable; the real value is the compile/wiring check above.
+   * Boot-time smoke test for the matcher. casbin compiles the matcher expression lazily (on the
+   * first enforce, not in newEnforcer()/buildRoleLinks()), so a broken matcher would otherwise only
+   * surface on the first real request. This dummy enforceSync forces that compile at warmup, catching
+   * matcher syntax errors, unregistered matcher functions, and request-arity mismatches at boot.
    */
   protected assertMatcherCompilesSync(opts: { enforcer: CasbinEnforcerType }) {
     try {
@@ -193,7 +186,7 @@ export class CasbinAuthorizationEnforcer<
     const { user, lines } = rules;
 
     return this.pool.use({
-      fn: async enforcer => {
+      execution: async enforcer => {
         // Load THIS user's lines + buildRoleLinks BEFORE any enforceSync on the borrowed enforcer.
         await this.loadPolicyLinesIntoModel({ enforcer, lines });
 
@@ -235,10 +228,8 @@ export class CasbinAuthorizationEnforcer<
   }
 
   /**
-   * Run the matcher synchronously and, on DENY, log WHICH policy rule decided it. enforceExSync returns
-   * `[isAllowed, matchedPolicy]` where matchedPolicy is the deciding rule (or `[]` when nothing matched →
-   * default-deny). The explain index is computed by the effector regardless of this call, so capturing it
-   * carries no meaningful cost over enforceSync — it just surfaces the reason for a denial to the logs.
+   * Runs the matcher and, on DENY, logs the deciding policy rule. enforceExSync returns
+   * `[isAllowed, matchedPolicy]`, where matchedPolicy is `[]` when nothing matched (default-deny).
    */
   protected enforceWithExplain(opts: { enforcer: CasbinEnforcerType; vals: string[] }): boolean {
     const [isAllowed, matchedPolicy] = opts.enforcer.enforceExSync(...opts.vals);
@@ -462,9 +453,9 @@ export class CasbinAuthorizationEnforcer<
   /**
    * Fetch the user's policy lines, collapsing concurrent cache misses for the same key onto a single
    * extraction (via `pendingLineFetches`) instead of letting every request hit the DB at once.
-   * Note: best-effort — two misses can both get past the cache read before either records its fetch
-   * in the map, so both extract once (benign: per-user lines are identical). It collapses the common
-   * case; the fast cache-hit path stays OUTSIDE the map to avoid needless contention.
+   * Best-effort: two misses can both pass the cache read before either records its fetch in the map,
+   * so both may extract once (benign — per-user lines are identical). The cache-hit path stays
+   * outside the map to avoid needless contention.
    */
   protected async fetchLinesWithRedisCache(opts: {
     user: IAuthorizationUser;
@@ -540,8 +531,8 @@ export class CasbinAuthorizationEnforcer<
 
   /**
    * Extract a user's policy lines from an ISOLATED throwaway enforcer (its own model + the adapter),
-   * never a pooled serving enforcer. This is the core of the anti-poisoning design: concurrent requests
-   * on pooled enforcers can't change what we cache for this user. Used by buildRules + rebuild.
+   * never a pooled serving enforcer — concurrent requests on pooled enforcers can't change what we
+   * cache for this user. Used by buildRules + rebuild.
    */
   protected async extractUserLines(opts: { user: IAuthorizationUser }): Promise<string[]> {
     const casbin = await import('casbin');

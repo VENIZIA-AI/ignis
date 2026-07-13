@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, test } from 'bun:test';
+import { ApplicationError } from '@venizia/ignis-helpers';
 import type { ISearchConnector } from '@/connectors/search';
 
 interface IConformanceDocument extends Record<string, unknown> {
@@ -174,6 +175,24 @@ export const runConnectorConformance = (opts: {
       expect(
         (await connector.document.get<IConformanceDocument>({ collection, id: '1' })).title,
       ).toBe('second');
+    });
+
+    test('create with duplicate id throws 409 already_exists', async () => {
+      await seed([{ id: '1', title: 'first', score: 1 }]);
+
+      let caught: unknown;
+      try {
+        await connector.document.create<IConformanceDocument>({
+          collection,
+          document: { id: '1', title: 'second', score: 2 },
+        });
+      } catch (error) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(ApplicationError);
+      expect((caught as ApplicationError).statusCode).toBe(409);
+      expect((caught as ApplicationError).messageCode).toBe('core.search_engine.already_exists');
     });
 
     test('export() returns every document, not just the first page', async () => {

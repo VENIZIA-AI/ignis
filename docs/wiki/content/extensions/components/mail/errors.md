@@ -10,13 +10,13 @@ All errors are created via `getError()` and include `statusCode`, `messageCode`,
 
 | Condition | Status | Error Code | Message |
 |-----------|--------|-----------|---------|
-| `to` is missing or empty array | 400 | `MAIL_INVALID_RECIPIENT` | `Recipient email address is required` |
-| `subject` is falsy | 400 | `MAIL_INVALID_CONFIGURATION` | `Email subject is required` |
-| Both `text` and `html` are falsy | 400 | `MAIL_INVALID_CONFIGURATION` | `Email must have either text or html content` |
-| Transport throws during `send()` | 500 | `MAIL_SEND_FAILED` | `Failed to send email: <error>` |
-| Batch operation fails | 500 | `MAIL_BATCH_SEND_FAILED` | `Failed to send batch emails: <error>` |
-| Template engine not configured for `sendTemplate()` | 500 | `MAIL_INVALID_CONFIGURATION` | `Template engine not configured` |
-| Transport throws during `verify()` | 500 | `MAIL_VERIFICATION_FAILED` | `Mail transport verification failed: <error>` |
+| `to` is missing or empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
+| `subject` is falsy | 400 | `core.mail.invalid_configuration` | `Email subject is required` |
+| Both `text` and `html` are falsy | 400 | `core.mail.invalid_configuration` | `Email must have either text or html content` |
+| Transport throws during `send()` | 500 | `core.mail.send_failed` | `Failed to send email: <error>` |
+| Batch operation fails | 500 | `core.mail.batch_send_failed` | `Failed to send batch emails: <error>` |
+| Template engine not configured for `sendTemplate()` | 500 | `core.mail.invalid_configuration` | `Template engine not configured` |
+| Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed: <error>` |
 
 ### MailComponent Errors
 
@@ -28,11 +28,11 @@ All errors are created via `getError()` and include `statusCode`, `messageCode`,
 
 | Condition | Status | Error Code | Message |
 |-----------|--------|-----------|---------|
-| Unsupported provider string | 500 | `MAIL_INVALID_CONFIGURATION` | `Unsupported mail provider: <provider>` |
-| Nodemailer options fail type guard | 500 | `MAIL_INVALID_CONFIGURATION` | `Invalid Nodemailer configuration` |
-| Mailgun options fail type guard | 500 | `MAIL_INVALID_CONFIGURATION` | `Invalid Mailgun configuration` |
-| Custom options fail type guard | 500 | `MAIL_INVALID_CONFIGURATION` | `Invalid custom mail provider configuration` |
-| Custom config missing `send`/`verify` | 500 | `MAIL_INVALID_CONFIGURATION` | `Custom mail provider must implement IMailTransport interface. Missing methods: <methods>` |
+| Unsupported provider string | 500 | `core.mail.invalid_configuration` | `Unsupported mail provider: <provider>` |
+| Nodemailer options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid Nodemailer configuration` |
+| Mailgun options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration` |
+| Custom options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid custom mail provider configuration` |
+| Custom config missing `send`/`verify` | 500 | `core.mail.invalid_configuration` | `Custom mail provider must implement IMailTransport interface. Missing methods: <methods>` |
 
 ### MailQueueExecutorProvider Errors
 
@@ -47,8 +47,8 @@ All errors are created via `getError()` and include `statusCode`, `messageCode`,
 | Condition | Status | Error Code | Message |
 |-----------|--------|-----------|---------|
 | Neither `templateName` nor `templateData` provided | -- | -- | `Either templateName or templateData must be provided` |
-| Template name not found in registry | 404 | `TEMPLATE_NOT_FOUND` | `Template not found: <name>` |
-| Missing template data keys (with `requireValidate: true`) | 400 | `MAIL_INVALID_CONFIGURATION` | `Missing template data for keys: <keys>` |
+| Template name not found in registry | 404 | `core.mail.template_not_found` | `Template not found: <name>` |
+| Missing template data keys (with `requireValidate: true`) | 400 | `core.mail.invalid_configuration` | `Missing template data for keys: <keys>` |
 
 ### Queue Executor Errors
 
@@ -78,7 +78,7 @@ this.application.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
 this.application.component(MailComponent);
 ```
 
-### "TEMPLATE_NOT_FOUND" when calling `sendTemplate()`
+### "core.mail.template_not_found" when calling `sendTemplate()`
 
 **Cause:** The template name passed to `sendTemplate()` was never registered via `templateEngine.registerTemplate()`.
 

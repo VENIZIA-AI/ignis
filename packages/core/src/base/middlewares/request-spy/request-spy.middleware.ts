@@ -26,8 +26,11 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       return null;
     }
 
+    // Only an explicit zero short-circuits: a CHUNKED request carries no Content-Length at all,
+    // and gating on the header's presence would skip every streamed body - and let a malformed one
+    // past this middleware's clean 400 to detonate deeper as a 500.
     const contentLength = opts.req.header(HTTP.Headers.CONTENT_LENGTH);
-    if (!contentLength || contentLength === '0') {
+    if (contentLength === '0' || !opts.req.raw.body) {
       return null;
     }
 
@@ -65,16 +68,13 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
       const incomingIp = getIncomingIp(context);
       const forwardedIp = req.header('x-real-ip') ?? req.header('x-forwarded-for') ?? null;
 
-      if (!incomingIp && !forwardedIp) {
-        throw getError({
-          statusCode: HTTP.ResultCodes.RS_4.BadRequest,
-          message: 'Malformed Connection Info',
-        });
-      }
-
       const method = req.method;
       const path = req.path ?? '/';
-      const clientIp = incomingIp ?? forwardedIp;
+
+      // Best-effort, never fatal: a unix socket, some proxies and any in-process call yield no
+      // connection info. This middleware exists to OBSERVE traffic - refusing to serve a request
+      // because its client IP is unknown turns a logging gap into an outage.
+      const clientIp = incomingIp ?? forwardedIp ?? 'unknown';
       const query = req.query() ?? {};
       const body = await this.parseBody(context);
 

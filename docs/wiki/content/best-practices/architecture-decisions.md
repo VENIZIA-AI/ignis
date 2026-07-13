@@ -230,8 +230,8 @@ export class UserController extends BaseRestController {
       const user = await this.userService.create(data);
       return c.json(user, 201);
     } catch (error) {
-      // Format error for API response
-      if (error instanceof ApplicationError && error.messageCode === 'DUPLICATE_EMAIL') {
+      // Format error for API response -- messageCode is always lower-cased by ApplicationError
+      if (error instanceof ApplicationError && error.messageCode === 'app.user.duplicate_email') {
         return c.json({ error: 'Email already exists' }, 400);
       }
       throw error; // Let global handler catch unknown errors
@@ -257,7 +257,7 @@ export class UserService extends BaseService {
     if (existing) {
       throw getError({
         statusCode: 400,
-        messageCode: 'DUPLICATE_EMAIL',
+        messageCode: MessageCode.build({ parts: ['app', 'user', 'duplicate_email'] }),
         message: 'User with this email already exists',
       });
     }
@@ -441,7 +441,7 @@ const appConfig = {
 ```typescript
 // Use for: component-specific settings
 // Components read their options from bindings - rebind before registering
-this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue({
+this.bind<IApiReferenceOptions>({ key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS }).toValue({
   restOptions: {
     base: { path: '/doc' },
     doc: { path: '/openapi.json' },
@@ -452,7 +452,7 @@ this.bind<ISwaggerOptions>({ key: SwaggerBindingKeys.SWAGGER_OPTIONS }).toValue(
     info: { title: 'My API', version: '1.0.0', description: 'My API documentation' },
   },
 });
-this.component(SwaggerComponent);
+this.component(ApiReferenceComponent);
 ```
 
 

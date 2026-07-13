@@ -1,4 +1,5 @@
 import { describe, test, expect } from 'bun:test';
+import omit from 'lodash/omit';
 import type { ISearchFieldDefinition } from '@/connectors/search/models';
 import {
   defineSearchCollection,
@@ -258,9 +259,9 @@ describe('search-collection DSL', () => {
 
     test('SELECT treats optional fields as optional', () => {
       const schema = deriveSearchDocumentSchema({ definition, type: 'select' });
-      const { rating: _rating, ...docWithoutRating } = validDocument as typeof validDocument & {
-        rating?: number;
-      };
+      const docWithoutRating = omit(validDocument as typeof validDocument & { rating?: number }, [
+        'rating',
+      ]);
       const result = schema.safeParse(docWithoutRating);
 
       expect(result.success).toBe(true);
@@ -268,7 +269,7 @@ describe('search-collection DSL', () => {
 
     test('CREATE requires id even if not marked optional elsewhere', () => {
       const schema = deriveSearchDocumentSchema({ definition, type: 'create' });
-      const { id: _id, ...docWithoutId } = validDocument;
+      const docWithoutId = omit(validDocument, ['id']);
       const result = schema.safeParse(docWithoutId);
 
       expect(result.success).toBe(false);

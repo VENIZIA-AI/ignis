@@ -20,7 +20,6 @@ Reusable classes and functions providing common functionality - designed for eas
 | [Socket.IO](./socket-io/) | Real-time communication | Socket.IO client/server helpers |
 | [WebSocket](./websocket/) | Real-time communication | Bun native WebSocket server/emitter, Redis scaling |
 | [Storage](./storage/) | File storage | In-memory, disk, MinIO, Bun S3 object storage |
-| [Testing](./testing/) | Test utilities | Test plan runner, base test classes |
 | [UID](./uid/) | Unique ID generation | Snowflake IDs, Base62 encoding |
 | [Worker Thread](./worker-thread/) | Worker threads | Node.js worker management |
 

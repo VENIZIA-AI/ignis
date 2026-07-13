@@ -189,6 +189,34 @@ class UserService {
 }
 ```
 
+### Logging Errors: `%s`, Never `%j`
+
+`message` and `stack` are non-enumerable properties on a native `Error`. `%j` formats via `JSON.stringify`, which only visits enumerable own properties, so `logger.error('Failed: %j', error)` silently drops both `message` and `stack` -- the two fields the log line exists to capture. Always pair an `Error` argument with `%s`; reserve `%j`/`%o` for plain data objects.
+
+```typescript
+// ✅ Good - %s prints message + stack
+logger.error('Failed to create user: %s', error);
+
+// ❌ Bad - %j drops message and stack (non-enumerable on Error)
+logger.error('Failed to create user: %j', error);
+```
+
+### Object Inspection Depth for `%s`
+
+Node hard-codes `depth: 0` for `%s` in `util.format` -- an object passed to `%s` collapses to `[Object]`, hiding the nested `extra` or `cause` a wrapped error carries. IGNIS's formatter (`formatLogMessage`/`deepSplat`) pre-inspects any object bound to a `%s` placeholder before handing the message to Winston, widening that depth so nested fields print instead of collapsing.
+
+```typescript
+logger.error('Failed: %s', error); // nested `error.cause` is now visible, not `[Object]`
+```
+
+The inspection depth defaults to `5` and is configurable via `APP_ENV_LOGGER_INSPECT_DEPTH`:
+
+```bash
+APP_ENV_LOGGER_INSPECT_DEPTH=8
+```
+
+The value must be a non-negative integer. An absent, empty, negative, or unparseable value falls back to the default of `5` -- there is no "unlimited" setting.
+
 ### Log Formats
 
 The logger supports two output formats, controlled by the `APP_ENV_LOGGER_FORMAT` environment variable (default: `text`).
@@ -396,7 +424,7 @@ Debug logs require **both** conditions to be met:
 1. `DEBUG=true` environment variable is set (parsed via `toBoolean`)
 2. `NODE_ENV` is either unset **or** is present in the `Environment.COMMON_ENVS` set
 
-The `COMMON_ENVS` set includes: `local`, `debug`, `development`, `alpha`, `beta`, `staging`, `production`. You can extend this set with `APP_ENV_EXTRA_LOG_ENVS`:
+The `COMMON_ENVS` set includes: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production`. You can extend this set with `APP_ENV_EXTRA_LOG_ENVS`:
 
 ```bash
 DEBUG=true
@@ -473,6 +501,7 @@ The buffer wraps around at 65,536 entries using bitwise AND masking (`writeIndex
 | `APP_ENV_EXTRA_LOG_ENVS` | _(empty)_ | Comma-separated additional environments to allow debug |
 | `APP_ENV_LOGGER_FORMAT` | `text` | Output format (`json` or `text`) |
 | `APP_ENV_LOGGER_FOLDER_PATH` | `./` | Log files directory |
+| `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only; invalid or absent falls back to `5` |
 
 #### File Rotation
 
@@ -502,6 +531,7 @@ APP_ENV_APPLICATION_NAME=my-service
 DEBUG=true
 APP_ENV_LOGGER_FORMAT=json
 APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
+APP_ENV_LOGGER_INSPECT_DEPTH=5
 
 # File rotation
 APP_ENV_LOGGER_FILE_FREQUENCY=24h
@@ -547,7 +577,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 
 **Fix:**
 1. Verify `DEBUG=true` is set in your environment.
-2. Verify `NODE_ENV` is set to one of: `local`, `debug`, `development`, `alpha`, `beta`, `staging`, `production` -- or is unset entirely.
+2. Verify `NODE_ENV` is set to one of: `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` -- or is unset entirely.
 3. If you use a custom environment name (e.g. `qa`), add it to `APP_ENV_EXTRA_LOG_ENVS=qa`.
 
 ```bash

@@ -144,6 +144,21 @@ describe('compileTypesenseCollection', () => {
     });
   });
 
+  test('defaultSort naming a field the collection does not declare is rejected at compile time, not forwarded', () => {
+    const definition = defineSearchCollection({
+      name: 'products',
+      fields: [field.number('rating', { sortable: true })],
+      defaultSort: 'rating',
+    });
+    // Repoint defaultSort at a non-existent field, bypassing the DSL's definition-time check, to
+    // exercise the compiler's own guard (compileTypesenseCollection also receives hand-built definitions).
+    (definition as { defaultSort?: string }).defaultSort = 'nonexistent';
+
+    expect(() => compileTypesenseCollection({ definition })).toThrow(
+      /does not exist in the collection/,
+    );
+  });
+
   test('does not emit default_sorting_field when defaultSort is absent', () => {
     const definition = defineSearchCollection({
       name: 'products',

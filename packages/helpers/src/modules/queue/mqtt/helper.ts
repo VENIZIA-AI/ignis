@@ -1,7 +1,9 @@
+import { redactSecrets, redactUrlCredentials } from '@/common/redact';
 import { BaseHelper } from '@/modules/base';
 import { getError } from '@/modules/error';
 import isEmpty from 'lodash/isEmpty';
 import mqtt from 'mqtt';
+import { invokeHook } from '../common';
 
 export interface IMQTTClientOptions {
   identifier: string;
@@ -17,7 +19,7 @@ export interface IMQTTClientOptions {
 export class MQTTClientHelper extends BaseHelper {
   private url: string;
   private options: mqtt.IClientOptions;
-  private client: mqtt.MqttClient;
+  private client?: mqtt.MqttClient;
 
   private onConnect?: () => void;
   private onDisconnect?: () => void;
@@ -42,9 +44,14 @@ export class MQTTClientHelper extends BaseHelper {
 
   configure() {
     if (this.client) {
+      // Never serialize the client: it holds the resolved IClientOptions, password included.
       this.logger
         .for(this.configure.name)
-        .info('[%s] MQTT Client already established! Client: %j', this.identifier, this.client);
+        .info(
+          '[%s] MQTT Client already established | Connected: %s',
+          this.identifier,
+          this.client.connected,
+        );
       return;
     }
 
@@ -60,35 +67,88 @@ export class MQTTClientHelper extends BaseHelper {
       .info(
         '[%s] Start configuring mqtt client | Url: %s | Options: %j',
         this.identifier,
-        this.url,
-        this.options,
+        redactUrlCredentials(this.url),
+        redactSecrets(this.options),
       );
-    this.client = mqtt.connect(this.url, this.options);
+    this.client = this.createClient({ url: this.url, options: this.options });
 
     this.client.on('connect', () => {
-      this.onConnect?.();
+      invokeHook({
+        logger: this.logger,
+        scope: 'onConnect',
+        execution: () => this.onConnect?.(),
+      });
     });
 
     this.client.on('disconnect', () => {
-      this.onDisconnect?.();
+      invokeHook({
+        logger: this.logger,
+        scope: 'onDisconnect',
+        execution: () => this.onDisconnect?.(),
+      });
     });
 
     this.client.on('message', (topic, message) => {
-      this.onMessage?.({ topic, message });
+      invokeHook({
+        logger: this.logger,
+        scope: 'onMessage',
+        execution: () => this.onMessage?.({ topic, message }),
+      });
     });
 
     this.client.on('error', error => {
-      this.onError?.(error);
+      invokeHook({
+        logger: this.logger,
+        scope: 'onError',
+        execution: () => this.onError?.(error),
+      });
     });
 
     this.client.on('close', (error?: Error) => {
-      this.onClose?.(error);
+      invokeHook({
+        logger: this.logger,
+        scope: 'onClose',
+        execution: () => this.onClose?.(error),
+      });
+    });
+  }
+
+  /** Client factory seam - overridden in tests to run the helper without a broker. */
+  protected createClient(opts: { url: string; options: mqtt.IClientOptions }): mqtt.MqttClient {
+    return mqtt.connect(opts.url, opts.options);
+  }
+
+  getClient() {
+    return this.client;
+  }
+
+  /**
+   * Tear the client down. Without it the mqtt client - and its reconnect timer - outlives the helper
+   * forever. Resolves once the driver reports the connection ended; safe to call more than once.
+   */
+  close(opts?: { isForce?: boolean }): Promise<void> {
+    const client = this.client;
+    this.client = undefined;
+
+    if (!client) {
+      return Promise.resolve();
+    }
+
+    const isForce = opts?.isForce ?? false;
+
+    return new Promise<void>(resolve => {
+      client.end(isForce, undefined, () => {
+        this.logger.for(this.close.name).info('[%s] MQTT Client closed!', this.identifier);
+        resolve();
+      });
     });
   }
 
   subscribe(opts: { topics: Array<string> }) {
+    const client = this.client;
+
     return new Promise((resolve, reject) => {
-      if (!this.client?.connected) {
+      if (!client?.connected) {
         return reject(
           getError({
             statusCode: 400,
@@ -98,7 +158,7 @@ export class MQTTClientHelper extends BaseHelper {
       }
 
       const { topics } = opts;
-      this.client.subscribe(topics, error => {
+      client.subscribe(topics, error => {
         if (error) {
           return reject(error);
         }
@@ -109,8 +169,10 @@ export class MQTTClientHelper extends BaseHelper {
   }
 
   publish(opts: { topic: string; message: string | Buffer }) {
+    const client = this.client;
+
     return new Promise((resolve, reject) => {
-      if (!this.client?.connected) {
+      if (!client?.connected) {
         return reject(
           getError({
             statusCode: 400,
@@ -120,7 +182,7 @@ export class MQTTClientHelper extends BaseHelper {
       }
 
       const { topic, message } = opts;
-      this.client.publish(topic, message, error => {
+      client.publish(topic, message, error => {
         if (error) {
           return reject(error);
         }

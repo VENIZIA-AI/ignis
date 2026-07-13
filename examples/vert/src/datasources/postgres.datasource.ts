@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { datasource, ValueOrPromise } from '@venizia/ignis';
+import { DataSourceDrivers, datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 import { drizzle } from 'drizzle-orm/node-postgres';
@@ -25,7 +25,7 @@ interface IDSConfigs {
  * 2. When configure() is called, getSchema() auto-discovers all bound models
  * 3. Drizzle is initialized with the auto-discovered schema
  */
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
@@ -55,9 +55,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
       dsSchema,
     );
 
-    // Store pool reference for transaction support
-    this.pool = new Pool(this.settings);
-    this.connector = drizzle({ client: this.pool, schema });
+    this.client = new Pool(this.settings);
+    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

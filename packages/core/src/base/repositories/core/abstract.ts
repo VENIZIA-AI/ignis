@@ -11,7 +11,7 @@ import type {
   TDataRange,
   TRepositoryOperationScope,
 } from '../common';
-import { RepositoryOperationScopes } from '../common';
+import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
 import type { TFilter, TWhere } from '../query-schemas';
 
 /** Engine-neutral repository plumbing - lazy dataSource/entity resolution, class-keyed `@model`
@@ -76,9 +76,7 @@ export abstract class AbstractRepository<
 
   /** Auto-resolves from @repository metadata if not explicitly set. */
   get entity(): AbstractEntity {
-    if (!this._entity) {
-      this._entity = this.resolveEntity();
-    }
+    this._entity ??= this.resolveEntity();
     return this._entity;
   }
 
@@ -142,7 +140,14 @@ export abstract class AbstractRepository<
     return new ctor();
   }
 
-  /** Readable */
+  /** Rejects a verb the current operation scope does not permit. */
+  protected denyOperation(methodName: string): never {
+    throw getError({
+      messageCode: RepositoryErrorCodes.OPERATION_NOT_ALLOWED,
+      message: `[${methodName}] Repository operation is NOT ALLOWED | scope: ${this.operationScope}`,
+    });
+  }
+
   abstract count(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<TCount>;
 
   abstract existsWith(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<boolean>;
@@ -168,7 +173,6 @@ export abstract class AbstractRepository<
     options?: TOptions;
   }): Promise<TNullable<R>>;
 
-  /** Creatable */
   abstract create(opts: {
     data: TPersistObject;
     options: TOptions & { shouldReturn: false };
@@ -189,7 +193,6 @@ export abstract class AbstractRepository<
     options?: TOptions & { shouldReturn?: true };
   }): Promise<TCount & { data: Array<R> }>;
 
-  /** Updatable */
   abstract updateById(opts: {
     id: IdType;
     data: Partial<TPersistObject>;
@@ -212,7 +215,7 @@ export abstract class AbstractRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for updateAll. */
   updateBy(opts: {
@@ -224,7 +227,7 @@ export abstract class AbstractRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
   updateBy<R = TDataObject>(opts: {
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
@@ -239,7 +242,6 @@ export abstract class AbstractRepository<
     return this.updateAll<R>({ data, where, options });
   }
 
-  /** Deletable */
   abstract deleteById(opts: {
     id: IdType;
     options: TOptions & { shouldReturn: false };
@@ -258,7 +260,7 @@ export abstract class AbstractRepository<
   abstract deleteAll<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for deleteAll. */
   deleteBy(opts: {
@@ -268,7 +270,7 @@ export abstract class AbstractRepository<
   deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
   deleteBy<R = TDataObject>(opts: {
     where: TWhere<TDataObject>;
     options?: TOptions & { shouldReturn?: boolean; force?: boolean };

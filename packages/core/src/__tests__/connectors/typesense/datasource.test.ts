@@ -53,7 +53,6 @@ class FakeTypesenseConnector {
 const asTypesenseConnector = (fake: FakeTypesenseConnector): TypesenseConnector => fake as any;
 
 class AppSearchDataSource extends TypesenseDataSource {}
-class NoConnectorDataSource extends TypesenseDataSource {}
 class SkipProvisionDataSource extends TypesenseDataSource {}
 class SynonymProvisionDataSource extends TypesenseDataSource {}
 
@@ -66,7 +65,7 @@ class ProductDocument extends BaseSearchEntity {
 }
 
 @repository({ model: ProductDocument, dataSource: AppSearchDataSource })
-class _ProductRepo {}
+class ProductRepo {}
 
 @model({ type: 'entity' })
 class GizmoDocument extends BaseSearchEntity {
@@ -77,7 +76,7 @@ class GizmoDocument extends BaseSearchEntity {
 }
 
 @repository({ model: GizmoDocument, dataSource: SkipProvisionDataSource })
-class _GizmoRepo {}
+class GizmoRepo {}
 
 @model({ type: 'entity' })
 class WidgetDocument extends BaseSearchEntity {
@@ -92,15 +91,15 @@ class WidgetDocument extends BaseSearchEntity {
 }
 
 @repository({ model: WidgetDocument, dataSource: SynonymProvisionDataSource })
-class _WidgetRepo {}
+class WidgetRepo {}
 
 describe('TypesenseDataSource', () => {
   test('@repository bindings were registered for both fixture repositories', () => {
     const registry = MetadataRegistry.getInstance();
 
-    expect(registry.getRepositoryBinding({ name: _ProductRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _GizmoRepo.name })).toBeDefined();
-    expect(registry.getRepositoryBinding({ name: _WidgetRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: ProductRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: GizmoRepo.name })).toBeDefined();
+    expect(registry.getRepositoryBinding({ name: WidgetRepo.name })).toBeDefined();
   });
 
   test('configure() builds the connector-less path only when no connector is injected, and provisions the compiled schema', async () => {
@@ -123,12 +122,15 @@ describe('TypesenseDataSource', () => {
   });
 
   test('getConnector() throws before configure() has run', () => {
-    const ds = new NoConnectorDataSource({
+    // Constructed as TypesenseDataSource itself, not a subclass: the shared base names the error
+    // after the runtime class, so only a direct instance pins the message an app actually sees.
+    const ds = new TypesenseDataSource({
       name: 'no-connector-ds',
       config: { nodes: [{ host: 'localhost', port: 8108 }], apiKey: 'xyz' },
     });
 
     expect(() => ds.getConnector()).toThrow(/\[TypesenseDataSource\] Connector not initialized/);
+    expect(() => ds.getConnector()).toThrow(/Name: no-connector-ds \| Call configure\(\) first/);
   });
 
   test('autoProvision: false skips ensureCollection entirely', async () => {

@@ -82,7 +82,6 @@ export abstract class AbstractGrpcController<
     const { configs } = opts;
     const mws: TRpcMiddleware<RouteEnv>[] = [];
 
-    // Inject authenticate middleware
     if (configs.authenticate) {
       const { strategies = [], mode = AuthenticationModes.ANY } = configs.authenticate;
       if (strategies.length > 0) {
@@ -165,7 +164,6 @@ export abstract class AbstractGrpcController<
     await this.binding();
     this.registerRpcsFromRegistry();
 
-    // Create per-controller adapter middleware and mount on this.router
     const adapter = await GrpcRequestAdapter.build({ controller: this });
     this.router.use('*', adapter.middleware);
 

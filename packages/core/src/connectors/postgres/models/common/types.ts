@@ -38,8 +38,6 @@ export interface IEntity<Schema extends TTableSchemaWithId = TTableSchemaWithId>
   relations?: TValueOrResolver<Array<TRelationConfig>>;
 }
 
-// -- Enricher option types (src/connectors/postgres/models/enrichers/*.enricher.ts) --
-
 export type TDataTypeEnricherOptions = {
   defaultValue: Partial<{
     dataType: string;

@@ -2,7 +2,7 @@ export * from './auth';
 export * from './controller';
 export * from './health-check';
 export * from './request-tracker';
-export * from './swagger';
+export * from './api-reference';
 
 // Excluded from barrel — import directly from subpath
 // export * from './mail';

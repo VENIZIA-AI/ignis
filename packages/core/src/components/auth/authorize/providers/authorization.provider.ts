@@ -10,8 +10,6 @@ import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
 import { Authorization, AuthorizationDecisions, resolveRequestDomain } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
 
-// Authorization Provider — produces middleware factory via IProvider pattern
-
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
     super({ scope: AuthorizationProvider.name });
@@ -31,14 +29,12 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const registry = AuthorizationEnforcerRegistry.getInstance();
       const options = registry.resolveOptions();
 
-      // 1. Check skip flag
       const isSkipAuthorize = context.get(Authorization.SKIP_AUTHORIZATION);
       if (isSkipAuthorize) {
         logger.warn('SKIP checking authorization | path: %s', context.req.path);
         return next();
       }
 
-      // 2. Get authenticated user
       const user = context.get(Authentication.CURRENT_USER) as IAuthUser | undefined;
       if (!user) {
         throw getError({
@@ -47,8 +43,8 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         });
       }
 
-      // 3. Check role-based shortcuts (alwaysAllowRoles + per-route allowedRoles)
-      const needsRoleCheck = options?.alwaysAllowRoles?.length || spec.allowedRoles?.length;
+      const needsRoleCheck =
+        Boolean(options?.alwaysAllowRoles?.length) || Boolean(spec.allowedRoles?.length);
       if (needsRoleCheck) {
         const userRoles = this.extractUserRoles({ user });
 
@@ -69,7 +65,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      // 4. Execute voters
       if (spec.voters?.length) {
         for (const voter of spec.voters) {
           const decision = await voter({
@@ -95,7 +90,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         }
       }
 
-      // 5. Resolve enforcer — if none registered, skip authorization
       if (!registry.hasEnforcers()) {
         logger.debug(
           'SKIP checking authorization | No enforcers registered | path: %s',
@@ -107,9 +101,9 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-      // 5b. Resolve request domain scope and stash it for the enforcer — only when domain scoping is
-      // actually in play (a per-route domain OR a configured global resolver). This keeps the legacy,
-      // non-domain enforcers untouched and avoids running a resolver (possible DB hit) for no reason.
+      // Only resolve domain scope when it's actually in play (a per-route domain OR a configured
+      // global resolver) — keeps legacy non-domain enforcers untouched and avoids an unnecessary
+      // resolver call (possible DB hit).
       if (spec.domain || options?.domainResolver) {
         const domainScope = await resolveRequestDomain({
           spec,
@@ -119,7 +113,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         context.set(Authorization.DOMAIN, domainScope);
       }
 
-      // 6. Build or retrieve cached rules
       let rules = context.get(Authorization.RULES);
       if (!rules) {
         if (!user.principalType) {
@@ -137,7 +130,6 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
         context.set(Authorization.RULES, rules);
       }
 
-      // 7. Evaluate permission via enforcer
       let decision = await enforcer.evaluate({
         rules,
         request: {

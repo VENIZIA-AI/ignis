@@ -26,6 +26,20 @@ export type TDataRange = {
   total: number;
 };
 
+/** Builds the Content-Range style envelope (inclusive end index) shared by every engine's
+ * `shouldQueryRange` path. An empty page collapses `end` onto `start`. */
+export const buildDataRange = (opts: {
+  skip?: number;
+  offset?: number;
+  dataLength: number;
+  total: number;
+}): TDataRange => {
+  const { skip, offset, dataLength, total } = opts;
+  const start = skip ?? offset ?? 0;
+  const end = dataLength > 0 ? start + dataLength - 1 : start;
+  return { start, end, total };
+};
+
 /** Options for Drizzle ORM query building, used internally by FilterBuilder. */
 export type TDrizzleQueryOptions = Partial<{
   limit: number;
@@ -164,7 +178,7 @@ export interface IUpdatableRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for updateAll. */
   updateBy(opts: {
@@ -178,7 +192,7 @@ export interface IUpdatableRepository<
     data: Partial<TPersistObject>;
     where: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 }
 
 /** Interface for delete operations. */
@@ -204,7 +218,7 @@ export interface IDeletableRepository<
   deleteAll<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 
   /** Alias for deleteAll. */
   deleteBy(opts: {
@@ -216,7 +230,7 @@ export interface IDeletableRepository<
   deleteBy<R = TDataObject>(opts: {
     where?: TWhere<TDataObject>;
     options?: ExtraOptions & { shouldReturn?: true; force?: boolean };
-  }): Promise<TCount & { data: Array<R> }>;
+  }): Promise<TCount & { data: Array<R> | null }>;
 }
 
 /** Interface for full CRUD repository operations - reads plus create, update, and delete. */

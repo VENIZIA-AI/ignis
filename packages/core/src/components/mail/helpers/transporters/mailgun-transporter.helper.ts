@@ -1,5 +1,5 @@
 import type { AnyType } from '@venizia/ignis-helpers';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import type { Stream } from 'node:stream';
 import type {
   IMailAttachment,
@@ -8,6 +8,7 @@ import type {
   IMailTransport,
   TMailgunConfig,
 } from '../../common';
+import { MailErrorCodes } from '../../common';
 
 export class MailgunTransportHelper extends BaseHelper implements IMailTransport {
   private client: AnyType; // IMessagesClient from mailgun.js
@@ -20,18 +21,44 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
   }
 
   configure(config: TMailgunConfig) {
-    // validateModule({
-    //   scope: MailgunTransportHelper.name,
-    //   modules: ['mailgun.js'],
-    // });
+    this.validateConfig(config);
 
     this.domain = config.domain;
+    this.client = this.buildClient(config);
+  }
 
+  /**
+   * Credentials and domain are checked HERE, not on the first send: a mail transport that only
+   * reports a missing key when a user is already waiting for a verification email is unusable.
+   * The error never echoes any credential value back.
+   */
+  private validateConfig(config: TMailgunConfig): void {
+    const missingKeys = (['username', 'key', 'domain'] as const).filter(key => {
+      return !config?.[key];
+    });
+
+    if (missingKeys.length === 0) {
+      return;
+    }
+
+    this.logger
+      .for(this.configure.name)
+      .error('Invalid Mailgun configuration | Missing keys: %s', missingKeys.join(', '));
+
+    throw getError({
+      statusCode: 500,
+      messageCode: MailErrorCodes.INVALID_CONFIGURATION,
+      message: `Invalid Mailgun configuration | Missing required keys: ${missingKeys.join(', ')}`,
+    });
+  }
+
+  /** Client factory seam - overridden in tests to run the helper without the mailgun.js peer. */
+  protected buildClient(config: TMailgunConfig): AnyType {
     const Mailgun = require('mailgun.js');
     const mailgun = new Mailgun(FormData);
     const client = mailgun.client(config);
 
-    this.client = client.messages;
+    return client.messages;
   }
 
   async send(message: IMailMessage): Promise<IMailSendResult> {

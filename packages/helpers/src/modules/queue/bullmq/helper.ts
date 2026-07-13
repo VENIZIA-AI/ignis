@@ -1,8 +1,10 @@
 import { BaseHelper } from '@/modules/base';
+import { getError } from '@/modules/error';
 import { IRedisHelper } from '@/modules/redis';
-import { ConnectionOptions, Job, Queue, Worker } from 'bullmq';
+import { toError } from '@/utilities/promise.utility';
+import { ConnectionOptions, Job, Processor, Queue, Worker } from 'bullmq';
 import { Cluster } from 'ioredis';
-import { TBullQueueRole } from '../common';
+import { invokeHook, TBullQueueRole } from '../common';
 
 interface IBullMQOptions<TQueueElement = any, TQueueResult = any> {
   queueName: string;
@@ -91,12 +93,42 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     }
 
     const queueName = this.resolveQueueName();
-    this.queue = new Queue<TQueueElement, TQueueResult>(queueName, {
+    this.queue = this.buildQueue({ queueName });
+
+    // An 'error' event without a listener is re-thrown by EventEmitter - a Redis hiccup would take the
+    // whole process down.
+    this.queue.on('error', error => {
+      this.logger
+        .for('queue-error')
+        .error(
+          'queue: %s | Queue error! Error: %s | ID: %s',
+          this.queueName,
+          error,
+          this.identifier,
+        );
+    });
+  }
+
+  /** Client factory seam - overridden in tests to run the helper without Redis. */
+  protected buildQueue(opts: { queueName: string }): Queue<TQueueElement, TQueueResult> {
+    return new Queue<TQueueElement, TQueueResult>(opts.queueName, {
       connection: this.redisConnection.duplicateClient() as ConnectionOptions,
       defaultJobOptions: {
         removeOnComplete: true,
         removeOnFail: true,
       },
+    });
+  }
+
+  /** Client factory seam - overridden in tests to run the helper without Redis. */
+  protected buildWorker(opts: {
+    queueName: string;
+    processor: Processor<TQueueElement, TQueueResult>;
+  }): Worker<TQueueElement, TQueueResult> {
+    return new Worker<TQueueElement, TQueueResult>(opts.queueName, opts.processor, {
+      connection: this.redisConnection.duplicateClient() as ConnectionOptions,
+      concurrency: this.numberOfWorker,
+      lockDuration: this.lockDuration,
     });
   }
 
@@ -109,12 +141,12 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
     }
 
     const queueName = this.resolveQueueName();
-    this.worker = new Worker<TQueueElement, TQueueResult>(
+    this.worker = this.buildWorker({
       queueName,
-      async job => {
+      processor: async job => {
         if (this.onWorkerData) {
-          const rs = await this.onWorkerData(job);
-          return rs;
+          const result = await this.onWorkerData(job);
+          return result;
         }
 
         const { id, name, data } = job;
@@ -128,42 +160,38 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
             data,
             this.identifier,
           );
+
+        return undefined as TQueueResult;
       },
-      {
-        connection: this.redisConnection.duplicateClient() as ConnectionOptions,
-        concurrency: this.numberOfWorker,
-        lockDuration: this.lockDuration,
-      },
-    );
+    });
 
     this.worker.on('completed', (job, result) => {
-      this.onWorkerDataCompleted?.(job, result)
-        .then(() => {})
-        .catch(error => {
-          this.logger
-            .for('worker-completed')
-            .error(
-              'queue: %s | Error while processing completed job! Error: %s | ID: %s',
-              this.queueName,
-              error,
-              this.identifier,
-            );
-        });
+      invokeHook({
+        logger: this.logger,
+        scope: 'worker-completed',
+        execution: () => this.onWorkerDataCompleted?.(job, result),
+      });
     });
 
     this.worker.on('failed', (job, reason) => {
-      this.onWorkerDataFail?.(job, reason)
-        .then(() => {})
-        .catch(error => {
-          this.logger
-            .for('worker-failed')
-            .error(
-              'queue: %s | Error while processing completed job! Error: %s | ID: %s',
-              this.queueName,
-              error,
-              this.identifier,
-            );
-        });
+      invokeHook({
+        logger: this.logger,
+        scope: 'worker-failed',
+        execution: () => this.onWorkerDataFail?.(job, reason),
+      });
+    });
+
+    // An 'error' event without a listener is re-thrown by EventEmitter - a Redis hiccup would take the
+    // whole process down.
+    this.worker.on('error', error => {
+      this.logger
+        .for('worker-error')
+        .error(
+          'queue: %s | Worker error! Error: %s | ID: %s',
+          this.queueName,
+          error,
+          this.identifier,
+        );
     });
   }
 
@@ -191,17 +219,36 @@ export class BullMQHelper<TQueueElement = any, TQueueResult = any> extends BaseH
   }
 
   async close() {
+    const failures: string[] = [];
+
+    // Both connections must be released even when the first close fails - otherwise a failing worker
+    // close silently leaks the queue's Redis connection forever.
     try {
       await this.worker?.close();
-      await this.queue?.close();
-      this.logger
-        .for(this.close.name)
-        .info('BullMQ helper closed successfully | ID: %s', this.identifier);
     } catch (error) {
       this.logger
         .for(this.close.name)
-        .error('Error closing BullMQ helper: %s | ID: %s', error, this.identifier);
-      throw error;
+        .error('Error closing BullMQ worker: %s | ID: %s', error, this.identifier);
+      failures.push(toError(error).message);
     }
+
+    try {
+      await this.queue?.close();
+    } catch (error) {
+      this.logger
+        .for(this.close.name)
+        .error('Error closing BullMQ queue: %s | ID: %s', error, this.identifier);
+      failures.push(toError(error).message);
+    }
+
+    if (failures.length) {
+      throw getError({
+        message: `[close][${this.identifier}] Failed to close BullMQ helper | Errors: ${failures.join(' | ')}`,
+      });
+    }
+
+    this.logger
+      .for(this.close.name)
+      .info('BullMQ helper closed successfully | ID: %s', this.identifier);
   }
 }

@@ -40,7 +40,6 @@ export class HfQueueHelper<T> extends BaseHelper {
 
   /** Remove + return the next live value in FIFO order, skipping cancelled nodes. Null when empty. */
   dequeue(): TNullable<T> {
-    // Continuously skip cancelled nodes until touch required to process
     while (this.head < this.nodes.length && this.nodes[this.head].isCancelled) {
       this.head += 1;
     }
@@ -81,6 +80,7 @@ export class HfQueueHelper<T> extends BaseHelper {
       const node = this.nodes[index];
       if (!node.isCancelled) {
         values.push(node.value);
+        node.isCancelled = true; // mark consumed so a late cancel() of this node is a no-op, as in dequeue()
       }
     }
 
