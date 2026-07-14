@@ -78,7 +78,7 @@ export abstract class RelationalBaseRepository<
   }
 
   get connector() {
-    return this.dataSource.connector;
+    return this.dataSource.getConnector();
   }
 
   override setDataSource(opts: { dataSource: IPostgresDataSource }): void {
@@ -203,7 +203,7 @@ export abstract class RelationalBaseRepository<
     const { transaction } = opts ?? {};
 
     if (!transaction) {
-      return this.dataSource.connector;
+      return this.dataSource.getConnector();
     }
 
     if (!transaction.isActive) {

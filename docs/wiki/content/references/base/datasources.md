@@ -133,11 +133,11 @@ abstract class AbstractPostgresDataSource<
 | Property | Type | Visibility | Description |
 |----------|------|------------|-------------|
 | `connector` | `TRelationalConnector<Schema>` | public | Drizzle ORM instance (any Drizzle pg driver satisfies this - see the driver seam below) |
-| `driver` | `IRelationalDriver` | protected | The connection driver (`node-postgres` or `postgres-js`); built by `useDriver()` |
-| `client` | `Client` (`Pool` by default) | protected | The raw driver client `configure()` built - a `pg.Pool`, or a postgres-js `Sql`. Assigning it alone is enough: a driver is resolved from it on first use. Absent once `useDriver()` wired a driver instead |
+| `driver` | `IRelationalDriver` | protected | The connection driver (`node-postgres` or `postgres-js`); built lazily by `wireDriverFromMetadata()` from the class named in `@datasource({ driver })`, or explicitly by `useDriver()` |
+| `client` | `Client` (`Pool` by default) | protected | The raw driver client `configure()` built - a `pg.Pool`, or a postgres-js `Sql`. Assigning it alone is enough: `wireDriverFromMetadata()` instantiates the `@datasource({ driver })` class over it on first use. Absent once `useDriver()` wired a driver instead |
 
 > [!NOTE] Driver seam
-> `AbstractRelationalDataSource`/`BaseRelationalDataSource` (exported as `AbstractPostgresDataSource`/`BasePostgresDataSource`) now take a fourth generic - `<Settings, Schema, ConfigurableOptions, Client = Pool>` - so a `postgres-js` datasource can declare `Client = Sql` and keep `getClient()` honest. The protected `useDriver({ driver, schema? })` assigns `this.driver` **and** builds `this.connector` in one step. `pg` and `postgres` are both optional peer dependencies; concrete drivers live at `@venizia/ignis/postgres/node-postgres` and `@venizia/ignis/postgres/postgres-js`, and Supabase support at `@venizia/ignis/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
+> `AbstractRelationalDataSource`/`BaseRelationalDataSource` (exported as `AbstractPostgresDataSource`/`BasePostgresDataSource`) now take a fourth generic - `<Settings, Schema, ConfigurableOptions, Client = Pool>` - so a `postgres-js` datasource can declare `Client = Sql` and keep `getClient()` honest. `@datasource({ driver })` names the driver **class** (`NodePostgresDriver` or `PostgresJsDriver`), never a string - a driver-name string cannot carry `pg`/`postgres` into the app's bundle, only a real class reference can. `configure()` only needs to assign `this.client`; the protected `wireDriverFromMetadata()` (called internally by `getConnector()`/`resolveDriver()`) instantiates the named class over it and builds `this.connector`, lazily and idempotently. The protected `useDriver({ driver, schema? })` stays available for a custom or third-party driver - it assigns `this.driver` **and** builds `this.connector` in one step, bypassing `@datasource({ driver })` entirely. `pg` and `postgres` are both optional peer dependencies; concrete drivers live at `@venizia/ignis/postgres/node-postgres` and `@venizia/ignis/postgres/postgres-js`, and Supabase support at `@venizia/ignis/postgres/supabase`. See [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers).
 
 **Additional abstract method:**
 
@@ -202,9 +202,8 @@ When you use `@repository({ model: YourModel, dataSource: YourDataSource })`, th
     -   It calls the `configure()` method on your instance
 
 3.  **Your `configure()` method runs**:
-    -   Call `this.getSchema()` to get the auto-discovered schema
-    -   Create a `Pool` instance and assign it to `this.client` (required for transaction support)
-    -   Create the Drizzle connector from that client and the schema
+    -   Create a `Pool` instance and assign it to `this.client` - that is the whole method
+    -   `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over `this.client` and build the Drizzle connector from it - your `configure()` never touches `this.connector` directly
 
 ### Example Implementations
 
@@ -215,8 +214,8 @@ Simplest approach - schema is auto-discovered from repositories:
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { BasePostgresDataSource, datasource } from '@venizia/ignis';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { applicationEnvironment, int, ValueOrPromise } from '@venizia/ignis-helpers';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -233,10 +232,10 @@ interface IDataSourceConfigs {
  *
  * How it works:
  * 1. @repository decorator binds model to datasource
- * 2. When configure() is called, getSchema() auto-discovers all bound models
- * 3. Drizzle is initialized with the auto-discovered schema
+ * 2. getSchema() auto-discovers all bound models when the driver/connector are wired
+ * 3. Naming NodePostgresDriver in @datasource is what wires the driver and Drizzle connector
  */
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   private readonly protocol = 'postgresql';
 
@@ -256,19 +255,15 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
   }
 
   override configure(): ValueOrPromise<void> {
-    // getSchema() auto-discovers models from @repository bindings
-    const schema = this.getSchema();
-
-    const dataSourceSchema = Object.keys(schema);
+    const schema = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      dataSourceSchema.length,
-      dataSourceSchema,
+      schema.length,
+      schema,
     );
 
-    // The client slot is what beginTransaction() resolves its driver from
+    // That is all - the base class wires the driver + connector from @datasource({ driver }).
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -295,12 +290,13 @@ The `PostgresDataSource.schema` will automatically include User and Configuratio
 When you need explicit control over schema (e.g., subset of models, custom ordering):
 
 ```typescript
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import {
   User, userTable, userRelations,
   Configuration, configurationTable, configurationRelations,
 } from '@/models/entities';
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
@@ -323,9 +319,8 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
   }
 
   override configure(): ValueOrPromise<void> {
-    // When schema is manually provided, getSchema() returns it directly
+    // Manually-provided schema is used as-is by the connector the base class builds from this.client
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema: this.getSchema() });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -335,7 +330,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 ```
 
 > [!IMPORTANT]
-> Your `configure()` must leave the datasource with a way to reach the database: either assign the raw client to `this.client`, or wire a driver with `this.useDriver({ driver })`. `beginTransaction()` resolves a driver lazily from whichever you provided. With neither, it throws `No driver and no client`.
+> Your `configure()` must leave the datasource with a way to reach the database: either assign the raw client to `this.client` (paired with naming the driver class in `@datasource({ driver })`), or wire a driver directly with `this.useDriver({ driver })` for a custom or third-party driver. `getConnector()`/`beginTransaction()` resolve the driver lazily from whichever you provided. With neither, it throws `No driver and no client`.
 
 ### `@datasource` Decorator
 
@@ -343,14 +338,14 @@ The `@datasource` decorator registers datasource metadata:
 
 ```typescript
 @datasource({
-  driver: 'node-postgres',       // Required - database driver
+  driver: NodePostgresDriver,    // Required - driver CLASS (or a search engine's driver-name string)
   autoDiscovery?: true           // Optional - defaults to true
 })
 ```
 
 | Option | Type | Default | Description |
 |--------|------|---------|-------------|
-| `driver` | `TDataSourceDriver` | - | Driver name - `DataSourceDrivers` defines four constants: `'node-postgres'` and `'postgres-js'` (relational), `'typesense'` and `'meilisearch'` (search); any other engine-driver string is also accepted |
+| `driver` | `TDataSourceDriverClass` | - | The driver **class** - `NodePostgresDriver` or `PostgresJsDriver` (imported from `@venizia/ignis/postgres/node-postgres` / `.../postgres-js`), never a driver-name string. A class reference is the only thing that carries `pg`/`postgres` into the app's bundle. **Omit it for a search datasource**: `extends TypesenseDataSource` already names the engine, and is what carries `typesense` into the bundle |
 | `autoDiscovery` | `boolean` | `true` | Enable/disable schema auto-discovery |
 
 ### Abstract Methods
@@ -359,7 +354,7 @@ When extending `BasePostgresDataSource`, these methods must be implemented:
 
 | Method | Return Type | Description |
 |--------|-------------|-------------|
-| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client and Drizzle connector. Must set `this.client` (or call `this.useDriver()`) and `this.connector`. |
+| `configure(opts?)` | `ValueOrPromise<void>` | Initialize the client. Must set `this.client` (the base class wires the driver and Drizzle connector from `@datasource({ driver })`), or call `this.useDriver()` directly for a custom driver. |
 | `getConnectionString()` | `ValueOrPromise<string>` | Return the database connection string. |
 
 ### Helper Methods
@@ -400,6 +395,9 @@ DataSourceDrivers.TYPESENSE      // 'typesense'
 DataSourceDrivers.MEILISEARCH    // 'meilisearch'
 DataSourceDrivers.isValid('node-postgres')  // true
 ```
+
+> [!NOTE]
+> `NODE_POSTGRES`/`POSTGRES_JS` remain valid `TDataSourceDriver` string values, but `@datasource({ driver })` on a **relational** datasource no longer accepts them - it takes the `NodePostgresDriver`/`PostgresJsDriver` class instead (see [Postgres Drivers & Supabase](/guides/core-concepts/persistent/postgres-drivers)). Search connectors (`TYPESENSE`, `MEILISEARCH`) still take the driver-name string form.
 
 ## Transaction Support
 

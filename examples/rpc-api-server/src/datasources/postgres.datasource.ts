@@ -6,10 +6,10 @@ import {
   User,
   usersTable,
 } from '@/models/entities';
-import { DataSourceDrivers, datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -21,7 +21,7 @@ interface IDSConfigs {
   ssl: boolean;
 }
 
-@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
@@ -60,10 +60,6 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 
   override configure(): ValueOrPromise<void> {
     this.client = new Pool(this.settings);
-    this.connector = drizzle({
-      client: this.client,
-      schema: this.schema,
-    });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

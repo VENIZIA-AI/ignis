@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { DataSourceDrivers, datasource } from '@venizia/ignis';
+import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis/typesense';
 import { applicationEnvironment, int, toDelimitedArray } from '@venizia/ignis-helpers';
 
@@ -41,7 +41,7 @@ const resolveNodes = (): Array<{ host: string; port: number; protocol: string }>
   ];
 };
 
-@datasource({ driver: DataSourceDrivers.TYPESENSE })
+@datasource()
 export class SearchDataSource extends TypesenseDataSource {
   constructor() {
     super({

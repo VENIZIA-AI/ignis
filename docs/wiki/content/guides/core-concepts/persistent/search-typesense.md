@@ -176,11 +176,11 @@ await connector.linkSynonymSets({ collection: 'articles', synonymSets: ['article
 
 ```typescript
 // src/datasources/search.datasource.ts
-import { DataSourceDrivers, datasource } from '@venizia/ignis';
+import { datasource } from '@venizia/ignis';
 import { TypesenseDataSource } from '@venizia/ignis/typesense';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
 
-@datasource({ driver: DataSourceDrivers.TYPESENSE })
+@datasource()
 export class SearchDataSource extends TypesenseDataSource {
   constructor() {
     super({
@@ -200,6 +200,8 @@ export class SearchDataSource extends TypesenseDataSource {
   }
 }
 ```
+
+No `driver` in the decorator, and that is not an omission. A relational datasource has to name one, because a single `BasePostgresDataSource` runs on either `pg` or `postgres` and something must pick. A search datasource has already picked: `extends TypesenseDataSource` **is** the engine reference, and it is what carries the `typesense` package into your bundle. Naming the engine twice would just be a second chance to disagree with yourself.
 
 `TypesenseDataSource` extends `BaseSearchDataSource` (adds auto-discovery/provisioning) which extends `AbstractSearchDataSource` (engine contract: `getDriver()`, `getQueryDialect()`, `compileCollection()`, `ensureCollection()`) which extends the engine-neutral `AbstractDataSource`. Since `TypesenseDataSource` never overrides `beginTransaction()`, it inherits the neutral `NotSupported` default - see [Connectors](/references/base/connectors).
 

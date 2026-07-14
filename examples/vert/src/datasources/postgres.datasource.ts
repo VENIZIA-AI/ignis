@@ -1,8 +1,8 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { DataSourceDrivers, datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { applicationEnvironment, int } from '@venizia/ignis-helpers';
-import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -15,17 +15,13 @@ interface IDSConfigs {
 }
 
 /**
- * PostgresDataSource with auto-discovery support.
+ * Schema is auto-discovered from the repositories that reference this datasource: `@repository`
+ * binds a model to a datasource, and `getSchema()` collects them.
  *
- * Features:
- * - Schema is auto-discovered from repositories that reference this datasource
- *
- * How it works:
- * 1. @repository decorator binds model to datasource
- * 2. When configure() is called, getSchema() auto-discovers all bound models
- * 3. Drizzle is initialized with the auto-discovered schema
+ * `configure()` only builds the client. Naming NodePostgresDriver in `@datasource` is what wires
+ * the driver and the connector - and what carries `pg` into the bundle.
  */
-@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   private readonly protocol = 'postgresql';
 
@@ -45,18 +41,14 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    // getSchema() auto-discovers models from @repository bindings
-    const schema = this.getSchema();
-
-    const dsSchema = Object.keys(schema);
+    const schema = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      dsSchema.length,
-      dsSchema,
+      schema.length,
+      schema,
     );
 
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

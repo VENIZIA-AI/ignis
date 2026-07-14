@@ -1,5 +1,5 @@
 import { EnvironmentKeys } from '@/common/environments';
-import { DataSourceDrivers, datasource, ValueOrPromise } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
 import { buildPostgresJsOptions, PoolerModes, TPoolerMode } from '@venizia/ignis/postgres/supabase';
@@ -20,7 +20,7 @@ interface IDataSourceConfigs {
  *
  * There is no `pg` anywhere in this package. That is the point: the driver seam is real.
  */
-@datasource({ driver: DataSourceDrivers.POSTGRES_JS })
+@datasource({ driver: PostgresJsDriver })
 export class SupabaseDataSource extends BasePostgresDataSource<
   IDataSourceConfigs,
   Record<string, unknown>,
@@ -46,26 +46,17 @@ export class SupabaseDataSource extends BasePostgresDataSource<
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
+    const schema = Object.keys(this.getSchema());
     const { url, mode, max } = this.settings;
 
     this.logger
       .for(this.configure.name)
-      .debug(
-        'Auto-discovered schema | Models (%s): %o',
-        Object.keys(schema).length,
-        Object.keys(schema),
-      );
+      .debug('Auto-discovered schema | Models (%s): %o', schema.length, schema);
 
     // `prepare: false` is emitted for TRANSACTION mode only, and there it is not a tuning knob:
     // Supavisor rebinds the backend per transaction, so a server-side prepared statement created on
     // one backend is simply not there on the next.
-    const client = postgres(url, buildPostgresJsOptions({ mode, max }));
-
-    // useDriver() assigns the driver AND builds the pooled connector from it, so the half-wired
-    // state (driver set, connector forgotten - pooled queries silently bypassing the driver) cannot
-    // exist.
-    this.useDriver({ driver: new PostgresJsDriver({ client }), schema });
+    this.client = postgres(url, buildPostgresJsOptions({ mode, max }));
   }
 
   override getConnectionString(): ValueOrPromise<string> {

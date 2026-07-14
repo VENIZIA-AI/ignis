@@ -14,7 +14,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -25,7 +25,7 @@ interface IDSConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -42,16 +42,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    // getSchema() auto-discovers models from @repository bindings
-    const schema = this.getSchema();
+    const schema = Object.keys(this.getSchema());
+    this.logger.debug('[configure] Auto-discovered schema | Keys: %o', schema);
 
-    this.logger.debug(
-      '[configure] Auto-discovered schema | Keys: %o',
-      Object.keys(schema),
-    );
-
+    // That is all - naming NodePostgresDriver above is what wires the driver and connector.
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {
@@ -62,22 +57,22 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 ```
 
 > [!NOTE] Driver seam: the raw client goes on `this.client`
-> `this.client = new Pool(...)` is the short path: IGNIS resolves a `node-postgres` driver from that client on first use. There is no `pool` field - the raw-client slot is `client`, whatever the client happens to be. The alternative is to wire a driver yourself: `configure()` calls `this.useDriver({ driver, schema? })`, which assigns `this.driver` **and** builds `this.connector` in one step (so the half-wired state cannot exist). That is also how you select the `postgres-js` driver or run on Supabase. See [Postgres Drivers & Supabase](./postgres-drivers).
+> `this.client = new Pool(...)` is the short path: `configure()` builds only the client, and `getConnector()`/`beginTransaction()` lazily instantiate the class named in `@datasource({ driver })` over it - `NodePostgresDriver` here. There is no `pool` field - the raw-client slot is `client`, whatever the client happens to be. Naming the driver class (rather than a driver-name string) is what carries `pg` into the app's bundle - a bundler only packages a real value reference, never text. The alternative is to wire a driver yourself for a custom or third-party driver: `configure()` calls `this.useDriver({ driver, schema? })`, which assigns `this.driver` **and** builds `this.connector` in one step (so the half-wired state cannot exist), bypassing `@datasource({ driver })` entirely. See [Postgres Drivers & Supabase](./postgres-drivers) for `postgres-js` and Supabase.
 
 **How auto-discovery works:**
 
 1. `@repository` decorators register model-datasource bindings in the `MetadataRegistry`
-2. When `configure()` is called, `getSchema()` invokes `discoverSchema()` which calls `MetadataRegistry.buildSchema({ dataSource })` to collect all bound models and their relations
-3. Drizzle is initialized with the complete schema (tables + Drizzle relations)
+2. `getSchema()` invokes `discoverSchema()` which calls `MetadataRegistry.buildSchema({ dataSource })` to collect all bound models and their relations
+3. The lazily-built Drizzle connector is initialized with the complete schema (tables + Drizzle relations)
 
-You can disable auto-discovery per datasource via `@datasource({ driver: 'node-postgres', autoDiscovery: false })`.
+You can disable auto-discovery per datasource via `@datasource({ driver: NodePostgresDriver, autoDiscovery: false })`.
 
 ## Manual Schema (Optional)
 
 If you need explicit control, you can still provide schema manually:
 
 ```typescript
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -99,7 +94,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
 AbstractDataSource extends BaseHelper        # engine-neutral, src/base - no pool, no Drizzle
   └── AbstractPostgresDataSource              # connectors/postgres - adds pool, connector
         └── BasePostgresDataSource (alias: BaseDataSource)
-              ├── configure()               # Setup pool + Drizzle connector (abstract)
+              ├── configure()               # Assign this.client (abstract) - base wires driver + connector
               ├── getConnectionString()     # Build connection URL (abstract)
               ├── getSchema()               # Auto-discover from @repository bindings
               ├── discoverSchema()          # Internal: reads MetadataRegistry
@@ -135,7 +130,7 @@ DataSources are bound as **singletons** to ensure connection pool sharing across
 
 ```typescript
 import { BasePostgresDataSource, datasource, ValueOrPromise } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -146,7 +141,7 @@ interface IDSConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -162,9 +157,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

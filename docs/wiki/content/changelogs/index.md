@@ -17,6 +17,7 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-14 | [Optional Peers, Actually Optional - The Driver Is a Class Now](./2026-07-14-driver-class-bundling) | Breaking Change, Bug Fix, Enhancement |
 | 2026-07-13 | [The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks](./2026-07-13-hardening-round) | Security, Breaking Change, Bug Fix, Enhancement |
 | 2026-07-12 | [Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError](./2026-07-12-core-consolidation-dedup) | Breaking Change, Enhancement, Bug Fix |
 | 2026-07-11 | [Postgres Driver Seam & Supabase - Transaction Correctness, postgres-js, RLS Auth Context](./2026-07-11-postgres-driver-seam-supabase) | New Feature, Refactor, Breaking Change, Security |

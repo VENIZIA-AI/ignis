@@ -26,11 +26,12 @@ class PersistableCountFixtureEntity extends BasePostgresEntity {
 }
 
 /** Minimal datasource stub: the query dialect lives on the datasource (getQueryDialect()), and
- * `resolveConnector()` reads `this.dataSource.connector` directly when no transaction is passed. */
+ * `resolveConnector()` calls `dataSource.getConnector()` when no transaction is passed. */
 const buildRepository = (opts: { result: unknown }) => {
+  const connector = buildFakeConnector({ result: opts.result });
   const dataSource = {
     getQueryDialect: () => new FilterBuilder(),
-    connector: buildFakeConnector({ result: opts.result }),
+    getConnector: () => connector,
   } as AnyType;
 
   return new PersistableRepository<AnyType>(dataSource, {

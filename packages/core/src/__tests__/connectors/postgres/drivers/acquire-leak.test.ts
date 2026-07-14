@@ -15,6 +15,7 @@ const buildFakePool = () => {
   const released: Array<unknown> = [];
 
   const pool = {
+    totalCount: 0,
     connect: async () => ({
       query: async () => ({ rows: [], rowCount: 0 }),
       release: (error?: unknown) => released.push(error ?? 'clean'),
@@ -43,7 +44,7 @@ const buildExplodingSchema = (): AnyType => {
 describe('acquire() must not leak the connection it checked out', () => {
   test('a connector construction that throws still releases the connection', async () => {
     const { pool, released } = buildFakePool();
-    const driver = new NodePostgresDriver({ pool });
+    const driver = new NodePostgresDriver({ client: pool });
 
     let thrown: unknown;
     try {
@@ -60,7 +61,7 @@ describe('acquire() must not leak the connection it checked out', () => {
 
   test('a healthy acquire does not release early', async () => {
     const { pool, released } = buildFakePool();
-    const driver = new NodePostgresDriver({ pool });
+    const driver = new NodePostgresDriver({ client: pool });
 
     const connection = await driver.acquire({ schema: {} });
 

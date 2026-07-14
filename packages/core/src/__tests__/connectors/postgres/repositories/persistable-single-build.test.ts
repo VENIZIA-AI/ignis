@@ -19,9 +19,10 @@ class SingleBuildFixtureEntity extends BasePostgresEntity {
 
 const buildSetup = (opts: { result: unknown }) => {
   const dialect = new FilterBuilder();
+  const connector = buildFakeConnector({ result: opts.result });
   const dataSource = {
     getQueryDialect: () => dialect,
-    connector: buildFakeConnector({ result: opts.result }),
+    getConnector: () => connector,
   } as AnyType;
 
   const repository = new PersistableRepository<AnyType>(dataSource, {

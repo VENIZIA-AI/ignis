@@ -1,10 +1,10 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import { AbstractDataSource } from '@/base/datasources';
 import type { IRelationalDriver } from '@/connectors/postgres/drivers';
-import { resolveDatabaseDriver } from '@/connectors/postgres/drivers';
 import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
-import type { ValueOrPromise } from '@venizia/ignis-helpers';
+import { MetadataRegistry } from '@/helpers/inversion';
+import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import type { Pool } from 'pg';
 import type {
@@ -26,55 +26,52 @@ export abstract class AbstractRelationalDataSource<
 {
   connector: TRelationalConnector<Schema>;
 
-  /**
-   * The raw driver client a pool-only datasource was configured with: a `pg.Pool`, a postgres-js
-   * `Sql`. Genuinely absent once `configure()` wires a driver instead - every reader guards.
-   */
   protected client?: Client;
-
-  /** Owns connection acquisition and the raw control statements. Assign in `configure()`. */
   protected driver?: IRelationalDriver<Schema>;
 
   private static queryDialect?: IRelationalQueryDialect;
 
-  private driverResolution?: Promise<IRelationalDriver<Schema>>;
-
   /**
-   * Adopts a pool-only datasource (no `this.driver` set) into whichever driver matches its client,
-   * once. No warning is logged: the adoption is exact, and a boot-time warning on every legacy
-   * datasource would be noise, not information.
-   *
-   * Async because the concrete driver is imported on demand - see `resolveDatabaseDriver`. The
-   * in-flight promise is cached, not just its result, so concurrent `beginTransaction()` calls
-   * share one driver over one pool instead of each constructing their own.
+   * Builds the driver class named by `@datasource({ driver })` over the client `configure()`
+   * assigned, then wires the connector from it. Idempotent and lazy.
    */
-  protected async resolveDriver(): Promise<IRelationalDriver<Schema>> {
+  protected wireDriverFromMetadata(): void {
+    if (this.connector) {
+      return;
+    }
+
     if (this.driver) {
-      return this.driver;
+      this.connector = this.driver.createConnector({ schema: this.getSchema() });
+      return;
     }
 
     if (!this.client) {
       throw getError({
-        message: `[${this.constructor.name}][resolveDriver] No driver and no client | Assign this.driver in configure()`,
+        message: `[${this.constructor.name}][wireDriverFromMetadata] No driver and no client | Assign this.client in configure(), or wire a custom driver with useDriver()`,
       });
     }
 
-    this.driverResolution ??= resolveDatabaseDriver<Schema>({ client: this.client });
+    // Absent for an imperatively-registered datasource.
+    const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
+      target: this.constructor,
+    });
+    const driver = metadata?.driver;
 
-    try {
-      this.driver = await this.driverResolution;
-    } catch (error) {
-      // A rejected resolution must not stay cached: the failure can be transient (module load,
-      // classification against a not-yet-ready client), and a poisoned cache would fail every
-      // later transaction with this stale error forever.
-      this.driverResolution = undefined;
-      this.logger
-        .for(this.resolveDriver.name)
-        .error('Driver resolution failed - will retry on the next call | Error: %s', error);
-      throw error;
+    // The type forbids a driver-name string, so this catches an untyped JavaScript caller - and a
+    // string is exactly the mistake to catch, because it carries no module into the bundle.
+    if (typeof driver !== 'function') {
+      throw getError({
+        message: `[${this.constructor.name}][wireDriverFromMetadata] @datasource({ driver }) must name a driver CLASS | Got: ${String(driver)} | Use \`@datasource({ driver: NodePostgresDriver })\` with \`import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres'\`, or wire a custom driver with useDriver()`,
+      });
     }
 
-    return this.driver;
+    const DriverClass = driver as TClass<IRelationalDriver<Schema>>;
+    this.useDriver({ driver: new DriverClass({ client: this.client }) });
+  }
+
+  protected resolveDriver(): IRelationalDriver<Schema> {
+    this.wireDriverFromMetadata();
+    return this.driver as IRelationalDriver<Schema>;
   }
 
   /**
@@ -93,7 +90,9 @@ export abstract class AbstractRelationalDataSource<
     opts?: IDatabaseTransactionOptions,
   ): Promise<IDatabaseTransaction<Schema>>;
 
-  getConnector() {
+  /** Wires the driver on first use, so a `configure()` that only builds `this.client` is enough. */
+  getConnector(): TRelationalConnector<Schema> {
+    this.wireDriverFromMetadata();
     return this.connector;
   }
 

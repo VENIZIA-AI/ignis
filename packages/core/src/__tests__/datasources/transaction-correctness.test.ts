@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
+import { DataSourceDrivers } from '@/base/datasources';
+import { datasource } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres/datasources';
+import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
 import { FakePool } from '../connectors/postgres/drivers/fake-pg-client';
 import { runTransactionContract } from './transaction-contract';
 
+@datasource({ driver: NodePostgresDriver })
 class ProbeDataSource extends BasePostgresDataSource<{}> {
   constructor(private readonly fakePool: FakePool) {
     super({ name: 'probe', config: {} });
@@ -280,8 +284,8 @@ describe('beginTransaction - acquisition and concurrency', () => {
   });
 });
 
-describe('beginTransaction - driver resolution', () => {
-  test('a datasource that set only this.client behaves exactly as before drivers existed', async () => {
+describe('beginTransaction - driver wiring', () => {
+  test('a datasource that only sets this.client is wired from @datasource({ driver })', async () => {
     const { pool, dataSource } = buildDataSource();
 
     const transaction = await dataSource.beginTransaction();
@@ -294,26 +298,23 @@ describe('beginTransaction - driver resolution', () => {
     expect(pool.clients[0].releases).toEqual([{ destroyed: false }]);
   });
 
-  test('the adopted driver is created once and reused across transactions', async () => {
+  test('the driver is built once and reused across transactions', async () => {
     const { dataSource } = buildDataSource();
 
     const first = await dataSource.beginTransaction();
     await first.commit();
-    const adopted = Reflect.get(dataSource, 'driver');
+    const wired = Reflect.get(dataSource, 'driver');
 
     const second = await dataSource.beginTransaction();
     await second.commit();
 
-    expect(adopted).toBeDefined();
-    expect(Reflect.get(dataSource, 'driver')).toBe(adopted);
+    expect(wired).toBeDefined();
+    expect(Reflect.get(dataSource, 'driver')).toBe(wired);
   });
 
-  test('concurrent first transactions adopt ONE driver, not one each', async () => {
+  test('concurrent first transactions build ONE driver, not one each', async () => {
     const { dataSource } = buildDataSource();
 
-    // Driver adoption is async (the concrete driver is imported on demand), so two callers can both
-    // observe an unset `this.driver` before either finishes resolving. Record every distinct driver
-    // ever assigned; a resolver that caches only the result, not the in-flight promise, yields two.
     const assigned = new Set<unknown>();
     let current: unknown;
 
@@ -338,6 +339,45 @@ describe('beginTransaction - driver resolution', () => {
     await second.commit();
 
     expect(assigned.size).toBe(1);
+  });
+
+  test('a datasource with no @datasource({ driver }) throws instead of guessing', async () => {
+    class UndecoratedDataSource extends BasePostgresDataSource<{}> {
+      configure(): void {
+        this.client = new FakePool() as AnyType;
+      }
+
+      getConnectionString(): string {
+        return '';
+      }
+    }
+
+    const dataSource = new UndecoratedDataSource({ name: 'undecorated', config: {} });
+    dataSource.configure();
+
+    expect(dataSource.beginTransaction()).rejects.toThrow(/must name a driver CLASS/);
+  });
+
+  test('a driver-name STRING is refused - a string carries no module into the bundle', async () => {
+    // `IDataSourceMetadata.driver` is typed as a class, so TypeScript already rejects this at the
+    // call site. The cast reproduces an untyped JavaScript caller, and the runtime must refuse it
+    // too: a string names a driver without referencing it, so the bundler would never package the
+    // driver module - the exact failure the class form exists to make impossible.
+    @datasource({ driver: DataSourceDrivers.NODE_POSTGRES as AnyType })
+    class StringDriverDataSource extends BasePostgresDataSource<{}> {
+      configure(): void {
+        this.client = new FakePool() as AnyType;
+      }
+
+      getConnectionString(): string {
+        return '';
+      }
+    }
+
+    const dataSource = new StringDriverDataSource({ name: 'string-driver', config: {} });
+    dataSource.configure();
+
+    expect(dataSource.beginTransaction()).rejects.toThrow(/must name a driver CLASS/);
   });
 
   test('an explicitly assigned driver is used, and this.client is never touched', async () => {
@@ -399,11 +439,11 @@ describe('beginTransaction - driver resolution', () => {
     expect((caught as Error).message).toContain('configure()');
   });
 
-  test("an unrecognized pool shape surfaces resolveDatabaseDriver's own error", async () => {
+  test('a client the named driver cannot use is refused by that driver, not silently adopted', async () => {
+    @datasource({ driver: NodePostgresDriver })
     class UnrecognizedPoolDataSource extends BasePostgresDataSource<{}> {
       configure(): void {
-        // Satisfies neither `isPostgresJsClient` (needs reserve+unsafe) nor `isNodePostgresPool`
-        // (needs connect) - resolveDatabaseDriver() must reject with its own message, unswallowed.
+        // No connect(), no pool accounting: not a `pg.Pool`.
         this.client = { end: async () => undefined } as AnyType;
       }
 
@@ -423,8 +463,13 @@ describe('beginTransaction - driver resolution', () => {
     }
 
     expect(caught).toBeDefined();
-    expect((caught as Error).message).toContain('bun add pg');
-    expect((caught as Error).message).toContain('bun add postgres');
+    expect((caught as Error).message).toContain('Expected a `pg` Pool');
+  });
+
+  test('a bare pg.Client is refused - it has connect() but cannot pool', () => {
+    const bareClient = { connect: async () => ({}), end: async () => undefined } as AnyType;
+
+    expect(() => new NodePostgresDriver({ client: bareClient })).toThrow(/Expected a `pg` Pool/);
   });
 
   test('useDriver() wires the driver AND the connector in one step', async () => {

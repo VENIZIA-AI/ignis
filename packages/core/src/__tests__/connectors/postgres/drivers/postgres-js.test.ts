@@ -18,7 +18,7 @@ const build = (failOn?: string) => {
   };
 };
 
-run({ driver: 'postgres-js', resolveDatabaseDriver: build });
+run({ driver: 'postgres-js', buildDriverProbe: build });
 
 describe('PostgresJsDriver - postgres-js-specific behaviour', () => {
   test('acquire() reserves a dedicated connection per call', async () => {

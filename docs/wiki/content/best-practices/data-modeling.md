@@ -296,7 +296,7 @@ DataSources automatically discover their schema from the repositories that bind 
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDataSourceConfigs {
@@ -307,7 +307,7 @@ interface IDataSourceConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   constructor() {
     super({
@@ -319,11 +319,11 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
 
   override configure(): ValueOrPromise<void> {
     // getSchema() automatically collects all schemas from bound repositories
-    const schema = this.getSchema();
+    this.logger.debug('[configure] Auto-discovered schema | Keys: %o', Object.keys(this.getSchema()));
 
-    // Keep the pool on this.client - beginTransaction() resolves its driver from it
+    // Keep the pool on this.client - naming NodePostgresDriver above is what wires the driver
+    // and Drizzle connector; beginTransaction() resolves its driver from this.client lazily.
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 
   override getConnectionString(): ValueOrPromise<string> {

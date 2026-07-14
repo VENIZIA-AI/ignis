@@ -28,17 +28,16 @@ export interface IConformanceOptions {
 
   /**
    * Builds a probe around a driver whose next `execute()` throws when the statement starts with
-   * `failOn`. Named for its production counterpart: both answer "which driver backs this client",
-   * one by structural detection, one by the test choosing a fake.
+   * `failOn`.
    */
-  resolveDatabaseDriver: TResolveDatabaseDriver;
+  buildDriverProbe: TBuildDriverProbe;
 }
 
 /** Yields a fresh probe per call - conformance tests must never share driver state. */
-export type TResolveDatabaseDriver = (failOn?: string) => IDriverProbe;
+export type TBuildDriverProbe = (failOn?: string) => IDriverProbe;
 
 export const run = (opts: IConformanceOptions): void => {
-  const { driver: driverName, resolveDatabaseDriver: build } = opts;
+  const { driver: driverName, buildDriverProbe: build } = opts;
 
   describe(`IRelationalDriver conformance - ${driverName}`, () => {
     test('createConnector() returns a pooled connector', () => {

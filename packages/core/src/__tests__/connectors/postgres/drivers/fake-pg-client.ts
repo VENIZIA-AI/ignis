@@ -34,6 +34,9 @@ export class FakePool {
   readonly clients: FakePoolClient[] = [];
   ended = false;
 
+  /** What NodePostgresDriver checks to tell a Pool from a bare `pg.Client`. */
+  totalCount = 0;
+
   private readonly failOn?: string;
 
   constructor(opts?: { failOn?: string }) {

@@ -207,13 +207,16 @@ Connection pooling significantly improves performance by reusing database connec
 
 ```typescript
 import { Pool } from 'pg';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { datasource } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 
 // IDataSourceConfigs: your settings interface (host/port/user/password/database)
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
   override configure(): void {
-    // Keep the pool on `this.client` - beginTransaction() resolves its driver from it
+    // Keep the pool on `this.client` - NodePostgresDriver above wires the driver and Drizzle
+    // connector from it lazily, on first getConnector()/beginTransaction()
     this.client = new Pool({
       host: this.settings.host,
       port: this.settings.port,
@@ -228,8 +231,6 @@ export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfig
       connectionTimeoutMillis: 5000, // Fail if can't connect in 5s
       maxUses: 7500,                // Close connection after 7500 queries
     });
-
-    this.connector = drizzle({ client: this.client, schema: this.getSchema() });
   }
 }
 ```

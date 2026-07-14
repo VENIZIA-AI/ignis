@@ -368,6 +368,16 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-07-14',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Optional Peers, Actually Optional - The Driver Is a Class Now',
+                  link: '/changelogs/2026-07-14-driver-class-bundling',
+                },
+              ],
+            },
+            {
               text: '2026-07-13',
               collapsed: true,
               items: [

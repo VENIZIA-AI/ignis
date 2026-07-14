@@ -24,9 +24,10 @@ describe('DataSource root split', () => {
   });
 
   /**
-   * Every driver IGNIS actually ships must be nameable through the const class. A missing member
-   * forces the app to write a bare string in `@datasource({ driver })` - losing autocomplete - and
-   * makes `isValid()` answer false about a driver that plainly exists.
+   * DataSourceDrivers is an identity constant - names for logs, config and `isValid()`. It is NOT
+   * how a datasource selects its engine: relational names the driver CLASS in `@datasource`, and
+   * search names it by the datasource it extends. A missing member here makes `isValid()` answer
+   * false about an engine that plainly ships.
    */
   test('DataSourceDrivers names every driver the framework ships', () => {
     const shipped = [

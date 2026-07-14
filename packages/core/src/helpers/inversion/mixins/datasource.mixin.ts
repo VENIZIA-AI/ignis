@@ -9,7 +9,7 @@ export const DatasourceMetadataMixin = <BaseClass extends TMixinTarget<_Metadata
   return class extends baseClass {
     setDataSourceMetadata<Target extends object = object>(opts: {
       target: Target;
-      metadata: IDataSourceMetadata;
+      metadata?: IDataSourceMetadata;
     }): void {
       const { target, metadata } = opts;
 

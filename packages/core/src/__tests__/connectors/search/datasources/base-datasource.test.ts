@@ -6,7 +6,6 @@ import { getError } from '@venizia/ignis-helpers';
 import { pgTable, serial, varchar } from 'drizzle-orm/pg-core';
 
 import { datasource, model, repository } from '@/base/metadata';
-import { DataSourceDrivers } from '@/base/datasources';
 import { BaseSearchDataSource } from '@/connectors/search/datasources';
 import { ISearchConnector } from '@/connectors/search';
 import { ISearchDataSourceOptions } from '@/connectors/search/datasources';
@@ -213,7 +212,7 @@ describe('BaseSearchDataSource - provisionCollections', () => {
 describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
   class AutoDiscoveryDataSource extends FakeSearchDataSource {}
 
-  @datasource({ driver: DataSourceDrivers.TYPESENSE, autoDiscovery: false })
+  @datasource({ autoDiscovery: false })
   class DisabledAutoDiscoveryDataSource extends FakeSearchDataSource {}
 
   @model({ type: 'entity' })
@@ -252,17 +251,21 @@ describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
   });
 });
 
-describe('BaseSearchDataSource - TDataSourceDriver accepts unknown engine strings (compile-time)', () => {
-  // TDataSourceDriver accepts any string, not just known DataSourceDrivers members;
-  // `tsc --noEmit` is the real gate here, `bun test` only proves it runs.
-  @datasource({ driver: 'meilisearch' })
-  class MeilisearchLikeDataSource extends FakeSearchDataSource {}
+describe('BaseSearchDataSource - the engine is the datasource class, not a metadata field', () => {
+  // A search datasource names no driver: `extends TypesenseDataSource` already IS the engine
+  // reference, and it is what carries the `typesense` package into the bundle. `@datasource()` with
+  // no driver at all must therefore be legal - `tsc --noEmit` is the real gate, `bun test` only
+  // proves it runs.
+  @datasource()
+  class EngineFromClassDataSource extends FakeSearchDataSource {}
 
-  test('a @datasource with an unrecognized driver string compiles and registers metadata', () => {
+  test('@datasource() with no driver registers metadata and leaves driver unset', () => {
     const registry = MetadataRegistry.getInstance();
-    const metadata = registry.getDataSourceMetadata({ target: MeilisearchLikeDataSource });
+    const metadata = registry.getDataSourceMetadata({ target: EngineFromClassDataSource });
 
-    expect(metadata?.driver).toBe('meilisearch');
+    expect(metadata).toBeDefined();
+    expect(metadata?.driver).toBeUndefined();
+    expect(metadata?.autoDiscovery).toBe(true);
   });
 });
 

@@ -2,7 +2,7 @@
 // Container's module graph (registry -> this file) never pulls the @/base/* value barrels at load,
 // which would cycle back through AbstractApplication `extends Container` into a TDZ.
 import type { ControllerTransports } from '@/base/controllers/common/constants';
-import type { IDataSource, TDataSourceDriver } from '@/base/datasources';
+import type { IDataSource, TDataSourceDriverClass } from '@/base/datasources';
 import type { AbstractEntity } from '@/base/models';
 import type { IRepository, TFilter, TRepositoryOperationScope } from '@/base/repositories';
 import type { TAuthMode, TAuthStrategy } from '@/components/auth/authenticate/common';
@@ -98,7 +98,7 @@ export type TDecoratorModelTarget<Model extends AbstractEntity = AbstractEntity>
   TModelClass<Model> | (Function & IEntityStatics);
 
 export interface IDataSourceMetadata {
-  driver: TDataSourceDriver;
+  driver?: TDataSourceDriverClass;
   autoDiscovery?: boolean;
 }
 

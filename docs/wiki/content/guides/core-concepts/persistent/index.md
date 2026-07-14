@@ -49,7 +49,7 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 }
 
 // 2. Create a DataSource
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -65,9 +65,7 @@ export class PostgresDataSource extends BasePostgresDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
-    this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
+    this.client = new Pool(this.settings); // NodePostgresDriver above wires the driver + connector
   }
 
   override getConnectionString(): ValueOrPromise<string> {

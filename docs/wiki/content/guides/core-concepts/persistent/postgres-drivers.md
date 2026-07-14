@@ -8,7 +8,7 @@ IGNIS talks to PostgreSQL through a **driver seam**: `IRelationalDriver` owns co
 Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies the **driver**, not the SQL dialect. The `@venizia/ignis/postgres/supabase` submodule adds the two things Supabase deployments actually need - pooler presets and an RLS auth-context helper.
 
 > [!IMPORTANT] Every database client is optional
-> `pg` and `postgres` are both **optional peer dependencies**. The `@venizia/ignis/postgres` module pulls in neither - each driver is imported lazily, only when the client you built selects it. Install the one your app uses:
+> `pg` and `postgres` are both **optional peer dependencies**. The `@venizia/ignis/postgres` module pulls in neither - only the driver class you import and name in `@datasource({ driver })` reaches your bundle. Install the one your app uses:
 >
 > ```bash
 > bun add pg          # node-postgres
@@ -19,60 +19,89 @@ Supabase is unmodified PostgreSQL, so it is not a separate connector: it varies 
 
 | Import | Contents | Loads |
 | :--- | :--- | :--- |
-| `@venizia/ignis/postgres` | `BasePostgresDataSource`, `IRelationalDriver`, `resolveDatabaseDriver`, repository hierarchy | no client library |
+| `@venizia/ignis/postgres` | `BasePostgresDataSource`, `IRelationalDriver`, repository hierarchy | no client library |
 | `@venizia/ignis/postgres/node-postgres` | `NodePostgresDriver` | `pg` |
 | `@venizia/ignis/postgres/postgres-js` | `PostgresJsDriver` | `postgres` |
 | `@venizia/ignis/postgres/supabase` | `PoolerModes`, `buildPostgresJsOptions`, `withAuthContext`, Supabase role re-exports | `drizzle-orm/supabase` |
 
-## The Default: a Bare Pool
+## Naming the Driver Class
 
-Hand IGNIS a `pg.Pool` on `this.client` and it adopts it into a `NodePostgresDriver` on first use - no driver import needed:
+`@datasource({ driver })` takes the driver **class**, not a driver-name string:
 
 ```typescript
-import { DataSourceDrivers, datasource } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
-@datasource({ driver: DataSourceDrivers.NODE_POSTGRES })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
-  configure() {
-    this.client = new Pool({ connectionString: this.getConnectionString() });
-    this.connector = drizzle({ client: this.client, schema: this.getSchema() });
+  override configure(): ValueOrPromise<void> {
+    this.client = new Pool({ connectionString: this.getConnectionString() }); // that is all
   }
 }
 ```
 
-`this.client` is the raw-client slot: the `pg.Pool` (or postgres-js `Sql`) your `configure()` built. `getClient()` hands it back as the escape hatch, and `beginTransaction()` resolves a driver from it lazily. A datasource that sets neither `this.client` nor a driver throws `No driver and no client` on its first transaction.
+`configure()` only builds `this.client` - the raw `pg.Pool` (or postgres-js `Sql`) your app's connection settings produce. The base class wires the driver **and** the connector lazily, on first call to `getConnector()` or `beginTransaction()`: it reads the class named in `@datasource({ driver })`, instantiates it over `this.client`, and builds the pooled Drizzle connector from that. `getClient()` hands `this.client` back as the raw-client escape hatch. A datasource that sets neither `this.client` nor a driver (via `useDriver()`, below) throws `No driver and no client` on first use.
+
+> [!IMPORTANT] Why a class, not a name
+> A driver-name string cannot carry `pg` or `postgres` into your bundle - it is just text. A dynamic `import('./node-postgres.js')` keyed off that string would defer *execution*, not *packaging*: every bundler statically resolves a literal specifier and packages whatever it points to, so a build that only used node-postgres would still fail with `Could not resolve: "postgres"` the moment postgres-js's import appeared anywhere in the module graph reachable at build time. Naming the class instead makes the driver module a real value reference - the one thing a bundler is forced to keep - which is what lets `pg` and `postgres` stay genuinely optional peers. A bare side-effect import (`import '@venizia/ignis/postgres/node-postgres'`) would not work either: `@venizia/ignis` declares `sideEffects: false`, so a bundler is free to drop an import whose exports go unused.
+>
+> Two tests pin this from different angles: `packages/core/src/__tests__/connectors/postgres/no-eager-driver-import.test.ts` proves no barrel **loads** a driver package in a fresh process (the runtime module graph), and `packages/core/src/__tests__/connectors/postgres/bundle/optional-peers.test.ts` proves no barrel gets a driver package **packaged** by a real bundler.
 
 ## Using postgres-js
 
-Wire a driver explicitly with `useDriver()` - it assigns the driver **and** builds the pooled connector in one step, so the half-wired state (driver set, connector forgotten) cannot exist:
+Same shape, different class:
 
 ```typescript
-import { DataSourceDrivers, datasource } from '@venizia/ignis';
+import { datasource, ValueOrPromise } from '@venizia/ignis';
 import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
 import postgres from 'postgres';
 import type { Sql } from 'postgres';
 
-@datasource({ driver: DataSourceDrivers.POSTGRES_JS })
+@datasource({ driver: PostgresJsDriver })
 export class PostgresDataSource extends BasePostgresDataSource<
   IDataSourceConfigs,
   typeof schema,
   {},
   Sql // getClient() is now honestly typed as postgres-js's Sql, not pg.Pool
 > {
-  configure() {
+  override configure(): ValueOrPromise<void> {
+    this.client = postgres(this.getConnectionString());
+  }
+}
+```
+
+The fourth type parameter (`Client`) defaults to `pg.Pool`; declare it when the raw client escape hatch (`getClient()`) should carry the real type.
+
+## Driver Constructors Validate Their Client
+
+Both shipped drivers throw immediately if constructed with the wrong shape of client, instead of failing later inside a query:
+
+```typescript
+new NodePostgresDriver({ client: pool }); // client must expose connect() AND totalCount (pool accounting)
+new PostgresJsDriver({ client: sql });    // client must expose reserve() AND unsafe()
+```
+
+`NodePostgresDriver` rejects a bare `pg.Client` - it exposes `connect()` too, but has no pool accounting and cannot hand out a dedicated connection per transaction. `PostgresJsDriver` rejects a `pg.Pool` the same way. You will not normally construct these yourself: `wireDriverFromMetadata()` does it for you from `this.client`, so this validation fires the first time a datasource wired the wrong client behind the wrong `@datasource({ driver })` class.
+
+## Custom or Third-Party Drivers: `useDriver()`
+
+For a driver IGNIS does not ship, wire it explicitly with `useDriver()` - it assigns the driver **and** builds the pooled connector in one step, so the half-wired state (driver set, connector forgotten) cannot exist:
+
+```typescript
+export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+  override configure(): ValueOrPromise<void> {
     this.useDriver({
-      driver: new PostgresJsDriver({ client: postgres(this.getConnectionString()) }),
+      driver: new MyCustomDriver({ client: myClient }),
       schema: this.getSchema(),
     });
   }
 }
 ```
 
-The fourth type parameter (`Client`) defaults to `pg.Pool`; declare it when the raw client escape hatch (`getClient()`) should carry the real type.
+`useDriver()` bypasses `@datasource({ driver })` entirely - you never need to name a class in the decorator when you wire the driver yourself in `configure()`.
 
 > [!WARNING] postgres-js cannot destroy a poisoned connection
 > After a failed `COMMIT` or `ROLLBACK`, node-postgres **destroys** the connection instead of pooling it - the session may still hold an open transaction that the next borrower would inherit. postgres-js has no destroy semantics (`ReservedSql.release()` takes no argument), so the connection is returned to the pool anyway. This asymmetry is real and IGNIS does not paper over it; it is pinned by the driver's own tests.
@@ -117,18 +146,23 @@ Supabase exposes three ways in, and one of them silently breaks prepared stateme
 The transaction pooler (Supavisor) rebinds the backend per transaction, so a server-side prepared statement created on one backend simply is not there next time. `buildPostgresJsOptions` encodes this so you cannot forget it:
 
 ```typescript
-import { buildPostgresJsOptions, PoolerModes } from '@venizia/ignis/postgres/supabase';
+import { datasource } from '@venizia/ignis';
+import { BasePostgresDataSource } from '@venizia/ignis/postgres';
 import { PostgresJsDriver } from '@venizia/ignis/postgres/postgres-js';
+import { buildPostgresJsOptions, PoolerModes } from '@venizia/ignis/postgres/supabase';
 import postgres from 'postgres';
 
-const client = postgres(connectionString, {
-  ...buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION, max: 10 }),
-});
-
-this.useDriver({ driver: new PostgresJsDriver({ client }), schema: this.getSchema() });
+@datasource({ driver: PostgresJsDriver })
+export class SupabaseDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+  override configure() {
+    this.client = postgres(connectionString, {
+      ...buildPostgresJsOptions({ mode: PoolerModes.TRANSACTION, max: 10 }),
+    });
+  }
+}
 ```
 
-`prepare: false` is emitted only for `TRANSACTION` mode; `max` is forwarded only when you pass it, so postgres-js's own default survives.
+`prepare: false` is emitted only for `TRANSACTION` mode; `max` is forwarded only when you pass it, so postgres-js's own default survives. Naming `PostgresJsDriver` in `@datasource` is what wires it - `configure()` only needs to build the client, same as node-postgres.
 
 ### Row Level Security
 
@@ -164,4 +198,4 @@ The submodule also re-exports Drizzle's Supabase helpers (`anonRole`, `authentic
 
 ## Adding a Driver
 
-One file under `src/connectors/postgres/drivers/`, implementing the four verbs above, plus a fake client and a test that runs the shared conformance suite (`run({ driver, resolveDatabaseDriver })` in `src/__tests__/connectors/postgres/drivers/conformance/`). Register a sub-path export and an optional peer dependency; never re-export the driver from the drivers barrel - that is what would make its package load eagerly for everyone.
+One file under `src/connectors/postgres/drivers/`, implementing the four verbs above, plus a fake client and a test that runs the shared conformance suite (`run({ driver, buildDriverProbe })` in `src/__tests__/connectors/postgres/drivers/conformance/`). Register a sub-path export and an optional peer dependency; never re-export the driver from the drivers barrel - that is what would make its package load eagerly for everyone.

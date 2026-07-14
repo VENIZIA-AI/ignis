@@ -33,7 +33,7 @@ export const model = (metadata: IModelMetadata): ClassDecorator => {
 };
 
 /** Registers a datasource with driver and auto-discovery settings. */
-export const datasource = (metadata: IDataSourceMetadata): ClassDecorator => {
+export const datasource = (metadata?: IDataSourceMetadata): ClassDecorator => {
   return target => {
     MetadataRegistry.getInstance().setDataSourceMetadata({ target, metadata });
   };

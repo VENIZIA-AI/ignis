@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
+import { datasource } from '@/base/metadata';
 import { BasePostgresDataSource } from '@/connectors/postgres';
+import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
 
 const buildFakePool = (): AnyType => {
   return {
+    totalCount: 0,
     connect: () =>
       Promise.resolve({ query: () => Promise.resolve({ rows: [] }), release: () => {} }),
     end: () => Promise.resolve(),
@@ -11,6 +14,7 @@ const buildFakePool = (): AnyType => {
 };
 
 /** The current shape: the raw client goes in the non-deprecated slot. */
+@datasource({ driver: NodePostgresDriver })
 class ClientSlotDataSource extends BasePostgresDataSource<{}> {
   constructor(private readonly rawClient: AnyType) {
     super({ name: 'client-slot', config: {} });
@@ -33,7 +37,7 @@ describe('AbstractRelationalDataSource - the raw client slot', () => {
 
     expect(dataSource.getClient()).toBe(rawClient);
 
-    const driver = await dataSource['resolveDriver']();
+    const driver = dataSource['resolveDriver']();
     expect(typeof driver.acquire).toBe('function');
   });
 

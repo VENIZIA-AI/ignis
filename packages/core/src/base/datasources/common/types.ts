@@ -1,4 +1,4 @@
-import type { IConfigurable, TConstValue } from '@venizia/ignis-helpers';
+import type { AnyType, IConfigurable, TClass, TConstValue } from '@venizia/ignis-helpers';
 
 export class DataSourceDrivers {
   // Relational
@@ -30,6 +30,16 @@ export class DataSourceDrivers {
 // `(string & {})` keeps autocomplete for the known DataSourceDrivers values while still accepting
 // any other engine-driver string literal (e.g. a third-party or in-house driver name).
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
+
+/**
+ * A driver CLASS, named by `@datasource({ driver })`. A class reference is what carries `pg` or
+ * `postgres` into the application's bundle - a driver-name string carries nothing, and a bare
+ * side-effect import to compensate is one a bundler may delete.
+ *
+ * Untyped because `IRelationalDriver` lives under `connectors/`, which `base/` must not import.
+ */
+export type TDataSourceDriverClass = TClass<AnyType>;
+
 export type TAnyDataSourceSchema = Record<string, any>;
 
 /** Engine-neutral datasource contract - the root every connector family implements. */

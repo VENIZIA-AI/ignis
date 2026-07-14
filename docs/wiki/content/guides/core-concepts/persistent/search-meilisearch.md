@@ -61,9 +61,11 @@ The `searchable` and `filterable` flags are **load-bearing here** and are silent
 import { datasource } from '@venizia/ignis';
 import { MeilisearchDataSource } from '@venizia/ignis/meilisearch';
 
-@datasource({ driver: 'meilisearch' })
+@datasource()
 export class ArticleSearchDataSource extends MeilisearchDataSource {}
 ```
+
+No `driver` in the decorator, and that is not an omission. A relational datasource has to name one, because a single `BasePostgresDataSource` runs on either `pg` or `postgres` and something must pick. A search datasource has already picked: `extends MeilisearchDataSource` **is** the engine reference, and it is what carries the `meilisearch` package into your bundle. Naming the engine twice would just be a second chance to disagree with yourself.
 
 Configured through `IMeilisearchDataSourceSettings`:
 

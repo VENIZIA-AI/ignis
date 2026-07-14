@@ -357,7 +357,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -368,7 +368,7 @@ interface IDSConfigs {
   password: string;
 }
 
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
@@ -384,18 +384,18 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    const schema = this.getSchema();
+    const schema = Object.keys(this.getSchema());
 
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
-      Object.keys(schema).length,
-      Object.keys(schema),
+      schema.length,
+      schema,
     );
 
     // The client must land on this.client - a local would leave beginTransaction() with nothing
-    // to resolve a driver from, and it would throw `No driver and no client`.
+    // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
+    // named in @datasource above is what wires the driver and Drizzle connector from it.
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 }
 ```

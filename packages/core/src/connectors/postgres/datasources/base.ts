@@ -74,7 +74,7 @@ export abstract class BaseRelationalDataSource<
   override async beginTransaction(
     opts?: IDatabaseTransactionOptions,
   ): Promise<IDatabaseTransaction<Schema>> {
-    const driver = await this.resolveDriver();
+    const driver = this.resolveDriver();
     const connection = await driver.acquire({ schema: this.getSchema() });
     const isolationLevel: TIsolationLevel = opts?.isolationLevel ?? IsolationLevels.READ_COMMITTED;
 

@@ -179,7 +179,7 @@ import {
   datasource,
   ValueOrPromise,
 } from '@venizia/ignis';
-import { drizzle } from 'drizzle-orm/node-postgres';
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
 interface IDSConfigs {
@@ -195,15 +195,14 @@ interface IDSConfigs {
  *
  * How it works:
  * 1. @repository decorator binds model to datasource
- * 2. When configure() is called, getSchema() auto-discovers all bound models
- * 3. Drizzle is initialized with the auto-discovered schema
+ * 2. getSchema() auto-discovers all bound models when the driver/connector are wired
+ * 3. Naming NodePostgresDriver in @datasource is what wires the driver and Drizzle connector
  */
-@datasource({ driver: 'node-postgres' })
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
-      // Driver is read from @datasource decorator - no need to pass here!
       config: {
         host: process.env.APP_ENV_POSTGRES_HOST ?? 'localhost',
         port: +(process.env.APP_ENV_POSTGRES_PORT ?? 5432),
@@ -216,11 +215,8 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
   }
 
   override configure(): ValueOrPromise<void> {
-    // getSchema() auto-discovers models from @repository bindings
-    const schema = this.getSchema();
-
-    // Log discovered schema for debugging
-    const schemaKeys = Object.keys(schema);
+    // getSchema() auto-discovers models from @repository bindings; log it for debugging
+    const schemaKeys = Object.keys(this.getSchema());
     this.logger.debug(
       '[configure] Auto-discovered schema | Schema + Relations (%s): %o',
       schemaKeys.length,
@@ -228,9 +224,9 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
     );
 
     // The client must land on this.client - a local would leave beginTransaction() with nothing
-    // to resolve a driver from, and it would throw `No driver and no client`.
+    // to resolve a driver from, and it would throw `No driver and no client`. NodePostgresDriver
+    // named in @datasource above is what wires the driver and Drizzle connector from it.
     this.client = new Pool(this.settings);
-    this.connector = drizzle({ client: this.client, schema });
   }
 }
 ```
@@ -239,7 +235,7 @@ export class PostgresDataSource extends BaseDataSource<IDSConfigs> {
 - Schema is auto-discovered from `@repository` decorators - no manual registration needed
 - Uses `getSchema()` for lazy schema resolution (resolves when all models are loaded)
 - Uses environment variables for connection config
-- Implements `configure()` for connection setup and `getConnectionString()` for URL generation
+- `configure()` only assigns `this.client` - the base class wires the driver and connector from `@datasource({ driver })`; implements `getConnectionString()` for URL generation
 
 > **Deep Dive:** See [DataSources Reference](/references/base/datasources) for advanced configuration and multiple database support.
 

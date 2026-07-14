@@ -157,7 +157,9 @@ APP_ENV_POSTGRES_DATABASE=my_app_prod
 ### DataSource Configuration
 
 ```typescript
-@datasource({ driver: 'node-postgres' })
+import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
+
+@datasource({ driver: NodePostgresDriver })
 export class PostgresDataSource extends BaseDataSource {
   constructor() {
     super({

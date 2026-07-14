@@ -8,7 +8,7 @@ type TSchema = Record<string, never>;
 
 const build = (failOn?: string) => {
   const pool = new FakePool({ failOn });
-  const driver = new NodePostgresDriver<TSchema>({ pool: pool as AnyType });
+  const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
 
   return {
     driver,
@@ -18,7 +18,7 @@ const build = (failOn?: string) => {
   };
 };
 
-run({ driver: 'node-postgres', resolveDatabaseDriver: build });
+run({ driver: 'node-postgres', buildDriverProbe: build });
 
 describe('NodePostgresDriver - pg-specific behaviour', () => {
   test('release({ destroy: true }) passes a truthy arg to pg, destroying the connection', async () => {
@@ -51,7 +51,7 @@ describe('NodePostgresDriver - pg-specific behaviour', () => {
 
   test('acquire() checks out a NEW client per call, not the pool itself', async () => {
     const pool = new FakePool();
-    const driver = new NodePostgresDriver<TSchema>({ pool: pool as AnyType });
+    const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
 
     await driver.acquire({ schema: {} });
     await driver.acquire({ schema: {} });
@@ -62,7 +62,7 @@ describe('NodePostgresDriver - pg-specific behaviour', () => {
 
   test('getClient() returns the pool the driver was constructed with', () => {
     const pool = new FakePool();
-    const driver = new NodePostgresDriver<TSchema>({ pool: pool as AnyType });
+    const driver = new NodePostgresDriver<TSchema>({ client: pool as AnyType });
 
     expect(driver.getClient()).toBe(pool as AnyType);
   });
