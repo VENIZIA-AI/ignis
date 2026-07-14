@@ -202,6 +202,7 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Consumer', link: '/extensions/helpers/kafka/consumer' },
           { text: 'Admin', link: '/extensions/helpers/kafka/admin' },
           { text: 'Schema Registry', link: '/extensions/helpers/kafka/schema-registry' },
+          { text: 'Compiling to a Single Binary', link: '/extensions/helpers/kafka/compile-binary' },
           { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
         ],
       },

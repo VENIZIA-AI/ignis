@@ -88,6 +88,9 @@ import type {
 > [!NOTE]
 > Kafka helpers are **not** re-exported from the main `@venizia/ignis-helpers` entry point. You must use the `@venizia/ignis-helpers/kafka` subpath import. This keeps the optional `@platformatic/kafka` peer dependency isolated for tree-shaking.
 
+> [!WARNING]
+> Compiling an application that uses these helpers with `bun build --compile` produces a binary that dies on startup with `ENOENT: /$bunfs/dist/native.wasm`. The build must register `platformaticWasmPlugin` from `@venizia/ignis-helpers/kafka` -- see [Compiling to a Single Binary](./compile-binary.md).
+
 ### Installation
 
 ```bash
