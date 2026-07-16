@@ -164,7 +164,7 @@
     "prepublishOnly": "bun run rebuild"
   },
   "dependencies": {
-    "@venizia/ignis-inversion": "^0.1.0",
+    "@venizia/ignis-inversion": "^0.1.1-0",
     "drizzle-orm": "^0.45.2",
     "dayjs": "^1.11.21",
     "hono": "^4.12.29",

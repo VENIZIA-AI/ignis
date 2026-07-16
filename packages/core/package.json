@@ -184,7 +184,7 @@
   "dependencies": {
     "@venizia/ignis-boot": "^0.1.1-0",
     "@venizia/ignis-helpers": "^0.1.1-0",
-    "@venizia/ignis-inversion": "^0.1.0",
+    "@venizia/ignis-inversion": "^0.1.1-0",
     "lodash": "^4.18.1",
     "reflect-metadata": "^0.2.2"
   },

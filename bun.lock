@@ -309,8 +309,8 @@
       "name": "@venizia/ignis-boot",
       "version": "0.1.1-0",
       "dependencies": {
-        "@venizia/ignis-helpers": "^0.1.0",
-        "@venizia/ignis-inversion": "^0.1.0",
+        "@venizia/ignis-helpers": "^0.1.1-0",
+        "@venizia/ignis-inversion": "^0.1.1-0",
         "glob": "^13.0.6",
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
@@ -327,11 +327,11 @@
     },
     "packages/core": {
       "name": "@venizia/ignis",
-      "version": "0.1.1-1",
+      "version": "0.1.1-2",
       "dependencies": {
-        "@venizia/ignis-boot": "^0.1.0",
-        "@venizia/ignis-helpers": "^0.1.0",
-        "@venizia/ignis-inversion": "^0.1.0",
+        "@venizia/ignis-boot": "^0.1.1-0",
+        "@venizia/ignis-helpers": "^0.1.1-0",
+        "@venizia/ignis-inversion": "^0.1.1-0",
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
       },
@@ -430,7 +430,7 @@
       "name": "@venizia/ignis-helpers",
       "version": "0.1.1-0",
       "dependencies": {
-        "@venizia/ignis-inversion": "^0.1.0",
+        "@venizia/ignis-inversion": "^0.1.1-0",
         "dayjs": "^1.11.21",
         "drizzle-orm": "^0.45.2",
         "hono": "^4.12.29",
@@ -494,7 +494,7 @@
     },
     "packages/inversion": {
       "name": "@venizia/ignis-inversion",
-      "version": "0.1.0",
+      "version": "0.1.1-0",
       "dependencies": {
         "lodash": "^4.18.1",
         "reflect-metadata": "^0.2.2",
