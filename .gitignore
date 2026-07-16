@@ -109,3 +109,6 @@ node_modules.zip
 **/*/__mf__/temp/
 
 **/*/.vitepress/cache
+
+# OKF knowledge bundle - generated graph explorer (rebuild: make okf-viz)
+.agents/knowledge/viz.html
