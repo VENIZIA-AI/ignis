@@ -1,7 +1,8 @@
 .PHONY: all build build-all core dev-configs docs docs-mcp helpers inversion boot \
-        help install clean setup-hooks \
+        help install clean setup-hooks agent-setup \
         lint lint-all lint-packages lint-examples \
         lint-dev-configs lint-inversion lint-helpers lint-boot lint-core lint-docs-mcp \
+        okf-check okf-gen okf-coverage okf-viz \
         update update-all update-core update-dev-configs update-docs-mcp update-helpers update-inversion update-boot
 
 DEFAULT_GOAL := help
@@ -27,6 +28,24 @@ setup-hooks:
 	@echo "🔧 Setting up git hooks..."
 	@git config core.hooksPath .githooks
 	@echo "✅ Git hooks configured to use .githooks directory."
+
+# ============================================================================
+# KNOWLEDGE BUNDLE (.agents/knowledge)
+# ============================================================================
+okf-check:
+	@bun .agents/knowledge-tools/okf.ts check
+
+okf-gen:
+	@bun .agents/knowledge-tools/okf.ts gen
+
+okf-coverage:
+	@bun .agents/knowledge-tools/okf.ts coverage
+
+okf-viz:
+	@bun .agents/knowledge-tools/okf.ts viz
+
+agent-setup:
+	@bun .agents/plugin/setup.ts
 
 # ============================================================================
 # BUILD TARGETS
@@ -186,6 +205,13 @@ help:
 	@echo "  lint-boot         - Lint @venizia/ignis-boot."
 	@echo "  lint-core         - Lint @venizia/ignis (core)."
 	@echo "  lint-docs-mcp     - Lint @venizia/ignis-docs (MCP Server)."
+	@echo ""
+	@echo "Knowledge bundle (.agents/knowledge):"
+	@echo "  okf-check     - Gate: frontmatter, links, coverage, freshness (runs in pre-commit)."
+	@echo "  okf-gen       - Regenerate source-derived reference content."
+	@echo "  okf-coverage  - Report bundle coverage against the source inventory."
+	@echo "  okf-viz       - Build the offline knowledge-graph explorer."
+	@echo "  agent-setup   - Link your agent's tool file + skills to the tracked AGENTS.md."
 	@echo ""
 	@echo "Other:"
 	@echo "  help          - Show this help message."

@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "ignis-knowledge": {
+      "command": "bun",
+      "args": [".agents/knowledge-tools/okf.ts", "mcp"]
+    }
+  }
+}
