@@ -1,288 +1,137 @@
 ---
-title: Filter System Overview
-description: Complete reference for the IGNIS filter system
+title: Filter System
+description: Shape a query - which rows, which fields, what order, how much
 difficulty: intermediate
 ---
 
 # Filter System
 
-Complete reference for the IGNIS filter system - operators, JSON filtering, array operators, default filters, and query patterns.
+A filter is the object every repository read, update, and delete verb accepts to shape a query - which rows (`where`), which columns (`fields`), what order (`order`), and how much (`limit`/`skip`).
 
-> [!NOTE]
-> If you're new to IGNIS, start with:
-> - [5-Minute Quickstart](/guides/get-started/5-minute-quickstart) - Get up and running
-> - [Building a CRUD API](/guides/tutorials/building-a-crud-api) - Learn the basics
-> - [Repositories](/references/base/repositories/) - Repository overview
+## In one example
 
-## Prerequisites
-
-Before reading this document, you should understand:
-
-- [Repositories](../repositories/) - Basic repository operations (find, create, update, delete)
-- [Models](../models.md) - Entity definitions and schemas
-- SQL basics - Understanding of WHERE clauses and operators
-- TypeScript type system - Type safety and inference
-
-## Documentation
-
-| Guide | Description |
-|-------|-------------|
-| [**Quick Reference**](./quick-reference.md) | **Single-page cheat sheet of all operators** |
-| [Comparison Operators](./comparison-operators.md) | Equality, range, null checks |
-| [Pattern Matching](./pattern-matching.md) | LIKE, ILIKE, regex |
-| [Logical Operators](./logical-operators.md) | AND, OR combinations |
-| [List Operators](./list-operators.md) | IN, NOT IN |
-| [Range Operators](./range-operators.md) | BETWEEN, NOT BETWEEN |
-| [Null Operators](./null-operators.md) | IS NULL, IS NOT NULL |
-| [Array Operators](./array-operators.md) | PostgreSQL array operations |
-| [JSON Filtering](./json-filtering.md) | JSON/JSONB path queries |
-| [Fields, Order, Pagination](./fields-order-pagination.md) | SELECT, ORDER BY, LIMIT |
-| [**Default Filter**](./default-filter.md) | Automatic filter application |
-| [Application Usage](./application-usage.md) | Filter flow in applications |
-| [Tips & Best Practices](./tips.md) | Performance and patterns |
-| [Use Cases](./use-cases.md) | Real-world examples |
-
-
-## Filter Structure
-
-The `TFilter<T>` object is the core mechanism for querying data in IGNIS. It provides a structured way to express complex queries without writing raw SQL.
+A filter shapes one query - `where` picks rows, `fields` picks columns, `order` sorts, `limit` bounds the result:
 
 ```typescript
-type TFilter<T> = {
-  where?: TWhere<T>;      // Query conditions (SQL WHERE)
-  fields?: TFields<T>;    // Column selection (SQL SELECT)
-  order?: string[];        // Sorting (SQL ORDER BY)
-  limit?: number;         // Max results (SQL LIMIT, default: 10)
-  skip?: number;          // Pagination offset (SQL OFFSET)
-  offset?: number;        // Alias for skip
-  include?: TInclusion[]; // Related data (Drizzle relational queries)
-};
+import { postRepository } from '@/repositories';
+
+const posts = await postRepository.find({
+  filter: {
+    where: {
+      status: 'published',
+      or: [{ featured: true }, { rating: { gte: 4.5 } }],
+    },
+    fields: ['id', 'title', 'rating', 'publishedAt'],
+    order: ['rating DESC', 'publishedAt DESC'],
+    limit: 20,
+  },
+});
 ```
 
+`postRepository` is a `@repository({ model: Post, dataSource })`-bound repository - `Post`'s schema comes from `@/schemas`. See [Models](/references/base/models) and [Repositories](../repositories/).
 
-## SQL Mapping Overview
+```sql
+-- Equivalent SQL
+SELECT "id", "title", "rating", "published_at"
+FROM "post"
+WHERE "status" = 'published' AND ("featured" = true OR "rating" >= 4.5)
+ORDER BY "rating" DESC, "published_at" DESC
+LIMIT 20
+```
 
-| Filter Property | SQL Equivalent | Purpose |
-|-----------------|----------------|---------|
+## How it works
+
+- **`TFilter` maps straight to SQL.** Every property corresponds to one clause of the generated query - see the table below.
+- **`where` takes a bare value or an operator object.** A bare value is implicit equality (`null` becomes `IS NULL`, an array becomes `IN`); an operator object keys into one of the operator families.
+- **Multiple `where` keys are an implicit AND.** A dot-notation key (`'metadata.path'`) targets a JSON/JSONB column instead of a top-level column and accepts the same operators, with automatic numeric casting when the operand is a number.
+- **A model's `settings.defaultFilter` merges into every query for that model**, narrowing-only - see [Default filter](#default-filter) below.
+
+| Filter property | SQL equivalent | Purpose |
+|---|---|---|
 | `where` | `WHERE` | Filter rows by conditions |
 | `fields` | `SELECT col1, col2` | Select specific columns |
 | `order` | `ORDER BY` | Sort results |
-| `limit` | `LIMIT` | Restrict number of results |
-| `skip` / `offset` | `OFFSET` | Skip rows for pagination |
-| `include` | Separate relational query | Include related data |
+| `limit` | `LIMIT` | Restrict the number of results |
+| `skip` / `offset` | `OFFSET` | Skip rows for pagination (aliases - `skip` wins if both are given) |
+| `include` | Separate relational query | Eager-load related rows ([Relations & Includes](../repositories/relations)) |
 
+### The `where` operator families
 
-## Basic Example
+| Family | Operators | Example |
+|---|---|---|
+| Comparison | `eq`, `ne`/`neq`, `gt`, `gte`, `lt`, `lte` | `{ age: { gte: 18, lte: 65 } }` |
+| Null / presence | `is`, `isn`, `exists`, `notExists` | `{ deletedAt: null }` or `{ verifiedAt: { exists: true } }` |
+| List | `in`/`inq`, `nin` | `{ status: { inq: ['active', 'pending'] } }` |
+| Range | `between`, `notBetween` | `{ score: { between: [40, 60] } }` |
+| Pattern | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` | `{ email: { ilike: '%@company.com' } }` |
+| Logical | `and`, `or`, `not` | `{ or: [{ role: 'admin' }, { role: 'moderator' }] }` |
+| Array (PostgreSQL) | `contains`, `containedBy`, `overlaps` | `{ tags: { contains: ['typescript'] } }` |
+| JSON path | comparison, null, list, range, and pattern operators, on a `'column.path'` key | `{ 'metadata.score': { gt: 80 } }` |
 
-```typescript
-// Filter object
-const filter = {
-  where: { status: 'active', role: 'admin' },
-  fields: ['id', 'name', 'email'],
-  order: ['createdAt DESC'],
-  limit: 10,
-  skip: 0
-};
+### Fields, order, and pagination
 
-// Equivalent SQL
-// SELECT "id", "name", "email"
-// FROM "users"
-// WHERE "status" = 'active' AND "role" = 'admin'
-// ORDER BY "created_at" DESC
-// LIMIT 10 OFFSET 0
-```
+- **`fields`** selects columns - an array, or a `{ field: true }` object (inclusion-only; `false` is ignored).
+- **`order`** takes `'field ASC'` / `'field DESC'` strings, including JSON paths.
+- **`limit`**, when omitted, resolves through `query.limit ?? model settings.defaultLimit ?? 10`.
+- **`skip` / `offset`** both map to SQL `OFFSET`.
 
+### Default filter
 
-## Quick Reference
-
-| Want to... | Filter Syntax |
-|------------|---------------|
-| Equals | `{ field: value }` or `{ field: { eq: value } }` |
-| Not equals | `{ field: { ne: value } }` or `{ field: { neq: value } }` |
-| Greater than | `{ field: { gt: value } }` |
-| Greater or equal | `{ field: { gte: value } }` |
-| Less than | `{ field: { lt: value } }` |
-| Less or equal | `{ field: { lte: value } }` |
-| Is null | `{ field: null }` or `{ field: { is: null } }` |
-| Is not null | `{ field: { isn: null } }` or `{ field: { ne: null } }` |
-| Field present (`IS NOT NULL`) | `{ field: { exists: true } }` (or `{ field: { notExists: false } }`) |
-| Field missing/null (`IS NULL`) | `{ field: { exists: false } }` or `{ field: { notExists: true } }` |
-| Negate a condition | `{ field: { not: value } }` (negates `eq`) or `{ field: { not: { gt: 10 } } }` |
-| In list | `{ field: { in: [a, b, c] } }` or `{ field: { inq: [a, b, c] } }` |
-| Not in list | `{ field: { nin: [a, b, c] } }` |
-| Range | `{ field: { between: [min, max] } }` |
-| Outside range | `{ field: { notBetween: [min, max] } }` |
-| Contains pattern | `{ field: { like: '%pattern%' } }` |
-| Not contains pattern | `{ field: { nlike: '%pattern%' } }` |
-| Case-insensitive | `{ field: { ilike: '%pattern%' } }` |
-| Not case-insensitive | `{ field: { nilike: '%pattern%' } }` |
-| Regex match | `{ field: { regexp: '^pattern$' } }` |
-| Case-insensitive regex | `{ field: { iregexp: '^pattern$' } }` |
-| Array contains all | `{ arrayField: { contains: [a, b] } }` |
-| Array is subset | `{ arrayField: { containedBy: [a, b, c] } }` |
-| Array overlaps | `{ arrayField: { overlaps: [a, b] } }` |
-| JSON nested | `{ 'jsonField.nested.path': value }` |
-| JSON with operator | `{ 'jsonField.path': { gt: 10 } }` |
-| AND conditions | `{ a: 1, b: 2 }` or `{ and: [{a: 1}, {b: 2}] }` |
-| OR conditions | `{ or: [{ a: 1 }, { b: 2 }] }` |
-| Include relation | `{ include: [{ relation: 'name' }] }` |
-| Nested include | `{ include: [{ relation: 'a', scope: { include: [{ relation: 'b' }] } }] }` |
-| Select fields | `{ fields: ['id', 'name'] }` or `{ fields: { id: true, name: true } }` |
-| Order by | `{ order: ['field DESC'] }` |
-| Order by JSON | `{ order: ['jsonField.path DESC'] }` |
-| Paginate | `{ limit: 10, skip: 20 }` or `{ limit: 10, offset: 20 }` |
-
-
-## Common Filter Patterns
-
-### Multi-Condition Search
+- **Applies automatically.** A model's `settings.defaultFilter` merges into every read, update, and delete for that model.
+- **Narrowing only.** When both the default and the caller's filter constrain the same field, the two conditions are AND-composed rather than one replacing the other - a caller can never widen or drop a scope like soft-delete or multi-tenancy by accident.
 
 ```typescript
-{
-  where: {
-    and: [
-      { age: { gte: 18, lte: 65 } }, // Between 18 and 65
-      { status: { in: ['active', 'pending'] } },
-      { or: [
-        { email: { ilike: '%@company.com' } },
-        { role: 'admin' }
-      ]}
-    ]
-  }
+import { model, BaseEntity } from '@venizia/ignis';
+import { postTable } from '@/schemas';
+
+@model({
+  type: 'entity',
+  settings: { defaultFilter: { where: { isDeleted: false } } },
+})
+export class Post extends BaseEntity<typeof Post.schema> {
+  static override schema = postTable;
 }
+
+await postRepository.find({ filter: { where: { status: 'published' } } });
+// WHERE "isDeleted" = false AND "status" = 'published' - both conditions apply
+
+await postRepository.find({
+  filter: { where: { status: 'published' } },
+  options: { shouldSkipDefaultFilter: true },
+});
+// WHERE "status" = 'published' - default filter skipped
 ```
 
-### Text Search
+## Operators
 
-```typescript
-{
-  where: {
-    or: [
-      { name: { ilike: '%john%' } },
-      { email: { ilike: '%john%' } },
-      { username: { ilike: '%john%' } }
-    ]
-  }
-}
-```
+Each operator family and every long-form topic has its own page:
 
-### Date Range
+| Page | Covers |
+|---|---|
+| [Quick Reference](./quick-reference) | Every operator, one line each - the fast lookup |
+| [Comparison Operators](./comparison-operators) | `eq`, `ne`/`neq`, `gt`, `gte`, `lt`, `lte` |
+| [Null Operators](./null-operators) | `is`, `isn`, direct `null`, `exists`/`notExists` |
+| [List Operators](./list-operators) | `in`/`inq`, `nin` |
+| [Range Operators](./range-operators) | `between`, `notBetween` |
+| [Pattern Matching](./pattern-matching) | `like`, `nlike`, `ilike`, `nilike`, `regexp`, `iregexp` |
+| [Logical Operators](./logical-operators) | Implicit/explicit `and`, `or`, `not`, empty-group semantics |
+| [Array Operators](./array-operators) | `contains`, `containedBy`, `overlaps` (PostgreSQL array columns) |
+| [JSON Filtering](./json-filtering) | Dot-path queries into JSON/JSONB columns |
+| [Fields, Order & Pagination](./fields-order-pagination) | `fields`, `order`, `limit`/`skip`/`offset`, `defaultLimit` |
+| [Default Filter](./default-filter) | `settings.defaultFilter`, merge semantics, `shouldSkipDefaultFilter` |
+| [Application Usage](./application-usage) | How a filter flows controller -> service -> repository |
+| [Use Case Gallery](./use-cases) | Real-world filters with the SQL they produce |
+| [Tips & Edge Cases](./tips) | Performance notes and common gotchas |
 
-```typescript
-{
-  where: {
-    createdAt: {
-      gte: new Date('2024-01-01'),
-      lt: new Date('2024-02-01')
-    }
-  }
-}
-```
+## See also
 
-### Exclude Soft Deleted
+- [Repositories](../repositories/) - the `find`/`count`/`updateAll`/`deleteAll` verbs that take a `filter`
+- [Models](/references/base/models) - `settings.defaultFilter` and `settings.hiddenProperties`
+- [Building a CRUD API](/guides/tutorials/building-a-crud-api) - filters in a real endpoint
+- [Quick Reference Card](/references/quick-reference.md) - all IGNIS APIs on one page
 
-```typescript
-{
-  where: {
-    and: [
-      { isDeleted: false },
-      { status: 'active' }
-    ]
-  }
-}
-```
+**Files:**
 
-### Multi-Tenant Filtering
-
-```typescript
-{
-  where: {
-    and: [
-      { tenantId: currentTenantId },
-      { isActive: true }
-    ]
-  }
-}
-```
-
-
-## Operator Precedence
-
-When combining operators, IGNIS follows standard SQL precedence:
-
-1. **AND** - Higher precedence
-2. **OR** - Lower precedence
-
-Use explicit nesting (via `and`/`or` arrays) for clarity:
-
-```typescript
-// Clear precedence
-{
-  where: {
-    and: [
-      { status: 'active' },
-      { or: [
-        { role: 'admin' },
-        { role: 'moderator' }
-      ]}
-    ]
-  }
-}
-```
-
-
-## Performance Tips
-
-1. **Index frequently filtered columns:**
-   ```sql
-   CREATE INDEX idx_users_status ON users(status);
-   CREATE INDEX idx_posts_created_at ON posts(created_at DESC);
-   ```
-
-2. **Use `eq` instead of `like` when possible:**
-   ```typescript
-   // Fast: Uses index
-   { status: { eq: 'active' } }
-
-   // Slower: Full table scan
-   { status: { like: 'active' } }
-   ```
-
-3. **Limit array contains operations:**
-   ```typescript
-   // Better performance with smaller arrays
-   { tags: { contains: ['typescript'] } } // Good
-   { tags: { contains: ['tag1', 'tag2', /* ... 100 tags */] } } // Slow
-   ```
-
-4. **Use pagination for large result sets:**
-   ```typescript
-   {
-     where: { isActive: true },
-     limit: 100,
-     skip: 0,
-     order: ['id ASC']
-   }
-   ```
-
-
-## See Also
-
-- **Detailed Guides:**
-  - [Comparison Operators](./comparison-operators.md)
-  - [Logical Operators](./logical-operators.md)
-  - [Pattern Matching](./pattern-matching.md)
-  - [JSON Filtering](./json-filtering.md)
-  - [Array Operators](./array-operators.md)
-
-- **Related References:**
-  - [Repositories](../repositories/) - Using filters in repository queries
-  - [Models](../models.md) - Defining model schemas
-
-- **Usage Guides:**
-  - [Application Usage](./application-usage.md) - Filters in the full stack
-  - [Use Case Gallery](./use-cases.md) - Real-world examples
-  - [Pro Tips & Edge Cases](./tips.md) - Advanced patterns
-
-- **Quick Reference:**
-  - [Main Quick Reference](/references/quick-reference.md) - All IGNIS APIs
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/query-schemas/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/query-schemas/filter.ts) - `TFilter`/`TInclusion` types
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators`/`Sorts` constants

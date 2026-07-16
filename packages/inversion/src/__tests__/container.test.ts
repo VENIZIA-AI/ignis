@@ -1,12 +1,12 @@
 import 'reflect-metadata';
 
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { Binding } from '../binding/binding';
-import { BindingScopes, BindingValueTypes } from '../binding/common/constants';
-import type { IProvider } from '../binding/common/types';
-import type { IContainer } from '../container/common/types';
-import { Container } from '../container/container';
-import { inject, injectable } from '../metadata/injectors';
+import { Binding } from '../modules/binding/binding';
+import { BindingScopes, BindingValueTypes } from '../modules/binding/common/constants';
+import type { IProvider } from '../modules/binding/common/types';
+import type { IContainer } from '../modules/container/common/types';
+import { Container } from '../modules/container/container';
+import { inject, injectable } from '../modules/metadata/injectors';
 
 class Greeter {
   greet(): string {

@@ -1,8 +1,8 @@
 import 'reflect-metadata';
 
 import { beforeEach, describe, expect, test } from 'bun:test';
-import { Container } from '../container/container';
-import { inject } from '../metadata/injectors';
+import { Container } from '../modules/container/container';
+import { inject } from '../modules/metadata/injectors';
 
 /**
  * A container-instantiated class must decorate EVERY constructor parameter.

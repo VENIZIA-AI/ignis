@@ -16,7 +16,9 @@ Control which fields are returned using `fields`:
 ### Array Format (Recommended)
 
 ```typescript
-await repository.find({
+import { userRepository } from '@/repositories';
+
+await userRepository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'email', 'name']
@@ -29,7 +31,7 @@ await repository.find({
 
 ```typescript
 // Include specific fields (only keys with `true` are selected)
-await repository.find({
+await userRepository.find({
   filter: {
     fields: { id: true, email: true, name: true }
   }
@@ -46,17 +48,17 @@ await repository.find({
 
 ```typescript
 // Single column, descending
-await repository.find({
+await userRepository.find({
   filter: { order: ['createdAt DESC'] }
 });
 
 // Multiple columns
-await repository.find({
+await userRepository.find({
   filter: { order: ['status ASC', 'createdAt DESC'] }
 });
 
 // Default direction is ASC
-await repository.find({
+await userRepository.find({
   filter: { order: ['name'] }  // Same as 'name ASC'
 });
 ```
@@ -74,12 +76,12 @@ Error: Invalid direction: 'RANDOM' | Expected: 'ASC' or 'DESC'
 Order by nested fields in JSON columns:
 
 ```typescript
-await repository.find({
+await userRepository.find({
   filter: { order: ['metadata.priority DESC'] }
 });
 // SQL: ORDER BY "metadata" #> '{priority}' DESC
 
-await repository.find({
+await userRepository.find({
   filter: { order: ['settings.display.theme ASC'] }
 });
 ```
@@ -104,24 +106,24 @@ Both `skip` and `offset` are supported as aliases -- they both map to the SQL `O
 
 ```typescript
 // First 10 results (default limit is 10)
-await repository.find({
+await userRepository.find({
   filter: { limit: 10 }
 });
 
 // Page 2 (skip first 10, get next 10)
-await repository.find({
+await userRepository.find({
   filter: { limit: 10, skip: 10 }
 });
 
 // Using offset (equivalent to skip)
-await repository.find({
+await userRepository.find({
   filter: { limit: 10, offset: 10 }
 });
 
 // Page N formula: skip = (page - 1) * limit
 const page = 3;
 const pageSize = 20;
-await repository.find({
+await userRepository.find({
   filter: {
     limit: pageSize,
     skip: (page - 1) * pageSize
@@ -145,11 +147,17 @@ query.limit  ??  model settings.defaultLimit  ??  DEFAULT_LIMIT (10)
 - **`DEFAULT_LIMIT`** - the global fallback, `10`.
 
 ```typescript
+import { model, BaseEntity } from '@venizia/ignis';
+import { countryTable } from '@/schemas';
+import { countryRepository } from '@/repositories';
+
 @model({
   type: 'entity',
   settings: { defaultLimit: 200 },  // Small lookup table - default to 200 rows
 })
-export class Country extends BaseEntity<typeof Country.schema> {}
+export class Country extends BaseEntity<typeof Country.schema> {
+  static override schema = countryTable;
+}
 
 await countryRepository.find({ filter: {} });            // LIMIT 200
 await countryRepository.find({ filter: { limit: 10 } }); // LIMIT 10  (explicit wins)
@@ -184,7 +192,7 @@ When building paginated APIs, you often need to return the total count alongside
 ### Basic Usage
 
 ```typescript
-const result = await repository.find({
+const result = await userRepository.find({
   filter: { limit: 10, skip: 20 },
   options: { shouldQueryRange: true }
 });
@@ -205,7 +213,7 @@ const result = await repository.find({
 Use the range information to set standard HTTP headers:
 
 ```typescript
-const { data, range } = await repository.find({
+const { data, range } = await userRepository.find({
   filter: { limit: 10, skip: 20, where: { status: 'active' } },
   options: { shouldQueryRange: true }
 });
@@ -246,7 +254,7 @@ When `shouldQueryRange: true`, the repository executes the data query and count 
 ## Combined Example
 
 ```typescript
-await repository.find({
+await userRepository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'name', 'price', 'createdAt'],
@@ -260,7 +268,7 @@ await repository.find({
 ### With Range Information
 
 ```typescript
-const { data, range } = await repository.find({
+const { data, range } = await userRepository.find({
   filter: {
     where: { status: 'active' },
     fields: ['id', 'name', 'price', 'createdAt'],
@@ -274,3 +282,17 @@ const { data, range } = await repository.find({
 console.log(`Showing ${range.start}-${range.end} of ${range.total}`);
 // -> "Showing 0-19 of 150"
 ```
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [JSON Filtering](./json-filtering) - JSON path ordering and the JSONB sort-order table
+- [Default Filter](./default-filter) - `settings.defaultFilter`, the sibling of `settings.defaultLimit`
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, `toColumns`/`toOrderBy`
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `Sorts` constants
+- [`packages/core/src/base/repositories/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/constants.ts) - `DEFAULT_LIMIT`
+- [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `TDataRange`, `buildDataRange`

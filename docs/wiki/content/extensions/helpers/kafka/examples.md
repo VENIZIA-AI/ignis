@@ -1,3 +1,9 @@
+---
+title: Kafka Examples & Troubleshooting
+description: End-to-end producer, consumer, admin, and IoC examples, plus a common-error lookup table
+difficulty: intermediate
+---
+
 # Examples & Troubleshooting
 
 Complete examples and common issue resolution for the Kafka helpers.
@@ -342,20 +348,20 @@ environment:
 - `EXTERNAL` -- used for client connections from outside Docker
 - `CONTROLLER` -- used for KRaft controller communication
 
-## See Also
+## See also
 
-- **Kafka Pages:**
-  - [Overview & Fundamentals](./) -- Connection, serialization, constants, compression
-  - [Producer](./producer) -- Producer helper, transactions, API reference
-  - [Consumer](./consumer) -- Consumer helper, callbacks, lag monitoring, API reference
-  - [Admin](./admin) -- Admin helper & API reference
-  - [Schema Registry](./schema-registry) -- Schema registry helper
+- [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
+- [Producer](./producer) - connection & SASL setup, serialization, compression, transactions
+- [Consumer](./consumer) - message callbacks, automatic reconnect, lag monitoring
+- [Admin](./admin) - topic, group, offset, ACL, and quota management
+- [Schema Registry](./schema-registry) - schema-validated serialization
+- [Compiling to a Single Binary](./compile-binary) - required if any example on this page ships inside a `bun build --compile` binary
+- [Queue Helpers](../queue/) - BullMQ, MQTT, and the in-memory queue
+- [Redis Helper](../redis/) - Redis connection management
 
-- **Other Helpers:**
-  - [Queue Helper](../queue/) -- BullMQ, MQTT, and in-memory queues
-  - [Redis Helper](../redis/) -- Redis connection management
+**Files:**
 
-- **External Resources:**
-  - [@platformatic/kafka](https://github.com/platformatic/kafka) -- Underlying Kafka client library
-  - [Apache Kafka Documentation](https://kafka.apache.org/documentation/) -- Official Kafka docs
-  - [KIP-848](https://cwiki.apache.org/confluence/display/KAFKA/KIP-848) -- New consumer group protocol
+- [`packages/helpers/src/modules/queue/kafka/producer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/producer.ts) - `KafkaProducerHelper`
+- [`packages/helpers/src/modules/queue/kafka/consumer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/consumer.ts) - `KafkaConsumerHelper`
+- [`packages/helpers/src/modules/queue/kafka/admin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/admin.ts) - `KafkaAdminHelper`
+- [`packages/helpers/src/modules/queue/kafka/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/index.ts) - the `/kafka` sub-path barrel

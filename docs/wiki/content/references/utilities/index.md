@@ -22,7 +22,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 ### Data Processing
 
 - [**Crypto**](./crypto.md) - Simple, stateless cryptographic functions for hashing (SHA256 HMAC, MD5)
-- [**Parse**](./parse.md) - Functions for parsing and converting data types safely (integers, floats, booleans, camelCase, locale-aware numbers, array-to-map)
+- [**Parse**](./parse.md) - Functions for parsing and converting data types safely (integers, floats, booleans, camelCase, array-to-map)
 - [**Schema**](./schema.md) - Helpers for creating Zod schemas for OpenAPI request/response validation
 - [**Statuses**](./statuses.md) - Standardized status code constants for entity lifecycle management
 

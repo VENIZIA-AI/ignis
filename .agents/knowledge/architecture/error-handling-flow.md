@@ -12,9 +12,13 @@ Nothing else needs to catch-and-shape for HTTP.
 
 ## Throwing: always `getError`
 
-Never `new Error`. `getError({ message, statusCode?, messageCode?, ...extra })` returns an
-`ApplicationError` carrying the fields the handler reads - `statusCode` (default 400), `messageCode`
-(resolved through `MessageCode`), and `extra`, which collects anything beyond the known keys.
+Never `new Error`. `getError({ message, statusCode?, messageCode?, messageArgs?, cause?, extra? })`
+returns an `ApplicationError` carrying the fields the handler reads - `statusCode` (default 400),
+`messageCode` (resolved through `MessageCode`), `normalized` (always built), and `extra`.
+
+`extra` takes both routes: pass it explicitly, or let any key the input does not model ride the
+index signature into it. The trade is that a mistyped key goes the same way - the framework cannot
+tell context from typo.
 
 ## Identity: use `isApplicationError`, not `instanceof`
 
@@ -83,10 +87,20 @@ production, because you chose that message deliberately. An error you did not ra
 ```typescript
 {
   message, messageCode, statusCode, requestId,
-  extra,                                  // from ApplicationError.extra
+  normalized,                             // { text, code, args } - EVERY branch, including 422
+  extra,                                  // from ApplicationError.extra; absent when empty
   details: { url, path, stack, cause },   // stack/cause non-production only
 }
 ```
+
+`normalized` is what a client renders: `translate(normalized.code, normalized.args)`. `messageCode`
+and `extra.messageArgs` duplicate it and are DEPRECATED.
+
+Only the INTENTIONAL branch can carry `extra`, and only the intentional branch reports the message
+the throw site wrote. The other four REPLACE the message; `normalized` is built from the
+replacement, never from the original, so it cannot become a second way to leak what `message` just
+scrubbed. An `ApplicationError` arrives already normalized and that object is authoritative - a
+`transform` may have written a `text` deliberately different from `message`.
 
 `configs.error.rootKey`, when set, nests this under that key. `requestId` is the join key between the
 response a client saw and the fully detailed server log line.

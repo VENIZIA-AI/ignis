@@ -1,27 +1,14 @@
+---
+title: Error
+description: ApplicationError, the getError factory, and a catalog pattern for machine-readable error codes
+difficulty: beginner
+---
+
 # Error
 
-Standardized error class and factory for throwing HTTP-aware errors with machine-readable codes across the application.
+`getError()` builds an `ApplicationError` carrying an HTTP status and a machine-readable code - the house rule is `getError`, never `new Error`.
 
-## Quick Reference
-
-| Item | Value |
-|------|-------|
-| **Package** | `@venizia/ignis-helpers` |
-| **Class** | `ApplicationError` |
-| **Extends** | `Error` (native) |
-| **Runtimes** | Both |
-
-#### Import Paths
-
-```typescript
-import { ApplicationError, getError, isApplicationError } from '@venizia/ignis-helpers';
-import { ErrorSchema } from '@venizia/ignis-helpers';
-import type { TError } from '@venizia/ignis-helpers';
-```
-
-## Creating an Instance
-
-The canonical way to raise an error in IGNIS is the standalone `getError()` factory - use it everywhere (house rule: `getError`, never `new Error`). `ApplicationError` extends the native `Error` class with an HTTP `statusCode` and an optional `messageCode` for machine-readable error identification; `getError()` constructs one for you.
+## In one example
 
 ```typescript
 import { getError, HTTP } from '@venizia/ignis-helpers';
@@ -33,70 +20,46 @@ throw getError({
 });
 ```
 
-#### Options (`TError`)
+The framework's `appErrorHandler` middleware catches `ApplicationError` instances and formats them into a consistent JSON response - see [Common tasks](#common-tasks) below.
 
-The same options apply to `getError()`, the `ApplicationError` constructor, and the static factory:
+## How it works
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `message` | `string` | -- (required) | Human-readable error message |
-| `statusCode` | `number` | `400` | HTTP status code |
-| `messageCode` | `string` | `MessageCode.DEFAULT` (`'core.system_error'`) | Machine-readable error code for client-side handling. Always resolved through `MessageCode.resolve()` -- never left `undefined`, and lower-cased regardless of what was passed in |
-| `name` | `string` | `undefined` | Accepted by the schema but discarded by the constructor (the native `Error` name is kept) |
+- **Three equivalent entry points.** `getError(opts)`, `new ApplicationError(opts)`, and the static `ApplicationError.getError(opts)` all take the same input and build the same object - use the class form only when a direct reference reads better.
+- **Two input shapes.** Free-form (`{ message, statusCode?, messageCode? }`) covers one-off failures - most throw sites. Catalogued (`{ error: TErrorDefinition }`) raises a failure declared once at module scope, so its code, status, and default text cannot drift across the call sites that raise it; `message` and `statusCode` may still be overridden per-raise.
+- **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or it is empty - `error.messageCode` is never `undefined`.
+- **Every error carries a `normalized` message.** `{ code, args, text }` - `code` mirrors the resolved `messageCode`, `args` defaults to `messageArgs` (or the definition's own `messageArgs`), `text` defaults to `message`. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`. Pass `transform` to build `normalized` yourself from a flat snapshot of the error.
+- **Any key the input does not declare rides into `extra`.** Attach whatever context your clients need - `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too, and the two merge with the explicit one winning. `messageArgs` is additionally mirrored into `extra.messageArgs` for clients still reading the flat shape; `error.extra` is `undefined` only when there is nothing to carry.
+- **`cause` reaches the native `Error.cause`,** not `extra` - wrap a lower-level failure with `getError({ message, cause: originalError })` and every tool that reads `.cause` sees it.
+- **`isApplicationError()` checks shape, not class identity.** There is one `ApplicationError` - it lives in `@venizia/ignis-inversion` so a browser application can raise and read the same errors the server does, and `helpers` re-exports it. `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. Test the shape.
 
-> [!TIP]
-> The `TError` type is derived from `ErrorSchema` (a Zod schema) and uses `.catchall(z.any())`, so you can pass additional arbitrary properties beyond the four listed above. Extra properties are collected into the `extra` field on the resulting `ApplicationError` instance.
+**Options shared by both forms**
 
-#### `ApplicationError` Constructor and Static Factory
+| Option          | Type                         | Description                                                                                                     |
+| --------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| `statusCode`    | `number`                     | Defaults to `400`, or the definition's `statusCode` for the catalogued form                                     |
+| `messageArgs`   | `Record<string, unknown>`    | Interpolation values, mirrored into `extra.messageArgs` and `normalized.args`                                   |
+| `cause`         | `unknown`                    | The wrapped failure - reaches `Error.cause`                                                                     |
+| `extra`         | `Record<string, unknown>`    | Explicit context, merged with the `messageArgs` mirror and any swept keys - and it wins on a clash              |
+| `transform`     | `TErrorNormalizeTransformFn` | Builds `normalized` in place of the default, from a flat snapshot `{ message, messageCode, statusCode, extra }` |
+| _anything else_ | `unknown`                    | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
-`getError()` is the canonical form. The class constructor and the static `ApplicationError.getError()` are legal equivalents - use them only when a direct class reference reads better:
+> [!WARNING]
+> Pass a definition as `error`, **never spread it**. `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` reads naturally and is wrong: a definition carries `key`, not `messageCode`, so the key lands in `extra.key` and the error degrades to `core.system_error` - unlocalizable, since clients branch on the code. The status and message still arrive, so it looks fine. Nothing catches this for you: the same index signature that carries your context accepts `key` too.
+
+## Common tasks
+
+### Throw a free-form error
+
+The most common shape - a `message` and a status.
 
 ```typescript
-import { ApplicationError, HTTP } from '@venizia/ignis-helpers';
-
-// Class constructor (equivalent to getError)
-const error = new ApplicationError({
-  message: 'Configuration missing',
-  statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-});
-
-// Static factory (equivalent to getError)
-throw ApplicationError.getError({
-  message: 'Invalid credentials',
-  statusCode: HTTP.ResultCodes.RS_4.Unauthorized,
-  messageCode: 'core.auth.invalid_credentials',
+throw getError({
+  statusCode: HTTP.ResultCodes.RS_4.Conflict,
+  message: 'Username already exists',
 });
 ```
 
-### MessageCode
-
-`MessageCode` builds and normalizes the machine-readable codes carried on `ApplicationError.messageCode`. Every code an application throws should be constructed with `MessageCode.build()` rather than typed as a raw string literal -- a malformed code fails at module load (import time) instead of shipping dead into production.
-
-```typescript
-import { MessageCode } from '@venizia/ignis-helpers';
-
-export class UserErrorCodes {
-  static readonly NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
-  static readonly DUPLICATE_EMAIL = MessageCode.build({ parts: ['core', 'user', 'duplicate_email'] });
-}
-```
-
-| Member | Type | Value / Signature | Description |
-|--------|------|--------------------|-------------|
-| `DEFAULT` | `string` | `'core.system_error'` | The code `ApplicationError` falls back to when no `messageCode` is supplied |
-| `SEPARATOR` | `string` | `'.'` | Joins segments into a dotted code (e.g. `core.mail.send_failed`) |
-| `SEGMENT_PATTERN` | `RegExp` | `/^[a-z0-9]+(_[a-z0-9]+)*$/` | Each segment must be lower snake_case -- `a-z`, `0-9`, `_` |
-| `MIN_SEGMENTS` | `number` | `2` | A code needs at least a namespace and a reason (e.g. `core.not_found` is valid, `not_found` alone is not) |
-| `build(opts: { parts: Array<string> })` | `string` | -- | Joins `parts` with `SEPARATOR` and lower-cases the result. Throws (via `getError`) if `parts.length < MIN_SEGMENTS`, or if any segment fails `SEGMENT_PATTERN` |
-| `isValid(code: string)` | `boolean` | -- | Cheap structural check for a code arriving from outside the process |
-| `resolve(code?: string)` | `string` | -- | Normalizes an absent or empty code to `DEFAULT`; otherwise lower-cases `code` |
-
-> [!IMPORTANT]
-> `ApplicationError`'s constructor always calls `MessageCode.resolve(messageCode)` -- so `error.messageCode` is **never** `undefined`, and it is **always lower-cased** regardless of the casing passed to `getError()`. A comparison like `error.messageCode === 'DUPLICATE_EMAIL'` is always false; compare against `'duplicate_email'` (or the exact string returned by `MessageCode.build()`).
-
-## Checking for an Application Error
-
-Use `isApplicationError(error)` to recognize an application error by **shape** - an `Error` instance carrying a numeric `statusCode` - rather than by class identity:
+### Recognize an already-shaped error in a catch block
 
 ```typescript
 import { isApplicationError } from '@venizia/ignis-helpers';
@@ -105,179 +68,138 @@ try {
   await someOperation();
 } catch (error) {
   if (isApplicationError(error)) {
-    // already shaped (has a statusCode) - surface as-is
-    throw error;
+    throw error; // already shaped - surface as-is
   }
-  // an unknown failure - sanitize before rethrowing
-  throw getError({ message: 'Operation failed', statusCode: HTTP.ResultCodes.RS_5.InternalServerError });
+  throw getError({
+    message: 'Operation failed',
+    statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
+  });
+}
+```
+
+### Catalog a reusable error
+
+Declare it once; every call site raises it by reference instead of retyping the code and status.
+
+```typescript
+import { ErrorScopes, getError, HTTP } from '@venizia/ignis-helpers';
+import type { TErrorDefinition } from '@venizia/ignis-helpers';
+
+const CategoryErrors = {
+  CREATE_DUPLICATE_NAME: {
+    key: 'server.commerce.category.create.duplicate_name',
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorScopes.VALIDATION,
+    message: 'A category named "%{name}" already exists.',
+  },
+} as const satisfies Record<string, TErrorDefinition>;
+
+throw getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME, messageArgs: { name: 'Vé' } });
+```
+
+`ErrorScopes` groups a failure by intent - `AUTH`, `VALIDATION`, `BUSINESS`, `SYSTEM`, `INTEGRATION` - because `statusCode` cannot: a `409` is a business conflict in one place and a validation clash in another.
+
+> [!WARNING]
+> `category` is catalog **metadata only** - it does not reach the error response. `getError` reads `key`, `statusCode` and `message` off a definition and ignores the rest. Use it to group and filter catalogs (ops dashboards, translator exports); do not expect a client to receive it.
+
+### Register catalog keys for `messageCode` autocomplete
+
+Augment the module the file already imports from. `IErrorKeyRegistry` is declared in `@venizia/ignis-inversion` and re-exported by `helpers`; merging follows the re-export, so either name populates the same registry.
+
+```typescript
+import type { TRegisterErrors } from '@venizia/ignis-helpers';
+
+declare module '@venizia/ignis-helpers' {
+  interface IErrorKeyRegistry extends TRegisterErrors<typeof CategoryErrors> {}
 }
 ```
 
 > [!WARNING]
-> Never compare `ApplicationError` with `instanceof` across a package boundary. `inversion` ships **dual CJS + ESM** builds (its DI powers frontend libraries), so its error class deliberately has more than one runtime identity, and `helpers` keeps its own `ApplicationError` for the backend stack. Two objects that are both "an application error" can be instances of different classes, so `instanceof` gives false negatives. `isApplicationError` checks the shape and works regardless of which package threw. The search connectors use it to decide what is already shaped versus what must be sanitized as a `503`.
+> TypeScript only treats `declare module` as an **augmentation** when the file imports that module. Name a module the file never imports and it silently becomes an inert ambient declaration - no error, no keys registered, autocomplete quietly empty.
 
-## Usage
+Declare `key` as a literal string, not through `MessageCode.build()` - `build()` returns `string`, which would widen the registry to `Record<string, true>` and destroy the autocomplete.
 
-### Throwing Errors in Services
+### Build a code outside a catalog
 
-The most common pattern is throwing `ApplicationError` from service methods to signal HTTP-level failures. The framework's error handling middleware catches these and formats the response automatically.
-
-```typescript
-import { getError, HTTP } from '@venizia/ignis-helpers';
-
-class AuthenticationService {
-  async signUp(opts: { username: string; credential: string }) {
-    const existingUser = await this.userRepository.findByUsername(opts.username);
-    if (existingUser) {
-      throw getError({
-        statusCode: HTTP.ResultCodes.RS_4.Conflict,
-        message: 'Username already exists',
-      });
-    }
-    // ...
-  }
-}
-```
-
-### Using `messageCode` for Client-Side Handling
-
-The `messageCode` field allows frontend applications to map errors to localized messages or specific UI behaviors without parsing the human-readable `message` string.
+`MessageCode.build()` validates at import time instead of shipping a malformed code into production.
 
 ```typescript
-throw getError({
-  message: 'Email verification required before login',
-  statusCode: HTTP.ResultCodes.RS_4.Forbidden,
-  messageCode: 'auth.email_not_verified',
-});
+import { MessageCode } from '@venizia/ignis-helpers';
+
+const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
+// 'core.user.not_found' - throws if a segment isn't lower snake_case, or fewer than 2 parts
 ```
 
-### Error Response Format
+### Read the error response shape
 
-The built-in `appErrorHandler` middleware (from `@venizia/ignis`) catches `ApplicationError` instances and formats them into consistent JSON responses. The response shape differs by environment.
+`appErrorHandler` (from `@venizia/ignis`) routes every thrown value into one of five shapes. All five carry `message`, `messageCode`, `statusCode`, `normalized` and `details`; only an intentional error can carry `extra`.
 
-#### Sanitized (Production-Class) Response
+| What was thrown                           | Status  | `messageCode`                                          | `message`                                                             | `extra`                                               |
+| ----------------------------------------- | ------- | ------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- |
+| `ZodError` (validation)                   | 422     | the first issue's `params.code`, else its raw Zod code | that issue's message; per-field list in `details.cause`               | never                                                 |
+| DB client error (SQLSTATE class 22/23/44) | 400     | `core.system_error`                                    | a fixed, safe summary - never the driver's text                       | never                                                 |
+| Transient DB conflict (40001/40P01)       | 409     | `database.conflict`                                    | a fixed retry message                                                 | never                                                 |
+| `getError(...)` - intentional             | its own | its own                                                | its own                                                               | when the throw site attached `messageArgs` or `extra` |
+| Anything else                             | 500     | `core.system_error`                                    | `Internal Server Error` in production; the raw message in development | never                                                 |
 
-The handler is **fail-closed**: it exposes internals only when `NODE_ENV` names a development environment - one of `local`, `debug`, `development`, `dev`, `sit` (`Environment.DEVELOPMENT_ENVS`). Everything else is sanitized as production: `production`, and also `alpha`, `beta`, `uat`, `staging`, an unrecognized name, and an unset `NODE_ENV`.
+Only the intentional branch reports what the throw site wrote. The other four **replace** the message, because a driver error carries SQL, schema and constraint names - and `normalized` is built from the replacement, so it can never leak what `message` just scrubbed.
 
-In a sanitized response, `stack` and `cause` are omitted from `details`. For unexpected errors without a `statusCode` (i.e., not thrown via `getError`), the raw message is replaced with a generic `"Internal Server Error"`, and a database error keeps only its base message - no SQL detail, no table or constraint name.
+`rootKey` (e.g. `appErrorHandler({ logger, rootKey: 'error' })`) nests any of these under that key.
+
+The handler is fail-closed on environment: it exposes `stack` and `cause` in `details` only when `NODE_ENV` is one of `local`, `debug`, `development`, `dev`, `sit` (`Environment.DEVELOPMENT_ENVS`). Everything else - including `alpha`, `staging`, a typo, or an unset `NODE_ENV` - gets the sanitized shape:
 
 ```json
 {
-  "message": "User not found",
-  "messageCode": "core.user.not_found",
-  "statusCode": 404,
-  "requestId": "abc-123-def",
-  "details": {
-    "url": "http://localhost:3000/api/users/123",
-    "path": "/api/users/123"
-  }
-}
-```
-
-#### Development Response
-
-In a development environment (see the list above), `details` additionally includes debugging fields:
-
-```json
-{
-  "message": "User not found",
-  "messageCode": "core.user.not_found",
-  "statusCode": 404,
-  "requestId": "abc-123-def",
-  "details": {
-    "url": "http://localhost:3000/api/users/123",
-    "path": "/api/users/123",
-    "stack": "Error: User not found\n    at ...",
-    "cause": "..."
-  }
-}
-```
-
-### ErrorSchema (Zod)
-
-`ErrorSchema` is a Zod object schema used for OpenAPI response documentation. It is typically referenced in route definitions to describe error responses.
-
-```typescript
-import { ErrorSchema, HTTP } from '@venizia/ignis-helpers';
-
-// In route definition responses
-const responses = {
-  [HTTP.ResultCodes.RS_4.NotFound]: {
-    description: 'Resource not found',
-    content: {
-      'application/json': { schema: ErrorSchema },
-    },
+  "message": "Only %{available} left of %{variantId}.",
+  "messageCode": "server.core.stock_reservation.reserve.unavailable",
+  "statusCode": 409,
+  "normalized": {
+    "text": "Only %{available} left of %{variantId}.",
+    "code": "server.core.stock_reservation.reserve.unavailable",
+    "args": { "variantId": "V1", "available": 2 }
   },
-};
+  "extra": {
+    "messageArgs": { "variantId": "V1", "available": 2 },
+    "details": { "locationId": "L9" }
+  },
+  "requestId": "abc-123-def",
+  "details": { "url": "http://localhost:3000/reservations", "path": "/reservations" }
+}
 ```
 
-The schema shape:
+`extra` is absent entirely when the throw site attached neither `messageArgs` nor `extra`.
 
-```typescript
-const ErrorSchema = z
-  .object({
-    name: z.string().optional(),
-    statusCode: z.number().optional(),
-    messageCode: z.string().optional(),
-    message: z.string(),
-  })
-  .catchall(z.any());
-```
+> [!IMPORTANT]
+> **`messageCode` and `extra.messageArgs` are on their way out.** They duplicate `normalized.code` and `normalized.args`, and remain only until every client has migrated. Read `normalized`; do not build anything new against the flat pair.
+>
+> Note the two `details`: the inner one is context the throw site attached (it went through `extra`), the outer one is the middleware's own request info. They are unrelated despite the name.
 
-### Common Status Code Patterns
+> [!NOTE]
+> `message` and `normalized.text` are the same string unless a `transform` deliberately makes them differ - `message` stays the raw text the throw site wrote, `normalized.text` is what a client shows. Most errors never set `transform`, so most of the time they match.
 
-| Scenario | Status Code | `HTTP.ResultCodes` Path |
-|----------|-------------|-------------------------|
-| Invalid input / bad request | 400 | `RS_4.BadRequest` |
-| Missing or invalid auth | 401 | `RS_4.Unauthorized` |
-| Insufficient permissions | 403 | `RS_4.Forbidden` |
-| Resource not found | 404 | `RS_4.NotFound` |
-| Duplicate resource | 409 | `RS_4.Conflict` |
-| Validation error | 422 | `RS_4.UnprocessableEntity` |
-| Server failure | 500 | `RS_5.InternalServerError` |
+**Common status codes**
 
-## Troubleshooting
+| Scenario                 | Status | `HTTP.ResultCodes` path    |
+| ------------------------ | ------ | -------------------------- |
+| Invalid input            | 400    | `RS_4.BadRequest`          |
+| Missing/invalid auth     | 401    | `RS_4.Unauthorized`        |
+| Insufficient permissions | 403    | `RS_4.Forbidden`           |
+| Resource not found       | 404    | `RS_4.NotFound`            |
+| Duplicate resource       | 409    | `RS_4.Conflict`            |
+| Server failure           | 500    | `RS_5.InternalServerError` |
 
-### `statusCode` defaults to 400
+## See also
 
-**Cause:** `getError()` was called without specifying a `statusCode`. The `ApplicationError` constructor defaults to `400` (Bad Request).
+- [Controllers](/references/base/controllers) - throwing errors in route handlers
+- [Services](/references/base/services) - error handling in business logic
+- [Middlewares](/references/base/middlewares) - the `appErrorHandler` middleware
+- [Environment](/extensions/helpers/env/) - `Environment.DEVELOPMENT_ENVS`, the error-detail boundary
+- [Helpers Overview](/extensions/helpers/) - all available helpers
 
-**Fix:** Always provide an explicit status code using `HTTP.ResultCodes`:
+**Files:**
 
-```typescript
-throw getError({
-  message: 'Resource not found',
-  statusCode: HTTP.ResultCodes.RS_4.NotFound,
-});
-```
-
-### Error response missing `stack` and `cause`
-
-**Cause:** `NODE_ENV` is not one of the development environments, so the handler sanitized the response (`url` and `path` are always included). Note this is what happens on `alpha`/`staging`, on a typo'd name, and when `NODE_ENV` is unset - not only on `production`.
-
-**Fix:** Set `NODE_ENV` to a development name - `development`, `dev`, `local`, `debug` or `sit`. Anything else stays sanitized by design.
-
-### Errors returning 500 instead of expected status code
-
-**Cause:** A plain `Error` (not `ApplicationError`) was thrown. The `appErrorHandler` middleware only reads `statusCode` from errors that have that property. Native `Error` instances default to `500`.
-
-**Fix:** Use `getError()` or `new ApplicationError()` instead of `new Error()`:
-
-```typescript
-// Incorrect -- will return 500
-throw new Error('Not found');
-
-// Correct -- will return 404
-throw getError({
-  message: 'Not found',
-  statusCode: HTTP.ResultCodes.RS_4.NotFound,
-});
-```
-
-## See Also
-
-- [Controllers](/references/base/controllers) -- Throwing errors in route handlers
-- [Services](/references/base/services) -- Error handling in business logic
-- [Middlewares](/references/base/middlewares) -- The `appErrorHandler` middleware
-- [Helpers Index](/extensions/helpers/) -- All available helpers
-- [Logger Helper](/extensions/helpers/logger/) -- Logging errors
+- [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
+- [`packages/helpers/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/types.ts) - `TError`, `TErrorNormalized`, `ErrorSchema`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorDefinition`, `IErrorKeyRegistry`
+- [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`

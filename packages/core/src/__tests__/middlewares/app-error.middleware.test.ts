@@ -479,3 +479,118 @@ describe('appErrorHandler — the NODE_ENV leak boundary', () => {
     }
   });
 });
+
+/**
+ * `normalized` is the field clients render, so it must never become a second way to leak what the
+ * handler just scrubbed out of `message`.
+ */
+describe('appErrorHandler - normalized cannot leak past sanitization', () => {
+  const buildApp = (handler: () => never) => {
+    const app = new Hono();
+    app.onError(appErrorHandler({ logger: { error: () => {} } as unknown as Logger }));
+    app.get('/', handler);
+
+    return app;
+  };
+
+  test('an unexpected raw error in production leaks nothing through normalized', async () => {
+    process.env.NODE_ENV = 'production';
+    const app = buildApp(() => {
+      throw new Error('connection to db-prod-1.internal:5432 refused');
+    });
+
+    const body = (await (await app.request('/')).json()) as {
+      message: string;
+      messageCode?: string;
+      normalized: { text: string; code: string; args: Record<string, unknown> };
+    };
+
+    expect(body.message).not.toContain('db-prod-1.internal');
+    expect(body.normalized.text).not.toContain('db-prod-1.internal');
+    expect(body.normalized.text).toBe(body.message);
+    expect(body.normalized.code).toBe(body.messageCode ?? 'core.system_error');
+  });
+
+  test('an intentional error keeps the text its transform produced', async () => {
+    process.env.NODE_ENV = 'production';
+    const app = buildApp(() => {
+      throw getError({
+        message: 'Only %{available} left.',
+        messageCode: 'server.core.stock.low',
+        statusCode: 409,
+        messageArgs: { available: 2 },
+        transform: snapshot => ({
+          code: snapshot.messageCode,
+          args: (snapshot.extra?.messageArgs as Record<string, unknown>) ?? {},
+          text: 'Chỉ còn 2 vé.',
+        }),
+      });
+    });
+
+    const res = await app.request('/');
+    const body = (await res.json()) as {
+      message: string;
+      normalized: { text: string; args: Record<string, unknown> };
+    };
+
+    expect(res.status).toBe(409);
+    // The raw text stays on `message`; the client-facing text is the transform's.
+    expect(body.message).toBe('Only %{available} left.');
+    expect(body.normalized.text).toBe('Chỉ còn 2 vé.');
+    expect(body.normalized.args).toEqual({ available: 2 });
+  });
+});
+
+/**
+ * `normalized` is the field clients are told to read, so EVERY branch must emit it - including the
+ * validation branch, which returns early through `formatZodError` and is the branch a client hits
+ * most often. A contract with one silent hole is not a contract.
+ */
+describe('appErrorHandler - every branch emits normalized', () => {
+  const readNormalized = async (app: Hono, path = '/') => {
+    const body = (await (await app.request(path)).json()) as {
+      message: string;
+      messageCode?: string;
+      normalized?: { text: string; code: string; args: Record<string, unknown> };
+    };
+
+    return body;
+  };
+
+  const buildApp = (thrower: () => void) => {
+    const app = new Hono();
+    app.onError(appErrorHandler({ logger: { error: () => {} } as unknown as Logger }));
+    app.get('/', () => {
+      thrower();
+      return new Response('unreachable');
+    });
+
+    return app;
+  };
+
+  test('a validation error carries normalized', async () => {
+    const app = buildApp(() => {
+      z.object({ email: z.string().email() }).parse({ email: 'nope' });
+    });
+
+    const body = await readNormalized(app);
+
+    expect(body.normalized).toBeDefined();
+    expect(body.normalized?.text).toBe(body.message);
+    expect(body.normalized?.code).toBe(body.messageCode!);
+    expect(body.normalized?.args).toEqual({});
+  });
+
+  test('an unparseable ZodError still carries normalized', async () => {
+    const app = buildApp(() => {
+      const error = new Error('not json at all');
+      error.name = 'ZodError';
+      throw error;
+    });
+
+    const body = await readNormalized(app);
+
+    expect(body.normalized).toBeDefined();
+    expect(body.normalized?.code).toBe(MessageCode.DEFAULT);
+  });
+});

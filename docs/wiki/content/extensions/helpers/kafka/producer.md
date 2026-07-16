@@ -1,3 +1,9 @@
+---
+title: Kafka Producer
+description: KafkaProducerHelper - connection, SASL, serialization, compression, and transactions
+difficulty: intermediate
+---
+
 # Producer
 
 The `KafkaProducerHelper` wraps `@platformatic/kafka`'s `Producer` with health tracking, graceful shutdown, broker event callbacks, and a transaction helper.
@@ -36,7 +42,7 @@ interface IKafkaProducerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | `identifier` | `string` | `'kafka-producer'` | Scoped logging identifier |
 | `serializers` | `Partial<Serializers<K,V,HK,HV>>` | -- | Key/value/header serializers |
 | `compression` | `CompressionAlgorithmValue` | -- | `'none'`, `'gzip'`, `'snappy'`, `'lz4'`, `'zstd'` |
-| `acks` | `TKafkaAcks` | -- | Acknowledgment level: `0`, `1`, or `-1` |
+| `acks` | `TKafkaAcks` | -- | Acknowledgment level: `0` (none), `1` (leader), `-1` (all) |
 | `idempotent` | `boolean` | -- | Enable idempotent producer (exactly-once within partition) |
 | `transactionalId` | `string` | -- | Transactional ID for exactly-once across partitions |
 | `strict` | `boolean` | `true` | Strict mode -- fail on unknown topics |
@@ -46,7 +52,49 @@ interface IKafkaProducerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | `onBrokerConnect` | `TKafkaBrokerEventCallback` | -- | Called when broker connects |
 | `onBrokerDisconnect` | `TKafkaBrokerEventCallback` | -- | Called when broker disconnects |
 
-Plus all [Connection Options](./#connection-options).
+Plus the shared [Connection & Authentication](#connection--authentication) options below, all inherited from `IKafkaConnectionOptions`.
+
+## Connection & Authentication
+
+`IKafkaProducerOptions`, `IKafkaConsumerOptions`, and `IKafkaAdminOptions` all extend `IKafkaConnectionOptions` - this section applies to all three.
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `bootstrapBrokers` | `string[]` | -- | Broker addresses (`host:port`). **Required** |
+| `clientId` | `string` | -- | Unique client identifier. **Required** |
+| `retries` | `number` | `3` | Connection retries before failing |
+| `retryDelay` | `number` | `1000` | Delay between retries (ms) |
+| `sasl` | `SASLOptions` | -- | SASL authentication |
+| `tls` / `ssl` | `TLSConnectionOptions` | -- | TLS options (`ssl` is an alias for `tls`) |
+| `connectTimeout` | `number` | -- | TCP connection timeout (ms) |
+| `requestTimeout` | `number` | -- | Kafka request timeout (ms) |
+
+**SASL mechanisms** (`@platformatic/kafka` supports five):
+
+| Mechanism | Use case |
+|-----------|----------|
+| `PLAIN` | Username/password (pair with `tls` in production) |
+| `SCRAM-SHA-256` / `SCRAM-SHA-512` | Challenge-response - password never sent in plaintext |
+| `OAUTHBEARER` | Token-based (Azure Event Hubs, Confluent Cloud). `token` accepts a string or an async function returning one |
+| `GSSAPI` | Kerberos authentication |
+
+```typescript
+import fs from 'node:fs';
+import { KafkaProducerHelper } from '@venizia/ignis-helpers/kafka';
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['broker1:9093', 'broker2:9093'],
+  clientId: 'order-producer',
+  sasl: { mechanism: 'SCRAM-SHA-512', username: 'kafka-user', password: 'kafka-password' },
+  tls: {
+    ca: fs.readFileSync('/path/to/ca.pem'),
+    cert: fs.readFileSync('/path/to/client-cert.pem'),
+    key: fs.readFileSync('/path/to/client-key.pem'),
+  },
+  connectTimeout: 30_000,
+  requestTimeout: 30_000,
+});
+```
 
 ## Basic Example
 
@@ -92,6 +140,74 @@ await helper.close();
 await helper.close({ isForce: true });
 ```
 
+## Serialization
+
+`@platformatic/kafka`'s default wire format is `Buffer`. The helpers default the generic types to `string`, but you must pass serializers explicitly or messages travel as raw `Buffer`.
+
+| Export | Type | Description |
+|--------|------|-------------|
+| `stringSerializer` / `stringDeserializer` | `Serializer<string>` / `Deserializer<string>` | UTF-8 string <-> `Buffer` |
+| `jsonSerializer` / `jsonDeserializer` | `Serializer<T>` / `Deserializer<T>` | `JSON.stringify` / `JSON.parse` + UTF-8 |
+| `stringSerializers` / `stringDeserializers` | `Serializers<string,string,string,string>` / `Deserializers<...>` | All four positions (key, value, header key, header value) as string |
+| `serializersFrom(s)` / `deserializersFrom(d)` | `<T>(fn) => Serializers<T,T,T,T>` / `<T>(fn) => Deserializers<T,T,T,T>` | Build all four positions from a single serializer/deserializer |
+
+```typescript
+import { stringSerializers } from '@platformatic/kafka';
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-producer',
+  serializers: stringSerializers,
+});
+```
+
+```typescript
+import { jsonSerializer, stringSerializer, serializersFrom } from '@platformatic/kafka';
+
+const producer = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-producer',
+  serializers: { ...serializersFrom(jsonSerializer), key: stringSerializer },
+});
+
+await producer.getProducer().send({
+  messages: [{
+    topic: 'orders',
+    key: 'order-123',
+    value: { id: '123', status: 'created', amount: 99 },
+  }],
+});
+```
+
+For schema-validated serialization (Avro, Protobuf, JSON Schema), pass a `registry` instead of `serializers` - see [Schema Registry](./schema-registry).
+
+## Compression
+
+`@platformatic/kafka` supports five compression algorithms:
+
+| Algorithm | Value | Description |
+|-----------|-------|-------------|
+| None | `'none'` | No compression (default) |
+| GZIP | `'gzip'` | Good compression ratio, moderate CPU |
+| Snappy | `'snappy'` | Fast compression, moderate ratio |
+| LZ4 | `'lz4'` | Very fast, good for high-throughput |
+| Zstandard | `'zstd'` | Best ratio, moderate CPU |
+
+```typescript
+const helper = KafkaProducerHelper.newInstance({
+  bootstrapBrokers: ['localhost:9092'],
+  clientId: 'my-producer',
+  serializers: stringSerializers,
+  compression: 'zstd',
+});
+
+// Override per-send
+await helper.getProducer().send({
+  messages: [{ topic: 'logs', key: 'l1', value: largePayload }],
+  compression: 'lz4',
+});
+```
+
 ## Transactions
 
 `runInTransaction()` wraps `beginTransaction()` -> callback -> `commit()` / `abort()` with automatic logging.
@@ -133,6 +249,8 @@ const result = await helper.runInTransaction(async ({ send, addConsumer, addOffs
 });
 ```
 
+If the callback throws, the transaction is automatically aborted and the error re-thrown.
+
 ### Transaction Context
 
 The callback receives an `IKafkaTransactionContext`:
@@ -143,8 +261,6 @@ The callback receives an `IKafkaTransactionContext`:
 | `send(opts)` | `(opts: SendOptions) => Promise<ProduceResult>` | Send messages within the transaction |
 | `addConsumer(consumer)` | `(consumer: Consumer) => Promise<void>` | Add a consumer for exactly-once |
 | `addOffset(message)` | `(message: Message) => Promise<void>` | Add consumed message offset to transaction |
-
-If the callback throws, the transaction is automatically aborted and the error re-thrown.
 
 ## Graceful Shutdown
 
@@ -166,7 +282,7 @@ await helper.close({ isForce: true });
 
 ## API Reference (`@platformatic/kafka`)
 
-After calling `helper.getProducer()`, you have full access to the `Producer` class:
+After calling `helper.getProducer()`, you have full access to the `Producer` class.
 
 ### `producer.send(options)`
 
@@ -272,3 +388,16 @@ await producer.send({
   },
 });
 ```
+
+## See also
+
+- [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
+- [Consumer](./consumer) - the receiving side, including message callbacks and lag monitoring
+- [Schema Registry](./schema-registry) - schema-validated serialization instead of manual `serializers`
+- [Compiling to a Single Binary](./compile-binary) - required when this helper ships inside a `bun build --compile` binary
+
+**Files:**
+
+- [`packages/helpers/src/modules/queue/kafka/producer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/producer.ts) - `KafkaProducerHelper`
+- [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
+- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaProducerOptions`, `IKafkaConnectionOptions`, `IKafkaTransactionContext`

@@ -8,7 +8,7 @@ tags: [reference, helpers, catalog]
 
 > Generated from source - do not edit; run `make okf-gen`. Package: [helpers](/packages/helpers.md).
 
-**35 helper classes across 13 modules, 8 utilities.**
+**35 helper classes across 14 modules, 8 utilities.**
 
 ## Modules
 
@@ -23,6 +23,7 @@ tags: [reference, helpers, catalog]
 | `pool/` | `AbstractPoolHelper` · `BasePoolHelper` |
 | `queue/` | `BaseKafkaHelper` · `BullMQHelper` · `HfQueueHelper` · `KafkaAdminHelper` · `KafkaConsumerHelper` · `KafkaProducerHelper` · `KafkaSchemaRegistryHelper` · `MQTTClientHelper` · `SequentialQueueHelper` |
 | `redis/` | `AbstractRedisHelper` · `RedisClusterHelper` · `RedisSentinelHelper` · `RedisSingleHelper` |
+| `secrets/` | _(see source)_ |
 | `socket/` | `SocketIOClientHelper` · `SocketIOServerHelper` · `WebSocketServerHelper` |
 | `storage/` | `BaseStorageHelper` · `BunS3Helper` · `DiskHelper` · `MemoryStorageHelper` · `MinioHelper` |
 | `uid/` | `SnowflakeUidHelper` |

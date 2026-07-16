@@ -7,22 +7,9 @@ lastUpdated: 2026-03-15
 
 # Default Filter <Badge type="tip" text="v0.0.5+" />
 
-Automatically apply filter conditions to all repository queries at the model level.
+A model's `settings.defaultFilter` merges into every `find`/`findOne`/`findById`/`count`/`updateAll`/`deleteAll` call for that model - the standard way to implement soft delete, multi-tenancy, active-record scoping, and query-limit protection without repeating a `where` clause at every call site.
 
-> [!NOTE] Added in v0.0.5
-> This feature was introduced in IGNIS v0.0.5 to support soft delete, multi-tenancy, and other automatic filtering patterns.
-
-> [!NOTE]
-> Default filters are ideal for:
-> - **Soft Delete**: Automatically exclude deleted records
-> - **Multi-Tenancy**: Isolate data by tenant
-> - **Active Records**: Filter to active/non-expired records
-> - **Query Limits**: Prevent unbounded queries
-
-
-## Quick Start
-
-Configure a default filter in your model:
+## Quick start
 
 ```typescript
 import { model, BaseEntity } from '@venizia/ignis';
@@ -31,11 +18,7 @@ import { userTable } from '@/schemas';
 @model({
   type: 'entity',
   settings: {
-    // Applied to all repository queries
-    defaultFilter: {
-      where: { isDeleted: false },
-      limit: 100,
-    },
+    defaultFilter: { where: { isDeleted: false }, limit: 100 },
   },
 })
 export class User extends BaseEntity<typeof User.schema> {
@@ -43,352 +26,85 @@ export class User extends BaseEntity<typeof User.schema> {
 }
 ```
 
-Now all queries automatically include the default filter:
-
 ```typescript
-// Your code
-await userRepository.find({
-  filter: { where: { status: 'active' } }
-});
+import { userRepository } from '@/repositories';
 
-// Actual query executed
-// WHERE isDeleted = false AND status = 'active' LIMIT 100
+await userRepository.find({ filter: { where: { status: 'active' } } });
+// WHERE "isDeleted" = false AND "status" = 'active' LIMIT 100
 ```
 
+## Merge semantics
 
-## Configuration
+`applyDefaultFilter()` merges the model's `defaultFilter` with the caller's filter via `FilterBuilder.mergeFilter()`.
 
-### Default Filter Properties
+- **`where` narrows per-key.** See the narrowing law below.
+- **Everything else is user-wins-if-provided.** A caller value replaces the default, but a caller value of `undefined` never does - a filter built by spreading an optional object can't silently blow away a tenant scope or a limit.
 
-All standard filter properties are supported:
+| Property | Merge strategy |
+|---|---|
+| `where` | Per-key narrowing (below) |
+| `limit`, `offset`/`skip`, `order`, `fields`, `include` | Caller replaces default, if the caller's value is defined |
+
+### The `where` narrowing law
+
+Keys present on only one side pass through untouched. When the **same key** appears on both sides, the outcome depends on shape:
+
+| Default | Caller | Result |
+|---|---|---|
+| scalar | scalar | **Caller wins** - the one true override (`isDeleted: false` -> `isDeleted: true` opts an admin out of soft-delete) |
+| operator object | operator object | **AND-composed** into an `and: [...]` group - both conditions apply |
+| scalar | operator object | **AND-composed** |
+| operator object | scalar | **AND-composed** |
+
+- **`and` collisions concatenate.** Both conjunct lists merge into one.
+- **`or` collisions cannot concatenate** - that would union, not narrow - so each side's `or` group becomes its own conjunct instead.
+- **Non-scalar collisions always AND-compose.** A default scope - a `createdAt` floor, a tenant `inq` - can be narrowed by a caller filter but never widened or dropped.
+- **Only scalar-over-scalar is a true override.** Every other collision shape composes rather than replaces.
 
 ```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultFilter: {
-      // WHERE conditions
-      where: { isDeleted: false, tenantId: 'tenant-123' },
+// Default: a floor on createdAt. Caller: an upper bound on the same key.
+const defaultFilter = { where: { createdAt: { gte: '2024-01-01' } } };
+const userFilter = { where: { createdAt: { lte: '2024-12-31' } } };
 
-      // Maximum results (prevents unbounded queries)
-      limit: 100,
-
-      // Default pagination offset
-      offset: 0,
-
-      // Default sort order
-      order: ['createdAt DESC'],
-
-      // Default field selection
-      fields: ['id', 'name', 'email', 'createdAt'],
-
-      // Default relations to include
-      include: [{ relation: 'profile' }],
-    },
-  },
-})
-export class User extends BaseEntity<typeof User.schema> {}
+// Both operator objects on the same key -> AND-composed, so the floor survives:
+// { where: { and: [{ createdAt: { gte: '2024-01-01' } }, { createdAt: { lte: '2024-12-31' } }] } }
 ```
 
-
-## Merge Behavior
-
-When a user provides a filter, it is merged with the default filter using `FilterBuilder.mergeFilter()`. Non-`where` properties are user-wins; the `where` clause follows a **narrowing** collision law so a default scope can never be widened or dropped.
-
-| Property | Merge Strategy |
-|----------|----------------|
-| `where` | **Per-key narrowing** -- non-colliding keys carry over; a colliding key is composed so the default condition always survives (see below) |
-| `limit` | User replaces default (if provided) |
-| `offset`/`skip` | User replaces default (if provided) |
-| `order` | User replaces default (if provided) |
-| `fields` | User replaces default (if provided) |
-| `include` | User replaces default (if provided) |
-
-A user value of `undefined` **never** overrides a defined default -- a caller cannot blow away a tenant or soft-delete scope by passing `undefined`.
-
-### Where Clause Collision Law
-
-Within `where`, keys present on only one side pass through untouched. When the **same key** appears in both the default and the user filter, the outcome depends on the shapes:
-
-| Default | User | Result |
-|---------|------|--------|
-| scalar | scalar | **User wins** (the soft-delete opt-out -- e.g. `isDeleted: false` becomes `isDeleted: true`) |
-| operator | operator | **AND-composed** into an `and: [...]` group (both conditions enforced) |
-| scalar | operator | **AND-composed** |
-| operator | scalar | **AND-composed** |
-
-A colliding `and` key concatenates both conjunct lists (both survive). A colliding `or` key AND-composes the two disjunction groups as separate conjuncts -- the user's `or` cannot swallow the default's `or`. Every AND-composed pair is appended to any existing `and` group.
-
-> [!IMPORTANT]
-> Because operator collisions AND-compose rather than replace, a default scope (a `createdAt` floor, a tenant `inq`) can no longer be widened or dropped by a user filter. Only a bare scalar-over-scalar collision is a true override.
-
-### Narrowing Example
+Non-colliding keys still combine with an implicit AND, exactly like two `where` objects merged by hand:
 
 ```typescript
-// Default filter: a floor on createdAt plus a tenant scope
-const defaultFilter = {
-  where: { createdAt: { gte: '2024-01-01' }, tenantId: { inq: ['t1', 't2'] } },
-};
-
-// User filter: an upper bound on createdAt
-const userFilter = {
-  where: { createdAt: { lte: '2024-12-31' } },
-};
+// Default: { where: { isDeleted: false, tenantId: 'tenant-123' } }
+// Caller:  { where: { or: [{ status: 'active' }, { priority: 'high' }] } }
+// Result:  WHERE "isDeleted" = false AND "tenantId" = 'tenant-123' AND ("status" = 'active' OR "priority" = 'high')
 ```
 
-**Before** (old wholesale-replace law) -- the user key replaced the default's `createdAt`, dropping the floor:
+## Bypassing the default filter
+
+Pass `shouldSkipDefaultFilter: true` in `options` to skip the merge entirely. It is honored by every repository verb - `find`, `findOne`, `findById`, `count`, `updateById`, `updateAll`, `deleteById`, `deleteAll`:
 
 ```typescript
-// { where: { createdAt: { lte: '2024-12-31' }, tenantId: { inq: ['t1', 't2'] } } }
-```
+// Normal - default filter applies
+await repository.find({ filter: { where: { role: 'admin' } } });
+// WHERE "isDeleted" = false AND "role" = 'admin'
 
-**After** (narrowing law) -- operator over operator is AND-composed, so the floor survives:
-
-```typescript
-{
-  where: {
-    tenantId: { inq: ['t1', 't2'] },
-    and: [
-      { createdAt: { gte: '2024-01-01' } },
-      { createdAt: { lte: '2024-12-31' } },
-    ],
-  },
-}
-```
-
-### Scalar Override (soft-delete opt-out)
-
-A plain scalar on both sides is the one case where the user still wins outright -- this is what lets an admin flip a soft-delete flag:
-
-```typescript
-// Default: { where: { isDeleted: false } }
-// User:    { where: { isDeleted: true } }
-// Result:  { where: { isDeleted: true } }
-```
-
-### Complex Where Conditions
-
-Keys that do not collide combine with an implicit AND:
-
-```typescript
-// Default: soft delete and tenant isolation
-const defaultFilter = {
-  where: {
-    isDeleted: false,
-    tenantId: 'tenant-123',
-  }
-};
-
-// User: OR conditions (a distinct key, so it carries through)
-const userFilter = {
-  where: {
-    or: [{ status: 'active' }, { priority: 'high' }]
-  }
-};
-
-// Result: AND of default + OR from user
-// WHERE isDeleted = false AND tenantId = 'tenant-123'
-//   AND (status = 'active' OR priority = 'high')
-```
-
-
-## Bypassing Default Filter
-
-Use `shouldSkipDefaultFilter: true` to bypass the default filter:
-
-```typescript
-// Normal query - default filter applies
-await repository.find({
-  filter: { where: { role: 'admin' } }
-});
-// WHERE isDeleted = false AND role = 'admin'
-
-// Admin query - bypass default filter
+// Admin/maintenance path - bypassed
 await repository.find({
   filter: { where: { role: 'admin' } },
-  options: { shouldSkipDefaultFilter: true }
+  options: { shouldSkipDefaultFilter: true },
 });
-// WHERE role = 'admin' (includes deleted records)
+// WHERE "role" = 'admin' (includes soft-deleted rows)
 ```
 
-### Supported Operations
-
-`shouldSkipDefaultFilter` works with all repository methods:
-
-```typescript
-// Read operations
-await repository.find({ filter, options: { shouldSkipDefaultFilter: true } });
-await repository.findOne({ filter, options: { shouldSkipDefaultFilter: true } });
-await repository.findById({ id, options: { shouldSkipDefaultFilter: true } });
-await repository.count({ where, options: { shouldSkipDefaultFilter: true } });
-
-// Update operations
-await repository.updateById({ id, data, options: { shouldSkipDefaultFilter: true } });
-await repository.updateAll({ where, data, options: { shouldSkipDefaultFilter: true } });
-
-// Delete operations
-await repository.deleteById({ id, options: { shouldSkipDefaultFilter: true } });
-await repository.deleteAll({ where, options: { shouldSkipDefaultFilter: true, force: true } });
-```
-
-### Use Cases for Bypassing
-
-| Scenario | Example |
-|----------|---------|
-| Admin dashboard | View all records including deleted |
-| Data recovery | Restore soft-deleted records |
-| Analytics | Count across all tenants |
-| Data migration | Update records regardless of status |
-| Audit logs | Access historical data |
-
-
-## Common Patterns
-
-### Soft Delete
-
-```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultFilter: {
-      where: { deletedAt: null },  // or { isDeleted: false }
-    },
-  },
-})
-export class Post extends BaseEntity<typeof Post.schema> {}
-
-// All queries exclude deleted posts
-await postRepository.find({ filter: {} });
-// WHERE deletedAt IS NULL
-
-// Restore a deleted post
-await postRepository.updateById({
-  id: postId,
-  data: { deletedAt: null },
-  options: { shouldSkipDefaultFilter: true }
-});
-```
-
-### Multi-Tenant Isolation
-
-```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultFilter: {
-      where: { tenantId: 'current-tenant' },
-    },
-  },
-})
-export class Document extends BaseEntity<typeof Document.schema> {}
-
-// Queries scoped to tenant
-await documentRepository.find({ filter: { where: { type: 'invoice' } } });
-// WHERE tenantId = 'current-tenant' AND type = 'invoice'
-
-// Cross-tenant admin query
-await documentRepository.find({
-  filter: { where: { type: 'invoice' } },
-  options: { shouldSkipDefaultFilter: true }
-});
-// WHERE type = 'invoice'
-```
-
-### Active Records
-
-```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultFilter: {
-      where: {
-        isActive: true,
-        expiresAt: { gt: new Date().toISOString() },
-      },
-      limit: 50,
-    },
-  },
-})
-export class Subscription extends BaseEntity<typeof Subscription.schema> {}
-```
-
-### Query Limit Protection
-
-Use the dedicated `settings.defaultLimit` to raise (or lower) the per-model default page size. Prefer it over putting `limit` inside `defaultFilter`:
-
-```typescript
-@model({
-  type: 'entity',
-  settings: {
-    defaultLimit: 1000,  // Per-model default when a query omits `limit`
-  },
-})
-export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
-
-// User can override limit, but there's always a sensible default
-await logEntryRepository.find({ filter: {} });           // LIMIT 1000
-await logEntryRepository.find({ filter: { limit: 50 } }); // LIMIT 50
-```
-
-> [!TIP]
-> `defaultLimit` is independent of `defaultFilter`: bypassing the default filter via `shouldSkipDefaultFilter` does **not** drop the limit. See [Pagination → Default Limit](/references/base/filter-system/fields-order-pagination#default-limit).
-
-
-## Relation Include Default Filters
-
-When using `include` to load relations, the default filter of the related model is also applied. You can bypass it per-relation:
-
-```typescript
-await repository.find({
-  filter: {
-    include: [
-      // Default filter of related model applies
-      { relation: 'posts' },
-
-      // Skip default filter for this specific relation
-      { relation: 'comments', shouldSkipDefaultFilter: true },
-
-      // Apply a custom scope (merged with relation's default filter)
-      { relation: 'tags', scope: { limit: 10, order: ['name ASC'] } },
-    ]
-  }
-});
-```
-
-
-## IExtraOptions Interface
-
-The `shouldSkipDefaultFilter` option is part of the `IExtraOptions` interface:
-
-```typescript
-interface IExtraOptions extends IWithTransaction {
-  /**
-   * If true, bypass the default filter configured in model settings.
-   */
-  shouldSkipDefaultFilter?: boolean;
-}
-
-interface IWithTransaction {
-  transaction?: ITransaction;
-}
-```
-
-This allows combining with transactions:
+It composes with a transaction the same way any other option does:
 
 ```typescript
 const tx = await repository.beginTransaction();
-
 try {
-  // Both transaction and shouldSkipDefaultFilter
   await repository.updateAll({
     where: { status: 'archived' },
     data: { isDeleted: true },
-    options: {
-      transaction: tx,
-      shouldSkipDefaultFilter: true,
-    }
+    options: { transaction: tx, shouldSkipDefaultFilter: true },
   });
-
   await tx.commit();
 } catch (e) {
   await tx.rollback();
@@ -396,78 +112,150 @@ try {
 }
 ```
 
+`updateAll`/`deleteAll` additionally require `force: true` when the resulting `where` is empty - see [Advanced Repository Features -> Empty where protection](../repositories/advanced#empty-where-protection).
 
-## How It Works
+| Scenario | Why bypass |
+|---|---|
+| Admin dashboard | View records a default scope would otherwise hide |
+| Data recovery | Restore soft-deleted rows |
+| Cross-tenant analytics | Count/aggregate across every tenant |
+| Data migration | Update rows regardless of status |
 
-### Architecture
+## Configuring a default filter
 
-```
-+------------------+     +----------------------+     +------------------+
-|  Model Settings  | --> | PostgresBaseRepository | --> | Repository Method |
-|  defaultFilter   |     | applyDefaultFilter()   |     | find/count/etc   |
-+------------------+     +----------------------+     +------------------+
-                                |
-                                v
-                         +------------------+
-                         |  FilterBuilder   |
-                         |  mergeFilter()   |
-                         +------------------+
-```
+Any `TFilter` property is valid inside `defaultFilter` - `where`, `limit`, `offset`, `order`, `fields`, `include` (see [Filter System Overview](./)). The two recurring shapes:
 
-### PostgresBaseRepository
-
-`PostgresBaseRepository` (`packages/core/src/connectors/postgres/repositories/core/base.ts`) implements the default-filter behavior directly as protected methods - no mixin is composed onto it:
+**Soft delete or multi-tenant scoping** - a `where` clause that every query must carry:
 
 ```typescript
-// Check if default filter is configured
-hasDefaultFilter(): boolean
+@model({
+  type: 'entity',
+  settings: { defaultFilter: { where: { deletedAt: null } } },
+})
+export class Post extends BaseEntity<typeof Post.schema> {}
 
-// Get the raw default filter from model metadata
-getDefaultFilter(): TFilter | undefined
+await postRepository.find({ filter: {} });
+// WHERE "deletedAt" IS NULL
 
-// Merge default filter with user filter
-applyDefaultFilter(opts: {
-  userFilter?: TFilter;
-  shouldSkipDefaultFilter?: boolean;
-}): TFilter
+await postRepository.updateById({
+  id: postId,
+  data: { deletedAt: null },
+  options: { shouldSkipDefaultFilter: true }, // restore
+});
 ```
 
-`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` keyed by the entity's constructor (not by name string) on first access, and cached for subsequent calls.
+**Query-limit protection** - prefer the dedicated `settings.defaultLimit` over a `limit` inside `defaultFilter`. It resolves independently (`query.limit ?? defaultLimit ?? 10`, see [Fields, Order & Pagination -> Default Limit](./fields-order-pagination#default-limit)) and, unlike `defaultFilter`, is **not** dropped by `shouldSkipDefaultFilter`:
+
+```typescript
+@model({
+  type: 'entity',
+  settings: { defaultLimit: 1000 },
+})
+export class LogEntry extends BaseEntity<typeof LogEntry.schema> {}
+
+await logEntryRepository.find({ filter: {} });           // LIMIT 1000
+await logEntryRepository.find({ filter: { limit: 50 } }); // LIMIT 50
+```
+
+`@model` validates `defaultLimit` at decoration time - it must be a positive integer or the class throws on load.
+
+## Relation include default filters
+
+`include` also applies the related model's `defaultFilter`, and it can be bypassed or scoped per relation:
+
+```typescript
+await repository.find({
+  filter: {
+    include: [
+      { relation: 'posts' }, // related model's default filter applies
+      { relation: 'comments', shouldSkipDefaultFilter: true }, // skipped for this relation only
+      { relation: 'tags', scope: { limit: 10, order: ['name ASC'] } }, // scope merges with the default filter
+    ],
+  },
+});
+```
+
+## How it works
+
+```
++------------------+     +--------------------------+     +------------------+
+|  Model Settings  | --> | RelationalBaseRepository  | --> | Repository Method |
+|  defaultFilter   |     | applyDefaultFilter()      |     | find/count/etc   |
++------------------+     +--------------------------+     +------------------+
+                                     |
+                                     v
+                              +------------------+
+                              |  FilterBuilder   |
+                              |  mergeFilter()   |
+                              +------------------+
+```
+
+`RelationalBaseRepository` (compatibility alias `PostgresBaseRepository`, `packages/core/src/connectors/postgres/repositories/core/base.ts`) implements the default-filter behavior directly - no mixin is composed onto it:
+
+```typescript
+hasDefaultFilter(): boolean
+getDefaultFilter(): TFilter | undefined
+getDefaultLimit(): number | undefined
+applyDefaultFilter(opts: { userFilter?: TFilter; shouldSkipDefaultFilter?: boolean }): TFilter
+```
+
+`getDefaultFilter()` reads `this.modelSettings?.defaultFilter`, where `modelSettings` is a protected getter on `AbstractRepository` (`src/base/repositories/core/abstract.ts`) resolved from `MetadataRegistry` by the entity's constructor (not by name string) on first access, then memoized.
 
 > [!NOTE]
-> An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Legacy)](../repositories/mixins.md) for history.
+> An older `DefaultFilterMixin` implemented this same behavior via mixin composition. It is no longer composed onto any repository class - see [Repository Mixins (Removed)](../repositories/mixins.md) for history.
 
-### FilterBuilder.mergeFilter()
-
-The merge logic is implemented in `FilterBuilder`:
+The merge itself is `FilterBuilder.mergeFilter()`:
 
 ```typescript
 const filterBuilder = new FilterBuilder();
 
-const merged = filterBuilder.mergeFilter({
+filterBuilder.mergeFilter({
   defaultFilter: { where: { isDeleted: false }, limit: 100 },
-  userFilter: { where: { status: 'active' }, limit: 10 }
+  userFilter: { where: { status: 'active' }, limit: 10 },
 });
-
-// Result:
 // { where: { isDeleted: false, status: 'active' }, limit: 10 }
 ```
 
+### `IExtraOptions`
 
-## Quick Reference
+`shouldSkipDefaultFilter` lives on the same options interface every repository verb accepts:
+
+```typescript
+interface IExtraOptions extends IWithTransaction {
+  shouldSkipDefaultFilter?: boolean;
+  log?: TRepositoryLogOptions;
+  lock?: TLockOptions;
+}
+
+interface IWithTransaction {
+  transaction?: ITransaction;
+}
+```
+
+`log` and `lock` are documented in [Advanced Repository Features](../repositories/advanced.md) - `log` only takes effect on write verbs (`create`/`updateById`/`updateAll`/`deleteById`/`deleteAll`), not on reads.
+
+## Quick reference
 
 | Want to... | Code |
-|------------|------|
-| Configure default filter | `@model({ settings: { defaultFilter: { ... } } })` |
-| Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
-| Bypass for relation | `include: [{ relation: 'x', shouldSkipDefaultFilter: true }]` |
-| Combine with transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
-| Check if model has default | `repository.hasDefaultFilter()` |
-| Get raw default filter | `repository.getDefaultFilter()` |
+|---|---|
+| Configure a default filter | `@model({ settings: { defaultFilter: { ... } } })` |
+| Bypass the default filter | `options: { shouldSkipDefaultFilter: true }` |
+| Bypass for one relation | `include: [{ relation: 'x', shouldSkipDefaultFilter: true }]` |
+| Combine with a transaction | `options: { transaction: tx, shouldSkipDefaultFilter: true }` |
+| Check if a model has a default | `repository.hasDefaultFilter()` |
+| Read the raw default filter | `repository.getDefaultFilter()` |
+| Read the raw default limit | `repository.getDefaultLimit()` |
 
+## See also
 
-## Next Steps
+- [Filter System Overview](./) - the `filter` shape and every operator family
+- [Fields, Order & Pagination](./fields-order-pagination) - `defaultLimit` resolution in full
+- [Advanced Repository Features](../repositories/advanced.md) - transactions, `log`/`lock` options, empty-where protection
+- [Repository Mixins (Removed)](../repositories/mixins.md) - history of the removed `DefaultFilterMixin`
 
-- [Filter System Overview](./index.md) - Filter structure and operators
-- [Repository Mixins (Legacy)](../repositories/mixins.md) - Historical mixin architecture
-- [Advanced Features](../repositories/advanced.md) - Transactions, hidden properties
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder.mergeFilter()`/`mergeWhere()`, the narrowing merge
+- [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository`, `applyDefaultFilter`/`getDefaultFilter`/`getDefaultLimit`
+- [`packages/core/src/base/metadata/persistents.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/metadata/persistents.ts) - `@model` decorator, `defaultLimit` validation
+- [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `IExtraOptions`, `IWithTransaction`

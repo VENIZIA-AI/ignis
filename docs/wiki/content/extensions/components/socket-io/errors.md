@@ -116,6 +116,6 @@ socket.on('authenticated', (data) => {
 
 ## See Also
 
-- [Setup & Configuration](./) -- Quick reference, installation, bindings, constants
-- [Usage & Examples](./usage) -- Server-side usage, client helper, advanced patterns
-- [API Reference](./api) -- Architecture, method signatures, internals, types
+- [Setup & Configuration](./) -- Quick reference, required bindings, how it works
+- [Usage & Examples](./usage) -- Full setup steps, server-side usage, client helper, advanced patterns
+- [API Reference](./api) -- Architecture, configuration reference, method signatures, internals, types

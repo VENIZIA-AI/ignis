@@ -1,8 +1,25 @@
-# Storage -- API Reference
+---
+title: Storage - Full Reference
+description: Complete reference for the storage class hierarchy, every backend's method behavior, name validation rules, and error messages
+difficulty: intermediate
+---
 
-## Architecture
+# Storage - Full Reference
 
-The storage system uses a class hierarchy with an abstract base class providing shared logic and three concrete implementations for different backends. `MemoryStorageHelper` is a separate, standalone class that does not participate in the `IStorageHelper` hierarchy.
+Exhaustive reference for `BaseStorageHelper`, the three `IStorageHelper` backends, `MemoryStorageHelper`, and every type. For a readable introduction and the common tasks, start with the [Storage overview](/extensions/helpers/storage/).
+
+**Files:**
+
+- [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts) - `BaseStorageHelper`
+- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts) - `MinioHelper`
+- [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts) - `BunS3Helper`
+- [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts) - `buildSignedRequest` (AWS SigV4 for bucket management)
+- [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts) - `DiskHelper`
+- [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts) - `MemoryStorageHelper`
+- [`packages/helpers/src/modules/storage/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/types.ts) - `IStorageHelper` and every option/result type
+- [`packages/helpers/src/common/constants/mime.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/common/constants/mime.ts) - `MimeTypes` const-class
+
+## Class and Interface Model
 
 ```
 BaseHelper
@@ -10,12 +27,48 @@ BaseHelper
 │   ├── MinioHelper       -- S3-compatible object storage (minio SDK)
 │   ├── BunS3Helper       -- S3-compatible object storage (Bun-native S3Client)
 │   └── DiskHelper        -- Local filesystem storage
-└── MemoryStorageHelper   -- In-memory key-value store
+└── MemoryStorageHelper   -- In-memory key-value store (standalone, not IStorageHelper)
+```
+
+- **`upload()` is a template method.** It validates the bucket and every file, then calls two protected hooks each backend supplies: `defaultLinkPrefix` (a getter) and `writeObject()` (the actual write).
+- **Every other method is backend-specific.** `isBucketExists`, `getBuckets`, `getBucket`, `createBucket`, `removeBucket`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` are declared `abstract` on `BaseStorageHelper` and fully reimplemented per backend - there is no shared logic between a filesystem read and a MinIO `statObject()` call.
+
+> [!TIP] Typing rule
+> Declare parameters and bindings as `IStorageHelper` for `MinioHelper` / `BunS3Helper` / `DiskHelper`. `MemoryStorageHelper` does not implement it and has its own standalone API - see [MemoryStorageHelper](#memorystoragehelper).
+
+### Import paths
+
+```typescript
+// Disk and in-memory storage (root package export)
+import { DiskHelper, MemoryStorageHelper } from '@venizia/ignis-helpers';
+
+// MinIO storage (separate sub-path export - keeps `minio` an optional dependency)
+import { MinioHelper } from '@venizia/ignis-helpers/minio';
+
+// Bun S3 storage (separate sub-path export, Bun runtime only)
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+
+// Types
+import type {
+  IStorageHelper,
+  IStorageHelperOptions,
+  IDiskHelperOptions,
+  IUploadFile,
+  IUploadResult,
+  IFileStat,
+  IBucketInfo,
+  IObjectInfo,
+  IListObjectsOptions,
+} from '@venizia/ignis-helpers';
+import type { IMinioHelperOptions } from '@venizia/ignis-helpers/minio';
+import type { IBunS3HelperOptions } from '@venizia/ignis-helpers/bun-s3';
 ```
 
 ## BaseStorageHelper
 
-Abstract base class that extends `BaseHelper` and implements `IStorageHelper`. Provides name validation, MIME type detection, and file type categorization. All bucket and file operation methods are abstract and must be implemented by subclasses.
+`Source ->` [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts)
+
+Abstract class extending `BaseHelper`, implementing `IStorageHelper`. Provides name/path validation, MIME type detection, and the `upload()` template method.
 
 ### Constructor
 
@@ -28,7 +81,9 @@ constructor(opts: { scope: string; identifier: string })
 | `scope` | `string` | Logger scope name. |
 | `identifier` | `string` | Helper identifier. |
 
-### Static Properties
+Every concrete backend's own constructor supplies defaults (`options.scope ?? <ClassName>`, `options.identifier ?? <ClassName>`) before calling `super()` - `scope`/`identifier` are required here but optional on every subclass's public options type.
+
+### Static properties
 
 #### MIME_MAP
 
@@ -38,28 +93,27 @@ protected static MIME_MAP: Record<string, string>
 
 Extension-to-MIME-type mapping used by `getMimeType()`:
 
-| Extension | MIME Type |
-|-----------|-----------|
-| `.png` | `image/png` |
-| `.jpg`, `.jpeg` | `image/jpeg` |
-| `.gif` | `image/gif` |
-| `.webp` | `image/webp` |
-| `.svg` | `image/svg+xml` |
-| `.pdf` | `application/pdf` |
-| `.json` | `application/json` |
-| `.txt` | `text/plain` |
-| `.html` | `text/html` |
-| `.css` | `text/css` |
-| `.js` | `text/javascript` |
-| `.mp4` | `video/mp4` |
-| `.webm` | `video/webm` |
-| `.mp3` | `audio/mpeg` |
-| `.wav` | `audio/wav` |
-| `.zip` | `application/zip` |
-| `.csv` | `text/csv` |
-| `.xml` | `application/xml` |
+| Extension | MIME Type | Extension | MIME Type |
+|-----------|-----------|-----------|-----------|
+| `.png` | `image/png` | `.mp4` | `video/mp4` |
+| `.jpg`, `.jpeg` | `image/jpeg` | `.webm` | `video/webm` |
+| `.gif` | `image/gif` | `.mp3` | `audio/mpeg` |
+| `.webp` | `image/webp` | `.wav` | `audio/wav` |
+| `.svg` | `image/svg+xml` | `.zip` | `application/zip` |
+| `.pdf` | `application/pdf` | `.csv` | `text/csv` |
+| `.json` | `application/json` | `.xml` | `application/xml` |
+| `.txt` | `text/plain` | `.html` | `text/html` |
+| `.css` | `text/css` | `.js` | `text/javascript` |
 
 Falls back to `application/octet-stream` for unrecognized extensions.
+
+#### DEFAULT_MAX_FOLDER_DEPTH
+
+```typescript
+static readonly DEFAULT_MAX_FOLDER_DEPTH = 2
+```
+
+Default folder nesting allowed by `isValidPath()` and `upload()` when the caller does not pass `maxFolderDepth` / `opts.maxDepth`.
 
 ### Methods
 
@@ -69,11 +123,13 @@ Falls back to `application/octet-stream` for unrecognized extensions.
 getMimeType(filename: string): string
 ```
 
-Returns the MIME type for a filename based on its extension. Extracts the extension using `path.extname()`, converts to lowercase, and looks it up in `MIME_MAP`.
+Extracts the extension with `path.extname()`, lowercases it, and looks it up in `MIME_MAP`.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `filename` | `string` | Filename with extension (e.g., `'photo.jpg'`). |
+```typescript
+storage.getMimeType('photo.jpg');    // 'image/jpeg'
+storage.getMimeType('data.csv');     // 'text/csv'
+storage.getMimeType('unknown.xyz');  // 'application/octet-stream'
+```
 
 **Returns:** MIME type string, or `'application/octet-stream'` if unrecognized.
 
@@ -83,24 +139,26 @@ Returns the MIME type for a filename based on its extension. Extracts the extens
 isValidName(name: string): boolean
 ```
 
-Validates a **single path segment** (bucket name or bare file name - no slashes) against security rules. Used internally by `isValidPath` to validate each segment. Logs specific error messages for each validation failure.
+Validates a **single path segment** (bucket name or bare file name - must not contain `/`). Used internally by `isValidPath` to validate each segment. Logs a specific error for whichever rule fails.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `name` | `string` | Single-segment name to validate (must not contain `/`). |
+| Rule (checked in order) | Example rejected | Reason |
+|---|---|---|
+| Must be a string | (non-string) | Type safety |
+| Must not be empty | `''` | Invalid input |
+| Must not contain `..`, `/`, or `\` | `../etc/passwd` | Path traversal |
+| Must not start with `.` | `.hidden` | Hidden file |
+| Must not contain `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` | `file;rm -rf` | Shell injection |
+| Must not contain `\n`, `\r`, or `\0` | `file\nname` | Header injection |
+| Must not exceed 255 characters | (very long string) | DoS prevention |
+| Must not be whitespace-only | `'   '` | Invalid input |
 
-**Returns:** `true` if the name passes all checks, `false` otherwise.
+```typescript
+storage.isValidName('my-file.pdf');    // true
+storage.isValidName('../etc/passwd');  // false -- contains path separators
+storage.isValidName('.hidden');        // false -- starts with dot
+```
 
-**Validation rules (checked in order):**
-
-1. Must be a string type
-2. Must not be empty or null
-3. Must not contain `..`, `/`, or `\` (path traversal)
-4. Must not start with `.` (hidden files)
-5. Must not contain `;`, `|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` (shell injection)
-6. Must not contain `\n`, `\r`, or `\0` (header injection)
-7. Must not exceed 255 characters (DoS prevention)
-8. Must not be whitespace-only
+**Returns:** `true` if the name passes every check, `false` otherwise.
 
 #### isValidPath
 
@@ -108,23 +166,24 @@ Validates a **single path segment** (bucket name or bare file name - no slashes)
 isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean
 ```
 
-Validates a **full object path** that may include folder segments (e.g., `2025/uploads/report.pdf`). Splits the path on `/`, validates each segment with `isValidName`, and enforces a maximum folder depth. Used for object name validation where paths with folder structure are allowed.
+Validates a **full object path** that may include folder segments (e.g. `2025/uploads/report.pdf`). Trims leading/trailing slashes, splits on `/`, validates each segment with `isValidName`, and enforces a maximum folder depth.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `pathStr` | `string` | Path string to validate (may contain `/` separators). |
-| `opts.maxDepth` | `number` | Maximum folder depth. Default: `2`. |
+| Rule (checked in order) | Description |
+|---|---|
+| 1 | Must be a non-empty string |
+| 2 | After stripping leading/trailing slashes, must not be empty |
+| 3 | Must not contain empty segments (double slashes, e.g. `a//b`) |
+| 4 | Folder depth (`segments.length - 1`) must not exceed `opts.maxDepth` (default `DEFAULT_MAX_FOLDER_DEPTH`, `2`) |
+| 5 | Every segment must pass `isValidName()` |
+| 6 | Total normalized path length must not exceed 1024 characters |
+
+```typescript
+storage.isValidPath('folder/file.pdf');      // true
+storage.isValidPath('../etc/passwd');        // false -- path traversal
+storage.isValidPath('a/b/c/d/file.pdf');     // false -- exceeds default max depth (2)
+```
 
 **Returns:** `true` if the path and all its segments are valid, `false` otherwise.
-
-**Validation rules (checked in order):**
-
-1. Must be a non-empty string
-2. After stripping leading/trailing slashes, must not be empty
-3. Must not contain empty segments (double slashes, e.g., `a//b`)
-4. Folder depth must not exceed `maxDepth` (depth = number of `/` separators)
-5. Every segment must pass `isValidName()`
-6. Total path length must not exceed 1024 characters
 
 #### getFileType
 
@@ -132,17 +191,78 @@ Validates a **full object path** that may include folder segments (e.g., `2025/u
 getFileType(opts: { mimeType: string }): string
 ```
 
-Categorizes a MIME type into a broad file type group using the `MimeTypes` constants.
+Categorizes a MIME type using the `MimeTypes` const-class (`UNKNOWN`, `IMAGE`, `VIDEO`, `TEXT`) by checking whether `mimeType` (lowercased) starts with `image`, `video`, or `text`.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `opts.mimeType` | `string` | Full MIME type string (e.g., `'image/png'`). |
+```typescript
+storage.getFileType({ mimeType: 'image/png' });        // 'image'
+storage.getFileType({ mimeType: 'video/mp4' });         // 'video'
+storage.getFileType({ mimeType: 'text/plain' });        // 'text'
+storage.getFileType({ mimeType: 'application/pdf' });   // 'unknown'
+```
 
-**Returns:** One of `'image'`, `'video'`, `'text'`, or `'unknown'`.
+**Returns:** one of `'image'`, `'video'`, `'text'`, or `'unknown'`.
 
-### Abstract Methods
+#### upload (template method - shared by every backend)
 
-The following methods are declared abstract in `BaseStorageHelper` and implemented by `MinioHelper`, `BunS3Helper`, and `DiskHelper`:
+```typescript
+async upload(opts: {
+  bucket: string;
+  files: IUploadFile[];
+  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
+  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  maxFolderDepth?: number;
+}): Promise<IUploadResult[]>
+```
+
+Implemented once on `BaseStorageHelper`; `MinioHelper`, `BunS3Helper`, and `DiskHelper` do **not** override it. Steps, in order:
+
+1. Returns `[]` immediately if `files` is empty.
+2. Calls `isBucketExists({ name: bucket })`; throws if the bucket does not exist.
+3. Validates every file (`validateUploadFiles`, below).
+4. For each file, in parallel via `Promise.all()`:
+   - Computes `normalizeName` via `normalizeNameFn` if provided, else the default normalizer (lowercase, spaces to `_`, `{folderPath}/` prefix if set).
+   - Re-validates `normalizeName` with `isValidPath({ maxDepth: maxFolderDepth })` - this catches a traversal payload returned by a **custom** `normalizeNameFn`, even though `originalName` already passed validation.
+   - Computes `normalizeLink` via `normalizeLinkFn` if provided, else the default (`{defaultLinkPrefix}{bucket}/{normalizeName}`, each `/`-segment `encodeURIComponent`-ed).
+   - Calls the backend's `writeObject({ bucket, normalizeName, file })`.
+   - Logs an info line with `normalizeName`, `normalizeLink`, `mimeType`, `encoding`, `size`, and elapsed time.
+5. Returns `{ bucketName, objectName, link }` per file.
+
+**`validateUploadFiles` (per file, in order):**
+
+| Check | Throws |
+|---|---|
+| `isValidName(originalName)` | `'[upload] Invalid original file name'` |
+| If `folderPath` set: segment count vs. `maxFolderDepth ?? DEFAULT_MAX_FOLDER_DEPTH` | `` `[upload] Invalid folder path | depth: {depth} | max: {max}` `` |
+| If `folderPath` set: `isValidPath(folderPath, { maxDepth })` | `'[upload] Invalid folder path'` |
+| `size` must be a number `>= 0` (`undefined`/`null`/negative rejected; `0` is a legal empty file) | `` `[upload] Invalid file size | size: {size}` `` |
+
+**Also throws:**
+
+| When | Message |
+|---|---|
+| Bucket does not exist | `` `[upload] Bucket does not exist | name: {bucket}` `` |
+| A custom `normalizeNameFn` returns a path that fails `isValidPath` | `` `[upload] Invalid normalized object name | name: {name}` `` |
+
+### Protected extension points (implemented per backend)
+
+```typescript
+protected abstract get defaultLinkPrefix(): string;
+
+protected abstract writeObject(opts: {
+  bucket: string;
+  normalizeName: string;
+  file: IUploadFile;
+}): Promise<void>;
+
+protected normalizeObjectName(opts: { originalName: string; folderPath?: string }): string;
+protected normalizeObjectLink(opts: { bucketName: string; normalizeName: string }): string;
+protected validateUploadFiles(opts: { files: IUploadFile[]; maxFolderDepth?: number }): void;
+```
+
+- **`defaultLinkPrefix` and `writeObject` are `protected abstract`.** Not part of `IStorageHelper` - they exist purely so `upload()` can be written once.
+- **`normalizeObjectName`, `normalizeObjectLink`, and `validateUploadFiles` are concrete.** Used internally by `upload()`; no backend overrides them.
+
+### Public abstract methods (reimplemented per backend, no shared logic)
 
 ```typescript
 abstract isBucketExists(opts: { name: string }): Promise<boolean>;
@@ -150,14 +270,6 @@ abstract getBuckets(): Promise<IBucketInfo[]>;
 abstract getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
 abstract removeBucket(opts: { name: string }): Promise<boolean>;
-
-abstract upload(opts: {
-  bucket: string;
-  files: IUploadFile[];
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  maxFolderDepth?: number;
-}): Promise<IUploadResult[]>;
 
 abstract getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
 abstract getStat(opts: { bucket: string; name: string }): Promise<IFileStat>;
@@ -171,110 +283,52 @@ abstract listObjects(opts: {
 }): Promise<IObjectInfo[]>;
 ```
 
+See each backend's section below for behavior.
+
 ## MinioHelper
 
-S3-compatible object storage client built on the `minio` package. Extends `BaseStorageHelper`.
+`Source ->` [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts)
+
+S3-compatible object storage built on the `minio` package. Extends `BaseStorageHelper`.
 
 ### Constructor
 
 ```typescript
 constructor(options: IMinioHelperOptions)
-```
 
-Creates a new `minio.Client` internally and stores it as `this.client`.
-
-```typescript
 interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 ```
 
+Creates a `minio.Client` internally and stores it as a private `client` field - not exposed. Extend `MinioHelper` in a subclass if you need direct SDK access.
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `options.endPoint` | `string` | -- | MinIO server hostname. |
-| `options.port` | `number` | -- | Server port. |
-| `options.useSSL` | `boolean` | -- | Enable HTTPS. |
-| `options.accessKey` | `string` | -- | Access key credential. |
-| `options.secretKey` | `string` | -- | Secret key credential. |
+| `options.endPoint` | `string` | - | MinIO server hostname. |
+| `options.port` | `number` | - | Server port. |
+| `options.useSSL` | `boolean` | - | Enable HTTPS. |
+| `options.accessKey` | `string` | - | Access key credential. |
+| `options.secretKey` | `string` | - | Secret key credential. |
 | `options.scope` | `string` | `'MinioHelper'` | Logger scope name. |
 | `options.identifier` | `string` | `'MinioHelper'` | Helper identifier. |
 
-All additional `minio.ClientOptions` properties are also accepted and passed to the underlying client.
+All other `minio.ClientOptions` fields (`region`, `transport`, `sessionToken`, `partSize`, `pathStyle`, ...) are also accepted and passed to the client - see the [minio JavaScript SDK docs](https://min.io/docs/minio/linux/developers/javascript/API.html).
+
+### defaultLinkPrefix and writeObject
+
+- `defaultLinkPrefix`: `'/static-assets/'`
+- `writeObject`: calls `client.putObject(bucket, normalizeName, buffer, size, metadata)` where `metadata` is `{ originalName, normalizeName, size, encoding, mimeType }` - the full upload metadata is persisted server-side and returned later by `getStat()`.
 
 ### Methods
 
-#### isBucketExists
-
-```typescript
-async isBucketExists(opts: { name: string }): Promise<boolean>
-```
-
-Returns `false` if the name fails `isValidName()`. Otherwise delegates to `client.bucketExists()`.
-
-#### getBuckets
-
-```typescript
-async getBuckets(): Promise<IBucketInfo[]>
-```
-
-Lists all buckets via `client.listBuckets()`.
-
-#### getBucket
-
-```typescript
-async getBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Returns the bucket info if it exists, or `null` if not found. Calls `isBucketExists()` first, then searches the full bucket list.
-
-#### createBucket
-
-```typescript
-async createBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Creates a bucket via `client.makeBucket()`. Throws if the name fails validation.
-
-**Throws:** `'[createBucket] Invalid name to create bucket!'`
-
-#### removeBucket
-
-```typescript
-async removeBucket(opts: { name: string }): Promise<boolean>
-```
-
-Removes a bucket via `client.removeBucket()`. Throws if the name fails validation.
-
-**Throws:** `'[removeBucket] Invalid name to remove bucket!'`
-
-#### upload
-
-```typescript
-async upload(opts: {
-  bucket: string;
-  files: IUploadFile[];
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  maxFolderDepth?: number;
-}): Promise<IUploadResult[]>
-```
-
-Uploads files to a MinIO bucket. Returns `[]` if `files` is empty. Validates the bucket exists and all file names/sizes before uploading. Uploads run in parallel via `Promise.all()`.
-
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `opts.maxFolderDepth` | `number` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder nesting the caller allows, for both `folderPath` and the normalized object name. |
-
-**Default name normalization:** Lowercased with spaces replaced by `_`. If `folderPath` is set, prepends `{folderPath}/`.
-
-**Default link format:** `/static-assets/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
-
-**Metadata stored:** `originalName`, `normalizeName`, `size`, `encoding`, `mimeType`.
-
-**Throws:**
-- `'[upload] Bucket does not exist | name: {bucket}'`
-- `'[upload] Invalid original file name'`
-- `'[upload] Invalid folder path'`
-- `'[upload] Invalid file size'`
-- `'[upload] Invalid normalized object name | name: {name}'` -- the value returned by a custom `normalizeNameFn` is path-validated before use; a traversal payload is rejected here even if the original name passed validation.
+| Method | Behavior |
+|---|---|
+| `isBucketExists` | Returns `false` if the name fails `isValidName()`. Otherwise `client.bucketExists()`. |
+| `getBuckets` | `client.listBuckets()`. |
+| `getBucket` | `isBucketExists()` first; if true, finds the entry in `getBuckets()`; `null` if not found. |
+| `createBucket` | `client.makeBucket()`, then returns `getBucket()`. Throws `'[createBucket] Invalid name to create bucket!'` if the name fails validation. |
+| `removeBucket` | `client.removeBucket()`. Throws `'[removeBucket] Invalid name to remove bucket!'` if the name fails validation. |
+| `removeObject` | `client.removeObject()`. |
+| `removeObjects` | `client.removeObjects()` - a single batch SDK call. |
 
 #### getFile
 
@@ -291,16 +345,20 @@ getFile(opts: {
 }): Promise<Readable>
 ```
 
-Returns a readable stream for the file via `client.getObject()`. Supports versioning and server-side encryption options.
+Returns a readable stream via `client.getObject()`. Supports versioning and SSE-C server-side encryption.
 
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `opts.bucket` | `string` | Bucket name. |
-| `opts.name` | `string` | Object name. |
-| `opts.options.versionId` | `string` | Specific version to retrieve. |
-| `opts.options.SSECustomerAlgorithm` | `string` | SSE-C algorithm (e.g., `'AES256'`). |
-| `opts.options.SSECustomerKey` | `string` | SSE-C encryption key. |
-| `opts.options.SSECustomerKeyMD5` | `string` | MD5 hash of the encryption key. |
+```typescript
+const fileStream = await minioStorage.getFile({
+  bucket: 'my-bucket',
+  name: 'report.pdf',
+  options: {
+    versionId: 'specific-version-id',
+    SSECustomerAlgorithm: 'AES256',
+    SSECustomerKey: 'encryption-key',
+    SSECustomerKeyMD5: 'key-md5-hash',
+  },
+});
+```
 
 #### getStat
 
@@ -308,25 +366,7 @@ Returns a readable stream for the file via `client.getObject()`. Supports versio
 async getStat(opts: { bucket: string; name: string }): Promise<IFileStat>
 ```
 
-Returns file metadata via `client.statObject()`.
-
-**Returns:** `IFileStat` with `size`, `metadata` (from MinIO's `metaData`), `lastModified`, `etag`, and `versionId`.
-
-#### removeObject
-
-```typescript
-async removeObject(opts: { bucket: string; name: string }): Promise<void>
-```
-
-Removes a single object via `client.removeObject()`.
-
-#### removeObjects
-
-```typescript
-async removeObjects(opts: { bucket: string; names: string[] }): Promise<void>
-```
-
-Removes multiple objects in a single batch via `client.removeObjects()`.
+`client.statObject()`. Returns `size`, `metadata` (MinIO's `metaData` - the full dict written by `writeObject`), `lastModified`, `etag`, and `versionId` (if versioning is enabled).
 
 #### listObjects
 
@@ -339,30 +379,31 @@ async listObjects(opts: {
 }): Promise<IObjectInfo[]>
 ```
 
-Lists objects in a bucket using a streaming approach via `client.listObjects()`. The stream is destroyed early if `maxKeys` is reached.
+Streams via `client.listObjects(bucket, prefix, useRecursive)`; the stream is destroyed early once `maxKeys` is reached.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `opts.bucket` | `string` | -- | Bucket to list. |
-| `opts.prefix` | `string` | `''` | Filter by prefix. |
-| `opts.useRecursive` | `boolean` | `false` | List recursively through subdirectories. |
-| `opts.maxKeys` | `number` | `undefined` | Maximum number of objects to return. |
+| Parameter | Default | Description |
+|---|---|---|
+| `prefix` | `''` | Filter by prefix. |
+| `useRecursive` | `false` | List recursively through subdirectories. |
+| `maxKeys` | `undefined` | Maximum objects to return. |
 
 ## BunS3Helper
 
-S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorageHelper`. Requires the Bun runtime.
+`Source ->` [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts)
 
-Bucket management operations (list, create, delete) use AWS Signature V4 signed requests built from scratch via the `buildSignedRequest` utility. Object operations (upload, get, stat, delete, list) use Bun's native S3 API.
+S3-compatible object storage using Bun's native `S3Client`. Extends `BaseStorageHelper`.
+
+> [!IMPORTANT]
+> Requires the **Bun runtime** - `bun:S3Client` is not available under Node.js.
+
+- **Bucket management is hand-built.** `getBuckets`, `createBucket`, and `removeBucket` use AWS Signature V4 signed `fetch()` requests via `buildSignedRequest()`, because Bun's `S3Client` has no bucket-management API.
+- **Object operations use the native SDK.** `upload`'s `writeObject`, `getFile`, `getStat`, `removeObject`, `removeObjects`, and `listObjects` all call Bun's native `S3Client` methods.
 
 ### Constructor
 
 ```typescript
 constructor(options: IBunS3HelperOptions)
-```
 
-Creates a Bun `S3Client` internally and stores credentials for bucket management requests.
-
-```typescript
 interface IBunS3HelperOptions extends IStorageHelperOptions {
   accessKey: string;
   secretKey: string;
@@ -372,73 +413,34 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 }
 ```
 
+Creates a Bun `S3Client` for object operations and stores `{ accessKey, secretKey, endpoint, region, sessionToken }` separately for the signed bucket-management requests.
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `options.accessKey` | `string` | -- | S3 access key credential. |
-| `options.secretKey` | `string` | -- | S3 secret key credential. |
-| `options.endpoint` | `string` | -- | S3-compatible endpoint URL. |
-| `options.region` | `string` | `'us-east-1'` | AWS region for signing. |
-| `options.sessionToken` | `string` | -- | Optional session token for temporary credentials. |
+| `options.accessKey` | `string` | - | S3 access key credential. |
+| `options.secretKey` | `string` | - | S3 secret key credential. |
+| `options.endpoint` | `string` | - | S3-compatible endpoint URL (e.g. `'http://localhost:9000'`). |
+| `options.region` | `string` | `'us-east-1'` | Region used for SigV4 signing of bucket-management requests. |
+| `options.sessionToken` | `string` | - | Optional session token for temporary credentials. |
 | `options.scope` | `string` | `'BunS3Helper'` | Logger scope name. |
 | `options.identifier` | `string` | `'BunS3Helper'` | Helper identifier. |
 
+### defaultLinkPrefix and writeObject
+
+- `defaultLinkPrefix`: `'/static-assets/'`
+- `writeObject`: `client.write(normalizeName, buffer, { bucket, type: mimeType })` - only the content type is persisted; unlike `MinioHelper`, no `originalName`/`encoding`/`size` metadata dictionary is stored.
+
 ### Methods
 
-#### isBucketExists
-
-```typescript
-async isBucketExists(opts: { name: string }): Promise<boolean>
-```
-
-Returns `false` if the name fails `isValidName()`. Otherwise attempts a `list({ maxKeys: 1 })` against the bucket. Returns `false` on any error.
-
-#### getBuckets
-
-```typescript
-async getBuckets(): Promise<IBucketInfo[]>
-```
-
-Lists all buckets via a signed `GET /` request. Parses the XML response to extract bucket names and creation dates.
-
-#### getBucket
-
-```typescript
-async getBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Returns the bucket info from the full bucket list, or `null` if not found.
-
-#### createBucket
-
-```typescript
-async createBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Creates a bucket via a signed `PUT /{name}` request. Throws if the name fails validation or the S3 request fails.
-
-#### removeBucket
-
-```typescript
-async removeBucket(opts: { name: string }): Promise<boolean>
-```
-
-Removes a bucket via a signed `DELETE /{name}` request. Throws if the name fails validation or the S3 request fails.
-
-#### upload
-
-```typescript
-async upload(opts: {
-  bucket: string;
-  files: IUploadFile[];
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  maxFolderDepth?: number;
-}): Promise<IUploadResult[]>
-```
-
-Uploads files using `client.write(name, buffer, { bucket, type })`. Same validation and normalization behavior as MinioHelper, including `maxFolderDepth` and the normalized-name path validation.
-
-**Default link format:** `/static-assets/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
+| Method | Behavior |
+|---|---|
+| `isBucketExists` | Returns `false` if the name fails `isValidName()`. Otherwise attempts `client.list({ maxKeys: 1 }, { bucket: name })`; returns `false` on any error (network, missing bucket, etc.). |
+| `getBuckets` | Signed `GET /`; parses `<Bucket><Name>...<CreationDate>...` from the XML response. |
+| `getBucket` | Finds the entry in `getBuckets()`; `null` if not found. |
+| `createBucket` | Signed `PUT /{name}`. Throws `'[createBucket] Invalid name to create bucket!'` on invalid name, or `` `[createBucket] S3 error: {xml}` `` on a non-OK response. |
+| `removeBucket` | Signed `DELETE /{name}`. Throws `'[removeBucket] Invalid name to remove bucket!'` on invalid name, or `` `[removeBucket] S3 error: {xml}` `` on a non-OK response. |
+| `removeObject` | `client.delete(name, { bucket })`. |
+| `removeObjects` | Deletes in **parallel** via `Promise.all(names.map(...))`. |
 
 #### getFile
 
@@ -446,7 +448,7 @@ Uploads files using `client.write(name, buffer, { bucket, type })`. Same validat
 async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
-Returns a `Readable` stream by converting the Bun S3 file's web stream via `Readable.fromWeb()`.
+Converts the Bun S3 file's web `ReadableStream` via `Readable.fromWeb()`. The `options` parameter is accepted for interface compatibility but not used.
 
 #### getStat
 
@@ -454,37 +456,19 @@ Returns a `Readable` stream by converting the Bun S3 file's web stream via `Read
 async getStat(opts: { bucket: string; name: string }): Promise<IFileStat>
 ```
 
-Returns file metadata via `client.stat()`.
-
-**Returns:**
+`client.stat(name, { bucket })`. Returns:
 
 ```typescript
 {
   size: number;
   lastModified: Date;
   metadata: {
-    contentType: string;
-    mimetype: string;
+    contentType: string;   // from stat.type
+    mimetype: string;      // also from stat.type
   };
   etag: string;
 }
 ```
-
-#### removeObject
-
-```typescript
-async removeObject(opts: { bucket: string; name: string }): Promise<void>
-```
-
-Removes a single object via `client.delete()`.
-
-#### removeObjects
-
-```typescript
-async removeObjects(opts: { bucket: string; names: string[] }): Promise<void>
-```
-
-Removes multiple objects in parallel via `Promise.all()`.
 
 #### listObjects
 
@@ -497,110 +481,106 @@ async listObjects(opts: {
 }): Promise<IObjectInfo[]>
 ```
 
-Lists objects using `client.list()`. Returns objects with `name` (from `key`), `size`, `lastModified`, and `etag` (from `eTag`).
+`client.list({ prefix, maxKeys }, { bucket })`; maps `contents` entries to `{ name: key, size, lastModified, etag: eTag }`.
 
 > [!NOTE]
-> The `useRecursive` parameter is accepted for interface compatibility but is not used -- Bun's S3 `list()` does not support recursive mode directly.
+> `useRecursive` is accepted for interface compatibility but is not used - Bun's S3 `list()` has no recursive mode.
+
+### AWS Signature V4 (buildSignedRequest)
+
+`Source ->` [`packages/helpers/src/modules/storage/bun-s3/utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/utility.ts)
+
+```typescript
+async function buildSignedRequest(opts: {
+  method: string;
+  endpoint: string;
+  path: string;
+  accessKey: string;
+  secretKey: string;
+  region: string;
+  sessionToken?: string;
+  body?: string;
+}): Promise<{ url: string; headers: Record<string, string> }>
+```
+
+- **Internal only.** Not exported from the package barrel.
+- **Builds the `Authorization` header from scratch.** Uses `crypto.subtle` (HMAC-SHA256 and SHA-256 digest), following the standard SigV4 derivation: `kDate -> kRegion -> kService -> kSigning`.
+- **Signs four headers.** `host`, `x-amz-content-sha256`, `x-amz-date`, and (if present) `x-amz-security-token`.
+- **Used exclusively for bucket management.** `getBuckets`, `createBucket`, and `removeBucket` on `BunS3Helper`.
 
 ## DiskHelper
 
-Local filesystem storage using directory-based buckets. Extends `BaseStorageHelper`.
+`Source ->` [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts)
+
+Local filesystem storage using a bucket-based directory structure. Extends `BaseStorageHelper`.
 
 ### Constructor
 
 ```typescript
 constructor(options: IDiskHelperOptions)
-```
 
-Resolves `basePath` to an absolute path and creates it if it does not exist.
-
-```typescript
 interface IDiskHelperOptions extends IStorageHelperOptions {
   basePath: string;
 }
 ```
 
+Resolves `basePath` to an absolute path with `path.resolve()` and creates it (`fs.mkdirSync(..., { recursive: true })`) if it does not exist.
+
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `options.basePath` | `string` | -- | Base directory for storage. Resolved to an absolute path. Created automatically. |
+| `options.basePath` | `string` | - | Base directory for storage. Resolved to an absolute path. Created automatically. |
 | `options.scope` | `string` | `'DiskHelper'` | Logger scope name. |
 | `options.identifier` | `string` | `'DiskHelper'` | Helper identifier. |
 
+The resulting directory structure maps buckets to subdirectories:
+
+```
+app_data/storage/           <-- basePath
+├── bucket-1/               <-- bucket (directory)
+│   ├── file1.pdf           <-- object (file)
+│   └── file2.jpg
+└── user-uploads/
+    ├── avatar.png
+    └── resume.pdf
+```
+
+### defaultLinkPrefix and writeObject
+
+- `defaultLinkPrefix`: `'/static-resources/'` (the one backend that differs from `/static-assets/`).
+- `writeObject`: creates the object's parent directory if missing (`fsp.mkdir(dir, { recursive: true })`), then `fsp.writeFile(objectPath, file.buffer)`. No metadata dictionary is persisted alongside the file - `getStat()` derives `mimetype` from the filename at read time.
+
 ### Methods
 
-#### isBucketExists
+| Method | Behavior |
+|---|---|
+| `isBucketExists` | Returns `false` if the name fails validation. Otherwise checks the bucket path exists and `stat.isDirectory()`. |
+| `getBuckets` | Lists directories under `basePath` via `fsp.readdir(..., { withFileTypes: true })`. Each directory's `birthtime` becomes `creationDate`. Returns `[]` if `basePath` does not exist. |
+| `getBucket` | `isBucketExists()` first; if true, returns `{ name, creationDate: stat.birthtime }`; else `null`. |
+| `createBucket` | `fsp.mkdir(bucketPath, { recursive: true })`, then returns `getBucket()`. |
+| `removeBucket` | `fsp.rmdir(bucketPath)`. |
+| `removeObject` | Checks the object exists first (`fsp.access`); throws if missing. Otherwise `fsp.unlink(objectPath)`. |
+| `removeObjects` | Deletes **sequentially** by calling `removeObject()` per name in a `for` loop - if any file is missing, the error propagates immediately and remaining names are not attempted. |
 
-```typescript
-async isBucketExists(opts: { name: string }): Promise<boolean>
-```
+**`createBucket` throws:**
 
-Returns `false` if the name fails validation. Otherwise checks if the bucket path exists and is a directory.
+| When | Message |
+|---|---|
+| Name fails `isValidName()` | `'[createBucket] Invalid name to create bucket!'` |
+| Bucket directory already exists | `` `[createBucket] Bucket already exists | name: {name}` `` |
 
-#### getBuckets
+**`removeBucket` throws:**
 
-```typescript
-async getBuckets(): Promise<IBucketInfo[]>
-```
+| When | Message |
+|---|---|
+| Name fails `isValidName()` | `'[removeBucket] Invalid name to remove bucket!'` |
+| Bucket directory does not exist | `` `[removeBucket] Bucket does not exist | name: {name}` `` |
+| Bucket directory is not empty (`fsp.readdir` returns entries) | `` `[removeBucket] Bucket is not empty | name: {name}` `` |
 
-Lists all directories under `basePath`. Returns each directory as a bucket with its `birthtime` as `creationDate`. Returns `[]` if the base path does not exist.
+**`removeObject` throws:**
 
-#### getBucket
-
-```typescript
-async getBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Returns bucket info with `birthtime` as `creationDate`, or `null` if the bucket does not exist.
-
-#### createBucket
-
-```typescript
-async createBucket(opts: { name: string }): Promise<IBucketInfo | null>
-```
-
-Creates a directory under `basePath`. Throws if the name fails validation or the bucket already exists.
-
-**Throws:**
-- `'[createBucket] Invalid name to create bucket!'`
-- `'[createBucket] Bucket already exists | name: {name}'`
-
-#### removeBucket
-
-```typescript
-async removeBucket(opts: { name: string }): Promise<boolean>
-```
-
-Removes the bucket directory. Throws if the name fails validation, the bucket does not exist, or the bucket is not empty.
-
-**Throws:**
-- `'[removeBucket] Invalid name to remove bucket!'`
-- `'[removeBucket] Bucket does not exist | name: {name}'`
-- `'[removeBucket] Bucket is not empty | name: {name}'`
-
-#### upload
-
-```typescript
-async upload(opts: {
-  bucket: string;
-  files: IUploadFile[];
-  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
-  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
-  maxFolderDepth?: number;
-}): Promise<IUploadResult[]>
-```
-
-Writes files to the bucket directory. Returns `[]` if `files` is empty. Validates the bucket exists and all file names/sizes before writing. Uploads run in parallel via `Promise.all()`. Subdirectories are created automatically if `normalizeName` contains path separators.
-
-**Default name normalization:** Same as MinioHelper -- lowercased with spaces replaced by `_`.
-
-**Default link format:** `/static-resources/{bucket}/{normalizeName}`, with each `/`-separated segment of `normalizeName` URI-encoded via `encodeURIComponent()`.
-
-**Throws:**
-- `'[upload] Bucket does not exist | name: {bucket}'`
-- `'[upload] Invalid original file name'`
-- `'[upload] Invalid folder path'`
-- `'[upload] Invalid file size'`
-- `'[upload] Invalid normalized object name | name: {name}'` -- the value returned by a custom `normalizeNameFn` is path-validated before it is written to disk; an unvalidated `../../../etc/cron.d/pwn` would otherwise write outside `basePath`.
+| When | Message |
+|---|---|
+| Object does not exist | `` `[removeObject] File not found | bucket: {bucket} | name: {name}` `` |
 
 #### getFile
 
@@ -608,9 +588,9 @@ Writes files to the bucket directory. Returns `[]` if `files` is empty. Validate
 async getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>
 ```
 
-Returns a `fs.createReadStream()` for the file. Throws if the file does not exist. The `options` parameter is accepted for interface compatibility but is not used.
+`fs.createReadStream(objectPath)`. The `options` parameter is accepted for interface compatibility but not used.
 
-**Throws:** `'[getFile] File not found | bucket: {bucket} | name: {name}'`
+**Throws:** `` `[getFile] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
 
 #### getStat
 
@@ -618,39 +598,21 @@ Returns a `fs.createReadStream()` for the file. Throws if the file does not exis
 async getStat(opts: { bucket: string; name: string }): Promise<IFileStat>
 ```
 
-Returns file metadata from the filesystem. The `metadata` field contains `mimetype` detected via `getMimeType()`. Does not return `etag` or `versionId`.
-
-**Throws:** `'[getStat] File not found | bucket: {bucket} | name: {name}'`
-
-**Returns:**
+`fsp.stat(objectPath)`. Returns:
 
 ```typescript
 {
-  size: number;          // from fs stat
-  lastModified: Date;    // from fs stat mtime
+  size: number;          // fs stat size
+  lastModified: Date;    // fs stat mtime
   metadata: {
-    mimetype: string;    // detected via getMimeType()
+    mimetype: string;    // detected via getMimeType() from the name's extension
   };
 }
 ```
 
-#### removeObject
+Does not return `etag` or `versionId` - those fields are `undefined` on `DiskHelper`.
 
-```typescript
-async removeObject(opts: { bucket: string; name: string }): Promise<void>
-```
-
-Deletes a file via `fsp.unlink()`. Throws if the file does not exist.
-
-**Throws:** `'[removeObject] File not found | bucket: {bucket} | name: {name}'`
-
-#### removeObjects
-
-```typescript
-async removeObjects(opts: { bucket: string; names: string[] }): Promise<void>
-```
-
-Deletes multiple files sequentially by calling `removeObject()` for each name. If any file does not exist, the error propagates immediately.
+**Throws:** `` `[getStat] File not found | bucket: {bucket} | name: {name}` `` if the file does not exist.
 
 #### listObjects
 
@@ -663,20 +625,21 @@ async listObjects(opts: {
 }): Promise<IObjectInfo[]>
 ```
 
-Scans the bucket directory. Returns `[]` if the bucket path does not exist. Only files matching the `prefix` are included. Subdirectories are only traversed when `useRecursive` is `true`. Stops scanning when `maxKeys` is reached.
+Scans the bucket directory recursively via a local `scanDirectory()` closure. Returns `[]` if the bucket path does not exist.
 
-| Parameter | Type | Default | Description |
-|-----------|------|---------|-------------|
-| `opts.bucket` | `string` | -- | Bucket to list. |
-| `opts.prefix` | `string` | `''` | Filter by name prefix. |
-| `opts.useRecursive` | `boolean` | `false` | Traverse subdirectories. |
-| `opts.maxKeys` | `number` | `undefined` | Maximum objects to return. |
+| Parameter | Default | Description |
+|---|---|---|
+| `prefix` | `''` | Only files whose scanned name starts with `prefix` are included. |
+| `useRecursive` | `false` | Subdirectories are only descended into when `true`; otherwise only top-level files are scanned. |
+| `maxKeys` | `undefined` | Scanning stops once this many objects have been collected. |
 
-**Returns:** Array of `IObjectInfo` with `name`, `size`, `lastModified`. The `etag` field is always `undefined` for disk storage.
+**Returns:** Array of `IObjectInfo` with `name`, `size`, `lastModified`. `etag` is always `undefined` for disk storage.
 
 ## MemoryStorageHelper
 
-Generic in-memory key-value store. Extends `BaseHelper` directly. Does **not** implement `IStorageHelper`.
+`Source ->` [`packages/helpers/src/modules/storage/in-memory/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/in-memory/helper.ts)
+
+Generic in-memory key-value store. Extends `BaseHelper` directly - does **not** implement `IStorageHelper` and has no bucket or file operations.
 
 ```typescript
 class MemoryStorageHelper<T extends object = AnyObject> extends BaseHelper
@@ -692,7 +655,7 @@ constructor(opts?: { scope?: string })
 |-----------|------|---------|-------------|
 | `opts.scope` | `string` | `'MemoryStorageHelper'` | Logger scope name. |
 
-### Static Methods
+### Static methods
 
 #### newInstance
 
@@ -700,63 +663,35 @@ constructor(opts?: { scope?: string })
 static newInstance<T extends object = AnyObject>(): MemoryStorageHelper<T>
 ```
 
-Factory method that creates and returns a new `MemoryStorageHelper` instance.
+Factory method - equivalent to `new MemoryStorageHelper<T>()`.
 
 ### Methods
 
-#### isBound
+| Method | Signature | Behavior |
+|---|---|---|
+| `isBound` | `(key: string): boolean` | `key in this.container`. |
+| `get<R>` | `(key: keyof T): R` | Returns `this.container[key]` cast to `R`. |
+| `set<R>` | `(key: string, value: R): void` | `Object.assign(this.container, { [key]: value })`. |
+| `keys` | `(): string[]` | `Object.keys(this.container)`. |
+| `clear` | `(): void` | Replaces the container with a new empty object. |
+| `getContainer` | `(): T` | Returns the underlying container object directly (not a copy). |
 
 ```typescript
-isBound(key: string): boolean
+const cache = new MemoryStorageHelper();
+
+cache.set('user:123', { name: 'Alice', role: 'admin' });
+const user = cache.get<{ name: string; role: string }>('user:123');
+cache.isBound('user:123');   // true
+cache.keys();                // ['user:123']
+cache.getContainer();        // { 'user:123': { name: 'Alice', role: 'admin' } }
+cache.clear();
 ```
-
-Returns `true` if the key exists in the container (uses the `in` operator).
-
-#### get
-
-```typescript
-get<R>(key: keyof T): R
-```
-
-Returns the value for the given key, cast to type `R`.
-
-#### set
-
-```typescript
-set<R>(key: string, value: R): void
-```
-
-Stores a value under the given key using `Object.assign`.
-
-#### keys
-
-```typescript
-keys(): string[]
-```
-
-Returns all keys in the container via `Object.keys()`.
-
-#### clear
-
-```typescript
-clear(): void
-```
-
-Replaces the container with a new empty object.
-
-#### getContainer
-
-```typescript
-getContainer(): T
-```
-
-Returns the underlying container object.
 
 ## Types Reference
 
 ### IStorageHelper
 
-The unified interface implemented by `MinioHelper`, `BunS3Helper`, and `DiskHelper`:
+The interface implemented by `MinioHelper`, `BunS3Helper`, and `DiskHelper`:
 
 ```typescript
 interface IStorageHelper {
@@ -801,12 +736,12 @@ interface IStorageHelperOptions {
 ```typescript
 interface IUploadFile {
   originalName: string;           // Original filename
-  mimetype: string;               // MIME type (e.g., 'image/png')
-  buffer: Buffer;                 // File content
-  size: number;                   // File size in bytes
-  encoding?: string;              // Optional encoding (e.g., '7bit', 'base64')
-  folderPath?: string;            // Optional folder path for organization
-  [key: string | symbol]: any;    // Additional properties allowed
+  mimetype: string;                // MIME type (e.g. 'image/png')
+  buffer: Buffer;                  // File content
+  size: number;                    // File size in bytes
+  encoding?: string;                // Optional encoding (e.g. '7bit', 'base64')
+  folderPath?: string;              // Optional folder path for organization
+  [key: string | symbol]: any;      // Additional properties allowed
 }
 ```
 
@@ -814,11 +749,11 @@ interface IUploadFile {
 
 ```typescript
 interface IUploadResult {
-  bucketName: string;    // Bucket where file was stored
-  objectName: string;    // Stored filename (normalized)
-  link: string;          // Access URL
-  metaLink?: any;        // Optional metadata link
-  metaLinkError?: any;   // Error if metadata link creation failed
+  bucketName: string;    // Bucket where the file was stored
+  objectName: string;    // Stored object name (normalized)
+  link: string;           // Access URL
+  metaLink?: any;          // Optional metadata link
+  metaLinkError?: any;      // Error if metadata link creation failed
 }
 ```
 
@@ -827,10 +762,10 @@ interface IUploadResult {
 ```typescript
 interface IFileStat {
   size: number;                     // File size in bytes
-  metadata: Record<string, any>;    // Storage-specific metadata
-  lastModified?: Date;              // Last modification date
-  etag?: string;                    // Entity tag (MinioHelper and BunS3Helper only)
-  versionId?: string;               // Version ID (MinioHelper only)
+  metadata: Record<string, any>;    // Backend-specific metadata
+  lastModified?: Date;               // Last modification date
+  etag?: string;                      // Entity tag (MinioHelper and BunS3Helper only)
+  versionId?: string;                  // Version ID (MinioHelper only, if versioning enabled)
 }
 ```
 
@@ -838,8 +773,8 @@ interface IFileStat {
 
 ```typescript
 interface IBucketInfo {
-  name: string;          // Bucket name
-  creationDate: Date;    // When the bucket was created
+  name: string;
+  creationDate: Date;
 }
 ```
 
@@ -847,11 +782,11 @@ interface IBucketInfo {
 
 ```typescript
 interface IObjectInfo {
-  name?: string;          // Object name
-  size?: number;          // Object size in bytes
-  lastModified?: Date;    // Last modification date
-  etag?: string;          // Entity tag
-  prefix?: string;        // Prefix (for directory-like listing)
+  name?: string;
+  size?: number;
+  lastModified?: Date;
+  etag?: string;
+  prefix?: string;
 }
 ```
 
@@ -859,10 +794,10 @@ interface IObjectInfo {
 
 ```typescript
 interface IListObjectsOptions {
-  bucket: string;            // Bucket to list
-  prefix?: string;           // Filter by prefix
-  useRecursive?: boolean;    // Recursive listing (default: false)
-  maxKeys?: number;          // Maximum objects to return
+  bucket: string;
+  prefix?: string;
+  useRecursive?: boolean;
+  maxKeys?: number;
 }
 ```
 
@@ -870,7 +805,7 @@ interface IListObjectsOptions {
 
 ```typescript
 interface IDiskHelperOptions extends IStorageHelperOptions {
-  basePath: string;    // Base directory for storage
+  basePath: string;
 }
 ```
 
@@ -880,7 +815,7 @@ interface IDiskHelperOptions extends IStorageHelperOptions {
 interface IMinioHelperOptions extends IStorageHelperOptions, ClientOptions {}
 ```
 
-Inherits all `minio.ClientOptions` properties: `endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`, `region`, `transport`, `sessionToken`, `partSize`, `pathStyle`, and others.
+Inherits every `minio.ClientOptions` field: `endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`, `region`, `transport`, `sessionToken`, `partSize`, `pathStyle`, and others.
 
 ### IBunS3HelperOptions
 
@@ -894,8 +829,175 @@ interface IBunS3HelperOptions extends IStorageHelperOptions {
 }
 ```
 
-## See Also
+## Backend Behavior Matrix
 
-- [Setup & Usage](./) -- Getting started, examples, and troubleshooting
-- [Helpers Index](../index) -- All available helpers
-- [Static Asset Component](/extensions/components/static-asset/) -- Serving stored files via HTTP
+| Behavior | MinioHelper | BunS3Helper | DiskHelper |
+|---|---|---|---|
+| Default link prefix | `/static-assets/` | `/static-assets/` | `/static-resources/` |
+| `getStat().etag` | Yes | Yes | Never (`undefined`) |
+| `getStat().versionId` | Yes, if versioning enabled | No | No |
+| Upload metadata persisted | `originalName`, `normalizeName`, `size`, `encoding`, `mimeType` | Content type only | None (mimetype detected at read time) |
+| `removeObjects` concurrency | Single batch SDK call | Parallel (`Promise.all`) | Sequential (`for` loop; stops at first missing file) |
+| `listObjects.useRecursive` | Honored | Accepted but not used | Honored |
+| `getFile` throws on missing file | No (SDK-level error) | No (SDK-level error) | Yes - explicit `'[getFile] File not found ...'` |
+| Bucket-management transport | `minio.Client` methods | Hand-built AWS SigV4 signed requests | Node `fs`/`fs/promises` |
+
+## Troubleshooting
+
+### "[createBucket] Invalid name to create bucket!"
+
+**Cause:** The bucket name failed `isValidName()` - it may contain path traversal characters, start with a dot, contain shell-special characters, or exceed 255 characters.
+
+**Fix:**
+
+```typescript
+// Wrong
+await storage.createBucket({ name: '../my-bucket' });
+await storage.createBucket({ name: '.hidden-bucket' });
+
+// Correct
+await storage.createBucket({ name: 'my-bucket' });
+```
+
+### "[removeBucket] Invalid name to remove bucket!"
+
+**Cause:** Same as above - the bucket name failed `isValidName()`.
+
+### "[createBucket] Bucket already exists | name: {name}"
+
+**Cause:** `DiskHelper` throws this exact message when `createBucket()` targets a directory that already exists. `MinioHelper` and `BunS3Helper` do not perform this check themselves - an existing bucket instead surfaces whatever the `minio` SDK or the raw S3 `PUT` request returns for that case, which depends on the server.
+
+**Fix:** Check existence first.
+
+```typescript
+const exists = await storage.isBucketExists({ name: 'my-bucket' });
+if (!exists) {
+  await storage.createBucket({ name: 'my-bucket' });
+}
+```
+
+### "[removeBucket] Bucket does not exist | name: {name}"
+
+**Cause:** `DiskHelper` throws when removing a directory that does not exist.
+
+**Fix:** Check existence before removal, same pattern as above with `isBucketExists`.
+
+### "[removeBucket] Bucket is not empty | name: {name}"
+
+**Cause:** `DiskHelper`'s `removeBucket()` requires the bucket directory to be empty.
+
+**Fix:** Remove all objects first.
+
+```typescript
+const objects = await storage.listObjects({ bucket: 'my-bucket', useRecursive: true });
+if (objects.length > 0) {
+  await storage.removeObjects({
+    bucket: 'my-bucket',
+    names: objects.map(o => o.name!),
+  });
+}
+await storage.removeBucket({ name: 'my-bucket' });
+```
+
+### "[upload] Bucket does not exist | name: {bucket}"
+
+**Cause:** `upload()` calls `isBucketExists()` before writing anything, on every backend.
+
+**Fix:** Create the bucket first.
+
+```typescript
+const exists = await storage.isBucketExists({ name: 'uploads' });
+if (!exists) {
+  await storage.createBucket({ name: 'uploads' });
+}
+await storage.upload({ bucket: 'uploads', files: [/* ... */] });
+```
+
+### "[upload] Invalid original file name"
+
+**Cause:** A file's `originalName` failed `isValidName()`.
+
+**Fix:** Sanitize before uploading, or override the name entirely with `normalizeNameFn`.
+
+```typescript
+await storage.upload({
+  bucket: 'my-bucket',
+  files,
+  normalizeNameFn: ({ originalName }) => originalName.replace(/[^a-zA-Z0-9._-]/g, '_'),
+});
+```
+
+### "[upload] Invalid folder path" / "[upload] Invalid folder path | depth: {depth} | max: {max}"
+
+**Cause:** A file's `folderPath` either exceeds `maxFolderDepth` (the depth-specific message) or fails `isValidPath()` for another reason (traversal, invalid segment, the generic message).
+
+**Fix:** Keep `folderPath` within `maxFolderDepth` (default `2`) segments, and free of `..`/invalid characters.
+
+### "[upload] Invalid file size | size: {size}"
+
+**Cause:** A file's `size` is `undefined`, `null`, or negative. A zero-byte file (`size: 0`) is legal and does **not** trigger this.
+
+**Fix:** Ensure every file carries a valid `size`.
+
+```typescript
+const file: IUploadFile = {
+  originalName: 'doc.pdf',
+  mimetype: 'application/pdf',
+  buffer: fileBuffer,
+  size: fileBuffer.length, // must be a number >= 0
+};
+```
+
+### "[upload] Invalid normalized object name | name: {name}"
+
+**Cause:** A custom `normalizeNameFn` returned a value that fails `isValidPath()` - typically a traversal payload (`../../../etc/cron.d/pwn`) or a name exceeding `maxFolderDepth`. This check exists specifically because `originalName` passing validation does not guarantee the function's *output* is safe.
+
+**Fix:** Ensure `normalizeNameFn` returns a plain relative name/path - no `..` segments, no leading `/`, no more folder segments than `maxFolderDepth` allows.
+
+### "[getFile] File not found | bucket: {bucket} | name: {name}"
+
+**Cause:** `DiskHelper`-specific - it checks existence before opening a read stream. `MinioHelper` and `BunS3Helper` instead surface whatever error their SDK returns for a missing object.
+
+**Fix:** Handle the rejection, or check first.
+
+```typescript
+try {
+  const stream = await storage.getFile({ bucket: 'my-bucket', name: 'file.pdf' });
+} catch (error) {
+  // File not found -- handle gracefully
+}
+```
+
+### "[removeObject] File not found | bucket: {bucket} | name: {name}"
+
+**Cause:** `DiskHelper`-specific - it checks existence before unlinking. `MinioHelper` and `BunS3Helper` instead surface whatever error their SDK returns for a missing object.
+
+**Fix:** Handle the rejection, or check first.
+
+```typescript
+try {
+  await storage.removeObject({ bucket: 'my-bucket', name: 'file.pdf' });
+} catch (error) {
+  // File not found -- handle gracefully
+}
+```
+
+### MinioHelper / BunS3Helper connection errors
+
+**Cause:** Network or configuration mismatch between the application and the S3-compatible server.
+
+**Checklist:**
+- The server is running and reachable at the configured `endPoint`/`endpoint` and `port`.
+- `useSSL` (MinioHelper) matches the server's TLS configuration.
+- `accessKey`/`secretKey` are correct.
+- For `BunS3Helper`, `region` matches what the server expects for SigV4 signing.
+- Network and firewall rules allow the connection.
+
+## See also
+
+- [Storage overview](/extensions/helpers/storage/) - introduction, the smallest example, and the most common tasks
+- [Helpers Index](../index) - all available helpers
+- [Static Asset Component](/extensions/components/static-asset/) - serving stored files over HTTP
+- [Request Utilities](/references/utilities/request) - `parseMultipartBody` for file uploads
+- [MinIO Documentation](https://min.io/docs/minio/linux/index.html) - MinIO object storage
+- [MinIO JavaScript SDK](https://min.io/docs/minio/linux/developers/javascript/API.html) - full minio client API

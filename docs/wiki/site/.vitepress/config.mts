@@ -37,10 +37,25 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       },
       { text: 'Dependency Injection', link: '/references/base/dependency-injection' },
       { text: 'Middlewares', link: '/references/base/middlewares' },
-      { text: 'Models & Enrichers', link: '/references/base/models' },
+      {
+        text: 'Models & Enrichers',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/base/models' },
+          { text: 'Full Reference', link: '/references/base/models-reference' },
+        ],
+      },
       { text: 'Providers', link: '/references/base/providers' },
       { text: 'Connectors', link: '/references/base/connectors' },
-      { text: 'DataSources', link: '/references/base/datasources' },
+      {
+        text: 'DataSources',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/base/datasources' },
+          { text: 'Full Reference', link: '/references/base/datasources-reference' },
+        ],
+      },
+      { text: 'Secrets & Vault', link: '/references/base/secrets' },
       {
         text: 'Repositories',
         collapsed: false,
@@ -83,14 +98,28 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Overview', link: '/references/utilities/' },
       { text: 'Crypto', link: '/references/utilities/crypto' },
       { text: 'Date', link: '/references/utilities/date' },
-      { text: 'JSX', link: '/references/utilities/jsx' },
+      {
+        text: 'JSX',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/utilities/jsx' },
+          { text: 'Full Reference', link: '/references/utilities/jsx-reference' },
+        ],
+      },
       { text: 'Module', link: '/references/utilities/module' },
       { text: 'Parse', link: '/references/utilities/parse' },
       { text: 'Performance', link: '/references/utilities/performance' },
       { text: 'Promise', link: '/references/utilities/promise' },
       { text: 'Request', link: '/references/utilities/request' },
       { text: 'Schema', link: '/references/utilities/schema' },
-      { text: 'Statuses', link: '/references/utilities/statuses' },
+      {
+        text: 'Statuses',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/references/utilities/statuses' },
+          { text: 'Full Reference', link: '/references/utilities/statuses-reference' },
+        ],
+      },
     ],
   },
 ];
@@ -180,17 +209,38 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Overview', link: '/extensions/helpers/' },
       { text: 'Cron', link: '/extensions/helpers/cron/' },
-      { text: 'Crypto', link: '/extensions/helpers/crypto/' },
+      {
+        text: 'Crypto',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/crypto/' },
+          { text: 'Full Reference', link: '/extensions/helpers/crypto/reference' },
+        ],
+      },
       { text: 'Environment', link: '/extensions/helpers/env/' },
       { text: 'Error', link: '/extensions/helpers/error/' },
-      { text: 'Inversion (DI)', link: '/extensions/helpers/inversion/' },
-      { text: 'Logger', link: '/extensions/helpers/logger/' },
+      {
+        text: 'Inversion (DI)',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/inversion/' },
+          { text: 'Full Reference', link: '/extensions/helpers/inversion/reference' },
+        ],
+      },
+      {
+        text: 'Logger',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/logger/' },
+          { text: 'Full Reference', link: '/extensions/helpers/logger/reference' },
+        ],
+      },
       {
         text: 'Network',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/network/' },
-          { text: 'API Reference', link: '/extensions/helpers/network/api' },
+          { text: 'Overview', link: '/extensions/helpers/network/' },
+          { text: 'Full Reference', link: '/extensions/helpers/network/api' },
         ],
       },
       {
@@ -206,35 +256,64 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
           { text: 'Examples & Troubleshooting', link: '/extensions/helpers/kafka/examples' },
         ],
       },
-      { text: 'Queue', link: '/extensions/helpers/queue/' },
-      { text: 'Redis', link: '/extensions/helpers/redis/' },
+      {
+        text: 'Queue',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/queue/' },
+          { text: 'Full Reference', link: '/extensions/helpers/queue/reference' },
+        ],
+      },
+      {
+        text: 'Redis',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/redis/' },
+          { text: 'Full Reference', link: '/extensions/helpers/redis/reference' },
+        ],
+      },
+      { text: 'Secrets & Vault', link: '/extensions/helpers/secrets/' },
       {
         text: 'Socket.IO',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/socket-io/' },
-          { text: 'API Reference', link: '/extensions/helpers/socket-io/api' },
+          { text: 'Overview', link: '/extensions/helpers/socket-io/' },
+          { text: 'Full Reference', link: '/extensions/helpers/socket-io/api' },
         ],
       },
       {
         text: 'Storage',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/storage/' },
-          { text: 'API Reference', link: '/extensions/helpers/storage/api' },
+          { text: 'Overview', link: '/extensions/helpers/storage/' },
+          { text: 'Full Reference', link: '/extensions/helpers/storage/api' },
         ],
       },
-      { text: 'Types', link: '/extensions/helpers/types/' },
+      {
+        text: 'Types',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/types/' },
+          { text: 'Full Reference', link: '/extensions/helpers/types/reference' },
+        ],
+      },
       { text: 'UID', link: '/extensions/helpers/uid/' },
       {
         text: 'WebSocket',
         collapsed: true,
         items: [
-          { text: 'Setup & Usage', link: '/extensions/helpers/websocket/' },
-          { text: 'API Reference', link: '/extensions/helpers/websocket/api' },
+          { text: 'Overview', link: '/extensions/helpers/websocket/' },
+          { text: 'Full Reference', link: '/extensions/helpers/websocket/api' },
         ],
       },
-      { text: 'Worker Thread', link: '/extensions/helpers/worker-thread/' },
+      {
+        text: 'Worker Thread',
+        collapsed: true,
+        items: [
+          { text: 'Overview', link: '/extensions/helpers/worker-thread/' },
+          { text: 'Full Reference', link: '/extensions/helpers/worker-thread/reference' },
+        ],
+      },
     ],
   },
   {
@@ -368,6 +447,20 @@ const config = defineConfig({
           text: 'History',
           collapsed: false,
           items: [
+            {
+              text: '2026-07-16',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Error Handling - Normalized Messages & Error Catalog',
+                  link: '/changelogs/2026-07-16-error-catalog-and-structured-message',
+                },
+                {
+                  text: 'Secrets & Vault Integration',
+                  link: '/changelogs/2026-07-16-secrets-vault-integration',
+                },
+              ],
+            },
             {
               text: '2026-07-14',
               collapsed: true,
@@ -854,6 +947,7 @@ const config = defineConfig({
               ],
             },
             { text: 'Services', link: '/guides/core-concepts/services' },
+            { text: 'Secrets & Vault', link: '/guides/core-concepts/secrets-vault' },
             {
               text: 'Persistent Layer',
               collapsed: true,

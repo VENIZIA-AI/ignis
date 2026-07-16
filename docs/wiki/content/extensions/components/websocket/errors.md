@@ -1,34 +1,38 @@
-# WebSocket -- Error Reference
+---
+title: WebSocket Component - Error Reference
+description: Error conditions, close codes, and troubleshooting for the WebSocket component
+difficulty: intermediate
+---
 
-> Error conditions table and troubleshooting guide for the WebSocket component.
+# Error Reference
 
-## Error Conditions
+Every error condition the WebSocket component and helper can raise, plus fixes for the ones you'll actually hit.
 
-The server can send `error` events or close the connection under the following conditions:
+## Error conditions
 
 | Error Message / Close Code | Trigger | Event Type |
 |---------------------------|---------|------------|
 | `"Invalid message format"` | Client sent non-JSON data | `error` event |
-| `"Already authenticated"` | Client sent `authenticate` when state is not `UNAUTHORIZED` | `error` event |
+| `"Already authenticated"` | Client sent `authenticate` while state was not `UNAUTHORIZED` | `error` event |
 | `"Not authenticated"` | Client sent a non-`authenticate`, non-`heartbeat` event while unauthenticated | `error` event |
 | `"Authentication failed"` | `authenticateFn` returned `null`/`false` | `error` event + close `4003` |
-| `"Authentication error"` | `authenticateFn` threw an exception | `error` event + close `4003` |
+| `"Authentication error"` | `authenticateFn` threw | `error` event + close `4003` |
 | `"Encryption handshake failed"` | `handshakeFn` returned `null`/`false` | `error` event + close `4004` |
 | Close `4004` (no error event) | `requireEncryption: true` but no `handshakeFn` configured | close `4004` only |
-| Close `4001` | Auth timeout (initial: no `authenticate` sent) | close `4001` only |
-| Close `4001` | Auth in-progress timeout (`authenticateFn`/`handshakeFn` too slow) | close `4001` only |
-| Close `4002` | Heartbeat timeout (no messages within `heartbeatTimeout`) | close `4002` only |
+| Close `4001` | Auth timeout - no `authenticate` sent within `authTimeout` | close `4001` only |
+| Close `4001` | Auth in-progress timeout - `authenticateFn`/`handshakeFn` slower than `authTimeout * 3` | close `4001` only |
+| Close `4002` | Heartbeat timeout - no messages within `heartbeatTimeout` | close `4002` only |
 | Close `1001` | Server shutdown (`wsHelper.shutdown()`) | close `1001` only |
 | `"Invalid redis connection!"` | Constructor: `redisConnection` is falsy | thrown `Error` (startup) |
 | `"WebSocket upgrade failed"` | `server.upgrade()` returned `false` | HTTP `500` response |
 
-### Component Errors
+### Component-level errors
 
 | Method | Condition | Error Message |
 |--------|-----------|---------------|
 | `binding()` | `application` is falsy | `"[binding] Invalid application to bind WebSocketComponent"` |
 | `binding()` | Node.js runtime detected | `"[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime."` |
-| `resolveBindings()` | `REDIS_CONNECTION` not instanceof `AbstractRedisHelper` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection | Please init connection with RedisSingleHelper (single), RedisClusterHelper (cluster), or RedisSentinelHelper (sentinel)"` |
+| `resolveBindings()` | `REDIS_CONNECTION` not `instanceof AbstractRedisHelper` | `"[WebSocketComponent][resolveBindings] Invalid instance of redisConnection ..."` |
 | `resolveBindings()` | `AUTHENTICATE_HANDLER` is falsy | `"[WebSocketComponent] Invalid authenticateFn to setup WebSocket server!"` |
 | `registerBunHook()` | Bun server instance not available | `"[WebSocketComponent] Bun server instance not available!"` |
 
@@ -36,15 +40,13 @@ The server can send `error` events or close the connection under the following c
 
 ### "WebSocket not initialized"
 
-**Cause**: You are trying to use `WebSocketServerHelper` before the server has started (e.g., during DI construction).
-
-**Fix**: Use the lazy getter pattern shown in [Usage & Examples](./usage). Never `@inject` `WEBSOCKET_INSTANCE` directly in a constructor -- it does not exist yet at construction time.
+- **Cause:** `WebSocketServerHelper` was accessed before the server started - e.g. during DI construction.
+- **Fix:** Use the lazy getter pattern from [Usage & Examples](./usage). Never `@inject` `WEBSOCKET_INSTANCE` in a constructor - it does not exist yet at that point.
 
 ### "Invalid instance of redisConnection"
 
-**Cause**: The value bound to `REDIS_CONNECTION` is not an instance of `AbstractRedisHelper` (i.e. not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`).
-
-**Fix**: Use one of the concrete topology helpers:
+- **Cause:** The value bound to `REDIS_CONNECTION` is not an `AbstractRedisHelper` instance - i.e. not a `RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`.
+- **Fix:** Bind one of the concrete topology helpers, not a raw `ioredis` client.
 
 ```typescript
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
@@ -53,71 +55,60 @@ import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION })
   .toValue(new RedisSingleHelper({ name: 'websocket', host, port, password }));
 
-// Wrong -- raw ioredis client
-this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION })
-  .toValue(new Redis(6379));  // This is NOT an AbstractRedisHelper!
+// Wrong: raw ioredis client, not an AbstractRedisHelper
+this.bind({ key: WebSocketBindingKeys.REDIS_CONNECTION }).toValue(new Redis(6379));
 ```
 
 ### "Invalid authenticateFn to setup WebSocket server!"
 
-**Cause**: No authentication function was bound to `AUTHENTICATE_HANDLER`, or it was bound as `null`.
-
-**Fix**: Bind a valid authentication function before registering the component:
+- **Cause:** No function bound to `AUTHENTICATE_HANDLER`, or it was bound as `null`.
+- **Fix:** Bind a valid authentication function before registering the component.
 
 ```typescript
 import { WebSocketBindingKeys } from '@venizia/ignis/websocket';
 
-this.bind<TWebSocketAuthenticateFn>({
-  key: WebSocketBindingKeys.AUTHENTICATE_HANDLER,
-}).toValue(async (data) => {
-  const token = data.token as string;
-  const user = await verifyJWT(token);
-  return user ? { userId: user.id } : null;
-});
+this.bind<TWebSocketAuthenticateFn>({ key: WebSocketBindingKeys.AUTHENTICATE_HANDLER }).toValue(
+  async data => {
+    const user = await verifyJWT(data.token as string);
+    return user ? { userId: user.id } : null;
+  },
+);
 ```
 
 ### "Node.js runtime is not supported yet"
 
-**Cause**: Running the application on Node.js. The WebSocket component only supports Bun.
-
-**Fix**: Either switch to Bun runtime, or use the [Socket.IO Component](../socket-io/) which supports both Node.js and Bun.
+- **Cause:** Running on Node.js. The WebSocket component only supports Bun.
+- **Fix:** Switch to Bun, or use the [Socket.IO Component](../socket-io/) instead - it supports both runtimes.
 
 ### "Bun server instance not available!"
 
-**Cause**: The post-start hook executed but could not obtain the Bun server instance. This typically means the server failed to start.
+- **Cause:** The post-start hook ran but could not obtain the Bun server instance - typically the server failed to start.
+- **Fix:** Check server startup logs. Confirm `start()` completes successfully before post-start hooks run.
 
-**Fix**: Check server startup logs for errors. Ensure `start()` completes successfully before post-start hooks run.
+### WebSocket connects but no messages arrive
 
-### WebSocket connects but messages are not received
-
-**Cause**: Clients must send <code v-pre>{ event: 'authenticate', data: { type: '...', token: '...', publicKey?: '...' } }</code> after connecting. Unauthenticated clients are disconnected after the timeout (default: 5 seconds) and cannot receive messages other than `error` events.
-
-**Fix**: Ensure your client authenticates immediately after connection:
+- **Cause:** The client never sent `{ event: 'authenticate', data: { ... } }`. Unauthenticated clients are disconnected after `authTimeout` (5s default) and receive only `error` events.
+- **Fix:** Authenticate immediately after the connection opens.
 
 ```javascript
 const ws = new WebSocket('wss://example.com/ws');
 
 ws.onopen = () => {
-  ws.send(JSON.stringify({
-    event: 'authenticate',
-    data: { type: 'Bearer', token: 'your-jwt-token' },
-  }));
+  ws.send(JSON.stringify({ event: 'authenticate', data: { type: 'Bearer', token: 'your-jwt-token' } }));
 };
 
-ws.onmessage = (event) => {
+ws.onmessage = event => {
   const msg = JSON.parse(event.data);
   if (msg.event === 'connected') {
     console.log('Authenticated! Client ID:', msg.data.id);
-    // Now ready to send/receive events
   }
 };
 ```
 
 ### Client disconnected with code 4002
 
-**Cause**: The client did not send any messages (including heartbeat) within the `heartbeatTimeout` period (default: 90 seconds).
-
-**Fix**: Implement a heartbeat on the client side:
+- **Cause:** No message (including `heartbeat`) arrived within `heartbeatTimeout` (90s default).
+- **Fix:** Send a heartbeat on an interval shorter than the timeout.
 
 ```javascript
 setInterval(() => {
@@ -127,11 +118,11 @@ setInterval(() => {
 }, 30000);
 ```
 
-## See Also
+## See also
 
-- [Setup & Configuration](./) - Quick reference, imports, setup steps, configuration, and binding keys
-- [Usage & Examples](./usage) - Server-side usage, emitter, wire protocol, client tracking, and delivery strategy
-- [API Reference](./api) - Architecture, WebSocketEmitter API, and internals
-- [WebSocketServerHelper](/extensions/helpers/websocket/) - Helper API documentation
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative with Socket.IO
-- [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - Official Bun WebSocket API reference
+- [Overview](./) - quick start, imports, common configuration tasks
+- [Usage & Examples](./usage) - injecting the helper, `WebSocketEmitter`, wire protocol, client tracking, delivery strategy
+- [Full Reference](./api) - binding keys, configuration options, `WebSocketEmitter` API, internals
+- [WebSocketServerHelper](/extensions/helpers/websocket/) - helper API documentation
+- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference

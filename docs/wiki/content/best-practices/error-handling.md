@@ -24,23 +24,64 @@ throw getError({
   message: 'User not found',
 });
 
-// Error with details
+// Error with context - any key the framework does not model lands in `extra`
 throw getError({
   statusCode: HTTP.ResultCodes.RS_4.BadRequest,
   message: 'Invalid request',
-  details: {
-    field: 'email',
-    reason: 'Must be a valid email address',
-  },
+  details: { field: 'email', reason: 'Must be a valid email address' },
+});
+// -> error.extra.details
+
+// The same thing, explicit. Prefer this when the context could be mistaken for a field.
+throw getError({
+  statusCode: HTTP.ResultCodes.RS_4.BadRequest,
+  message: 'Invalid request',
+  extra: { details: { field: 'email' } },
 });
 
-// Error with context (for logging)
+// Wrapping a lower-level failure - `cause` reaches the native Error.cause
 throw getError({
   statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
   message: '[UserService][create] Database connection failed',
-  details: { userId: requestedId },
+  cause: error,
+  extra: { userId: requestedId },
 });
 ```
+
+> [!NOTE]
+> Any key `getError` does not model rides into `extra` - that is how a throw site attaches context the framework knows nothing about. The trade is that a **misspelling** goes the same way: `getError({ message, statuscode: 503 })` compiles, `statusCode` stays `400`, and `503` sits in `extra.statuscode`. The framework cannot tell your context from your typo.
+
+### Catalogue a domain failure, raise the rest free-form
+
+The form above is right for a failure that carries no i18n code: an invariant, a misconfiguration, a seed guard. Nobody translates `'[UserService][create] Database connection failed'`.
+
+A **domain** failure - one a client localizes and branches on - belongs in a catalog instead. Retyping its code and status at each throw is how two call sites end up raising `category.create.duplicate_name` and `category.duplicate_name` for the same thing:
+
+```typescript
+import { ErrorScopes, getError, HTTP } from '@venizia/ignis-helpers';
+import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers';
+
+export const UserErrors = {
+  CREATE_DUPLICATE_EMAIL: {
+    key: 'server.core.user.create.duplicate_email',
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorScopes.VALIDATION,
+    message: 'An account with %{email} already exists.',
+    description: 'Sign-up rejected because the email is already registered.',
+  },
+} as const satisfies Record<string, TErrorDefinition>;
+
+declare module '@venizia/ignis-helpers' {
+  interface IErrorKeyRegistry extends TRegisterErrors<typeof UserErrors> {}
+}
+
+// At every throw site:
+throw getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });
+```
+
+Pass the definition as `error` - **never spread it**. `getError({ ...UserErrors.CREATE_DUPLICATE_EMAIL })` reads naturally and is wrong: a definition carries `key`, not `messageCode`, so the key lands in `extra.key` and the error degrades to `core.system_error`. The status and message still arrive, so it looks correct in review. Nothing catches it for you.
+
+See the [Error helper reference](/extensions/helpers/error/) for the full surface.
 
 ## 2. HTTP Status Code Reference
 
@@ -325,15 +366,18 @@ interface ErrorResponse {
 
 ### `%s`, Never `%j`, for an `Error`
 
-`message` and `stack` are non-enumerable properties on a native `Error` (and on `ApplicationError`, which extends it). `%j` serializes via `JSON.stringify`, which only visits enumerable own properties - so `logger.error('... | error: %j', error)` silently drops both `message` and `stack`, logging little more than `{}`. Always use `%s` to log an `Error` instance; reserve `%j`/`%o` for plain data objects.
+`message` and `stack` are non-enumerable properties on a native `Error` (and on `ApplicationError`, which extends it). `%j` serializes via `JSON.stringify`, which only visits enumerable own properties - so `logger.error('... | error: %j', error)` silently drops both. Always use `%s` to log an `Error` instance; reserve `%j`/`%o` for plain data objects.
 
 ```typescript
 // ✅ Good - %s prints message + stack
 this.logger.error('[createOrder] Failed | error: %s', error);
 
-// ❌ Bad - %j drops message and stack (non-enumerable)
+// ❌ Bad - %j drops the stack
 this.logger.error('[createOrder] Failed | error: %j', error);
 ```
+
+> [!NOTE]
+> An `ApplicationError` logged with `%j` does show its message text, because the text rides inside the enumerable `normalized.text`. That is incidental, not a reprieve: the **stack** is still gone, which is the reason the rule exists. A plain `Error` under `%j` still logs little more than `{}`.
 
 ### What to Log
 

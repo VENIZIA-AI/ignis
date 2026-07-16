@@ -127,6 +127,14 @@
       "types": "./dist/modules/queue/kafka/index.d.ts",
       "default": "./dist/modules/queue/kafka/index.js"
     },
+    "./vault": {
+      "types": "./dist/modules/secrets/hashicorp/index.d.ts",
+      "default": "./dist/modules/secrets/hashicorp/index.js"
+    },
+    "./dotenv-vault": {
+      "types": "./dist/modules/secrets/dotenv/index.d.ts",
+      "default": "./dist/modules/secrets/dotenv/index.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -177,7 +185,9 @@
     "mqtt": "^5.15.1",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
-    "@platformatic/kafka": "^2.1.0"
+    "@platformatic/kafka": "^2.1.0",
+    "node-vault": "^0.12.0",
+    "@dotenvx/dotenvx": "^2.11.1"
   },
   "peerDependenciesMeta": {
     "@socket.io/redis-adapter": {
@@ -209,9 +219,16 @@
     },
     "@platformatic/kafka": {
       "optional": true
+    },
+    "node-vault": {
+      "optional": true
+    },
+    "@dotenvx/dotenvx": {
+      "optional": true
     }
   },
   "devDependencies": {
+    "@dotenvx/dotenvx": "^2.11.1",
     "@hono/zod-openapi": "^1.4.0",
     "@platformatic/kafka": "^2.6.0",
     "@socket.io/redis-adapter": "^8.3.0",
@@ -225,6 +242,7 @@
     "eslint": "^10.7.0",
     "minio": "^8.0.6",
     "mqtt": "^5.15.1",
+    "node-vault": "^0.12.0",
     "prettier": "^3.9.5",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",

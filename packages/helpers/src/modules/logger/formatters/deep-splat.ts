@@ -1,5 +1,6 @@
 import util from 'node:util';
 import winston from 'winston';
+import { redactSecrets } from '@/common/redact';
 import { AnyType } from '@/common/types';
 
 /** Winston stashes the extra arguments of `logger.error(msg, ...args)` under this well-known key. */
@@ -76,7 +77,11 @@ export const formatLogMessage = (opts: {
       return arg;
     }
 
-    return util.inspect(arg, inspectOptions);
+    // Redact before inspecting: any object deep-inspected into a log line (a node-vault AxiosError
+    // carrying a live `X-Vault-Token`, a driver payload with a password) is stripped of its secret
+    // KEYS here. `redactSecrets` copies non-secret fields through unchanged, so the diagnosis the
+    // line was opened for still renders at full depth.
+    return util.inspect(redactSecrets(arg), inspectOptions);
   });
 
   return util.formatWithOptions(inspectOptions, message, ...widened);

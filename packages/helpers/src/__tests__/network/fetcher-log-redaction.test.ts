@@ -45,14 +45,16 @@ describe('fetcher request-config logging', () => {
     expect(line).toContain('content-type');
   });
 
-  test('an UNREDACTED config would have leaked - this is what the guard prevents', () => {
-    // The counter-example: same renderer, no redactSecrets. If this ever stops containing the token,
-    // the test above has become vacuous and must be rewritten.
+  test('even a config passed RAW to the logger is redacted - redaction is systemic now', () => {
+    // The call site still pre-redacts, but redaction also lives in formatLogMessage itself: a raw
+    // config handed straight to the deep-inspect path never renders its bearer token or api key.
     const line = formatLogMessage({
       message: 'Props: %s',
       args: [buildRequestConfig()],
     });
 
-    expect(line).toContain('SUPER_SECRET_TOKEN');
+    expect(line).not.toContain('SUPER_SECRET_TOKEN');
+    expect(line).not.toContain('ak_live_51H9');
+    expect(line).toContain(REDACTED);
   });
 });

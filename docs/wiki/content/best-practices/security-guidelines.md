@@ -131,7 +131,7 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 
 ```typescript
 // For authentication - access password via connector
-const connector = userRepository.getConnector();
+const connector = userRepository.connector;
 const [user] = await connector
   .select({ id: User.schema.id, password: User.schema.password })
   .from(User.schema)

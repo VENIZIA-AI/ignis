@@ -1,726 +1,122 @@
 ---
-title: Status Codes & Constants Reference
-description: Technical reference for IGNIS status codes, bindings, and constants
+title: Statuses
+description: A shared catalog of lifecycle status codes and binding-namespace constants
 difficulty: beginner
-lastUpdated: 2026-01-03
+lastUpdated: 2026-07-16
 ---
 
-# Status Codes & Constants Reference
+# Statuses
 
-IGNIS provides a comprehensive system of standardized status codes and constants to maintain consistency across your application. This reference covers the `Statuses` class and related utilities for managing entity states.
+`Statuses` is a static catalog of lifecycle status codes - a shared vocabulary so every entity in an app uses the same strings for "draft", "active", "failed", and so on.
 
-**Files:**
-- `packages/core/src/common/statuses.ts`
-- `packages/core/src/common/bindings.ts`
+## In one example
 
-## Quick Reference
-
-| Class | Purpose | Use Case |
-|-------|---------|----------|
-| `Statuses` | Universal status codes (0xx-5xx scheme) | General entity lifecycle states |
-| `MigrationStatuses` | Database migration status tracking | Migration success/failure tracking |
-| `CommonStatuses` | Common entity statuses | Users, roles, and general entities |
-| `UserStatuses` | User-specific statuses | User account states (extends `CommonStatuses`) |
-| `RoleStatuses` | Role-specific statuses | Role lifecycle states (extends `CommonStatuses`) |
-| `UserTypes` | User type classification | System vs linked users |
-
-## Table of Contents
-
-- [Statuses Class](#statuses-class)
-  - [Status Code Scheme](#status-code-scheme)
-  - [Status Groups](#status-groups)
-  - [Validation Methods](#validation-methods)
-- [Specialized Status Classes](#specialized-status-classes)
-- [Usage Examples](#usage-examples)
-- [Binding Namespaces](#binding-namespaces)
-- [Best Practices](#best-practices)
-- [See Also](#see-also)
-
-## Statuses Class
-
-The `Statuses` class provides a comprehensive, HTTP-inspired status code system for tracking entity lifecycle states.
-
-### Status Code Scheme
-
-Status codes follow a numerical prefix pattern inspired by HTTP status codes:
-
-| Prefix | Category | Meaning | Reversibility |
-|--------|----------|---------|---------------|
-| **0xx** | Initial | Entity creation/draft state | N/A |
-| **1xx** | Pending | Awaiting action or decision | Reversible |
-| **2xx** | Active | In progress or running | Reversible |
-| **3xx** | Completed | Positive terminal state | Terminal |
-| **4xx** | Inactive | Negative but reversible | Reversible |
-| **5xx** | Failed | Negative terminal state | Terminal |
-
-### 0xx - Initial States
-
-Initial states for entities being created or in draft mode.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `UNKNOWN` | `'000_UNKNOWN'` | Unknown or uninitialized state |
-| `DRAFT` | `'001_DRAFT'` | Draft state, not yet finalized |
-
-**Example Usage:**
 ```typescript
 import { Statuses } from '@venizia/ignis';
 
-const article = await articleRepository.create({
-  data: {
-    title: 'My Article',
-    status: Statuses.DRAFT, // Still being written
-  },
-});
-```
-
-### 1xx - Pending/Waiting States
-
-States indicating the entity is awaiting action, approval, or processing.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `NEW` | `'100_NEW'` | Newly created, not yet processed |
-| `QUEUED` | `'101_QUEUED'` | Queued for processing |
-| `SCHEDULED` | `'102_SCHEDULED'` | Scheduled for future execution |
-| `PENDING` | `'103_PENDING'` | Awaiting action or decision |
-| `IN_REVIEW` | `'104_IN_REVIEW'` | Under review or approval process |
-
-**Example Usage:**
-```typescript
-// Job queue
 const job = await jobRepository.create({
-  data: {
-    name: 'send-email',
-    status: Statuses.QUEUED,
-  },
+  data: { name: 'send-email', status: Statuses.QUEUED },
 });
 
-// Approval workflow
-await postRepository.updateById({
-  id: postId,
-  data: { status: Statuses.IN_REVIEW },
+// Later, react to the current lifecycle phase
+if (Statuses.isActive(job.status)) {
+  console.log('Job is running');
+} else if (Statuses.isFailed(job.status)) {
+  console.log('Job failed permanently');
+}
+```
+
+## How it works
+
+- **HTTP-inspired numeric prefix.** Each status is a `'NNN_NAME'` string (e.g. `'302_SUCCESS'`). The leading digit groups statuses into six phases.
+- **Group sets for classification.** Every phase has a matching `*_SCHEME_SET` (a `Set<string>`) plus a validator method (`isActive`, `isFailed`, etc.) that just checks set membership.
+- **Specialized classes narrow the catalog.** `MigrationStatuses`, `CommonStatuses`, `UserStatuses`, and `RoleStatuses` each expose a small, named subset of `Statuses` values for a specific use case - they don't invent new status strings.
+- **A separate constant catalog for DI.** `BindingNamespaces` and `CoreBindings` (in the same file area) are unrelated to entity lifecycle - they're the namespace/key strings the container uses for dependency injection.
+
+**The six phases**
+
+| Prefix | Phase | Meaning | Reversibility |
+|--------|-------|---------|----------------|
+| `0xx` | Initial | Entity creation/draft state | N/A |
+| `1xx` | Pending | Awaiting action or decision | Reversible |
+| `2xx` | Active | In progress or running | Reversible |
+| `3xx` | Completed | Positive terminal state | Terminal |
+| `4xx` | Inactive | Negative but reversible | Reversible |
+| `5xx` | Failed | Negative terminal state | Terminal |
+
+**Specialized classes**
+
+| Class | Scope |
+|-------|-------|
+| `MigrationStatuses` | `UNKNOWN` / `SUCCESS` / `FAIL` - database migration tracking |
+| `CommonStatuses` | `UNKNOWN` / `ACTIVATED` / `DEACTIVATED` / `BLOCKED` / `ARCHIVED` - shared entity states |
+| `UserStatuses` | Extends `CommonStatuses` with no additions - user account states |
+| `RoleStatuses` | Extends `CommonStatuses` with no additions - role lifecycle states |
+
+## Common tasks
+
+**Set a status on create or update.** Use the `Statuses` constant, never a raw string literal.
+
+```typescript
+await orderRepository.updateById({
+  id: orderId,
+  data: { status: Statuses.PROCESSING },
 });
 ```
 
-### 2xx - Active/Running States
+**Check whether a status belongs to a phase.** Each phase has an `is*` helper.
 
-States indicating the entity is actively being processed or is currently operational.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `ENABLED` | `'200_ENABLED'` | Feature or entity is enabled |
-| `ACTIVATED` | `'201_ACTIVATED'` | Account or service is active |
-| `RUNNING` | `'202_RUNNING'` | Process is currently running |
-| `PROCESSING` | `'203_PROCESSING'` | Being actively processed |
-| `SENT` | `'204_SENT'` | Message/item has been sent |
-| `RECEIVED` | `'205_RECEIVED'` | Message/item has been received |
-
-**Example Usage:**
 ```typescript
-// User account activation
+if (Statuses.isCompleted(order.status) || Statuses.isFailed(order.status)) {
+  throw getError({ message: 'Cannot modify a terminal order' });
+}
+```
+
+**Filter a query by phase.** Spread a `*_SCHEME_SET` into an `inq` operator.
+
+```typescript
+const retryableJobs = await jobRepository.find({
+  filter: { where: { status: { inq: [...Statuses.FAILED_SCHEME_SET] } } },
+});
+```
+
+**Validate an incoming status string.** `isValid` guards against typos before a write.
+
+```typescript
+if (!Statuses.isValid(newStatus)) {
+  throw getError({ message: `Invalid status: ${newStatus}` });
+}
+```
+
+**Use a narrowed catalog for a specific domain.** `CommonStatuses` (and `UserStatuses`/`RoleStatuses`, which extend it) expose only the values relevant to users and roles.
+
+```typescript
+import { UserStatuses } from '@venizia/ignis';
+
 await userRepository.updateById({
   id: userId,
-  data: { status: Statuses.ACTIVATED },
-});
-
-// Background job
-await jobRepository.updateById({
-  id: jobId,
-  data: { status: Statuses.RUNNING, startedAt: new Date() },
-});
-
-// Email tracking
-await emailRepository.create({
-  data: {
-    to: 'user@example.com',
-    subject: 'Welcome',
-    status: Statuses.SENT,
-  },
+  data: { status: UserStatuses.ACTIVATED },
 });
 ```
 
-### 3xx - Completed States
-
-Positive terminal states indicating successful completion.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `PARTIAL` | `'300_PARTIAL'` | Partially completed |
-| `APPROVED` | `'301_APPROVED'` | Approved by reviewer |
-| `SUCCESS` | `'302_SUCCESS'` | Successfully completed |
-| `COMPLETED` | `'303_COMPLETED'` | Fully completed |
-| `SETTLED` | `'304_SETTLED'` | Finalized or settled |
-| `CONFIRMED` | `'305_CONFIRMED'` | Confirmed by user or system |
-
-**Example Usage:**
-```typescript
-// Job completion
-await jobRepository.updateById({
-  id: jobId,
-  data: { status: Statuses.SUCCESS, completedAt: new Date() },
-});
-
-// Approval workflow
-await documentRepository.updateById({
-  id: docId,
-  data: {
-    status: Statuses.APPROVED,
-    approvedBy: userId,
-    approvedAt: new Date(),
-  },
-});
-```
-
-### 4xx - Inactive States
-
-Negative but reversible states - the entity can be reactivated.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `DISABLED` | `'400_DISABLED'` | Feature or entity is disabled |
-| `DEACTIVATED` | `'401_DEACTIVATED'` | Account or service is deactivated |
-| `SUSPENDED` | `'402_SUSPENDED'` | Temporarily suspended |
-| `BLOCKED` | `'403_BLOCKED'` | Access blocked (e.g., banned user) |
-| `CLOSED` | `'404_CLOSED'` | Closed but can be reopened |
-| `ARCHIVED` | `'405_ARCHIVED'` | Archived for record keeping |
-| `PAUSED` | `'406_PAUSED'` | Paused, can be resumed |
-| `REVOKED` | `'407_REVOKED'` | Permission or access revoked |
-| `REFUNDED` | `'408_REFUNDED'` | Payment or transaction refunded |
-
-**Example Usage:**
-```typescript
-// User account management
-await userRepository.updateById({
-  id: userId,
-  data: { status: Statuses.SUSPENDED },
-});
-
-// Feature flags
-await featureRepository.updateById({
-  id: featureId,
-  data: { status: Statuses.DISABLED },
-});
-```
-
-### 5xx - Failed/Error States
-
-Negative terminal states indicating permanent failure or cancellation.
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `FAIL` | `'500_FAIL'` | General failure |
-| `EXPIRED` | `'501_EXPIRED'` | Expired and no longer valid |
-| `TIMEOUT` | `'502_TIMEOUT'` | Operation timed out |
-| `SKIPPED` | `'503_SKIPPED'` | Intentionally skipped |
-| `ABORTED` | `'504_ABORTED'` | Aborted by system |
-| `CANCELLED` | `'505_CANCELLED'` | Cancelled by user/admin |
-| `DELETED` | `'506_DELETED'` | Soft deleted |
-| `REJECTED` | `'507_REJECTED'` | Rejected by reviewer |
-
-**Example Usage:**
-```typescript
-// Job failure
-await jobRepository.updateById({
-  id: jobId,
-  data: { status: Statuses.FAIL, error: 'Connection timeout', failedAt: new Date() },
-});
-
-// Soft delete
-await productRepository.updateById({
-  id: productId,
-  data: { status: Statuses.DELETED, deletedAt: new Date(), deletedBy: userId },
-});
-```
-
-
-## Status Groups
-
-The `Statuses` class provides static `Set` instances for grouping related statuses.
-
-### Available Groups
-
-| Group | Set Name | Included Statuses |
-|-------|----------|-------------------|
-| Initial | `INITIAL_SCHEME_SET` | `UNKNOWN`, `DRAFT` |
-| Pending | `PENDING_SCHEME_SET` | `NEW`, `QUEUED`, `SCHEDULED`, `PENDING`, `IN_REVIEW` |
-| Active | `ACTIVE_SCHEME_SET` | `ENABLED`, `ACTIVATED`, `RUNNING`, `PROCESSING`, `SENT`, `RECEIVED` |
-| Completed | `COMPLETED_SCHEME_SET` | `PARTIAL`, `APPROVED`, `SUCCESS`, `COMPLETED`, `SETTLED`, `CONFIRMED` |
-| Inactive | `INACTIVE_SCHEME_SET` | `DISABLED`, `DEACTIVATED`, `SUSPENDED`, `BLOCKED`, `CLOSED`, `ARCHIVED`, `PAUSED`, `REVOKED`, `REFUNDED` |
-| Failed | `FAILED_SCHEME_SET` | `FAIL`, `EXPIRED`, `TIMEOUT`, `SKIPPED`, `ABORTED`, `CANCELLED`, `DELETED`, `REJECTED` |
-| All | `SCHEME_SET` | All statuses combined |
-
-### Usage
-
-```typescript
-import { Statuses } from '@venizia/ignis';
-
-// Check if status is in a group
-if (Statuses.ACTIVE_SCHEME_SET.has(order.status)) {
-  console.log('Order is being processed');
-}
-
-// Filter active jobs
-const activeJobs = jobs.filter(job =>
-  Statuses.ACTIVE_SCHEME_SET.has(job.status)
-);
-
-// Check if operation can proceed
-const canRetry = !Statuses.FAILED_SCHEME_SET.has(task.status);
-```
-
-
-## Validation Methods
-
-The `Statuses` class provides helper methods for checking status categories.
-
-### Available Methods
-
-| Method | Parameters | Returns | Description |
-|--------|------------|---------|-------------|
-| `isInitial(status)` | `status: string` | `boolean` | Check if status is in initial group |
-| `isPending(status)` | `status: string` | `boolean` | Check if status is in pending group |
-| `isActive(status)` | `status: string` | `boolean` | Check if status is in active group |
-| `isCompleted(status)` | `status: string` | `boolean` | Check if status is in completed group |
-| `isInactive(status)` | `status: string` | `boolean` | Check if status is in inactive group |
-| `isFailed(status)` | `status: string` | `boolean` | Check if status is in failed group |
-| `isValid(status)` | `status: string` | `boolean` | Check if status is a valid status code |
-
-### Examples
-
-```typescript
-import { Statuses } from '@venizia/ignis';
-
-// Conditional logic based on status
-if (Statuses.isActive(user.status)) {
-  // User can log in
-  await processLogin(user);
-} else if (Statuses.isInactive(user.status)) {
-  throw new Error('Account is inactive. Please contact support.');
-} else if (Statuses.isFailed(user.status)) {
-  throw new Error('Account has been permanently closed.');
-}
-
-// Validation
-function validateStatusTransition(from: string, to: string) {
-  if (!Statuses.isValid(to)) {
-    throw new Error(`Invalid status: ${to}`);
-  }
-
-  // Don't allow transitions from terminal states
-  if (Statuses.isCompleted(from) || Statuses.isFailed(from)) {
-    throw new Error('Cannot transition from terminal state');
-  }
-
-  return true;
-}
-
-// Filter entities
-const activeUsers = users.filter(user => Statuses.isActive(user.status));
-const pendingOrders = orders.filter(order => Statuses.isPending(order.status));
-```
-
-
-## Specialized Status Classes
-
-### MigrationStatuses
-
-Simplified statuses for database migration tracking. References values from `Statuses`.
-
-```typescript
-import { MigrationStatuses } from '@venizia/ignis';
-
-class MigrationStatuses {
-  static readonly UNKNOWN = '000_UNKNOWN';  // = Statuses.UNKNOWN
-  static readonly SUCCESS = '302_SUCCESS';  // = Statuses.SUCCESS
-  static readonly FAIL = '500_FAIL';        // = Statuses.FAIL
-
-  static readonly SCHEME_SET = new Set([
-    this.UNKNOWN,
-    this.SUCCESS,
-    this.FAIL,
-  ]);
-
-  static isValid(scheme: string): boolean;
-}
-```
-
-**Usage:**
-```typescript
-await migrationRepository.create({
-  data: {
-    version: '20240103_001',
-    name: 'add_users_table',
-    status: MigrationStatuses.SUCCESS,
-    appliedAt: new Date(),
-  },
-});
-```
-
-### CommonStatuses
-
-Common statuses used across multiple entity types. References values from `Statuses`.
-
-```typescript
-import { CommonStatuses } from '@venizia/ignis';
-
-class CommonStatuses {
-  static readonly UNKNOWN = '000_UNKNOWN';       // = Statuses.UNKNOWN
-  static readonly ACTIVATED = '201_ACTIVATED';    // = Statuses.ACTIVATED
-  static readonly DEACTIVATED = '401_DEACTIVATED'; // = Statuses.DEACTIVATED
-  static readonly BLOCKED = '403_BLOCKED';        // = Statuses.BLOCKED
-  static readonly ARCHIVED = '405_ARCHIVED';      // = Statuses.ARCHIVED
-
-  static readonly SCHEME_SET = new Set([...]);
-  static isValid(scheme: string): boolean;
-}
-```
-
-**Usage:**
-```typescript
-// User management
-await userRepository.updateById({
-  id: userId,
-  data: { status: CommonStatuses.ACTIVATED },
-});
-
-// Role management
-await roleRepository.updateById({
-  id: roleId,
-  data: { status: CommonStatuses.ARCHIVED },
-});
-```
-
-### UserStatuses & RoleStatuses
-
-Both `UserStatuses` and `RoleStatuses` extend `CommonStatuses` directly, inheriting all its statuses and methods.
-
-```typescript
-import { UserStatuses, RoleStatuses } from '@venizia/ignis';
-
-// UserStatuses extends CommonStatuses
-const user = await userRepository.create({
-  data: {
-    email: 'user@example.com',
-    status: UserStatuses.ACTIVATED,
-  },
-});
-
-// RoleStatuses extends CommonStatuses
-const role = await roleRepository.create({
-  data: {
-    name: 'admin',
-    status: RoleStatuses.ACTIVATED,
-  },
-});
-```
-
-### UserTypes
-
-Classification of user types in the system.
+**Classify a user by type.** `UserTypes` is a separate, unrelated catalog (`SYSTEM` vs `LINKED`), not a status.
 
 ```typescript
 import { UserTypes } from '@venizia/ignis';
 
-class UserTypes {
-  static readonly SYSTEM = 'SYSTEM';   // System-generated users
-  static readonly LINKED = 'LINKED';   // External auth (OAuth, SAML)
-
-  static readonly SCHEME_SET = new Set([this.SYSTEM, this.LINKED]);
-  static isValid(orgType: string): boolean;
-}
-```
-
-**Usage:**
-```typescript
-// Create system user
-const systemUser = await userRepository.create({
-  data: {
-    email: 'system@app.com',
-    type: UserTypes.SYSTEM,
-    status: UserStatuses.ACTIVATED,
-  },
-});
-
-// OAuth linked user
-const oauthUser = await userRepository.create({
-  data: {
-    email: 'user@example.com',
-    type: UserTypes.LINKED,
-    linkedProvider: 'google',
-    status: UserStatuses.ACTIVATED,
-  },
+await userRepository.create({
+  data: { email: 'system@app.com', type: UserTypes.SYSTEM, status: UserStatuses.ACTIVATED },
 });
 ```
 
+## See also
 
-## Usage Examples
+- [Full reference](/references/utilities/statuses-reference) - every status code, group set, specialized class, and binding constant
+- [Models](/references/base/models) - entity definitions that carry a `status` column
+- [Repositories](/references/base/repositories/) - querying and updating by status
+- [Filter System](/references/base/filter-system/) - `inq`/`nin` operators used with `*_SCHEME_SET`
 
-### Entity Lifecycle Management
+**Files:**
 
-```typescript
-import { Statuses } from '@venizia/ignis';
-
-class OrderService extends BaseService {
-  async createOrder(data: CreateOrderDto) {
-    // Start as NEW
-    const order = await this.orderRepository.create({
-      data: { ...data, status: Statuses.NEW },
-    });
-
-    // Queue for processing
-    await this.orderRepository.updateById({
-      id: order.data.id,
-      data: { status: Statuses.QUEUED },
-    });
-
-    return order;
-  }
-
-  async processOrder(orderId: string) {
-    // Mark as processing
-    await this.orderRepository.updateById({
-      id: orderId,
-      data: { status: Statuses.PROCESSING, startedAt: new Date() },
-    });
-
-    try {
-      // Process order logic...
-      await this.paymentService.charge(order);
-      await this.inventoryService.reserve(order.items);
-
-      // Mark as completed
-      await this.orderRepository.updateById({
-        id: orderId,
-        data: { status: Statuses.COMPLETED, completedAt: new Date() },
-      });
-    } catch (error) {
-      // Mark as failed
-      await this.orderRepository.updateById({
-        id: orderId,
-        data: { status: Statuses.FAIL, error: error.message, failedAt: new Date() },
-      });
-
-      throw error;
-    }
-  }
-
-  async cancelOrder(orderId: string) {
-    const order = await this.orderRepository.findById({ id: orderId });
-
-    // Can only cancel pending or active orders
-    if (Statuses.isCompleted(order.status) || Statuses.isFailed(order.status)) {
-      throw new Error('Cannot cancel completed or failed order');
-    }
-
-    await this.orderRepository.updateById({
-      id: orderId,
-      data: { status: Statuses.CANCELLED, cancelledAt: new Date() },
-    });
-  }
-}
-```
-
-### Status-Based Queries
-
-```typescript
-import { Statuses } from '@venizia/ignis';
-
-class JobService extends BaseService {
-  // Get all jobs that can be retried
-  async getRetryableJobs() {
-    return this.jobRepository.find({
-      filter: {
-        where: {
-          status: { inq: [...Statuses.FAILED_SCHEME_SET] },
-          retryCount: { lt: 3 },
-        },
-      },
-    });
-  }
-
-  // Get active jobs count
-  async getActiveJobsCount() {
-    return this.jobRepository.count({
-      where: {
-        status: { inq: [...Statuses.ACTIVE_SCHEME_SET] },
-      },
-    });
-  }
-}
-```
-
-### Validation & State Transitions
-
-```typescript
-import { Statuses } from '@venizia/ignis';
-
-class TaskService extends BaseService {
-  async updateTaskStatus(taskId: string, newStatus: string) {
-    // Validate status
-    if (!Statuses.isValid(newStatus)) {
-      throw new Error(`Invalid status: ${newStatus}`);
-    }
-
-    const task = await this.taskRepository.findById({ id: taskId });
-
-    // Validate transition
-    this.validateStatusTransition(task.status, newStatus);
-
-    await this.taskRepository.updateById({
-      id: taskId,
-      data: { status: newStatus, statusChangedAt: new Date() },
-    });
-  }
-
-  private validateStatusTransition(from: string, to: string) {
-    // Cannot transition from terminal states
-    if (Statuses.isCompleted(from) || Statuses.isFailed(from)) {
-      throw new Error('Cannot change status from terminal state');
-    }
-
-    // Can only move to COMPLETED from ACTIVE or PENDING
-    if (to === Statuses.COMPLETED) {
-      if (!Statuses.isActive(from) && !Statuses.isPending(from)) {
-        throw new Error('Can only complete active or pending tasks');
-      }
-    }
-
-    // Additional transition rules...
-  }
-}
-```
-
-
-## Binding Namespaces
-
-The `BindingNamespaces` class organizes dependency injection bindings by type. It uses `createNamespace()` internally to produce namespace strings.
-
-**File:** `packages/core/src/common/bindings.ts`
-
-### Available Namespaces
-
-```typescript
-import { BindingNamespaces } from '@venizia/ignis';
-
-class BindingNamespaces {
-  static readonly COMPONENT = 'components';
-  static readonly DATASOURCE = 'datasources';
-  static readonly REPOSITORY = 'repositories';
-  static readonly MODEL = 'models';
-  static readonly SERVICE = 'services';
-  static readonly MIDDLEWARE = 'middlewares';
-  static readonly PROVIDER = 'providers';
-  static readonly CONTROLLER = 'controllers';
-  static readonly BOOTERS = 'booters';
-
-  static createNamespace(opts: { name: string }): string;
-}
-```
-
-### CoreBindings
-
-Application-level binding keys. Extends `BindingKeys` from the inversion package.
-
-```typescript
-import { CoreBindings } from '@venizia/ignis';
-
-class CoreBindings {
-  static readonly APPLICATION_INSTANCE = '@app/instance';
-  static readonly APPLICATION_SERVER = '@app/server';
-  static readonly APPLICATION_CONFIG = '@app/config';
-  static readonly APPLICATION_PROJECT_ROOT = '@app/project_root';
-  static readonly APPLICATION_ROOT_ROUTER = '@app/router/root';
-  static readonly APPLICATION_ENVIRONMENTS = '@app/environments';
-  static readonly APPLICATION_MIDDLEWARE_OPTIONS = '@app/middleware_options';
-}
-```
-
-**Usage:**
-```typescript
-// Access application instance
-const app = container.get(CoreBindings.APPLICATION_INSTANCE);
-
-// Access configuration
-const config = container.get(CoreBindings.APPLICATION_CONFIG);
-```
-
-
-## Best Practices
-
-### 1. Use Status Constants
-
-```typescript
-// Good: Use constants
-order.status = Statuses.COMPLETED;
-
-// Bad: Magic strings
-order.status = '303_COMPLETED'; // Prone to typos
-```
-
-### 2. Validate Before Updating
-
-```typescript
-// Good: Validate transitions
-if (Statuses.isCompleted(order.status)) {
-  throw new Error('Cannot modify completed order');
-}
-
-// Bad: No validation
-order.status = newStatus; // Could break business rules
-```
-
-### 3. Use Helper Methods
-
-```typescript
-// Good: Use helper methods
-if (Statuses.isActive(job.status)) {
-  // ...
-}
-
-// Less readable alternative: Manual set checking
-if (Statuses.ACTIVE_SCHEME_SET.has(job.status)) {
-  // ...
-}
-```
-
-### 4. Document State Machines
-
-```typescript
-/**
- * Order Status Flow:
- * NEW -> QUEUED -> PROCESSING -> COMPLETED
- *   \      \          \
- *    -> CANCELLED <-----
- */
-class OrderService {
-  // Implementation...
-}
-```
-
-### 5. Terminal State Checks
-
-```typescript
-// Good: Check for terminal states
-const isTerminal = Statuses.isCompleted(status) || Statuses.isFailed(status);
-
-if (isTerminal) {
-  throw new Error('Cannot modify entity in terminal state');
-}
-```
-
-
-## See Also
-
-- **Related References:**
-  - [Models](../base/models.md) - Entity definitions using statuses
-  - [Repositories](../base/repositories/) - Querying by status
-  - [Services](../base/services.md) - Business logic with status transitions
-
-- **Guides:**
-  - [Data Modeling](/guides/core-concepts/persistent/models)
-  - [Working with Repositories](/guides/core-concepts/persistent/repositories)
-
-- **Best Practices:**
-  - [Architectural Patterns](/best-practices/architectural-patterns)
-  - [Data Modeling Best Practices](/best-practices/data-modeling)
+- [`packages/core/src/common/statuses.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/statuses.ts)
+- [`packages/core/src/common/bindings.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/bindings.ts)

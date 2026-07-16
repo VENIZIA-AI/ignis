@@ -6,10 +6,31 @@ difficulty: intermediate
 
 # Use Case Gallery
 
-Real-world examples of filter usage with corresponding SQL.
+Runnable `filter` objects paired with the SQL `FilterBuilder` produces for them - copy the shape that's closest to what you need. For the operators themselves, start at the [Filter System Overview](./).
 
+## Soft delete
 
-## E-commerce Product Search
+The smallest real use case - `is`/`isn` against a nullable timestamp:
+
+```typescript
+// Active (non-deleted) records
+const activeRecords = await repository.find({
+  filter: { where: { deletedAt: { is: null } } },
+});
+// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NULL
+
+// ONLY soft-deleted records
+const deletedRecords = await repository.find({
+  filter: { where: { deletedAt: { isn: null } } },
+});
+// SQL: SELECT * FROM "Record" WHERE "deleted_at" IS NOT NULL
+```
+
+If every query on a model should exclude deleted rows, encode this once as `settings.defaultFilter` instead of repeating it at every call site - see [Default Filter](./default-filter).
+
+## E-commerce product search
+
+Range, list, and pattern operators combined with field selection and sorting:
 
 ```typescript
 const products = await productRepository.find({
@@ -23,7 +44,7 @@ const products = await productRepository.find({
     order: ['rating DESC', 'reviewCount DESC'],
     fields: ['id', 'name', 'price', 'rating', 'imageUrl'],
     limit: 24,
-  }
+  },
 });
 
 // SQL:
@@ -37,8 +58,9 @@ const products = await productRepository.find({
 // LIMIT 24
 ```
 
+## Admin dashboard: recent users
 
-## Admin Dashboard: Recent Users
+`gte` for a rolling window, `nin` to exclude states, `isn` for presence:
 
 ```typescript
 const thirtyDaysAgo = new Date();
@@ -54,7 +76,7 @@ const recentUsers = await userRepository.find({
     order: ['createdAt DESC'],
     fields: ['id', 'email', 'name', 'createdAt', 'status'],
     limit: 50,
-  }
+  },
 });
 
 // SQL:
@@ -67,8 +89,37 @@ const recentUsers = await userRepository.find({
 // LIMIT 50
 ```
 
+## Multi-tenant isolation at the call site
 
-## Task Management: Priority Tags
+`settings.defaultFilter` (see [Default Filter](./default-filter)) is the model-level way to enforce a tenant scope. A helper that injects `tenantId` at every call site is the call-site alternative - useful when tenant isolation is a caller concern rather than a per-model constant:
+
+```typescript
+const getTenantProducts = (tenantId: string, filter: TFilter<TProductSchema>) =>
+  productRepository.find({
+    filter: {
+      ...filter,
+      where: { ...filter.where, tenantId, deletedAt: { is: null } },
+    },
+  });
+
+await getTenantProducts('tenant-abc', {
+  where: { category: 'electronics' },
+  order: ['createdAt DESC'],
+  limit: 20,
+});
+
+// SQL:
+// SELECT * FROM "Product"
+// WHERE "category" = 'electronics' AND "tenant_id" = 'tenant-abc' AND "deleted_at" IS NULL
+// ORDER BY "created_at" DESC
+// LIMIT 20
+```
+
+Unlike `defaultFilter`'s narrowing merge, this is a plain object spread - `tenantId`/`deletedAt` simply overwrite same-named keys from `filter.where` because they're spread last.
+
+## Task management: priority tags
+
+`nin` plus an array `overlaps` operator, with a relation include:
 
 ```typescript
 const priorityTasks = await taskRepository.find({
@@ -80,7 +131,7 @@ const priorityTasks = await taskRepository.find({
     },
     order: ['dueDate ASC', 'createdAt ASC'],
     include: [{ relation: 'project' }],
-  }
+  },
 });
 
 // SQL:
@@ -95,35 +146,81 @@ const priorityTasks = await taskRepository.find({
 // SELECT * FROM "Project" WHERE "id" IN (...)
 ```
 
+## Date range queries
 
-## Soft Delete Handling
+`between` for a closed window, `gte` for a rolling one:
 
 ```typescript
-// Find active records (soft delete pattern)
-const activeRecords = await repository.find({
-  filter: {
-    where: { deletedAt: { is: null } },
-  }
-});
+const startOfWeek = new Date('2024-12-29');
+const endOfWeek = new Date('2025-01-04');
 
-// SQL:
-// SELECT * FROM "Record" WHERE "deleted_at" IS NULL
+const weekEvents = await eventRepository.find({
+  filter: {
+    where: { eventDate: { between: [startOfWeek, endOfWeek] } },
+    order: ['eventDate ASC'],
+  },
+});
+// SQL: SELECT * FROM "Event" WHERE "event_date" BETWEEN '2024-12-29' AND '2025-01-04' ORDER BY "event_date" ASC
 ```
 
 ```typescript
-// Find ONLY soft-deleted records
-const deletedRecords = await repository.find({
+const sevenDaysAgo = new Date();
+sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+const recentOrders = await orderRepository.find({
   filter: {
-    where: { deletedAt: { isn: null } },
-  }
+    where: {
+      createdAt: { gte: sevenDaysAgo },
+      status: { in: ['completed', 'shipped'] },
+      total: { gte: 100 },
+    },
+    order: ['total DESC'],
+    limit: 100,
+  },
+});
+// SQL:
+// SELECT * FROM "Order"
+// WHERE "created_at" >= '2024-12-24T00:00:00.000Z' AND "status" IN ('completed', 'shipped') AND "total" >= 100
+// ORDER BY "total" DESC LIMIT 100
+```
+
+## Inventory low-stock alert
+
+Nested `or`/`and` groups plus a JSON path presence check:
+
+```typescript
+const lowStockProducts = await productRepository.find({
+  filter: {
+    where: {
+      status: 'active',
+      quantity: { lte: 10 },
+      'metadata.reorderPoint': { isn: null },
+      or: [
+        { quantity: { lt: 5 } }, // Critical: below 5
+        { and: [{ quantity: { lte: 10 } }, { 'metadata.fastMoving': true }] },
+      ],
+    },
+    order: ['quantity ASC'],
+    fields: ['id', 'name', 'quantity', 'metadata'],
+  },
 });
 
 // SQL:
-// SELECT * FROM "Record" WHERE "deleted_at" IS NOT NULL
+// SELECT "id", "name", "quantity", "metadata"
+// FROM "Product"
+// WHERE "status" = 'active'
+//   AND "quantity" <= 10
+//   AND "metadata" #>> '{reorderPoint}' IS NOT NULL
+//   AND (
+//     "quantity" < 5
+//     OR ("quantity" <= 10 AND "metadata" #>> '{fastMoving}' = 'true')
+//   )
+// ORDER BY "quantity" ASC
 ```
 
+## Complex authorization filter
 
-## Complex Authorization Filter
+A `where` builder branching on role, composed with the caller's own scope - the `or` group only appears for non-admins:
 
 ```typescript
 const getAuthorizedFilter = (user: User): TWhere<TDocumentSchema> => {
@@ -143,23 +240,11 @@ const getAuthorizedFilter = (user: User): TWhere<TDocumentSchema> => {
 };
 
 const documents = await documentRepository.find({
-  filter: {
-    where: getAuthorizedFilter(currentUser),
-    order: ['updatedAt DESC'],
-    limit: 100,
-  },
+  filter: { where: getAuthorizedFilter(currentUser), order: ['updatedAt DESC'], limit: 100 },
 });
 
-// SQL (for admin):
-// SELECT *
-// FROM "Document"
-// WHERE "deleted_at" IS NULL
-// ORDER BY "updated_at" DESC
-// LIMIT 100
-
-// SQL (for regular user):
-// SELECT *
-// FROM "Document"
+// SQL (regular user):
+// SELECT * FROM "Document"
 // WHERE "deleted_at" IS NULL
 //   AND (
 //     "owner_id" = 'user-123'
@@ -167,23 +252,19 @@ const documents = await documentRepository.find({
 //     OR "shared_with_teams"::text[] && ARRAY['team-1', 'team-2']::text[]
 //     OR "shared_with_users"::text[] @> ARRAY['user-123']::text[]
 //   )
-// ORDER BY "updated_at" DESC
-// LIMIT 100
+// ORDER BY "updated_at" DESC LIMIT 100
 ```
 
+## Full-text search with metadata
 
-## Full-Text Search with Metadata
+Conditional `where` assembly - each filter argument adds a key only if the caller supplied it:
 
 ```typescript
-const searchProducts = async (query: string, filters: {
-  minRating?: number;
-  maxPrice?: number;
-  categories?: string[];
-}) => {
-  const where: TWhere<TProductSchema> = {
-    status: 'active',
-    deletedAt: { is: null },
-  };
+const searchProducts = async (
+  query: string,
+  filters: { minRating?: number; maxPrice?: number; categories?: string[] },
+) => {
+  const where: TWhere<TProductSchema> = { status: 'active', deletedAt: { is: null } };
 
   if (query) {
     where.or = [
@@ -192,50 +273,31 @@ const searchProducts = async (query: string, filters: {
       { 'metadata.keywords': { ilike: `%${query}%` } },
     ];
   }
-
-  if (filters.minRating) {
-    where.rating = { gte: filters.minRating };
-  }
-
-  if (filters.maxPrice) {
-    where.price = { lte: filters.maxPrice };
-  }
-
-  if (filters.categories?.length) {
-    // Use array operator on a PostgreSQL array column
-    where.categories = { contains: filters.categories };
-  }
+  if (filters.minRating) where.rating = { gte: filters.minRating };
+  if (filters.maxPrice) where.price = { lte: filters.maxPrice };
+  if (filters.categories?.length) where.categories = { contains: filters.categories };
 
   return productRepository.find({
-    filter: {
-      where,
-      order: ['rating DESC', 'createdAt DESC'],
-      limit: 50,
-    },
+    filter: { where, order: ['rating DESC', 'createdAt DESC'], limit: 50 },
   });
 };
 
-// Example: searchProducts('wireless', { minRating: 4, maxPrice: 200, categories: ['electronics'] })
+// searchProducts('wireless', { minRating: 4, maxPrice: 200, categories: ['electronics'] })
 //
 // SQL:
-// SELECT *
-// FROM "Product"
+// SELECT * FROM "Product"
 // WHERE "status" = 'active'
 //   AND "deleted_at" IS NULL
-//   AND (
-//     "name" ILIKE '%wireless%'
-//     OR "description" ILIKE '%wireless%'
-//     OR "metadata" #>> '{keywords}' ILIKE '%wireless%'
-//   )
+//   AND ("name" ILIKE '%wireless%' OR "description" ILIKE '%wireless%' OR "metadata" #>> '{keywords}' ILIKE '%wireless%')
 //   AND "rating" >= 4
 //   AND "price" <= 200
 //   AND "categories"::text[] @> ARRAY['electronics']::text[]
-// ORDER BY "rating" DESC, "created_at" DESC
-// LIMIT 50
+// ORDER BY "rating" DESC, "created_at" DESC LIMIT 50
 ```
 
+## Everything at once
 
-## Massive Filter Example
+Every operator family, a JSON path, a three-way `or`, and a scoped relation include in one filter - the ceiling of what a single `TFilter` can express:
 
 ```typescript
 const massiveFilter: TFilter<TProductSchema> = {
@@ -254,12 +316,9 @@ const massiveFilter: TFilter<TProductSchema> = {
           { isFeatured: true },
           { 'metadata.promotion.active': true },
           { 'metadata.promotion.discount': { gte: 20 } },
-        ]
+        ],
       },
-      {
-        createdAt: { gte: new Date('2024-12-01') },
-        'metadata.isNewArrival': true,
-      },
+      { createdAt: { gte: new Date('2024-12-01') }, 'metadata.isNewArrival': true },
     ],
     category: { nin: ['discontinued', 'recalled'] },
     suppliers: { overlaps: ['supplier-a', 'supplier-b'] },
@@ -270,14 +329,7 @@ const massiveFilter: TFilter<TProductSchema> = {
   skip: 0,
   include: [
     { relation: 'category' },
-    {
-      relation: 'reviews',
-      scope: {
-        where: { rating: { gte: 4 } },
-        order: ['createdAt DESC'],
-        limit: 5,
-      },
-    },
+    { relation: 'reviews', scope: { where: { rating: { gte: 4 } }, order: ['createdAt DESC'], limit: 5 } },
   ],
 };
 
@@ -291,163 +343,34 @@ const products = await productRepository.find({ filter: massiveFilter });
 //   AND "price" >= 50 AND "price" <= 500
 //   AND "quantity" > 0
 //   AND "tags"::text[] @> ARRAY['electronics', 'portable']::text[]
-//   AND CASE
-//     WHEN ("metadata" #>> '{priority}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//     THEN ("metadata" #>> '{priority}')::numeric ELSE NULL
-//   END >= 3
+//   AND CASE WHEN ("metadata" #>> '{priority}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//       THEN ("metadata" #>> '{priority}')::numeric ELSE NULL END >= 3
 //   AND "metadata" #>> '{features,wireless}' = 'true'
 //   AND (
 //     "rating" >= 4.5
-//     OR (
-//       "is_featured" = true
-//       AND "metadata" #>> '{promotion,active}' = 'true'
-//       AND CASE
-//         WHEN ("metadata" #>> '{promotion,discount}') ~ '^-?[0-9]+(\.[0-9]+)?$'
-//         THEN ("metadata" #>> '{promotion,discount}')::numeric ELSE NULL
-//       END >= 20
-//     )
-//     OR (
-//       "created_at" >= '2024-12-01T00:00:00.000Z'
-//       AND "metadata" #>> '{isNewArrival}' = 'true'
-//     )
+//     OR ("is_featured" = true AND "metadata" #>> '{promotion,active}' = 'true'
+//         AND CASE WHEN ("metadata" #>> '{promotion,discount}') ~ '^-?[0-9]+(\.[0-9]+)?$'
+//             THEN ("metadata" #>> '{promotion,discount}')::numeric ELSE NULL END >= 20)
+//     OR ("created_at" >= '2024-12-01T00:00:00.000Z' AND "metadata" #>> '{isNewArrival}' = 'true')
 //   )
 //   AND "category" NOT IN ('discontinued', 'recalled')
 //   AND "suppliers"::text[] && ARRAY['supplier-a', 'supplier-b']::text[]
 // ORDER BY "metadata" #> '{priority}' DESC, "rating" DESC, "created_at" DESC
 // LIMIT 20 OFFSET 0
 //
-// -- Separate query for category relation:
+// -- Separate queries for relations:
 // SELECT * FROM "Category" WHERE "id" IN (...)
-//
-// -- Separate query for reviews relation:
-// SELECT * FROM "Review"
-// WHERE "product_id" IN (...) AND "rating" >= 4
-// ORDER BY "created_at" DESC
-// LIMIT 5
+// SELECT * FROM "Review" WHERE "product_id" IN (...) AND "rating" >= 4 ORDER BY "created_at" DESC LIMIT 5
 ```
 
+## See also
 
-## Date Range Queries
+- [Filter System Overview](./) - the `filter` shape and every `where` operator family
+- [Default Filter](./default-filter) - model-level scoping instead of the call-site pattern shown above
+- [Application Usage](./application-usage) - how a filter reaches the repository from an HTTP request
+- [Tips & Edge Cases](./tips) - `NULL` handling, empty-array semantics, and other gotchas that show up in filters like these
 
-```typescript
-// Events this week
-const startOfWeek = new Date('2024-12-29');
-const endOfWeek = new Date('2025-01-04');
+**Files:**
 
-const weekEvents = await eventRepository.find({
-  filter: {
-    where: {
-      eventDate: { between: [startOfWeek, endOfWeek] }
-    },
-    order: ['eventDate ASC']
-  }
-});
-
-// SQL:
-// SELECT *
-// FROM "Event"
-// WHERE "event_date" BETWEEN '2024-12-29' AND '2025-01-04'
-// ORDER BY "event_date" ASC
-```
-
-```typescript
-// Orders in the last 7 days
-const sevenDaysAgo = new Date();
-sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-
-const recentOrders = await orderRepository.find({
-  filter: {
-    where: {
-      createdAt: { gte: sevenDaysAgo },
-      status: { in: ['completed', 'shipped'] },
-      total: { gte: 100 }
-    },
-    order: ['total DESC'],
-    limit: 100
-  }
-});
-
-// SQL:
-// SELECT *
-// FROM "Order"
-// WHERE "created_at" >= '2024-12-24T00:00:00.000Z'
-//   AND "status" IN ('completed', 'shipped')
-//   AND "total" >= 100
-// ORDER BY "total" DESC
-// LIMIT 100
-```
-
-
-## Multi-Tenant Data Isolation
-
-```typescript
-const getTenantProducts = async (tenantId: string, filter: TFilter<TProductSchema>) => {
-  return productRepository.find({
-    filter: {
-      ...filter,
-      where: {
-        ...filter.where,
-        tenantId,  // Always enforce tenant isolation
-        deletedAt: { is: null },
-      },
-    },
-  });
-};
-
-// Usage
-await getTenantProducts('tenant-abc', {
-  where: { category: 'electronics' },
-  order: ['createdAt DESC'],
-  limit: 20
-});
-
-// SQL:
-// SELECT *
-// FROM "Product"
-// WHERE "category" = 'electronics'
-//   AND "tenant_id" = 'tenant-abc'
-//   AND "deleted_at" IS NULL
-// ORDER BY "created_at" DESC
-// LIMIT 20
-```
-
-
-## Inventory Low Stock Alert
-
-```typescript
-const lowStockProducts = await productRepository.find({
-  filter: {
-    where: {
-      status: 'active',
-      quantity: { lte: 10 },
-      'metadata.reorderPoint': { isn: null },
-      or: [
-        { quantity: { lt: 5 } },  // Critical: below 5
-        {
-          and: [
-            { quantity: { lte: 10 } },
-            { 'metadata.fastMoving': true }
-          ]
-        }
-      ]
-    },
-    order: ['quantity ASC'],
-    fields: ['id', 'name', 'quantity', 'metadata']
-  }
-});
-
-// SQL:
-// SELECT "id", "name", "quantity", "metadata"
-// FROM "Product"
-// WHERE "status" = 'active'
-//   AND "quantity" <= 10
-//   AND "metadata" #>> '{reorderPoint}' IS NOT NULL
-//   AND (
-//     "quantity" < 5
-//     OR (
-//       "quantity" <= 10
-//       AND "metadata" #>> '{fastMoving}' = 'true'
-//     )
-//   )
-// ORDER BY "quantity" ASC
-```
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, per-operator SQL builders

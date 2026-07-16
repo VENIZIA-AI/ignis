@@ -1,51 +1,21 @@
+---
+title: Socket.IO
+description: Runtime-agnostic Socket.IO server and client helpers with a built-in authentication handshake and Redis-backed horizontal scaling
+difficulty: intermediate
+---
+
 # Socket.IO
 
-Runtime-agnostic Socket.IO server and client helpers with built-in authentication flow, room management, Redis adapter for horizontal scaling, and automatic heartbeat keep-alive.
+`SocketIOServerHelper` and `SocketIOClientHelper` wrap `socket.io` with a mandatory post-connection authentication handshake, room management, and a Redis adapter so events reach clients no matter which server instance they are connected to.
 
-## Quick Reference
+## In one example
 
-| Class | Extends | Role |
-|-------|---------|------|
-| `SocketIOServerHelper` | `BaseHelper` | Manages a Socket.IO server with authentication, rooms, ping intervals, and Redis-backed messaging |
-| `SocketIOClientHelper` | `BaseHelper` | Manages a Socket.IO client connection with authentication, event subscriptions, and room operations |
-
-#### Import Paths
+The smallest working server: construct with a Redis connection and an `authenticateFn`, then `configure()`.
 
 ```typescript
-import {
-  SocketIOServerHelper,
-  SocketIOClientHelper,
-  SocketIOConstants,
-  SocketIOClientStates,
-} from '@venizia/ignis-helpers/socket-io';
-
-import type {
-  TSocketIOServerOptions,
-  ISocketIOServerBaseOptions,
-  ISocketIOServerNodeOptions,
-  ISocketIOServerBunOptions,
-  ISocketIOClientOptions,
-  IOptions,
-  ISocketIOClient,
-  IHandshake,
-  TSocketIOAuthenticateFn,
-  TSocketIOValidateRoomFn,
-  TSocketIOClientConnectedFn,
-  TSocketIOEventHandler,
-  TSocketIOClientState,
-} from '@venizia/ignis-helpers/socket-io';
-```
-
-## Creating an Instance
-
-### Server
-
-`SocketIOServerHelper` requires a Redis connection for the pub/sub adapter, an HTTP server (Node.js) or Bun engine instance, and an authentication function.
-
-```typescript
-import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
-import { RedisSingleHelper } from '@venizia/ignis-helpers';
 import { createServer } from 'node:http';
+import { RedisSingleHelper } from '@venizia/ignis-helpers';
+import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
 
 const httpServer = createServer();
 
@@ -61,457 +31,121 @@ const socketServer = new SocketIOServerHelper({
   runtime: 'node',
   server: httpServer,
   redisConnection: redisHelper,
-  serverOptions: {
-    cors: { origin: '*' },
-    path: '/socket.io',
-  },
-  authenticateFn: async (handshake) => {
-    const token = handshake.auth?.token;
-    return !!token; // Return true to accept, false to reject
-  },
-  validateRoomFn: async ({ socket, rooms }) => {
-    // Return only the rooms the client is allowed to join
-    return rooms.filter(r => r.startsWith('public-'));
-  },
-  clientConnectedFn: async ({ socket }) => {
-    console.log('Client authenticated:', socket.id);
-  },
-  defaultRooms: ['io-default', 'io-notification'],
-  authenticateTimeout: 10000,
-  pingInterval: 30000,
+  serverOptions: { cors: { origin: '*' } },
+  authenticateFn: async handshake => !!handshake.auth?.token,
 });
+
+await socketServer.configure();
+httpServer.listen(3000);
 ```
 
-#### `TSocketIOServerOptions`
-
-A discriminated union based on the `runtime` field:
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `identifier` | `string` | -- | Unique identifier for this server instance (used as logger scope) |
-| `runtime` | `'node' \| 'bun'` | -- | Runtime environment. Determines which server field is required |
-| `server` | `HTTPServer` | -- | Node.js HTTP server instance. **Required when `runtime` is `'node'`** |
-| `engine` | `any` | -- | `@socket.io/bun-engine` Server instance. **Required when `runtime` is `'bun'`** |
-| `serverOptions` | `Partial<ServerOptions>` | -- | **Required by the type.** Socket.IO `ServerOptions` (cors, path, transports, etc.). Pass `{}` when no options are needed; nullish values fall back to `{}` at runtime |
-| `redisConnection` | `IRedisHelper` | -- | **Required.** Redis helper used to create pub, sub, and emitter clients |
-| `authenticateFn` | `TSocketIOAuthenticateFn` | -- | **Required.** Called with the client's handshake data. Return `true` to accept, `false` to reject |
-| `validateRoomFn` | `TSocketIOValidateRoomFn` | `undefined` | Called when a client requests to join rooms. Return the allowed subset |
-| `clientConnectedFn` | `TSocketIOClientConnectedFn` | `undefined` | Called after a client is fully authenticated and has joined default rooms |
-| `defaultRooms` | `string[]` | `['io-default', 'io-notification']` | Rooms that every authenticated client joins automatically |
-| `authenticateTimeout` | `number` | `10000` (10 s) | Milliseconds before an unauthenticated client is disconnected |
-| `pingInterval` | `number` | `30000` (30 s) | Interval in milliseconds between heartbeat pings to authenticated clients |
-
-> [!WARNING]
-> If no `validateRoomFn` is provided, **all room join requests are rejected** with a warning log. You must provide this callback if you want clients to join custom rooms beyond the `defaultRooms`.
-
-### Client
-
-`SocketIOClientHelper` connects to a Socket.IO server. Configuration is done entirely via the constructor -- `configure()` is called automatically.
+A client connects at the transport level, then must explicitly authenticate before it can join rooms or exchange events:
 
 ```typescript
 import { SocketIOClientHelper } from '@venizia/ignis-helpers/socket-io';
 
-const socketClient = new SocketIOClientHelper({
-  identifier: 'my-client',
-  host: 'http://localhost:3000',
-  options: {
-    path: '/socket.io',
-    extraHeaders: {
-      Authorization: 'Bearer my-jwt-token',
-    },
-  },
-  onConnected: () => {
-    console.log('Connected to server');
-    socketClient.authenticate();
-  },
-  onDisconnected: (reason) => {
-    console.log('Disconnected:', reason);
-  },
-  onError: (error) => {
-    console.error('Connection error:', error);
-  },
-  onAuthenticated: () => {
-    console.log('Successfully authenticated');
-  },
-  onUnauthenticated: (message) => {
-    console.warn('Authentication failed:', message);
-  },
-});
-```
-
-#### `ISocketIOClientOptions`
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `identifier` | `string` | -- | Unique identifier for this client (used as logger scope) |
-| `host` | `string` | -- | Server URL to connect to (e.g., `'http://localhost:3000'`) |
-| `options` | `IOptions` | -- | Socket.IO client options (extends `SocketOptions` with `path` and `extraHeaders`) |
-| `onConnected` | `() => ValueOrPromise<void>` | `undefined` | Called when the transport connection is established |
-| `onDisconnected` | `(reason: string) => ValueOrPromise<void>` | `undefined` | Called when disconnected. The client state resets to `'unauthorized'` |
-| `onError` | `(error: Error) => ValueOrPromise<void>` | `undefined` | Called on connection errors |
-| `onAuthenticated` | `() => ValueOrPromise<void>` | `undefined` | Called when the server sends an `authenticated` event |
-| `onUnauthenticated` | `(message: string) => ValueOrPromise<void>` | `undefined` | Called when the server rejects authentication |
-
-#### `IOptions`
-
-Extends `SocketOptions` from `socket.io-client`:
-
-| Option | Type | Description |
-|--------|------|-------------|
-| `path` | `string` | Socket.IO server path (e.g., `'/socket.io'`) |
-| `extraHeaders` | `Record<string \| symbol \| number, any>` | Additional headers sent with the connection request |
-
-## Usage
-
-### Server Setup
-
-After constructing the server helper, call `configure()` to initialize the Socket.IO server, set up the Redis adapter, and start listening for connections.
-
-```typescript
-const socketServer = new SocketIOServerHelper({
-  identifier: 'my-server',
-  runtime: 'node',
-  server: httpServer,
-  redisConnection: redisHelper,
-  serverOptions: { cors: { origin: '*' } },
-  authenticateFn: async (handshake) => {
-    return verifyToken(handshake.auth?.token);
-  },
-});
-
-await socketServer.configure();
-// Server is now ready and listening for connections
-
-httpServer.listen(3000, () => {
-  console.log('HTTP + Socket.IO server running on port 3000');
-});
-```
-
-#### Bun Runtime
-
-For Bun, pass the `@socket.io/bun-engine` instance instead of an HTTP server:
-
-```typescript
-import { SocketIOServerHelper } from '@venizia/ignis-helpers/socket-io';
-
-const socketServer = new SocketIOServerHelper({
-  identifier: 'my-bun-server',
-  runtime: 'bun',
-  engine: bunEngineInstance,
-  redisConnection: redisHelper,
-  serverOptions: {},
-  authenticateFn: async (handshake) => {
-    return verifyToken(handshake.auth?.token);
-  },
-});
-
-await socketServer.configure();
-```
-
-### Client Connection
-
-The client connects automatically on construction. Call `authenticate()` after the connection is established to trigger the server-side authentication flow.
-
-```typescript
 const client = new SocketIOClientHelper({
   identifier: 'app-client',
   host: 'http://localhost:3000',
   options: {
     path: '/socket.io',
-    extraHeaders: { Authorization: 'Bearer my-token' },
+    extraHeaders: { Authorization: 'Bearer my-jwt-token' },
   },
-  onConnected: () => {
-    // Connection established -- initiate authentication
-    client.authenticate();
-  },
-  onAuthenticated: () => {
-    // Now safe to subscribe and emit
-    client.joinRooms({ rooms: ['chat-room-1'] });
-  },
+  onConnected: () => client.authenticate(),
+  onAuthenticated: () => client.emit({ topic: 'ready', data: {} }),
 });
 ```
 
-### Emitting Events
+## How it works
 
-#### From the Server
+- **Two independent helpers.** `SocketIOServerHelper` wraps a `socket.io` `Server`; `SocketIOClientHelper` wraps a `socket.io-client` `Socket`. Both extend `BaseHelper`, and the client can talk to any `socket.io` server, not only this one.
+- **Runtime-agnostic server.** Pass a Node.js `http.Server` for `runtime: 'node'`, or an `@socket.io/bun-engine` instance for `runtime: 'bun'`.
+- **Redis is mandatory server-side.** `configure()` duplicates the parent `redisConnection` into three dedicated clients: `redisPub`/`redisSub` power `@socket.io/redis-adapter` for cross-instance room broadcast, and `redisEmitter` powers `@socket.io/redis-emitter` for `send()`.
+- **Boot fails fast on a broken Redis connection.** `configure()` waits for all three clients to reach `ready` and rejects after 30 seconds if any never do, so a broken Redis connection fails boot instead of hanging it.
+- **Authentication is a step separate from connecting.** A client connects at the transport level in state `UNAUTHORIZED`, then must emit `'authenticate'`. The server calls `authenticateFn(handshake)`; only `true` moves the client to `AUTHENTICATED` and joins it to `defaultRooms`.
+- **Unauthenticated clients time out.** A client that never authenticates within `authenticateTimeout` is disconnected - including one whose `authenticateFn` is still pending when the timeout fires.
+- **Heartbeat has no pong check.** Once authenticated, the server pings on `pingInterval` as a keep-alive; a silently dead connection is only caught when the underlying transport itself notices.
+- **Custom rooms need `validateRoomFn`.** Room joins beyond `defaultRooms` are rejected unless you supply it - without it, every custom join request is dropped.
 
-Use `send()` to emit events through the Redis emitter. Messages can target a specific socket ID, a room, or broadcast to all clients.
+**Defaults**
+
+| Option | Default | Purpose |
+|--------|---------|---------|
+| `authenticateTimeout` | 10s | Disconnects a client that never authenticates |
+| `pingInterval` | 30s | Server heartbeat interval once authenticated |
+
+## Common tasks
+
+### Send a message from the server
+
+`send()` goes through the Redis emitter, so it reaches the target on any server instance. Omit `destination` to broadcast to everyone.
 
 ```typescript
-// Send to a specific client
 socketServer.send({
-  destination: 'client-socket-id',
-  payload: {
-    topic: 'notification',
-    data: { message: 'Hello!' },
-  },
-});
-
-// Broadcast to all connected clients (no destination)
-socketServer.send({
-  payload: {
-    topic: 'announcement',
-    data: { message: 'Server update in 5 minutes' },
-  },
-});
-
-// Send with logging and callback
-socketServer.send({
-  destination: 'some-room',
-  payload: {
-    topic: 'room-event',
-    data: { action: 'update' },
-  },
-  doLog: true,
-  cb: () => {
-    console.log('Message queued');
-  },
+  destination: 'some-room', // socket ID, room name, or omitted to broadcast
+  payload: { topic: 'notification', data: { message: 'Hello!' } },
+  callback: () => console.log('queued'),
 });
 ```
 
-#### From the Client
+### Listen for a custom event
 
-Use `emit()` to send events to the server.
-
-```typescript
-client.emit({
-  topic: 'chat-message',
-  data: { text: 'Hello, world!' },
-});
-
-// With logging enabled
-client.emit({
-  topic: 'user-action',
-  data: { action: 'click', target: 'button-1' },
-  doLog: true,
-});
-
-// With callback
-client.emit({
-  topic: 'upload-complete',
-  data: { fileId: '123' },
-  cb: () => {
-    console.log('Emit completed');
-  },
-});
-```
-
-### Listening for Events
-
-#### Server-Side Event Binding
-
-Use `on()` to register event handlers on the IO server instance.
+Register on the server with `on()`; subscribe on the client with `subscribe()`.
 
 ```typescript
 socketServer.on({
   topic: 'custom-event',
-  handler: (data) => {
-    console.log('Received:', data);
-  },
+  handler: (data: { userId: string }) => console.log('received:', data),
 });
-```
 
-#### Client-Side Event Subscription
-
-Use `subscribe()` for single events and `subscribeMany()` for batch registration.
-
-```typescript
-// Single event
 client.subscribe({
   event: 'notification',
-  handler: (data) => {
-    console.log('Notification:', data);
-  },
+  handler: data => console.log('notification:', data),
 });
-
-// Prevent duplicate handlers (default behavior)
-client.subscribe({
-  event: 'notification',
-  handler: (data) => { /* ... */ },
-  ignoreDuplicate: true, // Default: true -- skips if handler already exists
-});
-
-// Allow multiple handlers for same event
-client.subscribe({
-  event: 'chat-message',
-  handler: handler1,
-  ignoreDuplicate: false,
-});
-
-// Batch subscribe
-client.subscribeMany({
-  events: {
-    'user-joined': (data) => console.log('Joined:', data),
-    'user-left': (data) => console.log('Left:', data),
-    'typing': (data) => console.log('Typing:', data),
-  },
-});
-
-// Unsubscribe from a specific event (removes all handlers)
-client.unsubscribe({ event: 'notification' });
-
-// Unsubscribe from multiple events
-client.unsubscribeMany({ events: ['user-joined', 'user-left'] });
 ```
 
-### Rooms
+### Manage rooms
 
-#### Client-Side Room Operations
-
-```typescript
-// Join rooms (validated by server's validateRoomFn)
-client.joinRooms({ rooms: ['chat-room-1', 'notifications'] });
-
-// Leave rooms
-client.leaveRooms({ rooms: ['chat-room-1'] });
-```
-
-#### Server-Side Room Behavior
-
-Authenticated clients automatically join the `defaultRooms` (by default, `'io-default'` and `'io-notification'`). Custom room join requests are validated through `validateRoomFn` before the client is allowed to join.
+Clients request rooms with `joinRooms()` / `leaveRooms()`; the server filters join requests through `validateRoomFn`.
 
 ```typescript
 const socketServer = new SocketIOServerHelper({
   // ...
   defaultRooms: ['general', 'announcements'],
-  validateRoomFn: async ({ socket, rooms }) => {
-    // Only allow rooms the user has permission for
-    const userPermissions = await getUserPermissions(socket.id);
-    return rooms.filter(room => userPermissions.includes(room));
-  },
+  validateRoomFn: async ({ socket, rooms }) => rooms.filter(room => room.startsWith('public-')),
+});
+
+client.joinRooms({ rooms: ['public-chat'] });
+client.leaveRooms({ rooms: ['public-chat'] });
+```
+
+### Emit from the client
+
+```typescript
+client.emit({
+  topic: 'chat-message',
+  data: { text: 'Hello, world!' },
+  callback: () => console.log('emit completed'),
 });
 ```
 
-### Authentication Flow
-
-The server enforces a post-connection authentication protocol:
-
-```
-Client connects
-  |
-  v
-Server creates client entry (state: UNAUTHORIZED)
-  |-- Starts authenticateTimeout timer (default: 10s)
-  |-- Registers disconnect handler
-  |
-Client emits 'authenticate' event
-  |
-  v
-Server calls authenticateFn(handshake)
-  |
-  +-- Returns true:
-  |     |-- State -> AUTHENTICATED
-  |     |-- Clear auth timeout
-  |     |-- Join default rooms
-  |     |-- Start ping interval
-  |     |-- Emit 'authenticated' to client
-  |     +-- Invoke clientConnectedFn
-  |
-  +-- Returns false:
-  |     |-- State -> UNAUTHORIZED
-  |     |-- Emit 'unauthenticated' to client
-  |     +-- Disconnect
-  |
-  +-- Timeout (no auth within authenticateTimeout):
-        +-- Disconnect
-```
-
-### Redis Adapter
-
-The server uses `@socket.io/redis-adapter` and `@socket.io/redis-emitter` for horizontal scaling. Three Redis connections are created by duplicating the provided `redisConnection` client:
-
-- **redisPub** -- Publishes adapter messages
-- **redisSub** -- Subscribes to adapter messages
-- **redisEmitter** -- Powers `send()` for cross-instance message delivery
-
-All three connections are initialized and awaited during `configure()`. If the parent client uses `lazyConnect`, the duplicated clients will connect automatically.
-
-> [!NOTE]
-> `configure()` fails fast: if any of the three Redis clients never reaches the `ready` state, it rejects after **30 seconds** rather than hanging boot indefinitely.
+### Shut down cleanly
 
 ```typescript
-// Messages sent via send() use the Redis emitter,
-// so they reach clients on ANY server instance
-socketServer.send({
-  destination: 'some-room',
-  payload: {
-    topic: 'update',
-    data: { value: 42 },
-  },
-});
+await socketServer.shutdown(); // disconnects clients, closes IO server, quits all 3 Redis clients
+client.shutdown();              // removes listeners, disconnects, resets state
 ```
 
-### Graceful Shutdown
+## See also
 
-#### Server
+- [Full reference](./api) - every method signature, type, constant, and error case
+- [Socket.IO Component](/extensions/components/socket-io/) - DI-managed lifecycle wrapper around this helper
+- [WebSocket Helper](../websocket/) - Bun-native alternative with no `socket.io` dependency
+- [Redis Helper](../redis/) - `RedisSingleHelper` / `RedisClusterHelper` used as `redisConnection`
 
-```typescript
-await socketServer.shutdown();
-// 1. Disconnects all clients (clears intervals and timeouts)
-// 2. Closes the IO server
-// 3. Quits all three Redis connections (pub, sub, emitter)
-```
+**Files:**
 
-#### Client
-
-```typescript
-client.shutdown();
-// 1. Removes all event listeners
-// 2. Disconnects if connected
-// 3. Resets state to 'unauthorized'
-```
-
-## Troubleshooting
-
-### `[SocketIOServerHelper] Invalid HTTP server for Node.js runtime!`
-
-**Cause:** The `server` option is missing or falsy when `runtime` is `'node'`.
-
-**Fix:** Pass a valid `http.Server` instance.
-
-### `[SocketIOServerHelper] Invalid @socket.io/bun-engine instance for Bun runtime!`
-
-**Cause:** The `engine` option is missing or falsy when `runtime` is `'bun'`.
-
-**Fix:** Pass a valid `@socket.io/bun-engine` Server instance.
-
-### `[SocketIOServerHelper] Unsupported runtime!`
-
-**Cause:** The `runtime` value is neither `'node'` nor `'bun'`.
-
-**Fix:** Use `RuntimeModules.NODE` or `RuntimeModules.BUN`.
-
-### `Invalid redis connection to config socket.io adapter!`
-
-**Cause:** The `redisConnection` option is missing, `null`, or `undefined`.
-
-**Fix:** Pass a valid `IRedisHelper` instance (e.g., `RedisSingleHelper` or `RedisClusterHelper`).
-
-### `[on] Invalid topic to start binding handler`
-
-**Cause:** An empty or falsy `topic` was passed to `on()`.
-
-**Fix:** Provide a non-empty string topic.
-
-### `[on] IOServer is not initialized yet!`
-
-**Cause:** `on()` was called before `configure()` completed.
-
-**Fix:** Await `configure()` before registering event handlers.
-
-### `Invalid socket client state to emit`
-
-**Cause (client):** `emit()` was called when the client is not connected.
-
-**Fix:** Check that the client is connected before emitting, or emit inside the `onConnected` callback.
-
-### `Topic is required to emit`
-
-**Cause (client):** `emit()` was called with an empty or falsy `topic`.
-
-**Fix:** Provide a non-empty string topic.
-
-## See Also
-
-- [API Reference](./api) -- Full method signatures, types, and constants
-- [WebSocket Helper](../websocket/) -- Bun-native WebSocket alternative
+- [`packages/helpers/src/modules/socket/socket-io/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/server/helper.ts) - `SocketIOServerHelper`
+- [`packages/helpers/src/modules/socket/socket-io/client/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/client/helper.ts) - `SocketIOClientHelper`
+- [`packages/helpers/src/modules/socket/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/types.ts) - option and callback types
+- [`packages/helpers/src/modules/socket/socket-io/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/socket-io/common/constants.ts) - `SocketIOConstants`, `SocketIOClientStates`

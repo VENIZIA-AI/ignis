@@ -1,89 +1,73 @@
-# Authentication -- Usage & Examples
+---
+title: Authentication Usage
+description: Securing routes, implementing IAuthService, JWKS microservice patterns, and the built-in auth controller endpoints
+difficulty: intermediate
+---
 
-> Securing routes, authentication flows, JWKS microservice patterns, entity helpers, and API endpoint specifications. See [Setup & Configuration](./) for initial setup.
+# Authentication Usage
 
-## Securing Routes
+Task-oriented examples for the Authentication component. See the [Overview](./) for initial setup and the [API Reference](./api) for every option and class.
 
-Use the `authenticate` field in route configurations. The field accepts `TRouteAuthenticateConfig`:
+## Securing routes
+
+**Require one strategy.** Add `authenticate` to the route config.
 
 ```typescript
-// Single strategy
 const SECURE_ROUTE_CONFIG = {
   path: '/secure-data',
   method: HTTP.Methods.GET,
   authenticate: { strategies: [Authentication.STRATEGY_JWT] },
-  responses: jsonResponse({
-    description: 'Protected data',
-    schema: z.object({ message: z.string() }),
-  }),
+  responses: jsonResponse({ description: 'Protected data', schema: z.object({ message: z.string() }) }),
 } as const;
+```
 
-// Multiple strategies with fallback (any mode)
+**Accept multiple strategies with fallback.** `mode: 'any'` (default) tries each in order; the first success wins.
+
+```typescript
 const FALLBACK_AUTH_CONFIG = {
   path: '/api/data',
   method: HTTP.Methods.GET,
-  authenticate: {
-    strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC],
-    mode: AuthenticationModes.ANY,
-  },
-  responses: jsonResponse({
-    description: 'Data accessible via JWT or Basic auth',
-    schema: z.object({ data: z.any() }),
-  }),
+  authenticate: { strategies: [Authentication.STRATEGY_JWT, Authentication.STRATEGY_BASIC], mode: AuthenticationModes.ANY },
+  responses: jsonResponse({ description: 'Data via JWT or Basic', schema: z.object({ data: z.any() }) }),
 } as const;
+```
 
-// Skip authentication
+**Make a route public.** `skip: true` bypasses authentication entirely.
+
+```typescript
 const PUBLIC_ROUTE_CONFIG = {
   path: '/public',
   method: HTTP.Methods.GET,
   authenticate: { skip: true },
-  responses: jsonResponse({
-    description: 'Public endpoint',
-    schema: z.object({ message: z.string() }),
-  }),
+  responses: jsonResponse({ description: 'Public endpoint', schema: z.object({ message: z.string() }) }),
 } as const;
 ```
 
-## Using the `authenticate()` Standalone Function
-
-The `authenticate()` function creates an `AuthenticationProvider` instance and uses its middleware factory. It returns a Hono `MiddlewareHandler` suitable for direct middleware usage:
+**Use `authenticate()` as raw Hono middleware.** Outside of route configs - e.g. for a plain Hono sub-app.
 
 ```typescript
 import { authenticate, Authentication, AuthenticationModes } from '@venizia/ignis';
 
-// Use as Hono middleware directly
-const authMiddleware = authenticate({
-  strategies: [Authentication.STRATEGY_JWT],
-  mode: AuthenticationModes.ANY,
-});
+const authMiddleware = authenticate({ strategies: [Authentication.STRATEGY_JWT], mode: AuthenticationModes.ANY });
 
-// Apply to a Hono route
-app.get('/protected', authMiddleware, (c) => {
+app.get('/protected', authMiddleware, c => {
   const user = c.get(Authentication.CURRENT_USER);
   return c.json({ userId: user.userId });
 });
 ```
 
-## Accessing the Current User
-
-After authentication, the user payload is available on the Hono `Context`:
+**Read the authenticated user in a handler.**
 
 ```typescript
-import { Context } from 'hono';
 import { Authentication, IJWTTokenPayload } from '@venizia/ignis';
 
-// Inside a route handler
 const user = c.get(Authentication.CURRENT_USER) as IJWTTokenPayload | undefined;
-
 if (user) {
-  console.log('Authenticated user ID:', user.userId);
-  console.log('User roles:', user.roles);
+  console.log('User ID:', user.userId, 'Roles:', user.roles);
 }
 ```
 
-## Dynamic Skip Authentication
-
-Use `Authentication.SKIP_AUTHENTICATION` to dynamically skip auth in middleware:
+**Skip authentication dynamically from a preceding middleware.** Useful for internal API keys or webhooks.
 
 ```typescript
 import { Authentication } from '@venizia/ignis';
@@ -97,35 +81,23 @@ const conditionalAuthMiddleware = createMiddleware(async (c, next) => {
 });
 ```
 
-## Implementing an AuthenticationService
+## Implementing IAuthService
 
-The `AuthenticateComponent` depends on a service implementing the `IAuthService` interface when using the built-in auth controller.
+The built-in auth controller (`useAuthController: true`) delegates every route to a service you provide, implementing `IAuthService`.
 
-### JWS Example
+**JWS-backed service.**
 
 ```typescript
 import {
-  BaseService,
-  inject,
-  IAuthService,
-  IJWTTokenPayload,
-  JWSTokenService,
-  BindingKeys,
-  BindingNamespaces,
-  TSignInRequest,
-  TContext,
+  BaseService, inject, IAuthService, IJWTTokenPayload, JWSTokenService,
+  BindingKeys, BindingNamespaces, TSignInRequest, TContext,
 } from '@venizia/ignis';
 import { getError } from '@venizia/ignis-helpers';
 import { Env } from 'hono';
 
 export class AuthenticationService extends BaseService implements IAuthService {
   constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWSTokenService.name,
-      }),
-    })
+    @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: JWSTokenService.name }) })
     private _tokenService: JWSTokenService,
   ) {
     super({ scope: AuthenticationService.name });
@@ -139,611 +111,195 @@ export class AuthenticationService extends BaseService implements IAuthService {
       throw getError({ message: 'Invalid credentials' });
     }
 
-    const payload: IJWTTokenPayload = {
-      userId: user.id,
-      roles: user.roles,
-    };
-
+    const payload: IJWTTokenPayload = { userId: user.id, roles: user.roles };
     const token = await this._tokenService.generate({ payload });
     return { token };
   }
 
-  async signUp(context: TContext<Env>, opts: any): Promise<any> {
-    // Implement your sign-up logic
-  }
-
-  async changePassword(context: TContext<Env>, opts: any): Promise<any> {
-    // Implement your change password logic
-  }
+  async signUp(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
+  async changePassword(context: TContext<Env>, opts: any): Promise<any> { /* your logic */ }
 }
 ```
 
-### JWKS Issuer Example
+**JWKS-backed service.** Same shape, inject `JWKSIssuerTokenService` instead.
 
 ```typescript
-import {
-  BaseService,
-  inject,
-  IAuthService,
-  IJWTTokenPayload,
-  JWKSIssuerTokenService,
-  BindingKeys,
-  BindingNamespaces,
-  TSignInRequest,
-  TContext,
-} from '@venizia/ignis';
-import { getError } from '@venizia/ignis-helpers';
-import { Env } from 'hono';
+constructor(
+  @inject({ key: BindingKeys.build({ namespace: BindingNamespaces.SERVICE, key: JWKSIssuerTokenService.name }) })
+  private _tokenService: JWKSIssuerTokenService,
+) { super({ scope: AuthenticationService.name }); }
+```
 
-export class AuthenticationService extends BaseService implements IAuthService {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWKSIssuerTokenService.name,
-      }),
-    })
-    private _tokenService: JWKSIssuerTokenService,
-  ) {
-    super({ scope: AuthenticationService.name });
-  }
+**Implement `refreshToken` (optional).** Re-issues a token from the currently valid one - there is no separate refresh token.
 
-  async signIn(context: TContext<Env>, opts: TSignInRequest): Promise<{ token: string }> {
-    const { identifier, credential } = opts;
-    // ... lookup and verify user ...
-
-    const payload: IJWTTokenPayload = {
-      userId: user.id,
-      roles: user.roles,
-    };
-
-    const token = await this._tokenService.generate({ payload });
-    return { token };
-  }
-
-  // ... signUp, changePassword ...
+```typescript
+async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
+  const currentUser = context.get(Authentication.CURRENT_USER);
+  const token = await this._tokenService.generate({ payload: currentUser });
+  return { token };
 }
 ```
 
-## JWKS Microservice Patterns
+> [!NOTE]
+> IGNIS does not enforce rotation or revocation policy. If you need to invalidate old tokens after refresh, implement that inside your `refreshToken`.
 
-### Issuer + Verifier Architecture
+**Implement `getUserInformation` (optional).** Backs both `GET /me` and `GET /who-am-i?withUserInformation=true`.
 
-In a microservice architecture, one service issues tokens (issuer) and other services verify them (verifier):
+```typescript
+async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
+  const currentUser = context.get(Authentication.CURRENT_USER);
+  return this.userRepository.findById({ id: currentUser.userId });
+}
+```
+
+## JWKS microservice patterns
+
+**Issuer + verifier split.** One service signs, others only verify - no shared secret to distribute.
 
 ```mermaid
 flowchart LR
     CLIENT["Client App"]
-
     subgraph AUTH["Auth Service (JWKS Issuer)"]
         SIGNIN["POST /auth/sign-in"]
         CERTS["GET /certs"]
     end
-
     subgraph API["API Service (JWKS Verifier)"]
         DATA["GET /api/data"]
     end
-
     CLIENT -->|"1. Sign in"| SIGNIN
     SIGNIN -->|"2. JWT token"| CLIENT
     CLIENT -->|"3. Request + Bearer token"| DATA
     DATA -->|"4. Fetch JWKS"| CERTS
     CERTS -->|"5. Public keys"| DATA
     DATA -->|"6. Verified response"| CLIENT
-
-    style AUTH fill:#e8f4fd,stroke:#0d6efd
-    style API fill:#d4edda,stroke:#28a745
 ```
 
-**Auth Service (Issuer):**
 ```typescript
+// Auth service (issuer)
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWKS,
   options: {
-    mode: JWKSModes.ISSUER,
-    algorithm: 'ES256',
-    keys: {
-      driver: JWKSKeyDrivers.FILE,
-      format: JWKSKeyFormats.PEM,
-      private: './keys/private.pem',
-      public: './keys/public.pem',
-    },
-    kid: 'auth-key-1',
-    getTokenExpiresFn: () => 86400,
+    mode: JWKSModes.ISSUER, algorithm: 'ES256',
+    keys: { driver: JWKSKeyDrivers.FILE, format: JWKSKeyFormats.PEM, private: './keys/private.pem', public: './keys/public.pem' },
+    kid: 'auth-key-1', getTokenExpiresFn: () => 86400,
   },
 });
-```
 
-**API Service (Verifier):**
-```typescript
+// API service (verifier)
 this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
   standard: JOSEStandards.JWKS,
-  options: {
-    mode: JWKSModes.VERIFIER,
-    jwksUrl: 'https://auth-service.internal/certs',
-    cacheTtlMs: 43_200_000,  // Cache for 12 hours
-    cooldownMs: 30_000,       // Min 30s between refreshes
-  },
+  options: { mode: JWKSModes.VERIFIER, jwksUrl: 'https://auth-service.internal/certs', cacheTtlMs: 43_200_000, cooldownMs: 30_000 },
 });
 ```
 
-### JWKS with AES Payload Encryption
-
-When using AES payload encryption across services, **both issuer and verifier must share the same `applicationSecret`**:
-
-**Issuer:**
-```typescript
-{
-  mode: JWKSModes.ISSUER,
-  algorithm: 'ES256',
-  keys: { /* ... */ },
-  kid: 'auth-key-1',
-  getTokenExpiresFn: () => 86400,
-  applicationSecret: process.env.APP_ENV_APPLICATION_SECRET,
-}
-```
-
-**Verifier:**
-```typescript
-{
-  mode: JWKSModes.VERIFIER,
-  jwksUrl: 'https://auth-service.internal/certs',
-  applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // Must match issuer
-}
-```
-
-### JWKS Key Generation
-
-Generate ES256 keys for JWKS:
+**Generate ES256 or RS256 keys.**
 
 ```bash
-# Generate private key
+# ES256
 openssl ecparam -genkey -name prime256v1 -noout -out private.pem
-
-# Generate public key from private key
 openssl ec -in private.pem -pubout -out public.pem
-```
 
-Generate RS256 keys:
-
-```bash
-# Generate private key
+# RS256
 openssl genrsa -out private.pem 2048
-
-# Generate public key from private key
 openssl rsa -in private.pem -pubout -out public.pem
 ```
 
 > [!WARNING]
-> Never commit private keys to version control. The `.gitignore` includes patterns for `*.pem`, `*.key`, and `keys/` directories.
+> Never commit private keys to version control.
 
-### Inline Keys (Text Driver)
-
-For environments where file access is restricted (e.g., serverless), use the `text` driver:
+**Use inline keys instead of files.** For serverless or restricted-filesystem environments, switch `driver` to `text`.
 
 ```typescript
-{
-  mode: JWKSModes.ISSUER,
-  algorithm: 'ES256',
-  keys: {
-    driver: JWKSKeyDrivers.TEXT,
-    format: JWKSKeyFormats.PEM,
-    private: process.env.JWKS_PRIVATE_KEY!, // PEM string from env
-    public: process.env.JWKS_PUBLIC_KEY!,   // PEM string from env
-  },
-  kid: 'auth-key-1',
-  getTokenExpiresFn: () => 86400,
+keys: {
+  driver: JWKSKeyDrivers.TEXT,
+  format: JWKSKeyFormats.PEM,
+  private: process.env.JWKS_PRIVATE_KEY!, // PEM string from env
+  public: process.env.JWKS_PUBLIC_KEY!,
 }
 ```
 
-## Entity Column Helpers
-
-The authentication module provides a set of **column helper functions** designed to be spread into Drizzle `pgTable()` definitions. These functions return pre-configured column objects for common auth-related entities, saving you from manually defining columns for users, roles, permissions, and their relationships.
-
-### Pattern
-
-Each helper function returns an object of Drizzle column builders that you spread into your `pgTable()` call alongside any custom columns:
+**Share AES payload encryption across issuer and verifier.** Both sides need the identical `applicationSecret` - the verifier decrypts what the issuer encrypted.
 
 ```typescript
-import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import {
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
-} from '@venizia/ignis';
-import { withSerialId, withTimestamps } from '@venizia/ignis';
+// Issuer
+{ mode: JWKSModes.ISSUER, /* ... */ applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 
-// User table with auth columns
-export const users = pgTable('users', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraUserColumns(),
-  username: text('username').unique().notNull(),
-  passwordHash: text('password_hash').notNull(),
-  email: text('email').unique(),
-});
-
-// Role table with auth columns
-export const roles = pgTable('roles', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraRoleColumns(),
-});
-
-// Permission table
-export const permissions = pgTable('permissions', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraPermissionColumns(),
-});
-
-// Policy definition table (Casbin-style policies)
-export const policyDefinitions = pgTable('policy_definitions', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraPolicyDefinitionColumns(),
-});
+// Verifier - must match
+{ mode: JWKSModes.VERIFIER, jwksUrl: '...', applicationSecret: process.env.APP_ENV_APPLICATION_SECRET }
 ```
 
-### extraUserColumns
+## Auth flows
 
-Returns columns for user-related fields with status and type defaults from `UserStatuses` and `UserTypes`.
-
-```typescript
-extraUserColumns(opts?: { idType: 'string' | 'number' })
-```
-
-| Column | Type | Default | Description |
-|--------|------|---------|-------------|
-| `realm` | `text` | `''` | Multi-tenancy realm identifier |
-| `status` | `text` | `UserStatuses.UNKNOWN` (`'000_UNKNOWN'`) | User status |
-| `type` | `text` | `UserTypes.SYSTEM` (`'SYSTEM'`) | User type |
-| `activatedAt` | `timestamp (tz)` | `null` | Activation timestamp |
-| `lastLoginAt` | `timestamp (tz)` | `null` | Last login timestamp |
-| `parentId` | `text` or `integer` | `null` | Parent user ID (type depends on `idType`) |
-
-### extraRoleColumns
-
-Returns columns for role definitions. No options parameter.
-
-```typescript
-extraRoleColumns()
-```
-
-| Column | Type | Default | Description |
-|--------|------|---------|-------------|
-| `identifier` | `text` | -- | Unique role identifier (e.g., `'admin'`, `'user'`) |
-| `name` | `text` | -- | Human-readable role name |
-| `description` | `text` | `null` | Optional role description |
-| `priority` | `integer` | -- | Role priority (lower = higher priority) |
-| `status` | `text` | `RoleStatuses.ACTIVATED` (`'201_ACTIVATED'`) | Role status |
-
-### extraPermissionColumns
-
-Returns columns for permission definitions. Supports `idType` option for the `parentId` column type.
-
-```typescript
-extraPermissionColumns(opts?: { idType: 'string' | 'number' })
-```
-
-| Column | Type | Default | Description |
-|--------|------|---------|-------------|
-| `code` | `text` (unique) | -- | Unique permission code |
-| `name` | `text` | -- | Permission name |
-| `subject` | `text` | -- | Permission subject (e.g., `'User'`, `'Order'`) |
-| `method` | `text` | -- | HTTP method (e.g., `'GET'`, `'POST'`) |
-| `action` | `text` | -- | Permitted action (e.g., `'read'`, `'write'`) |
-| `scope` | `text` | -- | Permission scope |
-| `description` | `text` | `null` | Optional permission description |
-| `parentId` | `text` or `integer` | `null` | Parent permission ID |
-
-### extraPolicyDefinitionColumns
-
-Returns columns for Casbin-style policy definitions that map subjects (users/roles) to targets (resources/permissions).
-
-```typescript
-extraPolicyDefinitionColumns(opts?: { idType: 'string' | 'number' })
-```
-
-| Column | DB Column | Type | Nullable | Default | Description |
-|--------|-----------|------|----------|---------|-------------|
-| `variant` | `variant` | `text` | No | -- | Policy variant (e.g., `'p'` for policy, `'g'` for grouping) |
-| `subjectType` | `subject_type` | `text` | No | -- | Type of subject (e.g., `'user'`, `'role'`) |
-| `targetType` | `target_type` | `text` | No | -- | Type of target (e.g., `'permission'`, `'role'`) |
-| `action` | `action` | `text` | Yes | `null` | Policy action |
-| `effect` | `effect` | `text` | Yes | `null` | Policy effect (e.g., `'allow'`, `'deny'`) |
-| `domain` | `domain` | `text` | Yes | `null` | Policy domain for multi-tenancy |
-| `subjectId` | `subject_id` | `text` or `integer` | No | -- | Subject ID (type depends on `idType`) |
-| `targetId` | `target_id` | `text` or `integer` | No | -- | Target ID (type depends on `idType`) |
-
-### ID Type Polymorphism
-
-All column helpers that accept `opts.idType` default to `'number'` (producing `integer` columns). Pass `'string'` to use `text` columns instead:
-
-```typescript
-// Number IDs (default) -- uses integer columns for FK references
-extraUserColumns()
-extraPermissionColumns()
-
-// String IDs (e.g., UUID) -- uses text columns for FK references
-extraUserColumns({ idType: 'string' })
-extraPermissionColumns({ idType: 'string' })
-```
-
-## Status Constants
-
-The authentication module uses status classes from `@/common/statuses`. These extend `CommonStatuses` and provide lifecycle state management for auth entities.
-
-### UserStatuses
-
-Inherits all statuses from `CommonStatuses`:
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `UserStatuses.UNKNOWN` | `'000_UNKNOWN'` | Initial/unverified state |
-| `UserStatuses.ACTIVATED` | `'201_ACTIVATED'` | Active user |
-| `UserStatuses.DEACTIVATED` | `'401_DEACTIVATED'` | Deactivated user |
-| `UserStatuses.BLOCKED` | `'403_BLOCKED'` | Blocked user |
-| `UserStatuses.ARCHIVED` | `'405_ARCHIVED'` | Archived user |
-
-### UserTypes
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `UserTypes.SYSTEM` | `'SYSTEM'` | System-created user (default) |
-| `UserTypes.LINKED` | `'LINKED'` | Linked/external user |
-
-### RoleStatuses
-
-Inherits all statuses from `CommonStatuses` (same values as `UserStatuses`):
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `RoleStatuses.UNKNOWN` | `'000_UNKNOWN'` | Initial state |
-| `RoleStatuses.ACTIVATED` | `'201_ACTIVATED'` | Active role (default for `extraRoleColumns`) |
-| `RoleStatuses.DEACTIVATED` | `'401_DEACTIVATED'` | Deactivated role |
-| `RoleStatuses.BLOCKED` | `'403_BLOCKED'` | Blocked role |
-| `RoleStatuses.ARCHIVED` | `'405_ARCHIVED'` | Archived role |
-
-## Auth Flows
-
-### JWS Authentication Flow
+- **JWS:** extract Bearer token -> `jose.jwtVerify()` with the shared secret -> decrypt payload (if AES configured) -> set `CURRENT_USER`.
+- **JWKS Issuer:** extract Bearer token -> `ensureInitialized()` (lazy-loads keys once) -> `jwtVerify()` with the public key -> decrypt payload -> set `CURRENT_USER`.
+- **JWKS Verifier:** extract Bearer token -> `ensureInitialized()` (creates the remote JWKS verifier once) -> `jwtVerify()` with the remote JWKS -> decrypt payload -> set `CURRENT_USER`.
+- **Basic:** decode `Authorization: Basic <base64>` -> call your `verifyCredentials` callback -> on `null`, throw `401`; on a user, set `CURRENT_USER`.
 
 ```mermaid
 sequenceDiagram
     participant C as Client
     participant MW as Auth Middleware
-    participant S as JWSAuthenticationStrategy
-    participant SVC as JWSTokenService
-    participant JOSE as jose library
+    participant S as Strategy
+    participant SVC as TokenService
 
-    C->>MW: Request + Authorization: Bearer <token>
+    C->>MW: Request + Authorization header
     MW->>S: authenticate(context)
     S->>SVC: extractCredentials(context)
-    SVC-->>S: { type: "Bearer", token }
-    S->>SVC: verify({ type, token })
-    SVC->>JOSE: jwtVerify(token, jwtSecret)
-    JOSE-->>SVC: JWTVerifyResult
-    SVC->>SVC: decryptPayload() (if AES configured)
-    SVC-->>S: IJWTTokenPayload
+    SVC-->>S: { type, token } | { username, password }
+    S->>SVC: verify(...)
+    SVC-->>S: IAuthUser
     S-->>MW: IAuthUser
     MW->>MW: Set CURRENT_USER + AUDIT_USER_ID
     MW->>C: Continue to handler
 ```
 
-1. **Client sends request** with <code v-pre>Authorization: Bearer &lt;token&gt;</code> header
-2. **JWSAuthenticationStrategy.authenticate()** is called by the Hono middleware
-3. **AbstractBearerTokenService.extractCredentials()** extracts the token from the Authorization header
-4. **JWSTokenService.doVerify()** verifies the JWT signature using `jose.jwtVerify()` with the shared `jwtSecret`
-5. **AbstractBearerTokenService.decryptPayload()** decrypts the AES-encrypted payload fields (if AES configured)
-6. **User payload is set** on `context.get(Authentication.CURRENT_USER)`
+## Multi-strategy authentication
 
-### JWKS Issuer Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MW as Auth Middleware
-    participant S as JWKSIssuerStrategy
-    participant SVC as JWKSIssuerTokenService
-    participant INIT as Lazy Init
-    participant JOSE as jose library
-
-    C->>MW: Request + Authorization: Bearer <token>
-    MW->>S: authenticate(context)
-    S->>SVC: extractCredentials(context)
-    SVC-->>S: { type: "Bearer", token }
-    S->>SVC: verify({ type, token })
-    SVC->>INIT: ensureInitialized()
-    Note over INIT: Load keys from file/text<br/>Parse PEM/JWK<br/>Cache JWKS
-    INIT-->>SVC: initialized
-    SVC->>JOSE: jwtVerify(token, publicKey)
-    JOSE-->>SVC: JWTVerifyResult
-    SVC->>SVC: decryptPayload() (if AES configured)
-    SVC-->>S: IJWTTokenPayload
-    S-->>MW: IAuthUser
-    MW->>C: Continue to handler
-```
-
-1. **Client sends request** with <code v-pre>Authorization: Bearer &lt;token&gt;</code> header
-2. **JWKSIssuerAuthenticationStrategy.authenticate()** is called by the Hono middleware
-3. **AbstractBearerTokenService.extractCredentials()** extracts the token from the Authorization header
-4. **JWKSIssuerTokenService.doVerify()** calls `ensureInitialized()` (lazy-loads keys on first call), then verifies the JWT using the public key
-5. **AbstractBearerTokenService.decryptPayload()** decrypts the AES-encrypted payload fields (if AES configured)
-6. **User payload is set** on `context.get(Authentication.CURRENT_USER)`
-
-### JWKS Verifier Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MW as Auth Middleware
-    participant S as JWKSVerifierStrategy
-    participant SVC as JWKSVerifierTokenService
-    participant INIT as Lazy Init
-    participant REMOTE as Remote JWKS URL
-
-    C->>MW: Request + Authorization: Bearer <token>
-    MW->>S: authenticate(context)
-    S->>SVC: extractCredentials(context)
-    SVC-->>S: { type: "Bearer", token }
-    S->>SVC: verify({ type, token })
-    SVC->>INIT: ensureInitialized()
-    INIT->>REMOTE: createRemoteJWKSet(jwksUrl)
-    REMOTE-->>INIT: JWKS verifier function
-    INIT-->>SVC: initialized
-    SVC->>SVC: jwtVerify(token, jwksVerifier)
-    SVC->>SVC: decryptPayload() (if AES configured)
-    SVC-->>S: IJWTTokenPayload
-    S-->>MW: IAuthUser
-    MW->>C: Continue to handler
-```
-
-1. **Client sends request** with <code v-pre>Authorization: Bearer &lt;token&gt;</code> header
-2. **JWKSVerifierAuthenticationStrategy.authenticate()** is called by the Hono middleware
-3. **AbstractBearerTokenService.extractCredentials()** extracts the token from the Authorization header
-4. **JWKSVerifierTokenService.doVerify()** calls `ensureInitialized()` (creates remote JWKS verifier on first call), then verifies the JWT using the remote JWKS
-5. **AbstractBearerTokenService.decryptPayload()** decrypts the AES-encrypted payload fields (if AES configured)
-6. **User payload is set** on `context.get(Authentication.CURRENT_USER)`
-
-### Basic Authentication Flow
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MW as Auth Middleware
-    participant S as BasicAuthStrategy
-    participant SVC as BasicTokenService
-    participant CB as verifyCredentials callback
-
-    C->>MW: Request + Authorization: Basic <base64>
-    MW->>S: authenticate(context)
-    S->>SVC: extractCredentials(context)
-    SVC->>SVC: Base64 decode
-    SVC-->>S: { username, password }
-    S->>SVC: verify({ credentials, context })
-    SVC->>CB: verifyCredentials({ credentials, context })
-    CB-->>SVC: IAuthUser | null
-    alt valid user
-        SVC-->>S: IAuthUser
-        S-->>MW: IAuthUser
-        MW->>MW: Set CURRENT_USER + AUDIT_USER_ID
-        MW->>C: Continue to handler
-    else null (invalid)
-        SVC-->>S: throw 401
-        S-->>MW: throw 401
-        MW->>C: 401 Unauthorized
-    end
-```
-
-1. **Client sends request** with <code v-pre>Authorization: Basic &lt;base64(username:password)&gt;</code> header
-2. **BasicAuthenticationStrategy.authenticate()** is called by the Hono middleware
-3. **BasicTokenService.extractCredentials()** decodes the Base64 credentials
-4. **BasicTokenService.verify()** calls the user-provided `verifyCredentials` callback with `{ credentials, context }`
-5. **User payload is set** on `context.get(Authentication.CURRENT_USER)` if verification succeeds
-
-> [!IMPORTANT]
-> The `verifyCredentials` callback must perform all necessary validation (password hashing comparison, user lookup, etc.) and return an `IAuthUser` object or `null`.
-
-## Multi-Strategy Authentication
-
-When multiple strategies are configured on a route via `authenticate: { strategies: ['jwt', 'basic'] }`:
+| Mode | Behavior | Use case |
+|------|----------|----------|
+| `'any'` (default) | Strategies tried in order; first success wins; failures discarded (debug log); `401` with the tried-strategy list only if all fail | Fallback auth (JWT primary, Basic for legacy clients) |
+| `'all'` | Every strategy must pass; first failure rejects immediately; the **first** strategy's user payload is the identity source | Multi-factor authentication |
 
 ```mermaid
 flowchart TD
     REQ["Request arrives"] --> MODE{"mode?"}
-
-    MODE -->|"any (default)"| ANY["Try strategies in order"]
-    ANY --> S1{"Strategy 1"}
+    MODE -->|"any"| S1{"Strategy 1"}
     S1 -->|"Success"| WIN["Set user, continue"]
     S1 -->|"Fail"| S2{"Strategy 2"}
     S2 -->|"Success"| WIN
-    S2 -->|"Fail"| FAIL_ANY["401: Tried strategies: jwt, basic"]
-
-    MODE -->|"all"| ALL["Run all strategies"]
-    ALL --> A1{"Strategy 1"}
+    S2 -->|"Fail"| FAIL_ANY["401: Tried strategies"]
+    MODE -->|"all"| A1{"Strategy 1"}
     A1 -->|"Fail"| FAIL_ALL["Exception propagates"]
     A1 -->|"Pass"| A2{"Strategy 2"}
     A2 -->|"Fail"| FAIL_ALL
     A2 -->|"Pass"| CHECK{"userId?"}
     CHECK -->|"Yes"| WIN2["Set user, continue"]
     CHECK -->|"No"| FAIL_ID["401: Failed to identify user"]
-
-    style WIN fill:#d4edda,stroke:#28a745
-    style WIN2 fill:#d4edda,stroke:#28a745
-    style FAIL_ANY fill:#f8d7da,stroke:#dc3545
-    style FAIL_ALL fill:#f8d7da,stroke:#dc3545
-    style FAIL_ID fill:#f8d7da,stroke:#dc3545
 ```
 
-**`any` mode (default):**
-- Strategies are tried in the order specified
-- The first successful strategy wins
-- Errors from failing strategies are **discarded** (logged at debug level)
-- If all strategies fail, a `401 Unauthorized` error is thrown listing all tried strategies
-- **Use case:** Fallback authentication (try JWT, fallback to Basic)
+## Token encryption (optional AES)
 
-**`all` mode:**
-- Every strategy must pass successfully
-- If any strategy fails, the request is immediately rejected (exception propagates)
-- The **first** strategy's user payload is used as the identity source
-- **Use case:** Multi-factor authentication (both JWT and Basic required)
+- **Off by default.** AES payload encryption only activates when `applicationSecret` is set on the JWS/JWKS options - otherwise payloads are standard plaintext JWT.
+- **Standard fields untouched.** `iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat` are never encrypted, on either side.
+- **Everything else, key and value.** Every other payload field has both its key and its value AES-encrypted; `null`/`undefined` values are skipped.
+- **Serialization is `JSON.stringify` unless you supply a codec.** `AuthenticationFieldCodecs.ROLES_CODEC` is a ready-made codec that serializes `roles` as pipe-separated `id|identifier|priority` strings - it is opt-in, not automatic. Pass it via `fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC]` if you want that format instead of the default JSON array.
+- **Secret must stay constant.** Changing `applicationSecret` invalidates every existing token. Issuer and verifier must share the identical secret (and identical `fieldCodecs`, if used).
 
-> [!TIP]
-> Use `'any'` mode for graceful fallback (e.g., allow mobile apps to use JWT while legacy systems use Basic). Use `'all'` mode for high-security endpoints requiring multiple forms of authentication.
-
-## Token Encryption (Optional AES)
-
-```mermaid
-flowchart LR
-    subgraph GENERATE["generate() - Token Creation"]
-        direction TB
-        P["Payload: { userId, roles, email }"]
-        P --> CHECK1{"applicationSecret?"}
-        CHECK1 -->|"Yes"| ENC["encryptPayload()"]
-        ENC --> E1["Keep: iss, sub, aud, exp, iat"]
-        ENC --> E2["Encrypt keys + values"]
-        CHECK1 -->|"No"| PLAIN1["Use payload as-is"]
-    end
-
-    subgraph VERIFY["verify() - Token Verification"]
-        direction TB
-        T["Verified JWT payload"]
-        T --> CHECK2{"applicationSecret?"}
-        CHECK2 -->|"Yes"| DEC["decryptPayload()"]
-        DEC --> D1["Extract: iss, sub, aud, exp, iat"]
-        DEC --> D2["Decrypt keys + values"]
-        CHECK2 -->|"No"| PLAIN2["Use payload as-is"]
-    end
-
-    style GENERATE fill:#e8f4fd,stroke:#0d6efd
-    style VERIFY fill:#d4edda,stroke:#28a745
+```typescript
+this.bind<TJWTTokenServiceOptions>({ key: AuthenticateBindingKeys.JWT_OPTIONS }).toValue({
+  standard: JOSEStandards.JWS,
+  options: {
+    jwtSecret: process.env.APP_ENV_JWT_SECRET!,
+    getTokenExpiresFn: () => 86400,
+    applicationSecret: process.env.APP_ENV_APPLICATION_SECRET, // enables AES encryption
+    fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC],       // optional, opt-in
+  },
+});
 ```
 
-JWT payloads can optionally be encrypted field-by-field using AES (default `aes-256-cbc`) via the `@venizia/ignis-helpers` AES utility. This is configured by providing `applicationSecret` in the service options.
+## Hono context extension
 
-> [!NOTE]
-> AES payload encryption is **optional** for all JOSE standards (JWS and JWKS). When `applicationSecret` is not provided, payloads are stored in standard plaintext JWT format.
-
-**Encryption process (when `applicationSecret` is provided):**
-1. Standard JWT fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are preserved as-is
-2. All other fields have both their **keys** and **values** AES-encrypted
-3. The `roles` field is serialized as `id|identifier|priority` pipe-separated strings before encryption
-4. `null` and `undefined` values are skipped during encryption
-
-**Decryption process:**
-1. If AES is not configured (`this.aes` is null), the payload is returned as-is
-2. Standard JWT fields are extracted directly
-3. Encrypted fields have their keys decrypted first, then their values
-4. The `roles` field is deserialized: JSON-parsed to a string array, then each entry is split on `|` to reconstruct objects with `id`, `identifier`, and `priority` (where `priority` is converted to integer via `int()`)
-
-> [!WARNING]
-> The `applicationSecret` must remain constant across all instances of your application. Changing it will invalidate all existing tokens, as they cannot be decrypted with a different secret. In JWKS microservice setups, the issuer and all verifiers must share the same `applicationSecret`.
-
-## Hono Context Extension
-
-The Authentication module extends Hono's `ContextVariableMap` to provide type-safe access to auth data. Note: `ContextVariableMap` does **not** take a generic parameter - it is a plain interface augmentation:
+The module augments Hono's `ContextVariableMap` (a plain interface, not generic) so `c.get()` is type-safe:
 
 ```typescript
 declare module 'hono' {
@@ -754,435 +310,130 @@ declare module 'hono' {
 }
 ```
 
-This enables type-safe access in route handlers:
+| Constant | Key string | Type | Description |
+|----------|-----------|------|-------------|
+| `Authentication.CURRENT_USER` | `auth.current.user` | `IAuthUser` | Authenticated user payload |
+| `Authentication.AUDIT_USER_ID` | `audit.user.id` | `IdType` | Authenticated user's ID |
+| `Authentication.SKIP_AUTHENTICATION` | `authentication.skip` | `boolean` | Set `true` to bypass authentication |
 
-```typescript
-// TypeScript knows this is IAuthUser
-const user = c.get(Authentication.CURRENT_USER);
-```
+## API endpoints
 
-**Context variable keys (from `Authentication` constants):**
+The built-in auth controller exists only when `REST_OPTIONS.useAuthController: true` is set - see [Setup](./#common-tasks).
 
-| Key | Constant | Type | Description |
-|-----|----------|------|-------------|
-| `'auth.current.user'` | `Authentication.CURRENT_USER` | `IAuthUser` | The authenticated user payload |
-| `'audit.user.id'` | `Authentication.AUDIT_USER_ID` | `IdType` | The authenticated user's ID (extracted from `userId`) |
-| `'authentication.skip'` | `Authentication.SKIP_AUTHENTICATION` | `boolean` | Set to `true` to bypass authentication on a request |
-
-## Request Schemas
-
-### SignInRequestSchema
-
-The built-in schema uses a nested `identifier` + `credential` structure:
-
-```typescript
-const SignInRequestSchema = z.object({
-  identifier: z.object({
-    scheme: requiredString({ min: 4 }),  // e.g., 'username', 'email'
-    value: requiredString({ min: 8 }),   // the actual identifier value
-  }),
-  credential: z.object({
-    scheme: requiredString(),             // e.g., 'basic', 'password'
-    value: requiredString({ min: 8 }),   // the actual credential value
-  }),
-  clientId: z.string().optional(),        // optional auth provider
-});
-
-type TSignInRequest = z.infer<typeof SignInRequestSchema>;
-```
-
-### SignUpRequestSchema
-
-The built-in schema uses a **flat structure**:
-
-```typescript
-const SignUpRequestSchema = z.object({
-  username: z.string().nonempty().min(8),
-  credential: z.string().nonempty().min(8),
-});
-
-type TSignUpRequest = z.infer<typeof SignUpRequestSchema>;
-```
-
-### ChangePasswordRequestSchema
-
-```typescript
-const ChangePasswordRequestSchema = z.object({
-  scheme: z.string(),
-  oldCredential: requiredString({ min: 8 }),
-  newCredential: requiredString({ min: 8 }),
-  userId: z.string().or(z.number()),
-});
-
-type TChangePasswordRequest = z.infer<typeof ChangePasswordRequestSchema>;
-```
-
-### JWTTokenPayloadSchema
-
-Exported from the controller factory module. Used as the response schema for the `/who-am-i` endpoint:
-
-```typescript
-const JWTTokenPayloadSchema = z.object({
-  userId: z.string().or(z.number()),
-  roles: z.array(
-    z.object({
-      id: z.string().or(z.number()),
-      identifier: z.string(),
-      priority: z.number().int(),
-    }),
-  ),
-  clientId: z.string().optional(),
-  provider: z.string().optional(),
-  email: z.email().optional(),
-});
-```
-
-For the `/who-am-i` response, this schema is extended at runtime with an optional `userInformation` field (typed from `payload.getUserInformation.response.schema`, falling back to `AnyObjectSchema`) so the `withUserInformation` shape is OpenAPI-documented.
-
-## API Endpoints
-
-The built-in auth controller is created by the `defineAuthController()` factory function and is only available when `useAuthController: true` is set in `REST_OPTIONS`.
-
-| Method | Path | Auth Required | Description |
+| Method | Path | Auth required | Description |
 |--------|------|---------------|-------------|
-| `POST` | `/auth/sign-in` | No | Authenticate and receive a JWT token |
-| `POST` | `/auth/sign-up` | Configurable | Create a new user account |
+| `POST` | `/auth/sign-in` | No | Authenticate, receive a JWT |
+| `POST` | `/auth/sign-up` | Configurable (`requireAuthenticatedSignUp`) | Create a user account |
 | `POST` | `/auth/change-password` | JWT | Change the authenticated user's password |
-| `POST` | `/auth/token/refresh` | JWT | Re-issue an access token using a valid JWT |
-| `GET` | `/auth/who-am-i` | JWT | Return the current user's JWT payload (optionally with attached user information) |
-| `GET` | `/auth/me` | JWT | Return the current user's information from `getUserInformation` |
-| `GET` | `/certs` | No | JWKS endpoint (JWKS Issuer mode only) |
+| `POST` | `/auth/token/refresh` | JWT | Re-issue a token from the caller's valid JWT |
+| `GET` | `/auth/who-am-i` | JWT | Return the JWT payload, optionally merged with `getUserInformation` |
+| `GET` | `/auth/me` | JWT | Return `getUserInformation` result directly |
+| `GET` | `/certs` | No | JWKS endpoint (Issuer mode only) |
 
 > [!NOTE]
-> The base path `/auth` is configurable via `controllerOpts.restPath`. The `/certs` path is configurable via `rest.path` in `IJWKSIssuerOptions`. The `/certs` endpoint is intentionally unauthenticated - it serves the public keys needed by external verifiers.
+> `/auth` is configurable via `controllerOpts.restPath`; `/certs` via `rest.path` in `IJWKSIssuerOptions`. `/certs` is intentionally unauthenticated.
 
-### POST /auth/sign-in
-
-**Authentication:** None
-
-**Request Body:**
-
-Uses `SignInRequestSchema` by default, or a custom schema via `payload.signIn.request.schema`.
-
-**Response 200:**
-
-Uses `payload.signIn.response.schema` if provided, otherwise `AnyObjectSchema`.
+**`POST /auth/sign-in`** - body defaults to `SignInRequestSchema` (nested `identifier`/`credential`), overridable via `payload.signIn`.
 
 ```json
-{
-  "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6Im15LWtleS1pZC0xIn0..."
-}
+{ "token": "eyJhbGciOiJFUzI1NiIsImtpZCI6Im15LWtleS1pZC0xIn0..." }
 ```
 
-### POST /auth/sign-up
+**`POST /auth/sign-up`** - public unless `requireAuthenticatedSignUp: true`. Body defaults to a flat `SignUpRequestSchema` (`username`, `credential` - unlike sign-in's nested shape).
 
-**Authentication:** Configurable via `requireAuthenticatedSignUp` (default: `false`)
+**`POST /auth/change-password`** - always requires JWT. Body defaults to `ChangePasswordRequestSchema` (`scheme`, `oldCredential`, `newCredential`, `userId`).
 
-When `requireAuthenticatedSignUp: true`, requires JWT authentication. When `false`, the endpoint is public.
+**`POST /auth/token/refresh`** - always requires JWT, no request body. Returns `501` if `IAuthService.refreshToken` isn't implemented.
 
-### POST /auth/change-password
-
-**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
-
-### POST /auth/token/refresh
-
-**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
-
-Re-issues an access token using the caller's currently valid JWT. There is no separate refresh token - the caller must send a valid Bearer token in the `Authorization` header.
-
-**Request Body:** None
-
-**Response 200:**
-
-Uses `payload.refreshToken.response.schema` if provided, otherwise `AnyObjectSchema`. The response shape is entirely defined by your `IAuthService.refreshToken()` implementation.
-
-**Response 501 (Not Implemented):**
-
-Returned when the bound `IAuthService` does not implement the optional `refreshToken` method.
-
-**Implementing `refreshToken` in your service:**
-
-```typescript
-export class AuthenticationService extends BaseService implements IAuthService {
-  async refreshToken(context: TContext<Env>): Promise<{ token: string }> {
-    // The current user is already verified by JWT middleware
-    const currentUser = context.get(Authentication.CURRENT_USER);
-
-    // Re-issue a new token with the same payload
-    const token = await this._tokenService.generate({ payload: currentUser });
-    return { token };
-  }
-
-  // ... signIn, signUp, changePassword ...
-}
-```
-
-> [!NOTE]
-> The framework does not enforce rotation or revocation policy. If you need to invalidate old tokens after refresh, implement that logic (e.g., a token blocklist or short expiry) inside your `refreshToken` implementation.
-
-### GET /auth/who-am-i
-
-**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
-
-Returns the current user's decrypted JWT payload directly from context.
+**`GET /auth/who-am-i`** - always requires JWT. Query param `withUserInformation` (`true`/`false`/`1`/`0`, default `false`) attaches a `userInformation` field from `getUserInformation`; returns `501` if that method is truthy-requested but not implemented.
 
 ```json
-{
-  "userId": "123",
-  "roles": [
-    { "id": "1", "identifier": "admin", "priority": 0 }
-  ],
-  "clientId": "optional-client-id",
-  "provider": "optional-provider",
-  "email": "user@example.com"
-}
+{ "userId": "123", "roles": [{ "id": "1", "identifier": "admin", "priority": 0 }] }
 ```
 
-**Query Parameters:**
-
-| Name | Type | Description |
-|------|------|-------------|
-| `withUserInformation` | `true` \| `false` \| `1` \| `0` | When truthy, attaches a `userInformation` field built from `IAuthService.getUserInformation`. Defaults to `false`. |
-
-When `withUserInformation` is truthy, the response merges the `getUserInformation` result into the payload:
-
-```json
-{
-  "userId": "123",
-  "roles": [{ "id": "1", "identifier": "admin", "priority": 0 }],
-  "userInformation": { "fullName": "Ada Lovelace", "department": "R&D" }
-}
-```
-
-**Response 501 (Not Implemented):**
-
-Returned when `withUserInformation` is truthy but the bound `IAuthService` does not implement the optional `getUserInformation` method.
-
-### GET /auth/me
-
-**Authentication:** Always requires JWT (`Authentication.STRATEGY_JWT`)
-
-Returns the current user's information by delegating to `IAuthService.getUserInformation(context, {})`. Unlike `who-am-i`, the response is entirely the service result -- it is not merged with the JWT payload.
-
-**Response 200:**
-
-Uses `payload.getUserInformation.response.schema` if provided, otherwise `AnyObjectSchema`. The shape is defined by your `getUserInformation` implementation.
-
-**Response 501 (Not Implemented):**
-
-Returned when the bound `IAuthService` does not implement the optional `getUserInformation` method.
-
-**Implementing `getUserInformation` in your service:**
-
-```typescript
-export class AuthenticationService extends BaseService implements IAuthService {
-  async getUserInformation(context: TContext<Env>, _opts: AnyObject): Promise<AnyObject> {
-    // The current user is already verified by JWT middleware
-    const currentUser = context.get(Authentication.CURRENT_USER);
-    return this.userRepository.findById({ id: currentUser.userId });
-  }
-
-  // ... signIn, signUp, changePassword ...
-}
-```
+**`GET /auth/me`** - always requires JWT. Delegates entirely to `getUserInformation(context, {})` - the response is not merged with the JWT payload. Returns `501` if not implemented.
 
 > [!TIP]
-> One `getUserInformation` implementation backs both routes. Use `GET /me` when you want the raw profile, or `GET /who-am-i?withUserInformation=true` when you want it merged into the principal in a single round-trip.
+> One `getUserInformation` implementation backs both routes: use `GET /me` for the raw profile, `GET /who-am-i?withUserInformation=true` to get it merged with the principal in one round-trip.
 
-### GET /certs (JWKS Issuer Only)
-
-**Authentication:** None (intentionally public)
-
-Returns the JSON Web Key Set for external verifiers.
+**`GET /certs`** (Issuer mode only) - public, returns the JSON Web Key Set with `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`.
 
 ```json
-{
-  "keys": [
-    {
-      "kty": "EC",
-      "kid": "my-key-id-1",
-      "use": "sig",
-      "alg": "ES256",
-      "crv": "P-256",
-      "x": "...",
-      "y": "..."
-    }
-  ]
-}
+{ "keys": [{ "kty": "EC", "kid": "my-key-id-1", "use": "sig", "alg": "ES256", "crv": "P-256", "x": "...", "y": "..." }] }
 ```
 
-**Cache headers:** `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`
+## Entity column helpers
 
-## Auth Entity Column Helpers
-
-IGNIS provides column helper functions that return pre-configured Drizzle column objects for common auth-related database tables. These functions are designed to be spread into `pgTable()` definitions, giving you standardized columns for User, Role, Permission, and PolicyDefinition entities without manually defining each column.
-
-All helpers that accept an `opts` parameter support `{ idType: 'string' | 'number' }` to control whether foreign key columns use `text` (for UUIDs) or `integer` (for serial IDs). The default is `'number'`.
-
-### extraUserColumns
-
-**Import:** `import { extraUserColumns } from '@venizia/ignis';`
-
-**Signature:** `extraUserColumns(opts?: { idType: 'string' | 'number' })`
-
-| Column | DB Column | Type | Nullable | Default | Description |
-|--------|-----------|------|----------|---------|-------------|
-| `realm` | `realm` | `text` | Yes | `''` | Multi-tenancy realm identifier |
-| `status` | `status` | `text` | No | `UserStatuses.UNKNOWN` | User lifecycle status |
-| `type` | `type` | `text` | No | `UserTypes.SYSTEM` | User type (`SYSTEM` or `LINKED`) |
-| `activatedAt` | `activated_at` | `timestamp (tz)` | Yes | `null` | When the user was activated |
-| `lastLoginAt` | `last_login_at` | `timestamp (tz)` | Yes | `null` | Last login timestamp |
-| `parentId` | `parent_id` | `text` or `integer` | Yes | `null` | Parent user ID (type depends on `idType`) |
-
-### extraRoleColumns
-
-**Import:** `import { extraRoleColumns } from '@venizia/ignis';`
-
-**Signature:** `extraRoleColumns()`
-
-| Column | DB Column | Type | Nullable | Default | Description |
-|--------|-----------|------|----------|---------|-------------|
-| `identifier` | `identifier` | `text` (unique) | No | -- | Unique role identifier (e.g., `'admin'`, `'editor'`) |
-| `name` | `name` | `text` | No | -- | Human-readable role name |
-| `description` | `description` | `text` | Yes | `null` | Optional role description |
-| `priority` | `priority` | `integer` | No | -- | Role priority (lower = higher priority) |
-| `status` | `status` | `text` | No | `RoleStatuses.ACTIVATED` | Role lifecycle status |
-
-### extraPermissionColumns
-
-**Import:** `import { extraPermissionColumns } from '@venizia/ignis';`
-
-**Signature:** `extraPermissionColumns(opts?: { idType: 'string' | 'number' })`
-
-| Column | DB Column | Type | Nullable | Default | Description |
-|--------|-----------|------|----------|---------|-------------|
-| `code` | `code` | `text` (unique) | No | -- | Unique permission code |
-| `name` | `name` | `text` | No | -- | Permission display name |
-| `subject` | `subject` | `text` | No | -- | Permission subject (e.g., `'User'`, `'Order'`) |
-| `method` | `method` | `text` | No | -- | HTTP method (e.g., `'GET'`, `'POST'`) |
-| `action` | `action` | `text` | No | -- | Permitted action (e.g., `'read'`, `'write'`) |
-| `scope` | `scope` | `text` | No | -- | Permission scope |
-| `description` | `description` | `text` | Yes | `null` | Optional permission description |
-| `parentId` | `parent_id` | `text` or `integer` | Yes | `null` | Parent permission ID (type depends on `idType`) |
-
-### extraPolicyDefinitionColumns
-
-**Import:** `import { extraPolicyDefinitionColumns } from '@venizia/ignis';`
-
-**Signature:** `extraPolicyDefinitionColumns(opts?: { idType: 'string' | 'number' })`
-
-Provides columns for Casbin-style policy definitions that map subjects (users/roles) to targets (resources/permissions).
-
-| Column | DB Column | Type | Nullable | Default | Description |
-|--------|-----------|------|----------|---------|-------------|
-| `variant` | `variant` | `text` | No | -- | Policy variant (e.g., `'p'` for policy, `'g'` for grouping) |
-| `subjectType` | `subject_type` | `text` | No | -- | Type of subject (e.g., `'user'`, `'role'`) |
-| `targetType` | `target_type` | `text` | No | -- | Type of target (e.g., `'permission'`, `'role'`) |
-| `action` | `action` | `text` | Yes | `null` | Policy action |
-| `effect` | `effect` | `text` | Yes | `null` | Policy effect (e.g., `'allow'`, `'deny'`) |
-| `domain` | `domain` | `text` | Yes | `null` | Policy domain for multi-tenancy |
-| `subjectId` | `subject_id` | `text` or `integer` | No | -- | Subject ID (type depends on `idType`) |
-| `targetId` | `target_id` | `text` or `integer` | No | -- | Target ID (type depends on `idType`) |
-
-### Usage Example
+Column helper functions return pre-configured Drizzle columns for auth-related tables - spread them into `pgTable()` alongside your own columns.
 
 ```typescript
-import { pgTable, serial, text } from 'drizzle-orm/pg-core';
-import {
-  extraUserColumns,
-  extraRoleColumns,
-  extraPermissionColumns,
-  extraPolicyDefinitionColumns,
-} from '@venizia/ignis';
-import { withSerialId, withTimestamps } from '@venizia/ignis';
+import { pgTable, text } from 'drizzle-orm/pg-core';
+import { extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns, withSerialId, withTimestamps } from '@venizia/ignis';
 
-// User table
 export const users = pgTable('users', {
   ...withSerialId(),
   ...withTimestamps(),
   ...extraUserColumns(),
   username: text('username').unique().notNull(),
   passwordHash: text('password_hash').notNull(),
-  email: text('email').unique(),
 });
 
-// Role table
-export const roles = pgTable('roles', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraRoleColumns(),
-});
-
-// Permission table
-export const permissions = pgTable('permissions', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraPermissionColumns(),
-});
-
-// Policy definition table (Casbin-style policies)
-export const policyDefinitions = pgTable('policy_definitions', {
-  ...withSerialId(),
-  ...withTimestamps(),
-  ...extraPolicyDefinitionColumns(),
-});
-
-// With UUID-based IDs
-export const uuidUsers = pgTable('users', {
-  ...withUuidId(),
-  ...withTimestamps(),
-  ...extraUserColumns({ idType: 'string' }),
-  username: text('username').unique().notNull(),
-});
-
-export const uuidPolicies = pgTable('policy_definitions', {
-  ...withUuidId(),
-  ...withTimestamps(),
-  ...extraPolicyDefinitionColumns({ idType: 'string' }),
-});
+export const roles = pgTable('roles', { ...withSerialId(), ...withTimestamps(), ...extraRoleColumns() });
+export const permissions = pgTable('permissions', { ...withSerialId(), ...withTimestamps(), ...extraPermissionColumns() });
+export const policyDefinitions = pgTable('policy_definitions', { ...withSerialId(), ...withTimestamps(), ...extraPolicyDefinitionColumns() });
 ```
 
-### Context Variables
+**`extraUserColumns(opts?: { idType })`**
 
-The auth middleware sets several variables on the Hono `Context` object during request processing. These are declared via a `ContextVariableMap` module augmentation and can be accessed with `c.get()` / `c.set()`.
+| Column | DB column | Type | Default | Description |
+|--------|-----------|------|---------|-------------|
+| `realm` | `realm` | `text` | `''` | Multi-tenancy realm identifier |
+| `status` | `status` | `text` | `UserStatuses.UNKNOWN` | User lifecycle status |
+| `type` | `type` | `text` | `UserTypes.SYSTEM` | `SYSTEM` or `LINKED` |
+| `activatedAt` | `activated_at` | `timestamp (tz)` | `null` | Activation timestamp |
+| `lastLoginAt` | `last_login_at` | `timestamp (tz)` | `null` | Last login timestamp |
+| `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-| Constant | Key String | Type | Description |
-|----------|-----------|------|-------------|
-| `Authentication.CURRENT_USER` | `'auth.current.user'` | `IAuthUser` | The authenticated user payload, set after successful authentication |
-| `Authentication.AUDIT_USER_ID` | `'audit.user.id'` | `IdType` | The authenticated user's ID, extracted from the user payload |
-| `Authentication.SKIP_AUTHENTICATION` | `'authentication.skip'` | `boolean` | Set to `true` in a preceding middleware to bypass authentication for the current request |
-| `Authorization.RULES` | `'authorization.rules'` | `unknown` | Authorization rules resolved for the current request |
-| `Authorization.SKIP_AUTHORIZATION` | `'authorization.skip'` | `boolean` | Set to `true` to bypass authorization checks for the current request |
+**`extraRoleColumns()`** - no options.
 
-**Reading context variables in a handler:**
+| Column | DB column | Type | Default | Description |
+|--------|-----------|------|---------|-------------|
+| `identifier` | `identifier` | `text` (unique) | -- | e.g. `'admin'`, `'editor'` |
+| `name` | `name` | `text` | -- | Human-readable name |
+| `description` | `description` | `text` | `null` | Optional |
+| `priority` | `priority` | `integer` | -- | Lower = higher priority |
+| `status` | `status` | `text` | `RoleStatuses.ACTIVATED` | Role lifecycle status |
 
-```typescript
-import { Authentication, Authorization } from '@venizia/ignis';
+**`extraPermissionColumns(opts?: { idType })`**
 
-// Inside a route handler
-const currentUser = c.get(Authentication.CURRENT_USER);
-const userId = c.get(Authentication.AUDIT_USER_ID);
-const skipAuth = c.get(Authentication.SKIP_AUTHENTICATION);
-const authzRules = c.get(Authorization.RULES);
-```
+| Column | DB column | Type | Default | Description |
+|--------|-----------|------|---------|-------------|
+| `code` | `code` | `text` (unique) | -- | Unique permission code |
+| `name` | `name` | `text` | -- | Display name |
+| `subject` | `subject` | `text` | -- | e.g. `'User'`, `'Order'` |
+| `method` | `method` | `text` | -- | e.g. `'GET'`, `'POST'` |
+| `action` | `action` | `text` | -- | e.g. `'read'`, `'write'` |
+| `scope` | `scope` | `text` | -- | Permission scope |
+| `description` | `description` | `text` | `null` | Optional |
+| `parentId` | `parent_id` | `text` or `integer` | `null` | Depends on `idType` |
 
-**Skipping auth dynamically from middleware:**
+**`extraPolicyDefinitionColumns(opts?: { idType })`** - Casbin-style policies mapping subjects to targets.
 
-```typescript
-import { Authentication, Authorization } from '@venizia/ignis';
-import { createMiddleware } from 'hono/factory';
+| Column | DB column | Type | Nullable | Description |
+|--------|-----------|------|----------|-------------|
+| `variant` | `variant` | `text` | No | `'p'` (policy) or `'g'` (grouping) |
+| `subjectType` | `subject_type` | `text` | No | e.g. `'user'`, `'role'` |
+| `targetType` | `target_type` | `text` | No | e.g. `'permission'`, `'role'` |
+| `action` | `action` | `text` | Yes | Policy action |
+| `effect` | `effect` | `text` | Yes | `'allow'` / `'deny'` |
+| `domain` | `domain` | `text` | Yes | Multi-tenancy domain |
+| `subjectId` | `subject_id` | `text` or `integer` | No | Depends on `idType` |
+| `targetId` | `target_id` | `text` or `integer` | No | Depends on `idType` |
 
-const apiKeyMiddleware = createMiddleware(async (c, next) => {
-  if (c.req.header('X-API-Key') === process.env.INTERNAL_API_KEY) {
-    c.set(Authentication.SKIP_AUTHENTICATION, true);
-    c.set(Authorization.SKIP_AUTHORIZATION, true);
-  }
-  return next();
-});
-```
+All `idType` options default to `'number'` (`integer` columns); pass `'string'` for `text` (e.g. UUID) columns.
 
-## See Also
+## See also
 
-- [Setup & Configuration](./) -- Binding keys, options interfaces, and initial setup
-- [API Reference](./api) -- Architecture, service internals, and strategy registry
-- [Error Reference](./errors) -- Error messages and troubleshooting
+- [Overview](./) - initial setup and binding keys
+- [API Reference](./api) - full option tables, service class hierarchy, strategy registry
+- [Error Reference](./errors) - every error message and how to fix it

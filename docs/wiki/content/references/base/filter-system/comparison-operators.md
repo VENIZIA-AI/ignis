@@ -116,3 +116,15 @@ Matches records where field does NOT equal the value. Both `ne` and `neq` are al
 | `gte` | `>=` | Greater than or equal |
 | `lt` | `<` | Less than |
 | `lte` | `<=` | Less than or equal |
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [Range Operators](./range-operators) - `between`/`notBetween`, and the `gte`/`lte` equivalent shown above
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, per-operator SQL builders
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants

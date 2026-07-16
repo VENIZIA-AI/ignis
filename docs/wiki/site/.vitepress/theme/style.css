@@ -1423,29 +1423,23 @@ html.dark .honest-box {
 
 /* ─── Task B: Sidebar ───────────────────────────────────────────────────── */
 
-/* Active sidebar item: soft rounded pill + a short, inset, rounded rose accent tab.
-   (Replaces the old flush 2px edge bar that looked cramped against the text.) */
+/* Active sidebar item: a single soft rounded pill behind the text.
+   (One indicator only - the separate rose accent tab was removed.) */
 .VPSidebarItem.is-active > .item {
-  position: relative;
   margin: 1px 0;
 }
 .VPSidebarItem.is-active > .item .link {
-  position: relative;
   background: rgba(175, 95, 95, 0.11) !important;
   border-radius: 8px;
-  padding-left: 6px;
-}
-/* short rounded accent tab, vertically inset so it never hugs the text */
-.VPSidebarItem.is-active > .item .link::before {
-  content: '';
-  position: absolute;
-  left: -10px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 15px;
-  border-radius: 99px;
-  background: var(--ig-gradient);
+  /* breathing room: taller pill, inset from the container edges; the left
+     padding + equal negative margin keeps the text aligned with sibling items
+     while the pill extends into the indent gutter. */
+  padding-top: 6px;
+  padding-bottom: 6px;
+  padding-left: 12px;
+  padding-right: 12px;
+  margin-left: -12px;
+  margin-right: 8px;
 }
 .VPSidebarItem.is-active > .item .link .text {
   color: var(--ig-text) !important;

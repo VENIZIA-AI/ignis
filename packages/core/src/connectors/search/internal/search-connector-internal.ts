@@ -31,7 +31,7 @@ export class SearchConnectorInternal {
       statusCode: HTTP.ResultCodes.RS_5.ServiceUnavailable,
       messageCode: SearchErrorCodes.DEPENDENCY_UNAVAILABLE,
       message: `[${method}] Search engine is temporarily unavailable.`,
-      ...(details ? { details } : {}),
+      ...(details ? { extra: { details } } : {}),
     });
 
     // The original engine error carries the code the CALLER may need to classify on - Meilisearch

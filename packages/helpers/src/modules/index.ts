@@ -8,6 +8,7 @@ export * from './network';
 export * from './pool';
 export * from './queue';
 export * from './redis';
+export * from './secrets';
 export * from './socket';
 export * from './storage';
 export * from './uid';

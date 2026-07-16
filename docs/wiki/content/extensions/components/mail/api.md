@@ -1,6 +1,107 @@
-# Mail -- API Reference
+---
+title: Mail Component - Full Reference
+description: Binding keys, configuration options, interfaces, and internal implementation of the Mail component
+difficulty: intermediate
+---
 
-> Architecture, interfaces, and internal implementation details of the Mail component.
+# Mail Component Reference
+
+Every binding key, configuration variant, interface, and internal mechanism of `MailComponent`. For the task-oriented walkthrough, see [Usage & Examples](./usage).
+
+**Files:**
+
+- [`packages/core/src/components/mail/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts)
+- [`packages/core/src/components/mail/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
+- [`packages/core/src/components/mail/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/constants.ts)
+- [`packages/core/src/components/mail/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/keys.ts)
+- [`packages/core/src/components/mail/services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/mail.service.ts)
+- [`packages/core/src/components/mail/services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/template.service.ts)
+- [`packages/core/src/components/mail/services/generator.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/generator.service.ts)
+- [`packages/core/src/components/mail/providers/mail-transporter.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/providers/mail-transporter.provider.ts)
+- [`packages/core/src/components/mail/providers/mail-queue-executor.provider.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/providers/mail-queue-executor.provider.ts)
+- [`packages/core/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters/nodemail-transporter.helper.ts)
+- [`packages/core/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters/mailgun-transporter.helper.ts)
+- [`packages/core/src/components/mail/helpers/executors/direct-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/direct-executor.helper.ts)
+- [`packages/core/src/components/mail/helpers/executors/internal-queue-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/internal-queue-executor.helper.ts)
+- [`packages/core/src/components/mail/helpers/executors/bull-mq-executor.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors/bull-mq-executor.helper.ts)
+- [`packages/core/src/components/mail/utilities/type.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities/type.utility.ts)
+- [`packages/core/src/components/mail/utilities/verification.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities/verification.utility.ts)
+
+## Quick reference
+
+| Item | Value |
+|------|-------|
+| Package | `@venizia/ignis` |
+| Subpath | `@venizia/ignis/mail` |
+| Component class | `MailComponent` |
+| Runtimes | Both (Bun, Node.js) |
+
+| Component | Purpose |
+|-----------|---------|
+| `MailComponent` | Registers mail services, transporters, generators, and the queue executor |
+| `MailService` | `send()`, `sendBatch()`, `sendTemplate()`, `verify()` |
+| `TemplateEngineService` | <code v-pre>{{variable}}</code> substitution engine, in-memory template registry |
+| `NodemailerTransportHelper` | SMTP transport via `nodemailer` |
+| `MailgunTransportHelper` | Mailgun HTTP API transport via `mailgun.js` |
+| `DirectMailExecutorHelper` | Runs the processor immediately, no queue |
+| `InternalQueueMailExecutorHelper` | In-memory queue (`SequentialQueueHelper`) |
+| `BullMQMailExecutorHelper` | Redis-backed queue, distributed workers |
+| `MailTransportProvider` | Factory: `TMailOptions` -> `IMailTransport` |
+| `MailQueueExecutorProvider` | Factory: `IMailQueueExecutorConfig` -> `IMailQueueExecutor` |
+| `NumericCodeGenerator` | Cryptographically random numeric codes |
+| `RandomTokenGenerator` | Cryptographically random base64url tokens |
+| `DefaultVerificationDataGenerator` | Composes both generators into an `IVerificationData` |
+
+## Import paths
+
+```typescript
+import {
+  MailComponent,
+  MailKeys,
+  MailProviders,
+  MailErrorCodes,
+  MailDefaults,
+  MailExecutorErrors,
+  MailQueueExecutorTypes,
+  BullMQExecutorModes,
+  MailService,
+  TemplateEngineService,
+  NumericCodeGenerator,
+  RandomTokenGenerator,
+  DefaultVerificationDataGenerator,
+  MailTransportProvider,
+  MailQueueExecutorProvider,
+} from '@venizia/ignis/mail';
+
+import type {
+  TMailOptions,
+  IBaseMailOptions,
+  INodemailerMailOptions,
+  IMailgunMailOptions,
+  ICustomMailOptions,
+  IGenericMailOptions,
+  IMailService,
+  IMailTemplateEngine,
+  IMailMessage,
+  IMailSendResult,
+  IMailTransport,
+  IMailAttachment,
+  IMailQueueExecutor,
+  IMailQueueExecutorConfig,
+  IMailQueueOptions,
+  IMailQueueResult,
+  IMailProcessorResult,
+  ITemplate,
+  IVerificationCodeGenerator,
+  IVerificationTokenGenerator,
+  IVerificationDataGenerator,
+  IVerificationData,
+  IVerificationGenerationOptions,
+  TMailProvider,
+  TNodemailerConfig,
+  TMailgunConfig,
+} from '@venizia/ignis/mail';
+```
 
 ## Architecture
 
@@ -8,126 +109,285 @@
   ┌─────────────────────────────────────────────────┐
   │               Your Application                   │
   │                                                   │
-  │  NodemailerComponent (wrapper)                   │
-  │    ├── binds MailKeys.MAIL_OPTIONS               │
+  │  preConfigure()                                   │
+  │    ├── binds MailKeys.MAIL_OPTIONS  (required)   │
   │    ├── binds MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG │
+  │    │     (optional -- defaults to `direct`)       │
   │    └── registers MailComponent                    │
   └───────────────────────┬─────────────────────────┘
                           │
                           ▼
   ┌─────────────────────────────────────────────────┐
-  │               MailComponent                       │
+  │               MailComponent.binding()             │
   │                                                   │
-  │  binding()                                        │
-  │    ├── initGenerators()                           │
+  │    ├── initGenerators()   (transient bindings)    │
   │    │     ├── NumericCodeGenerator                 │
   │    │     ├── RandomTokenGenerator                 │
   │    │     └── DefaultVerificationDataGenerator     │
   │    │                                               │
-  │    ├── initProviders()                            │
-  │    │     ├── MailTransportProvider (singleton)     │
-  │    │     └── MailQueueExecutorProvider (singleton) │
+  │    ├── initProviders()    (singleton bindings)     │
+  │    │     ├── MailTransportProvider                 │
+  │    │     └── MailQueueExecutorProvider              │
   │    │                                               │
-  │    ├── initServices()                             │
-  │    │     ├── MailService (singleton)               │
-  │    │     └── TemplateEngineService (singleton)     │
+  │    ├── initServices()     (singleton bindings)     │
+  │    │     ├── MailService                            │
+  │    │     └── TemplateEngineService                  │
   │    │                                               │
   │    └── createAndBindInstances()                   │
-  │          ├── Transport Instance ◄── MAIL_OPTIONS  │
-  │          └── Queue Executor ◄── QUEUE_CONFIG      │
+  │          ├── Transport Instance  ◄── MAIL_OPTIONS  │
+  │          └── Queue Executor      ◄── QUEUE_CONFIG  │
+  │                                    (or the direct   │
+  │                                     default)        │
   └─────────────────────────────────────────────────┘
 ```
 
-**Architecture Components:**
+`MailService` and the queue executor are **independent** consumers of the transport/config -- `IMailQueueExecutor` never calls `MailService`. See [How it works](./#how-it-works) on the Overview for that distinction.
 
-- **`MailComponent`** -- Initializes and registers all mail services, transporters, and queue executors. Extends `BaseComponent`. Validates that `MailKeys.MAIL_OPTIONS` is bound before proceeding
-- **`MailService`** -- Extends `BaseService`. Provides `send()`, `sendBatch()`, `sendTemplate()`, and `verify()`. Injects transport instance and template engine. Validates messages before sending
-- **`TemplateEngineService`** -- Extends `BaseService`. Manages email templates with simple <code v-pre>{{variable}}</code> substitution. Stores templates in an in-memory `Map`
-- **`MailTransportProvider`** -- Extends `BaseProvider`. Factory that creates transport instances with type-guard methods (`isNodemailerOptions`, `isMailgunOptions`, `isCustomOptions`) and throws `MailErrorCodes` on invalid configs
-- **`MailQueueExecutorProvider`** -- Extends `BaseProvider`. Factory that creates queue executor instances. Throws for missing sub-configs (e.g., `config.internalQueue` or `config.bullmq`)
-- **Verification Generators** -- `NumericCodeGenerator`, `RandomTokenGenerator`, `DefaultVerificationDataGenerator`. Generate verification codes, tokens, and data for email verification flows
+**Source:** [`component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/component.ts)
 
-**Tech Stack:**
+## Binding keys
 
-- **Nodemailer** -- SMTP-based email sending (peer dependency: `nodemailer`)
-- **Mailgun** -- Mailgun API client (peer dependency: `mailgun.js`)
-- **BullMQ** (optional) -- Redis-backed queue for distributed processing (peer dependency: `bullmq`)
-- **Handlebars-style Templates** -- Simple <code v-pre>{{variable}}</code> syntax for email templates (no external dependency)
+| Key | Constant | Type | Required | Default |
+|-----|----------|------|----------|---------|
+| `@app/components/mail/options` | `MailKeys.MAIL_OPTIONS` | `TMailOptions` | **Yes** | -- |
+| `@app/components/mail/queue/executor-config` | `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` | `IMailQueueExecutorConfig` | No | `{ type: MailQueueExecutorTypes.DIRECT }` |
+| `@app/components/mail/service` | `MailKeys.MAIL_SERVICE` | `IMailService` | No | `MailService` (singleton) |
+| `@app/components/mail/services/template-engine` | `MailKeys.MAIL_TEMPLATE_ENGINE` | `IMailTemplateEngine` | No | `TemplateEngineService` (singleton) |
+| `@app/components/mail/transport-provider` | `MailKeys.MAIL_TRANSPORT_PROVIDER` | `TGetMailTransportFn` | No | `MailTransportProvider` (singleton) |
+| `@app/components/mail/transport-instance` | `MailKeys.MAIL_TRANSPORT_INSTANCE` | `IMailTransport` | No | Created by the component |
+| `@app/components/mail/queue-executor-provider` | `MailKeys.MAIL_QUEUE_EXECUTOR_PROVIDER` | `TGetMailQueueExecutorFn` | No | `MailQueueExecutorProvider` (singleton) |
+| `@app/components/mail/queue-executor-instance` | `MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE` | `IMailQueueExecutor` | No | Created by the component |
+| `@app/components/mail/verification/code-generator` | `MailKeys.MAIL_VERIFICATION_CODE_GENERATOR` | `IVerificationCodeGenerator` | No | `NumericCodeGenerator` (transient) |
+| `@app/components/mail/verification/token-generator` | `MailKeys.MAIL_VERIFICATION_TOKEN_GENERATOR` | `IVerificationTokenGenerator` | No | `RandomTokenGenerator` (transient) |
+| `@app/components/mail/verification/data-generator` | `MailKeys.MAIL_VERIFICATION_DATA_GENERATOR` | `IVerificationDataGenerator` | No | `DefaultVerificationDataGenerator` (transient) |
 
-## Transport Layer
+> [!IMPORTANT]
+> `MailKeys.MAIL_OPTIONS` is the only binding `MailComponent` requires. It throws `Mail options not configured` in `binding()` if the key is not bound. `MailKeys.MAIL_QUEUE_EXECUTOR_CONFIG` is read with `isOptional: true` -- when it is not bound, `createAndBindInstances()` falls back to `{ type: MailQueueExecutorTypes.DIRECT }` rather than failing startup.
 
-### Transport Layer Implementation
+**Source:** [`common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/keys.ts)
 
-The `MailTransportProvider` extends `BaseProvider` and returns a factory function from its `value()` method. It creates the appropriate transport based on the `provider` field in `MailKeys.MAIL_OPTIONS`:
+## Configuration
 
-- **`'nodemailer'`** -- Creates a `NodemailerTransportHelper` backed by `nodemailer` with SMTP or OAuth2 auth
-- **`'mailgun'`** -- Creates a `MailgunTransportHelper` using the Mailgun HTTP API
-- **`'custom'`** -- Expects the `config` value to implement `IMailTransport` directly (must have `send()` and `verify()`)
-- **Any other string** -- Falls through to `default` and throws `Unsupported mail provider: <provider>` with `MailErrorCodes.INVALID_CONFIGURATION`
+### Transport options (`TMailOptions`)
 
-The provider uses three private type-guard methods to narrow the union type before creating transports:
+A discriminated union on `provider`, extending `IBaseMailOptions`:
 
 ```typescript
-private isNodemailerOptions(options: TMailOptions): options is INodemailerMailOptions
-private isMailgunOptions(options: TMailOptions): options is IMailgunMailOptions
-private isCustomOptions(options: TMailOptions): options is ICustomMailOptions
+interface IBaseMailOptions {
+  from?: string;
+  fromName?: string;
+}
+
+interface INodemailerMailOptions extends IBaseMailOptions {
+  provider: 'nodemailer';
+  config: TNodemailerConfig; // SMTPTransport | SMTPTransport.Options | string
+}
+
+interface IMailgunMailOptions extends IBaseMailOptions {
+  provider: 'mailgun';
+  config: TMailgunConfig; // AnyType & { domain: string } -- also requires username, key at runtime
+}
+
+interface ICustomMailOptions extends IBaseMailOptions {
+  provider: 'custom';
+  config: IMailTransport; // Must implement send() and verify()
+}
+
+interface IGenericMailOptions extends IBaseMailOptions {
+  provider: string;
+  config: Record<string, AnyType>;
+}
+
+type TMailOptions =
+  | INodemailerMailOptions
+  | IMailgunMailOptions
+  | ICustomMailOptions
+  | IGenericMailOptions;
 ```
 
-For custom transports, an additional `isMailTransport()` utility validates that the config object has `send()` and `verify()` methods, reporting specific missing methods in the error message.
-
-Both built-in transports implement `IMailTransport`:
+**Nodemailer (SMTP with basic auth):**
 
 ```typescript
-interface IMailTransport {
-  send(message: IMailMessage): Promise<IMailSendResult>;
-  verify(): Promise<boolean>;
-  close?(): Promise<void>;
+{
+  provider: MailProviders.NODEMAILER,
+  from: 'noreply@example.com',
+  fromName: 'Example App',
+  config: {
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true,
+    auth: { user: 'your-email@gmail.com', pass: 'your-app-password' },
+  },
 }
 ```
 
-### Module Validation
+**Nodemailer (OAuth2):**
 
-Both `NodemailerTransportHelper` and `MailgunTransportHelper` call `validateModule()` in their `configure()` method before importing the peer dependency. This checks that the required npm module is installed:
+```typescript
+{
+  provider: MailProviders.NODEMAILER,
+  from: applicationEnvironment.get<string>('APP_ENV_MAIL_FROM') ?? 'noreply@example.com',
+  fromName: applicationEnvironment.get<string>('APP_ENV_MAIL_FROM_NAME') ?? 'Example App',
+  config: {
+    host: applicationEnvironment.get<string>('APP_ENV_MAIL_HOST') ?? 'smtp.gmail.com',
+    port: +(applicationEnvironment.get<number>('APP_ENV_MAIL_PORT') ?? 465),
+    secure: toBoolean(applicationEnvironment.get<boolean>('APP_ENV_MAIL_SECURE') ?? true),
+    auth: {
+      type: 'oauth2',
+      user: applicationEnvironment.get<string>('APP_ENV_MAIL_USER'),
+      clientId: applicationEnvironment.get<string>('APP_ENV_MAIL_CLIENT_ID'),
+      clientSecret: applicationEnvironment.get<string>('APP_ENV_MAIL_CLIENT_SECRET'),
+      refreshToken: applicationEnvironment.get<string>('APP_ENV_MAIL_REFRESH_TOKEN'),
+    },
+  },
+}
+```
 
-- `NodemailerTransportHelper` requires `nodemailer`
-- `MailgunTransportHelper` requires `mailgun.js`
+`APP_ENV_MAIL_*` is an app-level convention, not a framework-defined env var -- `applicationEnvironment.get()` reads whatever variables your wrapper component chooses to look up. A matching `.env`:
 
-If the module is not installed, `validateModule()` throws an error identifying the missing peer dependency.
+```
+APP_ENV_MAIL_HOST=smtp.gmail.com
+APP_ENV_MAIL_PORT=465
+APP_ENV_MAIL_SECURE=true
+APP_ENV_MAIL_USER=your-email@gmail.com
+APP_ENV_MAIL_CLIENT_ID=your-oauth2-client-id
+APP_ENV_MAIL_CLIENT_SECRET=your-oauth2-client-secret
+APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
+```
 
-**Nodemailer Transport:**
+> [!TIP]
+> For Gmail OAuth2, follow [Google's OAuth2 setup guide](https://developers.google.com/gmail/api/auth/web-server) to obtain the client ID, secret, and refresh token.
 
-The `NodemailerTransportHelper` extends `BaseHelper` and wraps Nodemailer's SMTP transport. In `configure()`, it calls `require('nodemailer')` and creates a transporter. Key behaviors:
-- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `, `
-- `send()` catches transport errors and returns `{ success: false, error: ... }` instead of throwing
-- `verify()` delegates to Nodemailer's built-in `transporter.verify()` SMTP handshake
-- `close()` calls `transporter.close()` to release the connection
+**Mailgun:**
 
-**Mailgun Transport:**
+```typescript
+{
+  provider: MailProviders.MAILGUN,
+  from: 'noreply@example.com',
+  fromName: 'Example App',
+  config: {
+    username: 'api',                        // required -- mailgun.js client username
+    key: process.env.MAILGUN_API_KEY,        // required -- Mailgun API key
+    domain: 'mg.example.com',                // required
+    host: 'api.eu.mailgun.net',              // optional -- EU region
+  },
+}
+```
 
-The `MailgunTransportHelper` extends `BaseHelper` and uses the Mailgun REST API via `mailgun.js`. In `configure()`, it creates a `Mailgun` client using `FormData`. Key behaviors:
-- `send()` converts `IMailMessage` to Mailgun's format: `to` becomes an array, `replyTo` becomes `h:Reply-To`, all custom headers are prefixed with `h:`
-- Attachments are mapped to `{ filename, data }` objects where `data` is `path ?? content ?? Buffer.from('')`
-- `verify()` sends a test email to `verify@<domain>` with `o:testmode: 'yes'` flag to check API credentials without actually sending
-- No `close()` method (HTTP API is stateless)
+> [!IMPORTANT]
+> `MailgunTransportHelper` validates `username`, `key`, and `domain` on construction and throws `Invalid Mailgun configuration | Missing required keys: <keys>` if any is missing -- this happens even though `TMailgunConfig`'s only *typed* requirement is `domain`. `username` and `key` are checked at runtime, not by the type.
 
-**Custom Transport:**
+**Custom transport:**
 
-You can provide your own transport implementation by setting `provider: MailProviders.CUSTOM` and passing an object that implements `IMailTransport` as the `config` value. The provider validates that `send()` and `verify()` are functions, reporting specific missing methods. This is useful for integrating with services like SendGrid, AWS SES, or custom SMTP relays.
+```typescript
+{
+  provider: MailProviders.CUSTOM,
+  from: 'noreply@example.com',
+  config: myTransportImplementingIMailTransport, // must have send() and verify()
+}
+```
 
-## IMailService Interface
+**Generic provider (extensibility escape hatch):**
+
+```typescript
+{
+  provider: 'sendgrid',
+  from: 'noreply@example.com',
+  config: { apiKey: process.env.SENDGRID_API_KEY },
+}
+```
+
+> [!WARNING]
+> `IGenericMailOptions` falls through to the `default` case in `MailTransportProvider` and throws `Unsupported mail provider: <provider>` -- it exists only for you to bind a **custom** `MailTransportProvider` that recognizes the provider string. It is not handled by the framework's built-in provider.
+
+### Queue executor options (`IMailQueueExecutorConfig`)
+
+```typescript
+interface IMailQueueExecutorConfig {
+  type: TConstValue<typeof MailQueueExecutorTypes>; // 'direct' | 'internal-queue' | 'bullmq'
+  internalQueue?: {
+    identifier: string;
+  };
+  bullmq?: {
+    redis: IRedisSingleHelperOptions;
+    queue: { identifier: string; name: string };
+    mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED -- no default
+  };
+}
+```
+
+```typescript
+// Direct (also the implicit default when MAIL_QUEUE_EXECUTOR_CONFIG is unbound)
+{ type: 'direct' }
+
+// Internal queue (in-memory)
+{ type: 'internal-queue', internalQueue: { identifier: 'mail-internal-queue' } }
+
+// BullMQ (Redis-backed)
+{
+  type: 'bullmq',
+  bullmq: {
+    redis: { host: 'localhost', port: 6379, password: 'your-redis-password' },
+    queue: { identifier: 'mail-queue', name: 'mail-queue' },
+    mode: 'both', // 'queue-only' | 'worker-only' | 'both' -- required, no default
+  },
+}
+```
+
+> [!NOTE]
+> Choosing an executor: **`direct`** for development or low-volume apps (no queueing overhead); **`internal-queue`** for single-instance apps with moderate volume (in-memory, with retry); **`bullmq`** for distributed or high-volume systems (Redis-backed, configurable concurrency/priority/backoff).
+
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
+
+### Constants
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MailDefaults.BATCH_CONCURRENCY` | `5` | Default concurrent sends in `sendBatch()` |
+| `MailDefaults.FALLBACK_FROM` | `'noreply@example.com'` | Used by `getDefaultFrom()` when `options.from` is unset |
+| `MailExecutorErrors.PROCESSOR_NOT_SET` | `'Processor not set. Call setProcessor() first.'` | Thrown by all three queue executors |
+| `MailQueueExecutorTypes.DIRECT` | `'direct'` | Immediate execution |
+| `MailQueueExecutorTypes.INTERNAL_QUEUE` | `'internal-queue'` | In-memory queue |
+| `MailQueueExecutorTypes.BULLMQ` | `'bullmq'` | Redis-backed queue |
+| `BullMQExecutorModes.QUEUE_ONLY` | `'queue-only'` | Producer only (enqueue) |
+| `BullMQExecutorModes.WORKER_ONLY` | `'worker-only'` | Consumer only (process) |
+| `BullMQExecutorModes.BOTH` | `'both'` | Full duplex (produce + consume) |
+
+`MailQueueExecutorTypes` and `BullMQExecutorModes` both carry a `SCHEME_SET`/`MODE_SET` and a static `isValid()`:
+
+```typescript
+MailQueueExecutorTypes.isValid('bullmq');  // true
+MailQueueExecutorTypes.isValid('unknown'); // false
+BullMQExecutorModes.isValid('both');       // true
+BullMQExecutorModes.isValid('invalid');    // false
+```
+
+#### `MailErrorCodes`
+
+Built through `MessageCode.build()`, so every value is lower-case (`ApplicationError` lower-cases whatever it is handed):
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `MailErrorCodes.INVALID_CONFIGURATION` | `'core.mail.invalid_configuration'` | Invalid or missing configuration (transport, template engine, subject, body) |
+| `MailErrorCodes.SEND_FAILED` | `'core.mail.send_failed'` | Single email send failed |
+| `MailErrorCodes.VERIFICATION_FAILED` | `'core.mail.verification_failed'` | Transport connection verification failed |
+| `MailErrorCodes.INVALID_RECIPIENT` | `'core.mail.invalid_recipient'` | Missing or empty recipient address |
+| `MailErrorCodes.BATCH_SEND_FAILED` | `'core.mail.batch_send_failed'` | Batch email operation failed |
+| `MailErrorCodes.TEMPLATE_NOT_FOUND` | `'core.mail.template_not_found'` | Template name not found in registry |
+
+**Source:** [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/constants.ts)
+
+## `IMailService` interface
 
 ```typescript
 interface IMailService {
-  // Send a single email
   send(message: IMailMessage): Promise<IMailSendResult>;
 
-  // Send multiple emails with controlled concurrency
   sendBatch(
     messages: IMailMessage[],
     options?: { concurrency?: number },
   ): Promise<IMailSendResult[]>;
 
-  // Send email using a registered template
   sendTemplate(opts: {
     templateName: string;
     data: Record<string, any>;
@@ -135,100 +395,77 @@ interface IMailService {
     options?: Partial<IMailMessage>;
   }): Promise<IMailSendResult>;
 
-  // Verify transport connection
   verify(): Promise<boolean>;
 }
 ```
 
-**Method Details:**
+**`send(message)`**
 
-**`send(message: IMailMessage)`**
+1. `validateMessage()` throws for missing `to`, missing `subject`, or missing both `text`/`html` (400, see below).
+2. Merges `message.from` with `getDefaultFrom()` if unset.
+3. Delegates to `transport.send()`.
+4. Returns `{ success, messageId, error? }`.
+5. If the transport throws and the error is **not** already an `ApplicationError`, it is caught and re-thrown as `MailErrorCodes.SEND_FAILED` (500). An `ApplicationError` thrown earlier in the same `try` block (e.g. from `validateMessage()`) is re-thrown as-is, unchanged.
 
-Sends a single email using the configured transport. Internally:
-1. Calls `validateMessage()` which throws for missing `to`, `subject`, or both `text`/`html` (see error reference below)
-2. Merges `message.from` with the default from address (via `getDefaultFrom()`)
-3. Delegates to `transport.send()`
-4. Returns a result object with `success`, `messageId`, and optional `error` fields
-5. If the transport throws, catches the error and re-throws with `MailErrorCodes.SEND_FAILED`
+**`sendBatch(messages, options?)`**
 
-**`sendBatch(messages: IMailMessage[], options?: { concurrency?: number })`**
+Sends every message via `send()` with concurrency bounded by `executePromiseWithLimit()`, default `MailDefaults.BATCH_CONCURRENCY` (`5`). A `send()` that throws is caught per-message and downgraded to `{ success: false, error }`; a failure in the batch operation itself throws `MailErrorCodes.BATCH_SEND_FAILED`.
 
-Sends multiple emails with controlled concurrency using `executePromiseWithLimit()`. Default concurrency is `MailDefaults.BATCH_CONCURRENCY` (5). Each message is sent via `send()` individually. If an individual `send()` throws, it is caught and converted to `{ success: false, error: '...' }` so the batch continues. If the entire batch operation fails, throws with `MailErrorCodes.BATCH_SEND_FAILED`.
+**`sendTemplate(opts)`**
 
-**`sendTemplate(opts: { templateName, data, recipients, options? })`**
-
-Renders a registered template with the provided data and sends the email. The subject is resolved through a priority chain:
-
-1. `options.subject` -- explicit override from the caller
-2. Template subject rendered through the template engine (if `templateData.subject` is defined)
-3. `'No Subject'` -- fallback if neither is provided
-
-Throws `MailErrorCodes.INVALID_CONFIGURATION` if the template engine is not configured. Re-throws any other errors (including `TEMPLATE_NOT_FOUND` from the template engine).
+Renders a registered template and sends it. Subject resolution order: `options.subject` -> the template's own `subject` (rendered through the same engine) -> `'No Subject'`. Throws `MailErrorCodes.INVALID_CONFIGURATION` ("Template engine not configured") if `templateEngine` was not injected. Re-throws any other error unchanged, including `TEMPLATE_NOT_FOUND` from the template engine.
 
 **`verify()`**
 
-Verifies the transport connection without sending an email. Delegates to `transport.verify()`. If the transport throws, catches and re-throws with `MailErrorCodes.VERIFICATION_FAILED`.
+Delegates to `transport.verify()`. If the transport throws, wraps it as `MailErrorCodes.VERIFICATION_FAILED` (500).
 
-### Protected Methods (MailService)
+### Protected methods (`MailService`)
 
-**`validateMessage(message: IMailMessage)`**
+**`validateMessage(message)`**
 
-Pre-transport validation that throws immediately for invalid messages:
-
-| Check | Error Code | Status | Message |
+| Check | Error code | Status | Message |
 |-------|-----------|--------|---------|
-| `to` is falsy or empty array | `INVALID_RECIPIENT` | 400 | `Recipient email address is required` |
+| `to` is falsy or an empty array | `INVALID_RECIPIENT` | 400 | `Recipient email address is required` |
 | `subject` is falsy | `INVALID_CONFIGURATION` | 400 | `Email subject is required` |
 | Both `text` and `html` are falsy | `INVALID_CONFIGURATION` | 400 | `Email must have either text or html content` |
 
 **`getDefaultFrom()`**
 
-Constructs the default "from" address. If `options.fromName` is set, returns `"fromName" <from>`. Otherwise returns `options.from ?? 'noreply@example.com'`.
+- If `options.from` is unset, returns `MailDefaults.FALLBACK_FROM` (`'noreply@example.com'`).
+- Else if `options.fromName` is unset, returns `options.from` as-is.
+- Else returns `"${fromName}" <${from}>`.
 
-## IMailMessage Interface
+**Source:** [`services/mail.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/mail.service.ts)
+
+## `IMailMessage` interface
 
 ```typescript
 interface IMailMessage {
-  from?: string; // Sender email (uses default if not provided)
-  to: string | string[]; // Recipient(s)
-  cc?: string | string[]; // CC recipient(s)
-  bcc?: string | string[]; // BCC recipient(s)
-  replyTo?: string; // Reply-to address
-  subject: string; // Email subject
-  text?: string; // Plain text content
-  html?: string; // HTML content
-  attachments?: IMailAttachment[]; // File attachments
-  headers?: Record<string, string>; // Custom headers
-  requireValidate?: boolean; // Validate template data
-  [key: string]: any; // Additional arbitrary fields
+  from?: string;                  // Uses getDefaultFrom() if not provided
+  to: string | string[];
+  cc?: string | string[];
+  bcc?: string | string[];
+  replyTo?: string;
+  subject: string;
+  text?: string;
+  html?: string;
+  attachments?: IMailAttachment[];
+  headers?: Record<string, string>;
+  requireValidate?: boolean;      // Passed through to sendTemplate()'s render() call
+  [key: string]: any;             // Open-ended -- provider-specific fields pass through
 }
 ```
 
-**Field Details:**
-
-**`from`**
-
-Sender email address. If not provided, uses the default `from` value from `MailKeys.MAIL_OPTIONS`. When `fromName` is configured, the default from is formatted as `"Display Name" <email@example.com>`. Can be overridden per-message for multi-tenant scenarios.
-
-**`to`, `cc`, `bcc`**
-
-Recipient addresses. Can be a single string or an array of strings. Format can be either plain email (`user@example.com`) or display name + email (`John Doe <john@example.com>`). For Nodemailer, arrays are joined with `, `. For Mailgun, arrays are passed as-is.
-
-**`replyTo`**
-
-Reply-to address if different from the sender. Useful for no-reply addresses that route replies to a support inbox. Mailgun maps this to `h:Reply-To`.
-
-**`subject`**
-
-Email subject line. Supports template variables when used with `sendTemplate()` (the subject is rendered through the same template engine).
-
-**`text`, `html`**
-
-Plain text and HTML versions of the email body. At least one must be provided (validated by `validateMessage()`). Most email clients prefer HTML but fall back to text if HTML is not available. Best practice is to provide both.
-
-**`attachments`**
-
-Array of `IMailAttachment` objects:
+| Field | Notes |
+|-------|-------|
+| `from` | Falls back to `getDefaultFrom()`. Can be overridden per message (multi-tenant scenarios). |
+| `to`, `cc`, `bcc` | Single string or array. Nodemailer joins arrays with `', '`; Mailgun passes `to` as-is (always coerced to an array), `cc`/`bcc` pass through unmodified. |
+| `replyTo` | Nodemailer passes it directly; Mailgun maps it to `h:Reply-To`. |
+| `subject` | Rendered through the template engine when set via `sendTemplate()`. |
+| `text`, `html` | At least one is required (`validateMessage()`). |
+| `attachments` | See `IMailAttachment` below. |
+| `headers` | Nodemailer passes them directly; Mailgun prefixes every key with `h:`. |
+| `requireValidate` | `true` makes template rendering throw on missing placeholders instead of preserving them as literal text. Defaults to `false`. |
 
 ```typescript
 interface IMailAttachment {
@@ -241,28 +478,17 @@ interface IMailAttachment {
 }
 ```
 
-Examples:
-- A file path: `{ filename: 'doc.pdf', path: '/path/to/doc.pdf' }`
-- A buffer: `{ filename: 'data.txt', content: Buffer.from('...') }`
-- An inline image: `{ filename: 'logo.png', path: '...', cid: 'logo' }`
+- File path: `{ filename: 'doc.pdf', path: '/path/to/doc.pdf' }`
+- Buffer: `{ filename: 'data.txt', content: Buffer.from('...') }`
+- Inline image: `{ filename: 'logo.png', path: '...', cid: 'logo' }`
+- Mailgun maps each attachment to `{ filename, data: att.path ?? att.content ?? Buffer.from('') }`.
 
-**`headers`**
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
 
-Custom SMTP headers. For Nodemailer, passed directly. For Mailgun, each key is auto-prefixed with `h:`.
-
-**`requireValidate`**
-
-When `true`, template rendering will throw an error if any <code v-pre>{{variable}}</code> placeholders are missing from the data object. Defaults to `false` (missing variables are preserved as their original placeholder text, not replaced with empty strings).
-
-**`[key: string]: any`**
-
-The interface is open-ended -- additional fields are accepted for provider-specific options.
-
-## IMailTemplateEngine Interface
+## `IMailTemplateEngine` interface
 
 ```typescript
 interface IMailTemplateEngine {
-  // Render a template with data
   render(opts: {
     templateData?: string;
     templateName?: string;
@@ -270,64 +496,32 @@ interface IMailTemplateEngine {
     requireValidate?: boolean;
   }): string;
 
-  // Register a new template
   registerTemplate(opts: { name: string; content: string }): void;
 
-  // Validate template data
   validateTemplateData(opts: { template: string; data: Record<string, any> }): {
     isValid: boolean;
     missingKeys: string[];
     allKeys: string[];
   };
 
-  // Get a registered template
   getTemplate(name: string): ITemplate | undefined;
-
-  // List all registered templates
   listTemplates(): ITemplate[];
-
-  // Check if template exists
   hasTemplate(name: string): boolean;
-
-  // Remove a template
   removeTemplate(name: string): boolean;
 }
 ```
 
-**Method Details:**
+`TemplateEngineService` also exposes `clearTemplates(): void` -- it resets the registry but is **not** part of the `IMailTemplateEngine` interface, so it is only reachable when you hold the concrete class, not the interface type.
 
-**`render(opts: { templateData?, templateName?, data, requireValidate? })`**
-
-Renders a template by name (from registry) or by raw template string (`templateData`). At least one of `templateData` or `templateName` must be provided -- throws if neither is given. If `templateName` is used, looks up the template and throws `TEMPLATE_NOT_FOUND` if not registered. Delegates to `renderSimpleTemplate()` which replaces all <code v-pre>{{variable}}</code> placeholders with values from the `data` object. If `requireValidate` is `true`, throws `INVALID_CONFIGURATION` if any placeholders are missing from the data.
-
-**`registerTemplate(opts: { name, content, options? })`**
-
-Registers a new template in the in-memory registry. The `options` parameter (on the class implementation) can include `subject` and `description` via `Partial<ITemplate>`. Overwrites any existing template with the same name.
-
-**`validateTemplateData(opts: { template, data })`**
-
-Extracts all <code v-pre>{{variable}}</code> placeholders from the template string using the regex `/\{\{(\s*[\w.]+\s*)\}\}/g`. Deduplicates keys. For each unique key, resolves nested values via dot notation. Returns:
-- `isValid` -- `true` if all placeholders have non-null, non-undefined values
-- `missingKeys` -- Array of placeholder names that are missing or null/undefined in the data
-- `allKeys` -- Array of all unique placeholder names found in the template
-
-**`getTemplate(name: string)`**
-
-Retrieves a registered template by name. Returns `undefined` if the template does not exist.
-
-**`listTemplates()`**
-
-Returns an array of all registered templates (values from the internal `Map`).
-
-**`hasTemplate(name: string)`**
-
-Checks if a template with the given name exists in the registry.
-
-**`removeTemplate(name: string)`**
-
-Removes a template from the registry. Logs the removal. Returns `true` if the template was found and removed, `false` otherwise.
-
-### ITemplate Interface
+| Method | Behavior |
+|--------|----------|
+| `render(opts)` | Renders by `templateName` (registry lookup) or raw `templateData`. Throws if neither is given. Throws `TEMPLATE_NOT_FOUND` (404) if `templateName` is not registered. Delegates to `renderSimpleTemplate()`. |
+| `registerTemplate(opts)` | `options` (on the class) accepts `subject`/`description` (`Partial<ITemplate>`). Overwrites an existing template with the same name. |
+| `validateTemplateData(opts)` | Extracts every unique <code v-pre>{{key}}</code> via `/\{\{(\s*[\w.]+\s*)\}\}/g`, deduplicates, resolves nested dot-notation values. Returns `isValid`, `missingKeys`, `allKeys`. |
+| `getTemplate(name)` | Returns `undefined` if not registered. |
+| `listTemplates()` | All templates, as an array of `ITemplate`. |
+| `hasTemplate(name)` | Registry membership check. |
+| `removeTemplate(name)` | Logs the removal, returns `true`/`false`. |
 
 ```typescript
 interface ITemplate {
@@ -339,24 +533,64 @@ interface ITemplate {
 }
 ```
 
-The `render` function on the interface supports custom render implementations, though the built-in `TemplateEngineService` uses `content` + `renderSimpleTemplate()` instead.
+The `render` field supports a custom per-template render function, though the built-in `TemplateEngineService` always uses `content` + `renderSimpleTemplate()` instead.
 
-## Additional Interfaces
+**Source:** [`services/template.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/services/template.service.ts)
 
-### IMailSendResult
+## Transport layer
+
+`MailTransportProvider.value()` returns a factory function that switches on `TMailOptions.provider`:
+
+| Provider | Result |
+|----------|--------|
+| `'nodemailer'` | `NodemailerTransportHelper`, backed by `nodemailer` |
+| `'mailgun'` | `MailgunTransportHelper`, backed by the Mailgun HTTP API (`mailgun.js`) |
+| `'custom'` | The `config` value itself, validated to implement `IMailTransport` |
+| Any other string | Throws `Unsupported mail provider: <provider>` (`INVALID_CONFIGURATION`, 500) |
+
+Type narrowing uses three private guards, each checking `provider === X && 'config' in options`:
 
 ```typescript
-interface IMailSendResult {
-  success: boolean;
-  messageId?: string;
-  response?: any;
-  error?: string;
+private isNodemailerOptions(options: TMailOptions): options is INodemailerMailOptions
+private isMailgunOptions(options: TMailOptions): options is IMailgunMailOptions
+private isCustomOptions(options: TMailOptions): options is ICustomMailOptions
+```
+
+For `custom`, an additional `isMailTransport()` utility check reports specifically which of `send`/`verify` is missing.
+
+```typescript
+interface IMailTransport {
+  send(message: IMailMessage): Promise<IMailSendResult>;
+  verify(): Promise<boolean>;
+  close?(): Promise<void>;
 }
 ```
 
-Returned by `send()` and individual entries in the `sendBatch()` result array. Transport-level errors populate `error` with the message string.
+### Peer dependency loading
 
-### IMailQueueExecutor
+Neither transport calls a shared `validateModule()` helper. `configure()` calls `require('nodemailer')` / `require('mailgun.js')` directly -- if the package is not installed, Node's own `Cannot find module '<name>'` error propagates uncaught from the constructor, not a framework-formatted message.
+
+**Nodemailer (`NodemailerTransportHelper`, extends `BaseHelper`):**
+
+- `configure()` builds the transporter via `nodemailer.createTransport(config)`.
+- `send()` maps `IMailMessage` fields to Nodemailer's mail options, joining array recipients with `', '`. Catches transport errors and returns `{ success: false, error }` -- never throws.
+- `verify()` delegates to `transporter.verify()` (SMTP handshake). Catches errors and returns `false` -- never throws.
+- `close()` calls `transporter.close()`.
+
+**Mailgun (`MailgunTransportHelper`, extends `BaseHelper`):**
+
+- `configure()` calls `validateConfig()` **before** building the client: `username`, `key`, and `domain` must all be present in `config`, or it throws `Invalid Mailgun configuration | Missing required keys: <keys>` (`INVALID_CONFIGURATION`, 500). This check runs even though `TMailgunConfig`'s type only requires `domain`.
+- `send()` converts `IMailMessage` to Mailgun's format: `to` is coerced to an array, `replyTo` becomes `h:Reply-To`, every custom header is prefixed `h:`. Attachments map to `{ filename, data: path ?? content ?? Buffer.from('') }`. Catches send errors and returns `{ success: false, error }` -- never throws.
+- `verify()` sends a test message to `verify@<domain>` with `o:testmode: 'yes'` (Mailgun has no dedicated verify endpoint). Catches errors and returns `false` -- never throws.
+- No `close()` -- the HTTP API is stateless.
+
+**Custom transport:** set `provider: MailProviders.CUSTOM` and pass an object implementing `IMailTransport` as `config`. Useful for SendGrid, AWS SES, or a custom SMTP relay that the framework does not ship a helper for.
+
+**Source:** [`helpers/transporters/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/transporters)
+
+## Queue executor implementations
+
+All three implement:
 
 ```typescript
 interface IMailQueueExecutor {
@@ -365,49 +599,70 @@ interface IMailQueueExecutor {
 }
 ```
 
-### IMailQueueOptions
+**`DirectMailExecutorHelper`** (extends `BaseHelper`) -- calls the processor immediately, no queue. Returns `{ queued: false, message: 'Email sent immediately (no queue)', result }`. Throws `MailExecutorErrors.PROCESSOR_NOT_SET` if `enqueueVerificationEmail()` runs before `setProcessor()`.
+
+**`InternalQueueMailExecutorHelper`** (extends `BaseHelper`, constructor takes `IInternalQueueMailExecutorOpts`) -- wraps `SequentialQueueHelper<IQueueJobPayload>` from `@venizia/ignis-helpers`, `autoDispatch: true`.
+
+- Job IDs: `job_<counter>_<timestamp>`.
+- `options.delay > 0` schedules the enqueue itself via `setTimeout`, tracked in an internal `delayedJobs: Map<string, NodeJS.Timeout>`.
+- Retry: on a thrown error or `{ success: false }` from the processor, retries up to `options.attempts ?? 3` times. `calculateBackoff()`: no `backoff` config -> `1000ms` fixed; `type: 'fixed'` -> the raw `delay`; `type: 'exponential'` -> `delay * 2 ** (attempt - 1)`.
+- `close()` clears every pending delayed/retry `setTimeout` -- without it, a live timer keeps the event loop open past shutdown.
+- No persistence across restarts.
+
+**`BullMQMailExecutorHelper`** (extends `BaseHelper`, constructor takes `IBullMQMailExecutorOpts`) -- wraps `BullMQHelper` (`@venizia/ignis-helpers/bullmq`) and a `RedisSingleHelper` connection.
+
+| Mode | Queue created | Workers created | Can enqueue | Can process |
+|------|----------------|------------------|-------------|-------------|
+| `'queue-only'` | Yes | No (`setProcessor()` skips worker creation, logs a warning) | Yes -- processor not required | No |
+| `'worker-only'` | No | Yes | No (throws) | Yes |
+| `'both'` | Yes | Yes | Yes -- processor required | Yes |
+
+- `setProcessor(processor, opts?)` is `async`. It clears all existing workers, then creates `opts?.numberOfWorkers ?? 1` workers, each with `concurrencyPerWorker ?? 5` and `lockDuration ?? 30000`ms. In `queue-only` mode it stores the processor and returns without creating any worker.
+- `enqueueVerificationEmail()` throws `Cannot enqueue jobs in worker-only mode...` in `worker-only` mode; throws `Queue helper not initialized...` if the queue was never created (should not happen in a queue-enabled mode); throws `PROCESSOR_NOT_SET` only when `mode !== 'queue-only'` and no processor is set. Enqueue options: `attempts: options?.attempts ?? 3`, `backoff: { type: options?.backoff?.type ?? 'exponential', delay: options?.backoff?.delay ?? 1000 }`, `removeOnComplete: true`, `removeOnFail: false`.
+- **Dynamic workers:** `addWorker(opts)` (requires a processor, unique identifier, default concurrency `5`, default lock duration `30000`ms), `removeWorker(index)` (closes then splices, returns `false` if out of range), `clearWorkers()` (closes and empties, called internally by `setProcessor()`), `getWorkerCount()`, `getMode()`.
+- `close()` tears down workers, then the queue, then the Redis connection -- every step runs even if an earlier one failed, and all failures are collected into one thrown error at the end.
 
 ```typescript
+interface IBullMQMailExecutorOpts {
+  redis: IRedisSingleHelperOptions; // from @venizia/ignis-helpers
+  queue: { identifier: string; name: string };
+  mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED, no default
+}
+```
+
+**Source:** [`helpers/executors/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/helpers/executors)
+
+## Additional interfaces
+
+```typescript
+interface IMailSendResult {
+  success: boolean;
+  messageId?: string;
+  response?: any;
+  error?: string;
+}
+
 interface IMailQueueOptions {
   priority?: number;
   delay?: number;
   attempts?: number;
-  backoff?: {
-    type: 'fixed' | 'exponential';
-    delay: number;
-  };
+  backoff?: { type: 'fixed' | 'exponential'; delay: number };
 }
-```
 
-### IMailQueueResult
-
-```typescript
 interface IMailQueueResult {
   jobId?: string;
-  queued: boolean;
+  queued: boolean;   // false for direct execution, true for internal-queue and bullmq
   message: string;
-  result?: IMailProcessorResult;
+  result?: IMailProcessorResult; // populated only for direct execution (synchronous processor)
 }
-```
 
-Returned by `enqueueVerificationEmail()`. The `queued` field is `false` for direct execution, `true` for internal queue and BullMQ. The `result` field is populated only for direct execution (since the processor runs synchronously).
-
-### IMailProcessorResult
-
-```typescript
 interface IMailProcessorResult {
   success: boolean;
   message: string;
   expiresInMinutes: number;
   nextResendAt?: string;
 }
-```
 
-The return type of the processor function registered via `setProcessor()`.
-
-### IVerificationData
-
-```typescript
 interface IVerificationData {
   verificationCode: string;
   codeGeneratedAt: string;
@@ -418,88 +673,50 @@ interface IVerificationData {
   tokenExpiresAt: string;
   lastCodeSentAt: string;
 }
-```
 
-### IVerificationGenerationOptions
-
-```typescript
 interface IVerificationGenerationOptions {
-  codeLength: number;
+  codeLength: number;       // all four fields required, no defaults
   tokenBytes: number;
   codeExpiryMinutes: number;
   tokenExpiryHours: number;
 }
-```
 
-All fields are required. Passed to `DefaultVerificationDataGenerator.generateVerificationData()`.
+interface IQueueJobPayload {
+  id: string;
+  email: string;
+  options?: IMailQueueOptions;
+  attempts: number;
+  scheduledAt: number;
+}
 
-### IBullMQMailExecutorOpts
-
-```typescript
-interface IBullMQMailExecutorOpts {
-  redis: IRedisHelperOptions;
-  queue: { identifier: string; name: string };
-  mode: TConstValue<typeof BullMQExecutorModes>; // REQUIRED
+interface IInternalQueueMailExecutorOpts {
+  identifier: string;
 }
 ```
 
-The `mode` field is **required** -- there is no default value. This is the config object for `IMailQueueExecutorConfig.bullmq`.
+**Source:** [`common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/common/types.ts)
 
-### BullMQ Dynamic Worker Management Methods
-
-Dynamic worker management methods (on `BullMQMailExecutorHelper`, not on the interface):
-
-- **`addWorker(opts)`** -- Adds a new BullMQ worker with configurable concurrency (default 5) and lock duration (default 30000ms). Requires `setProcessor()` to have been called first. Each worker gets a unique identifier
-- **`removeWorker(index)`** -- Removes a worker by its array index. Calls `worker.close()` before removal. Returns `false` if the index is out of range
-- **`clearWorkers()`** -- Closes all workers and empties the worker array. Called internally by `setProcessor()` before creating new workers
-- **`getWorkerCount()`** -- Returns the current number of active workers
-- **`getMode()`** -- Returns the current executor mode
-
-**Extended `setProcessor()` signature (BullMQ only):**
-
-Unlike the interface's synchronous `setProcessor()`, the BullMQ executor's version is `async` and accepts an optional second argument:
+## Utility functions
 
 ```typescript
-async setProcessor(
-  processor: (email: string) => Promise<IMailProcessorResult>,
-  opts?: {
-    numberOfWorkers?: number;       // default: 1
-    concurrencyPerWorker?: number;  // default: 5
-    lockDuration?: number;          // default: 30000 (ms)
-  },
-): Promise<void>
-```
-
-It clears all existing workers before creating new ones. In `queue-only` mode, it stores the processor but skips worker creation entirely (logs a warning).
-
-## Utility Functions
-
-### Type Utilities
-
-```typescript
-// Check if a value implements IMailTransport
+// type.utility.ts
 function isMailTransport(value: AnyType): value is IMailTransport;
-
-// Check if a value is valid TMailOptions
 function isValidMailOptions(options: AnyType): options is TMailOptions;
+
+// verification.utility.ts
+function getExpiryTime(minutes: number): Date;         // Date `minutes` minutes from now
+function getExpiryTimeInHours(hours: number): Date;     // Date `hours` hours from now
 ```
 
-`isMailTransport()` checks for `send` and `verify` as functions, and `close` as either a function or undefined.
+- `isMailTransport()` checks that `send` and `verify` are functions, and that `close` is either a function or `undefined`.
+- `isValidMailOptions()` checks that `provider` is a string and `config` is truthy -- it does not validate the shape of `config` against the specific provider.
 
-`isValidMailOptions()` checks for a string `provider` field and a truthy `config` field.
+**Source:** [`utilities/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/mail/utilities)
 
-### Verification Utilities
+## See also
 
-```typescript
-// Get a Date object `minutes` minutes in the future
-function getExpiryTime(minutes: number): Date;
-
-// Get a Date object `hours` hours in the future
-function getExpiryTimeInHours(hours: number): Date;
-```
-
-## See Also
-
-- [Setup & Configuration](./) -- Quick reference, setup steps, configuration options, and binding keys
-- [Usage & Examples](./usage) -- Sending emails, templates, queue executors, and verification
-- [Error Reference](./errors) -- Error codes and troubleshooting
+- [Overview](./) -- quick start, imports, common configuration tasks
+- [Usage & Examples](./usage) -- sending emails, templates, queue executors, verification generators
+- [Error Reference](./errors) -- error codes and troubleshooting
+- [Queue Helper](/extensions/helpers/queue/) -- `SequentialQueueHelper` and `BullMQHelper`
+- [Redis Helper](/extensions/helpers/redis/) -- `RedisSingleHelper`, `IRedisSingleHelperOptions`

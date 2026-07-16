@@ -1,6 +1,6 @@
 # Socket.IO -- Setup & Configuration
 
-> Real-time, bidirectional, event-based communication using Socket.IO -- with automatic runtime detection for both Node.js and Bun.
+> Real-time, bidirectional, event-based communication using Socket.IO -- with automatic runtime detection for Node.js and Bun, horizontal scaling via Redis, and a built-in authentication handshake.
 
 ## Quick Reference
 
@@ -13,394 +13,101 @@
 | **Runtimes** | Node.js (`@hono/node-server`) and Bun (native) |
 | **Scaling** | `@socket.io/redis-adapter` + `@socket.io/redis-emitter` |
 
-#### Import Paths
-
 > [!IMPORTANT]
-> `SocketIOComponent` and `SocketIOBindingKeys` are **not** exported from the `@venizia/ignis` barrel. You must import from the `@venizia/ignis/socket-io` subpath.
+> `SocketIOComponent` and `SocketIOBindingKeys` are **not** exported from the `@venizia/ignis` barrel -- import from the `@venizia/ignis/socket-io` subpath.
 
 ```typescript
 // From core -- subpath import (NOT from '@venizia/ignis')
-import {
-  SocketIOComponent,
-  SocketIOBindingKeys,
-} from '@venizia/ignis/socket-io';
+import { SocketIOComponent, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 
 // From helpers -- subpath import
-import {
-  SocketIOServerHelper,
-  SocketIOClientHelper,
-  SocketIOConstants,
-  SocketIOClientStates,
-} from '@venizia/ignis-helpers/socket-io';
-
-// Types from helpers subpath
-import type {
-  TSocketIOAuthenticateFn,
-  TSocketIOValidateRoomFn,
-  TSocketIOClientConnectedFn,
-  ISocketIOClientOptions,
-  IOptions,
-  TSocketIOEventHandler,
-  TSocketIOClientState,
-} from '@venizia/ignis-helpers/socket-io';
+import { SocketIOServerHelper, SocketIOClientHelper, SocketIOConstants } from '@venizia/ignis-helpers/socket-io';
+import type { TSocketIOAuthenticateFn, TSocketIOValidateRoomFn } from '@venizia/ignis-helpers/socket-io';
 ```
 
-### Use Cases
+**Use cases:**
 
 - Live notifications and alerts
-- Real-time chat and messaging
-- Collaborative editing (docs, whiteboards)
-- Live data streams (dashboards, monitoring)
+- Real-time chat and collaborative editing
+- Live dashboards and monitoring streams
 - Multiplayer game state synchronization
-- Service-to-service real-time communication (via `SocketIOClientHelper`)
+- Service-to-service real-time messaging (via `SocketIOClientHelper`)
 
-## Server Helper Setup
+## Setup
 
-### Step 1: Install Dependencies
+Three pieces are bound in `preConfigure()`, before the component itself is registered:
 
-```bash
-# Core dependency (already included via @venizia/ignis)
-# ioredis is required for the Redis adapter
-
-# For Bun runtime only -- optional peer dependency
-bun add @socket.io/bun-engine
-```
-
-### Step 2: Bind Required Services
-
-In your application's `preConfigure()` method, bind the required services and register the component:
+| Step | Binding key | Required |
+|------|-------------|----------|
+| 1. Redis connection | `SocketIOBindingKeys.REDIS_CONNECTION` | Yes |
+| 2. Authenticate handler | `SocketIOBindingKeys.AUTHENTICATE_HANDLER` | Yes |
+| 3. Room / connected handlers | `VALIDATE_ROOM_HANDLER`, `CLIENT_CONNECTED_HANDLER` | No |
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import {
-  SocketIOComponent,
-  SocketIOBindingKeys,
-} from '@venizia/ignis/socket-io';
+import { SocketIOComponent, SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 import { RedisSingleHelper, ValueOrPromise } from '@venizia/ignis-helpers';
-import type {
-  TSocketIOAuthenticateFn,
-  TSocketIOValidateRoomFn,
-  TSocketIOClientConnectedFn,
-} from '@venizia/ignis-helpers/socket-io';
+import type { TSocketIOAuthenticateFn } from '@venizia/ignis-helpers/socket-io';
 
 export class Application extends BaseApplication {
-  private redisHelper: RedisSingleHelper;
-
   preConfigure(): ValueOrPromise<void> {
-    this.setupSocketIO();
-    // ... other setup
-  }
-
-  setupSocketIO() {
-    // 1. Redis connection (required for adapter + emitter)
-    this.redisHelper = new RedisSingleHelper({
+    // 1. Redis connection -- required for the adapter + emitter
+    const redisHelper = new RedisSingleHelper({
       name: 'socket-io-redis',
       host: process.env.REDIS_HOST ?? 'localhost',
       port: +(process.env.REDIS_PORT ?? 6379),
-      password: process.env.REDIS_PASSWORD,
       autoConnect: false,
     });
+    this.bind({ key: SocketIOBindingKeys.REDIS_CONNECTION }).toValue(redisHelper);
 
-    this.bind<RedisSingleHelper>({
-      key: SocketIOBindingKeys.REDIS_CONNECTION,
-    }).toValue(this.redisHelper);
+    // 2. Authentication handler -- required
+    const authenticateFn: TSocketIOAuthenticateFn = handshake => !!handshake.headers.authorization;
+    this.bind({ key: SocketIOBindingKeys.AUTHENTICATE_HANDLER }).toValue(authenticateFn);
 
-    // 2. Authentication handler (required)
-    const authenticateFn: TSocketIOAuthenticateFn = handshake => {
-      const token = handshake.headers.authorization;
-      // Implement your auth logic -- JWT verification, session check, etc.
-      return !!token;
-    };
-
-    this.bind<TSocketIOAuthenticateFn>({
-      key: SocketIOBindingKeys.AUTHENTICATE_HANDLER,
-    }).toValue(authenticateFn);
-
-    // 3. Room validation handler (optional -- joins rejected without this)
-    const validateRoomFn: TSocketIOValidateRoomFn = ({ socket, rooms }) => {
-      // Return the rooms that the client is allowed to join
-      const allowedRooms = rooms.filter(room => room.startsWith('public-'));
-      return allowedRooms;
-    };
-
-    this.bind<TSocketIOValidateRoomFn>({
-      key: SocketIOBindingKeys.VALIDATE_ROOM_HANDLER,
-    }).toValue(validateRoomFn);
-
-    // 4. Client connected handler (optional)
-    const clientConnectedFn: TSocketIOClientConnectedFn = ({ socket }) => {
-      console.log('Client connected:', socket.id);
-      // Register custom event handlers on the socket
-    };
-
-    this.bind<TSocketIOClientConnectedFn>({
-      key: SocketIOBindingKeys.CLIENT_CONNECTED_HANDLER,
-    }).toValue(clientConnectedFn);
-
-    // 5. Register the component -- that's it!
+    // 3. Register the component
     this.component(SocketIOComponent);
   }
 }
 ```
 
-#### `autoConnect: false` Rationale
-
-The `RedisSingleHelper` is created with `autoConnect: false` because the server helper internally calls `client.duplicate()` to create 3 independent Redis connections (pub, sub, emitter). The duplicated clients inherit the `lazyConnect` setting from the parent. During `configure()`, the helper detects clients in `wait` status and explicitly calls `client.connect()` on each, then awaits all 3 to reach `ready` status before proceeding. This avoids race conditions where the parent connects before the duplicates are created.
-
-#### Redis Connection Alternatives
-
-You can use `RedisSingleHelper` (single Redis instance), `RedisClusterHelper` (Redis Cluster mode), or `RedisSentinelHelper` (Sentinel HA). All extend `AbstractRedisHelper` and satisfy the `IRedisHelper` interface that the component validates against:
-
-```typescript
-import { RedisClusterHelper } from '@venizia/ignis-helpers';
-
-// For Redis Cluster deployments
-const redisHelper = new RedisClusterHelper({
-  name: 'socket-io-redis-cluster',
-  nodes: [
-    { host: 'redis-node-1', port: 6379 },
-    { host: 'redis-node-2', port: 6380 },
-    { host: 'redis-node-3', port: 6381 },
-  ],
-  password: process.env.REDIS_PASSWORD,
-  autoConnect: false,
-});
-
-this.bind<RedisClusterHelper>({
-  key: SocketIOBindingKeys.REDIS_CONNECTION,
-}).toValue(redisHelper);
-```
-
-The internal `TRedisClient` type is `Redis | Cluster`, so both ioredis connection types are supported transparently.
-
-## Configuration
-
-### Default Server Options
-
-The component applies these defaults if `SocketIOBindingKeys.SERVER_OPTIONS` is not bound or partially overridden:
-
-| Option | Default | Description |
-|--------|---------|-------------|
-| `identifier` | `'SOCKET_IO_SERVER'` | Unique identifier for the helper instance |
-| `path` | `'/io'` | URL path for Socket.IO handshake/polling |
-| `cors.origin` | `'*'` | Allowed origins (restrict in production!) |
-| `cors.methods` | `['GET', 'POST']` | Allowed HTTP methods for CORS preflight |
-| `cors.preflightContinue` | `false` | Pass preflight to next handler |
-| `cors.optionsSuccessStatus` | `204` | Status code for successful OPTIONS requests |
-| `cors.credentials` | `true` | Allow cookies/auth headers |
-| `perMessageDeflate.threshold` | `4096` | Minimum message size to compress (bytes) |
-| `perMessageDeflate.concurrencyLimit` | `20` | Max concurrent compression operations |
-| `perMessageDeflate.clientNoContextTakeover` | `true` | Client releases compression context after each message |
-| `perMessageDeflate.serverNoContextTakeover` | `true` | Server releases compression context after each message |
-| `perMessageDeflate.serverMaxWindowBits` | `10` | Server-side maximum window size (2^10 = 1KB) |
-
 > [!WARNING]
-> The default `cors.origin: '*'` is suitable for development only. In production, restrict this to your specific domains.
+> `autoConnect: false` is required on the Redis helper -- the server helper duplicates the connection into 3 independent clients and connects them itself during `configure()`. Connecting the parent first races against the duplicates. Full step-by-step setup (Bun peer dependency, room validation, cluster/sentinel Redis, the `autoConnect` rationale) is in [Usage & Examples](./usage#full-setup).
 
-#### Full `DEFAULT_SERVER_OPTIONS`
-```typescript
-const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
-  identifier: 'SOCKET_IO_SERVER',
-  path: '/io',
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST'],
-    preflightContinue: false,
-    optionsSuccessStatus: 204,
-    credentials: true,
-  },
-  perMessageDeflate: {
-    threshold: 4096,
-    zlibDeflateOptions: { chunkSize: 10 * 1024 },
-    zlibInflateOptions: { windowBits: 12, memLevel: 8 },
-    clientNoContextTakeover: true,
-    serverNoContextTakeover: true,
-    serverMaxWindowBits: 10,
-    concurrencyLimit: 20,
-  },
-};
-```
+## How It Works
 
-### Custom Configuration
+- **Post-start hook, not immediate init.** Socket.IO needs a running server, but components initialize *before* the server starts. `binding()` resolves all bindings and registers a post-start hook; the hook builds `SocketIOServerHelper` and binds it to `SOCKET_IO_INSTANCE` only after `start()` brings the server up.
+- **Runtime detection picks the wiring.** `RuntimeModules.detect()` selects Node.js (Socket.IO attaches to `node:http.Server` directly) or Bun (`@socket.io/bun-engine` is dynamically imported and wired into `server.reload()`). See the [runtime matrix](./api#runtime-specific-behavior) for the full comparison.
+- **One Redis connection becomes three.** The connection you bind is never consumed directly -- the helper calls `duplicateClient()` three times: a pub/sub pair for the Redis adapter (cross-instance room broadcast) and a third client for the Redis emitter (cross-instance direct send).
+- **Authentication is mandatory.** Every client starts `unauthorized` and must emit `authenticate` within `authenticateTimeout` (default 10s) or it is disconnected. Success joins the client to the default rooms and starts a keep-alive ping.
+- **Room joins are opt-in by default.** Without a bound `VALIDATE_ROOM_HANDLER`, every `join` request is silently rejected -- security-by-default, not a bug.
 
-Bind custom server options before registering the component:
+## Common Tasks
+
+**Restrict CORS for production.** Bind `SERVER_OPTIONS` before registering the component -- the default (`cors.origin: '*'`) is for local development only.
 
 ```typescript
-import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
 import type { ServerOptions } from 'socket.io';
 
-const customOptions: Partial<ServerOptions> = {
-  path: '/socket.io',
-  cors: {
-    origin: ['https://myapp.com', 'https://admin.myapp.com'],
-    methods: ['GET', 'POST'],
-    credentials: true,
-  },
-  pingTimeout: 60000,
-  pingInterval: 25000,
-  maxHttpBufferSize: 1e6, // 1MB
-};
-
-this.bind<Partial<ServerOptions>>({
-  key: SocketIOBindingKeys.SERVER_OPTIONS,
-}).toValue(customOptions);
-
+this.bind<Partial<ServerOptions>>({ key: SocketIOBindingKeys.SERVER_OPTIONS }).toValue({
+  cors: { origin: ['https://myapp.com'], credentials: true },
+});
 this.component(SocketIOComponent);
 ```
 
-> [!NOTE]
-> The `identifier` field is part of the component's `IServerOptions` interface (which extends `ServerOptions`), not Socket.IO's native options. To set the identifier, include it in the bound options object.
+**Send a message from a service.** `SOCKET_IO_INSTANCE` is bound by the component after the server starts, so resolve it lazily -- never `@inject` it in a constructor. Full pattern in [Usage & Examples](./usage).
 
-## Binding Keys
-
-All binding keys are available in `SocketIOBindingKeys`:
-
-| Binding Key | Constant | Type | Required | Default |
-|------------|----------|------|----------|---------|
-| `@app/socket-io/server-options` | `SERVER_OPTIONS` | `Partial<ServerOptions>` | No | See defaults above |
-| `@app/socket-io/redis-connection` | `REDIS_CONNECTION` | `IRedisHelper` (`RedisSingleHelper` / `RedisClusterHelper` / `RedisSentinelHelper`) | **Yes** | `null` |
-| `@app/socket-io/authenticate-handler` | `AUTHENTICATE_HANDLER` | `TSocketIOAuthenticateFn` | **Yes** | `null` |
-| `@app/socket-io/validate-room-handler` | `VALIDATE_ROOM_HANDLER` | `TSocketIOValidateRoomFn` | No | `null` |
-| `@app/socket-io/client-connected-handler` | `CLIENT_CONNECTED_HANDLER` | `TSocketIOClientConnectedFn` | No | `null` |
-| `@app/socket-io/instance` | `SOCKET_IO_INSTANCE` | `SocketIOServerHelper` | -- | *Set by component* |
-
-> [!NOTE]
-> `SOCKET_IO_INSTANCE` is **not** set by you -- the component creates and binds it automatically after the server starts. Inject it in services/controllers to interact with Socket.IO.
-
-## Constants
-
-Constants are exported from `@venizia/ignis-helpers/socket-io` and used internally by both the component and the helper.
-
-### System Events
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `SocketIOConstants.EVENT_PING` | `'ping'` | Keep-alive ping emitted at `pingInterval` (default: 30s) |
-| `SocketIOConstants.EVENT_CONNECT` | `'connection'` | New client connected (server-side event) |
-| `SocketIOConstants.EVENT_DISCONNECT` | `'disconnect'` | Client disconnected |
-| `SocketIOConstants.EVENT_JOIN` | `'join'` | Client requests to join room(s) |
-| `SocketIOConstants.EVENT_LEAVE` | `'leave'` | Client requests to leave room(s) |
-| `SocketIOConstants.EVENT_AUTHENTICATE` | `'authenticate'` | Client sends auth credentials |
-| `SocketIOConstants.EVENT_AUTHENTICATED` | `'authenticated'` | Auth success response sent to client |
-| `SocketIOConstants.EVENT_UNAUTHENTICATE` | `'unauthenticated'` | Auth failure response sent to client |
-
-### Default Rooms
-
-All authenticated clients are automatically joined to these rooms:
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `SocketIOConstants.ROOM_DEFAULT` | `'io-default'` | Default room all authenticated clients join |
-| `SocketIOConstants.ROOM_NOTIFICATION` | `'io-notification'` | Notification broadcast room |
-
-> [!TIP]
-> You can override default rooms via the `defaultRooms` option on `SocketIOServerHelper`. The component uses the defaults above when not overridden.
-
-### Internal Constants (Server Helper)
-
-These constants are defined at module scope in the server helper and are not exported, but they govern default behavior:
-
-| Constant | Value | Description |
-|----------|-------|-------------|
-| `CLIENT_AUTHENTICATE_TIMEOUT` | `10_000` (10s) | Time allowed for a client to authenticate before forced disconnect |
-| `CLIENT_PING_INTERVAL` | `30_000` (30s) | Interval between server-to-client ping emissions |
-
-Both can be overridden via the `authenticateTimeout` and `pingInterval` constructor options on `SocketIOServerHelper`.
-
-### Client States
-
-Each connected client tracks an authentication state that governs what actions are permitted:
-
-| State | Constant | Description |
-|-------|----------|-------------|
-| `unauthorized` | `SocketIOClientStates.UNAUTHORIZED` | Initial state -- client must emit `authenticate` within the timeout (default: 10s) |
-| `authenticating` | `SocketIOClientStates.AUTHENTICATING` | Auth in progress -- `authenticateFn` is executing |
-| `authenticated` | `SocketIOClientStates.AUTHENTICATED` | Auth successful -- client can send/receive events and join rooms |
-
-#### State Machine Diagram
-```
-                    +------------------+
- connect ---------->|  unauthorized    |
-                    +--------+---------+
-                             | emit('authenticate')
-                    +--------v---------+
-                    |  authenticating   |
-                    +---+----------+---+
-            success |              | failure
-          +---------v--+   +-------v-----------+
-          |authenticated|   |   unauthorized   |--> disconnect
-          +-------------+   +------------------+
-                                  ^
-                            timeout (10s)
-```
-
-#### `SocketIOClientStates` Source
 ```typescript
-export class SocketIOClientStates {
-  static readonly UNAUTHORIZED = 'unauthorized';
-  static readonly AUTHENTICATING = 'authenticating';
-  static readonly AUTHENTICATED = 'authenticated';
-
-  static readonly SCHEME_SET = new Set([
-    this.UNAUTHORIZED,
-    this.AUTHENTICATING,
-    this.AUTHENTICATED,
-  ]);
-
-  static isValid(input: string): input is TConstValue<typeof SocketIOClientStates> {
-    return this.SCHEME_SET.has(input);
-  }
-}
+this.io.send({ destination: userId, payload: { topic: 'notification', data } });
 ```
 
-### Resolved Bindings
+**Scale Redis beyond a single node.** Swap `RedisSingleHelper` for `RedisClusterHelper` or `RedisSentinelHelper` -- both satisfy the `IRedisHelper` interface the component validates against. See [Redis Connection Alternatives](./usage#redis-connection-alternatives).
 
-The component resolves all binding keys into a single `IResolvedBindings` object during the `binding()` phase:
-
-#### `IResolvedBindings` Interface
-```typescript
-interface IResolvedBindings {
-  redisConnection: IRedisHelper;
-  authenticateFn: TSocketIOAuthenticateFn;
-  validateRoomFn?: TSocketIOValidateRoomFn;
-  clientConnectedFn?: TSocketIOClientConnectedFn;
-}
-```
-
-#### Callback Type Signatures
-```typescript
-// Called with the socket handshake -- return true to authenticate, false to reject
-type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
-
-// Called when client emits 'join' -- return the subset of rooms the client is allowed to join
-type TSocketIOValidateRoomFn = (opts: {
-  socket: IOSocket;
-  rooms: string[];
-}) => ValueOrPromise<string[]>;
-
-// Called after successful authentication -- register custom event handlers here
-type TSocketIOClientConnectedFn = (opts: { socket: IOSocket }) => ValueOrPromise<void>;
-```
-
-#### `IHandshake` Interface
-```typescript
-interface IHandshake {
-  headers: IncomingHttpHeaders;
-  time: string;
-  address: string;
-  xdomain: boolean;
-  secure: boolean;
-  issued: number;
-  url: string;
-  query: ParsedUrlQuery;
-  auth: { [key: string]: any };
-}
-```
+**Look up every default, binding key, and constant.** Full `DEFAULT_SERVER_OPTIONS`, the binding key table, system events, default rooms, and the client state machine are in the [API Reference](./api#configuration-reference).
 
 ## See Also
 
-- [Usage & Examples](./usage) -- Server-side usage, client helper, advanced patterns
-- [API Reference](./api) -- Architecture, method signatures, internals, types
+- [Usage & Examples](./usage) -- Full setup steps, server-side usage, client helper, advanced patterns
+- [API Reference](./api) -- Architecture, configuration reference, method signatures, internals, types
 - [Error Reference](./errors) -- Error conditions and troubleshooting
 - **Guides:**
   - [Components Overview](/guides/core-concepts/components) -- Component system basics
@@ -417,3 +124,9 @@ interface IHandshake {
   - [Real-Time Chat](/guides/tutorials/realtime-chat) -- Building a chat app with Socket.IO
 - **Changelog:**
   - [2026-02-06: Socket.IO Integration Fix](/changelogs/2026-02-06-socket-io-integration-fix) -- Lifecycle timing fix + Bun runtime support
+
+**Files:**
+
+- [`packages/core/src/components/socket-io/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/component.ts) -- `SocketIOComponent`
+- [`packages/core/src/components/socket-io/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/keys.ts) -- `SocketIOBindingKeys`
+- [`packages/core/src/components/socket-io/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/socket-io/common/types.ts) -- `IServerOptions`, `DEFAULT_SERVER_OPTIONS`

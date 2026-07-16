@@ -87,6 +87,12 @@ export class ApplicationEnvironment implements IApplicationEnvironment {
     this.arguments[key] = value;
   }
 
+  merge(opts: { envs: Record<string, string> }) {
+    for (const [key, value] of Object.entries(opts.envs)) {
+      this.arguments[key] = value;
+    }
+  }
+
   isDevelopment() {
     const { NODE_ENV } = process.env;
     return NODE_ENV === 'development';

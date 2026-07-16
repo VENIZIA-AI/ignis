@@ -1,117 +1,377 @@
-# Authentication -- API Reference
+---
+title: Authentication Reference
+description: Full option tables, binding keys, service class hierarchy, strategy registry, and controller factory for the Authentication component
+difficulty: intermediate
+---
 
-> Architecture, service hierarchy, strategy registry, JWKS controller, and controller factory. See [Setup & Configuration](./) for initial setup.
+# Authentication Reference
+
+Every option, binding key, class, and method the Authentication component exposes. See the [Overview](./) for the guided introduction.
+
+**Files:**
+
+- [`packages/core/src/components/auth/authenticate/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate) - component, services, strategies, controllers
+- [`packages/core/src/components/auth/models/`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/models) - entity column helpers + request schemas
+- [`packages/core/src/components/auth/base/abstract-auth-registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/base/abstract-auth-registry.ts) - `AbstractAuthRegistry`
+
+## Import paths
+
+```typescript
+import {
+  // Component + registry
+  AuthenticateComponent,
+  AuthenticateBindingKeys,
+  Authentication,
+  AuthenticationFieldCodecs,
+  AuthenticationModes,
+  AuthenticationTokenTypes,
+  AuthenticationStrategyRegistry,
+
+  // JOSE standards + constants
+  JOSEStandards,
+  JWKSModes,
+  JWKSKeyDrivers,
+  JWKSKeyFormats,
+
+  // Strategies
+  JWSAuthenticationStrategy,
+  JWKSIssuerAuthenticationStrategy,
+  JWKSVerifierAuthenticationStrategy,
+  BasicAuthenticationStrategy,
+
+  // Services
+  AbstractBearerTokenService,
+  JWSTokenService,
+  JWKSIssuerTokenService,
+  JWKSVerifierTokenService,
+  BasicTokenService,
+
+  // Controllers
+  defineAuthController,
+  JWKSController,
+  authenticate,
+
+  // Entity column helpers
+  extraUserColumns,
+  extraRoleColumns,
+  extraPermissionColumns,
+  extraPolicyDefinitionColumns,
+  UserStatuses,
+  UserTypes,
+  RoleStatuses,
+} from '@venizia/ignis';
+
+import type {
+  TAuthenticationRestOptions,
+  TJWTTokenServiceOptions,
+  IJWSTokenServiceOptions,
+  IJWKSIssuerOptions,
+  IJWKSVerifierOptions,
+  TJWKSTokenServiceOptions,
+  TBasicTokenServiceOptions,
+  IAuthenticateOptions,
+  IAuthUser,
+  IJWTTokenPayload,
+  IPayloadFieldCodec,
+  IAuthService,
+  IAuthenticationStrategy,
+  TDefineAuthControllerOpts,
+  TAuthStrategy,
+  TAuthMode,
+  TGetTokenExpiresFn,
+  TJWKSAlgorithm,
+  TJWKSKeyDriver,
+  TJWKSKeyFormat,
+  TJOSEStandard,
+  TJWKSMode,
+  TPermissionOptions,
+  TPermissionCommonColumns,
+  TPolicyDefinitionOptions,
+  TPolicyDefinitionCommonColumns,
+} from '@venizia/ignis';
+```
 
 ## Architecture
 
 ```
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                         Application                              │
-  │                                                                  │
-  │  preConfigure()                                                  │
-  │    ├── bind JWT_OPTIONS (TJWTTokenServiceOptions)                │
-  │    │     └── standard: JWS | JWKS                                │
-  │    ├── bind BASIC_OPTIONS / REST_OPTIONS                         │
-  │    ├── this.component(AuthenticateComponent)                     │
-  │    └── AuthenticationStrategyRegistry.register() ← manual        │
-  └────────────────────────────┬─────────────────────────────────────┘
-                               │
-                               ▼
-  ┌──────────────────────────────────────────────────────────────────┐
-  │                AuthenticateComponent.binding()                    │
-  │                                                                  │
-  │  1. Read JWT_OPTIONS, BASIC_OPTIONS, REST_OPTIONS                │
-  │  2. Switch on jwtOptions.standard:                               │
-  │     ├── JWS  → defineJWSAuth()  → JWSTokenService                │
-  │     └── JWKS → defineJWKSAuth() → switch on mode:                │
-  │                 ├── issuer   → JWKSIssuerTokenService             │
-  │                 │              + JWKSController (/certs)          │
-  │                 └── verifier → JWKSVerifierTokenService           │
-  │  3. defineBasicAuth() → BasicTokenService                        │
-  │  4. defineControllers() → AuthController (factory-built)         │
-  │  5. defineOAuth2() → stub (not yet implemented)                  │
-  └────────────────────────────┬─────────────────────────────────────┘
-                               │
-         ┌─────────────────────┼──────────────────────┐
-         ▼                     ▼                      ▼
-  ┌──────────────┐   ┌────────────────┐    ┌──────────────────┐
-  │ Bearer Token │   │  BasicToken    │    │  AuthController   │
-  │ Services     │   │  Service       │    │  (factory-built)  │
-  │ (see below)  │   └───────┬────────┘    └────────┬─────────┘
-  └──────┬───────┘           │                      │
-         │                   ▼                      ▼
-         │            ┌──────────────┐    ┌──────────────────┐
-         │            │ Basic        │    │ /sign-in          │
-         │            │ Strategy     │    │ /sign-up          │
-         │            └──────────────┘    │ /change-password  │
-         │                                │ /who-am-i         │
-         ▼                                └──────────────────┘
-  ┌──────────────────────────────────────────────────────────┐
-  │           Bearer Token Service Hierarchy                  │
-  │                                                          │
-  │  AbstractBearerTokenService (base)                       │
-  │    ├── extractCredentials()                              │
-  │    ├── verify() → doVerify()                             │
-  │    ├── generate() → getSigner() + getSigningKey()        │
-  │    ├── encryptPayload() / decryptPayload() (optional)    │
-  │    │                                                     │
-  │    ├── JWSTokenService (symmetric HS256)                 │
-  │    │     ├── JWSAuthenticationStrategy                   │
-  │    │     └── sign with shared secret                     │
-  │    │                                                     │
-  │    └── AbstractJWKSTokenService (lazy-init + retry)      │
-  │          ├── ensureInitialized() / initialize()          │
-  │          │                                               │
-  │          ├── JWKSIssuerTokenService (asymmetric)         │
-  │          │     ├── JWKSIssuerAuthenticationStrategy      │
-  │          │     ├── sign with private key                 │
-  │          │     ├── verify with public key                │
-  │          │     └── getJWKS() / getJWKSAsync()            │
-  │          │                                               │
-  │          └── JWKSVerifierTokenService (remote verify)    │
-  │                ├── JWKSVerifierAuthenticationStrategy    │
-  │                └── verify via createRemoteJWKSet()       │
-  └──────────────────────────────────────────────────────────┘
+Application.preConfigure()
+  ├── bind JWT_OPTIONS (TJWTTokenServiceOptions, discriminated on `standard`)
+  ├── bind BASIC_OPTIONS / REST_OPTIONS
+  ├── this.component(AuthenticateComponent)
+  └── AuthenticationStrategyRegistry.register() -- manual, after the component
+
+AuthenticateComponent.binding()
+  ├── switch on jwtOptions.standard
+  │     ├── JWS  -> defineJWSAuth()  -> registers JWSTokenService
+  │     └── JWKS -> defineJWKSAuth() -> switch on mode
+  │                   ├── issuer   -> JWKSIssuerTokenService + JWKSController (/certs)
+  │                   └── verifier -> JWKSVerifierTokenService
+  ├── defineBasicAuth() -> registers BasicTokenService (if basicOptions bound)
+  ├── defineControllers() -> registers AuthController (if useAuthController: true)
+  └── defineOAuth2() -> stub, not implemented
+
+Bearer token service hierarchy:
+  AbstractBearerTokenService (extractCredentials, verify, generate, encryptPayload/decryptPayload)
+    ├── JWSTokenService (symmetric HS256)
+    └── AbstractJWKSTokenService (lazy ensureInitialized() + retry-on-failure)
+          ├── JWKSIssuerTokenService (sign + verify + getJWKS/getJWKSAsync)
+          └── JWKSVerifierTokenService (verify only, via createRemoteJWKSet())
 ```
 
-### Tech Stack
+**Tech stack**
 
 | Technology | Purpose |
 |------------|---------|
-| **`jose`** | JWT signing (`SignJWT`), verification (`jwtVerify`), JWKS (`createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI`, `importJWK`), and type definitions |
-| **`@venizia/ignis-helpers`** | `AES` utility for payload encryption, `BaseHelper`/`BaseService` base classes, `getError` for error creation, `HTTP` result codes |
-| **Hono middleware** | Route-level authentication integration via `createMiddleware` from `hono/factory` |
-| **`node:fs/promises`** | Async file reading for JWKS key files |
-| **Drizzle ORM** | Database access for user lookup (in your implementation) |
+| `jose` | JWT signing (`SignJWT`), verification (`jwtVerify`), JWKS (`createRemoteJWKSet`, `exportJWK`, `importPKCS8`, `importSPKI`, `importJWK`) |
+| `@venizia/ignis-helpers` | `AES` payload encryption, `BaseHelper`/`BaseService`, `getError`, `HTTP` result codes |
+| Hono middleware | Route-level integration via `createMiddleware` from `hono/factory` |
+| `node:fs/promises` | Async key file reads for JWKS |
 
-## Component Methods
+## Component methods
 
-The `AuthenticateComponent` uses five methods during its `binding()` lifecycle (four private, one public):
+`AuthenticateComponent.binding()` runs four private configuration methods and one public stub:
 
 | Method | Purpose |
 |--------|---------|
-| `defineJWSAuth(opts)` | Validates JWS secrets (rejects falsy values and `'unknown_secret'`), validates `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService`. |
-| `defineJWKSAuth(opts)` | Switches on `mode`: **Issuer** - validates keys, format, kid, getTokenExpiresFn; binds to `JWKS_OPTIONS`; registers `JWKSIssuerTokenService` + `JWKSController`. **Verifier** - validates jwksUrl; binds to `JWKS_OPTIONS`; registers `JWKSVerifierTokenService`. |
-| `defineBasicAuth(opts)` | Validates `verifyCredentials` callback presence, binds `BasicTokenService` as a service. Logs debug if skipped. |
-| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` factory and registers the generated controller. |
-| `defineOAuth2()` | **Public** stub method -- not yet implemented. Called during `binding()` but performs no action. |
+| `defineJWSAuth(opts)` | Validates `jwtSecret` and `getTokenExpiresFn`, binds `IJWSTokenServiceOptions` to `JWT_OPTIONS`, registers `JWSTokenService` |
+| `defineJWKSAuth(opts)` | Switches on `mode`. Issuer: validates keys/format/kid/getTokenExpiresFn, binds to `JWKS_OPTIONS`, registers `JWKSIssuerTokenService` + `JWKSController`. Verifier: validates `jwksUrl`, binds to `JWKS_OPTIONS`, registers `JWKSVerifierTokenService` |
+| `defineBasicAuth(opts)` | Validates `verifyCredentials` presence, registers `BasicTokenService`. Skips (debug log) if `basicOptions` not bound |
+| `defineControllers(opts)` | Requires `jwtOptions` when `useAuthController: true`. Calls `defineAuthController()` and registers the generated controller |
+| `defineOAuth2()` | Public stub, called during `binding()`, performs no action - not yet implemented |
 
 > [!NOTE]
-> The component reads `TJWTTokenServiceOptions` (the discriminated union) from `AuthenticateBindingKeys.JWT_OPTIONS`, then re-binds just the inner options (`IJWSTokenServiceOptions` or `IJWKSIssuerOptions`/`IJWKSVerifierOptions`) to the appropriate binding key for the service to consume via `@inject`.
+> The component reads the discriminated union from `JWT_OPTIONS`, then re-binds just the inner options object (`IJWSTokenServiceOptions` or `IJWKSIssuerOptions`/`IJWKSVerifierOptions`) to `JWKS_OPTIONS` or back to `JWT_OPTIONS`, so the token service can resolve it via a plain `@inject`.
 
-## Strategy Registry
+## Binding keys
 
-`AuthenticationStrategyRegistry` is a **singleton** that manages all registered strategies. It extends `AbstractAuthRegistry<IAuthenticationStrategy>` (not generic on `Env`).
+| Constant | Key string | Type | Required | Default |
+|----------|-----------|------|----------|---------|
+| `AuthenticateBindingKeys.REST_OPTIONS` | `@app/authenticate/rest-options` | `TAuthenticationRestOptions` | No | <code v-pre>{ useAuthController: false }</code> |
+| `AuthenticateBindingKeys.JWT_OPTIONS` | `@app/authenticate/jwt-options` | `TJWTTokenServiceOptions` | Conditional | -- |
+| `AuthenticateBindingKeys.JWKS_OPTIONS` | `@app/authenticate/jwks-options` | `IJWKSIssuerOptions \| IJWKSVerifierOptions` | Internal | Bound by the component from `JWT_OPTIONS` |
+| `AuthenticateBindingKeys.BASIC_OPTIONS` | `@app/authenticate/basic-options` | `TBasicTokenServiceOptions` | Conditional | -- |
 
-### API
+> [!IMPORTANT]
+> At least one of `JWT_OPTIONS` or `BASIC_OPTIONS` must be bound, or `AuthenticateComponent.binding()` throws.
 
-| Method | Signature | Returns | Description |
-|--------|-----------|---------|-------------|
-| `getInstance()` | `static` | `AuthenticationStrategyRegistry` | Returns the singleton instance (creates if not exists) |
-| `register` | <code v-pre>(opts: { container: Container; strategies: Array&lt;{ name: string; strategy: TClass&lt;IAuthenticationStrategy&gt; }&gt; }) =&gt; this</code> | `this` | Registers strategies as singletons in the container. Returns `this` for chaining. |
-| `resolveStrategy` | `(opts: { name: string }) => IAuthenticationStrategy` | `IAuthenticationStrategy` | Resolves a strategy instance from the container by name |
+## Option interfaces
 
-**Registration:**
+### TJWTTokenServiceOptions
+
+Discriminated union on `standard`:
+
+```typescript
+type TJWTTokenServiceOptions =
+  | { standard: typeof JOSEStandards.JWS; options: IJWSTokenServiceOptions }
+  | { standard: typeof JOSEStandards.JWKS; options: TJWKSTokenServiceOptions };
+
+type TJWKSTokenServiceOptions = IJWKSIssuerOptions | IJWKSVerifierOptions; // discriminated on `mode`
+```
+
+### IJWSTokenServiceOptions
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `jwtSecret` | `string` | -- | Yes | Secret for signing and verifying the JWT signature |
+| `getTokenExpiresFn` | `TGetTokenExpiresFn` | -- | Yes | Returns token expiration in seconds |
+| `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
+| `headerAlgorithm` | `string` | `'HS256'` | No | JWT signing algorithm |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+
+> [!WARNING]
+> `jwtSecret` is mandatory - the component throws if it is missing or equals the placeholder `'unknown_secret'`. `applicationSecret` is optional: when omitted, the JWT payload is standard plaintext; standard fields (`iss`, `sub`, `aud`, `jti`, `nbf`, `exp`, `iat`) are never encrypted either way.
+
+### IJWKSIssuerOptions
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `mode` | `typeof JWKSModes.ISSUER` | -- | Yes | Must be `'issuer'` |
+| `algorithm` | `TJWKSAlgorithm` | -- | Yes | `'ES256'`, `'RS256'`, or `'EdDSA'` |
+| `keys.driver` | `TJWKSKeyDriver` | -- | Yes | `'text'` (inline) or `'file'` (path) |
+| `keys.format` | `TJWKSKeyFormat` | -- | Yes | `'pem'` or `'jwk'` |
+| `keys.private` | `string` | -- | Yes | Private key content or file path |
+| `keys.public` | `string` | -- | Yes | Public key content or file path |
+| `kid` | `string` | -- | Yes | Key ID exposed in the JWKS endpoint and JWT header |
+| `getTokenExpiresFn` | `TGetTokenExpiresFn` | -- | Yes | Returns token expiration in seconds |
+| `rest.path` | `string` | `'/certs'` | No | Path of the generated `JWKSController` |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload encryption |
+| `applicationSecret` | `string` | -- | No | Enables AES payload field encryption when set |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Custom serialize/deserialize per field name |
+
+### IJWKSVerifierOptions
+
+| Option | Type | Default | Required | Description |
+|--------|------|---------|----------|-------------|
+| `mode` | `typeof JWKSModes.VERIFIER` | -- | Yes | Must be `'verifier'` |
+| `jwksUrl` | `string` | -- | Yes | URL of the issuer's JWKS endpoint |
+| `cacheTtlMs` | `number` | `43_200_000` (12h) | No | `createRemoteJWKSet` `cacheMaxAge` |
+| `cooldownMs` | `number` | `30_000` (30s) | No | `createRemoteJWKSet` `cooldownDuration` |
+| `aesAlgorithm` | `AESAlgorithmType` | `'aes-256-cbc'` | No | AES algorithm for payload decryption |
+| `applicationSecret` | `string` | -- | No | Must match the issuer's secret to decrypt payloads |
+| `fieldCodecs` | `IPayloadFieldCodec[]` | `[]` | No | Must match the issuer's codecs to decrypt custom fields |
+
+> [!IMPORTANT]
+> `JWKSVerifierTokenService` cannot sign tokens - `getSigner()`, `getSigningKey()`, and `getDefaultTokenExpiresFn()` all throw. Only `verify()` and `extractCredentials()` are functional.
+
+### TBasicTokenServiceOptions
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `verifyCredentials` | <code v-pre>(opts: { credentials: { username: string; password: string }; context: TContext }) =&gt; Promise&lt;IAuthUser \| null&gt;</code> | Callback that validates Basic credentials and returns the authenticated user, or `null` |
+
+### TAuthenticationRestOptions
+
+Discriminated union on `useAuthController` - when `true`, `controllerOpts` becomes required:
+
+```typescript
+type TAuthenticationRestOptions = {} & (
+  | { useAuthController?: false | undefined }
+  | { useAuthController: true; controllerOpts: TDefineAuthControllerOpts }
+);
+```
+
+### TDefineAuthControllerOpts
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `restPath` | `string` | `'/auth'` | Base path for the generated controller |
+| `serviceKey` | `string` | -- | DI key for the `IAuthService` implementation (required) |
+| `requireAuthenticatedSignUp` | `boolean` | `false` | Whether `POST /sign-up` requires a valid JWT |
+| `payload.signIn` | `{ request: { schema }, response: { schema } }` | Built-in schemas | Custom Zod schemas for `/sign-in` |
+| `payload.signUp` | `{ request: { schema }, response: { schema } }` | Built-in schemas | Custom Zod schemas for `/sign-up` |
+| `payload.changePassword` | `{ request: { schema? }, response: { schema } }` | Built-in schemas | Custom Zod schemas for `/change-password` |
+| `payload.refreshToken` | `{ response: { schema } }` | `AnyObjectSchema` | Custom response schema for `/token/refresh` |
+| `payload.getUserInformation` | `{ response: { schema } }` | `AnyObjectSchema` | Custom response schema for `/me` and the `who-am-i` `userInformation` field |
+
+### Route authenticate config
+
+```typescript
+type TRouteAuthenticateConfig =
+  | { skip: true }
+  | { skip?: false; strategies?: TAuthStrategy[]; mode?: TAuthMode };
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|-------------|
+| `authenticate.strategies` | `TAuthStrategy[]` | -- | Strategy names to try, e.g. `['jwt']`, `['jwt', 'basic']` |
+| `authenticate.mode` | `'any' \| 'all'` | `'any'` | `'any'`: first success wins. `'all'`: every strategy must pass |
+| `authenticate.skip` | `true` | -- | Skips authentication for this route entirely |
+
+### IAuthUser / IJWTTokenPayload
+
+```typescript
+interface IAuthUser {
+  userId: IdType;
+  [extra: string | symbol]: any;
+}
+
+interface IJWTTokenPayload extends JWTPayload, IAuthUser {
+  userId: IdType;
+  roles: { id: IdType; identifier: string; priority: number }[];
+  clientId?: string;
+  provider?: string;
+  email?: string;
+  name?: string;
+  [extra: string | symbol]: any;
+}
+```
+
+> [!TIP]
+> `IAuthUser` is intentionally minimal. Your `IAuthService` can return extra fields (roles, email, provider) - they pass through JWT generation and are available on `Authentication.CURRENT_USER` after authentication.
+
+### IAuthService
+
+```typescript
+interface IAuthService<
+  E extends Env = Env,
+  SIRQ extends TSignInRequest = TSignInRequest, SIRS = AnyObject,
+  SURQ extends TSignUpRequest = TSignUpRequest, SURS = AnyObject,
+  CPRQ extends TChangePasswordRequest = TChangePasswordRequest, CPRS = AnyObject,
+  UIRQ = AnyObject, UIRS = AnyObject,
+  RTRS = AnyObject,
+> {
+  signIn(context: TContext<E>, opts: SIRQ): Promise<SIRS>;
+  signUp(context: TContext<E>, opts: SURQ): Promise<SURS>;
+  changePassword(context: TContext<E>, opts: CPRQ): Promise<CPRS>;
+  getUserInformation?(context: TContext<E>, opts: UIRQ): Promise<UIRS>;
+  refreshToken?(context: TContext<E>): Promise<RTRS>;
+}
+```
+
+> [!NOTE]
+> `getUserInformation` and `refreshToken` are optional. The generated auth controller returns `501` for `/me`, `/token/refresh`, or `?withUserInformation=true` on `/who-am-i` if the bound service doesn't implement the corresponding method.
+
+### Field codecs
+
+```typescript
+interface IPayloadFieldCodec<T = unknown> {
+  key: string;
+  serialize(opts: { value: T }): string;
+  deserialize(opts: { raw: string }): T;
+}
+```
+
+`AuthenticationFieldCodecs.ROLES_CODEC` is a ready-made codec for the `roles` field (pipe-separated `id|identifier|priority` strings). It is **not applied automatically** - pass it explicitly via `fieldCodecs: [AuthenticationFieldCodecs.ROLES_CODEC]` in the JWS/JWKS options. Without it, `roles` (and every other non-standard field) is serialized with plain `JSON.stringify` before AES encryption.
+
+```typescript
+class AuthenticationFieldCodecs {
+  static readonly ROLES_CODEC: IPayloadFieldCodec<IJWTTokenPayload['roles']>;
+  static build<T>(opts: { key: string; serialize; deserialize }): IPayloadFieldCodec<T>;
+}
+```
+
+## Context variables
+
+Set on the Hono `Context` during authentication, readable via `context.get()`:
+
+| Constant | Key string | Type | Description |
+|----------|-----------|------|-------------|
+| `Authentication.CURRENT_USER` | `auth.current.user` | `IAuthUser` | Authenticated user payload |
+| `Authentication.AUDIT_USER_ID` | `audit.user.id` | `IdType` | Authenticated user's ID |
+| `Authentication.SKIP_AUTHENTICATION` | `authentication.skip` | `boolean` | Set `true` in a preceding middleware to bypass auth |
+
+## Constants
+
+**Authentication**
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `Authentication.STRATEGY_JWT` | `'jwt'` | JWT strategy name |
+| `Authentication.STRATEGY_BASIC` | `'basic'` | Basic strategy name |
+| `Authentication.TYPE_BEARER` | `'Bearer'` | Bearer token type prefix |
+| `Authentication.TYPE_BASIC` | `'Basic'` | Basic token type prefix |
+| `Authentication.AUTHENTICATION_STRATEGY` | `'authentication.strategy'` | Binding key prefix for registered strategies |
+
+**AuthenticationTokenTypes**
+
+| Constant | Value |
+|----------|-------|
+| `TYPE_AUTHORIZATION_CODE` | `'000_AUTHORIZATION_CODE'` |
+| `TYPE_ACCESS_TOKEN` | `'100_ACCESS_TOKEN'` |
+| `TYPE_REFRESH_TOKEN` | `'200_REFRESH_TOKEN'` |
+
+**JOSE / JWKS constants** - each class also exposes `SCHEME_SET: Set<string>` and `isValid(input): boolean`
+
+| Class | Members |
+|-------|---------|
+| `JOSEStandards` | `JWS` (`'JWS'`), `JWKS` (`'JWKS'`) |
+| `JWKSModes` | `ISSUER` (`'issuer'`), `VERIFIER` (`'verifier'`) |
+| `JWKSKeyDrivers` | `TEXT` (`'text'`), `FILE` (`'file'`) |
+| `JWKSKeyFormats` | `PEM` (`'pem'`), `JWK` (`'jwk'`) |
+| `AuthenticateStrategy` | `BASIC` (`'basic'`), `JWT` (`'jwt'`) - same values as `Authentication.STRATEGY_*` |
+| `AuthenticationModes` | `ANY` (`'any'`), `ALL` (`'all'`) |
+
+## Strategy registry
+
+`AuthenticationStrategyRegistry` is a singleton extending `AbstractAuthRegistry<IAuthenticationStrategy>`.
+
+| Method | Signature | Description |
+|--------|-----------|--------------|
+| `getInstance()` | `static (): AuthenticationStrategyRegistry` | Returns (creating if needed) the singleton |
+| `register` | <code v-pre>(opts: { container: Container; strategies: { name: string; strategy: TClass&lt;IAuthenticationStrategy&gt; }[] }) =&gt; this</code> | Binds each strategy into the container as a singleton under `authentication.strategy.<name>`. Returns `this` |
+| `resolveStrategy` | `(opts: { name: string }) => IAuthenticationStrategy` | Resolves a registered strategy instance by name |
+
 ```typescript
 AuthenticationStrategyRegistry.getInstance().register({
   container: this,
@@ -122,431 +382,137 @@ AuthenticationStrategyRegistry.getInstance().register({
 });
 ```
 
-> [!NOTE]
-> `register()` returns `this`, enabling method chaining if needed.
-
-**How it works:**
-- Strategies are stored in an internal map and bound to the DI container as singletons
-- Binding keys follow the pattern `authentication.strategy.{name}` (e.g., `authentication.strategy.jwt`, `authentication.strategy.basic`)
-- The standalone `authenticate()` function creates middleware via `AuthenticationProvider`, which uses the registry to resolve strategies
-
-**Middleware creation:**
-
-The `authenticate()` function returns a Hono middleware that:
-1. Checks if `Authentication.SKIP_AUTHENTICATION` is set on context - if true, skips entirely (logs debug)
-2. Checks if `Authentication.CURRENT_USER` is already set on context - if true, skips (already authenticated)
-3. Reads `strategies` and `mode` from the provided options
-4. Executes strategies based on mode (`any` or `all`)
-5. On success, sets `Authentication.CURRENT_USER` and `Authentication.AUDIT_USER_ID` on context
-6. On failure, throws 401 with list of tried strategies
-
-```mermaid
-sequenceDiagram
-    participant C as Client
-    participant MW as Auth Middleware
-    participant P as AuthenticationProvider
-    participant R as StrategyRegistry
-    participant S as Strategy
-    participant SVC as TokenService
-
-    C->>MW: Request with Authorization header
-    MW->>P: authenticateFn({ strategies, mode })
-    P->>P: Check SKIP_AUTHENTICATION
-    P->>P: Check CURRENT_USER already set
-    P->>R: resolveStrategy({ name })
-    R-->>P: strategy instance
-    P->>S: authenticate(context)
-    S->>SVC: extractCredentials(context)
-    SVC-->>S: { type, token }
-    S->>SVC: verify({ type, token })
-    SVC-->>S: IJWTTokenPayload
-    S-->>P: IAuthUser
-    P->>MW: Set CURRENT_USER + AUDIT_USER_ID
-    MW->>C: Continue to handler
-```
-
-### Standalone `authenticate()` Function
+**Standalone `authenticate()` function** - the primary export for creating middleware outside the route-config `authenticate` field:
 
 ```typescript
 const authenticationProvider = new AuthenticationProvider();
 const authenticateFn = authenticationProvider.value();
 
-export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) => {
-  return authenticateFn(opts);
-};
+export const authenticate = (opts: { strategies: string[]; mode?: TAuthMode }) => authenticateFn(opts);
 ```
 
-This is the primary export for creating auth middleware. It creates an `AuthenticationProvider` instance and calls `.value()` to get the middleware factory. The provider uses `AuthenticationStrategyRegistry.getInstance()` internally to resolve strategies.
+**`AuthenticationProvider` middleware behavior:**
+
+1. If `Authentication.SKIP_AUTHENTICATION` is set on context, skips entirely (debug log)
+2. If `Authentication.CURRENT_USER` is already set, skips (already authenticated)
+3. Runs strategies per `mode` (`'any'` or `'all'`)
+4. On success, sets `Authentication.CURRENT_USER` and `Authentication.AUDIT_USER_ID`
+5. On failure, throws `401`
 
 > [!NOTE]
-> In `all` mode, the **first** strategy's user payload is used as the identity source - all strategies must succeed but the first one wins for identity. If every strategy passes but the first user payload has no `userId`, the middleware throws a `401` with message `"Failed to identify authenticated user!"`. The `any` mode **discards errors** from each failing strategy (logs at debug level) and only throws after all strategies are exhausted.
+> `'any'` mode discards each failing strategy's error (logs at debug) and only throws once every strategy is exhausted. `'all'` mode uses the **first** strategy's user payload as the identity source; if that payload has no `userId`, it throws `401` even though every strategy technically passed.
 
-## Service Class Hierarchy
+## Service class hierarchy
 
-```mermaid
-classDiagram
-    class AbstractBearerTokenService {
-        <<abstract>>
-        #aes: AES | null
-        #applicationSecret: string | null
-        +extractCredentials(context) credentials
-        +verify(opts) IJWTTokenPayload
-        +generate(opts) string
-        +encryptPayload(payload) Record
-        +decryptPayload(opts) IJWTTokenPayload
-        #doVerify(token)* IJWTTokenPayload
-        +getSigner(opts)* SignJWT
-        #getSigningKey()* Uint8Array | CryptoKey
-        #getDefaultTokenExpiresFn()* TGetTokenExpiresFn
-    }
+```
+AbstractBearerTokenService<E>          (extends BaseService)
+  #aes, #applicationSecret, #fieldCodecs
+  +extractCredentials(context)         Extract Bearer token from Authorization header
+  +verify(opts)                        Template method -> doVerify()
+  +generate(opts)                      Template method -> getSigner() + getSigningKey()
+  +encryptPayload(payload) / decryptPayload(opts)
+  #doVerify(token)*  +getSigner(opts)*  #getSigningKey()*  #getDefaultTokenExpiresFn()*
 
-    class JWSTokenService {
-        #jwtSecret: Uint8Array
-        #options: IJWSTokenServiceOptions
-    }
+  JWSTokenService                       Symmetric HS256, shared secret
+    used by JWSAuthenticationStrategy
 
-    class AbstractJWKSTokenService {
-        <<abstract>>
-        #initialized: boolean
-        #initPromise: Promise | null
-        +ensureInitialized()
-        #initialize()* void
-    }
+  AbstractJWKSTokenService              Lazy ensureInitialized() + retry-on-failure
+    #initialized, #initPromise
+    +ensureInitialized()   #initialize()*
 
-    class JWKSIssuerTokenService {
-        #privateKey: CryptoKey | null
-        #publicKey: CryptoKey | null
-        #jwks: object | null
-        +getJWKS() keys
-        +getJWKSAsync() keys
-    }
+    JWKSIssuerTokenService               Sign with private key, verify with public key
+      +getJWKS() (sync, throws if uninitialized)  +getJWKSAsync()
+      used by JWKSIssuerAuthenticationStrategy
 
-    class JWKSVerifierTokenService {
-        #jwksVerifier: Function | null
-        +getSigner() never
-        +getSigningKey() never
-    }
-
-    AbstractBearerTokenService <|-- JWSTokenService
-    AbstractBearerTokenService <|-- AbstractJWKSTokenService
-    AbstractJWKSTokenService <|-- JWKSIssuerTokenService
-    AbstractJWKSTokenService <|-- JWKSVerifierTokenService
+    JWKSVerifierTokenService             Verify only, via remote JWKS
+      used by JWKSVerifierAuthenticationStrategy
 ```
 
-## AbstractBearerTokenService
+### AbstractBearerTokenService
 
-Base class for all Bearer token services. Extends `BaseService`. Generic on <code v-pre>&lt;E extends Env = Env&gt;</code>.
-
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`
-
-### Static Fields
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `JWT_COMMON_FIELDS` | <code v-pre>Set&lt;'iss' \| 'sub' \| 'aud' \| 'jti' \| 'nbf' \| 'exp' \| 'iat'&gt;</code> | Standard JWT fields that are never encrypted |
-
-### Protected Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `aes` | `AES \| null` | `null` | AES utility instance, configured by `configurePayloadEncryption()` |
-| `applicationSecret` | `string \| null` | `null` | AES secret, configured by `configurePayloadEncryption()` |
-| `fieldCodecs` | <code v-pre>Map&lt;string, IPayloadFieldCodec&gt;</code> | `new Map()` | Field codec map keyed by field name, configured by `configurePayloadEncryption()` |
-
-### Methods
+**File:** [`packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/abstract.service.ts)
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `configurePayloadEncryption` | <code v-pre>(opts: { aesAlgorithm?: AESAlgorithmType; applicationSecret?: string; fieldCodecs?: IPayloadFieldCodec[] }) =&gt; void</code> | Configures optional AES encryption and field codecs. Codecs are converted to a Map keyed by `codec.key` for O(1) lookup. |
-| `extractCredentials` | <code v-pre>(context: TContext&lt;E, string&gt;) =&gt; { type: string; token: string }</code> | Extracts Bearer token from Authorization header |
-| `verify` | <code v-pre>(opts: { type: string; token: string }) =&gt; Promise&lt;IJWTTokenPayload&gt;</code> | Template method - calls `doVerify()` |
-| `generate` | <code v-pre>(opts: { payload: IJWTTokenPayload; getTokenExpiresFn?: TGetTokenExpiresFn }) =&gt; Promise&lt;string&gt;</code> | Template method - calls `getSigner()` + `getSigningKey()` |
-| `serializeField` | <code v-pre>(opts: { key: string; value: any }) =&gt; string</code> | Serializes a single field: codec → `JSON.stringify` fallback |
-| `deserializeField` | <code v-pre>(opts: { key: string; value: string }) =&gt; any</code> | Deserializes a single field: codec → `JSON.parse` fallback |
-| `encryptPayload` | <code v-pre>(payload: IJWTTokenPayload) =&gt; Record&lt;string, any&gt;</code> | AES-encrypts non-standard JWT fields using `serializeField`. Returns payload unchanged if AES not configured. |
-| `decryptPayload` | <code v-pre>(opts: { result: JWTVerifyResult&lt;IJWTTokenPayload&gt; }) =&gt; IJWTTokenPayload</code> | Decrypts AES-encrypted fields using `deserializeField`. Returns payload unchanged if AES not configured. |
+| `configurePayloadEncryption` | <code v-pre>(opts: { aesAlgorithm?; applicationSecret?; fieldCodecs?: IPayloadFieldCodec[] }) =&gt; void</code> | Sets up AES + field codecs. AES only activates if `applicationSecret` is provided |
+| `extractCredentials` | `(context) => { type: string; token: string }` | Parses `Authorization: Bearer <token>` |
+| `verify` | `(opts: { type, token }) => Promise<IJWTTokenPayload>` | Calls `doVerify()`, wraps errors as sanitized `401` |
+| `generate` | `(opts: { payload, getTokenExpiresFn? }) => Promise<string>` | Calls `getSigner()` then signs with `getSigningKey()` |
+| `serializeField` / `deserializeField` | `(opts) => string` / `any` | Per-field codec lookup, `JSON.stringify`/`JSON.parse` fallback |
+| `encryptPayload` | `(payload) => Record<string, any>` | AES-encrypts non-standard fields (keys and values). No-op if AES not configured |
+| `decryptPayload` | `(opts: { result }) => IJWTTokenPayload` | Reverses `encryptPayload`. No-op if AES not configured |
 
-### Abstract Methods (implemented by subclasses)
+Static: `JWT_COMMON_FIELDS: Set<'iss'|'sub'|'aud'|'jti'|'nbf'|'exp'|'iat'>` - never encrypted or touched by field codecs.
 
-| Method | Visibility | Signature | Description |
-|--------|------------|-----------|-------------|
-| `doVerify` | `protected` | `(token: string) => Promise<IJWTTokenPayload>` | Verify the raw JWT token and return the payload |
-| `getSigner` | **`public`** | <code v-pre>(opts: { payload: IJWTTokenPayload; getTokenExpiresFn: TGetTokenExpiresFn }) =&gt; Promise&lt;SignJWT&gt;</code> | Create a `jose.SignJWT` instance with the payload |
-| `getSigningKey` | `protected` | `() => ValueOrPromise<Uint8Array \| CryptoKey>` | Return the signing key |
-| `getDefaultTokenExpiresFn` | `protected` | `() => TGetTokenExpiresFn` | Return the default token expiry function |
+### JWSTokenService
 
-## JWSTokenService
+**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts)
 
-Symmetric JWT (HS256) token service with optional AES-encrypted payloads. Extends `AbstractBearerTokenService`.
+Constructor validates `jwtSecret` and `getTokenExpiresFn` (throws `500` if missing), encodes the secret to `Uint8Array`, calls `configurePayloadEncryption()`. `doVerify` calls `jose.jwtVerify()` with the shared secret; `getSigner` signs with header `HS256` (or `headerAlgorithm` override).
 
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/jws.service.ts`
+### AbstractJWKSTokenService
 
-### JWSAuthenticationStrategy
+**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts)
 
-Extends `BaseHelper` and implements <code v-pre>IAuthenticationStrategy&lt;E&gt;</code>.
+`ensureInitialized()` lazily runs `initialize()` on first call; concurrent callers share the pending promise. If `initialize()` rejects, the promise is reset so the next call retries instead of caching the failure.
 
-```typescript
-class JWSAuthenticationStrategy<E extends Env = Env>
-  extends BaseHelper
-  implements IAuthenticationStrategy<E>
-{
-  name = Authentication.STRATEGY_JWT;
-  standard = JOSEStandards.JWS;
+### JWKSIssuerTokenService
 
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWSTokenService.name,
-      }),
-    })
-    private service: JWSTokenService<E>,
-  ) { ... }
+**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts)
 
-  authenticate(context: TContext<E, string>): Promise<IAuthUser> {
-    const token = this.service.extractCredentials(context);
-    return this.service.verify(token);
-  }
-}
-```
+`initialize()`: reads key content (file via `readFile` or inline text, per `keys.driver`) → imports it (`importPKCS8`/`importSPKI` for PEM, `importJWK` for JWK) → exports the public JWK with `kid`/`alg`/`use: 'sig'` → caches `{ keys: [publicJWK] }`.
 
-### Protected Fields
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getJWKS` | `() => { keys: JWK[] }` | Synchronous, returns the cached JWKS. Throws if called before `initialize()` completes |
+| `getJWKSAsync` | `() => Promise<{ keys: JWK[] }>` | Calls `ensureInitialized()` first |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `jwtSecret` | `Uint8Array` | Encoded JWT secret for `jose` signing/verification |
-| `options` | `IJWSTokenServiceOptions` | Injected options |
+### JWKSVerifierTokenService
 
-### Constructor Behavior
+**File:** [`packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts)
 
-The constructor validates required options and throws immediately (status 500) if any are missing:
+`initialize()` calls `createRemoteJWKSet(jwksUrl, { cacheMaxAge: cacheTtlMs ?? 43_200_000, cooldownDuration: cooldownMs ?? 30_000 })`. `getSigner`/`getSigningKey`/`getDefaultTokenExpiresFn` all throw - this service is verify-only.
 
-```typescript
-constructor(
-  @inject({ key: AuthenticateBindingKeys.JWT_OPTIONS })
-  protected options: IJWSTokenServiceOptions,
-) {
-  // Throws '[JWSTokenService] Invalid jwtSecret' if !jwtSecret
-  // Throws '[JWSTokenService] Invalid getTokenExpiresFn' if !getTokenExpiresFn
-  // Calls configurePayloadEncryption({ aesAlgorithm, applicationSecret })
-  // Encodes jwtSecret to Uint8Array for jose
-}
-```
+### BasicTokenService
+
+**File:** [`packages/core/src/components/auth/authenticate/services/basic/service.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/services/basic/service.ts)
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `extractCredentials` | `(context) => { username: string; password: string }` | Decodes `Authorization: Basic <base64>` |
+| `verify` | `(opts: { credentials, context }) => Promise<IAuthUser>` | Calls the user-provided `verifyCredentials` |
+
+Constructor throws `500` if `verifyCredentials` is missing from the injected options.
+
+## Strategy classes
+
+All four strategies extend `BaseHelper`, implement `IAuthenticationStrategy<E>`, and follow the same shape: a `name` field, a `standard` field (Bearer strategies only), one injected token service, and an `authenticate(context)` method that calls `extractCredentials()` then `verify()`.
+
+| Strategy | `name` | Injects | File |
+|----------|--------|---------|------|
+| `JWSAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWSTokenService` | [`strategies/jws.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jws.strategy.ts) |
+| `JWKSIssuerAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSIssuerTokenService` | [`strategies/jwks.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/jwks.strategy.ts) |
+| `JWKSVerifierAuthenticationStrategy` | `Authentication.STRATEGY_JWT` | `JWKSVerifierTokenService` | same file |
+| `BasicAuthenticationStrategy` | `Authentication.STRATEGY_BASIC` | `BasicTokenService` | [`strategies/basic.strategy.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/strategies/basic.strategy.ts) |
 
 > [!NOTE]
-> `applicationSecret` is no longer validated in the constructor. If not provided, AES encryption is simply not configured, and payloads pass through in plaintext.
-
-### Overridden Methods
-
-| Method | Behavior |
-|--------|----------|
-| `doVerify(token)` | Calls `jwtVerify(token, this.jwtSecret)`, then `this.decryptPayload()` |
-| `getSigner(opts)` | Calls `this.encryptPayload()`, then creates `SignJWT` with HS256 header |
-| `getSigningKey()` | Returns `this.jwtSecret` |
-| `getDefaultTokenExpiresFn()` | Returns `this.options.getTokenExpiresFn` |
-
-## AbstractJWKSTokenService
-
-Base class for JWKS token services (Issuer + Verifier). Extends `AbstractBearerTokenService`.
-
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/jwks/abstract.service.ts`
-
-Consolidates the lazy-initialization pattern with retry-on-failure semantics. If `initialize()` rejects, `initPromise` is reset so the next call retries instead of caching the failure permanently.
-
-### Protected Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `initialized` | `boolean` | `false` | Whether the service has been initialized |
-| `initPromise` | `Promise<void> \| null` | `null` | Pending initialization promise (for concurrent callers) |
-
-### Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `ensureInitialized` | `() => Promise<void>` | Lazily initializes the service on first call. Concurrent callers share the same promise. On failure, resets `initPromise` so the next call retries. |
-
-### Abstract Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `initialize` | `() => Promise<void>` | Perform one-time async initialization (load keys, create verifier, etc.) |
-
-## JWKSIssuerTokenService
-
-Asymmetric JWT token service (issuer mode). Extends `AbstractJWKSTokenService`.
-
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/jwks/issuer.service.ts`
-
-### JWKSIssuerAuthenticationStrategy
-
-```typescript
-class JWKSIssuerAuthenticationStrategy<E extends Env = Env>
-  extends BaseHelper
-  implements IAuthenticationStrategy<E>
-{
-  name = Authentication.STRATEGY_JWT;
-  standard = JOSEStandards.JWKS;
-
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWKSIssuerTokenService.name,
-      }),
-    })
-    private service: JWKSIssuerTokenService<E>,
-  ) { ... }
-
-  authenticate(context: TContext<E, string>): Promise<IAuthUser> {
-    const token = this.service.extractCredentials(context);
-    return this.service.verify(token);
-  }
-}
-```
-
-### Protected Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `privateKey` | `CryptoKey \| Uint8Array \| null` | `null` | Private key for signing (loaded during `initialize`) |
-| `publicKey` | `CryptoKey \| Uint8Array \| null` | `null` | Public key for verification (loaded during `initialize`) |
-| `jwks` | `{ keys: JWK[] } \| null` | `null` | Cached JWKS for the `/certs` endpoint |
-
-### Constructor Behavior
-
-```typescript
-constructor(
-  @inject({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
-  protected options: IJWKSIssuerOptions,
-) {
-  // Calls configurePayloadEncryption({ aesAlgorithm, applicationSecret })
-  // Keys are NOT loaded here - loaded lazily via ensureInitialized()
-}
-```
-
-### Initialization Flow
-
-The `initialize()` method:
-1. **Resolves key content** - reads from file (`readFile` from `node:fs/promises`) or uses inline text, based on `keys.driver`
-2. **Parses key material** - imports keys using `importPKCS8`/`importSPKI` (PEM format) or `importJWK` (JWK format), based on `keys.format`
-3. **Exports public JWK** - calls `exportJWK()` and adds `kid`, `alg`, `use: 'sig'` metadata
-4. **Caches JWKS** - stores `{ keys: [publicJWK] }` for the `/certs` endpoint
-5. **Sets `initialized = true`**
-
-### Overridden Methods
-
-| Method | Behavior |
-|--------|----------|
-| `doVerify(token)` | Calls `ensureInitialized()`, then `jwtVerify(token, this.publicKey!)`, then `this.decryptPayload()` |
-| `getSigner(opts)` | Calls `ensureInitialized()`, then `this.encryptPayload()`, then creates `SignJWT` with algorithm + kid header |
-| `getSigningKey()` | Returns `this.privateKey` |
-| `getDefaultTokenExpiresFn()` | Returns `this.options.getTokenExpiresFn` |
-
-### JWKS Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `getJWKS` | `() => { keys: JWK[] }` | Synchronous - returns cached JWKS. Throws if not yet initialized. |
-| `getJWKSAsync` | `() => Promise<{ keys: JWK[] }>` | Async - calls `ensureInitialized()` first, then returns JWKS. |
-
-### Internal Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `resolveKeyContent` | `(opts: { keys }) => Promise<{ priv: string; pub: string }>` | Reads key content from file or returns inline text |
-| `parseKeyMaterial` | `(opts: { raw, algorithm, keys }) => Promise<{ priv, pub }>` | Imports keys using `jose` based on format (PEM or JWK) |
-
-## JWKSVerifierTokenService
-
-Asymmetric JWT token service (verifier mode). Extends `AbstractJWKSTokenService`.
-
-**File:** `packages/core/src/components/auth/authenticate/services/bearer/jwks/verifier.service.ts`
-
-### JWKSVerifierAuthenticationStrategy
-
-```typescript
-class JWKSVerifierAuthenticationStrategy<E extends Env = Env>
-  extends BaseHelper
-  implements IAuthenticationStrategy<E>
-{
-  name = Authentication.STRATEGY_JWT;
-  standard = JOSEStandards.JWKS;
-
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWKSVerifierTokenService.name,
-      }),
-    })
-    private service: JWKSVerifierTokenService<E>,
-  ) { ... }
-
-  authenticate(context: TContext<E, string>): Promise<IAuthUser> {
-    const token = this.service.extractCredentials(context);
-    return this.service.verify(token);
-  }
-}
-```
-
-### Protected Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `jwksVerifier` | `ReturnType<typeof createRemoteJWKSet> \| null` | `null` | Remote JWKS verifier function |
-
-### Constructor Behavior
-
-```typescript
-constructor(
-  @inject({ key: AuthenticateBindingKeys.JWKS_OPTIONS })
-  protected options: IJWKSVerifierOptions,
-) {
-  // Calls configurePayloadEncryption({ aesAlgorithm, applicationSecret })
-  // Remote JWKS is NOT fetched here - fetched lazily via ensureInitialized()
-}
-```
-
-### Initialization Flow
-
-The `initialize()` method:
-1. Creates a `createRemoteJWKSet()` from the configured `jwksUrl`
-2. Configures `cacheMaxAge` (default 12h) and `cooldownDuration` (default 30s)
-3. Sets `initialized = true`
-
-### Overridden Methods
-
-| Method | Behavior |
-|--------|----------|
-| `doVerify(token)` | Calls `ensureInitialized()`, then `jwtVerify(token, this.jwksVerifier!)`, then `this.decryptPayload()` |
-| `getSigner(opts)` | Throws - verifier mode cannot sign tokens |
-| `getSigningKey()` | Throws - verifier mode cannot sign tokens |
-| `getDefaultTokenExpiresFn()` | Throws - verifier mode has no token expiry |
+> Choose the strategy class matching your JOSE standard - `JWKSIssuerAuthenticationStrategy` and `JWKSVerifierAuthenticationStrategy` both register under the same `'jwt'` name, so a JWKS issuer service uses only one of the two.
 
 ## JWKSController
 
-Serves the JWKS endpoint (default path `/certs`). This endpoint is **intentionally unauthenticated** - it serves the public keys needed by external verifiers.
+Serves the JWKS endpoint (default path `/certs`, configurable via `rest.path`). Intentionally unauthenticated - it serves the public keys external verifiers need.
 
-**File:** `packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts`
+**File:** [`packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/jwks/controller.ts)
 
 ```typescript
 class JWKSController extends BaseRestController {
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: JWKSIssuerTokenService.name,
-      }),
-    })
-    private jwksService: JWKSIssuerTokenService,
-  ) {
+  constructor(@inject(...) private jwksService: JWKSIssuerTokenService) {
     super({ scope: JWKSController.name, path: '/certs', isStrict: true });
   }
 
-  override binding(): ValueOrPromise<void> {
+  override binding() {
     this.defineRoute({
-      configs: RouteConfigs.GET_JWKS_CERTS,
+      configs: RouteConfigs.GET_JWKS_CERTS, // GET '/'
       handler: async context => {
         const jwks = await this.jwksService.getJWKSAsync();
         context.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
@@ -557,107 +523,40 @@ class JWKSController extends BaseRestController {
 }
 ```
 
-**Response format:**
-```json
-{
-  "keys": [
-    {
-      "kty": "EC",
-      "kid": "my-key-id-1",
-      "use": "sig",
-      "alg": "ES256",
-      "crv": "P-256",
-      "x": "...",
-      "y": "..."
-    }
-  ]
-}
-```
+The component applies `@controller({ path })` to `JWKSController` dynamically at binding time (via `Reflect.decorate`), since the path depends on a runtime option.
 
-**Cache headers:** `Cache-Control: public, max-age=3600, stale-while-revalidate=86400`
+## Controller factory
 
-> [!NOTE]
-> The `/certs` path is configurable via `rest.path` in `IJWKSIssuerOptions`. The component applies the `@controller` decorator dynamically with the configured path.
+`defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController` builds a `BaseRestController` subclass at runtime.
 
-## BasicTokenService
+**File:** [`packages/core/src/components/auth/authenticate/controllers/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/auth/authenticate/controllers/factory.ts)
 
-All methods are instance methods on <code v-pre>BasicTokenService&lt;E extends Env = Env&gt;</code>, which extends `BaseService`.
+**How it works:**
 
-**File:** `packages/core/src/components/auth/authenticate/services/basic/service.ts`
+1. **Class creation.** `class AuthController extends BaseRestController {}` inside the factory closure, decorated with `@controller({ path: restPath })`, `isStrict: true`.
+2. **Service injection.** `inject({ key: serviceKey })(AuthController, undefined, 0)` is applied *after* class definition - the programmatic equivalent of decorating constructor parameter 0. The constructor throws `400` if the resolved service is falsy.
+3. **Routes.** Defined in `binding()` via `this.defineRoute()` - see the endpoint table in [Usage & Examples](./usage#api-endpoints).
+4. **Schemas.** Each endpoint uses `payload.<name>.{request,response}.schema` if provided, else a built-in default (or `AnyObjectSchema` for responses with no built-in schema).
 
-### BasicAuthenticationStrategy
+Also exports `JWTTokenPayloadSchema`, the Zod schema backing `/who-am-i`'s response - extended at runtime with an optional `userInformation` field typed from `payload.getUserInformation.response.schema` (or `AnyObjectSchema`).
 
-Extends `BaseHelper` and implements <code v-pre>IAuthenticationStrategy&lt;E&gt;</code>. Generic on <code v-pre>&lt;E extends Env = Env&gt;</code>.
+## Entity column helper types
+
+Exported for extending the auth entity column helpers - see [Usage & Examples](./usage#entity-column-helpers) for the columns themselves.
 
 ```typescript
-class BasicAuthenticationStrategy<E extends Env = Env>
-  extends BaseHelper
-  implements IAuthenticationStrategy<E>
-{
-  name = Authentication.STRATEGY_BASIC;
-
-  constructor(
-    @inject({
-      key: BindingKeys.build({
-        namespace: BindingNamespaces.SERVICE,
-        key: BasicTokenService.name,
-      }),
-    })
-    private service: BasicTokenService<E>,
-  ) { ... }
-
-  async authenticate(context: TContext<E, string>): Promise<IAuthUser> {
-    const credentials = this.service.extractCredentials(context);
-    return this.service.verify({ credentials, context });
-  }
-}
-```
-
-### Methods
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `extractCredentials` | <code v-pre>(context: TContext&lt;E, string&gt;) =&gt; { username: string; password: string }</code> | Decodes Base64 <code v-pre>Authorization: Basic &lt;base64&gt;</code> header |
-| `verify` | <code v-pre>(opts: { credentials: { username: string; password: string }; context: TContext&lt;E, string&gt; }) =&gt; Promise&lt;IAuthUser&gt;</code> | Calls user-provided `verifyCredentials` callback |
-
-### Constructor Behavior
-
-```typescript
-constructor(
-  @inject({ key: AuthenticateBindingKeys.BASIC_OPTIONS })
-  protected options: TBasicTokenServiceOptions<E>,
-) {
-  // Throws '[BasicTokenService] Invalid verifyCredentials function' if !options?.verifyCredentials
-}
-```
-
-## Entity Column Helper Types
-
-The following types are exported for use when extending the auth entity column helpers:
-
-### Permission Types
-
-```typescript
-type TPermissionOptions = {
-  idType?: 'string' | 'number';
-};
-
+type TPermissionOptions = { idType?: 'string' | 'number' };
 type TPermissionCommonColumns = {
   code: NotNull<PgTextBuilderInitial<...>>;
   name: NotNull<PgTextBuilderInitial<...>>;
   subject: NotNull<PgTextBuilderInitial<...>>;
+  method: NotNull<PgTextBuilderInitial<...>>;
   action: NotNull<PgTextBuilderInitial<...>>;
   scope: NotNull<PgTextBuilderInitial<...>>;
-};
-```
-
-### Policy Definition Types
-
-```typescript
-type TPolicyDefinitionOptions = {
-  idType?: 'string' | 'number';
+  description: PgTextBuilderInitial<...>;
 };
 
+type TPolicyDefinitionOptions = { idType?: 'string' | 'number' };
 type TPolicyDefinitionCommonColumns = {
   variant: ReturnType<typeof text>;
   subjectType: ReturnType<typeof text>;
@@ -668,89 +567,41 @@ type TPolicyDefinitionCommonColumns = {
 };
 ```
 
-## Controller Factory
-
-The `defineAuthController()` function dynamically creates a controller class at runtime using decorator composition:
-
-**How it works:**
-
-1. **Class creation:** A new class is created dynamically with `class AuthController extends BaseRestController {}` inside the factory closure
-2. **Decorator application:** The `@controller({ path: restPath })` decorator is applied to set the base path. The controller is created with `isStrict: true`
-3. **Service injection:** The auth service is injected via `inject({ key: serviceKey })(AuthController, undefined, 0)` after class definition -- this programmatically applies `@inject` to constructor parameter 0
-   - Service key is provided via `controllerOpts.serviceKey` (required)
-   - Service must implement `IAuthService` interface
-4. **Route definition:** Routes are defined in the controller's `binding()` method using `this.defineRoute()`
-5. **Schema customization:** Custom Zod schemas can be provided per endpoint via the `payload` option. Defaults to built-in schemas when not provided, with `AnyObjectSchema` as the response fallback.
-
-**Factory signature:**
-
-```typescript
-function defineAuthController(opts: TDefineAuthControllerOpts): typeof AuthController;
-```
-
-> [!NOTE]
-> The factory also exports `JWTTokenPayloadSchema`, a Zod schema used for the `/who-am-i` response validation. For `/who-am-i`, it is extended with an optional `userInformation` field that is populated when the request sets `?withUserInformation=true`. The same `getUserInformation` service method backs the dedicated `GET /me` route.
-
-**Service resolution:**
-
-The factory applies `@inject` programmatically to constructor parameter 0:
-
-```typescript
-// Inside defineAuthController, after class definition:
-inject({ key: serviceKey })(AuthController, undefined, 0);
-```
-
-This is equivalent to:
-```typescript
-constructor(
-  @inject({ key: serviceKey })
-  authService: IAuthService,
-) { ... }
-```
-
-If the service is not bound, the component will throw: `"[AuthController] Failed to init auth controller | Invalid injectable authentication service!"`
-
-## File Structure
+## File structure
 
 ```
-packages/core/src/components/auth/authenticate/
-├── common/
-│   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)
-│   ├── constants.ts          # AuthenticateStrategy, JOSEStandards, JWKSModes, JWKSKeyDrivers, JWKSKeyFormats, Authentication, AuthenticationTokenTypes, AuthenticationModes
-│   ├── keys.ts               # AuthenticateBindingKeys (REST_OPTIONS, JWT_OPTIONS, JWKS_OPTIONS, BASIC_OPTIONS)
-│   ├── types.ts              # All option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IPayloadFieldCodec, IAuthService
-│   └── index.ts              # Barrel export
-├── controllers/
-│   ├── factory.ts            # defineAuthController() factory + JWTTokenPayloadSchema
-│   └── jwks/
-│       ├── controller.ts     # JWKSController (serves /certs endpoint)
-│       └── definitions.ts    # Route config for GET /certs
-├── middlewares/
-│   └── authenticate.middleware.ts  # Standalone authenticate() convenience function
-├── providers/
-│   └── authentication.provider.ts  # AuthenticationProvider (IProvider pattern, creates middleware)
-├── services/
-│   ├── basic/
-│   │   └── service.ts        # BasicTokenService
-│   ├── bearer/
-│   │   ├── abstract.service.ts   # AbstractBearerTokenService (shared logic)
-│   │   ├── jws.service.ts        # JWSTokenService (symmetric HS256)
-│   │   └── jwks/
-│   │       ├── abstract.service.ts   # AbstractJWKSTokenService (lazy-init)
-│   │       ├── issuer.service.ts     # JWKSIssuerTokenService
-│   │       └── verifier.service.ts   # JWKSVerifierTokenService
-│   └── index.ts              # Barrel export
-├── strategies/
-│   ├── basic.strategy.ts     # BasicAuthenticationStrategy
-│   ├── jws.strategy.ts       # JWSAuthenticationStrategy
-│   ├── jwks.strategy.ts      # JWKSIssuerAuthenticationStrategy + JWKSVerifierAuthenticationStrategy
-│   ├── strategy-registry.ts  # AuthenticationStrategyRegistry singleton
-│   └── index.ts              # Barrel export
-└── component.ts              # AuthenticateComponent
+packages/core/src/components/auth/
+├── authenticate/
+│   ├── common/
+│   │   ├── codecs.ts             # AuthenticationFieldCodecs (ROLES_CODEC, build() factory)
+│   │   ├── constants.ts          # AuthenticateStrategy, JOSEStandards, JWKSModes, JWKSKeyDrivers, JWKSKeyFormats, Authentication, AuthenticationTokenTypes, AuthenticationModes
+│   │   ├── keys.ts               # AuthenticateBindingKeys
+│   │   ├── types.ts              # Option interfaces, discriminated unions, IAuthUser, IJWTTokenPayload, IAuthService
+│   │   └── index.ts
+│   ├── controllers/
+│   │   ├── factory.ts            # defineAuthController() + JWTTokenPayloadSchema
+│   │   └── jwks/                 # JWKSController + route config
+│   ├── middlewares/
+│   │   └── authenticate.middleware.ts   # Standalone authenticate() function
+│   ├── providers/
+│   │   └── authentication.provider.ts   # AuthenticationProvider
+│   ├── services/
+│   │   ├── basic/service.ts             # BasicTokenService
+│   │   └── bearer/
+│   │       ├── abstract.service.ts      # AbstractBearerTokenService
+│   │       ├── jws.service.ts           # JWSTokenService
+│   │       └── jwks/                    # AbstractJWKSTokenService, JWKSIssuerTokenService, JWKSVerifierTokenService
+│   ├── strategies/                      # JWSAuthenticationStrategy, JWKS*, BasicAuthenticationStrategy, AuthenticationStrategyRegistry
+│   └── component.ts                     # AuthenticateComponent
+├── base/
+│   └── abstract-auth-registry.ts        # AbstractAuthRegistry (shared by authenticate + authorize)
+└── models/
+    ├── entities/                        # extraUserColumns, extraRoleColumns, extraPermissionColumns, extraPolicyDefinitionColumns
+    └── requests/                        # SignInRequestSchema, SignUpRequestSchema, ChangePasswordRequestSchema
 ```
 
-## See Also
+## See also
 
-- [Setup & Configuration](./) -- Binding keys, options interfaces, and initial setup
-- [Usage & Examples](./usage) -- Securing routes, auth flows, and API endpoints
-- [Error Reference](./errors) -- Error messages and troubleshooting
+- [Overview](./) - guided introduction and common tasks
+- [Usage & Examples](./usage) - securing routes, auth flows, JWKS microservice patterns, API endpoints
+- [Error Reference](./errors) - every error message and how to fix it

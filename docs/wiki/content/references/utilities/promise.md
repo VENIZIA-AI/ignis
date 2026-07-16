@@ -1,19 +1,15 @@
+---
+title: Promise Utility
+description: Concurrency-limited task execution plus small Promise and object-path helpers
+difficulty: beginner
+lastUpdated: 2026-07-16
+---
+
 # Promise Utility
 
-The Promise utility provides helper functions for working with Promises, particularly for managing concurrency and transforming values.
+Helper functions for working with Promises - bounding concurrency, normalizing thrown values, type-guarding thenables, reading nested object paths, and firing-and-forgetting async work safely.
 
-## `executePromiseWithLimit`
-
-This function executes an array of asynchronous tasks concurrently, but with a specified limit on the number of promises running at any given time. This is useful for throttling asynchronous operations to avoid overwhelming a system (e.g., making a large number of concurrent API calls).
-
-### `executePromiseWithLimit(opts)`
-
--   `opts` (object):
-    -   `tasks` (Array&lt;() => Promise&lt;T&gt;&gt;): An array of functions that each return a Promise.
-    -   `limit` (number): The maximum number of promises to execute in parallel.
-    -   `onTaskDone` (&lt;R&gt;(opts: { result: R }) => ValueOrPromise&lt;void&gt;, optional): A callback function that is executed whenever a task is completed (specifically, when the concurrency limit is reached and a task finishes to make room).
-
-### Example
+## In one example
 
 ```typescript
 import { executePromiseWithLimit, sleep } from '@venizia/ignis-helpers';
@@ -22,67 +18,37 @@ const tasks = [
   () => sleep(1000).then(() => 'Task 1 done'),
   () => sleep(500).then(() => 'Task 2 done'),
   () => sleep(1200).then(() => 'Task 3 done'),
-  () => sleep(800).then(() => 'Task 4 done'),
 ];
-
-console.log('Starting tasks with a limit of 2...');
 
 const results = await executePromiseWithLimit({
   tasks,
   limit: 2,
-  onTaskDone: ({ result }) => {
-    console.log('A task finished:', result);
-  },
+  onTaskDone: ({ result }) => console.log('A task finished:', result),
 });
-
-console.log('All tasks finished:', results);
 ```
 
-## `toError`
+## Functions
 
-Normalizes an unknown thrown value into an `Error` instance. Useful in `catch` blocks where the caught value is typed `unknown` and isn't guaranteed to already be an `Error`.
+| Function | Signature | What it does |
+|----------|-----------|---------------|
+| `executePromiseWithLimit` | `executePromiseWithLimit<T>(opts: { tasks: Array<() => Promise<T>>; limit: number; onTaskDone?: <R>(opts: { result: R }) => ValueOrPromise<void> }): Promise<T[]>` | Runs `tasks` with at most `limit` running concurrently. Calls `onTaskDone` each time the limit is hit and a slot frees up. Throws if `limit` is not a positive integer. |
+| `toError` | `toError(error: unknown): Error` | Normalizes a `catch`-block value into an `Error` - passes an existing `Error` through, wraps anything else with `new Error(String(error))`. |
+| `isPromiseLike` | `isPromiseLike<T>(value: T \| PromiseLike<T>): value is PromiseLike<T>` | Type guard: `true` when `value` is non-null and has a callable `.then`. |
+| `getDeepProperty` | `getDeepProperty<T, V>(obj: T, path: string): V` | Reads a dot-separated `path` off `obj`. Throws if any intermediate segment is `null`/`undefined`. |
+| `voidExecution` | `voidExecution(opts: { logger?: Logger; scope: string; execution: ValueOrPromise<unknown> }): void` | Fire-and-forget: if `execution` is a Promise, routes a rejection to `logger.for(scope).error(...)` (or `console.error` without a logger) instead of an unhandled rejection. Synchronous values pass through untouched. |
 
-```typescript
-import { toError } from '@venizia/ignis-helpers';
+## Notes
 
-try {
-  await riskyOperation();
-} catch (caught) {
-  const error = toError(caught);
-  console.error(error.message);
-}
-```
+- **`executePromiseWithLimit` validates `limit` eagerly** - a non-integer or a value below `1` throws immediately, before any task runs.
+- **`onTaskDone` only fires under backpressure.** It runs when the number of in-flight tasks reaches `limit` and `Promise.race` resolves one of them - not after every task.
+- **`voidExecution` exists because `BaseHelper` cannot carry `protected` members** on classes the container instantiates anonymously (TS4094) - it is a standalone function, not a helper method, precisely so factory-built controllers can still use it.
+- **`getDeepProperty` throws, it does not return `undefined`**, on a missing intermediate segment - wrap the call if you need optional-path semantics instead.
 
-## `isPromiseLike`
+## See also
 
-A type guard function to check if a given value is a Promise-like object (i.e., it has a `then` method). Checks that the value is non-null, is an object or function, and has a `then` property that is a function.
+- [Utilities Overview](/references/utilities/) - all utility functions
+- [Date Utility](/references/utilities/date) - `sleep()`, used to build the tasks in the example above
 
-```typescript
-import { isPromiseLike } from '@venizia/ignis-helpers';
+**Files:**
 
-const a = Promise.resolve(1);
-const b = 2;
-
-if (isPromiseLike(a)) {
-  // This will run
-}
-
-if (isPromiseLike(b)) {
-  // This will not run
-}
-```
-
-## `getDeepProperty`
-
-Traverses a dot-separated property path on an object and returns the value. It throws an error if any intermediate part of the path is null or undefined.
-
-```typescript
-import { getDeepProperty } from '@venizia/ignis-helpers';
-
-const obj = { a: { b: { c: 'hello' } } };
-
-const value = getDeepProperty(obj, 'a.b.c'); // => 'hello'
-
-// Throws: Cannot read property 'x' of undefined
-getDeepProperty(obj, 'a.x.y');
-```
+- [`packages/helpers/src/utilities/promise.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/promise.utility.ts)

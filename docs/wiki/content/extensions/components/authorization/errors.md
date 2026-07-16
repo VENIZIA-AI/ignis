@@ -18,91 +18,97 @@ flowchart TD
 
     S5 -->|No enforcers| OK3([No error - skip])
     S5 -->|Yes| S5b{"Resolve enforcer"}
-    S5b -->|Name not found| E500b[/"500: Descriptor not found"/]
-    S5b -->|DI fails| E500c[/"500: Failed to resolve"/]
+    S5b -->|Name not found| E400b[/"400: Descriptor not found"/]
+    S5b -->|DI fails| E400c[/"400: Failed to resolve"/]
     S5b -->|OK| S6{"Step 6: Build rules"}
 
-    S6 -->|Not configured| E500d[/"500: Not configured. Call configure() first."/]
-    S6 -->|No FilteredAdapter| E500e[/"500: Adapter does not support loadFilteredPolicy"/]
-    S6 -->|Empty Redis key| E400b[/"400: keyFn returned an empty cache key"/]
+    S6 -->|Not configured| E400d[/"400: Not configured. Call configure() first."/]
+    S6 -->|No FilteredAdapter| E400e[/"400: Adapter does not support loadFilteredPolicy"/]
+    S6 -->|Empty Redis key| E400f[/"400: keyFn returned an empty cache key"/]
+    S6 -->|No principalType| E400g[/"400: principalType is required"/]
     S6 -->|OK| S7{"Step 7: Evaluate"}
 
-    S7 -->|No action/resource| E500g[/"500: request.action and resource required"/]
+    S7 -->|No action/resource| E400h[/"400: action and resource required"/]
     S7 -->|ALLOW| OK4([Authorized])
-    S7 -->|DENY| E403b[/"403: Authorization denied"/]
+    S7 -->|DENY / ABSTAIN-as-deny| E403b[/"403: Authorization denied"/]
+
+    style E401 fill:#f8d7da,stroke:#dc3545
+    style E403a fill:#f8d7da,stroke:#dc3545
+    style E403b fill:#f8d7da,stroke:#dc3545
+    style E400b fill:#fff3cd,stroke:#ffc107
+    style E400c fill:#fff3cd,stroke:#ffc107
+    style E400d fill:#fff3cd,stroke:#ffc107
+    style E400e fill:#fff3cd,stroke:#ffc107
+    style E400f fill:#fff3cd,stroke:#ffc107
+    style E400g fill:#fff3cd,stroke:#ffc107
+    style E400h fill:#fff3cd,stroke:#ffc107
 ```
 
 ## Complete Error Reference
 
-All error messages from the authorization module, organized by source:
+All error messages from the authorization module, organized by source. **Status** is what `error.statusCode` holds - most calls use `getError({ message })` with no explicit `statusCode`, which the shared `ApplicationError` defaults to **400**. Only the request-pipeline errors below (steps 2, 4, 7) set an explicit `401`/`403`.
 
-### Component Errors (AuthorizeComponent)
+### Component Errors (`AuthorizeComponent`)
 
-| Error Message | Status | Method |
-|---------------|--------|--------|
-| `[AuthorizeComponent] No authorize options found. Bind options to AuthorizeBindingKeys.OPTIONS before registering the component.` | 500 | `binding` |
+Thrown during `binding()`, at application startup.
 
-### Authorization Provider Errors
+| Error Message | Status | Method | Cause |
+|---------------|--------|--------|-------|
+| `[AuthorizeComponent] No authorize options found. Bind options to AuthorizeBindingKeys.OPTIONS before registering the component.` | 400 | `binding` | `IAuthorizeOptions` was never bound before `this.component(AuthorizeComponent)` |
 
-| Error Message | Status | Step |
-|---------------|--------|------|
-| `Authorization failed: No authenticated user found` | 401 | Step 2 -- User check |
-| `Authorization failed: user.principalType is required for enforcer-based authorization` | 400 | Step 6 -- Build rules |
-| <code v-pre>Authorization denied by voter &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | Step 4 -- Voter DENY |
-| <code v-pre>Authorization denied &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | Step 7 -- Enforcer denied |
+### Enforcer Registry Errors (`AuthorizationEnforcerRegistry` + inherited `AbstractAuthRegistry`)
 
-### Enforcer Registry Errors (AuthorizationEnforcerRegistry)
-
-| Error Message | Status | Method |
-|---------------|--------|--------|
-| <code v-pre>[getKey] Invalid name &#124; name: {{name}}</code> | 500 | `getKey` |
-| `[AuthorizationEnforcerRegistry] No items registered` | 500 | `getDefaultName` |
-| <code v-pre>[AuthorizationEnforcerRegistry] Duplicate enforcer name(s): {{names}}</code> | 500 | `register` |
-| <code v-pre>[AuthorizationEnforcerRegistry] Enforcer already registered: {{name}}</code> | 500 | `register` |
-| <code v-pre>[AuthorizationEnforcerRegistry] Descriptor not found: {{name}}</code> | 500 | `resolveDescriptor` |
-| <code v-pre>[AuthorizationEnforcerRegistry] Failed to resolve: {{name}}</code> | 500 | `resolveDescriptor` |
+| Error Message | Status | Method | Cause |
+|---------------|--------|--------|-------|
+| <code v-pre>[getKey] Invalid name &#124; name: {{name}}</code> | 400 | `getKey` | Enforcer name is empty or falsy |
+| `[AuthorizationEnforcerRegistry] No items registered` | 400 | `getDefaultName` | `getDefaultEnforcerName()` called with zero enforcers registered |
+| <code v-pre>[AuthorizationEnforcerRegistry] Duplicate enforcer name(s): {{names}}</code> | 400 | `register` | Two or more enforcers in the same `register()` call share a name |
+| <code v-pre>[AuthorizationEnforcerRegistry] Enforcer already registered: {{name}}</code> | 400 | `register` | An enforcer with this name was already registered in a previous call |
+| <code v-pre>[AuthorizationEnforcerRegistry] Descriptor not found: {{name}}</code> | 400 | `resolveDescriptor` | `enforcerName` doesn't match any registered enforcer |
+| <code v-pre>[AuthorizationEnforcerRegistry] Failed to resolve: {{name}}</code> | 400 | `resolveDescriptor` | The registered class has unsatisfied `@inject` dependencies |
+| <code v-pre>[AuthorizationEnforcerRegistry] Enforcer "{{name}}" does not support cache invalidation</code> | 400 | `invalidateUserCache` / `rebuildUserCache` | The resolved enforcer doesn't implement the optional cache-management methods |
 
 > [!NOTE]
-> The `[AuthorizationEnforcerRegistry] No items registered` error can only occur if `getDefaultEnforcerName()` is called directly. During normal middleware execution, the provider checks `registry.hasEnforcers()` first and skips authorization if no enforcers are registered, so this error is not thrown in the standard pipeline.
+> `[AuthorizationEnforcerRegistry] No items registered` can only surface if `getDefaultEnforcerName()` is called directly. During normal middleware execution, the provider checks `registry.hasEnforcers()` first and skips authorization when no enforcers exist - it never reaches this throw.
 
-### Casbin Enforcer Errors (CasbinAuthorizationEnforcer)
+### Authorization Provider Errors (`AuthorizationProvider` - the request pipeline)
 
-| Error Message | Status | Method |
-|---------------|--------|--------|
-| `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 500 | `configure` |
-| `[CasbinAuthorizationEnforcer] options.model is required.` | 500 | `configure` |
-| `[CasbinAuthorizationEnforcer] Not configured. Call configure() first.` | 500 | `evaluate`, `loadPolicyLinesIntoModel` |
-| `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 500 | `buildRules` (via `extractUserLines`) |
-| `[CasbinAuthorizationEnforcer] request.action and request.resource are required.` | 500 | `evaluate` |
-| `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `buildRules`/cache management (via `resolveCacheKey`) |
-| <code v-pre>[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms) &#124; Received: {{value}}</code> | 500 | `configure` (via `validateExpiresIn`) |
-| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup - ...</code> | 500 | `configure` (via `assertMatcherCompilesSync`) |
-| <code v-pre>[resolveDomainMatchingFn] Unsupported func: {{name}} &#124; Valids: [...]</code> | 500 | `configure` (via `registerMatchers`) |
-| <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model. ...</code> | 500 | `configure` (via `registerMatchers`, only when `domainMatching` is set) |
-| <code v-pre>[resolveModel] Invalid model.driver &#124; Valids: [file, text]</code> | 500 | `configure` (via `resolveModel`) |
-| `[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.` | 500 | `invalidateUserCache`/`rebuildUserCache` (via `requireRedisCache`) |
+The only errors in the module with an **explicit** `statusCode`.
 
-> The `Invalid cached.driver` errors were removed - `cached` is now a typed union
-> (`{ use: false } | { use: true, driver: 'redis', ... }`), so an invalid driver is a compile-time
-> error, not a runtime one.
+| Error Message | Status | Pipeline step | Cause |
+|---------------|--------|------|-------|
+| `Authorization failed: No authenticated user found` | 401 | 2 - User check | `Authentication.CURRENT_USER` is missing from the Hono context |
+| <code v-pre>Authorization denied by voter &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 4 - Voters | A voter function returned `AuthorizationDecisions.DENY` |
+| `Authorization failed: user.principalType is required for enforcer-based authorization` | 400 | 6 - Build rules | The authenticated user object has no `principalType` field |
+| <code v-pre>Authorization denied &#124; action: {{action}} &#124; resource: {{resource}}</code> | 403 | 7 - Evaluate | The enforcer returned `DENY`, or `ABSTAIN` and `defaultDecision` resolved to `'deny'` |
 
-### Policy Loading Errors (CasbinAuthorizationEnforcer internals)
+### Casbin Enforcer Errors - Startup (`CasbinAuthorizationEnforcer.configure()`)
 
-| Error Message | Status | Method |
-|---------------|--------|--------|
-| `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `resolveCacheKey` (read + cache-management paths) |
-| `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 500 | `extractUserLines` |
-| `[loadPolicyLinesIntoModel] Not configured. Call configure() first.` | 500 | `loadPolicyLinesIntoModel` |
-| `[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.` | - (logged, not thrown) | `parseCachedPolicyLines` - corrupt entry is discarded + refetched |
+| Error Message | Status | Method | Cause |
+|---------------|--------|--------|-------|
+| `[CasbinAuthorizationEnforcer] "casbin" is not installed` | 400 | `configure` | The optional `casbin` peer dependency isn't installed |
+| `[CasbinAuthorizationEnforcer] options.model is required.` | 400 | `configure` | `model` is missing from the enforcer options |
+| <code v-pre>[registerMatchers] Role definition "{{name}}" is not declared in the Casbin model. Declare it under [role_definition] (e.g. `g = _, _, _`) before enabling domainMatching.</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.roleDefinition` isn't declared in `[role_definition]` (only checked when `domainMatching` is set) |
+| <code v-pre>[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup - the model matcher did not compile ... {{error}}</code> | 400 | `configure` (via `assertMatcherCompilesSync`) | The matcher expression doesn't compile: syntax error, an unregistered function, or an arity mismatch |
+| <code v-pre>[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000 (ms) &#124; Received: {{value}}</code> | 400 | `configure` (via `validateExpiresIn`) | `cached.options.expiresIn` is below `MIN_EXPIRES_IN` (10,000 ms) |
+| <code v-pre>[resolveDomainMatchingFn] Unsupported func: {{name}} &#124; Valids: [...]</code> | 400 | `configure` (via `registerMatchers`) | `domainMatching.fn` isn't a `CasbinDomainMatchingFunctions` value |
+| <code v-pre>[resolveModel] Invalid model.driver &#124; Valids: [file, text]</code> | 400 | `configure` (via `resolveModel`) | `model.driver` isn't `'file'` or `'text'` |
 
-> A corrupted Redis cache entry does **not** raise an error - it is logged and discarded, and the
-> lines are refetched from the adapter (the request never 500s on cache corruption).
+> [!NOTE]
+> There is no `Invalid cached.driver` runtime error - `cached` is a typed discriminated union (`{ use: false } | { use: true; driver: 'redis'; ... }`), so an unsupported cache driver is a compile-time error. Caching is **Redis-only**.
 
-### Registry Errors (AuthorizationEnforcerRegistry)
+### Casbin Enforcer Errors - Runtime (`buildRules` / `evaluate` / cache management)
 
-| Error Message | Status | Method |
-|---------------|--------|--------|
-| `[AuthorizationEnforcerRegistry] Enforcer "{{name}}" does not support cache invalidation` | 500 | `invalidateUserCache` / `rebuildUserCache` (the resolved enforcer lacks the optional method) |
+| Error Message | Status | Method | Cause |
+|---------------|--------|--------|-------|
+| `[CasbinAuthorizationEnforcer] Not configured. Call configure() first.` | 400 | `evaluate` | `evaluate()` ran before `configure()` built the enforcer pool - should not happen via `resolveEnforcer()` |
+| `[CasbinAuthorizationEnforcer] request.action and request.resource are required.` | 400 | `evaluate` | Malformed `IAuthorizationRequest` passed to `evaluate()` |
+| `[CasbinAuthorizationEnforcer] keyFn returned an empty cache key.` | 400 | `resolveCacheKey` (via `buildRules`, `invalidateUserCache`, `rebuildUserCache`) | `cached.options.keyFn` returned a falsy value for this user |
+| `[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled.` | 400 | `invalidateUserCache` / `rebuildUserCache` (via `requireRedisCache`) | Called with `cached: { use: false }` |
+| `[extractUserLines] Adapter does not support loadFilteredPolicy.` | 400 | `buildRules` (via `extractUserLines`) | `options.adapter` doesn't implement casbin's `FilteredAdapter.loadFilteredPolicy` |
+| `[loadPolicyLinesIntoModel] Not configured. Call configure() first.` | 400 | `evaluate` (via `loadPolicyLinesIntoModel`) | Same root cause as the `evaluate` "Not configured" row, different call site |
+
+**Not an error** - `[CasbinAuthorizationEnforcer] Cached payload is not an array of policy lines.` is logged at `warn` level by `parseCachedPolicyLines` and never thrown up to the caller: a corrupted or legacy Redis entry is discarded and the lines are refetched from the adapter, so the request never 500s (or 400s) on cache corruption.
 
 ## Troubleshooting
 
@@ -110,85 +116,73 @@ All error messages from the authorization module, organized by source:
 
 **Cause:** `AuthorizeComponent` was registered but `IAuthorizeOptions` was not bound to the container.
 
-**Fix:** Bind options **before** registering the component:
+**Fix:** Bind options **before** registering the component.
 
 ```typescript
-// 1. Bind options first
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
   defaultDecision: 'deny',
   alwaysAllowRoles: ['999_super-admin'],
 });
 
-// 2. Then register the component
 this.component(AuthorizeComponent);
 ```
 
 ### "Authorization failed: No authenticated user found"
 
-**Cause:** The authorization middleware runs after authentication, but no user was found on the context (`Authentication.CURRENT_USER` is undefined). This happens when:
-- The route has `authorize` but no `authenticate` config
-- Authentication middleware failed silently
-- Authentication was skipped but authorization was not
+**Cause:** The authorization middleware runs after authentication, but no user was found on the context (`Authentication.CURRENT_USER` is `undefined`). Common triggers: the route has `authorize` but no `authenticate`, authentication was skipped but authorization wasn't, or the request genuinely has no valid credentials.
 
-**Fix:** Ensure routes with `authorize` also have `authenticate`:
+**Fix:** Every route with `authorize` needs a matching `authenticate` config.
 
 ```typescript
 this.defineRoute({
   configs: {
     path: '/',
     method: 'get',
-    authenticate: { strategies: [Authentication.STRATEGY_JWT] },  // Must be present
+    authenticate: { strategies: [Authentication.STRATEGY_JWT] },  // must be present
     authorize: { action: AuthorizationActions.READ, resource: 'Article' },
     // ...
   },
-  handler: async (context) => { ... },
+  handler: async context => { /* ... */ },
 });
 ```
 
 ### "Authorization failed: user.principalType is required"
 
-**Cause:** The authenticated user object does not have a `principalType` field. This is required for enforcer-based authorization because the enforcer uses `principalType` to construct the casbin subject (e.g., `user_123`, `service_456`).
+**Cause:** The authenticated user object has no `principalType` field. Enforcer-based authorization uses it to build the casbin subject (e.g. `User_123`).
 
-**Fix:** Ensure your authentication service sets `principalType` on the user object:
+**Fix:** Set `principalType` when you build the user in your authentication service or token payload.
 
 ```typescript
-// In your JWT token service or authentication service:
 return {
   userId: '123',
-  principalType: 'user',  // Required for authorization
+  principalType: 'User', // required for authorization
   roles: [...],
 };
 ```
 
 > [!NOTE]
-> `principalType` is accessed via the `IAuthUser` index signature (`[extra: string | symbol]: any`), not a dedicated field. It must be set as a property on the returned user object.
+> `principalType` is read via the `IAuthUser` index signature, not a dedicated field - it must be a real property on the returned user object.
 
 ### "Authorization denied by voter | action: ... | resource: ..."
 
-**Cause:** A voter function explicitly returned `AuthorizationDecisions.DENY` for the request.
+**Cause:** A voter function explicitly returned `AuthorizationDecisions.DENY`.
 
-**Fix:** Check the voter logic. Review which voter denied the request by examining the action and resource in the error message. Common causes:
-- Voter checking ownership and user is not the owner
-- Voter checking time window and request is outside allowed hours
-- Voter checking resource state (e.g., locked, archived)
+**Fix:** Inspect the voter named in your logs. Common causes: ownership check failed, a time-window check rejected the request, or a resource-state check (locked/archived) blocked it.
 
 ### "Authorization denied | action: ... | resource: ..."
 
-**Cause:** The enforcer's `evaluate()` returned `DENY` or `ABSTAIN` (which fell back to `defaultDecision`) for the requested action/resource. This means:
-- No matching policies were found for the user
-- Matching policies exist but deny the action
-- The casbin model does not cover the requested action/resource combination
+**Cause:** `enforcer.evaluate()` returned `DENY`, or `ABSTAIN` and it fell back to `defaultDecision`. Usually: no matching policy for the user, a matching `deny` policy, or the model doesn't cover the requested domain/resource/action combination.
 
-**Fix:** Debug by checking:
+**Fix:** Work through this checklist:
 
-1. **Policies are loaded correctly** -- verify your adapter is returning the right policy definitions for the user
-2. **Subject format matches** -- the `normalizePayloadFn` must produce subjects matching your policy definitions (e.g., `user_123` must match what's in the database)
-3. **Casbin model covers the request** -- your `.conf` file must define matchers for the action/resource/domain pattern you're using
-4. **Set defaultDecision explicitly:**
+1. **Policies are loaded correctly** - verify the adapter returns the right rows for this user (`ScopedCasbinAdapter` reads `PolicyDefinition` filtered by `subject_type`/`subject_id`).
+2. **Subject format matches.** `normalizePayloadFn` (or the default scoped payload) must produce a subject that matches what's stored, e.g. `User_123`.
+3. **The model covers the request.** For a custom (non-scoped) `.conf`, confirm the matcher handles the action/resource/domain shape you're sending.
+4. **Set `defaultDecision` explicitly** - don't rely on an implicit fallback:
+
 ```typescript
 this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
-  defaultDecision: 'deny',  // Explicit is better
-  // ...
+  defaultDecision: 'deny', // explicit is better than implicit
 });
 ```
 
@@ -196,108 +190,82 @@ this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
 
 **Cause:** Two or more enforcers in the same `register()` call have the same name.
 
-**Fix:** Ensure each enforcer has a unique name:
+**Fix:** Give every enforcer in the call a unique name.
 
 ```typescript
 AuthorizationEnforcerRegistry.getInstance().register({
   container: this,
   enforcers: [
-    { enforcer: CasbinEnforcer, name: 'casbin', type: 'casbin', ... },
-    { enforcer: CustomEnforcer, name: 'custom', type: 'custom', ... },  // Different name
+    { enforcer: CasbinAuthorizationEnforcer, name: 'casbin', type: 'casbin', options: { /* ... */ } },
+    { enforcer: MyCustomEnforcer, name: 'custom', type: 'custom' }, // different name
   ],
 });
 ```
 
 ### "[AuthorizationEnforcerRegistry] Enforcer already registered: ..."
 
-**Cause:** An enforcer with this name was already registered in a previous `register()` call. The registry does not allow overwriting.
+**Cause:** An enforcer with this name was already registered in a previous `register()` call - the registry doesn't allow overwriting.
 
-**Fix:** Ensure you only register each enforcer name once. If you need to re-register, call `registry.reset()` first (typically only in tests).
-
-### "[AuthorizationEnforcerRegistry] No items registered"
-
-**Cause:** Tried to get the default enforcer name but no enforcers are registered. This error can only occur if `getDefaultEnforcerName()` is called directly. During normal middleware execution, the provider checks `registry.hasEnforcers()` first and skips authorization if no enforcers are registered, so this error is not triggered in the standard pipeline.
-
-**Fix:** Register enforcers after registering the component:
-
-```typescript
-// 1. Bind options and register component
-this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({ ... });
-this.component(AuthorizeComponent);
-
-// 2. Register enforcers
-AuthorizationEnforcerRegistry.getInstance().register({
-  container: this,
-  enforcers: [{ enforcer: CasbinAuthorizationEnforcer, name: 'casbin', type: 'casbin', options: { ... } }],
-});
-```
+**Fix:** Register each name once. Call `AuthorizationEnforcerRegistry.getInstance().reset()` first if you genuinely need to re-register (typically only in tests).
 
 ### "[AuthorizationEnforcerRegistry] Descriptor not found: ..."
 
-**Cause:** Tried to resolve an enforcer by a name that was never registered. This happens when `enforcerName` is specified in the `authorize()` call but doesn't match any registered enforcer.
+**Cause:** `enforcerName` in an `authorize()` call doesn't match any registered enforcer name.
 
-**Fix:** Ensure the enforcer name matches what was registered. The default enforcer name is the first one registered.
+**Fix:** Match the name used in `register()`. The default (when `enforcerName` is omitted) is the first one registered.
 
 ### "[AuthorizationEnforcerRegistry] Failed to resolve: ..."
 
-**Cause:** The enforcer class was registered in the descriptor Map but DI container resolution returned `null`. This typically means the enforcer class has unsatisfied dependencies.
+**Cause:** The enforcer class is registered, but DI resolution returned `null` - typically an unsatisfied `@inject` dependency in its constructor.
 
-**Fix:** Check that all `@inject` dependencies in your enforcer's constructor are bound in the same container.
+**Fix:** Confirm every `@inject` in the enforcer's constructor is bound in the same container before `resolveEnforcer()` runs.
 
-### "[CasbinAuthorizationEnforcer] casbin is not installed"
+### "[CasbinAuthorizationEnforcer] "casbin" is not installed"
 
-**Cause:** The Casbin enforcer dynamically imports `casbin` at configure time, but the package is not installed.
+**Cause:** The Casbin enforcer dynamically imports `casbin` in `configure()`, but the package isn't installed.
 
-**Fix:** Install casbin as a dependency:
+**Fix:**
 
 ```bash
 bun add casbin
 ```
 
-### "[CasbinAuthorizationEnforcer] options.model is required"
+### "[CasbinAuthorizationEnforcer] options.model is required."
 
-**Cause:** The Casbin enforcer's options do not include a `model` field. The model defines the casbin RBAC/ABAC rules structure.
+**Cause:** The enforcer options have no `model`.
 
-**Fix:** Provide `model` in the enforcer options:
-
-```typescript
-AuthorizationEnforcerRegistry.getInstance().register({
-  container: this,
-  enforcers: [{
-    enforcer: CasbinAuthorizationEnforcer,
-    name: 'casbin',
-    type: 'casbin',
-    options: {
-      model: {
-        driver: 'file',
-        definition: path.resolve(__dirname, './security/model.conf'),
-      },
-      cached: { use: false },
-    },
-  }],
-});
-```
-
-### "[extractUserLines] Adapter does not support loadFilteredPolicy"
-
-**Cause:** The adapter provided to the Casbin enforcer does not implement the `loadFilteredPolicy` method from casbin's `FilteredAdapter` interface. The authorization system always uses filtered policy loading.
-
-**Fix:** Use an adapter that implements `FilteredAdapter`, such as `ScopedCasbinAdapter` or a custom adapter extending `BaseFilteredAdapter`:
+**Fix:** Provide a model - inline text (recommended: `CASBIN_RBAC_DOMAIN_SCOPED_MODEL`) or a file path.
 
 ```typescript
-import { ScopedCasbinAdapter } from '@venizia/ignis';
-
-const adapter = new ScopedCasbinAdapter({
-  dataSource,
-  entities: { /* IScopedCasbinEntities */ },
-});
+options: {
+  model: { driver: CasbinEnforcerModelDrivers.TEXT, definition: CASBIN_RBAC_DOMAIN_SCOPED_MODEL },
+  isScoped: true,
+  adapter,
+  cached: { use: false },
+}
 ```
+
+### "[registerMatchers] Role definition "g2" is not declared in the Casbin model..."
+
+**Cause:** `domainMatching.roleDefinition` references a relation the model doesn't declare under `[role_definition]`. Casbin would otherwise register the function as a silent no-op, leaving wildcard domains permanently unmatched (global roles silently denied) - the enforcer throws at boot instead.
+
+**Fix:** Point `roleDefinition` at a relation the model actually declares.
+
+```typescript
+domainMatching: { roleDefinition: 'g', fn: CasbinDomainMatchingFunctions.KEY_MATCH } // model must declare `g = _, _, _`
+```
+
+### "[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup..."
+
+**Cause:** `assertMatcherCompilesSync()` runs a dummy `enforceSync()` at warmup to force casbin's lazy matcher compile. It failed - a matcher syntax error, a function referenced in the matcher that was never registered, or a request-arity mismatch (3 vs. 4 tokens).
+
+**Fix:** Check the `[matchers]` section of your `.conf`. If scoped, confirm `isScoped: true` is set (registers `objectMatch` + `keyMatch` automatically); if using a custom flat model, confirm every function the matcher calls is registered via `domainMatching`.
 
 ### "[CasbinAuthorizationEnforcer] cached.options.expiresIn must be >= 10000"
 
-**Cause:** The `expiresIn` value for the cache TTL is too small. Minimum is 10,000 ms (10 seconds), enforced by the `MIN_EXPIRES_IN` constant.
+**Cause:** `expiresIn` is below the 10,000 ms minimum (`MIN_EXPIRES_IN`).
 
-**Fix:** Increase the expiration time:
+**Fix:**
 
 ```typescript
 cached: {
@@ -305,53 +273,42 @@ cached: {
   driver: 'redis',
   options: {
     connection: redisHelper,
-    expiresIn: 5 * 60 * 1000,  // 5 minutes (minimum: 10,000 ms)
-    keyFn: ({ user }) => `authz:policies:${user.userId}`,
+    expiresIn: 5 * 60 * 1000, // 5 minutes (minimum: 10,000 ms)
+    keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
   },
 },
 ```
 
 ### "[CasbinAuthorizationEnforcer] Not configured. Call configure() first."
 
-**Cause:** The Casbin enforcer's `evaluate()` (or `loadPolicyLinesIntoModel()`) was called before `configure()` built the enforcer pool. This should not happen when using `resolveEnforcer()` (which auto-configures), but can occur if the enforcer is resolved manually via the DI container.
+**Cause:** `evaluate()` (or its internal `loadPolicyLinesIntoModel()`) ran before `configure()` built the enforcer pool. This shouldn't happen through `resolveEnforcer()` (which auto-configures), but can occur if the enforcer is resolved manually from the DI container.
 
-**Fix:** Always resolve enforcers through the registry's `resolveEnforcer()` method, which handles configure-once automatically:
+**Fix:** Always go through the registry, which handles configure-once automatically.
 
 ```typescript
 const enforcer = await AuthorizationEnforcerRegistry.getInstance().resolveEnforcer({ name: 'casbin' });
-// configure() is called automatically on first resolve
 ```
-
-### "[loadPoliciesWithRedisCache] Invalid cachedKey"
-
-**Cause:** The `keyFn` in Redis cache options returned a falsy value (empty string, null, undefined). The cache key is required to store/retrieve policies from Redis.
-
-**Fix:** Ensure your `keyFn` always returns a non-empty string:
-
-```typescript
-keyFn: ({ user }) => {
-  if (!user.userId) {
-    throw new Error('User ID is required for cache key');
-  }
-  return `authz:policies:${user.userId}`;
-},
-```
-
-### "[CasbinAuthorizationEnforcer] Not configured. Call configure() first."
-
-**Cause:** `evaluate()` or `loadPolicyLinesIntoModel()` ran before the enforcer pool was built.
-
-**Fix:** Ensure `configure()` completed successfully (the registry calls it on first use) before any
-evaluation. The enforcer pool is created in `configure()`.
 
 ### "[CasbinAuthorizationEnforcer] keyFn returned an empty cache key."
 
-**Cause:** The Redis `cached.options.keyFn` returned an empty string for a user.
+**Cause:** `cached.options.keyFn` returned a falsy value for a user.
 
-**Fix:** Return a stable, non-empty key (commonly derived from `user.principalType` + `user.userId`):
+**Fix:** Always return a stable, non-empty key.
 
 ```typescript
 keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
+```
+
+### "[extractUserLines] Adapter does not support loadFilteredPolicy"
+
+**Cause:** `options.adapter` doesn't implement casbin's `FilteredAdapter.loadFilteredPolicy`. Authorization always loads policies filtered by principal.
+
+**Fix:** Use `ScopedCasbinAdapter`, or extend `BaseFilteredAdapter` and implement `loadFilteredPolicy`.
+
+```typescript
+import { ScopedCasbinAdapter } from '@venizia/ignis';
+
+const adapter = new ScopedCasbinAdapter({ dataSource, entities: { /* IScopedCasbinEntities */ } });
 ```
 
 ### "[resolveModel] Invalid model.driver | Valids: [file, text]"
@@ -360,39 +317,44 @@ keyFn: ({ user }) => `authz:policies:${user.principalType}:${user.userId}`,
 
 **Fix:** Use `CasbinEnforcerModelDrivers.FILE` (`'file'`) or `CasbinEnforcerModelDrivers.TEXT` (`'text'`).
 
-> There is no longer an `Invalid cached.driver` runtime error - `cached` is a typed union, so an
-> unsupported cache driver is caught at compile time. Caching is **Redis-only**.
+### "[CasbinAuthorizationEnforcer] Cache management requires the redis cache driver, but caching is disabled."
+
+**Cause:** `invalidateUserCache()` or `rebuildUserCache()` was called on an enforcer configured with `cached: { use: false }`.
+
+**Fix:** Either configure Redis caching, or don't call the cache-management methods for a non-cached enforcer.
 
 ## Common Patterns
 
-### Authorization Is Not Running
+### Authorization is not running
 
-Check middleware injection order:
-1. Verify `authorize` is set on the route config (not just `authenticate`)
-2. Verify `authenticate` is not set to `{ skip: true }` (which also skips authorization in CRUD factory)
-3. Verify the component is registered and enforcers are registered via the registry
-4. Note: if no enforcers are registered, the middleware skips authorization silently (calls `next()`) rather than throwing an error
+Check, in order:
 
-### Rules Are Built On Every Request
+1. `authorize` is actually set on the route config (not just `authenticate`).
+2. `authenticate` isn't `{ skip: true }` - that skips authorization too, in both raw route configs and the CRUD factory.
+3. The component is registered AND at least one enforcer is registered via `AuthorizationEnforcerRegistry`.
+4. If no enforcers are registered, the middleware skips authorization silently (`next()`) rather than throwing - this is often the real cause of "authorization does nothing" during rollout.
 
-Check that rules are being cached correctly. The middleware caches on `Authorization.RULES`:
-- Cached per-request (each new request starts fresh)
-- Multiple authorization specs on the same route share the cache
-- If rules are `undefined` or `null`, they will be rebuilt
+### Rules are rebuilt on every request
 
-### Casbin Policies Not Loading
+Rules cache on `Authorization.RULES`, but only **within one request**:
 
-1. **Check adapter entities** -- ensure `IScopedCasbinEntities` (`policyDefinition`/`permission` table names + `schemaName`, `principals`, `domainTypes`) match your database schema
-2. **Check the variant column** -- `PolicyDefinition.variant` must use the `AuthorizationPolicyVariants.*.action` values: `grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits`, `domain_inherits`
-3. **Check subject/target types** -- the SQL queries filter by `subject_type`/`target_type` against `principals` and `domainTypes`
-4. **Check the model** -- for scoped RBAC, use `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` with `isScoped: true`
+- A new HTTP request always starts with an empty cache.
+- Multiple `authorize` specs on the same route share the cache - only the first builds.
+- `undefined`/`null` on `Authorization.RULES` triggers a rebuild - `c.set(Authorization.RULES, null)` forces one mid-request.
 
-### Redis Cache Not Working
+### Casbin policies not loading
 
-1. **Check Redis connection** -- verify the `AbstractRedisHelper` subclass (`RedisSingleHelper`, `RedisClusterHelper`, or `RedisSentinelHelper`) is properly connected
-2. **Check keyFn** -- ensure it returns a unique, non-empty key per user
-3. **Check expiresIn** -- must be >= 10,000 ms (`MIN_EXPIRES_IN`)
-4. **Verify cache hit** -- check logs for `"Loaded CACHED Policies"` vs `"Loaded ADAPTER + CACHED Policies"`
+1. **Adapter entities** - `IScopedCasbinEntities` (`policyDefinition`/`permission` table + schema names, `principals`, `domainTypes`) must match your actual database schema.
+2. **Variant column** - `PolicyDefinition.variant` must use `AuthorizationPolicyVariants.*.action` values: `grant`, `assign_role`, `join_domain`, `role_inherits`, `resource_inherits`, `action_inherits`, `domain_inherits`.
+3. **Subject/target types** - the adapter's SQL filters by `subject_type`/`target_type` against `principals` and `domainTypes`; a mismatch silently returns zero rows.
+4. **Model** - scoped RBAC needs `CASBIN_RBAC_DOMAIN_SCOPED_MODEL` with `isScoped: true` together; one without the other misfires.
+
+### Redis cache not working
+
+1. **Connection** - verify the `IRedisHelper` (`RedisSingleHelper`/`RedisClusterHelper`/`RedisSentinelHelper`) is actually connected.
+2. **`keyFn`** - must return a unique, non-empty key per user.
+3. **`expiresIn`** - must be `>= 10_000` (`MIN_EXPIRES_IN`).
+4. **Corruption is silent** - a malformed cached payload is discarded and refetched (see the Casbin runtime error table above), so a "cache never seems to hit" symptom is more likely a `keyFn` mismatch than corruption.
 
 ## See Also
 

@@ -78,6 +78,7 @@ export abstract class AbstractApplication<
   protected projectRoot: string;
 
   private postStartHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
+  private postStopHooks: Array<{ identifier: string; hook: () => ValueOrPromise<void> }> = [];
 
   constructor(opts: { scope: string; config: IApplicationConfigs }) {
     const { scope, config } = opts;
@@ -208,6 +209,24 @@ export abstract class AbstractApplication<
         .map(failure => `${failure.identifier} (${failure.error})`)
         .join(', ')}`,
     });
+  }
+
+  registerPostStopHook(opts: { identifier: string; hook: () => ValueOrPromise<void> }) {
+    this.postStopHooks.push(opts);
+    this.logger
+      .for(this.registerPostStopHook.name)
+      .debug('Registered post-stop hook | identifier: %s', opts.identifier);
+  }
+
+  protected async executePostStopHooks() {
+    const logger = this.logger.for(this.executePostStopHooks.name);
+    for (const { identifier, hook } of this.postStopHooks) {
+      try {
+        await hook();
+      } catch (error) {
+        logger.error('Post-stop hook failed | identifier: %s | error: %s', identifier, error);
+      }
+    }
   }
 
   protected registerCoreBindings() {
@@ -388,6 +407,8 @@ export abstract class AbstractApplication<
   }
 
   async stop() {
+    await this.executePostStopHooks();
+
     const instance = this.server.instance;
     if (!instance) {
       this.logger.for(this.stop.name).info('Server was not started | Nothing to stop');

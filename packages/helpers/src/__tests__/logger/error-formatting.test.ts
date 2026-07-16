@@ -4,8 +4,13 @@ import { formatLogMessage } from '@/modules/logger/formatters';
 
 /**
  * `message` and `stack` are NON-ENUMERABLE on an Error, so `JSON.stringify` - and therefore `%j` -
- * silently drops both. An error logged with `%j` reaches the log file without the two fields the
- * line exists for. This is the rule every error log line in the framework follows: `%s`.
+ * silently drops both. An error logged with `%j` reaches the log file without the stack, which is
+ * the field the line exists for. This is the rule every error log line in the framework follows:
+ * `%s`.
+ *
+ * The message text does survive `%j`, but only incidentally - it rides along inside the enumerable
+ * `extra.message.text`, not as `Error.message`. That is a side effect of the structured message, not
+ * a licence to use `%j`: the stack is still gone.
  */
 describe('logging an Error - %s keeps it, %j guts it', () => {
   const buildError = () => {
@@ -28,13 +33,13 @@ describe('logging an Error - %s keeps it, %j guts it', () => {
     expect(formatted).toContain('23505');
   });
 
-  test('%j loses the message and the stack - this is why no error log line may use it', () => {
+  test('%j loses the stack - this is why no error log line may use it', () => {
     const formatted = formatLogMessage({ message: 'Error: %j', args: [buildError()] });
 
-    expect(formatted).not.toContain('boom');
-    expect(formatted).not.toContain('at ');
-    // Only the enumerable own properties survive.
+    expect(formatted).not.toContain('at '); // no stack frame - the reason the rule exists
+    // `Error.message` itself is gone: the text below comes from the enumerable `extra.message`.
     expect(formatted).toContain('core.mail.send_failed');
+    expect(formatted).toContain('boom');
   });
 
   test('a nested cause under %s survives the default depth', () => {

@@ -2,15 +2,15 @@
 
 > Complete error code reference and troubleshooting guide for the Mail component.
 
-## Error Reference
+## Error reference
 
-All errors are created via `getError()` and include `statusCode`, `messageCode`, and `message` fields.
+All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields -- the rows marked `--` throw a plain error with just a `message`.
 
-### MailService Errors
+### `MailService` errors
 
-| Condition | Status | Error Code | Message |
+| Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
-| `to` is missing or empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
+| `to` is missing or an empty array | 400 | `core.mail.invalid_recipient` | `Recipient email address is required` |
 | `subject` is falsy | 400 | `core.mail.invalid_configuration` | `Email subject is required` |
 | Both `text` and `html` are falsy | 400 | `core.mail.invalid_configuration` | `Email must have either text or html content` |
 | Transport throws during `send()` | 500 | `core.mail.send_failed` | `Failed to send email: <error>` |
@@ -18,71 +18,89 @@ All errors are created via `getError()` and include `statusCode`, `messageCode`,
 | Template engine not configured for `sendTemplate()` | 500 | `core.mail.invalid_configuration` | `Template engine not configured` |
 | Transport throws during `verify()` | 500 | `core.mail.verification_failed` | `Mail transport verification failed: <error>` |
 
-### MailComponent Errors
+> [!NOTE]
+> "Transport throws during `send()`/`verify()`" only fires for a **custom** transport. The built-in `NodemailerTransportHelper` and `MailgunTransportHelper` never throw from `send()` or `verify()` -- they catch internally and return `{ success: false, error }` (or `false` for `verify()`). A 400 validation error raised by `validateMessage()` is re-thrown unchanged, not wrapped as `SEND_FAILED`.
 
-| Condition | Status | Error Code | Message |
+### `MailComponent` errors
+
+| Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
-| `MAIL_OPTIONS` not bound | -- | -- | `Mail options not configured` |
+| `MAIL_OPTIONS` not bound before `component(MailComponent)` | -- | -- | `Mail options not configured` |
 
-### MailTransportProvider Errors
+### `MailTransportProvider` errors
 
-| Condition | Status | Error Code | Message |
+| Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
 | Unsupported provider string | 500 | `core.mail.invalid_configuration` | `Unsupported mail provider: <provider>` |
-| Nodemailer options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid Nodemailer configuration` |
-| Mailgun options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration` |
-| Custom options fail type guard | 500 | `core.mail.invalid_configuration` | `Invalid custom mail provider configuration` |
+| Nodemailer options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid Nodemailer configuration` |
+| Mailgun options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration` |
+| Custom options fail the type guard | 500 | `core.mail.invalid_configuration` | `Invalid custom mail provider configuration` |
 | Custom config missing `send`/`verify` | 500 | `core.mail.invalid_configuration` | `Custom mail provider must implement IMailTransport interface. Missing methods: <methods>` |
 
-### MailQueueExecutorProvider Errors
+### `MailgunTransportHelper` errors
 
-| Condition | Status | Error Code | Message |
+| Condition | Status | Error code | Message |
+|-----------|--------|-----------|---------|
+| `config` is missing `username`, `key`, or `domain` | 500 | `core.mail.invalid_configuration` | `Invalid Mailgun configuration \| Missing required keys: <keys>` |
+
+This check runs on `configure()`, one layer deeper than `MailTransportProvider`'s type guard -- a `config` object that passes the provider's guard (has *a* `config` property) can still fail this one if it is missing the specific keys Mailgun's client needs.
+
+### `MailQueueExecutorProvider` errors
+
+| Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
 | `config.internalQueue` missing for `internal-queue` type | -- | -- | `Internal queue configuration is missing` |
 | `config.bullmq` missing for `bullmq` type | -- | -- | `BullMQ configuration is missing` |
 | Unknown executor type | -- | -- | `Unknown mail queue executor type: <type>` |
 
-### TemplateEngineService Errors
+### `TemplateEngineService` errors
 
-| Condition | Status | Error Code | Message |
+| Condition | Status | Error code | Message |
 |-----------|--------|-----------|---------|
 | Neither `templateName` nor `templateData` provided | -- | -- | `Either templateName or templateData must be provided` |
 | Template name not found in registry | 404 | `core.mail.template_not_found` | `Template not found: <name>` |
 | Missing template data keys (with `requireValidate: true`) | 400 | `core.mail.invalid_configuration` | `Missing template data for keys: <keys>` |
 
-### Queue Executor Errors
+### Queue executor errors
 
 | Condition | Executor | Message |
 |-----------|----------|---------|
-| Processor not set before enqueue | Direct, Internal Queue, BullMQ | `Processor not set. Call setProcessor() first.` |
-| Processor not set before adding worker | BullMQ | `Processor not set. Call setProcessor() first.` |
-| Enqueue in worker-only mode | BullMQ | `Cannot enqueue jobs in worker-only mode. Set mode to "queue-only" or "both".` |
-| Queue helper unexpectedly null | BullMQ | `Queue helper not initialized. This should not happen in queue-enabled mode.` |
+| Processor not set before enqueue | Direct, Internal Queue -- always | `Processor not set. Call setProcessor() first.` |
+| Processor not set before enqueue | BullMQ -- only outside `'queue-only'` mode | `Processor not set. Call setProcessor() first.` |
+| Processor not set before adding a worker | BullMQ | `Processor not set. Call setProcessor() first.` |
+| Enqueue attempted in `worker-only` mode | BullMQ | `Cannot enqueue jobs in worker-only mode. Set mode to "queue-only" or "both".` |
+| Queue helper unexpectedly `null` | BullMQ | `Queue helper not initialized. This should not happen in queue-enabled mode.` |
 
 ## Troubleshooting
 
 ### "Mail options not configured"
 
-**Cause:** `MailKeys.MAIL_OPTIONS` was not bound in the DI container before `MailComponent` was registered. The component checks `isBound()` in its `binding()` phase and throws immediately.
-
-**Fix:** Ensure the options binding exists before calling `this.application.component(MailComponent)`:
+- **Cause.** `MailKeys.MAIL_OPTIONS` was not bound before `MailComponent` was registered. `binding()` checks `isBound()` and throws immediately.
+- **Fix.** Bind the options before calling `this.component(MailComponent)`:
 
 ```typescript
-this.application.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
+this.bind({ key: MailKeys.MAIL_OPTIONS }).toValue({
   provider: MailProviders.NODEMAILER,
   from: 'noreply@example.com',
   config: { host: 'smtp.example.com', port: 587, secure: false, auth: { user: '...', pass: '...' } },
 });
 
-// Then register the component
-this.application.component(MailComponent);
+this.component(MailComponent);
 ```
 
-### "core.mail.template_not_found" when calling `sendTemplate()`
+### "Invalid Mailgun configuration | Missing required keys: ..."
 
-**Cause:** The template name passed to `sendTemplate()` was never registered via `templateEngine.registerTemplate()`.
+- **Cause.** The Mailgun `config` object is missing `username`, `key`, or `domain`. A common mistake is naming the field `apiKey` instead of `key`.
+- **Fix.** Use the exact field names `mailgun.js` expects:
 
-**Fix:** Register the template before sending. If templates are loaded from a database, ensure the sync runs before the first `sendTemplate()` call:
+```typescript
+config: { username: 'api', key: process.env.MAILGUN_API_KEY, domain: 'mg.example.com' }
+```
+
+### `core.mail.template_not_found` from `sendTemplate()`
+
+- **Cause.** The template name was never registered via `templateEngine.registerTemplate()` -- often because a database-backed sync runs after the first `sendTemplate()` call, not before it.
+- **Fix.** Register the template first:
 
 ```typescript
 this.templateEngine.registerTemplate({
@@ -93,9 +111,8 @@ this.templateEngine.registerTemplate({
 
 ### Emails silently fail with `success: false`
 
-**Cause:** The transport connection is misconfigured (wrong credentials, blocked port, expired OAuth2 token). The `MailService.send()` method catches transport errors and returns `{ success: false, error: '...' }` rather than throwing.
-
-**Fix:** Check `result.error` for the specific transport error. Verify transport on startup:
+- **Cause.** The transport connection is misconfigured (wrong credentials, blocked port, expired OAuth2 token). `MailService.send()` never throws for a built-in transport's connection failure -- it returns `{ success: false, error }`.
+- **Fix.** Check `result.error` for the underlying transport error, and verify the connection at startup:
 
 ```typescript
 const isConnected = await this.mailService.verify();
@@ -104,28 +121,26 @@ if (!isConnected) {
 }
 ```
 
-### BullMQ executor not processing jobs
+### BullMQ executor is not processing jobs
 
-**Cause:** The `mode` is set to `'queue-only'` which only enqueues jobs without starting a worker, or the Redis connection is unreachable.
-
-**Fix:** Ensure `mode` is `'both'` or `'worker-only'` on the instance that should process jobs. Verify Redis connectivity:
+- **Cause.** Either `mode` is `'queue-only'` (enqueues but never starts a worker), or the Redis connection is unreachable.
+- **Fix.** Run `mode: 'both'` or `'worker-only'` on the instance meant to process jobs, and confirm Redis connectivity:
 
 ```typescript
 {
   type: 'bullmq',
   bullmq: {
-    redis: { host: 'localhost', port: 6379, /* ... */ },
+    redis: { host: 'localhost', port: 6379 /* ... */ },
     queue: { identifier: 'mail-queue', name: 'mail-queue' },
-    mode: 'both', // Must be 'both' or 'worker-only' to process
+    mode: 'both', // must be 'both' or 'worker-only' to process
   },
 }
 ```
 
-### Template variables not replaced (placeholders preserved)
+### Template placeholders show up literally in the output
 
-**Cause:** The `data` object passed to `render()` or `sendTemplate()` does not contain all <code v-pre>{{key}}</code> placeholders found in the template. When `requireValidate` is **not** set (or set to `false`), the template engine preserves the original placeholder text as-is (e.g., <code v-pre>{{missingKey}}</code> remains literally in the output). It does **not** replace missing variables with empty strings.
-
-**Fix:** Use `validateTemplateData()` to check which keys are missing before rendering:
+- **Cause.** The `data` object passed to `render()`/`sendTemplate()` is missing a <code v-pre>{{key}}</code> the template uses. Without `requireValidate: true`, the engine preserves the original placeholder text -- it does **not** replace a missing value with an empty string.
+- **Fix.** Check what is missing before rendering, or fail loudly instead:
 
 ```typescript
 const validation = this.templateEngine.validateTemplateData({ template, data });
@@ -134,43 +149,40 @@ if (!validation.isValid) {
 }
 ```
 
-Or set `requireValidate: true` to throw an error when keys are missing:
-
 ```typescript
 const html = this.templateEngine.render({
   templateName: 'welcome-email',
   data,
-  requireValidate: true, // Throws if any placeholders are missing
+  requireValidate: true, // throws instead of leaving placeholders in the output
 });
 ```
 
 ### "Processor not set. Call setProcessor() first."
 
-**Cause:** The queue executor's `enqueueVerificationEmail()` was called before `setProcessor()`. All three executor types (Direct, Internal Queue, BullMQ) require a processor function to be registered first.
-
-**Fix:** Call `setProcessor()` before enqueuing any jobs:
+- **Cause.** `enqueueVerificationEmail()` was called before `setProcessor()`. Direct and Internal Queue always require this; BullMQ requires it too, except in `'queue-only'` mode, where enqueueing does not need a processor.
+- **Fix.** Register a processor before enqueuing:
 
 ```typescript
 executor.setProcessor(async (email: string) => {
-  // Your email processing logic here
+  // Your email-sending logic, typically wrapping mailService.send()
   return { success: true, message: 'Verification email sent', expiresInMinutes: 10 };
 });
 ```
 
 ### "Cannot enqueue jobs in worker-only mode"
 
-**Cause:** The BullMQ executor is configured with `mode: 'worker-only'`, which does not initialize a queue and therefore cannot accept new jobs.
+- **Cause.** The BullMQ executor is running with `mode: 'worker-only'`, which never creates a queue and therefore cannot accept new jobs.
+- **Fix.** Use `'both'` or `'queue-only'` on any instance that needs to enqueue. Reserve `'worker-only'` for dedicated worker processes that only consume.
 
-**Fix:** Use `mode: 'both'` or `mode: 'queue-only'` on instances that need to enqueue jobs. Use `mode: 'worker-only'` only on dedicated worker processes.
+### Startup logs and credentials
 
-### Credential logging at startup
+`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type` at `info` level -- by design, it never logs the full config object, so SMTP passwords, OAuth2 secrets, Mailgun API keys, and Redis passwords are never written to the log by the component itself.
 
-**Cause:** The `MailComponent.createAndBindInstances()` method logs the full `mailOptions` object (including credentials) at `info` level during initialization. This is by design for debugging, but it means sensitive values like API keys, passwords, and OAuth tokens will appear in logs.
+> [!WARNING]
+> That guarantee is scoped to `MailComponent`'s own logging. If your wrapper component (or any other code) logs the `TMailOptions`/`IMailQueueExecutorConfig` object directly -- for example `logger.info('%j', mailOptions)` while debugging -- you reintroduce the leak yourself. Log individual safe fields instead of the whole object.
 
-**Fix:** In production, either use a log level higher than `info` for the mail component scope, or ensure your log pipeline redacts sensitive fields.
+## See also
 
-## See Also
-
-- [Setup & Configuration](./) -- Quick reference, setup steps, configuration options, and binding keys
-- [Usage & Examples](./usage) -- Sending emails, templates, queue executors, and verification
-- [API Reference](./api) -- Architecture, interfaces, and internals
+- [Overview](./) -- quick start, imports, common configuration tasks
+- [Usage & Examples](./usage) -- sending emails, templates, queue executors, verification generators
+- [API Reference](./api) -- architecture, binding keys, interfaces, and internals

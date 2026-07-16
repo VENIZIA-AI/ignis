@@ -246,6 +246,16 @@ CREATE INDEX idx_metadata_gin ON "Product" USING GIN ("metadata");
 ```
 
 
-## See Also
+## See also
 
-- [Nested JSON Updates](../repositories/advanced.md#nested-json-updates) - Updating JSON fields
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [Fields, Order & Pagination](./fields-order-pagination) - JSON path ordering (`#>`, sorted by native JSONB type)
+- [Pattern Matching](./pattern-matching) - `like`/`ilike`/`regexp` also work on a JSON path, with no numeric casting
+- [Nested JSON Updates](../repositories/advanced.md#nested-json-updates) - writing to JSON paths
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, `buildJsonWhereCondition`/`buildJsonOperatorConditions`/`buildJsonOrderBy`
+- [`packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/internal/json-utils.ts) - `isJsonPath`, `parseJsonPath`, path validation regex
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants

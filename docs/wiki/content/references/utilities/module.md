@@ -1,46 +1,15 @@
+---
+title: Module Utility
+description: Pre-flight check that fails fast with an install instruction when an optional peer dependency is missing
+difficulty: beginner
+lastUpdated: 2026-07-16
+---
+
 # Module Utility
 
-The Module utility provides a pre-flight check for optional peer dependencies. IGNIS helpers and components often depend on packages that are not bundled with the framework (for example, `@connectrpc/connect` for gRPC, `@hono/swagger-ui` for the Swagger component). Calling `validateModule` at the start of a lazy-loaded code path ensures a clear, actionable error is thrown before any import is attempted, rather than a cryptic "Cannot find module" crash.
+A pre-flight check for optional peer dependencies. IGNIS helpers and components often depend on packages that are not bundled with the framework (`@connectrpc/connect` for gRPC, `@hono/swagger-ui` for the Swagger component, and so on). Calling `validateModule` before a lazy `import()` throws a clear, actionable error instead of a cryptic "Cannot find module" crash.
 
-Resolution is rooted at `process.cwd()/node_modules` via Node's `createRequire`, so peer dependencies installed in the consuming application are found correctly even though this utility lives inside `packages/helpers/dist/`.
-
-## `validateModule`
-
-Resolves each module name in sequence using `require.resolve`. If any module cannot be found it logs the failure and throws an `ApplicationError` with an install instruction. Returns a `Promise<void>` - it is async to support consistent `await` usage at call sites, though resolution itself is synchronous.
-
-### Signature
-
-```typescript
-validateModule(opts: {
-  scope?: string;
-  modules: Array<string>;
-}): Promise<void>
-```
-
-**Options**
-
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `modules` | `Array<string>` | `[]` | Module names to check. Evaluated in order - the first missing module stops the loop and throws. |
-| `scope` | `string` | `''` | Human-readable label for the calling feature (e.g. the component or helper class name). Included in the error message to tell the developer which feature needs the package. |
-
-### Error message format
-
-When a module is missing the thrown error reads:
-
-```
-[validateModule] <module> is required for <scope>. Please install '<module>'
-```
-
-If `scope` is omitted:
-
-```
-[validateModule] <module> is required. Please install '<module>'
-```
-
-### Example - gRPC controller (optional dep guard)
-
-The `GrpcRequestAdapter` uses `validateModule` to gate the ConnectRPC import. The check runs once before the adapter is wired up, so the error surfaces at startup rather than on the first request.
+## In one example
 
 ```typescript
 import { validateModule } from '@venizia/ignis-helpers';
@@ -58,33 +27,31 @@ export class MyGrpcController extends BaseGrpcController {
 }
 ```
 
-### Example - custom helper with multiple optional deps
+## Functions
 
-When a feature requires several packages, list them all. The first missing one stops the check.
+| Function | Signature | What it does |
+|----------|-----------|---------------|
+| `validateModule` | `validateModule(opts: { scope?: string; modules: Array<string> }): Promise<void>` | Resolves each module in `modules`, in order, via `require.resolve`. Throws an `ApplicationError` on the first one that cannot be found. |
 
-```typescript
-import { validateModule } from '@venizia/ignis-helpers';
-import { BaseHelper } from '@venizia/ignis-helpers';
+## Error message format
 
-export class KafkaQueueHelper extends BaseHelper {
-  async configure() {
-    await validateModule({
-      scope: KafkaQueueHelper.name,
-      modules: ['kafkajs', 'kafkajs-snappy'],
-    });
+| `scope` | Message |
+|---------|---------|
+| provided | `[validateModule] <module> is required for <scope>. Please install '<module>'` |
+| omitted | `[validateModule] <module> is required. Please install '<module>'` |
 
-    const { Kafka } = await import('kafkajs');
-    // ... initialise Kafka client
-  }
-}
-```
+## Notes
 
-## When to use
+- **Resolution is rooted at `process.cwd()/node_modules`** via Node's `createRequire`, so peer dependencies installed in the consuming application resolve correctly even though this utility ships inside `packages/helpers/dist/`.
+- **Evaluated in order - first miss wins.** With multiple `modules`, the loop stops at the first unresolved one and throws; later entries are never checked.
+- **`async` for call-site consistency only.** Resolution itself is synchronous (`require.resolve`); the function returns a `Promise<void>` so every call site can `await` it uniformly.
+- **Call it once, at startup - not per request.** Place it in an initialisation hook (`configure`, `binding`, `boot`), before the guarded `import()`.
+- **Recommended pattern:** declare the dependency as `peerDependenciesMeta` with `optional: true` in `package.json`, call `validateModule` at the top of the method that needs it, and pass the feature or class name as `scope` so the thrown message pinpoints the caller.
 
-Use `validateModule` whenever your code does a dynamic `import()` of a package that is listed as an optional peer dependency in `package.json`. The recommended pattern is:
+## See also
 
-1. Declare the dep as `peerDependenciesMeta` with `optional: true` in `package.json`.
-2. Call `validateModule` at the top of the method that needs the package - before any `import()`.
-3. Pass the feature or class name as `scope` so the error message pinpoints which feature triggered the check.
+- [Utilities Overview](/references/utilities/) - all utility functions
 
-Avoid calling `validateModule` on every request. Place it in an initialisation hook (`configure`, `binding`, `boot`) that runs once at startup.
+**Files:**
+
+- [`packages/helpers/src/utilities/module.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/module.utility.ts)

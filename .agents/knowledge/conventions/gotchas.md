@@ -49,6 +49,24 @@ if (!meta) {
 This is why a controller that needs options puts them inside `super({ scope: X.name })` rather than
 a raw `opts` parameter - see [options objects](/conventions/options-objects.md).
 
+## An error catalog key must be a literal, not MessageCode.build()
+
+Everywhere else, a `messageCode` should come from `MessageCode.build({ parts })` so a malformed code
+fails at import. Inside a `TErrorDefinition`, that advice is backwards:
+
+```typescript
+// WRONG - key widens to `string`, and TRegisterErrors collapses to Record<string, true>.
+// The registry still compiles; it just autocompletes nothing. Silent.
+key: MessageCode.build({ parts: ['server', 'core', 'user', 'create', 'duplicate_email'] }),
+
+// RIGHT
+key: 'server.core.user.create.duplicate_email',
+```
+
+`build()` returns `string`, which erases the literal type the registry is built on. The failure is
+invisible - no error, just autocomplete that quietly stops working. Do not "fix" a catalog by
+routing its keys through `build()`.
+
 ## Stale .tsbuildinfo replays phantom errors
 
 After changing a package's `exports` field or `dist` layout, a consumer's `.tsbuildinfo` can replay

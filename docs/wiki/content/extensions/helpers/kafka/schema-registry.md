@@ -1,3 +1,9 @@
+---
+title: Kafka Schema Registry
+description: KafkaSchemaRegistryHelper - schema-validated serialization for Avro, Protobuf, and JSON Schema
+difficulty: intermediate
+---
+
 # Schema Registry
 
 The `KafkaSchemaRegistryHelper` wraps `@platformatic/kafka`'s `ConfluentSchemaRegistry`. It provides a centralized schema registry that auto-serializes/deserializes messages using registered schemas (Avro, Protobuf, JSON Schema).
@@ -39,18 +45,25 @@ interface IKafkaSchemaRegistryOptions extends ConfluentSchemaRegistryOptions {
 | `jsonValidateSend` | `boolean` | -- | Validate JSON schema on produce |
 | `identifier` | `string` | `'kafka-schema-registry'` | Scoped logging identifier |
 
-## What Schema Registry Solves
+## What it solves
 
-Without a schema registry, producers and consumers must agree on message format out-of-band. If the producer changes the shape of `value` (adds/removes fields), consumers break silently at runtime.
+Without a schema registry, producers and consumers must agree on message shape out-of-band. If the producer changes the shape of `value` (adds/removes fields), consumers break silently at runtime.
 
-**Schema Registry** is a centralized server (Confluent Schema Registry) that stores and validates schemas (Avro, Protobuf, JSON Schema). It enforces a contract:
+- **Schema Registry is a centralized server** (Confluent Schema Registry) that stores and validates schemas.
+- **It enforces a contract:** the producer says "I want to send this shape", the registry validates it against the registered schema before the message reaches Kafka; the consumer asks "what shape is this?" and the registry tells it how to deserialize.
 
-```
-Producer -> "I want to send this shape" -> Schema Registry validates -> Kafka
-Kafka -> Consumer -> "What shape is this?" -> Schema Registry tells -> Deserialize
-```
+| | Without registry | With registry |
+|---|---|---|
+| **Message format** | Raw string, manual `JSON.stringify`/`JSON.parse` | Typed object, auto ser/deser |
+| **Validation** | None -- runtime crashes on shape drift | Schema validated before send |
+| **Schema evolution** | Breaks consumers silently | Backward/forward compatibility enforced |
+| **Where schemas live** | Nowhere (tribal knowledge) | Centralized server, e.g. `http://registry:8081` |
 
-### Without Schema Registry (raw strings)
+Use it when you need schema enforcement and compatibility checks across producers/consumers - especially in multi-team environments. Skip it for simple string/JSON messages where both sides are controlled by the same team and format changes are coordinated by hand.
+
+## Without vs. with the registry
+
+Without a registry, serialization is entirely manual and unchecked:
 
 ```typescript
 // Producer -- manually serialize
@@ -79,22 +92,28 @@ const consumer = KafkaConsumerHelper.newInstance({
 });
 ```
 
-Problem: if producer adds `{ id: 1, total: 99.99, currency: 'USD' }` or removes `total`, consumer has no way to know until it crashes.
+If the producer adds `{ id: 1, total: 99.99, currency: 'USD' }` or removes `total`, the consumer has no way to know until it crashes.
 
-### With Schema Registry (auto serialize/deserialize)
+With a registry, both sides pass `registry` instead of `serializers`/`deserializers`:
 
 ```typescript
+import {
+  KafkaSchemaRegistryHelper,
+  KafkaProducerHelper,
+  KafkaConsumerHelper,
+} from '@venizia/ignis-helpers/kafka';
+
 // 1. Create registry -- points to Confluent Schema Registry server
 const registry = KafkaSchemaRegistryHelper.newInstance({
   url: 'http://localhost:8081',
   // auth: { username: 'user', password: 'pass' },  // optional
 });
 
-// 2. Producer -- pass registry, it auto-serializes values using registered schema
+// 2. Producer -- pass registry, it auto-serializes values using the registered schema
 const producer = KafkaProducerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
   clientId: 'order-producer',
-  registry: registry.getRegistry(),  // <- registry handles serialization
+  registry: registry.getRegistry(),
 });
 
 await producer.getProducer().send({
@@ -106,59 +125,9 @@ await producer.getProducer().send({
 });
 // If the value doesn't match the registered schema -> error BEFORE sending to Kafka
 
-// 3. Consumer -- pass same registry, it auto-deserializes
+// 3. Consumer -- pass the same registry, it auto-deserializes
 const consumer = KafkaConsumerHelper.newInstance({
   bootstrapBrokers: ['127.0.0.1:29092'],
-  clientId: 'order-consumer',
-  groupId: 'order-group',
-  registry: registry.getRegistry(),  // <- registry handles deserialization
-  onMessage: async ({ message }) => {
-    // message.value is already a typed object, not a raw string
-    console.log(message.value.id, message.value.total);
-  },
-});
-```
-
-### Comparison
-
-| | Without Registry | With Registry |
-|---|---|---|
-| **Message format** | Raw string, manual `JSON.stringify/parse` | Typed object, auto ser/deser |
-| **Validation** | None -- runtime crashes | Schema validated before send |
-| **Schema evolution** | Break consumers silently | Backward/forward compatibility enforced |
-| **Where schemas live** | Nowhere (tribal knowledge) | Centralized server `http://registry:8081` |
-
-You only need it when you want **schema enforcement** across producers/consumers. For simple string messages, skip it entirely.
-
-## Basic Usage
-
-```typescript
-import { KafkaSchemaRegistryHelper, KafkaProducerHelper, KafkaConsumerHelper } from '@venizia/ignis-helpers/kafka';
-
-// 1. Create registry -- points to Confluent Schema Registry server
-const registry = KafkaSchemaRegistryHelper.newInstance({
-  url: 'http://localhost:8081',
-});
-
-// 2. Producer -- registry auto-serializes values using registered schema
-const producer = KafkaProducerHelper.newInstance({
-  bootstrapBrokers: ['localhost:9092'],
-  clientId: 'order-producer',
-  registry: registry.getRegistry(),
-});
-
-await producer.getProducer().send({
-  messages: [{
-    topic: 'orders',
-    key: 'order-1',
-    value: { id: 1, total: 99.99 },  // object, not string -- registry serializes
-  }],
-});
-// If value doesn't match the registered schema -> error BEFORE sending to Kafka
-
-// 3. Consumer -- registry auto-deserializes
-const consumer = KafkaConsumerHelper.newInstance({
-  bootstrapBrokers: ['localhost:9092'],
   clientId: 'order-consumer',
   groupId: 'order-group',
   registry: registry.getRegistry(),
@@ -171,7 +140,7 @@ const consumer = KafkaConsumerHelper.newInstance({
 await consumer.start({ topics: ['orders'] });
 ```
 
-## With Authentication
+## With authentication
 
 ```typescript
 const registry = KafkaSchemaRegistryHelper.newInstance({
@@ -183,9 +152,9 @@ const registry = KafkaSchemaRegistryHelper.newInstance({
 });
 ```
 
-## Alternative: Manual Serializers
+## Alternative: manual serializers
 
-Instead of passing the full registry, you can extract serializers/deserializers for manual use:
+Instead of passing the full registry to `registry`, extract serializers/deserializers for manual use alongside `serializers`/`deserializers`:
 
 ```typescript
 const registry = KafkaSchemaRegistryHelper.newInstance({
@@ -204,11 +173,17 @@ const consumer = KafkaConsumerHelper.newInstance({
   clientId: 'my-consumer',
   groupId: 'my-group',
   deserializers: registry.getDeserializers(),
-  onMessage: async ({ message }) => { ... },
+  onMessage: async ({ message }) => { /* ... */ },
 });
 ```
 
-## When to Use
+## See also
 
-- **Use schema registry** when you need schema enforcement, validation, and compatibility checks across producers/consumers -- especially in multi-team environments
-- **Skip schema registry** for simple string/JSON messages where both sides are controlled by the same team and format changes are coordinated
+- [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
+- [Producer](./producer) - `registry` as a producer option, plus the manual `serializers` alternative
+- [Consumer](./consumer) - `registry` as a consumer option, plus the manual `deserializers` alternative
+
+**Files:**
+
+- [`packages/helpers/src/modules/queue/kafka/schema/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/schema/registry.ts) - `KafkaSchemaRegistryHelper`
+- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaSchemaRegistryOptions`

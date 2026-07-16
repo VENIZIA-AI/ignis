@@ -51,14 +51,20 @@ export const formatZodError = (opts: {
     message = primaryIssue.message;
   }
 
+  // A ZodError we could not parse into issues yields no code of its own; the response still
+  // carries one, so no error response anywhere is missing the field a client branches on.
+  const resolvedMessageCode = MessageCode.resolve(messageCode);
+
   return {
     statusCode,
     response: {
       message,
-      // A ZodError we could not parse into issues yields no code of its own; the response still
-      // carries one, so no error response anywhere is missing the field a client branches on.
-      messageCode: MessageCode.resolve(messageCode),
+      messageCode: resolvedMessageCode,
       statusCode,
+      // Validation is the branch a client hits most, so it cannot be the one branch without
+      // `normalized`. `args` is empty because a Zod issue carries no interpolation values - the
+      // per-field detail a form needs lives in `details.cause`, not here.
+      normalized: { text: message, code: resolvedMessageCode, args: {} },
       requestId,
       details: {
         url,

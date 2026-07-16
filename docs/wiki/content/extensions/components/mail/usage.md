@@ -1,12 +1,12 @@
 # Mail -- Usage & Examples
 
-> Practical examples for sending emails, using templates, queue executors, verification generators, and batch operations.
+> Practical examples for sending emails, using templates, queue executors, and verification generators.
 
-## Sending Emails
+## Sending emails
 
-Inject `IMailService` via the `MailKeys.MAIL_SERVICE` binding key to send emails from any service.
+Inject `IMailService` via the `MailKeys.MAIL_SERVICE` binding key from any service.
 
-**Sending a simple email:**
+**Send a single email:**
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
@@ -39,7 +39,10 @@ export class UserService extends BaseService {
 }
 ```
 
-**Batch email sending:**
+- **Default `from`.** If `message.from` is omitted, `send()` fills it from `MailKeys.MAIL_OPTIONS`. With `fromName` set, the default renders as `"fromName" <from>`; with neither `from` nor `fromName`, it falls back to `MailDefaults.FALLBACK_FROM` (`noreply@example.com`).
+- **Transport errors never throw here.** The built-in Nodemailer and Mailgun transports catch their own errors and return `{ success: false, error }`. `send()` only throws `SEND_FAILED` for a custom transport that throws instead of returning a failed result.
+
+**Send a batch of emails:**
 
 ```typescript
 async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
@@ -64,18 +67,21 @@ async sendBulkNotifications(users: Array<{ email: string; name: string }>) {
 }
 ```
 
-**Message validation:**
+- **Concurrency defaults to `MailDefaults.BATCH_CONCURRENCY` (`5`).** `sendBatch()` runs every message through `send()` with `executePromiseWithLimit()`.
+- **One bad message never aborts the batch.** A `send()` that throws is caught per-message and converted to `{ success: false, error }`; only a failure of the batch operation itself throws `BATCH_SEND_FAILED`.
 
-The `MailService` validates every message before sending via its internal `validateMessage()` method. This pre-transport check throws immediately if any of these conditions is met:
+### Message validation
 
-| Condition | Error Code | Message |
+`MailService.validateMessage()` runs before every send and throws immediately -- before the transport is ever called -- if any of these hold:
+
+| Condition | Error code | Message |
 |-----------|-----------|---------|
-| `to` is missing or empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
+| `to` is missing or an empty array | `MailErrorCodes.INVALID_RECIPIENT` | `Recipient email address is required` |
 | `subject` is missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email subject is required` |
 | Both `text` and `html` are missing | `MailErrorCodes.INVALID_CONFIGURATION` | `Email must have either text or html content` |
 
 ```typescript
-// This will throw BEFORE reaching the transport
+// Throws before reaching the transport
 await mailService.send({
   to: 'user@example.com',
   subject: '', // Empty subject triggers validation error
@@ -84,11 +90,11 @@ await mailService.send({
 // Error: { statusCode: 400, messageCode: 'core.mail.invalid_configuration', message: 'Email subject is required' }
 ```
 
-## Template Engine
+## Template engine
 
-### Using Templates
+### Register and send a template
 
-Inject both `IMailTemplateEngine` and `IMailService` to register templates and send template-based emails.
+Inject both `IMailTemplateEngine` and `IMailService`. `sendTemplate()` renders through the engine and sends via `IMailService` -- it never bypasses `send()`.
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
@@ -106,7 +112,6 @@ export class NotificationService extends BaseService {
   }
 
   registerTemplates() {
-    // Register a welcome email template
     this.templateEngine.registerTemplate({
       name: 'welcome-email',
       content: `
@@ -126,72 +131,33 @@ export class NotificationService extends BaseService {
   }
 
   async sendWelcomeEmail(userEmail: string, userName: string, verificationCode: string) {
-    const result = await this.mailService.sendTemplate({
+    return this.mailService.sendTemplate({
       templateName: 'welcome-email',
-      data: {
-        userName,
-        verificationCode,
-        appName: 'My Application',
-      },
+      data: { userName, verificationCode, appName: 'My Application' },
       recipients: userEmail,
       options: {
-        // Optional: override template subject or add attachments
-        attachments: [
-          {
-            filename: 'logo.png',
-            path: '/path/to/logo.png',
-            cid: 'logo',
-          },
-        ],
+        attachments: [{ filename: 'logo.png', path: '/path/to/logo.png', cid: 'logo' }],
       },
     });
-
-    return result;
   }
 }
 ```
 
-### Template Rendering
+- **Subject resolution order.** `options.subject` (explicit override) beats the template's own `subject` (rendered through the same engine) beats the literal fallback `'No Subject'`.
+- **`sendTemplate()` requires the template engine binding.** It throws `INVALID_CONFIGURATION` ("Template engine not configured") if `MailKeys.MAIL_TEMPLATE_ENGINE` was never injected -- the constructor parameter is `isOptional: true`, so a service that skips it degrades silently until the first `sendTemplate()` call.
 
-The `TemplateEngineService` provides a simple <code v-pre>{{variable}}</code> substitution engine using an in-memory `Map<string, ITemplate>` as its template store.
+### How rendering works
 
-The `renderSimpleTemplate()` method uses regex `/\{\{(\s*[\w.]+\s*)\}\}/g` to find placeholders. For each match:
+`TemplateEngineService` keeps templates in an in-memory `Map<string, ITemplate>` and substitutes <code v-pre>{{variable}}</code> placeholders with regex `/\{\{(\s*[\w.]+\s*)\}\}/g`.
 
-1. The key is trimmed of whitespace
-2. Nested value lookup via dot notation (e.g., `user.profile.name` resolves by splitting on `.` and walking the object)
-3. If the value is `undefined` or `null`, the **original placeholder is preserved as-is** (e.g., <code v-pre>{{missingKey}}</code> remains literally in the output). A warning is logged
-4. Otherwise, the value is converted to string via `String(value)`
+- **Nested lookup.** A key is trimmed, then resolved by splitting on `.` and walking the data object (`user.profile.name`).
+- **Missing values are preserved, not blanked.** If a resolved value is `undefined` or `null`, the original <code v-pre>{{placeholder}}</code> text stays in the output and a warning is logged -- it is never replaced with an empty string.
+- **String coercion.** A resolved value is converted with `String(value)`.
 
 > [!IMPORTANT]
-> Missing template variables are **not** replaced with empty strings. The original <code v-pre>{{placeholder}}</code> text is preserved in the output. This makes debugging easier since you can see which variables were not resolved.
+> Missing template variables are **not** replaced with empty strings. This makes debugging easier -- you can see which variables were not resolved directly in the rendered output.
 
-**Template Features:**
-
-- Simple <code v-pre>{{variable}}</code> syntax (no loops or conditionals)
-- Nested object access via dot notation: <code v-pre>{{user.profile.name}}</code>
-- Subject line templating (subjects are rendered through the same engine)
-- HTML and plain text support
-- Validation before rendering (optional, throws on missing keys)
-- In-memory template registry (`Map<string, ITemplate>`)
-- Template metadata (subject, description via `ITemplate`)
-- Missing placeholders preserved as-is (not replaced with empty strings)
-- `clearTemplates()` to reset the entire registry
-
-### Template Validation
-
-`validateTemplateData()` extracts all unique placeholder keys from a template string and checks if each key resolves to a non-null, non-undefined value in the data object. It returns:
-
-```typescript
-{
-  isValid: boolean;      // true if all placeholders have values
-  missingKeys: string[]; // placeholder names missing from data
-  allKeys: string[];     // all unique placeholder names found
-}
-```
-
-When `requireValidate: true` is passed to `render()` or `renderSimpleTemplate()`, validation runs first and throws with `MailErrorCodes.INVALID_CONFIGURATION` if any keys are missing.
-
-Template validation example:
+### Validate template data before sending
 
 ```typescript
 const template = '<h1>Hello {{userName}}, your code is {{code}}</h1>';
@@ -200,23 +166,32 @@ const data = { userName: 'John' }; // Missing 'code'
 const validation = this.templateEngine.validateTemplateData({ template, data });
 
 if (!validation.isValid) {
-  console.error('Missing template variables:', validation.missingKeys);
-  // Output: ['code']
+  console.error('Missing template variables:', validation.missingKeys); // ['code']
 }
 
-// Render with validation
+// Or throw at render time instead of checking manually
 try {
   const html = this.templateEngine.render({
     templateData: template,
     data,
-    requireValidate: true, // Throws error if validation fails
+    requireValidate: true, // Throws INVALID_CONFIGURATION if any placeholder is missing
   });
 } catch (error) {
   console.error('Template rendering failed:', error.message);
 }
 ```
 
-### Syncing Templates from a Database
+`validateTemplateData()` extracts every unique placeholder key from the template and reports:
+
+```typescript
+{
+  isValid: boolean;      // true if all placeholders resolve to a non-null value
+  missingKeys: string[]; // placeholder names missing from data
+  allKeys: string[];     // every unique placeholder name found
+}
+```
+
+### Sync templates from a database
 
 ```typescript
 async syncTemplatesFromDatabase() {
@@ -229,99 +204,112 @@ async syncTemplatesFromDatabase() {
   });
 
   const templateConfigs = await configRepository.find({
-    filter: {
-      where: {
-        code: { inq: ['MAIL_TEMPLATE_WELCOME', 'MAIL_TEMPLATE_VERIFICATION'] },
-      },
-    },
+    filter: { where: { code: { inq: ['MAIL_TEMPLATE_WELCOME', 'MAIL_TEMPLATE_VERIFICATION'] } } },
   });
 
   templateConfigs.forEach(config => {
     templateEngine.registerTemplate({
       name: config.code,
       content: config.jValue.content,
-      options: {
-        subject: config.jValue.subject,
-        description: config.jValue.description,
-      },
+      options: { subject: config.jValue.subject, description: config.jValue.description },
     });
     this.logger.info('[syncTemplates] Registered template: %s', config.code);
   });
 }
 ```
 
-## Queue Executors
+## Queue executors
 
-### Direct Executor
+`IMailQueueExecutor` is a separate subsystem from `MailService` -- it only exposes `enqueueVerificationEmail()` and `setProcessor()`, and never calls `send()` on its own. You provide the processor function (typically one that wraps `mailService.send()`); the executor's job is timing, retry, and delivery guarantees around calling it.
 
-The simplest executor. `DirectMailExecutorHelper` extends `BaseHelper`. Calls the processor function immediately without any queueing. Returns `{ queued: false, ... }` to indicate no queue was used. Throws if `setProcessor()` has not been called. Useful for development environments or when you need guaranteed synchronous email sending.
+| Executor | Class | Backing |
+|----------|-------|---------|
+| `direct` | `DirectMailExecutorHelper` | None -- calls the processor immediately |
+| `internal-queue` | `InternalQueueMailExecutorHelper` | In-memory `SequentialQueueHelper` |
+| `bullmq` | `BullMQMailExecutorHelper` | Redis, via `BullMQHelper` |
 
-### Internal Queue Executor
+### Direct executor
 
-`InternalQueueMailExecutorHelper` extends `BaseHelper`. Uses the in-memory `QueueHelper` from `@venizia/ignis-helpers` with `autoDispatch: true`. Key behaviors:
+Calls the processor immediately, with no queueing. Returns `{ queued: false, ... }`. Throws `Processor not set. Call setProcessor() first.` if `enqueueVerificationEmail()` runs before `setProcessor()`. Use it for development or when a caller needs a synchronous result.
 
-- Generates job IDs in the format `job_<counter>_<timestamp>`
-- Supports delayed jobs via `setTimeout` (stored in a `delayedJobs` Map)
-- Retry logic: on failure, retries up to `options.attempts` (default 3) with configurable backoff
-- Backoff calculation: `exponential` uses `delay * 2^(attempt-1)`, `fixed` uses the raw delay, no backoff config defaults to 1000ms
-- Does not persist jobs across restarts
-- Logs queue state changes and individual job lifecycle events
+### Internal queue executor
 
-### BullMQ Executor
+In-memory, single-instance, backed by `SequentialQueueHelper` from `@venizia/ignis-helpers` with `autoDispatch: true`.
 
-`BullMQMailExecutorHelper` extends `BaseHelper`. Full-featured Redis-backed queue with:
+- Job IDs follow `job_<counter>_<timestamp>`.
+- A `delay` option schedules the enqueue itself via `setTimeout`, tracked in a `delayedJobs` map.
+- On failure (a thrown error, or the processor returning `{ success: false }`), it retries up to `options.attempts` (default `3`) with backoff: `exponential` is `delay * 2^(attempt - 1)`, `fixed` is the raw delay, and no `backoff` config at all defaults to `1000ms`.
+- Does not persist jobs across restarts. `close()` clears every pending delayed/retry timer.
 
-- Job persistence across restarts
-- Distributed worker support
-- Configurable retry strategies (exponential by default, with 1000ms base delay)
-- Job prioritization
-- Delayed job execution
-- Job progress tracking via worker callbacks
-- `removeOnComplete: true`, `removeOnFail: false` (failed jobs retained for debugging)
+### BullMQ executor
 
-**Mode behavior:**
+Redis-backed, distributed, backed by `BullMQHelper`. Job persistence, worker concurrency, prioritization, and delayed execution come from BullMQ itself. `removeOnComplete: true`, `removeOnFail: false` (failed jobs stay for debugging). Default enqueue options: `attempts: 3`, `backoff: { type: 'exponential', delay: 1000 }`.
 
-| Mode | Queue Initialized | Workers Created | Can Enqueue | Can Process |
-|------|-------------------|-----------------|-------------|-------------|
-| `'queue-only'` | Yes | No (skipped in `setProcessor`) | Yes | No |
+**Mode gates what the executor can do:**
+
+| Mode | Queue created | Workers created | Can enqueue | Can process |
+|------|----------------|------------------|-------------|-------------|
+| `'queue-only'` | Yes | No (`setProcessor()` skips worker creation) | Yes -- **without** calling `setProcessor()` first | No |
 | `'worker-only'` | No | Yes | No (throws) | Yes |
-| `'both'` | Yes | Yes | Yes | Yes |
+| `'both'` | Yes | Yes | Yes (requires `setProcessor()` first) | Yes |
 
-## Verification Generators
+> [!IMPORTANT]
+> `'queue-only'` mode is the one exception to "call `setProcessor()` before you enqueue" -- `enqueueVerificationEmail()` only requires a processor when the mode is *not* `queue-only`. A producer instance can enqueue jobs a separate `worker-only` instance later processes.
 
-Three generators are registered by `MailComponent`:
+**Dynamic worker management** -- get the bound instance and manage workers at runtime, no restart required:
 
-- **`NumericCodeGenerator`** -- Implements `IVerificationCodeGenerator`. Generates numeric verification codes of configurable length (e.g., 6-digit `"482917"`)
-- **`RandomTokenGenerator`** -- Implements `IVerificationTokenGenerator`. Generates cryptographically random **base64url**-encoded tokens of configurable byte length
-- **`DefaultVerificationDataGenerator`** -- Implements `IVerificationDataGenerator`. Composes both generators via `@inject` and produces a full `IVerificationData` object with expiry timestamps
+```typescript
+const executor = this.application.get<BullMQMailExecutorHelper>({
+  key: MailKeys.MAIL_QUEUE_EXECUTOR_INSTANCE,
+});
 
-**NumericCodeGenerator:**
+executor.addWorker({ workerIdentifier: 'mail-queue-worker-extra', concurrency: 10, lockDuration: 60000 });
 
-Generates cryptographically random numeric codes. Uses `crypto.randomInt(0, 10^length)` to ensure uniform distribution. The result is zero-padded to the requested length via `padStart()` (e.g., code `42` with length 6 becomes `"000042"`).
+executor.getWorkerCount(); // e.g. 2
+executor.getMode();        // e.g. 'both'
 
-**RandomTokenGenerator:**
+await executor.removeWorker(1); // remove by array index
+await executor.clearWorkers();  // close and remove every worker
+```
 
-Generates URL-safe random tokens using `crypto.randomBytes(bytes).toString('base64url')`. The output is **base64url-encoded** (not hex). For 32 bytes of input, this produces a 43-character base64url string (not 64 hex characters). Base64url encoding uses characters `A-Z`, `a-z`, `0-9`, `-`, `_` with no padding.
+`setProcessor()` on the BullMQ executor is `async` and takes an optional second argument for worker configuration -- it clears all existing workers before creating new ones:
 
-**DefaultVerificationDataGenerator:**
+```typescript
+await executor.setProcessor(
+  async (email: string) => {
+    // your processing logic
+    return { success: true, message: 'Sent', expiresInMinutes: 10 };
+  },
+  {
+    numberOfWorkers: 3,       // default: 1
+    concurrencyPerWorker: 10, // default: 5
+    lockDuration: 60000,      // job lock duration in ms, default: 30000
+  },
+);
+```
 
-Uses `@inject` to receive both `NumericCodeGenerator` (via `MailKeys.MAIL_VERIFICATION_CODE_GENERATOR`) and `RandomTokenGenerator` (via `MailKeys.MAIL_VERIFICATION_TOKEN_GENERATOR`). Produces a complete verification data object with:
-- A short numeric code for manual entry (SMS, email)
-- A long random base64url token for URL-based verification
-- Separate expiry times: code uses `getExpiryTime(minutes)`, token uses `getExpiryTimeInHours(hours)`
-- Generation timestamps in ISO 8601 format
-- Attempt counter (set to 0 initially)
-- `lastCodeSentAt` set to `now`
+## Verification generators
 
-**Email verification flow example:**
+`MailComponent` binds three generators, all **transient** (a fresh instance per resolution, since none is registered with `.setScope('singleton')`):
+
+| Generator | Implements | Behavior |
+|-----------|-----------|----------|
+| `NumericCodeGenerator` | `IVerificationCodeGenerator` | `crypto.randomInt(0, 10^length)`, zero-padded via `padStart()` -- e.g. code `42` at length `6` becomes `"000042"` |
+| `RandomTokenGenerator` | `IVerificationTokenGenerator` | `crypto.randomBytes(bytes).toString('base64url')` -- 32 bytes produces a 43-character string, URL-safe, no padding |
+| `DefaultVerificationDataGenerator` | `IVerificationDataGenerator` | Composes both generators via `@inject`, producing a full `IVerificationData` with separate expiries |
+
+`DefaultVerificationDataGenerator.generateVerificationData()` returns:
+
+- A short numeric code (manual entry: SMS, email)
+- A long base64url token (URL-based verification links)
+- Separate expiries: code via `getExpiryTime(minutes)`, token via `getExpiryTimeInHours(hours)`
+- ISO 8601 generation timestamps, `codeAttempts: 0`, `lastCodeSentAt` set to now
+
+**End-to-end verification flow:**
 
 ```typescript
 import { BaseService, inject } from '@venizia/ignis';
-import {
-  MailKeys,
-  type IMailService,
-  type IVerificationDataGenerator,
-} from '@venizia/ignis/mail';
+import { MailKeys, type IMailService, type IVerificationDataGenerator } from '@venizia/ignis/mail';
 
 export class AuthService extends BaseService {
   constructor(
@@ -334,18 +322,15 @@ export class AuthService extends BaseService {
   }
 
   async sendVerificationEmail(userEmail: string) {
-    // Generate verification code and token
     const verificationData = this.verificationGenerator.generateVerificationData({
-      codeLength: 6, // 6-digit code
-      tokenBytes: 32, // 32-byte token
-      codeExpiryMinutes: 10, // Code expires in 10 minutes
-      tokenExpiryHours: 24, // Token expires in 24 hours
+      codeLength: 6,
+      tokenBytes: 32,
+      codeExpiryMinutes: 10,
+      tokenExpiryHours: 24,
     });
 
-    // Save verification data to database
-    // await this.saveVerificationData(userEmail, verificationData);
+    // Persist verificationData to your own user/verification table here.
 
-    // Send verification email
     const result = await this.mailService.send({
       to: userEmail,
       subject: 'Email Verification',
@@ -362,43 +347,15 @@ export class AuthService extends BaseService {
 }
 ```
 
-**Storing verification data:**
+## Logging and credentials
 
-```typescript
-const verificationData = this.verificationGenerator.generateVerificationData({
-  codeLength: 6, // 6-digit code
-  tokenBytes: 32, // 32-byte token -> 43-char base64url string
-  codeExpiryMinutes: 10, // Code expires in 10 minutes
-  tokenExpiryHours: 24, // Token expires in 24 hours
-});
+`MailComponent.createAndBindInstances()` logs only `mailOptions.provider` and `queueExecutorConfig.type` at `info` level -- by design, never the full config objects, so SMTP passwords, OAuth2 secrets, API keys, and Redis passwords never reach a log sink through the component itself.
 
-// Store in database
-await this.userRepo.update({
-  where: { id: userId },
-  data: {
-    verificationCode: verificationData.verificationCode,
-    verificationCodeExpiresAt: new Date(verificationData.codeExpiresAt),
-    verificationToken: verificationData.verificationToken,
-    verificationTokenExpiresAt: new Date(verificationData.tokenExpiresAt),
-  },
-});
-```
+> [!WARNING]
+> That guarantee only covers what `MailComponent` logs internally. If your own wrapper component or bootstrap code logs the `TMailOptions` or `IMailQueueExecutorConfig` object directly (for example, while debugging a binding), you reintroduce the leak yourself -- log individual safe fields (`provider`, `type`) instead of the whole object.
 
-## Security Note
+## See also
 
-The `MailComponent.createAndBindInstances()` method logs the full `mailOptions` object at `info` level:
-
-```typescript
-this.logger.for(this.createAndBindInstances.name).info('Mail Options: %j', mailOptions);
-```
-
-This includes sensitive fields such as SMTP passwords, OAuth2 client secrets, refresh tokens, and API keys. Similarly, the queue executor config (which may contain Redis passwords) is logged. In production environments, ensure your logging configuration either:
-- Sets the mail component scope to a level higher than `info`
-- Uses a log pipeline that redacts sensitive fields
-- Strips credential fields before binding the options
-
-## See Also
-
-- [Setup & Configuration](./) -- Quick reference, setup steps, configuration options, and binding keys
-- [API Reference](./api) -- Architecture, interfaces, and internals
-- [Error Reference](./errors) -- Error codes and troubleshooting
+- [Setup & Configuration](./) -- quick reference, setup, configuration, and binding keys
+- [API Reference](./api) -- architecture, interfaces, and internals
+- [Error Reference](./errors) -- error codes and troubleshooting

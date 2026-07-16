@@ -6,212 +6,149 @@ difficulty: intermediate
 
 # Pro Tips & Edge Cases
 
-Advanced tips and common edge cases when working with filters.
+Behavior that is easy to assume incorrectly when writing a `filter` - each one verified against `FilterBuilder`/`PostgresQueryOperators`.
 
+## `NOT IN` and `!=` silently exclude `NULL`
 
-## Tip 1: JSON Numeric vs String Comparison
+SQL three-valued logic, not an IGNIS quirk: a row whose column is `NULL` never matches `nin`, `ne`, or `neq`, because `NULL <> value` evaluates to UNKNOWN rather than TRUE.
 
 ```typescript
-// JSON field contains: { "priority": "3" } (string)
-// Numeric comparison uses safe casting:
-{ where: { 'metadata.priority': { gt: 2 } } }
-// The regex '^-?[0-9]+(\.[0-9]+)?$' matches "3", so it casts to numeric 3
-// Result: 3 > 2 -> matches
+{ where: { status: { nin: ['deleted'] } } }
+// Rows where status IS NULL are NOT returned
 
-// But if JSON field contains: { "priority": "high" }
-{ where: { 'metadata.priority': { gt: 2 } } }
-// "high" fails regex -> NULL -> no match
-
-// Best practice: ensure your data stores numbers as JSON numbers
-{ "priority": 3 }  // Store as number, not string "3"
+// To include them, add an explicit NULL branch:
+{ where: { or: [{ status: { nin: ['deleted'] } }, { status: { is: null } }] } }
 ```
 
-
-## Tip 2: Empty Array Handling
+## Empty arrays are not no-ops
 
 ```typescript
-// Empty IN -> no results
-{ where: { id: { in: [] } } }  // SQL: WHERE false
+{ where: { id: { in: [] } } }   // SQL: WHERE false  - matches nothing
+{ where: { id: { nin: [] } } }  // SQL: WHERE true   - matches everything
+```
 
-// Empty NIN -> all results
-{ where: { id: { nin: [] } } }  // SQL: WHERE true
+This matters most when the array comes from user input - check its length before building the filter:
 
-// Check array length before filtering
+```typescript
 const ids = getUserSelectedIds();
 if (ids.length === 0) {
-  return [];  // Early return instead of empty IN
+  return []; // early return instead of an accidental WHERE false or WHERE true
 }
 ```
 
+## JSON numeric comparisons need actual JSON numbers
 
-## Tip 3: Null-Safe JSON Paths
+A JSON path comparison casts safely with `CASE WHEN (...) ~ '^-?[0-9]+(\.[0-9]+)?$' THEN (...)::numeric ELSE NULL END` - the regex has to match or the cast yields `NULL` and the row is excluded:
 
 ```typescript
-// If JSON field doesn't exist, #>> returns NULL
-// This is safe - no errors, just no matches
+// { "priority": "3" } (string) - regex matches "3" -> casts to numeric 3 -> 3 > 2 matches
+{ where: { 'metadata.priority': { gt: 2 } } }
+
+// { "priority": "high" } - regex fails -> NULL -> never matches
+{ where: { 'metadata.priority': { gt: 2 } } }
+```
+
+Store numbers as JSON numbers (`{ "priority": 3 }`), not numeric strings, to avoid depending on the cast.
+
+## A missing JSON path is a null-safe miss, not an error
+
+```typescript
 { where: { 'metadata.nonexistent.field': 'value' } }
 // SQL: "metadata" #>> '{nonexistent,field}' = 'value'
-// Result: No rows (NULL != 'value')
+// No rows match (NULL != 'value') - no exception either
 ```
 
+## JSON `order` uses `#>`, not `#>>`
 
-## Tip 4: Performance with Large IN Arrays
-
-```typescript
-// For very large arrays (1000+ items), consider chunking
-const allIds = getLargeIdList();  // 5000 IDs
-
-const chunkSize = 500;
-const results = [];
-for (let i = 0; i < allIds.length; i += chunkSize) {
-  const chunk = allIds.slice(i, i + chunkSize);
-  const chunkResults = await repository.find({
-    filter: { where: { id: { in: chunk } } }
-  });
-  results.push(...chunkResults);
-}
-```
-
-
-## Tip 5: Order By JSON Fields
+`#>` returns JSONB and preserves the value's type; the equality/comparison operators above use `#>>` (text) instead, because sorting needs JSONB's native ordering:
 
 ```typescript
-// JSON ordering uses #> (returns JSONB, preserves types) not #>> (returns text)
 { order: ['metadata.priority DESC'] }
 // SQL: "metadata" #> '{priority}' DESC
 
-// JSONB comparison order:
-// null < boolean < number < string < array < object
+// JSONB comparison order: null < boolean < number < string < array < object
 ```
 
+## Array operators accept a bare value
 
-## Tip 6: Debugging Filters
+`contains`, `containedBy`, and `overlaps` wrap a non-array operand in a single-element array automatically:
 
 ```typescript
-// Enable logging to see generated SQL
-const result = await repository.find({
-  filter: complexFilter,
-  options: {
-    log: { use: true, level: 'debug' },
-  },
-});
-
-// Or use buildQuery to inspect without executing
-const queryOptions = repository.buildQuery({ filter: complexFilter });
-console.log('Generated query options:', queryOptions);
+{ where: { tags: { contains: ['featured'] } } }
+{ where: { tags: { contains: 'featured' } } }
+// Equivalent
 ```
 
-
-## Tip 7: NOT IN with NULL Columns
+## `fields` as an object only supports inclusion
 
 ```typescript
-// NOT IN excludes NULL values!
-{ where: { status: { nin: ['deleted'] } } }
-// Rows where status IS NULL will NOT be returned
+{ fields: { id: true, name: true, email: true } }
 
-// Include NULL values explicitly
-{
-  where: {
-    or: [
-      { status: { nin: ['deleted'] } },
-      { status: { is: null } }
-    ]
-  }
-}
+// Setting a key to `false` does NOT exclude it - the key is simply ignored.
+// To exclude fields, list only the ones you want, as an array:
+{ fields: ['id', 'name', 'email'] }
 ```
 
+## Combining multiple array conditions
 
-## Tip 8: Combining Multiple Array Conditions
+`contains`, `containedBy`, and `overlaps` compose like any other operators - as separate keys under an implicit AND:
 
 ```typescript
 await productRepository.find({
   filter: {
     where: {
-      // Must have ALL these categories
-      categories: { contains: ['electronics', 'portable'] },
-      // Tags must be subset of allowed tags
-      tags: { containedBy: ['new', 'sale', 'featured', 'popular'] },
-      // Must have at least one of these suppliers
-      suppliers: { overlaps: ['supplier-a', 'supplier-b'] }
-    }
-  }
+      categories: { contains: ['electronics', 'portable'] },  // must have ALL these
+      tags: { containedBy: ['new', 'sale', 'featured', 'popular'] }, // must be a subset
+      suppliers: { overlaps: ['supplier-a', 'supplier-b'] },  // at least one match
+    },
+  },
 });
 ```
 
+## Chunk very large `in` arrays
 
-## Tip 9: Date Range Queries
+Postgres has no hard `IN`-list limit, but a multi-thousand-element array is worth chunking for query-plan and payload-size reasons:
 
 ```typescript
-// This week's events
-const startOfWeek = new Date();
-startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-const endOfWeek = new Date(startOfWeek);
-endOfWeek.setDate(endOfWeek.getDate() + 6);
+const allIds = getLargeIdList(); // e.g. 5000 IDs
+const chunkSize = 500;
+const results = [];
 
-{
-  where: {
-    eventDate: { between: [startOfWeek, endOfWeek] }
-  }
-}
-
-// Last 30 days
-const thirtyDaysAgo = new Date();
-thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-{
-  where: {
-    createdAt: { gte: thirtyDaysAgo }
-  }
+for (let i = 0; i < allIds.length; i += chunkSize) {
+  const chunk = allIds.slice(i, i + chunkSize);
+  results.push(...(await repository.find({ filter: { where: { id: { in: chunk } } } })));
 }
 ```
 
+## Factor out reusable `where`/pagination fragments
 
-## Tip 10: Reusable Filter Builders
+A `filter` is a plain object, so common fragments compose with spreads instead of being rewritten per call site:
 
 ```typescript
-// Create reusable filter builders
-const createActiveFilter = <T extends { status: string; deletedAt: Date | null }>(): TWhere<T> => ({
-  status: 'active',
-  deletedAt: { is: null },
-} as TWhere<T>);
+const createActiveFilter = <T extends { status: string; deletedAt: Date | null }>(): TWhere<T> =>
+  ({ status: 'active', deletedAt: { is: null } }) as TWhere<T>;
 
-const createPaginationFilter = (page: number, size: number = 20) => ({
+const createPaginationFilter = (page: number, size = 20) => ({
   limit: size,
   skip: (page - 1) * size,
 });
 
-// Usage
 const products = await productRepository.find({
   filter: {
-    where: {
-      ...createActiveFilter(),
-      category: 'electronics',
-    },
+    where: { ...createActiveFilter(), category: 'electronics' },
     ...createPaginationFilter(3),
-  }
+  },
 });
 ```
 
+## See also
 
-## Tip 11: Array Operators Accept Single Values
+- [Filter System Overview](./) - the `filter` shape and every `where` operator family
+- [Application Usage -> Debugging a filter](./application-usage#debugging-a-filter) - `buildQuery`, and why `options.log` doesn't apply to `find`
+- [Use Case Gallery](./use-cases) - full runnable filters, including date-range and multi-condition examples
+- [JSON Filtering](./json-filtering) - the full JSON path operator reference
 
-```typescript
-// These are equivalent:
-{ where: { tags: { contains: ['featured'] } } }
-{ where: { tags: { contains: 'featured' } } }
+**Files:**
 
-// Single values are automatically wrapped in an array
-// This works for contains, containedBy, and overlaps
-```
-
-
-## Tip 12: Field Selection Object Format
-
-```typescript
-// Object format only supports inclusion (true values)
-{ fields: { id: true, name: true, email: true } }
-
-// Setting a field to false does NOT exclude it -- it just ignores that key
-// If you want to exclude fields, list only the ones you want:
-{ fields: ['id', 'name', 'email'] }  // Array format is clearer for this
-```
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, JSON path casting, `toColumns`
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, empty-array and array-operator handling

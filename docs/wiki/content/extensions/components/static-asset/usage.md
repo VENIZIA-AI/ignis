@@ -1,368 +1,248 @@
-# Static Asset -- Usage & Examples
+---
+title: Static Asset Component - Usage & Examples
+description: Task-oriented walkthroughs for buckets, uploads, downloads, MetaLink tracking, and frontend integration
+difficulty: intermediate
+---
 
-> API endpoint specifications, request/response details, and frontend integration examples.
+# Usage & Examples
 
-## API Endpoints
+Task-oriented patterns for the endpoints `StaticAssetComponent` generates, plus the full MetaLink tracking setup. All examples assume a backend registered under `basePath: '/assets'` - see [Overview](./) for the binding.
 
-The component dynamically generates REST endpoints for each configured storage backend. All backends expose the same API structure under their configured `basePath`.
+## List and manage buckets
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | <code v-pre>/{basePath}/buckets</code> | List all buckets |
-| `GET` | <code v-pre>/{basePath}/buckets/:bucketName</code> | Get bucket by name |
-| `POST` | <code v-pre>/{basePath}/buckets/:bucketName</code> | Create a bucket |
-| `DELETE` | <code v-pre>/{basePath}/buckets/:bucketName</code> | Delete a bucket |
-| `POST` | <code v-pre>/{basePath}/buckets/:bucketName/upload</code> | Upload files |
-| `GET` | <code v-pre>/{basePath}/buckets/:bucketName/objects</code> | List objects |
-| `GET` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code> | Stream file |
-| `GET` | <code v-pre>/{basePath}/buckets/:bucketName/download/:objectName</code> | Download file |
-| `DELETE` | <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code> | Delete object |
-| `PUT` | <code v-pre>/{basePath}/buckets/:bucketName/meta-links/:objectName</code> | Sync MetaLink (MetaLink only) |
-
-#### GET <code v-pre>/{basePath}/buckets</code>
-**Response `200`:**
-```json
-[
-  { "name": "my-bucket", "creationDate": "2025-01-01T00:00:00.000Z" }
-]
 ```
-
-#### GET <code v-pre>/{basePath}/buckets/:bucketName</code>
-**Parameters:**
-- `bucketName` (path): Bucket name
-
-**Validation:** Bucket name validated with `isValidName()`. Returns 400 `"Invalid bucket name"` if invalid.
-
-**Response `200`:**
-```json
-{ "name": "my-bucket", "creationDate": "2025-01-01T00:00:00.000Z" }
+GET    /assets/buckets                 List all buckets
+GET    /assets/buckets/:bucketName     Get one bucket (nullable)
+POST   /assets/buckets/:bucketName     Create a bucket
+DELETE /assets/buckets/:bucketName     Delete a bucket
 ```
-
-Returns `null` when the bucket does not exist. The response schema is nullable.
-
-#### POST <code v-pre>/{basePath}/buckets/:bucketName</code>
-**Parameters:**
-- `bucketName` (path): Name of the new bucket
-
-**Validation:** Bucket name validated with `isValidName()`. Returns 400 `"Invalid bucket name"` if invalid.
-
-**Response `200`:**
-```json
-{ "name": "my-bucket", "creationDate": "2025-12-13T00:00:00.000Z" }
-```
-
-Returns `null` if bucket creation fails (e.g., already exists). The response schema is nullable.
-
-#### DELETE <code v-pre>/{basePath}/buckets/:bucketName</code>
-**Parameters:**
-- `bucketName` (path): Bucket to delete
-
-**Validation:** Bucket name validated with `isValidName()`. Returns 400 `"Invalid bucket name"` if invalid.
-
-**Response `200`:**
-```json
-{ "isDeleted": true }
-```
-
-The `isDeleted` field is a boolean indicating whether the bucket was successfully removed from storage.
-
-#### POST <code v-pre>/{basePath}/buckets/:bucketName/upload</code>
-**Parameters:**
-- `bucketName` (path): Target bucket name
-
-**Query Parameters:**
-- `principalType` (optional, string): Type of the principal to associate with the uploaded files (e.g., `"user"`, `"service"`)
-- `principalId` (optional, string or number): ID of the principal. Always coerced to a string via `String()` before storage regardless of input type
-- `variant` (optional, string): Variant tag for the upload (e.g., `"thumbnail"`, `"original"`)
-- `folderPath` (optional, string): Target folder path for uploaded files (e.g., `"photos/2024"`). Each segment is validated with `isValidName()` and the segment count must not exceed the configured `maxFolderDepth` (default 2); returns 400 on violation
-
-**Validation:** Bucket name validated with `isValidName()`. Returns 400 `"Invalid bucket name"` if invalid.
-
-**Request Body:** `multipart/form-data` with file fields. The request body is parsed using the `MultipartBodySchema` Zod schema:
 
 ```typescript
-const MultipartBodySchema = z.object({
-  files: z.union([z.instanceof(File), z.array(z.instanceof(File))]),
-});
+const buckets = await fetch('/assets/buckets').then(r => r.json());
+// [{ name: 'user-uploads', creationDate: '2026-01-01T00:00:00.000Z' }]
+
+await fetch('/assets/buckets/user-uploads', { method: 'POST' });
+const { isDeleted } = await fetch('/assets/buckets/user-uploads', { method: 'DELETE' }).then(r => r.json());
 ```
 
-This accepts either a single `File` or an array of `File` objects.
+Every `bucketName` is validated with `isValidName()` - single segment, no `..`/`/`/`\`, no shell metacharacters, 255 characters or fewer. See [Error Reference](./errors) for the full rule set.
 
-**Response `200` (without MetaLink):**
-```json
-[
-  {
-    "bucketName": "my-bucket",
-    "objectName": "file.pdf",
-    "link": "/assets/buckets/my-bucket/objects/file.pdf"
-  }
-]
-```
+## Upload files
 
-**Response `200` (with MetaLink enabled):**
-```json
-[
-  {
-    "bucketName": "my-bucket",
-    "objectName": "file.pdf",
-    "link": "/assets/buckets/my-bucket/objects/file.pdf",
-    "metaLink": {
-      "id": "uuid",
-      "bucketName": "my-bucket",
-      "objectName": "file.pdf",
-      "link": "/assets/buckets/my-bucket/objects/file.pdf",
-      "mimetype": "application/pdf",
-      "size": 1024,
-      "etag": "abc123",
-      "metadata": {},
-      "storageType": "minio",
-      "isSynced": true,
-      "variant": "original",
-      "principalType": "user",
-      "principalId": "42",
-      "createdAt": "2025-12-15T03:00:00.000Z",
-      "modifiedAt": "2025-12-15T03:00:00.000Z"
-    }
-  }
-]
-```
+`POST /assets/buckets/:bucketName/upload` accepts `multipart/form-data`, plus optional `principalType`, `principalId`, `variant`, and `folderPath` query parameters.
 
-**Response `200` (with MetaLink enabled, MetaLink creation failed):**
-```json
-[
-  {
-    "bucketName": "my-bucket",
-    "objectName": "file.pdf",
-    "link": "/assets/buckets/my-bucket/objects/file.pdf",
-    "metaLink": null,
-    "metaLinkError": "Database connection failed"
-  }
-]
-```
-
-When MetaLink creation fails, the upload itself still succeeds. The response includes `metaLink: null` and a `metaLinkError` string describing the failure. The error is also logged via the controller's scoped logger.
-
-**Example:**
 ```typescript
 const formData = new FormData();
 formData.append('file', fileBlob, 'document.pdf');
 
-// Upload with principal association and variant
 const response = await fetch(
-  '/assets/buckets/uploads/upload?principalType=user&principalId=123&variant=original',
+  '/assets/buckets/user-uploads/upload?principalType=user&principalId=42&variant=original&folderPath=invoices/2026',
   { method: 'POST', body: formData },
 );
 
-const result = await response.json();
-console.log(result[0].metaLink); // Database record (if MetaLink enabled)
+const [result] = await response.json();
+// { bucketName: 'user-uploads', objectName: 'invoices/2026/document.pdf', link: '/assets/buckets/user-uploads/objects/invoices%2F2026%2Fdocument.pdf' }
 ```
 
-#### GET <code v-pre>/{basePath}/buckets/:bucketName/objects</code>
-**Parameters:**
-- `bucketName` (path): Bucket name
+- **`folderPath` is validated separately from the filename.** Each segment must pass `isValidName()`, and the segment count must not exceed `maxFolderDepth` (default `2`) - both return `400` before the file is even parsed.
+- **`principalId` is always stored as a string**, coerced with `String()` regardless of whether you send a number or a string.
+- With MetaLink enabled, the response also carries `metaLink` (the created database record) or, if that write failed, `metaLink: null` plus a `metaLinkError` string - **the upload itself still succeeds either way**.
 
-**Validation:** Bucket name validated with `isValidName()`. Returns 400 `"Invalid bucket name"` if invalid.
+## Stream or download an object
 
-**Query Parameters:**
-- `prefix` (optional, string): Filter objects by prefix (e.g., `"folder/"`)
-- `recursive` (optional, string): Recursive listing. Parsed via strict string comparison `=== 'true'` -- only the exact string `"true"` enables recursion; any other truthy value (e.g., `"1"`, `"yes"`) does not
-- `maxKeys` (optional, string): Maximum number of objects to return. Parsed as integer via `parseInt(value, 10)`
-
-**Response `200`:**
-```json
-[
-  {
-    "name": "file1.pdf",
-    "size": 1024,
-    "lastModified": "2025-12-13T00:00:00.000Z",
-    "etag": "abc123",
-    "prefix": "folder/"
-  }
-]
-```
-
-All fields in the `IObjectInfo` response are optional. The `prefix` field is present when listing non-recursively and the object is a directory prefix. When listing individual files, `name`, `size`, `lastModified`, and `etag` are typically populated.
-
-#### GET <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code>
-**Parameters:**
-- `bucketName` (path): Bucket name
-- `objectName` (path): Object name (URL-encoded)
-
-**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name or path"` respectively if either is invalid.
-
-**Response:**
-- Streams file content with appropriate headers
-- `Content-Type`: From storage metadata or `application/octet-stream` as fallback
-- `Content-Length`: File size in bytes
-- `X-Content-Type-Options`: `nosniff`
-- Additional whitelisted headers forwarded from storage metadata (see [Header Sanitization](./api#header-sanitization))
-
-#### GET <code v-pre>/{basePath}/buckets/:bucketName/download/:objectName</code>
-**Parameters:**
-- `bucketName` (path): Bucket name
-- `objectName` (path): Object name (URL-encoded)
-
-**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name or path"` respectively if either is invalid.
-
-**Response:**
-- Streams file with download headers
-- `Content-Disposition`: `attachment; filename="..."` (generated via `createContentDispositionHeader()`)
-- `Content-Type`: From storage metadata or `application/octet-stream` as fallback
-- `Content-Length`: File size in bytes
-- `X-Content-Type-Options`: `nosniff`
-- Additional whitelisted headers forwarded from storage metadata (see [Header Sanitization](./api#header-sanitization))
-- Triggers browser download dialog
-
-**Example:**
 ```typescript
-const downloadUrl = `/assets/buckets/uploads/download/${encodeURIComponent('document.pdf')}`;
+const objectName = 'invoices/2026/document.pdf';
+
+// Inline stream - Content-Type comes from storage metadata, falls back to application/octet-stream
+const streamUrl = `/assets/buckets/user-uploads/objects/${encodeURIComponent(objectName)}`;
+
+// Forces a browser download dialog via Content-Disposition: attachment
+const downloadUrl = `/assets/buckets/user-uploads/download/${encodeURIComponent(objectName)}`;
 window.open(downloadUrl, '_blank');
 ```
 
-#### DELETE <code v-pre>/{basePath}/buckets/:bucketName/objects/:objectName</code>
-**Parameters:**
-- `bucketName` (path): Bucket name
-- `objectName` (path): Object to delete (URL-encoded)
+Both routes validate `bucketName` with `isValidName()` and `objectName` with `isValidPath()`, then forward a fixed whitelist of metadata headers (`content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified`) plus `X-Content-Type-Options: nosniff`. See [Header Sanitization](./api#header-sanitization) for the full list and why it exists.
 
-**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name or path"` respectively if either is invalid.
+> [!TIP]
+> `objectName` may embed folder segments (`invoices/2026/document.pdf`) - always pass the whole thing through `encodeURIComponent()`. Hono decodes it exactly once before the handler reads it, so a second `decodeURIComponent()` on your end is wrong and can corrupt names containing a literal `%`.
 
-**Behavior:**
-- Deletes file from storage
-- If MetaLink enabled, the MetaLink database record deletion is **fire-and-forget** -- the HTTP response returns immediately after the storage delete completes, without awaiting the database deletion
-- MetaLink deletion errors are logged but do not fail the request
-- MetaLink deletion uses `deleteAll({ where: { bucketName, objectName } })` to remove all matching records
+## List objects in a bucket
 
-**Response `200`:**
-```json
-{ "success": true }
-```
-
-**Example:**
 ```typescript
-const bucketName = 'user-uploads';
-const objectName = 'document.pdf';
+const url = new URL('/assets/buckets/user-uploads/objects', location.origin);
+url.searchParams.set('prefix', 'invoices/2026/');
+url.searchParams.set('recursive', 'true'); // only the literal string "true" enables recursion
+url.searchParams.set('maxKeys', '50');
 
-await fetch(`/assets/buckets/${bucketName}/objects/${encodeURIComponent(objectName)}`, {
-  method: 'DELETE',
-});
-// File deleted from storage
-// MetaLink record deletion initiated (if enabled) but may complete after response
+const objects = await fetch(url).then(r => r.json());
+// [{ name: 'invoices/2026/document.pdf', size: 1024, lastModified: '...', etag: '...' }]
 ```
 
-#### PUT <code v-pre>/{basePath}/buckets/:bucketName/meta-links/:objectName</code>
-**Availability:** Only registered when `useMetaLink: true`.
+`maxKeys`, if provided, must parse to a positive integer (`Number(maxKeys)` checked with `Number.isInteger`) or the endpoint returns `400`.
 
-**Parameters:**
-- `bucketName` (path): Bucket name
-- `objectName` (path): Object name (URL-encoded)
+## Delete an object
 
-**Validation:** Bucket name validated with `isValidName()`; object name validated with `isValidPath()`. Returns 400 `"Invalid bucket name"` or `"Invalid object name or path"` respectively if either is invalid.
+```typescript
+const objectName = 'invoices/2026/document.pdf';
 
-**Behavior:**
-- Fetches current file metadata from storage via `helper.getStat()`
-- Generates the file link using `normalizeLinkFn` (or the default link format <code v-pre>{basePath}/buckets/{bucket}/objects/{encodedName}</code>)
-- If MetaLink exists (matched by `bucketName` + `objectName`): Updates with latest metadata via `updateById()`, then refetches via `findById()`
-- If MetaLink doesn't exist: Creates new MetaLink record via `create()`
-- Always sets `isSynced: true` to mark as synchronized
+const { success } = await fetch(
+  `/assets/buckets/user-uploads/objects/${encodeURIComponent(objectName)}`,
+  { method: 'DELETE' },
+).then(r => r.json());
+```
 
-**Use Cases:**
-- Manually sync files that exist in storage but not in database
-- Update MetaLink metadata after file changes
-- Rebuild MetaLink records after database restore
-- Bulk synchronization operations
+> [!NOTE]
+> When MetaLink is enabled, the database record deletion is **fire-and-forget** - the response returns as soon as the storage delete completes, without waiting on the `deleteAll()` call. Deletion errors are logged but never fail the request.
 
-**Response `200` (MetaLink created or updated):**
-```json
-{
-  "success": true,
-  "metaLink": {
-    "id": "uuid",
-    "bucketName": "user-uploads",
-    "objectName": "document.pdf",
-    "link": "/assets/buckets/user-uploads/objects/document.pdf",
-    "mimetype": "application/pdf",
-    "size": 1048576,
-    "etag": "abc123",
-    "metadata": {},
-    "storageType": "minio",
-    "isSynced": true,
-    "principalType": null,
-    "principalId": null,
-    "createdAt": "2025-12-15T03:00:00.000Z",
-    "modifiedAt": "2025-12-15T03:00:00.000Z"
+## Sync a MetaLink record manually
+
+`PUT /assets/buckets/:bucketName/meta-links/:objectName` is only registered when `useMetaLink: true`. It re-reads the file's current storage metadata via `helper.getStat()` and creates or updates the matching MetaLink row.
+
+```typescript
+const objectName = 'invoices/2026/document.pdf';
+
+const response = await fetch(
+  `/assets/buckets/user-uploads/meta-links/${encodeURIComponent(objectName)}`,
+  { method: 'PUT' },
+);
+const { success, metaLink } = await response.json();
+```
+
+Useful for backfilling MetaLink rows for files that already exist in storage, or after a database restore.
+
+## Enable MetaLink tracking
+
+MetaLink persists an upload's bucket, object name, link, mimetype, size, etag, storage type, principal, and variant to Postgres. `BaseMetaLinkModel` and `BaseMetaLinkRepository` cover the schema - you only write a repository subclass and the table.
+
+**1. Repository.** `BaseMetaLinkModel` is used as-is - no model subclass needed:
+
+```typescript
+import { repository } from '@venizia/ignis';
+import { BaseMetaLinkModel, BaseMetaLinkRepository } from '@venizia/ignis/static-asset';
+import { PostgresDataSource } from '@/datasources';
+
+@repository({ model: BaseMetaLinkModel, dataSource: PostgresDataSource })
+export class MetaLinkRepository extends BaseMetaLinkRepository {}
+```
+
+**2. Table.** `BaseMetaLinkModel` sets `skipMigrate: true`, so create it manually:
+
+```sql
+CREATE TABLE "MetaLink" (
+  id              TEXT PRIMARY KEY,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  modified_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  bucket_name     TEXT NOT NULL,
+  object_name     TEXT NOT NULL,
+  link            TEXT NOT NULL,
+  mimetype        TEXT NOT NULL,
+  size            INTEGER NOT NULL,
+  etag            TEXT,
+  metadata        JSONB,
+  storage_type    TEXT NOT NULL,
+  is_synced       BOOLEAN NOT NULL DEFAULT false,
+  variant         TEXT,
+  principal_type  TEXT,
+  principal_id    TEXT
+);
+
+CREATE INDEX "IDX_MetaLink_bucketName" ON "MetaLink"(bucket_name);
+CREATE INDEX "IDX_MetaLink_objectName" ON "MetaLink"(object_name);
+CREATE INDEX "IDX_MetaLink_storageType" ON "MetaLink"(storage_type);
+CREATE INDEX "IDX_MetaLink_isSynced" ON "MetaLink"(is_synced);
+```
+
+**3. Register the repository and wire it into the component options:**
+
+```typescript
+export class Application extends BaseApplication {
+  preConfigure() {
+    this.repository(MetaLinkRepository);
+
+    this.bind<TStaticAssetsComponentOptions>({
+      key: StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS,
+    }).toValue({
+      uploads: {
+        controller: { name: 'UploadsController', basePath: '/uploads' },
+        storage: StaticAssetStorageTypes.MINIO,
+        helper: new MinioHelper({ /* ... */ }),
+        useMetaLink: true,
+        metaLink: {
+          model: BaseMetaLinkModel,
+          repository: this.get<MetaLinkRepository>({ key: 'repositories.MetaLinkRepository' }),
+        },
+      },
+    });
+
+    this.component(StaticAssetComponent);
   }
 }
 ```
 
-The response always wraps the MetaLink in a `{ success: boolean, metaLink: ... }` envelope. Both create and update flows return the same shape.
+> [!TIP]
+> Call `this.repository(MetaLinkRepository)` before `this.get({ key: 'repositories.MetaLinkRepository' })` - the binding has to exist in the container first.
 
-**Example:**
+### Custom MetaLink creation
+
+Provide `createMetaLink` on `TMetaLinkConfig` to fully replace the default insert - e.g. to add extra fields or run validation before persisting.
+
 ```typescript
-// Sync a single file
-const bucketName = 'user-uploads';
-const objectName = 'document.pdf';
-
-const response = await fetch(
-  `/assets/buckets/${bucketName}/meta-links/${encodeURIComponent(objectName)}`,
-  { method: 'PUT' }
-);
-
-const result = await response.json();
-console.log('Success:', result.success);       // true
-console.log('Synced:', result.metaLink.isSynced); // true
-
-// Bulk sync example: sync all files in storage
-const objects = await fetch(`/assets/buckets/${bucketName}/objects`).then(r => r.json());
-
-for (const obj of objects) {
-  await fetch(
-    `/assets/buckets/${bucketName}/meta-links/${encodeURIComponent(obj.name)}`,
-    { method: 'PUT' }
-  );
-}
+metaLink: {
+  model: BaseMetaLinkModel,
+  repository: metaLinkRepository,
+  createMetaLink: async ({ uploadResult, fileStat, query }) =>
+    metaLinkRepository.create({
+      data: {
+        bucketName: uploadResult.bucketName,
+        objectName: uploadResult.objectName,
+        link: uploadResult.link,
+        mimetype: fileStat.metadata?.['mimetype'],
+        size: fileStat.size,
+        etag: fileStat.etag,
+        storageType: 'minio',
+        isSynced: true,
+        principalId: query.principalId ? String(query.principalId) : undefined,
+        principalType: query.principalType,
+        variant: query.variant,
+      },
+    }),
+},
 ```
 
-## Frontend Integration
+When `createMetaLink` is omitted, the component uses a default insert that covers every standard field.
+
+### Query MetaLink records
 
 ```typescript
-// Upload file with principal association and variant
-async function uploadFile(file: File, principalType?: string, principalId?: string, variant?: string) {
+const userFiles = await metaLinkRepository.find({ filter: { where: { principalType: 'user', principalId: '42' } } });
+const thumbnails = await metaLinkRepository.find({ filter: { where: { variant: 'thumbnail' } } });
+const pdfs = await metaLinkRepository.find({ filter: { where: { mimetype: 'application/pdf' } } });
+```
+
+## Frontend integration
+
+```typescript
+async function uploadFile(
+  file: File,
+  opts: { principalType?: string; principalId?: string; variant?: string } = {},
+) {
   const formData = new FormData();
   formData.append('file', file);
 
-  const url = new URL('/assets/buckets/user-uploads/upload', window.location.origin);
-  if (principalType) url.searchParams.append('principalType', principalType);
-  if (principalId) url.searchParams.append('principalId', principalId);
-  if (variant) url.searchParams.append('variant', variant);
+  const url = new URL('/assets/buckets/user-uploads/upload', location.origin);
+  Object.entries(opts).forEach(([key, value]) => value && url.searchParams.set(key, value));
 
-  const response = await fetch(url, {
-    method: 'POST',
-    body: formData,
-  });
-
-  const result = await response.json();
-  return result[0].link;
+  const [result] = await fetch(url, { method: 'POST', body: formData }).then(r => r.json());
+  return result.link;
 }
 
-// Download file
 function downloadFile(bucketName: string, objectName: string) {
-  const url = `/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`;
-  window.open(url, '_blank');
-}
-
-// List files in bucket
-async function listFiles(bucketName: string, prefix?: string, recursive?: boolean) {
-  const url = new URL(`/assets/buckets/${bucketName}/objects`, window.location.origin);
-  if (prefix) url.searchParams.append('prefix', prefix);
-  if (recursive) url.searchParams.append('recursive', 'true');
-
-  const response = await fetch(url);
-  return await response.json();
+  window.open(`/assets/buckets/${bucketName}/download/${encodeURIComponent(objectName)}`, '_blank');
 }
 ```
 
-## See Also
+## See also
 
-- [Setup & Configuration](./) - Quick Reference, Setup Steps, Configuration Options
-- [API Reference](./api) - Controller Factory, Storage Interface, MetaLink Schema
-- [Error Reference](./errors) - Name Validation and Troubleshooting
+- [Overview](./) - quick start, imports, and common configuration tasks
+- [Full Reference](./api) - request/response schemas, `IStorageHelper` interface, header sanitization, internals
+- [Error Reference](./errors) - name validation rules and troubleshooting

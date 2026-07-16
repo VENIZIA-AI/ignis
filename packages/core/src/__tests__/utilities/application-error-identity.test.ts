@@ -4,20 +4,36 @@ import { Container, getError as inversionGetError } from '@venizia/ignis-inversi
 
 /**
  * The search connectors decide "an error the framework already shaped" vs "a raw engine failure to
- * sanitize as a 503" before wrapping anything. Class identity cannot carry that decision: inversion
- * ships dual CJS+ESM builds (its DI powers frontend libraries too), so even its own class has two
- * runtime constructors, and helpers keeps a class of its own. `isApplicationError` tests the shape.
+ * sanitize as a 503" before wrapping anything. Class identity cannot carry that decision.
+ *
+ * There is only ONE `ApplicationError` now - it lives in inversion, and helpers re-exports it - and
+ * `instanceof` still does not work, which is the whole point of this file. Inversion ships dual
+ * CJS+ESM builds because its DI also powers frontend libraries, so one source file yields two
+ * runtime constructors: an importer reaching the CJS copy and one reaching the ESM copy hold
+ * different classes for the same class. Consolidating the source did not merge the identities.
  */
 describe('isApplicationError recognizes errors across package boundaries', () => {
   test('an error raised through helpers is recognized', () => {
     expect(isApplicationError(getError({ message: 'boom', statusCode: 409 }))).toBe(true);
   });
 
-  test('an error raised through inversion is recognized, though it is NOT instanceof the helpers class', () => {
+  test('an error raised through inversion is recognized, though it is NOT instanceof the class helpers re-exports', () => {
     const error = inversionGetError({ message: 'not found', statusCode: 404 });
 
+    // Same source class, two runtime constructors - the dual build, not two implementations.
     expect(error instanceof ApplicationError).toBe(false);
     expect(isApplicationError(error)).toBe(true);
+  });
+
+  test('both entry points now agree on what an error looks like', () => {
+    // They used to not: inversion carried its own ApplicationError which never ran `messageCode`
+    // through MessageCode.resolve, so its errors could carry `messageCode: undefined` while the
+    // helpers ones never could. One class, one contract.
+    const viaHelpers = getError({ message: 'x' });
+    const viaInversion = inversionGetError({ message: 'x' });
+
+    expect(viaInversion.messageCode).toBe(viaHelpers.messageCode);
+    expect(viaInversion.normalized).toEqual(viaHelpers.normalized);
   });
 
   test('an error thrown by the DI container itself is recognized', () => {

@@ -117,3 +117,34 @@ describe('Bootstrapper - the boot report carries what it measured', () => {
     expect((caught as Error).message).toContain('boom');
   });
 });
+
+/**
+ * `runPhase` wraps a booter's failure so the operator learns which booter broke and why. The
+ * diagnosis rides on `cause` - and it used to be lost: `getError`'s input schema ended in
+ * `.catchall(z.any())`, so `cause` was not a field it knew, and the constructor swept it into
+ * `extra.cause` while `Error.cause` stayed `undefined`. The error handler reads `error.cause`, so
+ * the stack of the booter that actually threw never reached anyone.
+ */
+describe('Bootstrapper - a booter failure keeps its cause', () => {
+  class ExplodingBooter {
+    async configure() {
+      throw new Error('the real diagnosis');
+    }
+  }
+
+  test('the wrapped error carries the original on Error.cause, not buried in extra', async () => {
+    const bootstrapper = new Bootstrapper(buildApplication([new ExplodingBooter()]));
+
+    let caught: (Error & { extra?: Record<string, unknown> }) | undefined;
+    try {
+      await bootstrapper.boot({});
+    } catch (error) {
+      caught = error as Error & { extra?: Record<string, unknown> };
+    }
+
+    expect(caught).toBeDefined();
+    expect(caught?.message).toContain('ExplodingBooter');
+    expect((caught?.cause as Error)?.message).toBe('the real diagnosis');
+    expect(caught?.extra?.cause).toBeUndefined();
+  });
+});

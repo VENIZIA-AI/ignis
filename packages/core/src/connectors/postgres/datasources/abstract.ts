@@ -4,7 +4,7 @@ import type { IRelationalDriver } from '@/connectors/postgres/drivers';
 import type { IRelationalQueryDialect } from '@/connectors/postgres/repositories/common';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 import { MetadataRegistry } from '@/helpers/inversion';
-import type { TClass, ValueOrPromise } from '@venizia/ignis-helpers';
+import type { AnyObject, AnyType, TClass, ValueOrPromise } from '@venizia/ignis-helpers';
 import { getError } from '@venizia/ignis-helpers';
 import type { Pool } from 'pg';
 import type {
@@ -51,22 +51,28 @@ export abstract class AbstractRelationalDataSource<
       });
     }
 
-    // Absent for an imperatively-registered datasource.
+    const DriverClass = this.resolveDriverClass();
+    this.useDriver({ driver: new DriverClass({ client: this.client }) });
+  }
+
+  /**
+   * Reads the driver CLASS named by `@datasource({ driver })`. Absent for an imperatively-registered
+   * datasource; the type forbids a driver-name string, so this catches an untyped JavaScript caller -
+   * and a string is exactly the mistake to catch, because it carries no module into the bundle.
+   */
+  protected resolveDriverClass(): TClass<IRelationalDriver<Schema>> {
     const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
       target: this.constructor,
     });
     const driver = metadata?.driver;
 
-    // The type forbids a driver-name string, so this catches an untyped JavaScript caller - and a
-    // string is exactly the mistake to catch, because it carries no module into the bundle.
     if (typeof driver !== 'function') {
       throw getError({
-        message: `[${this.constructor.name}][wireDriverFromMetadata] @datasource({ driver }) must name a driver CLASS | Got: ${String(driver)} | Use \`@datasource({ driver: NodePostgresDriver })\` with \`import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres'\`, or wire a custom driver with useDriver()`,
+        message: `[${this.constructor.name}][resolveDriverClass] @datasource({ driver }) must name a driver CLASS | Got: ${String(driver)} | Use \`@datasource({ driver: NodePostgresDriver })\` with \`import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres'\`, or wire a custom driver with useDriver()`,
       });
     }
 
-    const DriverClass = driver as TClass<IRelationalDriver<Schema>>;
-    this.useDriver({ driver: new DriverClass({ client: this.client }) });
+    return driver as TClass<IRelationalDriver<Schema>>;
   }
 
   protected resolveDriver(): IRelationalDriver<Schema> {
@@ -119,5 +125,86 @@ export abstract class AbstractRelationalDataSource<
     AbstractRelationalDataSource.queryDialect ??= new FilterBuilder();
 
     return AbstractRelationalDataSource.queryDialect;
+  }
+
+  /**
+   * Soft-evicts the connection pool after a secret rotation. Builds a fresh pool + driver + connector
+   * against the rotated credentials WITHOUT disturbing the live fields, then swaps them in atomically
+   * and drains the old pool - so in-flight work finishes on the old pool while new work uses the new
+   * one. If the rebuild throws (bad rotated creds, transient failure) the live state is left exactly
+   * as it was, any half-built pool is drained rather than leaked, and the error is rethrown so the
+   * dispatcher can surface it - the datasource keeps serving on the old pool throughout.
+   */
+  async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
+    const logger = this.logger.for(this.onSecretRotated.name);
+    const oldClient = this.getClient() as AnyType;
+
+    // Snapshot so a failed rebuild restores the datasource verbatim. `settings` is copied because
+    // rotation mutates it in place; the live client stays untouched, keeping the old pool serving.
+    const savedClient = this.client;
+    const savedSettings = { ...(this.settings as AnyObject) };
+
+    // Rotation takes effect only through this.settings + configure(); a configure() that builds its
+    // pool from a hard-coded connection string or reads Envs directly rebuilds with stale credentials.
+    Object.assign(this.settings as AnyObject, this.mapSecretToSettings({ secret: opts.secret }));
+
+    // configure() overwrites this.client with the freshly-built pool; capture it into a local and
+    // immediately restore the old client so the live driver/connector stay on the old pool until the
+    // swap. The old client keeps serving throughout - the live fields are never nulled.
+    let newClient: Client;
+    try {
+      await this.configure();
+      newClient = this.client as Client;
+    } catch (error) {
+      const halfBuilt = this.client as AnyType;
+      this.client = savedClient;
+      Object.assign(this.settings as AnyObject, savedSettings);
+      if (halfBuilt && halfBuilt !== savedClient && typeof halfBuilt.end === 'function') {
+        await (halfBuilt as AnyType).end();
+      }
+      logger.error('Secret rotation failed in configure(); kept old pool | key: %s', opts.key);
+      throw error;
+    }
+    this.client = savedClient;
+
+    // Wire a driver + connector over the new pool into locals, still without touching live state.
+    let newDriver: IRelationalDriver<Schema>;
+    let newConnector: TRelationalConnector<Schema>;
+    try {
+      const DriverClass = this.resolveDriverClass();
+      newDriver = new DriverClass({ client: newClient as AnyType });
+      newConnector = newDriver.createConnector({ schema: this.getSchema() });
+    } catch (error) {
+      Object.assign(this.settings as AnyObject, savedSettings);
+      if (newClient && typeof (newClient as AnyType).end === 'function') {
+        await (newClient as AnyType).end();
+      }
+      logger.error('Secret rotation failed while wiring driver; kept old pool | key: %s', opts.key);
+      throw error;
+    }
+
+    // New pool fully built: commit the live fields to it in one synchronous step (no null window),
+    // then soft-evict the old pool so its in-flight transactions can finish.
+    this.client = newClient as AnyType;
+    this.driver = newDriver;
+    this.connector = newConnector as AnyType;
+
+    if (oldClient && typeof oldClient.end === 'function') {
+      await oldClient.end();
+      logger.info('Old pool drained after secret rotation | key: %s', opts.key);
+    }
+  }
+
+  /** Vault's database engine returns `{ username, password }`; pg expects `{ user, password }`. */
+  protected mapSecretToSettings(opts: { secret: Record<string, string> }): AnyObject {
+    const { username, password } = opts.secret;
+    const mapped: AnyObject = {};
+    if (username !== undefined) {
+      mapped.user = username;
+    }
+    if (password !== undefined) {
+      mapped.password = password;
+    }
+    return mapped;
   }
 }

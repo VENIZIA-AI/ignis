@@ -7,56 +7,73 @@ description: Zod 422 responses now derive messageCode/message from the schema; D
 
 ## Schema-Driven Validation Codes & Safer Production Errors
 
-The application error edge (`appErrorHandler`) gained three improvements:
+<Badge type="danger" text="Security" /> <Badge type="warning" text="Breaking Change" /> <Badge type="tip" text="Enhancement" />
 
-1. **Zod validation (422) responses** now surface a schema-author-controlled `messageCode` and a meaningful `message` instead of the literal `"ValidationError"`.
-2. **Database errors** are classified by **SQLSTATE class** (not exact code), with a fallback message - broader, more predictable 400s.
-3. **Production responses are hardened** so they never leak database internals (pg `detail`/`table`/`constraint`) or raw system error text (SQL, schema names, connection host/port).
-
-The `app-error` middleware is split into a focused folder by responsibility: `app-error.middleware.ts` (thin orchestrator) / `zod.handler.ts` (validation errors) / `database.handler.ts` (DB classification) / `definition.ts` (codes & messages) / `types.ts` (interfaces).
+**In one line.** Validation errors now carry a stable, localizable `messageCode`, database errors are classified more broadly and more correctly, and production error responses no longer leak database internals or raw system error text.
 
 > [!NOTE]
-> Builds on [Error Responses - messageCode & Extra Fields](./2026-04-23-error-response-extra-fields). That release surfaced `error.messageCode` for domain errors; this one **derives** `messageCode`/`message` for validation errors directly from the Zod issues.
+> Builds on [Error Responses - messageCode & Extra Fields](./2026-04-23-error-response-extra-fields), which added `error.messageCode` for domain errors. This release derives `messageCode`/`message` for validation errors directly from the failing Zod issue.
 
-## Overview
+## What changed
 
-- **Dynamic `messageCode`/`message` for 422s** - derived from the failing validation issues: a custom `params.code` wins, else the raw Zod code; `message` becomes that issue's message. The literal `"ValidationError"` is only used when the error carries no parseable issues.
-- **`params.code` schema convention** - authors attach a stable code via `.refine(fn, { params: { code } })` / `superRefine`.
-- **SQLSTATE-class DB mapping** - any class `22` (data exception), `23` (integrity), or `44` (WITH CHECK OPTION) code → HTTP 400, with specific messages plus `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE` for unlisted in-class codes. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) stay 500.
-- **Retryable DB conflicts → 409** - transient transaction conflicts (`40001` serialization_failure, `40P01` deadlock_detected) now return **409 Conflict** with `messageCode: "database.conflict"` and a safe "please retry" message, instead of a misleading 500. The client can retry the same request.
-- **Production hardening (security)** - DB client errors expose only the base message (no `detail`/`table`/`constraint`); unexpected errors return a generic `"Internal Server Error"`; intentional `getError` messages are preserved.
-- **`rootKey` honored on the Zod branch** - validation responses now wrap under `error.rootKey` like every other error response.
-- **Crash-proofing** - a non-string error `code` (e.g. a gRPC numeric code) no longer throws inside the handler.
+- **Zod validation (422) responses now carry a real `messageCode`** - derived from the failing issue: a schema-author-attached `params.code` wins, otherwise the raw Zod code (for example `invalid_type`). `message` becomes that issue's human-readable text.
+- **`params.code` schema convention** - attach a stable code to a custom check via `.refine(fn, { params: { code } })` or `superRefine`.
+- **Database errors classified by SQLSTATE class, not exact code** - any code in class `22` (data exception), `23` (integrity constraint), or `44` maps to `400`, with a specific message when known or a safe fallback message otherwise. Programming/infra classes (`42` syntax, `53` resources, `0A`, `25`, `28`) still return `500`.
+- **Retryable database conflicts now return `409`** - transient conflicts (`40001` serialization failure, `40P01` deadlock) return `409 Conflict` with `messageCode: "database.conflict"` and a "please retry" message, instead of a misleading `500`.
+- **Production responses no longer leak database internals** - DB client errors expose only the base message (no `detail`/`table`/`constraint`); any error without an explicit `statusCode` returns a generic `"Internal Server Error"`. Non-production is unchanged.
+- **`rootKey` now applies to validation responses** - 422 responses wrap under `error.rootKey`, consistent with every other error response.
+- **Crash-proofing** - a non-string error `code` (for example a gRPC numeric code) no longer throws inside the handler.
+- **Internal restructure** - `app-error` middleware split into `app-error.middleware.ts` (orchestrator), `zod.handler.ts`, `database.handler.ts`, `definition.ts`, `types.ts`.
 
-## New Features
+## Who is affected
 
-### Schema-driven `messageCode` / `message` for validation errors
+- **Frontends that parsed the literal `message: "ValidationError"`** - must switch to reading `messageCode` (breaking, see below).
+- **Frontends that read `detail`/`table`/`constraint` off a production database error** - those fields are gone in production (breaking, see below).
+- **Applications that set `error.rootKey`** - 422 responses are now wrapped like every other error response (breaking, see below).
+- **Applications sending requests that previously 500'd on an unlisted class-22/23 Postgres code** - those now correctly return `400` (breaking, see below).
+- **Schema authors** - can optionally attach `params.code` to custom Zod checks for a stable, localizable validation code. No changes required for existing schemas.
+- **Backend application code** - no source changes required anywhere in this release; every change is in the shared `appErrorHandler`.
 
-**File:** `packages/core/src/base/middlewares/app-error/app-error.middleware.ts`
+## Breaking changes
 
-**Problem:** Every validation failure returned the literal top-level `message: "ValidationError"` with no `messageCode`, so frontends always rendered `"ValidationError"` and had no stable code to map to a localized string.
+> [!WARNING]
+> No source migration is required, but these change the **response body** for some errors. Update any frontend that parsed the old shapes.
 
-**Solution:** `formatZodError` now scans the issues and picks a **primary issue** - the first one whose schema attached a `params.code`, otherwise the first issue. The response `messageCode` becomes that issue's `params.code` (or its raw Zod code), and `message` becomes that issue's human message. The per-field list under `details.cause[]` is unchanged.
+### 1. 422 top-level `message` is no longer the literal `"ValidationError"`
 
 ```jsonc
-// 422 - a refine with params.code
-{
-  "message": "Must not exceed 4 decimal places",
-  "messageCode": "numeric.decimal.too_many_places",
-  "statusCode": 422,
-  "requestId": "...",
-  "details": { "url": "...", "path": "...", "cause": [ /* all issues, unchanged */ ] }
-}
+// Before
+{ "message": "ValidationError", "statusCode": 422, "details": { "cause": [ /* ... */ ] } }
+
+// After
+{ "message": "<first issue's message>", "messageCode": "<params.code or raw zod code>", "statusCode": 422, "details": { "cause": [ /* ... */ ] } }
 ```
 
-**Benefits:**
-- A stable, localizable `messageCode` the FE can switch on (falls back to the raw Zod code like `invalid_type` / `too_small`).
-- `message` reflects the real failure instead of a generic literal.
-- No change required for existing schemas - un-annotated fields just surface the raw Zod code.
+Map `messageCode` to a localized string, falling back to `message`. `details.cause[]` is unchanged for consumers still reading it.
+
+### 2. `rootKey` now wraps validation responses
+
+If your app sets `error.rootKey`, 422 responses are now wrapped under that key (`{ "<rootKey>": { /* ... */ } }`) like every other error - previously the Zod branch returned the body unwrapped.
+
+```typescript
+const payload = config.rootKey ? body[config.rootKey] : body;
+```
+
+### 3. Production database error messages are generic
+
+In production, a database error `message` no longer includes `Detail:`/`Table:`/`Constraint:` lines, and any unexpected error returns `"Internal Server Error"`. Non-production is unchanged. Rely on `requestId` plus server logs for diagnostics.
+
+### 4. Unlisted class-22/23 codes now return 400
+
+A Postgres data-exception or integrity-constraint code that wasn't explicitly listed previously returned `500`; it now returns `400` with a fallback message.
+
+## Details
+
+### Security: production responses leaked database internals
+
+For database errors, the response `message` used to include the pg `detail` field - which **echoes row values**, for example `Key (email)=(a@b.com) already exists` - plus `table` and `constraint` names, even in production. Separately, any unexpected error (a non-client DB error, a connection failure) returned its raw `error.message`, which can carry SQL, schema/column names, or a connection host/port (for example `connect ECONNREFUSED 10.0.0.5:5432`). Both are fixed as described in the breaking changes above; `details.stack` and `details.cause` remain gated to non-production, unchanged.
 
 ### `params.code` schema-author convention
-
-Attach a stable code to a **custom** check (`.refine` / `.superRefine` / `.check`). Built-in checks (type, `.min`, `.email`, …) cannot carry a custom code in Zod v4 - re-express them as a refine if you need one.
 
 ```typescript
 // .refine
@@ -67,111 +84,19 @@ schema.superRefine((value, ctx) =>
   ctx.addIssue({ code: 'custom', message: '…', path: ['items', i, 'quantity'], params: { code: 'numeric.decimal.too_many_places' } }),
 );
 
-// built-in rule that needs a code → use refine instead of .min()
+// A built-in rule that needs a code -> use refine instead of .min()
 z.string().refine(s => s.length >= 5, { message: 'Too short', params: { code: 'name.too_short' } });
 ```
 
-### SQLSTATE-class database error classification
+Built-in checks (type, `.min`, `.email`, ...) cannot carry a custom code in Zod v4 - re-express them as a `refine` if you need one.
 
-**File:** `packages/core/src/base/middlewares/app-error/definition.ts`
+### Files changed
 
-**Problem:** Only an exact list of pg codes mapped to 400; any unlisted code (even a real class-22/23 one) fell through to 500.
-
-**Solution:** Classify by **SQLSTATE class** (first two chars). Codes in class `22` (data exception) or `23` (integrity constraint) are client errors → 400, using a specific message when known or `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE` otherwise. Everything else stays 500 - notably class `42` (syntax / undefined column), which is an application/SQL bug and must **not** be masked as a 400.
-
-```typescript
-export const POSTGRES_CLIENT_ERROR_CLASSES: readonly string[] = ['22', '23', '44'];
-export const DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE = 'Invalid database request';
-// PostgresErrorCodes / DATABASE_CLIENT_ERROR_MESSAGES expanded with common class 22/23 codes
-// (incl. JSON invalid_json_text/duplicate_key, binary, float, escape, datetime/tz) and class 44.
-```
-
-## Security Fixes
-
-### Production error responses leaked database internals
-
-**Vulnerability:** For database errors the response `message` included pg `detail` (which **echoes row values**, e.g. `Key (email)=(a@b.com) already exists`), plus `table` and `constraint` names - in **production**. Separately, any unexpected error (non-client DB error, connection failure) returned its raw `error.message`, which can carry SQL, schema/column names, or a connection host/port (e.g. `connect ECONNREFUSED 10.0.0.5:5432`).
-
-**Fix:** In production the handler now exposes only safe text:
-
-- DB client errors (class 22/23) → the generic base message only (`detail`/`table`/`constraint` are appended in **non-production** for debugging).
-- Any error without an explicit `statusCode` (uncaught throws, non-client DB errors, connection failures) → the generic `"Internal Server Error"`.
-- Intentional `getError`/`ApplicationError` messages (which set `statusCode`) are **preserved**.
-- `details.stack` and `details.cause` remain gated to non-production (unchanged).
-
-```jsonc
-// Production
-// unique violation:        { "message": "Unique constraint violation", "statusCode": 400, ... }   // no Detail/Table/Constraint
-// undefined column (42P01): { "message": "Internal Server Error",      "statusCode": 500, ... }   // raw SQL not leaked
-// connection refused:       { "message": "Internal Server Error",      "statusCode": 500, ... }   // host/port not leaked
-```
-
-## Breaking Changes
-
-> [!WARNING]
-> No source migration is required, but these change the **response body** for some errors. Update any frontend that parsed the old shapes.
-
-### 1. 422 top-level `message` is no longer the literal `"ValidationError"`
-
-**Before:**
-```jsonc
-{ "message": "ValidationError", "statusCode": 422, "details": { "cause": [ … ] } }
-```
-**After:**
-```jsonc
-{ "message": "<first issue's message>", "messageCode": "<params.code or raw zod code>", "statusCode": 422, "details": { "cause": [ … ] } }
-```
-The FE contract is now: map `messageCode` to a localized string, fall back to `message`. `details.cause[]` is unchanged for consumers still reading it.
-
-### 2. `rootKey` now wraps validation responses
-
-If your app sets `error.rootKey`, 422 responses are now wrapped under that key (`{ "<rootKey>": { … } }`) like every other error - previously the Zod branch returned the body unwrapped.
-
-### 3. Production DB error messages are generic
-
-In production, DB error `message` no longer includes `Detail:`/`Table:`/`Constraint:` lines, and unexpected errors return `"Internal Server Error"`. Non-production is unchanged. Rely on `requestId` + server logs for diagnostics.
-
-### 4. Unlisted class-22/23 codes now return 400
-
-A pg data-exception/integrity code that wasn't explicitly listed previously returned 500; it now returns 400 with the fallback message.
-
-## Files Changed
-
-### Core Package (`packages/core`)
-
-| File | Changes |
-|------|---------|
-| `src/base/middlewares/app-error/app-error.middleware.ts` | Thin `appErrorHandler` orchestrator: routes ZodError / DB-client / retryable-DB / domain / unknown errors; Zod branch honors `rootKey`; production message gating (generic message for unexpected errors) |
-| `src/base/middlewares/app-error/zod.handler.ts` | **New** - `formatZodError`: derives `messageCode`/`message` from the issues (custom `params.code`, else the raw Zod code) |
-| `src/base/middlewares/app-error/database.handler.ts` | **New** - `isDatabaseClientError` (SQLSTATE class 22/23/44 → 400, non-string-code guard, prod context suppression) and `isRetryableDatabaseError` (40001/40P01 → 409) |
-| `src/base/middlewares/app-error/definition.ts` | Expanded `PostgresErrorCodes` (class 22/23/44); added `POSTGRES_CLIENT_ERROR_CLASSES`, `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE`, `POSTGRES_RETRYABLE_ERROR_CODES` + retryable message/code |
-| `src/base/middlewares/app-error/types.ts` | `IDatabaseError`, `IZodIssueLike` interfaces (extracted from the middleware) |
+| File | Change |
+|------|--------|
+| `src/base/middlewares/app-error/app-error.middleware.ts` | Thin orchestrator: routes Zod / DB-client / retryable-DB / domain / unknown errors; honors `rootKey` on the Zod branch; gates production messages |
+| `src/base/middlewares/app-error/zod.handler.ts` | New - derives `messageCode`/`message` from the primary issue |
+| `src/base/middlewares/app-error/database.handler.ts` | New - SQLSTATE class 22/23/44 classification and 40001/40P01 retryable detection |
+| `src/base/middlewares/app-error/definition.ts` | Expanded Postgres error codes; adds `POSTGRES_CLIENT_ERROR_CLASSES`, `DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE`, `POSTGRES_RETRYABLE_ERROR_CODES` |
+| `src/base/middlewares/app-error/types.ts` | `IDatabaseError`, `IZodIssueLike` interfaces |
 | `src/base/middlewares/index.ts` | Re-exports the per-middleware folders |
-
-## Migration Guide
-
-> [!NOTE]
-> Backend code needs no changes. The steps below are for API/frontend consumers.
-
-### Step 1: Read `messageCode` for validation errors
-
-```typescript
-// 422 handling
-const code = body.messageCode;                 // e.g. 'numeric.decimal.too_many_places' or 'invalid_type'
-const text = i18n[code] ?? body.message;       // fall back to the human message
-```
-
-### Step 2: (Optional) annotate schemas with stable codes
-
-```typescript
-z.number().refine(n => Number.isInteger(n * 10000), {
-  message: 'Must not exceed 4 decimal places',
-  params: { code: 'numeric.decimal.too_many_places' },
-});
-```
-
-### Step 3: If you set `error.rootKey`, unwrap 422s like other errors
-
-```typescript
-const payload = config.rootKey ? body[config.rootKey] : body;
-```

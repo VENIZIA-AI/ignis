@@ -159,6 +159,177 @@ async function createNodeSocketIOHelper(opts: {
 }
 ```
 
+## Configuration Reference
+
+### Default Server Options
+
+The component applies these defaults if `SocketIOBindingKeys.SERVER_OPTIONS` is not bound or partially overridden:
+
+| Option | Default | Description |
+|--------|---------|-------------|
+| `identifier` | `'SOCKET_IO_SERVER'` | Unique identifier for the helper instance |
+| `path` | `'/io'` | URL path for Socket.IO handshake/polling |
+| `cors.origin` | `'*'` | Allowed origins (restrict in production!) |
+| `cors.methods` | `['GET', 'POST']` | Allowed HTTP methods for CORS preflight |
+| `cors.preflightContinue` | `false` | Pass preflight to next handler |
+| `cors.optionsSuccessStatus` | `204` | Status code for successful OPTIONS requests |
+| `cors.credentials` | `true` | Allow cookies/auth headers |
+| `perMessageDeflate.threshold` | `4096` | Minimum message size to compress (bytes) |
+| `perMessageDeflate.concurrencyLimit` | `20` | Max concurrent compression operations |
+| `perMessageDeflate.clientNoContextTakeover` | `true` | Client releases compression context after each message |
+| `perMessageDeflate.serverNoContextTakeover` | `true` | Server releases compression context after each message |
+| `perMessageDeflate.serverMaxWindowBits` | `10` | Server-side maximum window size (2^10 = 1KB) |
+
+> [!WARNING]
+> The default `cors.origin: '*'` is suitable for development only. In production, restrict this to your specific domains.
+
+#### Full `DEFAULT_SERVER_OPTIONS`
+```typescript
+const DEFAULT_SERVER_OPTIONS: Partial<IServerOptions> = {
+  identifier: 'SOCKET_IO_SERVER',
+  path: '/io',
+  cors: {
+    origin: '*',
+    methods: ['GET', 'POST'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    credentials: true,
+  },
+  perMessageDeflate: {
+    threshold: 4096,
+    zlibDeflateOptions: { chunkSize: 10 * 1024 },
+    zlibInflateOptions: { windowBits: 12, memLevel: 8 },
+    clientNoContextTakeover: true,
+    serverNoContextTakeover: true,
+    serverMaxWindowBits: 10,
+    concurrencyLimit: 20,
+  },
+};
+```
+
+### Custom Configuration
+
+Bind custom server options before registering the component:
+
+```typescript
+import { SocketIOBindingKeys } from '@venizia/ignis/socket-io';
+import type { ServerOptions } from 'socket.io';
+
+const customOptions: Partial<ServerOptions> = {
+  path: '/socket.io',
+  cors: {
+    origin: ['https://myapp.com', 'https://admin.myapp.com'],
+    methods: ['GET', 'POST'],
+    credentials: true,
+  },
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  maxHttpBufferSize: 1e6, // 1MB
+};
+
+this.bind<Partial<ServerOptions>>({
+  key: SocketIOBindingKeys.SERVER_OPTIONS,
+}).toValue(customOptions);
+
+this.component(SocketIOComponent);
+```
+
+> [!NOTE]
+> `identifier` is part of the component's `IServerOptions` interface (which extends `ServerOptions`), not Socket.IO's native options. Set it by including it in the bound options object.
+
+### Binding Keys
+
+All binding keys are available on `SocketIOBindingKeys`:
+
+| Binding Key | Constant | Type | Required | Default |
+|------------|----------|------|----------|---------|
+| `@app/socket-io/server-options` | `SERVER_OPTIONS` | `Partial<ServerOptions>` | No | See defaults above |
+| `@app/socket-io/redis-connection` | `REDIS_CONNECTION` | `IRedisHelper` (`RedisSingleHelper` / `RedisClusterHelper` / `RedisSentinelHelper`) | **Yes** | `null` |
+| `@app/socket-io/authenticate-handler` | `AUTHENTICATE_HANDLER` | `TSocketIOAuthenticateFn` | **Yes** | `null` |
+| `@app/socket-io/validate-room-handler` | `VALIDATE_ROOM_HANDLER` | `TSocketIOValidateRoomFn` | No | `null` |
+| `@app/socket-io/client-connected-handler` | `CLIENT_CONNECTED_HANDLER` | `TSocketIOClientConnectedFn` | No | `null` |
+| `@app/socket-io/instance` | `SOCKET_IO_INSTANCE` | `SocketIOServerHelper` | -- | *Set by component* |
+
+> [!NOTE]
+> `SOCKET_IO_INSTANCE` is **not** set by you -- the component creates and binds it automatically after the server starts. Inject it in services/controllers via a lazy getter (see [Usage & Examples](./usage#server-side-usage)).
+
+### System Events and Rooms
+
+Constants are exported from `@venizia/ignis-helpers/socket-io` as `SocketIOConstants` and used internally by both the component and the helper.
+
+| Constant | Value | Description |
+|----------|-------|--------------|
+| `EVENT_PING` | `'ping'` | Keep-alive ping emitted at `pingInterval` (default: 30s) |
+| `EVENT_CONNECT` | `'connection'` | New client connected (server-side event) |
+| `EVENT_DISCONNECT` | `'disconnect'` | Client disconnected |
+| `EVENT_JOIN` | `'join'` | Client requests to join room(s) |
+| `EVENT_LEAVE` | `'leave'` | Client requests to leave room(s) |
+| `EVENT_AUTHENTICATE` | `'authenticate'` | Client sends auth credentials |
+| `EVENT_AUTHENTICATED` | `'authenticated'` | Auth success response sent to client |
+| `EVENT_UNAUTHENTICATE` | `'unauthenticated'` | Auth failure response sent to client |
+| `ROOM_DEFAULT` | `'io-default'` | Default room all authenticated clients join |
+| `ROOM_NOTIFICATION` | `'io-notification'` | Notification broadcast room |
+
+> [!TIP]
+> Override the default rooms via the `defaultRooms` option on `SocketIOServerHelper` -- the values above are only the fallback.
+
+#### Internal Constants (Server Helper)
+
+Defined at module scope in the server helper, not exported, but they govern default behavior:
+
+| Constant | Value | Description |
+|----------|-------|--------------|
+| `CLIENT_AUTHENTICATE_TIMEOUT` | `10_000` (10s) | Time allowed for a client to authenticate before forced disconnect |
+| `CLIENT_PING_INTERVAL` | `30_000` (30s) | Interval between server-to-client ping emissions |
+
+Both are overridable via the `authenticateTimeout` and `pingInterval` constructor options on `SocketIOServerHelper`.
+
+### Client States
+
+Each connected client tracks an authentication state that governs what actions are permitted:
+
+| State | Constant | Description |
+|-------|----------|--------------|
+| `unauthorized` | `SocketIOClientStates.UNAUTHORIZED` | Initial state -- client must emit `authenticate` within the timeout (default: 10s) |
+| `authenticating` | `SocketIOClientStates.AUTHENTICATING` | Auth in progress -- `authenticateFn` is executing |
+| `authenticated` | `SocketIOClientStates.AUTHENTICATED` | Auth successful -- client can send/receive events and join rooms |
+
+#### State Machine Diagram
+```
+                    +------------------+
+ connect ---------->|  unauthorized    |
+                    +--------+---------+
+                             | emit('authenticate')
+                    +--------v---------+
+                    |  authenticating   |
+                    +---+----------+---+
+            success |              | failure
+          +---------v--+   +-------v-----------+
+          |authenticated|   |   unauthorized   |--> disconnect
+          +-------------+   +------------------+
+                                  ^
+                            timeout (10s)
+```
+
+#### `SocketIOClientStates` Source
+```typescript
+export class SocketIOClientStates {
+  static readonly UNAUTHORIZED = 'unauthorized';
+  static readonly AUTHENTICATING = 'authenticating';
+  static readonly AUTHENTICATED = 'authenticated';
+
+  static readonly SCHEME_SET = new Set([
+    this.UNAUTHORIZED,
+    this.AUTHENTICATING,
+    this.AUTHENTICATED,
+  ]);
+
+  static isValid(input: string): input is TConstValue<typeof SocketIOClientStates> {
+    return this.SCHEME_SET.has(input);
+  }
+}
+```
+
 ## Server Helper API Reference
 
 ### `SocketIOServerHelper` Constructor
@@ -244,9 +415,7 @@ Returns the `@socket.io/bun-engine` instance. **Throws** if the runtime is Node.
 #### `getClients()`
 
 ```typescript
-// Overloaded:
-getClients(): Map<string, ISocketIOClient>
-getClients(opts: { id: string }): ISocketIOClient | undefined
+getClients(opts?: { id?: string }): ISocketIOClient | Map<string, ISocketIOClient> | undefined
 ```
 
 When called without arguments, returns the full client map. When called with `{ id }`, returns the specific client entry or `undefined` if not found.
@@ -290,7 +459,7 @@ Disconnects a specific client and cleans up resources:
 3. Removes the client from the `clients` map
 4. Calls `socket.disconnect()` on the underlying Socket.IO socket
 
-If the socket is `undefined` or not tracked in the client map, the method still calls `socket.disconnect()` for safety.
+If `socket` is falsy, the method returns immediately -- no cleanup, no `socket.disconnect()` call. If the socket exists but is not tracked in the `clients` map, steps 1-3 are skipped but `socket.disconnect()` is still called.
 
 #### `onClientConnect()`
 
@@ -338,7 +507,7 @@ send(opts: {
     data: any;             // Event payload
   };
   doLog?: boolean;         // Log the emission (default: false)
-  cb?: () => void;         // Callback executed via setImmediate after emit
+  callback?: () => void;   // Executed via setImmediate after emit
 })
 ```
 
@@ -347,7 +516,7 @@ Key behaviors:
 - All messages are **compressed** via `emitter.compress(true)`
 - If `destination` is provided and non-empty, sends via `sender.to(destination).emit(topic, data)`
 - If `destination` is omitted/empty, broadcasts to **all** connected clients via `sender.emit(topic, data)`
-- Callback (`cb`) is executed asynchronously via `setImmediate()`, not after delivery confirmation
+- `callback` is executed asynchronously via `setImmediate()`, not after delivery confirmation
 - Logging is opt-in (`doLog: true`) to avoid noise in high-throughput scenarios
 
 #### `send()` Silent Failure Behavior
@@ -575,8 +744,8 @@ Manually disconnects the socket. No-op with an info log if the client is not ini
 emit<T = unknown>(opts: {
   topic: string;
   data: T;
-  doLog?: boolean;   // default: false
-  cb?: () => void;
+  doLog?: boolean;       // default: false
+  callback?: () => void;
 }): void
 ```
 
@@ -586,7 +755,7 @@ Emits an event to the server.
 - The socket is not connected (`statusCode: 400`, message: `"Invalid socket client state to emit"`)
 - The `topic` is falsy (`statusCode: 400`, message: `"Topic is required to emit"`)
 
-If `cb` is provided, it is executed via `setImmediate()` (asynchronously, not after server acknowledgment). If `doLog` is `true`, logs the topic and data.
+If `callback` is provided, it is executed via `setImmediate()` (asynchronously, not after server acknowledgment). If `doLog` is `true`, logs the topic and data.
 
 ### `joinRooms()`
 
@@ -796,7 +965,7 @@ interface ISocketIOClient {
   socket: IOSocket;
   state: TSocketIOClientState;              // 'unauthorized' | 'authenticating' | 'authenticated'
   interval?: NodeJS.Timeout;                 // Ping interval (set after auth)
-  authenticateTimeout: NodeJS.Timeout;       // Auth deadline (cleared on success)
+  authenticateTimeout?: NodeJS.Timeout;      // Auth deadline (undefined after it's cleared)
 }
 ```
 
@@ -853,7 +1022,7 @@ interface ISocketIOClient {
   socket: IOSocket;
   state: TSocketIOClientState;
   interval?: NodeJS.Timeout;
-  authenticateTimeout: NodeJS.Timeout;
+  authenticateTimeout?: NodeJS.Timeout;
 }
 
 // Redis client type alias
@@ -892,6 +1061,19 @@ type TSocketIOClientState = TConstValue<typeof SocketIOClientStates>;
 ### Callback Types
 
 ```typescript
+// Handshake payload passed to the authenticate handler
+interface IHandshake {
+  headers: IncomingHttpHeaders;
+  time: string;
+  address: string;
+  xdomain: boolean;
+  secure: boolean;
+  issued: number;
+  url: string;
+  query: ParsedUrlQuery;
+  auth: { [key: string]: any };
+}
+
 // Server authentication handler
 type TSocketIOAuthenticateFn = (args: IHandshake) => ValueOrPromise<boolean>;
 
@@ -1046,6 +1228,6 @@ clientHelper.shutdown()
 
 ## See Also
 
-- [Setup & Configuration](./) -- Quick reference, installation, bindings, constants
-- [Usage & Examples](./usage) -- Server-side usage, client helper, advanced patterns
+- [Setup & Configuration](./) -- Quick reference, required bindings, how it works
+- [Usage & Examples](./usage) -- Full setup steps, server-side usage, client helper, advanced patterns
 - [Error Reference](./errors) -- Error conditions and troubleshooting

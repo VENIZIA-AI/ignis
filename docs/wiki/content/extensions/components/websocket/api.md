@@ -1,296 +1,247 @@
-# WebSocket -- API Reference
+---
+title: WebSocket Component - Full Reference
+description: Binding keys, configuration options, WebSocketEmitter API, lifecycle diagrams, and internals
+difficulty: intermediate
+---
 
-> Architecture deep dive, WebSocketEmitter API, and component internals.
+# WebSocket Component Reference
 
-## Architecture
+Every binding key, configuration option, callback signature, and internal mechanism of `WebSocketComponent`. For the task-oriented walkthrough, see [Usage & Examples](./usage).
 
-#### Component Lifecycle Diagram
-```
-                         WebSocketComponent
-                        +----------------------------------------------+
-                        |                                              |
-                        |  binding()                                   |
-                        |    |-- RuntimeModules.detect()               |
-                        |    |     +-- NODE -> throw error             |
-                        |    |     +-- BUN  -> continue                |
-                        |    |                                         |
-                        |    |-- resolveBindings()                     |
-                        |    |     |-- SERVER_OPTIONS                  |
-                        |    |     |-- REDIS_CONNECTION                |
-                        |    |     |-- AUTHENTICATE_HANDLER            |
-                        |    |     |-- VALIDATE_ROOM_HANDLER           |
-                        |    |     |-- CLIENT_CONNECTED_HANDLER        |
-                        |    |     |-- CLIENT_DISCONNECTED_HANDLER     |
-                        |    |     |-- MESSAGE_HANDLER                 |
-                        |    |     |-- OUTBOUND_TRANSFORMER            |
-                        |    |     +-- HANDSHAKE_HANDLER               |
-                        |    |                                         |
-                        |    +-- registerBunHook(resolved)             |
-                        |                                              |
-                        |  (Post-start hook executes after server)     |
-                        |    |-- Creates WebSocketServerHelper         |
-                        |    |-- await wsHelper.configure()            |
-                        |    |-- Binds to WEBSOCKET_INSTANCE           |
-                        |    |-- Creates fetch handler (WS + Hono)     |
-                        |    +-- server.reload({ fetch, websocket })   |
-                        +----------------------------------------------+
-```
+**Files:**
 
-### Lifecycle Integration
+- [`packages/core/src/components/websocket/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/component.ts)
+- [`packages/core/src/components/websocket/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/common/types.ts)
+- [`packages/core/src/components/websocket/handlers/bun.handler.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/websocket/handlers/bun.handler.ts)
+- [`packages/helpers/src/modules/socket/websocket/server/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/server/helper.ts)
+- [`packages/helpers/src/modules/socket/websocket/emitter/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/socket/websocket/emitter/helper.ts)
 
-The component uses the **post-start hook** system to solve a fundamental timing problem: WebSocket needs a running Bun server instance, but components are initialized *before* the server starts.
+## Quick reference
 
-#### Application Lifecycle Flow
-```
-Application Lifecycle
-=====================
+| Item | Value |
+|------|-------|
+| Package | `@venizia/ignis` (core component) + `@venizia/ignis-helpers` (helper classes) |
+| Component class | `WebSocketComponent` |
+| Server helper | [`WebSocketServerHelper`](/extensions/helpers/websocket/) |
+| Emitter helper | `WebSocketEmitter` (standalone Redis publisher) |
+| Runtimes | Bun only - throws on Node.js |
+| Scaling | Redis Pub/Sub (`ioredis` - single or Cluster) |
 
-  +------------------+
-  |  preConfigure()  | <-- Register WebSocketComponent here
-  +--------+---------+
-           |
-  +--------v---------+
-  |  initialize()    | <-- Component.binding() runs here
-  |                  |   Runtime check, resolve bindings, register post-start hook
-  +--------+---------+
-           |
-  +--------v---------+
-  | setupMiddlewares  |
-  +--------+---------+
-           |
-  +--------v-----------------------+
-  | startBunModule()               | <-- Bun server starts, instance created
-  +--------+-----------------------+
-           |
-  +--------v--------------------------+
-  | executePostStartHooks()           | <-- WebSocketServerHelper created HERE
-  |   +-- websocket-initialize        |   Server instance is now available
-  |       |-- new WebSocketServerHelper
-  |       |-- wsHelper.configure()
-  |       |-- bind WEBSOCKET_INSTANCE
-  |       +-- server.reload({ fetch, websocket })
-  +-----------------------------------+
-```
+## Import paths
 
-### Fetch Handler
-
-The component creates a custom `fetch` handler via `createBunFetchHandler()` that routes requests:
-
-1. **WebSocket upgrade requests** (`GET /ws` with `Upgrade: websocket` header) are handled by `server.upgrade()` which assigns a `clientId` (via `crypto.randomUUID()`) and passes to Bun's WebSocket handler.
-2. **All other requests** are delegated to the Hono server for normal HTTP routing.
-3. **Failed upgrades** return a `500 WebSocket upgrade failed` response.
-
-```
-Incoming Request
-       |
-       v
-  Is WebSocket upgrade?
-  (pathname === wsPath &&
-   headers.upgrade === 'websocket')
-       |
-  +----+----+
-  |         |
-  Yes       No
-  |         |
-  v         v
-server.   honoServer.
-upgrade()  fetch(req, server)
-  |
-  +---> success: return undefined (Bun handles it)
-  +---> failure: return Response(500)
-```
-
-## WebSocket Emitter API
-
-### Overview
-
-`WebSocketEmitter` is a standalone, lightweight Redis-only publisher designed for processes that do not run a `WebSocketServerHelper`. It extends `BaseHelper` and uses a single Redis pub client to publish `IRedisSocketMessage` envelopes.
-
-### `IWebSocketEmitterOptions`
+`WebSocketComponent` and `WebSocketBindingKeys` are exported only from the `@venizia/ignis/websocket` subpath - never from the `@venizia/ignis` root barrel. `IServerOptions` (the core component's options subset) is not exported from either entry point.
 
 ```typescript
-interface IWebSocketEmitterOptions {
-  identifier?: string;           // Default: 'WebSocketEmitter' (used as logger scope)
-  redisConnection: IRedisHelper;  // Required -- same Redis as the server(s)
+// Core - subpath import only
+import { WebSocketComponent, WebSocketBindingKeys } from '@venizia/ignis/websocket';
+
+// Helpers - types, classes, constants from the main entry
+import {
+  WebSocketServerHelper,
+  WebSocketEmitter,
+  WebSocketDefaults,
+  WebSocketEvents,
+  WebSocketChannels,
+  WebSocketClientStates,
+  WebSocketMessageTypes,
+} from '@venizia/ignis-helpers';
+
+import type {
+  IWebSocketServerOptions,
+  IWebSocketEmitterOptions,
+  IWebSocketClient,
+  IWebSocketMessage,
+  IRedisSocketMessage,
+  IBunWebSocketConfig,
+  TWebSocketAuthenticateFn,
+  TWebSocketValidateRoomFn,
+  TWebSocketClientConnectedFn,
+  TWebSocketClientDisconnectedFn,
+  TWebSocketMessageHandler,
+  TWebSocketOutboundTransformer,
+  TWebSocketHandshakeFn,
+} from '@venizia/ignis-helpers';
+```
+
+## Configuration
+
+`WebSocketComponent`'s own `IServerOptions` interface is a **subset** of the helper's `IWebSocketServerOptions` - the component fills in `server`, `redisConnection`, callback functions, `authTimeout`, and `encryptedBatchLimit` from the DI container before constructing the helper.
+
+```typescript
+interface IServerOptions {
+  identifier: string;                  // Default: 'WEBSOCKET_SERVER'
+  path?: string;                       // Default: '/ws'
+  defaultRooms?: string[];             // Default: ['ws-default', 'ws-notification']
+  serverOptions?: IBunWebSocketConfig; // Bun native WebSocket config
+  heartbeatInterval?: number;          // Default: 30000 (30s)
+  heartbeatTimeout?: number;           // Default: 90000 (90s)
+  requireEncryption?: boolean;         // Default: false
 }
 ```
 
-### Constructor
+> [!NOTE]
+> `DEFAULT_SERVER_OPTIONS` in the core component only sets `identifier` and `path`. `defaultRooms`, `heartbeatInterval`, `heartbeatTimeout`, and `serverOptions` fall back to `WebSocketDefaults` inside the helper constructor, not the component.
+
+> [!NOTE]
+> `authTimeout` and `encryptedBatchLimit` belong to the helper's `IWebSocketServerOptions`, not the component's `IServerOptions`. There is no binding key for them - the component always passes the helper defaults (`5000` ms, `10`). Customize them only by constructing `WebSocketServerHelper` yourself outside the component.
+
+Bind a partial object to `SERVER_OPTIONS` before registering the component to override any field:
 
 ```typescript
-const emitter = new WebSocketEmitter({
-  identifier: 'my-worker',      // Optional
-  redisConnection: redisHelper,  // Required
+this.bind({ key: WebSocketBindingKeys.SERVER_OPTIONS }).toValue({
+  identifier: 'my-app-websocket',
+  path: '/realtime',
+  defaultRooms: ['general', 'announcements'],
+  heartbeatInterval: 20000,
+  heartbeatTimeout: 60000,
+  requireEncryption: true,
+  serverOptions: { maxPayloadLength: 2097152, backpressureLimit: 2097152 },
 });
 ```
 
-The constructor:
-1. Calls `super({ scope })` with `identifier` (or `'WebSocketEmitter'` if not provided)
-2. Validates `redisConnection` is truthy (throws `"Invalid redis connection!"` if not)
-3. Calls `redisConnection.duplicateClient()` to create an isolated pub client
+### `WebSocketDefaults` constants
 
-### `EMITTER_SERVER_ID`
+| Constant | Value | Description |
+|----------|-------|-------------|
+| `PATH` | `'/ws'` | Default WebSocket endpoint path |
+| `ROOM` | `'ws-default'` | Default room name |
+| `NOTIFICATION_ROOM` | `'ws-notification'` | Default notification room name |
+| `BROADCAST_TOPIC` | `'ws:internal:broadcast'` | Internal Bun pub/sub broadcast topic |
+| `MAX_PAYLOAD_LENGTH` | `131072` (128 KB) | Maximum message payload size |
+| `IDLE_TIMEOUT` | `60` | Bun idle timeout, seconds |
+| `BACKPRESSURE_LIMIT` | `1048576` (1 MB) | Bun backpressure limit |
+| `SEND_PINGS` | `true` | Enable WebSocket pings |
+| `PUBLISH_TO_SELF` | `false` | Whether the server receives its own publishes |
+| `AUTH_TIMEOUT` | `5000` (5 s) | Time to authenticate before disconnect |
+| `HEARTBEAT_INTERVAL` | `30000` (30 s) | Interval between heartbeat sweeps |
+| `HEARTBEAT_TIMEOUT` | `90000` (90 s) | Disconnect after 3 missed heartbeats |
+| `ENCRYPTED_BATCH_LIMIT` | `10` | Max concurrent encryption operations |
 
-```typescript
-const EMITTER_SERVER_ID = 'emitter';
-```
+`MAX_PAYLOAD_LENGTH`, `IDLE_TIMEOUT`, `BACKPRESSURE_LIMIT`, `SEND_PINGS`, and `PUBLISH_TO_SELF` are Bun-native settings passed via `serverOptions`. The rest are application-level settings read directly off `IWebSocketServerOptions`.
 
-All messages published by `WebSocketEmitter` use this fixed `serverId`. Since no `WebSocketServerHelper` instance will have a `serverId` of `'emitter'` (they use `crypto.randomUUID()`), all server instances will process emitter messages -- none will self-dedup.
-
-### Methods
-
-#### `configure()`
-
-```typescript
-async configure(): Promise<void>
-```
-
-Prepares the emitter for use:
-1. Registers a Redis `error` event handler (logs errors)
-2. Calls `redisPub.connect()` if the client status is `'wait'` (i.e., lazy-connect mode)
-3. Waits for the Redis client to reach `'ready'` status (30-second timeout)
-
-Must be called before any `toClient()`, `toUser()`, `toRoom()`, or `broadcast()` calls.
-
-#### `toClient()`
+### `IBunWebSocketConfig`
 
 ```typescript
-async toClient(opts: {
-  clientId: string;
-  event: string;
-  data: unknown;
-}): Promise<void>
-```
-
-Publishes to `ws:client:{clientId}`. The target server that holds this client will deliver the message via `sendToClient()`.
-
-#### `toUser()`
-
-```typescript
-async toUser(opts: {
-  userId: string;
-  event: string;
-  data: unknown;
-}): Promise<void>
-```
-
-Publishes to `ws:user:{userId}`. All servers with sessions for this user will call `sendToUser()` locally, reaching every session across all instances.
-
-#### `toRoom()`
-
-```typescript
-async toRoom(opts: {
-  room: string;
-  event: string;
-  data: unknown;
-  exclude?: string[];
-}): Promise<void>
-```
-
-Publishes to `ws:room:{room}`. All servers with members in this room will call `sendToRoom()` locally. The optional `exclude` array is forwarded -- servers will skip those client IDs during delivery.
-
-#### `broadcast()`
-
-```typescript
-async broadcast(opts: {
-  event: string;
-  data: unknown;
-}): Promise<void>
-```
-
-Publishes to `ws:broadcast`. All servers will call `broadcast()` locally, reaching every authenticated client.
-
-#### `shutdown()`
-
-```typescript
-async shutdown(): Promise<void>
-```
-
-Gracefully shuts down the emitter by calling `redisPub.quit()`. Always call this when the emitter is no longer needed to release the Redis connection.
-
-## Internals
-
-### `resolveBindings()`
-
-Reads all binding keys from the DI container and validates required ones:
-
-| Binding | Validation | Error on Failure |
-|---------|-----------|------------------|
-| `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
-| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection"` |
-| `AUTHENTICATE_HANDLER` | Must be truthy (non-null) | `"Invalid authenticateFn to setup WebSocket server!"` |
-| `VALIDATE_ROOM_HANDLER` | Optional, coerced `null` to `undefined` | -- |
-| `CLIENT_CONNECTED_HANDLER` | Optional, coerced `null` to `undefined` | -- |
-| `CLIENT_DISCONNECTED_HANDLER` | Optional, coerced `null` to `undefined` | -- |
-| `MESSAGE_HANDLER` | Optional, coerced `null` to `undefined` | -- |
-| `OUTBOUND_TRANSFORMER` | Optional, coerced `null` to `undefined` | -- |
-| `HANDSHAKE_HANDLER` | Optional, coerced `null` to `undefined` (required if `requireEncryption`) | -- |
-
-### `registerBunHook()`
-
-Registers a post-start hook that executes the following steps:
-
-1. **Get Bun server instance** via `getServerInstance<TBunServerInstance>()`
-2. **Get Hono server** via `getServer()`
-3. **Validate server instance** -- throws `"[WebSocketComponent] Bun server instance not available!"` if not found
-4. **Create WebSocketServerHelper** with all resolved bindings and server options
-5. **Await `wsHelper.configure()`** which connects Redis clients and sets up subscriptions
-6. **Bind the helper** to `WEBSOCKET_INSTANCE` in the DI container
-7. **Create custom `fetch` handler** via `createBunFetchHandler({ wsPath, honoServer })`
-8. **Wire WebSocket into running server** via `serverInstance.reload({ fetch, websocket })`
-
-#### Post-Start Hook Code Flow
-```typescript
-// Simplified post-start hook logic
-async () => {
-  // Step 1 & 2: Get server instances
-  const serverInstance = this.application.getServerInstance<TBunServerInstance>();
-  const honoServer = this.application.getServer();
-
-  if (!serverInstance) {
-    throw getError({
-      message: '[WebSocketComponent] Bun server instance not available!',
-    });
-  }
-
-  // Step 3: Create helper
-  const wsHelper = new WebSocketServerHelper({
-    identifier: serverOptions.identifier,
-    path: serverOptions.path,
-    defaultRooms: serverOptions.defaultRooms,
-    serverOptions: serverOptions.serverOptions,
-    heartbeatInterval: serverOptions.heartbeatInterval,
-    heartbeatTimeout: serverOptions.heartbeatTimeout,
-    server: serverInstance,
-    redisConnection: resolved.redisConnection,
-    authenticateFn: resolved.authenticateFn,
-    validateRoomFn: resolved.validateRoomFn,
-    clientConnectedFn: resolved.clientConnectedFn,
-    clientDisconnectedFn: resolved.clientDisconnectedFn,
-    messageHandler: resolved.messageHandler,
-    outboundTransformer: resolved.outboundTransformer,
-    handshakeFn: resolved.handshakeFn,
-    requireEncryption: serverOptions.requireEncryption,
-  });
-
-  // Step 4: Configure (Redis + subscriptions + heartbeat timer)
-  await wsHelper.configure();
-
-  // Step 5: Bind to container
-  this.application.bind({ key: WebSocketBindingKeys.WEBSOCKET_INSTANCE })
-    .toValue(wsHelper);
-
-  // Step 6 & 7: Create fetch handler and reload server
-  serverInstance.reload({
-    fetch: createBunFetchHandler({ wsPath, honoServer }),
-    websocket: wsHelper.getBunWebSocketHandler(),
-  });
+interface IBunWebSocketConfig {
+  perMessageDeflate?: boolean;
+  maxPayloadLength?: number;          // Default: 128 KB (131072)
+  idleTimeout?: number;               // Default: 60s
+  backpressureLimit?: number;         // Default: 1 MB (1048576)
+  closeOnBackpressureLimit?: boolean;
+  sendPings?: boolean;                // Default: true
+  publishToSelf?: boolean;            // Default: false
 }
 ```
 
-### `createBunFetchHandler()`
+Passed straight through to Bun's native WebSocket handler via `serverOptions` inside `SERVER_OPTIONS`.
 
-The fetch handler is a standalone function (not a method on the component) that returns an async function:
+## Binding keys
+
+| Binding Key | Constant | Type | Required | Default |
+|------------|----------|------|----------|---------|
+| `@app/websocket/server-options` | `WebSocketBindingKeys.SERVER_OPTIONS` | `Partial<IServerOptions>` | No | See [Configuration](#configuration) |
+| `@app/websocket/redis-connection` | `WebSocketBindingKeys.REDIS_CONNECTION` | `AbstractRedisHelper` | **Yes** | `null` |
+| `@app/websocket/authenticate-handler` | `WebSocketBindingKeys.AUTHENTICATE_HANDLER` | `TWebSocketAuthenticateFn` | **Yes** | `null` |
+| `@app/websocket/validate-room-handler` | `WebSocketBindingKeys.VALIDATE_ROOM_HANDLER` | `TWebSocketValidateRoomFn` | No | `null` |
+| `@app/websocket/client-connected-handler` | `WebSocketBindingKeys.CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | `null` |
+| `@app/websocket/client-disconnected-handler` | `WebSocketBindingKeys.CLIENT_DISCONNECTED_HANDLER` | `TWebSocketClientDisconnectedFn` | No | `null` |
+| `@app/websocket/message-handler` | `WebSocketBindingKeys.MESSAGE_HANDLER` | `TWebSocketMessageHandler` | No | `null` |
+| `@app/websocket/outbound-transformer` | `WebSocketBindingKeys.OUTBOUND_TRANSFORMER` | `TWebSocketOutboundTransformer` | No | `null` |
+| `@app/websocket/handshake-handler` | `WebSocketBindingKeys.HANDSHAKE_HANDLER` | `TWebSocketHandshakeFn` | No* | `null` |
+| `@app/websocket/instance` | `WebSocketBindingKeys.WEBSOCKET_INSTANCE` | `WebSocketServerHelper` | -- | Set by the component |
+
+- `HANDSHAKE_HANDLER` becomes required when `IServerOptions.requireEncryption` is `true` - it performs the ECDH key exchange during authentication.
+- `WEBSOCKET_INSTANCE` is never bound by application code - the component binds it automatically inside the post-start hook, after the server starts. Inject it lazily; see [Usage & Examples](./usage).
+
+### Callback signatures
+
+| Binding Key | Callback Type | Required | Description |
+|-------------|--------------|----------|--------------|
+| `AUTHENTICATE_HANDLER` | `TWebSocketAuthenticateFn` | **Yes** | Returns <code v-pre>{ userId, metadata }</code> or `null`/`false` to reject |
+| `VALIDATE_ROOM_HANDLER` | `TWebSocketValidateRoomFn` | No | Filters requested rooms, returns allowed rooms |
+| `CLIENT_CONNECTED_HANDLER` | `TWebSocketClientConnectedFn` | No | Called after successful authentication |
+| `CLIENT_DISCONNECTED_HANDLER` | `TWebSocketClientDisconnectedFn` | No | Called on disconnect, after cleanup |
+| `MESSAGE_HANDLER` | `TWebSocketMessageHandler` | No | Handles non-system messages from authenticated clients |
+| `OUTBOUND_TRANSFORMER` | `TWebSocketOutboundTransformer` | No | Transforms outbound messages (e.g. per-client encryption) |
+| `HANDSHAKE_HANDLER` | `TWebSocketHandshakeFn` | When `requireEncryption: true` | Returns <code v-pre>{ serverPublicKey, salt }</code> or `null`/`false` to reject |
+
+```typescript
+type TWebSocketAuthenticateFn<
+  AuthDataType extends Record<string, unknown> = Record<string, unknown>,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = (opts: AuthDataType) => ValueOrPromise<{ userId?: string; metadata?: MetadataType } | null | false>;
+
+type TWebSocketValidateRoomFn = (opts: {
+  clientId: string;
+  userId?: string;
+  rooms: string[];
+}) => ValueOrPromise<string[]>;
+
+type TWebSocketClientConnectedFn<MetadataType extends Record<string, unknown> = Record<string, unknown>> = (
+  opts: { clientId: string; userId?: string; metadata?: MetadataType },
+) => ValueOrPromise<void>;
+
+type TWebSocketClientDisconnectedFn = (opts: { clientId: string; userId?: string }) => ValueOrPromise<void>;
+
+type TWebSocketMessageHandler = (opts: {
+  clientId: string;
+  userId?: string;
+  message: IWebSocketMessage;
+}) => ValueOrPromise<void>;
+
+type TWebSocketOutboundTransformer<
+  DataType = unknown,
+  MetadataType extends Record<string, unknown> = Record<string, unknown>,
+> = (opts: {
+  client: IWebSocketClient<MetadataType>;
+  event: string;
+  data: DataType;
+}) => ValueOrPromise<TNullable<{ event: string; data: DataType }>>;
+
+type TWebSocketHandshakeFn<AuthDataType extends Record<string, unknown> = Record<string, unknown>> = (
+  opts: { clientId: string; userId?: string; data: AuthDataType },
+) => ValueOrPromise<{ serverPublicKey: string; salt: string } | null | false>;
+```
+
+- **`VALIDATE_ROOM_HANDLER` receives sanitized rooms.** Internal `ws:`-prefixed rooms are already filtered out before this callback runs. Without it bound, **all** join requests are rejected.
+- **`CLIENT_CONNECTED_HANDLER` / `CLIENT_DISCONNECTED_HANDLER` errors are caught and logged**, never thrown - a broken hook cannot disconnect a client or crash the server.
+- **`MESSAGE_HANDLER` only sees non-system events** (`authenticate`, `connected`, `disconnect`, `join`, `leave`, `error`, `heartbeat`, `encrypted` are all handled internally). Unbound, non-system messages are silently dropped.
+- **`OUTBOUND_TRANSFORMER` only runs for encrypted clients** (`client.encrypted === true`). Non-encrypted clients bypass it entirely - zero overhead until encryption is enabled.
+
+## Architecture
+
+### Lifecycle integration
+
+The component uses the application's **post-start hook** system to solve a timing problem: WebSocket needs a running Bun server instance, but components initialize before the server starts.
+
+```
+preConfigure()          <- register WebSocketComponent here
+      |
+initialize()             <- component.binding() runs: runtime check, resolve bindings, register post-start hook
+      |
+setupMiddlewares()
+      |
+startBunModule()          <- Bun server starts, instance created
+      |
+executePostStartHooks()   <- websocket-initialize hook runs:
+      |                       new WebSocketServerHelper(...)
+      |                       await wsHelper.configure()
+      |                       bind WEBSOCKET_INSTANCE
+      |                       server.reload({ fetch, websocket })
+```
+
+### Fetch handler
+
+`createBunFetchHandler()` builds the `fetch` function passed to `server.reload()`. It routes every incoming request:
+
+```
+Incoming Request
+  Is a WebSocket upgrade? (pathname === wsPath && headers.upgrade === 'websocket')
+    Yes -> server.upgrade(req, { data: { clientId: crypto.randomUUID() } })
+             success -> return undefined (Bun handles the connection)
+             failure -> return Response('WebSocket upgrade failed', { status: 500 })
+    No  -> honoServer.fetch(req, server)   // note: second arg is the raw server, not wrapped
+```
 
 ```typescript
 function createBunFetchHandler(opts: {
@@ -299,211 +250,136 @@ function createBunFetchHandler(opts: {
 }): (req: Request, server: TBunServerInstance) => Promise<Response | undefined>
 ```
 
-The handler logic:
-1. Parse `new URL(req.url)` to get the pathname
-2. Check if `pathname === wsPath && headers.upgrade === 'websocket'`
-3. If **not** a WebSocket upgrade, delegate to `honoServer.fetch(req, server)` -- note the second argument is the raw `server` instance, not wrapped in an object
-4. If a WebSocket upgrade, call `server.upgrade(req, { data: { clientId: crypto.randomUUID() } })`
-5. If upgrade succeeds, return `undefined` (Bun handles the connection)
-6. If upgrade fails, return `new Response('WebSocket upgrade failed', { status: 500 })`
+## `WebSocketEmitter` API
 
-### Runtime Check
+Standalone, lightweight Redis-only publisher for processes that do not run a `WebSocketServerHelper`. Extends `BaseHelper`; uses a single Redis pub client.
 
-The component checks the runtime during `binding()`:
+```typescript
+interface IWebSocketEmitterOptions {
+  identifier?: string;            // Default: 'WebSocketEmitter' (logger scope)
+  redisConnection: IRedisHelper;  // Required - same Redis as the server(s)
+}
+```
+
+- **Constructor** calls `super({ scope })`, throws `"Invalid redis connection!"` if `redisConnection` is falsy, and calls `redisConnection.duplicateClient()` to create an isolated pub client.
+- **`EMITTER_SERVER_ID = 'emitter'`.** Every message the emitter publishes carries this fixed `serverId`. No `WebSocketServerHelper` ever has this ID (they use `crypto.randomUUID()`), so no server self-dedups an emitter message.
+
+| Method | Signature | Behavior |
+|--------|-----------|----------|
+| `configure()` | `(): Promise<void>` | Registers a Redis `error` handler, connects if lazy (`status === 'wait'`), waits for `'ready'` (30s timeout). Call before any send method. |
+| `toClient()` | `(opts: { clientId; event; data }): Promise<void>` | Publishes to `ws:client:{clientId}` |
+| `toUser()` | `(opts: { userId; event; data }): Promise<void>` | Publishes to `ws:user:{userId}` |
+| `toRoom()` | `(opts: { room; event; data; exclude? }): Promise<void>` | Publishes to `ws:room:{room}`, forwarding `exclude` |
+| `broadcast()` | `(opts: { event; data }): Promise<void>` | Publishes to `ws:broadcast` |
+| `shutdown()` | `(): Promise<void>` | Calls `redisPub.quit()` - always call when the emitter is no longer needed |
+
+## Internals
+
+### `resolveBindings()`
+
+Reads all binding keys and validates the required ones, throwing before the post-start hook is even registered:
+
+| Binding | Validation | Error on failure |
+|---------|-----------|------------------|
+| `SERVER_OPTIONS` | Optional, merged with `DEFAULT_SERVER_OPTIONS` via `Object.assign()` | -- |
+| `REDIS_CONNECTION` | Must be `instanceof AbstractRedisHelper` | `"Invalid instance of redisConnection ..."` |
+| `AUTHENTICATE_HANDLER` | Must be truthy | `"Invalid authenticateFn to setup WebSocket server!"` |
+| `VALIDATE_ROOM_HANDLER` / `CLIENT_CONNECTED_HANDLER` / `CLIENT_DISCONNECTED_HANDLER` / `MESSAGE_HANDLER` / `OUTBOUND_TRANSFORMER` / `HANDSHAKE_HANDLER` | Optional, `null` coerced to `undefined` | -- |
+
+### `registerBunHook()`
+
+Registers the `websocket-initialize` post-start hook:
+
+1. Gets the Bun server instance (`getServerInstance()`) and Hono server (`getServer()`) - throws `"[WebSocketComponent] Bun server instance not available!"` if the Bun instance is missing.
+2. Constructs `WebSocketServerHelper` with all resolved bindings plus the running server instance.
+3. Awaits `wsHelper.configure()` - connects Redis clients, sets up subscriptions, starts the heartbeat timer.
+4. Binds the helper to `WEBSOCKET_INSTANCE`.
+5. Calls `serverInstance.reload({ fetch: createBunFetchHandler(...), websocket: wsHelper.getBunWebSocketHandler() })`.
+
+### Runtime check
+
+Runs at the top of `binding()`, before anything else:
 
 ```typescript
 const runtime = RuntimeModules.detect();
 if (runtime === RuntimeModules.NODE) {
-  throw getError({
-    statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
-    message: '[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime.',
-  });
+  throw getError({ message: '[WebSocketComponent] Node.js runtime is not supported yet. Please use Bun runtime.' });
 }
 ```
 
-This check runs at component initialization time (before any hooks are registered), failing fast if the runtime is incompatible.
+### Bun WebSocket handler
 
-### Bun WebSocket Handler
+`WebSocketServerHelper.getBunWebSocketHandler()` returns an `IBunWebSocketHandler` - four lifecycle callbacks plus the config spread from `serverOptions`:
 
-The helper's `getBunWebSocketHandler()` returns an `IBunWebSocketHandler` -- a Bun-native WebSocket handler object with four lifecycle callbacks plus config spread:
+| Callback | Responsibility |
+|----------|---------------|
+| `open` | Creates the `IWebSocketClient` entry in state `UNAUTHORIZED`, subscribes the socket to its own `clientId` topic, starts the auth timer (skips if `clientId` already exists) |
+| `message` | Updates `lastActivity`; parses JSON (sends `error` on failure); routes `heartbeat` (no-op), `authenticate`, other events on unauthenticated clients (`error`: `"Not authenticated"`), `join`, `leave`, or custom events to `messageHandler` |
+| `close` | Clears the auth timer, removes the client from `users`/`rooms`/`clients`, invokes `clientDisconnectedFn` (errors caught and logged) |
+| `drain` | Resets `client.backpressured = false` |
 
-```typescript
-interface IBunWebSocketHandler extends IBunWebSocketConfig {
-  open: (socket: IWebSocket) => void;      // New connection -- creates client entry, starts auth timer
-  message: (socket: IWebSocket, message: string | Buffer) => void; // Incoming message -- routes to handler
-  close: (socket: IWebSocket, code: number, reason: string) => void; // Disconnect -- cleanup
-  drain: (socket: IWebSocket) => void;     // Backpressure cleared -- resets backpressured flag
-}
-```
+### `deliverToSocket()` backpressure handling
 
-The `open` handler (`onClientConnect`):
-1. Checks if clientId already exists (returns early if duplicate)
-2. Creates an `IWebSocketClient` entry in state `UNAUTHORIZED`
-3. Subscribes the socket to its own `clientId` topic (Bun native pub/sub -- enables direct messaging before auth)
-4. Starts an auth timeout timer (`authTimeout`, default 5 s)
+| `socket.send()` return | Meaning | Action |
+|------------------------|---------|--------|
+| `> 0` | Sent successfully (byte count) | None |
+| `0` | Dropped (socket already closed) | Logs `"Message dropped (socket closed)"` |
+| `-1` | Backpressure (Bun's send buffer full) | Sets `client.backpressured = true`, logs a warning. Bun still queues the message; `drain` fires and resets the flag once the buffer clears |
 
-The `message` handler (`onClientMessage`):
-1. Updates `lastActivity` on the client
-2. Parses JSON -- sends `error` event `"Invalid message format"` if parse fails
-3. Validates `event` field exists -- silently drops if missing (with error log)
-4. Routes by event:
-   - `heartbeat`: returns immediately (no-op, `lastActivity` already updated)
-   - `authenticate`: delegates to `handleAuthenticate()`
-   - Any other event from unauthenticated client: sends `error` event `"Not authenticated"`
-   - `join`: delegates to `handleJoin()`
-   - `leave`: delegates to `handleLeave()`
-   - Custom events: delegates to `messageHandler` callback (if bound), otherwise silently dropped
+Any exception thrown by `socket.send()` is caught and logged.
 
-The `close` handler (`onClientDisconnect`):
-1. Clears auth timer if pending
-2. Removes client from `users` index (deletes user entry if last session)
-3. Removes client from all `rooms` entries (deletes room entry if empty)
-4. Deletes from `clients` map
-5. Invokes `clientDisconnectedFn` callback (errors caught and logged)
-
-The `drain` handler:
-1. Sets `client.backpressured = false`
-2. Logs a debug message
-
-### `deliverToSocket()` Backpressure Handling
-
-The `deliverToSocket()` method handles three return values from Bun's `socket.send()`:
-
-| Return Value | Meaning | Action |
-|-------------|---------|--------|
-| `> 0` (positive) | Message sent successfully (byte count) | No action |
-| `0` | Message dropped (socket already closed) | Logs warning: `"Message dropped (socket closed)"` |
-| `-1` | Backpressure (Bun's send buffer is full) | Sets `client.backpressured = true`, logs warning. The message is still queued by Bun. When the buffer drains, the `drain` handler fires and resets `backpressured` to `false` |
-
-Any exception thrown by `socket.send()` is caught and logged as an error.
-
-### `send()` Destination Resolution
-
-The `send()` method is the primary public API for sending messages. It resolves the `destination` parameter using the following logic:
+### `send()` destination resolution
 
 ```
 send({ destination, payload: { topic, data } })
-  |
-  +-- destination is undefined/null?
-  |     Yes -> broadcast locally + publishToRedis(BROADCAST)
-  |
-  +-- destination matches a local clientId?
-  |     Yes -> sendToClient locally + publishToRedis(CLIENT)
-  |
-  +-- destination matches a local room name?
-  |     Yes -> sendToRoom locally + publishToRedis(ROOM)
-  |
-  +-- destination is unknown locally?
-        Yes -> publishToRedis(ROOM, target: destination)
-              (assumes it might be a room on another instance)
+  destination undefined/null?      -> broadcast locally + publishToRedis(BROADCAST)
+  destination is a local clientId? -> sendToClient locally + publishToRedis(CLIENT)
+  destination is a local room?     -> sendToRoom locally + publishToRedis(ROOM)
+  destination unknown locally?     -> publishToRedis(ROOM, target: destination)  // may be a room on another instance
 ```
 
 > [!IMPORTANT]
-> **No USER type in `send()`.** The `send()` method does not support `userId` as a destination. To send to all sessions of a user, use `sendToUser()` for local-only delivery or `WebSocketEmitter.toUser()` for cross-instance delivery via Redis.
+> `send()` has no `USER` type. To reach every session of a user, use `sendToUser()` (local) or `WebSocketEmitter.toUser()` (cross-instance).
 
-> [!NOTE]
-> When the destination is unknown locally, `send()` publishes it as a `ROOM` type to Redis. This is intentional -- if it is a client ID on another server, that server will not find it in its rooms map either, but the `onRedisMessage` handler routes `CLIENT` and `ROOM` messages differently. For reliable cross-instance client targeting, prefer using `WebSocketEmitter.toClient()` which explicitly uses the `CLIENT` message type.
+### Room join / leave validation
 
-### Room Join Validation
+- **Server-side sanitization** always applies: room must be a non-empty string, at most 256 characters, and must not start with the reserved `ws:` prefix.
+- **`validateRoomFn` gates joins.** Only sanitized rooms reach it; it returns the subset the client may actually join. If unbound, every join is rejected with a warning log.
+- **Leave is filtered against joined rooms.** `handleLeave()` computes `rooms.filter(r => client.rooms.has(r))` before leaving, so a client can never unsubscribe from a room it never joined (or an internal topic). If nothing remains after filtering, the leave is silently ignored.
 
-Room names go through two validation stages:
-
-1. **Server-side sanitization** (always applied):
-   - Must be a non-empty string (truthy, `typeof r === 'string'`)
-   - Must be <= 256 characters
-   - Must not start with `ws:` prefix (reserved for internal channels)
-
-2. **Application-level validation** (via `validateRoomFn`):
-   - Only called if the function is bound
-   - Receives the sanitized room list
-   - Returns the subset of rooms the client is allowed to join
-   - If no `validateRoomFn` is bound, **all join requests are rejected** with a warning log
-
-### Room Leave Validation
-
-The `handleLeave()` method validates that the client has actually joined the requested rooms before leaving:
-
-```typescript
-const validRooms = rooms.filter(r => client.rooms.has(r));
-```
-
-This prevents clients from unsubscribing from internal topics or rooms they never joined. If no valid rooms remain after filtering, the leave is silently ignored.
-
-### Graceful Shutdown
-
-Always shut down the WebSocket server before stopping the application:
+### Graceful shutdown
 
 ```typescript
 override async stop(): Promise<void> {
-  // 1. Shut down WebSocket (disconnects all clients, quits Redis)
   const wsHelper = this.get<WebSocketServerHelper>({
     key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
     isOptional: true,
   });
-
   if (wsHelper) {
     await wsHelper.shutdown();
   }
-
-  // 2. Disconnect Redis helper
   if (this.redisHelper) {
     await this.redisHelper.disconnect();
   }
-
-  // 3. Stop the Bun server
   await super.stop();
 }
 ```
 
-#### Shutdown Sequence Diagram
-```
-wsHelper.shutdown()
-  |-- Clear heartbeat timer
-  |     +-- clearInterval(heartbeatTimer)
-  |
-  |-- Close all sockets
-  |     +-- For each client: socket.close(1001, 'Server shutting down')
-  |         (errors caught per-client -- already-disconnected clients are logged)
-  |
-  |-- Trigger disconnect callbacks
-  |     +-- For each client: onClientDisconnect({ clientId })
-  |         |-- Clear auth timer
-  |         |-- Remove from users map
-  |         |-- Remove from rooms map
-  |         |-- Remove from clients map
-  |         +-- Invoke clientDisconnectedFn callback
-  |
-  |-- Clear tracking maps
-  |     |-- clients.clear()
-  |     |-- users.clear()
-  |     +-- rooms.clear()
-  |
-  +-- Redis cleanup (parallel)
-        |-- redisPub.quit()
-        +-- redisSub.quit()
-```
+`wsHelper.shutdown()`:
 
-The shutdown sequence ensures:
-- Active connections are gracefully closed with code `1001` ("Going Away")
-- All disconnect callbacks are invoked (so application-level cleanup runs)
-- All internal state is cleared (client/user/room maps)
-- Redis pub/sub clients are properly disconnected
-- No memory leaks from lingering timers or connections
+1. Clears the heartbeat timer.
+2. Closes every socket with `close(1001, 'Server shutting down')` (errors caught per-client - already-disconnected clients are logged, not thrown).
+3. Runs `onClientDisconnect()` for every client, so `clientDisconnectedFn` still fires for each.
+4. Clears the `clients`, `users`, and `rooms` maps.
+5. Quits both Redis clients (`redisPub.quit()` + `redisSub.quit()`) in parallel.
 
-### WebSocketEmitter Shutdown
+`emitter.shutdown()` is simpler - it only owns one Redis client and no local state: `redisPub.quit()`.
 
-```
-emitter.shutdown()
-  +-- redisPub.quit()
-```
+## See also
 
-The emitter shutdown is simpler since it only has one Redis client and no local state to clean up.
-
-## See Also
-
-- [Setup & Configuration](./) - Quick reference, imports, setup steps, configuration, and binding keys
-- [Usage & Examples](./usage) - Server-side usage, emitter, wire protocol, client tracking, and delivery strategy
-- [Error Reference](./errors) - Error conditions table and troubleshooting
-- [WebSocketServerHelper](/extensions/helpers/websocket/) - Helper API documentation
-- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative with Socket.IO
-- [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - Official Bun WebSocket API reference
+- [Overview](./) - quick start, imports, common configuration tasks
+- [Usage & Examples](./usage) - injecting the helper, `WebSocketEmitter`, wire protocol, client tracking, delivery strategy
+- [Error Reference](./errors) - error conditions and troubleshooting
+- [WebSocketServerHelper](/extensions/helpers/websocket/) - helper API documentation
+- [Socket.IO Component](../socket-io/) - Node.js-compatible alternative
+- [Bun WebSocket Documentation](https://bun.sh/docs/api/websockets) - official Bun WebSocket API reference

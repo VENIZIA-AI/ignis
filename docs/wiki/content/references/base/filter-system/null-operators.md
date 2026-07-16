@@ -135,3 +135,16 @@ All the IS NULL / IS NOT NULL syntaxes above are equivalent -- use whichever rea
 // Find unverified users
 { where: { emailVerifiedAt: { is: null } } }
 ```
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [Logical Operators](./logical-operators) - `not`, the general-purpose negation operator
+- [JSON Filtering](./json-filtering) - `exists` also works over a `'column.path'` key
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, per-operator SQL builders
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants

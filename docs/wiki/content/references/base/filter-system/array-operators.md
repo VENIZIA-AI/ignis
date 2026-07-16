@@ -143,3 +143,15 @@ export const productTable = pgTable('Product', {
   scores: integer('scores').array(),                   // integer[]
 });
 ```
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [List Operators](./list-operators) - `in`/`nin` match scalar values against an array, the operators these are not to be confused with
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, `buildPgArrayComparison`
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants

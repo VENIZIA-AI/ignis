@@ -96,10 +96,24 @@ export const appErrorHandler = (opts: { logger: Logger; rootKey?: string }) => {
       resolvedMessage = DEFAULT_INTERNAL_ERROR_MESSAGE;
     }
 
+    // An ApplicationError arrives already normalized, and that object is authoritative: a `transform`
+    // may have written a `text` that deliberately differs from `message`, and rebuilding it here
+    // would throw that away.
+    //
+    // Everything else - a raw throw, a driver error, a transient conflict - has no `normalized`, and
+    // those are exactly the branches above that REPLACED the message to avoid leaking SQL or schema
+    // names. Building from the resolved values keeps the sanitized text, so no branch can leak
+    // through `normalized` what it just scrubbed from `message`.
+    const normalized =
+      'normalized' in error
+        ? error.normalized
+        : { text: resolvedMessage, code: resolvedMessageCode, args: {} };
+
     const rs = {
       message: resolvedMessage,
       messageCode: resolvedMessageCode,
       statusCode: resolvedStatusCode,
+      normalized,
       requestId,
       extra: 'extra' in error ? error?.extra : undefined,
       details: {

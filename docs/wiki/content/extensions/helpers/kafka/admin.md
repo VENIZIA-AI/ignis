@@ -1,3 +1,9 @@
+---
+title: Kafka Admin
+description: KafkaAdminHelper - topic, group, offset, ACL, and quota management
+difficulty: intermediate
+---
+
 # Admin
 
 The `KafkaAdminHelper` wraps `@platformatic/kafka`'s `Admin` with health tracking, graceful shutdown, and broker event callbacks. Use `getAdmin()` to access the full Admin API directly.
@@ -31,7 +37,7 @@ interface IKafkaAdminOptions extends IKafkaConnectionOptions {
 }
 ```
 
-Plus all [Connection Options](./#connection-options).
+Plus the shared [Connection & Authentication](./producer#connection--authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
 
 ## Basic Example
 
@@ -188,3 +194,16 @@ await admin.alterConsumerGroupOffsets({
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `describeLogDirs(opts)` | `(opts: { topics }): Promise<BrokerLogDirDescription[]>` | Describe broker log directories |
+
+## See also
+
+- [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
+- [Producer](./producer) - the shared Connection & Authentication options
+- [Consumer](./consumer) - `groupInstanceId`, rebalance behavior, and lag monitoring for the groups this page manages
+- [Examples & Troubleshooting](./examples) - a full topic-setup script and IoC wiring
+
+**Files:**
+
+- [`packages/helpers/src/modules/queue/kafka/admin.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/admin.ts) - `KafkaAdminHelper`
+- [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
+- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaAdminOptions`

@@ -1,85 +1,55 @@
+---
+title: Parse Utility
+description: Type checking, safe numeric and boolean conversion, camelCase transforms, and array-to-map helpers
+difficulty: beginner
+lastUpdated: 2026-07-16
+---
+
 # Parse Utility
 
-The Parse utility provides a collection of functions for data type checking, conversion, and transformation.
+A collection of standalone functions for type checking, safe type conversion, and string/object/array transformation - the small helpers repositories and controllers reach for when normalizing loosely typed input.
 
-## Type Checking
-
--   **`isInt(n)`**: Checks if a value is an integer.
--   **`isFloat(n)`**: Checks if a value is a float.
-
-## Type Conversion
-
--   **`int(input)`**: Parses a value to an integer. Handles strings with commas and defaults to `0` if the input is invalid.
--   **`float(input, digit = 2)`**: Parses a value to a float, rounding to a specified number of digits. Handles strings with commas and defaults to `0` if the input is invalid.
--   **`toBoolean(input)`**: Converts a value to a boolean. Returns `false` for empty string, `'false'`, `'0'`, `false`, `0`, `null`, and `undefined`. Returns `true` for everything else.
+## In one example
 
 ```typescript
-import { int, float, toBoolean } from '@venizia/ignis-helpers';
+import { int, float, toBoolean, toCamel, keysToCamel } from '@venizia/ignis-helpers';
 
 const myInt = int('1,000'); // => 1000
 const myFloat = float('1,234.567', 2); // => 1234.57
 const myBool = toBoolean('true'); // => true
-```
-
-## String and Object Transformation
-
--   **`toCamel(s)`**: Converts a string from snake_case or kebab-case to camelCase.
--   **`keysToCamel(object)`**: Recursively converts all keys in an object (and nested objects) to camelCase.
-
-```typescript
-import { toCamel, keysToCamel } from '@venizia/ignis-helpers';
-
-const camelString = toCamel('my-snake_case-string');
-// => 'mySnakeCaseString'
 
 const camelObject = keysToCamel({ 'first-name': 'John', 'last_name': 'Doe' });
 // => { firstName: 'John', lastName: 'Doe' }
 ```
 
-## Number Parsing
+## Functions
 
+| Function | Signature | What it does |
+|----------|-----------|---------------|
+| `isInt` | `isInt(n: any): boolean` | `true` when `n` is (or coerces to) an integer. |
+| `isFloat` | `isFloat(input: any): boolean` | `true` when `input` is (or coerces to) a non-integer number. |
+| `int` | `int(input: any): number` | Parses `input` to an integer. Strips commas first; returns `0` for empty/invalid input. |
+| `float` | `float(input: any, digit = 2): number` | Parses `input` to a float, rounded to `digit` places (via lodash `round`). Strips commas first; returns `0` for empty/invalid input. |
+| `toBoolean` | `toBoolean(input: any): boolean` | `false` for `''`, `'false'`, `'0'`, `false`, `0`, `null`, `undefined`; `true` for everything else. |
+| `toCamel` | `toCamel(s: string): string` | Converts a `snake_case` or `kebab-case` string to `camelCase`. |
+| `keysToCamel` | `keysToCamel(object: object): any` | Recursively camelizes every key in `object`. Arrays stay arrays (their object elements are still camelized); `Date` values pass through untouched. |
+| `parseArrayToMapWithKey` | `parseArrayToMapWithKey<T, K>(arr: T[], keyMap: K): Map<T[K], T>` | Turns an array of objects into a `Map` keyed by `keyMap`. Positional arguments, not an options object. Throws if `keyMap` is missing from an element; last element wins on duplicate keys. |
+| `toDelimitedArray` | `toDelimitedArray(input: unknown, separator = ','): string[]` | Splits `input` on `separator` into trimmed, non-empty entries. `null`/`undefined` input returns `[]`. |
+| `toTrimmed` | `toTrimmed(input: unknown): string` | Stringifies and trims `input`; `null`/`undefined` returns `''`. |
+| `getUID` | `getUID(): string` | Generates a short, uppercase, `Math.random()`-based ID - not cryptographically unique. |
 
-```typescript
+## Notes
 
-// US format (default) - comma is thousands separator
+- **`int`/`float` are comma-tolerant.** Both strip `,` before parsing, so `'1,000'` and `1000` behave the same - useful for user-typed numeric input.
+- **`parseArrayToMapWithKey` breaks the options-object convention on purpose** - it takes `(arr, keyMap)` positionally, unlike every other function on this page.
+- **`toDelimitedArray` and `toTrimmed` are the transform functions for list-shaped and string env values** - typical use is `applicationEnvironment.get(KEY, { transform: toDelimitedArray })`.
+- **`getUID` is for short, human-glanceable identifiers**, not for anything that needs global uniqueness guarantees - use the [UID helper](/extensions/helpers/) (Snowflake-based) for that.
 
-// EU format - dot is thousands separator, comma is decimal
-```
+## See also
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `method` | `'int' \| 'float'` | `'int'` | Parse as integer or float |
-| `locale` | `'us' \| 'eu'` | `'us'` | Number format locale |
+- [Utilities Overview](/references/utilities/) - all utility functions
+- [Schema Utility](/references/utilities/schema) - `snakeToCamel` for Zod schemas built on `toCamel`/`keysToCamel`
 
-## Array Transformation
+**Files:**
 
--   **`parseArrayToMapWithKey(arr, keyMap)`**: Transforms an array of objects into a `Map`, using a specified property of the objects as keys. Takes positional arguments (not an options object). Throws an error if `keyMap` is not found in an element. Last element wins on duplicate keys.
-
-```typescript
-import { parseArrayToMapWithKey } from '@venizia/ignis-helpers';
-
-const users = [
-  { id: 1, name: 'Alice' },
-  { id: 2, name: 'Bob' },
-];
-
-// Record (options object pattern)
-// => { 1: { id: 1, name: 'Alice' }, 2: { id: 2, name: 'Bob' } }
-
-// Map (positional arguments)
-const usersMap = parseArrayToMapWithKey(users, 'id');
-// => Map { 1 => { id: 1, name: 'Alice' }, 2 => { id: 2, name: 'Bob' } }
-
-const user = usersMap.get(1);
-// => { id: 1, name: 'Alice' }
-```
-
-## Unique ID
-
--   **`getUID()`**: Generates a simple, short unique ID string based on `Math.random()`, returned in uppercase.
-
-```typescript
-import { getUID } from '@venizia/ignis-helpers';
-
-const uniqueId = getUID(); // => e.g., 'A1B2C3D4'
-```
+- [`packages/helpers/src/utilities/parse.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/parse.utility.ts)

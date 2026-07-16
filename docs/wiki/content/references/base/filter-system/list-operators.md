@@ -57,16 +57,30 @@ Matches records where field value is in the provided array. `in` and `inq` are a
 ## Performance Tip
 
 ```typescript
+import { userRepository } from '@/repositories';
+
 // For very large arrays (1000+ items), consider chunking
-const allIds = getLargeIdList();  // 5000 IDs
+const allIds: number[] = [ /* 5000 ids */ ];
 
 const chunkSize = 500;
 const results = [];
 for (let i = 0; i < allIds.length; i += chunkSize) {
   const chunk = allIds.slice(i, i + chunkSize);
-  const chunkResults = await repository.find({
+  const chunkResults = await userRepository.find({
     filter: { where: { id: { in: chunk } } }
   });
   results.push(...chunkResults);
 }
 ```
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [Array Operators](./array-operators) - `contains`/`containedBy`/`overlaps` match against array COLUMNS, not to be confused with `in`/`nin`
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, per-operator SQL builders
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants

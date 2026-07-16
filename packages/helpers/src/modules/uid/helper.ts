@@ -1,6 +1,6 @@
 import { HTTP } from '@/common/constants';
 import { BaseHelper } from '../base';
-import { getError } from '../error/app-error';
+import { getError } from '../error';
 
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 

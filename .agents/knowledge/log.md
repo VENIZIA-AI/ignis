@@ -6,6 +6,19 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-16 - error layer rebuilt
+
+The error layer moved to `packages/inversion/src/modules/error/` (helpers re-exports it), so a
+browser raises the same errors the server does; inversion's second, divergent `ApplicationError` is
+deleted. `getError` gained a catalogued form, every error carries `normalized = { code, args, text }`,
+and the input type dropped its zod catchall - a mistyped field is now a compile error instead of a
+silent trip into `extra`.
+
+- [Error handling](/conventions/error-handling.md): catalogue versus free-form, `normalized`, the
+  explicit `extra`, and the two traps the type system cannot catch.
+- [Gotchas](/conventions/gotchas.md): a catalog `key` must be a literal - routing it through
+  `MessageCode.build()` silently kills the registry's autocomplete.
+
 ## 2026-07-16 - bundle created
 
 Initial IGNIS knowledge bundle, ported from the BANA `.agents/knowledge` reference implementation.

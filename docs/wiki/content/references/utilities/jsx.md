@@ -1,574 +1,131 @@
 ---
-title: JSX/HTML Utilities Reference
-description: Utilities for HTML and JSX responses in OpenAPI routes
+title: JSX/HTML Utility
+description: Render server-side HTML pages with Hono JSX and document them for OpenAPI
 difficulty: beginner
-lastUpdated: 2026-01-03
 ---
 
 # JSX/HTML Utility
 
-The JSX utility provides helper functions for defining HTML/JSX response schemas in OpenAPI routes. These utilities are companions to `jsonContent` and `jsonResponse` but for HTML content type.
+IGNIS renders HTML pages server-side with Hono's built-in JSX support, and documents those routes for OpenAPI with `htmlContent()` / `htmlResponse()`.
 
-**File:** `packages/core/src/utilities/jsx.utility.ts`
+## In one example
 
-## Quick Reference
+The smallest real JSX route: a controller that renders a component through `defineJSXRoute`.
 
-| Function | Purpose | Returns |
-|----------|---------|---------|
-| `htmlContent()` | Create HTML content configuration | OpenAPI content object |
-| `htmlResponse()` | Create HTML response with error handling | OpenAPI response object |
+```tsx
+import { BaseRestController, controller, htmlContent, type IControllerOptions } from '@venizia/ignis';
+import { HTTP } from '@venizia/ignis-helpers';
 
-## When to Use
+@controller({ path: '/' })
+export class ViewController extends BaseRestController {
+  constructor(opts: IControllerOptions) {
+    super({ ...opts, scope: ViewController.name, path: '/' });
+  }
 
-Use these utilities when creating routes that:
-- Render HTML pages using Hono JSX
-- Return server-side rendered content
-- Serve HTML documentation or views
-- Generate HTML emails or reports
-
-## htmlContent()
-
-Creates a standard OpenAPI content object for `text/html` responses.
-
-### Signature
-
-```typescript
-function htmlContent(opts: {
-  description: string;
-  required?: boolean;
-}): {
-  description: string;
-  content: {
-    'text/html': {
-      schema: ZodString;
-    };
-  };
-  required: boolean;
+  override binding() {
+    this.defineJSXRoute({
+      configs: {
+        path: '/',
+        method: 'get',
+        responses: {
+          [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Home page HTML' }),
+        },
+      },
+      handler: c => c.html(<h1>Welcome to IGNIS</h1>),
+    });
+  }
 }
 ```
 
-### Parameters
+No separate JSX renderer is registered - the handler builds a JSX tree and hands it to Hono's own `c.html()`.
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `description` | `string` | Yes | - | Description of the HTML content |
-| `required` | `boolean` | No | `false` | Whether the content is required |
+## How it works
 
-### Returns
+- **Hono JSX renders to HTML.** A handler returns `c.html(<Component />)`; Hono's built-in JSX runtime turns the tree into an HTML string. IGNIS adds nothing on top of that renderer.
+- **`defineJSXRoute` is `defineRoute` with an HTML default.** It builds route configs through `getJSXRouteConfigs` instead of `getRouteConfigs`, which merges a default `htmlResponse({ description: 'HTML page' })` under whatever `responses` you declare - your own `200` entry overrides the default description.
+- **`htmlContent()` / `htmlResponse()` document `text/html`.** They mirror `jsonContent()` / `jsonResponse()` (see [Schema Utility](./schema.md)) but for HTML: `htmlContent()` builds one OpenAPI content object, `htmlResponse()` wraps it into a full `200` success response plus a JSON `4xx | 5xx` error response.
+- **The tsconfig switch is required.** Compiling `.tsx` files with Hono's JSX needs `"jsx": "react-jsx"` and `"jsxImportSource": "hono/jsx"` in `tsconfig.json`.
 
-Returns an OpenAPI content configuration object with:
-- `description`: The provided description
-- `content`: Content type configuration for `text/html`
-- `required`: Whether the content is required
+## Common tasks
 
-### Example
+### Build a reusable layout
 
-```typescript
-import { htmlContent } from '@venizia/ignis';
+Compose pages from a shared layout using `FC` and `PropsWithChildren`, re-exported from `@venizia/ignis-helpers` (sourced from `hono/jsx`).
 
-const pageContent = htmlContent({
-  description: 'HTML page content',
-  required: true,
-});
+```tsx
+import type { FC, PropsWithChildren } from '@venizia/ignis-helpers';
 
-// Result:
-// {
-//   description: 'HTML page content',
-//   content: {
-//     'text/html': {
-//       schema: z.string().openapi({
-//         description: 'HTML content',
-//         example: '<!DOCTYPE html><html>...</html>',
-//       }),
-//     },
-//   },
-//   required: true,
-// }
+export const MainLayout: FC<PropsWithChildren<{ title: string }>> = ({ title, children }) => (
+  <html>
+    <head>
+      <title>{title}</title>
+    </head>
+    <body>{children}</body>
+  </html>
+);
 ```
 
+### Pass props into a page component
 
-## htmlResponse()
+Page components take a typed props object like any other Hono JSX component.
 
-Creates a standard OpenAPI response object for HTML endpoints, including a success (200 OK) HTML response and a JSON error response for `4xx | 5xx` status codes using the `ErrorSchema`.
-
-### Signature
-
-```typescript
-function htmlResponse(opts: {
-  description: string;
-  required?: boolean;
-}): {
-  200: typeof htmlContent;
-  '4xx | 5xx': {
-    description: 'Error Response';
-    content: {
-      'application/json': {
-        schema: ErrorSchema;
-      };
-    };
-  };
+```tsx
+interface HomePageProps {
+  timestamp?: string;
 }
+
+export const HomePage: FC<HomePageProps> = ({ timestamp }) => (
+  <MainLayout title="Home">
+    <h1>Welcome</h1>
+    {timestamp && <p>Rendered at {timestamp}</p>}
+  </MainLayout>
+);
 ```
 
-### Parameters
+### Render trusted raw HTML
 
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| `description` | `string` | Yes | - | Description of the successful HTML response |
-| `required` | `boolean` | No | `false` | Whether the content is required |
+Use `dangerouslySetInnerHTML` for content that is already HTML, such as a stored email or blog template - never for unsanitized user input.
 
-### Returns
+```tsx
+<div dangerouslySetInnerHTML={{ __html: template.html }} />
+```
 
-Returns an OpenAPI responses object with:
-- `200`: Success response with HTML content (via `htmlContent()`)
-- `4xx | 5xx`: Error responses with JSON error schema
+### Give the response a custom description
 
-### Example
+Pass your own `200` entry in `responses` - it overrides the `defineJSXRoute` default description.
 
-```typescript
-import { htmlResponse } from '@venizia/ignis';
+```tsx
+responses: {
+  [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Dashboard HTML page' }),
+},
+```
 
-this.defineRoute({
+### Guard a page with authentication
+
+JSX routes accept the same `authenticate` config as JSON routes.
+
+```tsx
+this.defineJSXRoute({
   configs: {
-    path: '/dashboard',
+    path: '/admin',
     method: 'get',
-    responses: htmlResponse({
-      description: 'Dashboard HTML page',
-    }),
+    authenticate: { strategies: ['jwt'] },
+    responses: {
+      [HTTP.ResultCodes.RS_2.Ok]: htmlContent({ description: 'Admin dashboard' }),
+    },
   },
-  handler: async (context) => {
-    return context.html(
-      <html>
-        <head>
-          <title>Dashboard</title>
-        </head>
-        <body>
-          <h1>Welcome to Dashboard</h1>
-        </body>
-      </html>
-    );
-  },
+  handler: c => c.html(<AdminDashboard />),
 });
 ```
 
+## See also
 
-## Usage Examples
+- [Full reference](/references/utilities/jsx-reference) - every function, `defineJSXRoute` behavior, and component patterns
+- [Schema Utility](./schema.md) - the JSON-side helpers (`jsonContent`, `jsonResponse`) this pairs with
+- [Controllers](../base/controllers.md) - `defineRoute`/`bindRoute`, `authenticate`/`authorize` config
+- **External:** [Hono JSX Documentation](https://hono.dev/docs/guides/jsx)
 
-### Basic HTML Route
+**Files:**
 
-```typescript
-import { BaseRestController, get, htmlResponse } from '@venizia/ignis';
-
-export class PageController extends BaseRestController {
-  @get({
-    configs: {
-      path: '/home',
-      responses: htmlResponse({
-        description: 'Home page HTML',
-      }),
-    },
-  })
-  async getHomePage() {
-    return this.context.html(
-      <html>
-        <head>
-          <title>Home</title>
-        </head>
-        <body>
-          <h1>Welcome Home</h1>
-        </body>
-      </html>
-    );
-  }
-}
-```
-
-### HTML Email Preview
-
-```typescript
-import { BaseRestController, get, htmlResponse, TRouteContext } from '@venizia/ignis';
-import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
-
-const EmailRoutes = {
-  PREVIEW: {
-    method: HTTP.Methods.GET,
-    path: '/preview/:templateId',
-    request: {
-      params: z.object({ templateId: z.string() }),
-    },
-    responses: htmlResponse({
-      description: 'Email template preview',
-    }),
-  },
-} as const;
-
-export class EmailController extends BaseRestController {
-  @get({ configs: EmailRoutes.PREVIEW })
-  async previewTemplate(c: TRouteContext) {
-    const { templateId } = c.req.valid<{ templateId: string }>('param');
-    const template = await this.emailService.getTemplate(templateId);
-
-    return c.html(
-      <html>
-        <head>
-          <title>Email Preview: {template.subject}</title>
-        </head>
-        <body>
-          <div dangerouslySetInnerHTML={{ __html: template.html }} />
-        </body>
-      </html>
-    );
-  }
-}
-```
-
-### Documentation Page
-
-```typescript
-import { BaseRestController, get, htmlResponse, TRouteContext } from '@venizia/ignis';
-import { z } from '@hono/zod-openapi';
-import { HTTP } from '@venizia/ignis-helpers';
-
-const DocsRoutes = {
-  GET_SECTION: {
-    method: HTTP.Methods.GET,
-    path: '/docs/:section',
-    request: {
-      params: z.object({ section: z.string() }),
-    },
-    responses: htmlResponse({
-      description: 'API documentation page',
-    }),
-  },
-} as const;
-
-export class DocsController extends BaseRestController {
-  @get({ configs: DocsRoutes.GET_SECTION })
-  async getDocumentation(c: TRouteContext) {
-    const { section } = c.req.valid<{ section: string }>('param');
-    const content = await this.docsService.getSection(section);
-
-    return c.html(
-      <html>
-        <head>
-          <title>Docs - {content.title}</title>
-          <link rel="stylesheet" href="/styles/docs.css" />
-        </head>
-        <body>
-          <nav>
-            <a href="/docs/getting-started">Getting Started</a>
-            <a href="/docs/api">API Reference</a>
-          </nav>
-          <main>
-            <h1>{content.title}</h1>
-            <div dangerouslySetInnerHTML={{ __html: content.html }} />
-          </main>
-        </body>
-      </html>
-    );
-  }
-}
-```
-
-### Admin Dashboard
-
-```typescript
-import { BaseRestController, get, htmlResponse } from '@venizia/ignis';
-
-export class AdminController extends BaseRestController {
-  @get({
-    configs: {
-      path: '/admin',
-      middleware: [authenticate({ role: 'admin' })],
-      responses: htmlResponse({
-        description: 'Admin dashboard',
-      }),
-    },
-  })
-  async getDashboard() {
-    const stats = await this.statsService.getAdminStats();
-
-    return this.context.html(
-      <html>
-        <head>
-          <title>Admin Dashboard</title>
-          <script src="/js/dashboard.js" defer />
-        </head>
-        <body>
-          <div class="dashboard">
-            <h1>Admin Dashboard</h1>
-            <div class="stats">
-              <div class="stat-card">
-                <h3>Total Users</h3>
-                <p>{stats.totalUsers}</p>
-              </div>
-              <div class="stat-card">
-                <h3>Active Sessions</h3>
-                <p>{stats.activeSessions}</p>
-              </div>
-            </div>
-          </div>
-        </body>
-      </html>
-    );
-  }
-}
-```
-
-
-## Comparison with JSON Utilities
-
-### htmlContent vs jsonContent
-
-| Aspect | `htmlContent()` | `jsonContent()` |
-|--------|----------------|-----------------|
-| **Content-Type** | `text/html` | `application/json` |
-| **Schema** | `z.string()` | Custom Zod schema |
-| **Use Case** | HTML pages, JSX rendering | API responses, data |
-| **Example** | HTML document string | JSON object |
-
-### htmlResponse vs jsonResponse
-
-| Aspect | `htmlResponse()` | `jsonResponse()` |
-|--------|------------------|------------------|
-| **Success Type** | `text/html` (200) | `application/json` (200) |
-| **Error Type** | `application/json` (4xx/5xx) | `application/json` (4xx/5xx) |
-| **Use Case** | Web pages | REST APIs |
-
-
-## Best Practices
-
-### 1. Use for Server-Side Rendering
-
-```typescript
-// Good: Use htmlResponse for SSR routes
-const ProfileConfig = {
-  method: HTTP.Methods.GET,
-  path: '/profile/:userId',
-  request: { params: z.object({ userId: z.string() }) },
-  responses: htmlResponse({ description: 'User profile page' }),
-} as const;
-
-@get({ configs: ProfileConfig })
-async getUserProfile(c: TRouteContext) {
-  const { userId } = c.req.valid<{ userId: string }>('param');
-  const user = await this.userService.getUser(userId);
-  return c.html(<UserProfile user={user} />);
-}
-
-// Bad: Don't use htmlResponse for API endpoints - use jsonResponse instead
-```
-
-### 2. Combine with Authentication
-
-```typescript
-const SettingsConfig = {
-  method: HTTP.Methods.GET,
-  path: '/admin/settings',
-  authenticate: { strategies: ['jwt'] },
-  responses: htmlResponse({ description: 'Settings page' }),
-} as const;
-
-@get({ configs: SettingsConfig })
-async getSettings(c: TRouteContext) {
-  return c.html(<SettingsPage />);
-}
-```
-
-### 3. Error Handling
-
-HTML routes automatically return JSON errors for 4xx/5xx:
-
-```typescript
-const ArticleConfig = {
-  method: HTTP.Methods.GET,
-  path: '/article/:id',
-  request: { params: z.object({ id: z.string() }) },
-  responses: htmlResponse({ description: 'Article page' }),
-} as const;
-
-@get({ configs: ArticleConfig })
-async getArticle(c: TRouteContext) {
-  const { id } = c.req.valid<{ id: string }>('param');
-  const article = await this.articleService.findById(id);
-
-  if (!article) {
-    // Returns JSON error: { message: 'Not found', statusCode: 404 }
-    throw new NotFoundError('Article not found');
-  }
-
-  return c.html(<ArticlePage article={article} />);
-}
-```
-
-### 4. SEO-Friendly Metadata
-
-```typescript
-const BlogConfig = {
-  method: HTTP.Methods.GET,
-  path: '/blog/:slug',
-  request: { params: z.object({ slug: z.string() }) },
-  responses: htmlResponse({ description: 'Blog post page' }),
-} as const;
-
-@get({ configs: BlogConfig })
-async getBlogPost(c: TRouteContext) {
-  const { slug } = c.req.valid<{ slug: string }>('param');
-  const post = await this.blogService.getBySlug(slug);
-
-  return c.html(
-    <html>
-      <head>
-        <title>{post.title} | My Blog</title>
-        <meta name="description" content={post.excerpt} />
-        <meta property="og:title" content={post.title} />
-        <meta property="og:description" content={post.excerpt} />
-        <meta property="og:image" content={post.coverImage} />
-      </head>
-      <body>
-        <article>
-          <h1>{post.title}</h1>
-          <div dangerouslySetInnerHTML={{ __html: post.content }} />
-        </article>
-      </body>
-    </html>
-  );
-}
-```
-
-
-## Integration with Hono JSX
-
-IGNIS uses Hono's built-in JSX support. Make sure to configure your `tsconfig.json`:
-
-```json
-{
-  "compilerOptions": {
-    "jsx": "react-jsx",
-    "jsxImportSource": "hono/jsx"
-  }
-}
-```
-
-### JSX Components
-
-```typescript
-// components/Layout.tsx
-export const Layout = (props: { title: string; children: any }) => {
-  return (
-    <html>
-      <head>
-        <title>{props.title}</title>
-        <link rel="stylesheet" href="/styles/main.css" />
-      </head>
-      <body>
-        <header>
-          <nav>
-            <a href="/">Home</a>
-            <a href="/about">About</a>
-          </nav>
-        </header>
-        <main>{props.children}</main>
-        <footer>
-          <p>&copy; 2026 My App</p>
-        </footer>
-      </body>
-    </html>
-  );
-};
-
-// controller.ts
-import { Layout } from './components/Layout';
-
-@get({
-  configs: {
-    path: '/',
-    responses: htmlResponse({ description: 'Home page' }),
-  },
-})
-async getHome() {
-  return this.context.html(
-    <Layout title="Home">
-      <h1>Welcome to My App</h1>
-      <p>This is the home page.</p>
-    </Layout>
-  );
-}
-```
-
-
-## Common Pitfalls
-
-### Pitfall 1: Missing HTML Wrapper
-
-```typescript
-// Bad: Incomplete HTML
-@get({
-  configs: {
-    path: '/page',
-    responses: htmlResponse({ description: 'Page' }),
-  },
-})
-async getPage() {
-  return this.context.html(<div>Hello</div>); // Missing <html>, <head>, <body>
-}
-
-// Good: Complete HTML document
-@get({
-  configs: {
-    path: '/page',
-    responses: htmlResponse({ description: 'Page' }),
-  },
-})
-async getPage() {
-  return this.context.html(
-    <html>
-      <head><title>Page</title></head>
-      <body><div>Hello</div></body>
-    </html>
-  );
-}
-```
-
-### Pitfall 2: Using htmlResponse for APIs
-
-```typescript
-// Bad: HTML response for API
-@get({
-  configs: {
-    path: '/api/users',
-    responses: htmlResponse({ description: 'Users' }),
-  },
-})
-async getUsers() {
-  return { users: [...] }; // Should return HTML or use jsonResponse
-}
-
-// Good: Use jsonResponse for APIs
-@get({
-  configs: {
-    path: '/api/users',
-    responses: jsonResponse({
-      description: 'Users list',
-      schema: z.object({ users: z.array(UserSchema) }),
-    }),
-  },
-})
-async getUsers() {
-  return { users: await this.userService.findAll() };
-}
-```
-
-
-## See Also
-
-- **Related References:**
-  - [Schema Utility](./schema.md) - JSON content and response helpers
-  - [Controllers](../base/controllers.md) - Defining routes and handlers
-  - [OpenAPI Component](/extensions/components/api-reference) - API documentation
-
-- **External Resources:**
-  - [Hono JSX Documentation](https://hono.dev/guides/jsx)
-  - [OpenAPI Specification](https://swagger.io/specification/)
-  - [React JSX (for reference)](https://react.dev/learn/writing-markup-with-jsx)
+- [`packages/core/src/utilities/jsx.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/jsx.utility.ts) - `htmlContent`, `htmlResponse`
+- [`packages/core/src/base/controllers/rest/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/controllers/rest/base.ts) - `defineJSXRoute`

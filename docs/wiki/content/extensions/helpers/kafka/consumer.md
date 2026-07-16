@@ -1,6 +1,12 @@
+---
+title: Kafka Consumer
+description: KafkaConsumerHelper - message callbacks, automatic reconnect, and lag monitoring
+difficulty: intermediate
+---
+
 # Consumer
 
-The `KafkaConsumerHelper` wraps `@platformatic/kafka`'s `Consumer` with health tracking, graceful shutdown, message callbacks, consumer group event callbacks, and lag monitoring.
+The `KafkaConsumerHelper` wraps `@platformatic/kafka`'s `Consumer` with health tracking, graceful shutdown, message callbacks, consumer group event callbacks, automatic reconnect, and lag monitoring.
 
 ```typescript
 class KafkaConsumerHelper<
@@ -18,7 +24,7 @@ class KafkaConsumerHelper<
 | `newInstance(opts)` | `static newInstance<K,V,HK,HV>(opts): KafkaConsumerHelper<K,V,HK,HV>` | Factory method |
 | `getConsumer()` | `(): Consumer<K,V,HK,HV>` | Access the underlying `Consumer` |
 | `getStream()` | `(): MessagesStream \| null` | Get the active stream (after `start()`) |
-| `start(opts)` | `(opts: IKafkaConsumeStartOptions): Promise<void>` | Start consuming (creates stream, wires callbacks) |
+| `start(opts)` | `(opts: IKafkaConsumeStartOptions): Promise<void>` | Start consuming (creates stream, wires callbacks, drives automatic reconnect) |
 | `startLagMonitoring(opts)` | `(opts: { topics: string[]; interval?: number }): void` | Start periodic lag monitoring |
 | `stopLagMonitoring()` | `(): void` | Stop lag monitoring |
 | `isHealthy()` | `(): boolean` | `true` when at least one broker connected |
@@ -34,6 +40,8 @@ interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
   extends IKafkaConnectionOptions
 ```
 
+Plus the shared [Connection & Authentication](./producer#connection--authentication) options (`bootstrapBrokers`, `clientId`, `retries`, `sasl`, `tls`, ...), documented once on the Producer page.
+
 ### Consumer Configuration
 
 | Option | Type | Default | Description |
@@ -47,8 +55,8 @@ interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 | `rebalanceTimeout` | `number` | `sessionTimeout` | Max time for rebalance. Defaults to the value of `sessionTimeout` |
 | `highWaterMark` | `number` | `1024` | Stream buffer size (messages) |
 | `minBytes` | `number` | `1` | Min bytes per fetch response |
-| `maxBytes` | `number` | -- | Max bytes per fetch response per partition |
-| `maxWaitTime` | `number` | -- | Max time (ms) broker waits for `minBytes` |
+| `maxBytes` | `number` | `10485760` (10 MB) | Max bytes per fetch response per partition |
+| `maxWaitTime` | `number` | `5000` | Max time (ms) broker waits for `minBytes` |
 | `metadataMaxAge` | `number` | `300000` | Metadata cache TTL (ms) |
 | `groupProtocol` | `'classic' \| 'consumer'` | `'classic'` | Consumer group protocol. `'consumer'` = KIP-848 (Kafka 3.7+) |
 | `groupInstanceId` | `string` | -- | Static group membership ID -- prevents rebalance on restart |
@@ -85,8 +93,6 @@ interface IKafkaConsumerOptions<KeyType, ValueType, HeaderKeyType, HeaderValueTy
 |--------|------|-------------|
 | `onLag` | `TKafkaLagCallback` | Receives `{ lag }` (Offsets map) |
 | `onLagError` | `TKafkaLagErrorCallback` | Receives `{ error }` |
-
-Plus all [Connection Options](./#connection-options).
 
 ## Basic Example
 
@@ -163,35 +169,42 @@ Stream 'error' event
   -> onMessageError({ error })  (no message available)
 ```
 
-- `onMessage` is the main processing callback -- do your business logic here
-- `onMessageDone` fires only after `onMessage` resolves successfully -- use for logging, metrics, etc.
-- `onMessageError` fires if `onMessage` throws -- use for error tracking. Note that errors from `onMessageDone` also trigger `onMessageError`
-- The stream `'error'` event also calls `onMessageError` (without `message` since it's a stream-level error), but only if `onMessageError` was provided
+- **`onMessage` is the main processing callback** -- do your business logic here.
+- **`onMessageDone` fires only after `onMessage` resolves successfully** -- use it for logging, metrics, and similar side effects. Note that errors thrown from `onMessageDone` also trigger `onMessageError`.
+- **`onMessageError` fires if `onMessage` throws**, and also for the stream's own `'error'` event (without a `message`, since it's a stream-level error).
+- **The stream `'error'` listener is always attached**, whether or not you pass `onMessageError`. An `EventEmitter` `'error'` event with zero listeners is rethrown as an uncaught exception -- without this listener, a pull-style consumer (`start()` + `getStream()`, no `onMessage`) would take the whole process down on the first broker drop.
 
 ## start()
 
-`start()` creates the consume stream and wires all message callbacks. It must be called explicitly after construction.
+`start()` creates the consume stream and wires all message callbacks. It must be called explicitly after construction, and it guards against duplicate starts -- calling it twice logs a warning and returns immediately.
 
 ```typescript
 interface IKafkaConsumeStartOptions {
   topics: string[];
-  mode?: MessagesStreamModeValue;         // Default: 'committed'
-  fallbackMode?: MessagesStreamFallbackModeValue; // Default: 'latest'
+  mode?: MessagesStreamModeValue;
+  fallbackMode?: MessagesStreamFallbackModeValue;
+  reconnectDelayMs?: number;
+  maxReconnectAttempts?: number;
 }
 ```
 
 | Mode | Description |
 |------|-------------|
-| `'committed'` | Resume from last committed offset. **Recommended for production** |
+| `'committed'` (default) | Resume from last committed offset. **Recommended for production** |
 | `'latest'` | Start from the latest offset (skip existing messages) |
 | `'earliest'` | Start from the beginning of the topic |
 | `'manual'` | Start from explicitly provided offsets |
 
 | Fallback | Description |
 |----------|-------------|
-| `'latest'` | Start from latest (default) -- ignore historical messages |
+| `'latest'` (default) | Start from latest -- ignore historical messages |
 | `'earliest'` | Start from beginning -- process all historical messages |
 | `'fail'` | Throw an error |
+
+| Reconnect option | Default | Description |
+|-------------------|---------|-------------|
+| `reconnectDelayMs` | `2000` | Delay before each automatic reconnect attempt |
+| `maxReconnectAttempts` | `5` | Consecutive reconnect attempts before the consume loop gives up |
 
 ```typescript
 // Production pattern
@@ -200,15 +213,25 @@ await helper.start({ topics: ['orders'] });
 // Replay all historical messages
 await helper.start({ topics: ['orders'], mode: 'earliest' });
 
-// Custom mode
+// Custom mode and reconnect budget
 await helper.start({
   topics: ['orders'],
   mode: 'committed',
   fallbackMode: 'earliest',
+  reconnectDelayMs: 5_000,
+  maxReconnectAttempts: 10,
 });
 ```
 
-Guards against duplicate starts -- calling `start()` twice logs a warning and returns immediately.
+## Automatic reconnect
+
+When `onMessage` is provided, `start()` drives a background consume loop on top of the stream. That loop reconnects on its own:
+
+- **Only the callback-driven loop reconnects.** A pull-style consumer using `getStream()` or `consumer.consume()` directly owns its own retry logic -- the helper's automatic reconnect only runs inside `startConsumeLoop`, which is wired exclusively when `onMessage` is set.
+- **A full broker outage marks the session stale.** When every broker disconnects (`getConnectedBrokerCount()` drops to `0`, via `client:broker:disconnect` or `client:broker:failed`), the helper destroys the current stream immediately instead of waiting for it to error out on its own.
+- **Reconnect rebuilds the client after a stale session.** The next attempt, after `reconnectDelayMs`, constructs a brand-new `@platformatic/kafka` `Consumer` with the original constructor options and swaps it in -- a fresh client forces a clean group rejoin rather than reusing session state Kafka has likely already expired. Active lag monitoring is re-armed on the new client automatically.
+- **Attempts are capped.** After `maxReconnectAttempts` consecutive failures, the consume loop exits and logs an error. Message processing stops until you call `start()` again with a new set of options.
+- **Every retry is logged**, including the attempt number, delay, and current connected-broker count, so a stuck reconnect loop is visible in application logs without extra instrumentation.
 
 ## Lag Monitoring
 
@@ -220,9 +243,7 @@ helper.startLagMonitoring({ topics: ['orders'], interval: 10_000 });
 helper.stopLagMonitoring();
 ```
 
-Lag data is delivered via the `onLag` callback. Errors via `onLagError`.
-
-Guards against duplicate starts -- calling `startLagMonitoring()` twice logs a warning.
+Lag data is delivered via the `onLag` callback. Errors via `onLagError`. `interval` defaults to `30000` ms. Guards against duplicate starts -- calling `startLagMonitoring()` twice logs a warning.
 
 For one-time lag checks, use the underlying consumer directly:
 
@@ -383,3 +404,16 @@ Topic "orders" (3 partitions)
 
 > [!TIP]
 > Create topics with enough partitions for your expected parallelism. You can increase partitions later with `admin.createPartitions()`, but you cannot decrease them.
+
+## See also
+
+- [Kafka Overview](./) - the four helpers, shared health/close API, and the compile-binary caveat
+- [Producer](./producer) - the sending side, plus the shared Connection & Authentication options
+- [Admin](./admin) - create topics and inspect consumer groups from outside the running consumer
+- [Examples & Troubleshooting](./examples) - lag monitoring, exactly-once, and common connection errors
+
+**Files:**
+
+- [`packages/helpers/src/modules/queue/kafka/consumer.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/consumer.ts) - `KafkaConsumerHelper`, consume loop, automatic reconnect
+- [`packages/helpers/src/modules/queue/kafka/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/base.ts) - `BaseKafkaHelper`, shared health tracking and shutdown
+- [`packages/helpers/src/modules/queue/kafka/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/queue/kafka/common/types.ts) - `IKafkaConsumerOptions`, `IKafkaConsumeStartOptions`

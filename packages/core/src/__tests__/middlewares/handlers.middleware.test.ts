@@ -156,7 +156,7 @@ describe('appErrorHandler - intentional ApplicationError identity', () => {
           statusCode: HTTP.ResultCodes.RS_4.NotFound,
           messageCode: 'user.not-found',
           message: 'User not found',
-          userId: 42,
+          extra: { userId: 42 },
         });
       },
     });

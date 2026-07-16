@@ -2,13 +2,17 @@
 type: Convention
 title: Error handling
 description: Use getError and ApplicationError, never raw new Error, and check errors by shape.
-resource: packages/helpers/src/modules/error
+resource: packages/inversion/src/modules/error
 tags: [conventions, errors]
 ---
 
-Never throw a raw `new Error(...)`. Use `getError(opts: TError)` (or `ApplicationError.getError`)
-from `packages/helpers/src/modules/error/app-error.ts`. It builds an `ApplicationError`: a `message`,
-a resolved `messageCode`, a `statusCode` (defaults to `400`), and an optional `extra` payload.
+Never throw a raw `new Error(...)`. Use `getError(opts: TError)` (or `ApplicationError.getError`).
+It builds an `ApplicationError`: a `message`, a resolved `messageCode`, a `statusCode` (defaults to
+`400`), a `normalized` message, and an optional `extra` payload.
+
+The layer LIVES in `packages/inversion/src/modules/error/` and is re-exported by helpers, so a
+browser application - which depends on inversion for DI and cannot depend on helpers - raises the
+same errors the server does. Backend code imports from `@venizia/ignis-helpers` as always.
 
 ```typescript
 throw getError({
@@ -16,14 +20,72 @@ throw getError({
 });
 ```
 
+## Catalogue a domain failure, raise the rest free-form
+
+The form above is right for a failure nobody translates: an invariant, a misconfiguration, a seed
+guard. A **domain** failure - one a client localizes and branches on - is declared once as a
+`TErrorDefinition` in `packages/inversion/src/modules/error/definition.ts`, then raised by reference:
+
+```typescript
+export const UserErrors = {
+  CREATE_DUPLICATE_EMAIL: {
+    key: 'server.core.user.create.duplicate_email',
+    statusCode: HTTP.ResultCodes.RS_4.Conflict,
+    category: ErrorCategories.VALIDATION,
+    message: 'An account with %{email} already exists.',
+  },
+} as const satisfies Record<string, TErrorDefinition>;
+
+declare module '@venizia/ignis-helpers' {
+  interface IErrorKeyRegistry extends TRegisterErrors<typeof UserErrors> {}
+}
+
+throw getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });
+```
+
+Retyping the code and status at each throw is how two call sites end up raising
+`user.create.duplicate_email` and `user.duplicate_email` for the same failure, with nothing to catch
+the drift.
+
+`key` MUST be a literal string, NOT `MessageCode.build(...)` - see
+[gotchas](/conventions/gotchas.md). This is the one place a raw literal code is correct.
+
+## Every ApplicationError carries `normalized`
+
+`normalized = { code, args, text }` is always built. A client renders any error with one lookup:
+`translate(error.normalized.code, error.normalized.args)`. Pass `transform` to build it yourself
+from a flat snapshot - that is how `normalized.text` can be a rendered string while `message` keeps
+the raw text the throw site wrote.
+
+`messageCode` and `extra.messageArgs` duplicate `normalized.code` / `normalized.args` and are
+DEPRECATED - kept only until clients migrate.
+
+## Unknown keys ride into `extra`
+
+The input carries an index signature, so any key `getError` does not model lands in `extra` - that
+is how a throw site attaches context the framework knows nothing about (mq-pay sends
+`transaction`/`attempt` this way, and a client reads them).
+
+```typescript
+throw getError({ message: 'Cannot delete', details: { categoryId, count: 3 } }); // -> extra.details
+throw getError({ message: 'Boot failed', cause: originalError });                // -> Error.cause
+```
+
+The trade, and it is deliberate: an index signature disables excess-property checking, so a
+MISSPELLING goes the same way. `getError({ message, statuscode: 503 })` compiles, `statusCode` stays
+`400`, and `503` sits in `extra.statuscode`. The framework cannot tell context from typo.
+
+NEVER spread a definition: `getError({ ...Errors.X })` puts the key in `extra.key` and degrades the
+error to `core.system_error`, while status and message still arrive so it looks fine. Pass it as
+`error`. Pinned in `bana-probe.test.ts`.
+
 ## instanceof across packages is unreliable
 
-`ApplicationError` extends `Error` and looks like an ordinary class, but it does not have one
-runtime identity. `inversion` ships a dual CJS+ESM build (see
-[dual-build & error identity](/architecture/error-handling-flow.md)), so a CJS consumer and an ESM
-consumer hold two different constructor functions for the same source file. `instanceof
-ApplicationError` across a package boundary can silently return `false` for an error the framework
-itself raised.
+There is only ONE `ApplicationError` now, and `instanceof` STILL does not work across a package
+boundary. `inversion` ships a dual CJS+ESM build (see
+[dual-build & error identity](/architecture/error-handling-flow.md)), so one source file yields two
+constructor functions: a CJS consumer and an ESM consumer hold different classes for the same class.
+Consolidating the source did not merge the identities.
 
 Use `isApplicationError()` instead, which recognizes the error by shape, not by class identity:
 

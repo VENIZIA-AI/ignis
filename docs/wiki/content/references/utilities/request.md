@@ -1,245 +1,84 @@
+---
+title: Request Utility
+description: Multipart form parsing and secure Content-Disposition header helpers for file uploads and downloads
+difficulty: beginner
+lastUpdated: 2026-07-16
+---
+
 # Request Utility
 
-The Request utility provides functions for handling HTTP request data, such as parsing multipart form data, and utilities for creating secure Content-Disposition headers.
+Functions for handling HTTP request data: parsing `multipart/form-data` bodies for file uploads, and building safe, RFC-compliant `Content-Disposition` headers for downloads.
 
-## `parseMultipartBody`
-
-The `parseMultipartBody` function is an asynchronous utility for parsing `multipart/form-data` request bodies, which is essential for handling file uploads. It can store the uploaded files in memory or on disk.
-
-### `parseMultipartBody(opts)`
-
--   `opts` (object):
-    -   `context` (object with `req` property): The Hono context object for the current request. Uses `context.req.formData()` internally.
-    -   `storage` (`'memory'` | `'disk'`, optional): The storage strategy for uploaded files. Defaults to `'memory'`.
-    -   `uploadDir` (string, optional): The directory to save files to when using the `'disk'` storage strategy. Defaults to `'./uploads'`. The directory is created recursively if it does not exist.
-
-The function returns a `Promise` that resolves to an array of `IParsedFile` objects. String form fields are skipped (only `File` entries are processed).
-
-### `IParsedFile` Interface
-
--   `fieldname`: The name of the form field.
--   `originalname`: The original name of the uploaded file.
--   `encoding`: The file's encoding (always `'utf8'`).
--   `mimetype`: The MIME type of the file.
--   `size`: The size of the file in bytes.
--   `buffer` (Buffer, optional): The file's content as a Buffer (if `storage` is `'memory'`).
--   `filename` (string, optional): The generated name of the file on disk (if `storage` is `'disk'`). Format: `{timestamp}-{randomString}-{sanitizedOriginalName}`.
--   `path` (string, optional): The full path to the file on disk (if `storage` is `'disk'`).
-
-### Example
-
-Here is an example of how to use `parseMultipartBody` in a controller to handle a file upload.
-
-```typescript
-import { BaseRestController, controller } from '@venizia/ignis';
-import { parseMultipartBody, HTTP } from '@venizia/ignis-helpers';
-
-@controller({ path: '/files' })
-export class FileController extends BaseRestController {
-  // ...
-  override binding() {
-    this.defineRoute({
-      configs: {
-        path: '/upload',
-        method: 'post',
-        // Note: You would typically define a request body schema
-        // for multipart/form-data in your OpenAPI spec.
-      },
-      handler: async (c) => {
-        try {
-          const files = await parseMultipartBody({
-            context: c,
-            storage: 'disk', // or 'memory'
-            uploadDir: './my-uploads',
-          });
-
-          console.log('Uploaded files:', files);
-
-          return c.json(
-            { message: `${files.length} file(s) uploaded successfully.` },
-            HTTP.ResultCodes.RS_2.Ok,
-          );
-        } catch (error) {
-          return c.json(
-            { message: 'Failed to upload files', error: error.message },
-            HTTP.ResultCodes.RS_5.InternalServerError,
-          );
-        }
-      },
-    });
-  }
-}
-```
-
----
-
-## Content-Disposition Utilities
-
-These utilities help create secure, RFC-compliant `Content-Disposition` headers for file downloads.
-
-### `createContentDispositionHeader`
-
-Creates a safe Content-Disposition header with proper filename encoding for file downloads.
-
-#### `createContentDispositionHeader(opts)`
-
--   `opts` (object):
-    -   `filename` (string): The filename to use in the Content-Disposition header.
-    -   `type` (`'attachment'` | `'inline'`): The disposition type.
-
-The function returns a properly formatted `Content-Disposition` header string with both ASCII and UTF-8 encoded filenames for maximum browser compatibility.
-
-**Features:**
-- Automatic filename sanitization via `sanitizeFilename()`
-- UTF-8 encoding support via `encodeRFC5987()`
-- RFC 5987 compliant
-- Dual `filename` / `filename*` for browser compatibility
-
-**Example:**
-
-```typescript
-import { createContentDispositionHeader } from '@venizia/ignis-helpers';
-
-// Attachment (file download)
-ctx.header('content-disposition', createContentDispositionHeader({
-  filename: 'my-document.pdf',
-  type: 'attachment',
-}));
-// Output: attachment; filename="my-document.pdf"; filename*=UTF-8''my-document.pdf
-
-// Inline (display in browser)
-ctx.header('content-disposition', createContentDispositionHeader({
-  filename: 'report.pdf',
-  type: 'inline',
-}));
-// Output: inline; filename="report.pdf"; filename*=UTF-8''report.pdf
-```
-
----
-
-### `sanitizeFilename`
-
-Sanitizes a filename for safe use, removing path components and dangerous characters. Useful for HTTP headers (e.g., Content-Disposition) and general file handling.
-
-#### `sanitizeFilename(filename: string): string`
-
--   `filename` (string): The filename to sanitize.
-
-Returns a safe filename suitable for use in headers or filesystem operations.
-
-**Features:**
-- Removes path components via `path.basename()` (prevents directory traversal attacks)
-- Allows only word characters (`\w`), spaces, hyphens, underscores, and dots
-- Replaces dangerous characters with underscores
-- Removes leading dots (prevents hidden files)
-- Replaces consecutive dots with a single dot
-- Removes ".." patterns (additional path traversal protection)
-- Returns `'download'` for empty, suspicious, or invalid filenames
-
-**Example:**
-
-```typescript
-import { sanitizeFilename } from '@venizia/ignis-helpers';
-
-sanitizeFilename('../../etc/passwd');        // Returns: 'passwd'
-sanitizeFilename('my<file>name.txt');        // Returns: 'my_file_name.txt'
-sanitizeFilename('.hidden');                 // Returns: 'hidden'
-sanitizeFilename('file...txt');              // Returns: 'file.txt'
-sanitizeFilename('');                        // Returns: 'download'
-sanitizeFilename('..');                      // Returns: 'download'
-```
-
-
-### `encodeRFC5987`
-
-Encodes a filename according to RFC 5987 for use in HTTP headers. Encodes using `encodeURIComponent` and additionally escapes single quotes, parentheses, and asterisks.
-
-#### `encodeRFC5987(filename: string): string`
-
--   `filename` (string): The filename to encode.
-
-Returns an RFC 5987 encoded string suitable for the `filename*` parameter in Content-Disposition headers.
-
-**Example:**
-
-```typescript
-import { encodeRFC5987 } from '@venizia/ignis-helpers';
-
-encodeRFC5987('my document.pdf');     // Returns: 'my%20document.pdf'
-```
-
-
-## `IRequestedRemark` Interface
-
-The Request utility also exports the `IRequestedRemark` interface, which describes a request remark object:
-
--   `id` (string): The request identifier.
--   `url` (string): The request URL.
--   `method` (string): The HTTP method.
--   `[extra: string | symbol]`: Additional arbitrary properties.
-
-
-## Complete File Download Example
-
-Here's a complete example combining multipart upload parsing with secure file downloads:
+## In one example
 
 ```typescript
 import { BaseRestController, controller } from '@venizia/ignis';
 import { parseMultipartBody, createContentDispositionHeader, HTTP } from '@venizia/ignis-helpers';
-import fs from 'node:fs';
-import path from 'node:path';
 
 @controller({ path: '/files' })
 export class FileController extends BaseRestController {
   override binding() {
-    // Upload endpoint
-    this.bindRoute({
-      configs: { path: '/upload', method: 'post' },
-    }).to({
+    this.bindRoute({ configs: { path: '/upload', method: 'post' } }).to({
       handler: async (ctx) => {
-        const files = await parseMultipartBody({
-          context: ctx,
-          storage: 'disk',
-          uploadDir: './uploads',
-        });
-
+        const files = await parseMultipartBody({ context: ctx, storage: 'disk', uploadDir: './uploads' });
         return ctx.json(
-          {
-            message: 'Files uploaded successfully',
-            files: files.map(f => ({ name: f.originalname, size: f.size })),
-          },
+          { message: 'Uploaded', files: files.map(f => ({ name: f.originalname, size: f.size })) },
           HTTP.ResultCodes.RS_2.Ok,
         );
       },
     });
 
-    // Download endpoint
-    this.bindRoute({
-      configs: { path: '/:filename', method: 'get' },
-    }).to({
-      handler: async (ctx) => {
+    this.bindRoute({ configs: { path: '/:filename', method: 'get' } }).to({
+      handler: (ctx) => {
         const { filename } = ctx.req.valid('param');
-        const filePath = path.join('./uploads', filename);
-
-        // Read file
-        const fileStat = fs.statSync(filePath);
-        const fileStream = fs.createReadStream(filePath);
-
-        // Set secure headers
-        ctx.header('content-type', 'application/octet-stream');
-        ctx.header('content-length', fileStat.size.toString());
-        ctx.header('content-disposition', createContentDispositionHeader({
-          filename,
-          type: 'attachment',
-        }));
-        ctx.header('x-content-type-options', 'nosniff');
-
-        return new Response(fileStream, {
-          headers: ctx.res.headers,
-          status: HTTP.ResultCodes.RS_2.Ok,
-        });
+        ctx.header(
+          'content-disposition',
+          createContentDispositionHeader({ filename, type: 'attachment' }),
+        );
+        // ... stream the file
       },
     });
   }
 }
 ```
+
+## Functions
+
+| Function | Signature | What it does |
+|----------|-----------|---------------|
+| `parseMultipartBody` | `parseMultipartBody(opts: { context: { req: any }; storage?: 'memory' \| 'disk'; uploadDir?: string }): Promise<IParsedFile[]>` | Parses a `multipart/form-data` body via `context.req.formData()`. String fields are skipped - only `File` entries are returned. |
+| `sanitizeFilename` | `sanitizeFilename(filename: string): string` | Strips path components and dangerous characters from `filename`. Returns `'download'` for empty or suspicious input. |
+| `encodeRFC5987` | `encodeRFC5987(filename: string): string` | RFC 5987 encodes `filename` for the `filename*` header parameter (`encodeURIComponent` plus escaped `'`, `(`, `)`, `*`). |
+| `createContentDispositionHeader` | `createContentDispositionHeader(opts: { filename: string; type: 'attachment' \| 'inline' }): string` | Builds a full `Content-Disposition` value: sanitizes the filename, then emits both the ASCII `filename=` and UTF-8 `filename*=` forms. |
+
+## Parsed file shape
+
+`parseMultipartBody` resolves to an array of objects (the `IParsedFile` shape, internal to the module - not separately exported):
+
+| Field | Type | Present when |
+|-------|------|---------------|
+| `fieldname` | `string` | always |
+| `originalname` | `string` | always |
+| `encoding` | `string` | always - hardcoded `'utf8'` |
+| `mimetype` | `string` | always |
+| `size` | `number` | always |
+| `buffer` | `Buffer` | `storage: 'memory'` (default) |
+| `filename` | `string` | `storage: 'disk'` - format `{timestamp}-{randomString}-{sanitizedOriginalName}` |
+| `path` | `string` | `storage: 'disk'` |
+
+## Notes
+
+- **`storage` defaults to `'memory'`**; `uploadDir` defaults to `'./uploads'` and is created recursively if it does not exist.
+- **`sanitizeFilename` is applied automatically** inside `createContentDispositionHeader` - callers do not need to sanitize twice. It also removes leading dots, collapses repeated dots, and strips `..` sequences to block directory traversal and hidden-file tricks.
+- **`createContentDispositionHeader` always emits both forms** (`filename="..."; filename*=UTF-8''...`) for maximum browser compatibility - older browsers read the ASCII fallback, modern ones read the UTF-8 form.
+- **`IRequestedRemark`** is a separately exported interface for describing a request: `{ id: string; url: string; method: string; [extra: string | symbol]: any }`. It is not consumed internally by `parseMultipartBody` or any other function on this page - it is a general-purpose shape for application code that needs to tag a request with an id, URL, method, and arbitrary extra fields.
+
+## See also
+
+- [Utilities Overview](/references/utilities/) - all utility functions
+- [Static Asset Component](/extensions/components/static-asset/) - built-in upload/download CRUD built on this utility
+- [Request Tracker Component](/extensions/components/request-tracker) - `x-request-id` header and request body parsing
+
+**Files:**
+
+- [`packages/helpers/src/utilities/request.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/request.utility.ts)

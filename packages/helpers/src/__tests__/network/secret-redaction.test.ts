@@ -77,3 +77,85 @@ describe('redactSecrets - the shapes a TLS/MQTT options object actually takes', 
     expect(JSON.stringify(redacted)).not.toContain('leak-me');
   });
 });
+
+describe('redactSecrets - the Vault wire spellings the key list must now cover', () => {
+  test('the X-Vault-Token header value is redacted', () => {
+    const redacted = redactSecrets({
+      config: { headers: { 'X-Vault-Token': 'live-token-must-never-log' } },
+    }) as { config: { headers: Record<string, unknown> } };
+
+    expect(redacted.config.headers['X-Vault-Token']).toBe(REDACTED);
+    expect(JSON.stringify(redacted)).not.toContain('live-token-must-never-log');
+  });
+
+  test('AppRole client_token, secret_id and role_id are redacted', () => {
+    const redacted = redactSecrets({
+      ['client_token']: 'client-token-leak',
+      ['secret_id']: 'secret-id-leak',
+      ['role_id']: 'role-id-leak',
+    }) as Record<string, unknown>;
+
+    expect(redacted['client_token']).toBe(REDACTED);
+    expect(redacted['secret_id']).toBe(REDACTED);
+    expect(redacted['role_id']).toBe(REDACTED);
+  });
+
+  test('any *_token / *Token style key is redacted', () => {
+    const redacted = redactSecrets({
+      ['access_token']: 'a-leak',
+      ['refresh_token']: 'r-leak',
+      accessToken: 'camel-leak',
+      vaultToken: 'vault-leak',
+    }) as Record<string, unknown>;
+
+    expect(redacted['access_token']).toBe(REDACTED);
+    expect(redacted['refresh_token']).toBe(REDACTED);
+    expect(redacted['accessToken']).toBe(REDACTED);
+    expect(redacted['vaultToken']).toBe(REDACTED);
+  });
+
+  test('an innocent key that merely ends in "id" is NOT redacted', () => {
+    // role_id/secret_id are named secrets; userId/orderId/id are not - the pattern must not swallow
+    // ordinary identifier fields.
+    const redacted = redactSecrets({
+      userId: 'user-42',
+      orderId: 'order-7',
+      id: 'row-1',
+      description: 'a token-based flow',
+    }) as Record<string, unknown>;
+
+    expect(redacted['userId']).toBe('user-42');
+    expect(redacted['orderId']).toBe('order-7');
+    expect(redacted['id']).toBe('row-1');
+    expect(redacted['description']).toBe('a token-based flow');
+  });
+});
+
+describe('redactSecrets - Error awareness keeps the diagnosis, drops the secret', () => {
+  test('an AxiosError-shaped object keeps its message but redacts the nested token', () => {
+    const axiosError = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8200'), {
+      config: {
+        headers: { 'X-Vault-Token': 'live-token-must-never-log' },
+        data: { ['secret_id']: 'approle-secret-must-never-log' },
+      },
+    });
+
+    const redacted = redactSecrets(axiosError) as {
+      name: string;
+      message: string;
+      stack?: string;
+      config: { headers: Record<string, unknown>; data: Record<string, unknown> };
+    };
+
+    // The whole point: the rich error survives, minus the secret.
+    expect(redacted.message).toBe('connect ECONNREFUSED 127.0.0.1:8200');
+    expect(redacted.name).toBe('Error');
+    expect(redacted.config.headers['X-Vault-Token']).toBe(REDACTED);
+    expect(redacted.config.data['secret_id']).toBe(REDACTED);
+
+    const serialized = JSON.stringify(redacted);
+    expect(serialized).not.toContain('live-token-must-never-log');
+    expect(serialized).not.toContain('approle-secret-must-never-log');
+    expect(serialized).toContain('connect ECONNREFUSED');
+  });
+});

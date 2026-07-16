@@ -1,46 +1,178 @@
-# Static Asset -- API Reference
+---
+title: Static Asset Component - Full Reference
+description: Controller factory, IStorageHelper interface, storage helper options, MetaLink schema, and per-endpoint request/response reference
+difficulty: intermediate
+---
 
-> Controller factory, storage interface, type definitions, and component internals.
+# Static Asset Component Reference
 
-## Controller Factory
+Every binding, endpoint, type, and internal mechanism of `StaticAssetComponent`. For task-oriented walkthroughs, see [Usage & Examples](./usage).
 
-The `AssetControllerFactory.defineAssetController()` method dynamically creates controller classes at runtime. For each storage backend in the options:
+**Files:**
 
-1. A new class extending `BaseRestController` is created with `@controller({ path: basePath })`
-2. The class name is set dynamically via `Object.defineProperty(_controller, 'name', { value: name })`
-3. Routes are bound in the controller's `binding()` method using `this.bindRoute().to()`
-4. Route configs are spread-merged with per-route overrides from `controller.routes` (e.g., `{ ...StaticAssetDefinitions.UPLOAD, ...routes?.upload }`)
-5. The controller is registered via `this.application.controller()`
+- [`packages/core/src/components/static-asset/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/component.ts)
+- [`packages/core/src/components/static-asset/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/common/types.ts)
+- [`packages/core/src/components/static-asset/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/common/constants.ts)
+- [`packages/core/src/components/static-asset/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/common/keys.ts)
+- [`packages/core/src/components/static-asset/controller/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/controller/factory.ts)
+- [`packages/core/src/components/static-asset/controller/base.definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/controller/base.definition.ts)
+- [`packages/core/src/components/static-asset/models/base.model.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/models/base.model.ts)
+- [`packages/core/src/components/static-asset/repositories/base.repository.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/static-asset/repositories/base.repository.ts)
+- [`packages/helpers/src/modules/storage/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/base.ts)
+- [`packages/helpers/src/modules/storage/disk/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/disk/helper.ts)
+- [`packages/helpers/src/modules/storage/minio/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/minio/helper.ts)
+- [`packages/helpers/src/modules/storage/bun-s3/helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/storage/bun-s3/helper.ts)
+- [`packages/helpers/src/utilities/request.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/request.utility.ts)
 
-```
-StaticAssetComponent.binding()
-    | iterates options
-AssetControllerFactory.defineAssetController({ controller, storage, helper, ... })
-    | creates
-@controller({ path: basePath })
-class _controller extends BaseRestController { ... }
-    | registered via
-this.application.controller(_controller)
-```
+## Quick reference
 
-### IAssetControllerOptions
+| Item | Value |
+|------|-------|
+| Package | `@venizia/ignis` (core component) + `@venizia/ignis-helpers` (storage helpers) |
+| Component class | `StaticAssetComponent` |
+| Import subpath | `@venizia/ignis/static-asset` - not on the root barrel |
+| Storage helpers | `DiskHelper`, `MinioHelper` (`@venizia/ignis-helpers/minio`), `BunS3Helper` (`@venizia/ignis-helpers/bun-s3`) |
+| Runtimes | Both - `BunS3Helper` specifically requires Bun (imports Bun's native `S3Client`) |
+| Optional feature | MetaLink - Postgres-backed upload tracking via `BaseMetaLinkModel`/`BaseMetaLinkRepository` |
 
-The factory method accepts the following options:
+## Import paths
 
 ```typescript
-interface IAssetControllerOptions {
-  controller: TStaticAssetsComponentOptions[string]['controller'];
-  storage: TStaticAssetStorageType;
-  helper: IStorageHelper;
-  useMetaLink?: boolean;
-  metaLink?: TMetaLinkConfig;
-  options?: TStaticAssetExtraOptions;
-}
+// Core - subpath import only
+import {
+  StaticAssetComponent,
+  StaticAssetComponentBindingKeys,
+  StaticAssetStorageTypes,
+  AssetControllerFactory,
+  BaseMetaLinkModel,
+  BaseMetaLinkRepository,
+} from '@venizia/ignis/static-asset';
+
+import type {
+  TStaticAssetsComponentOptions,
+  TStaticAssetExtraOptions,
+  TMetaLinkConfig,
+  TStaticAssetStorageType,
+  IAssetControllerOptions,
+} from '@venizia/ignis/static-asset';
+
+// Helpers - main entry + storage-backend subpaths
+import { DiskHelper } from '@venizia/ignis-helpers';
+import { MinioHelper } from '@venizia/ignis-helpers/minio';
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
 ```
 
-## StaticAssetStorageTypes
+## Binding keys
 
-A constants class following the IGNIS pattern with `static readonly` fields, a `SCHEME_SET`, and an `isValid()` method:
+| Key | Constant | Type | Required | Default |
+|-----|----------|------|----------|---------|
+| `@app/static-asset-component/options` | `StaticAssetComponentBindingKeys.STATIC_ASSET_COMPONENT_OPTIONS` | `TStaticAssetsComponentOptions` | Yes | `{}` |
+
+> [!NOTE]
+> `StaticAssetComponent`'s constructor binds an empty `{}` default for this key. `binding()` iterates `Object.entries(componentOptions)` - an empty object produces zero controllers, no error. Bind your configuration in `preConfigure()` before `this.component(StaticAssetComponent)`.
+
+## `TStaticAssetsComponentOptions`
+
+```typescript
+type TStaticAssetsComponentOptions = {
+  [key: string]: {
+    controller: {
+      name: string;
+      basePath: string;
+      isStrict?: boolean;
+      routes?: {
+        getBuckets?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        getBucketByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        createBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        deleteBucket?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        upload?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        listObjects?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        deleteObject?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        getObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        downloadObjectByName?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+        recreateMetaLink?: Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>;
+      };
+    };
+    extra?: TStaticAssetExtraOptions;
+  } & (
+    | { storage: typeof StaticAssetStorageTypes.BUN_S3; helper: BunS3Helper }
+    | { storage: typeof StaticAssetStorageTypes.DISK; helper: DiskHelper }
+    | { storage: typeof StaticAssetStorageTypes.MINIO; helper: MinioHelper }
+  ) &
+    ({ useMetaLink?: false | undefined } | { useMetaLink: true; metaLink: TMetaLinkConfig });
+};
+```
+
+| Field | Type | Default | Description |
+|-------|------|---------|--------------|
+| `controller.name` | `string` | - | Class name given to the generated controller (via `Object.defineProperty`) |
+| `controller.basePath` | `string` | - | Mount path, e.g. `'/assets'` |
+| `controller.isStrict` | `boolean` | `true` | Passed through to `BaseRestController`'s strict routing mode |
+| `controller.routes` | object | `undefined` | Per-route overrides - see [Per-route overrides](#per-route-overrides) |
+| `storage` | `'disk' \| 'minio' \| 'bun-s3'` | - | Selects which `helper` type is required (discriminated union) |
+| `helper` | `DiskHelper \| MinioHelper \| BunS3Helper` | - | Storage backend instance matching `storage` |
+| `extra` | `TStaticAssetExtraOptions` | `undefined` | Multipart parsing mode, name/link normalization, max folder depth |
+| `useMetaLink` | `boolean` | `false` | Enables the `PUT .../meta-links/:objectName` route and DB tracking on upload/delete |
+| `metaLink` | `TMetaLinkConfig` | - | Required when `useMetaLink: true`; ignored otherwise |
+
+### Per-route overrides
+
+Each key accepts a `Partial<Omit<IAuthRouteConfig, 'method' | 'request' | 'responses'>>` - typically `authenticate`, `authorize`, `path`, and `middleware`. It is shallow-merged onto the base definition: `{ ...StaticAssetDefinitions.UPLOAD, ...routes?.upload }`.
+
+| Route key | HTTP Method | Base Path |
+|-----------|-------------|-----------|
+| `getBuckets` | `GET` | `/buckets` |
+| `getBucketByName` | `GET` | <code v-pre>/buckets/{bucketName}</code> |
+| `createBucket` | `POST` | <code v-pre>/buckets/{bucketName}</code> |
+| `deleteBucket` | `DELETE` | <code v-pre>/buckets/{bucketName}</code> |
+| `upload` | `POST` | <code v-pre>/buckets/{bucketName}/upload</code> |
+| `listObjects` | `GET` | <code v-pre>/buckets/{bucketName}/objects</code> |
+| `getObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> |
+| `downloadObjectByName` | `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> |
+| `deleteObject` | `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> |
+| `recreateMetaLink` | `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> - only registered when `useMetaLink: true` |
+
+## `TStaticAssetExtraOptions`
+
+```typescript
+type TStaticAssetExtraOptions = {
+  parseMultipartBody?: {
+    storage?: 'memory' | 'disk';
+    uploadDir?: string;
+  };
+  normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
+  normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+  /** Maximum folder nesting depth allowed in object paths. Default: 2 */
+  maxFolderDepth?: number;
+  [key: string]: any;
+};
+```
+
+> [!NOTE]
+> `normalizeNameFn` receives **both** `originalName` and `folderPath` - the second lets a custom implementation decide how to fold the target folder into the stored name. Omit `folderPath` handling and nested uploads flatten into the bucket root.
+
+| Field | Default | Notes |
+|-------|---------|-------|
+| `parseMultipartBody.storage` | `'memory'` | `'disk'` spools to `uploadDir`, then the controller reads the file back with `readFileSync` before handing it to the storage helper |
+| `parseMultipartBody.uploadDir` | `'./uploads'` | Created with <code v-pre>fs.mkdirSync({ recursive: true })</code> if missing |
+| `normalizeNameFn` | `BaseStorageHelper`'s internal lowercase + `_`-for-space normalizer | Runs before the file is written; its output is re-validated with `isValidPath()` |
+| `normalizeLinkFn` | Component-generated - see below | Runs after the write to build the returned `link` |
+| `maxFolderDepth` | `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH` (`2`) | Folder segments only - the filename itself does not count against this limit |
+
+### Default `normalizeLinkFn`
+
+`StaticAssetComponent.binding()` always supplies a `normalizeLinkFn` to the factory - your own `extra.normalizeLinkFn` if set, otherwise this default:
+
+```typescript
+(opts: { bucketName: string; normalizeName: string }) => {
+  const encodedPath = encodeURIComponent(opts.normalizeName);
+  return `${controller.basePath}/buckets/${opts.bucketName}/objects/${encodedPath}`;
+};
+```
+
+This is why every generated link points back at the `objects/{objectName}` stream route by default, regardless of storage backend. `BaseStorageHelper`'s own backend-specific `normalizeObjectLink()` (used when a helper's `upload()` is called directly, outside the component) is never reached through `StaticAssetComponent` - the component's default always takes priority when no `normalizeLinkFn` is set.
+
+## Storage types
 
 ```typescript
 class StaticAssetStorageTypes {
@@ -56,95 +188,38 @@ class StaticAssetStorageTypes {
 }
 
 type TStaticAssetStorageType = TConstValue<typeof StaticAssetStorageTypes>;
-// Resolves to: 'disk' | 'minio' | 'bun-s3'
+// 'disk' | 'minio' | 'bun-s3'
 ```
 
-## MultipartBodySchema
+| Type | Constant | Helper | Requires |
+|------|----------|--------|----------|
+| `'disk'` | `StaticAssetStorageTypes.DISK` | `DiskHelper` | Local filesystem write access |
+| `'minio'` | `StaticAssetStorageTypes.MINIO` | `MinioHelper` | A MinIO or S3-compatible endpoint |
+| `'bun-s3'` | `StaticAssetStorageTypes.BUN_S3` | `BunS3Helper` | Bun runtime (imports Bun's native `S3Client`) |
 
-The Zod schema used to validate the upload request body:
+## Storage helpers
 
-```typescript
-const MultipartBodySchema = z.object({
-  files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
-    type: 'array',
-    items: {
-      type: 'string',
-      format: 'binary',
-    },
-  }),
-});
-```
+### `IStorageHelper` interface
 
-This accepts either a single `File` or an array of `File` objects. The OpenAPI spec representation uses `type: 'array'` with `format: 'binary'` items for compatibility with Swagger/OpenAPI tooling.
-
-## Header Sanitization
-
-When streaming files (both inline and download), the controller forwards a specific set of whitelisted headers from the storage metadata to the response. All other metadata headers are dropped.
-
-### WHITELIST_HEADERS
-
-The exact list of forwarded headers:
-
-```typescript
-const WHITELIST_HEADERS = [
-  'content-type',
-  'content-encoding',
-  'cache-control',
-  'etag',
-  'last-modified',
-] as const;
-```
-
-These correspond to `HTTP.Headers.CONTENT_TYPE`, `HTTP.Headers.CONTENT_ENCODING`, `HTTP.Headers.CACHE_CONTROL`, `HTTP.Headers.ETAG`, and `HTTP.Headers.LAST_MODIFIED` from `@venizia/ignis-helpers`.
-
-All header values are sanitized by stripping `\r` and `\n` characters via `String(value).replace(/[\r\n]/g, '')` to prevent HTTP header injection attacks. If no `content-type` header is present in the storage metadata, the controller falls back to `application/octet-stream`.
-
-### HTTP Security Headers
-
-All file streaming responses include:
-
-```http
-X-Content-Type-Options: nosniff
-Content-Type: <from metadata or application/octet-stream>
-Content-Length: <file size in bytes>
-Content-Disposition: attachment; filename="..."  (download endpoint only)
-```
-
-Whitelisted metadata headers forwarded from storage: `content-type`, `content-encoding`, `cache-control`, `etag`, `last-modified`. All other metadata headers are dropped. Header values are sanitized (see [Header Sanitization](#header-sanitization)).
-
-## Object Name Decoding
-
-Hono already percent-decodes the `:objectName` path param before the handler reads it, so the controller does not decode it again - the value read from `ctx.req.valid<TObjectParams>('param')` is used as-is.
-
-A prior second `decodeURIComponent()` was actively wrong:
-
-- `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`; Hono hands the handler back `report_100%.pdf`, and a second decode would hit the invalid escape `%.p` and throw - the object would become unfetchable and undeletable.
-- An object named `a%2Fb.png` would decode twice into `a/b.png` - a different object than the one requested.
-
-`isValidName()`/`isValidPath()` still run on the (singly-decoded) value, so a traversal payload is rejected exactly as before - what changes is that legal names with `%` in them stop being mangled.
-
-## IStorageHelper Interface
-
-All storage helpers implement this unified interface:
+Every backend implements this contract; `BaseStorageHelper` (abstract) implements the shared parts (`isValidName`, `isValidPath`, `upload`, `getMimeType`, `getFileType`) and leaves the rest abstract.
 
 ```typescript
 interface IStorageHelper {
   isValidName(name: string): boolean;
   isValidPath(pathStr: string, opts?: { maxDepth?: number }): boolean;
 
-  // Bucket operations
   isBucketExists(opts: { name: string }): Promise<boolean>;
   getBuckets(): Promise<IBucketInfo[]>;
   getBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   createBucket(opts: { name: string }): Promise<IBucketInfo | null>;
   removeBucket(opts: { name: string }): Promise<boolean>;
 
-  // File operations
   upload(opts: {
     bucket: string;
     files: IUploadFile[];
     normalizeNameFn?: (opts: { originalName: string; folderPath?: string }) => string;
     normalizeLinkFn?: (opts: { bucketName: string; normalizeName: string }) => string;
+    maxFolderDepth?: number;
   }): Promise<IUploadResult[]>;
 
   getFile(opts: { bucket: string; name: string; options?: any }): Promise<Readable>;
@@ -153,12 +228,21 @@ interface IStorageHelper {
   removeObjects(opts: { bucket: string; names: string[] }): Promise<void>;
   listObjects(opts: IListObjectsOptions): Promise<IObjectInfo[]>;
 
-  // Utility
   getFileType(opts: { mimeType: string }): string;
 }
 ```
 
-### Supporting Types
+```
+IStorageHelper (interface)
+    |
+BaseStorageHelper (abstract - implements isValidName/isValidPath/upload/getMimeType/getFileType)
+    |
+    +-- DiskHelper    (local filesystem)
+    +-- MinioHelper   (S3-compatible)
+    +-- BunS3Helper   (Bun-native S3, Bun only)
+```
+
+### Supporting types
 
 ```typescript
 interface IUploadFile {
@@ -208,66 +292,250 @@ interface IListObjectsOptions {
 }
 ```
 
-### Storage Helper Hierarchy
+### Name and path validation (`BaseStorageHelper`)
+
+`isValidName(name)` rejects, in order: non-string input, empty string, `..`/`/`/`\` (path traversal), a leading `.` (hidden file), any of `;`, `\|`, `&`, `$`, `` ` ``, `<`, `>`, `{`, `}`, `[`, `]`, `!`, `#` (shell metacharacters), `\n`/`\r`/`\0` (control characters), length over 255, and whitespace-only input.
+
+`isValidPath(pathStr, { maxDepth })` trims leading/trailing slashes, rejects an empty result, rejects double slashes (empty segments), computes `folderDepth = segments.length - 1` and rejects it exceeding `maxDepth` (default `BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH = 2`), validates every segment through `isValidName()`, and rejects a normalized length over 1024 characters.
+
+### `DiskHelper`
+
+```typescript
+interface IDiskHelperOptions {
+  basePath: string;    // Base directory for storage
+  scope?: string;      // Logger scope, default: 'DiskHelper'
+  identifier?: string; // Helper identifier, default: 'DiskHelper'
+}
+```
+
+Creates `basePath` with `fs.mkdirSync({ recursive: true })` in the constructor if it does not already exist. Buckets map to subdirectories; objects map to files inside them.
+
+```typescript
+const diskHelper = new DiskHelper({ basePath: './app_data/storage' });
+```
+
+### `MinioHelper`
+
+```typescript
+interface IMinioHelperOptions extends ClientOptions { // minio's own SDK options, plus:
+  scope?: string;
+  identifier?: string;
+}
+```
+
+`ClientOptions` comes straight from the `minio` package - `endPoint`, `port`, `useSSL`, `accessKey`, `secretKey`, and the rest of the MinIO client's own configuration surface.
+
+```typescript
+const minioHelper = new MinioHelper({
+  endPoint: 'minio.example.com',
+  port: 9000,
+  useSSL: true,
+  accessKey: process.env.MINIO_ACCESS_KEY,
+  secretKey: process.env.MINIO_SECRET_KEY,
+});
+```
+
+### `BunS3Helper`
+
+```typescript
+interface IBunS3HelperOptions {
+  accessKey: string;
+  secretKey: string;
+  endpoint: string;
+  region?: string;       // Default: 'us-east-1'
+  sessionToken?: string;
+  scope?: string;
+  identifier?: string;
+}
+```
+
+Wraps Bun's native `S3Client`, imported from the `bun` builtin module - it only resolves under the Bun runtime, which is why it is exported from the separate `@venizia/ignis-helpers/bun-s3` subpath rather than the main entry point.
+
+```typescript
+import { BunS3Helper } from '@venizia/ignis-helpers/bun-s3';
+
+const bunS3Helper = new BunS3Helper({
+  accessKey: process.env.S3_ACCESS_KEY,
+  secretKey: process.env.S3_SECRET_KEY,
+  endpoint: 'https://s3.us-east-1.amazonaws.com',
+});
+```
+
+## Controller factory
+
+`AssetControllerFactory.defineAssetController(opts: IAssetControllerOptions)` builds one controller class per call:
+
+```typescript
+interface IAssetControllerOptions {
+  controller: TStaticAssetsComponentOptions[string]['controller'];
+  storage: TStaticAssetStorageType;
+  helper: IStorageHelper;
+  useMetaLink?: boolean;
+  metaLink?: TMetaLinkConfig;
+  options?: TStaticAssetExtraOptions;
+}
+```
+
+1. Creates a class extending `BaseRestController`, decorated `@controller({ path: basePath })`.
+2. Renames it via `Object.defineProperty(GeneratedStaticAssetController, 'name', { value: name, configurable: true })` so logs and DI bindings show your configured `controller.name`, not a generic factory name.
+3. Binds every route in `binding()` with `this.bindRoute({ configs }).to({ handler })`, spread-merging each base definition with its `routes?.<key>` override.
+4. Registers `recreateMetaLink` only when `useMetaLink && metaLink` are both set.
+5. `StaticAssetComponent.binding()` registers the resulting class with `this.application.controller(...)`.
 
 ```
-IStorageHelper (interface)
-    |
-BaseStorageHelper (abstract class)
-    |
-    +-- DiskHelper (local filesystem)
-    +-- MinioHelper (S3-compatible)
-    +-- BunS3Helper (Bun-native S3)
+StaticAssetComponent.binding()
+    | iterates componentOptions
+AssetControllerFactory.defineAssetController({ controller, storage, helper, ... })
+    | creates
+@controller({ path: basePath })
+class GeneratedStaticAssetController extends BaseRestController { ... }
+    | registered via
+this.application.controller(GeneratedStaticAssetController)
 ```
 
-## MetaLink SQL Schema
+### `MultipartBodySchema`
+
+The Zod schema validating the `upload` request body:
+
+```typescript
+const MultipartBodySchema = z.object({
+  files: z.union([z.instanceof(File), z.array(z.instanceof(File))]).openapi({
+    type: 'array',
+    items: { type: 'string', format: 'binary' },
+  }),
+});
+```
+
+### Endpoint reference
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/buckets` | No params. Returns `IBucketInfo[]` |
+| `GET` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` |
+| `POST` | <code v-pre>/buckets/{bucketName}</code> | Returns `IBucketInfo \| null` (`null` if creation failed, e.g. already exists) |
+| `DELETE` | <code v-pre>/buckets/{bucketName}</code> | Returns <code v-pre>{ isDeleted: boolean }</code> |
+| `POST` | <code v-pre>/buckets/{bucketName}/upload</code> | `multipart/form-data` body; query: `principalType?`, `principalId?`, `variant?`, `folderPath?`. Returns `IUploadResult[]` |
+| `GET` | <code v-pre>/buckets/{bucketName}/objects</code> | Query: `prefix?`, `recursive?` (`'true'` string only), `maxKeys?` (positive integer string). Returns `IObjectInfo[]` |
+| `GET` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Streams the file inline. `objectName` is a single percent-encoded segment |
+| `GET` | <code v-pre>/buckets/{bucketName}/download/{objectName}</code> | Streams the file with `Content-Disposition: attachment` |
+| `DELETE` | <code v-pre>/buckets/{bucketName}/objects/{objectName}</code> | Returns <code v-pre>{ success: boolean }</code> |
+| `PUT` | <code v-pre>/buckets/{bucketName}/meta-links/{objectName}</code> | Only registered when `useMetaLink: true`. Returns <code v-pre>{ success: boolean, metaLink }</code> |
+
+### Upload validation order
+
+1. `bucketName` validated with `isValidName()` - `400 "Invalid bucket name"` on failure.
+2. If `folderPath` is present: trimmed of leading/trailing slashes, `400 "Invalid folder path"` if empty after trimming; segment count checked against `maxFolderDepth`, `400 "Folder path exceeds max depth of {n}"` if over; each segment checked with `isValidName()`, `400 "Invalid folder path segment: {segment}"` if any fails.
+3. `multipart/form-data` parsed via `parseMultipartBody()`.
+4. Each file's effective buffer (direct `buffer`, or `readFileSync(file.path)` when `storage: 'disk'` was used) checked non-empty - `400 "Empty file content | name: {originalName}"` if empty.
+5. `helper.upload()` runs the storage-helper-level checks below.
+6. Spool files written by `storage: 'disk'` parsing are removed in a `finally` block via `rmSync({ force: true })`, regardless of success or failure; removal errors are logged, never thrown.
+
+### Storage-helper-level upload checks (`BaseStorageHelper.upload`)
+
+These run inside `helper.upload()`, independent of and in addition to the controller's own checks above - reachable even when a caller uses the storage helper directly:
+
+| Check | Error message | Default status |
+|-------|----------------|-----------------|
+| Bucket does not exist (`isBucketExists()` false) | <code v-pre>[upload] Bucket does not exist \| name: {bucket}</code> | `400` |
+| `originalName` fails `isValidName()` | `[upload] Invalid original file name` | `400` |
+| `folderPath` exceeds depth or fails `isValidPath()` | `[upload] Invalid folder path` | `400` |
+| `size` is `undefined`, `null`, or negative | <code v-pre>[upload] Invalid file size \| size: {size}</code> | `400` |
+| Normalized name (post `normalizeNameFn`) fails `isValidPath()` | <code v-pre>[upload] Invalid normalized object name \| name: {name}</code> | `400` |
+
+`getError()` defaults `statusCode` to `400` when the caller does not pass one explicitly - every message above is thrown without an explicit status, so all resolve to `400`.
+
+## Header sanitization
+
+```typescript
+const WHITELIST_HEADERS = [
+  'content-type',
+  'content-encoding',
+  'cache-control',
+  'etag',
+  'last-modified',
+] as const;
+```
+
+These correspond to `HTTP.Headers.CONTENT_TYPE`, `CONTENT_ENCODING`, `CACHE_CONTROL`, `ETAG`, and `LAST_MODIFIED` from `@venizia/ignis-helpers`. When streaming a file (both `objects/{objectName}` and `download/{objectName}`), the controller copies only these keys from the storage metadata onto the response; every other metadata header is dropped. Each forwarded value is sanitized with `String(value).replace(/[\r\n]/g, '')` before being set, to prevent HTTP header injection.
+
+All streaming responses also set:
+
+```http
+X-Content-Type-Options: nosniff
+Content-Type: <from metadata, or application/octet-stream as fallback>
+Content-Length: <file size in bytes>
+Content-Disposition: attachment; filename="..."   (download endpoint only, via createContentDispositionHeader())
+```
+
+## Object name decoding
+
+Hono percent-decodes a path param before the handler reads it. The controller's `readObjectName()` is therefore a deliberate no-op - it does not run a second `decodeURIComponent()`:
+
+- `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`; Hono hands the handler back `report_100%.pdf`. A second decode would hit the invalid escape `%.p` and throw, making the object permanently unfetchable and undeletable.
+- An object named `a%2Fb.png` would decode twice into `a/b.png` - a different object than the one requested.
+
+`isValidName()`/`isValidPath()` still run on the singly-decoded value, so a traversal payload is rejected exactly as before.
+
+## `TMetaLinkConfig`
+
+```typescript
+type TMetaLinkConfig<Schema extends TMetaLinkSchema = TMetaLinkSchema> = {
+  model: typeof BaseRelationalEntity<Schema>;
+  repository: DefaultRelationalRepository<Schema>;
+  createMetaLink?: (opts: {
+    uploadResult: IUploadResult;
+    fileStat: IFileStat;
+    query: TUploadQuery;
+  }) => ValueOrPromise<{ count: number; data: Schema }>;
+};
+```
+
+`BaseRelationalEntity` and `DefaultRelationalRepository` are the canonical class names (`packages/core/src/connectors/postgres/`); `BasePostgresEntity` and `DefaultCRUDRepository` are re-exported aliases of the same classes.
+
+## MetaLink SQL schema
 
 **Table:** `MetaLink`
 
 | Field | Type | Nullable | Default | Description |
 |-------|------|----------|---------|-------------|
-| `id` | TEXT | No | -- | Primary key (UUID) |
-| `created_at` | TIMESTAMPTZ | No | `NOW()` | When record was created |
-| `modified_at` | TIMESTAMPTZ | No | `NOW()` | When record was last updated |
-| `bucket_name` | TEXT | No | -- | Storage bucket name |
-| `object_name` | TEXT | No | -- | File object name |
-| `link` | TEXT | No | -- | Access URL to the file |
-| `mimetype` | TEXT | No | -- | File MIME type |
-| `size` | INTEGER | No | -- | File size in bytes |
-| `etag` | TEXT | Yes | -- | Entity tag for versioning |
-| `metadata` | JSONB | Yes | -- | Additional file metadata |
-| `storage_type` | TEXT | No | -- | Storage type (`'disk'`, `'minio'`, or `'bun-s3'`) |
-| `is_synced` | BOOLEAN | No | `false` | Whether MetaLink is synchronized with storage |
-| `variant` | TEXT | Yes | -- | Upload variant tag (e.g., `'thumbnail'`, `'original'`) |
-| `principal_type` | TEXT | Yes | -- | Type of the associated principal (e.g., `'user'`, `'service'`) |
-| `principal_id` | TEXT | Yes | -- | ID of the associated principal (always stored as string) |
+| `id` | TEXT | No | - | Primary key |
+| `created_at` | TIMESTAMPTZ | No | `NOW()` | Row creation time |
+| `modified_at` | TIMESTAMPTZ | No | `NOW()` | Row last-update time |
+| `bucket_name` | TEXT | No | - | Storage bucket name |
+| `object_name` | TEXT | No | - | File object name (may include folder segments) |
+| `link` | TEXT | No | - | Access URL to the file |
+| `mimetype` | TEXT | No | - | File MIME type |
+| `size` | INTEGER | No | - | File size in bytes |
+| `etag` | TEXT | Yes | - | Entity tag for versioning |
+| `metadata` | JSONB | Yes | - | Additional file metadata |
+| `storage_type` | TEXT | No | - | `'disk'`, `'minio'`, or `'bun-s3'` |
+| `is_synced` | BOOLEAN | No | `false` | Set `true` on every upload and every meta-links sync |
+| `variant` | TEXT | Yes | - | Upload variant tag (e.g. `'thumbnail'`, `'original'`) |
+| `principal_type` | TEXT | Yes | - | Associated principal type |
+| `principal_id` | TEXT | Yes | - | Associated principal ID, always stored as a string |
 
 **Indexes:** `bucket_name`, `object_name`, `storage_type`, `is_synced`.
 
-> [!NOTE]
-> The `isSynced` field is automatically set to `true` when files are uploaded or synced via the meta-links endpoint. When a file is deleted, the MetaLink record is removed entirely. The `principalType`, `principalId`, and `variant` fields are only populated during upload when the corresponding query parameters are provided.
+`@model({ type: 'entity', skipMigrate: true })` on `BaseMetaLinkModel` means IGNIS's schema migration skips this table - it must be created manually, once, per database.
 
-### MetaLink Tracking
+### MetaLink lifecycle
 
-When `useMetaLink: true`, the component:
+- **On upload:** creates one MetaLink row per uploaded file after fetching fresh stats via `helper.getStat()`. Uses `metaLink.createMetaLink()` when provided, otherwise a default insert covering every standard field. `principalType`, `principalId`, and `variant` are taken from the upload's query parameters. If the insert throws, the upload still succeeds and the file's entry in the response gets `metaLink: null` plus a `metaLinkError` string; the error is also logged.
+- **On delete:** storage delete happens first and is awaited; the MetaLink row delete (`deleteAll({ where: { bucketName, objectName } })`) is fired without awaiting it. The HTTP response returns as soon as the storage delete resolves - the database delete may still be in flight. Errors there are logged, never surfaced to the client.
+- **On sync (`PUT meta-links/:objectName`):** looks up an existing row by `bucketName` + `objectName`. If found, `updateById()` then re-fetches with `findById()`. If not found, `create()`. Either path always sets `isSynced: true` and returns `{ success: true, metaLink }`.
 
-- **On upload:** Creates a MetaLink database record for each uploaded file after fetching file stats from storage. If a `createMetaLink` callback is provided on `TMetaLinkConfig`, it is used instead of the default creation logic. Stores `principalType`, `principalId`, and `variant` from query parameters (if provided). The `principalId` is always coerced to a string via `String()`. If MetaLink creation fails, the upload still succeeds and the response includes `metaLink: null` with a `metaLinkError` message.
-- **On delete:** Initiates MetaLink record deletion as fire-and-forget (the `.then()/.catch()` promise chain is not awaited). The HTTP response with `{ "success": true }` returns before the database deletion completes. Deletion errors are logged but do not fail the request.
-- **On sync (PUT meta-links):** Checks if a MetaLink exists for the object (matched by `bucketName` + `objectName`). Updates it if found, creates a new one if not. Always sets `isSynced: true`. Returns `{ success: true, metaLink: ... }`.
+## Component lifecycle
 
-## Component Lifecycle
+1. `binding()` reads `STATIC_ASSET_COMPONENT_OPTIONS` from the DI container.
+2. Iterates each key in the options object.
+3. For each entry, builds a `normalizeLinkFn` default if the caller did not supply one (see [Default normalizeLinkFn](#default-normalizelinkfn)).
+4. Calls `AssetControllerFactory.defineAssetController()` and registers the result with `this.application.controller()`.
+5. Logs the storage key, storage type, and whether MetaLink is enabled for each registered backend.
 
-1. **`binding()`** -- Reads `STATIC_ASSET_COMPONENT_OPTIONS` from the DI container
-2. **Iterates each storage key** -- For each entry, calls `AssetControllerFactory.defineAssetController()`
-3. **Generates default `normalizeLinkFn`** -- If not provided, creates links in the format <code v-pre>{basePath}/buckets/{bucket}/objects/{encodedName}</code>
-4. **Registers controller** -- Calls `this.application.controller()` with the dynamically created class
-5. **Logs binding** -- Logs the storage key, type, and MetaLink status for each registered backend
+`StaticAssetComponent` itself performs no eager configuration validation beyond the options type - a missing `metaLink` when `useMetaLink: true` is caught at compile time by the discriminated union, not at `binding()` runtime.
 
-> [!TIP]
-> When MetaLink deletion fails on object delete, the error is logged but the HTTP response still returns `{ "success": true }`. Check your application logs if MetaLink records are not being cleaned up. Since the deletion is fire-and-forget, the response may return before the deletion attempt even starts.
+## See also
 
-## See Also
-
-- [Setup & Configuration](./) - Quick Reference, Setup Steps, Configuration Options
-- [Usage & Examples](./usage) - API Endpoints and Frontend Integration
-- [Error Reference](./errors) - Name Validation and Troubleshooting
+- [Overview](./) - quick start, imports, and common configuration tasks
+- [Usage & Examples](./usage) - task-oriented walkthroughs for every endpoint and MetaLink setup
+- [Error Reference](./errors) - name validation rules and troubleshooting

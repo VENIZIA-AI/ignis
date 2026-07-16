@@ -7,7 +7,7 @@ lastUpdated: 2026-03-15
 
 # Filter Operators Quick Reference
 
-Complete single-page reference for all IGNIS filter operators. For detailed explanations and examples, see the individual operator guides.
+Complete single-page reference for all IGNIS filter operators. For detailed explanations and examples, see the individual operator guides linked below, or start at the [Filter System Overview](./) for the full `filter` shape.
 
 ## Comparison Operators
 
@@ -101,7 +101,7 @@ Complete single-page reference for all IGNIS filter operators. For detailed expl
 
 `exists`/`notExists`/`not` are supported on the PostgreSQL connector. `not` recurses: `{ not: { gt: 100 } }` becomes `NOT (col > 100)`, and `{ not: 5 }` becomes `NOT (col = 5)`. `exists` also works over JSON paths on PostgreSQL (`{ 'metadata.score': { exists: true } }`).
 
-**See:** [Null Operators Guide](./null-operators.md)
+**See:** [Null Operators Guide](./null-operators.md) (`exists`/`notExists`), [Logical Operators Guide](./logical-operators.md) (`not`)
 
 
 ## Logical Operators
@@ -273,3 +273,12 @@ await userRepository.find({
 ```
 
 **See:** [Default Filter Guide](./default-filter.md)
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape, `where` families at a glance, and links to every depth page
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators`/`Sorts` constants

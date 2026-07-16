@@ -1,7 +1,15 @@
 # Environment Variables Reference
 
-Complete reference of all environment variables used by IGNIS framework.
+Complete reference of all environment variables used by the IGNIS framework, grouped by category with defaults and required/optional status.
 
+**Files:**
+
+- [`packages/core/src/common/environments.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/common/environments.ts) - `EnvironmentKeys`
+- [`packages/helpers/src/modules/env/app-env.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/env/app-env.ts) - `applicationEnvironment`, `Environment`
+- [`packages/core/src/base/applications/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/applications/abstract.ts) - `validateEnvs()`, host/port resolution priority
+- [`packages/core/src/base/applications/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/applications/base.ts) - `registerSecrets()`, `hydrateSecrets()`
+- [`packages/helpers/src/modules/secrets/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/common/constants.ts) - `SecretProviders`, `VaultAuthMethods`
+- [`packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/secrets/hashicorp/hashicorp.helper.ts) - HashiCorp Vault helper
 
 ## Overview
 
@@ -189,7 +197,9 @@ export class PostgresDataSource extends BaseDataSource {
 
 ### Security Requirements
 
-The `AuthenticateComponent` receives its secrets programmatically via the `jwtOptions` binding (`jwtSecret`, `getTokenExpiresFn`), not by reading these environment variables directly. These `EnvironmentKeys` constants are the conventional way for your application to supply those values. The component throws at startup if `jwtSecret` is missing or left at the placeholder value - so wiring it from an unset environment variable will fail the boot.
+- **Not read directly.** The `AuthenticateComponent` receives its secrets programmatically via the `jwtOptions` binding (`jwtSecret`, `getTokenExpiresFn`) - it never reads these environment variables itself.
+- **`EnvironmentKeys` is the convention, not a requirement.** These constants are the conventional way for your application to supply those values into the binding.
+- **A missing or placeholder secret fails the boot.** The component throws at startup if `jwtSecret` is missing or left at the placeholder value - wiring it from an unset environment variable fails the same way.
 
 ### Generate Strong Secrets
 
@@ -329,7 +339,9 @@ APP_ENV_MAIL_REFRESH_TOKEN=your-oauth2-refresh-token
 | `NODE_ENV` | No | `development` | Environment mode. One of `local`, `debug`, `development`, `dev`, `sit`, `uat`, `alpha`, `beta`, `staging`, `production` |
 | `ALLOW_EMPTY_ENV_VALUE` | No | `false` | Allow empty env values |
 
-The gate is fail-closed: an environment IGNIS does not recognise is treated as production, so error responses are sanitized. `local`, `debug`, `development`, `dev` and `sit` are the development environments - only they expose internal error detail. `alpha`, `beta`, `staging` and `production` stay sanitized.
+- **Fail-closed by default.** An environment IGNIS does not recognize is treated as production, so error responses are sanitized.
+- **Development environments expose error detail.** `local`, `debug`, `development`, `dev`, and `sit` are the development set - only these show internal error detail.
+- **Everything else stays sanitized.** `alpha`, `beta`, `staging`, and `production` never expose internal detail, matching production behavior.
 
 ### Example
 
@@ -342,6 +354,28 @@ DEBUG=true
 NODE_ENV=production
 ```
 
+
+## Secrets & Vault
+
+- **A `.env` file is one option, not a requirement.** IGNIS can load these variables from a vault (HashiCorp Vault, an encrypted `.env.vault`, or plain `process.env`) and **hydrate** them into the same `APP_ENV_*` keys at boot. Code that reads `process.env.APP_ENV_*` keeps working unchanged - the values simply arrive from the vault instead of a file.
+- **Hydration runs before datasources are configured** (after `preConfigure()`, before `registerDataSources()`), so a hydrated `APP_ENV_DS_PASSWORD` is available exactly where a file-based one would be.
+- **Vault values take precedence over `process.env`** when the provider is live - a hydrated key overwrites whatever was already in `process.env`.
+
+```typescript
+// Store the key in the vault already named APP_ENV_... and it merges as-is.
+override registerSecrets() {
+  return {
+    provider: SecretProviders.HASHICORP_VAULT,
+    config: { endpoint, auth: { method: VaultAuthMethods.APP_ROLE, roleId, secretId } },
+    hydrate: [{ path: 'secret/data/myapp/config' }],
+  };
+}
+```
+
+> [!NOTE] Failure policy
+> If the vault is unreachable, development environments (`local`, `debug`, `development`, `dev`, `sit`) fall back to `process.env`; every other environment fails the boot rather than starting with missing secrets.
+
+See the [Secrets & Vault guide](/guides/core-concepts/secrets-vault) for setup and the [Secrets & Vault reference](/references/base/secrets) for the full API.
 
 ## Environment-Specific Files
 
@@ -444,3 +478,11 @@ APP_ENV_LOGGER_FOLDER_PATH=./logs
 # APP_ENV_MAIL_CLIENT_SECRET=
 # APP_ENV_MAIL_REFRESH_TOKEN=
 ```
+
+## See also
+
+- [Configuration Reference](./index.md) - `EnvironmentKeys` constants and the `applicationEnvironment` helper
+- [Secrets & Vault Guide](/guides/core-concepts/secrets-vault) - setup walkthrough for vault-backed secrets
+- [Secrets & Vault Reference](/references/base/secrets) - full provider API (`registerSecrets`, `SecretProviders`, `VaultAuthMethods`)
+- [DataSources Guide](/guides/core-concepts/persistent/datasources) - wiring `APP_ENV_POSTGRES_*` into a DataSource
+- [Logger Helper](/extensions/helpers/logger/) - `APP_ENV_LOGGER_*` variables in depth

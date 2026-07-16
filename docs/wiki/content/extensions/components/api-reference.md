@@ -1,6 +1,6 @@
 # API Reference
 
-Automatic interactive API documentation generation using OpenAPI specifications, powered by Scalar or Swagger UI.
+Automatic interactive API documentation generated from OpenAPI specs, rendered by a pluggable UI provider - Scalar by default, or classic Swagger UI.
 
 > [!NOTE] Renamed from SwaggerComponent
 > Swagger UI is just one of the pluggable UI providers, so the component carries a vendor-neutral name. `SwaggerComponent`, `ISwaggerOptions`, and `SwaggerBindingKeys` remain available as deprecated aliases - existing applications keep working unchanged.
@@ -14,7 +14,7 @@ Automatic interactive API documentation generation using OpenAPI specifications,
 | **UI Factory** | `UIProviderFactory` |
 | **Runtimes** | Both |
 
-| Provider | Value | When to Use |
+| Provider | Value | When to use |
 |----------|-------|-------------|
 | **Scalar** | `'scalar'` | Modern, clean UI (default) |
 | **Swagger UI** | `'swagger'` | Classic Swagger interface |
@@ -25,31 +25,9 @@ import { ApiReferenceComponent, ApiReferenceBindingKeys, UIProviderFactory } fro
 import type { IApiReferenceOptions, IUIProvider, IUIConfig, IGetProviderParams } from '@venizia/ignis';
 ```
 
-## Setup
+## In one example
 
-### Step 1: Bind Configuration (Optional)
-
-Skip this step to use the defaults (Scalar UI at `/doc/explorer`). To customize:
-
-```typescript
-// In your Application class's preConfigure method (src/application.ts)
-import { ApiReferenceBindingKeys, IApiReferenceOptions } from '@venizia/ignis';
-
-this.bind<IApiReferenceOptions>({
-  key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
-}).toValue({
-  restOptions: {
-    base: { path: '/doc' },
-    doc: { path: '/openapi.json' },
-    ui: { path: '/explorer', type: 'swagger' }, // Use Swagger UI instead of Scalar
-  },
-  explorer: {
-    openapi: '3.0.0',
-  },
-});
-```
-
-### Step 2: Register Component
+Register the component - the docs UI comes up at `/doc/explorer`, the raw spec at `/doc/openapi.json`. No configuration required.
 
 ```typescript
 // src/application.ts
@@ -57,15 +35,12 @@ import { ApiReferenceComponent, BaseApplication, ValueOrPromise } from '@venizia
 
 export class Application extends BaseApplication {
   preConfigure(): ValueOrPromise<void> {
-    // ...
     this.component(ApiReferenceComponent);
   }
 }
 ```
 
-### Step 3: Define Routes with Zod Schemas
-
-To get the most out of the documentation, define your routes with `zod` schemas:
+Define routes with Zod schemas so they show up in the generated spec:
 
 ```typescript
 // src/controllers/hello.controller.ts
@@ -100,45 +75,64 @@ export class HelloController extends BaseRestController {
 ```
 
 > [!TIP]
-> Controllers using `defineRoute` with Zod schemas automatically generate OpenAPI specs. The Swagger component discovers all registered controller routes and renders them in the documentation UI.
+> Only routes registered through `defineRoute`, `bindRoute`, or `@api()` with `@hono/zod-openapi` schemas appear in the generated spec.
 
-## Configuration
+## How it works
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `restOptions.base.path` | `string` | `'/doc'` | Base path for all documentation routes |
-| `restOptions.doc.path` | `string` | `'/openapi.json'` | Path to the raw OpenAPI spec (relative to base) |
-| `restOptions.ui.path` | `string` | `'/explorer'` | Path to the documentation UI (relative to base) |
-| `restOptions.ui.type` | `'swagger' \| 'scalar'` | `'scalar'` | UI provider type |
-| `explorer.openapi` | `string` | `'3.0.0'` | OpenAPI specification version |
-| `uiConfig` | `Record<string, any>` | `undefined` | Custom config passed to the UI provider |
+- **Options merge group by group.** `binding()` reads the bound `IApiReferenceOptions`, then shallow-merges `base`, `doc`, and `ui` each against their own defaults - overriding `ui.type` alone still keeps `ui.path` and every `base`/`doc` field.
+- **`explorer.info` is always overwritten.** The component unconditionally reads your `package.json` (via `application.getAppInfo()`) and replaces `explorer.info` with `{ title, version, description, contact }` - any `explorer.info` you bind is discarded. Edit `package.json` instead.
+- **`explorer.servers` fills in only when empty.** A supplied server entry is kept as-is; otherwise the component builds one from `application.getServerAddress()` plus the base path.
+- **UI type resolution uses `??`, not `||`.** The source is `restOptions.ui.type ?? DocumentUITypes.SWAGGER` - only `null`/`undefined` falls back, and it falls back to `'swagger'`, not the configured default `'scalar'`. An explicit empty string is NOT repaired by this fallback - it fails `DocumentUITypes.isValid()` and the component throws `Invalid document UI Type` immediately.
+- **UI libraries load lazily.** `SwaggerUIProvider`/`ScalarUIProvider` each `await import()` their rendering library inside `render()`, on the first request to the docs UI - not at application startup. Only the configured provider's library is ever loaded.
+- **`ScalarUIProvider` renames `title` to `pageTitle`.** A quirk to know if you inspect the rendered output or write a custom UI provider: Scalar's own API takes `pageTitle`, not `title`.
+- **Security schemes are always registered.** JWT (`bearer`) and Basic security schemes are added to the OpenAPI registry unconditionally, so routes using `authenticate: { strategies: ['jwt'] }` or `['basic']` render the correct auth UI.
 
-> [!IMPORTANT]
-> The `explorer.info` field is **always overwritten** during the component's `binding()` phase. The component unconditionally reads your application's `package.json` via `application.getAppInfo()` and sets `explorer.info` to `{ title, version, description, contact }` from that data. Any user-provided `explorer.info` values are discarded. If you need to customize these fields, update your `package.json` instead.
+## Common tasks
 
-> [!NOTE]
-> The `explorer.servers` field is auto-populated only when empty. If you provide `explorer.servers` with at least one entry, the component preserves your values. When no servers are configured, it creates a default entry from `application.getServerAddress()` plus the application base path.
+### Switch to Swagger UI
+```typescript
+this.bind<IApiReferenceOptions>({
+  key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
+}).toValue({ restOptions: { ui: { type: 'swagger' } } });
+```
 
-#### IApiReferenceOptions -- Full Reference
+### Move the docs under a different base path
+```typescript
+this.bind<IApiReferenceOptions>({
+  key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
+}).toValue({ restOptions: { base: { path: '/api-docs' } } });
+```
+Result: UI at `/api-docs/explorer`, spec at `/api-docs/openapi.json` - the group merge keeps `doc.path`/`ui.path` defaults.
+
+### Set the info block shown in the UI
+`explorer.info` always comes from `package.json` - update `name`, `version`, `description`, and `author` there; binding `explorer.info` directly has no effect.
+
+### Register a custom UI provider
+`UIProviderFactory.register()` only understands `'swagger'`/`'scalar'`. Register a custom provider directly on the factory before `ApiReferenceComponent.binding()` runs:
+
+```typescript
+UIProviderFactory.getInstance().set('my-ui', new MyCustomUIProvider());
+```
+
+## Reference
+
+### Options
 ```typescript
 export interface IApiReferenceOptions {
-  restOptions: {
-    base: { path: string };
-    doc: { path: string };
-    ui: { path: string; type: TDocumentUIType };
+  restOptions?: {
+    base?: { path?: string };
+    doc?: { path?: string };
+    ui?: { path?: string; type?: TDocumentUIType };
   };
-  explorer: {
-    openapi: string;
+  explorer?: {
+    openapi?: string;
     info?: {
       title: string;
       version: string;
       description: string;
       contact?: { name: string; email: string };
     };
-    servers?: Array<{
-      url: string;
-      description?: string;
-    }>;
+    servers?: Array<{ url: string; description?: string }>;
   };
   uiConfig?: Record<string, any>;
 }
@@ -151,194 +145,18 @@ export interface IApiReferenceOptions {
 | `restOptions.ui.path` | `string` | `'/explorer'` | Path to the documentation UI (relative to base) |
 | `restOptions.ui.type` | `'swagger' \| 'scalar'` | `'scalar'` | UI provider type |
 | `explorer.openapi` | `string` | `'3.0.0'` | OpenAPI specification version |
-| `explorer.info.title` | `string` | Always from `package.json` `name` | API title (overwritten at runtime) |
-| `explorer.info.version` | `string` | Always from `package.json` `version` | API version (overwritten at runtime) |
-| `explorer.info.description` | `string` | Always from `package.json` `description` | API description (overwritten at runtime) |
-| `explorer.info.contact` | `{ name, email }` | Always from `package.json` `author` | Contact information (overwritten at runtime) |
+| `explorer.info.title` / `.version` / `.description` / `.contact` | - | Always sourced from `package.json` | Overwritten at runtime - binding values are discarded |
 | `explorer.servers` | `Array<{ url, description? }>` | Auto-detected when empty | Server URLs |
-| `uiConfig` | `Record<string, any>` | `undefined` | Custom config passed to the UI provider |
+| `uiConfig` | `Record<string, any>` | `undefined` | Custom config passed through to the UI provider |
 
-#### IGetProviderParams Interface
-
-The `IGetProviderParams` interface is used by `UIProviderFactory.getProvider()` and `UIProviderFactory.register()`:
-
-```typescript
-export interface IGetProviderParams {
-  type: string;
-}
-```
-
-This interface is exported for use when building custom tooling around the `UIProviderFactory` -- for example, programmatically querying which providers are available or registering providers in tests.
-
-### Tech Stack
-
-| Library | Purpose |
-|---------|---------|
-| `@hono/zod-openapi` | OpenAPI generation from Zod schemas |
-| `@hono/swagger-ui` | Swagger UI rendering |
-| `@scalar/hono-api-reference` | Scalar UI rendering |
-| `zod` | Schema validation and type generation |
-
-> [!TIP]
-> The component also auto-registers JWT (`bearer`) and Basic security schemes in the OpenAPI spec, so authenticated endpoints display the correct auth UI in the documentation.
-
-## Architecture
-
-### Component Lifecycle
-
-The `ApiReferenceComponent` executes the following during `binding()`:
-
-1. **Resolve options** -- reads `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` from DI using `application.get()` with `isOptional: true`, then deep-merges what it finds over `DEFAULT_API_REFERENCE_OPTIONS` group by group, so an application that overrides one path keeps the defaults for the rest
-2. **Overwrite info** -- unconditionally reads `package.json` via `application.getAppInfo()` and overwrites `explorer.info` with `{ title: appInfo.name, version: appInfo.version, description: appInfo.description, contact: appInfo.author }`
-3. **Auto-detect servers** -- if `explorer.servers` is empty or unset, creates one entry from `http://` + `application.getServerAddress()` + `configs.path.base`
-4. **Normalize paths** -- all path segments (`base.path`, `doc.path`, `ui.path`) are normalized to ensure a leading `/` is present, handling both `/path` and `path` inputs
-5. **Register OpenAPI doc route** -- calls `rootRouter.doc(docPath, explorer)` to register the raw JSON endpoint
-6. **Resolve UI type with fallback** -- evaluates `restOptions.ui.type || DocumentUITypes.SWAGGER`. Note: this means a falsy value (empty string) falls back to `'swagger'`, not `'scalar'`
-7. **Validate UI type** -- checks the resolved type against `DocumentUITypes.SCHEME_SET`, throws if invalid
-8. **Register UI provider** -- calls `UIProviderFactory.register({ type })` to instantiate the UI renderer
-9. **Construct docUrl** -- builds the full documentation URL by joining `configs.path.base`, `configs.basePath`, and the computed `docPath`
-10. **Register UI route** -- creates `GET` handler at `uiPath` that calls `uiProvider.render()` with `{ title: appInfo.name, url: docUrl, ...uiConfig }`
-11. **Register security schemes** -- auto-registers JWT (bearer) and Basic security schemes in the OpenAPI registry
-
-### Architecture Components
-
-| Component | Class | Role |
-|-----------|-------|------|
-| **ApiReferenceComponent** | `extends BaseComponent` | Orchestrates binding, overwrites OpenAPI metadata from `package.json` |
-| **UIProviderFactory** | `extends MemoryStorageHelper` (singleton) | Registry for UI providers, validates and instantiates |
-| **SwaggerUIProvider** | `implements IUIProvider` | Renders Swagger UI via `@hono/swagger-ui` |
-| **ScalarUIProvider** | `implements IUIProvider` | Renders Scalar UI via `@scalar/hono-api-reference` |
-
-#### UIProviderFactory and MemoryStorageHelper
-
-`UIProviderFactory` extends `MemoryStorageHelper<{ [key: string | symbol]: IUIProvider }>`, which provides a simple in-memory key-value store with the following methods used internally:
-
-- `isBound(key)` -- checks if a provider type is already registered
-- `get(key)` -- retrieves a registered provider instance
-- `set(key, value)` -- stores a provider instance
-- `keys()` -- lists all registered provider type keys
-
-This gives the factory a lightweight, type-safe storage backend without requiring the full DI container.
-
-#### Lazy Dynamic Imports
-
-Both `SwaggerUIProvider` and `ScalarUIProvider` use `await import()` inside their `render()` method to load the underlying UI library:
-
-```typescript
-// SwaggerUIProvider
-async render(context, config, next) {
-  const { swaggerUI } = await import('@hono/swagger-ui');
-  // ...
-}
-
-// ScalarUIProvider
-async render(context, config, next) {
-  const { Scalar } = await import('@scalar/hono-api-reference');
-  // ...
-}
-```
-
-This means UI libraries are loaded on the **first HTTP request** to the documentation endpoint, not at application startup. This keeps startup time fast and avoids loading unused UI libraries (only the configured provider's library is ever imported).
-
-#### ScalarUIProvider Title Mapping
-
-The `ScalarUIProvider` maps the `title` field to `pageTitle` when calling the Scalar renderer:
-
-```typescript
-const { title, url, ...customConfig } = config;
-return Scalar({ url, pageTitle: title, ...customConfig })(context, next);
-```
-
-This is a quirk to be aware of if you are inspecting the rendered output or writing custom UI providers -- Scalar uses `pageTitle` instead of `title`.
-
-### UIProviderFactory API
-
-| Method | Signature | Description |
-|--------|-----------|-------------|
-| `getInstance()` | `static () => UIProviderFactory` | Returns singleton instance |
-| `register()` | `(opts: { type: string }) => void` | Instantiates and registers a UI provider (idempotent) |
-| `getProvider()` | `(opts: IGetProviderParams) => IUIProvider` | Returns registered provider or throws |
-| `getRegisteredProviders()` | `() => string[]` | Lists all registered provider type keys |
-
-#### register() Idempotency
-
-The `register()` method is idempotent. If a provider of the given type is already registered, it logs a warning and returns without error:
-
-```typescript
-register(opts: { type: string }): void {
-  if (this.isBound(opts.type)) {
-    this.logger
-      .for(this.register.name)
-      .warn('Skip registering BOUNDED Document UI | type: %s', opts.type);
-    return;
-  }
-  // ... instantiate and store the provider
-}
-```
-
-This means calling `register({ type: 'scalar' })` multiple times is safe and will not create duplicate provider instances.
-
-### IUIProvider Interface
-
-```typescript
-interface IUIProvider {
-  render(context: Context, config: IUIConfig, next: Next): Promise<Response | void>;
-}
-
-interface IUIConfig {
-  title: string;     // App name from package.json
-  url: string;       // Full URL to OpenAPI JSON endpoint
-  [key: string]: any; // Additional config from uiConfig option
-}
-```
-
-### Security Scheme Registration
-
-The component auto-registers two OpenAPI security schemes:
-
-```typescript
-// JWT Bearer
-rootRouter.openAPIRegistry.registerComponent('securitySchemes', 'jwt', {
-  type: 'http',
-  scheme: 'bearer',
-  bearerFormat: 'JWT',
-});
-
-// Basic Auth
-rootRouter.openAPIRegistry.registerComponent('securitySchemes', 'basic', {
-  type: 'http',
-  scheme: 'basic',
-});
-```
-
-This ensures routes using `authStrategies: ['jwt']` or `authStrategies: ['basic']` display the correct auth UI (lock icon + input fields) in the documentation.
-
-## Binding Keys
-
+### Binding keys
 | Key | Constant | Type | Required | Default |
 |-----|----------|------|----------|---------|
-| `@app/api-reference/options` | `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` | `IApiReferenceOptions` | No | See below |
+| `@app/api-reference/options` | `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` | `IApiReferenceOptions` | No | See Options table |
 
-The deprecated `SwaggerBindingKeys.SWAGGER_OPTIONS` still resolves - it is an alias whose **value** is that same `'@app/api-reference/options'` string. There is no binding under the literal `'@app/swagger/options'`; binding that raw string does nothing.
-
-The constructor registers the default through `super()`, so the binding is in the container from the start:
-
-```typescript
-super({
-  scope: ApiReferenceComponent.name,
-  initDefault: { enable: true, container: application },
-  bindings: {
-    [ApiReferenceBindingKeys.API_REFERENCE_OPTIONS]: Binding.bind<IApiReferenceOptions>({
-      key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
-    }).toValue(DEFAULT_API_REFERENCE_OPTIONS),
-  },
-});
-```
-
-`binding()` then reads the key back with `isOptional: true` and **deep-merges** whatever the application bound over the defaults, group by group (`base`, `doc`, `ui`, `explorer`) - so overriding one path does not wipe the others. The merge builds a fresh `explorer` object per application; mutating the bound one would leak this application's info into every later application in the same process.
+`SwaggerBindingKeys.SWAGGER_OPTIONS` is a deprecated alias whose VALUE is the same `'@app/api-reference/options'` string - there is no separate binding under the literal `'@app/swagger/options'`.
 
 **Default value:**
-
 ```typescript
 const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
   restOptions: {
@@ -358,10 +176,27 @@ const DEFAULT_API_REFERENCE_OPTIONS: IApiReferenceOptions = {
 ```
 
 > [!NOTE]
-> The `explorer.info` values in `DEFAULT_API_REFERENCE_OPTIONS` are never used at runtime because `binding()` unconditionally overwrites `explorer.info` with data from `package.json`. They exist only as structural defaults.
+> The `explorer.info` values above are never used at runtime - `binding()` unconditionally overwrites `explorer.info` from `package.json`. They exist only as structural defaults.
 
-### Type Definitions
+### API endpoints
+| Method | Path (default) | Description |
+|--------|-----------------|-------------|
+| `GET` | `/doc/explorer` | Documentation UI (Scalar by default) |
+| `GET` | `/doc/openapi.json` | Raw OpenAPI specification |
 
+Actual paths shift with `restOptions.base.path`, `restOptions.ui.path`, and `restOptions.doc.path`.
+
+### UIProviderFactory
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `getInstance()` | `static () => UIProviderFactory` | Returns the singleton instance |
+| `register()` | `(opts: { type: string }) => void` | Instantiates and registers a built-in provider; idempotent - warns and returns if the type is already bound |
+| `getProvider()` | `(opts: IGetProviderParams) => IUIProvider` | Returns the registered provider or throws `Unknown UI Provider` |
+| `getRegisteredProviders()` | `() => string[]` | Lists all registered provider type keys |
+
+Extends `MemoryStorageHelper<{ [key: string | symbol]: IUIProvider }>`, using `isBound()` / `get()` / `set()` / `keys()` for lightweight, type-safe storage without the full DI container.
+
+### Type definitions
 ```typescript
 type TDocumentUIType = TConstValue<typeof DocumentUITypes>;
 
@@ -373,96 +208,38 @@ class DocumentUITypes {
 }
 ```
 
-`TDocumentUIType` is derived via `TConstValue`, which extracts the union of all `static readonly` string values from `DocumentUITypes`. This ensures the type stays in sync with the constants automatically.
+`TDocumentUIType` is derived via `TConstValue`, which extracts the union of every `static readonly` string on `DocumentUITypes` - the type stays in sync with the constants automatically.
 
-## API Endpoints
+### Component lifecycle (`binding()`)
+1. **Resolve options** - reads `ApiReferenceBindingKeys.API_REFERENCE_OPTIONS` with `isOptional: true`, then merges `base`/`doc`/`ui` each against `DEFAULT_API_REFERENCE_OPTIONS`
+2. **Overwrite info** - reads `package.json` via `application.getAppInfo()` and replaces `explorer.info`
+3. **Auto-detect servers** - builds one entry from `application.getServerAddress()` when `explorer.servers` is empty
+4. **Normalize paths** - ensures every path segment (`base.path`, `doc.path`, `ui.path`) has a leading `/`
+5. **Register the OpenAPI doc route** - `rootRouter.doc(docPath, explorer)`
+6. **Resolve `uiType`** - `restOptions.ui.type ?? DocumentUITypes.SWAGGER`
+7. **Validate and register the UI provider** - via `UIProviderFactory`, unless a provider with that type is already bound
+8. **Register the UI route** - `GET` handler at `uiPath` calling `uiProvider.render()`
+9. **Register JWT and Basic security schemes** on the OpenAPI registry
 
-| Method | Path | Description |
-|--------|------|-------------|
-| `GET` | `/doc/explorer` | Documentation UI (Scalar by default) |
-| `GET` | `/doc/openapi.json` | Raw OpenAPI specification |
-
-> [!NOTE]
-> These paths are based on the default configuration. If you customize `restOptions.base.path`, `restOptions.ui.path`, or `restOptions.doc.path`, the actual endpoints change accordingly.
-
-### Documentation UI Endpoint
-
-**Default path:** `/doc/explorer`
-
-Renders an interactive API documentation page using the configured UI provider (Scalar or Swagger UI). The UI fetches the OpenAPI spec from the JSON endpoint and renders it with full request/response exploration, authentication controls, and try-it-out functionality.
-
-### OpenAPI JSON Endpoint
-
-**Default path:** `/doc/openapi.json`
-
-Returns the raw OpenAPI JSON specification generated from all registered controller routes and their Zod schemas. This endpoint can be used by:
-- External API testing tools (Postman, Insomnia)
-- CI pipelines for API contract validation
-- Client SDK generators (openapi-generator, orval)
-- API gateway configuration
+### Tech stack
+| Library | Purpose |
+|---------|---------|
+| `@hono/zod-openapi` | OpenAPI generation from Zod schemas |
+| `@hono/swagger-ui` | Swagger UI rendering |
+| `@scalar/hono-api-reference` | Scalar UI rendering |
+| `zod` | Schema validation and type generation |
 
 ## Troubleshooting
 
-### "Invalid document UI Type"
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Invalid document UI Type` | `restOptions.ui.type` is not `'swagger'` or `'scalar'` - an explicit empty string is NOT repaired by the `??` fallback | Use `'scalar'` or `'swagger'` explicitly |
+| Documentation UI shows no routes | Controllers aren't defining routes with Zod schemas via `defineRoute`, `bindRoute`, or `@api()` | Add Zod response schemas to your route configs |
+| `Unknown UI Provider` | `UIProviderFactory.getProvider()` was called with a type that was never registered - usually a failed `binding()` | Ensure `ApiReferenceComponent` is registered in `preConfigure()`; check logs for warnings during binding |
+| OpenAPI spec missing authentication schemes | `AuthenticationComponent` isn't registered, so auth strategies aren't available when schemes are added | Register `AuthenticationComponent` before `ApiReferenceComponent` in `preConfigure()` |
+| `explorer.info` doesn't match my binding | `explorer.info` is always overwritten from `package.json` during `binding()` | Update `package.json` fields (`name`, `version`, `description`, `author`) instead |
 
-**Cause:** The `restOptions.ui.type` value is not `'swagger'` or `'scalar'`. The `UIProviderFactory` only recognizes these two built-in providers. Note that a falsy value (empty string, `undefined`) does not trigger this error -- it silently falls back to `'swagger'` due to the `||` operator, not to the default `'scalar'`.
-
-**Fix:** Use a valid UI type:
-
-```typescript
-this.bind<IApiReferenceOptions>({
-  key: ApiReferenceBindingKeys.API_REFERENCE_OPTIONS,
-}).toValue({
-  restOptions: {
-    base: { path: '/doc' },
-    doc: { path: '/openapi.json' },
-    ui: { path: '/explorer', type: 'scalar' }, // 'scalar' or 'swagger'
-  },
-  explorer: { openapi: '3.0.0' },
-});
-```
-
-### Documentation UI shows no routes
-
-**Cause:** Controllers are not defining routes with Zod schemas via `defineRoute` or `bindRoute`. Only routes registered through `@hono/zod-openapi` appear in the OpenAPI spec.
-
-**Fix:** Use `defineRoute` with Zod response schemas in your controllers:
-
-```typescript
-this.defineRoute({
-  configs: {
-    path: '/',
-    method: 'get',
-    responses: {
-      200: jsonContent({
-        description: 'Success',
-        schema: z.object({ message: z.string() }),
-      }),
-    },
-  },
-  handler: (c) => c.json({ message: 'ok' }, 200),
-});
-```
-
-### "Unknown UI Provider"
-
-**Cause:** The `UIProviderFactory.getProvider()` was called with a type that has not been registered. This typically happens if the component binding phase failed silently.
-
-**Fix:** Ensure the `ApiReferenceComponent` is registered in `preConfigure()` and that no errors occur during its `binding()` phase. Check the application logs for warnings from `UIProviderFactory`.
-
-### OpenAPI spec missing authentication schemes
-
-**Cause:** The `ApiReferenceComponent` auto-registers JWT and Basic security schemes. If the `AuthenticationComponent` is not registered, authenticated routes will not show auth UI in the documentation.
-
-**Fix:** Register `AuthenticationComponent` before `ApiReferenceComponent` in `preConfigure()` to ensure auth strategies are available when the Swagger component configures security schemes.
-
-### explorer.info values not matching custom configuration
-
-**Cause:** The `ApiReferenceComponent` unconditionally overwrites `explorer.info` with values from `package.json` during its `binding()` phase. Any values you set in `explorer.info` via the DI binding are discarded.
-
-**Fix:** Update your project's `package.json` fields (`name`, `version`, `description`, `author`) to control what appears in the API documentation info section. The component reads these via `application.getAppInfo()`.
-
-## See Also
+## See also
 
 - **Guides:**
   - [Components Overview](/guides/core-concepts/components) - Component system basics
@@ -480,3 +257,11 @@ this.defineRoute({
   - [OpenAPI Specification](https://swagger.io/specification/) - OpenAPI standard
   - [Scalar Documentation](https://github.com/scalar/scalar) - Scalar API documentation UI
   - [@hono/zod-openapi](https://github.com/honojs/middleware/tree/main/packages/zod-openapi) - Hono OpenAPI integration
+
+**Files:**
+
+- [`packages/core/src/components/api-reference/component.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/component.ts) - `ApiReferenceComponent`
+- [`packages/core/src/components/api-reference/ui-factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/ui-factory.ts) - `UIProviderFactory`, `SwaggerUIProvider`, `ScalarUIProvider`
+- [`packages/core/src/components/api-reference/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/types.ts) - `IApiReferenceOptions`, `IUIProvider`, `IUIConfig`
+- [`packages/core/src/components/api-reference/common/keys.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/keys.ts) - `ApiReferenceBindingKeys`
+- [`packages/core/src/components/api-reference/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/components/api-reference/common/constants.ts) - `DocumentUITypes`

@@ -67,3 +67,15 @@ You can also express ranges using comparison operators:
 { where: { price: { gt: 100, lt: 500 } } }
 // SQL: WHERE "price" > 100 AND "price" < 500
 ```
+
+## See also
+
+- [Filter System Overview](./) - the `filter` shape and the full `where` operator table
+- [Comparison Operators](./comparison-operators) - `gt`/`gte`/`lt`/`lte`, the building blocks of the `gte`/`lte` equivalent above
+- [Quick Reference](./quick-reference) - every operator, one line each
+
+**Files:**
+
+- [`packages/core/src/connectors/postgres/repositories/dialect/query.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/query.ts) - `PostgresQueryOperators.FNS`, per-operator SQL builders
+- [`packages/core/src/connectors/postgres/repositories/dialect/filter.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/dialect/filter.ts) - `FilterBuilder`, translates `TFilter` to Drizzle/SQL
+- [`packages/core/src/base/repositories/common/operators.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/operators.ts) - `QueryOperators` constants
