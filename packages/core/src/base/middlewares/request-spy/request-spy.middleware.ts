@@ -48,6 +48,10 @@ export class RequestSpyMiddleware extends BaseHelper implements IProvider<Middle
         return rs;
       }
 
+      if (contentType === HTTP.HeaderValues.APPLICATION_OCTET_STREAM) {
+        return opts.req.raw.body;
+      }
+
       const rs = await opts.req.text();
       return rs;
     } catch {
