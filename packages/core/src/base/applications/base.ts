@@ -42,7 +42,7 @@ import {
 import { contextStorage } from 'hono/context-storage';
 import type { BaseComponent } from '../components';
 import type { IDataSource } from '../datasources';
-import { appErrorHandler, emojiFavicon, notFoundHandler } from '../middlewares';
+import { AppErrorMiddleware, emojiFavicon, notFoundHandler } from '../middlewares';
 import type { TMixinOpts } from '../mixins';
 import type { IRepository } from '../repositories';
 import type { IService } from '../services';
@@ -541,10 +541,10 @@ export abstract class BaseApplication
         const server = this.getServer();
 
         server.onError(
-          appErrorHandler({
+          new AppErrorMiddleware({
             logger: this.logger,
             rootKey: this.configs.error?.rootKey ?? undefined,
-          }),
+          }).value(),
         );
 
         if (this.configs.asyncContext?.enable) {

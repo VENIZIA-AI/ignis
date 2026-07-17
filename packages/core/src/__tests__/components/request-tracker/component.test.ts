@@ -5,7 +5,7 @@ import type { TRouteContext } from '@/base/controllers';
 import { BaseRestController } from '@/base/controllers';
 import { ControllerTransports } from '@/base/controllers/common/constants';
 import { controller } from '@/base/metadata';
-import { appErrorHandler } from '@/base/middlewares';
+import { AppErrorMiddleware } from '@/base/middlewares';
 import { jsonContent, jsonResponse } from '@/base/models';
 import { RequestTrackerComponent } from '@/components/request-tracker';
 import { z } from '@hono/zod-openapi';
@@ -104,7 +104,7 @@ const bootTrackedApplication = async (): Promise<OpenAPIHono> => {
   application.init();
 
   const server = application.getServer() as OpenAPIHono;
-  server.onError(appErrorHandler({ logger: application.logger }));
+  server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
 
   const component = new RequestTrackerComponent(application);
   await component.configure();

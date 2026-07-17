@@ -19,7 +19,7 @@ describe('getError', () => {
     expect(error.statusCode).toBe(400);
     // An error raised without a code is NOT code-less: it carries the default, so a client always
     // has something to map. See message-code.test.ts.
-    expect(error.messageCode).toBe(MessageCode.DEFAULT);
+    expect(error.normalized.code).toBe(MessageCode.DEFAULT);
     expect(error.extra).toBeUndefined();
   });
 
@@ -31,7 +31,7 @@ describe('getError', () => {
     });
 
     expect(error.statusCode).toBe(404);
-    expect(error.messageCode).toBe('app.user.not_found');
+    expect(error.normalized.code).toBe('app.user.not_found');
   });
 
   test('an unknown key rides into `extra`', () => {
@@ -75,19 +75,21 @@ describe('getError', () => {
 // --------------------------------------------------------------------------------
 const CategoryErrors = {
   CREATE_DUPLICATE_NAME: {
-    key: 'server.commerce.category.create.duplicate_name',
+    message: {
+      text: 'A category named "%{name}" already exists.',
+      code: 'server.commerce.category.create.duplicate_name',
+    },
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.VALIDATION,
-    message: 'A category named "%{name}" already exists.',
     description: 'Create rejected because a sibling category already has the same name.',
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
 describe('getError - by definition', () => {
-  test("takes the definition's key as messageCode and its statusCode", () => {
+  test("takes the definition's code, text and statusCode", () => {
     const error = getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME });
 
-    expect(error.messageCode).toBe('server.commerce.category.create.duplicate_name');
+    expect(error.normalized.code).toBe('server.commerce.category.create.duplicate_name');
     expect(error.statusCode).toBe(409);
     expect(error.message).toBe('A category named "%{name}" already exists.');
   });
@@ -100,7 +102,7 @@ describe('getError - by definition', () => {
 
     expect(error.message).toBe('Overridden');
     // The code still identifies the catalogued error - only the human text changed.
-    expect(error.messageCode).toBe('server.commerce.category.create.duplicate_name');
+    expect(error.normalized.code).toBe('server.commerce.category.create.duplicate_name');
   });
 
   test('an explicit statusCode overrides the definition default', () => {
@@ -112,10 +114,12 @@ describe('getError - by definition', () => {
   test("the definition's own messageArgs are used when the call site passes none", () => {
     const Defaulted = {
       RATE_LIMITED: {
-        key: 'server.core.rate_limit.exceeded',
+        message: {
+          text: 'Try again in %{seconds}s.',
+          code: 'server.core.rate_limit.exceeded',
+          args: { seconds: 60 },
+        },
         statusCode: HTTP.ResultCodes.RS_4.TooManyRequests,
-        message: 'Try again in %{seconds}s.',
-        messageArgs: { seconds: 60 },
       },
     } as const satisfies Record<string, TErrorDefinition>;
 
@@ -167,5 +171,63 @@ describe('isApplicationError', () => {
     }
 
     expect(error.statusCode).toBe(503);
+  });
+});
+
+/**
+ * The removal itself, pinned. Nothing else asserts these are GONE, so a regression that re-added
+ * either would otherwise pass the whole suite.
+ */
+describe('the legacy duplicates stay removed', () => {
+  test('no flat messageCode field on the instance', () => {
+    const error = getError({ message: 'x', messageCode: 'a.b' });
+
+    expect('messageCode' in error).toBe(false);
+    expect(error.normalized.code).toBe('a.b');
+  });
+
+  test('extra never mirrors messageArgs', () => {
+    const error = getError({ message: 'x', messageArgs: { a: 1 } });
+
+    expect(error.extra).toBeUndefined();
+    expect(error.normalized.args).toEqual({ a: 1 });
+  });
+});
+
+/**
+ * `error` is the catalogued form's discriminant, so `{ message, error }` must not compile - it is a
+ * natural way to write "wrap this", and `error` is a consumed key: the failure would vanish.
+ * A malformed `error` still must not throw FROM INSIDE the constructor - that would mask the
+ * original failure at the exact moment a catch block is trying to report it.
+ */
+describe('a malformed `error` degrades, never throws', () => {
+  test('`{ message, error }` is refused at compile time', () => {
+    // The directive IS the assertion - tsc fails the build if this shape ever compiles again.
+    // @ts-expect-error `error` is not valid on the free-form branch - use `cause`
+    const error = getError({ message: 'wrapper', error: new Error('root') });
+
+    expect(error.message).toBe('wrapper');
+  });
+
+  test.each([
+    ['a string', 'boom'],
+    ['a number', 42],
+    ['an empty object', {}],
+    ['null', null],
+  ])('a definition that is %s does not throw', (_label, value) => {
+    const error = getError({ message: 'wrapper', error: value } as never);
+
+    expect(error.message).toBe('wrapper');
+    expect(error.normalized.code).toBe(MessageCode.DEFAULT);
+  });
+});
+
+describe('MessageCode guards hostile input instead of throwing', () => {
+  test.each([[123], [null], [undefined], [{}], [['a', 'b']]])('isValid(%p) is false', value => {
+    expect(MessageCode.isValid(value)).toBe(false);
+  });
+
+  test.each([[123], [['a']], [{}]])('resolve(%p) falls back to the default', value => {
+    expect(MessageCode.resolve(value as never)).toBe(MessageCode.DEFAULT);
   });
 });

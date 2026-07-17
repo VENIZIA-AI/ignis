@@ -108,4 +108,5 @@ export const applicationEnvironment = new ApplicationEnvironment({
   envs: process.env,
 });
 
+export const AppEnvs = applicationEnvironment;
 export const Envs = applicationEnvironment;

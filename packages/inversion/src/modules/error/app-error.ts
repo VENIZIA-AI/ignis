@@ -1,10 +1,9 @@
 import omit from 'lodash/omit';
-import { AnyType } from '@/common/types';
+import { AnyType, TNullable } from '@/common/types';
 import { MessageCode } from './message-code';
-import type { TErrorDefinition } from './definition';
-import type { TError, TErrorNormalized } from './types';
+import type { TError, TErrorDefinition, TErrorMessageInput, TErrorNormalized } from './types';
 
-/** Keys the constructor consumes. Everything else is context and rides into `extra`. */
+/** Consumed keys. Everything else rides into `extra`. */
 const KNOWN_KEYS = [
   'error',
   'message',
@@ -19,43 +18,42 @@ const KNOWN_KEYS = [
 
 export class ApplicationError extends Error {
   statusCode: number;
-  messageCode: string;
   normalized: TErrorNormalized;
   extra?: Record<string, unknown>;
 
   constructor(opts: TError) {
     const { statusCode, messageArgs, cause, extra, transform } = opts;
 
-    // The index signature makes `'error' in opts` useless for narrowing - every key exists on both
-    // members - so read the discriminant and cast.
-    const definition = ('error' in opts ? opts.error : undefined) as TErrorDefinition | undefined;
-    const message = (opts.message as string | undefined) ?? definition?.message ?? '';
-    const messageCode = definition?.key ?? (opts.messageCode as string | undefined);
+    // Index signature defeats `in` narrowing - read the discriminant and cast.
+    const definition = ('error' in opts ? opts.error : undefined) as TNullable<TErrorDefinition>;
+
+    const input = opts.message as TNullable<string | Partial<TErrorMessageInput>>;
+    const override = typeof input === 'string' ? { text: input } : input;
+
+    // `?.message?.` - the optional chain has to guard BOTH: `error` reaches here from an untyped
+    // call site as anything at all, and a bare `definition?.message.text` throws on a malformed one.
+    const message = override?.text ?? definition?.message?.text ?? '';
+    const messageCode = MessageCode.resolve(
+      override?.code ?? definition?.message?.code ?? (opts.messageCode as TNullable<string>),
+    );
+    const args = override?.args ?? messageArgs ?? definition?.message?.args;
 
     super(message, cause === undefined ? undefined : { cause });
 
     this.statusCode = statusCode ?? definition?.statusCode ?? 400;
-    this.messageCode = MessageCode.resolve(messageCode);
 
-    const args = messageArgs ?? definition?.messageArgs;
-
-    // Unknown keys sweep in first, then the `messageArgs` mirror, then explicit `extra` - so an
-    // explicit value wins over one that arrived by accident.
+    // Explicit `extra` wins over swept keys.
     const merged = {
       ...omit(opts, KNOWN_KEYS),
-      ...(args ? { messageArgs: args } : {}),
       ...extra,
     };
     this.extra = Object.keys(merged).length > 0 ? merged : undefined;
 
+    const normalized: TErrorNormalized = { text: message, code: messageCode, args: args ?? {} };
+
     this.normalized = transform
-      ? transform({
-          message,
-          messageCode: this.messageCode,
-          statusCode: this.statusCode,
-          extra: this.extra,
-        })
-      : { text: message, code: this.messageCode, args: args ?? {} };
+      ? transform({ message: normalized, statusCode: this.statusCode, extra: this.extra })
+      : normalized;
   }
 
   static getError(opts: TError) {
@@ -63,9 +61,7 @@ export class ApplicationError extends Error {
   }
 }
 
-export const getError = (opts: TError): ApplicationError => {
-  return new ApplicationError(opts);
-};
+export const getError = (opts: TError): ApplicationError => ApplicationError.getError(opts);
 
 export const isApplicationError = (error: unknown): error is ApplicationError => {
   return error instanceof Error && typeof (error as AnyType).statusCode === 'number';

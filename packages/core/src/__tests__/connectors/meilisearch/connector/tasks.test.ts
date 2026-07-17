@@ -316,7 +316,9 @@ describe('MeilisearchConnector - importDocuments keeps framework-shaped errors i
     // waitForTask already shaped this failure (504 + task_timeout). Re-wrapping it as a 503
     // dependency_unavailable would erase the timeout semantics the caller needs.
     expect((error as { statusCode?: number }).statusCode).toBe(504);
-    expect((error as { messageCode?: string }).messageCode).toBe('core.search_engine.task_timeout');
+    expect((error as { normalized?: { code?: string } }).normalized?.code).toBe(
+      'core.search_engine.task_timeout',
+    );
 
     // Partial progress rides along on the shaped error too - the batches before the timeout are
     // already persisted server-side.

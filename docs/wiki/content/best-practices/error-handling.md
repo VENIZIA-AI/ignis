@@ -63,10 +63,12 @@ import type { TErrorDefinition, TRegisterErrors } from '@venizia/ignis-helpers';
 
 export const UserErrors = {
   CREATE_DUPLICATE_EMAIL: {
-    key: 'server.core.user.create.duplicate_email',
+    message: {
+      text: 'An account with %{email} already exists.',
+      code: 'server.core.user.create.duplicate_email',
+    },
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.VALIDATION,
-    message: 'An account with %{email} already exists.',
     description: 'Sign-up rejected because the email is already registered.',
   },
 } as const satisfies Record<string, TErrorDefinition>;
@@ -79,7 +81,7 @@ declare module '@venizia/ignis-helpers' {
 throw getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });
 ```
 
-Pass the definition as `error` - **never spread it**. `getError({ ...UserErrors.CREATE_DUPLICATE_EMAIL })` reads naturally and is wrong: a definition carries `key`, not `messageCode`, so the key lands in `extra.key` and the error degrades to `core.system_error`. The status and message still arrive, so it looks correct in review. Nothing catches it for you.
+Pass the definition as `error` - **never spread it**. `getError({ ...UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } })` reads naturally and is wrong: spreading skips the `error:` field entirely, so `category` and `description` - fields only modeled inside a definition - fall through into `extra` instead of staying structured. `statusCode` and `message` happen to still resolve correctly only because their shapes collide with what `getError` expects standalone; nothing catches the rest for you.
 
 See the [Error helper reference](/extensions/helpers/error/) for the full surface.
 
@@ -199,9 +201,18 @@ Database errors in SQLSTATE classes `22` (data exception), `23` (integrity const
 ```json
 {
   "message": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
-  "messageCode": "core.system_error",
   "statusCode": 400,
-  "requestId": "abc123"
+  "normalized": {
+    "text": "Unique constraint violation\nDetail: Key (email)=(test@example.com) already exists.\nTable: User\nConstraint: UQ_User_email",
+    "code": "core.system_error",
+    "args": {}
+  },
+  "requestId": "abc123",
+  "details": {
+    "url": "http://localhost:3000/users",
+    "path": "/users",
+    "stack": "Error: Unique constraint violation\n    at ..."
+  }
 }
 ```
 
@@ -209,7 +220,13 @@ Database errors in SQLSTATE classes `22` (data exception), `23` (integrity const
 In production the message is the **base message only** - `Detail:` (which echoes row values like emails), `Table:`, and `Constraint:` are stripped, and `details.stack`/`details.cause` are omitted. Unexpected (non-client) database errors and connection failures return a generic `"Internal Server Error"`, so SQL, schema names, and connection host/port never leak. Use `requestId` + server logs to diagnose.
 
 ```json
-{ "message": "Unique constraint violation", "messageCode": "core.system_error", "statusCode": 400, "requestId": "abc123" }
+{
+  "message": "Unique constraint violation",
+  "statusCode": 400,
+  "normalized": { "text": "Unique constraint violation", "code": "core.system_error", "args": {} },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/users", "path": "/users" }
+}
 ```
 :::
 
@@ -239,30 +256,31 @@ export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
 
 ## 4. Global Error Handler
 
-IGNIS includes a built-in error handler. Customize behavior in your application:
+IGNIS wires a built-in handler by default - `AppErrorMiddleware` from `@venizia/ignis` is a class, registered as `new AppErrorMiddleware({ logger, rootKey }).value()`, and `value()` returns the Hono `ErrorHandler`. You rarely need to replace it; when you do, keep the same response contract:
 
 ```typescript
 import { BaseApplication } from '@venizia/ignis';
-import { ApplicationError, MessageCode } from '@venizia/ignis-helpers';
+import { isApplicationError, MessageCode } from '@venizia/ignis-helpers';
 
 export class Application extends BaseApplication {
   override setupMiddlewares(): void {
     super.setupMiddlewares();
 
-    // Custom error handler (optional)
+    // Custom error handler (optional) - the default AppErrorMiddleware already does this
     this.server.onError((error, c) => {
       const requestId = c.get('requestId') ?? 'unknown';
 
       // Log all errors
-      this.logger.error('[%s] Error | %s', requestId, error.message);
+      this.logger.error('[%s] Error | %s', requestId, error);
 
-      // Handle known application errors
-      if (error instanceof ApplicationError) {
+      // Handle known application errors - isApplicationError(), never `instanceof
+      // ApplicationError` (unreliable across package boundaries)
+      if (isApplicationError(error)) {
         return c.json({
           statusCode: error.statusCode,
           message: error.message,
-          messageCode: error.messageCode, // already lower-cased, never undefined
-          details: error.details,
+          normalized: error.normalized, // { text, code, args } - never undefined
+          extra: error.extra,
           requestId,
         }, error.statusCode as StatusCode);
       }
@@ -272,7 +290,7 @@ export class Application extends BaseApplication {
         return c.json({
           statusCode: 422,
           message: 'Validation failed',
-          messageCode: MessageCode.DEFAULT,
+          normalized: { text: 'Validation failed', code: MessageCode.DEFAULT, args: {} },
           details: { cause: error.errors },
           requestId,
         }, 422);
@@ -282,7 +300,7 @@ export class Application extends BaseApplication {
       return c.json({
         statusCode: 500,
         message: 'Internal server error',
-        messageCode: MessageCode.DEFAULT,
+        normalized: { text: 'Internal server error', code: MessageCode.DEFAULT, args: {} },
         requestId,
       }, 500);
     });
@@ -298,51 +316,61 @@ All errors should follow a consistent format:
 interface ErrorResponse {
   statusCode: number;
   message: string;
-  messageCode?: string; // stable, localizable code (validation: from params.code or the raw Zod code)
+  normalized: {
+    text: string;
+    code: string; // stable, localizable code (validation: from params.code or the raw Zod code)
+    args: Record<string, unknown>;
+  };
   requestId: string;
   extra?: Record<string, unknown>; // structured context attached via getError(...)
-  details?: {
-    cause?: Array<{
-      path: string;
-      message: string;
-      code: string;
-    }>;
+  details: {
+    url: string;
+    path: string;
+    stack?: string; // non-production only
+    cause?: unknown; // non-production only, or the Zod issue list for 422s
     [key: string]: unknown;
   };
 }
 ```
+
+There is no top-level `messageCode` - read `normalized.code`. `extra` never mirrors `messageArgs`; the resolved interpolation values live at `normalized.args`.
 
 **Example Responses:**
 
 ```json
 // 400 Bad Request
 {
-  "statusCode": 400,
   "message": "Invalid request body",
-  "messageCode": "core.system_error",
-  "requestId": "abc123"
+  "statusCode": 400,
+  "normalized": { "text": "Invalid request body", "code": "core.system_error", "args": {} },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/users", "path": "/users" }
 }
 
 // 404 Not Found
 // Extra keys passed to getError(...) (e.g. `details`) surface under `extra`;
 // the top-level `details` object is reserved for middleware context (url, path, stack, cause).
 {
-  "statusCode": 404,
   "message": "User not found",
-  "messageCode": "core.system_error",
+  "statusCode": 404,
+  "normalized": { "text": "User not found", "code": "core.system_error", "args": {} },
   "requestId": "abc123",
-  "extra": { "details": { "id": "user-uuid" } }
+  "extra": { "details": { "id": "user-uuid" } },
+  "details": { "url": "http://localhost:3000/users/user-uuid", "path": "/users/:id" }
 }
 
 // 422 Validation Error
-// `message`/`messageCode` come from the first failing issue - its `params.code` if the schema set
-// one, otherwise the raw Zod code (e.g. `invalid_type`, `too_small`). The full list stays in `details.cause`.
+// `message`/`normalized.code` come from the first failing issue - its `params.code` if the schema
+// set one, otherwise the raw Zod code (e.g. `invalid_type`, `too_small`). `normalized.args` is
+// always empty for a Zod issue; the full list of issues stays in `details.cause`.
 {
-  "statusCode": 422,
   "message": "Invalid email format",
-  "messageCode": "user.email.invalid",
+  "statusCode": 422,
+  "normalized": { "text": "Invalid email format", "code": "user.email.invalid", "args": {} },
   "requestId": "abc123",
   "details": {
+    "url": "http://localhost:3000/users",
+    "path": "/users",
     "cause": [
       {
         "path": "email",
@@ -355,10 +383,11 @@ interface ErrorResponse {
 
 // 500 Internal Error (production)
 {
-  "statusCode": 500,
   "message": "Internal server error",
-  "messageCode": "core.system_error",
-  "requestId": "abc123"
+  "statusCode": 500,
+  "normalized": { "text": "Internal server error", "code": "core.system_error", "args": {} },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/orders", "path": "/orders" }
 }
 ```
 

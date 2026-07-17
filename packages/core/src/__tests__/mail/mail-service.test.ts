@@ -31,7 +31,7 @@ describe('MailService - validation errors', () => {
 
     expect(isApplicationError(error)).toBe(true);
     expect(error.statusCode).toBe(400);
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_RECIPIENT);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_RECIPIENT);
     expect(transport.sentMessages).toHaveLength(0);
   });
 
@@ -43,7 +43,7 @@ describe('MailService - validation errors', () => {
       .catch((caught: AnyType) => caught);
 
     expect(error.statusCode).toBe(400);
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_RECIPIENT);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_RECIPIENT);
   });
 
   test('a missing subject keeps its 400 identity', async () => {
@@ -54,7 +54,7 @@ describe('MailService - validation errors', () => {
       .catch((caught: AnyType) => caught);
 
     expect(error.statusCode).toBe(400);
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
   });
 
   test('a transport that throws is still wrapped as 500 / SEND_FAILED', async () => {
@@ -66,7 +66,7 @@ describe('MailService - validation errors', () => {
       .catch((caught: AnyType) => caught);
 
     expect(error.statusCode).toBe(500);
-    expect(error.messageCode).toBe(MailErrorCodes.SEND_FAILED);
+    expect(error.normalized.code).toBe(MailErrorCodes.SEND_FAILED);
   });
 });
 
@@ -152,7 +152,7 @@ describe('MailService - sendTemplate', () => {
       .catch((caught: AnyType) => caught);
 
     expect(error.statusCode).toBe(404);
-    expect(error.messageCode).toBe(MailErrorCodes.TEMPLATE_NOT_FOUND);
+    expect(error.normalized.code).toBe(MailErrorCodes.TEMPLATE_NOT_FOUND);
   });
 
   test('a missing template engine surfaces INVALID_CONFIGURATION', async () => {
@@ -162,7 +162,7 @@ describe('MailService - sendTemplate', () => {
       .sendTemplate({ templateName: 'welcome', data: {}, recipients: 'a@b.com' })
       .catch((caught: AnyType) => caught);
 
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
   });
 });
 
@@ -180,6 +180,6 @@ describe('MailService - verify', () => {
 
     const error = await service.verify().catch((caught: AnyType) => caught);
     expect(error.statusCode).toBe(500);
-    expect(error.messageCode).toBe(MailErrorCodes.VERIFICATION_FAILED);
+    expect(error.normalized.code).toBe(MailErrorCodes.VERIFICATION_FAILED);
   });
 });

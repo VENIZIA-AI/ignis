@@ -3,7 +3,7 @@
 IGNIS supports explicit transaction objects that can be passed across multiple services and repositories, allowing for complex, multi-step business logic to be atomic.
 
 > [!NOTE] PostgreSQL-only capability
-> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on it throws a `501 Not Implemented` (`messageCode: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
+> Real transactions are a **PostgreSQL connector** capability - `BasePostgresDataSource.getCapabilities()` returns `{ transactions: true }` and its `beginTransaction()` opens a real database transaction, as documented below. The typesense connector inherits the engine-neutral `AbstractDataSource` default: calling `beginTransaction()` on it throws a `501 Not Implemented` (`normalized.code: 'core.not_supported'`) via the shared `throwNotSupported` utility. See [Connectors](/references/base/connectors) for the capabilities model.
 
 ## Using Transactions
 

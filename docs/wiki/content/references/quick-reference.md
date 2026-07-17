@@ -513,7 +513,7 @@ if (Statuses.isCompleted(order.status)) {
 
 ```typescript
 import {
-  appErrorHandler,
+  AppErrorMiddleware,
   notFoundHandler,
   RequestSpyMiddleware,
   emojiFavicon,
@@ -529,7 +529,7 @@ app.use(requestSpy.value());
 app.use(emojiFavicon({ icon: '🚀' }));
 
 // Error handling (register last)
-app.onError(appErrorHandler({ logger: app.logger }));
+app.onError(new AppErrorMiddleware({ logger: app.logger }).value());
 
 // 404 handler
 app.notFound(notFoundHandler({ logger: app.logger }));

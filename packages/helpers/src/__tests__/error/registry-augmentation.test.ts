@@ -15,9 +15,11 @@ import { getError } from '@/modules/error';
  */
 const InventoryErrors = {
   MATERIAL_NOT_FOUND: {
-    key: 'server.inventory.material.not_found',
+    message: {
+      text: 'Material not found: %{materialId}',
+      code: 'server.inventory.material.not_found',
+    },
     statusCode: HTTP.ResultCodes.RS_4.NotFound,
-    message: 'Material not found: %{materialId}',
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
@@ -29,7 +31,10 @@ declare module '@venizia/ignis-inversion' {
 // the route an application takes, since it imports `getError` from helpers and never names
 // inversion. BANA's 73 catalogs migrate by renaming '@nx/core' to '@venizia/ignis-helpers' here.
 const ViaHelpers = {
-  X: { key: 'server.commerce.category.create.duplicate_name', statusCode: 409, message: 'x' },
+  X: {
+    message: { text: 'x', code: 'server.commerce.category.create.duplicate_name' },
+    statusCode: 409,
+  },
 } as const satisfies Record<string, TErrorDefinition>;
 
 declare module '@venizia/ignis-helpers' {
@@ -40,7 +45,7 @@ describe('key registry augmentation reaches through the helpers re-export', () =
   test('a registered key is assignable to TErrorKey', () => {
     const key: TErrorKey = 'server.inventory.material.not_found';
 
-    expect(key).toBe(InventoryErrors.MATERIAL_NOT_FOUND.key);
+    expect(key).toBe(InventoryErrors.MATERIAL_NOT_FOUND.message.code);
   });
 
   test('an unregistered string is NOT assignable to TErrorKey once the registry is populated', () => {
@@ -57,14 +62,14 @@ describe('key registry augmentation reaches through the helpers re-export', () =
     // `server.sale.*` codes that the sale package owns, and core cannot depend on sale.
     const error = getError({ message: 'x', messageCode: 'server.sale.sale.combo.invalid' });
 
-    expect(error.messageCode).toBe('server.sale.sale.combo.invalid');
+    expect(error.normalized.code).toBe('server.sale.sale.combo.invalid');
   });
 
   test('augmenting the re-exporting module populates the same registry', () => {
     // Registered via '@venizia/ignis-helpers', yet `TErrorKey` - declared in inversion - sees it.
     const key: TErrorKey = 'server.commerce.category.create.duplicate_name';
 
-    expect(key).toBe(ViaHelpers.X.key);
+    expect(key).toBe(ViaHelpers.X.message.code);
   });
 
   test('the catalogued form carries the strictness instead', () => {
@@ -73,7 +78,7 @@ describe('key registry augmentation reaches through the helpers re-export', () =
       messageArgs: { materialId: 'M1' },
     });
 
-    expect(error.messageCode).toBe('server.inventory.material.not_found');
+    expect(error.normalized.code).toBe('server.inventory.material.not_found');
     expect(error.normalized.args).toEqual({ materialId: 'M1' });
   });
 });

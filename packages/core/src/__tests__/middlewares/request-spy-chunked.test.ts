@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test';
 import { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { HTTP, LoggerFactory } from '@venizia/ignis-helpers';
-import { appErrorHandler } from '@/base/middlewares/app-error/app-error.middleware';
+import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
 /**
@@ -21,7 +21,7 @@ const buildServer = () => {
 
   // The real handler: without it an ApplicationError thrown by the middleware surfaces as a bare
   // 500 and the test would never see the status the middleware actually chose.
-  server.onError(appErrorHandler({ logger: LoggerFactory.getLogger(['spy-test']) }));
+  server.onError(new AppErrorMiddleware({ logger: LoggerFactory.getLogger(['spy-test']) }).value());
 
   return server;
 };

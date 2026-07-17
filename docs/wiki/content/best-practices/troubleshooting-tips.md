@@ -159,12 +159,16 @@ grep "\[abc123\]" logs/app.log | grep "Took:"
 
 When Zod validation fails, IGNIS returns a structured error response. Understanding this format helps debug client-side issues.
 
-**Error response structure** (top-level `message`/`messageCode` come from the first issue; the fallback message is `ValidationError`):
+**Error response structure** (`message`/`normalized.code` come from the first issue; the fallback message is `ValidationError`):
 ```json
 {
   "statusCode": 422,
   "message": "Invalid email address",
-  "messageCode": "invalid_format",
+  "normalized": {
+    "text": "Invalid email address",
+    "code": "invalid_format",
+    "args": {}
+  },
   "requestId": "abc123",
   "details": {
     "url": "http://localhost:3000/api/users",

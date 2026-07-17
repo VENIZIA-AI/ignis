@@ -109,7 +109,9 @@ describe('MeilisearchConnector - updateDocument on a missing id throws 404', () 
     );
 
     expect((error as { statusCode?: number }).statusCode).toBe(404);
-    expect((error as { messageCode?: string }).messageCode).toBe('core.search_engine.not_found');
+    expect((error as { normalized?: { code?: string } }).normalized?.code).toBe(
+      'core.search_engine.not_found',
+    );
     // The upsert must never fire for an absent target.
     expect(client.updateDocumentsCalls).toHaveLength(0);
   });
@@ -133,7 +135,7 @@ describe('MeilisearchConnector - resolvePrimaryKey failures are sanitized', () =
     );
 
     expect((error as { statusCode?: number }).statusCode).toBe(503);
-    expect((error as { messageCode?: string }).messageCode).toBe(
+    expect((error as { normalized?: { code?: string } }).normalized?.code).toBe(
       'core.search_engine.dependency_unavailable',
     );
     expect((error as Error).message).not.toMatch(/raw engine explosion/);

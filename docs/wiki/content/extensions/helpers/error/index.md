@@ -20,31 +20,120 @@ throw getError({
 });
 ```
 
-The framework's `appErrorHandler` middleware catches `ApplicationError` instances and formats them into a consistent JSON response - see [Common tasks](#common-tasks) below.
+The framework's `AppErrorMiddleware` catches `ApplicationError` instances and formats them into a consistent JSON response - see [Common tasks](#common-tasks) below.
 
 ## How it works
 
 - **Three equivalent entry points.** `getError(opts)`, `new ApplicationError(opts)`, and the static `ApplicationError.getError(opts)` all take the same input and build the same object - use the class form only when a direct reference reads better.
-- **Two input shapes.** Free-form (`{ message, statusCode?, messageCode? }`) covers one-off failures - most throw sites. Catalogued (`{ error: TErrorDefinition }`) raises a failure declared once at module scope, so its code, status, and default text cannot drift across the call sites that raise it; `message` and `statusCode` may still be overridden per-raise.
-- **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or it is empty - `error.messageCode` is never `undefined`.
-- **Every error carries a `normalized` message.** `{ code, args, text }` - `code` mirrors the resolved `messageCode`, `args` defaults to `messageArgs` (or the definition's own `messageArgs`), `text` defaults to `message`. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`. Pass `transform` to build `normalized` yourself from a flat snapshot of the error.
-- **Any key the input does not declare rides into `extra`.** Attach whatever context your clients need - `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too, and the two merge with the explicit one winning. `messageArgs` is additionally mirrored into `extra.messageArgs` for clients still reading the flat shape; `error.extra` is `undefined` only when there is nothing to carry.
-- **`cause` reaches the native `Error.cause`,** not `extra` - wrap a lower-level failure with `getError({ message, cause: originalError })` and every tool that reads `.cause` sees it.
+- **Two input shapes.** Free-form (`{ message, statusCode?, messageCode? }`) covers one-off failures - most throw sites. Catalogued (`{ error: TErrorDefinition }`) raises a failure declared once at module scope, so its code, status, and default text cannot drift across the call sites that raise it.
+- **One message shape everywhere.** `message` is either the historical string (with sibling `messageCode?`/`messageArgs?`) or an object mirroring `normalized`: `{ text, code?, args? }`. Both resolve to the same `normalized`:
+
+  ```typescript
+  getError({ message: 'Only %{n} left', messageCode: 'stock.low', messageArgs: { n: 2 } }); // flat
+  getError({ message: { text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } } });     // nested
+  getError({ error: StockErrors.LOW, messageArgs: { n: 2 } });                              // catalogued
+  ```
+
+  On the catalogued form, `message` is a **partial** override - `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`.
+- **Precedence, most specific first.** `code`: `message.code` -> the definition's `message.code` -> `messageCode`. `args`: `message.args` -> `messageArgs` -> the definition's `message.args`.
+- **`messageCode` always resolves to something.** `MessageCode.resolve()` lower-cases it and falls back to `MessageCode.DEFAULT` (`'core.system_error'`) when none is given or it is empty - `error.normalized.code` is never `undefined`.
+- **`normalized` is the single source, and there is no flat duplicate.** `{ text, code, args }` - `text` defaults to `message`, `code`/`args` resolve per the precedence above. `args` is always populated (`{}` when empty), so no consumer needs a null check. A client renders any error with one lookup: `translate(error.normalized.code, error.normalized.args)`. `messageCode` and `messageArgs` are INPUTS only: there is no `error.messageCode` field, and `extra` never mirrors `messageArgs`. Pass `transform` to build `normalized` yourself in place of the default.
+- **Any key the input does not declare rides into `extra`.** Attach whatever context your clients need - `getError({ message, transaction: {...} })` lands at `error.extra.transaction`. Passing `extra` explicitly works too, and the two merge with the explicit one winning. `extra` carries caller context ONLY; it is `undefined` when there is nothing to carry.
+- **`cause` reaches the native `Error.cause`,** not `extra` - wrap a lower-level failure with `getError({ message, cause: originalError })` and every tool that reads `.cause` sees it. `error` is **refused** on the free-form branch (`error?: never`) precisely so this mistake fails at compile time: `getError({ message, error: caughtError })` does not compile - use `cause`.
 - **`isApplicationError()` checks shape, not class identity.** There is one `ApplicationError` - it lives in `@venizia/ignis-inversion` so a browser application can raise and read the same errors the server does, and `helpers` re-exports it. `instanceof` still fails across a package boundary: inversion ships dual CJS+ESM builds, so one source class has two runtime constructors. Test the shape.
 
 **Options shared by both forms**
 
-| Option          | Type                         | Description                                                                                                     |
-| --------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| `statusCode`    | `number`                     | Defaults to `400`, or the definition's `statusCode` for the catalogued form                                     |
-| `messageArgs`   | `Record<string, unknown>`    | Interpolation values, mirrored into `extra.messageArgs` and `normalized.args`                                   |
-| `cause`         | `unknown`                    | The wrapped failure - reaches `Error.cause`                                                                     |
-| `extra`         | `Record<string, unknown>`    | Explicit context, merged with the `messageArgs` mirror and any swept keys - and it wins on a clash              |
-| `transform`     | `TErrorNormalizeTransformFn` | Builds `normalized` in place of the default, from a flat snapshot `{ message, messageCode, statusCode, extra }` |
-| _anything else_ | `unknown`                    | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
+| Option          | Type                                  | Description                                                                                                     |
+| --------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `message`       | `string \| { text, code?, args? }`     | Required on the free-form branch; a **partial** override on the catalogued branch (definition supplies what's omitted) |
+| `messageCode`   | `string`                               | Free-form only, sibling to a string `message`. Lowest precedence - `message.code` and the definition's `message.code` both win over it |
+| `statusCode`    | `number`                               | Defaults to `400`, or the definition's `statusCode` for the catalogued form                                     |
+| `messageArgs`   | `Record<string, unknown>`              | Interpolation values. Reaches `normalized.args` - never `extra`. Lowest precedence, same rule as `messageCode`  |
+| `cause`         | `unknown`                              | The wrapped failure - reaches `Error.cause`. Use this to wrap a caught error; `error` is refused on the free-form branch for exactly this case |
+| `extra`         | `Record<string, unknown>`              | Explicit context, merged with any swept keys - and it wins on a clash                                           |
+| `transform`     | `TErrorNormalizeTransformFn`           | Builds `normalized` in place of the default. Receives `{ message: TErrorNormalized, statusCode, extra? }` - `message` is the default normalized being replaced, so `s => ({ ...s.message, text: 'x' })` amends one field |
+| _anything else_ | `unknown`                              | Rides into `extra` under its own name. `getError({ message, transaction })` lands at `error.extra.transaction`  |
 
-> [!WARNING]
-> Pass a definition as `error`, **never spread it**. `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` reads naturally and is wrong: a definition carries `key`, not `messageCode`, so the key lands in `extra.key` and the error degrades to `core.system_error` - unlocalizable, since clients branch on the code. The status and message still arrive, so it looks fine. Nothing catches this for you: the same index signature that carries your context accepts `key` too.
+> [!TIP]
+> Spreading a definition now resolves identically to passing it as `error`: `getError({ ...CategoryErrors.CREATE_DUPLICATE_NAME })` and `getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME })` build the same `ApplicationError`. A definition's `message` is `{ text, code, args? }` - the same shape the free-form input accepts - so the spread degrades to nothing. Prefer `{ error: DEF }` anyway; it reads as "raise this catalogued error" instead of "raise these loose fields."
+
+## Every shape and its output
+
+Every row below is the real output, and the catalogued rows all use this definition:
+
+```typescript
+const DEF = {
+  message: {
+    text: 'A category named "%{name}" already exists.',
+    code: 'server.commerce.category.duplicate',
+    args: { name: '?' },
+  },
+  statusCode: 409,
+} as const satisfies TErrorDefinition;
+```
+
+**Free-form, flat** - the historical shape, unchanged:
+
+| Input | `message` | `statusCode` | `normalized` |
+|-------|-----------|--------------|--------------|
+| `{ message: 'Broke' }` | `Broke` | `400` | `{ text: 'Broke', code: 'core.system_error', args: {} }` |
+| `{ message: 'Broke', messageCode: 'a.b' }` | `Broke` | `400` | `{ text: 'Broke', code: 'a.b', args: {} }` |
+| `{ message: 'Only %{n} left', messageArgs: { n: 2 } }` | `Only %{n} left` | `400` | `{ text: 'Only %{n} left', code: 'core.system_error', args: { n: 2 } }` |
+| `{ message, messageCode: 'stock.low', messageArgs: { n: 2 }, statusCode: 409 }` | `Only %{n} left` | `409` | `{ text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } }` |
+
+**Free-form, object** - `text` is the only required field. Each row is identical to its flat twin above:
+
+| Input | `normalized` |
+|-------|--------------|
+| `{ message: { text: 'Broke' } }` | `{ text: 'Broke', code: 'core.system_error', args: {} }` |
+| `{ message: { text: 'Broke', code: 'a.b' } }` | `{ text: 'Broke', code: 'a.b', args: {} }` |
+| `{ message: { text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } } }` | `{ text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } }` |
+
+**Catalogued** - omit a field and the definition supplies it:
+
+| Input | `message` | `statusCode` | `normalized.code` | `normalized.args` |
+|-------|-----------|--------------|-------------------|-------------------|
+| `{ error: DEF }` | the definition's text | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+| `{ error: DEF, messageArgs: { name: 'Vé' } }` | the definition's text | `409` | `server.commerce.category.duplicate` | `{ name: 'Vé' }` |
+| `{ error: DEF, message: { args: { name: 'Vé' } } }` | the definition's text | `409` | `server.commerce.category.duplicate` | `{ name: 'Vé' }` |
+| `{ error: DEF, message: { text: 'Custom' } }` | `Custom` | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+| `{ error: DEF, message: { code: 'override.code' } }` | the definition's text | `409` | `override.code` | `{ name: '?' }` |
+| `{ error: DEF, message: 'Custom' }` | `Custom` | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+| `{ error: DEF, statusCode: 410 }` | the definition's text | `410` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+| `{ ...DEF }` (spread) | the definition's text | `409` | `server.commerce.category.duplicate` | `{ name: '?' }` |
+
+**Context and cause:**
+
+| Input | Output |
+|-------|--------|
+| `{ message, extra: { categoryId: 42 } }` | `extra: { categoryId: 42 }` |
+| `{ message, userId: 7, transaction: { id: 12 } }` | `extra: { userId: 7, transaction: { id: 12 } }` - swept |
+| `{ message, userId: 7, extra: { userId: 9 } }` | `extra: { userId: 9 }` - explicit wins |
+| `{ message, cause: err }` | `Error.cause = err`; `extra` stays `undefined` |
+| `{ message, error: caughtError }` | **does not compile** - use `cause` |
+
+**Transform** - `message` in the snapshot IS the default being replaced:
+
+```typescript
+getError({
+  message: { text: 'Only %{n} left', code: 'stock.low', args: { n: 2 } },
+  transform: snapshot => ({ ...snapshot.message, text: 'Chỉ còn 2 vé.' }),
+});
+// error.message           -> 'Only %{n} left'   (the raw text stays)
+// error.normalized.text   -> 'Chỉ còn 2 vé.'
+// error.normalized.code   -> 'stock.low'
+// error.normalized.args   -> { n: 2 }
+```
+
+**Precedence,** most specific first - note a definition's `message.code` beats a flat `messageCode`:
+
+| Resolves | Order |
+|----------|-------|
+| `normalized.code` | `message.code` -> the definition's `message.code` -> `messageCode` -> `MessageCode.DEFAULT` |
+| `normalized.args` | `message.args` -> `messageArgs` -> the definition's `message.args` -> `{}` |
+| `normalized.text` | `message.text` (or a string `message`) -> the definition's `message.text` -> `''` |
+| `statusCode` | `statusCode` -> the definition's `statusCode` -> `400` |
 
 ## Common tasks
 
@@ -87,20 +176,24 @@ import type { TErrorDefinition } from '@venizia/ignis-helpers';
 
 const CategoryErrors = {
   CREATE_DUPLICATE_NAME: {
-    key: 'server.commerce.category.create.duplicate_name',
+    message: {
+      text: 'A category named "%{name}" already exists.',
+      code: 'server.commerce.category.create.duplicate_name',
+    },
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.VALIDATION,
-    message: 'A category named "%{name}" already exists.',
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
 throw getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME, messageArgs: { name: 'Vé' } });
+// Equivalent, using the catalogued form's partial override instead:
+throw getError({ error: CategoryErrors.CREATE_DUPLICATE_NAME, message: { args: { name: 'Vé' } } });
 ```
 
 `ErrorScopes` groups a failure by intent - `AUTH`, `VALIDATION`, `BUSINESS`, `SYSTEM`, `INTEGRATION` - because `statusCode` cannot: a `409` is a business conflict in one place and a validation clash in another.
 
 > [!WARNING]
-> `category` is catalog **metadata only** - it does not reach the error response. `getError` reads `key`, `statusCode` and `message` off a definition and ignores the rest. Use it to group and filter catalogs (ops dashboards, translator exports); do not expect a client to receive it.
+> `category` is catalog **metadata only** - it does not reach the error response. `getError` reads `message.text`, `message.code` and `statusCode` off a definition and ignores the rest. Use it to group and filter catalogs (ops dashboards, translator exports); do not expect a client to receive it.
 
 ### Register catalog keys for `messageCode` autocomplete
 
@@ -117,7 +210,7 @@ declare module '@venizia/ignis-helpers' {
 > [!WARNING]
 > TypeScript only treats `declare module` as an **augmentation** when the file imports that module. Name a module the file never imports and it silently becomes an inert ambient declaration - no error, no keys registered, autocomplete quietly empty.
 
-Declare `key` as a literal string, not through `MessageCode.build()` - `build()` returns `string`, which would widen the registry to `Record<string, true>` and destroy the autocomplete.
+Declare `message.code` as a literal string, not through `MessageCode.build()` - `build()` returns `string`, which would widen the registry to `Record<string, true>` and destroy the autocomplete.
 
 ### Build a code outside a catalog
 
@@ -132,26 +225,25 @@ const NOT_FOUND = MessageCode.build({ parts: ['core', 'user', 'not_found'] });
 
 ### Read the error response shape
 
-`appErrorHandler` (from `@venizia/ignis`) routes every thrown value into one of five shapes. All five carry `message`, `messageCode`, `statusCode`, `normalized` and `details`; only an intentional error can carry `extra`.
+`AppErrorMiddleware` (from `@venizia/ignis`) routes every thrown value into one of five shapes. All five carry `message`, `statusCode`, `normalized` and `details`; only an intentional error can carry `extra`. The code lives at `normalized.code` - there is no flat `messageCode` on the response.
 
-| What was thrown                           | Status  | `messageCode`                                          | `message`                                                             | `extra`                                               |
+| What was thrown                           | Status  | `normalized.code`                                        | `message`                                                             | `extra`                                               |
 | ----------------------------------------- | ------- | ------------------------------------------------------ | --------------------------------------------------------------------- | ----------------------------------------------------- |
 | `ZodError` (validation)                   | 422     | the first issue's `params.code`, else its raw Zod code | that issue's message; per-field list in `details.cause`               | never                                                 |
 | DB client error (SQLSTATE class 22/23/44) | 400     | `core.system_error`                                    | a fixed, safe summary - never the driver's text                       | never                                                 |
 | Transient DB conflict (40001/40P01)       | 409     | `database.conflict`                                    | a fixed retry message                                                 | never                                                 |
-| `getError(...)` - intentional             | its own | its own                                                | its own                                                               | when the throw site attached `messageArgs` or `extra` |
+| `getError(...)` - intentional             | its own | its own                                                | its own                                                               | when the throw site attached `extra` or unknown keys  |
 | Anything else                             | 500     | `core.system_error`                                    | `Internal Server Error` in production; the raw message in development | never                                                 |
 
 Only the intentional branch reports what the throw site wrote. The other four **replace** the message, because a driver error carries SQL, schema and constraint names - and `normalized` is built from the replacement, so it can never leak what `message` just scrubbed.
 
-`rootKey` (e.g. `appErrorHandler({ logger, rootKey: 'error' })`) nests any of these under that key.
+`rootKey` (e.g. `new AppErrorMiddleware({ logger, rootKey: 'error' }).value()`) nests any of these under that key.
 
 The handler is fail-closed on environment: it exposes `stack` and `cause` in `details` only when `NODE_ENV` is one of `local`, `debug`, `development`, `dev`, `sit` (`Environment.DEVELOPMENT_ENVS`). Everything else - including `alpha`, `staging`, a typo, or an unset `NODE_ENV` - gets the sanitized shape:
 
 ```json
 {
   "message": "Only %{available} left of %{variantId}.",
-  "messageCode": "server.core.stock_reservation.reserve.unavailable",
   "statusCode": 409,
   "normalized": {
     "text": "Only %{available} left of %{variantId}.",
@@ -159,7 +251,6 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
     "args": { "variantId": "V1", "available": 2 }
   },
   "extra": {
-    "messageArgs": { "variantId": "V1", "available": 2 },
     "details": { "locationId": "L9" }
   },
   "requestId": "abc-123-def",
@@ -167,10 +258,10 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
 }
 ```
 
-`extra` is absent entirely when the throw site attached neither `messageArgs` nor `extra`.
+`extra` is absent entirely when the throw site attached no context of its own.
 
 > [!IMPORTANT]
-> **`messageCode` and `extra.messageArgs` are on their way out.** They duplicate `normalized.code` and `normalized.args`, and remain only until every client has migrated. Read `normalized`; do not build anything new against the flat pair.
+> **`messageCode` and `extra.messageArgs` are GONE from the response.** They duplicated `normalized.code` and `normalized.args`. Read `normalized` - it is the only source. A client still reading either must migrate: `translate(error.messageCode, error.extra?.messageArgs)` becomes `translate(error.normalized.code, error.normalized.args)`.
 >
 > Note the two `details`: the inner one is context the throw site attached (it went through `extra`), the outer one is the middleware's own request info. They are unrelated despite the name.
 
@@ -192,14 +283,15 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
 
 - [Controllers](/references/base/controllers) - throwing errors in route handlers
 - [Services](/references/base/services) - error handling in business logic
-- [Middlewares](/references/base/middlewares) - the `appErrorHandler` middleware
+- [Middlewares](/references/base/middlewares) - the `AppErrorMiddleware` handler
 - [Environment](/extensions/helpers/env/) - `Environment.DEVELOPMENT_ENVS`, the error-detail boundary
 - [Helpers Overview](/extensions/helpers/) - all available helpers
 
 **Files:**
 
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
-- [`packages/helpers/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/types.ts) - `TError`, `TErrorNormalized`, `ErrorSchema`
+- [`packages/helpers/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/types.ts) - `ErrorSchema`, `TErrorResponse` (the RESPONSE schema, for OpenAPI)
 - [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
-- [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorDefinition`, `IErrorKeyRegistry`
+- [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`, `TRegisterErrors`
+- [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`

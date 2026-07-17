@@ -210,7 +210,11 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 {
   "statusCode": 422,
   "message": "Invalid email",
-  "messageCode": "invalid_string",
+  "normalized": {
+    "text": "Invalid email",
+    "code": "invalid_string",
+    "args": {}
+  },
   "requestId": "abc123",
   "details": {
     "url": "http://localhost:3000/users",

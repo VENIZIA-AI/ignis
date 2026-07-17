@@ -254,8 +254,8 @@ export class ArticleRepository extends DefaultSearchRepository<TArticleDocument>
 
 ### Write error semantics (shared by both search engines)
 
-- **`create()` with a duplicate id throws `409` (`messageCode: 'core.search_engine.already_exists'`)** on both Typesense and Meilisearch - a duplicate is a conflict, never a silent overwrite. If you want last-write-wins, call `upsert()` explicitly. (On Meilisearch the pre-check is not atomic - see the [Meilisearch guide](./search-meilisearch); use `upsert()` when concurrent same-id creates are possible.)
-- **`updateById()` against a missing id throws `404` (`messageCode: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
+- **`create()` with a duplicate id throws `409` (`normalized.code: 'core.search_engine.already_exists'`)** on both Typesense and Meilisearch - a duplicate is a conflict, never a silent overwrite. If you want last-write-wins, call `upsert()` explicitly. (On Meilisearch the pre-check is not atomic - see the [Meilisearch guide](./search-meilisearch); use `upsert()` when concurrent same-id creates are possible.)
+- **`updateById()` against a missing id throws `404` (`normalized.code: 'core.search_engine.not_found'`)** on both engines. This is the deliberate divergence from the PostgreSQL connector, where a missing-id `updateById` is a silent `{ count: 0 }`.
 - **`deleteById()` against a missing id is silent** (`{ count: 0, data: null }`), matching the relational connectors.
 
 ## Searching with `search({ mode })`
@@ -413,7 +413,7 @@ The typesense connector has no transaction or row-level-locking model. Passing a
 await articleRepository.updateById({
   id: '123',
   data: { title: 'New' },
-  options: { transaction: tx }, // throws: 501, messageCode 'core.not_supported'
+  options: { transaction: tx }, // throws: 501, normalized.code 'core.not_supported'
 });
 ```
 

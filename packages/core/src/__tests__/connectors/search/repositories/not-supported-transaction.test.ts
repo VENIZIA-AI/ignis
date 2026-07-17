@@ -18,7 +18,7 @@ const expectNotSupported = (caught: unknown): void => {
   expect(caught).toBeInstanceOf(ApplicationError);
   const appError = caught as ApplicationError;
   expect(appError.statusCode).toBe(HTTP.ResultCodes.RS_5.NotImplemented);
-  expect(appError.messageCode).toBe('core.not_supported');
+  expect(appError.normalized.code).toBe('core.not_supported');
 };
 
 describe('Typesense repository verbs reject options.transaction (NotSupported)', () => {

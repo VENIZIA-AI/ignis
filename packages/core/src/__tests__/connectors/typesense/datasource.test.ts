@@ -290,7 +290,7 @@ describe('TypesenseDataSource', () => {
 
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(HTTP.ResultCodes.RS_5.NotImplemented);
-    expect((caught as ApplicationError).messageCode).toBe('core.not_supported');
+    expect((caught as ApplicationError).normalized.code).toBe('core.not_supported');
   });
 });
 

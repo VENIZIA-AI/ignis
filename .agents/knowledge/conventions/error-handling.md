@@ -7,8 +7,8 @@ tags: [conventions, errors]
 ---
 
 Never throw a raw `new Error(...)`. Use `getError(opts: TError)` (or `ApplicationError.getError`).
-It builds an `ApplicationError`: a `message`, a resolved `messageCode`, a `statusCode` (defaults to
-`400`), a `normalized` message, and an optional `extra` payload.
+It builds an `ApplicationError`: a `message`, a `statusCode` (defaults to `400`), a `normalized`
+message, and an optional `extra` payload.
 
 The layer LIVES in `packages/inversion/src/modules/error/` and is re-exported by helpers, so a
 browser application - which depends on inversion for DI and cannot depend on helpers - raises the
@@ -24,15 +24,17 @@ throw getError({
 
 The form above is right for a failure nobody translates: an invariant, a misconfiguration, a seed
 guard. A **domain** failure - one a client localizes and branches on - is declared once as a
-`TErrorDefinition` in `packages/inversion/src/modules/error/definition.ts`, then raised by reference:
+`TErrorDefinition` in `packages/inversion/src/modules/error/types.ts`, then raised by reference:
 
 ```typescript
 export const UserErrors = {
   CREATE_DUPLICATE_EMAIL: {
-    key: 'server.core.user.create.duplicate_email',
+    message: {
+      text: 'An account with %{email} already exists.',
+      code: 'server.core.user.create.duplicate_email',
+    },
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
-    category: ErrorCategories.VALIDATION,
-    message: 'An account with %{email} already exists.',
+    category: ErrorScopes.VALIDATION,
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
@@ -43,22 +45,35 @@ declare module '@venizia/ignis-helpers' {
 throw getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });
 ```
 
+A definition nests `message: { text, code, args? }` - the SAME shape the free-form input and
+`normalized` use. That is why spreading one (`getError({ ...UserErrors.X })`) resolves identically
+to passing it as `error`, instead of silently degrading the way the old `key` shape did.
+
 Retyping the code and status at each throw is how two call sites end up raising
 `user.create.duplicate_email` and `user.duplicate_email` for the same failure, with nothing to catch
 the drift.
 
-`key` MUST be a literal string, NOT `MessageCode.build(...)` - see
+`message.code` MUST be a literal string, NOT `MessageCode.build(...)` - see
 [gotchas](/conventions/gotchas.md). This is the one place a raw literal code is correct.
 
 ## Every ApplicationError carries `normalized`
 
-`normalized = { code, args, text }` is always built. A client renders any error with one lookup:
+`normalized = { text, code, args }` is always built, every field always populated, and it is the ONLY
+home for the code and the interpolation args. A client renders any error with one lookup:
 `translate(error.normalized.code, error.normalized.args)`. Pass `transform` to build it yourself
-from a flat snapshot - that is how `normalized.text` can be a rendered string while `message` keeps
-the raw text the throw site wrote.
+from a snapshot (`{ message: TErrorNormalized, statusCode, extra }`) - `message` there is the default
+being replaced, so a transform can amend one field and spread the rest:
 
-`messageCode` and `extra.messageArgs` duplicate `normalized.code` / `normalized.args` and are
-DEPRECATED - kept only until clients migrate.
+```typescript
+transform: snapshot => ({ ...snapshot.message, text: renderVi(snapshot.message) });
+```
+
+The server never substitutes `%{name}`: it ships the template plus `args` and the CLIENT translates.
+That is why the input carries `args` rather than a pre-formatted string.
+
+`messageCode` and `messageArgs` are INPUTS only. There is no flat `error.messageCode` field and
+`extra` never mirrors `messageArgs` - both duplicated `normalized` and were removed. Read
+`normalized.code` / `normalized.args`.
 
 ## Unknown keys ride into `extra`
 
@@ -75,9 +90,14 @@ The trade, and it is deliberate: an index signature disables excess-property che
 MISSPELLING goes the same way. `getError({ message, statuscode: 503 })` compiles, `statusCode` stays
 `400`, and `503` sits in `extra.statuscode`. The framework cannot tell context from typo.
 
-NEVER spread a definition: `getError({ ...Errors.X })` puts the key in `extra.key` and degrades the
-error to `core.system_error`, while status and message still arrive so it looks fine. Pass it as
-`error`. Pinned in `bana-probe.test.ts`.
+Spreading a definition is now safe: `getError({ ...Errors.X })` resolves identically to
+`getError({ error: Errors.X })`, because a definition's `message` object IS the free-form input
+shape. Under the old `key` shape it degraded to `core.system_error` while status and text still
+arrived, so it looked fine - that footgun is gone. Pinned in `bana-probe.test.ts`.
+
+`error` is the catalogued form's discriminant and is REFUSED on the free-form branch (`error?: never`).
+`getError({ message, error: caughtError })` reads like "wrap this" but `error` is a consumed key, so
+the failure would vanish - the compiler now rejects it. Wrap with `cause`.
 
 ## instanceof across packages is unreliable
 

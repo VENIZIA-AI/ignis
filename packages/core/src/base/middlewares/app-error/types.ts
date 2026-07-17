@@ -1,3 +1,6 @@
+import type { TConstValue } from '@venizia/ignis-helpers';
+import type { ApplicationErrorTypes } from './definition';
+
 export interface IDatabaseError extends Error {
   code?: string;
   cause?: {
@@ -15,4 +18,12 @@ export interface IZodIssueLike {
   params?: Record<string, unknown>;
   expected?: unknown;
   received?: unknown;
+}
+
+export type TApplicationErrorType = TConstValue<typeof ApplicationErrorTypes>;
+
+export interface IResolvedApplicationError {
+  statusCode: number;
+  message: string;
+  normalized: { text: string; code: string; args: Record<string, unknown> };
 }

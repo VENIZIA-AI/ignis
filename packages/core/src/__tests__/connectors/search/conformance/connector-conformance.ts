@@ -192,7 +192,9 @@ export const runConnectorConformance = (opts: {
 
       expect(caught).toBeInstanceOf(ApplicationError);
       expect((caught as ApplicationError).statusCode).toBe(409);
-      expect((caught as ApplicationError).messageCode).toBe('core.search_engine.already_exists');
+      expect((caught as ApplicationError).normalized.code).toBe(
+        'core.search_engine.already_exists',
+      );
     });
 
     test('export() returns every document, not just the first page', async () => {

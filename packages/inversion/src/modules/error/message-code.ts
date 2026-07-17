@@ -1,3 +1,4 @@
+import type { TNullable } from '@/common/types';
 import { getError } from './app-error';
 
 export class MessageCode {
@@ -32,8 +33,15 @@ export class MessageCode {
     return parts.join(this.SEPARATOR).toLowerCase();
   }
 
-  /** True when `code` is well-formed. Cheap guard for a code that arrives from outside. */
-  static isValid(code: string): boolean {
+  /**
+   * True when `code` is well-formed. A guard for a code arriving from outside, so it takes
+   * `unknown`: one that throws on the very input it exists to screen is not a guard.
+   */
+  static isValid(code: unknown): boolean {
+    if (typeof code !== 'string') {
+      return false;
+    }
+
     const segments = code.split(this.SEPARATOR);
 
     return (
@@ -42,8 +50,10 @@ export class MessageCode {
     );
   }
 
-  /** Normalizes an absent or empty code to {@link DEFAULT} - an empty string is not a code. */
-  static resolve(code?: string): string {
-    return code?.length ? code.toLowerCase() : this.DEFAULT.toLowerCase();
+  /** Normalizes an absent, empty or non-string code to {@link DEFAULT}. */
+  static resolve(code?: TNullable<string>): string {
+    return typeof code === 'string' && code.length
+      ? code.toLowerCase()
+      : this.DEFAULT.toLowerCase();
   }
 }

@@ -21,7 +21,8 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 - [`packages/inversion/src/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
 - [`packages/inversion/src/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`, `IInjectableMetadata`
 - [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`, `isClass`
-- [`packages/inversion/src/common/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/app-error.ts) - `ApplicationError`, `getError`, `ErrorSchema`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`
 - [`packages/inversion/src/common/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/logger.ts) - `Logger`
 
 ## Quick Reference
@@ -51,7 +52,9 @@ import {
   BaseHelper,
   ApplicationError,
   getError,
-  ErrorSchema,
+  isApplicationError,
+  MessageCode,
+  ErrorScopes,
   Logger,
   isClass,
   isClassProvider,
@@ -365,25 +368,34 @@ const filtered = container.findByTag({ tag: 'services', exclude: ['services.Inte
 
 ### ApplicationError and getError
 
-`Source ->` [`common/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/app-error.ts)
+`Source ->` [`modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts)
 
 ```typescript
 class ApplicationError extends Error {
   statusCode: number;
-  messageCode?: string;
+  normalized: { text: string; code: string; args: Record<string, unknown> };
   extra?: Record<string, unknown>;
 }
 
 getError(opts: TError): ApplicationError; // factory function
 ```
 
-`ErrorSchema` is a Zod object schema (`{ name?, statusCode?, messageCode?, message }`, `.catchall(z.any())`) used to validate error-shaped payloads. `ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any extra properties (other than `name`) into `this.extra`.
+`opts.message` accepts two shapes: the historical string (paired with sibling `messageCode?`/`messageArgs?`), or an object mirroring `normalized` - `{ text, code?, args? }`. Both resolve to the same `normalized`; `messageCode`/`messageArgs` are lowest precedence, so `message.code`/`message.args` (or a catalogued definition's own `message.code`/`message.args`) win when both are present. There is no flat `error.messageCode`, and `extra` never mirrors `messageArgs`. `normalized.args` is always populated (`{}` when empty).
+
+The catalogued form (`{ error: TErrorDefinition }`) takes `message` as a **partial** override - `{ message: { args } }` amends just the args and keeps the definition's `text`/`code`. `error` is refused on the free-form branch (`error?: never`) - wrap a caught failure with `cause` instead.
+
+`ApplicationError`'s constructor defaults `statusCode` to `400` when omitted, and moves any property it does not model into `this.extra`. The error RESPONSE schema (`ErrorSchema`, for OpenAPI) lives in `@venizia/ignis-helpers`, not here - it needs `@hono/zod-openapi`, which inversion must not depend on because it ships to browsers.
 
 ```typescript
 throw getError({ message: 'Something failed', statusCode: 500, messageCode: 'ERR_INTERNAL' });
 throw new ApplicationError({ message: 'Not found', statusCode: 404 });
-ErrorSchema.parse({ message: 'test', statusCode: 400 });
+throw new ApplicationError({ message: { text: 'Not found', code: 'core.user.not_found' }, statusCode: 404 });
+
+// The code and args are read off `normalized`, never off the error directly.
+error.normalized.code; // 'err_internal'
 ```
+
+See the [Error reference](/extensions/helpers/error/) for the full input shape, precedence rules, and the catalogued (`TErrorDefinition`) pattern.
 
 ### Logger
 

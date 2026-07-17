@@ -1,0 +1,6 @@
+  },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/users/abc", "path": "/users/:id" }
+}
+```
+

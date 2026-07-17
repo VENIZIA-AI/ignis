@@ -17,7 +17,9 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-17 | [Secrets Peers Invisible to Bundlers - No More external node-vault](./2026-07-17-secrets-bundler-invisible-peers) | Bug Fix, Behavior Change |
 | 2026-07-16 | [Error Handling - Normalized Messages, Error Catalog, and a Recovered cause](./2026-07-16-error-catalog-and-structured-message) | Bug Fix, Enhancement, New API |
+| 2026-07-16 | [Secrets & Vault Integration](./2026-07-16-secrets-vault-integration) | New Feature, Enhancement |
 | 2026-07-14 | [Optional Peers, Actually Optional - The Driver Is a Class Now](./2026-07-14-driver-class-bundling) | Breaking Change, Bug Fix, Enhancement |
 | 2026-07-13 | [The Hardening Round - SQL Injection, Scope Escapes and Silent Leaks](./2026-07-13-hardening-round) | Security, Breaking Change, Bug Fix, Enhancement |
 | 2026-07-12 | [Core Consolidation & Deduplication - Mixin Functions Removed, Narrowing Default-Filter Merge, isApplicationError](./2026-07-12-core-consolidation-dedup) | Breaking Change, Enhancement, Bug Fix |

@@ -113,7 +113,7 @@ abstract class AbstractDataSource<
 | `getSettings()` | `Settings` | Returns `this.settings` |
 | `getSchema()` | `Schema` | Returns `this.schema`; throws if not initialized |
 | `getCapabilities()` | `IDataSourceCapabilities` | Returns `{ transactions: false }` |
-| `beginTransaction(opts?)` | `Promise<ITransaction>` | Calls `throwNotSupported({ scope: this.constructor.name, feature: 'Transactions', logger: this.logger })` - throws HTTP 501 with `messageCode: 'core.not_supported'` |
+| `beginTransaction(opts?)` | `Promise<ITransaction>` | Calls `throwNotSupported({ scope: this.constructor.name, feature: 'Transactions', logger: this.logger })` - throws HTTP 501 whose `normalized.code` resolves to `'core.not_supported'` |
 
 **Protected helpers:**
 
@@ -123,7 +123,7 @@ abstract class AbstractDataSource<
 | `discoverDefinitions({ read, kind })` | Walks the bound model classes, reads a connector-specific artifact via `read`, and returns a name-keyed registry. Skips undefined reads, throws on duplicate names, honors `autoDiscovery: false`. Shared plumbing every connector's own `discoverSchema()`-equivalent builds on |
 
 > [!NOTE] NotSupported convention
-> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/core/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/error.utility.ts)), producing a consistent `501 Not Implemented` with `messageCode: 'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
+> Every capability an engine does not implement - transactions, row-level locking - uses the same `throwNotSupported` utility ([`packages/core/src/utilities/error.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/utilities/error.utility.ts)), producing a consistent `501 Not Implemented` whose `normalized.code` resolves to `'core.not_supported'`. This is how the typesense connector signals "not applicable to this engine" instead of silently no-op-ing.
 
 ### `IDataSourceCapabilities`
 

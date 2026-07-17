@@ -46,10 +46,9 @@ describe('BANA call shapes still compile and behave', () => {
   test('by-definition: the shape BANA errors.ts wraps', () => {
     const SlugErrors = {
       SLUG_TAKEN: {
-        key: 'server.core.slug.create.taken',
+        message: { text: 'Slug already taken: %{slug}', code: 'server.core.slug.create.taken' },
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
         category: ErrorScopes.BUSINESS,
-        message: 'Slug already taken: %{slug}',
       },
     } as const satisfies Record<string, TErrorDefinition>;
 
@@ -57,17 +56,17 @@ describe('BANA call shapes still compile and behave', () => {
     const error = getError({ error: SlugErrors.SLUG_TAKEN, messageArgs: { slug: 've-hoa-nhac' } });
 
     expect(error.statusCode).toBe(409);
-    expect(error.messageCode).toBe('server.core.slug.create.taken');
-    // The 3 FE call sites that read `extra.messageArgs` keep working.
-    expect(error.extra?.messageArgs).toEqual({ slug: 've-hoa-nhac' });
+    expect(error.normalized.code).toBe('server.core.slug.create.taken');
+    // BREAKING for BANA: 3 FE sites reading `extra?.messageArgs` must move to `normalized.args`.
+    expect(error.extra).toBeUndefined();
+    expect(error.normalized.args).toEqual({ slug: 've-hoa-nhac' });
   });
 
   test('registry registration compiles with literal keys preserved', () => {
     const ShiftErrors = {
       DRAWER_BUSY: {
-        key: 'server.sale.shift.drawer.busy',
+        message: { text: 'Drawer busy', code: 'server.sale.shift.drawer.busy' },
         statusCode: HTTP.ResultCodes.RS_4.Conflict,
-        message: 'Drawer busy',
       },
     } as const satisfies Record<string, TErrorDefinition>;
 
@@ -75,7 +74,7 @@ describe('BANA call shapes still compile and behave', () => {
       'server.sale.shift.drawer.busy': true,
     };
 
-    expect(ShiftErrors.DRAWER_BUSY.key).toBe('server.sale.shift.drawer.busy');
+    expect(ShiftErrors.DRAWER_BUSY.message.code).toBe('server.sale.shift.drawer.busy');
     expect(registered['server.sale.shift.drawer.busy']).toBe(true);
   });
 });
@@ -116,35 +115,37 @@ describe('a forwarding wrapper keeps carrying context into extra', () => {
 });
 
 /**
- * Spreading a definition instead of passing it as `error` reads naturally and is wrong: a definition
- * carries `key`, `getError` expects `messageCode`, so the code lands in `extra.key` and the error
- * degrades to `core.system_error` - unlocalizable, since clients branch on `messageCode`.
- *
- * The type system does not catch it: the index signature that carries context accepts `key` too,
- * and a spread is not a fresh literal anyway. An application audit found 9 of these live in BANA -
- * they predate this module and are a bug to fix at the call site, not a regression.
+ * Spreading a definition used to downgrade it silently: the code rode `key` into `extra` and the
+ * error fell back to `core.system_error`. A definition now carries the same `message` object the
+ * free-form input takes, so the spread degrades to nothing - it resolves identically. The 9 spread
+ * sites BANA already has are correct as written.
  */
-describe('spreading a definition into getError silently downgrades it', () => {
+describe('spreading a definition into getError resolves the same as passing it', () => {
   const FinanceAccountErrors = {
     DEFAULT_CONFLICT: {
-      key: 'server.core.finance_account.default.conflict',
+      message: {
+        text: 'Another account is already the default.',
+        code: 'server.core.finance_account.default.conflict',
+      },
       statusCode: HTTP.ResultCodes.RS_4.Conflict,
-      message: 'Another account is already the default.',
     },
   } as const satisfies Record<string, TErrorDefinition>;
 
-  test('the spread form loses the code - the status and message survive, so it looks fine', () => {
+  test('the spread form keeps the code and carries nothing into extra', () => {
     const error = getError({ ...FinanceAccountErrors.DEFAULT_CONFLICT });
 
-    expect(error.messageCode).toBe('core.system_error');
+    expect(error.normalized.code).toBe('server.core.finance_account.default.conflict');
+    expect(error.normalized.text).toBe('Another account is already the default.');
     expect(error.statusCode).toBe(409);
-    expect(error.extra).toEqual({ key: 'server.core.finance_account.default.conflict' });
+    expect(error.extra).toBeUndefined();
   });
 
-  test('the correct form keeps the key', () => {
+  test('the `error` form resolves identically', () => {
     const error = getError({ error: FinanceAccountErrors.DEFAULT_CONFLICT });
 
-    expect(error.messageCode).toBe('server.core.finance_account.default.conflict');
+    expect(error.normalized).toEqual(
+      getError({ ...FinanceAccountErrors.DEFAULT_CONFLICT }).normalized,
+    );
     expect(error.statusCode).toBe(409);
   });
 });
@@ -153,15 +154,18 @@ describe("a wrapper's by-definition branch still forwards correctly", () => {
   const banaGetError = (opts: { error: TErrorDefinition; messageArgs?: Record<string, unknown> }) =>
     getError(opts);
 
-  test('key, statusCode and messageArgs all arrive', () => {
+  test('code, statusCode and messageArgs all arrive', () => {
     const error = banaGetError({
-      error: { key: 'server.sale.shift.drawer.busy', statusCode: 409, message: 'Drawer busy' },
+      error: {
+        message: { text: 'Drawer busy', code: 'server.sale.shift.drawer.busy' },
+        statusCode: 409,
+      },
       messageArgs: { drawerId: 3 },
     });
 
-    expect(error.messageCode).toBe('server.sale.shift.drawer.busy');
+    expect(error.normalized.code).toBe('server.sale.shift.drawer.busy');
     expect(error.statusCode).toBe(409);
-    expect(error.extra?.messageArgs).toEqual({ drawerId: 3 });
+    expect(error.extra).toBeUndefined();
     expect(error.normalized.args).toEqual({ drawerId: 3 });
   });
 });

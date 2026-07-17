@@ -181,7 +181,7 @@ describe('TypesenseConnector documents', () => {
     }
     expect(caught).toBeInstanceOf(ApplicationError);
     expect((caught as ApplicationError).statusCode).toBe(404);
-    expect((caught as ApplicationError).messageCode).toBe('core.search_engine.not_found');
+    expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.not_found');
   });
 
   test('updateDocument throws a sanitized 404 (not 503) when the document is missing', async () => {
@@ -245,7 +245,7 @@ describe('TypesenseConnector documents', () => {
 
     expect(caught).toBe(appError);
     expect((caught as ApplicationError).statusCode).toBe(409);
-    expect((caught as ApplicationError).messageCode).toBe('core.search_engine.already_exists');
+    expect((caught as ApplicationError).normalized.code).toBe('core.search_engine.already_exists');
   });
 
   test('importDocuments defaults action to create', async () => {

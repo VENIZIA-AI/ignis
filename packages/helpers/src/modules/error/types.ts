@@ -13,8 +13,6 @@ export const ErrorSchema = z
   .object({
     statusCode: z.number().optional(),
     message: z.string(),
-    /** @deprecated Read `normalized.code`. Kept until every client has migrated. */
-    messageCode: z.string().optional(),
     normalized: z
       .object({
         text: z.string(),
@@ -31,13 +29,12 @@ export const ErrorSchema = z
     example: {
       statusCode: 409,
       message: 'A category named %{name} already exists.',
-      messageCode: 'server.commerce.category.create.duplicate_name',
       normalized: {
         text: 'A category named %{name} already exists.',
         code: 'server.commerce.category.create.duplicate_name',
         args: { name: 'Ticket' },
       },
-      extra: { messageArgs: { name: 'Vé' } },
+      extra: { categoryId: 42 },
       requestId: 'abc-123-def',
       details: { url: 'http://localhost:3000/categories', path: '/categories' },
     },

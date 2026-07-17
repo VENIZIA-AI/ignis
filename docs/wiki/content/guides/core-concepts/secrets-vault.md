@@ -66,6 +66,10 @@ export class Application extends BaseApplication {
 bun add node-vault
 ```
 
+Applications that do not use this provider never need it - not even when compiling a binary with
+`Bun.build`. If your application uses this provider **and** compiles a binary, ship `node-vault` in
+`node_modules` next to the binary, or inject a ready-made `client` through the helper options.
+
 ### Dotenv Vault
 
 An encrypted `.env.vault` file decrypted at runtime with a per-environment `DOTENV_KEY`. Static only.

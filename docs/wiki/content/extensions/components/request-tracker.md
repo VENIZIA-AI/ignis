@@ -52,7 +52,7 @@ The HTTP method is padded to 8 characters for consistent alignment.
 - **The middleware is an `IProvider`, not a plain function.** `RequestSpyMiddleware implements IProvider<MiddlewareHandler>` from `@venizia/ignis-inversion` - the container instantiates the class (so it can hold `isDebugMode` state) and calls `.value()` to obtain the actual Hono handler.
 
 > [!TIP]
-> The request ID is also available in the framework's error handlers (`notFoundHandler`, `appErrorHandler`), making it easy to correlate error logs with the original request.
+> The request ID is also available in the framework's error handlers (`notFoundHandler`, `AppErrorMiddleware`), making it easy to correlate error logs with the original request.
 
 ## Common tasks
 

@@ -80,7 +80,7 @@ describe('shared AbstractRepository core helpers', () => {
           repository.create({ data: {} });
           return undefined;
         } catch (error) {
-          return (error as { messageCode?: string }).messageCode;
+          return (error as { normalized?: { code?: string } }).normalized?.code;
         }
       };
 

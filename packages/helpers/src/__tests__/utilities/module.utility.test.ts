@@ -1,6 +1,28 @@
 import { describe, expect, test } from 'bun:test';
 import { isApplicationError } from '@/modules/error';
-import { validateModule } from '@/utilities/module.utility';
+import { importOptionalModule, validateModule } from '@/utilities/module.utility';
+
+describe('importOptionalModule', () => {
+  test('resolves a really-installed module through the function boundary', async () => {
+    const dayjs = await importOptionalModule<{ default: (input?: string) => unknown }>({
+      module: 'dayjs',
+    });
+    expect(typeof dayjs.default).toBe('function');
+  });
+
+  test('throws a clear, actionable ApplicationError for a missing module', async () => {
+    try {
+      await importOptionalModule({ module: '@definitely/not-installed' });
+      expect.unreachable();
+    } catch (error) {
+      expect(isApplicationError(error)).toBe(true);
+
+      const message = (error as Error).message;
+      expect(message).toContain('@definitely/not-installed');
+      expect(message).toContain("Please install '@definitely/not-installed'");
+    }
+  });
+});
 
 describe('validateModule', () => {
   test('resolves when every module is installed', async () => {

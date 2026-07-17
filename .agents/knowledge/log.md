@@ -6,6 +6,19 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-17 - secrets peers made bundler-invisible
+
+`node-vault` / `@dotenvx/dotenvx` were reached via literal dynamic imports, which `Bun.build`
+resolves at bundle time - every consumer compiling a binary had to list `node-vault` in `external`
+(same problem class as the old `pg` leak). The imports now cross the `importOptionalModule`
+function boundary, which survives `minify.syntax` constant folding; a bundler probe test (root
+barrel + resolution spy + positive control) guards it, and a missing peer throws the standard
+`getError` install hint from any entry path. Same-class literal imports remain OPEN in core
+(casbin, @hono/swagger-ui, @scalar/hono-api-reference - root-barrel-reachable optional peers).
+
+- [helpers](/packages/helpers.md): the bundler-facing rule for optional peers reached from the
+  root barrel, and the compiled-binary trade-off for apps that do use a provider.
+
 ## 2026-07-16 - error layer rebuilt
 
 The error layer moved to `packages/inversion/src/modules/error/` (helpers re-exports it), so a
@@ -52,3 +65,14 @@ be false. The concepts document what the source actually does today:
   trap is `rebuild.sh` cleaning `dist/` before a build that a broken test can abort.
 - The Casbin shared-model TOCTOU race is gone: each request evaluates on its own pooled enforcer.
 - `Container.instantiate` no longer crashes on a sparse metadata array; it throws a named error.
+- The legacy error duplicates are REMOVED: there is no flat `ApplicationError.messageCode` and
+  `extra` no longer mirrors `messageArgs`. `normalized.code` / `normalized.args` are the only
+  source. `messageCode`/`messageArgs` stay valid INPUTS to `getError`, and `transform` now receives
+  `messageArgs` in its snapshot. Breaking for clients reading the flat pair (BANA: 188 `.messageCode`
+  sites + 3 `extra?.messageArgs` OTP sites, not yet migrated).
+- The error module now has ONE message shape: a `TErrorDefinition`, the `getError` input and
+  `normalized` all speak `{ text, code, args }`. The definition's `key`/`message: string` are gone
+  (`TRegisterErrors` indexes `['message']['code']`); `getError`'s `message` is `string | { text,
+  code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
+  (`error?: never`) - wrap with `cause`. Spreading a definition is now safe. Breaking against the
+  PUBLISHED inversion 0.1.1-0.

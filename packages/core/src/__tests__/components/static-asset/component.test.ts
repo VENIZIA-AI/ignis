@@ -2,7 +2,7 @@ import 'reflect-metadata';
 import { BaseApplication } from '@/base/applications';
 import type { IApplicationConfigs, IApplicationInfo } from '@/base/applications/types';
 import { ControllerTransports } from '@/base/controllers/common/constants';
-import { appErrorHandler } from '@/base/middlewares';
+import { AppErrorMiddleware } from '@/base/middlewares';
 import { StaticAssetComponent } from '@/components/static-asset';
 import {
   StaticAssetComponentBindingKeys,
@@ -65,7 +65,7 @@ const bootStaticAssetApplication = async (opts: {
   await application['registerControllers']();
 
   const server = application.getServer() as OpenAPIHono;
-  server.onError(appErrorHandler({ logger: application.logger }));
+  server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
   return server;
 };

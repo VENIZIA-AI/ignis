@@ -16,7 +16,7 @@ IGNIS core was restructured around ONE engine-neutral repository family:
 - `src/base` now holds a single `AbstractRepository` / `AbstractDataSource` / `AbstractEntity` family. Every engine implements it under `src/connectors/{postgres,typesense}`.
 - Postgres remains re-exported from the root barrel - **your imports keep working unchanged**. Every connector is also addressable explicitly: `@venizia/ignis/postgres`, `@venizia/ignis/typesense` (typesense is subpath-only; its client is an optional peer).
 - Canonical class names are the paradigm-family names (`BaseRelationalDataSource`, `BaseRelationalEntity`, `DefaultRelationalRepository`, ...); the engine name appears only at the concrete datasource (`TypesenseDataSource`) and the query dialect (`PostgresQueryOperators`). The historical names (`BaseDataSource`, `BaseEntity`, `BasePostgresDataSource`, `BasePostgresEntity`, `RDBQueryOperators`, `DefaultCRUDRepository`, ...) all remain as alias re-exports of the SAME classes - `instanceof`, metadata, and bindings are unaffected. No action required; prefer the family names in new code.
-- New capabilities model: `dataSource.getCapabilities()` and a standardized NotSupported error (HTTP 501, messageCode `core.not_supported`) for engine gaps (e.g. transactions on search engines).
+- New capabilities model: `dataSource.getCapabilities()` and a standardized NotSupported error (HTTP 501, `normalized.code` `core.not_supported`) for engine gaps (e.g. transactions on search engines).
 - New engine: the **Typesense search branch** (`BaseSearchEntity`, `defineSearchCollection`, typed `TSearchDocument`, `DefaultSearchRepository`). It does not affect existing postgres code.
 
 ## Required migrations (in order)
@@ -78,7 +78,7 @@ Run this once after the version bump, before trusting the first `tsc` run.
 
 ### 4. Auth endpoint error contract (only if you assert on it)
 
-The three auth endpoints backed by unimplemented service methods (`refreshToken`, `getUserInformation`) now return the standardized NotSupported error: HTTP 501 with messageCode `core.not_supported` and message `[AuthController] <feature> is not supported.` (previously a plain `Method not implemented`). BANA was scanned: no code asserts on the old string - listed for completeness.
+The three auth endpoints backed by unimplemented service methods (`refreshToken`, `getUserInformation`) now return the standardized NotSupported error: HTTP 501 with `normalized.code` `core.not_supported` and message `[AuthController] <feature> is not supported.` (previously a plain `Method not implemented`). BANA was scanned: no code asserts on the old string - listed for completeness.
 
 ## Strongly recommended (not compile-blocking)
 

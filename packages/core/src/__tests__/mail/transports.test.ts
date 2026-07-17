@@ -104,7 +104,7 @@ describe('MailgunTransportHelper - configuration', () => {
     })();
 
     expect(error).toBeDefined();
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
     expect(error.message).toContain('domain');
   });
 
@@ -121,7 +121,7 @@ describe('MailgunTransportHelper - configuration', () => {
     })();
 
     expect(error).toBeDefined();
-    expect(error.messageCode).toBe(MailErrorCodes.INVALID_CONFIGURATION);
+    expect(error.normalized.code).toBe(MailErrorCodes.INVALID_CONFIGURATION);
     expect(error.message).toContain('username');
     expect(error.message).toContain('key');
   });

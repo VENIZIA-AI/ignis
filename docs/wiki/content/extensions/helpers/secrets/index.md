@@ -30,7 +30,7 @@ Swap `provider` for `SecretProviders.HASHICORP_VAULT` (with a `config: { endpoin
 
 - **One base, three providers.** `AbstractSecretsHelper` owns the provider-agnostic machinery (TTL cache, lease registry, renewal scheduler, rotation dispatch). Concrete providers implement only the raw fetch/renew/revoke calls.
 - **Two secret classes.** Static secrets (`get`/`getBundle`) are TTL-cached. Dynamic, lease-bearing secrets (`lease`) are renewed automatically and drive rotation - only HashiCorp supports them.
-- **Factory selection.** `createSecretsHelper({ provider })` picks the tier; the peer-backed providers are reached only via dynamic import, so importing the package never requires `node-vault` or `@dotenvx/dotenvx`.
+- **Factory selection.** `createSecretsHelper({ provider })` picks the tier; the peer-backed providers are reached only through a bundler-invisible dynamic import (`importOptionalModule`), so importing the package never requires `node-vault` or `@dotenvx/dotenvx` - not even when the application is compiled into a binary with `Bun.build`, which resolves literal dynamic imports at bundle time. No `external` entry is needed in the compile step.
 
 | Provider | `SecretProviders` value | Kind | Optional peer |
 |----------|-------------------------|------|---------------|

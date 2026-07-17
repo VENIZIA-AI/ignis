@@ -12,9 +12,21 @@ Nothing else needs to catch-and-shape for HTTP.
 
 ## Throwing: always `getError`
 
-Never `new Error`. `getError({ message, statusCode?, messageCode?, messageArgs?, cause?, extra? })`
-returns an `ApplicationError` carrying the fields the handler reads - `statusCode` (default 400),
-`messageCode` (resolved through `MessageCode`), `normalized` (always built), and `extra`.
+Never `new Error`. `getError(opts)` returns an `ApplicationError` carrying the fields the handler
+reads - `statusCode` (default 400), `normalized` (always built), and `extra`.
+
+`message` takes either shape:
+
+```typescript
+getError({ message: 'Boot failed', messageCode: 'a.b', messageArgs: { n: 1 } }); // flat
+getError({ message: { text: 'Boot failed', code: 'a.b', args: { n: 1 } } });     // nested
+getError({ error: UserErrors.CREATE_DUPLICATE_EMAIL, messageArgs: { email } });  // catalogued
+```
+
+All three resolve into the one `normalized { text, code, args }`. `messageCode`/`messageArgs` are
+INPUTS only: neither survives as a field of its own - there is no `error.messageCode`, and `extra`
+never mirrors `messageArgs`. Precedence, most specific first: `message.code` > the definition's
+`message.code` > `messageCode`; and `message.args` > `messageArgs` > the definition's `message.args`.
 
 `extra` takes both routes: pass it explicitly, or let any key the input does not model ride the
 index signature into it. The trade is that a mistyped key goes the same way - the framework cannot
@@ -38,7 +50,7 @@ connectors do exactly this before wrapping anything else as a 503 - has to use i
 reaches the caller as a bogus 503. The error middleware uses the same test inline, via
 `'statusCode' in error`.
 
-## Classification in `appErrorHandler`
+## Classification in `AppErrorMiddleware`
 
 Every error is logged in full first, with the request ID, method, path and URL - the log is where the
 detail lives, never the response. Then it is routed:
@@ -86,15 +98,16 @@ production, because you chose that message deliberately. An error you did not ra
 
 ```typescript
 {
-  message, messageCode, statusCode, requestId,
+  message, statusCode, requestId,
   normalized,                             // { text, code, args } - EVERY branch, including 422
   extra,                                  // from ApplicationError.extra; absent when empty
   details: { url, path, stack, cause },   // stack/cause non-production only
 }
 ```
 
-`normalized` is what a client renders: `translate(normalized.code, normalized.args)`. `messageCode`
-and `extra.messageArgs` duplicate it and are DEPRECATED.
+`normalized` is what a client renders: `translate(normalized.code, normalized.args)`. It is the ONLY
+source: the flat `messageCode` and the `extra.messageArgs` mirror duplicated it and were REMOVED. A
+client still reading either must move to `normalized`.
 
 Only the INTENTIONAL branch can carry `extra`, and only the intentional branch reports the message
 the throw site wrote. The other four REPLACE the message; `normalized` is built from the

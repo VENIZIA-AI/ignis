@@ -230,8 +230,8 @@ export class UserController extends BaseRestController {
       const user = await this.userService.create(data);
       return c.json(user, 201);
     } catch (error) {
-      // Format error for API response -- messageCode is always lower-cased by ApplicationError
-      if (error instanceof ApplicationError && error.messageCode === 'app.user.duplicate_email') {
+      // Format error for API response -- the code is always lower-cased by ApplicationError
+      if (isApplicationError(error) && error.normalized.code === 'app.user.duplicate_email') {
         return c.json({ error: 'Email already exists' }, 400);
       }
       throw error; // Let global handler catch unknown errors

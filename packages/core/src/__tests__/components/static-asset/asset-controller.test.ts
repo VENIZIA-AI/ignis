@@ -5,7 +5,7 @@ import { ControllerTransports } from '@/base/controllers/common/constants';
 import { AssetControllerFactory } from '@/components/static-asset/controller';
 import type { TMetaLinkConfig, TStaticAssetExtraOptions } from '@/components/static-asset/common';
 import { StaticAssetStorageTypes } from '@/components/static-asset/common';
-import { appErrorHandler } from '@/base/middlewares';
+import { AppErrorMiddleware } from '@/base/middlewares';
 import { MetadataRegistry } from '@/helpers/inversion/registry';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import type { AnyType, ValueOrPromise } from '@venizia/ignis-helpers';
@@ -113,7 +113,7 @@ const mountAssetController = async (opts: {
   await application['registerControllers']();
 
   const server = application.getServer() as OpenAPIHono;
-  server.onError(appErrorHandler({ logger: application.logger }));
+  server.onError(new AppErrorMiddleware({ logger: application.logger }).value());
   server.route(TEST_CONFIGS.path.base, application.getRootRouter());
   return server;
 };

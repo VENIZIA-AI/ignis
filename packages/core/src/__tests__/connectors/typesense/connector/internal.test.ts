@@ -136,7 +136,7 @@ describe('SearchConnectorInternal.throwNotFoundError', () => {
     expect(thrown).toBeInstanceOf(ApplicationError);
     const appError = thrown as ApplicationError;
     expect(appError.statusCode).toBe(404);
-    expect(appError.messageCode).toBe('core.search_engine.not_found');
+    expect(appError.normalized.code).toBe('core.search_engine.not_found');
     expect(appError.message).toContain('[getDocument]');
     expect(appError.message).toContain("Document 'd1'");
   });

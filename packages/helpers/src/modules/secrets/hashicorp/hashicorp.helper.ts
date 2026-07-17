@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import type { AnyObject, AnyType } from '@/common/types';
 import { getError } from '@/modules/error';
+import { importOptionalModule } from '@/utilities/module.utility';
 import { AbstractSecretsHelper } from '../base';
 import { VaultAuthMethods, type IClock, type ITimerAdapter, type TTimerHandle } from '../common';
 import { vaultAuthSchema, type TVaultAuth } from './auth';
@@ -67,7 +68,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
   override async configure(): Promise<void> {
     const logger = this.logger.for(this.configure.name);
     if (!this.client) {
-      const factory = (await import('node-vault')).default as AnyType;
+      const factory = (await importOptionalModule<AnyType>({ module: 'node-vault' })).default;
       this.client = factory({ endpoint: this.endpoint, apiVersion: 'v1' }) as TVaultClient;
     }
     const { ttlSeconds, renewable } = await this.login();

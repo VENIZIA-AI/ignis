@@ -504,7 +504,7 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 
 // Basic error
 throw getError({ message: 'Something went wrong' });
-// Returns: { statusCode: 400, message: 'Something went wrong', messageCode: 'core.system_error' }
+// Returns: { statusCode: 400, message: 'Something went wrong', normalized: { text: 'Something went wrong', code: 'core.system_error', args: {} } }
 
 // With status code
 throw getError({
@@ -548,8 +548,13 @@ All errors are automatically formatted:
 {
   "statusCode": 404,
   "message": "User not found",
-  "messageCode": "core.user.not_found",
-  "requestId": "abc123"
+  "normalized": {
+    "text": "User not found",
+    "code": "core.user.not_found",
+    "args": {}
+  },
+  "requestId": "abc123",
+  "details": { "url": "http://localhost:3000/users/abc", "path": "/users/:id" }
 }
 ```
 
@@ -584,7 +589,7 @@ async processOrder(c: Context) {
   } catch (error) {
     this.logger.error('[processOrder] Failed: %s', error);
 
-    if (error instanceof ApplicationError) {
+    if (isApplicationError(error)) {
       throw error;  // Re-throw application errors
     }
 

@@ -5,15 +5,17 @@ import { ErrorScopes, getError, MessageCode } from '@/modules/error';
 
 const StockErrors = {
   RESERVE_UNAVAILABLE: {
-    key: 'server.core.stock_reservation.reserve.unavailable',
+    message: {
+      text: 'Only %{available} left of %{variantId}, %{requested} requested.',
+      code: 'server.core.stock_reservation.reserve.unavailable',
+    },
     statusCode: HTTP.ResultCodes.RS_4.Conflict,
     category: ErrorScopes.BUSINESS,
-    message: 'Only %{available} left of %{variantId}, %{requested} requested.',
   },
 } as const satisfies Record<string, TErrorDefinition>;
 
 describe('normalized', () => {
-  test('is always built, mirroring the flat fields', () => {
+  test('is always built', () => {
     const error = getError({ message: 'bad input' });
 
     expect(error.normalized).toEqual({
@@ -36,16 +38,15 @@ describe('normalized', () => {
     });
   });
 
-  test('code mirrors the RESOLVED messageCode, not the raw input', () => {
+  test('code is the RESOLVED messageCode, not the raw input', () => {
     const error = getError({ message: 'x', messageCode: 'APP.USER.NOT_FOUND' });
 
-    expect(error.messageCode).toBe('app.user.not_found');
     expect(error.normalized.code).toBe('app.user.not_found');
   });
 });
 
 describe('normalized - transform', () => {
-  test('receives a flat snapshot of the error and replaces the default', () => {
+  test('receives the default normalized as a snapshot and replaces it', () => {
     const seen: Array<unknown> = [];
 
     const error = getError({
@@ -57,18 +58,21 @@ describe('normalized - transform', () => {
         seen.push(snapshot);
 
         return {
-          code: snapshot.messageCode,
-          args: (snapshot.extra?.messageArgs as Record<string, unknown>) ?? {},
+          code: snapshot.message.code,
+          args: snapshot.message.args,
           text: 'Chỉ còn 2 vé.',
         };
       },
     });
 
     expect(seen[0]).toEqual({
-      message: 'Only %{available} left.',
-      messageCode: 'server.core.stock.low',
+      message: {
+        text: 'Only %{available} left.',
+        code: 'server.core.stock.low',
+        args: { available: 2 },
+      },
       statusCode: 409,
-      extra: { messageArgs: { available: 2 } },
+      extra: undefined,
     });
 
     // `message` at the root and `normalized.text` are allowed to diverge - this is what transform is for.
@@ -97,20 +101,19 @@ describe('extra is an explicit bucket', () => {
       extra: { details: { locationId: 'L9' } },
     });
 
-    expect(error.extra).toEqual({
-      messageArgs: { available: 2 },
-      details: { locationId: 'L9' },
-    });
+    expect(error.extra).toEqual({ details: { locationId: 'L9' } });
+    expect(error.normalized.args).toEqual({ available: 2 });
   });
 
   test('is undefined when there is nothing to carry', () => {
     expect(getError({ message: 'nothing to add' }).extra).toBeUndefined();
   });
 
-  test('messageArgs is mirrored into extra for the clients still reading it (legacy)', () => {
+  test('messageArgs never reaches extra - normalized.args is its only home', () => {
     const error = getError({ message: 'x', messageArgs: { a: 1 } });
 
-    expect(error.extra).toEqual({ messageArgs: { a: 1 } });
+    expect(error.extra).toBeUndefined();
+    expect(error.normalized.args).toEqual({ a: 1 });
   });
 });
 

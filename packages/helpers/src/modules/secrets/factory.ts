@@ -4,9 +4,9 @@ import { validateModule } from '@/utilities/module.utility';
 import { SecretProviders, type ISecretsHelper, type ISecretsRegistration } from './common';
 import { SystemEnvsHelper } from './system-envs';
 
-// node-vault / @dotenvx/dotenvx are OPTIONAL peers reached only via dynamic import here, so the
-// family barrel (and thus `import '@venizia/ignis-helpers'`) never eagerly loads them. Apps that
-// compile a binary must reference the class from the sub-path (see package.json ./vault export).
+// node-vault / @dotenvx/dotenvx are optional peers reached only via `importOptionalModule`: never
+// eagerly loaded, invisible to bundlers. Compiled apps that use a provider must ship the peer in
+// node_modules or inject the client via options.
 export async function createSecretsHelper(
   opts: ISecretsRegistration & { identifier?: string },
 ): Promise<ISecretsHelper> {

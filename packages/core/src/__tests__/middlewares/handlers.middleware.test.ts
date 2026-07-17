@@ -1,5 +1,5 @@
 import {
-  appErrorHandler,
+  AppErrorMiddleware,
   emojiFavicon,
   notFoundHandler,
   RequestSpyMiddleware,
@@ -59,7 +59,7 @@ describe('emojiFavicon', () => {
   });
 });
 
-describe('appErrorHandler - internal detail must never leak outside a development env', () => {
+describe('AppErrorMiddleware - internal detail must never leak outside a development env', () => {
   const RAW_MESSAGE =
     'connect ECONNREFUSED 10.0.0.7:5432 - select "password" from "users" where "id" = $1';
 
@@ -73,7 +73,7 @@ describe('appErrorHandler - internal detail must never leak outside a developmen
       // A raw driver failure carries no statusCode - exactly the error the handler must sanitize.
       throw new Error(RAW_MESSAGE);
     });
-    application.onError(appErrorHandler({ logger }));
+    application.onError(new AppErrorMiddleware({ logger }).value());
     return application;
   };
 
@@ -125,7 +125,7 @@ describe('appErrorHandler - internal detail must never leak outside a developmen
   );
 });
 
-describe('appErrorHandler - intentional ApplicationError identity', () => {
+describe('AppErrorMiddleware - intentional ApplicationError identity', () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
@@ -145,7 +145,7 @@ describe('appErrorHandler - intentional ApplicationError identity', () => {
       opts.thrower();
       return new Response('unreachable');
     });
-    application.onError(appErrorHandler({ logger, rootKey: opts.rootKey }));
+    application.onError(new AppErrorMiddleware({ logger, rootKey: opts.rootKey }).value());
     return application;
   };
 
@@ -166,7 +166,7 @@ describe('appErrorHandler - intentional ApplicationError identity', () => {
 
     const body = await readJson(response);
     expect(body.statusCode).toBe(HTTP.ResultCodes.RS_4.NotFound);
-    expect(body.messageCode).toBe('user.not-found');
+    expect(body.normalized.code).toBe('user.not-found');
     expect(body.message).toBe('User not found');
     expect(body.extra).toEqual({ userId: 42 });
     expect(body.requestId).toBe('req-app-error');
@@ -189,7 +189,7 @@ describe('appErrorHandler - intentional ApplicationError identity', () => {
     expect(response.status).toBe(HTTP.ResultCodes.RS_4.Forbidden);
 
     const body = await readJson(response);
-    expect(body.messageCode).toBe('auth.forbidden');
+    expect(body.normalized.code).toBe('auth.forbidden');
     expect(body.message).toBe('Forbidden');
     expect(body.details.stack).toBeUndefined();
     expect(body.details.cause).toBeUndefined();
@@ -210,7 +210,7 @@ describe('appErrorHandler - intentional ApplicationError identity', () => {
     const response = await application.request('/x');
     const body = await readJson(response);
 
-    expect(body.error.messageCode).toBe('bad.request');
+    expect(body.error.normalized.code).toBe('bad.request');
     expect(body.error.statusCode).toBe(HTTP.ResultCodes.RS_4.BadRequest);
   });
 });

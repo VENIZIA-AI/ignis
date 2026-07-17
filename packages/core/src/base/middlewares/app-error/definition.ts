@@ -99,3 +99,11 @@ export const POSTGRES_RETRYABLE_ERROR_CODES: readonly string[] = [
 export const DATABASE_RETRYABLE_ERROR_MESSAGE =
   'The request conflicted with a concurrent operation; please retry.';
 export const DATABASE_RETRYABLE_ERROR_CODE = CoreErrorCodes.DATABASE_CONFLICT;
+
+/** The branch a thrown value takes through the handler. */
+export class ApplicationErrorTypes {
+  static readonly DATABASE_CLIENT = 'database-client';
+  static readonly DATABASE_RETRYABLE = 'database-retryable';
+  static readonly INTENTIONAL = 'intentional';
+  static readonly UNEXPECTED = 'unexpected';
+}

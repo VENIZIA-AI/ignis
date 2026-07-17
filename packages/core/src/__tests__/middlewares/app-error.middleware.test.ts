@@ -2,7 +2,7 @@ import { describe, test, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { z } from '@hono/zod-openapi';
 import { getError, HTTP, Logger, MessageCode } from '@venizia/ignis-helpers';
-import { appErrorHandler, RequestSpyMiddleware } from '@/base/middlewares';
+import { AppErrorMiddleware, RequestSpyMiddleware } from '@/base/middlewares';
 
 // Real Logger instance (private constructor forces the factory) with `error` silenced -
 // the handler only needs a working `.error`, not real transport output.
@@ -25,7 +25,7 @@ const mount = (opts: { rootKey?: string; thrower: () => void }) => {
     opts.thrower();
     return new Response('unreachable');
   });
-  app.onError(appErrorHandler({ logger, rootKey: opts.rootKey }));
+  app.onError(new AppErrorMiddleware({ logger, rootKey: opts.rootKey }).value());
   return app;
 };
 
@@ -38,8 +38,8 @@ const zodThrower = (schema: z.ZodType, input: unknown) => () => {
   throw r.error;
 };
 
-describe('formatZodError — messageCode/message pass-through from Zod', () => {
-  test('custom params.code → messageCode + message come from that issue', async () => {
+describe('formatZodError — code/message pass-through from Zod', () => {
+  test('custom params.code → code + message come from that issue', async () => {
     const schema = z.object({
       quantity: z.number().refine(n => Number.isInteger(n * 10000), {
         message: 'Must not exceed 4 decimal places',
@@ -49,7 +49,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     const res = await mount({ thrower: zodThrower(schema, { quantity: 1.23456 }) }).request('/x');
     expect(res.status).toBe(422);
     const body = await readJson(res);
-    expect(body.messageCode).toBe('numeric.decimal.too_many_places');
+    expect(body.normalized.code).toBe('numeric.decimal.too_many_places');
     expect(body.message).toBe('Must not exceed 4 decimal places');
     expect(Array.isArray(body.details.cause)).toBe(true);
   });
@@ -64,7 +64,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     });
     const res = await mount({ thrower: zodThrower(schema, { quantity: 1.23456 }) }).request('/x');
     const body = await readJson(res);
-    expect(body.messageCode).toBe('numeric.decimal.too_many_places');
+    expect(body.normalized.code).toBe('numeric.decimal.too_many_places');
     expect(body.message).toBe('Must not exceed 4 decimal places');
   });
 
@@ -73,23 +73,23 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
       thrower: zodThrower(z.object({ vendorId: z.string() }), {}),
     }).request('/x');
     const body = await readJson(res);
-    expect(body.messageCode).toBe('invalid_type');
+    expect(body.normalized.code).toBe('invalid_type');
     expect(typeof body.message).toBe('string');
     expect(body.message).not.toBe('ValidationError');
     expect(Array.isArray(body.details.cause)).toBe(true);
     expect(body.details.cause).toHaveLength(1);
   });
 
-  test('multiple built-in issues → messageCode = the FIRST issue raw code', async () => {
+  test('multiple built-in issues → code = the FIRST issue raw code', async () => {
     // a: missing → invalid_type (issues[0]); b: too short → too_small (issues[1])
     const schema = z.object({ a: z.string(), b: z.string().min(5) });
     const res = await mount({ thrower: zodThrower(schema, { b: 'x' }) }).request('/x');
     const body = await readJson(res);
-    expect(body.messageCode).toBe('invalid_type');
+    expect(body.normalized.code).toBe('invalid_type');
     expect(body.details.cause).toHaveLength(2);
   });
 
-  test('malformed (non-JSON) ZodError → default messageCode, message "ValidationError"', async () => {
+  test('malformed (non-JSON) ZodError → default code, message "ValidationError"', async () => {
     const res = await mount({
       thrower: () => {
         const e = new Error('totally not json');
@@ -99,7 +99,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     }).request('/x');
     const body = await readJson(res);
     expect(body.message).toBe('ValidationError');
-    expect(body.messageCode).toBe(MessageCode.DEFAULT);
+    expect(body.normalized.code).toBe(MessageCode.DEFAULT);
   });
 
   test('non-Zod (domain getError) response is unchanged', async () => {
@@ -111,7 +111,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
     expect(res.status).toBe(400);
     const body = await readJson(res);
     expect(body.message).toBe('Nope');
-    expect(body.messageCode).toBe('domain.nope');
+    expect(body.normalized.code).toBe('domain.nope');
     expect(body.statusCode).toBe(400);
   });
 
@@ -125,7 +125,7 @@ describe('formatZodError — messageCode/message pass-through from Zod', () => {
       thrower: zodThrower(schema, { quantity: 1 }),
     }).request('/x');
     const body = await readJson(res);
-    expect(body.error.messageCode).toBe('x.y');
+    expect(body.error.normalized.code).toBe('x.y');
     expect(body.error.message).toBe('bad');
   });
 });
@@ -273,7 +273,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
     expect(res.status).toBe(409);
     const body = await readJson(res);
     expect(body.message).toBe('Email already in use');
-    expect(body.messageCode).toBe('user.email.taken');
+    expect(body.normalized.code).toBe('user.email.taken');
   });
 
   test('non-string error code (e.g. gRPC numeric code) does not crash the handler', async () => {
@@ -312,7 +312,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
     }).request('/x');
     expect(res.status).toBe(409);
     const body = await readJson(res);
-    expect(body.messageCode).toBe('database.conflict');
+    expect(body.normalized.code).toBe('database.conflict');
     expect(body.message).toContain('retry');
     expect(body.message).not.toContain('serialize');
   });
@@ -321,7 +321,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
     const res = await mount({ thrower: dbThrower({ code: '40P01' }) }).request('/x');
     expect(res.status).toBe(409);
     const body = await readJson(res);
-    expect(body.messageCode).toBe('database.conflict');
+    expect(body.normalized.code).toBe('database.conflict');
   });
 
   test('production: retryable conflict still returns the safe generic message', async () => {
@@ -340,7 +340,7 @@ describe('isDatabaseClientError — DB constraint errors map to HTTP 400', () =>
   });
 });
 
-describe('appErrorHandler - every response carries a messageCode', () => {
+describe('AppErrorMiddleware - every response carries a normalized code', () => {
   test('a RAW throw (no ApplicationError) still gets the default code, never an absent field', async () => {
     const res = await mount({
       thrower: () => {
@@ -351,8 +351,8 @@ describe('appErrorHandler - every response carries a messageCode', () => {
 
     const body = await readJson(res);
 
-    expect(body.messageCode).toBe(MessageCode.DEFAULT);
-    expect(body.messageCode).toBe('core.system_error');
+    expect(body.normalized.code).toBe(MessageCode.DEFAULT);
+    expect(body.normalized.code).toBe('core.system_error');
   });
 
   test('an error raised through getError WITHOUT a code also carries the default', async () => {
@@ -365,7 +365,7 @@ describe('appErrorHandler - every response carries a messageCode', () => {
     const body = await readJson(res);
 
     expect(res.status).toBe(409);
-    expect(body.messageCode).toBe(MessageCode.DEFAULT);
+    expect(body.normalized.code).toBe(MessageCode.DEFAULT);
   });
 
   test('an explicit code is passed through untouched', async () => {
@@ -377,7 +377,7 @@ describe('appErrorHandler - every response carries a messageCode', () => {
 
     const body = await readJson(res);
 
-    expect(body.messageCode).toBe('core.repository.operation_not_allowed');
+    expect(body.normalized.code).toBe('core.repository.operation_not_allowed');
   });
 
   test('a retryable DB conflict keeps its own retry code, not the default', async () => {
@@ -392,7 +392,7 @@ describe('appErrorHandler - every response carries a messageCode', () => {
     const body = await readJson(res);
 
     expect(res.status).toBe(HTTP.ResultCodes.RS_4.Conflict);
-    expect(body.messageCode).toBe('database.conflict');
+    expect(body.normalized.code).toBe('database.conflict');
   });
 });
 
@@ -401,7 +401,7 @@ describe('appErrorHandler - every response carries a messageCode', () => {
  * by an explicit development name, so a typo, a new environment nobody added to the list, or an
  * unset variable all land on the safe side.
  */
-describe('appErrorHandler — the NODE_ENV leak boundary', () => {
+describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
   /** A unique-violation carrying the row data, the table and the constraint - all of it internal. */
   const leakyDatabaseThrower = () => {
     const error = new Error('database error') as Error & { cause?: unknown };
@@ -484,10 +484,12 @@ describe('appErrorHandler — the NODE_ENV leak boundary', () => {
  * `normalized` is the field clients render, so it must never become a second way to leak what the
  * handler just scrubbed out of `message`.
  */
-describe('appErrorHandler - normalized cannot leak past sanitization', () => {
+describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => {
   const buildApp = (handler: () => never) => {
     const app = new Hono();
-    app.onError(appErrorHandler({ logger: { error: () => {} } as unknown as Logger }));
+    app.onError(
+      new AppErrorMiddleware({ logger: { error: () => {} } as unknown as Logger }).value(),
+    );
     app.get('/', handler);
 
     return app;
@@ -501,14 +503,13 @@ describe('appErrorHandler - normalized cannot leak past sanitization', () => {
 
     const body = (await (await app.request('/')).json()) as {
       message: string;
-      messageCode?: string;
       normalized: { text: string; code: string; args: Record<string, unknown> };
     };
 
     expect(body.message).not.toContain('db-prod-1.internal');
     expect(body.normalized.text).not.toContain('db-prod-1.internal');
     expect(body.normalized.text).toBe(body.message);
-    expect(body.normalized.code).toBe(body.messageCode ?? 'core.system_error');
+    expect(body.normalized.code).toBe(MessageCode.DEFAULT);
   });
 
   test('an intentional error keeps the text its transform produced', async () => {
@@ -520,8 +521,8 @@ describe('appErrorHandler - normalized cannot leak past sanitization', () => {
         statusCode: 409,
         messageArgs: { available: 2 },
         transform: snapshot => ({
-          code: snapshot.messageCode,
-          args: (snapshot.extra?.messageArgs as Record<string, unknown>) ?? {},
+          code: snapshot.message.code,
+          args: snapshot.message.args,
           text: 'Chỉ còn 2 vé.',
         }),
       });
@@ -546,11 +547,10 @@ describe('appErrorHandler - normalized cannot leak past sanitization', () => {
  * validation branch, which returns early through `formatZodError` and is the branch a client hits
  * most often. A contract with one silent hole is not a contract.
  */
-describe('appErrorHandler - every branch emits normalized', () => {
+describe('AppErrorMiddleware - every branch emits normalized', () => {
   const readNormalized = async (app: Hono, path = '/') => {
     const body = (await (await app.request(path)).json()) as {
       message: string;
-      messageCode?: string;
       normalized?: { text: string; code: string; args: Record<string, unknown> };
     };
 
@@ -559,7 +559,9 @@ describe('appErrorHandler - every branch emits normalized', () => {
 
   const buildApp = (thrower: () => void) => {
     const app = new Hono();
-    app.onError(appErrorHandler({ logger: { error: () => {} } as unknown as Logger }));
+    app.onError(
+      new AppErrorMiddleware({ logger: { error: () => {} } as unknown as Logger }).value(),
+    );
     app.get('/', () => {
       thrower();
       return new Response('unreachable');
@@ -577,7 +579,7 @@ describe('appErrorHandler - every branch emits normalized', () => {
 
     expect(body.normalized).toBeDefined();
     expect(body.normalized?.text).toBe(body.message);
-    expect(body.normalized?.code).toBe(body.messageCode!);
+    expect(body.normalized?.code).toBe('invalid_format');
     expect(body.normalized?.args).toEqual({});
   });
 

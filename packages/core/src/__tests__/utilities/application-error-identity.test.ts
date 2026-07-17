@@ -32,7 +32,7 @@ describe('isApplicationError recognizes errors across package boundaries', () =>
     const viaHelpers = getError({ message: 'x' });
     const viaInversion = inversionGetError({ message: 'x' });
 
-    expect(viaInversion.messageCode).toBe(viaHelpers.messageCode);
+    expect(viaInversion.normalized.code).toBe(viaHelpers.normalized.code);
     expect(viaInversion.normalized).toEqual(viaHelpers.normalized);
   });
 

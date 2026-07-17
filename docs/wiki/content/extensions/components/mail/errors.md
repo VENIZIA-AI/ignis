@@ -4,7 +4,7 @@
 
 ## Error reference
 
-All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields -- the rows marked `--` throw a plain error with just a `message`.
+All errors are created via `getError()`. Only errors that pass `statusCode`/`messageCode` carry an `ApplicationError` identity with those fields -- the rows marked `--` throw a plain error with just a `message`. Read an error's code at `error.normalized.code`; there is no flat `error.messageCode`.
 
 ### `MailService` errors
 
