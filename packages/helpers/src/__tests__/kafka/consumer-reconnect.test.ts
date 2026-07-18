@@ -326,15 +326,8 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
   });
 
   test('TC-150: rebuild triggers when sessionLikelyStale flips to true DURING the retry sleep', async () => {
-    // Regression for the Copilot review: prior to the fix, attemptReconnect
-    // snapshotted sessionLikelyStale BEFORE the sleep, so an all-brokers-down
-    // event that arrived during the backoff window was missed — the snapshot
-    // stayed `false` and consume() was called on a now-stale client.
-    //
-    // After the fix, the flag is read AFTER the sleep and this test exercises
-    // exactly that scenario: enter attemptReconnect with the flag false, set
-    // it via a BROKER_DISCONNECT-to-0 event during the sleep, and assert that
-    // rebuild fires when the retry wakes up.
+    // Regression: attemptReconnect must read sessionLikelyStale AFTER the sleep, not before -
+    // otherwise a during-backoff BROKER_DISCONNECT-to-0 is missed and consume() runs on a stale client.
     const helper = newConsumer();
 
     // Bring at least one broker online so the disconnect-to-0 event makes sense.
@@ -374,14 +367,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
   });
 
   test('TC-151: rebuildClient restarts lag monitoring on the new client', async () => {
-    // Regression for the Copilot review (high severity): swapping out
-    // this.client during rebuildClient left lagMonitoringActive=true while
-    // the timer lived only on the abandoned old client. Lag events silently
-    // stopped emitting, and the boolean gate in startLagMonitoring made it
-    // impossible to re-enable without reconstructing the helper.
-    //
-    // After the fix: rebuildClient re-arms lag monitoring on the new client
-    // using the persisted lagMonitoringOptions.
+    // Regression: swapping this.client in rebuildClient left lagMonitoringActive=true but the
+    // timer on the abandoned old client, silently killing lag events. Fix re-arms monitoring on
+    // the new client using the persisted lagMonitoringOptions.
     const helper = newConsumer();
 
     // Stub the original client's lag-monitoring methods so calling
@@ -436,15 +424,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
   });
 
   test('TC-152: rebuildClient fires only once across multiple failed retries while brokers stay down', async () => {
-    // Regression for the Copilot review (medium severity): the stale flag
-    // was previously only cleared after a successful consume(). If consume()
-    // kept failing (prolonged outage), every retry would rebuild the client,
-    // churning through Consumer instances and piling up background close()s.
-    //
-    // After the fix, the flag is cleared right after rebuildClient() succeeds
-    // — so a single all-brokers-down event causes exactly ONE rebuild, even
-    // if the subsequent consume() calls keep failing across multiple retry
-    // attempts.
+    // Regression: the stale flag used to clear only after a successful consume(), so a prolonged
+    // outage rebuilt the client on every failing retry. Fix clears it right after rebuildClient()
+    // succeeds - exactly one rebuild per all-brokers-down event, regardless of later failures.
     const helper = newConsumer();
 
     // Bring a broker up so the disconnect-to-0 event makes sense.
@@ -459,10 +441,8 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
     let rebuildCalls = 0;
     helper['rebuildClient'] = async () => {
       rebuildCalls += 1;
-      // Mimic the production behaviour: the real rebuildClient clears the
-      // flag itself on success. The stub does the same so this test
-      // verifies the *invariant* end-to-end rather than coincidentally
-      // passing because the stub forgot to clear it.
+      // Stub mimics production: rebuildClient clears the flag itself on success, so this test
+      // verifies the invariant end-to-end instead of passing by the stub forgetting to clear it.
       helper['sessionLikelyStale'] = false;
     };
 
@@ -486,11 +466,9 @@ describe('KafkaConsumerHelper - client rebuild on attemptReconnect', () => {
   });
 
   test('TC-153: BROKER_FAILED-to-zero also sets sessionLikelyStale and destroys the stream', () => {
-    // Regression for the Copilot review (medium severity): the previous
-    // handler only listened to BROKER_DISCONNECT. A pool that emptied via
-    // BROKER_FAILED (auth, broker not up, network) left sessionLikelyStale
-    // false and the stream undestroyed — re-introducing the original hang
-    // bug via a different event path.
+    // Regression: the old handler only listened to BROKER_DISCONNECT, so a pool emptied via
+    // BROKER_FAILED left sessionLikelyStale false and the stream undestroyed - reintroducing
+    // the original hang through a different event path.
     const helper = newConsumer();
 
     // Park a fake stream on the helper so we can observe destruction.

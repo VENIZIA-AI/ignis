@@ -252,10 +252,9 @@ describe('BaseSearchDataSource - autoDiscovery flag (branch-agnostic)', () => {
 });
 
 describe('BaseSearchDataSource - the engine is the datasource class, not a metadata field', () => {
-  // A search datasource names no driver: `extends TypesenseDataSource` already IS the engine
-  // reference, and it is what carries the `typesense` package into the bundle. `@datasource()` with
-  // no driver at all must therefore be legal - `tsc --noEmit` is the real gate, `bun test` only
-  // proves it runs.
+  // A search datasource names no driver: `extends TypesenseDataSource` IS the engine reference and
+  // carries the peer into the bundle. `@datasource()` with no driver must be legal - `tsc --noEmit`
+  // is the real gate.
   @datasource()
   class EngineFromClassDataSource extends FakeSearchDataSource {}
 

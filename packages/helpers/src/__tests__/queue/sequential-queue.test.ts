@@ -22,9 +22,8 @@ const createDeferred = <T>(): IDeferred<T> => {
 };
 
 /**
- * The queue drives itself through a generator whose promise nobody awaits, so a test cannot await the
- * processing directly. Every settle path below is signalled by a queue callback; the timeout only
- * exists so a REGRESSION (the queue stalling and the signal never firing) fails fast instead of hanging.
+ * The queue drives itself via a generator whose promise nobody awaits, so tests can't await
+ * processing directly - they wait on a queue callback instead; the timeout exists only so a stall regression fails fast instead of hanging.
  */
 const SETTLE_TIMEOUT = 300;
 const withTimeout = <T>(opts: { promise: Promise<T> }): Promise<T | 'TIMED_OUT'> => {

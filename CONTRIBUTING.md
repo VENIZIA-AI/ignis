@@ -210,7 +210,7 @@ Then create a Pull Request on GitHub targeting the `develop` branch.
 
 ## Getting Help
 
-- **Documentation**: [https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
+- **Documentation**: [https://ignis.venizia.ai](https://ignis.venizia.ai)
 - **Issues**: Search [existing issues](https://github.com/VENIZIA-AI/ignis/issues) before creating new ones
 - **Questions**: Use GitHub Discussions or Issues
 

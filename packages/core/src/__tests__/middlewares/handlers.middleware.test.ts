@@ -4,7 +4,8 @@ import {
   notFoundHandler,
   RequestSpyMiddleware,
 } from '@/base/middlewares';
-import { getError, HTTP, Logger } from '@venizia/ignis-helpers';
+import { getError, HTTP } from '@venizia/ignis-helpers';
+import { Logger } from '@venizia/ignis-helpers/winston';
 import { Hono } from 'hono';
 import { afterEach, describe, expect, test } from 'bun:test';
 

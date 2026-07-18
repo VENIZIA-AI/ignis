@@ -1,14 +1,13 @@
 import { describe, expect, test } from 'bun:test';
-import { formatLogMessage } from '@/modules/logger/formatters';
+import { formatLogMessage } from '@/modules/logger';
 import { HashiCorpVaultHelper } from '@/modules/secrets/hashicorp/hashicorp.helper';
 import { VaultAuthMethods } from '@/modules/secrets/common';
 import type { IClock, ITimerAdapter, TTimerHandle } from '@/modules/secrets/common';
 
 /**
- * Routes captured log calls through the REAL formatter the framework logger uses, so a test proves
- * that the raw error object the provider now passes (which exposes its enumerable
- * `config.headers['X-Vault-Token']`) is redacted by the logger's deep-inspect path before it ever
- * reaches a sink. The first arg is the `%s`-bearing message; the rest are the splat args.
+ * Routes captured log calls through the REAL formatter so the test proves the raw error object
+ * (with its enumerable `config.headers['X-Vault-Token']`) gets redacted by the logger's deep-inspect
+ * path before reaching a sink.
  */
 const formatLogArgs = ([message, ...args]: unknown[]) =>
   formatLogMessage({ message: String(message), args });
@@ -29,10 +28,7 @@ const makeCapturingLogger = () => {
   return { messages, sink };
 };
 
-/**
- * A node-vault transport failure: an AxiosError-like object whose enumerable `config` carries the
- * live token and AppRole secret. Logging the raw object would deep-inspect and leak both.
- */
+/** A node-vault transport failure: an AxiosError-like object whose enumerable `config` carries the live token and AppRole secret - logging it raw would deep-inspect and leak both. */
 const leakyTransportError = () => {
   const data: Record<string, unknown> = {};
   data['secret_id'] = 'secret-approle';

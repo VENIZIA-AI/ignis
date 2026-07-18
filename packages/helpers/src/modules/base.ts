@@ -1,9 +1,9 @@
-import { Logger, LoggerFactory } from '@/modules/logger';
+import { ILogger, LoggerFactory } from '@/modules/logger';
 
 export class BaseHelper {
   scope: string;
   identifier: string;
-  logger: Logger;
+  logger: ILogger;
 
   constructor(opts: { scope: string; identifier?: string }) {
     this.logger = LoggerFactory.getLogger(
@@ -18,7 +18,7 @@ export class BaseHelper {
     return this.identifier;
   }
 
-  getLogger() {
+  getLogger(): ILogger {
     return this.logger;
   }
 }

@@ -115,13 +115,9 @@ export class ReadableSearchRepository<
     return this.findOne<R>({ filter: { where: { id } }, options });
   }
 
-  /** Unified search entry point, discriminated by `mode`:
-   * - `raw` - full-power passthrough straight to the connector, no dialect/defaultFilter/hiddenFields.
-   * - `keyword`/`semantic`/`hybrid` - `where`/`defaultFilter`/`hiddenFields` translated via the
-   *   dialect same as `find()`, then the dialect applies every engine-specific parameter.
-   *
-   * Nothing engine-specific lives here: mode dispatch, the vector clause and the tuning knobs are
-   * all owned by `ISearchQueryDialect.applySearchInput`. */
+  /** Unified search entry, discriminated by `mode`: `raw` is a full passthrough (no dialect/
+   * defaultFilter/hiddenFields); keyword/semantic/hybrid translate via the dialect same as `find()`.
+   * Nothing engine-specific lives here - `ISearchQueryDialect.applySearchInput` owns it all. */
   async search<R extends object = TDocument>(
     opts: TSearchInput & { options?: IExtraOptions },
   ): Promise<ISearchResult<R>> {

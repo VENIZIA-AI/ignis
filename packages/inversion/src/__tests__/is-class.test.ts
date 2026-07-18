@@ -2,13 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { isClass } from '@/common/types';
 
 /**
- * `isClass` is the single predicate the whole framework uses to tell a CONSTRUCTOR from a RESOLVER:
- * the boot booters (is this export an artifact?), the controller factories and `resolveValue`
- * (`isClass(entity) ? entity : entity()`) all branch on it.
- *
- * `typeof x === 'function' && x.prototype !== undefined` is true of EVERY non-arrow function, so a
- * plain function was read as a class - a helper exported next to an artifact got bound and `new`-ed,
- * and a `function () { return User; }` resolver was returned instead of being called.
+ * `isClass` tells a CONSTRUCTOR from a RESOLVER framework-wide; `prototype !== undefined` is true
+ * of every non-arrow function, so these pin the source-text check.
  */
 describe('isClass', () => {
   test('a class declaration, an abstract class and a class expression are classes', () => {

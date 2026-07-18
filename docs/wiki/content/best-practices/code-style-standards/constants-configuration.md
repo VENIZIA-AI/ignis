@@ -86,7 +86,9 @@ interface IUser {
 }
 
 // Usage with validation
-function updateUserStatus(userId: string, status: string) {
+const updateUserStatus = (opts: { userId: string; status: string }) => {
+  const { status } = opts;
+
   if (!UserStatuses.isValid(status)) {
     throw getError({
       statusCode: HTTP.ResultCodes.RS_4.BadRequest,
@@ -94,7 +96,7 @@ function updateUserStatus(userId: string, status: string) {
     });
   }
   // status is validated at runtime
-}
+};
 ```
 
 ## Enum vs Static Class Comparison
@@ -198,7 +200,15 @@ constructor(options: IJWSTokenServiceOptions) {
 
 ## Environment Variables Management
 
-Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment` helper and define your keys as constants.
+Avoid using `process.env` directly in your business logic. Instead, use the `applicationEnvironment`
+helper and define your keys as constants.
+
+Two constraints it enforces:
+
+- Only variables whose name starts with the prefix (`APP_ENV` by default, override with
+  `APPLICATION_ENV_PREFIX`) are visible. Anything else reads back as `undefined`.
+- Values are raw strings. A non-string type parameter is an assertion, not a conversion - pass
+  `transform` to actually convert.
 
 **Define Keys (`src/common/environments.ts`):**
 ```typescript
@@ -215,7 +225,12 @@ import { EnvironmentKeys } from '@/common/environments';
 
 // Correct usage
 const stripeKey = applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_STRIPE_KEY);
-const retries = applicationEnvironment.get<number>(EnvironmentKeys.APP_ENV_MAX_RETRIES);
+
+// Numbers need an explicit transform - the stored value is a string
+const retries = applicationEnvironment.get<number, string>(EnvironmentKeys.APP_ENV_MAX_RETRIES, {
+  transform: value => Number(value),
+  defaultValue: 3,
+});
 ```
 
 ## See Also

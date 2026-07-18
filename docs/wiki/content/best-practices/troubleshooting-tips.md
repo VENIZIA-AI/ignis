@@ -50,11 +50,9 @@ This prints all registered routes on startup.
 
 **Debug bindings:**
 ```typescript
-// In postConfigure() method
-async postConfigure(): Promise<void> {
-  this.logger.info('Available bindings: %s',
-    Array.from(this.bindings.keys())
-  );
+// In your Application class - `bindings` is protected on the container it extends
+override async postConfigure(): Promise<void> {
+  this.logger.info('[postConfigure] Available bindings: %j', Array.from(this.bindings.keys()));
 }
 ```
 
@@ -77,16 +75,21 @@ curl -H "Authorization: Bearer YOUR_TOKEN" \
 
 **Enable detailed logging:**
 ```bash
-# Enable debug mode via environment variable
+# `debug` is the only gated level - it is dropped unless DEBUG is set
 DEBUG=true
+
+# File logging is OPT-IN. Without this, logs go to console/dgram only
+APP_ENV_LOGGER_FOLDER_PATH=./logs
 ```
 
 **Use method-scoped logging with `.for()`:**
 ```typescript
-class UserService {
-  private logger = Logger.get('UserService');
+import { ApplicationLogger, type ILogger } from '@venizia/ignis-helpers';
 
-  async createUser(data: CreateUserDto) {
+class UserService {
+  private logger: ILogger = ApplicationLogger.get('UserService');
+
+  async createUser(data: TCreateUserRequest) {
     this.logger.for('createUser').info('Creating user: %j', data);
     // Output: [UserService-createUser] Creating user: {...}
 
@@ -102,16 +105,19 @@ class UserService {
 }
 ```
 
+Annotate against `ILogger`, never a concrete provider class. Acquire a logger via `BaseHelper.logger` (inside any helper, service, controller or repository), `ApplicationLogger.get('Scope')`, or `LoggerFactory.getLogger(['A', 'B'])`.
+
 **Common debugging commands:**
 ```bash
-# View application logs
-tail -f logs/app.log
+# View application logs - the rotating files are <APP_ENV_APPLICATION_NAME>-info-<date>.log
+# and -error-<date>.log inside APP_ENV_LOGGER_FOLDER_PATH
+tail -f "$APP_ENV_LOGGER_FOLDER_PATH"/*-info-*.log
 
-# Check TypeScript compilation errors
-bun run build
+# Check TypeScript compilation errors (from the repo root)
+make core
 
 # Validate environment variables
-cat .env | grep APP_ENV
+grep APP_ENV .env
 ```
 
 **Useful debugging patterns:**
@@ -144,10 +150,10 @@ async getUser(c: Context) {
 **Filtering logs by request:**
 ```bash
 # Find all logs for a specific request
-grep "abc123" logs/app.log
+grep "abc123" "$APP_ENV_LOGGER_FOLDER_PATH"/*-info-*.log
 
 # Extract request timing
-grep "\[abc123\]" logs/app.log | grep "Took:"
+grep "\[abc123\]" "$APP_ENV_LOGGER_FOLDER_PATH"/*-info-*.log | grep "Took:"
 ```
 
 **Why this matters:**

@@ -111,39 +111,39 @@ export class UserAuditTestService extends BaseTestService {
     this.logSection('[UserAuditTestService] Starting user audit tracking test cases');
 
     // CREATE operation tests
-    await this.case1_CreateWithExplicitAuditFields();
-    await this.case2_CreateWithoutContext_NullAuditFields();
-    await this.case3_CreateAll_BulkAuditFields();
+    await this.case1CreateWithExplicitAuditFields();
+    await this.case2CreateWithoutContextNullAuditFields();
+    await this.case3CreateAllBulkAuditFields();
 
     // UPDATE operation tests
-    await this.case4_UpdateById_ModifiedByChanges();
-    await this.case5_UpdateById_CreatedByUnchanged();
-    await this.case6_UpdateAll_BulkModifiedByChanges();
-    await this.case7_UpdateWithDifferentUser();
+    await this.case4UpdateByIdModifiedByChanges();
+    await this.case5UpdateByIdCreatedByUnchanged();
+    await this.case6UpdateAllBulkModifiedByChanges();
+    await this.case7UpdateWithDifferentUser();
 
     // Edge cases
-    await this.case8_NullToNonNullAuditFields();
-    await this.case9_VerifyAuditFieldsStoredInDatabase();
-    await this.case10_FilterByAuditFields();
+    await this.case8NullToNonNullAuditFields();
+    await this.case9VerifyAuditFieldsStoredInDatabase();
+    await this.case10FilterByAuditFields();
 
     // Transaction behavior
-    await this.case11_TransactionAuditTracking();
-    await this.case12_RollbackAuditTracking();
+    await this.case11TransactionAuditTracking();
+    await this.case12RollbackAuditTracking();
 
     // Advanced scenarios
-    await this.case13_ConcurrentUpdatesModifiedBy();
-    await this.case14_AuditFieldsWithRelations();
-    await this.case15_MultipleSequentialUpdates();
-    await this.case16_AuditFieldsDataTypes();
-    await this.case17_AuditFieldsInCountAndExists();
-    await this.case18_DeleteReturnsAuditFields();
+    await this.case13ConcurrentUpdatesModifiedBy();
+    await this.case14AuditFieldsWithRelations();
+    await this.case15MultipleSequentialUpdates();
+    await this.case16AuditFieldsDataTypes();
+    await this.case17AuditFieldsInCountAndExists();
+    await this.case18DeleteReturnsAuditFields();
 
     // Security and edge cases
-    await this.case19_AuditFieldInjectionAttempt();
-    await this.case20_EmptyStringVsNullAuditFields();
+    await this.case19AuditFieldInjectionAttempt();
+    await this.case20EmptyStringVsNullAuditFields();
 
     // Cleanup
-    await this.case21_Cleanup();
+    await this.case21Cleanup();
 
     this.logSection('[UserAuditTestService] All user audit tracking test cases completed!');
   }
@@ -151,7 +151,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Create with explicit audit fields
   // ----------------------------------------------------------------
-  private async case1_CreateWithExplicitAuditFields(): Promise<void> {
+  private async case1CreateWithExplicitAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Create with explicit createdBy and modifiedBy values');
 
@@ -213,7 +213,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Create without context - audit fields should be null
   // ----------------------------------------------------------------
-  private async case2_CreateWithoutContext_NullAuditFields(): Promise<void> {
+  private async case2CreateWithoutContextNullAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Create without Hono context - audit fields should be null (or default)');
 
@@ -274,7 +274,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: CreateAll (bulk) with audit fields
   // ----------------------------------------------------------------
-  private async case3_CreateAll_BulkAuditFields(): Promise<void> {
+  private async case3CreateAllBulkAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] CreateAll with explicit audit fields for each record');
 
@@ -364,7 +364,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: UpdateById - modifiedBy should change
   // ----------------------------------------------------------------
-  private async case4_UpdateById_ModifiedByChanges(): Promise<void> {
+  private async case4UpdateByIdModifiedByChanges(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] UpdateById - modifiedBy should change to new user');
 
@@ -436,7 +436,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: UpdateById - createdBy should NOT change
   // ----------------------------------------------------------------
-  private async case5_UpdateById_CreatedByUnchanged(): Promise<void> {
+  private async case5UpdateByIdCreatedByUnchanged(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] UpdateById - createdBy should remain unchanged');
 
@@ -525,7 +525,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: UpdateAll (bulk) - modifiedBy changes for all
   // ----------------------------------------------------------------
-  private async case6_UpdateAll_BulkModifiedByChanges(): Promise<void> {
+  private async case6UpdateAllBulkModifiedByChanges(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] UpdateAll - modifiedBy should change for all matching records');
 
@@ -623,7 +623,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Update with different user (simulating user switch)
   // ----------------------------------------------------------------
-  private async case7_UpdateWithDifferentUser(): Promise<void> {
+  private async case7UpdateWithDifferentUser(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] Simulate user switch - update by different user');
 
@@ -714,7 +714,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Null to non-null audit field update
   // ----------------------------------------------------------------
-  private async case8_NullToNonNullAuditFields(): Promise<void> {
+  private async case8NullToNonNullAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 8] Update null audit fields to non-null values');
 
@@ -789,7 +789,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Verify audit fields actually stored in database
   // ----------------------------------------------------------------
-  private async case9_VerifyAuditFieldsStoredInDatabase(): Promise<void> {
+  private async case9VerifyAuditFieldsStoredInDatabase(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 9] Verify audit fields are correctly stored in database');
 
@@ -851,7 +851,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Filter/query by audit fields
   // ----------------------------------------------------------------
-  private async case10_FilterByAuditFields(): Promise<void> {
+  private async case10FilterByAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 10] Filter records by createdBy and modifiedBy');
 
@@ -958,7 +958,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Transaction - audit fields should work correctly
   // ----------------------------------------------------------------
-  private async case11_TransactionAuditTracking(): Promise<void> {
+  private async case11TransactionAuditTracking(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 11] Audit tracking works correctly within transactions');
 
@@ -1044,7 +1044,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Rollback - audit changes should not persist
   // ----------------------------------------------------------------
-  private async case12_RollbackAuditTracking(): Promise<void> {
+  private async case12RollbackAuditTracking(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 12] Rollback - audit field changes should not persist');
 
@@ -1133,7 +1133,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Concurrent updates - last write wins for modifiedBy
   // ----------------------------------------------------------------
-  private async case13_ConcurrentUpdatesModifiedBy(): Promise<void> {
+  private async case13ConcurrentUpdatesModifiedBy(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 13] Concurrent updates - verify modifiedBy reflects last writer');
 
@@ -1222,7 +1222,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Audit fields with relations
   // ----------------------------------------------------------------
-  private async case14_AuditFieldsWithRelations(): Promise<void> {
+  private async case14AuditFieldsWithRelations(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 14] Audit fields accessible when including relations');
 
@@ -1302,7 +1302,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Multiple sequential updates track modifiedBy correctly
   // ----------------------------------------------------------------
-  private async case15_MultipleSequentialUpdates(): Promise<void> {
+  private async case15MultipleSequentialUpdates(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 15] Multiple sequential updates track modifiedBy history');
 
@@ -1402,7 +1402,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Audit fields with valid User IDs (FK constraint validation)
   // ----------------------------------------------------------------
-  private async case16_AuditFieldsDataTypes(): Promise<void> {
+  private async case16AuditFieldsDataTypes(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 16] Audit fields correctly store valid User IDs (FK constraint enforced)');
 
@@ -1471,7 +1471,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 17: Count and ExistsWith operations with audit field filters
   // ----------------------------------------------------------------
-  private async case17_AuditFieldsInCountAndExists(): Promise<void> {
+  private async case17AuditFieldsInCountAndExists(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 17] Count and ExistsWith operations using audit field filters');
 
@@ -1551,7 +1551,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 18: Delete operations return audit fields
   // ----------------------------------------------------------------
-  private async case18_DeleteReturnsAuditFields(): Promise<void> {
+  private async case18DeleteReturnsAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 18] Delete operations return records with audit fields');
 
@@ -1611,7 +1611,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 19: Security - Audit field injection attempt
   // ----------------------------------------------------------------
-  private async case19_AuditFieldInjectionAttempt(): Promise<void> {
+  private async case19AuditFieldInjectionAttempt(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 19] Security - Test audit field injection attempts');
 
@@ -1691,7 +1691,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 20: Null audit fields behavior (FK constraint aware)
   // ----------------------------------------------------------------
-  private async case20_EmptyStringVsNullAuditFields(): Promise<void> {
+  private async case20EmptyStringVsNullAuditFields(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 20] Test null audit fields and FK constraint validation');
 
@@ -1770,7 +1770,7 @@ export class UserAuditTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 21: Cleanup all audit test data
   // ----------------------------------------------------------------
-  private async case21_Cleanup(): Promise<void> {
+  private async case21Cleanup(): Promise<void> {
     this.logCase('[CASE 21] Cleanup all user audit test data');
 
     try {

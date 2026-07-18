@@ -6,7 +6,7 @@ import { BindingScopes, BindingValueTypes } from '../modules/binding/common/cons
 import type { IProvider } from '../modules/binding/common/types';
 import type { IContainer } from '../modules/container/common/types';
 import { Container } from '../modules/container/container';
-import { inject, injectable } from '../modules/metadata/injectors';
+import { inject } from '../modules/metadata/injectors';
 
 class Greeter {
   greet(): string {
@@ -191,7 +191,6 @@ describe('Container - storage semantics', () => {
 
 describe('Container - decorator-driven injection', () => {
   test('constructor injection resolves @inject params in index order', () => {
-    @injectable({})
     class ReportService {
       constructor(
         @inject({ key: 'report.prefix' }) readonly prefix: string,
@@ -211,7 +210,6 @@ describe('Container - decorator-driven injection', () => {
   });
 
   test('an optional constructor dependency resolves to undefined instead of throwing', () => {
-    @injectable({})
     class LooseService {
       constructor(
         @inject({ key: 'not.bound', isOptional: true }) readonly missing: string | undefined,

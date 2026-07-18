@@ -61,6 +61,9 @@ export class UserController extends BaseRestController {
 }
 ```
 
+`@get`, `@post`, `@put`, `@patch`, and `@del` are the same decorator with `method` preset - the
+config they take omits `method`.
+
 ## Method 3: Using `bindRoute` (Programmatic)
 
 Register routes in the `binding()` lifecycle method:
@@ -115,18 +118,19 @@ Use Zod with `.openapi()` for automatic documentation:
 
 ```typescript
 const CreateUserSchema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   name: z.string().min(1).max(100),
 }).openapi({
   description: 'Create user request body',
   example: { email: 'user@example.com', name: 'John Doe' },
 });
 
+// Zod v4 top-level string formats - not the deprecated z.string().email() chain
 const UserSchema = z.object({
-  id: z.string().uuid(),
-  email: z.string().email(),
+  id: z.uuid(),
+  email: z.email(),
   name: z.string(),
-  createdAt: z.string().datetime(),
+  createdAt: z.iso.datetime(),
 }).openapi({
   description: 'User response',
 });
@@ -165,4 +169,4 @@ export const RouteConfigs = {
 
 - [API Usage Examples](../api-usage-examples) - Full API patterns
 - [Controllers Reference](../../references/base/controllers) - Controller API
-- [Swagger Component](../../extensions/components/api-reference) - OpenAPI setup
+- [API Reference Component](../../extensions/components/api-reference) - OpenAPI setup

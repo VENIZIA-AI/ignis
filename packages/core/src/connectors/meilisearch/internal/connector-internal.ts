@@ -6,18 +6,10 @@ export class MeilisearchInternal {
   static readonly INDEX_ALREADY_EXISTS = 'index_already_exists';
   static readonly DOCUMENT_NOT_FOUND = 'document_not_found';
 
-  /**
-   * A Meilisearch failure arrives in TWO shapes and the classifier must read both:
-   *
-   * - `MeilisearchApiError` (what the SDK throws): the body hangs off `cause`
-   *   (`{ message, code, type, link }`) and the status off `response.status`. It carries NO
-   *   top-level `code` and NO `httpStatus` - reading those answers `false` to every question, which
-   *   turns a by-design 404 into a 503: `create()` probes for an existing document, the probe 404s,
-   *   and the engine gets reported as down for every brand-new document.
-   *
-   * - the flat `MeilisearchErrorResponse` hanging off a failed `task.error`, which is not an Error
-   *   at all and DOES carry `code` at the top level.
-   */
+  /** A Meilisearch failure arrives in TWO shapes and both must be read: `MeilisearchApiError` (SDK
+   * throw - body off `cause`, status off `response.status`, NO top-level `code`) and the flat
+   * `task.error` response (not an Error, `code` at top level). Missing either misclassifies a
+   * by-design 404 as a 503 engine-down. */
   static getErrorCode(opts: { error: unknown }): string | undefined {
     const { error } = opts;
 

@@ -65,25 +65,25 @@ export class InclusionTestService extends BaseTestService {
     this.logSection('[InclusionTestService] Starting inclusion test cases (many-to-many)');
 
     // Basic inclusion tests
-    await this.case1_SetupAndBasicInclude();
-    await this.case2_ProductWithSaleChannels();
-    await this.case3_SaleChannelWithProducts();
-    await this.case4_JunctionTableWithBothRelations();
-    await this.case5_NestedInclusion();
+    await this.case1SetupAndBasicInclude();
+    await this.case2ProductWithSaleChannels();
+    await this.case3SaleChannelWithProducts();
+    await this.case4JunctionTableWithBothRelations();
+    await this.case5NestedInclusion();
 
     // Advanced inclusion tests
-    await this.case7_ScopedRelationWithFilter();
-    await this.case8_ScopedRelationWithOrder();
-    await this.case9_ScopedRelationWithLimit();
-    await this.case10_EmptyRelationsHandling();
-    await this.case11_MultipleRelationsAtSameLevel();
-    await this.case12_RelationFieldSelection();
-    await this.case13_NestedRelationWithScope();
-    await this.case14_FindManyWithInclusions();
-    await this.case15_IncludeWithWhereOnParent();
+    await this.case7ScopedRelationWithFilter();
+    await this.case8ScopedRelationWithOrder();
+    await this.case9ScopedRelationWithLimit();
+    await this.case10EmptyRelationsHandling();
+    await this.case11MultipleRelationsAtSameLevel();
+    await this.case12RelationFieldSelection();
+    await this.case13NestedRelationWithScope();
+    await this.case14FindManyWithInclusions();
+    await this.case15IncludeWithWhereOnParent();
 
     // Cleanup last
-    await this.case6_Cleanup();
+    await this.case6Cleanup();
 
     this.logSection('[InclusionTestService] All inclusion test cases completed!');
   }
@@ -91,7 +91,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Setup and Basic Include
   // ----------------------------------------------------------------
-  private async case1_SetupAndBasicInclude(): Promise<void> {
+  private async case1SetupAndBasicInclude(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const saleChannelProductRepo = this.saleChannelProductRepository;
@@ -140,7 +140,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Product with Sale Channels
   // ----------------------------------------------------------------
-  private async case2_ProductWithSaleChannels(): Promise<void> {
+  private async case2ProductWithSaleChannels(): Promise<void> {
     const productRepo = this.productRepository;
     this.logCase('[CASE 2] Find Product with its SaleChannels');
 
@@ -183,7 +183,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Sale Channel with Products
   // ----------------------------------------------------------------
-  private async case3_SaleChannelWithProducts(): Promise<void> {
+  private async case3SaleChannelWithProducts(): Promise<void> {
     const saleChannelRepo = this.saleChannelRepository;
     this.logCase('[CASE 3] Find SaleChannel with its Products');
 
@@ -230,7 +230,7 @@ export class InclusionTestService extends BaseTestService {
   // CASE 4: Junction table with both relations
   // Note: Filter by test product names to avoid counting other records
   // ----------------------------------------------------------------
-  private async case4_JunctionTableWithBothRelations(): Promise<void> {
+  private async case4JunctionTableWithBothRelations(): Promise<void> {
     const saleChannelProductRepo = this.saleChannelProductRepository;
     const productRepo = this.productRepository;
     this.logCase('[CASE 4] Find junction table with both relations');
@@ -283,7 +283,7 @@ export class InclusionTestService extends BaseTestService {
   // CASE 5: Nested inclusion - find test products with channels
   // Note: Filter by name to avoid counting other products in database
   // ----------------------------------------------------------------
-  private async case5_NestedInclusion(): Promise<void> {
+  private async case5NestedInclusion(): Promise<void> {
     const productRepo = this.productRepository;
     this.logCase('[CASE 5] Nested inclusion - find test products with channels');
 
@@ -308,7 +308,7 @@ export class InclusionTestService extends BaseTestService {
       if (testProducts.length === 3) {
         let totalChannels = 0;
         for (const product of testProducts) {
-          const scp = (product as any).saleChannelProducts || [];
+          const scp = (product as any).saleChannelProducts ?? [];
           totalChannels += scp.length;
         }
 
@@ -336,7 +336,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Cleanup all test data (renamed to run last)
   // ----------------------------------------------------------------
-  private async case6_Cleanup(): Promise<void> {
+  private async case6Cleanup(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const saleChannelProductRepo = this.saleChannelProductRepository;
@@ -410,7 +410,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Scoped Relation with Filter
   // ----------------------------------------------------------------
-  private async case7_ScopedRelationWithFilter(): Promise<void> {
+  private async case7ScopedRelationWithFilter(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -460,7 +460,7 @@ export class InclusionTestService extends BaseTestService {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      const saleChannelProducts = (productWithFiltered as any)?.saleChannelProducts || [];
+      const saleChannelProducts = (productWithFiltered as any)?.saleChannelProducts ?? [];
       const activeChannels = saleChannelProducts.filter(
         (scp: any) => scp.saleChannel?.name === 'Active Channel',
       );
@@ -514,7 +514,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Scoped Relation with Order
   // ----------------------------------------------------------------
-  private async case8_ScopedRelationWithOrder(): Promise<void> {
+  private async case8ScopedRelationWithOrder(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -555,7 +555,7 @@ export class InclusionTestService extends BaseTestService {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts || [];
+      const saleChannelProducts = (productWithOrdered as any)?.saleChannelProducts ?? [];
       if (saleChannelProducts.length === 3) {
         // Verify the order is actually DESC by saleChannelId
         const ids = saleChannelProducts.map((s: any) => s.saleChannelId);
@@ -595,7 +595,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Scoped Relation with Limit
   // ----------------------------------------------------------------
-  private async case9_ScopedRelationWithLimit(): Promise<void> {
+  private async case9ScopedRelationWithLimit(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -638,7 +638,7 @@ export class InclusionTestService extends BaseTestService {
         options: { shouldSkipDefaultFilter: true },
       });
 
-      const saleChannelProducts = (productWithLimited as any)?.saleChannelProducts || [];
+      const saleChannelProducts = (productWithLimited as any)?.saleChannelProducts ?? [];
       if (saleChannelProducts.length === 2) {
         this.logger.info('[CASE 9] PASSED | Scoped limit returned only 2 channels');
       } else {
@@ -669,7 +669,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Empty Relations Handling
   // ----------------------------------------------------------------
-  private async case10_EmptyRelationsHandling(): Promise<void> {
+  private async case10EmptyRelationsHandling(): Promise<void> {
     const productRepo = this.productRepository;
     this.logCase('[CASE 10] Empty Relations Handling');
 
@@ -711,7 +711,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Multiple Relations at Same Level
   // ----------------------------------------------------------------
-  private async case11_MultipleRelationsAtSameLevel(): Promise<void> {
+  private async case11MultipleRelationsAtSameLevel(): Promise<void> {
     const configRepo = this.configurationRepository;
     const userRepo = this.userRepository;
     this.logCase('[CASE 11] Multiple Relations at Same Level');
@@ -767,7 +767,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Relation Field Selection
   // ----------------------------------------------------------------
-  private async case12_RelationFieldSelection(): Promise<void> {
+  private async case12RelationFieldSelection(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -841,7 +841,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Nested Relation with Scope
   // ----------------------------------------------------------------
-  private async case13_NestedRelationWithScope(): Promise<void> {
+  private async case13NestedRelationWithScope(): Promise<void> {
     const saleChannelRepo = this.saleChannelRepository;
     const productRepo = this.productRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -888,7 +888,7 @@ export class InclusionTestService extends BaseTestService {
         },
       });
 
-      const saleChannelProducts = (channelWithExpensive as any)?.saleChannelProducts || [];
+      const saleChannelProducts = (channelWithExpensive as any)?.saleChannelProducts ?? [];
       const expensiveProducts = saleChannelProducts.filter((scp: any) => scp.product?.price > 100);
       const nullProducts = saleChannelProducts.filter(
         (scp: any) => scp.product === null || scp.product === undefined,
@@ -933,7 +933,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Find Many With Inclusions
   // ----------------------------------------------------------------
-  private async case14_FindManyWithInclusions(): Promise<void> {
+  private async case14FindManyWithInclusions(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -1007,7 +1007,7 @@ export class InclusionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Include With Where On Parent
   // ----------------------------------------------------------------
-  private async case15_IncludeWithWhereOnParent(): Promise<void> {
+  private async case15IncludeWithWhereOnParent(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;

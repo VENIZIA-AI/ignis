@@ -1,9 +1,7 @@
 import { CoreErrorCodes } from '@/common';
-/**
- * PostgreSQL SQLSTATE error codes that represent a CLIENT error (HTTP 400) — i.e. caused by the
- * request/data — rather than a server fault. Grouped by SQLSTATE class.
- * @see https://www.postgresql.org/docs/current/errcodes-appendix.html
- */
+/** PostgreSQL SQLSTATE codes that represent a CLIENT error (HTTP 400) - caused by the request/data,
+ * not a server fault. Grouped by SQLSTATE class.
+ * @see https://www.postgresql.org/docs/current/errcodes-appendix.html */
 export const PostgresErrorCodes = {
   // Class 22 — Data Exception (malformed / out-of-range values)
   DATA_EXCEPTION: '22000',
@@ -36,17 +34,9 @@ export const PostgresErrorCodes = {
   WITH_CHECK_OPTION_VIOLATION: '44000',
 } as const;
 
-/**
- * SQLSTATE classes (first two chars) whose errors are caused by the client request and therefore
- * map to HTTP 400. Any code in these classes — even one without a specific message below — is
- * treated as a client error and uses {@link DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE}.
- *
- * Deliberately excluded (remain server errors / 500): class 42 (syntax, undefined column/table —
- * application/SQL bugs), 53 (insufficient resources), 0A (feature not supported), 25 (invalid
- * transaction state), 28 (DB authorization), 21 (cardinality), 54 (program limits). Class 40
- * (serialization_failure / deadlock_detected) is transient/retryable and is intentionally NOT a
- * 400 — it warrants dedicated 409/503 + retry handling rather than being treated as client input.
- */
+/** SQLSTATE classes (first two chars) mapped to HTTP 400; codes without a specific message use
+ * {@link DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE}. Deliberately excluded (stay 500): classes 42, 53,
+ * 0A, 25, 28, 21, 54. Class 40 (serialization/deadlock) is transient/retryable, NOT a 400. */
 export const POSTGRES_CLIENT_ERROR_CLASSES: readonly string[] = ['22', '23', '44'];
 
 /** Human-readable message per specific SQLSTATE code. */
@@ -85,11 +75,8 @@ export const DATABASE_CLIENT_ERROR_MESSAGES: Record<string, string> = {
 /** Fallback message for a client-class (22/23/44) error that has no specific message above. */
 export const DATABASE_CLIENT_ERROR_FALLBACK_MESSAGE = 'Invalid database request';
 
-/**
- * SQLSTATE codes for transient, retryable transaction conflicts (→ HTTP 409 Conflict). The client
- * can safely retry the same request: the transaction lost a concurrency race rather than sending
- * bad input (not 400) or hitting a server bug (not 500). Retrying usually succeeds.
- */
+/** SQLSTATE codes for transient, retryable transaction conflicts (-> HTTP 409). The transaction
+ * lost a concurrency race - not bad input (400), not a server bug (500); a retry usually succeeds. */
 export const POSTGRES_RETRYABLE_ERROR_CODES: readonly string[] = [
   '40001', // serialization_failure
   '40P01', // deadlock_detected

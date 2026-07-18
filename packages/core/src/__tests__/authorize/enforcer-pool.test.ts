@@ -88,11 +88,9 @@ describe('CasbinAuthorizationEnforcer — pool isolation (§9 race fix)', () => 
   });
 });
 
-// Forces exactly ONE failure inside the pool.use() callback (during the per-request load step) by
-// overriding loadPolicyLinesIntoModel to throw on its first call, then delegating to super afterwards.
-// This exercises the discard path: pool.use() must DESTROY the borrowed enforcer + rethrow (request
-// fails closed), the pool then RE-CREATES capacity, and the next valid request still resolves. Wired to
-// the load step (not extraction) because that is the step that actually runs on a borrowed pool enforcer.
+// Forces exactly ONE failure in the per-request load step (the step that actually runs on a
+// borrowed pool enforcer), exercising the discard path: pool.use() must DESTROY the borrowed
+// enforcer and rethrow (fail closed), then re-create capacity so the next request resolves.
 class FailOncePoolEnforcer extends CasbinAuthorizationEnforcer {
   private failsRemaining = 1;
 

@@ -198,10 +198,9 @@ describe('beginTransaction - rollback after a failure-ended transaction', () => 
     }
     expect((caught as Error).message).toBe('COMMIT exploded');
 
-    // The canonical downstream pattern is `catch { await tx.rollback(); throw error; }`. If this
-    // rollback threw 'already ended', it would REPLACE the real commit failure in every such
-    // caller. The transaction already ended by failure - rollback's goal is achieved - so it must
-    // resolve silently.
+    // In the canonical `catch { await tx.rollback(); throw error; }`, a rollback throwing 'already
+    // ended' would REPLACE the real commit failure - the transaction ended by failure, so rollback
+    // must resolve silently.
     await transaction.rollback();
 
     expect(statementsOf(pool)).toEqual([
@@ -359,10 +358,8 @@ describe('beginTransaction - driver wiring', () => {
   });
 
   test('a driver-name STRING is refused - a string carries no module into the bundle', async () => {
-    // `IDataSourceMetadata.driver` is typed as a class, so TypeScript already rejects this at the
-    // call site. The cast reproduces an untyped JavaScript caller, and the runtime must refuse it
-    // too: a string names a driver without referencing it, so the bundler would never package the
-    // driver module - the exact failure the class form exists to make impossible.
+    // The cast reproduces an untyped JavaScript caller, which the runtime must refuse too: a string
+    // names a driver without referencing it, so the bundler would never package the driver module.
     @datasource({ driver: DataSourceDrivers.NODE_POSTGRES as AnyType })
     class StringDriverDataSource extends BasePostgresDataSource<{}> {
       configure(): void {

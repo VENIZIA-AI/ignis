@@ -3,16 +3,9 @@ import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TErrorKey, TRegisterErrors } from '@/modules/error';
 import { getError } from '@/modules/error';
 
-/**
- * `IErrorKeyRegistry` is DECLARED in `@venizia/ignis-inversion` and re-exported by helpers. An
- * application may augment EITHER module name - merging follows the re-exported declaration, so both
- * populate the same registry and `TErrorKey` sees the keys through either route.
- *
- * The rule that actually bites is different, and invisible: TypeScript only treats `declare module`
- * as an AUGMENTATION when the file imports that module. Augment a module the file does not import
- * and it silently becomes an inert ambient declaration - no error, no keys, autocomplete quietly
- * empty. So: augment whichever module you already import from.
- */
+/** `IErrorKeyRegistry` lives in inversion and re-exports through helpers, so augmenting either
+ * module name populates the same registry. Gotcha: TS only treats `declare module` as an
+ * augmentation when the file imports that module - augmenting one you don't import silently no-ops. */
 const InventoryErrors = {
   MATERIAL_NOT_FOUND: {
     message: {

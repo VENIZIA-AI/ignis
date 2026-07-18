@@ -124,11 +124,9 @@ export abstract class AbstractRestController<
     const configureOptions = opts ?? {};
     logger.info('START | Binding controller | Options: %j', configureOptions);
 
-    // Hono matches in registration order, so a param route always swallows a same-shaped static
-    // path registered after it. Registration therefore runs by SHAPE, not by source: every static
-    // path first (a decorator's `/unsubscribe` would otherwise be eaten by an inherited CRUD
-    // `/{id}`), then binding()'s own routes, then the decorator param routes last (registering a
-    // decorator's `/{id}` early would eat binding()'s `/count` and `/find-one`).
+    // Hono matches in registration order: a param route swallows a same-shaped static path
+    // registered after it. So registration runs by SHAPE, not source - every static path first,
+    // then binding()'s routes, then decorator param routes last (`/{id}` early would eat `/count`).
     this.registerRoutesFromRegistry({ paths: 'static' });
     await this.binding();
     this.registerRoutesFromRegistry({ paths: 'param' });

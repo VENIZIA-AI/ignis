@@ -10,12 +10,9 @@ import type {
 
 type TSchema = Record<string, never>;
 
-/**
- * `tsc --noEmit` is the real gate; `bun test` only proves the module loads. Both Drizzle drivers
- * descend from `PgDatabase<TQueryResult, TFullSchema>`, differing only in the query-result HKT, so
- * the neutral connector type must accept either without a cast. That is what lets
- * `beginTransaction()` hold no driver-specific code.
- */
+/** `tsc --noEmit` is the real gate; `bun test` only proves the module loads. Both Drizzle drivers
+ * descend from `PgDatabase` (differing only in the query-result HKT), so the neutral connector type
+ * must accept either without a cast. */
 type TNodePostgresWidened =
   NodePgDatabase<TSchema> extends TRelationalConnector<TSchema> ? true : false;
 type TPostgresJsWidened =
@@ -25,11 +22,8 @@ type TPostgresJsWidened =
 const isNodePostgresWidened: TNodePostgresWidened = true;
 const isPostgresJsWidened: TPostgresJsWidened = true;
 
-/**
- * The `Client` generic must survive `BaseRelationalDataSource` - it was originally declared on the
- * abstract class only and silently dropped by the base, so every postgres-js datasource had a
- * `getClient()` statically typed `pg.Pool`. Compile-time-only, like the assertions above.
- */
+/** The `Client` generic must survive `BaseRelationalDataSource` - dropping it at the base types
+ * every postgres-js `getClient()` as `pg.Pool`. Compile-time-only, like the assertions above. */
 type TClientOf<TDataSource> = TDataSource extends { getClient(): infer TClient } ? TClient : never;
 
 type TDefaultClientIsPool =

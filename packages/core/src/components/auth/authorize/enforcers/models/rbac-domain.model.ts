@@ -1,32 +1,7 @@
 /**
- * Scoped RBAC model (v2) — resource/action/domain hierarchies + membership + allow-and-deny.
- *
- * Effect = casbin's predefined `allow-and-deny` effector
- * (`some(where (p.eft == allow)) && !some(where (p.eft == deny))`): default-DENY — a request needs a
- * matching `allow` AND no matching `deny`, so an explicit deny overrides any allow. NOTE this is NOT
- * casbin's `deny-override` effector (`!some(where (p.eft == deny))`), which would be default-ALLOW.
- *
- * Grouping relations (casbin name → meaning). Numbered in request-tuple order (sub → dom → obj → act)
- * so the matcher reads left-to-right:
- *   g  = assign_role (user→role) + role_inherits (role→role), domain-aware. The `sub` axis.
- *        Registered with a KEY_MATCH domain function so a `*` domain on a link matches any request domain.
- *   g2 = join_domain (user→domain membership). The `dom` axis (membership). Plain edges.
- *   g3 = domain_inherits (e.g. Branch ⊂ Company). The `dom` axis (nesting). Plain edges + self-link;
- *        self-link also serves domain-specific grants (g3(Merchant_7, Merchant_7) = true).
- *   g4 = resource_inherits. The `obj` axis. Used for explicit non-standard nesting edges (e.g. OrderItem ⊂ Order).
- *        Registered with `objectMatch` as matching func for proper edge traversal.
- *        Free prefix/wildcard matching (endpoint ⊂ subject ⊂ *) is handled by `objectMatch` called
- *        directly in the matcher expression — casbin's role-manager hasLink only traverses stored nodes,
- *        so the function must also appear directly for "graph-free" cases.
- *   g5 = action_inherits (e.g. read ⊂ manage). The `act` axis. Plain edges + self-link.
- *
- * Domain clause: a grant's domain is one of
- *   - SYSTEM_WIDE  → matches every domain, bypassing membership (super-admin)
- *   - ANY_MEMBER   → matches every domain the subject joined (g2)
- *   - <Type_id>    → that domain (or a nested child via g3)
- *
- * NOTE: relies on DefaultRoleManager self-link (hasLink(name, name) === true) for g3/g4/g5.
- * Keep the default role manager, or any custom one must preserve self-links.
+ * Scoped RBAC model (v2). Effect = casbin `allow-and-deny` (default-DENY: needs a matching allow AND no matching deny) - NOT `deny-override` (default-ALLOW).
+ * Relation semantics live on AuthorizationPolicyVariants; g's KEY_MATCH domain fn makes `*`-domain links match any request domain; `objectMatch` appears directly in the matcher (hasLink only walks stored nodes).
+ * Relies on DefaultRoleManager self-links (hasLink(name, name)) for g3/g4/g5 - a custom role manager must preserve them.
  */
 export const CASBIN_RBAC_DOMAIN_SCOPED_MODEL = `
 [request_definition]

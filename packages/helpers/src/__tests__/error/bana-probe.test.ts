@@ -3,11 +3,8 @@ import { HTTP } from '@/common/constants';
 import type { TErrorDefinition, TRegisterErrors } from '@/modules/error';
 import { ErrorScopes, getError } from '@/modules/error';
 
-/**
- * BANA compatibility probe. Every shape below is copied from a real BANA call site; this file fails
- * to compile the moment the framework stops accepting one of them. See the crosscheck rule: a
- * change that is green in-repo but breaks BANA's call shapes is not done.
- */
+/** BANA compatibility probe - every shape below is copied from a real BANA call site; this file
+ * fails to compile the moment the framework stops accepting one of them. */
 describe('BANA call shapes still compile and behave', () => {
   test('free-form: message only - the most common shape', () => {
     expect(getError({ message: 'Invalid paths for build error key!' }).statusCode).toBe(400);
@@ -79,12 +76,9 @@ describe('BANA call shapes still compile and behave', () => {
   });
 });
 
-/**
- * An application that wraps `getError` and forwards a typed variable keeps working: the index
- * signature sweeps whatever the framework does not model into `extra`, wrapper or not. Excess
- * property checking would not have protected this path anyway - it is a freshness rule, and a
- * forwarded variable is not fresh.
- */
+/** A wrapper forwarding a typed variable to `getError` still works: the index signature sweeps
+ * whatever the framework doesn't model into `extra`. Excess property checking wouldn't catch this
+ * anyway - it's a freshness rule, and a forwarded variable is never fresh. */
 describe('a forwarding wrapper keeps carrying context into extra', () => {
   type TBanaByField = {
     messageCode?: string;
@@ -114,12 +108,8 @@ describe('a forwarding wrapper keeps carrying context into extra', () => {
   });
 });
 
-/**
- * Spreading a definition used to downgrade it silently: the code rode `key` into `extra` and the
- * error fell back to `core.system_error`. A definition now carries the same `message` object the
- * free-form input takes, so the spread degrades to nothing - it resolves identically. The 9 spread
- * sites BANA already has are correct as written.
- */
+/** Spreading a definition used to silently downgrade it to `core.system_error`. A definition now
+ * carries the same `message` shape the free-form input takes, so the spread resolves identically. */
 describe('spreading a definition into getError resolves the same as passing it', () => {
   const FinanceAccountErrors = {
     DEFAULT_CONFLICT: {

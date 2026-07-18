@@ -1,12 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { Environment } from '@/modules/env';
 
-/**
- * `DEVELOPMENT_ENVS` is the allowlist the error middleware consults before it decides whether a
- * response may carry a stack trace, a SQL constraint name or a raw driver message. Anything NOT in
- * it is treated as production - so what belongs here is exactly "environments only our own
- * engineers reach".
- */
+/** `DEVELOPMENT_ENVS` is the allowlist the error middleware consults before letting a response
+ * carry a stack trace, SQL constraint name, or raw driver message - anything not in it is treated
+ * as production, so it must hold only environments our own engineers reach. */
 describe('Environment.DEVELOPMENT_ENVS - who may see an unsanitized error', () => {
   test('dev is the same environment as development, spelled short', () => {
     // A deployment writing NODE_ENV=dev means development; treating the abbreviation as an unknown

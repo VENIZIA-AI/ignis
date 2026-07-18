@@ -15,11 +15,12 @@ Avoid `export default` except for configuration files (e.g., `eslint.config.mjs`
 ```typescript
 // ✅ GOOD
 export class UserController { }
-export function createUser() { }
+export const createUser = () => { };
 export const DEFAULT_OPTIONS = { };
 
 // ❌ BAD
 export default class UserController { }
+export function createUser() { }   // arrow functions only, never `function`
 ```
 
 ## The Options Object Pattern
@@ -127,7 +128,8 @@ async syncData() {
 import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 
 await executeWithPerformanceMeasure({
-  logger: this.logger.for('syncData'),
+  logger: this.logger,
+  level: 'info',              // default: 'debug'
   scope: 'DataSync',
   description: 'Sync user records',
   task: async () => {
@@ -139,12 +141,18 @@ await executeWithPerformanceMeasure({
 
 **Method-scoped logging pattern:**
 
+Any class extending `BaseHelper` (services, controllers, repositories, helpers) already has
+`this.logger`. Acquire one standalone with `ApplicationLogger.get(...)` and always annotate
+`ILogger` - never a concrete provider class.
+
 ```typescript
+import { ApplicationLogger, ILogger } from '@venizia/ignis-helpers';
+
 class UserService {
-  private logger = Logger.get('UserService');
+  private logger: ILogger = ApplicationLogger.get('UserService');
 
   async createUser(data: TCreateUserRequest) {
-    // Use .for() to add method context to all logs
+    // .for() returns a method-scoped child logger
     this.logger.for('createUser').info('Creating user: %j', data);
     // Output: [UserService-createUser] Creating user: {...}
 
@@ -153,12 +161,15 @@ class UserService {
       this.logger.for('createUser').info('User created: %s', user.id);
       return user;
     } catch (error) {
+      // %s, not %j - `message` and `stack` are non-enumerable, so %j drops them
       this.logger.for('createUser').error('Failed: %s', error);
       throw error;
     }
   }
 }
 ```
+
+Levels are exactly five, each a direct method: `debug`, `info`, `warn`, `error`, `emerg`.
 
 ## See Also
 

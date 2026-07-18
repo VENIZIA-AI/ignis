@@ -28,9 +28,8 @@ export class MailgunTransportHelper extends BaseHelper implements IMailTransport
   }
 
   /**
-   * Credentials and domain are checked HERE, not on the first send: a mail transport that only
-   * reports a missing key when a user is already waiting for a verification email is unusable.
-   * The error never echoes any credential value back.
+   * Credentials and domain are checked HERE, not on the first send (a transport that fails only
+   * mid-send is unusable). The error never echoes any credential value back.
    */
   private validateConfig(config: TMailgunConfig): void {
     const missingKeys = (['username', 'key', 'domain'] as const).filter(key => {

@@ -18,13 +18,11 @@ export class WebSocketEventService extends BaseService {
 
   // Lazy getter — WebSocketServerHelper is bound after server starts via post-start hook
   private get wsHelper(): WebSocketServerHelper {
-    if (!this._wsHelper) {
-      this._wsHelper =
-        this.application.get<WebSocketServerHelper>({
-          key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
-          isOptional: true,
-        }) ?? null;
-    }
+    this._wsHelper ??=
+      this.application.get<WebSocketServerHelper>({
+        key: WebSocketBindingKeys.WEBSOCKET_INSTANCE,
+        isOptional: true,
+      }) ?? null;
 
     if (!this._wsHelper) {
       throw new Error(

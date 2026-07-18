@@ -2,7 +2,7 @@ import { BaseHelper } from '@/common/base-helper';
 import { Logger } from '@/common/logger';
 import { TBindingKey, TClass } from '@/common/types';
 import { MetadataKeys } from '../metadata/common/constants';
-import { IInjectableMetadata, IInjectMetadata, IPropertyMetadata } from './common/types';
+import { IInjectMetadata, IPropertyMetadata } from './common/types';
 
 /** Central metadata registry for storing and retrieving decorator metadata. */
 export class MetadataRegistry extends BaseHelper {
@@ -116,21 +116,6 @@ export class MetadataRegistry extends BaseHelper {
   getInjectMetadata<T extends object = object>(opts: { target: T }): IInjectMetadata[] | undefined {
     const { target } = opts;
     return Reflect.getMetadata(MetadataKeys.INJECT, target);
-  }
-
-  setInjectableMetadata<T extends object = object>(opts: {
-    target: T;
-    metadata: IInjectableMetadata;
-  }): void {
-    const { target, metadata } = opts;
-    Reflect.defineMetadata(MetadataKeys.INJECTABLE, metadata, target);
-  }
-
-  getInjectableMetadata<T extends object = object>(opts: {
-    target: T;
-  }): IInjectableMetadata | undefined {
-    const { target } = opts;
-    return Reflect.getMetadata(MetadataKeys.INJECTABLE, target);
   }
 }
 

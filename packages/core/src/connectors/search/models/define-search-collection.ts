@@ -49,14 +49,9 @@ export const field = {
   boolean: makeFieldBuilder(SearchFieldTypes.BOOLEAN),
   booleans: makeFieldBuilder(SearchFieldTypes.BOOLEAN_ARRAY),
   geopoint: makeFieldBuilder(SearchFieldTypes.GEOPOINT),
-  /**
-   * `vector`'s options are richer than `TFieldFlags` (dimensions/distance/embed, not the shared
-   * searchable/filterable/facet/sortable flags), so it carries its own `O` shape rather than
-   * routing through `buildField`. `O extends { optional: true } ? { optional: true } : {}`
-   * mirrors `buildField`'s spread-flags behavior: `optional` only appears in the return type
-   * (and at runtime) when the caller actually set it, keeping `TSearchDocument`'s
-   * `Exclude<.., { optional: true }>` / `Extract<.., { optional: true }>` split working for vector fields too.
-   */
+  /** `vector` carries its own `O` shape (dimensions/distance/embed) instead of routing through
+   * `buildField`. The `O extends { optional: true } ? ... : {}` conditional makes `optional` appear
+   * (in type and at runtime) only when set - keeping `TSearchDocument`'s optional split working. */
   vector: <
     const N extends string,
     const O extends {

@@ -226,11 +226,8 @@ describe('Component → Controller binding integration', () => {
     app.init();
   });
 
-  /**
-   * Helper: manually configure components then run registerControllers.
-   * This simulates what registerComponents() + registerControllers() does,
-   * but without DI resolution — components are constructed manually.
-   */
+  /** Simulates registerComponents() + registerControllers() without DI resolution - components are
+   * constructed manually. */
   async function configureComponentsAndControllers(
     application: BaseApplication,
     components: BaseComponent[],

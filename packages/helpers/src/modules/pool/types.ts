@@ -42,9 +42,8 @@ export interface IPoolControlOptions {
 }
 
 /**
- * Options for the callback-configured {@link BasePoolHelper}: control knobs plus the resource
- * lifecycle as callbacks. (Subclasses of AbstractPoolHelper may instead override the protected
- * `create`/`validateResource`/`resetResource`/`onDestroyResource` hooks directly.)
+ * Options for the callback-configured {@link BasePoolHelper}: control knobs plus resource lifecycle
+ * as callbacks (AbstractPoolHelper subclasses may instead override the protected hooks directly).
  */
 export interface IPoolOptions<T> extends IPoolControlOptions {
   /** Factory to create one resource. */

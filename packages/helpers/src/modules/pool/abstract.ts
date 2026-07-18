@@ -5,19 +5,9 @@ import { HfQueueHelper } from '@/modules/queue/internal/hf';
 import { IPool, IPoolControlOptions, IPoolStats, IPoolWaiter } from './types';
 
 /**
- * Generic single-borrower object pool — skeleton.
- *
- * Holds all pool state and the pairing logic; subclasses supply the resource lifecycle by overriding
- * {@link create} (required) and, optionally, {@link validateResource} / {@link resetResource} /
- * {@link onDestroyResource}. {@link BasePoolHelper} is the concrete, callback-configured subclass.
- *
- * Every pairing of a resource with a waiting acquirer flows through ONE re-entrancy-guarded
- * `dispatch()` loop, so `acquire`/`release`/`use`/`discard`/`warmup` stay thin; each loop branch
- * delegates to a single-purpose helper (`takeIdleResource`, `createAndHand`, `handToWaiter`).
- *
- * The waiter queue is a generic O(1) {@link HfQueueHelper}: enqueue pushes, dequeue advances a head index
- * (skipping cancelled nodes), and a timed-out acquirer is cancelled in O(1) — no Array.shift/splice
- * on the hot path.
+ * Single-borrower pool skeleton: subclasses override {@link create} (required) and optionally
+ * validateResource/resetResource/onDestroyResource. All resource-waiter pairing flows through ONE
+ * re-entrancy-guarded `dispatch()` loop; waiter queue is {@link HfQueueHelper} - O(1), no shift/splice.
  */
 export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<T> {
   protected readonly size: number;
@@ -226,11 +216,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     });
   }
 
-  /**
-   * Pair servable resources with waiting acquirers, one at a time, until the queue drains or the
-   * pool is exhausted. Re-entrancy-guarded so only one loop runs at a time (others no-op and let this
-   * loop finish). Each branch delegates to a single-purpose helper.
-   */
+  /** Pair servable resources with waiting acquirers until the queue drains or the pool is exhausted. Re-entrancy-guarded so only one loop runs at a time. */
   private async dispatch() {
     if (this.isDispatching) {
       return;
@@ -314,10 +300,7 @@ export abstract class AbstractPoolHelper<T> extends BaseHelper implements IPool<
     this.handToWaiter({ resource });
   }
 
-  /**
-   * Give a ready resource to the next live waiter. Returns false when no live waiter remains
-   * (raced — e.g. it timed out during an await): the resource is returned to idle instead.
-   */
+  /** Give a ready resource to the next live waiter; returns false and parks it in idle if the waiter raced away (e.g. timed out during an await). */
   private handToWaiter(opts: { resource: T }): boolean {
     const { resource } = opts;
 

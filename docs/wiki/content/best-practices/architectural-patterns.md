@@ -29,7 +29,7 @@ graph TD
 |-------|---------------|---------|
 | **Controllers** | Handle HTTP/gRPC - parse requests, validate, format responses | `ConfigurationController` (REST), `GreeterController` (gRPC) |
 | **Services** | Business logic - orchestrate operations | `AuthenticationService` (auth logic) |
-| **Repositories** | Data access - CRUD operations | `ConfigurationRepository` (extends `DefaultCRUDRepository`) |
+| **Repositories** | Data access - CRUD operations | `ConfigurationRepository` (extends `DefaultRelationalRepository`) |
 | **DataSources** | Database connections | `PostgresDataSource` (connects to PostgreSQL) |
 | **Models** | Data structure - Drizzle schemas + Entity classes | `Configuration`, `User` models |
 
@@ -205,18 +205,22 @@ IGNIS applications follow a predictable startup sequence with hooks for customiz
 │  │    - Register Components                            │    │
 │  └─────────────────────────────────────────────────────┘    │
 │                                                             │
-│  6. registerDataSources()  - Initialize DB connections      │
-│  7. registerComponents()   - Configure all components       │
-│  8. registerControllers()  - Mount routes to router         │
+│  6. hydrateSecrets()       - Resolve secrets into env        │
+│  7. registerDataSources()  - Initialize DB connections      │
+│  8. registerComponents()   - Configure all components       │
+│  9. wireSecretRotatables() - Attach rotation listeners      │
+│ 10. registerControllers()  - Mount routes to router         │
 │                                                             │
 │  ┌─────────────────────────────────────────────────────┐    │
-│  │ 9. postConfigure()  ← YOUR CODE HERE                │    │
+│  │ 11. postConfigure()  ← YOUR CODE HERE               │    │
 │  │    - Seed data                                      │    │
 │  │    - Start background jobs                          │    │
 │  │    - Custom initialization                          │    │
 │  └─────────────────────────────────────────────────────┘    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+`hydrateSecrets()` runs after `preConfigure()` so a secrets provider registered there is available, and before `registerDataSources()` so datasources read already-resolved values. `wireSecretRotatables()` runs after components, because a component may contribute the datasource a rotation lease points at.
 
 **Lifecycle Methods:**
 
@@ -287,15 +291,19 @@ export class Application extends BaseApplication {
 **How registration works:**
 ```typescript
 // BaseApplication implements service() directly (no mixin composition):
-service<Base extends IService>(ctor: TClass<Base>): Binding<Base> {
+service<Base extends IService, Args extends AnyObject = any>(
+  ctor: TClass<Base>,
+  opts?: TMixinOpts<Args>,
+): Binding<Base> {
   return this.bind<Base>({
-    key: BindingKeys.build({
-      namespace: BindingNamespaces.SERVICE,
-      key: ctor.name,
-    }),
+    key: BindingKeys.build(
+      opts?.binding ?? { namespace: BindingNamespaces.SERVICE, key: ctor.name },
+    ),
   }).toClass(ctor);
 }
 ```
+
+Every registration method takes the same optional second argument - `opts.binding` overrides the derived `{ namespace, key }` when you need to register two classes under one contract.
 
 **Capability interfaces:**
 
@@ -304,8 +312,11 @@ Each registration capability is declared as a TypeScript interface that `IRestAp
 | Interface | Methods | Purpose |
 |-----------|---------|---------|
 | `IServiceMixin` | `service()` | Register service classes |
-| `IRepositoryMixin` | `repository()`, `dataSource()`, `registerDataSources()` | Register data layer |
+| `IRepositoryMixin` | `dataSource()`, `repository()` | Register data layer |
 | `IComponentMixin` | `component()`, `registerComponents()` | Register modular components |
+| `IControllerMixin` | `controller()`, `registerControllers()` | Register controllers and mount routes |
+| `IServerConfigMixin` | `staticConfigure()`, `preConfigure()`, `postConfigure()`, `getApplicationVersion()` | Lifecycle hooks |
+| `IStaticServeMixin` | `static()` | Serve static files |
 
 > [!NOTE]
 > Earlier releases also exported `ServiceMixin`, `RepositoryMixin`, and `ComponentMixin` as class-mixin **functions** you composed onto `AbstractApplication`. They duplicated `BaseApplication`'s own methods verbatim, drifted out of sync, and had no known consumers, so they were removed. The `IServiceMixin` / `IRepositoryMixin` / `IComponentMixin` **interfaces** remain - extend `BaseApplication` and call its registration methods directly.

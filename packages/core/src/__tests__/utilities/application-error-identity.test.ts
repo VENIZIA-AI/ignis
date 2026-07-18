@@ -2,16 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { ApplicationError, getError, isApplicationError } from '@venizia/ignis-helpers';
 import { Container, getError as inversionGetError } from '@venizia/ignis-inversion';
 
-/**
- * The search connectors decide "an error the framework already shaped" vs "a raw engine failure to
- * sanitize as a 503" before wrapping anything. Class identity cannot carry that decision.
- *
- * There is only ONE `ApplicationError` now - it lives in inversion, and helpers re-exports it - and
- * `instanceof` still does not work, which is the whole point of this file. Inversion ships dual
- * CJS+ESM builds because its DI also powers frontend libraries, so one source file yields two
- * runtime constructors: an importer reaching the CJS copy and one reaching the ESM copy hold
- * different classes for the same class. Consolidating the source did not merge the identities.
- */
+/** `instanceof ApplicationError` cannot work across packages: inversion ships dual CJS+ESM builds,
+ * so one source class yields two runtime constructors - CJS and ESM importers hold different
+ * classes. `isApplicationError()` is the only safe check. */
 describe('isApplicationError recognizes errors across package boundaries', () => {
   test('an error raised through helpers is recognized', () => {
     expect(isApplicationError(getError({ message: 'boom', statusCode: 409 }))).toBe(true);

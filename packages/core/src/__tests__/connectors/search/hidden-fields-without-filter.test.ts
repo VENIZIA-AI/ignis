@@ -2,14 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchQueryDialect } from '@/connectors/meilisearch/repositories/dialect/query-dialect';
 import { TypesenseQueryDialect } from '@/connectors/typesense/repositories/dialect/query-dialect';
 
-/**
- * `hiddenProperties` is the only thing keeping a password hash out of a search response, and the
- * repository passes it on EVERY call - including the ones with no filter at all.
- *
- * `search({ mode: 'keyword', query: 'john' })` is the shape an app writes most often: `filter` is
- * optional in the search input schema. A dialect that short-circuits on a missing filter never gets
- * to the exclude-fields block, and the engine happily returns the hidden columns.
- */
+/** `hiddenProperties` is the only thing keeping a password hash out of a search response, and it is
+ * passed on EVERY call - a dialect that short-circuits on a missing (optional) filter never reaches
+ * the exclude-fields block, and the engine happily returns the hidden columns. */
 describe('a filterless search still hides the hidden fields', () => {
   test('Typesense: excludeFields is set even when no filter is supplied', () => {
     const query = new TypesenseQueryDialect().build({ hiddenFields: ['password', 'secret'] });

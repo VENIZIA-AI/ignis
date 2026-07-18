@@ -6,11 +6,8 @@ export interface ITransactionProbe {
   begin: (opts?: { failOn?: 'COMMIT' | 'ROLLBACK' }) => Promise<ITransaction>;
 }
 
-/**
- * The three rules `ITransaction` states, as a suite every connector's transaction must pass. A
- * driver that re-derives its transaction from the interface alone would otherwise miss the
- * failure-noop rollback and reintroduce the original-error masking it exists to prevent.
- */
+/** The three `ITransaction` rules as a suite every connector's transaction must pass - notably the
+ * failure-noop rollback that prevents original-error masking. */
 export const runTransactionContract = (opts: { connector: string; probe: ITransactionProbe }) => {
   const { connector, probe } = opts;
 

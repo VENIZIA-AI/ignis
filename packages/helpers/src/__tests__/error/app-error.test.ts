@@ -50,11 +50,9 @@ describe('getError', () => {
     expect(typeof getError({ message: 'x' }).stack).toBe('string');
   });
 
-  /**
-   * A key the input does not declare - context or typo, the framework cannot tell them apart -
-   * lands in `extra` and the real field keeps its default. Pinned because it is a deliberate
-   * trade: the index signature that carries context is the same one that swallows a misspelling.
-   */
+  /** A key the input doesn't declare - context or typo, indistinguishable - lands in `extra` and
+   * the real field keeps its default; the index signature that carries context is the same one
+   * that swallows a misspelling. */
   test('a misspelled field lands in extra and the real field keeps its default', () => {
     const error = getError({ message: 'x', statuscode: 503 });
 
@@ -174,10 +172,8 @@ describe('isApplicationError', () => {
   });
 });
 
-/**
- * The removal itself, pinned. Nothing else asserts these are GONE, so a regression that re-added
- * either would otherwise pass the whole suite.
- */
+/** Pins the removal itself - nothing else asserts these fields are gone, so a regression that
+ * re-added either would otherwise pass the whole suite. */
 describe('the legacy duplicates stay removed', () => {
   test('no flat messageCode field on the instance', () => {
     const error = getError({ message: 'x', messageCode: 'a.b' });
@@ -194,12 +190,9 @@ describe('the legacy duplicates stay removed', () => {
   });
 });
 
-/**
- * `error` is the catalogued form's discriminant, so `{ message, error }` must not compile - it is a
- * natural way to write "wrap this", and `error` is a consumed key: the failure would vanish.
- * A malformed `error` still must not throw FROM INSIDE the constructor - that would mask the
- * original failure at the exact moment a catch block is trying to report it.
- */
+/** `error` is the catalogued form's discriminant, so `{ message, error }` must not compile - a
+ * natural way to write "wrap this" that would otherwise vanish. A malformed `error` must never
+ * throw from inside the constructor - that would mask the original failure mid-catch. */
 describe('a malformed `error` degrades, never throws', () => {
   test('`{ message, error }` is refused at compile time', () => {
     // The directive IS the assertion - tsc fails the build if this shape ever compiles again.

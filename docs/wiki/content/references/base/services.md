@@ -19,7 +19,7 @@ Technical reference for `BaseService` - the foundation for the business logic la
 | **Logging** | `this.logger` (scoped to constructor `scope`) |
 | **Registration** | `this.service(MyService)` in application lifecycle |
 | **Binding key** | `services.{ClassName}` (e.g., `services.AuthenticationService`) |
-| **DI decorator** | `@injectable` is NOT used on services - registration is imperative only |
+| **DI decorator** | None on the class itself - only `@inject` on constructor parameters or properties |
 | **CRUD service** | Removed - use `DefaultCRUDRepository` for data access |
 
 ---
@@ -54,7 +54,7 @@ export interface IService {}
 
 ## Registering a Service
 
-Services are registered imperatively in an application lifecycle method. There is no `@injectable` or `@service` decorator used on service classes in application code - `this.service()` handles everything.
+Services are registered imperatively in an application lifecycle method. No class decorator is involved - `this.service()` creates the binding and handles everything.
 
 ```typescript
 // In your Application class (e.g., in preConfigure())

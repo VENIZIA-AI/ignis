@@ -1,14 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import { REDACTED, redactSecrets } from '@/common/redact';
-import { formatLogMessage } from '@/modules/logger/formatters';
+import { formatLogMessage } from '@/modules/logger';
 
 /**
- * Both fetchers log the request config at INFO on EVERY call. That config carries `headers`, and a
- * header set is where `Authorization: Bearer …`, an api key or a cookie lives - so an unredacted log
- * line ships a live credential to the log aggregator once per outbound request.
- *
- * These tests assert on what the LOG LINE actually renders, not on the redactor's return value: a
- * test that re-redacts its own fixture proves nothing about the call site.
+ * Both fetchers log the request config (headers, which may carry a bearer token/api key/cookie) at
+ * INFO on every call. Tests assert on the rendered LOG LINE, not the redactor's return value - re-redacting the fixture would prove nothing about the call site.
  */
 const buildRequestConfig = () => {
   return {

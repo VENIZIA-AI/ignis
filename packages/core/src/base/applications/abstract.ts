@@ -25,12 +25,9 @@ const DEFAULT_SERVER_HOST = 'localhost';
 const DEFAULT_SERVER_PORT = 3000;
 const MAX_SERVER_PORT = 65535;
 
-/**
- * Resolves the first USABLE port among the candidates. `0` is a legitimate value - it asks the OS
- * for an ephemeral port - so candidates are rejected on validity, never on falsiness. A candidate
- * that is absent, blank, non-integer (`Number(undefined)` is a real config value: see apps that
- * build configs from env) or out of range is skipped in favour of the next one.
- */
+/** Resolves the first USABLE port among the candidates. `0` legitimately asks the OS for an
+ * ephemeral port, so candidates are rejected on validity, never falsiness; absent, blank,
+ * non-integer, or out-of-range candidates are skipped in favour of the next. */
 const resolveServerPort = (opts: { candidates: Array<number | string | undefined> }): number => {
   for (const candidate of opts.candidates) {
     if (candidate === undefined || candidate === null) {
@@ -165,12 +162,9 @@ export abstract class AbstractApplication<
       .debug('Registered post-start hook | identifier: %s', opts.identifier);
   }
 
-  /**
-   * Runs every registered post-start hook in isolation: a hook that throws (synchronously or
-   * asynchronously) must not silently cancel the hooks queued behind it - the server is already
-   * listening, so a skipped hook is a half-started application. Failures are collected and
-   * reported as a single error once every hook has had its turn.
-   */
+  /** Runs every post-start hook in isolation: a throwing hook must not cancel the ones queued
+   * behind it (the server is already listening - a skipped hook is a half-started application).
+   * Failures are collected and reported as a single error after every hook has run. */
   protected async executePostStartHooks() {
     if (this.postStartHooks.length === 0) {
       return;

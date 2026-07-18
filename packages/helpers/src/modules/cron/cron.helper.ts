@@ -65,11 +65,7 @@ export class CronHelper extends BaseHelper {
     }
   }
 
-  /**
-   * Async because `CronJob.stop()` resolves only once an IN-FLIGHT tick has finished. Fire-and-
-   * forgetting it lets the replacement job start while the old handler is still running - the very
-   * double-fire this stop exists to prevent.
-   */
+  /** Async because `CronJob.stop()` resolves only once an in-flight tick finishes; fire-and-forgetting it would let the replacement job start while the old handler is still running. */
   async configure(): Promise<void> {
     if (this.instance) {
       await this.instance.stop();

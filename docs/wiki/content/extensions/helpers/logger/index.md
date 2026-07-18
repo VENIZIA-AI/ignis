@@ -24,39 +24,38 @@ logger.info('User created');
 
 ## How it works
 
-- **One shared Winston instance.** Every logger wraps a single `applicationLogger`, built once by `defineCustomLogger` from the `APP_ENV_LOGGER_*` variables at module load.
-- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and calls `Logger.get(scope)`, which caches per scope - the same scope returns the same instance. `BaseHelper` calls this in its constructor, so every helper gets `this.logger` scoped automatically.
+- **Typed against `ILogger`.** Every consumer, including `BaseHelper.logger`, receives the `ILogger` interface, not a concrete class - Winston is the built-in provider behind it today, selected in `factory.ts`.
+- **Provider-based.** `LoggerFactory.use({ provider })` selects the app's logger engine once at the entrypoint - Winston by default, [pino](/extensions/helpers/logger/pino) for throughput. Every factory-issued logger (including ones captured at import time) follows the registration.
+- **Scoped and cached.** `LoggerFactory.getLogger(scopes)` joins the scopes with `-` and caches per scope - the same scope returns the same instance. `BaseHelper` calls this in its constructor, so every helper gets `this.logger` scoped automatically. (Custom-backed winston loggers - `Logger.get(scope, customWinstonLogger)` from the `/winston` sub-path - are NOT cached: each call is a fresh wrapper over the given instance.)
 - **Method scoping.** `.for(methodName)` returns a child logger scoped to `<scope>-<methodName>` (also cached), so each line shows where it came from.
+- **Level floor.** `APP_ENV_LOGGER_LEVEL` (default `debug`) sets the logger-level floor; transports without their own level inherit it.
 - **`debug()` is gated.** It emits only when `DEBUG=true` and `NODE_ENV` is unset or in `Environment.COMMON_ENVS` (extend via `APP_ENV_EXTRA_LOG_ENVS`). The check runs once at module load - runtime env changes need a restart.
 
 **Log levels**
 
-| Kind | Levels |
-|------|--------|
-| Direct methods | `info`, `warn`, `error`, `emerg`, `debug` |
-| Via `.log(level, ...)` | `alert`, `http`, `verbose`, `silly` |
+Five levels, each with a direct method: `debug`, `info`, `warn`, `error`, `emerg`. The generic `.log(level, ...)` remains for picking the level dynamically. What each level MEANS and when to use it is in the [level guide](/extensions/helpers/logger/reference#what-each-level-means).
 
 **Transports**
 
 | Transport | Turns on when |
 |-----------|---------------|
 | Console | Always |
-| Daily-rotating file | The file `APP_ENV_LOGGER_*` variables are set |
-| UDP (`DgramTransport`) | The UDP `APP_ENV_LOGGER_*` variables are set |
+| Daily-rotating file | `APP_ENV_LOGGER_FOLDER_PATH` is set |
+| UDP (`DgramTransport`) | All four UDP `APP_ENV_LOGGER_DGRAM_*` variables are set |
 
-Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. For extreme hot paths, `HfLogger` is a separate zero-allocation ring-buffer logger outside this pipeline - see the [Full reference](/extensions/helpers/logger/reference), which also covers the `ApplicationLogger` compatibility alias.
+Output shape (plain text or JSON) follows `APP_ENV_LOGGER_FORMAT`. Color codes appear only on the console - file and UDP output never carries ANSI escapes. For extreme hot paths, `HfLogger` is a separate ring-buffer logger outside this pipeline - it has its own [usage guide](/extensions/helpers/logger/hf-logger). The [Full reference](/extensions/helpers/logger/reference) covers everything else, including the `ApplicationLogger` facade.
 
 ## Common tasks
 
 ### Get a scoped logger
 
-Use `LoggerFactory.getLogger` with an array of scope segments, or `Logger.get` directly with a single string. Both cache by scope.
+Use `LoggerFactory.getLogger` with an array of scope segments, or `ApplicationLogger.get` with a single string. Both cache by scope and follow the registered provider.
 
 ```typescript
-import { Logger, LoggerFactory } from '@venizia/ignis-helpers';
+import { ApplicationLogger, LoggerFactory } from '@venizia/ignis-helpers';
 
 const scoped = LoggerFactory.getLogger(['Payment', 'Stripe']); // [Payment-Stripe]
-const direct = Logger.get('MyService');                        // [MyService]
+const direct = ApplicationLogger.get('MyService');             // [MyService]
 ```
 
 ### Scope logs to a method
@@ -95,7 +94,7 @@ The `[APP]` label comes from `APP_ENV_APPLICATION_NAME` (defaults to `'APP'`).
 
 ### Enable daily file rotation
 
-Point `APP_ENV_LOGGER_FOLDER_PATH` at a directory; rotation frequency, size cap, and retention are also env-driven.
+Point `APP_ENV_LOGGER_FOLDER_PATH` at a directory; rotation frequency, size cap, and retention are also env-driven. Without this variable no log files are written - console (and UDP, if configured) remain the only outputs.
 
 ```bash
 APP_ENV_LOGGER_FOLDER_PATH=./app_data/logs
@@ -126,6 +125,7 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 
 **Files:**
 
-- [`packages/helpers/src/modules/logger/application-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/application-logger.ts) - `Logger` class and caching
-- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`
-- [`packages/helpers/src/modules/logger/default-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/default-logger.ts) - Winston setup, transports, env configuration
+- [`packages/helpers/src/modules/logger/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/types.ts) - `ILogger`, the contract every consumer types against
+- [`packages/helpers/src/modules/logger/winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts) - `WinstonLogger`, `Logger` alias
+- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`, `ApplicationLogger`
+- [`packages/helpers/src/modules/logger/winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts) - Winston setup, transports, env configuration

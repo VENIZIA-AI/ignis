@@ -71,11 +71,8 @@ const CSV_TO_ARRAY_KEYS: Record<string, string> = {
   highlightFullFields: 'attributesToCrop',
 };
 
-/**
- * `ISearchQuery` fields Meilisearch has no equivalent for. Every one of them THROWS: dropping a
- * caller's parameter silently, or half-mapping it onto a differently-shaped engine param, produces a
- * query that quietly does not mean what was asked.
- */
+/** `ISearchQuery` fields Meilisearch has no equivalent for. Each THROWS - silently dropping or
+ * half-mapping a param produces a query that quietly does not mean what was asked. */
 const UNSUPPORTED_QUERY_FIELDS: Record<string, string> = {
   excludeFields: 'Meilisearch has no exclude-fields param; declare displayedAttributes instead',
   facetQuery: 'Meilisearch exposes facet search on its own /facet-search route',
@@ -100,12 +97,8 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     const { filter } = opts;
 
     // `hiddenFields` is accepted and deliberately NOT translated: Meilisearch has no per-query field
-    // exclusion (only the index-level `displayedAttributes`). Throwing here made every read of a
-    // model with `hiddenProperties` fail - find, findOne, findById, count, search, and the
-    // default-filter guard inside updateById - while writes happily kept working.
-    //
-    // The guarantee is upheld one layer up instead: `SearchBaseRepository` strips hidden fields from
-    // every document it returns, so nothing escapes regardless of index settings.
+    // exclusion (only index-level `displayedAttributes`). The guarantee is upheld one layer up -
+    // `SearchBaseRepository` strips hidden fields from every returned document, so nothing escapes.
     const { where, fields, order, limit, skip, offset, include } = filter ?? {};
 
     if (include) {
@@ -144,11 +137,9 @@ export class MeilisearchQueryDialect implements ISearchQueryDialect {
     return query;
   }
 
-  /**
-   * Maps the neutral query onto Meilisearch's wire params. Pagination always selects the exhaustive
-   * `page`/`hitsPerPage` mode, never `offset`/`limit`, so `totalHits` is exact rather than the
-   * `estimatedTotalHits` the offset mode returns. `engineParams` merges last, verbatim.
-   */
+  /** Maps the neutral query onto Meilisearch wire params. Pagination always uses the exhaustive
+   * `page`/`hitsPerPage` mode (exact `totalHits`), never `offset`/`limit`. `engineParams` merges
+   * last, verbatim. */
   toWireParams(opts: { query: Partial<ISearchQuery> }): Record<string, unknown> {
     const { query } = opts;
     const { engineParams, ...rest } = query as Partial<IMeilisearchSearchQuery>;

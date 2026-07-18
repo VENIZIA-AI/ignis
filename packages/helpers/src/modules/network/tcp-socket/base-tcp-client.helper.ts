@@ -84,11 +84,7 @@ export class BaseNetworkTcpClient<
     return this.client;
   }
 
-  /**
-   * The options as they may appear in a log line. A TLS client's options ARE its private key
-   * (`key`/`cert`/`passphrase`), so logging them verbatim writes the key into every log file and
-   * aggregator downstream.
-   */
+  /** Redacts before logging - a TLS client's options ARE its private key (`key`/`cert`/`passphrase`). */
   protected getLoggableOptions(): unknown {
     return redactSecrets(this.options);
   }

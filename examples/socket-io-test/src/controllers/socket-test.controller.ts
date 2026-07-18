@@ -254,7 +254,7 @@ export class SocketTestController extends BaseRestController {
           return c.json({ error: 'Rooms array is required' }, HTTP.ResultCodes.RS_4.BadRequest);
         }
 
-        const result = this.socketEventService.joinRoom({ clientId, rooms });
+        const result = await this.socketEventService.joinRoom({ clientId, rooms });
 
         return c.json(result, HTTP.ResultCodes.RS_2.Ok);
       },
@@ -275,7 +275,7 @@ export class SocketTestController extends BaseRestController {
           return c.json({ error: 'Rooms array is required' }, HTTP.ResultCodes.RS_4.BadRequest);
         }
 
-        const result = this.socketEventService.leaveRoom({ clientId, rooms });
+        const result = await this.socketEventService.leaveRoom({ clientId, rooms });
 
         return c.json(result, HTTP.ResultCodes.RS_2.Ok);
       },

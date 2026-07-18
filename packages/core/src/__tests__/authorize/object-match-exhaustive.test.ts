@@ -1,17 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { objectMatch } from '@/components/auth/authorize/common/object-match';
 
-/**
- * Black-box exhaustive + adversarial coverage of `objectMatch(requested, granted)`.
- *
- * Semantics under test (object-match.ts):
- *   1. granted === '*'            → true   (wildcard only on the GRANT side)
- *   2. requested === granted      → true   (exact)
- *   3. requested.startsWith(`${granted}.`) → true (dot-child / endpoint under subject)
- *   else → false
- *
- * Direction matters: the requested resource must fall UNDER the granted resource.
- */
+/** Exhaustive + adversarial coverage of `objectMatch(requested, granted)`: `*` grant matches all
+ * (wildcard on the GRANT side only), exact match, or requested is a dot-child of granted - else
+ * false. Direction matters: requested must fall UNDER granted. */
 describe('objectMatch — wildcard grant', () => {
   test('`*` grant matches any requested resource', () => {
     expect(objectMatch('Order', '*')).toBe(true);

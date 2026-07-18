@@ -1,7 +1,8 @@
 import { describe, test, expect } from 'bun:test';
 import { Hono } from 'hono';
 import { z } from '@hono/zod-openapi';
-import { getError, HTTP, Logger, MessageCode } from '@venizia/ignis-helpers';
+import { getError, HTTP, MessageCode } from '@venizia/ignis-helpers';
+import { Logger } from '@venizia/ignis-helpers/winston';
 import { AppErrorMiddleware, RequestSpyMiddleware } from '@/base/middlewares';
 
 // Real Logger instance (private constructor forces the factory) with `error` silenced -
@@ -396,11 +397,8 @@ describe('AppErrorMiddleware - every response carries a normalized code', () => 
   });
 });
 
-/**
- * Which NODE_ENV values may see an unsanitized error. The rule is fail-closed: the leak is opt-in
- * by an explicit development name, so a typo, a new environment nobody added to the list, or an
- * unset variable all land on the safe side.
- */
+/** Which NODE_ENV values may see an unsanitized error. Fail-closed: the leak is opt-in by an
+ * explicit development name, so a typo, an unknown environment, or an unset variable stay safe. */
 describe('AppErrorMiddleware — the NODE_ENV leak boundary', () => {
   /** A unique-violation carrying the row data, the table and the constraint - all of it internal. */
   const leakyDatabaseThrower = () => {
@@ -542,11 +540,8 @@ describe('AppErrorMiddleware - normalized cannot leak past sanitization', () => 
   });
 });
 
-/**
- * `normalized` is the field clients are told to read, so EVERY branch must emit it - including the
- * validation branch, which returns early through `formatZodError` and is the branch a client hits
- * most often. A contract with one silent hole is not a contract.
- */
+/** `normalized` is the field clients are told to read, so EVERY branch must emit it - including the
+ * early-returning `formatZodError` validation branch clients hit most often. */
 describe('AppErrorMiddleware - every branch emits normalized', () => {
   const readNormalized = async (app: Hono, path = '/') => {
     const body = (await (await app.request(path)).json()) as {

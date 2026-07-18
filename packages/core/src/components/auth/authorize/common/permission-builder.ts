@@ -4,12 +4,9 @@ import type { TAuthorizationAction } from './constants';
 import { AuthorizationActions } from './constants';
 
 /**
- * Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves).
- *
- * Generic over the name/description type (`TName`) so an app with i18n `name`/`description` columns and
- * one with plain-text names both fit. Produces the framework-owned columns
- * (code/subject/method/action/scope/description/parentId); `description` defaults to `null`.
- * App-specific columns are added by the caller.
+ * Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves). Generic over
+ * `TName` so i18n and plain-text apps both fit; produces only the framework-owned columns
+ * (code/subject/method/action/scope/description/parentId) - app columns are added by the caller.
  */
 export class AuthorizationPermissionBuilder {
   /** Sentinel `method` for a coarse resource node (a grant target that is not a route). */
@@ -69,9 +66,8 @@ export class AuthorizationPermissionBuilder {
   }
 
   /**
-   * A coarse resource node (module or subject) used as a grant target, e.g. `Sale` or `SaleOrder`.
-   * `code` is the bare name (no dotted method); `method` is the {@link RESOURCE_NODE_METHOD} sentinel.
-   * `action` defaults to `manage` (the broadest), though the grant on this node carries its own action.
+   * A coarse resource node used as a grant target: `code` is the bare name, `method` the
+   * {@link RESOURCE_NODE_METHOD} sentinel, `action` defaults to `manage` (grants carry their own action).
    */
   static resourceNode<TName>(opts: {
     code: string;

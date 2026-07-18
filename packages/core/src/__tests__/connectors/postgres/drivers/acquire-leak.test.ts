@@ -2,15 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { NodePostgresDriver } from '@/connectors/postgres/drivers/node-postgres';
 
-/**
- * `acquire()` checks a connection OUT of the pool and only then builds the Drizzle connector. If
- * that construction throws - a malformed discovered schema, a drizzle version mismatch - the
- * connection is never handed back, and every later `beginTransaction()` leaks another one until the
- * pool is exhausted and the app stops serving.
- *
- * `beginTransaction` already guards its own BEGIN-failure path; `acquire` owes the same duty for the
- * window it opened.
- */
+/** `acquire()` checks a connection OUT before building the Drizzle connector: if that construction
+ * throws, the connection must be handed back or every later `beginTransaction()` leaks one until
+ * the pool is exhausted. */
 const buildFakePool = () => {
   const released: Array<unknown> = [];
 

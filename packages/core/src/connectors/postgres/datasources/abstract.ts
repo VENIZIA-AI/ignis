@@ -55,11 +55,8 @@ export abstract class AbstractRelationalDataSource<
     this.useDriver({ driver: new DriverClass({ client: this.client }) });
   }
 
-  /**
-   * Reads the driver CLASS named by `@datasource({ driver })`. Absent for an imperatively-registered
-   * datasource; the type forbids a driver-name string, so this catches an untyped JavaScript caller -
-   * and a string is exactly the mistake to catch, because it carries no module into the bundle.
-   */
+  /** Reads the driver CLASS named by `@datasource({ driver })`. Rejects a driver-name string
+   * (untyped JS callers) - a string carries no module into the bundle. */
   protected resolveDriverClass(): TClass<IRelationalDriver<Schema>> {
     const metadata = MetadataRegistry.getInstance().getDataSourceMetadata({
       target: this.constructor,
@@ -80,12 +77,8 @@ export abstract class AbstractRelationalDataSource<
     return this.driver as IRelationalDriver<Schema>;
   }
 
-  /**
-   * Wires a driver in one step: assigns `this.driver` AND builds `this.connector` from it. The
-   * two-step form (driver set, connector forgotten) yields a datasource whose pooled queries
-   * silently bypass the driver - this helper makes that state unrepresentable. `schema` defaults to
-   * `getSchema()`; pass it explicitly when configure() computes the schema locally.
-   */
+  /** Assigns `this.driver` AND builds `this.connector` in one step - a driver without its connector
+   * would silently bypass the driver on pooled queries. `schema` defaults to `getSchema()`. */
   protected useDriver(opts: { driver: IRelationalDriver<Schema>; schema?: Schema }): void {
     this.driver = opts.driver;
     this.connector = opts.driver.createConnector({ schema: opts.schema ?? this.getSchema() });
@@ -102,11 +95,8 @@ export abstract class AbstractRelationalDataSource<
     return this.connector;
   }
 
-  /**
-   * The raw driver client: `pg.Pool` for node-postgres, `Sql` for postgres-js. Stays synchronous by
-   * reading the configured client directly when no driver has been resolved yet - for a bare client
-   * there is nothing to await. Throws rather than handing back an `undefined` typed as `Client`.
-   */
+  /** Raw driver client (`pg.Pool` / `Sql`). Reads the configured client directly when no driver is
+   * resolved yet; throws rather than handing back an `undefined` typed as `Client`. */
   getClient(): Client {
     if (this.driver) {
       return this.driver.getClient() as Client;
@@ -127,14 +117,9 @@ export abstract class AbstractRelationalDataSource<
     return AbstractRelationalDataSource.queryDialect;
   }
 
-  /**
-   * Soft-evicts the connection pool after a secret rotation. Builds a fresh pool + driver + connector
-   * against the rotated credentials WITHOUT disturbing the live fields, then swaps them in atomically
-   * and drains the old pool - so in-flight work finishes on the old pool while new work uses the new
-   * one. If the rebuild throws (bad rotated creds, transient failure) the live state is left exactly
-   * as it was, any half-built pool is drained rather than leaked, and the error is rethrown so the
-   * dispatcher can surface it - the datasource keeps serving on the old pool throughout.
-   */
+  /** Soft-evicts the pool after a secret rotation: builds pool + driver + connector against the
+   * rotated credentials without touching live fields, swaps atomically, then drains the old pool.
+   * On failure the live state is restored, any half-built pool drained, and the error rethrown. */
   async onSecretRotated(opts: { key: string; secret: Record<string, string> }): Promise<void> {
     const logger = this.logger.for(this.onSecretRotated.name);
     const oldClient = this.getClient() as AnyType;

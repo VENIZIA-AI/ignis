@@ -31,13 +31,9 @@ export class DataSourceDrivers {
 // any other engine-driver string literal (e.g. a third-party or in-house driver name).
 export type TDataSourceDriver = TConstValue<typeof DataSourceDrivers> | (string & {});
 
-/**
- * A driver CLASS, named by `@datasource({ driver })`. A class reference is what carries `pg` or
- * `postgres` into the application's bundle - a driver-name string carries nothing, and a bare
- * side-effect import to compensate is one a bundler may delete.
- *
- * Untyped because `IRelationalDriver` lives under `connectors/`, which `base/` must not import.
- */
+/** A driver CLASS, named by `@datasource({ driver })` - the class reference is what carries the
+ * peer package into the bundle (a name string carries nothing, and a bare side-effect import may be
+ * deleted by a bundler). Untyped: `IRelationalDriver` lives under `connectors/`, off-limits to `base/`. */
 export type TDataSourceDriverClass = TClass<AnyType>;
 
 export type TAnyDataSourceSchema = Record<string, any>;
@@ -56,12 +52,8 @@ export interface IDataSource<
   getSchema(): Schema;
 }
 
-/**
- * Neutral transaction options. Isolation levels are engine vocabulary (postgres's
- * `READ COMMITTED` / `SERIALIZABLE` / ... are not universal across connectors), so this is kept
- * loose here; connectors narrow `isolationLevel` to their own const-class in their own
- * `ITransactionOptions` extension (e.g. postgres's `IDatabaseTransactionOptions`).
- */
+/** Neutral transaction options. Isolation levels are engine vocabulary, so `isolationLevel` stays a
+ * loose string here; connectors narrow it in their own `ITransactionOptions` extension. */
 export interface ITransactionOptions {
   isolationLevel?: string;
 }

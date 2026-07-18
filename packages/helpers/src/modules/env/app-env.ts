@@ -29,11 +29,7 @@ export class Environment {
     this.PRODUCTION,
   ]);
 
-  /**
-   * The environments whose users are our own engineers - the only ones an error response may reach
-   * carrying a stack trace, a SQL constraint name or a raw driver message. Everything absent from
-   * this set, INCLUDING an unrecognized name, is sanitized as production.
-   */
+  /** Environments whose users are our own engineers - the only ones an error response may carry a stack trace or raw driver message. Anything else, including an unrecognized name, is sanitized as production. */
   static DEVELOPMENT_ENVS = new Set([this.LOCAL, this.DEBUG, this.DEVELOPMENT, this.DEV, this.SIT]);
 
   static get current(): string {

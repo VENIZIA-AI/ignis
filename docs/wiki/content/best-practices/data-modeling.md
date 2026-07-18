@@ -3,22 +3,22 @@
 IGNIS streamlines data modeling with Drizzle ORM by providing powerful helpers and "enrichers" that reduce boilerplate code for common schema patterns.
 
 > [!NOTE] Scope: PostgreSQL connector
-> This page covers Drizzle-backed models (`BasePostgresEntity`; the legacy `BaseEntity` export is a compatibility alias for the same class) and enrichers, which are specific to relational tables. Search documents (typesense connector) use `defineSearchCollection` instead - see [Search & Typesense](/guides/core-concepts/persistent/search-typesense). See [Connectors](/references/base/connectors) for how the engine-neutral `AbstractEntity` relates to each connector's concrete entity class.
+> This page covers Drizzle-backed models (`BaseRelationalEntity`; the legacy `BasePostgresEntity` and `BaseEntity` exports are compatibility aliases for the same class) and enrichers, which are specific to relational tables. Search documents (typesense connector) use `defineSearchCollection` instead - see [Search & Typesense](/guides/core-concepts/persistent/search-typesense). See [Connectors](/references/base/connectors) for how the engine-neutral `AbstractEntity` relates to each connector's concrete entity class.
 
 ## 1. Base Entity
 
-All PostgreSQL entity models should extend `BasePostgresEntity`. This provides integration with the framework's repository layer and automatic schema generation support.
+All PostgreSQL entity models should extend `BaseRelationalEntity`. This provides integration with the framework's repository layer and automatic schema generation support.
 
 The recommended pattern is to define the schema and relations as **static properties** on the class. This keeps the definition self-contained and enables powerful type inference.
 
 **Example (`src/models/entities/user.model.ts`):**
 
 ```typescript
-import { BasePostgresEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
+import { BaseRelationalEntity, extraUserColumns, generateIdColumnDefs, model } from '@venizia/ignis';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class User extends BaseRelationalEntity<typeof User.schema> {
   // 1. Define schema as a static property
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
@@ -40,10 +40,10 @@ Instead of manually defining common columns like primary keys, timestamps, or au
 |----------|-------------|---------------|
 | `generateIdColumnDefs` | Adds a Primary Key | `id` (text, number, or big-number) |
 | `generatePrincipalColumnDefs` | Adds polymorphic relation fields | `{discriminator}Id`, `{discriminator}Type` |
-| `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating) |
+| `generateTzColumnDefs` | Adds timestamps | `createdAt`, `modifiedAt` (auto-updating); `deletedAt` via `{ deleted: { enable: true, ... } }` |
 | `generateUserAuditColumnDefs` | Adds audit fields | `createdBy`, `modifiedBy` (supports `allowAnonymous` option) |
-| `generateDataTypeColumnDefs` | Adds generic value fields | `nValue` (number), `tValue` (text), `jValue` (json), etc. |
-| `extraUserColumns` | Comprehensive user fields | Combines audit, timestamps, status, and type fields |
+| `generateDataTypeColumnDefs` | Adds generic value fields | `dataType`, `nValue` (number), `tValue` (text), `bValue` (bytea), `jValue` (jsonb), `boValue` (boolean) |
+| `extraUserColumns` | Auth user fields | `realm`, `status`, `type`, `activatedAt`, `lastLoginAt`, `parentId` |
 
 **Usage Example:**
 
@@ -90,8 +90,8 @@ The `generateIdColumnDefs` enricher supports multiple ID strategies:
 |-----------|-----------------|-----------------|----------|
 | `string` | `TEXT` | `string` | UUIDs, custom IDs, distributed systems |
 | `number` | `INTEGER GENERATED ALWAYS AS IDENTITY` | `number` | Auto-increment, simple sequences |
-| `big-number` (mode: `number`) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `number` | Large sequences (up to 2^53) |
-| `big-number` (mode: `bigint`) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `bigint` | Very large sequences (up to 2^64) |
+| `big-number` (`numberMode: 'number'`, default) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `number` | Large sequences (up to 2^53) |
+| `big-number` (`numberMode: 'bigint'`) | `BIGINT GENERATED ALWAYS AS IDENTITY` | `bigint` | Very large sequences (up to 2^64) |
 
 **Examples:**
 
@@ -189,11 +189,11 @@ Relations are defined using the `TRelationConfig` structure within the static `r
 
 **One-to-One (belongsTo):**
 ```typescript
-import { BasePostgresEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
+import { BaseRelationalEntity, model, RelationTypes, TRelationConfig } from '@venizia/ignis';
 import { User } from './user.model';
 
 @model({ type: 'entity' })
-export class Configuration extends BasePostgresEntity<typeof Configuration.schema> {
+export class Configuration extends BaseRelationalEntity<typeof Configuration.schema> {
   static override schema = pgTable('Configuration', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     createdBy: text('created_by'),
@@ -216,9 +216,34 @@ export class Configuration extends BasePostgresEntity<typeof Configuration.schem
 ```
 
 **One-to-Many (hasMany):**
+
+The foreign key lives on the **`ONE` side only**. A `MANY` relation carries no `fields`/`references` - Drizzle's `many()` takes just `relationName`, pointing back at the `ONE` relation that owns the key.
+
 ```typescript
+// Owning side: Post declares the FK
 @model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class Post extends BaseRelationalEntity<typeof Post.schema> {
+  static override schema = pgTable('Post', {
+    ...generateIdColumnDefs({ id: { dataType: 'string' } }),
+    authorId: text('author_id').notNull(),
+  });
+
+  static override relations = (): TRelationConfig[] => [
+    {
+      name: 'author',
+      type: RelationTypes.ONE,
+      schema: User.schema,
+      metadata: {
+        fields: [Post.schema.authorId],
+        references: [User.schema.id],
+      },
+    },
+  ];
+}
+
+// Inverse side: User just names the relation back
+@model({ type: 'entity' })
+export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     name: text('name').notNull(),
@@ -226,22 +251,10 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 
   static override relations = (): TRelationConfig[] => [
     {
-      name: 'posts',                 // User.posts
-      type: RelationTypes.MANY,      // One User → Many Posts
+      name: 'posts',                          // User.posts
+      type: RelationTypes.MANY,               // One User -> Many Posts
       schema: Post.schema,
-      metadata: {
-        fields: [User.schema.id],
-        references: [Post.schema.authorId],
-      },
-    },
-    {
-      name: 'comments',              // User.comments
-      type: RelationTypes.MANY,
-      schema: Comment.schema,
-      metadata: {
-        fields: [User.schema.id],
-        references: [Comment.schema.userId],
-      },
+      metadata: { relationName: 'author' },   // The ONE relation on Post
     },
   ];
 }
@@ -295,7 +308,7 @@ DataSources automatically discover their schema from the repositories that bind 
 ```typescript
 // src/datasources/postgres.datasource.ts
 import { datasource, ValueOrPromise } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { BaseRelationalDataSource } from '@venizia/ignis/postgres';
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 import { Pool } from 'pg';
 
@@ -308,7 +321,7 @@ interface IDataSourceConfigs {
 }
 
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+export class PostgresDataSource extends BaseRelationalDataSource<IDataSourceConfigs> {
   constructor() {
     super({
       name: PostgresDataSource.name,
@@ -343,7 +356,7 @@ For most repositories, you don't need a constructor. The DataSource is automatic
 
 ```typescript
 @repository({ model: Configuration, dataSource: PostgresDataSource })
-export class ConfigurationRepository extends DefaultCRUDRepository<typeof Configuration.schema> {
+export class ConfigurationRepository extends DefaultRelationalRepository<typeof Configuration.schema> {
   // No constructor needed!
 }
 ```
@@ -380,7 +393,7 @@ Protect sensitive data by configuring properties that are excluded at the SQL le
     hiddenProperties: ['password', 'secret'],
   },
 })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -411,7 +424,7 @@ Declare your model's authorization principal in `@model` settings to make the mo
     hiddenProperties: ['password'],
   },
 })
-export class User extends BasePostgresEntity<typeof User.schema> {
+export class User extends BaseRelationalEntity<typeof User.schema> {
   static override schema = pgTable('User', {
     ...generateIdColumnDefs({ id: { dataType: 'string' } }),
     email: text('email').notNull(),
@@ -437,16 +450,26 @@ Drizzle Kit handles schema migrations. Follow these best practices for safe migr
 
 ### Generate Migrations
 
-```bash
-# Generate migration from schema changes
-bun run db:generate
+Wire these as scripts in your app's `package.json`, pointing at your Drizzle config:
 
-# Apply migrations to database
-bun run db:migrate
-
-# Push schema directly (development only)
-bun run db:push
+```json
+{
+  "scripts": {
+    "migrate:generate": "drizzle-kit generate --config=src/migration.ts",
+    "migrate:dev": "drizzle-kit migrate --config=src/migration.ts",
+    "migrate:push": "drizzle-kit push --config=src/migration.ts"
+  }
+}
 ```
+
+```bash
+bun run migrate:generate   # Generate migration from schema changes
+bun run migrate:dev        # Apply pending migrations
+bun run migrate:push       # Push schema directly (development only)
+```
+
+> [!NOTE]
+> Boot does nothing to your schema. Migrations are an explicit step you run - never a side effect of starting the application.
 
 ### Migration Best Practices
 
@@ -484,32 +507,25 @@ ALTER TABLE "User" RENAME COLUMN "old_name" TO "new_name";
 
 ### Custom Migration SQL
 
-For complex migrations, use custom SQL:
+Drizzle Kit emits plain `.sql` files. For anything it cannot infer - backfills, concurrent indexes, data reshaping - edit the generated file or add your own:
 
-```typescript
-// drizzle/migrations/0005_custom_migration.ts
-import { sql } from 'drizzle-orm';
+```sql
+-- drizzle/migrations/0005_custom_migration.sql
 
-export async function up(db: DrizzleDB) {
-  // Add index for performance
-  await db.execute(sql`
-    CREATE INDEX CONCURRENTLY idx_user_email
-    ON "User" (email)
-    WHERE status = 'ACTIVE'
-  `);
+-- Backfill before enforcing the constraint
+UPDATE "User"
+SET normalized_email = LOWER(email)
+WHERE normalized_email IS NULL;
+--> statement-breakpoint
 
-  // Backfill data
-  await db.execute(sql`
-    UPDATE "User"
-    SET normalized_email = LOWER(email)
-    WHERE normalized_email IS NULL
-  `);
-}
-
-export async function down(db: DrizzleDB) {
-  await db.execute(sql`DROP INDEX IF EXISTS idx_user_email`);
-}
+-- CONCURRENTLY cannot run inside a transaction - keep it in its own migration
+CREATE INDEX CONCURRENTLY idx_user_email
+ON "User" (email)
+WHERE status = 'ACTIVE';
 ```
+
+> [!WARNING]
+> Drizzle wraps each migration in a transaction. `CREATE INDEX CONCURRENTLY` is rejected inside one - isolate it in its own migration and apply it out of band.
 
 ### Migration Checklist
 

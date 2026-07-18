@@ -95,10 +95,8 @@ describe('BaseStorageHelper.upload - the two guards on the shared path', () => {
   });
 
   test('a configured maxFolderDepth is HONOURED - not silently replaced by the hard default of 2', async () => {
-    // The controller validates `folderPath` against the app's `maxFolderDepth`, then the helper
-    // re-validated it against its own default of 2 - so an app configured for depth 4 accepted the
-    // request, spooled the whole body to disk, and only then failed inside the helper. The feature
-    // was unusable above 2.
+    // Regression: the helper used to re-validate folderPath against its own hardcoded default of 2
+    // even when the app configured maxFolderDepth higher, so depth-4 requests spooled the whole body to disk before failing.
     const results = await helper.upload({
       bucket: 'assets',
       files: [buildFile({ folderPath: 'a/b/c/d' })],

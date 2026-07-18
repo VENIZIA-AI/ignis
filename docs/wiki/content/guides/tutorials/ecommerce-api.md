@@ -526,12 +526,11 @@ export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> 
 
 ```typescript
 // src/services/product.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { ProductRepository } from '../repositories/product.repository';
 import { getError } from '@venizia/ignis-helpers';
 
-@injectable({})
 export class ProductService extends BaseService {
   constructor(
     @inject({ key: 'repositories.ProductRepository' })
@@ -595,7 +594,7 @@ export class ProductService extends BaseService {
 
 ```typescript
 // src/services/cart.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { CartRepository } from '../repositories/cart.repository';
 import { ProductService } from './product.service';
@@ -606,7 +605,6 @@ interface ICartItem {
   quantity: number;
 }
 
-@injectable({})
 export class CartService extends BaseService {
   constructor(
     @inject({ key: 'repositories.CartRepository' })
@@ -733,7 +731,7 @@ export class CartService extends BaseService {
 
 ```typescript
 // src/services/order.service.ts
-import { injectable, inject } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import { OrderRepository } from '../repositories/order.repository';
 import { CartService } from './cart.service';
@@ -758,7 +756,6 @@ interface ICreateOrderInput {
   billingAddress?: IOrderAddress;
 }
 
-@injectable({})
 export class OrderService extends BaseService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' })
@@ -906,12 +903,10 @@ export class OrderService extends BaseService {
 
 ```typescript
 // src/services/payment.service.ts
-import { injectable } from '@venizia/ignis';
 import { BaseService } from '@venizia/ignis';
 import Stripe from 'stripe';
 import { applicationEnvironment } from '@venizia/ignis-helpers';
 
-@injectable({})
 export class PaymentService extends BaseService {
   private _stripe: Stripe;
 

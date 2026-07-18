@@ -25,14 +25,9 @@ export class SearchModes {
 }
 export type TSearchMode = TConstValue<typeof SearchModes>;
 
-/**
- * `FilterSchema` (`@/base/repositories/query-schemas`) is unusable here: it embeds `include`,
- * which recurses through `InclusionSchema`'s `z.lazy(() => FilterSchema)` - and the Typesense
- * dialect's `build()` unconditionally throws on `include` anyway (search has no relations).
- * Reassembled from the same atomic pieces minus `include`, so `z.infer` stays finite - embedding
- * the recursive `FilterSchema` instead collapses TypeScript's optional-key inference for every
- * sibling field in the containing `z.object`, silently turning `filter` into a required `any`.
- */
+/** Reassembled from FilterSchema's atomic pieces minus `include` (search has no relations) so
+ * `z.infer` stays finite - embedding the recursive FilterSchema collapses TS optional-key inference
+ * for every sibling field, silently turning `filter` into a required `any`. */
 const SearchFilterSchema = z
   .object({
     where: WhereSchema.optional(),
@@ -48,16 +43,9 @@ const SearchFilterSchema = z
       'Search-scoped filter - same shape as the repository TFilter minus include (search has no relations)',
   });
 
-/**
- * Shape object (NOT a z.object) so it can be spread into each mode's z.object - the faceting /
- * highlighting / grouping params shared by keyword/semantic/hybrid. `raw` mode skips this - params
- * go verbatim.
- *
- * Neutral means "supported by every search engine". Only genuinely cross-engine params live here.
- * Engine-specific tuning (Typesense's `num_typos`/`prefix`/`pinned_hits`/`preset`, ... ) is NOT
- * neutral - it goes through `engineParams`, keyed by the engine's OWN wire names, merged verbatim
- * into the wire query by each dialect's `toWireParams`.
- */
+/** Shape object (NOT a z.object) so it spreads into each mode's z.object; `raw` mode skips it.
+ * Only cross-engine params live here - engine-specific tuning goes through `engineParams`, keyed
+ * by the engine's OWN wire names and merged verbatim by each dialect's `toWireParams`. */
 const commonSearchParamsShape = {
   facetBy: z.array(z.string()).optional(),
   facetQuery: z.string().optional(),
@@ -135,13 +123,9 @@ export const SearchInputSchema = z.discriminatedUnion('mode', [
 ]);
 export type TSearchInput = z.infer<typeof SearchInputSchema>;
 
-/**
- * A single collection's query within a multi-search. Uses the SAME friendly field names as
- * single-collection `search()` - `query` (not `q`), `queryBy: string[]`, and the array-shaped
- * `commonSearchParamsShape` (`facetBy`/`highlightFields`/...) - so the two APIs read identically.
- * `filterBy` is a raw engine filter string: a cross-collection search has no per-collection model to
- * translate a `TFilter` against. The datasource maps every entry to snake_case wire via the dialect.
- */
+/** One collection's query within a multi-search - same friendly field names as `search()`.
+ * `filterBy` is a raw engine filter string: cross-collection search has no per-collection model to
+ * translate a `TFilter` against. The datasource maps entries to snake_case wire via the dialect. */
 export const MultiSearchEntrySchema = z
   .object({
     collection: z.string(),
@@ -172,12 +156,8 @@ const MULTI_SEARCH_LIST_FIELDS = new Set([
   'queryByWeights',
 ]);
 
-/**
- * Friendly multi-search params -> `ISearchQuery`: list fields are comma-joined, everything else
- * passes through under its neutral name. The dialect then maps the result to the engine's wire
- * format, so single `search()` and `multiSearch()` share one friendly-to-wire path. Also used for
- * `commonParams`.
- */
+/** Friendly multi-search params -> `ISearchQuery`: list fields comma-joined, the rest pass through.
+ * Keeps `search()` and `multiSearch()` on one friendly-to-wire path. Also used for `commonParams`. */
 export const toSearchQueryParams = (input: Record<string, unknown>): Partial<ISearchQuery> => {
   const params: Record<string, unknown> = {};
 

@@ -24,9 +24,8 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   }
 
   /**
-   * Runs a raw statement and returns its rows. Drizzle's `execute()` result shape differs per driver
-   * - node-postgres yields `{ rows }`, postgres-js yields the row list itself - so adapters must never
-   * read `.rows` directly.
+   * Runs a raw statement and returns its rows. Drizzle's `execute()` shape differs per driver
+   * (node-postgres `{ rows }`, postgres-js the row list itself) - adapters must never read `.rows` directly.
    */
   protected async query<TRow>(opts: { statement: SQL }): Promise<TRow[]> {
     const result = await this.connector.execute(opts.statement);

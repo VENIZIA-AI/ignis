@@ -7,15 +7,9 @@ import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/co
 import { resolveRequestDomain } from '@/components/auth/authorize/common/resolve-request-domain';
 import type { TNullable } from '@venizia/ignis-helpers';
 
-/**
- * Hardening of resolveRequestDomain. Precedence under test:
- *   (1) spec.domain as method  →  (2) spec.domain as declarative  →
- *   (3) options.domainResolver →  (4) SYSTEM_WIDE sentinel.
- *
- * Any resolver that returns null/falsy falls through to SYSTEM_WIDE (fail-OPEN to the
- * SYSTEM_WIDE sentinel — only super-admins hold SYSTEM_WIDE grants, so this is fail-closed
- * for ordinary users). A resolver/declarative miss returns SYSTEM_WIDE, NOT the next source.
- */
+/** resolveRequestDomain precedence: spec.domain method -> declarative -> options.domainResolver ->
+ * SYSTEM_WIDE sentinel. A null/falsy or missing resolver returns SYSTEM_WIDE, NOT the next source -
+ * fail-closed for ordinary users, since only super-admins hold SYSTEM_WIDE grants. */
 
 // Hono-context stub exposing only the accessors the helper touches.
 function ctxStub(opts: {

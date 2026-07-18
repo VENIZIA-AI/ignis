@@ -21,18 +21,9 @@ import {
   sql,
 } from 'drizzle-orm';
 
-/**
- * Builds `<column> <operator> ARRAY[$1, $2, ...]` with every element BOUND, never interpolated.
- *
- * These three operators are reachable straight from the wire (`?filter={"where":{"tags":{"overlaps":
- * [...]}}}`) and the operand is `z.any()` end to end. The previous shape sniffed the element type
- * from `value[0]` and, for a numeric or boolean first element, `join(', ')`-ed the WHOLE array into
- * `sql.raw` - so `[1, "1); DROP TABLE users; --"]` wrote SQL. It also read `column.name`, which is
- * undefined for a JSON-path extraction, producing `"undefined" @> ARRAY[...]`.
- *
- * Element type still decides the CAST (a text[] column must compare against text[]), but the cast is
- * a decision about the column, not about the values.
- */
+/** Builds `<column> <operator> ARRAY[$1, ...]` with every element BOUND, never interpolated - these
+ * operators are wire-reachable with a `z.any()` operand, so raw interpolation is SQL injection.
+ * Element type decides only the CAST (text[] vs numeric[]), never the binding. */
 const buildPgArrayComparison = (opts: { column: AnyType; value: AnyType[]; operator: string }) => {
   const { column, value, operator } = opts;
 

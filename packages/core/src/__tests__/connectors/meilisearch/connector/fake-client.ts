@@ -16,14 +16,9 @@ interface IFakeIndex {
   settings: Record<string, unknown>;
 }
 
-/**
- * The REAL `MeilisearchApiError`, not a hand-rolled lookalike.
- *
- * A fake that invents its own error shape is worse than no fake: this one used to synthesize a flat
- * `{ code, httpStatus }` - which the SDK never produces - so the whole suite stayed green while the
- * classifier read two fields that do not exist and answered `false` to every 404 against a live
- * engine. Construct the SDK's own class and the fake can no longer lie about the contract.
- */
+/** The REAL `MeilisearchApiError`, not a hand-rolled lookalike: a fake inventing a flat
+ * `{ code, httpStatus }` shape (which the SDK never produces) keeps the suite green while the
+ * classifier fails against a live engine. The SDK's own class cannot lie about the contract. */
 const engineError = (opts: { code: string; message: string; httpStatus?: number }): Error => {
   const { code, message, httpStatus = HTTP.ResultCodes.RS_4.BadRequest } = opts;
 

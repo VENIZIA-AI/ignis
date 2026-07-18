@@ -28,13 +28,13 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@hono/zod-openapi": "^1.4.0",
-    "@scalar/hono-api-reference": "^0.11.9",
+    "@hono/zod-openapi": "^1.5.1",
+    "@scalar/hono-api-reference": "^0.11.11",
     "@venizia/ignis": "workspace:*",
     "@venizia/ignis-boot": "workspace:*",
     "@venizia/ignis-helpers": "workspace:*",
     "@venizia/ignis-inversion": "workspace:*",
-    "hono": "^4.12.29",
+    "hono": "^4.12.30",
     "typesense": "^3.0.3"
   },
   "devDependencies": {
@@ -42,7 +42,7 @@
     "@venizia/dev-configs": "workspace:*",
     "eslint": "^10.7.0",
     "prettier": "^3.9.5",
-    "tsc-alias": "^1.9.0",
+    "tsc-alias": "^1.9.1",
     "typescript": "^6.0.3"
   }
 }

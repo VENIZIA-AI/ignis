@@ -4,14 +4,9 @@ import { jsonb, PgDialect, pgTable, serial } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/**
- * A JSON `#>>` extraction is TEXT. Comparing it to a number needs a numeric cast, or Postgres raises
- * `operator does not exist: text > integer` at runtime.
- *
- * The cast was chosen once for the WHOLE operator object, which breaks two ways: a `not` wrapper
- * hides its numeric operand from the check, and a mixed object (`{ gte: 1, like: '%a%' }`) casts the
- * extraction for the `like` too. The choice belongs to each OPERATOR, not to the object.
- */
+/** A JSON `#>>` extraction is TEXT: numeric comparison needs a numeric cast or Postgres raises
+ * 'operator does not exist'. The cast belongs to each OPERATOR, not the object - an object-wide
+ * choice misses `not`-wrapped numerics and over-casts mixed objects like `{ gte: 1, like: '%a%' }`. */
 const table = pgTable('documents', {
   id: serial('id').primaryKey(),
   metadata: jsonb('metadata'),

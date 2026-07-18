@@ -6,11 +6,9 @@ import {
 } from './definition';
 import type { IDatabaseError } from './types';
 
-/**
- * Checks if error is a database constraint error caused by the request (SQLSTATE class 22/23/44)
- * and should return HTTP 400. In production the detail/table/constraint context is suppressed so
- * no row values or schema internals leak; in non-production it is appended to aid debugging.
- */
+/** True for a database error caused by the request (SQLSTATE class 22/23/44) -> HTTP 400. In
+ * production the detail/table/constraint context is suppressed so no row values or schema internals
+ * leak; in non-production it is appended to aid debugging. */
 export const isDatabaseClientError = (opts: {
   error: Error;
   isProduction: boolean;
@@ -20,10 +18,9 @@ export const isDatabaseClientError = (opts: {
   const cause = dbError.cause;
   const code = [dbError.code, cause?.code].find(Boolean);
 
-  // Only SQLSTATE classes caused by the request — 22 (data exception) and 23 (integrity violation) —
-  // are client errors. Anything else (e.g. class 42 syntax/undefined-column, 53 resources) stays 500.
-  // A missing or non-string code (e.g. a gRPC numeric code) is treated as non-client and must never
-  // crash this last-resort handler.
+  // Only request-caused SQLSTATE classes are client errors; anything else stays 500. A missing or
+  // non-string code (e.g. a gRPC numeric code) is non-client and must never crash this
+  // last-resort handler.
   if (typeof code !== 'string' || !POSTGRES_CLIENT_ERROR_CLASSES.includes(code.slice(0, 2))) {
     return { isClientError: false };
   }

@@ -1,16 +1,13 @@
 import { HTTP } from '@/common';
 import { getError } from '@/modules/error';
-import type { Logger } from '@/modules/logger';
+import type { ILogger } from '@/modules/logger';
 import { voidExecution } from '@/utilities/promise.utility';
 import { EventEmitter } from 'node:events';
 import type { TRedisClient } from './common';
 
 const REDIS_READY_TIMEOUT = 30_000;
 
-/**
- * Resolves once the client reaches the `ready` state. Rejects on the first client error, or when
- * `timeoutMs` elapses - a client that never reaches `ready` must not hang the caller forever.
- */
+/** Resolves once the client reaches `ready`; rejects on the first client error or when `timeoutMs` elapses. */
 export const waitForRedisReady = (opts: {
   client: TRedisClient;
   timeoutMs?: number;
@@ -25,11 +22,7 @@ export const waitForRedisReady = (opts: {
 
     const emitter = client as EventEmitter;
 
-    /**
-     * Every terminal branch runs these. The clients are long-lived and each `configure()` calls this
-     * again, so a listener left bound accumulates until EventEmitter warns about a leak - and a
-     * later 'error' would fire a handler whose promise has already settled.
-     */
+    /** Run by every terminal branch: clients are long-lived and re-`configure()`d, so an unbound listener leaks (EventEmitter warns) and could fire on an already-settled promise. */
     const cleanups: Array<() => void> = [];
     const detach = () => {
       for (const cleanup of cleanups) {
@@ -68,13 +61,10 @@ export const waitForRedisReady = (opts: {
   });
 };
 
-/**
- * Kicks off connection for clients still parked in `wait` - duplicated clients inherit
- * `lazyConnect` from their parent and never dial on their own.
- */
+/** Kicks off connection for clients still parked in `wait` - duplicated clients inherit `lazyConnect` from their parent and never dial on their own. */
 export const ensureRedisClientsConnecting = (opts: {
   clients: TRedisClient[];
-  logger?: Logger;
+  logger?: ILogger;
   scope: string;
 }): void => {
   const { clients, logger, scope } = opts;

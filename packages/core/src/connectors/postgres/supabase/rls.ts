@@ -5,16 +5,10 @@ import { sql } from 'drizzle-orm';
 /** A bare Postgres role identifier. Anything else cannot be safely interpolated. */
 const ROLE_PATTERN = /^[a-z_][a-z0-9_]*$/;
 
-/**
- * Sets the Supabase auth context for the remainder of THIS transaction, so `auth.uid()` resolves in
- * RLS policies. `SET LOCAL` is transaction-scoped, which is precisely what makes it safe under a
- * transaction-mode pooler; plain `SET` would leak the identity to the next borrower of the
- * connection, and is deliberately not offered.
- *
- * `role` defaults to the JWT's own `role` claim - PostgREST semantics, and the only default that
- * cannot contradict `request.jwt.claims`. Pass it explicitly only when the session role must
- * deliberately differ from the claims.
- */
+/** Sets the Supabase auth context for THIS transaction so `auth.uid()` resolves in RLS policies.
+ * `SET LOCAL` only - plain `SET` would leak the identity to the connection's next borrower under a
+ * pooler. `role` defaults to the JWT's own `role` claim (the only default that cannot contradict
+ * `request.jwt.claims`); pass it explicitly only to deliberately differ. */
 export const withAuthContext = async (opts: {
   transaction: IDatabaseTransaction;
   claims: Record<string, unknown>;

@@ -9,6 +9,7 @@ Identify bottlenecks before optimizing:
 ```typescript
 import { executeWithPerformanceMeasure } from '@venizia/ignis-helpers';
 
+// `logger` is optional and typed `ILogger` - it falls back to `console` when omitted.
 await executeWithPerformanceMeasure({
   logger: this.logger,
   scope: 'DataProcessing',
@@ -148,13 +149,22 @@ if (!cached) {
 
 | Setting | Value | Why |
 |---------|-------|-----|
-| `NODE_ENV` | `production` | Enables library optimizations |
-| Process Manager | PM2, systemd, Docker | Auto-restart, cluster mode |
-| Cluster Mode | CPU cores | Utilize all CPUs |
+| `NODE_ENV` | `production` | Enables library optimizations; also gates error-detail leakage (unset is treated as production) |
+| `APP_ENV_LOGGER_LEVEL` | `info` or `warn` | Keep hot-path logging off the critical path |
+| Process Manager | systemd, Docker, Kubernetes | Auto-restart, supervision |
+| Horizontal Scaling | One process per CPU core | Utilize all CPUs |
 
-**PM2 Cluster Mode:**
+Bun has no PM2-style cluster mode, and `Bun.serve` is started without `reusePort` - two processes cannot share a port. Scale out with one process per port behind a reverse proxy, or with container replicas:
+
 ```bash
-pm2 start dist/index.js -i max  # Use all CPU cores
+# Each replica binds its own port; nginx / a load balancer fans out across them
+APP_ENV_SERVER_PORT=3000 NODE_ENV=production bun run dist/index.js &
+APP_ENV_SERVER_PORT=3001 NODE_ENV=production bun run dist/index.js &
+```
+
+```bash
+# Or let the orchestrator do it
+docker compose up -d --scale app=4
 ```
 
 ## 6. Transaction Support
@@ -208,12 +218,12 @@ Connection pooling significantly improves performance by reusing database connec
 ```typescript
 import { Pool } from 'pg';
 import { datasource } from '@venizia/ignis';
-import { BasePostgresDataSource } from '@venizia/ignis/postgres';
+import { BaseRelationalDataSource } from '@venizia/ignis/postgres';
 import { NodePostgresDriver } from '@venizia/ignis/postgres/node-postgres';
 
 // IDataSourceConfigs: your settings interface (host/port/user/password/database)
 @datasource({ driver: NodePostgresDriver })
-export class PostgresDataSource extends BasePostgresDataSource<IDataSourceConfigs> {
+export class PostgresDataSource extends BaseRelationalDataSource<IDataSourceConfigs> {
   override configure(): void {
     // Keep the pool on `this.client` - NodePostgresDriver above wires the driver and Drizzle
     // connector from it lazily, on first getConnector()/beginTransaction()
@@ -385,9 +395,9 @@ const logger = HfLogger.get('OrderEngine');
 const MSG_ORDER_SENT = HfLogger.encodeMessage('Order sent');
 const MSG_ORDER_FILLED = HfLogger.encodeMessage('Order filled');
 
-// Start background flusher
+// Start background flusher (writes to stdout by default; pass { filePath } or { sink })
 const flusher = new HfLogFlusher();
-flusher.start(100); // Flush every 100ms
+flusher.start(100); // Flush interval in ms - 100 is also the default
 
 // In hot path (~100-300ns, zero allocation):
 logger.log('info', MSG_ORDER_SENT);
@@ -395,11 +405,14 @@ logger.log('info', MSG_ORDER_FILLED);
 ```
 
 **Key points:**
+- `log(level, bytes)` is the zero-allocation path. Passing a string, or any `...args`, falls back to formatting
+- Levels are the same five as `ILogger`: `debug`, `info`, `warn`, `error`, `emerg`
 - Pre-encode messages at initialization, not in hot path
-- Use background flushing to avoid I/O blocking
-- HfLogger uses a lock-free ring buffer (64K entries, 16MB)
+- HfLogger uses a lock-free ring buffer (64K entries x 256 bytes = 16MB), allocated lazily on first use
+- Scope truncates at 32 UTF-8 bytes, message at 213 - silently
+- For the standard logger, narrow output with `APP_ENV_LOGGER_LEVEL` in production and keep debug lines behind the `DEBUG` gate (pre-computed at module load, near-zero cost when off)
 
-> **Deep Dive:** See [Logger Helper](../extensions/helpers/logger/) for complete HfLogger API.
+> **Deep Dive:** See [HfLogger](../extensions/helpers/logger/hf-logger.md) for the complete API.
 
 ## Performance Checklist
 
@@ -414,7 +427,7 @@ logger.log('info', MSG_ORDER_FILLED);
 | **Memory** | Large datasets processed in batches | High |
 | **Caching** | Expensive queries cached | High |
 | **Workers** | CPU-intensive tasks offloaded | High |
-| **Logging** | HfLogger for hot paths (HFT) | High |
+| **Logging** | HfLogger for hot paths (HFT); `APP_ENV_LOGGER_LEVEL` in production | High |
 | **Monitoring** | Performance logging enabled | Low |
 
 ## See Also

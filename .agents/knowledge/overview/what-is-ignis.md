@@ -38,7 +38,7 @@ repositories. A convention-based boot system auto-discovers controllers, service
 repositories, and datasources by file suffix, the same way LB4's Booter system did.
 
 Dependency injection runs through a standalone IoC container (`inversion`, ~350 lines) rather
-than a monolith - Binding fluent API, a MetadataRegistry, `@inject`/`@injectable` decorators,
+than a monolith - Binding fluent API, a MetadataRegistry, the `@inject` decorator,
 singleton/transient scopes, constructor and property injection.
 
 ## Who it's for

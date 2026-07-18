@@ -65,27 +65,27 @@ export class CrudTestService extends BaseTestService {
     this.logSection('[CrudTestService] Starting repository test cases (no transaction)');
 
     // Basic CRUD operations
-    await this.case1_CreateSingle();
-    await this.case2_CreateAll();
-    await this.case3_FindOne();
-    await this.case4_FindWithFilter();
-    await this.case5_FindById();
-    await this.case6_UpdateById();
-    await this.case7_UpdateAll();
-    await this.case8_DeleteByIdAndDeleteAll();
+    await this.case1CreateSingle();
+    await this.case2CreateAll();
+    await this.case3FindOne();
+    await this.case4FindWithFilter();
+    await this.case5FindById();
+    await this.case6UpdateById();
+    await this.case7UpdateAll();
+    await this.case8DeleteByIdAndDeleteAll();
 
     // Edge cases and error handling
-    await this.case9_CreateWithNullValues();
-    await this.case10_EmptyBatchCreate();
-    await this.case11_UpdateNonExistentRecord();
-    await this.case12_DeleteNonExistentRecord();
-    await this.case13_BoundaryValues();
-    await this.case14_CountOperation();
-    await this.case15_ExistsWithOperation();
-    await this.case16_ConcurrentCreates();
-    await this.case17_UpdateWithPartialData();
-    await this.case18_FindWithEmptyResult();
-    await this.case19_DoublePrecisionValues();
+    await this.case9CreateWithNullValues();
+    await this.case10EmptyBatchCreate();
+    await this.case11UpdateNonExistentRecord();
+    await this.case12DeleteNonExistentRecord();
+    await this.case13BoundaryValues();
+    await this.case14CountOperation();
+    await this.case15ExistsWithOperation();
+    await this.case16ConcurrentCreates();
+    await this.case17UpdateWithPartialData();
+    await this.case18FindWithEmptyResult();
+    await this.case19DoublePrecisionValues();
 
     this.logSection('[CrudTestService] All repository test cases completed');
   }
@@ -93,9 +93,9 @@ export class CrudTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Create single record
   // ----------------------------------------------------------------
-  private async case1_CreateSingle(): Promise<void> {
+  private async case1CreateSingle(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case1_CreateSingle] Create single record');
+    this.logCase('[case1CreateSingle] Create single record');
 
     const code = `REPO_CREATE_${getUID()}`;
 
@@ -106,26 +106,26 @@ export class CrudTestService extends BaseTestService {
 
       if (result.count === 1 && result.data?.code === code) {
         this.logger.info(
-          '[case1_CreateSingle] PASSED | Created record | id: %s | code: %s',
+          '[case1CreateSingle] PASSED | Created record | id: %s | code: %s',
           result.data.id,
           result.data.code,
         );
       } else {
-        this.logger.error('[case1_CreateSingle] FAILED | Unexpected result: %j', result);
+        this.logger.error('[case1CreateSingle] FAILED | Unexpected result: %j', result);
       }
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case1_CreateSingle] FAILED | Error: %s', error);
+      this.logger.error('[case1CreateSingle] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 2: CreateAll (batch create)
   // ----------------------------------------------------------------
-  private async case2_CreateAll(): Promise<void> {
+  private async case2CreateAll(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case2_CreateAll] CreateAll (batch create)');
+    this.logCase('[case2CreateAll] CreateAll (batch create)');
 
     const codes = [`REPO_BATCH_${getUID()}`, `REPO_BATCH_${getUID()}`, `REPO_BATCH_${getUID()}`];
 
@@ -140,23 +140,23 @@ export class CrudTestService extends BaseTestService {
       });
 
       if (result.count === 3 && result.data?.length === 3) {
-        this.logger.info('[case2_CreateAll] PASSED | Created records | count: %d', result.count);
+        this.logger.info('[case2CreateAll] PASSED | Created records | count: %d', result.count);
       } else {
-        this.logger.error('[case2_CreateAll] FAILED | Expected 3 records | got: %j', result);
+        this.logger.error('[case2CreateAll] FAILED | Expected 3 records | got: %j', result);
       }
 
       await repo.deleteAll({ where: { group: 'REPO_BATCH_TEST' } });
     } catch (error) {
-      this.logger.error('[case2_CreateAll] FAILED | Error: %s', error);
+      this.logger.error('[case2CreateAll] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 3: FindOne
   // ----------------------------------------------------------------
-  private async case3_FindOne(): Promise<void> {
+  private async case3FindOne(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case3_FindOne] FindOne');
+    this.logCase('[case3FindOne] FindOne');
 
     const code = `REPO_FINDONE_${getUID()}`;
 
@@ -169,33 +169,33 @@ export class CrudTestService extends BaseTestService {
 
       if (result?.code === code && result.nValue === 555) {
         this.logger.info(
-          '[case3_FindOne] PASSED | Found record | code: %s | nValue: %d',
+          '[case3FindOne] PASSED | Found record | code: %s | nValue: %d',
           result.code,
           result.nValue,
         );
       } else {
-        this.logger.error('[case3_FindOne] FAILED | Unexpected result: %j', result);
+        this.logger.error('[case3FindOne] FAILED | Unexpected result: %j', result);
       }
 
       const notFound = await repo.findOne({ filter: { where: { code: 'NON_EXISTENT_CODE' } } });
       if (notFound === null) {
-        this.logger.info('[case3_FindOne] PASSED | Non-existent record returns null');
+        this.logger.info('[case3FindOne] PASSED | Non-existent record returns null');
       } else {
-        this.logger.error('[case3_FindOne] FAILED | Expected null for non-existent record');
+        this.logger.error('[case3FindOne] FAILED | Expected null for non-existent record');
       }
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case3_FindOne] FAILED | Error: %s', error);
+      this.logger.error('[case3FindOne] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 4: Find with filter (where, order, limit, offset)
   // ----------------------------------------------------------------
-  private async case4_FindWithFilter(): Promise<void> {
+  private async case4FindWithFilter(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case4_FindWithFilter] Find with filter (where, order, limit, offset)');
+    this.logCase('[case4FindWithFilter] Find with filter (where, order, limit, offset)');
 
     const group = `REPO_FILTER_${getUID()}`;
 
@@ -213,12 +213,12 @@ export class CrudTestService extends BaseTestService {
       const whereResult = await repo.find({ filter: { where: { group } } });
       if (whereResult.length === 5) {
         this.logger.info(
-          '[case4_FindWithFilter] PASSED | Where filter | count: %d',
+          '[case4FindWithFilter] PASSED | Where filter | count: %d',
           whereResult.length,
         );
       } else {
         this.logger.error(
-          '[case4_FindWithFilter] FAILED | Expected 5 | got: %d',
+          '[case4FindWithFilter] FAILED | Expected 5 | got: %d',
           whereResult.length,
         );
       }
@@ -227,10 +227,10 @@ export class CrudTestService extends BaseTestService {
         filter: { where: { group }, order: ['nValue ASC'] },
       });
       if (orderedAsc[0]?.nValue === 100 && orderedAsc[4]?.nValue === 500) {
-        this.logger.info('[case4_FindWithFilter] PASSED | Order ASC works correctly');
+        this.logger.info('[case4FindWithFilter] PASSED | Order ASC works correctly');
       } else {
         this.logger.error(
-          '[case4_FindWithFilter] FAILED | Order ASC incorrect: %j',
+          '[case4FindWithFilter] FAILED | Order ASC incorrect: %j',
           orderedAsc.map(r => r.nValue),
         );
       }
@@ -239,10 +239,10 @@ export class CrudTestService extends BaseTestService {
         filter: { where: { group }, order: ['nValue DESC'] },
       });
       if (orderedDesc[0]?.nValue === 500 && orderedDesc[4]?.nValue === 100) {
-        this.logger.info('[case4_FindWithFilter] PASSED | Order DESC works correctly');
+        this.logger.info('[case4FindWithFilter] PASSED | Order DESC works correctly');
       } else {
         this.logger.error(
-          '[case4_FindWithFilter] FAILED | Order DESC incorrect: %j',
+          '[case4FindWithFilter] FAILED | Order DESC incorrect: %j',
           orderedDesc.map(r => r.nValue),
         );
       }
@@ -251,10 +251,10 @@ export class CrudTestService extends BaseTestService {
         filter: { where: { group }, limit: 2 },
       });
       if (limited.length === 2) {
-        this.logger.info('[case4_FindWithFilter] PASSED | Limit | count: %d', limited.length);
+        this.logger.info('[case4FindWithFilter] PASSED | Limit | count: %d', limited.length);
       } else {
         this.logger.error(
-          '[case4_FindWithFilter] FAILED | Limit expected 2 | got: %d',
+          '[case4FindWithFilter] FAILED | Limit expected 2 | got: %d',
           limited.length,
         );
       }
@@ -263,26 +263,26 @@ export class CrudTestService extends BaseTestService {
         filter: { where: { group }, order: ['nValue ASC'], skip: 2, limit: 2 },
       });
       if (skipped.length === 2 && skipped[0]?.nValue === 300 && skipped[1]?.nValue === 400) {
-        this.logger.info('[case4_FindWithFilter] PASSED | Skip/offset works correctly');
+        this.logger.info('[case4FindWithFilter] PASSED | Skip/offset works correctly');
       } else {
         this.logger.error(
-          '[case4_FindWithFilter] FAILED | Skip incorrect: %j',
+          '[case4FindWithFilter] FAILED | Skip incorrect: %j',
           skipped.map(r => r.nValue),
         );
       }
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case4_FindWithFilter] FAILED | Error: %s', error);
+      this.logger.error('[case4FindWithFilter] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 5: FindById
   // ----------------------------------------------------------------
-  private async case5_FindById(): Promise<void> {
+  private async case5FindById(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case5_FindById] FindById');
+    this.logCase('[case5FindById] FindById');
 
     const code = `REPO_FINDBYID_${getUID()}`;
 
@@ -295,30 +295,30 @@ export class CrudTestService extends BaseTestService {
       const result = await repo.findById({ id });
 
       if (result?.id === id && result.code === code) {
-        this.logger.info('[case5_FindById] PASSED | Found by id: %s', id);
+        this.logger.info('[case5FindById] PASSED | Found by id: %s', id);
       } else {
-        this.logger.error('[case5_FindById] FAILED | Unexpected result: %j', result);
+        this.logger.error('[case5FindById] FAILED | Unexpected result: %j', result);
       }
 
       const notFound = await repo.findById({ id: '00000000-0000-0000-0000-000000000000' });
       if (notFound === null) {
-        this.logger.info('[case5_FindById] PASSED | Non-existent id returns null');
+        this.logger.info('[case5FindById] PASSED | Non-existent id returns null');
       } else {
-        this.logger.error('[case5_FindById] FAILED | Expected null for non-existent id');
+        this.logger.error('[case5FindById] FAILED | Expected null for non-existent id');
       }
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case5_FindById] FAILED | Error: %s', error);
+      this.logger.error('[case5FindById] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 6: UpdateById
   // ----------------------------------------------------------------
-  private async case6_UpdateById(): Promise<void> {
+  private async case6UpdateById(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case6_UpdateById] UpdateById');
+    this.logCase('[case6UpdateById] UpdateById');
 
     const code = `REPO_UPDATE_${getUID()}`;
 
@@ -335,32 +335,32 @@ export class CrudTestService extends BaseTestService {
 
       if (updateResult.count === 1 && updateResult.data?.nValue === 999) {
         this.logger.info(
-          '[case6_UpdateById] PASSED | Updated record | nValue: %d',
+          '[case6UpdateById] PASSED | Updated record | nValue: %d',
           updateResult.data.nValue,
         );
       } else {
-        this.logger.error('[case6_UpdateById] FAILED | Update result: %j', updateResult);
+        this.logger.error('[case6UpdateById] FAILED | Update result: %j', updateResult);
       }
 
       const verified = await repo.findById({ id });
       if (verified?.nValue === 999 && verified?.description === 'Updated') {
-        this.logger.info('[case6_UpdateById] PASSED | Update verified in database');
+        this.logger.info('[case6UpdateById] PASSED | Update verified in database');
       } else {
-        this.logger.error('[case6_UpdateById] FAILED | Update not persisted: %j', verified);
+        this.logger.error('[case6UpdateById] FAILED | Update not persisted: %j', verified);
       }
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case6_UpdateById] FAILED | Error: %s', error);
+      this.logger.error('[case6UpdateById] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 7: UpdateAll / UpdateBy
   // ----------------------------------------------------------------
-  private async case7_UpdateAll(): Promise<void> {
+  private async case7UpdateAll(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case7_UpdateAll] UpdateAll / UpdateBy');
+    this.logCase('[case7UpdateAll] UpdateAll / UpdateBy');
 
     const group = `REPO_UPDATEALL_${getUID()}`;
 
@@ -380,20 +380,20 @@ export class CrudTestService extends BaseTestService {
 
       if (updateResult.count === 3) {
         this.logger.info(
-          '[case7_UpdateAll] PASSED | UpdateAll affected | count: %d',
+          '[case7UpdateAll] PASSED | UpdateAll affected | count: %d',
           updateResult.count,
         );
       } else {
-        this.logger.error('[case7_UpdateAll] FAILED | Expected 3 | got: %d', updateResult.count);
+        this.logger.error('[case7UpdateAll] FAILED | Expected 3 | got: %d', updateResult.count);
       }
 
       const verified = await repo.find({ filter: { where: { group } } });
       const allUpdated = verified.every(r => r.nValue === 999);
       if (allUpdated) {
-        this.logger.info('[case7_UpdateAll] PASSED | All records updated to nValue=999');
+        this.logger.info('[case7UpdateAll] PASSED | All records updated to nValue=999');
       } else {
         this.logger.error(
-          '[case7_UpdateAll] FAILED | Not all records updated: %j',
+          '[case7UpdateAll] FAILED | Not all records updated: %j',
           verified.map(r => r.nValue),
         );
       }
@@ -403,21 +403,21 @@ export class CrudTestService extends BaseTestService {
         data: { nValue: 888 },
       });
       if (updateByResult.count === 3) {
-        this.logger.info('[case7_UpdateAll] PASSED | UpdateBy works as alias for UpdateAll');
+        this.logger.info('[case7UpdateAll] PASSED | UpdateBy works as alias for UpdateAll');
       }
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case7_UpdateAll] FAILED | Error: %s', error);
+      this.logger.error('[case7UpdateAll] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 8: DeleteById and DeleteAll
   // ----------------------------------------------------------------
-  private async case8_DeleteByIdAndDeleteAll(): Promise<void> {
+  private async case8DeleteByIdAndDeleteAll(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case8_DeleteByIdAndDeleteAll] DeleteById and DeleteAll');
+    this.logCase('[case8DeleteByIdAndDeleteAll] DeleteById and DeleteAll');
 
     const group = `REPO_DELETE_${getUID()}`;
 
@@ -435,12 +435,12 @@ export class CrudTestService extends BaseTestService {
 
       if (deleteByIdResult.count === 1 && deleteByIdResult.data?.id === firstId) {
         this.logger.info(
-          '[case8_DeleteByIdAndDeleteAll] PASSED | DeleteById removed record | id: %s',
+          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteById removed record | id: %s',
           firstId,
         );
       } else {
         this.logger.error(
-          '[case8_DeleteByIdAndDeleteAll] FAILED | DeleteById result: %j',
+          '[case8DeleteByIdAndDeleteAll] FAILED | DeleteById result: %j',
           deleteByIdResult,
         );
       }
@@ -448,47 +448,47 @@ export class CrudTestService extends BaseTestService {
       const verifyDeleted = await repo.findById({ id: firstId });
       if (verifyDeleted === null) {
         this.logger.info(
-          '[case8_DeleteByIdAndDeleteAll] PASSED | DeleteById verified (record not found)',
+          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteById verified (record not found)',
         );
       } else {
         this.logger.error(
-          '[case8_DeleteByIdAndDeleteAll] FAILED | Record still exists after DeleteById',
+          '[case8DeleteByIdAndDeleteAll] FAILED | Record still exists after DeleteById',
         );
       }
 
       const deleteAllResult = await repo.deleteAll({ where: { group } });
       if (deleteAllResult.count === 2) {
         this.logger.info(
-          '[case8_DeleteByIdAndDeleteAll] PASSED | DeleteAll removed remaining records | count: %d',
+          '[case8DeleteByIdAndDeleteAll] PASSED | DeleteAll removed remaining records | count: %d',
           deleteAllResult.count,
         );
       } else {
         this.logger.error(
-          '[case8_DeleteByIdAndDeleteAll] FAILED | DeleteAll expected 2 | got: %d',
+          '[case8DeleteByIdAndDeleteAll] FAILED | DeleteAll expected 2 | got: %d',
           deleteAllResult.count,
         );
       }
 
       const remaining = await repo.find({ filter: { where: { group } } });
       if (remaining.length === 0) {
-        this.logger.info('[case8_DeleteByIdAndDeleteAll] PASSED | All records deleted');
+        this.logger.info('[case8DeleteByIdAndDeleteAll] PASSED | All records deleted');
       } else {
         this.logger.error(
-          '[case8_DeleteByIdAndDeleteAll] FAILED | Records still remain | count: %d',
+          '[case8DeleteByIdAndDeleteAll] FAILED | Records still remain | count: %d',
           remaining.length,
         );
       }
     } catch (error) {
-      this.logger.error('[case8_DeleteByIdAndDeleteAll] FAILED | Error: %s', error);
+      this.logger.error('[case8DeleteByIdAndDeleteAll] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 9: Create with null/undefined values
   // ----------------------------------------------------------------
-  private async case9_CreateWithNullValues(): Promise<void> {
+  private async case9CreateWithNullValues(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case9_CreateWithNullValues] Create with null/undefined values');
+    this.logCase('[case9CreateWithNullValues] Create with null/undefined values');
 
     const code = `REPO_NULL_${getUID()}`;
 
@@ -506,20 +506,20 @@ export class CrudTestService extends BaseTestService {
 
       if (result.count === 1) {
         this.logger.info(
-          '[case9_CreateWithNullValues] PASSED | Created record with null values | id: %s',
+          '[case9CreateWithNullValues] PASSED | Created record with null values | id: %s',
           result.data?.id,
         );
       } else {
-        this.logger.error('[case9_CreateWithNullValues] FAILED | Create result: %j', result);
+        this.logger.error('[case9CreateWithNullValues] FAILED | Create result: %j', result);
       }
 
       // Verify null values are stored correctly
       const found = await repo.findOne({ filter: { where: { code } } });
       if (found?.nValue === null && found?.description === null) {
-        this.logger.info('[case9_CreateWithNullValues] PASSED | Null values persisted correctly');
+        this.logger.info('[case9CreateWithNullValues] PASSED | Null values persisted correctly');
       } else {
         this.logger.error(
-          '[case9_CreateWithNullValues] FAILED | Null values not preserved | nValue: %s | description: %s',
+          '[case9CreateWithNullValues] FAILED | Null values not preserved | nValue: %s | description: %s',
           found?.nValue,
           found?.description,
         );
@@ -527,29 +527,29 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case9_CreateWithNullValues] FAILED | Error: %s', error);
+      this.logger.error('[case9CreateWithNullValues] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 10: Empty batch create
   // ----------------------------------------------------------------
-  private async case10_EmptyBatchCreate(): Promise<void> {
+  private async case10EmptyBatchCreate(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case10_EmptyBatchCreate] CreateAll with empty array');
+    this.logCase('[case10EmptyBatchCreate] CreateAll with empty array');
 
     try {
       const result = await repo.createAll({ data: [] });
 
       if (result.count === 0 && (result.data?.length === 0 || !result.data)) {
-        this.logger.info('[case10_EmptyBatchCreate] PASSED | Empty batch returns count: 0');
+        this.logger.info('[case10EmptyBatchCreate] PASSED | Empty batch returns count: 0');
       } else {
-        this.logger.error('[case10_EmptyBatchCreate] FAILED | Unexpected result: %j', result);
+        this.logger.error('[case10EmptyBatchCreate] FAILED | Unexpected result: %j', result);
       }
     } catch (error) {
       // Empty batch might throw an error - that's also valid behavior
       this.logger.info(
-        '[case10_EmptyBatchCreate] PASSED | Empty batch handled (threw error): %s',
+        '[case10EmptyBatchCreate] PASSED | Empty batch handled (threw error): %s',
         (error as Error).message.substring(0, 50),
       );
     }
@@ -558,9 +558,9 @@ export class CrudTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Update non-existent record
   // ----------------------------------------------------------------
-  private async case11_UpdateNonExistentRecord(): Promise<void> {
+  private async case11UpdateNonExistentRecord(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case11_UpdateNonExistentRecord] UpdateById for non-existent ID');
+    this.logCase('[case11UpdateNonExistentRecord] UpdateById for non-existent ID');
 
     const fakeId = '00000000-0000-0000-0000-000000000000';
 
@@ -572,18 +572,18 @@ export class CrudTestService extends BaseTestService {
 
       if (result.count === 0) {
         this.logger.info(
-          '[case11_UpdateNonExistentRecord] PASSED | Non-existent ID returns count: 0',
+          '[case11UpdateNonExistentRecord] PASSED | Non-existent ID returns count: 0',
         );
       } else {
         this.logger.error(
-          '[case11_UpdateNonExistentRecord] FAILED | Expected count 0 | got: %d',
+          '[case11UpdateNonExistentRecord] FAILED | Expected count 0 | got: %d',
           result.count,
         );
       }
     } catch (error) {
       // Some implementations might throw an error - that's also valid
       this.logger.info(
-        '[case11_UpdateNonExistentRecord] PASSED | Non-existent ID handled (threw error): %s',
+        '[case11UpdateNonExistentRecord] PASSED | Non-existent ID handled (threw error): %s',
         (error as Error).message.substring(0, 50),
       );
     }
@@ -592,9 +592,9 @@ export class CrudTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Delete non-existent record
   // ----------------------------------------------------------------
-  private async case12_DeleteNonExistentRecord(): Promise<void> {
+  private async case12DeleteNonExistentRecord(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case12_DeleteNonExistentRecord] DeleteById for non-existent ID');
+    this.logCase('[case12DeleteNonExistentRecord] DeleteById for non-existent ID');
 
     const fakeId = '00000000-0000-0000-0000-000000000000';
 
@@ -603,18 +603,18 @@ export class CrudTestService extends BaseTestService {
 
       if (result.count === 0) {
         this.logger.info(
-          '[case12_DeleteNonExistentRecord] PASSED | Non-existent ID returns count: 0',
+          '[case12DeleteNonExistentRecord] PASSED | Non-existent ID returns count: 0',
         );
       } else {
         this.logger.error(
-          '[case12_DeleteNonExistentRecord] FAILED | Expected count 0 | got: %d',
+          '[case12DeleteNonExistentRecord] FAILED | Expected count 0 | got: %d',
           result.count,
         );
       }
     } catch (error) {
       // Some implementations might throw an error - that's also valid
       this.logger.info(
-        '[case12_DeleteNonExistentRecord] PASSED | Non-existent ID handled (threw error): %s',
+        '[case12DeleteNonExistentRecord] PASSED | Non-existent ID handled (threw error): %s',
         (error as Error).message.substring(0, 50),
       );
     }
@@ -623,9 +623,9 @@ export class CrudTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Boundary values (extreme numbers, long strings)
   // ----------------------------------------------------------------
-  private async case13_BoundaryValues(): Promise<void> {
+  private async case13BoundaryValues(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case13_BoundaryValues] Test boundary values');
+    this.logCase('[case13BoundaryValues] Test boundary values');
 
     const group = `REPO_BOUNDARY_${getUID()}`;
 
@@ -648,10 +648,10 @@ export class CrudTestService extends BaseTestService {
       // Verify max integer
       const maxRecord = await repo.findOne({ filter: { where: { code: `${group}_MAX` } } });
       if (maxRecord?.nValue === maxInt) {
-        this.logger.info('[case13_BoundaryValues] PASSED | Max integer: %d', maxRecord.nValue);
+        this.logger.info('[case13BoundaryValues] PASSED | Max integer: %d', maxRecord.nValue);
       } else {
         this.logger.error(
-          '[case13_BoundaryValues] FAILED | Max integer | expected: %d | got: %d',
+          '[case13BoundaryValues] FAILED | Max integer | expected: %d | got: %d',
           maxInt,
           maxRecord?.nValue,
         );
@@ -660,10 +660,10 @@ export class CrudTestService extends BaseTestService {
       // Verify min integer
       const minRecord = await repo.findOne({ filter: { where: { code: `${group}_MIN` } } });
       if (minRecord?.nValue === minInt) {
-        this.logger.info('[case13_BoundaryValues] PASSED | Min integer: %d', minRecord.nValue);
+        this.logger.info('[case13BoundaryValues] PASSED | Min integer: %d', minRecord.nValue);
       } else {
         this.logger.error(
-          '[case13_BoundaryValues] FAILED | Min integer | expected: %d | got: %d',
+          '[case13BoundaryValues] FAILED | Min integer | expected: %d | got: %d',
           minInt,
           minRecord?.nValue,
         );
@@ -673,12 +673,12 @@ export class CrudTestService extends BaseTestService {
       const longRecord = await repo.findOne({ filter: { where: { code: `${group}_LONG` } } });
       if (longRecord?.description?.length === 5000) {
         this.logger.info(
-          '[case13_BoundaryValues] PASSED | Long string length: %d',
+          '[case13BoundaryValues] PASSED | Long string length: %d',
           longRecord.description.length,
         );
       } else {
         this.logger.error(
-          '[case13_BoundaryValues] FAILED | Long string | expected 5000 | got: %d',
+          '[case13BoundaryValues] FAILED | Long string | expected 5000 | got: %d',
           longRecord?.description?.length,
         );
       }
@@ -686,10 +686,10 @@ export class CrudTestService extends BaseTestService {
       // Verify zero
       const zeroRecord = await repo.findOne({ filter: { where: { code: `${group}_ZERO` } } });
       if (zeroRecord?.nValue === 0) {
-        this.logger.info('[case13_BoundaryValues] PASSED | Zero value handled correctly');
+        this.logger.info('[case13BoundaryValues] PASSED | Zero value handled correctly');
       } else {
         this.logger.error(
-          '[case13_BoundaryValues] FAILED | Zero value | got: %d',
+          '[case13BoundaryValues] FAILED | Zero value | got: %d',
           zeroRecord?.nValue,
         );
       }
@@ -697,26 +697,26 @@ export class CrudTestService extends BaseTestService {
       // Verify negative integer
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
       if (negRecord?.nValue === -999) {
-        this.logger.info('[case13_BoundaryValues] PASSED | Negative integer: %d', negRecord.nValue);
+        this.logger.info('[case13BoundaryValues] PASSED | Negative integer: %d', negRecord.nValue);
       } else {
         this.logger.error(
-          '[case13_BoundaryValues] FAILED | Negative integer | got: %d',
+          '[case13BoundaryValues] FAILED | Negative integer | got: %d',
           negRecord?.nValue,
         );
       }
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case13_BoundaryValues] FAILED | Error: %s', error);
+      this.logger.error('[case13BoundaryValues] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 14: Count operation
   // ----------------------------------------------------------------
-  private async case14_CountOperation(): Promise<void> {
+  private async case14CountOperation(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case14_CountOperation] Count operation with various filters');
+    this.logCase('[case14CountOperation] Count operation with various filters');
 
     const group = `REPO_COUNT_${getUID()}`;
 
@@ -734,9 +734,9 @@ export class CrudTestService extends BaseTestService {
       // Count all in group
       const countAll = await repo.count({ where: { group } });
       if (countAll.count === 5) {
-        this.logger.info('[case14_CountOperation] PASSED | Count all: %d', countAll.count);
+        this.logger.info('[case14CountOperation] PASSED | Count all: %d', countAll.count);
       } else {
-        this.logger.error('[case14_CountOperation] FAILED | Expected 5 | got: %d', countAll.count);
+        this.logger.error('[case14CountOperation] FAILED | Expected 5 | got: %d', countAll.count);
       }
 
       // Count with additional filter
@@ -745,12 +745,12 @@ export class CrudTestService extends BaseTestService {
       });
       if (countFiltered.count === 3) {
         this.logger.info(
-          '[case14_CountOperation] PASSED | Count filtered (nValue > 200): %d',
+          '[case14CountOperation] PASSED | Count filtered (nValue > 200): %d',
           countFiltered.count,
         );
       } else {
         this.logger.error(
-          '[case14_CountOperation] FAILED | Expected 3 | got: %d',
+          '[case14CountOperation] FAILED | Expected 3 | got: %d',
           countFiltered.count,
         );
       }
@@ -760,23 +760,23 @@ export class CrudTestService extends BaseTestService {
         where: { group, nValue: { gt: 1000 } },
       });
       if (countNone.count === 0) {
-        this.logger.info('[case14_CountOperation] PASSED | Count with no matches: 0');
+        this.logger.info('[case14CountOperation] PASSED | Count with no matches: 0');
       } else {
-        this.logger.error('[case14_CountOperation] FAILED | Expected 0 | got: %d', countNone.count);
+        this.logger.error('[case14CountOperation] FAILED | Expected 0 | got: %d', countNone.count);
       }
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case14_CountOperation] FAILED | Error: %s', error);
+      this.logger.error('[case14CountOperation] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 15: ExistsWith operation
   // ----------------------------------------------------------------
-  private async case15_ExistsWithOperation(): Promise<void> {
+  private async case15ExistsWithOperation(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case15_ExistsWithOperation] ExistsWith operation');
+    this.logCase('[case15ExistsWithOperation] ExistsWith operation');
 
     const code = `REPO_EXISTS_${getUID()}`;
 
@@ -784,9 +784,9 @@ export class CrudTestService extends BaseTestService {
       // Check before creating (should not exist)
       const existsBefore = await repo.existsWith({ where: { code } });
       if (!existsBefore) {
-        this.logger.info('[case15_ExistsWithOperation] PASSED | Does not exist before create');
+        this.logger.info('[case15ExistsWithOperation] PASSED | Does not exist before create');
       } else {
-        this.logger.error('[case15_ExistsWithOperation] FAILED | Should not exist before create');
+        this.logger.error('[case15ExistsWithOperation] FAILED | Should not exist before create');
       }
 
       // Create record
@@ -797,9 +797,9 @@ export class CrudTestService extends BaseTestService {
       // Check after creating (should exist)
       const existsAfter = await repo.existsWith({ where: { code } });
       if (existsAfter) {
-        this.logger.info('[case15_ExistsWithOperation] PASSED | Exists after create');
+        this.logger.info('[case15ExistsWithOperation] PASSED | Exists after create');
       } else {
-        this.logger.error('[case15_ExistsWithOperation] FAILED | Should exist after create');
+        this.logger.error('[case15ExistsWithOperation] FAILED | Should exist after create');
       }
 
       // Delete and check again
@@ -807,21 +807,21 @@ export class CrudTestService extends BaseTestService {
 
       const existsAfterDelete = await repo.existsWith({ where: { code } });
       if (!existsAfterDelete) {
-        this.logger.info('[case15_ExistsWithOperation] PASSED | Does not exist after delete');
+        this.logger.info('[case15ExistsWithOperation] PASSED | Does not exist after delete');
       } else {
-        this.logger.error('[case15_ExistsWithOperation] FAILED | Should not exist after delete');
+        this.logger.error('[case15ExistsWithOperation] FAILED | Should not exist after delete');
       }
     } catch (error) {
-      this.logger.error('[case15_ExistsWithOperation] FAILED | Error: %s', error);
+      this.logger.error('[case15ExistsWithOperation] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 16: Concurrent creates (race condition test)
   // ----------------------------------------------------------------
-  private async case16_ConcurrentCreates(): Promise<void> {
+  private async case16ConcurrentCreates(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case16_ConcurrentCreates] Concurrent create operations');
+    this.logCase('[case16ConcurrentCreates] Concurrent create operations');
 
     const group = `REPO_CONCURRENT_${getUID()}`;
     const concurrentCount = 10;
@@ -844,12 +844,12 @@ export class CrudTestService extends BaseTestService {
 
       if (successCount === concurrentCount) {
         this.logger.info(
-          '[case16_ConcurrentCreates] PASSED | All %d concurrent creates succeeded',
+          '[case16ConcurrentCreates] PASSED | All %d concurrent creates succeeded',
           concurrentCount,
         );
       } else {
         this.logger.error(
-          '[case16_ConcurrentCreates] FAILED | Expected %d | succeeded: %d',
+          '[case16ConcurrentCreates] FAILED | Expected %d | succeeded: %d',
           concurrentCount,
           successCount,
         );
@@ -859,12 +859,12 @@ export class CrudTestService extends BaseTestService {
       const allRecords = await repo.find({ filter: { where: { group } } });
       if (allRecords.length === concurrentCount) {
         this.logger.info(
-          '[case16_ConcurrentCreates] PASSED | All %d records persisted',
+          '[case16ConcurrentCreates] PASSED | All %d records persisted',
           concurrentCount,
         );
       } else {
         this.logger.error(
-          '[case16_ConcurrentCreates] FAILED | Expected %d records | found: %d',
+          '[case16ConcurrentCreates] FAILED | Expected %d records | found: %d',
           concurrentCount,
           allRecords.length,
         );
@@ -894,18 +894,18 @@ export class CrudTestService extends BaseTestService {
       // Only 1 should succeed (first to acquire the code), others should fail
       if (raceSuccessCount === 1 && raceErrorCount === 4) {
         this.logger.info(
-          '[case16_ConcurrentCreates] PASSED | Race condition: 1 succeeded, 4 failed (unique constraint)',
+          '[case16ConcurrentCreates] PASSED | Race condition: 1 succeeded, 4 failed (unique constraint)',
         );
       } else if (raceSuccessCount >= 1) {
         // Some databases may handle this differently
         this.logger.info(
-          '[case16_ConcurrentCreates] INFO | Race condition: %d succeeded, %d failed',
+          '[case16ConcurrentCreates] INFO | Race condition: %d succeeded, %d failed',
           raceSuccessCount,
           raceErrorCount,
         );
       } else {
         this.logger.error(
-          '[case16_ConcurrentCreates] FAILED | Race condition: expected 1 success | got: %d',
+          '[case16ConcurrentCreates] FAILED | Race condition: expected 1 success | got: %d',
           raceSuccessCount,
         );
       }
@@ -915,26 +915,26 @@ export class CrudTestService extends BaseTestService {
         filter: { where: { code: duplicateCode } },
       });
       if (duplicateRecords.length === 1) {
-        this.logger.info('[case16_ConcurrentCreates] PASSED | Only 1 record with duplicate code');
+        this.logger.info('[case16ConcurrentCreates] PASSED | Only 1 record with duplicate code');
       } else {
         this.logger.error(
-          '[case16_ConcurrentCreates] FAILED | Expected 1 duplicate record | found: %d',
+          '[case16ConcurrentCreates] FAILED | Expected 1 duplicate record | found: %d',
           duplicateRecords.length,
         );
       }
 
       await repo.deleteAll({ where: { code: duplicateCode } });
     } catch (error) {
-      this.logger.error('[case16_ConcurrentCreates] FAILED | Error: %s', error);
+      this.logger.error('[case16ConcurrentCreates] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 17: Update with partial data (only some fields)
   // ----------------------------------------------------------------
-  private async case17_UpdateWithPartialData(): Promise<void> {
+  private async case17UpdateWithPartialData(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case17_UpdateWithPartialData] Update only specific fields');
+    this.logCase('[case17UpdateWithPartialData] Update only specific fields');
 
     const code = `REPO_PARTIAL_${getUID()}`;
 
@@ -962,11 +962,11 @@ export class CrudTestService extends BaseTestService {
       const updated = await repo.findById({ id });
       if (updated?.nValue === 999 && updated?.description === 'Original description') {
         this.logger.info(
-          '[case17_UpdateWithPartialData] PASSED | Only nValue updated | description preserved',
+          '[case17UpdateWithPartialData] PASSED | Only nValue updated | description preserved',
         );
       } else {
         this.logger.error(
-          '[case17_UpdateWithPartialData] FAILED | nValue: %d | description: %s',
+          '[case17UpdateWithPartialData] FAILED | nValue: %d | description: %s',
           updated?.nValue,
           updated?.description,
         );
@@ -974,16 +974,16 @@ export class CrudTestService extends BaseTestService {
 
       await repo.deleteAll({ where: { code } });
     } catch (error) {
-      this.logger.error('[case17_UpdateWithPartialData] FAILED | Error: %s', error);
+      this.logger.error('[case17UpdateWithPartialData] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 18: Find with empty result set
   // ----------------------------------------------------------------
-  private async case18_FindWithEmptyResult(): Promise<void> {
+  private async case18FindWithEmptyResult(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case18_FindWithEmptyResult] Find with filter that matches nothing');
+    this.logCase('[case18FindWithEmptyResult] Find with filter that matches nothing');
 
     const nonExistentGroup = `NON_EXISTENT_${getUID()}`;
 
@@ -994,11 +994,11 @@ export class CrudTestService extends BaseTestService {
 
       if (Array.isArray(results) && results.length === 0) {
         this.logger.info(
-          '[case18_FindWithEmptyResult] PASSED | Empty array returned for no matches',
+          '[case18FindWithEmptyResult] PASSED | Empty array returned for no matches',
         );
       } else {
         this.logger.error(
-          '[case18_FindWithEmptyResult] FAILED | Expected empty array | got: %j',
+          '[case18FindWithEmptyResult] FAILED | Expected empty array | got: %j',
           results,
         );
       }
@@ -1018,25 +1018,25 @@ export class CrudTestService extends BaseTestService {
 
       if (Array.isArray(complexResults) && complexResults.length === 0) {
         this.logger.info(
-          '[case18_FindWithEmptyResult] PASSED | Empty array for complex filter with no matches',
+          '[case18FindWithEmptyResult] PASSED | Empty array for complex filter with no matches',
         );
       } else {
         this.logger.error(
-          '[case18_FindWithEmptyResult] FAILED | Complex filter | got: %j',
+          '[case18FindWithEmptyResult] FAILED | Complex filter | got: %j',
           complexResults,
         );
       }
     } catch (error) {
-      this.logger.error('[case18_FindWithEmptyResult] FAILED | Error: %s', error);
+      this.logger.error('[case18FindWithEmptyResult] FAILED | Error: %s', error);
     }
   }
 
   // ----------------------------------------------------------------
   // CASE 19: DOUBLE PRECISION values (floating point precision)
   // ----------------------------------------------------------------
-  private async case19_DoublePrecisionValues(): Promise<void> {
+  private async case19DoublePrecisionValues(): Promise<void> {
     const repo = this.configurationRepository;
-    this.logCase('[case19_DoublePrecisionValues] Test DOUBLE PRECISION floating point values');
+    this.logCase('[case19DoublePrecisionValues] Test DOUBLE PRECISION floating point values');
 
     const group = `REPO_DOUBLE_${getUID()}`;
 
@@ -1076,12 +1076,12 @@ export class CrudTestService extends BaseTestService {
       const piRecord = await repo.findOne({ filter: { where: { code: `${group}_PI` } } });
       if (piRecord?.nValue != null && isCloseEnough(piRecord.nValue, pi)) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | PI value: %d (precision maintained)',
+          '[case19DoublePrecisionValues] PASSED | PI value: %d (precision maintained)',
           piRecord.nValue,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | PI | expected: %d | got: %d',
+          '[case19DoublePrecisionValues] FAILED | PI | expected: %d | got: %d',
           pi,
           piRecord?.nValue,
         );
@@ -1091,12 +1091,12 @@ export class CrudTestService extends BaseTestService {
       const smallRecord = await repo.findOne({ filter: { where: { code: `${group}_SMALL` } } });
       if (smallRecord?.nValue != null && isCloseEnough(smallRecord.nValue, smallDecimal)) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | Small decimal: %d',
+          '[case19DoublePrecisionValues] PASSED | Small decimal: %d',
           smallRecord.nValue,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | Small decimal | expected: %d | got: %d',
+          '[case19DoublePrecisionValues] FAILED | Small decimal | expected: %d | got: %d',
           smallDecimal,
           smallRecord?.nValue,
         );
@@ -1106,12 +1106,12 @@ export class CrudTestService extends BaseTestService {
       const largeRecord = await repo.findOne({ filter: { where: { code: `${group}_LARGE` } } });
       if (largeRecord?.nValue != null && isCloseEnough(largeRecord.nValue, largeDecimal)) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | Large decimal: %d',
+          '[case19DoublePrecisionValues] PASSED | Large decimal: %d',
           largeRecord.nValue,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | Large decimal | expected: %d | got: %d',
+          '[case19DoublePrecisionValues] FAILED | Large decimal | expected: %d | got: %d',
           largeDecimal,
           largeRecord?.nValue,
         );
@@ -1121,12 +1121,12 @@ export class CrudTestService extends BaseTestService {
       const negRecord = await repo.findOne({ filter: { where: { code: `${group}_NEGATIVE` } } });
       if (negRecord?.nValue != null && isCloseEnough(negRecord.nValue, negativeDecimal)) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | Negative decimal: %d',
+          '[case19DoublePrecisionValues] PASSED | Negative decimal: %d',
           negRecord.nValue,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | Negative decimal | expected: %d | got: %d',
+          '[case19DoublePrecisionValues] FAILED | Negative decimal | expected: %d | got: %d',
           negativeDecimal,
           negRecord?.nValue,
         );
@@ -1136,12 +1136,12 @@ export class CrudTestService extends BaseTestService {
       const sciRecord = await repo.findOne({ filter: { where: { code: `${group}_SCIENTIFIC` } } });
       if (sciRecord?.nValue != null && isCloseEnough(sciRecord.nValue, scientificNotation)) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | Scientific notation: %d',
+          '[case19DoublePrecisionValues] PASSED | Scientific notation: %d',
           sciRecord.nValue,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | Scientific notation | expected: %d | got: %d',
+          '[case19DoublePrecisionValues] FAILED | Scientific notation | expected: %d | got: %d',
           scientificNotation,
           sciRecord?.nValue,
         );
@@ -1154,12 +1154,12 @@ export class CrudTestService extends BaseTestService {
       // Should find: PI (3.14...), LARGE (999999999.99...), expected 2 records
       if (gtFilterResult.length === 2) {
         this.logger.info(
-          '[case19_DoublePrecisionValues] PASSED | Filter nValue > 1.0 found %d records',
+          '[case19DoublePrecisionValues] PASSED | Filter nValue > 1.0 found %d records',
           gtFilterResult.length,
         );
       } else {
         this.logger.error(
-          '[case19_DoublePrecisionValues] FAILED | Filter nValue > 1.0 | expected: 2 | got: %d',
+          '[case19DoublePrecisionValues] FAILED | Filter nValue > 1.0 | expected: 2 | got: %d',
           gtFilterResult.length,
         );
       }
@@ -1179,19 +1179,19 @@ export class CrudTestService extends BaseTestService {
         Math.abs(updatedRecord.nValue - newValue) < 1e-10
       ) {
         this.logger.info(
-          "[case19_DoublePrecisionValues] PASSED | Updated to Euler's number: %d",
+          "[case19DoublePrecisionValues] PASSED | Updated to Euler's number: %d",
           updatedRecord.nValue,
         );
       } else {
         this.logger.error(
-          "[case19_DoublePrecisionValues] FAILED | Update to Euler's number | got: %d",
+          "[case19DoublePrecisionValues] FAILED | Update to Euler's number | got: %d",
           updatedRecord?.nValue,
         );
       }
 
       await repo.deleteAll({ where: { group } });
     } catch (error) {
-      this.logger.error('[case19_DoublePrecisionValues] FAILED | Error: %s', error);
+      this.logger.error('[case19DoublePrecisionValues] FAILED | Error: %s', error);
     }
   }
 }

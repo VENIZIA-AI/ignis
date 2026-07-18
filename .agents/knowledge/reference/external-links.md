@@ -22,7 +22,7 @@ Verified against each `packages/*/package.json` `name` field.
 
 | What | URL |
 |---|---|
-| IGNIS docs (VitePress, built by `.github/workflows/deploy-docs.yml` via `make docs`, deployed to GitHub Pages for `VENIZIA-AI/ignis`) | https://venizia-ai.github.io/ignis |
+| IGNIS docs (VitePress, built by `.github/workflows/deploy-docs.yml` via `make docs`, deployed to GitHub Pages for `VENIZIA-AI/ignis`) | https://ignis.venizia.ai |
 
 ## Upstream framework docs
 

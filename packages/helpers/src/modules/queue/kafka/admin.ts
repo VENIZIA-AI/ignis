@@ -4,24 +4,8 @@ import { KafkaDefaults, KafkaHealthStatuses } from './common/constants';
 import type { IKafkaAdminOptions } from './common/types';
 
 /**
- * KafkaAdminHelper — Wrapper around `@platformatic/kafka` Admin.
- *
- * Provides scoped logging, lifecycle management, and health tracking.
+ * Wrapper around `@platformatic/kafka` Admin with lifecycle management and health tracking.
  * Use `getAdmin()` to access the full Admin API directly.
- *
- * @example
- * const helper = KafkaAdminHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-admin',
- *   onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
- * });
- *
- * const admin = helper.getAdmin();
- * await admin.createTopics({ topics: ['my-topic'], partitions: 3, replicas: 1 });
- *
- * helper.isHealthy(); // true when connected
- *
- * await helper.close();
  */
 export class KafkaAdminHelper extends BaseKafkaHelper<Admin> {
   constructor(opts: IKafkaAdminOptions) {

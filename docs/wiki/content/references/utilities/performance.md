@@ -33,7 +33,7 @@ await executeWithPerformanceMeasure({
 
 | Function | Signature | What it does |
 |----------|-----------|---------------|
-| `executeWithPerformanceMeasure` | `executeWithPerformanceMeasure<R>(opts: { logger?: Logger; level?: string; description?: string; args?: any; scope: string; task: Function }): Promise<R>` | Runs `task` (sync or async), logging a `START` line before and a `DONE` line after with the elapsed time. Resolves to whatever `task` returns. |
+| `executeWithPerformanceMeasure` | `executeWithPerformanceMeasure<R>(opts: { logger?: ILogger; level?: string; description?: string; args?: any; scope: string; task: Function }): Promise<R>` | Runs `task` (sync or async), logging a `START` line before and a `DONE` line after with the elapsed time. Resolves to whatever `task` returns. |
 | `getPerformanceCheckpoint` | `getPerformanceCheckpoint(): number` | Returns `performance.now()` - a starting timestamp to pass to `getExecutedPerformance`. |
 | `getExecutedPerformance` | `getExecutedPerformance(opts: { from: number; digit?: number }): number` | Elapsed milliseconds since `from`, rounded to `digit` places (default `6`). |
 
@@ -47,7 +47,7 @@ await executeWithPerformanceMeasure({
 ## See also
 
 - [Utilities Overview](/references/utilities/) - all utility functions
-- [Logger](/extensions/helpers/logger/) - the `Logger` type accepted by `executeWithPerformanceMeasure`
+- [Logger](/extensions/helpers/logger/) - the `ILogger` type accepted by `executeWithPerformanceMeasure`
 
 **Files:**
 

@@ -1,6 +1,6 @@
 import type { TConstValue, ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
-import type { Logger } from '@/modules/logger';
+import type { ILogger } from '@/modules/logger';
 import { sleep } from './date.utility';
 
 export class RetryBackoffStrategies {
@@ -130,11 +130,7 @@ const sleepWithSignal = async (opts: { ms: number; operation: string; signal?: A
   }
 };
 
-/**
- * Races `execution` against `timeoutMs`. `timeoutMs <= 0` (or omitted) means no timeout. The losing
- * execution keeps running - JS promises cannot be cancelled - so pass `signal` through to the
- * execution when it supports cooperative cancellation.
- */
+/** Races `execution` against `timeoutMs` (`<= 0`/omitted = no timeout). The losing execution keeps running - JS promises cannot be cancelled - so pass `signal` through for cooperative cancellation. */
 export const runWithTimeout = async <T>(opts: {
   operation: string;
   timeoutMs?: number;
@@ -231,24 +227,10 @@ export const computeBackoffDelayMs = (opts: {
   }
 };
 
-/**
- * Retries `execution` on failure with backoff, under an optional total-time budget.
- *
- * Semantics:
- * - Attempts stop at `maxAttempts`, or when `maxTotalMs` has elapsed, or when a computed backoff
- *   would overshoot the remaining budget - whichever comes first.
- * - `perAttemptTimeoutMs` races each attempt; under a budget it is additionally capped to the
- *   remaining budget, so the last attempt never outlives the deadline.
- * - `shouldRetry` is the classification hook: return `false` to rethrow immediately (permanent
- *   errors have no business retrying). Default retries every failure.
- * - On exhaustion the LAST error is thrown, after a `logger.warn` when a logger is provided.
- * - `signal` aborts between attempts and during backoff sleeps; it is also handed to `execution`
- *   for cooperative cancellation. JS cannot cancel a running promise - a timed-out attempt keeps
- *   running in the background unless the execution honors the signal.
- */
+/** Retries `execution` with backoff, bounded by `maxAttempts`/`maxTotalMs`. JS cannot cancel a running promise - `signal` only stops between attempts/sleeps, so a timed-out execution keeps running unless it honors the signal itself. */
 export const executeWithRetry = async <T>(opts: {
   signal?: AbortSignal;
-  logger?: Logger;
+  logger?: ILogger;
   operation: string;
 
   /** Default 3. */

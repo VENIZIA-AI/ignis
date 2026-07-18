@@ -7,13 +7,13 @@ Advanced TypeScript patterns used throughout the IGNIS framework.
 Create reusable class extensions without deep inheritance:
 
 ```typescript
-import { LoggerFactory, TMixinTarget } from '@venizia/ignis-helpers';
+import { ILogger, LoggerFactory, TMixinTarget } from '@venizia/ignis-helpers';
 
 export const LoggableMixin = <BaseClass extends TMixinTarget<object>>(
   baseClass: BaseClass,
 ) => {
   return class extends baseClass {
-    protected logger = LoggerFactory.getLogger([this.constructor.name]);
+    protected logger: ILogger = LoggerFactory.getLogger([this.constructor.name]);
 
     log(message: string): void {
       this.logger.info(message);
@@ -62,37 +62,48 @@ Generate classes dynamically with configuration:
 
 ```typescript
 class ControllerFactory extends BaseHelper {
-  /** `TDataObject`/`TPersistObject` cannot be inferred from `entity` -
-   * pass them explicitly for typed CRUD handlers. */
   static defineCrudController<
-    TDataObject extends object = object,
-    TPersistObject extends object = TDataObject,
-  >(defOpts: ICrudControllerOptions) {
-    const { controller, entity } = defOpts;
+    TEntity extends AbstractEntity = AbstractEntity,
+    Routes extends ICustomizableRoutes = ICustomizableRoutes,
+    // DataObject/PersistObject default to the entity's inferred select/insert shapes
+    TDataObject extends object = TEntityDataObject<TEntity>,
+    TPersistObject extends object = TEntityPersistObject<TEntity>,
+  >(defOpts: ICrudControllerOptions<TEntity, Routes>) {
+    const { controller, entity, routes } = defOpts;
 
     // `entity` accepts a class directly or a resolver function
     const entityClass = isClass(entity) ? entity : entity();
     const entityInstance = new entityClass();
 
     // Derive request/response schemas + route configs from the entity instance
-    const routeDefinitions = buildRouteDefinitions({ entity: entityInstance });
+    const definitions = defineControllerRouteConfigs({
+      idType: entityInstance.getIdType(),
+      routes,
+      schema: {
+        select: entityInstance.getSchema({ type: SchemaTypes.SELECT }),
+        create: entityInstance.getSchema({ type: SchemaTypes.CREATE }),
+        update: entityInstance.getSchema({ type: SchemaTypes.UPDATE }),
+      },
+    });
 
-    return class extends BaseRestController {
-      repository: AbstractRepository<TDataObject, TPersistObject>;
-
+    return class extends PersistableCrudController<TEntity> {
       constructor(repository: AbstractRepository<TDataObject, TPersistObject>) {
-        super({ scope: controller.name, path: controller.basePath });
-        this.repository = repository;
+        super({
+          scope: controller.name,
+          path: controller.basePath,
+          repository,
+          definitions,
+        });
       }
 
       /** Registers all CRUD route handlers. */
       override binding(): ValueOrPromise<void> {
         this.defineRoute({
-          configs: routeDefinitions.FIND,
+          configs: definitions.FIND,
           handler: async context => this.find({ context }),
         });
         this.defineRoute({
-          configs: routeDefinitions.FIND_BY_ID,
+          configs: definitions.FIND_BY_ID,
           handler: async context => this.findById({ context }),
         });
         // ... more routes (count/findOne/create/updateById/deleteById/...)
@@ -101,11 +112,8 @@ class ControllerFactory extends BaseHelper {
   }
 }
 
-// Usage - type parameters are explicit, entity can be a class or a resolver
-type TUser = typeof User.schema.$inferSelect;
-type TNewUser = typeof User.schema.$inferInsert;
-
-const UserCrudController = ControllerFactory.defineCrudController<TUser, TNewUser>({
+// Usage - types come from the entity, entity can be a class or a resolver
+const UserCrudController = ControllerFactory.defineCrudController({
   controller: { name: 'UserController', basePath: '/users' },
   repository: { name: UserRepository.name },
   entity: () => User,
@@ -116,6 +124,10 @@ export class UserController extends UserCrudController {
   // Additional custom routes
 }
 ```
+
+> [!NOTE]
+> `controller.basePath` is required - `defineCrudController` throws via `getError` when it is
+> missing or left at the internal `'unknown_path'` placeholder.
 
 ## Value Resolver Pattern
 
@@ -132,16 +144,16 @@ export const resolveValue = <T>(valueOrResolver: TValueOrResolver<T>): T => {
     return valueOrResolver;  // Direct value
   }
 
-  if (isClass(valueOrResolver as Function)) {
+  if (isClass(valueOrResolver)) {
     return valueOrResolver as T;  // Class constructor (return as-is)
   }
 
   return (valueOrResolver as TResolver<T>)();  // Function resolver
 };
 
-// isClass (from @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
+// isClass (declared in @venizia/ignis-inversion, re-exported by helpers) - distinguishes class
 // constructors from arrow/regular functions by testing the SOURCE against /^class[\s{]/,
-// since every non-arrow function has a prototype
+// since every non-arrow function has a prototype. Sound only on ES2020+ output.
 export const isClass = <T>(target: any): target is TClass<T> => {
   if (typeof target !== 'function' || target.prototype === undefined) {
     return false;
@@ -230,17 +242,17 @@ Centralized registration of components:
 
 ```typescript
 class StrategyRegistry<T> {
-  private strategies = new Map<string, T>();
+  private _strategies = new Map<string, T>();
 
   register(name: string, strategy: T): void {
-    if (this.strategies.has(name)) {
+    if (this._strategies.has(name)) {
       throw getError({ message: `[register] Strategy '${name}' already registered` });
     }
-    this.strategies.set(name, strategy);
+    this._strategies.set(name, strategy);
   }
 
   get(name: string): T {
-    const strategy = this.strategies.get(name);
+    const strategy = this._strategies.get(name);
     if (!strategy) {
       throw getError({ message: `[get] Strategy '${name}' not found` });
     }
@@ -248,11 +260,11 @@ class StrategyRegistry<T> {
   }
 
   has(name: string): boolean {
-    return this.strategies.has(name);
+    return this._strategies.has(name);
   }
 
   all(): Map<string, T> {
-    return new Map(this.strategies);
+    return new Map(this._strategies);
   }
 }
 

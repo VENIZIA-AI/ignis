@@ -17,6 +17,10 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-18 | [Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading](./2026-07-18-logger-overhaul) | Breaking Change, New Feature, Enhancement, Bug Fix |
+| 2026-07-18 | [Dependency Refresh \& DI Cleanup](./2026-07-18-dependency-refresh) | Maintenance, Breaking Change, Bug Fix |
+| 2026-07-17 | [Error Module Redesign](./2026-07-17-error-module-redesign) | Breaking Change, Enhancement |
+| 2026-07-17 | [Logger Correctness Pass](./2026-07-17-logger-correctness-pass) | Bug Fix, Enhancement, Behavior Change |
 | 2026-07-17 | [Secrets Peers Invisible to Bundlers - No More external node-vault](./2026-07-17-secrets-bundler-invisible-peers) | Bug Fix, Behavior Change |
 | 2026-07-16 | [Error Handling - Normalized Messages, Error Catalog, and a Recovered cause](./2026-07-16-error-catalog-and-structured-message) | Bug Fix, Enhancement, New API |
 | 2026-07-16 | [Secrets & Vault Integration](./2026-07-16-secrets-vault-integration) | New Feature, Enhancement |

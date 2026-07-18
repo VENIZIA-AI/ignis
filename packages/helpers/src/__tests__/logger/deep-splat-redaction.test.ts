@@ -1,12 +1,9 @@
 import { describe, expect, test } from 'bun:test';
-import { formatLogMessage } from '@/modules/logger/formatters';
+import { formatLogMessage } from '@/modules/logger';
 
-/**
- * Redaction lives in the logger now: any code may `logger.error('... %s', error)` with a raw
- * node-vault AxiosError, and the nested live token / AppRole secret must never render. These tests
- * pin that the deep-inspect path {@link formatLogMessage} runs its args through key-based redaction
- * before inspecting them, WITHOUT collapsing the non-secret diagnosis it was opened for.
- */
+/** A raw node-vault AxiosError logged via `%s` must never leak its live token / AppRole secret.
+ * Pins that {@link formatLogMessage}'s deep-inspect path redacts by key before inspecting,
+ * without collapsing the non-secret diagnosis it was opened for. */
 describe('formatLogMessage - secret redaction on the %s deep-inspect path', () => {
   const axiosErrorWithToken = () =>
     Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:8200'), {

@@ -9,13 +9,13 @@ difficulty: advanced
 Technical reference for the DI system in IGNIS - managing resource lifecycles and dependency resolution.
 
 **Files:**
-- `packages/inversion/src/container.ts` - Base `Container` and `Binding` classes
-- `packages/inversion/src/registry.ts` - Base `MetadataRegistry`
-- `packages/inversion/src/metadata/injectors.ts` - Base `@inject` and `@injectable` decorators
+- `packages/inversion/src/modules/container/index.ts` - Base `Container` and `Binding` classes
+- `packages/inversion/src/modules/registry/index.ts` - Base `MetadataRegistry`
+- `packages/inversion/src/modules/metadata/injectors.ts` - Base `@inject` decorator
 - `packages/inversion/src/common/types.ts` - `BindingScopes`, `BindingValueTypes`, `BindingKeys`, `IProvider`
 - `packages/core/src/helpers/inversion/container.ts` - Extended `Container` with `ApplicationLogger`
 - `packages/core/src/helpers/inversion/registry.ts` - Extended `MetadataRegistry` (singleton, with model/repository/datasource mixins)
-- `packages/core/src/base/metadata/injectors.ts` - Core `@inject` and `@injectable` (wired to extended registry)
+- `packages/core/src/base/metadata/injectors.ts` - Core `@inject` (wired to extended registry)
 
 ## Quick Reference
 
@@ -24,7 +24,6 @@ Technical reference for the DI system in IGNIS - managing resource lifecycles an
 | **Container** | DI registry managing resource lifecycles | `bind()`, `get()`, `gets()`, `instantiate()`, `resolve()`, `findByTag()`, `isBound()`, `unbind()`, `clear()`, `reset()` |
 | **Binding** | Single registered dependency configuration | `toClass()`, `toValue()`, `toProvider()`, `setScope()`, `setTags()`, `getValue()`, `clearCache()` |
 | **@inject** | Decorator marking injection points | Applied to constructor parameters and class properties |
-| **@injectable** | Decorator marking a class as injectable | Stores scope and tag metadata |
 | **MetadataRegistry** | Stores decorator metadata | Singleton - base via `metadataRegistry` export, core via `MetadataRegistry.getInstance()` |
 | **BindingKeys** | Utility for building namespaced keys | `BindingKeys.build({ namespace, key })` |
 | **Boot System** | Automatic artifact discovery and binding | Integrates with Container via tags and bindings |
@@ -42,7 +41,7 @@ Before reading this document, you should understand:
 
 Heart of the DI system - registry managing all application resources.
 
-**File:** `packages/inversion/src/container.ts` (Base) & `packages/core/src/helpers/inversion/container.ts` (Extended)
+**File:** `packages/inversion/src/modules/container/index.ts` (Base) & `packages/core/src/helpers/inversion/container.ts` (Extended)
 
 The base `Container` extends `BaseHelper` (which provides `scope` and `identifier` properties). The core `Container` extends the base and adds a `Logger` instance.
 
@@ -106,7 +105,7 @@ class UserController {
 
 A `Binding` represents a single registered dependency in the container. It provides a fluent API to configure *how* a dependency should be created and managed.
 
-**File:** `packages/inversion/src/container.ts`
+**File:** `packages/inversion/src/modules/container/index.ts`
 
 The `Binding` class extends `BaseHelper`.
 
@@ -206,7 +205,7 @@ This is also used internally by `container.get()` and `container.getBinding()` w
 
 The `@inject` decorator marks where dependencies should be injected - either on constructor parameters or class properties.
 
-**File:** `packages/inversion/src/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
+**File:** `packages/inversion/src/modules/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
 
 ### Signature
 
@@ -257,30 +256,14 @@ The `@venizia/ignis-inversion` package exports base decorators that use the modu
 
 **Always import from `@venizia/ignis` in application code:**
 ```typescript
-import { inject, injectable } from '@venizia/ignis';
+import { inject } from '@venizia/ignis';
 ```
 
-## `@injectable` Decorator
+## Registering a Class
 
-Marks a class as injectable and attaches optional metadata.
-
-**File:** `packages/inversion/src/metadata/injectors.ts` (base) & `packages/core/src/base/metadata/injectors.ts` (core wrapper)
-
-### Signature
+No class decorator is needed to make a class injectable. A class becomes resolvable once a binding exists for it - created either by boot auto-discovery, by a framework helper (`app.controller()`, `app.service()`, `@repository`), or explicitly with `container.bind()`. Scope is configured on the binding, never on the class:
 
 ```typescript
-@injectable({ scope?: TBindingScope; tags?: Record<string, any> })
-```
-
-| Parameter | Type | Default | Description |
-| :--- | :--- | :--- | :--- |
-| `scope` | `'singleton' \| 'transient'` | - | Optional scope hint for the binding. |
-| `tags` | `Record<string, any>` | - | Optional metadata tags. |
-
-### Example
-
-```typescript
-@injectable({ scope: BindingScopes.SINGLETON })
 class UserService extends BaseService {
   constructor(
     @inject({ key: 'repositories.UserRepository' })
@@ -289,15 +272,19 @@ class UserService extends BaseService {
     super({ scope: UserService.name });
   }
 }
+
+app.bind({ key: 'services.UserService' })
+  .toClass(UserService)
+  .setScope(BindingScopes.SINGLETON); // default is TRANSIENT
 ```
 
 ## `MetadataRegistry`
 
-The `MetadataRegistry` stores and retrieves all metadata attached by decorators (`@inject`, `@injectable`, `@controller`, `@model`, etc.).
+The `MetadataRegistry` stores and retrieves all metadata attached by decorators (`@inject`, `@controller`, `@model`, etc.).
 
 ### Base MetadataRegistry
 
-**File:** `packages/inversion/src/registry.ts`
+**File:** `packages/inversion/src/modules/registry/index.ts`
 
 A singleton exported as `metadataRegistry`. Extends `BaseHelper`.
 
@@ -315,8 +302,6 @@ A singleton exported as `metadataRegistry`. Extends `BaseHelper`.
 | `setPropertyMetadata({ target, propertyName, metadata })` | Stores property injection metadata (`IPropertyMetadata`). |
 | `getPropertiesMetadata({ target })` | Returns a `Map<string \| symbol, IPropertyMetadata>` for all injected properties. |
 | `getPropertyMetadata({ target, propertyName })` | Returns property metadata for a specific property. |
-| `setInjectableMetadata({ target, metadata })` | Stores `@injectable` metadata on a class. |
-| `getInjectableMetadata({ target })` | Returns `@injectable` metadata for a class. |
 
 ### Core MetadataRegistry
 
@@ -333,12 +318,11 @@ Additional capabilities include:
 
 ### Metadata Keys
 
-Defined in `packages/inversion/src/common/keys.ts`:
+Defined in `packages/inversion/src/modules/metadata/common/constants.ts`:
 
 ```typescript
 MetadataKeys.PROPERTIES  = Symbol.for('ignis:properties')
 MetadataKeys.INJECT      = Symbol.for('ignis:inject')
-MetadataKeys.INJECTABLE  = Symbol.for('ignis:injectable')
 ```
 
 ### Key Types
@@ -354,11 +338,6 @@ interface IPropertyMetadata {
   bindingKey: string | symbol;
   isOptional?: boolean;
   [key: string]: any;
-}
-
-interface IInjectableMetadata {
-  scope?: TBindingScope;
-  tags?: Record<string, any>;
 }
 ```
 
@@ -436,7 +415,6 @@ The boot system integrates into the application lifecycle:
 app.bind({ key: 'controllers.UserController' }).toClass(UserController);
 
 // 4. Later, when UserController is instantiated:
-@injectable()
 class UserController {
   constructor(
     @inject({ key: 'services.UserService' })

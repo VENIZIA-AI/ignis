@@ -1,6 +1,6 @@
 import { ValueOrPromise } from '@/common';
 import { getError } from '@/modules/error';
-import type { Logger } from '@/modules/logger';
+import type { ILogger } from '@/modules/logger';
 
 export type TTask<T> = (...args: any[]) => Promise<T>;
 
@@ -69,17 +69,9 @@ export const getDeepProperty = <T, V>(obj: T, path: string): V => {
   return result as V;
 };
 
-/**
- * Runs an intentionally fire-and-forget value or promise, routing any async rejection to the given
- * scoped logger (or console.error when no logger is available) instead of surfacing as an unhandled
- * rejection. Synchronous results pass through untouched - no added microtask on hot paths.
- *
- * A standalone function rather than a BaseHelper member on purpose: BaseHelper must never carry
- * protected members - TypeScript cannot emit them in the declaration of an exported ANONYMOUS
- * class (TS4094), and factory-built controllers return exactly such classes.
- */
+/** Fire-and-forget: routes rejection to `logger` (or console.error), passes sync results through untouched. Standalone rather than a BaseHelper member - TS cannot emit protected members on an exported ANONYMOUS class (TS4094), which is what factory-built controllers return. */
 export const voidExecution = (opts: {
-  logger?: Logger;
+  logger?: ILogger;
   scope: string;
   execution: ValueOrPromise<unknown>;
 }): void => {

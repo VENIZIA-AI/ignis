@@ -24,11 +24,8 @@ export type TTestRule = {
   conditions?: Record<string, unknown>;
 };
 
-/**
- * Note: Bun's transpiler does not support parameter decorators (experimentalDecorators).
- * So @inject on constructor params is a no-op at test time. We use explicit inject
- * metadata registration instead.
- */
+/** Bun's transpiler drops parameter decorators, so @inject is a no-op at test time - inject
+ * metadata is registered explicitly instead. */
 export class TestAuthorizationEnforcer
   extends BaseHelper
   implements IAuthorizationEnforcer<Env, string, string, TTestRule[]>
@@ -138,11 +135,8 @@ export const createMockContext = (overrides?: {
   };
 };
 
-/**
- * Manually register @inject metadata for TestAuthorizationEnforcer.
- * Bun's transpiler does not support parameter decorators, so we register
- * the inject metadata programmatically instead.
- */
+/** Registers @inject metadata for TestAuthorizationEnforcer programmatically - Bun's transpiler
+ * drops parameter decorators. */
 const registerTestEnforcerInjectMetadata = () => {
   MetadataRegistry.getInstance().setInjectMetadata({
     target: TestAuthorizationEnforcer,

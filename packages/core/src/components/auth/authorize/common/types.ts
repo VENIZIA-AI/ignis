@@ -57,11 +57,8 @@ export type TAuthorizationDomainResolver<E extends Env = Env> = (opts: {
 }) => ValueOrPromise<TNullable<{ type: string; id: IdType }>>;
 
 /**
- * Authorization enforcer: builds rules and evaluates requests.
- *
- * Cache management (`invalidateUserCache`/`rebuildUserCache`) is OPTIONAL — present only on enforcers
- * that cache per-user policies (e.g. the Casbin enforcer with the Redis driver). The registry
- * feature-detects them at runtime before invoking.
+ * Builds rules and evaluates requests. Cache management (`invalidateUserCache`/`rebuildUserCache`)
+ * is OPTIONAL - only on per-user-caching enforcers; the registry feature-detects it at runtime.
  */
 export interface IAuthorizationEnforcer<
   E extends Env = Env,
@@ -157,9 +154,8 @@ export interface ICasbinEnforcerOptions<
   };
 
   /**
-   * Turn on the domain-scoped RBAC model. Requests become 4-token `(subject, domain, object, action)`
-   * instead of 3-token, and the enforcer registers the domain matcher (`keyMatch` on `g`) and the
-   * resource matcher (`objectMatch`) needed by that model.
+   * Domain-scoped RBAC model: requests become 4-token `(subject, domain, object, action)` and the
+   * enforcer registers the domain matcher (`keyMatch` on `g`) + resource matcher (`objectMatch`).
    */
   isScoped?: boolean;
 

@@ -1,5 +1,5 @@
 import { CoreErrorCodes } from '@/common';
-import type { Logger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
 /**
@@ -9,7 +9,7 @@ import { getError, HTTP } from '@venizia/ignis-helpers';
 export const throwNotSupported = (opts: {
   scope: string;
   feature: string;
-  logger: Logger;
+  logger: ILogger;
 }): never => {
   const { scope, feature, logger } = opts;
 

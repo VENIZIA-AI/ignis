@@ -1,13 +1,6 @@
 import dgram from 'node:dgram';
 import Transport from 'winston-transport';
-
-export interface IDgramTransportOptions extends Transport.TransportStreamOptions {
-  label: string;
-  host: string;
-  port: number;
-  levels: Array<string>;
-  socketOptions: dgram.SocketOptions;
-}
+import { IDgramTransportOptions } from '../common';
 
 export class DgramTransport extends Transport {
   private label: string;
@@ -88,7 +81,12 @@ export class DgramTransport extends Transport {
     const message = this.formatMessage(opts);
     this.client?.send(message, this.port, this.host, error => {
       if (error) {
-        this.emit('error', error);
+        // console, not the Logger and not an 'error' EVENT: routing through the Logger would
+        // re-enter this very transport, and emitting 'error' with no listener attached kills the
+        // process over one lost UDP log line. Drop the socket so the next line reconnects.
+        console.error('[DgramTransport][log] Failed to ship log line | error: ', error);
+        this.client?.close();
+        this.client = null;
       }
 
       callback();

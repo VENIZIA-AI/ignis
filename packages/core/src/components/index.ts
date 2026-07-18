@@ -4,8 +4,4 @@ export * from './health-check';
 export * from './request-tracker';
 export * from './api-reference';
 
-// Excluded from barrel — import directly from subpath
-// export * from './mail';
-// export * from './socket-io';
-// export * from './static-asset';
-// export * from './websocket';
+// Excluded from the barrel - import directly from the subpath: mail, socket-io, static-asset, websocket

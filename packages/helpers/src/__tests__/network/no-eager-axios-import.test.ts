@@ -1,14 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
 /**
- * `axios` is an OPTIONAL peer: an app that never touches AxiosNetworkRequest must be able to
- * install and import this package without it. Nothing reachable from the root barrel - or from the
- * network barrel - may value-import axios; `AxiosFetcher`/`AxiosNetworkRequest` live behind the
- * `@venizia/ignis-helpers/axios` sub-path for exactly that reason.
- *
- * A barrel `export * from './axios-fetcher'` reintroduces the eager import silently: everything
- * still compiles and every test passes here, while a consumer without axios installed crashes on
- * `import '@venizia/ignis-helpers'`. This suite is the only thing that fails first.
+ * axios is an OPTIONAL peer - nothing reachable from the root or network barrel may value-import
+ * it (AxiosFetcher/AxiosNetworkRequest live behind the `@venizia/ignis-helpers/axios` sub-path).
+ * A stray `export * from './axios-fetcher'` reintroduces the eager import silently - this suite is what fails first.
  */
 const loadsAxios = async (specifier: string): Promise<boolean> => {
   const probe = `

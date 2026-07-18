@@ -4,12 +4,7 @@ import { getError } from '../error';
 
 const BASE62_CHARS = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-/**
- * Snowflake ID Configuration Constants (48-10-12)
- * - 48 bits: timestamp (~8,919 years from epoch)
- * - 10 bits: worker ID (1024 workers max)
- * - 12 bits: sequence (4096 per ms per worker)
- */
+/** Snowflake bit layout: 48-bit timestamp (~8,919 years), 10-bit worker ID (max 1024 workers), 12-bit sequence (4096/ms/worker). */
 export class SnowflakeConfig {
   static readonly DEFAULT_EPOCH = BigInt(1735689600000); // 2025-01-01 00:00:00 UTC
   static readonly TIMESTAMP_BITS = BigInt(48);

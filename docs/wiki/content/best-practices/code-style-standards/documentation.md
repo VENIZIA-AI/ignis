@@ -2,6 +2,28 @@
 
 Use JSDoc comments for public APIs to improve IDE support and generate documentation.
 
+## Comment Style
+
+A comment states **only the constraint the code cannot show**. Keep it to 1-3 lines.
+
+Never write:
+
+- History or dates ("changed in June", "was previously async")
+- Decision narration ("we tried X, then chose Y")
+- A restatement of what the next line already says
+
+```typescript
+// ✅ GOOD - states a constraint the code cannot show
+// winston is an optional peer; a compiled binary must register a provider explicitly,
+// because only a class reference carries one into the bundle.
+LoggerFactory.use({ provider: PinoLogger });
+
+// ❌ BAD - restates the code, narrates history
+// 2026-07-18: after discussing with the team we decided to switch the logger
+// provider. This line calls use() on LoggerFactory and passes PinoLogger.
+LoggerFactory.use({ provider: PinoLogger });
+```
+
 ## When to Use JSDoc
 
 | Context | Required? | Reason |
@@ -56,10 +78,7 @@ async find(opts: { filter: TFilter<TUser>; options?: IExtraOptions }): Promise<T
 
 ```typescript
 /**
- * Creates a new user account with the given data.
- *
- * Validates that the email is unique, hashes the password,
- * and sends a welcome email upon successful creation.
+ * Creates a new user account. Email must be unique; the password is hashed here, never by the caller.
  *
  * @param data - User creation data
  * @returns The created user without sensitive fields
@@ -185,14 +204,14 @@ interface IJWTStrategyOptions {
  *
  * @example
  * @repository({ model: User, dataSource: PostgresDataSource })
- * export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+ * export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {
  *   // Custom methods here
  * }
  *
- * @see {@link BasePostgresEntity} for model definition
- * @see {@link BasePostgresDataSource} for database connection
+ * @see {@link BaseRelationalEntity} for model definition
+ * @see {@link BaseRelationalDataSource} for database connection
  */
-class DefaultCRUDRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> {
+class DefaultRelationalRepository<EntitySchema extends TTableSchemaWithId = TTableSchemaWithId> {
   // ...
 }
 ```
@@ -213,6 +232,7 @@ class DefaultCRUDRepository<EntitySchema extends TTableSchemaWithId = TTableSche
 - Don't copy TypeScript types into JSDoc (they're already visible)
 - Don't write multi-paragraph descriptions for simple functions
 - Don't use JSDoc for private implementation details
+- Don't record history, dates, or the reasoning behind a past change
 
 ## See Also
 

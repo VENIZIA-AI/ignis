@@ -6,10 +6,8 @@ import { AbstractSecretsHelper } from '../base';
 import { VaultAuthMethods, type IClock, type ITimerAdapter, type TTimerHandle } from '../common';
 import { vaultAuthSchema, type TVaultAuth } from './auth';
 
-// node-vault's wire contract for approleLogin/kubernetesLogin/write/token-lifecycle bodies and
-// responses uses snake_case field names (role_id, secret_id, mount_point, lease_id,
-// client_token, lease_duration, ttl, ...); those are built/read via bracket-notation on AnyObject
-// below rather than typed object-literal properties, so the snake_case stays confined to this
+// node-vault's wire contract uses snake_case (role_id, secret_id, client_token, lease_duration, ...);
+// built/read via bracket-notation on AnyObject here so the snake_case stays confined to this
 // boundary instead of leaking into our camelCase-only typing convention.
 interface TVaultClient {
   token: string;
@@ -159,11 +157,7 @@ export class HashiCorpVaultHelper extends AbstractSecretsHelper {
     }, delayMs);
   }
 
-  /**
-   * Re-auth inside the renewal timer can hit a transient blip and throw. Without a reschedule the
-   * token silently expires and every read 403s with no recovery, so mirror the lease-renewal safety
-   * net: a capped exponential backoff that keeps retrying the whole renewal chain until it succeeds.
-   */
+  /** Without a reschedule here, a transient re-auth failure lets the token expire silently with no recovery - retry with the same capped exponential backoff as lease renewal. */
   private scheduleTokenRenewalRetry(): void {
     if (this.tokenTimer) {
       this.timers.clear(this.tokenTimer);

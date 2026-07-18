@@ -39,10 +39,9 @@ const TIMEOUT_MAX_MS = 2_147_483_647;
 const MIN_RENEW_DELAY_MS = 1_000;
 // Bounded exponential backoff for the renewal retry loop when Vault is unreachable.
 const BACKOFF_BASE_MS = 1_000;
-// 2 ** 30 * BACKOFF_BASE_MS already exceeds TIMEOUT_MAX_MS, so any attempt beyond this saturates
-// the delay via clampDelayMs's ceiling. Capping the exponent here keeps 2 ** (attempt - 1) well
-// inside double range - past ~1024 it overflows to Infinity, and clampDelayMs's non-finite branch
-// returns the FLOOR, collapsing a long backoff into a 1/sec retry storm.
+// Capped at 31 to keep 2 ** (attempt - 1) inside double range: past ~1024 it overflows to Infinity,
+// and clampDelayMs's non-finite branch returns the FLOOR - collapsing a long backoff into a 1/sec
+// retry storm. (2 ** 30 * BACKOFF_BASE_MS already exceeds TIMEOUT_MAX_MS regardless.)
 const MAX_BACKOFF_ATTEMPT_EXPONENT = 31;
 
 export abstract class AbstractSecretsHelper extends BaseHelper implements ISecretsHelper {

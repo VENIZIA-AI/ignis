@@ -75,4 +75,7 @@ const app = new App({
   },
 });
 
-app.start();
+app.start().catch((error: unknown) => {
+  console.error('[main] Application start failed | Error:', error);
+  process.exit(1);
+});

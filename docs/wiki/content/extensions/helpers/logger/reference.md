@@ -8,33 +8,69 @@ difficulty: intermediate
 
 Exhaustive reference for `Logger`, `LoggerFactory`, `HfLogger`/`HfLogFlusher`, the Winston formatter and transport internals, and every environment variable. For a readable introduction and the common tasks, start with the [Logger overview](/extensions/helpers/logger/).
 
-Backed by **Winston** under the hood, with `winston-daily-rotate-file` for file rotation.
+The default provider is **Winston** (with `winston-daily-rotate-file` for file rotation). All provider packages are OPTIONAL peers - an application loads exactly ONE provider (single-provider loading, below).
 
 **Files:**
 
-- [`packages/helpers/src/modules/logger/application-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/application-logger.ts) - `Logger`, `ApplicationLogger`
-- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`
-- [`packages/helpers/src/modules/logger/default-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/default-logger.ts) - `defineCustomLogger`, formatters, `LoggerFormats`, `applicationLogger`
-- [`packages/helpers/src/modules/logger/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/types.ts) - `LogLevels`, `TLogLevel`
-- [`packages/helpers/src/modules/logger/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatters/deep-splat.ts) - `%s` inspection widening
-- [`packages/helpers/src/modules/logger/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/transports/dgram.transport.ts) - `DgramTransport`
-- [`packages/helpers/src/modules/logger/hf-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf-logger.ts) - `HfLogger`, `HfLogFlusher`
+- [`packages/helpers/src/modules/logger/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/types.ts) - `ILogger`, `TLogLevel`, `TLoggerFormat`
+- [`packages/helpers/src/modules/logger/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/constants.ts) - `LogLevels`, `LoggerFormats`
+- [`packages/helpers/src/modules/logger/base/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/abstract.ts) - `AbstractLogger`
+- [`packages/helpers/src/modules/logger/base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts) - `BaseLogger`
+- [`packages/helpers/src/modules/logger/formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts) - `formatLogMessage`, `%s` inspection widening
+- [`packages/helpers/src/modules/logger/winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts) - `WinstonLogger`, `Logger` alias
+- [`packages/helpers/src/modules/logger/winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts) - `defineCustomLogger`, formatters
+- [`packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts) - `deepSplat`
+- [`packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts) - `DgramTransport`
+- [`packages/helpers/src/modules/logger/hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts) - `HfLogger`
+- [`packages/helpers/src/modules/logger/hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts) - `HfLogFlusher`
+- [`packages/helpers/src/modules/logger/factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts) - `LoggerFactory`, `ApplicationLogger`
+
+## Architecture & ILogger
+
+The module follows IGNIS's house format: `common/` (the contract), `base/` (provider-independent plumbing), `winston/` (the built-in provider), `hf/` (the separate high-frequency logger), and a top-level `factory.ts` as the single acquisition path.
+
+```
+ILogger (interface)                common/types.ts
+  └─ AbstractLogger (abstract)     base/abstract.ts    - the contract as a class, for `instanceof`
+       └─ BaseLogger (abstract)    base/base.ts         - scope, prefix, DEBUG gate, .for(), one write() sink
+            ├─ WinstonLogger       winston/logger.ts      - the built-in provider (default)
+            └─ PinoLogger          pino/logger.ts          - sub-path @venizia/ignis-helpers/pino
+```
+
+- **Consumers type against `ILogger`, never a concrete class.** `LoggerFactory.getLogger()` and `BaseHelper.logger` both return `ILogger`. Which provider produced the instance stays invisible behind the interface.
+- **Provider registration.** `LoggerFactory.use({ provider })` selects the application's provider (default: `WinstonLogger`). The factory hands out stable delegating wrappers and re-points ALL of them when `use()` is called - even module-level loggers captured at import time follow the registration; the per-call cost is one property read (measured ~0ns).
+- **Single-provider loading.** Exactly ONE provider is ever loaded. Delegates resolve lazily at the first log call, so an app that registers pino at its entrypoint never loads winston. The winston default loads only when `use()` was never called by the first log line - it requires the winston peers installed (`bun add winston winston-transport winston-daily-rotate-file`). Compiled binaries (`bun build --compile`) must ALWAYS register a provider explicitly: only a class reference carries a provider into a bundle.
+- **Both providers are sub-path only**: `WinstonLogger` at `@venizia/ignis-helpers/winston`, `PinoLogger` at `@venizia/ignis-helpers/pino` ([guide](/extensions/helpers/logger/pino)). The root barrel is provider-free; importing it loads neither.
+
+**Which names follow `use()`:**
+
+| Name | Is | Follows `use()`? |
+|---|---|---|
+| `LoggerFactory.getLogger()` / `BaseHelper.logger` | delegating wrapper | YES |
+| `ApplicationLogger.get()` | facade over the factory; type = `ILogger` | YES |
+| `Logger` / `Logger.get(scope, customWinston?)` | concrete `WinstonLogger` (instanceof, custom winston instances) | NO - names winston deliberately |
+| `WinstonLogger` / `PinoLogger` | concrete providers | are the targets |
 
 ## Quick Reference
 
 | Class | Extends | Use Case |
 |-------|---------|----------|
-| `Logger` | - | General-purpose scoped logger with caching |
-| `LoggerFactory` | - | Factory that builds `Logger` instances from scope arrays |
-| `HfLogger` | - | Zero-allocation ring-buffer logger for hot paths (~100-300ns) |
+| `Logger` | `BaseLogger` -> `AbstractLogger` (`ILogger`) | General-purpose scoped logger with caching (permanent alias of `WinstonLogger`) |
+| `LoggerFactory` | - | Provider registration (`use`) + `ILogger` acquisition from scope arrays |
+| `PinoLogger` | `BaseLogger` (`ILogger`) | Throughput provider - NDJSON, sub-path only ([guide](/extensions/helpers/logger/pino)) |
+| `HfLogger` | `AbstractLogger` (`ILogger`) | Ring-buffer logger for hot paths - bytes path ~59ns, string no-args path ~66ns |
 | `HfLogFlusher` | - | Background flusher for `HfLogger` entries |
 | `DgramTransport` | `winston-transport.Transport` | Custom Winston transport that sends logs over UDP |
 
 ### Import paths
 
 ```typescript
-// Core classes
-import { Logger, LoggerFactory, ApplicationLogger } from '@venizia/ignis-helpers';
+// Core classes - provider-neutral, root barrel
+import { LoggerFactory, ApplicationLogger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
+
+// Abstract tiers - implementing ILogger yourself, or instanceof checks
+import { AbstractLogger, BaseLogger } from '@venizia/ignis-helpers';
 
 // High-frequency logger
 import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
@@ -43,31 +79,40 @@ import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
 import { LogLevels, LoggerFormats } from '@venizia/ignis-helpers';
 import type { TLogLevel, TLoggerFormat } from '@venizia/ignis-helpers';
 
-// Custom logger utilities
+// Level resolution - provider-neutral
+import { resolveLoggerLevel } from '@venizia/ignis-helpers';
+
+// Winston provider + its utilities - SUB-PATH only (winston is an optional peer)
 import {
+  Logger,
+  WinstonLogger,
   defineCustomLogger,
   defineLogFormatter,
   defineJsonLoggerFormatter,
   definePrettyLoggerFormatter,
   applicationLogFormatter,
-  applicationLogger,
-} from '@venizia/ignis-helpers';
-import type { IFileTransportOptions, ICustomLoggerOptions } from '@venizia/ignis-helpers';
+  resolveDefaultTransportOptions,
+} from '@venizia/ignis-helpers/winston';
+import type { IFileTransportOptions, ICustomLoggerOptions } from '@venizia/ignis-helpers/winston';
 
-// UDP transport
-import { DgramTransport } from '@venizia/ignis-helpers';
-import type { IDgramTransportOptions } from '@venizia/ignis-helpers';
+// Pino provider - SUB-PATH only (optional peers: pino, pino-pretty, pino-roll)
+import { PinoLogger, setPinoBackingLogger } from '@venizia/ignis-helpers/pino';
+import type { ILoggerProvider } from '@venizia/ignis-helpers';
+
+// UDP transport (winston)
+import { DgramTransport } from '@venizia/ignis-helpers/winston';
+import type { IDgramTransportOptions } from '@venizia/ignis-helpers/winston';
 ```
 
-All of the above resolve through the root `@venizia/ignis-helpers` barrel, which re-exports `./modules` (and therefore `./modules/logger`) in full.
+The root barrel is provider-free: importing `@venizia/ignis-helpers` loads NO provider. Winston names resolve only through `@venizia/ignis-helpers/winston`, pino names only through `@venizia/ignis-helpers/pino`.
 
 ## Creating an Instance
 
-`Source ->` [`application-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/application-logger.ts), [`factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts)
+`Source ->` [`winston/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/logger.ts), [`factory.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/factory.ts)
 
 ### Using LoggerFactory (recommended)
 
-`LoggerFactory.getLogger` accepts an array of scope strings, joins them with `-`, and returns a cached `Logger` instance via `Logger.get`.
+`LoggerFactory.getLogger` accepts an array of scope strings, joins them with `-`, and returns a cached provider-following wrapper (see the name/role table above).
 
 ```typescript
 import { LoggerFactory } from '@venizia/ignis-helpers';
@@ -84,7 +129,7 @@ scopedLogger.info('Charge created');
 ### Using Logger.get() directly
 
 ```typescript
-import { Logger } from '@venizia/ignis-helpers';
+import { Logger } from '@venizia/ignis-helpers/winston';
 
 const logger = Logger.get('MyService');
 logger.info('Direct logger access');
@@ -94,10 +139,10 @@ logger.info('Direct logger access');
 Pass a custom Winston logger instance as the second parameter to use your own transport configuration:
 
 ```typescript
-import { Logger, defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers';
+import { Logger, defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
 
 const customWinstonLogger = defineCustomLogger({
-  loggerFormatter: applicationLogFormatter,
+  formatter: applicationLogFormatter,
   transports: {
     info: { file: { prefix: 'custom', folder: './logs' } },
     error: { file: { prefix: 'custom-error', folder: './logs' } },
@@ -107,42 +152,63 @@ const customWinstonLogger = defineCustomLogger({
 const logger = Logger.get('MyService', customWinstonLogger);
 ```
 
-Custom loggers are cached under a separate key (`scope:custom`), so a default and a custom logger for the same scope coexist without colliding.
+A custom-backed `Logger` is a fresh wrapper on every call - a scope-keyed cache cannot tell two different Winston instances apart, and the wrapper is cheap enough not to need one. `.for()` on a custom-backed logger keeps the same Winston instance.
 
 ### Logger caching
 
-Both `Logger.get` and `LoggerFactory.getLogger` cache internally - the same scope always returns the same `Logger` instance:
+Without a custom logger, both `Logger.get` and `LoggerFactory.getLogger` cache internally - the same scope always returns the same `Logger` instance:
 
 ```typescript
 const logger1 = Logger.get('MyService');
 const logger2 = Logger.get('MyService');
 // logger1 === logger2 (same instance)
+
+const custom1 = Logger.get('MyService', customWinstonLogger);
+const custom2 = Logger.get('MyService', customWinstonLogger);
+// custom1 !== custom2 (fresh wrapper each call, same backing Winston instance)
 ```
 
-### ApplicationLogger alias
+### ApplicationLogger - the provider-following facade
 
-`ApplicationLogger` is exported as both a value and a type alias for `Logger`, for code written before the class was named `Logger`.
+`ApplicationLogger` is "the APPLICATION's logger": `ApplicationLogger.get(scope)` always returns the provider registered via `LoggerFactory.use()` (winston unless the app registered another). Its TYPE is `ILogger`. It is no longer a class alias of `WinstonLogger` - `instanceof ApplicationLogger` is now a compile error (use `instanceof AbstractLogger` to test any provider instance); the concrete alias remains available as `Logger`.
 
 ```typescript
 import { ApplicationLogger } from '@venizia/ignis-helpers';
 
-const logger = ApplicationLogger.get('MyService');
+const logger = ApplicationLogger.get('MyService'); // ILogger, follows LoggerFactory.use()
 ```
+
+The old scope-less `applicationLogger` instance was REMOVED - use `ApplicationLogger.get('YourScope')`; apps that need a raw winston instance build one with `defineCustomLogger` (sub-path `/winston`).
 
 ## Log Levels
 
-`Source ->` [`types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/types.ts), [`application-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/application-logger.ts)
+`Source ->` [`common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/common/constants.ts), [`base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts), [`winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts)
 
-`Logger` exposes direct methods for `info`, `warn`, `error`, `emerg`, and `debug`. Other levels (`alert`, `http`, `verbose`, `silly`) go through the generic `log()` method.
+Five levels, each with a direct method on `ILogger`: `debug`, `info`, `warn`, `error`, `emerg`. The generic `log(level, ...)` remains for dynamic level selection.
 
 ```typescript
 logger.info('User created');
 logger.warn('Rate limit approaching');
 logger.error('Failed to process payment');
 logger.emerg('System out of memory');
-logger.debug('Query took 12ms');            // Requires DEBUG=true
-logger.log('alert', 'Threshold exceeded');  // Generic method for any level
+logger.debug('Query took 12ms');           // Requires DEBUG=true
+logger.log('warn', 'Threshold exceeded');   // Generic method for any level
 ```
+
+### What each level means
+
+The level set follows the npm/winston convention. Lower priority number = more severe; the level floor (`APP_ENV_LOGGER_LEVEL`) admits everything at or above its severity.
+
+| Level | Priority | Meaning | Use it for |
+|-------|----------|---------|------------|
+| `error` | 0 | An operation failed | Caught failures the line exists to diagnose - always pair an `Error` with `%s` |
+| `emerg` | 0 | The process is in a fatal state | Out-of-memory, unrecoverable corruption, imminent shutdown |
+| `warn` | 1 | Something is off but handled | Retries, fallbacks taken, deprecated usage |
+| `info` | 2 | A business event happened | "Order created", lifecycle milestones, boot phases |
+| `debug` | 3 | Developer diagnostics | Values and timings useful only while developing - ALSO gated by `DEBUG` env |
+
+> [!NOTE]
+> Two gates apply to `debug`, one to everything else. Every level passes the floor (`APP_ENV_LOGGER_LEVEL`, default `debug` - which admits ALL five levels); `debug()` additionally requires the `DEBUG` env gate. The vocabulary was deliberately trimmed to these five (2026-07-18): `alert`/`http`/`verbose`/`silly` had zero call sites and no consuming infrastructure - `http` returns as an access-line level if the request-correlation feature lands.
 
 `LogLevels` defines all available levels and provides validation:
 
@@ -151,14 +217,10 @@ import { LogLevels } from '@venizia/ignis-helpers';
 import type { TLogLevel } from '@venizia/ignis-helpers';
 
 LogLevels.ERROR;   // 'error'
-LogLevels.ALERT;   // 'alert'
 LogLevels.EMERG;   // 'emerg'
 LogLevels.WARN;    // 'warn'
 LogLevels.INFO;    // 'info'
-LogLevels.HTTP;    // 'http'
-LogLevels.VERBOSE; // 'verbose'
 LogLevels.DEBUG;   // 'debug'
-LogLevels.SILLY;   // 'silly'
 
 LogLevels.isValid('info');    // true
 LogLevels.isValid('unknown'); // false
@@ -173,20 +235,16 @@ const level: TLogLevel = 'info';
 | Level | Priority | Color |
 |-------|----------|-------|
 | `error` | 0 | red |
-| `alert` | 0 | red |
 | `emerg` | 0 | red |
 | `warn` | 1 | yellow |
 | `info` | 2 | green |
-| `http` | 3 | magenta |
-| `verbose` | 4 | gray |
-| `debug` | 5 | blue |
-| `silly` | 6 | gray |
+| `debug` | 3 | blue |
 
-Lower numeric values have higher priority. `error`, `alert`, and `emerg` share priority `0`.
+Lower numeric values have higher priority. `error` and `emerg` share priority `0`.
 
 ## Method-Scoped Logging
 
-`.for()` creates a sub-scoped logger for a specific method, appending the method name to the scope with a `-` separator. The result is also cached.
+`.for()` creates a sub-scoped logger for a specific method, appending the method name to the scope with a `-` separator, backed by the same provider instance as the parent. Default-backed results are cached.
 
 ```typescript
 class UserService {
@@ -210,7 +268,7 @@ class UserService {
 
 ## Message Formatting
 
-`Source ->` [`formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatters/deep-splat.ts)
+`Source ->` [`winston/formatters/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/formatters/deep-splat.ts), [`formatting/deep-splat.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/formatting/deep-splat.ts)
 
 ### Logging errors: `%s`, never `%j`
 
@@ -292,15 +350,18 @@ const jsonFmt = defineLogFormatter({ label: 'my-app', format: 'json' });
 // Or use specific formatters directly
 const jsonFormatter = defineJsonLoggerFormatter({ label: 'my-app' });
 const prettyFormatter = definePrettyLoggerFormatter({ label: 'my-app' });
+const plainFormatter = definePrettyLoggerFormatter({ label: 'my-app', colorize: false });
 ```
 
 `defineLogFormatter` throws an `ApplicationError` if `format` (or `APP_ENV_LOGGER_FORMAT`) is not `'json'` or `'text'`.
 
 ## Transports
 
-`Source ->` [`default-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/default-logger.ts)
+`Source ->` [`winston/define.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/define.ts)
 
-Every logger created by `defineCustomLogger` always includes a **Console** transport at the `debug` level. File and UDP transports are optional and are registered per transport group (`info`, `error`).
+Every logger created by `defineCustomLogger` always includes a **Console** transport, which inherits the logger-level floor (`APP_ENV_LOGGER_LEVEL`, default `debug`). File and UDP transports are optional and are registered per transport group (`info`, `error`).
+
+Formatting is split in two stages: a shared preparation format on the logger (label, timestamp, error normalization, deep splat) and a per-transport assembly format. In `text` mode the console assembly colorizes while the file assembly does not - log FILES never contain ANSI color codes. In `json` mode every transport assembles with plain `format.json()`. Passing `formatter` disables the split: that one format produces the final line for every transport.
 
 ### File rotation (DailyRotateFile)
 
@@ -310,7 +371,7 @@ Configure file rotation through environment variables or programmatically via `I
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./` | Log files directory |
+| `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory; file logging is OFF when unset |
 | `APP_ENV_LOGGER_FILE_FREQUENCY` | `1h` | Rotation frequency |
 | `APP_ENV_LOGGER_FILE_MAX_SIZE` | `100m` | Max file size before rotation |
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | `5d` | Retention period |
@@ -319,10 +380,10 @@ Configure file rotation through environment variables or programmatically via `I
 **Programmatic configuration:**
 
 ```typescript
-import { defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers';
+import { defineCustomLogger, applicationLogFormatter } from '@venizia/ignis-helpers/winston';
 
 const customLogger = defineCustomLogger({
-  loggerFormatter: applicationLogFormatter,
+  formatter: applicationLogFormatter,
   transports: {
     info: {
       file: {
@@ -362,12 +423,12 @@ interface IFileTransportOptions {
 
 ### UDP transport (DgramTransport)
 
-`Source ->` [`transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/transports/dgram.transport.ts)
+`Source ->` [`winston/transports/dgram.transport.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/winston/transports/dgram.transport.ts)
 
 `DgramTransport` is a custom Winston transport that sends log entries over UDP. It filters by level - only messages whose level is in the configured `levels` set are forwarded.
 
 ```typescript
-import { DgramTransport } from '@venizia/ignis-helpers';
+import { DgramTransport } from '@venizia/ignis-helpers/winston';
 
 const transport = new DgramTransport({
   label: 'my-app',
@@ -391,7 +452,7 @@ const transport = DgramTransport.fromPartial({
 // Returns null if label, host, port, levels (non-empty), or socketOptions is missing
 ```
 
-On a socket error the transport closes and nulls its client; the next `log()` call re-establishes the socket before sending.
+On a socket error the transport closes and nulls its client; the next `log()` call re-establishes the socket before sending. A failed `send` is logged to the console and the socket is dropped for reconnection - it is never re-emitted as an `'error'` event, so one lost UDP log line can never crash the process.
 
 **Environment variables for the default application logger:**
 
@@ -418,9 +479,12 @@ interface IDgramTransportOptions extends Transport.TransportStreamOptions {
 
 ```typescript
 interface ICustomLoggerOptions {
-  logLevels?: { [name: string | symbol]: number };
-  logColors?: { [name: string | symbol]: string };
-  loggerFormatter?: ReturnType<typeof winston.format.combine>;
+  levels?: { [name: string | symbol]: number };
+  colors?: { [name: string | symbol]: string };
+  // Full override: applied once for every transport, exactly as it produces the line
+  formatter?: ReturnType<typeof winston.format.combine>;
+  format?: TLoggerFormat; // 'json' | 'text'; defaults to APP_ENV_LOGGER_FORMAT
+  level?: TLogLevel;      // logger-level floor; defaults to APP_ENV_LOGGER_LEVEL, then 'debug'
   transports: {
     info: {
       file?: IFileTransportOptions;
@@ -440,7 +504,7 @@ interface ICustomLoggerOptions {
 
 ## Debug Logging Behavior
 
-`Source ->` [`application-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/application-logger.ts)
+`Source ->` [`base/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/base/base.ts)
 
 Debug logs require **both** conditions to be met:
 
@@ -460,9 +524,9 @@ APP_ENV_EXTRA_LOG_ENVS=qa,preview   # Comma-separated additional environments
 
 ## High-Frequency Logger (HfLogger)
 
-`Source ->` [`hf-logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf-logger.ts)
+`Source ->` [`hf/logger.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/logger.ts), [`hf/flusher.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/logger/hf/flusher.ts)
 
-For performance-critical applications (e.g. HFT systems, game servers), `HfLogger` provides zero-allocation logging via a lock-free ring buffer backed by `SharedArrayBuffer`. It is entirely separate from the Winston-backed `Logger` - no formatters, transports, or env vars apply to it.
+For performance-critical applications (e.g. HFT systems, game servers), `HfLogger` provides ring-buffer logging with a 59.4ns bytes-path enqueue and a 66.0ns string no-args enqueue (Bun 1.3.14, 1M-iteration median). It extends `AbstractLogger` and implements `ILogger`, so it can be used anywhere an `ILogger` is expected - but it is still entirely separate from the Winston-backed `Logger` pipeline: no formatters, transports, or `APP_ENV_LOGGER_*` env vars apply to it. Read the [HfLogger guide](/extensions/helpers/logger/hf-logger) before using it - it carries hard usage rules (pre-encoded fixed message vocabulary, single-thread only, flush-interval sizing) and documented limitations.
 
 ```typescript
 import { HfLogger, HfLogFlusher } from '@venizia/ignis-helpers';
@@ -476,43 +540,70 @@ const MSG_ORDER_FILLED = HfLogger.encodeMessage('Order filled');
 const flusher = new HfLogFlusher();
 flusher.start(100); // Flush every 100ms
 
-// In hot path (~100-300ns, zero allocation):
+// In hot path (bytes path, ~59ns, no allocation):
 logger.log('info', MSG_ORDER_SENT);
 logger.log('info', MSG_ORDER_FILLED);
+
+// ILogger surface also works (string no-args path, ~66ns on a cache hit):
+logger.info('Order sent');
+
+// Shutdown:
+await flusher.flush();
+flusher.stop();
 ```
 
 ### HfLogger API
 
+`HfLogger` implements the full `ILogger` contract plus its own static/bytes surface:
+
 | Method | Signature | Description |
 |--------|-----------|--------------|
-| `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance |
-| `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes (cached) |
-| `logger.log` | `(level: THfLogLevel, messageBytes: Uint8Array) => void` | Write entry to the ring buffer |
+| `HfLogger.get` | `(scope: string) => HfLogger` | Get or create a cached logger instance (allocates the ring lazily on first call) |
+| `HfLogger.encodeMessage` | `(msg: string) => Uint8Array` | Pre-encode a message string to bytes; FIFO-bounded cache, cap `MESSAGE_CACHE_CAP = 4096` |
+| `logger.debug/info/warn/error/emerg` | `(message: string, ...args: AnyType[]) => void` | `ILogger` methods. No args: cache-lookup encode + bytes-path write. With args: `formatLogMessage` (deep inspection + redaction) then an uncached encode - the slow path |
+| `logger.log` | `(level: TLogLevel, message: string, ...args: AnyType[]) => void`<br>`(level: TLogLevel, messageBytes: Uint8Array) => void` | Overloaded: string form follows the `debug`/`info`/... cost model above; `Uint8Array` form is the legacy bytes hot path, unchanged signature |
+| `logger.for` | `(methodName: string) => ILogger` | Returns `HfLogger.get(`${scope}-${methodName}`)`, same dash composition as `BaseLogger` |
 
-Supported levels: `debug` (0), `info` (1), `warn` (2), `error` (3), `emerg` (4).
+Supported levels (`TLogLevel`, full set): `debug` (0), `info` (1), `warn` (2), `error` (3), `emerg` (4).
 
 ### HfLogFlusher API
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
-| `flusher.flush` | `() => Promise<void>` | Drain all buffered entries not yet flushed, writing each to `console.log` |
-| `flusher.start` | `(intervalMs?: number) => void` | Start a background `setInterval` flush loop (default: `100`ms) |
+| `new HfLogFlusher` | `(options?: IHfLogFlusherOptions) => HfLogFlusher` | `sink?: THfSink` (full custom delivery), `filePath?: string` (default sink appends here instead of stdout), `batchSize?: number` (entries rendered per batch before yielding, default `1024`; invalid values fall back with a `console.warn`) |
+| `flusher.flush` | `() => Promise<void>` | Drain the full backlog in bounded batches, yielding (`setImmediate`) between batches; re-entrant calls return the in-progress promise |
+| `flusher.start` | `(intervalMs?: number) => void` | Start a background `setInterval` flush loop (default `100`ms), unref'd so it never blocks process exit; idempotent - calling again restarts cleanly |
+| `flusher.stop` | `() => void` | Clear the interval started by `start()` |
+
+`THfSinkBatch` passed to a custom `sink`: `{ lines: Array<string>; dropped: number }` - `dropped` is the exact count of entries overwritten by the ring before the flusher could read them since the previous batch (see "Lap accounting" in the guide). The default sink (no `filePath`) writes `process.stdout.write(...)` once per batch; with `filePath`, it appends via `fs.appendFileSync` once per batch. A sink that throws is logged via `console.error` and does not abort the drain.
+
+### Line format
+
+The default sink renders each entry as:
+
+```
+<ISO timestamp> [<level name>] <scope> <message>
+```
+
+For example: `2026-07-18T09:41:03.128Z [info] OrderEngine Order sent`. When a batch has `dropped > 0`, the default sink emits a `warn` marker line ahead of it: `<ISO timestamp> [warn] HfLogFlusher ring lapped - <N> entries overwritten before they could be read`.
 
 ### Ring buffer entry format
 
-Each entry occupies exactly 256 bytes in a 64K-entry (16MB) `SharedArrayBuffer` shared module-wide (not per-`HfLogger` instance):
+Each entry occupies exactly 256 bytes in a 64K-entry (16MB) `ArrayBuffer`, allocated lazily on the first `HfLogger.get()` call (not at module import) and shared module-wide (not per-`HfLogger` instance):
 
 | Offset | Size | Field |
 |--------|------|-------|
-| 0-7 | 8 bytes | Timestamp (`BigInt64`, nanosecond precision) |
+| 0-7 | 8 bytes | Timestamp (`float64` epoch milliseconds, sub-millisecond precision) |
 | 8 | 1 byte | Level (`0`=debug, `1`=info, `2`=warn, `3`=error, `4`=emerg) |
-| 9-40 | 32 bytes | Scope (fixed-width, padded) |
-| 41-255 | 215 bytes | Message (fixed-width, truncated if longer) |
+| 9 | 1 byte | Scope length (0-32) |
+| 10-41 | 32 bytes | Scope bytes |
+| 42 | 1 byte | Message length (0-213) |
+| 43-255 | 213 bytes | Message bytes |
 
-The buffer wraps around at 65,536 entries using bitwise AND masking (`writeIndex & (BUFFER_SIZE - 1)`), so unflushed entries older than 65,536 writes are silently overwritten.
+The explicit length bytes are what make reads exact: the flusher decodes only the bytes a field actually holds, so there is no NUL padding and no stale tail from a previous, longer entry in a reused slot. The buffer wraps around at 65,536 entries using bitwise AND masking (`writeIndex & (BUFFER_SIZE - 1)`); when the producer writes faster than the flusher drains, unflushed entries are overwritten, and the overwritten count is reported via `dropped` on the next sink batch rather than silently emitted.
 
 > [!WARNING]
-> Pre-encode messages at initialization time using `HfLogger.encodeMessage()`. Calling it in the hot path defeats the zero-allocation purpose because it triggers string encoding on every log call.
+> Pre-encode messages at initialization time using `HfLogger.encodeMessage()` or by calling a no-args `ILogger` method once per distinct message. Calling either with dynamic, per-event strings puts UTF-8 encoding on the hot path and can evict other cached messages once the FIFO-bounded cache (4096 entries) fills.
 
 ## Environment Variables
 
@@ -525,8 +616,10 @@ The buffer wraps around at 65,536 entries using bitwise AND masking (`writeIndex
 | `NODE_ENV` | _(unset)_ | Must be in `COMMON_ENVS` or unset for debug to activate |
 | `APP_ENV_EXTRA_LOG_ENVS` | _(empty)_ | Comma-separated additional environments to allow debug |
 | `APP_ENV_LOGGER_FORMAT` | `text` | Output format (`json` or `text`) |
-| `APP_ENV_LOGGER_FOLDER_PATH` | `./` | Log files directory |
+| `APP_ENV_LOGGER_LEVEL` | `debug` | Logger-level floor; transports without their own level inherit it. Invalid values fall back to `debug` with a console warning |
+| `APP_ENV_LOGGER_FOLDER_PATH` | _(unset)_ | Log files directory; file logging is OFF when unset |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | `5` | Object inspection depth for `%s` placeholders. Non-negative integer only; invalid or absent falls back to `5` |
+| `APP_ENV_LOGGER_DO_REDACT` | `true` | Secret redaction in log arguments. ONLY the literal `false` disables it - raw values (passwords, tokens, connection URLs) then reach the sinks. Any other value, unset included, keeps redaction ON. Never disable in production |
 
 ### File rotation
 
@@ -574,19 +667,26 @@ APP_ENV_LOGGER_DGRAM_LEVELS=error,warn,info
 
 | Export | Kind | Description |
 |--------|------|-------------|
-| `Logger` | class | Scoped logger with caching, wraps a Winston logger instance |
-| `ApplicationLogger` | value + type alias | Backward-compatible alias for `Logger` |
-| `LoggerFactory` | class | Factory that creates `Logger` from scope arrays |
-| `HfLogger` | class | Zero-allocation ring-buffer logger |
+| `ILogger` | interface | The logging contract every consumer types against - one direct method per level (`debug`, `info`, `warn`, `error`, `emerg`), plus `log` and `for` |
+| `AbstractLogger` | abstract class | `ILogger` as a class - the `instanceof` check that works for EVERY provider |
+| `BaseLogger` | abstract class | Provider-independent plumbing shared by every implementation: scope, prefix, the `DEBUG` gate, `.for()`, one abstract `write()` sink |
+| `WinstonLogger` | class | The Winston-backed provider (the default); `Logger` is its permanent concrete alias |
+| `Logger` | class | Concrete winston alias - `Logger.get(scope, customWinstonLogger?)`, `instanceof Logger`; deliberately does NOT follow `use()` |
+| `PinoLogger` | class (sub-path `/pino`) | The throughput provider - register with `LoggerFactory.use` ([guide](/extensions/helpers/logger/pino)) |
+| `ApplicationLogger` | const facade + type (`ILogger`) | `ApplicationLogger.get(scope)` always returns the REGISTERED provider's logger |
+| `LoggerFactory` | class | Provider registration (`use({ provider })`) + `ILogger` acquisition from scope arrays |
+| `ILoggerProvider` | interface | Static-side contract a provider class satisfies (`get(scope): ILogger`) |
+| `HfLogger` | class | `ILogger`-conformant ring-buffer logger for hot paths |
 | `HfLogFlusher` | class | Background flusher for `HfLogger` |
-| `LogLevels` | class (constants) | Log level constants (`ERROR`, `ALERT`, `EMERG`, `WARN`, `INFO`, `HTTP`, `VERBOSE`, `DEBUG`, `SILLY`) with `isValid()` |
+| `LogLevels` | class (constants) | Log level constants (`ERROR`, `EMERG`, `WARN`, `INFO`, `DEBUG`) with `isValid()` |
 | `LoggerFormats` | class (constants) | Format constants (`JSON`, `TEXT`) with `isValid()` |
 | `defineCustomLogger` | `(opts: ICustomLoggerOptions) => winston.Logger` | Create a fully configured Winston logger |
 | `defineLogFormatter` | `(opts: { label: string; format?: TLoggerFormat }) => winston.Logform.Format` | Create a formatter (auto-detects format from env) |
 | `defineJsonLoggerFormatter` | `(opts: { label: string }) => winston.Logform.Format` | Create a JSON formatter |
-| `definePrettyLoggerFormatter` | `(opts: { label: string }) => winston.Logform.Format` | Create a pretty text formatter |
+| `definePrettyLoggerFormatter` | `(opts: { label: string; colorize?: boolean }) => winston.Logform.Format` | Create a pretty text formatter; `colorize: false` for files/aggregators |
 | `applicationLogFormatter` | `winston.Logform.Format` | Pre-built formatter using `APP_ENV_APPLICATION_NAME` label |
-| `applicationLogger` | `winston.Logger` | Pre-built default Winston logger instance |
+| `resolveLoggerLevel` | `(opts: { configured?: string }) => TLogLevel` | Validate a level string; invalid or absent falls back to `debug` |
+| `resolveDefaultTransportOptions` | `() => ICustomLoggerOptions['transports']` | Default transports from `APP_ENV_LOGGER_*`, resolved at call time |
 | `DgramTransport` | class | Custom Winston transport for UDP logging |
 | `TLogLevel` | type | Union of all log level string literals |
 | `TLoggerFormat` | type | Union of `'json' \| 'text'` |

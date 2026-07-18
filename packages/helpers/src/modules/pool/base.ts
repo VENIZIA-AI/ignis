@@ -3,10 +3,8 @@ import { AbstractPoolHelper } from './abstract';
 import { IPoolOptions } from './types';
 
 /**
- * Concrete object pool configured by callbacks ({@link IPoolOptions}). Implements the
+ * Concrete object pool configured by callbacks ({@link IPoolOptions}); implements the
  * AbstractPoolHelper lifecycle hooks by delegating to `create`/`validate`/`reset`/`destroy`.
- *
- * Each borrow is exclusive until released; `use()` is leak-safe (destroys the resource on error).
  */
 export class BasePoolHelper<T> extends AbstractPoolHelper<T> {
   private readonly factory: IPoolOptions<T>;

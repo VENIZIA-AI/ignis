@@ -9,9 +9,8 @@ interface IProbePool {
 }
 
 /**
- * `destroy()` tears down what it can SEE: it drains the waiter queue and destroys the idle list. A
- * resource whose `create()` is still in flight is in neither, so whatever the dispatch loop does
- * with it after the pool is gone decides whether it lives forever.
+ * destroy() only tears down what it can SEE (waiter queue + idle list) - a resource whose create()
+ * is still in flight is in neither, so the dispatch loop decides whether it leaks once the pool is gone.
  */
 const buildPool = (): IProbePool => {
   const created: number[] = [];

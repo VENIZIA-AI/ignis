@@ -2,13 +2,9 @@ import { beforeEach, describe, expect, test } from 'bun:test';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-/**
- * `datasourceModels` used to hold model NAMES and round-trip them through the global, name-keyed
- * `modelRegistry`. Two model classes that share a name - a `Product` search document in one module
- * and a `Product` entity in another, or simply two same-named classes across features - collapsed
- * onto one registry entry, and every datasource bound to the loser silently resolved the WRONG
- * class: wrong `@model` settings, wrong hiddenProperties, an empty auto-discovered schema.
- */
+/** `datasourceModels` must hold model CLASSES: name round-trips through the name-keyed
+ * `modelRegistry` collapse two same-named classes onto one entry, silently resolving the WRONG
+ * class (wrong settings, wrong hiddenProperties, empty schema). */
 const buildModelClass = (opts: { name: string; hidden: string[] }): AnyType => {
   const { name, hidden } = opts;
 

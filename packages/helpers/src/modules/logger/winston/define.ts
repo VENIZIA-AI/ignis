@@ -1,14 +1,14 @@
 import { Defaults } from '@/common/constants';
-import { TConstValue } from '@/common/types';
 import { int } from '@/utilities/parse.utility';
 import { getError } from '@venizia/ignis-inversion';
 import path from 'node:path';
 import winston from 'winston';
 import 'winston-daily-rotate-file';
-import { deepSplat } from './formatters/';
-import { DgramTransport, IDgramTransportOptions } from './transports';
+import { deepSplat } from './formatters';
+import { DgramTransport } from './transports';
+import { ICustomLoggerOptions, IDgramTransportOptions } from './common';
+import { LoggerFormats, resolveLoggerLevel, TLoggerFormat } from '../common';
 
-const LOGGER_FOLDER_PATH = process.env.APP_ENV_LOGGER_FOLDER_PATH ?? './';
 const LOGGER_PREFIX = Defaults.APPLICATION_NAME;
 const LOGGER_FORMAT = process.env.APP_ENV_LOGGER_FORMAT ?? 'text';
 
@@ -19,43 +19,42 @@ const LOGGER_FILE_DATE_PATTERN = process.env.APP_ENV_LOGGER_FILE_DATE_PATTERN ??
 
 const f = winston.format;
 
-export class LoggerFormats {
-  static readonly JSON = 'json';
-  static readonly TEXT = 'text';
-
-  static readonly SCHEME_SET = new Set([this.JSON, this.TEXT]);
-
-  static isValid(orgType: string): boolean {
-    return this.SCHEME_SET.has(orgType);
-  }
-}
-
-export type TLoggerFormat = TConstValue<typeof LoggerFormats>;
-
-export const defineJsonLoggerFormatter = (opts: { label: string }) => {
+/**
+ * Shared per-line preparation: label, timestamp, error normalization, deep splat. Final-string
+ * assembly is per-transport, so console can colorize while files/UDP get plain lines.
+ */
+const definePrepFormatter = (opts: { label: string }) => {
   return f.combine(
     f.label({ label: opts.label }),
     f.timestamp(),
-    deepSplat(),
     f.errors({ stack: true }),
-    f.json(),
-    f.colorize(),
+    deepSplat(),
   );
 };
 
-export const definePrettyLoggerFormatter = (opts: { label: string }) => {
-  return f.combine(
-    f.simple(),
-    f.label({ label: opts.label }),
-    f.timestamp(),
-    deepSplat(),
-    f.align(),
-    f.colorize(),
-    f.printf(({ level, message, label, timestamp }) => {
-      return `${timestamp} [${label}] ${level}: ${message}`;
-    }),
-    f.errors({ stack: true }),
-  );
+const defineTextLineFormatter = () => {
+  return f.printf(({ level, message, label, timestamp }) => {
+    return `${timestamp} [${label}] ${level}: ${message}`;
+  });
+};
+
+export const defineJsonLoggerFormatter = (opts: { label: string }) => {
+  return f.combine(definePrepFormatter({ label: opts.label }), f.json());
+};
+
+export const definePrettyLoggerFormatter = (opts: { label: string; colorize?: boolean }) => {
+  const { label, colorize = true } = opts;
+
+  if (colorize) {
+    return f.combine(
+      definePrepFormatter({ label }),
+      f.align(),
+      f.colorize(),
+      defineTextLineFormatter(),
+    );
+  }
+
+  return f.combine(definePrepFormatter({ label }), f.align(), defineTextLineFormatter());
 };
 
 export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat }) => {
@@ -78,60 +77,54 @@ export const defineLogFormatter = (opts: { label: string; format?: TLoggerFormat
 
 export const applicationLogFormatter = defineLogFormatter({ label: LOGGER_PREFIX });
 
-export interface IFileTransportOptions {
-  prefix: string;
-  folder: string;
-  frequency?: string;
-  maxSize?: string;
-  maxFiles?: string;
-  datePattern?: string;
-}
-
-export interface ICustomLoggerOptions {
-  logLevels?: { [name: string | symbol]: number };
-  logColors?: { [name: string | symbol]: string };
-  loggerFormatter?: ReturnType<typeof winston.format.combine>;
-  transports: {
-    info: {
-      file?: IFileTransportOptions;
-      dgram?: Partial<IDgramTransportOptions>;
-    };
-    error: {
-      file?: IFileTransportOptions;
-      dgram?: Partial<IDgramTransportOptions>;
-    };
-  };
-}
+/** Per-transport assembly formats: colorized console, plain file. */
+const defineAssemblyFormats = (opts: { format: TLoggerFormat }) => {
+  switch (opts.format) {
+    case LoggerFormats.JSON: {
+      return { console: f.json(), file: f.json() };
+    }
+    case LoggerFormats.TEXT: {
+      return {
+        console: f.combine(f.align(), f.colorize(), defineTextLineFormatter()),
+        file: f.combine(f.align(), defineTextLineFormatter()),
+      };
+    }
+    default: {
+      throw getError({
+        message: `[defineCustomLogger] Invalid logger format | format: ${opts.format} | valids: ${[...LoggerFormats.SCHEME_SET]}`,
+      });
+    }
+  }
+};
 
 export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
   const {
-    logLevels = {
+    levels = {
       error: 0,
-      alert: 0,
       emerg: 0,
       warn: 1,
       info: 2,
-      http: 3,
-      verbose: 4,
-      debug: 5,
-      silly: 6,
+      debug: 3,
     },
-    logColors = {
+    colors = {
       error: 'red',
-      alert: 'red',
       emerg: 'red',
       warn: 'yellow',
       info: 'green',
-      http: 'magenta',
-      verbose: 'gray',
       debug: 'blue',
-      silly: 'gray',
     },
-    loggerFormatter = applicationLogFormatter,
+    formatter,
+    format = LOGGER_FORMAT as TLoggerFormat,
+    level = resolveLoggerLevel({ configured: process.env.APP_ENV_LOGGER_LEVEL }),
     transports: { info: infoTransportOptions, error: errorTransportOptions },
   } = opts;
 
-  const consoleLogTransport = new winston.transports.Console({ level: 'debug' });
+  const assemblyFormats = formatter ? null : defineAssemblyFormats({ format });
+  const loggerFormat = formatter ?? definePrepFormatter({ label: LOGGER_PREFIX });
+
+  const consoleLogTransport = new winston.transports.Console({
+    format: assemblyFormats?.console,
+  });
   const transports: {
     general: Array<winston.transport>;
     exception: Array<winston.transport>;
@@ -149,6 +142,7 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
       datePattern: fileOpts.datePattern ?? LOGGER_FILE_DATE_PATTERN,
       filename: path.join(fileOpts.folder, `/${fileOpts.prefix}-info-%DATE%.log`),
       level: 'info',
+      format: assemblyFormats?.file,
     });
 
     transports.general.push(transport);
@@ -163,6 +157,7 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
       datePattern: fileOpts.datePattern ?? LOGGER_FILE_DATE_PATTERN,
       filename: path.join(fileOpts.folder, `/${fileOpts.prefix}-error-%DATE%.log`),
       level: 'error',
+      format: assemblyFormats?.file,
     });
 
     transports.general.push(transport);
@@ -176,6 +171,9 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     }
   }
 
+  // Deliberate asymmetry with the file pair: error.dgram registers ONLY as an exception
+  // handler - ordinary error-level lines already ship over info.dgram's transport (same options
+  // in the default wiring), and adding it to general would double-send every error line.
   if (errorTransportOptions.dgram) {
     const transport = DgramTransport.fromPartial(errorTransportOptions.dgram);
     if (transport) {
@@ -183,29 +181,44 @@ export const defineCustomLogger = (opts: ICustomLoggerOptions) => {
     }
   }
 
-  winston.addColors(logColors);
+  winston.addColors(colors);
 
   return winston.createLogger({
-    levels: logLevels,
-    format: loggerFormatter,
+    levels,
+    level,
+    format: loggerFormat,
     exitOnError: false,
     transports: transports.general,
     exceptionHandlers: transports.exception,
   });
 };
 
-const fileOptions = { folder: LOGGER_FOLDER_PATH, prefix: LOGGER_PREFIX };
-const dgramOptions: Partial<IDgramTransportOptions> = {
-  socketOptions: { type: 'udp4' },
-  host: process.env.APP_ENV_LOGGER_DGRAM_HOST,
-  port: int(process.env.APP_ENV_LOGGER_DGRAM_PORT),
-  label: process.env.APP_ENV_LOGGER_DGRAM_LABEL,
-  levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map(el => el.trim()) ?? [],
-};
+/**
+ * Default transports from `APP_ENV_LOGGER_*`, resolved at CALL time. File logging is opt-in -
+ * without `APP_ENV_LOGGER_FOLDER_PATH` no rotating file is created.
+ */
+export const resolveDefaultTransportOptions = (): ICustomLoggerOptions['transports'] => {
+  const folderPath = process.env.APP_ENV_LOGGER_FOLDER_PATH;
+  const fileOptions =
+    folderPath && folderPath.trim() !== ''
+      ? { folder: folderPath, prefix: LOGGER_PREFIX }
+      : undefined;
 
-export const applicationLogger = defineCustomLogger({
-  transports: {
+  const dgramOptions: Partial<IDgramTransportOptions> = {
+    socketOptions: { type: 'udp4' },
+    host: process.env.APP_ENV_LOGGER_DGRAM_HOST,
+    port: int(process.env.APP_ENV_LOGGER_DGRAM_PORT),
+    label: process.env.APP_ENV_LOGGER_DGRAM_LABEL,
+    levels: process.env.APP_ENV_LOGGER_DGRAM_LEVELS?.split(',').map(el => el.trim()) ?? [],
+  };
+
+  return {
     info: { file: fileOptions, dgram: dgramOptions },
     error: { file: fileOptions, dgram: dgramOptions },
-  },
+  };
+};
+
+/** Module-internal only - NOT re-exported from `winston/index.ts`; the default winston backing WinstonLogger falls back to. */
+export const defaultWinstonLogger = defineCustomLogger({
+  transports: resolveDefaultTransportOptions(),
 });

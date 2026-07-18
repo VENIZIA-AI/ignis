@@ -77,6 +77,7 @@ The project uses a Makefile for common development tasks:
 | `make build` | Rebuild all packages in correct order |
 | `make clean` | Clean build artifacts from all packages |
 | `make lint` | Lint all packages |
+| `make lint-all` | Lint packages **and** examples - this is the bar a PR must clear |
 | `make help` | Show all available commands |
 
 **Individual package builds** (dependencies are automatically resolved):
@@ -153,8 +154,8 @@ git commit -m "chore: upgrade Hono to v4.0"
 ### Step 4: Validate
 
 ```bash
-# Lint and format (from root)
-make lint
+# Lint and format (from root) - zero warnings and zero errors is the bar
+make lint-all
 # Or run `bun run lint:fix` inside a package directory
 
 # Build all packages (from root)
@@ -163,6 +164,9 @@ make build
 # Run tests (from a package directory, e.g. packages/core or packages/boot)
 cd packages/core && bun test
 ```
+
+> [!WARNING]
+> `make <package>` **cleans `dist/` before it builds**, and the build type-checks `__tests__` too. One broken test therefore aborts the build after `dist/` is already gone, leaving an **empty `dist/`** and a cascade of unrelated-looking import failures in `bun test`. If imports suddenly break everywhere, check `dist/` before chasing the imports.
 
 ## 3. Submit Pull Request
 

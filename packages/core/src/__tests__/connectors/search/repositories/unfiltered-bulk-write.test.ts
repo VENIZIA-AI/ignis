@@ -3,15 +3,9 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { DefaultSearchRepository } from '@/connectors/search/repositories';
 import { FakeSearchDataSource, ProductDocumentNoDefaultFilter } from './fake-search-connector';
 
-/**
- * An unfiltered bulk write is a data-destruction primitive, and the search tier used to reach it by
- * ACCIDENT: `deleteAll({ where: {} })` compiles to an empty filter, the empty filter reads as "no
- * filter", and the connector truncated the entire collection - returning `{ count: 0 }`, so nothing
- * even reported the damage. The declared `force` flag was read by neither verb.
- *
- * Postgres has always demanded `force` for exactly this (`persistable.ts` - "DENY to perform | Empty
- * where condition"). The search tier now demands it too.
- */
+/** An unfiltered bulk write is a data-destruction primitive: `deleteAll({ where: {} })` compiles to
+ * an empty filter, which must not silently truncate the collection (truncate reports no count, so
+ * nothing surfaces the damage). The search tier demands `force`, exactly as postgres always has. */
 const buildRepository = () => {
   const dataSource = new FakeSearchDataSource({ name: 'bulk-write-ds', config: {} });
   const repository = new DefaultSearchRepository(dataSource, {

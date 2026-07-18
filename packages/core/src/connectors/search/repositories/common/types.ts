@@ -51,11 +51,8 @@ export interface ISearchQueryDialect {
   build(opts: { filter?: TFilter; hiddenFields?: string[] }): ISearchQuery;
   toWhere(opts: { where: TWhere }): string;
 
-  /**
-   * Writes every engine-specific consequence of a non-raw search input onto `query`: the mode
-   * dispatch, the vector clause, and the tuning knobs. Owning this here is what keeps
-   * `ReadableSearchRepository` free of engine vocabulary.
-   */
+  /** Writes every engine-specific consequence of a non-raw search input onto `query` (mode
+   * dispatch, vector clause, tuning knobs) - keeping `ReadableSearchRepository` engine-free. */
   applySearchInput(opts: {
     query: ISearchQuery;
     input: Exclude<TSearchInput, { mode: typeof SearchModes.RAW }>;

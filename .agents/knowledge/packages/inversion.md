@@ -1,7 +1,7 @@
 ---
 type: Package
 title: inversion
-description: The standalone IoC container underpinning every other IGNIS package - Container, Binding, MetadataRegistry, and the @inject/@injectable decorators.
+description: The standalone IoC container underpinning every other IGNIS package - Container, Binding, MetadataRegistry, and the @inject decorator.
 resource: packages/inversion
 tags: [packages, inversion, di, ioc]
 ---
@@ -24,11 +24,11 @@ Key `BaseContainer` members: `bind<T>({ key })`, `get<T>({ key, isOptional? })`,
 
 ## MetadataRegistry
 
-`src/registry/` centralizes metadata storage on top of `reflect-metadata`: generic `define`/`get`/`has`/`delete`, constructor injection via `setInjectMetadata`/`getInjectMetadata`, property injection via `setPropertyMetadata`/`getPropertiesMetadata`, and `@injectable` metadata. A shared `metadataRegistry` singleton is exported for framework-wide access.
+`src/registry/` centralizes metadata storage on top of `reflect-metadata`: generic `define`/`get`/`has`/`delete`, constructor injection via `setInjectMetadata`/`getInjectMetadata`, and property injection via `setPropertyMetadata`/`getPropertiesMetadata`. A shared `metadataRegistry` singleton is exported for framework-wide access.
 
 ## Decorators
 
-`@injectable({ scope?, tags? })` marks a class; `@inject({ key, isOptional? })` marks a constructor parameter or a property for injection. `isOptional: true` resolves to `undefined` instead of throwing when the key is unbound.
+`@inject({ key, isOptional? })` marks a constructor parameter or a property for injection. There is NO `@injectable`: it was removed 2026-07-18 after being inert (its scope/tags metadata was written but never read) - scope is set on the binding, not the class. `isOptional: true` resolves to `undefined` instead of throwing when the key is unbound.
 
 ## Folder convention
 

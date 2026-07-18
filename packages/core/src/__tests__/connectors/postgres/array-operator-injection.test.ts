@@ -3,12 +3,8 @@ import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { PostgresQueryOperators } from '@/connectors/postgres/repositories/dialect/query';
 
-/**
- * `contains` / `containedBy` / `overlaps` are reachable straight from the wire: a REST caller sends
- * `?filter={"where":{"tags":{"overlaps":[...]}}}`, and the operand is typed `z.any()` all the way
- * down. Whatever these handlers build must therefore be PARAMETERIZED - the moment a value is
- * concatenated into the statement, the caller is writing SQL.
- */
+/** `contains`/`containedBy`/`overlaps` are wire-reachable with a `z.any()` operand, so these
+ * handlers must build PARAMETERIZED SQL - a concatenated value lets the caller write SQL. */
 const table = pgTable('articles', {
   id: serial('id').primaryKey(),
   tags: text('tags').array(),

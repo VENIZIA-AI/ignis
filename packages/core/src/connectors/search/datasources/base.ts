@@ -8,11 +8,8 @@ import { MetadataRegistry } from '@/helpers/inversion';
 import { getError, type TClass } from '@venizia/ignis-helpers';
 import { AbstractSearchDataSource } from './abstract';
 
-/**
- * `searchCollection` is the dual-schema escape hatch: a postgres entity carrying a search index
- * next to its pgTable `schema` declares it here instead of overloading `schema`'s type. Search-only
- * entities (`BaseSearchEntity`) carry their collection DSL directly as static `definition`.
- */
+/** `searchCollection` is the dual-schema escape hatch: a postgres entity with a search index declares
+ * it here beside its pgTable `schema`; search-only entities carry the DSL as static `definition`. */
 type TDiscoverableModelClass = TClass<unknown> & {
   searchCollection?: ISearchCollectionDefinition;
   schema?: unknown;
@@ -29,14 +26,9 @@ const isSearchCollectionDefinition = (value: unknown): value is ISearchCollectio
   );
 };
 
-/**
- * Collection discovery/provisioning + connector lifecycle over AbstractSearchDataSource's engine
- * contract - mirrors BasePostgresDataSource's schema auto-discovery over AbstractPostgresDataSource.
- *
- * The connector is held through the `ISearchConnector`-bounded generic, never as an engine type: this
- * tier is the paradigm seam and must not import Typesense/Meilisearch. Engines supply only
- * `createConnector()`.
- */
+/** Collection discovery/provisioning + connector lifecycle over AbstractSearchDataSource - mirrors
+ * BasePostgresDataSource. Paradigm seam: the connector is held via the `ISearchConnector`-bounded
+ * generic, never an engine type - engines supply only `createConnector()`. */
 export abstract class BaseSearchDataSource<
   Settings extends object = {},
   TConnector extends ISearchConnector = ISearchConnector,
@@ -102,11 +94,8 @@ export abstract class BaseSearchDataSource<
     return registry.hasModels({ dataSource: this.constructor as TClass<IDataSource> });
   }
 
-  /**
-   * Cross-collection search - lives on the datasource (not a single-collection repository) since it
-   * spans many collections at once. The envelope is engine-specific, so the neutral return is
-   * `unknown`; `TypesenseDataSource` narrows it to its results/union shapes.
-   */
+  /** Cross-collection search, so it lives on the datasource, not a repository. Engine-specific
+   * envelope: neutral return is `unknown`; `TypesenseDataSource` narrows it. */
   multiSearch(opts: {
     searches: TMultiSearchEntry[];
     union?: boolean;
@@ -137,12 +126,8 @@ export abstract class BaseSearchDataSource<
     });
   }
 
-  /**
-   * Reads `static searchCollection` (dual-schema escape: a postgres entity carrying a search index
-   * beside its pgTable), falling back to `static schema` (shape-guarded so a
-   * pgTable's `schema` is never mistaken for a collection definition); skips classes with
-   * neither. Honors `@datasource({ autoDiscovery: false })` same as the postgres branch.
-   */
+  /** Reads `static searchCollection`, falling back to shape-guarded `static schema`; skips classes
+   * with neither. Honors `@datasource({ autoDiscovery: false })` same as the postgres branch. */
   protected discoverCollections(): TSearchSchema {
     return this.discoverDefinitions<ISearchCollectionDefinition>({
       kind: 'collection',
@@ -164,12 +149,9 @@ export abstract class BaseSearchDataSource<
     return isSearchCollectionDefinition(model.schema) ? model.schema : undefined;
   }
 
-  /** Collection name -> its `@model` hiddenProperties, for datasource-level operations (multiSearch)
-   * that span collections and so cannot read a single repository's `hiddenFields`. Collections with
-   * no hidden properties are omitted; callers own exclusion for any collection absent from this map.
-   *
-   * Memoized per instance like `getSchema()`: `@model` settings and `@repository` bindings are frozen
-   * once boot completes, so the walk is computed on first use and never invalidated. */
+  /** Collection name -> `@model` hiddenProperties, for cross-collection operations (multiSearch).
+   * Collections with none are omitted - callers own exclusion for absent entries. Memoized per
+   * instance: `@model`/`@repository` metadata is frozen after boot, so never invalidated. */
   protected hiddenFieldsByCollection(): Record<string, string[]> {
     this.hiddenFieldsByCollectionMap ??= this.discoverHiddenFieldsByCollection();
     return this.hiddenFieldsByCollectionMap;

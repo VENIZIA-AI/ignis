@@ -5,17 +5,9 @@ import { Container } from '../modules/container/container';
 import { inject } from '../modules/metadata/injectors';
 
 /**
- * A container-instantiated class must decorate EVERY constructor parameter.
- *
- * There is no channel through which the container could supply an undecorated one - it would receive
- * `undefined` - so the shape is refused, not silently tolerated. It is refused HERE, with the class
- * name and the parameter index, because the failure otherwise surfaced as
- * `TypeError: undefined is not an object (evaluating 'meta.isOptional')` from inside `dist`: the
- * metadata array is sparse (`@inject` at index 1 leaves a hole at 0), and the hole was dereferenced.
- *
- * The check lives in `instantiate`, not in the decorator: parameter decorators run RIGHT-TO-LEFT, so
- * when `@inject` on parameter 1 runs, parameter 0 has not been visited yet - nothing there can know
- * whether it will be decorated.
+ * Every constructor parameter of a container-instantiated class must carry `@inject` - a sparse
+ * metadata array is refused in `instantiate` with class name + index (decorators run right-to-left,
+ * so the decorator itself cannot check).
  */
 class NoteService {
   find(): string {

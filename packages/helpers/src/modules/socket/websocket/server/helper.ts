@@ -158,11 +158,7 @@ export class WebSocketServerHelper<
     return this.path;
   }
 
-  /**
-   * User hooks run inside Bun socket handlers: a synchronous throw there is an uncaught exception
-   * that takes the process down. voidExecution only settles promises, it never sees a sync throw
-   * because its argument is already evaluated at the call site.
-   */
+  /** Hooks run inside Bun socket handlers - a sync throw there kills the process; voidExecution only catches promise rejections since its argument is evaluated before the try/catch runs. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 
@@ -570,11 +566,7 @@ export class WebSocketServerHelper<
     client.socket.unsubscribe(room);
   }
 
-  /**
-   * Enable encryption for a client. Unsubscribes from all Bun native topics
-   * so `server.publish()` won't reach them — messages are delivered manually
-   * through the outbound transformer instead.
-   */
+  /** Unsubscribes the client from Bun native topics so `server.publish()` can't reach it - encrypted clients get messages only via the outbound transformer. */
   enableClientEncryption(opts: { clientId: string }) {
     const client = this.clients.get(opts.clientId);
     if (!client || client.encrypted) {

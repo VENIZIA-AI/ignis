@@ -13,11 +13,8 @@ class ValidateIdFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'TestEntity';
 }
 
-/**
- * A null/undefined id must NOT reach the database: { id: undefined } collapses to an
- * empty where (toWhere drops undefined values), which would otherwise turn
- * updateById/deleteById into a table-wide mutation. Falsy-but-valid ids (0, '') are fine.
- */
+/** A null/undefined id must NOT reach the database: `{ id: undefined }` collapses to an empty where,
+ * turning updateById/deleteById into a table-wide mutation. Falsy-but-valid ids (0, '') are fine. */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(undefined, {});

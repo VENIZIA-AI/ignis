@@ -21,12 +21,8 @@ export interface IKafkaBaseOptions<TClient extends Base<BaseOptions>> {
 }
 
 /**
- * BaseKafkaHelper — Shared health tracking and broker event wiring
- * for all Kafka helpers (producer, consumer, admin).
- *
- * Generic `TClient` is the platformatic client type (Producer, Consumer, Admin).
- * Subclasses create the client, pass it via `super({ client })`, and access it
- * through `this.client`. Broker events are wired automatically in the constructor.
+ * Shared health tracking and broker event wiring for all Kafka helpers (producer, consumer,
+ * admin). `TClient` is the platformatic client type; subclasses pass it via `super({ client })`.
  */
 export abstract class BaseKafkaHelper<TClient extends Base<BaseOptions>> extends BaseHelper {
   protected client: TClient;

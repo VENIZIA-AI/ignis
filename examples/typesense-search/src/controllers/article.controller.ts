@@ -16,7 +16,7 @@ const BASE_PATH = '/articles';
  * type flows through count/find/findById/create/updateById/deleteById with no cast.
  * Generates GET /count, GET /, GET /:id, POST /, PATCH /:id, DELETE /:id.
  */
-const _Controller = ControllerFactory.defineCrudController({
+const BaseCrudController = ControllerFactory.defineCrudController({
   entity: ArticleDocument,
   repository: { name: ArticleRepository.name },
   controller: {
@@ -26,7 +26,7 @@ const _Controller = ControllerFactory.defineCrudController({
 });
 
 @controller({ path: BASE_PATH })
-export class ArticleController extends _Controller {
+export class ArticleController extends BaseCrudController {
   constructor(
     @inject({
       key: BindingKeys.build({

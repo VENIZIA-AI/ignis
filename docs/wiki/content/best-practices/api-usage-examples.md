@@ -101,18 +101,22 @@ export class TestController extends BaseRestController {
   override binding(): ValueOrPromise<void> {
     // Using 'defineRoute'
     this.defineRoute({
-      configs: RouteConfigs.GET_HELLO,
+      configs: RouteConfigs.GET_TEST,
       handler: context => {
-        return context.json({ message: 'Hello' }, HTTP.ResultCodes.RS_2.Ok);
+        return context.json({ message: 'Hello', method: 'GET' }, HTTP.ResultCodes.RS_2.Ok);
       },
     });
 
     // Using 'bindRoute' for a fluent API
     this.bindRoute({
-      configs: RouteConfigs.GET_GREETING,
+      configs: RouteConfigs.CREATE_ITEM,
     }).to({
       handler: context => {
-        return context.json({ message: 'Hello 3' }, HTTP.ResultCodes.RS_2.Ok);
+        const body = context.req.valid<{ name: string; age: number }>('json');
+        return context.json(
+          { id: crypto.randomUUID(), ...body },
+          HTTP.ResultCodes.RS_2.Ok,
+        );
       },
     });
   }
@@ -168,7 +172,7 @@ This automatically creates endpoints like `GET /configurations`, `POST /configur
 
 ## Repository (Data Access) Usage
 
-Repositories are used to interact with your database. The `DefaultCRUDRepository` provides a rich set of methods for data manipulation. Here are examples from the `postConfigure` method in `src/application.ts`, which demonstrates how to use an injected repository.
+Repositories are used to interact with your database. The `DefaultRelationalRepository` provides a rich set of methods for data manipulation. Here are examples from the `postConfigure` method in `src/application.ts`, which demonstrates how to use an injected repository.
 
 ```typescript
 // In src/application.ts
@@ -223,9 +227,10 @@ const updated = await configurationRepository.updateById({
 // --- Delete a Record by ID ---
 const deleted = await configurationRepository.deleteById({
   id: newRecord.data!.id,
-  options: { shouldReturn: true }, // Option to return the deleted record
 });
 ```
+
+Writes return `{ count, data }` and `shouldReturn` defaults to `true`. Pass `options: { shouldReturn: false }` to skip the `RETURNING` round-trip when you only need the count.
 
 ## Server-Side Rendering (JSX)
 
@@ -240,7 +245,10 @@ import { BaseRestController, controller, htmlResponse } from '@venizia/ignis';
 
 @controller({ path: '/pages' })
 export class PageController extends BaseRestController {
-  
+  constructor() {
+    super({ scope: PageController.name, path: '/pages' });
+  }
+
   override binding(): void {
     this.defineJSXRoute({
       configs: {
@@ -471,12 +479,12 @@ const result = await sessionRepository.deleteBy({
   where: { expiresAt: { lt: new Date() } },
 });
 
-// Delete with return values
-const deleted = await sessionRepository.deleteBy({
+// Count only - skips the RETURNING round-trip
+const purged = await sessionRepository.deleteBy({
   where: { userId: 'user-123' },
-  options: { shouldReturn: true },  // Returns deleted records
+  options: { shouldReturn: false },
 });
-// deleted.data = array of deleted records
+// purged.count = number of deleted rows; purged.data is null
 ```
 
 ### Batch Create
@@ -512,13 +520,20 @@ throw getError({
   message: 'User not found',
 });
 
-// With message code for i18n
+// Full message shape - { text, code, args } - for i18n
 throw getError({
-  statusCode: 404,
-  message: 'User not found',
-  messageCode: 'core.user.not_found',
+  statusCode: HTTP.ResultCodes.RS_4.NotFound,
+  message: {
+    text: 'User not found',
+    code: 'core.user.not_found',
+    args: { id },
+  },
 });
 ```
+
+The `{ text, code, args }` object is the one message shape used by error definitions, `getError` input, and the `normalized` field of every response. Read `normalized.code` on the client - there is no top-level `messageCode` in the response. Codes are lower-cased and default to `core.system_error`.
+
+Use `isApplicationError(error)` to test identity, never `instanceof` - the class has more than one identity across packages.
 
 ### Error Handling in Route Handlers
 

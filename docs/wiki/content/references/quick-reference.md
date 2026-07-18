@@ -81,9 +81,8 @@ class GreeterController extends BaseGrpcController {
 ### BaseService
 
 ```typescript
-import { BaseService, injectable } from '@venizia/ignis';
+import { BaseService } from '@venizia/ignis';
 
-@injectable({})
 class UserService extends BaseService {
   constructor() {
     super({ scope: UserService.name });
@@ -308,17 +307,6 @@ const users = await userRepository.find({
 
 ## Dependency Injection
 
-### Injectable Decorator
-
-```typescript
-import { injectable } from '@venizia/ignis';
-
-@injectable({})
-class MyService extends BaseService {
-  // ...
-}
-```
-
 ### Inject Decorator
 
 ```typescript
@@ -368,7 +356,6 @@ import {
 
   // DI
   inject,
-  injectable,
 
   // Utilities
   jsonResponse,

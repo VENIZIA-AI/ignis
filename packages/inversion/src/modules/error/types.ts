@@ -1,10 +1,6 @@
 import type { TErrorScope } from './definition';
 
-/**
- * The RESOLVED message a client renders: `translate(code, args)`. Every field is always present -
- * the constructor defaults `code` to {@link MessageCode.DEFAULT} and `args` to `{}` - so no consumer
- * has to null-check what it reads.
- */
+/** Resolved message a client renders. All fields always present - no null-checks downstream. */
 export type TErrorNormalized = {
   text: string;
   code: string;
@@ -22,10 +18,8 @@ export type TErrorMessageInput = {
 };
 
 /**
- * A catalogued message - a `code` is the whole reason the catalog exists, so it is required here.
- *
- * `code` is a plain `string`, NOT {@link TErrorKey}: a catalog DECLARES the keys the registry is
- * built from, so typing it against that registry would make `IErrorKeyRegistry` define itself.
+ * Catalogued message - `code` required. Typed `string`, not {@link TErrorKey}: catalogs DECLARE
+ * the registry keys, so typing against the registry would be self-referential.
  */
 export type TErrorDefinitionMessage = Omit<TErrorMessageInput, 'code'> & { code: string };
 
@@ -86,9 +80,8 @@ export type TErrorByField = TErrorCommon & {
   message: TErrorMessage;
   messageCode?: TErrorKey | (string & Record<never, never>);
   /**
-   * Never valid here - `error` is the catalogued form's discriminant. Without this the index
-   * signature accepts `{ message, error: caughtError }`, a natural way to write "wrap this", and
-   * `error` is a CONSUMED key: the wrapped failure would vanish. Use `cause`.
+   * Never valid here - `error` is the catalogued form's discriminant and a CONSUMED key; a wrapped
+   * failure passed as `error` would vanish. Use `cause`.
    */
   error?: never;
   [key: string]: unknown;

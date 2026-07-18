@@ -6,10 +6,8 @@ import { metadataRegistry } from '../registry/registry';
 import { AbstractContainer } from './abstract';
 
 /**
- * Storage half of the container: binding registration, lookup, tag scan and lifecycle, all keyed by
- * the normalized string form of a binding key, over the shipped `Binding`. Resolution
- * (`instantiate`) is the part a container implementation may want to swap, so it stays abstract
- * here - a second container version varies that strategy without re-earning the storage plumbing.
+ * Storage half of the container, keyed by normalized binding-key strings. Resolution
+ * (`instantiate`) stays abstract - it is the part an implementation swaps.
  */
 export abstract class BaseContainer extends AbstractContainer {
   protected bindings = new Map<string, Binding>();

@@ -1,8 +1,7 @@
 import { AnyObject } from './types';
 
 /**
- * Keys whose VALUES must never reach a log line, a log aggregator or a crash report. Matched
- * case-insensitively on the key name, at any depth.
+ * Keys whose VALUES must never reach a log line - matched case-insensitively on the key name, at any depth.
  */
 const SECRET_KEY_PATTERN = new RegExp(
   [
@@ -32,15 +31,10 @@ const SECRET_KEY_PATTERN = new RegExp(
 
 export const REDACTED = '[REDACTED]';
 
-/**
- * Returns a copy of `value` with every secret-looking key replaced by `[REDACTED]`, so an options
- * object can be logged without spilling a TLS private key, an SMTP password or a bearer token.
- *
- * Redaction is by KEY NAME, not by value shape: a secret is whatever a caller named like one, and
- * that is the only signal available at this layer. Buffers and typed arrays are summarized rather
- * than serialized - a `key: Buffer` is still a private key.
- */
-export const redactSecrets = (value: unknown, seen = new WeakSet<object>()): unknown => {
+/** Kill-switch for local debugging: only the literal `false` disables redaction (fail-closed); read per call so it can be flipped at runtime. Never disable in production. */
+const isRedactionEnabled = (): boolean => process.env.APP_ENV_LOGGER_DO_REDACT !== 'false';
+
+const deepRedactSecrets = (value: unknown, seen: WeakSet<object>): unknown => {
   if (value === null || typeof value !== 'object') {
     return value;
   }
@@ -48,34 +42,36 @@ export const redactSecrets = (value: unknown, seen = new WeakSet<object>()): unk
   if (seen.has(value)) {
     return '[Circular]';
   }
+
   seen.add(value);
 
-  // An Error keeps `name`/`message`/`stack` as NON-enumerable, so `Object.keys()` skips them and a
-  // naive redaction would DROP the very message the log line is about. Reproject the error into a
-  // plain object that STILL carries those fields, plus its redacted enumerable own-props
-  // (`config`/`response`/... where a nested `X-Vault-Token` or `secret_id` becomes [REDACTED]).
+  // Error keeps name/message/stack NON-enumerable, so Object.keys() skips them and naive redaction
+  // would drop the message. Reproject into a plain object carrying those fields plus its redacted
+  // enumerable own-props (nested X-Vault-Token/secret_id become [REDACTED]).
   if (value instanceof Error) {
-    const source = value as unknown as AnyObject;
+    const source = value;
     const result: AnyObject = {
       name: value.name,
       message: value.message,
       stack: value.stack,
     };
+
     for (const key of Object.keys(source)) {
-      result[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : redactSecrets(source[key], seen);
+      result[key] = SECRET_KEY_PATTERN.test(key) ? REDACTED : deepRedactSecrets(source[key], seen);
     }
+
     return result;
   }
 
   if (Array.isArray(value)) {
-    return value.map(entry => redactSecrets(entry, seen));
+    return value.map(entry => deepRedactSecrets(entry, seen));
   }
 
   if (ArrayBuffer.isView(value) || value instanceof ArrayBuffer) {
     return `[Binary ${(value as ArrayBufferView).byteLength ?? 0} bytes]`;
   }
 
-  const source = value as AnyObject;
+  const source = value;
   const result: AnyObject = {};
 
   for (const key of Object.keys(source)) {
@@ -84,22 +80,27 @@ export const redactSecrets = (value: unknown, seen = new WeakSet<object>()): unk
       continue;
     }
 
-    result[key] = redactSecrets(source[key], seen);
+    result[key] = deepRedactSecrets(source[key], seen);
   }
 
   return result;
 };
 
-/**
- * Strips the credentials out of a connection URL: `mqtts://user:hunter2@broker:8883` becomes
- * `mqtts://user:[REDACTED]@broker:8883`. A broker/database URL is routinely logged at boot, and the
- * password sits in the authority section where {@link redactSecrets} - which matches on KEY names -
- * cannot see it.
- *
- * A value that does not parse as a URL is returned unchanged: it carries no authority section, so
- * there is nothing to strip, and blanking it would hide the very thing the log line is about.
- */
+/** Redacts every secret-looking KEY (not value shape - buffers/typed arrays are summarized, not serialized). `APP_ENV_LOGGER_DO_REDACT=false` makes this the identity function. */
+export const redactSecrets = (value: unknown, seen?: WeakSet<object>): unknown => {
+  if (!isRedactionEnabled()) {
+    return value;
+  }
+
+  return deepRedactSecrets(value, seen ?? new WeakSet<object>());
+};
+
+/** Strips credentials from a connection URL's authority section (`user:hunter2@host` -> `user:[REDACTED]@host`) - {@link redactSecrets} matches on KEY names and can't see them there. A value that fails to parse as a URL is returned unchanged. */
 export const redactUrlCredentials = (url: string): string => {
+  if (!isRedactionEnabled()) {
+    return url;
+  }
+
   let parsed: URL;
 
   try {

@@ -276,9 +276,8 @@ export class BullMQMailExecutorHelper extends BaseHelper implements IMailQueueEx
   }
 
   /**
-   * Full teardown: workers, then the queue, then the Redis connection. Every step is attempted even
-   * if an earlier one failed - skipping the rest would leak a queue client and a Redis socket - and
-   * the collected failures are reported once, at the end.
+   * Full teardown: workers -> queue -> Redis connection. Every step runs even if an earlier one
+   * failed (skipping would leak a queue client + Redis socket); failures are reported once, at the end.
    */
   async close(): Promise<void> {
     const failures: Error[] = [...(await this.closeWorkers())];

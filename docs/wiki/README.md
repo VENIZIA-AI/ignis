@@ -6,12 +6,12 @@
 
 [![npm](https://img.shields.io/npm/v/@venizia/ignis-docs.svg?style=flat-square&color=cb3837)](https://www.npmjs.com/package/@venizia/ignis-docs)
 [![License](https://img.shields.io/badge/License-MIT-3DA639.svg?style=flat-square)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-6.x-3178C6.svg?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![MCP](https://img.shields.io/badge/MCP-Compatible-8B5CF6.svg?style=flat-square)](https://modelcontextprotocol.io/)
 
-VitePress-powered documentation site and an MCP server with 11 tools that gives AI assistants real-time access to IGNIS knowledge -- search docs, browse source code, and verify dependencies.
+VitePress-powered documentation site and an MCP server with 10 tools that gives AI assistants real-time access to IGNIS knowledge - search docs, browse source code, and verify dependencies.
 
-[Installation](#installation) &#8226; [MCP Setup](#mcp-server-setup) &#8226; [Available Tools](#available-mcp-tools) &#8226; [Online Docs](https://venizia-ai.github.io/ignis)
+[Installation](#installation) &#8226; [MCP Setup](#mcp-server-setup) &#8226; [Available Tools](#available-mcp-tools) &#8226; [Online Docs](https://ignis.venizia.ai)
 
 </div>
 
@@ -21,7 +21,7 @@ VitePress-powered documentation site and an MCP server with 11 tools that gives 
 
 | | Feature | |
 | :---: | :--- | :--- |
-| **1** | **11 MCP Tools** | Search docs, browse code, verify deps from any AI assistant |
+| **1** | **10 MCP Tools** | Search docs, browse code, verify deps from any AI assistant |
 | **2** | **Fuzzy Search** | Fuse.js-powered search across all documentation |
 | **3** | **VitePress Site** | Full-featured docs with guides, API references, and tutorials |
 | **4** | **CLI Binary** | Ships as `ignis-docs-mcp` for easy MCP integration |
@@ -30,11 +30,11 @@ VitePress-powered documentation site and an MCP server with 11 tools that gives 
 
 ## Features
 
-- **VitePress Documentation Site** -- Full-featured docs with guides, API references, tutorials, and best practices
-- **MCP Server** -- 11 tools for AI assistants to search docs, browse source code, and verify dependencies
-- **Fuzzy Search** -- Fuse.js-powered search across all documentation (title weight 0.7, content weight 0.3)
-- **GitHub Integration** -- Browse project files, search code, and verify dependency versions directly from AI tools
-- **CLI Binary** -- Ships as `ignis-docs-mcp` for easy integration with Claude Desktop and other MCP-compatible clients
+- **VitePress Documentation Site** - Full-featured docs with guides, API references, tutorials, and best practices
+- **MCP Server** - 10 tools for AI assistants to search docs, browse source code, and verify dependencies
+- **Fuzzy Search** - Fuse.js-powered search across all documentation (title weight 0.7, content weight 0.3)
+- **GitHub Integration** - Browse project files, search code, and verify dependency versions directly from AI tools
+- **CLI Binary** - Ships as `ignis-docs-mcp` for easy integration with Claude Desktop and other MCP-compatible clients
 
 ---
 
@@ -150,7 +150,7 @@ wiki/
 
 ### Online Documentation
 
-[https://venizia-ai.github.io/ignis](https://venizia-ai.github.io/ignis)
+[https://ignis.venizia.ai](https://ignis.venizia.ai)
 
 ---
 
@@ -184,10 +184,10 @@ bun run mcp:rebuild
 
 ## Related Links
 
-- [IGNIS Framework](https://github.com/VENIZIA-AI/ignis) -- Main repository
-- [Online Documentation](https://venizia-ai.github.io/ignis) -- Full documentation site
-- [MCP Server Guide](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/reference/mcp-docs-server.md) -- Detailed setup guide
-- [Model Context Protocol](https://modelcontextprotocol.io/) -- MCP specification
+- [IGNIS Framework](https://github.com/VENIZIA-AI/ignis) - Main repository
+- [Online Documentation](https://ignis.venizia.ai) - Full documentation site
+- [MCP Server Guide](https://github.com/VENIZIA-AI/ignis/blob/main/docs/wiki/content/guides/reference/mcp-docs-server.md) - Detailed setup guide
+- [Model Context Protocol](https://modelcontextprotocol.io/) - MCP specification
 
 ---
 

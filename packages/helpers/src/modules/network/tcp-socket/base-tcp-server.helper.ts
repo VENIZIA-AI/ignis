@@ -301,15 +301,7 @@ export class BaseNetworkTcpServer<
     return this.server;
   }
 
-  /**
-   * Tears the server down completely: pending authenticate timers cleared, every client socket
-   * destroyed, the registry emptied, then the listener closed.
-   *
-   * The order is what makes this necessary at all - `server.close()` stops accepting NEW
-   * connections but never settles while an existing socket is still attached, so a caller reaching
-   * through `getServer().close()` hangs forever on a busy server. Idempotent, and safe on a server
-   * that never listened.
-   */
+  /** Clears timers and destroys all client sockets before closing the listener - `server.close()` alone never settles while a socket stays attached. Idempotent; safe if never listened. */
   async shutdown(): Promise<void> {
     for (const client of Object.values(this.clients)) {
       const { authenticateTimeout } = client.storage;
@@ -328,10 +320,9 @@ export class BaseNetworkTcpServer<
       return;
     }
 
-    // NOT guarded on `listening`: listen() is asynchronous (a hostname needs a DNS lookup), so a
-    // shutdown() racing startup would see listening === false, close nothing, and let the server
-    // bind its port a moment later - keeping the process alive forever. close() on a server that
-    // never listened simply reports ERR_SERVER_NOT_RUNNING, which is logged below.
+    // Not guarded on `listening`: listen() is async (DNS lookup), so a shutdown() racing startup
+    // could skip close() and leave the server bound forever; close() on a never-listened server
+    // just logs ERR_SERVER_NOT_RUNNING below.
 
     await new Promise<void>(resolve => {
       server.close(error => {

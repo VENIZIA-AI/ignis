@@ -1,16 +1,6 @@
 import { getError } from '@/modules/error';
 import { TBindingKey } from '@/common/types';
-import { IInjectableMetadata } from '@/modules/registry/common/types';
 import { MetadataRegistry, metadataRegistry } from '@/modules/registry';
-
-export const injectable = (
-  metadata: IInjectableMetadata,
-  registry?: MetadataRegistry,
-): ClassDecorator => {
-  return target => {
-    (registry ?? metadataRegistry).setInjectableMetadata({ target, metadata });
-  };
-};
 
 /** Marks a property or constructor parameter for dependency injection. */
 export const inject = (opts: {

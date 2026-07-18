@@ -28,33 +28,8 @@ import type {
 } from './common/types';
 
 /**
- * KafkaConsumerHelper — Wrapper around `@platformatic/kafka` Consumer.
- *
- * Provides scoped logging, lifecycle management, health tracking,
+ * Wrapper around `@platformatic/kafka` Consumer with lifecycle management, health tracking,
  * graceful shutdown, message callbacks, and lag monitoring.
- *
- * @example
- * const helper = KafkaConsumerHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-consumer',
- *   groupId: 'my-consumer-group',
- *   onMessage: async ({ message }) => {
- *     console.log('Received:', message.value);
- *     await message.commit();
- *   },
- *   onMessageError: ({ error }) => console.error('Error:', error),
- *   onGroupJoin: ({ groupId, memberId }) => console.log(`Joined ${groupId}`),
- * });
- *
- * await helper.start({ topics: ['my-topic'] });
- *
- * // Lag monitoring
- * helper.startLagMonitoring({ topics: ['my-topic'] });
- *
- * // Health check
- * helper.isHealthy(); // true when connected
- *
- * await helper.close();
  */
 export class KafkaConsumerHelper<
   KeyType = string,

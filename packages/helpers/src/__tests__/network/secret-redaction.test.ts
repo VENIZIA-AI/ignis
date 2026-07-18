@@ -2,9 +2,8 @@ import { describe, expect, test } from 'bun:test';
 import { REDACTED, redactSecrets, redactUrlCredentials } from '@/common/redact';
 
 /**
- * A secret that reaches a log line has left the process: log files are shipped to an aggregator,
- * kept for months, and read by people who were never meant to hold the key. These tests pin the two
- * shapes a secret arrives in - a KEY in an options object, and the authority section of a URL.
+ * Secrets in a log line ship to an aggregator and outlive the process. Pins the two shapes a
+ * secret arrives in - a KEY in an options object, and the authority section of a URL.
  */
 describe('redactUrlCredentials', () => {
   test('a broker URL keeps its host and user but loses the password', () => {
@@ -157,5 +156,72 @@ describe('redactSecrets - Error awareness keeps the diagnosis, drops the secret'
     expect(serialized).not.toContain('live-token-must-never-log');
     expect(serialized).not.toContain('approle-secret-must-never-log');
     expect(serialized).toContain('connect ECONNREFUSED');
+  });
+});
+
+describe('APP_ENV_LOGGER_DO_REDACT=false - the reveal kill-switch', () => {
+  const flip = (value: string | undefined, callback: () => void) => {
+    const previous = process.env.APP_ENV_LOGGER_DO_REDACT;
+
+    if (value === undefined) {
+      delete process.env.APP_ENV_LOGGER_DO_REDACT;
+    } else {
+      process.env.APP_ENV_LOGGER_DO_REDACT = value;
+    }
+
+    try {
+      callback();
+    } finally {
+      if (previous === undefined) {
+        delete process.env.APP_ENV_LOGGER_DO_REDACT;
+      } else {
+        process.env.APP_ENV_LOGGER_DO_REDACT = previous;
+      }
+    }
+  };
+
+  test('the literal string false reveals: redactSecrets becomes the identity function', () => {
+    const options = { host: 'db', password: 'hunter2', nested: { token: 'tok_live' } };
+
+    flip('false', () => {
+      // Identity, not a copy - the raw reference flows to the sink untouched.
+      expect(redactSecrets(options)).toBe(options);
+    });
+  });
+
+  test('the literal string false reveals: redactUrlCredentials passes the URL through', () => {
+    const url = 'postgresql://app:s3cr3t@db:5432/main';
+
+    flip('false', () => {
+      expect(redactUrlCredentials(url)).toBe(url);
+    });
+  });
+
+  test("unset keeps redaction ON - today's default behavior is unchanged", () => {
+    flip(undefined, () => {
+      const redacted = redactSecrets({ password: 'hunter2' }) as { password: string };
+
+      expect(redacted.password).toBe(REDACTED);
+    });
+  });
+
+  test('any value other than the literal false keeps redaction ON (fail-closed)', () => {
+    for (const value of ['true', 'FALSE', '0', 'no', '']) {
+      flip(value, () => {
+        const redacted = redactSecrets({ token: 'tok_live' }) as { token: string };
+
+        expect(redacted.token).toBe(REDACTED);
+      });
+    }
+  });
+
+  test('the switch is read per call - flipping back re-enables redaction immediately', () => {
+    flip('false', () => {
+      expect((redactSecrets({ secret: 's' }) as { secret: string }).secret).toBe('s');
+    });
+
+    const redacted = redactSecrets({ secret: 's' }) as { secret: string };
+
+    expect(redacted.secret).toBe(REDACTED);
   });
 });

@@ -70,14 +70,14 @@ Registered automatically by `BaseApplication`.
 
 ```typescript
 class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
-  constructor(opts?: { logger?: Logger; rootKey?: string });
+  constructor(opts?: { logger?: ILogger; rootKey?: string });
   value(): ErrorHandler;
 }
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `logger` | `Logger \| undefined` | Overrides the middleware's own scoped logger - `BaseApplication` passes its own so error lines stay in its scope |
+| `logger` | `ILogger \| undefined` | Overrides the middleware's own scoped logger - `BaseApplication` passes its own so error lines stay in its scope |
 | `rootKey` | `string \| undefined` | Optional root key to wrap the error response object |
 
 ### Error Handling Logic
@@ -229,13 +229,13 @@ Returns a JSON 404 response when no route matches. Registered via `server.notFou
 
 ```typescript
 function notFoundHandler(opts: {
-  logger?: Logger;
+  logger?: ILogger;
 }): NotFoundHandler
 ```
 
 | Parameter | Type | Description |
 |-----------|------|-------------|
-| `logger` | `Logger \| undefined` | Logger instance (defaults to `console`) |
+| `logger` | `ILogger \| undefined` | Logger instance (defaults to `console`) |
 
 ### Response Format
 

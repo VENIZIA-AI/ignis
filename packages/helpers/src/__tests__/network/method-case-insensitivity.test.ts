@@ -5,14 +5,9 @@ import { NodeFetchNetworkRequest } from '@/modules/network';
 import { AxiosNetworkRequest } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
 /**
- * A caller may spell a method in either case; what leaves for the wire must always be the uppercase
- * token. This is not cosmetic: undici normalizes only DELETE/GET/HEAD/OPTIONS/POST/PUT, so a
- * lowercase `patch`/`query` would travel verbatim and the server would reject it. Bun's fetch
- * uppercases everything, which hides the bug until the app runs on Node - hence the exhaustive
- * matrix rather than a spot check.
- *
- * The method is echoed back in a HEADER, not the body, so HEAD (which carries no body) is covered
- * by the same assertion as the rest.
+ * Method casing must always reach the wire uppercase: undici normalizes only
+ * DELETE/GET/HEAD/OPTIONS/POST/PUT, so lowercase `patch`/`query` travels verbatim and the server
+ * rejects it - Bun's fetch hides this by uppercasing everything. Echoed via a HEADER, not the body, so HEAD is covered too.
  */
 const METHODS = Object.values(HTTP.Methods);
 

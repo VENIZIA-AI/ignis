@@ -1,16 +1,10 @@
 const droppedRouteDecorators: Array<string> = [];
 let isReported = false;
 
-/**
- * Route/rpc decorators are legacy (`experimentalDecorators`) decorators: the runtime must call them
- * with `(prototype, methodName, descriptor)`. A runtime that compiles decorator syntax with TC39
- * semantics calls them with `(method, context)` instead - there is no prototype to attach metadata
- * to, so the route can never be registered and its endpoint silently 404s.
- *
- * Returns true when the call shape is the supported (legacy) one; otherwise records the dropped
- * decorator for {@link reportDroppedRouteDecorators}, which runs at configure() time - importing a
- * module must stay free of side effects (log lines included).
- */
+/** Route/rpc decorators are legacy (`experimentalDecorators`) decorators: a TC39-semantics runtime
+ * calls them `(method, context)` - no prototype to attach metadata to, so the route silently 404s.
+ * True for the legacy call shape; otherwise records the drop for {@link reportDroppedRouteDecorators},
+ * which runs at configure() time - importing a module must stay free of side effects. */
 export const isLegacyMethodDecoratorCall = (opts: {
   decorator: string;
   propertyKey: unknown;

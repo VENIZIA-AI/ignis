@@ -5,11 +5,9 @@ import { SnowflakeConfig, SnowflakeUidHelper } from '@/modules/uid';
 const realDateNow = Date.now;
 
 /**
- * A clock the generator itself drives. `Date.now` normally answers once per generated id; the
- * busy-wait inside `waitForNextMs` is the only caller that asks repeatedly without producing one.
- * Resetting `callsSinceTick` before each generation therefore makes "asked more than twice" an
- * exact detector of the spin loop, and advancing the virtual clock only there keeps every test
- * deterministic - no sleeps, no wall-clock races.
+ * A clock the generator itself drives: Date.now normally answers once per id, so the busy-wait in
+ * waitForNextMs is the only caller asking repeatedly - resetting callsSinceTick per generation makes
+ * "asked more than twice" an exact spin-loop detector, deterministic with no sleeps or wall-clock races.
  */
 class VirtualClock {
   private callsSinceTick = 0;

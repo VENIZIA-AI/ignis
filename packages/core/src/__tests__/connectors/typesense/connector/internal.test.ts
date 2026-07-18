@@ -1,7 +1,7 @@
 import { describe, test, expect } from 'bun:test';
 import { SearchConnectorInternal } from '@/connectors/search/internal';
 import { TypesenseInternal } from '@/connectors/typesense/internal/connector-internal';
-import type { Logger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
 import { LoggerFactory, ApplicationError } from '@venizia/ignis-helpers';
 
 const logger = LoggerFactory.getLogger(['SearchDriverInternalTest']);
@@ -81,7 +81,7 @@ describe('SearchConnectorInternal.wrapDependencyError', () => {
           captured.push(String(args[0]));
         },
       }),
-    } as Logger;
+    } as ILogger;
     const raw = new Error('connection refused at typesense-internal-host:8108 secret-api-key');
 
     let thrown: unknown;

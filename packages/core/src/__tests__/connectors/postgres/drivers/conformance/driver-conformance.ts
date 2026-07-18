@@ -13,15 +13,10 @@ export interface IDriverProbe {
   ended: () => boolean;
 }
 
-/**
- * Every relational driver must satisfy this suite against an in-memory fake of its own client. It
- * asserts the NEUTRAL contract only - never a driver's own API - so a passing driver is substitutable
- * behind `IRelationalDriver`. A seam only one driver can satisfy is not a seam.
- *
- * Note what is deliberately NOT asserted: that `release({ destroy: true })` actually discards the
- * connection. node-postgres can; postgres-js cannot. That asymmetry is real, and it belongs in each
- * driver's own tests rather than being smoothed over here.
- */
+/** Every relational driver must satisfy this suite against an in-memory fake of its own client. It
+ * asserts the NEUTRAL contract only - a seam only one driver can satisfy is not a seam. Deliberately
+ * NOT asserted: that `release({ destroy: true })` discards (pg can, postgres-js cannot) - that
+ * asymmetry belongs in each driver's own tests. */
 export interface IConformanceOptions {
   /** Display name of the driver under test, e.g. `node-postgres`. */
   driver: string;
@@ -122,10 +117,9 @@ export const run = (opts: IConformanceOptions): void => {
       const result = await connection.execute({ statement: 'BEGIN' });
       connection.release();
 
-      // A driver that passes its native result through leaks its client type across the seam and
-      // fails here: pg's native result carries `rows`, postgres-js's IS an array. The neutral
-      // contract is a floor, not a ceiling - a future driver may carry extra neutral fields
-      // (MySQL's insertId), so the suite must never assert the exact key set.
+      // A native pass-through result (pg `rows`, postgres-js array) leaks the client type and fails
+      // here. The neutral contract is a floor, not a ceiling - never assert the exact key set, so a
+      // future driver may carry extra neutral fields (MySQL insertId).
       expect(typeof result.count).toBe('number');
       expect('rows' in result).toBe(false);
       expect(Array.isArray(result)).toBe(false);

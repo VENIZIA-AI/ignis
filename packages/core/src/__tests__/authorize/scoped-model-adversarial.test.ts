@@ -3,19 +3,9 @@ import { Helper, newEnforcer, newModelFromString, Util } from 'casbin';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
 import { objectMatch } from '@/components/auth/authorize/common/object-match';
 
-/**
- * Adversarial / decision-table hardening of the scoped RBAC matcher (v2 model):
- *
- *   m = g(r.sub, p.sub, r.dom)
- *       && (p.dom == "SYSTEM_WIDE"
- *           || (p.dom == "ANY_MEMBER" && g2(r.sub, r.dom))
- *           || g3(r.dom, p.dom))
- *       && (objectMatch(r.obj, p.obj) || g4(r.obj, p.obj))
- *       && g5(r.act, p.act)
- *
- * Built exactly like the framework wires it: keyMatch on g, objectMatch as a direct
- * matcher fn AND as the g4 matching func, then buildRoleLinks().
- */
+/** Adversarial / decision-table hardening of the scoped RBAC matcher (v2 model): g membership +
+ * (SYSTEM_WIDE || ANY_MEMBER via g2 || g3 domain edge) + (objectMatch || g4) + g5 action. Built
+ * exactly as the framework wires it: keyMatch on g, objectMatch direct AND as g4, buildRoleLinks(). */
 async function buildScopedEnforcer(lines: string[]) {
   const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
   const enforcer = await newEnforcer(model);
@@ -251,11 +241,8 @@ describe('DAG / multi-parent', () => {
 // ===========================================================================
 describe('ADVERSARIAL: sentinel-domain collision', () => {
   test('forging r.dom="SYSTEM_WIDE" does NOT bypass when the GRANT is a normal ANY_MEMBER grant', async () => {
-    // The matcher checks p.dom (the stored grant), not r.dom, for the SYSTEM_WIDE branch.
-    // A user with an ANY_MEMBER grant who sends r.dom='SYSTEM_WIDE' should NOT escalate:
-    //   - p.dom == 'SYSTEM_WIDE' is FALSE (grant is ANY_MEMBER)
-    //   - ANY_MEMBER branch needs g2(user, 'SYSTEM_WIDE') which is FALSE
-    //   - g3('SYSTEM_WIDE', 'ANY_MEMBER') FALSE
+    // The SYSTEM_WIDE branch checks p.dom (the stored grant), not r.dom - forging
+    // r.dom='SYSTEM_WIDE' against an ANY_MEMBER grant fails every branch.
     const e = await buildScopedEnforcer([
       'g, User_20, Role_op, *',
       'g2, User_20, Merchant_7',
@@ -282,12 +269,9 @@ describe('ADVERSARIAL: sentinel-domain collision', () => {
   });
 
   test('SECURITY PROBE: can a user join a domain literally named SYSTEM_WIDE and reach a SYSTEM_WIDE grant of ANOTHER user?', async () => {
-    // User_23 has an ANY_MEMBER grant and is a "member" of a domain literally named SYSTEM_WIDE
-    // (adversary-controlled membership row). Request r.dom='SYSTEM_WIDE'.
-    //   ANY_MEMBER branch: p.dom=='ANY_MEMBER' (true) && g2(User_23,'SYSTEM_WIDE') (true!) → matches.
-    // This is EXPECTED-and-correct: the user legitimately holds an ANY_MEMBER grant and is a
-    // member of that (oddly-named) domain. It does NOT grant access to OTHER domains, and does
-    // NOT inherit any unrelated SYSTEM_WIDE-scoped grant. We lock the behaviour to document it.
+    // Membership in a domain literally named SYSTEM_WIDE satisfies the ANY_MEMBER branch - EXPECTED
+    // and correct: the user holds an ANY_MEMBER grant and is a member of that (oddly-named) domain.
+    // It grants nothing in OTHER domains and inherits no SYSTEM_WIDE-scoped grant; locked here.
     const e = await buildScopedEnforcer([
       'g, User_23, Role_op, *',
       'g2, User_23, SYSTEM_WIDE', // adversary forged a membership in a domain named "SYSTEM_WIDE"

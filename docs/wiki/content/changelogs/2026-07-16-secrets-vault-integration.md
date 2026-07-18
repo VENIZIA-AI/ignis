@@ -74,7 +74,7 @@ The vault backends are optional peer dependencies, reached only through sub-path
 
 | Provider | Peer | Sub-path |
 |----------|------|----------|
-| HashiCorp Vault | `node-vault` | `@venizia/ignis-helpers/vault` |
+| HashiCorp Vault | `node-vault` | `@venizia/ignis-helpers/hashicorp-vault` |
 | Dotenv Vault | `@dotenvx/dotenvx` | `@venizia/ignis-helpers/dotenv-vault` |
 
 Install a peer only in the application that uses that provider.

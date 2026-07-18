@@ -1,13 +1,9 @@
 import { z } from '@hono/zod-openapi';
 
 /**
- * The error RESPONSE, for OpenAPI documentation - NOT the input to `getError`.
- *
- * The two used to be the same type, and that conflation is what let `getError` accept anything: the
- * schema ended in `.catchall(z.any())` so the docs could describe `extra`, and the catchall then
- * silently swallowed every mistyped field at every throw site. The input now lives in
- * `@venizia/ignis-inversion` as a hand-written union with no index signature; this stays here
- * because it needs `@hono/zod-openapi`, which inversion must not depend on - it ships to browsers.
+ * The error RESPONSE for OpenAPI docs - NOT the input to `getError` (that union, with no index
+ * signature, lives in `@venizia/ignis-inversion`). Kept here because it needs `@hono/zod-openapi`,
+ * which inversion must not depend on since it ships to browsers.
  */
 export const ErrorSchema = z
   .object({

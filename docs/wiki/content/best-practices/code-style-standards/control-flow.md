@@ -108,20 +108,52 @@ this.logger.debug('[config] Server options: %j', this.serverOptions);
 ```
 
 > [!NOTE]
-> `%j` on an `Error` instance drops `message` and `stack` -- they are non-enumerable, so `JSON.stringify` never sees them. Use `%s` for errors, `%j`/`%o` for plain data objects. An object passed to `%s` is inspected up to `APP_ENV_LOGGER_INSPECT_DEPTH` levels deep (default `5`) instead of Node's hard-coded `depth: 0`, so nested fields print instead of collapsing to `[Object]`. See [Logger Helper](/extensions/helpers/logger/) for details.
+> `%j` on an `Error` instance drops `message` and `stack` - they are non-enumerable, so `JSON.stringify` never sees them. Use `%s` for errors, `%j`/`%o` for plain data objects. An object passed to `%s` is inspected up to `APP_ENV_LOGGER_INSPECT_DEPTH` levels deep (default `5`) instead of Node's hard-coded `depth: 0`, so nested fields print instead of collapsing to `[Object]`. See [Logger Helper](/extensions/helpers/logger/) for details.
 
 ### Log Levels
 
+Exactly five levels exist, each a direct method on `ILogger`:
+
 | Level | Use For |
 |-------|---------|
+| `emerg` | The process cannot continue |
 | `error` | Exceptions that need attention |
 | `warn` | Recoverable issues, deprecations |
 | `info` | Important business events |
 | `debug` | Detailed debugging information |
 
+> [!NOTE]
+> Secret-looking keys (token, password, apiKey, ...) are redacted to `[REDACTED]` before a line
+> reaches any transport. `APP_ENV_LOGGER_DO_REDACT=false` disables it - local debugging only.
+
+### Never Swallow a Catch
+
+An empty or comment-only `catch` is banned. Log, then rethrow or return a defined fallback.
+
+```typescript
+// ✅ GOOD
+try {
+  await syncRemote();
+} catch (error) {
+  this.logger.error('[syncRemote] Sync failed | Error: %s', error);
+  throw error;
+}
+
+// ❌ BAD - the failure disappears
+try {
+  await syncRemote();
+} catch {
+  // ignore
+}
+```
+
 ## Standardized Error Handling
 
 Use the `getError` helper and `HTTP` constants to throw consistent, formatted exceptions.
+**Never `new Error`.** Across package boundaries test identity with `isApplicationError()`, never
+`instanceof` - the class has more than one identity in a monorepo.
+
+The normalized message is always one shape: `{ text, code, args }`, read from `error.normalized`.
 
 ### Basic Error
 

@@ -35,7 +35,7 @@ const results = await executePromiseWithLimit({
 | `toError` | `toError(error: unknown): Error` | Normalizes a `catch`-block value into an `Error` - passes an existing `Error` through, wraps anything else with `new Error(String(error))`. |
 | `isPromiseLike` | `isPromiseLike<T>(value: T \| PromiseLike<T>): value is PromiseLike<T>` | Type guard: `true` when `value` is non-null and has a callable `.then`. |
 | `getDeepProperty` | `getDeepProperty<T, V>(obj: T, path: string): V` | Reads a dot-separated `path` off `obj`. Throws if any intermediate segment is `null`/`undefined`. |
-| `voidExecution` | `voidExecution(opts: { logger?: Logger; scope: string; execution: ValueOrPromise<unknown> }): void` | Fire-and-forget: if `execution` is a Promise, routes a rejection to `logger.for(scope).error(...)` (or `console.error` without a logger) instead of an unhandled rejection. Synchronous values pass through untouched. |
+| `voidExecution` | `voidExecution(opts: { logger?: ILogger; scope: string; execution: ValueOrPromise<unknown> }): void` | Fire-and-forget: if `execution` is a Promise, routes a rejection to `logger.for(scope).error(...)` (or `console.error` without a logger) instead of an unhandled rejection. Synchronous values pass through untouched. |
 
 ## Notes
 

@@ -10,9 +10,8 @@ export class AuthorizationPolicyBuilder {
   static readonly ACTION_PRINCIPAL = 'Action';
 
   /**
-   * Serialize a domain to the casbin token the matcher compares against {@link resolveRequestDomain}'s
-   * output: a scope literal (`SYSTEM_WIDE`/`ANY_MEMBER`) passes through unchanged; a typed domain becomes
-   * `<type>_<id>` so `g3(r.dom, p.dom)` cascades; null ⇒ null (the adapter then defaults grants to `ANY_MEMBER`).
+   * Serialize to the casbin token {@link resolveRequestDomain} emits: scope literals pass through;
+   * typed domains become `<type>_<id>` so `g3` cascades; null ⇒ null (adapter defaults grants to `ANY_MEMBER`).
    */
   private static serializeDomain(domain?: TNullable<TPolicyDomainInput>): TNullable<string> {
     if (domain == null) {
@@ -95,8 +94,7 @@ export class AuthorizationPolicyBuilder {
 
   /**
    * A resource inherits another (casbin `g4`): a grant on the PARENT covers the CHILD.
-   * e.g. `{ child: SaleOrder, parent: Sale }` — grant on module `Sale` covers subject `SaleOrder`.
-   * Many-to-many: a subject may inherit several module parents (add one edge each).
+   * Many-to-many: a subject may inherit several module parents (one edge each).
    */
   static resourceInherits(opts: {
     child: { type: string; id: IdType }; // Permission

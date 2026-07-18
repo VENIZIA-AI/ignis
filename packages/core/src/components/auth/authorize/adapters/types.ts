@@ -8,10 +8,9 @@ export interface ICasbinPolicyFilter {
 }
 
 /**
- * A drizzle connector able to run policy queries (pool- or transaction-backed). Typed on Drizzle's
- * shared `PgDatabase` base rather than a specific driver, so a postgres-js datasource satisfies it
- * too. Deliberately declared here, not imported from `@/connectors/postgres`: a component depends on
- * a minimal local contract, never on a connector class.
+ * Drizzle connector for policy queries, typed on the shared `PgDatabase` base so postgres-js fits too.
+ * Deliberately declared here, not imported from `@/connectors/postgres`: components depend on a
+ * minimal local contract, never a connector class.
  */
 export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string, AnyType>>;
 
@@ -29,9 +28,8 @@ export interface IScopedCasbinTable {
 /** All physical mapping the ScopedCasbinAdapter needs. App provides this; framework stays decoupled. */
 export interface IScopedCasbinEntities {
   /**
-   * The single edge table: each row links a subject (type+id) to a target (type+id), with a `variant`
-   * column saying what kind of edge it is (grant / assign_role / *_inherits …) plus optional
-   * action / effect / domain.
+   * The single edge table: each row links subject (type+id) to target (type+id); `variant` names the
+   * edge kind (grant / assign_role / *_inherits) plus optional action / effect / domain.
    */
   policyDefinition: IScopedCasbinTable;
 

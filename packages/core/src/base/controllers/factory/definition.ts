@@ -16,11 +16,8 @@ import {
   trackableHeaders,
 } from '../common';
 
-/**
- * Path params always reach the validator as strings, so a number-typed id must be coerced before
- * `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7` with "expected number,
- * received string".
- */
+/** Path params always reach the validator as strings, so a number-typed id must be coerced before
+ * `z.number()` sees it - `idParamsSchema` alone rejects `/accounts/7`. */
 const idPathParamsSchema = (opts: { idType: TIdSchemaType }) => {
   const { idType } = opts;
 

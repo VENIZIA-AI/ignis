@@ -5,10 +5,8 @@ import type { MetadataRegistry } from '../registry/registry';
 import type { IContainer } from './common/types';
 
 /**
- * The container CONTRACT as a class: every member abstract, typed against the scope contracts
- * (`IBinding`, not the concrete `Binding`). A container implementation that shares nothing with
- * the shipped storage - a remote container, a read-only snapshot - starts here; one that only
- * varies RESOLUTION starts at `BaseContainer`.
+ * Container CONTRACT as a class, typed against `IBinding`. Implementations sharing no storage
+ * start here; ones that only vary resolution start at `BaseContainer`.
  */
 export abstract class AbstractContainer extends BaseHelper implements IContainer {
   constructor(opts?: { scope: string }) {

@@ -8,10 +8,9 @@ import {
 } from '@/components/auth/authorize';
 import type { FilteredAdapter, Model } from 'casbin';
 
-// Canonical "RBAC with domains" model (spec §2): domain scoping lives on the membership relation
-// `g` (3-arg, domain-aware); role permissions are domain-agnostic (`p.dom = "*"`). A request domain
-// matches a stored `g` domain via the registered domain matching function; `keyMatch(r.dom, p.dom)`
-// covers the (always-`*`) policy domain.
+// Canonical "RBAC with domains" model: domain scoping lives on the 3-arg `g` membership; role
+// permissions are domain-agnostic (`p.dom = "*"`, covered by keyMatch); `g` domains match via the
+// registered domain matching function.
 const MODEL = `
 [request_definition]
 r = sub, dom, obj, act
@@ -215,12 +214,9 @@ describe('CasbinAuthorizationEnforcer - domain matching function', () => {
     expect(String((error as Error)?.message)).toContain('is not declared in the Casbin model');
   });
 
-  // ── End-to-end through the real request path ──────────────────────────────────────────────────
-  // configure() (registers keyMatch) → buildRules() → loadFilteredPolicy() (clears + reloads +
-  // buildRoleLinks) → evaluate() → enforceSync(sub, dom, obj, act). This proves the registered
-  // domain matching function SURVIVES the per-request loadFilteredPolicy reload (it is NOT wiped by
-  // initRmMap, which only runs at construction) — i.e. the wildcard works in production, not just
-  // when policies are added directly to the model.
+  // End-to-end through the real request path (configure -> buildRules -> loadFilteredPolicy ->
+  // evaluate): proves the registered domain matching function SURVIVES the per-request
+  // loadFilteredPolicy reload (initRmMap only runs at construction) - production-real, not model-direct.
 
   // Minimal casbin FilteredAdapter that replays a fixed set of policy lines (per the model in §2).
   const makeFilteredAdapter = (lines: string[]): FilteredAdapter => ({

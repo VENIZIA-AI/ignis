@@ -233,6 +233,8 @@ const extensionsSidebar: DefaultTheme.SidebarItem[] = [
         items: [
           { text: 'Overview', link: '/extensions/helpers/logger/' },
           { text: 'Full Reference', link: '/extensions/helpers/logger/reference' },
+          { text: 'HfLogger Guide', link: '/extensions/helpers/logger/hf-logger' },
+          { text: 'Pino Provider', link: '/extensions/helpers/logger/pino' },
         ],
       },
       {
@@ -368,7 +370,7 @@ const config = defineConfig({
       },
     ],
     ['meta', { property: 'og:image', content: '/og-image.png' }],
-    ['meta', { property: 'og:url', content: 'https://venizia-ai.github.io/ignis/' }],
+    ['meta', { property: 'og:url', content: 'https://ignis.venizia.ai/' }],
     // Twitter / X card
     ['meta', { name: 'twitter:card', content: 'summary_large_image' }],
     ['meta', { name: 'twitter:title', content: 'IGNIS - Enterprise APIs at Hono speed' }],
@@ -448,9 +450,27 @@ const config = defineConfig({
           collapsed: false,
           items: [
             {
+              text: '2026-07-18',
+              collapsed: true,
+              items: [
+                {
+                  text: 'Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading',
+                  link: '/changelogs/2026-07-18-logger-overhaul',
+                },
+                {
+                  text: 'Dependency Refresh & DI Cleanup',
+                  link: '/changelogs/2026-07-18-dependency-refresh',
+                },
+              ],
+            },
+            {
               text: '2026-07-17',
               collapsed: true,
               items: [
+                {
+                  text: 'Logger Correctness Pass',
+                  link: '/changelogs/2026-07-17-logger-correctness-pass',
+                },
                 {
                   text: 'Error Module Redesign',
                   link: '/changelogs/2026-07-17-error-module-redesign',

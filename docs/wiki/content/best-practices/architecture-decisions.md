@@ -26,7 +26,7 @@ export class ItemController extends BaseRestController {
     @inject({ key: 'repositories.ItemRepository' })
     private itemRepository: ItemRepository,
   ) {
-    super({ scope: 'ItemController', path: '/items' });
+    super({ scope: ItemController.name, path: '/items' });
   }
 
   @get({ configs: RouteConfigs.GET_ITEM_BY_ID })
@@ -53,7 +53,7 @@ export class OrderController extends BaseRestController {
     @inject({ key: 'services.OrderService' })
     private orderService: OrderService,
   ) {
-    super({ scope: 'OrderController', path: '/orders' });
+    super({ scope: OrderController.name, path: '/orders' });
   }
 
   @post({ configs: RouteConfigs.CREATE_ORDER })
@@ -132,6 +132,10 @@ export class NotificationComponent extends BaseComponent {
 // Inline: Simple, one-off, no need for abstraction
 @controller({ path: '/health' })
 export class HealthController extends BaseRestController {
+  constructor() {
+    super({ scope: HealthController.name, path: '/health' });
+  }
+
   @get({ configs: RouteConfigs.HEALTH_CHECK })
   healthCheck(c: Context) {
     return c.json({ status: 'ok', timestamp: new Date() });
@@ -152,20 +156,25 @@ export class HealthController extends BaseRestController {
 
 ### Start with Standard CRUD
 
-Every repository gets these methods from `DefaultCRUDRepository`:
+Every repository gets these methods from `DefaultRelationalRepository`:
 
 ```typescript
 // Inherited methods (options-object API) - use these first
-find({ filter })            // List with filters
-findById({ id })            // Get by ID
-findOne({ filter })         // Get first match
-create({ data })            // Create new
-updateById({ id, data })    // Update existing
+find({ filter })            // List with filters -> T[]
+findById({ id })            // Get by ID -> T | null
+findOne({ filter })         // Get first match -> T | null
+count({ where })            // Count matches -> { count }
+existsWith({ where })       // Existence check -> boolean
+
+create({ data })            // Create new -> { count, data }
+createAll({ data })         // Create many -> { count, data }
+updateById({ id, data })    // Update existing -> { count, data }
 updateAll({ data, where })  // Bulk update (updateBy is an alias)
-deleteById({ id })          // Delete
+deleteById({ id })          // Delete -> { count, data }
 deleteAll({ where })        // Bulk delete (deleteBy is an alias)
-count({ where })            // Count matches
 ```
+
+Reads return the record(s) directly; writes return `{ count, data }`. Pass `options: { shouldReturn: false }` on a write to skip the `RETURNING` round-trip.
 
 ### Add Custom Methods When:
 
@@ -175,7 +184,7 @@ count({ where })            // Count matches
 
 ```typescript
 // Custom repository methods
-export class OrderRepository extends DefaultCRUDRepository<typeof Order.schema> {
+export class OrderRepository extends DefaultRelationalRepository<typeof Order.schema> {
   // Complex query that's used in multiple places
   async findPendingOrdersOlderThan(hours: number) {
     const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
@@ -255,10 +264,14 @@ export class UserService extends BaseService {
     // Validate and throw domain-specific errors
     const existing = await this.userRepository.findByEmail(data.email);
     if (existing) {
+      // One message shape everywhere: { text, code, args }
       throw getError({
         statusCode: 400,
-        messageCode: MessageCode.build({ parts: ['app', 'user', 'duplicate_email'] }),
-        message: 'User with this email already exists',
+        message: {
+          text: 'User with this email already exists',
+          code: MessageCode.build({ parts: ['app', 'user', 'duplicate_email'] }),
+          args: { email: data.email },
+        },
       });
     }
 
@@ -273,7 +286,7 @@ export class UserService extends BaseService {
 ### Repository Level: Let Errors Bubble
 
 ```typescript
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
+export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {
   // Don't catch database errors here
   // Let them bubble up to service/controller
   async findByEmail(email: string) {

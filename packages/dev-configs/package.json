@@ -41,7 +41,7 @@
     "typescript-config",
     "venizia"
   ],
-  "homepage": "https://venizia-ai.github.io/ignis",
+  "homepage": "https://ignis.venizia.ai",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/VENIZIA-AI/ignis.git",
@@ -92,7 +92,7 @@
   },
   "dependencies": {
     "@minimaltech/eslint-node": "^0.3.0",
-    "eslint-plugin-unicorn": "^71.1.0"
+    "eslint-plugin-unicorn": "^72.0.0"
   },
   "peerDependencies": {
     "eslint": "^9.0.0 || ^10.0.0",

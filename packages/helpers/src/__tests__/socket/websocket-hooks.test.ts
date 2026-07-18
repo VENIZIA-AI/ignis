@@ -1,9 +1,6 @@
 /**
- * WebSocketServerHelper user-hook safety suite.
- *
- * Complements src/__tests__/websocket/websocket.test.ts, which covers the happy paths and the
- * async-rejection paths. Everything here is about hooks that throw SYNCHRONOUSLY: those throws
- * escape the Bun socket handlers and take the process down.
+ * WebSocketServerHelper user-hook safety suite - complements websocket.test.ts (happy/async-rejection
+ * paths). Covers hooks that throw SYNCHRONOUSLY, which would otherwise escape the Bun socket handlers and take the process down.
  */
 
 import type { AnyType } from '@/common/types';

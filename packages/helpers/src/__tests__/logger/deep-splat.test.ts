@@ -1,13 +1,10 @@
 import { describe, expect, test } from 'bun:test';
 import type { AnyType } from '@/common/types';
-import { formatLogMessage } from '@/modules/logger/formatters';
+import { formatLogMessage } from '@/modules/logger';
 
-/**
- * `util.format` hard-codes `depth: 0` for `%s`, so `logger.error('Error: %s', error)` renders the
- * only part worth reading - the wrapped cause, the driver payload, `extra` - as `[Object]`. No
- * inspect option overrides that; the argument has to be inspected into a string BEFORE it reaches
- * `%s`. These tests pin that, and pin that doing so did not break the other placeholders.
- */
+/** `util.format` hard-codes `depth: 0` for `%s`, collapsing the part worth reading (cause, driver
+ * payload, `extra`) to `[Object]`; no inspect option overrides it, so the arg must be inspected
+ * into a string before it reaches `%s`. Pins that fix and that other placeholders still work. */
 const buildDeepError = () => {
   const error = new Error('boom') as Error & { statusCode?: number; extra?: unknown };
   error.statusCode = 400;

@@ -1,16 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { readAffectedRowCount, readResultRows } from '@/utilities';
 
-/**
- * Drizzle does not unify its raw result shape across Postgres drivers, and once a connector is typed
- * on the shared `PgDatabase` base the type system cannot tell them apart. node-postgres resolves to
- * a `pg.QueryResult` (`{ rows, rowCount }`); postgres-js resolves to a `RowList` - an array carrying
- * `count`. Reading `.rows`/`.rowCount` directly works on one driver and misbehaves on the other, so
- * these two readers are the only place that knows the difference.
- *
- * A shape neither driver produces THROWS: `0` and `[]` are legitimate results, so returning them for
- * an unrecognized shape would turn a driver mismatch into a silently wrong answer.
- */
+/** Drizzle's raw result shape differs per driver (pg `{ rows, rowCount }` vs postgres-js array with
+ * `count`) and the shared `PgDatabase` type cannot tell them apart - these two readers are the only
+ * place that knows. An unrecognized shape THROWS: returning `0`/`[]` would be silently wrong. */
 describe('readAffectedRowCount', () => {
   test('reads pg.QueryResult.rowCount (node-postgres)', () => {
     expect(readAffectedRowCount({ result: { rowCount: 3, rows: [] } })).toBe(3);

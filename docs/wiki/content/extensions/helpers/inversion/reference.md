@@ -6,20 +6,20 @@ difficulty: intermediate
 
 # Inversion (DI) - Full Reference
 
-Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@inject`/`@injectable` decorators, and every type, constant, and error message in `@venizia/ignis-inversion`. For a readable introduction and the most common tasks, start with the [Inversion overview](/extensions/helpers/inversion/).
+Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@inject` decorator, and every type, constant, and error message in `@venizia/ignis-inversion`. For a readable introduction and the most common tasks, start with the [Inversion overview](/extensions/helpers/inversion/).
 
 **Files:**
 
-- [`packages/inversion/src/container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/container.ts) - `Container`
-- [`packages/inversion/src/container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/base.ts) - `BaseContainer`
-- [`packages/inversion/src/container/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/abstract.ts) - `AbstractContainer`
-- [`packages/inversion/src/binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/binding/binding.ts) - `Binding`
-- [`packages/inversion/src/binding/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/binding/common/constants.ts) - `BindingScopes`, `BindingValueTypes`, `BindingKeys`
-- [`packages/inversion/src/binding/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/binding/common/types.ts) - `IBinding`, `IProvider`, `isClassProvider`
-- [`packages/inversion/src/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/metadata/injectors.ts) - `@inject`, `@injectable`
-- [`packages/inversion/src/metadata/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/metadata/common/constants.ts) - `MetadataKeys`
-- [`packages/inversion/src/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
-- [`packages/inversion/src/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`, `IInjectableMetadata`
+- [`packages/inversion/src/modules/container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/container.ts) - `Container`
+- [`packages/inversion/src/modules/container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/base.ts) - `BaseContainer`
+- [`packages/inversion/src/modules/container/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/abstract.ts) - `AbstractContainer`
+- [`packages/inversion/src/modules/binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/binding.ts) - `Binding`
+- [`packages/inversion/src/modules/binding/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/common/constants.ts) - `BindingScopes`, `BindingValueTypes`, `BindingKeys`
+- [`packages/inversion/src/modules/binding/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/common/types.ts) - `IBinding`, `IProvider`, `isClassProvider`
+- [`packages/inversion/src/modules/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/injectors.ts) - `@inject`
+- [`packages/inversion/src/modules/metadata/common/constants.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/common/constants.ts) - `MetadataKeys`
+- [`packages/inversion/src/modules/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts) - `MetadataRegistry`, `metadataRegistry`
+- [`packages/inversion/src/modules/registry/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/common/types.ts) - `IInjectMetadata`, `IPropertyMetadata`
 - [`packages/inversion/src/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/common/types.ts) - `TNullable`, `ValueOrPromise`, `TClass`, `TConstValue`, `isClass`
 - [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
 - [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`
@@ -31,7 +31,7 @@ Exhaustive reference for `Container`, `Binding`, `MetadataRegistry`, the `@injec
 |------|-------|
 | Package | `@venizia/ignis-inversion` |
 | Classes | `Container`, `BaseContainer`, `AbstractContainer`, `Binding`, `MetadataRegistry` |
-| Decorators | `@inject`, `@injectable` |
+| Decorators | `@inject` |
 | Runtimes | Both Bun and Node.js |
 | Build | Dual CJS + ESM |
 
@@ -44,7 +44,6 @@ import {
   MetadataRegistry,
   metadataRegistry,
   inject,
-  injectable,
   BindingKeys,
   BindingScopes,
   BindingValueTypes,
@@ -76,7 +75,6 @@ import type {
   IContainer,
   IInjectMetadata,
   IPropertyMetadata,
-  IInjectableMetadata,
   IBindingTag,
 } from '@venizia/ignis-inversion';
 ```
@@ -86,7 +84,7 @@ import type {
 
 ## Class Hierarchy
 
-`Source ->` [`container/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/abstract.ts), [`container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/base.ts), [`container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/container.ts)
+`Source ->` [`container/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/abstract.ts), [`container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/base.ts), [`container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/container.ts)
 
 ```
 AbstractContainer extends BaseHelper implements IContainer   # contract only - every member abstract
@@ -108,7 +106,7 @@ const container = new Container({ scope: 'MyApp' });
 
 ## Container
 
-`Source ->` [`container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/base.ts), [`container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/container.ts)
+`Source ->` [`container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/base.ts), [`container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/container.ts)
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
@@ -173,7 +171,7 @@ Internally maps each entry through `this.get({ ...opt, isOptional: true })` - re
 
 ## Binding
 
-`Source ->` [`binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/binding/binding.ts)
+`Source ->` [`binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/binding.ts)
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
@@ -238,9 +236,9 @@ container.set({ binding }); // registers under binding.key
 
 ## MetadataRegistry
 
-`Source ->` [`registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/registry.ts)
+`Source ->` [`registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts)
 
-Singleton (`metadataRegistry`) backing both `@inject` and `@injectable`, built entirely on `reflect-metadata`'s `Reflect.defineMetadata`/`getMetadata`/`hasMetadata`/`deleteMetadata`. You typically interact with it only through `container.getMetadataRegistry()` or the decorators.
+Singleton (`metadataRegistry`) backing `@inject`, built entirely on `reflect-metadata`'s `Reflect.defineMetadata`/`getMetadata`/`hasMetadata`/`deleteMetadata`. You typically interact with it only through `container.getMetadataRegistry()` or the decorators.
 
 | Method | Signature | Description |
 |--------|-----------|--------------|
@@ -256,15 +254,12 @@ Singleton (`metadataRegistry`) backing both `@inject` and `@injectable`, built e
 | `setPropertyMetadata` | `setPropertyMetadata<T>(opts: { target, propertyName, metadata: IPropertyMetadata }): void` | Write property `@inject` metadata into a `Map` keyed by property name, stored on `target.constructor` |
 | `getPropertiesMetadata` | `getPropertiesMetadata<T>(opts: { target }): Map<string \| symbol, IPropertyMetadata> \| undefined` | Read the full property metadata map |
 | `getPropertyMetadata` | `getPropertyMetadata<T>(opts: { target, propertyName }): IPropertyMetadata \| undefined` | Read metadata for one property |
-| `setInjectableMetadata` | `setInjectableMetadata<T>(opts: { target, metadata: IInjectableMetadata }): void` | Write `@injectable` metadata |
-| `getInjectableMetadata` | `getInjectableMetadata<T>(opts: { target }): IInjectableMetadata \| undefined` | Read `@injectable` metadata |
 
 ```typescript
 import { MetadataKeys, metadataRegistry } from '@venizia/ignis-inversion';
 
 MetadataKeys.PROPERTIES; // Symbol.for('ignis:properties')
 MetadataKeys.INJECT;     // Symbol.for('ignis:inject')
-MetadataKeys.INJECTABLE; // Symbol.for('ignis:injectable')
 
 metadataRegistry.define({ target: myObj, key: 'custom:flag', value: true });
 metadataRegistry.get({ target: myObj, key: 'custom:flag' });    // true
@@ -286,16 +281,11 @@ interface IPropertyMetadata {
   isOptional?: boolean;
   [key: string]: any;
 }
-
-interface IInjectableMetadata {
-  scope?: TBindingScope;
-  tags?: Record<string, any>;
-}
 ```
 
 ## Decorators
 
-`Source ->` [`metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/metadata/injectors.ts)
+`Source ->` [`metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/injectors.ts)
 
 ### `@inject`
 
@@ -314,7 +304,6 @@ Dispatches on how the decorator was invoked:
 `isOptional` defaults to `false` in both branches. Pass a custom `registry` to target a non-default `MetadataRegistry` instance (rare - almost always omitted, using the shared `metadataRegistry`).
 
 ```typescript
-@injectable({ scope: BindingScopes.SINGLETON })
 class UserService {
   constructor(
     @inject({ key: 'repositories.UserRepository' }) private userRepository: UserRepository,
@@ -324,19 +313,6 @@ class UserService {
   @inject({ key: 'config.retryCount' })
   private retryCount: number;
 }
-```
-
-### `@injectable`
-
-```typescript
-injectable(metadata: IInjectableMetadata, registry?: MetadataRegistry): ClassDecorator
-```
-
-Stores `{ scope?, tags? }` via `setInjectableMetadata`. Pure metadata - it does not create a binding by itself; the framework layer reads this metadata when it auto-registers a class.
-
-```typescript
-@injectable({ scope: BindingScopes.SINGLETON, tags: { category: 'infrastructure' } })
-class CacheService {}
 ```
 
 ## Namespaces and Tags
@@ -452,7 +428,6 @@ function isClassProvider<T>(target: any): target is TClass<IProvider<T>>;
 | `BindingValueTypes.PROVIDER` | `'provider'` | Factory function or `IProvider` class |
 | `MetadataKeys.PROPERTIES` | `Symbol.for('ignis:properties')` | Property injection metadata key |
 | `MetadataKeys.INJECT` | `Symbol.for('ignis:inject')` | Constructor injection metadata key |
-| `MetadataKeys.INJECTABLE` | `Symbol.for('ignis:injectable')` | Injectable class metadata key |
 
 ## Troubleshooting
 

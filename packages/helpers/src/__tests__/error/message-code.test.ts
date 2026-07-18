@@ -1,12 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { ApplicationError, getError, MessageCode } from '@/modules/error';
 
-/**
- * A client branches on `messageCode`, never on the message text. An error raised without one
- * therefore reaches the client as "something failed, unmappable" - so the class supplies a default
- * rather than leaving the field absent, and every code in the framework is built through one
- * builder instead of being retyped as a bare string at each throw site.
- */
+/** A client branches on `messageCode`, never message text, so an error raised without one gets a
+ * default code instead of an unmappable absence; every code in the framework is built through one
+ * builder rather than retyped as a bare string at each throw site. */
 describe('normalized.code - the default', () => {
   test('an error raised without a code still carries the default one', () => {
     const error = getError({ message: 'something broke' });

@@ -3,9 +3,8 @@ import { connect, createServer, Socket } from 'node:net';
 import { NetworkTcpServer } from '@/modules/network';
 
 /**
- * `server.close()` alone never resolves while a client is still attached - node keeps the handle
- * open until every socket is destroyed. A caller reaching through `getServer().close()` therefore
- * hangs forever on a busy server, which is why tearing the clients down belongs to the helper.
+ * server.close() never resolves while a client is attached (node holds the handle until every
+ * socket is destroyed), so shutdown() must tear clients down itself - getServer().close() alone hangs.
  */
 const openServers: NetworkTcpServer[] = [];
 const openSockets: Socket[] = [];
@@ -159,10 +158,9 @@ describe('NetworkTcpServer.shutdown', () => {
     await connectClient(port);
     await waitFor(() => Object.keys(server.getClients()).length === 1);
 
-    // The reference is captured BEFORE shutdown: the registry is emptied first, so by the time the
-    // socket's own 'close' handler runs it can no longer find the client - and therefore cannot
-    // clear the kick timer. Only shutdown() can, and a timer left armed keeps the event loop alive
-    // for its full duration.
+    // Captured BEFORE shutdown: the registry empties first, so the socket's own 'close' handler
+    // can no longer find the client to clear its kick timer - only shutdown() can; an armed timer
+    // keeps the event loop alive.
     const [client] = Object.values(server.getClients());
     expect(client.storage.authenticateTimeout).toBeDefined();
     expect(client.storage.authenticateTimeout).not.toBeNull();

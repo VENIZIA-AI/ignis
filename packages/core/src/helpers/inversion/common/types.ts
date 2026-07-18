@@ -11,7 +11,6 @@ import type { TClass, TGrpcMethod, TValueOrResolver } from '@venizia/ignis-helpe
 import {
   type IInjectMetadata as _IInjectMetadata,
   type IPropertyMetadata as _IPropertyMetadata,
-  type TBindingScope,
 } from '@venizia/ignis-inversion';
 
 interface IBaseControllerMetadata {
@@ -48,11 +47,6 @@ export interface IRpcMetadata {
 export interface IPropertyMetadata extends _IPropertyMetadata {}
 
 export interface IInjectMetadata extends _IInjectMetadata {}
-
-export interface IInjectableMetadata {
-  scope?: TBindingScope;
-  tags?: Record<string, any>;
-}
 
 /** Decorator target for any constructable class (includes Function for ClassDecorator). */
 export type TDecoratorTarget<T = unknown> = TClass<T> | Function;

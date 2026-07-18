@@ -1,5 +1,9 @@
 import { extraPermissionColumns, model } from '@venizia/ignis';
-import { BasePostgresEntity, generateIdColumnDefs, generateTzColumnDefs } from '@venizia/ignis/postgres';
+import {
+  BasePostgresEntity,
+  generateIdColumnDefs,
+  generateTzColumnDefs,
+} from '@venizia/ignis/postgres';
 import { pgTable } from 'drizzle-orm/pg-core';
 
 @model({ type: 'entity' })

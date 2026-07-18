@@ -138,12 +138,9 @@ export class PersistableSearchRepository<
     return { count: 1, data: this.omitHiddenFields(updated as R) };
   }
 
-  /**
-   * Bulk update on a search engine has no RETURNING and this tier refuses to bolt an extra
-   * engine read onto every call: the contract is count-only, `data` is always `null`, and
-   * `shouldReturn` is rejected at the type level. Callers that need the affected documents
-   * read them explicitly (and pay that cost visibly) before updating.
-   */
+  /** Count-only contract: search engines have no RETURNING and no extra read is bolted on - `data`
+   * is always `null`, `shouldReturn` rejected at the type level. Callers wanting the affected
+   * documents read them explicitly before updating. */
   override async updateAll(opts: {
     data: Partial<TDocument>;
     where?: TWhere;
@@ -217,12 +214,9 @@ export class PersistableSearchRepository<
     return { count: 1, data };
   }
 
-  /**
-   * Count-only, like updateAll: no RETURNING on search engines, no bolted-on read, `data` is
-   * always `null`. Filter-delete when there is an effective where (opts.where and/or
-   * defaultFilter); truncates the whole collection only when neither is present - truncate
-   * reports no per-document count, so that path returns { count: 0, data: null }.
-   */
+  /** Count-only like updateAll. Filter-delete when there is an effective where; truncates the whole
+   * collection only when neither where nor defaultFilter is present - truncate reports no
+   * per-document count, so that path returns { count: 0, data: null }. */
   override async deleteAll(opts?: {
     where?: TWhere;
     options?: Omit<IExtraOptions, 'shouldReturn'> & { force?: boolean };
@@ -238,10 +232,8 @@ export class PersistableSearchRepository<
     });
 
     if (filterBy === undefined) {
-      // `where: {}` compiles to NO filter, which used to read as "truncate everything" - and the
-      // truncate reports no count, so the call returned `{ count: 0 }` and nothing surfaced the
-      // damage. Wiping a collection has to be asked for, exactly as Postgres demands `force` for an
-      // empty-where delete.
+      // `where: {}` compiles to NO filter; wiping a collection must be asked for explicitly,
+      // exactly as Postgres demands `force` for an empty-where delete.
       if (!options?.force) {
         throw getError({
           message: `[${this.constructor.name}][deleteAll] DENY to perform | Collection: ${this.collectionName} | No effective where condition (no where and no @model defaultFilter) - pass options.force to truncate the collection`,
@@ -269,11 +261,8 @@ export class PersistableSearchRepository<
     return { count: deletedCount, data: null };
   }
 
-  /**
-   * Bulk import through the neutral document facade. The per-row write `action`
-   * (create/upsert/update/emplace) is Typesense-only vocabulary, so it is not modelled here - a
-   * caller who needs it reaches `dataSource.getConnector().importDocuments(...)` directly.
-   */
+  /** Bulk import through the neutral document facade. Per-row write `action` is Typesense-only
+   * vocabulary - callers needing it use `dataSource.getConnector().importDocuments(...)` directly. */
   import(opts: { documents: TDocument[]; batchSize?: number }): Promise<IImportResult<unknown>> {
     const { documents, batchSize } = opts;
 

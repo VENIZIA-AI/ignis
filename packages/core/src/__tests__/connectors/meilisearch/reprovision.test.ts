@@ -3,12 +3,9 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { MeilisearchConnector } from '@/connectors/meilisearch/connector';
 import { FakeMeilisearchClient } from './connector/fake-client';
 
-/**
- * Creating an index that already exists is the NORMAL path on every restart with auto-provisioning
- * on. Meilisearch reports it as a FAILED TASK (`index_already_exists`), not as a thrown API error -
- * and the task-failure path wrapped it into a sanitized 503 that destroyed the code, so the
- * already-exists tolerance could never fire and the second boot died.
- */
+/** Creating an existing index is the NORMAL path on restart with auto-provisioning. Meilisearch
+ * reports it as a FAILED TASK (`index_already_exists`), not a thrown API error - the sanitized-503
+ * wrap must not destroy the code, or the already-exists tolerance can never fire. */
 const buildConnector = (client: FakeMeilisearchClient) => {
   return new MeilisearchConnector({
     name: 'reprovision-connector',

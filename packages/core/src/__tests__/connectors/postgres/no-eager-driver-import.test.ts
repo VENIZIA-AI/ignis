@@ -5,11 +5,9 @@ import { join } from 'node:path';
 // `__dirname`, not `import.meta`: this package emits CommonJS.
 const CORE_ROOT = join(__dirname, '../../../..');
 
-/**
- * Counts driver packages loaded into a FRESH process after importing `entry`. A subprocess is
- * mandatory: `bun test` shares one module registry across test files, so any sibling test that
- * imports a driver would make this assertion pass for the wrong reason.
- */
+/** Counts driver packages loaded into a FRESH process after importing `entry`. A subprocess is
+ * mandatory: `bun test` shares one module registry, so a sibling test importing a driver would make
+ * this pass for the wrong reason. */
 const countDriverModules = async (opts: {
   entry: string;
   /** Substring matched against every loaded module path, e.g. `/node_modules/pg/`. */

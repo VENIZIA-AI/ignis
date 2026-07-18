@@ -31,13 +31,9 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
 
-// Casbin Authorization Enforcer — wraps casbin (optional peer dep).
-//
-// Each request evaluates on its OWN enforcer borrowed from a BasePoolHelper<Enforcer>: a borrowed
-// enforcer is clearPolicy'd + loaded with THIS user's lines + buildRoleLinks'd + enforceSync'd
-// atomically inside the same pool.use callback, and the pool destroys the enforcer on any error
-// (fail-closed). Pooled enforcers are created WITHOUT an adapter (no DB load at warmup); the adapter
-// is only used by the isolated throwaway extractor (extractUserLines).
+// Wraps casbin (optional peer dep). Each request borrows its OWN pooled enforcer: clearPolicy +
+// load user lines + buildRoleLinks + enforceSync run atomically in one pool.use; any error destroys
+// the enforcer (fail-closed). Pooled enforcers carry NO adapter - only extractUserLines uses it.
 
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
@@ -129,10 +125,8 @@ export class CasbinAuthorizationEnforcer<
   }
 
   /**
-   * Boot-time smoke test for the matcher. casbin compiles the matcher expression lazily (on the
-   * first enforce, not in newEnforcer()/buildRoleLinks()), so a broken matcher would otherwise only
-   * surface on the first real request. This dummy enforceSync forces that compile at warmup, catching
-   * matcher syntax errors, unregistered matcher functions, and request-arity mismatches at boot.
+   * casbin compiles the matcher lazily (first enforce, not newEnforcer/buildRoleLinks); this dummy
+   * enforceSync forces the compile at warmup so syntax / unregistered-function / arity errors fail boot.
    */
   protected assertMatcherCompilesSync(opts: { enforcer: CasbinEnforcerType }) {
     try {
@@ -208,10 +202,9 @@ export class CasbinAuthorizationEnforcer<
           context,
         });
 
-        // Domain-aware enforcement: enforceSync(sub, dom, obj, act).
-        // In scoped mode the model is 4-token (r = sub, dom, obj, act); a request with no resolvable
-        // domain MUST still enforce with a domain — default to SYSTEM_WIDE, never fall through to the
-        // 3-arg path (which would shift args against the scoped model and silently misjudge).
+        // Scoped model is 4-token (sub, dom, obj, act): a request with no resolvable domain MUST
+        // still enforce with one - default SYSTEM_WIDE, never the 3-arg path, which would shift
+        // args against the scoped model and silently misjudge.
         const domain =
           normalized.domain ??
           request.domain ??
@@ -363,15 +356,9 @@ export class CasbinAuthorizationEnforcer<
     casbin: typeof import('casbin');
     name: TCasbinDomainMatchingFunction;
   }): (arg1: string, arg2: string) => boolean {
-    // `Util` is casbin's bag of built-in comparison functions. Each `*Func` takes two strings
-    // (the request value, the stored/policy value) and returns whether they "match":
-    //   keyMatchFunc   — `*` is the only wildcard. keyMatch("anything","*")=true; exact otherwise.
-    //                    (Best for domains: only treats `*` specially, never splits on `/` or `:`,
-    //                     so it can never accidentally pattern-match a `Merchant_<uuid>`.)
-    //   keyMatch2Func  — adds URL-path `:param` segments (e.g. "/u/:id" matches "/u/1").
-    //   keyMatch3Func  — adds `{param}` segments (e.g. "/u/{id}").
-    //   keyMatch4Func  — `{param}` with repeated-name equality checks.
-    //   regexMatchFunc — treats the stored value as a full regular expression.
+    // casbin Util built-ins, each (requestValue, policyValue) => match. keyMatchFunc treats only `*`
+    // specially (never splits on `/` or `:`), so it can never pattern-match a `Merchant_<uuid>`;
+    // see CasbinDomainMatchingFunctions for the per-function semantics.
     const { Util } = opts.casbin;
     switch (opts.name) {
       case CasbinDomainMatchingFunctions.KEY_MATCH: {
@@ -451,11 +438,8 @@ export class CasbinAuthorizationEnforcer<
   // Policy loading internals
 
   /**
-   * Fetch the user's policy lines, collapsing concurrent cache misses for the same key onto a single
-   * extraction (via `pendingLineFetches`) instead of letting every request hit the DB at once.
-   * Best-effort: two misses can both pass the cache read before either records its fetch in the map,
-   * so both may extract once (benign — per-user lines are identical). The cache-hit path stays
-   * outside the map to avoid needless contention.
+   * Fetch the user's lines, collapsing concurrent misses per key onto one extraction. Best-effort:
+   * two misses may race past the cache read and both extract (benign - per-user lines are identical).
    */
   protected async fetchLinesWithRedisCache(opts: {
     user: IAuthorizationUser;
@@ -530,9 +514,8 @@ export class CasbinAuthorizationEnforcer<
   }
 
   /**
-   * Extract a user's policy lines from an ISOLATED throwaway enforcer (its own model + the adapter),
-   * never a pooled serving enforcer — concurrent requests on pooled enforcers can't change what we
-   * cache for this user. Used by buildRules + rebuild.
+   * Extract a user's lines from an ISOLATED throwaway enforcer (own model + adapter), never a pooled
+   * serving one - so concurrent requests cannot change what we cache. Used by buildRules + rebuild.
    */
   protected async extractUserLines(opts: { user: IAuthorizationUser }): Promise<string[]> {
     const casbin = await import('casbin');
@@ -553,10 +536,8 @@ export class CasbinAuthorizationEnforcer<
   }
 
   /**
-   * Serialize ALL policy + grouping rule types of an enforcer's model back into casbin lines.
-   * Covers every p-type (p, p2, …) and g-type (g, g2, g3, g4, g5, …) — not just `p`/`g` — so the
-   * cached payload is complete for the scoped model (resource/action/domain hierarchies + membership).
-   * Reads stored rules (independent of role-link matching funcs), so the loader needs none registered.
+   * Serialize ALL p-types and g-types (not just `p`/`g`) back into casbin lines, so the cached payload
+   * is complete for the scoped model. Reads stored rules - the loader needs no matching funcs registered.
    */
   protected async extractLinesFrom(enforcer: CasbinEnforcerType): Promise<string[]> {
     const model = enforcer.getModel();

@@ -1,4 +1,4 @@
-import type { Logger, TNullable } from '@venizia/ignis-helpers';
+import type { ILogger, TNullable } from '@venizia/ignis-helpers';
 import { BaseHelper, Environment, HTTP, MessageCode } from '@venizia/ignis-helpers';
 import type { IProvider } from '@venizia/ignis-inversion';
 import type { Context } from 'hono';
@@ -18,18 +18,13 @@ const DEFAULT_INTERNAL_ERROR_MESSAGE = 'Internal Server Error';
 type TThrown = Error | HTTPResponseError;
 type TDatabaseClientError = ReturnType<typeof isDatabaseClientError>;
 
-/**
- * Application error handler (Hono `onError`). Routes each error to the right shape:
- * - ZodError → 422 via {@link formatZodError}
- * - DB client error (class 22/23/44) → 400 via {@link isDatabaseClientError}
- * - Transient DB conflict (40001/40P01) → 409 via {@link isRetryableDatabaseError}
- * - Intentional domain error (`getError`) → its own status/message
- * - Anything else → 500 (generic message in production)
- */
+/** Application error handler (Hono `onError`): ZodError -> 422; DB client error (class 22/23/44) ->
+ * 400; transient DB conflict (40001/40P01) -> 409; intentional `getError` -> its own status/message;
+ * anything else -> 500 (generic message in production). */
 export class AppErrorMiddleware extends BaseHelper implements IProvider<ErrorHandler> {
   private rootKey: TNullable<string>;
 
-  constructor(opts?: { logger?: Logger; rootKey?: string }) {
+  constructor(opts?: { logger?: ILogger; rootKey?: string }) {
     super({ scope: AppErrorMiddleware.name });
 
     this.rootKey = opts?.rootKey;

@@ -5,11 +5,8 @@ import { HTTP, LoggerFactory } from '@venizia/ignis-helpers';
 import { AppErrorMiddleware } from '@/base/middlewares/app-error/app-error.middleware';
 import { RequestSpyMiddleware } from '@/base/middlewares/request-spy/request-spy.middleware';
 
-/**
- * A chunked request carries no `Content-Length`. Gating the body parse on that header's PRESENCE
- * therefore skips the body of every streamed request - the tracker records nothing, and a malformed
- * payload sails past the middleware's clean 400 to blow up deeper as a 500.
- */
+/** A chunked request carries no `Content-Length`; gating the body parse on that header's PRESENCE
+ * skips every streamed body - malformed payloads then blow up deeper as a 500 instead of a clean 400. */
 const buildServer = () => {
   const server = new OpenAPIHono();
   const spy = new RequestSpyMiddleware();

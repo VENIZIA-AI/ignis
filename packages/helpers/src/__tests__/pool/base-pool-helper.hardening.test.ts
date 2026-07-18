@@ -268,10 +268,8 @@ describe('BasePoolHelper — fault injection: create()', () => {
 });
 
 describe('BasePoolHelper — fault injection: validate() THROWS', () => {
-  // FIXED (helper.ts): validate() is now wrapped in try/catch like reset(). A throwing validate()
-  // must be treated like an invalid resource — the popped candidate is destroyed (no leak) and the
-  // waiter is served by a freshly-created resource. This guards against the previous bug where a
-  // throwing validate leaked the candidate (corrupting `total`) and could permanently starve the pool.
+  // validate() is wrapped in try/catch like reset(): a throw is treated as an invalid resource
+  // (candidate destroyed, waiter served fresh) - guards against corrupting `total` and starving the pool.
   test('validate() throwing discards the candidate (no leak) and serves the waiter from a fresh resource', async () => {
     let n = 0;
     const destroyed: number[] = [];
@@ -566,10 +564,9 @@ describe('BasePoolHelper — nested acquire (re-entrancy from within use())', ()
   });
 
   test('DEADLOCK DOC: size:1 nested acquire inside use() deadlocks; only acquireTimeoutMs breaks it', async () => {
-    // With size:1, use() holds the single resource; the nested acquire() inside the callback
-    // can never be served (no idle, total==size). Without a timeout this hangs forever.
-    // We give acquireTimeoutMs so the inner acquire rejects, the callback throws, use() discards
-    // the outer resource and rethrows. This DOCUMENTS the deadlock hazard.
+    // size:1: use() holds the single resource, so the nested acquire() inside the callback can
+    // never be served. acquireTimeoutMs is the only escape - it rejects the inner acquire, the
+    // callback throws, and use() discards the outer resource.
     let n = 0;
     const pool = new BasePoolHelper<number>({ size: 1, create: () => ++n, acquireTimeoutMs: 30 });
     let err: unknown;

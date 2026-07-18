@@ -1,11 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 
 /**
- * node-vault and @dotenvx/dotenvx are OPTIONAL peers. Importing the secrets barrel - or the whole
- * package - must load NEITHER. HashiCorpVaultHelper/DotenvVaultHelper live behind the
- * `@venizia/ignis-helpers/vault` and `/dotenv-vault` sub-paths; the factory reaches them via
- * dynamic import only. A barrel `export * from './hashicorp'` would silently reintroduce the eager
- * import. This suite fails first if that happens.
+ * node-vault and @dotenvx/dotenvx are OPTIONAL peers - importing the secrets barrel must load
+ * neither. HashiCorpVaultHelper/DotenvVaultHelper live behind their sub-paths and the factory
+ * reaches them only via dynamic import; a stray `export * from './hashicorp'` would reintroduce the eager import, and this suite fails first.
  */
 const loadsPeer = async (specifier: string, peerPathFragment: string): Promise<boolean> => {
   const probe = `

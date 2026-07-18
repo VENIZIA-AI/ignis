@@ -13,14 +13,9 @@ import { HTTP } from '@venizia/ignis-helpers';
 
 import { FakeSearchDataSource, ProductDocument } from '../repositories/fake-search-connector';
 
-// Own datasource class (not reused from another test file): the model registry is a process-wide
-// singleton keyed by class name - same convention `repositories/integration-wiring.test.ts` uses.
-//
-// `FakeSearchEngineHelper.multiSearch()` throws (unneeded by the repository-tier tests it was
-// built for) with a zero-arg `(): Promise<never>` signature that can't be widened by a subclass
-// override (return-type covariance forbids `Promise<unknown>` under `Promise<never>`) - patched
-// onto the fake instance directly instead, the same connector-boundary `as any` FakeSearchDataSource
-// itself already uses for getConnector().
+// Own datasource class: the model registry is a process-wide singleton keyed by class name.
+// `FakeSearchEngineHelper.multiSearch()` has a `(): Promise<never>` signature no subclass override
+// can widen (return-type covariance), so it is patched onto the fake instance directly.
 class SearchFactoryDataSource extends FakeSearchDataSource {
   multiSearchCalls: Array<{ searches: unknown[]; union?: boolean; commonParams?: unknown }> = [];
   multiSearchResponse: unknown = { results: [{ found: 2, isFoundExact: true, hits: [] }] };

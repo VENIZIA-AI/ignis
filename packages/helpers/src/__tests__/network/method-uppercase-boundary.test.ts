@@ -5,16 +5,9 @@ import { NodeFetcher } from '@/modules/network';
 import { AxiosFetcher } from '@/modules/network/http-request/fetcher/axios-fetcher';
 
 /**
- * The uppercase-at-the-wire rule is pinned HERE, at the transport boundary, and not by an
- * end-to-end wire assertion - because an end-to-end one cannot fail:
- *
- * - Bun's fetch uppercases every method itself
- * - axios routes through node:http.request, which uppercases every method itself
- *
- * so a fetcher that forgot to uppercase would still look correct in both, and the bug would only
- * surface on Node's undici fetch, which normalizes ONLY DELETE/GET/HEAD/OPTIONS/POST/PUT and sends
- * anything else (PATCH, QUERY) verbatim. Asserting what the fetcher HANDS to its transport is the
- * only runtime-independent guard.
+ * Pinned at the transport boundary, not via an end-to-end wire check: Bun's fetch and axios both
+ * uppercase every method themselves, so a fetcher that forgot to would still pass e2e - the bug only
+ * surfaces on Node's undici, which normalizes just DELETE/GET/HEAD/OPTIONS/POST/PUT and sends PATCH/QUERY verbatim.
  */
 const METHODS = Object.values(HTTP.Methods);
 

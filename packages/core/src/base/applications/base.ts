@@ -400,11 +400,8 @@ export abstract class BaseApplication
     return merged;
   }
 
-  /**
-   * A hydrate entry declares an expectation only when it maps explicit `keys` or carries a
-   * non-empty `prefix`. Such an entry resolving to zero env values is a misconfiguration the boot
-   * must not silently absorb; an entry that declares no expectation can be legitimately empty.
-   */
+  /** A hydrate entry declares an expectation only via explicit `keys` or a non-empty `prefix`; such
+   * an entry resolving to zero env values is a misconfiguration boot must not silently absorb. */
   protected hydrateEntryDeclaresExpectation(opts: { entry: ISecretHydrateEntry }): boolean {
     const { entry } = opts;
     if (entry.keys && Object.keys(entry.keys).length > 0) {

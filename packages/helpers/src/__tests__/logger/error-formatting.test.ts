@@ -1,17 +1,9 @@
 import { describe, expect, test } from 'bun:test';
 import { getError } from '@/modules/error';
-import { formatLogMessage } from '@/modules/logger/formatters';
+import { formatLogMessage } from '@/modules/logger';
 
-/**
- * `message` and `stack` are NON-ENUMERABLE on an Error, so `JSON.stringify` - and therefore `%j` -
- * silently drops both. An error logged with `%j` reaches the log file without the stack, which is
- * the field the line exists for. This is the rule every error log line in the framework follows:
- * `%s`.
- *
- * The message text does survive `%j`, but only incidentally - it rides along inside the enumerable
- * `extra.message.text`, not as `Error.message`. That is a side effect of the structured message, not
- * a licence to use `%j`: the stack is still gone.
- */
+/** `Error.message`/`stack` are non-enumerable, so `%j` (JSON.stringify) silently drops both -
+ * always log errors with `%s`. `%j` keeps only incidental message text via `extra.message.text`. */
 describe('logging an Error - %s keeps it, %j guts it', () => {
   const buildError = () => {
     const error = getError({

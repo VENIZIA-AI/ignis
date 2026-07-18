@@ -20,11 +20,8 @@ class ValidateWhereFixtureEntity extends BasePostgresEntity {
   static override TABLE_NAME = 'test_entity';
 }
 
-/**
- * validateWhereCondition must treat a where as empty when it resolves to NO SQL
- * condition — covering {} AND all-undefined wheres ({ status: undefined }) that toWhere
- * drops. Without this, updateAll/updateBy/deleteAll/deleteBy would run table-wide.
- */
+/** validateWhereCondition must treat a where as empty when it resolves to NO SQL condition ({} and
+ * all-undefined wheres) - otherwise updateAll/updateBy/deleteAll/deleteBy run table-wide. */
 class TestRepository extends PersistableRepository<any> {
   constructor() {
     super(stubDataSource, {});

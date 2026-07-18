@@ -321,7 +321,7 @@ export class Application extends BaseApplication {
       host: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_HOST),
       port: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PORT),
       password: applicationEnvironment.get<string>(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_PASSWORD),
-      database: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) || '8'),
+      database: int(applicationEnvironment.get(EnvironmentKeys.APP_ENV_AUTHORZ_REDIS_DB) ?? '8'),
     });
 
     this.bind<IAuthorizeOptions>({ key: AuthorizeBindingKeys.OPTIONS }).toValue({
@@ -330,8 +330,7 @@ export class Application extends BaseApplication {
       // Scoped RBAC: the request domain is the authenticated user's organization.
       domainResolver: ({ context }) => {
         const user = context.get(Authentication.CURRENT_USER) as
-          | { organizationId?: string }
-          | undefined;
+          { organizationId?: string } | undefined;
         return user?.organizationId ? { type: Organization.name, id: user.organizationId } : null;
       },
     });

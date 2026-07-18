@@ -6,12 +6,8 @@ import { PersistableRepository } from '@/connectors/postgres/repositories';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 import { buildFakeConnector } from './fake-connector';
 
-/**
- * Covers the three `readAffectedRowCount` call sites in persistable.ts's `shouldReturn: false`
- * branches (`_create` / `_update` via `updateAll` / `_delete` via `deleteAll`) - none of them call
- * `.returning()`, so the reported `{ count }` comes entirely from `readAffectedRowCount` reading
- * whatever the awaited drizzle chain resolves to.
- */
+/** Covers the three `readAffectedRowCount` call sites in persistable.ts's `shouldReturn: false`
+ * branches - none call `.returning()`, so `{ count }` comes entirely from `readAffectedRowCount`. */
 
 const table = pgTable('persistable_count_fixture', {
   id: serial('id').primaryKey(),

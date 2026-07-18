@@ -94,11 +94,7 @@ export class BaseWorkerBusHelper<IConsumePayload, IPublishPayload> extends Abstr
     });
   }
 
-  /**
-   * Bus handlers run inside MessagePort event listeners: a synchronous throw there is an uncaught
-   * exception that takes the worker thread down. voidExecution only settles promises, it never
-   * sees a sync throw because its argument is already evaluated at the call site.
-   */
+  /** Bus handlers run inside MessagePort listeners; a sync throw there is uncaught and kills the worker thread, so wrap it - voidExecution alone can't catch a throw evaluated before it's called. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 

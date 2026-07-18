@@ -18,14 +18,9 @@ export interface ISearchConnectorCallbacks {
   onError?: (opts: { name: string; error: unknown }) => void;
 }
 
-/**
- * Search-response envelope - the read-path counterpart to IImportResult, consumed by
- * ReadableSearchRepository without a boundary cast.
- *
- * `score` is the engine's own relevance number (Typesense `text_match`, Meilisearch
- * `_rankingScore`). The scales are unrelated - never compare or threshold one against the other.
- * `isFoundExact` is false when the engine reports an approximate `found`.
- */
+/** Search-response envelope, consumed by ReadableSearchRepository without a boundary cast. `score`
+ * is the engine's own relevance number - the scales are unrelated across engines, never compare or
+ * threshold one against another. `isFoundExact` is false when `found` is approximate. */
 export interface ISearchResult<
   DocumentType extends object = object,
   HighlightType = unknown,
@@ -128,13 +123,9 @@ export interface ISearchDocumentScoped {
   }): Promise<string>;
 }
 
-/**
- * The verb contract every search engine implements. `collection` and `document` are the true
- * intersection. `alias`/`synonymSet`/`synonyms`/`swap` are optional because no engine has all four,
- * so an engine-agnostic caller is forced by the compiler to write `connector.alias?.…`, while a
- * repository bound to a concrete datasource sees that connector's required members and needs no
- * narrowing. Kept as an interface so tests can fake one without a real engine client.
- */
+/** The verb contract every search engine implements. `collection`/`document` are the true
+ * intersection; `alias`/`synonymSet`/`synonyms`/`swap` are optional since no engine has all four -
+ * agnostic callers must write `connector.alias?.…`. An interface so tests can fake it clientless. */
 export interface ISearchConnector {
   getHealth(): Promise<{ ok: boolean }>;
   ping(): Promise<boolean>;

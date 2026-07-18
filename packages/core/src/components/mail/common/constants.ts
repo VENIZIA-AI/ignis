@@ -6,9 +6,8 @@ export class MailDefaults {
 }
 
 /**
- * Built through {@link MessageCode.build}, like every other framework code: `ApplicationError`
- * lower-cases whatever it is handed, so a SCREAMING_CASE literal here would reach the client in a
- * spelling no const in this file matches.
+ * Built via {@link MessageCode.build}: `ApplicationError` lower-cases codes, so a SCREAMING_CASE
+ * literal here would reach the client in a spelling no const in this file matches.
  */
 export class MailErrorCodes {
   static readonly INVALID_CONFIGURATION = MessageCode.build({

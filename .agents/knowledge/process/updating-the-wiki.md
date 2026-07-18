@@ -26,8 +26,8 @@ tags: [process, docs, wiki]
    docs:clean`.
 5. The MCP server (`mcp-server/`, entry `mcp-server/index.ts`) is the ONLY part of this package
    that is TypeScript-compiled; `content/` is plain markdown VitePress reads directly. It exposes
-   11 tools (search, get content, list docs/categories, get metadata, package overview, plus
-   GitHub source-browsing tools) backed by Fuse.js fuzzy search over `content/` (changelogs
+   10 tools (6 docs: search, get content, list docs, list categories, get metadata, package
+   overview; 4 GitHub: search code, list files, view source, verify dependencies) backed by Fuse.js fuzzy search over `content/` (changelogs
    excluded from that index). Rebuild it with `bun run mcp:rebuild` (`mcp:build` + clean), or run it
    in dev with `bun run mcp:dev` (watches `mcp-server/index.ts`).
 6. Style rules for anything you write in `docs/wiki/content/`: hyphen `-` only, never an em-dash or

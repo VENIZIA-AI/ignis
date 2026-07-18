@@ -49,19 +49,9 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
   constructor() {
     super({ scope: FilterBuilder.name });
   }
-  /**
-   * Merges default filter with user filter. `where` merges at the TOP KEY LEVEL, never index-wise
-   * (that would corrupt operator arrays like `inq`/`or`), with one NARROWING rule on collisions:
-   *
-   * - both sides carry an operator object on the same key -> the two conditions are AND-composed,
-   *   so a default scope can only ever be narrowed, never widened or dropped by a user filter
-   *   (`{createdAt: {gte: floor}}` + `{createdAt: {lte: ceil}}` keeps the floor);
-   * - otherwise the user's value wins the key, as it always has (scalar overrides);
-   * - a user value of `undefined` never overrides a defined default - a user must not be able to
-   *   blow away a tenant/soft-delete scope by passing undefined.
-   *
-   * Other filter parts are user-wins.
-   */
+  /** Merges default and user filters. `where` merges at the TOP KEY LEVEL, never index-wise (that
+   * corrupts operator arrays); operator-object collisions AND-compose so a default scope can only be
+   * narrowed; user `undefined` never overrides a defined default. Other parts are user-wins. */
   mergeFilter<T = any>(opts: { defaultFilter?: TFilter<T>; userFilter?: TFilter<T> }): TFilter<T> {
     const { defaultFilter, userFilter } = opts;
 
@@ -94,12 +84,8 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     };
   }
 
-  /**
-   * Top-key merge of two `where` clauses. Collisions where BOTH sides hold an operator object are
-   * AND-composed into a `{ and: [...] }` group so the default condition survives intact; every
-   * other collision is a user-wins replacement. The AND group is appended under the reserved `and`
-   * key, and merges with an existing `and` rather than clobbering it.
-   */
+  /** Top-key merge: operator-object collisions AND-compose under the reserved `and` key (merging
+   * with an existing `and`, never clobbering it); every other collision is user-wins. */
   private mergeWhere<T = any>(opts: { defaultWhere: TWhere<T>; userWhere: TWhere<T> }): TWhere<T> {
     const { defaultWhere, userWhere } = opts;
 
@@ -115,11 +101,9 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
 
       const defaultValue = defaultWhere[key];
 
-      // A scalar-over-scalar collision stays a plain override (`isDeleted: false` -> `true`): that
-      // is the long-standing way a caller opts out of a soft-delete style default. Every other
-      // collision AND-composes, so a condition the default expressed can only be narrowed - a user
-      // operator object can no longer swallow a scalar default (`status: 'active'` +
-      // `status: { neq: 'archived' }` must keep BOTH), and two operator objects both survive.
+      // Scalar-over-scalar stays a plain override (the opt-out of a soft-delete default). Every
+      // other collision AND-composes so the default can only be narrowed - a user operator object
+      // cannot swallow a scalar default.
       const isCollision = defaultValue !== undefined;
 
       // `and`/`or` are the shapes a SCOPE is written in (soft-delete, tenant, ownership/visibility),
@@ -671,13 +655,9 @@ export class FilterBuilder extends BaseHelper implements IRelationalQueryDialect
     return this.buildJsonOperatorConditions({ jsonPath, safeNumericCast, operators: value });
   }
 
-  /**
-   * The cast belongs to each OPERATOR, not to the operator object.
-   *
-   * Choosing it once for the whole object breaks two ways: `{ not: { gt: 50 } }` hides its numeric
-   * operand behind a wrapper the check never looks inside (-> `text > integer` at runtime), and
-   * `{ gte: 1, like: '%a%' }` casts the extraction the `like` also uses (-> `numeric ~~ text`).
-   */
+  /** The cast belongs to each OPERATOR, not the object: one object-wide cast misses the operand in
+   * `{ not: { gt: 50 } }` (-> `text > integer`) and over-casts the extraction `like` shares in
+   * `{ gte: 1, like: '%a%' }` (-> `numeric ~~ text`). */
   private buildJsonOperatorConditions(opts: {
     jsonPath: string;
     safeNumericCast: string;

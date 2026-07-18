@@ -4,13 +4,8 @@ import { pgTable, serial, text } from 'drizzle-orm/pg-core';
 import type { AnyType } from '@venizia/ignis-helpers';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/**
- * A `@model` `defaultFilter` is a SCOPE: soft-delete, tenant isolation, ownership. The whole point is
- * that a caller-supplied filter can only ever NARROW it. Anything that lets a request drop a default
- * condition is a data-leak primitive, not a filtering quirk.
- *
- * These pin the two ways a caller could erase one.
- */
+/** A `@model` `defaultFilter` is a SCOPE (soft-delete, tenant, ownership): a caller filter may only
+ * NARROW it - dropping a default condition is a data-leak primitive. Pins the two escape routes. */
 const mergeWhere = (defaultWhere: AnyType, userWhere: AnyType): AnyType => {
   const builder = new FilterBuilder() as AnyType;
   return builder.mergeWhere({ defaultWhere, userWhere });

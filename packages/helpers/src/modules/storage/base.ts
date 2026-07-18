@@ -215,13 +215,9 @@ export abstract class BaseStorageHelper extends BaseHelper implements IStorageHe
         throw getError({ message: '[upload] Invalid original file name' });
       }
 
-      // Honour the CALLER's depth: validating against the hard default here meant an app configured
-      // for a deeper tree accepted the request, spooled the whole body, and only then failed inside
-      // this helper.
-      //
-      // `isValidPath` measures an OBJECT path - folders plus a filename - so it reads the last
-      // segment as the file and allows one folder more than asked. `folderPath` carries no filename,
-      // so its depth is the segment count itself and is checked here directly.
+      // Honours the CALLER's depth (not the hard default) so a deeper-tree app fails fast here rather
+      // than after spooling the whole body. isValidPath measures an OBJECT path (folder + filename,
+      // one folder more than a bare folderPath), so folderPath's depth is checked directly instead.
       if (folderPath) {
         const depthLimit = maxFolderDepth ?? BaseStorageHelper.DEFAULT_MAX_FOLDER_DEPTH;
         const folderSegments = folderPath.replace(/^\/+|\/+$/g, '').split('/');

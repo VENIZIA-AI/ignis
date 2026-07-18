@@ -11,11 +11,8 @@ import { type drizzle as nodePostgresConnector } from 'drizzle-orm/node-postgres
 import type { PgDatabase, PgQueryResultHKT } from 'drizzle-orm/pg-core';
 import type { Pool, PoolClient } from 'pg';
 
-/**
- * Drizzle connector for ANY Postgres driver. `NodePgDatabase` and `PostgresJsDatabase` both extend
- * `PgDatabase<TQueryResult, TFullSchema>`, differing only in the query-result HKT, so this is the
- * real shared base - not a cast. It is what lets `beginTransaction()` hold no driver-specific code.
- */
+/** Drizzle connector for ANY Postgres driver. `NodePgDatabase` and `PostgresJsDatabase` both extend
+ * `PgDatabase`, differing only in the query-result HKT - the real shared base, not a cast. */
 export type TRelationalConnector<
   DataSourceSchema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
 > = PgDatabase<PgQueryResultHKT, DataSourceSchema>;
@@ -65,19 +62,14 @@ export interface IDatabaseTransaction<
   connector: TRelationalConnector<Schema>;
   isolationLevel: TIsolationLevel;
 
-  /**
-   * Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded
-   * rather than pooled, where the driver supports it: node-postgres destroys it via
-   * `release(error)`; postgres-js has no destroy semantics, so a poisoned connection returns to its
-   * pool.
-   */
+  /** Throws if COMMIT fails, per {@link ITransaction.commit}. On failure the connection is discarded
+   * where the driver supports it (node-postgres `release(error)`); postgres-js has no destroy
+   * semantics, so a poisoned connection returns to its pool. */
   commit(): Promise<void>;
 
-  /**
-   * Throws if ROLLBACK fails, with the same connection-discard caveat as {@link commit} - but is a
-   * silent no-op after the transaction already ended BY FAILURE, per {@link ITransaction.rollback}.
-   * That keeps `catch (error) { await transaction.rollback(); throw error; }` safe.
-   */
+  /** Throws if ROLLBACK fails (same connection-discard caveat as {@link commit}) - but is a silent
+   * no-op after the transaction already ended BY FAILURE, keeping
+   * `catch (error) { await transaction.rollback(); throw error; }` safe. */
   rollback(): Promise<void>;
 }
 

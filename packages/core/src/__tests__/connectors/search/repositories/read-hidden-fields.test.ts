@@ -3,15 +3,9 @@ import type { AnyType } from '@venizia/ignis-helpers';
 import { ReadableSearchRepository } from '@/connectors/search/repositories';
 import { FakeSearchDataSource, ProductDocument } from './fake-search-connector';
 
-/**
- * The engine is not the last line of defence for `hiddenProperties`.
- *
- * Typesense excludes them engine-side (`exclude_fields`), but Meilisearch has NO per-query exclusion
- * at all - the only engine-side lever is the index's `displayedAttributes`, which depends on the
- * index having been provisioned by us. So the READ path strips them in JS as well, exactly the way
- * the WRITE path already does (`omitHiddenFields`). A hidden field must never leave the repository,
- * whichever engine is underneath and whatever the index settings happen to be.
- */
+/** The engine is not the last line of defence for `hiddenProperties`: Meilisearch has NO per-query
+ * exclusion, so the READ path strips them in JS just like the WRITE path (`omitHiddenFields`). A
+ * hidden field must never leave the repository, whatever the engine or index settings. */
 const buildRepository = (opts: {
   hiddenFields: string[];
   hits: Array<Record<string, unknown>>;

@@ -4,12 +4,8 @@ import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import type { BaseApplication } from '@/base/applications/base';
 
-/**
- * The legacy component.test.ts never constructs AuthorizeComponent nor invokes
- * binding(), so component.ts measured 0% func / 15% line. These tests build a
- * fake application exposing only the two methods the component touches —
- * `.get()` and `.bind().toValue()` — and exercise binding() directly.
- */
+/** Exercises AuthorizeComponent.binding() directly via a fake application exposing only the two
+ * methods the component touches: `.get()` and `.bind().toValue()`. */
 
 type TBindCall = { key: string; value: unknown };
 

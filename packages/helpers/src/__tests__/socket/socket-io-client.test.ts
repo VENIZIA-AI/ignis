@@ -1,8 +1,6 @@
 /**
- * SocketIOClientHelper Test Suite.
- *
- * The client is driven against a real socket.io server bound to port 0 (the server helper itself
- * needs Redis, so a bare IOServer stands in for it and speaks the same authenticate protocol).
+ * Driven against a real socket.io server on port 0 - a bare IOServer stands in for the server
+ * helper (which needs Redis) and speaks the same authenticate protocol.
  */
 
 import type { AnyType } from '@/common/types';

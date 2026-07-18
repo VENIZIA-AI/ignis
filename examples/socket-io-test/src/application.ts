@@ -13,7 +13,13 @@ import {
   ValueOrPromise,
 } from '@venizia/ignis';
 import { SocketIOBindingKeys, SocketIOComponent } from '@venizia/ignis/socket-io';
-import { applicationEnvironment, Environment, HTTP, int, RedisSingleHelper } from '@venizia/ignis-helpers';
+import {
+  applicationEnvironment,
+  Environment,
+  HTTP,
+  int,
+  RedisSingleHelper,
+} from '@venizia/ignis-helpers';
 import {
   SocketIOServerHelper,
   TSocketIOAuthenticateFn,

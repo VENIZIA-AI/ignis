@@ -4,13 +4,9 @@ import { dirname } from 'node:path';
 import { KafkaBundlerPluginNames, PlatformaticWasmSpecifiers } from './common';
 
 /**
- * platformaticWasmPlugin — Bun bundler plugin required to compile applications using the Kafka helpers.
- *
- * `@platformatic/kafka` reaches Kafka's CRC32C and compression codecs through
- * `@platformatic/wasm-utils`, whose default entrypoint reads `native.wasm` from disk at module load
- * time. `bun build --compile` embeds JavaScript only, so that read resolves against `/$bunfs` and the
- * binary dies with ENOENT before reaching the application. The `/bundled` entrypoint exposes the same
- * API with the wasm payload inlined; this plugin swaps one for the other at bundle time.
+ * `@platformatic/wasm-utils`'s default entrypoint reads `native.wasm` from disk at module load;
+ * `bun build --compile` embeds JS only, so that resolves against `/$bunfs` and the binary dies
+ * with ENOENT. This plugin redirects the import to the `/bundled` entrypoint (wasm inlined).
  */
 export const platformaticWasmPlugin = (): BunPlugin => ({
   name: KafkaBundlerPluginNames.PLATFORMATIC_WASM,

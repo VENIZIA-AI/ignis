@@ -64,21 +64,21 @@ export class RowLockingTestService extends BaseTestService {
   async run(): Promise<void> {
     this.logSection('[RowLockingTestService] Starting row-level locking test cases...');
 
-    await this.case1_BasicForUpdate();
-    await this.case2_ForUpdateWithFind();
-    await this.case3_ForUpdateWithFindById();
-    await this.case4_ForShareLock();
-    await this.case5_ForNoKeyUpdate();
-    await this.case6_ForKeyShare();
-    await this.case7_ForUpdateSkipLocked();
-    await this.case8_ForUpdateNoWait();
-    await this.case9_LockWithoutTransactionThrows();
-    await this.case10_LockWithIncludeThrows();
-    await this.case11_LockWithFieldsThrows();
-    await this.case12_LockAndUpdateInTransaction();
-    await this.case13_MultipleReposWithLock();
-    await this.case14_SharedLockAllowsConcurrentReaders();
-    await this.case15_LockStrengthsConstants();
+    await this.case1BasicForUpdate();
+    await this.case2ForUpdateWithFind();
+    await this.case3ForUpdateWithFindById();
+    await this.case4ForShareLock();
+    await this.case5ForNoKeyUpdate();
+    await this.case6ForKeyShare();
+    await this.case7ForUpdateSkipLocked();
+    await this.case8ForUpdateNoWait();
+    await this.case9LockWithoutTransactionThrows();
+    await this.case10LockWithIncludeThrows();
+    await this.case11LockWithFieldsThrows();
+    await this.case12LockAndUpdateInTransaction();
+    await this.case13MultipleReposWithLock();
+    await this.case14SharedLockAllowsConcurrentReaders();
+    await this.case15LockStrengthsConstants();
 
     this.logSection('[RowLockingTestService] All row-level locking test cases completed!');
   }
@@ -86,7 +86,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Basic FOR UPDATE with findOne
   // ----------------------------------------------------------------
-  private async case1_BasicForUpdate(): Promise<void> {
+  private async case1BasicForUpdate(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Basic FOR UPDATE - findOne with exclusive lock');
 
@@ -125,7 +125,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: FOR UPDATE with find (multiple rows)
   // ----------------------------------------------------------------
-  private async case2_ForUpdateWithFind(): Promise<void> {
+  private async case2ForUpdateWithFind(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] FOR UPDATE with find - Lock multiple rows');
 
@@ -168,7 +168,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: FOR UPDATE with findById
   // ----------------------------------------------------------------
-  private async case3_ForUpdateWithFindById(): Promise<void> {
+  private async case3ForUpdateWithFindById(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] FOR UPDATE with findById');
 
@@ -207,7 +207,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: FOR SHARE lock
   // ----------------------------------------------------------------
-  private async case4_ForShareLock(): Promise<void> {
+  private async case4ForShareLock(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] FOR SHARE - Shared read lock');
 
@@ -246,7 +246,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: FOR NO KEY UPDATE lock
   // ----------------------------------------------------------------
-  private async case5_ForNoKeyUpdate(): Promise<void> {
+  private async case5ForNoKeyUpdate(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] FOR NO KEY UPDATE - Exclusive lock allowing key share');
 
@@ -285,7 +285,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: FOR KEY SHARE lock
   // ----------------------------------------------------------------
-  private async case6_ForKeyShare(): Promise<void> {
+  private async case6ForKeyShare(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] FOR KEY SHARE - Weakest lock');
 
@@ -324,7 +324,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: FOR UPDATE SKIP LOCKED
   // ----------------------------------------------------------------
-  private async case7_ForUpdateSkipLocked(): Promise<void> {
+  private async case7ForUpdateSkipLocked(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] FOR UPDATE SKIP LOCKED - Skip already-locked rows');
 
@@ -376,12 +376,12 @@ export class RowLockingTestService extends BaseTestService {
     } catch (error) {
       try {
         await tx1.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       try {
         await tx2.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 7] FAILED with error: %o', error);
@@ -392,7 +392,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: FOR UPDATE NOWAIT
   // ----------------------------------------------------------------
-  private async case8_ForUpdateNoWait(): Promise<void> {
+  private async case8ForUpdateNoWait(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 8] FOR UPDATE NOWAIT - Fail immediately when row locked');
 
@@ -439,12 +439,12 @@ export class RowLockingTestService extends BaseTestService {
     } catch (error) {
       try {
         await tx1.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       try {
         await tx2.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 8] FAILED with error: %o', error);
@@ -455,7 +455,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Lock without transaction should throw
   // ----------------------------------------------------------------
-  private async case9_LockWithoutTransactionThrows(): Promise<void> {
+  private async case9LockWithoutTransactionThrows(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 9] Lock without transaction - Should throw validation error');
 
@@ -480,7 +480,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Lock with include should throw
   // ----------------------------------------------------------------
-  private async case10_LockWithIncludeThrows(): Promise<void> {
+  private async case10LockWithIncludeThrows(): Promise<void> {
     const repo = this.productRepository;
     this.logCase('[CASE 10] Lock with include - Should throw Query API incompatibility');
 
@@ -509,7 +509,7 @@ export class RowLockingTestService extends BaseTestService {
       }
       try {
         await transaction.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
     }
@@ -518,7 +518,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Lock with fields should throw
   // ----------------------------------------------------------------
-  private async case11_LockWithFieldsThrows(): Promise<void> {
+  private async case11LockWithFieldsThrows(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 11] Lock with fields - Should throw Query API incompatibility');
 
@@ -546,7 +546,7 @@ export class RowLockingTestService extends BaseTestService {
       }
       try {
         await transaction.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
     }
@@ -555,7 +555,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Lock then update in same transaction
   // ----------------------------------------------------------------
-  private async case12_LockAndUpdateInTransaction(): Promise<void> {
+  private async case12LockAndUpdateInTransaction(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 12] Lock and update - Read-modify-write with FOR UPDATE');
 
@@ -612,7 +612,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Lock across multiple repositories in same transaction
   // ----------------------------------------------------------------
-  private async case13_MultipleReposWithLock(): Promise<void> {
+  private async case13MultipleReposWithLock(): Promise<void> {
     const configRepo = this.configurationRepository;
     const productRepo = this.productRepository;
     this.logCase('[CASE 13] Lock across multiple repositories in same transaction');
@@ -680,7 +680,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Shared locks allow concurrent readers
   // ----------------------------------------------------------------
-  private async case14_SharedLockAllowsConcurrentReaders(): Promise<void> {
+  private async case14SharedLockAllowsConcurrentReaders(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 14] FOR SHARE allows concurrent readers');
 
@@ -724,12 +724,12 @@ export class RowLockingTestService extends BaseTestService {
     } catch (error) {
       try {
         await tx1.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       try {
         await tx2.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 14] FAILED with error: %o', error);
@@ -740,7 +740,7 @@ export class RowLockingTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: LockStrengths constants validation
   // ----------------------------------------------------------------
-  private async case15_LockStrengthsConstants(): Promise<void> {
+  private async case15LockStrengthsConstants(): Promise<void> {
     this.logCase('[CASE 15] LockStrengths constants and isValid()');
 
     const checks = [

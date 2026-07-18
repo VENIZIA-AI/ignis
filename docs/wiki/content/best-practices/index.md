@@ -102,6 +102,9 @@ Controller → Service → Repository → DataSource
 // ✅ Error Handling
 throw getError({ statusCode: 404, message: 'User not found' });
 
+// ✅ Scoped Logging (ILogger - never names a provider)
+this.logger.for('createUser').info('User created | id: %s', user.id);
+
 // ✅ Input Validation
 request: { body: jsonContent({ schema: z.object({ email: z.string().email() }) }) }
 ```
@@ -119,6 +122,9 @@ async getUser(c: Context) {
 
 // ❌ Catching all errors silently
 try { await riskyOperation(); } catch (e) { /* swallowed */ }
+
+// ❌ Raw Error - loses statusCode, messageCode and the normalized response shape
+throw new Error('User not found'); // Use getError()
 
 // ❌ Using `any` type
 const data: any = await fetchData(); // Use proper types!

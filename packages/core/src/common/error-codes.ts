@@ -1,15 +1,10 @@
 import type { TConstValue } from '@venizia/ignis-helpers';
 import { MessageCode } from '@venizia/ignis-helpers';
 
-/**
- * Every machine-readable code the framework itself raises. A client branches on the code, never on
- * the message text, so these strings ARE a public contract: changing one breaks every consumer that
- * maps it. Codes are built through {@link MessageCode.build}, which rejects a
- * malformed one at import time rather than shipping a code nothing can match.
- *
- * Applications declare their own codes in their own namespace (BANA uses `server.*`); `core.*` and
- * `database.*` belong to IGNIS.
- */
+/** Every machine-readable code the framework raises. Clients branch on the code, never the message
+ * text, so these strings ARE a public contract - changing one breaks every consumer that maps it.
+ * Built via {@link MessageCode.build}, which rejects a malformed code at import time. Applications
+ * use their own namespace; `core.*` and `database.*` belong to IGNIS. */
 const build = (parts: Array<string>): string => {
   return MessageCode.build({ parts });
 };

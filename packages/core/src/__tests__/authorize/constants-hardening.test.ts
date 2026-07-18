@@ -12,11 +12,8 @@ import {
   CasbinRuleVariants,
 } from '@/components/auth/authorize/common/constants';
 
-/**
- * The legacy constants.test.ts covers isValid on Actions/Decisions only and
- * never touches the numeric/string isAllow|isDeny|isAbstain helpers nor the
- * other const-classes' isValid/SCHEME_SET — leaving constants.ts at 21% func.
- */
+/** Covers the numeric/string isAllow|isDeny|isAbstain helpers and the const-classes'
+ * isValid/SCHEME_SET that the legacy constants.test.ts never touches. */
 
 describe('AuthorizationDecisions.isAllow', () => {
   test('string "allow" (case-insensitive)', () => {

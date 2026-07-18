@@ -231,9 +231,11 @@ APP_ENV_JWT_EXPIRES_IN=86400
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `APP_ENV_LOGGER_FOLDER_PATH` | No | `./` | Directory for log files |
+| `APP_ENV_LOGGER_FOLDER_PATH` | No | _(unset)_ | Directory for log files; file logging is OFF when unset |
 | `APP_ENV_LOGGER_FORMAT` | No | `text` | Log output format |
+| `APP_ENV_LOGGER_LEVEL` | No | `debug` | Logger-level floor; transports without their own level inherit it |
 | `APP_ENV_LOGGER_INSPECT_DEPTH` | No | `5` | How deep a `%s` argument is inspected. Node hard-codes depth `0` for `%s`, which prints `[Object]` one level in; IGNIS widens it. Non-negative integers only - an absent, invalid or negative value falls back to `5` |
+| `APP_ENV_LOGGER_DO_REDACT` | No | `true` | Secret redaction in logged values. ONLY the literal `false` disables it (reveals raw credentials in log lines); anything else keeps redaction ON. Never disable in production |
 | `APP_ENV_LOGGER_FILE_FREQUENCY` | No | `1h` | Log file rotation frequency |
 | `APP_ENV_LOGGER_FILE_MAX_SIZE` | No | `100m` | Max size per log file |
 | `APP_ENV_LOGGER_FILE_MAX_FILES` | No | `5d` | Log file retention |

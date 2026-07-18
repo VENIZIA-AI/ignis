@@ -997,12 +997,9 @@ export class TypesenseConnector extends BaseSearchConnector {
     return mapSearchResult<T>(rs);
   }
 
-  // `union: true` merges every `searches` entry into ONE result set (IUnionSearchResult); the
-  // default federates them side-by-side into `results[]` (IMultiSearchResult) - overloaded so
-  // callers get the right shape back at compile time instead of a runtime-checked union.
-  // Wire boundary: `searches`/`commonParams` are the engine's NATIVE snake_case params (the datasource
-  // maps camelCase -> here). Typed as TSearchParams (not a loose record) so the raw getConnector()
-  // escape hatch still gets full LSP on the snake_case wire fields.
+  // `union: true` merges into ONE result set; the default federates into `results[]` - overloaded
+  // so callers get the right shape at compile time. `searches`/`commonParams` are the engine's
+  // NATIVE snake_case wire params, typed as TSearchParams so the raw escape hatch keeps full LSP.
   async multiSearch<T extends TDocumentSchema = TDocumentSchema>(opts: {
     searches: Array<{ collection: string } & Partial<TSearchParams>>;
     union: true;

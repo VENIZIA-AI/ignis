@@ -66,28 +66,28 @@ export class TransactionTestService extends BaseTestService {
     this.logSection('[TransactionTestService] Starting transaction test cases...');
 
     // Basic transaction operations
-    await this.case1_CommitSuccess();
-    await this.case2_RollbackOnError();
-    await this.case3_RollbackExplicit();
-    await this.case4_ReadWithinTransaction();
-    await this.case5_UpdateAndDeleteInTransaction();
-    await this.case6_UseInactiveTransactionAfterCommit();
-    await this.case7_UseInactiveTransactionAfterRollback();
-    await this.case8_IsolationLevelReadCommitted();
-    await this.case9_IsolationLevelSerializable();
-    await this.case10_CreateAllInTransaction();
+    await this.case1CommitSuccess();
+    await this.case2RollbackOnError();
+    await this.case3RollbackExplicit();
+    await this.case4ReadWithinTransaction();
+    await this.case5UpdateAndDeleteInTransaction();
+    await this.case6UseInactiveTransactionAfterCommit();
+    await this.case7UseInactiveTransactionAfterRollback();
+    await this.case8IsolationLevelReadCommitted();
+    await this.case9IsolationLevelSerializable();
+    await this.case10CreateAllInTransaction();
 
     // Advanced transaction tests
-    await this.case11_MultipleRepositoriesInTransaction();
-    await this.case12_ConcurrentTransactionsOnSameData();
-    await this.case13_TransactionStateVerification();
-    await this.case14_DoubleCommitHandling();
-    await this.case15_DoubleRollbackHandling();
-    await this.case16_RollbackVerifiesNoDataPersisted();
-    await this.case17_TransactionWithRelatedEntities();
-    await this.case18_IsolationLevelRepeatableRead();
-    await this.case19_TransactionWithCountAndExists();
-    await this.case20_LargeTransactionWithManyOperations();
+    await this.case11MultipleRepositoriesInTransaction();
+    await this.case12ConcurrentTransactionsOnSameData();
+    await this.case13TransactionStateVerification();
+    await this.case14DoubleCommitHandling();
+    await this.case15DoubleRollbackHandling();
+    await this.case16RollbackVerifiesNoDataPersisted();
+    await this.case17TransactionWithRelatedEntities();
+    await this.case18IsolationLevelRepeatableRead();
+    await this.case19TransactionWithCountAndExists();
+    await this.case20LargeTransactionWithManyOperations();
 
     this.logSection('[TransactionTestService] All transaction test cases completed!');
   }
@@ -95,7 +95,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Commit Success
   // ----------------------------------------------------------------
-  private async case1_CommitSuccess(): Promise<void> {
+  private async case1CommitSuccess(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Commit Success - Multiple creates should persist after commit');
 
@@ -135,7 +135,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Rollback on Error
   // ----------------------------------------------------------------
-  private async case2_RollbackOnError(): Promise<void> {
+  private async case2RollbackOnError(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Rollback on Error - Data should NOT persist after rollback');
 
@@ -175,7 +175,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Explicit Rollback
   // ----------------------------------------------------------------
-  private async case3_RollbackExplicit(): Promise<void> {
+  private async case3RollbackExplicit(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] Explicit Rollback - Manual rollback discards changes');
 
@@ -206,7 +206,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Read within Transaction
   // ----------------------------------------------------------------
-  private async case4_ReadWithinTransaction(): Promise<void> {
+  private async case4ReadWithinTransaction(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] Read within Transaction - Uncommitted data visible in transaction');
 
@@ -242,7 +242,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: Update and Delete in Transaction
   // ----------------------------------------------------------------
-  private async case5_UpdateAndDeleteInTransaction(): Promise<void> {
+  private async case5UpdateAndDeleteInTransaction(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] Update and Delete in Transaction');
 
@@ -292,7 +292,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Use Inactive Transaction After Commit
   // ----------------------------------------------------------------
-  private async case6_UseInactiveTransactionAfterCommit(): Promise<void> {
+  private async case6UseInactiveTransactionAfterCommit(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] Use Inactive Transaction After Commit');
 
@@ -322,7 +322,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Use Inactive Transaction After Rollback
   // ----------------------------------------------------------------
-  private async case7_UseInactiveTransactionAfterRollback(): Promise<void> {
+  private async case7UseInactiveTransactionAfterRollback(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] Use Inactive Transaction After Rollback');
 
@@ -352,7 +352,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Isolation Level - READ COMMITTED
   // ----------------------------------------------------------------
-  private async case8_IsolationLevelReadCommitted(): Promise<void> {
+  private async case8IsolationLevelReadCommitted(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 8] Isolation Level - READ COMMITTED');
 
@@ -379,7 +379,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Isolation Level - SERIALIZABLE
   // ----------------------------------------------------------------
-  private async case9_IsolationLevelSerializable(): Promise<void> {
+  private async case9IsolationLevelSerializable(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 9] Isolation Level - SERIALIZABLE');
 
@@ -418,7 +418,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: CreateAll in Transaction
   // ----------------------------------------------------------------
-  private async case10_CreateAllInTransaction(): Promise<void> {
+  private async case10CreateAllInTransaction(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 10] CreateAll in Transaction');
 
@@ -460,7 +460,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: Multiple Repositories in One Transaction
   // ----------------------------------------------------------------
-  private async case11_MultipleRepositoriesInTransaction(): Promise<void> {
+  private async case11MultipleRepositoriesInTransaction(): Promise<void> {
     const configRepo = this.configurationRepository;
     const productRepo = this.productRepository;
     this.logCase('[CASE 11] Multiple Repositories in One Transaction');
@@ -512,7 +512,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Concurrent Transactions on Same Data
   // ----------------------------------------------------------------
-  private async case12_ConcurrentTransactionsOnSameData(): Promise<void> {
+  private async case12ConcurrentTransactionsOnSameData(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 12] Concurrent Transactions on Same Data');
 
@@ -559,7 +559,7 @@ export class TransactionTestService extends BaseTestService {
           await tx2.commit();
           tx2Committed = true;
           this.logger.info('[CASE 12] INFO | Both concurrent transactions completed (last wins)');
-        } catch (conflictError) {
+        } catch {
           await tx2.rollback();
           this.logger.info('[CASE 12] INFO | Second transaction detected conflict and rolled back');
         }
@@ -586,12 +586,12 @@ export class TransactionTestService extends BaseTestService {
       } catch (error) {
         try {
           await tx1.rollback();
-        } catch (_e) {
+        } catch {
           /* ignore */
         }
         try {
           await tx2.rollback();
-        } catch (_e) {
+        } catch {
           /* ignore */
         }
         throw error;
@@ -607,7 +607,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Transaction State Verification
   // ----------------------------------------------------------------
-  private async case13_TransactionStateVerification(): Promise<void> {
+  private async case13TransactionStateVerification(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 13] Transaction State Verification');
 
@@ -650,7 +650,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Double Commit Handling
   // ----------------------------------------------------------------
-  private async case14_DoubleCommitHandling(): Promise<void> {
+  private async case14DoubleCommitHandling(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 14] Double Commit Handling');
 
@@ -677,7 +677,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Double Rollback Handling
   // ----------------------------------------------------------------
-  private async case15_DoubleRollbackHandling(): Promise<void> {
+  private async case15DoubleRollbackHandling(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 15] Double Rollback Handling');
 
@@ -704,7 +704,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Rollback Verifies No Data Persisted
   // ----------------------------------------------------------------
-  private async case16_RollbackVerifiesNoDataPersisted(): Promise<void> {
+  private async case16RollbackVerifiesNoDataPersisted(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 16] Rollback Verifies No Data Persisted');
 
@@ -754,7 +754,7 @@ export class TransactionTestService extends BaseTestService {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 16] FAILED with error: %o', error);
@@ -764,7 +764,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 17: Transaction With Related Entities
   // ----------------------------------------------------------------
-  private async case17_TransactionWithRelatedEntities(): Promise<void> {
+  private async case17TransactionWithRelatedEntities(): Promise<void> {
     const productRepo = this.productRepository;
     const saleChannelRepo = this.saleChannelRepository;
     const junctionRepo = this.saleChannelProductRepository;
@@ -836,7 +836,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 18: Isolation Level - REPEATABLE READ
   // ----------------------------------------------------------------
-  private async case18_IsolationLevelRepeatableRead(): Promise<void> {
+  private async case18IsolationLevelRepeatableRead(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 18] Isolation Level - REPEATABLE READ');
 
@@ -863,7 +863,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 19: Transaction With Count and Exists
   // ----------------------------------------------------------------
-  private async case19_TransactionWithCountAndExists(): Promise<void> {
+  private async case19TransactionWithCountAndExists(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 19] Transaction With Count and Exists Operations');
 
@@ -921,7 +921,7 @@ export class TransactionTestService extends BaseTestService {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 19] FAILED with error: %o', error);
@@ -931,7 +931,7 @@ export class TransactionTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 20: Large Transaction With Many Operations
   // ----------------------------------------------------------------
-  private async case20_LargeTransactionWithManyOperations(): Promise<void> {
+  private async case20LargeTransactionWithManyOperations(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 20] Large Transaction With Many Operations');
 
@@ -1014,7 +1014,7 @@ export class TransactionTestService extends BaseTestService {
     } catch (error) {
       try {
         await transaction.rollback();
-      } catch (_e) {
+      } catch {
         /* ignore */
       }
       this.logger.error('[CASE 20] FAILED with error: %o', error);

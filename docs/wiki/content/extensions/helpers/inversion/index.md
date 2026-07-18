@@ -13,9 +13,8 @@ difficulty: intermediate
 The smallest real use: bind a class with constructor injection, then resolve it through the container.
 
 ```typescript
-import { Container, injectable, inject, BindingScopes } from '@venizia/ignis-inversion';
+import { Container, inject, BindingScopes } from '@venizia/ignis-inversion';
 
-@injectable({ scope: BindingScopes.SINGLETON })
 class UserService {
   constructor(@inject({ key: 'config.appName' }) private appName: string) {}
 }
@@ -30,7 +29,7 @@ container.bind<UserService>({ key: 'services.UserService' })
 const userService = container.get<UserService>({ key: 'services.UserService' });
 ```
 
-`@injectable` is metadata only (scope + tags) - the binding itself is still created explicitly with `container.bind()`. The framework layer (`@venizia/ignis`) wires this up automatically for controllers, services, and repositories via `app.controller()` / `app.service()` / `@repository`.
+A class needs no decorator to be bindable - the binding is always created explicitly with `container.bind()`, and scope is set on the binding via `setScope()`. The framework layer (`@venizia/ignis`) creates these bindings for you for controllers, services, and repositories via `app.controller()` / `app.service()` / `@repository`.
 
 ## How it works
 
@@ -57,7 +56,6 @@ Property-injected classes only get their `@inject` properties populated when bui
 ### Bind a class with constructor injection
 
 ```typescript
-@injectable({ scope: BindingScopes.SINGLETON })
 class OrderService {
   constructor(
     @inject({ key: 'repositories.OrderRepository' }) private orderRepository: OrderRepository,
@@ -89,7 +87,6 @@ container.bind({ key: 'services.CacheService' })
 ### Inject into a property instead of the constructor
 
 ```typescript
-@injectable({})
 class UserService {
   @inject({ key: 'repositories.UserRepository' })
   private userRepository: UserRepository;
@@ -121,8 +118,8 @@ const instance = container.resolve<MyClass>(MyClass); // full DI, not bound to a
 
 **Files:**
 
-- [`packages/inversion/src/container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/container.ts) - `Container`, two-phase `instantiate()`
-- [`packages/inversion/src/container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/container/base.ts) - `BaseContainer`, binding storage
-- [`packages/inversion/src/binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/binding/binding.ts) - `Binding`
-- [`packages/inversion/src/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/metadata/injectors.ts) - `@inject`, `@injectable`
-- [`packages/inversion/src/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/registry/registry.ts) - `MetadataRegistry`
+- [`packages/inversion/src/modules/container/container.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/container.ts) - `Container`, two-phase `instantiate()`
+- [`packages/inversion/src/modules/container/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/container/base.ts) - `BaseContainer`, binding storage
+- [`packages/inversion/src/modules/binding/binding.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/binding/binding.ts) - `Binding`
+- [`packages/inversion/src/modules/metadata/injectors.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/metadata/injectors.ts) - `@inject`
+- [`packages/inversion/src/modules/registry/registry.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/registry/registry.ts) - `MetadataRegistry`

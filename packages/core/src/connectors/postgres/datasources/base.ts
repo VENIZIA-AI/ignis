@@ -98,19 +98,16 @@ export abstract class BaseRelationalDataSource<
     let isActive = true;
     let isEndedByFailure = false;
 
-    /**
-     * Ends the transaction with `statement`. On failure the connection is discarded rather than
-     * pooled - the session may still hold an open transaction that the next borrower would inherit
-     * - and the error is rethrown, because a caller must never believe a failed COMMIT succeeded.
-     */
+    /** Ends the transaction with `statement`. On failure the connection is discarded, not pooled
+     * (the session may still hold an open transaction the next borrower would inherit), and the
+     * error rethrown - a caller must never believe a failed COMMIT succeeded. */
     const finish = async (finishOpts: { statement: string; verb: string }): Promise<void> => {
       const { statement, verb } = finishOpts;
 
       if (!isActive) {
-        // The canonical caller pattern is `catch { await tx.rollback(); throw error; }`. After a
-        // FAILED commit/rollback the transaction is already torn down - nothing committed, the
-        // connection destroyed - so a rollback request is satisfied by construction. Throwing
-        // 'already ended' here would replace the caller's original error in every such catch block.
+        // After a FAILED commit/rollback the transaction is already torn down, so a rollback is
+        // satisfied by construction - throwing 'already ended' would replace the caller's original
+        // error in the canonical `catch { await tx.rollback(); throw error; }`.
         if (isEndedByFailure && verb === 'rollback') {
           this.logger
             .for(verb)

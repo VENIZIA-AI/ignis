@@ -6,11 +6,7 @@ import { getError } from '@/modules/error';
 
 const logger = LoggerFactory.getLogger(['ModuleUtility']);
 
-/**
- * Imports an optional peer through a function boundary so `Bun.build` cannot resolve the specifier
- * at bundle time - literal (and `minify.syntax`-folded const) specifiers break consumers that
- * compile without the peer installed.
- */
+/** Imports an optional peer through a function boundary so `Bun.build` cannot resolve the specifier at bundle time - literal (or `minify.syntax`-folded const) specifiers break consumers that compile without the peer installed. */
 export const importOptionalModule = async <T = AnyType>(opts: { module: string }): Promise<T> => {
   try {
     return (await import(opts.module)) as T;
@@ -26,12 +22,8 @@ export const importOptionalModule = async <T = AnyType>(opts: { module: string }
   }
 };
 
-/**
- * Validates that the specified modules are installed and resolvable.
- * Uses `createRequire` from the process CWD so peer deps in the application's
- * node_modules are found, even though this utility lives in packages/helpers/dist/.
- */
-export const validateModule = async (opts: { scope?: string; modules: Array<string> }) => {
+/** Uses `createRequire` from the process CWD (not this utility's own `packages/helpers/dist/` location) so peer deps resolve against the app's node_modules; fully synchronous. `validateModule` is an async wrapper kept for API back-compat. */
+export const validateModuleSync = (opts: { scope?: string; modules: Array<string> }): void => {
   const { scope = '', modules = [] } = opts;
   const appRequire = createRequire(path.join(process.cwd(), 'node_modules'));
   for (const module of modules) {
@@ -44,4 +36,9 @@ export const validateModule = async (opts: { scope?: string; modules: Array<stri
       });
     }
   }
+};
+
+/** Async wrapper over `validateModuleSync` - kept `async` for API back-compat even though the body never awaits anything. */
+export const validateModule = async (opts: { scope?: string; modules: Array<string> }) => {
+  validateModuleSync(opts);
 };

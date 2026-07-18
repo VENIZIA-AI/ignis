@@ -66,38 +66,38 @@ export class JsonUpdateTestService extends BaseTestService {
     this.logSection('[JsonUpdateTestService] Starting JSON path update test cases');
 
     // Baseline tests (normal column updates)
-    await this.case1_UpdateByIdNormalColumns();
+    await this.case1UpdateByIdNormalColumns();
 
     // Simple JSON path updates
-    await this.case2_UpdateByIdSimpleJsonPath();
-    await this.case3_UpdateByIdNestedJsonPath();
-    await this.case4_UpdateByIdArrayIndexPath();
+    await this.case2UpdateByIdSimpleJsonPath();
+    await this.case3UpdateByIdNestedJsonPath();
+    await this.case4UpdateByIdArrayIndexPath();
 
     // Multiple paths
-    await this.case5_UpdateByIdMultiplePathsSameColumn();
-    await this.case6_UpdateByIdMultiplePaths();
-    await this.case7_UpdateByIdMixedRegularAndJsonPaths();
+    await this.case5UpdateByIdMultiplePathsSameColumn();
+    await this.case6UpdateByIdMultiplePaths();
+    await this.case7UpdateByIdMixedRegularAndJsonPaths();
 
     // Value types
-    await this.case8_JsonPathDifferentValueTypes();
+    await this.case8JsonPathDifferentValueTypes();
 
     // Sibling preservation
-    await this.case9_SiblingFieldsNotAffected();
+    await this.case9SiblingFieldsNotAffected();
 
     // Missing intermediate keys
-    await this.case10_CreatesMissingIntermediateKeys();
+    await this.case10CreatesMissingIntermediateKeys();
 
     // updateAll with JSON paths
-    await this.case11_UpdateAllWithJsonPaths();
+    await this.case11UpdateAllWithJsonPaths();
 
     // Error handling
-    await this.case12_ErrorNonExistentColumn();
-    await this.case13_ErrorNonJsonColumn();
-    await this.case14_ErrorInvalidPathComponent();
+    await this.case12ErrorNonExistentColumn();
+    await this.case13ErrorNonJsonColumn();
+    await this.case14ErrorInvalidPathComponent();
 
     // Security tests
-    await this.case15_SecuritySqlInjectionInPath();
-    await this.case16_SecuritySqlInjectionInValue();
+    await this.case15SecuritySqlInjectionInPath();
+    await this.case16SecuritySqlInjectionInValue();
 
     this.logSection('[JsonUpdateTestService] All JSON path update test cases completed');
   }
@@ -105,7 +105,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 1: Baseline - updateById with normal columns only
   // ----------------------------------------------------------------
-  private async case1_UpdateByIdNormalColumns(): Promise<void> {
+  private async case1UpdateByIdNormalColumns(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 1] Baseline: Update normal columns');
 
@@ -155,7 +155,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 2: Simple JSON path update
   // ----------------------------------------------------------------
-  private async case2_UpdateByIdSimpleJsonPath(): Promise<void> {
+  private async case2UpdateByIdSimpleJsonPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 2] Simple JSON path: jValue.theme');
 
@@ -203,7 +203,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 3: Nested JSON path update
   // ----------------------------------------------------------------
-  private async case3_UpdateByIdNestedJsonPath(): Promise<void> {
+  private async case3UpdateByIdNestedJsonPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 3] Nested JSON path: jValue.settings.display.fontSize');
 
@@ -260,7 +260,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 4: Array index path update
   // ----------------------------------------------------------------
-  private async case4_UpdateByIdArrayIndexPath(): Promise<void> {
+  private async case4UpdateByIdArrayIndexPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 4] Array index path: jValue.addresses[0].primary');
 
@@ -317,7 +317,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 5: Multiple paths on same column
   // ----------------------------------------------------------------
-  private async case5_UpdateByIdMultiplePathsSameColumn(): Promise<void> {
+  private async case5UpdateByIdMultiplePathsSameColumn(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 5] Multiple paths: jValue.theme, jValue.fontSize');
 
@@ -367,7 +367,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 6: Multiple paths update (same column, different nested levels)
   // ----------------------------------------------------------------
-  private async case6_UpdateByIdMultiplePaths(): Promise<void> {
+  private async case6UpdateByIdMultiplePaths(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 6] Multiple paths on different nested levels');
 
@@ -422,7 +422,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 7: Mixed regular and JSON path fields
   // ----------------------------------------------------------------
-  private async case7_UpdateByIdMixedRegularAndJsonPaths(): Promise<void> {
+  private async case7UpdateByIdMixedRegularAndJsonPaths(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 7] Mixed: description + jValue.theme');
 
@@ -481,7 +481,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 8: Different value types
   // ----------------------------------------------------------------
-  private async case8_JsonPathDifferentValueTypes(): Promise<void> {
+  private async case8JsonPathDifferentValueTypes(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 8] Different value types: string, number, boolean, null, object, array');
 
@@ -544,7 +544,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 9: Sibling fields not affected
   // ----------------------------------------------------------------
-  private async case9_SiblingFieldsNotAffected(): Promise<void> {
+  private async case9SiblingFieldsNotAffected(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 9] Verify sibling fields preserved');
 
@@ -611,7 +611,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 10: Creates missing intermediate keys
   // ----------------------------------------------------------------
-  private async case10_CreatesMissingIntermediateKeys(): Promise<void> {
+  private async case10CreatesMissingIntermediateKeys(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 10] Create missing intermediate keys');
 
@@ -657,7 +657,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 11: updateAll with JSON paths
   // ----------------------------------------------------------------
-  private async case11_UpdateAllWithJsonPaths(): Promise<void> {
+  private async case11UpdateAllWithJsonPaths(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 11] Bulk update with JSON paths');
 
@@ -723,7 +723,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 12: Error - Non-existent column
   // ----------------------------------------------------------------
-  private async case12_ErrorNonExistentColumn(): Promise<void> {
+  private async case12ErrorNonExistentColumn(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 12] Error: Non-existent column path');
 
@@ -765,7 +765,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 13: Error - Non-JSON column
   // ----------------------------------------------------------------
-  private async case13_ErrorNonJsonColumn(): Promise<void> {
+  private async case13ErrorNonJsonColumn(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 13] Error: JSON path on non-JSON column');
 
@@ -808,7 +808,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 14: Error - Invalid path component
   // ----------------------------------------------------------------
-  private async case14_ErrorInvalidPathComponent(): Promise<void> {
+  private async case14ErrorInvalidPathComponent(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 14] Error: Invalid characters in path');
 
@@ -862,7 +862,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 15: Security - SQL injection in path
   // ----------------------------------------------------------------
-  private async case15_SecuritySqlInjectionInPath(): Promise<void> {
+  private async case15SecuritySqlInjectionInPath(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 15] Security: SQL injection in path rejected');
 
@@ -919,7 +919,7 @@ export class JsonUpdateTestService extends BaseTestService {
   // ----------------------------------------------------------------
   // CASE 16: Security - SQL injection in value
   // ----------------------------------------------------------------
-  private async case16_SecuritySqlInjectionInValue(): Promise<void> {
+  private async case16SecuritySqlInjectionInValue(): Promise<void> {
     const repo = this.configurationRepository;
     this.logCase('[CASE 16] Security: SQL injection in value safely stored');
 

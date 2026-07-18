@@ -6,11 +6,8 @@ import {
 } from '@/components/mail/helpers/transporters';
 import type { AnyType } from '@venizia/ignis-helpers';
 
-/**
- * `nodemailer` and `mailgun.js` are OPTIONAL peers and are not installed here, so both helpers are
- * exercised through their client-factory seam - the same way BullMQHelper is run without Redis.
- * No SMTP socket and no Mailgun HTTP call is ever made.
- */
+/** `nodemailer` and `mailgun.js` are OPTIONAL peers not installed here, so both helpers are
+ * exercised through their client-factory seam - no SMTP socket or Mailgun HTTP call is ever made. */
 
 class FakeSmtpTransporter {
   sentMails: AnyType[] = [];

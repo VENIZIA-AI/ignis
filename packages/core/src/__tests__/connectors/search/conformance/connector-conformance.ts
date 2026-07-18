@@ -8,12 +8,9 @@ interface IConformanceDocument extends Record<string, unknown> {
   score: number;
 }
 
-/**
- * Every search connector must satisfy this suite against an in-memory fake of its own client. It
- * asserts the NEUTRAL contract only - never an engine's wire shape - so a passing engine is
- * substitutable behind `ISearchConnector`. This is the artifact that makes the paradigm lift
- * falsifiable: a seam that only one engine can satisfy is not a seam.
- */
+/** Every search connector must satisfy this suite against an in-memory fake of its own client. It
+ * asserts the NEUTRAL contract only, never an engine's wire shape - a seam only one engine can
+ * satisfy is not a seam. */
 export const runConnectorConformance = (opts: {
   engine: string;
   build: () => Promise<{ connector: ISearchConnector; collection: string }>;

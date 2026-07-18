@@ -6,12 +6,8 @@ import type { TRelationConfig } from '@/connectors/postgres/repositories/common'
 import type { TDrizzleQueryOptions } from '@/base/repositories/common';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect/filter';
 
-/**
- * `FilterBuilder.mergeFilter` merges `where` at the TOP KEY LEVEL, with one narrowing rule: when
- * BOTH sides carry an operator object on the same key, the two conditions are AND-composed rather
- * than the user's replacing the default's. A default scope can therefore never be WIDENED by a user
- * filter, while scalar keys keep their user-wins override.
- */
+/** `FilterBuilder.mergeFilter` merges `where` at the TOP KEY LEVEL: operator-object collisions
+ * AND-compose (a default scope can never be WIDENED), scalar keys keep user-wins override. */
 describe('FilterBuilder.mergeFilter - top-key-level where merge', () => {
   const builder = new FilterBuilder();
 

@@ -37,12 +37,8 @@ export type TJsonResponse<
   ResponseStatusCode extends StatusCode = StatusCode,
 > = Response & TypedResponse<ResponseBody, ResponseStatusCode, 'json'>;
 
-/**
- * Polymorphic response body for endpoints that honor the `x-request-count-data`
- * header — returns either the count-wrapped shape `{ count, data }` or the raw
- * payload `T`. Pass the unwrapped payload type as `T`; for arrays use
- * `TCountResponse<TThing[]>`.
- */
+/** Polymorphic response body for endpoints honoring the `x-request-count-data` header: either the
+ * count-wrapped `{ count, data }` or the raw payload. Pass the unwrapped payload type as `T`. */
 export type TCountResponse<TData = unknown> = TData | { count: number; data: TData };
 
 /** Lightweight typed context that bypasses RouteHandler inference. */
@@ -193,11 +189,8 @@ export interface ICustomizableRoutes<
   deleteBy?: RouteConfig;
 }
 
-/**
- * Read object inferred from an entity's engine-neutral `$inferData` phantom marker. Each entity
- * family fills it with its own type (postgres: `TTableObject<Schema>`; search: the document),
- * so the base layer needs no connector import. Falls back to `object` for entities without it.
- */
+/** Read object inferred from an entity's engine-neutral `$inferData` phantom marker - each family
+ * fills it with its own type, so the base layer needs no connector import. Falls back to `object`. */
 export type TEntityDataObject<TEntity> = TEntity extends { $inferData?: infer TData }
   ? TData extends object
     ? TData

@@ -1,12 +1,8 @@
 import type { TAnyDataSourceSchema } from '@/base/datasources';
 import type { TRelationalConnector } from '@/connectors/postgres/datasources/common';
 
-/**
- * The neutral result of a raw statement. The drivers disagree on their native shape (pg returns
- * `{ rows, rowCount }`; postgres-js returns an array carrying `count`), so each driver maps its own
- * shape to this one at the boundary - the one place that knows it statically. Callers never see a
- * driver-specific result and never sniff shapes at runtime.
- */
+/** Neutral result of a raw statement. Each driver maps its native shape (pg `rowCount`,
+ * postgres-js `count`) at its own boundary - callers never sniff shapes at runtime. */
 export interface IStatementResult {
   /**
    * Rows affected by the statement - the same `count` the repository verbs return. `0` for control
@@ -20,26 +16,18 @@ export interface IRelationalConnection<Schema extends TAnyDataSourceSchema = TAn
   /** Drizzle bound to THIS connection, not to the pool. */
   connector: TRelationalConnector<Schema>;
 
-  /**
-   * Runs a control statement verbatim: BEGIN / COMMIT / ROLLBACK / SET LOCAL. The statement is built
-   * by the caller and never parameterized - `BEGIN TRANSACTION ISOLATION LEVEL $1` is not valid SQL.
-   * Use `connector` for anything that returns rows.
-   */
+  /** Runs a control statement verbatim (BEGIN / COMMIT / ROLLBACK / SET LOCAL) - never
+   * parameterized, `BEGIN ... ISOLATION LEVEL $1` is not valid SQL. Use `connector` for rows. */
   execute(opts: { statement: string }): Promise<IStatementResult>;
 
-  /**
-   * Returns the connection. `destroy` discards it instead of pooling it - required after a failed
-   * COMMIT or ROLLBACK, when the session may still hold an open transaction that the next borrower
-   * would inherit. A driver that cannot destroy must say so in its own docs rather than pretend.
-   */
+  /** Returns the connection. `destroy` discards instead of pooling - required after a failed
+   * COMMIT/ROLLBACK, when the next borrower would inherit an open transaction. A driver that
+   * cannot destroy must say so in its own docs. */
   release(opts?: { destroy?: boolean }): void;
 }
 
-/**
- * Owns connection acquisition and the raw control statements - the only two places `connectors/
- * postgres/` was hard-wired to `pg`. `configure()` stays app-written: connection config varies per
- * deployment, and the framework never builds the driver for you.
- */
+/** Owns connection acquisition and raw control statements - the only two places hard-wired to a
+ * client library. `configure()` stays app-written: the framework never builds the driver for you. */
 export interface IRelationalDriver<
   Schema extends TAnyDataSourceSchema = TAnyDataSourceSchema,
   Client = unknown,

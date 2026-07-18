@@ -1,9 +1,8 @@
 import { describe, expect, test } from 'bun:test';
 
 /**
- * `Bun.build()` cannot run inside the test process: with other suites already loaded, a build that
- * registers plugins dies with "Unexpected reading file" on unrelated node_modules entries. The probe
- * runs the build in a child process, which is also how a real application compiles its binary.
+ * Bun.build() can't run in-process here (plugin registration dies on unrelated node_modules
+ * reads once other suites are loaded); the probe runs in a child process, matching how a real binary compiles.
  */
 interface TProbeResult {
   success: boolean;

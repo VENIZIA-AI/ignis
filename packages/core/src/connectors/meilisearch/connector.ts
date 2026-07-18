@@ -73,11 +73,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
   return typeof value === 'object' && value !== null;
 };
 
-/**
- * Meilisearch's reserved RESPONSE keys - metadata the engine attaches to a hit. Listed explicitly
- * rather than matched by `_` prefix, because `_geo` is a stored DOCUMENT field (the only name
- * Meilisearch accepts for a geo field) and prefix-stripping would delete it from every hit.
- */
+/** Reserved RESPONSE keys on a hit. Listed explicitly, not by `_` prefix - `_geo` is a stored DOCUMENT field and prefix-stripping would delete it. */
 const RESERVED_HIT_KEYS = new Set([
   '_formatted',
   '_matchesPosition',
@@ -103,11 +99,8 @@ const extractDocument = <TDocument extends object>(hit: Record<string, unknown>)
   return document as TDocument;
 };
 
-/**
- * Maps a Meilisearch search response onto the neutral `ISearchResult`. `totalHits` (the exhaustive
- * page/hitsPerPage mode) is preferred; `estimatedTotalHits` is approximate, and saying so is what
- * `isFoundExact` exists for. Wire keys are read via bracket string access, never as identifiers.
- */
+/** Maps a Meilisearch response onto `ISearchResult`. Exhaustive `totalHits` preferred over approximate
+ * `estimatedTotalHits` - `isFoundExact` says which. Wire keys read via bracket access, never identifiers. */
 const mapSearchResult = <TDocument extends object>(raw: unknown): ISearchResult<TDocument> => {
   if (!isRecord(raw)) {
     return { found: 0, isFoundExact: true };
@@ -283,11 +276,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Every Meilisearch write returns a task uid and is invisible to search until the task reaches
-   * `succeeded`. The SDK's own `waitForTask` defaults to a 5 s timeout - far too short for a bulk
-   * import - so the connector polls itself against a caller-configured ceiling.
-   */
+  /** Writes are invisible until their task succeeds. Polls manually against a caller-configured
+   * ceiling - the SDK's own `waitForTask` 5 s default is too short for bulk imports. */
   private async waitForTask(opts: { taskUid: number; method: string }): Promise<IMeilisearchTask> {
     const { taskUid, method } = opts;
     const deadline = Date.now() + this.taskTimeoutMs;
@@ -332,11 +322,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     }
   }
 
-  /**
-   * Every Meilisearch write returns a task uid and only becomes visible once that task succeeds. This
-   * runs the write, awaits its task to completion, and returns the FINISHED task - callers that read
-   * `details` (e.g. deleteByFilter's `deletedDocuments`) get the terminal record.
-   */
+  /** Runs the write, awaits its task, and returns the FINISHED task - so callers reading
+   * `details` (e.g. `deletedDocuments`) get the terminal record. */
   private async awaitWrite(opts: {
     method: string;
     run: () => Promise<{ taskUid: number }>;
@@ -573,11 +560,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Exact and uncapped. `pagination.maxTotalHits` bounds the SEARCH route only - Meilisearch's own
-   * documentation states it "has no effect on the get documents" endpoints - so reading `total` from
-   * `documents/fetch` is what keeps `count()` from quietly lying on large filtered sets.
-   */
+  /** Exact and uncapped: `pagination.maxTotalHits` bounds the SEARCH route only, so `total` from
+   * `documents/fetch` never lies on large filtered sets. */
   async countDocuments(opts: { collection: string; filterBy?: string }): Promise<number> {
     const { collection, filterBy } = opts;
     this.assertNonEmpty({
@@ -603,12 +587,9 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Create-only, matching the neutral contract (and Typesense, whose `documents().create()` rejects a
-   * duplicate id). Meilisearch has no conditional insert - `addDocuments` is add-or-REPLACE - so the id
-   * is checked first. That check is NOT atomic: two concurrent creates of the same id can both pass it,
-   * and the second write wins. Callers needing last-write-wins should use `upsert` and say so.
-   */
+  /** Create-only per the neutral contract. `addDocuments` is add-or-REPLACE, so the id is checked first;
+   * that check is NOT atomic - concurrent creates can both pass it and the second write wins. Use
+   * `upsert` for last-write-wins. */
   async createDocument<T extends object>(opts: { collection: string; document: T }): Promise<T> {
     const { collection, document } = opts;
     this.assertNonEmpty({
@@ -673,12 +654,9 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return document;
   }
 
-  /**
-   * Merge-update by primary key: fields absent from the patch are preserved. Meilisearch's write
-   * returns only a task, never the row, so the merged document must be read back - one extra round
-   * trip versus Typesense, and NOT atomic: a concurrent write landing between the task succeeding and
-   * this read means the returned document is not necessarily what this call wrote.
-   */
+  /** Merge-update by primary key: absent patch fields are preserved. The write returns only a task,
+   * so the merged document is read back - NOT atomic: a concurrent write between task success and the
+   * read-back means the return is not necessarily what this call wrote. */
   async updateDocument<T extends object>(opts: {
     collection: string;
     id: string;
@@ -718,12 +696,9 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return this.getDocument<T>({ collection, id });
   }
 
-  /**
-   * Meilisearch has no update-by-filter endpoint. `documents/edit` would do it server-side, but it is
-   * gated behind an experimental flag, is documented as breaking between minor versions, and has an
-   * open correctness bug - so this pages ids out of the uncapped `documents/fetch` route and merges
-   * them back in batches. NOT atomic: a concurrent write to a matched document may be overwritten.
-   */
+  /** No native update-by-filter (`documents/edit` is experimental and buggy) - pages ids out of the
+   * uncapped `documents/fetch` route and merges back in batches. NOT atomic: a concurrent write to a
+   * matched document may be overwritten. */
   async updateByFilter<T extends object>(opts: {
     collection: string;
     document: Partial<T>;
@@ -846,11 +821,8 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Delete-by-filter IS native here (unlike update-by-filter). The count is read from the FINISHED
-   * task's `details.deletedDocuments` - a pre-count would be wrong in both directions if a concurrent
-   * write added or removed a matching document between counting and deleting.
-   */
+  /** Native delete-by-filter. Count is read from the FINISHED task's `details.deletedDocuments` -
+   * a pre-count would be wrong under concurrent writes. */
   async deleteByFilter(opts: { collection: string; filterBy: string }): Promise<number> {
     const { collection, filterBy } = opts;
     this.assertNonEmpty({ value: filterBy, name: 'filterBy', method: this.deleteByFilter.name });
@@ -895,12 +867,9 @@ export class MeilisearchConnector extends BaseSearchConnector {
     return rs;
   }
 
-  /**
-   * Batches through addDocuments, awaiting each batch's task before starting the next. Meilisearch
-   * import is batch-atomic, so `count.fail` is structurally always 0: a batch either lands whole or
-   * throws. A thrown import means the batches after the failure point did not land - the error's
-   * `details` carry `processedCount` so callers can resume from there.
-   */
+  /** Batches through addDocuments, awaiting each task. Import is batch-atomic, so `count.fail` is
+   * always 0: a batch lands whole or throws. A thrown import carries `processedCount` in the error's
+   * `details` so callers can resume past the batches that already landed. */
   async importDocuments<T extends object>(opts: {
     collection: string;
     documents: T[];

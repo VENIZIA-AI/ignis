@@ -2,17 +2,9 @@ import { describe, expect, test } from 'bun:test';
 import { MeilisearchApiError } from 'meilisearch';
 import { MeilisearchInternal } from '@/connectors/meilisearch/internal';
 
-/**
- * Classification is built against the SDK's REAL error shape, never a fake's.
- *
- * `MeilisearchApiError` carries `cause: { message, code, type, link }` and `response: Response` - it
- * has NO top-level `code` and NO `httpStatus`. A classifier reading those two fields answers `false`
- * to every question against a live engine, which turns a 404 into a 503: `create()` would report the
- * engine as down for every brand-new document, because its existence probe 404s by design.
- *
- * A task failure arrives in the OTHER shape - the flat `MeilisearchErrorResponse` off `task.error` -
- * so both must be understood.
- */
+/** Classification runs against the SDK's REAL error shape: `MeilisearchApiError` has NO top-level
+ * `code`/`httpStatus` (body off `cause`, status off `response`), and a task failure arrives as the
+ * flat `task.error` shape - misreading either turns a by-design 404 into a 503 engine-down. */
 const buildApiError = (opts: { status: number; code: string }): MeilisearchApiError => {
   const { status, code } = opts;
 

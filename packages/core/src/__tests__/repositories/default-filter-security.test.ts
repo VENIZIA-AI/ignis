@@ -8,13 +8,9 @@ import { DefaultCRUDRepository } from '@/connectors/postgres/repositories';
 import { FilterBuilder } from '@/connectors/postgres/repositories/dialect';
 import { TFilter } from '@/base/repositories/common';
 
-/**
- * Adversarial coverage for the merge path actually used at runtime: `FilterBuilder.mergeFilter`
- * (src/connectors/postgres/repositories/dialect/filter.ts) and
- * `PostgresBaseRepository.applyDefaultFilter` (src/connectors/postgres/repositories/core/base.ts).
- * A user-controlled filter must never be able to widen or erase a `@model` `defaultFilter`
- * (e.g. soft-delete, tenant scoping) regardless of the shape of the value it carries.
- */
+/** Adversarial coverage of `FilterBuilder.mergeFilter` + `PostgresBaseRepository.applyDefaultFilter`:
+ * a user-controlled filter must never widen or erase a `@model` `defaultFilter` (soft-delete, tenant
+ * scoping), regardless of the value shape it carries. */
 
 type AnyFilter = TFilter<any>;
 

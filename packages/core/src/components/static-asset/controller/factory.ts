@@ -37,22 +37,14 @@ export interface IAssetControllerOptions {
 }
 
 /**
- * Hono ALREADY percent-decodes a path param before the handler reads it, so there is nothing left to
- * decode - and decoding a second time is actively wrong:
- *
- * - `report_100%.pdf` is a legal object name. Its link is `.../objects/report_100%25.pdf`, Hono
- *   hands the handler back `report_100%.pdf`, and a second `decodeURIComponent` hits the invalid
- *   escape `%.p` and throws: the object becomes unfetchable and undeletable, forever.
- * - an object named `a%2Fb.png` would decode twice into `a/b.png` - a DIFFERENT object.
- *
- * Validation still runs on this value (`isValidName`/`isValidPath`), so a traversal payload is
- * rejected exactly as before - what changes is that legal names stop being mangled.
+ * Hono ALREADY percent-decodes path params - a second decodeURIComponent is wrong: `report_100%.pdf`
+ * would throw on `%.p` (object unfetchable forever) and `a%2Fb.png` would become a DIFFERENT object.
+ * Validation (`isValidName`/`isValidPath`) still runs on this value, so traversal is still rejected.
  */
 const readObjectName: (rawObjectName: string) => string = rawObjectName => rawObjectName;
 
 /**
- * Encodes an object path into a SINGLE url path segment. The object routes bind `{objectName}`,
- * which Hono matches within one segment only - a folder separator left raw would not match, so `/`
+ * Encodes an object path into a SINGLE url segment: `{objectName}` matches one segment only, so `/`
  * must be percent-encoded too (Hono decodes it back before the handler reads the param).
  */
 const encodeObjectPath: (objectPath: string) => string = objectPath => {

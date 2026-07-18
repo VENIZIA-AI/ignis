@@ -35,7 +35,7 @@ Swap `provider` for `SecretProviders.HASHICORP_VAULT` (with a `config: { endpoin
 | Provider | `SecretProviders` value | Kind | Optional peer |
 |----------|-------------------------|------|---------------|
 | `SystemEnvsHelper` | `system-envs` | Static (`process.env`) | none (default) |
-| `HashiCorpVaultHelper` | `hashicorp-vault` | KV + dynamic + rotation | `node-vault` (`@venizia/ignis-helpers/vault`) |
+| `HashiCorpVaultHelper` | `hashicorp-vault` | KV + dynamic + rotation | `node-vault` (`@venizia/ignis-helpers/hashicorp-vault`) |
 | `DotenvVaultHelper` | `dotenv-vault` | Static (encrypted `.env.vault`) | `@dotenvx/dotenvx` (`@venizia/ignis-helpers/dotenv-vault`) |
 
 ## The `ISecretsHelper` interface

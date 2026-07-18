@@ -16,12 +16,9 @@ import { afterEach, beforeEach, describe, expect, test } from 'bun:test';
 class TraceApplication extends BaseApplication {
   readonly trace: string[] = [];
 
-  /**
-   * `bun test` transpiles this package without legacy parameter decorators, so
-   * RequestTrackerComponent's `@inject`ed application argument never reaches the container. The
-   * component is therefore rebound to an explicitly constructed instance - everything downstream
-   * (tagging, configure(), middleware registration) still runs through the real code path.
-   */
+  /** `bun test` transpiles without legacy parameter decorators, so RequestTrackerComponent's
+   * `@inject`ed application argument never reaches the container - rebound to an explicit
+   * instance; everything downstream still runs the real code path. */
   override async registerDefaultMiddlewares(): Promise<void> {
     await super.registerDefaultMiddlewares();
 

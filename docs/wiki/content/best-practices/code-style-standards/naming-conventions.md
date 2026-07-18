@@ -2,6 +2,24 @@
 
 Consistent naming improves code readability and maintainability.
 
+## Never Abbreviate an Identifier
+
+Hard rule. Write the whole word - in class names, variables, and type parameters alike.
+
+```typescript
+// ✅ GOOD
+class ProductRepository { }
+type TProductDocument = { };
+const configuration = resolveConfiguration();
+class Repository<TDocument> { }
+
+// ❌ BAD
+class ProductRepo { }
+type TProductDoc = { };
+const cfg = resolveCfg();
+class Repository<TDoc> { }
+```
+
 ## Directory Structure
 
 ### Component Organization
@@ -80,6 +98,8 @@ Both styles are acceptable: `[type].ts` or `[name].[type].ts`
 - Use `[type].ts` when there's only one file of that type in the folder
 - Use `[name].[type].ts` when there are multiple files of the same type
 - Use kebab-case for multi-word names: `jwt-token.service.ts`
+- **A file name never repeats its folder.** Name the file for its role inside the folder:
+  `logger/winston/logger.ts`, not `logger/winston/winston-logger.ts`
 
 ## Type and Interface Prefixes
 
@@ -90,12 +110,16 @@ interface IHealthCheckOptions {
 }
 
 interface IAuthService {
-  signIn(context: Context, opts: TSignInRequest): Promise<AnyObject>;
+  signIn(context: TContext, opts: TSignInRequest): Promise<AnyObject>;
 }
 
 // Type aliases use 'T' prefix
 type TSignInRequest = z.infer<typeof SignInRequestSchema>;
 type TAuthStrategy = TConstValue<typeof AuthenticateStrategy>;
+
+// ❌ Never a bare string-literal union for an enumerable set - it has no runtime
+// values to validate against. Use a const class + TConstValue instead.
+type TLogLevel = 'debug' | 'info' | 'warn' | 'error' | 'emerg';
 
 // Generic constraints
 type TTableSchemaWithId<TC extends TableConfig = TableConfig> = PgTable<TC> & {
@@ -123,7 +147,7 @@ export class SocketIOBindingKeys {
 Use underscore prefix (`_`) for private and protected class fields to distinguish them from public fields and method parameters.
 
 ```typescript
-class MyRepository extends DefaultCRUDRepository {
+class MyRepository extends DefaultRelationalRepository {
   // Private fields with underscore prefix
   private _dataSource: AbstractDataSource;
   private _entity: AbstractEntity;

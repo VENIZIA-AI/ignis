@@ -119,11 +119,8 @@ describe('Bootstrapper - the boot report carries what it measured', () => {
 });
 
 /**
- * `runPhase` wraps a booter's failure so the operator learns which booter broke and why. The
- * diagnosis rides on `cause` - and it used to be lost: `getError`'s input schema ended in
- * `.catchall(z.any())`, so `cause` was not a field it knew, and the constructor swept it into
- * `extra.cause` while `Error.cause` stayed `undefined`. The error handler reads `error.cause`, so
- * the stack of the booter that actually threw never reached anyone.
+ * `runPhase` must carry the failing booter's error on `Error.cause` - the error handler reads
+ * `error.cause`, and a `cause` swept into `extra` loses the real stack.
  */
 describe('Bootstrapper - a booter failure keeps its cause', () => {
   class ExplodingBooter {

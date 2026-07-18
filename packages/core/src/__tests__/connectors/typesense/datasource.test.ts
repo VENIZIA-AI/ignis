@@ -219,11 +219,8 @@ describe('TypesenseDataSource', () => {
     );
   });
 
-  // Typesense adds no transaction support - it inherits AbstractDataSource's NotSupported-by-default
-  // beginTransaction()/getCapabilities(). search.vector is true - Phase 2 landed first-class VECTOR
-  // fields (client-provided + server-side auto-embedding). search.multi/search.union are true -
-  // Phase 4 landed federated + union multi-search. synonyms is true - Phase 5 landed first-class
-  // multi-way/one-way synonym sets (declarative + runtime, auto-provisioned).
+  // Typesense inherits AbstractDataSource's NotSupported-by-default transaction members;
+  // search.vector, search.multi/search.union, and synonyms are all true (shipped capabilities).
   test('getCapabilities() reports no transactions and the search capability flags', () => {
     const ds = new AppSearchDataSource({
       name: 'capabilities-ds',

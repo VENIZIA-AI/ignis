@@ -118,11 +118,7 @@ export class SocketIOServerHelper extends BaseHelper {
     return this.io;
   }
 
-  /**
-   * User handlers run inside socket.io event listeners: a synchronous throw there is an uncaught
-   * exception that takes the process down. voidExecution only settles promises, it never sees a
-   * sync throw because its argument is already evaluated at the call site.
-   */
+  /** Handlers run inside socket.io event listeners - a sync throw there kills the process; voidExecution only catches promise rejections since its argument evaluates before the try/catch. */
   protected invokeHook(opts: { scope: string; execution: () => ValueOrPromise<void> }) {
     const { scope, execution } = opts;
 

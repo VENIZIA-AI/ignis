@@ -21,11 +21,8 @@ const compile = (where: any): string => {
   return dialect.sqlToQuery(condition).sql;
 };
 
-/**
- * `{ 'metadata.score': 50 }` casts the JSON extraction to numeric, but `{ 'metadata.score': { eq: 50 } }`
- * previously left a text extraction, producing 'operator does not exist: text = integer'. eq/ne/neq/inq/nin
- * with numeric values must route through the same numeric cast as the bare-value branch.
- */
+/** eq/ne/neq/inq/nin with numeric values must route through the same numeric cast as the bare-value
+ * branch - a text extraction produces 'operator does not exist: text = integer'. */
 describe('FilterBuilder - JSON path numeric equality operators cast to numeric', () => {
   test('eq with a numeric value casts the extraction to numeric', () => {
     expect(compile({ 'metadata.score': { eq: 50 } })).toContain('numeric');

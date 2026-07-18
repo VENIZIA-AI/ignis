@@ -9,29 +9,9 @@ import type {
 } from './common/types';
 
 /**
- * KafkaProducerHelper — Wrapper around `@platformatic/kafka` Producer.
- *
- * Provides scoped logging, lifecycle management, health tracking,
- * graceful shutdown, and transaction helper.
- *
- * @example
- * const helper = KafkaProducerHelper.newInstance({
- *   bootstrapBrokers: ['127.0.0.1:29092'],
- *   clientId: 'my-producer',
- *   acks: -1,
- *   idempotent: true,
- *   onBrokerConnect: ({ broker }) => console.log(`Connected to ${broker.host}:${broker.port}`),
- * });
- *
- * // Health check
- * helper.isHealthy(); // true when connected
- *
- * // Transaction helper (requires transactionalId + idempotent)
- * const result = await helper.runInTransaction(async ({ send }) => {
- *   return send({ messages: [{ topic: 'orders', key: 'o1', value: '...' }] });
- * });
- *
- * await helper.close();
+ * Wrapper around `@platformatic/kafka` Producer with lifecycle management, health tracking,
+ * graceful shutdown, and a transaction helper. `runInTransaction` requires both
+ * `transactionalId` and `idempotent` to be set on the producer.
  */
 export class KafkaProducerHelper<
   KeyType = string,

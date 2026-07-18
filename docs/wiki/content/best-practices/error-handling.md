@@ -133,9 +133,9 @@ export class UserService extends BaseService {
     try {
       await this.emailService.sendWelcome(data.email);
     } catch (error) {
-      // Log but don't fail user creation
+      // Log but don't fail user creation - never a silent catch
       this.logger.error('[createUser] Failed to send welcome email | email: %s | error: %s',
-        data.email, error.message);
+        data.email, error);
     }
 
     // create returns { count, data }
@@ -233,11 +233,11 @@ In production the message is the **base message only** - `Detail:` (which echoes
 You don't need to wrap repository calls in try-catch for constraint errors. If you need custom error messages, you can still handle them explicitly:
 
 ```typescript
-import { DefaultCRUDRepository } from '@venizia/ignis';
+import { DefaultRelationalRepository, type TCount } from '@venizia/ignis';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
-export class UserRepository extends DefaultCRUDRepository<typeof User.schema> {
-  async createWithCustomError(data: TCreateUser): Promise<TCreateResult<TUser>> {
+export class UserRepository extends DefaultRelationalRepository<typeof User.schema> {
+  async createWithCustomError(data: TCreateUser): Promise<TCount & { data: TUser }> {
     try {
       return await this.create({ data });
     } catch (error) {
@@ -266,8 +266,9 @@ export class Application extends BaseApplication {
   override setupMiddlewares(): void {
     super.setupMiddlewares();
 
-    // Custom error handler (optional) - the default AppErrorMiddleware already does this
-    this.server.onError((error, c) => {
+    // Custom error handler (optional) - the default AppErrorMiddleware already does this.
+    // `this.server` is `{ hono, runtime, instance }` - reach the Hono app via getServer().
+    this.getServer().onError((error, c) => {
       const requestId = c.get('requestId') ?? 'unknown';
 
       // Log all errors
@@ -282,16 +283,16 @@ export class Application extends BaseApplication {
           normalized: error.normalized, // { text, code, args } - never undefined
           extra: error.extra,
           requestId,
-        }, error.statusCode as StatusCode);
+        }, error.statusCode as Parameters<typeof c.json>[1]);
       }
 
-      // Handle Zod validation errors
+      // Handle Zod validation errors - Zod v4 exposes `issues`, not `errors`
       if (error.name === 'ZodError') {
         return c.json({
           statusCode: 422,
           message: 'Validation failed',
           normalized: { text: 'Validation failed', code: MessageCode.DEFAULT, args: {} },
-          details: { cause: error.errors },
+          details: { cause: error.issues },
           requestId,
         }, 422);
       }
@@ -411,14 +412,11 @@ this.logger.error('[createOrder] Failed | error: %j', error);
 ### What to Log
 
 ```typescript
-// ✅ Good - Context for debugging
+// ✅ Good - Context for debugging. `%s` on the error itself carries message + stack
 this.logger.error('[createOrder] Failed | userId: %s | orderId: %s | error: %s',
-  userId, orderId, error.message);
+  userId, orderId, error);
 
-// ✅ Good - Include stack trace for unexpected errors
-this.logger.error('[createOrder] Unexpected error | %s', error.stack);
-
-// ❌ Bad - No context
+// ❌ Bad - No context, and `.message` throws the stack away
 this.logger.error(error.message);
 
 // ❌ Bad - Sensitive data
@@ -427,12 +425,15 @@ this.logger.error('Login failed for user | password: %s', password);
 
 ### Log Levels
 
+`ILogger` has exactly five levels, each a direct method. `alert`, `http`, `verbose` and `silly` do not exist.
+
 | Level | Use For |
 |-------|---------|
+| `emerg` | The process cannot continue - unrecoverable |
 | `error` | Exceptions that need attention |
 | `warn` | Recoverable issues, deprecation warnings |
 | `info` | Important business events |
-| `debug` | Detailed debugging information |
+| `debug` | Detailed debugging information (gated on `DEBUG`) |
 
 ```typescript
 // Error - requires attention
@@ -454,30 +455,29 @@ this.logger.debug('[query] Executing | sql: %s | params: %j', sql, params);
 
 ```typescript
 // ✅ Good - Errors propagate naturally with async/await
-async function processOrder(orderId: string) {
+const processOrder = async (orderId: string) => {
   const order = await orderRepository.findById({ id: orderId }); // Throws if fails
-  const payment = await paymentService.charge(order); // Throws if fails
-  return payment;
-}
+  return paymentService.charge(order); // Throws if fails
+};
 
 // ✅ Good - Explicit catch when you need to handle
-async function processOrderWithFallback(orderId: string) {
+const processOrderWithFallback = async (order: TOrder) => {
   try {
     return await paymentService.charge(order);
   } catch (error) {
-    this.logger.warn('[processOrder] Primary payment failed, trying backup');
-    return await backupPaymentService.charge(order);
+    this.logger.warn('[processOrder] Primary payment failed, trying backup | error: %s', error);
+    return backupPaymentService.charge(order);
   }
-}
+};
 
 // ❌ Bad - Swallowing errors
-async function processOrder(orderId: string) {
+const processOrderSilently = async () => {
   try {
     await dangerousOperation();
   } catch (error) {
     // Error is swallowed - no one knows it happened!
   }
-}
+};
 ```
 
 ### Fire-and-Forget with Error Handling
@@ -485,7 +485,7 @@ async function processOrder(orderId: string) {
 ```typescript
 // ✅ Good - Log errors from fire-and-forget operations
 this.sendNotification(userId).catch(error => {
-  this.logger.error('[notify] Failed | userId: %s | error: %s', userId, error.message);
+  this.logger.error('[notify] Failed | userId: %s | error: %s', userId, error);
 });
 
 // ✅ Good - Use void to indicate intentional fire-and-forget
@@ -498,27 +498,36 @@ this.sendNotification(userId); // If this rejects, crash!
 ## 8. Transaction Error Handling
 
 ```typescript
-async function transferFunds(from: string, to: string, amount: number) {
-  const tx = await accountRepository.beginTransaction();
+import { getError, HTTP } from '@venizia/ignis-helpers';
+
+const transferFunds = async (opts: { from: string; to: string; amount: number }) => {
+  const { from, to, amount } = opts;
+  const transaction = await accountRepository.beginTransaction();
 
   try {
-    await accountRepository.debit({ id: from, amount, options: { transaction: tx } });
-    await accountRepository.credit({ id: to, amount, options: { transaction: tx } });
+    await accountRepository.debit({ id: from, amount, options: { transaction } });
+    await accountRepository.credit({ id: to, amount, options: { transaction } });
 
-    await tx.commit();
+    await transaction.commit();
     return { success: true };
   } catch (error) {
-    await tx.rollback();
+    await transaction.rollback();
 
     // Re-throw with context
     throw getError({
       statusCode: HTTP.ResultCodes.RS_5.InternalServerError,
       message: '[transferFunds] Transaction failed',
-      details: { from, to, amount, originalError: error.message },
+      cause: error,
+      extra: { from, to, amount },
     });
   }
-}
+};
 ```
+
+> [!NOTE]
+> `rollback()` throws on failure, so it belongs in the `catch` exactly as above - never after a
+> `commit()` you already awaited outside one. A rollback that follows a **failed** commit is a
+> deliberate no-op: the transaction is already torn down, so this canonical shape stays safe.
 
 ## 9. Client-Side Error Handling
 
@@ -526,7 +535,7 @@ Guide for API consumers:
 
 ```typescript
 // TypeScript client example
-async function createUser(data: CreateUserRequest): Promise<User> {
+const createUser = async (data: TCreateUserRequest): Promise<TUser> => {
   const response = await fetch('/api/users', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -536,31 +545,38 @@ async function createUser(data: CreateUserRequest): Promise<User> {
   if (!response.ok) {
     const error = await response.json();
 
+    // Branch on `normalized.code` - it is always present. There is no top-level `messageCode`.
     switch (response.status) {
-      case 400:
-        throw new ValidationError(error.message, error.details);
-      case 401:
-        // Redirect to login
+      case 400: {
+        // Context passed to getError(...) arrives under `extra`, not `details`
+        throw new ValidationError(error.message, error.extra);
+      }
+      case 401: {
         window.location.href = '/login';
         throw new AuthError('Please log in');
-      case 404:
+      }
+      case 404: {
         throw new NotFoundError(error.message);
-      case 422:
-        // Handle field-level errors
-        const fieldErrors = error.details?.cause?.reduce((acc, e) => {
-          acc[e.path] = e.message;
-          return acc;
+      }
+      case 422: {
+        // Field-level issues live in details.cause
+        const fieldErrors = error.details?.cause?.reduce((accumulator, issue) => {
+          accumulator[issue.path] = issue.message;
+          return accumulator;
         }, {});
-        throw new ValidationError('Validation failed', fieldErrors);
-      case 429:
+        throw new ValidationError(error.normalized.code, fieldErrors);
+      }
+      case 429: {
         throw new RateLimitError('Too many requests. Try again later.');
-      default:
+      }
+      default: {
         throw new ApiError(error.message || 'Something went wrong');
+      }
     }
   }
 
   return response.json();
-}
+};
 ```
 
 ## Error Handling Checklist
@@ -568,7 +584,7 @@ async function createUser(data: CreateUserRequest): Promise<User> {
 | Category | Check |
 |----------|-------|
 | **Services** | Business rule violations throw appropriate errors |
-| **Repositories** | Database errors are caught and wrapped |
+| **Repositories** | Constraint errors left to the global handler; only custom messages wrapped |
 | **Controllers** | Errors propagate to global handler |
 | **Async** | All promises have error handling |
 | **Transactions** | Always rollback on error |

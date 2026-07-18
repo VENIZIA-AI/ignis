@@ -1,19 +1,8 @@
 import type { AnyType } from '@/common/types';
 /**
- * Kafka Helpers — LIVE integration tests.
- *
- * These run against a real broker and are GATED on environment variables, so the
- * suite auto-skips (and commits no secrets) when no broker is configured. To run:
- *
- *   APP_ENV_KAFKA_BROKERS=host:port,host:port \
- *   APP_ENV_KAFKA_SASL_ENABLE=true \
- *   APP_ENV_KAFKA_SASL_MECHANISM=SCRAM-SHA-512 \
- *   APP_ENV_KAFKA_SASL_USERNAME=... \
- *   APP_ENV_KAFKA_SASL_PASSWORD=... \
- *   bun test src/__tests__/kafka/kafka.integration.test.ts
- *
- * Every case is wrapped with a per-test timeout so a broken/hung path fails loudly
- * instead of stalling the runner.
+ * LIVE Kafka integration tests - gated on APP_ENV_KAFKA_BROKERS (+ SASL vars) so the suite
+ * auto-skips with no secrets committed when unconfigured. Every case has a per-test timeout
+ * so a hung path fails loudly instead of stalling the runner.
  */
 
 import { KafkaAdminHelper, KafkaConsumerHelper, KafkaProducerHelper } from '@/modules/queue/kafka';

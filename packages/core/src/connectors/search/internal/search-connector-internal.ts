@@ -1,5 +1,5 @@
 import { SearchErrorCodes } from '@/common';
-import type { Logger } from '@venizia/ignis-helpers';
+import type { ILogger } from '@venizia/ignis-helpers';
 import { getError, HTTP } from '@venizia/ignis-helpers';
 
 /** Engine-agnostic error plumbing shared by every search connector; backend-specific classification (what counts as 404/409) lives in each backend's own internal helper. */
@@ -15,7 +15,7 @@ export class SearchConnectorInternal {
   static wrapDependencyError(opts: {
     method: string;
     error: unknown;
-    logger: Logger;
+    logger: ILogger;
     details?: Record<string, unknown>;
   }): never {
     const { method, error, logger, details } = opts;
@@ -34,13 +34,9 @@ export class SearchConnectorInternal {
       ...(details ? { extra: { details } } : {}),
     });
 
-    // The original engine error carries the code the CALLER may need to classify on - Meilisearch
-    // reports `index_already_exists` as a failed TASK, and a connector that tolerates it (an
-    // idempotent createCollection on the second boot) can only see it through here.
-    //
-    // Assigned AFTER construction on purpose: passing `cause` to getError() would land it in
-    // `extra`, which the error middleware puts on the WIRE. As a plain `cause` it reaches the
-    // response only in a development environment, where stack and cause are already exposed.
+    // The original engine error carries the code callers may classify on (e.g. tolerating
+    // `index_already_exists`). Assigned AFTER construction: `cause` via getError() would land in
+    // `extra`, which goes on the WIRE - a plain `cause` is exposed only in development.
     (wrapped as { cause?: unknown }).cause = error;
     throw wrapped;
   }

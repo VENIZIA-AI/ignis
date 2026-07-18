@@ -266,7 +266,7 @@ import {
   KafkaAdminHelper,
 } from '@venizia/ignis-helpers/kafka';
 import { stringSerializers, stringDeserializers } from '@platformatic/kafka';
-import { inject, injectable } from '@venizia/ignis-inversion';
+import { inject } from '@venizia/ignis-inversion';
 
 // Register helpers in the IoC container
 app.bind('kafka.producer').to(
@@ -292,7 +292,6 @@ app.bind('kafka.consumer').to(
 );
 
 // Inject into services
-@injectable()
 export class OrderEventService {
   constructor(
     @inject({ key: 'kafka.producer' }) private producer: KafkaProducerHelper,

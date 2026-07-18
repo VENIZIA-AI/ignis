@@ -20,11 +20,9 @@ import { ICrudRepository } from '@/base/repositories';
 import { TypesenseQueryDialect } from '@/connectors/typesense';
 import { MetadataRegistry } from '@/helpers/inversion';
 
-/**
- * `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key
- * (`metadata.tableName || TABLE_NAME || class name`); anything keyed off `entity.name` alone
- * silently misses settings registered under a different `tableName`.
- */
+/** `entity.name` (`TABLE_NAME || class name`) can diverge from the model-registry key
+ * (`metadata.tableName || ...`); keying off `entity.name` alone silently misses settings
+ * registered under a different `tableName`. */
 
 const divergedTable = pgTable('diverged_y', {
   id: serial('id').primaryKey(),

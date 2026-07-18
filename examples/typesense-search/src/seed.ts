@@ -121,7 +121,11 @@ const demo = async (opts: { repository: ArticleRepository; dataSource: SearchDat
   // Keyword - full-text; defaultFilter (status: published) + hiddenProperties apply.
   logResult(
     'keyword "typescript"',
-    await repository.search({ mode: 'keyword', query: 'typescript', queryBy: ['title', 'content'] }),
+    await repository.search({
+      mode: 'keyword',
+      query: 'typescript',
+      queryBy: ['title', 'content'],
+    }),
   );
 
   // Multi-search - federated (one result set per search) then union (one merged, ranked set).
@@ -165,7 +169,9 @@ const demo = async (opts: { repository: ArticleRepository; dataSource: SearchDat
       }),
     );
   } catch (error) {
-    logger.for('demo').warn('semantic/hybrid skipped (embedding not configured?) | error: %s', error);
+    logger
+      .for('demo')
+      .warn('semantic/hybrid skipped (embedding not configured?) | error: %s', error);
   }
 };
 

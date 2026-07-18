@@ -1,22 +1,18 @@
 import { BaseApplication } from '@/base/applications/base';
 import {
   AbstractSecretsHelper,
-  Logger,
   SecretProviders,
   SystemEnvsHelper,
   formatLogMessage,
   type AnyType,
   type ISecretsRegistration,
 } from '@venizia/ignis-helpers';
+import { Logger } from '@venizia/ignis-helpers/winston';
 import { afterEach, describe, expect, spyOn, test } from 'bun:test';
 
-// Real Vault/other-provider transport failures surface as raw error objects whose enumerable
-// properties (e.g. node-vault's `config.headers['X-Vault-Token']`, `response.data.secret_id`) the
-// framework logger deep-inspects (depth 5) when handed the object itself. The framework now passes
-// the RAW error to the logger; redaction lives in the logger's formatter. This fake mirrors the
-// leaky shape - independent of any optional peer (node-vault/@dotenvx) - so the assertions below
-// prove that routing those raw args through the real formatter redacts the secret VALUES while
-// keeping the error message, without requiring a package core does not depend on.
+// Mirrors the leaky shape of real Vault transport errors (token/secret_id in enumerable props the
+// logger deep-inspects at depth 5) without any optional peer - proving the logger's formatter
+// redacts the secret VALUES from raw error args while keeping the error message.
 class FakeSensitiveTransportError extends Error {
   config = { headers: { 'X-Vault-Token': 'super-secret-vault-token-must-never-be-logged' } };
   response = { data: { ['secret_id']: 'super-secret-approle-secret-must-never-be-logged' } };
@@ -46,11 +42,8 @@ afterEach(() => {
   process.env.NODE_ENV = originalNodeEnv;
 });
 
-/**
- * Formats every captured log call the way the framework logger would (the first arg is the
- * `%s`-bearing message, the rest are splat args) and asserts the secret VALUES never survive the
- * deep-inspect path, while the diagnostic message still does.
- */
+/** Formats each captured log call the way the framework logger would and asserts the secret VALUES
+ * never survive the deep-inspect path, while the diagnostic message still does. */
 const assertRedactedThroughLogger = (calls: unknown[][]) => {
   expect(calls.length).toBeGreaterThan(0);
   for (const [message, ...args] of calls) {

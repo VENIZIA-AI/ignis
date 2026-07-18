@@ -43,7 +43,7 @@ export class Container extends BaseContainer {
     for (const [propertyKey, metadata] of properties) {
       const dep = this.get({
         key: metadata.bindingKey,
-        isOptional: metadata.optional ?? false,
+        isOptional: metadata.isOptional ?? false,
       });
       (instance as any)[propertyKey] = dep;
     }

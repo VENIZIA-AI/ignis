@@ -35,13 +35,9 @@ const ROLE_INHERIT_ROWS = [
   { childId: 'c', parentId: 'b' },
 ];
 
-/**
- * `BaseFilteredAdapter.query()` exists purely to normalise the driver's result shape. Every other
- * Casbin fixture returns the node-postgres `{ rows }` shape, so without this file the postgres-js
- * branch is never exercised THROUGH the adapter - only in the reader's own unit test. A regression
- * that reintroduced `result.rows` would leave the rest of the suite green while silently loading
- * zero policy lines on postgres-js, denying every authorization decision.
- */
+/** Exercises the postgres-js result shape THROUGH the adapter (every other fixture is pg `{ rows }`):
+ * a reintroduced `result.rows` read would stay green elsewhere while silently loading zero policy
+ * lines on postgres-js, denying every authorization decision. */
 describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
   test('node-postgres { rows } and postgres-js RowList produce identical policy lines', async () => {
     const fromNodePostgres = await buildAdapter({

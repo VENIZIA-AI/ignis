@@ -13,11 +13,8 @@ import {
 import { BasePostgresEntity, TTableInsert, TTableObject } from '@/connectors/postgres/models';
 import { DefaultCRUDRepository, IDatabaseExtraOptions } from '@/connectors/postgres/repositories';
 
-/**
- * Pins the transaction type naming: `ITransaction` is the neutral base (`Schema` generic unused),
- * postgres's `IDatabaseTransaction` narrows `IExtraOptions.transaction` via `IDatabaseExtraOptions`.
- * `tsc --noEmit` is the real check here, not just the handful of runtime assertions.
- */
+/** Pins the transaction type naming: neutral `ITransaction` vs postgres's `IDatabaseTransaction`
+ * (narrowed via `IDatabaseExtraOptions`). `tsc --noEmit` is the real check here. */
 
 const namingTable = pgTable('naming_check', {
   id: serial('id').primaryKey(),

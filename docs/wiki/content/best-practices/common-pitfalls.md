@@ -26,7 +26,6 @@ export class Application extends BaseApplication {
 
     // Services
     this.service(MyNewService); // <-- Don't forget this line
-    this.registerAuth();
 
     // Controllers
     this.controller(TestController);
@@ -174,31 +173,44 @@ await userRepository.updateBy({
 
 ## 7. Schema Key Mismatch
 
-**Problem:** Entity name doesn't match the table name registered in the DataSource's schema.
+**Problem:** The repository cannot find its table in the DataSource schema.
 
 **Error Message:**
 ```
-[UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [Configuration, Post] | Ensure the model's TABLE_NAME matches the schema registration key
+[UserRepository] Schema key mismatch | Entity name 'User' not found in connector.query | Available keys: [users, Post] | Ensure the model's TABLE_NAME matches the schema registration key
 ```
 
-**Solution:** The schema registration key follows the precedence `@model tableName metadata > static TABLE_NAME > class name`, while the repository looks the query interface up by the entity **class name**. Do not set `TABLE_NAME` (or `tableName` metadata) to a value that differs from the class name:
+**Cause:** Two keys are resolved by *different* rules:
+
+| Key | Rule |
+|-----|------|
+| Schema registration key | `@model({ tableName })` > `static TABLE_NAME` > class name |
+| Repository lookup key (`entity.name`) | `static TABLE_NAME` > class name |
+
+`@model({ tableName })` moves the registration key but not the lookup key. Setting it alone is what breaks:
 
 ```typescript
-// ❌ BAD - Schema is registered under 'users', but looked up as 'User'
-@model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
-  static override TABLE_NAME = 'users';  // Differs from class name!
-  static override schema = pgTable('User', { /* ... */ });
+// ❌ BAD - registered under 'users', looked up as 'User'
+@model({ type: 'entity', tableName: 'users' })
+export class User extends BaseRelationalEntity<typeof User.schema> {
+  static override schema = pgTable('users', { /* ... */ });
 }
 
-// ✅ GOOD - No TABLE_NAME override; registration key defaults to the class name
+// ✅ GOOD - set neither; both keys resolve to the class name
 @model({ type: 'entity' })
-export class User extends BasePostgresEntity<typeof User.schema> {
-  static override schema = pgTable('User', { /* ... */ });
+export class User extends BaseRelationalEntity<typeof User.schema> {
+  static override schema = pgTable('users', { /* ... */ });
+}
+
+// ✅ GOOD - or set both to the same value
+@model({ type: 'entity', tableName: 'users' })
+export class User extends BaseRelationalEntity<typeof User.schema> {
+  static override TABLE_NAME = 'users';
+  static override schema = pgTable('users', { /* ... */ });
 }
 ```
 
-**Why this matters:** The framework uses `entity.name` (class name) to look up the query interface in `connector.query`, but registers the schema under the resolved table name. If they don't match, the repository can't find its table. The first argument of `pgTable()` is the physical SQL table name and is independent of this lookup - by convention it matches the class name.
+`static TABLE_NAME` on its own is safe - it moves both keys together. The first argument of `pgTable()` is the physical SQL table name and plays no part in either lookup.
 
 ## 8. Validation Error Response Structure
 
@@ -209,10 +221,10 @@ export class User extends BasePostgresEntity<typeof User.schema> {
 ```json
 {
   "statusCode": 422,
-  "message": "Invalid email",
+  "message": "Invalid email address",
   "normalized": {
-    "text": "Invalid email",
-    "code": "invalid_string",
+    "text": "Invalid email address",
+    "code": "invalid_format",
     "args": {}
   },
   "requestId": "abc123",
@@ -222,22 +234,29 @@ export class User extends BasePostgresEntity<typeof User.schema> {
     "cause": [
       {
         "path": "email",
-        "message": "Invalid email",
-        "code": "invalid_string",
-        "expected": "email",
-        "received": "string"
+        "message": "Invalid email address",
+        "code": "invalid_format"
       },
       {
         "path": "age",
-        "message": "Expected number, received string",
+        "message": "Invalid input: expected number, received string",
         "code": "invalid_type",
-        "expected": "number",
-        "received": "string"
+        "expected": "number"
       }
     ]
   }
 }
 ```
+
+- `normalized.code` comes from the first issue carrying a `params.code`, otherwise the first issue's raw Zod code. Attach a stable code clients can branch on with `.refine()`:
+  ```typescript
+  z.number().refine(isTwoDecimals, {
+    message: 'At most 2 decimal places',
+    params: { code: 'app.price.too_many_places' },
+  });
+  ```
+- `args` is always `{}` here - per-field detail lives in `details.cause`.
+- `details.stack` is omitted in production; `details.cause` is not.
 
 **Client-side handling:**
 ```typescript
@@ -257,32 +276,31 @@ try {
 
 **Problem:** Application fails to start with `Cannot access 'X' before initialization` or similar errors.
 
-**Cause:** Two or more modules import each other directly, creating a circular reference that JavaScript cannot resolve.
+**Cause:** Two models reference each other's schema. With a cycle, one module is still mid-evaluation when the other reads its exports, so `User.schema` is `undefined`.
 
-**Solution:** Use lazy imports or restructure your modules:
+**Solution:** `relations` accepts a resolver function. Use it - the framework calls it in `buildSchema()`, after every model has finished loading:
 
 ```typescript
-// ❌ BAD - Direct import causes circular dependency
 import { User } from './user.model';
 
+// ❌ BAD - array literal is evaluated at module load, while the cycle is still open
 @model({ type: 'entity' })
-export class Order extends BasePostgresEntity<typeof Order.schema> {
-  static override relations = (): TRelationConfig[] => [
-    { schema: User.schema, ... }, // User imports Order, Order imports User
+export class Order extends BaseRelationalEntity<typeof Order.schema> {
+  static override relations: TRelationConfig[] = [
+    { name: 'owner', type: RelationTypes.ONE, schema: User.schema, metadata: { ... } },
   ];
 }
 
-// ✅ GOOD - Lazy import breaks the cycle
+// ✅ GOOD - resolver defers the User.schema read until after both modules finish loading
 @model({ type: 'entity' })
-export class Order extends BasePostgresEntity<typeof Order.schema> {
-  static override relations = (): TRelationConfig[] => {
-    const { User } = require('./user.model'); // Lazy require
-    return [{ schema: User.schema, ... }];
-  };
+export class Order extends BaseRelationalEntity<typeof Order.schema> {
+  static override relations = (): TRelationConfig[] => [
+    { name: 'owner', type: RelationTypes.ONE, schema: User.schema, metadata: { ... } },
+  ];
 }
 ```
 
-**Alternative:** Restructure to have a shared module that both import from.
+**Alternative:** Restructure so both models import their shared pieces from a third module.
 
 ## 10. Transaction Not Rolling Back
 
@@ -309,6 +327,8 @@ try {
   throw error; // Re-throw to let caller handle
 }
 ```
+
+This exact shape is safe even when `commit()` is what failed: a rollback on an already-torn-down transaction is a no-op, so it never replaces your original error. A failed `COMMIT` always throws - never treat a resolved `commit()` as anything but success.
 
 ## 11. Fire-and-Forget Promises Losing Context
 

@@ -28,13 +28,8 @@ export const RepositoryMetadataMixin = <
   return class extends baseClass {
     repositoryBindings: Map<string, IRepositoryBinding<AbstractEntity>>;
 
-    // DataSource -> Models mapping: datasource name -> set of model table names
-    /**
-     * The model CLASSES a datasource owns - never their names. Two classes may share a name (a
-     * `Product` document in one module, a `Product` entity in another) and the name-keyed
-     * `modelRegistry` can only hold one of them; keying by name here made the loser's datasource
-     * silently resolve the WRONG class - wrong settings, wrong hiddenProperties, empty schema.
-     */
+    /** The model CLASSES a datasource owns - never their names: two classes may share a name, and
+     * the name-keyed `modelRegistry` holds only one, so keying by name resolves the WRONG class. */
     datasourceModels: Map<string, Set<TClass<AnyType>>>;
 
     setRepositoryMetadata<
@@ -110,11 +105,8 @@ export const RepositoryMetadataMixin = <
       return undefined;
     }
 
-    /**
-     * Models registered for a datasource, relations resolved lazily. `schema`/`relations` are
-     * `unknown` because this registry is shared across connectors (SQL vs search); each connector
-     * narrows the type at its own call site (e.g. `BaseRelationalDataSource.discoverSchema()`).
-     */
+    /** Models registered for a datasource, relations resolved lazily. `schema`/`relations` stay
+     * `unknown` - the registry is shared across connectors; each connector narrows at its call site. */
     getModels(opts: { dataSource: string | TClass<IDataSource> }): Array<{
       tableName: string;
       schema: unknown;
@@ -126,10 +118,9 @@ export const RepositoryMetadataMixin = <
 
       const rs = Array.from(modelClasses)
         .map(modelClass => {
-          // Read straight off the CLASS. Going `class -> table name -> modelRegistry` round-trips
-          // through a process-wide, name-keyed map: two same-named models collapse onto one entry
-          // and the datasource that registered first silently gets the other one's schema.
-          // `modelRegistry` stays name-keyed for the by-name APIs (authorize principals) that need it.
+          // Read straight off the CLASS: a class -> name -> modelRegistry round-trip collapses two
+          // same-named models onto one entry, silently swapping schemas. `modelRegistry` stays
+          // name-keyed for the by-name APIs (authorize principals) that need it.
           const entry: IModelRegistryEntry = {
             target: modelClass as AnyType,
             metadata:

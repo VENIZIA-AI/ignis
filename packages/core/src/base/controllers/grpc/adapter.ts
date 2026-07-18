@@ -21,17 +21,9 @@ type TConnectHandler<RequestType = unknown, ResponseType = unknown> = (
   context: HandlerContext,
 ) => ValueOrPromise<ResponseType>;
 
-/**
- * Bridges Ignis gRPC controllers with ConnectRPC's universal handler system.
- *
- * Uses AsyncLocalStorage for request-scoped Hono context isolation —
- * concurrent requests never share or overwrite each other's context.
- *
- * Responsibilities:
- * 1. Load ConnectRPC peer deps at startup via createRequire
- * 2. Wrap Ignis handlers into ConnectRPC's expected signature
- * 3. Produce a Hono middleware that dispatches requests to the correct handler
- */
+/** Bridges IGNIS gRPC controllers with ConnectRPC's universal handler system: loads ConnectRPC peer
+ * deps at startup via createRequire, wraps handlers into ConnectRPC's signature, and dispatches via
+ * a Hono middleware. AsyncLocalStorage isolates request-scoped Hono context across concurrent requests. */
 export class GrpcRequestAdapter<
   RouteEnv extends Env = Env,
   RouteSchema extends Schema = {},
