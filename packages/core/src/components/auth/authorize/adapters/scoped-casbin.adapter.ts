@@ -1,10 +1,14 @@
 import type { IdType } from '@/base';
+import type { TConstValue, TNullable } from '@venizia/ignis-helpers';
 import { type Model } from 'casbin';
 import { sql, type SQL } from 'drizzle-orm';
+import { AuthorizationPermissionBuilder, GrantBuilder } from '../builders';
 import {
+  AuthorizationActions,
   AuthorizationDecisions,
   AuthorizationDomainScopes,
   AuthorizationPolicyVariants,
+  type TCustomGrantMetadata,
 } from '../common';
 import { BaseFilteredAdapter } from './base-filtered';
 import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
@@ -12,6 +16,33 @@ import type { ICasbinPolicySource, IScopedCasbinEntities } from './types';
 export interface IScopedCasbinPolicyFilter {
   principal: { type: string; id: IdType };
 }
+
+/** A grant row as fetched, before it becomes casbin lines. Permission columns are null when the join misses. */
+export type TGrantRow = {
+  subjectId: IdType;
+  objectCode: TNullable<string>;
+  objectSubject: TNullable<string>;
+  objectMethod: TNullable<string>;
+  action: TNullable<string>;
+  effect: TNullable<string>;
+  domain: TNullable<string>;
+  metadata?: unknown;
+};
+
+export class PrincipalPolicyEdges {
+  static readonly DIRECT = 'direct';
+  static readonly ROLE_EDGE = 'roleEdge';
+  static readonly ROLE_GRANT = 'roleGrant';
+  static readonly DOMAIN_EDGE = 'domainEdge';
+}
+
+/** A row from the single principal-policy statement; `kind` says which branch produced it. */
+export type TPrincipalPolicyRow = TGrantRow & {
+  kind: TConstValue<typeof PrincipalPolicyEdges>;
+  variant: string;
+  targetType: TNullable<string>;
+  targetId: IdType;
+};
 
 const DEFAULT_SCHEMA = 'public';
 
@@ -28,42 +59,96 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Casbin's filtered-load entry point: builds the full line set for one principal (role assignments,
-   * memberships, direct grants, structural trees) then expands the role closure to fetch inherited grants.
+   * One wave: the principal-scoped CTE and the merged structural-edges query are issued together.
+   * The role closure is resolved in SQL, so nothing here waits on a previous query's result.
    */
   async loadFilteredPolicy(model: Model, filter: IScopedCasbinPolicyFilter): Promise<void> {
     const { principal } = filter;
+    const { principals } = this.entities;
 
-    const [assignments, memberships, userGrants, structural] = await Promise.all([
-      this.queryRoleAssignments({ principal }),
-      this.queryMemberships({ principal }),
-      this.queryGrants({ subject: { type: principal.type, ids: [principal.id] } }),
-      this.loadStructuralTrees(),
+    const [principalRows, structuralEdges] = await Promise.all([
+      this.queryPrincipalPolicies({ principal }),
+      this.queryEdgePolicies(),
     ]);
 
-    // Needs the role closure built above, so it can't join the batch of queries above.
-    const roleClosure = this.expandRoleClosure({
-      role: {
-        ids: assignments.roleIds,
-        edges: structural.filter(line => {
-          return line.startsWith(`${AuthorizationPolicyVariants.ROLE_INHERITS.rule}, `);
-        }),
-      },
-    });
+    const lines: string[] = [];
+    const directGrants: TGrantRow[] = [];
+    const roleGrants: TGrantRow[] = [];
 
-    const roleGrants = await this.queryGrants({
-      subject: { type: this.entities.principals.role, ids: roleClosure },
-    });
+    for (const row of principalRows) {
+      switch (row.kind) {
+        case PrincipalPolicyEdges.ROLE_EDGE: {
+          lines.push(
+            `${AuthorizationPolicyVariants.ROLE_INHERITS.rule}, ${principals.role}_${row.subjectId}, ${principals.role}_${row.targetId}, *`,
+          );
+          break;
+        }
 
-    const lines = [
-      ...assignments.lines,
-      ...memberships,
-      ...userGrants,
-      ...roleGrants,
-      ...structural,
-    ];
+        case PrincipalPolicyEdges.ROLE_GRANT: {
+          roleGrants.push(row);
+          break;
+        }
+
+        case PrincipalPolicyEdges.DOMAIN_EDGE: {
+          lines.push(
+            `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${row.subjectId}, ${row.targetId}`,
+          );
+          break;
+        }
+
+        default: {
+          this.collectDirectRow({ row, principal, lines, directGrants });
+          break;
+        }
+      }
+    }
+
+    lines.push(
+      ...(await this.buildGrantLines({ subjectType: principal.type, rows: directGrants })),
+    );
+    lines.push(...(await this.buildGrantLines({ subjectType: principals.role, rows: roleGrants })));
+    lines.push(...structuralEdges);
 
     await this.loadLines({ model, lines });
+  }
+
+  /** Route one `direct` row to its casbin line, or to the grant batch. */
+  protected collectDirectRow(opts: {
+    row: TPrincipalPolicyRow;
+    principal: { type: string; id: IdType };
+    lines: string[];
+    directGrants: TGrantRow[];
+  }): void {
+    const { row, principal, lines, directGrants } = opts;
+    const { principals } = this.entities;
+
+    switch (row.variant) {
+      case AuthorizationPolicyVariants.ASSIGN_ROLE.action: {
+        lines.push(
+          `${AuthorizationPolicyVariants.ASSIGN_ROLE.rule}, ${principal.type}_${principal.id}, ${principals.role}_${row.targetId}, ${row.domain ?? '*'}`,
+        );
+        break;
+      }
+
+      case AuthorizationPolicyVariants.JOIN_DOMAIN.action: {
+        lines.push(
+          `${AuthorizationPolicyVariants.JOIN_DOMAIN.rule}, ${principal.type}_${principal.id}, ${row.targetType}_${row.targetId}`,
+        );
+        break;
+      }
+
+      case AuthorizationPolicyVariants.GRANT.action: {
+        directGrants.push(row);
+        break;
+      }
+
+      default: {
+        this.logger
+          .for(this.collectDirectRow.name)
+          .error('Unexpected variant in the direct branch | variant: %s', row.variant);
+        break;
+      }
+    }
   }
 
   /** Schema for a table, defaulting to `public`. */
@@ -91,294 +176,400 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
   }
 
   /**
-   * Fetch the principal's `assign_role` edges as casbin `g` lines, plus the raw `roleIds` for
-   * {@link expandRoleClosure}. A null domain widens the assignment to every domain (`*`).
+   * One statement for everything scoped to a principal: its own edges, the role_inherits edges
+   * reachable from its roles, and the grants of that role closure. `UNION` in the recursive term
+   * is what terminates a cyclic role graph.
    */
-  protected async queryRoleAssignments(opts: {
+  protected async queryPrincipalPolicies(opts: {
     principal: { type: string; id: IdType };
-  }): Promise<{ lines: string[]; roleIds: IdType[] }> {
-    const { policyDefinition, principals } = this.entities;
-    const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
-    const { principal } = opts;
-
-    const rows = await this.query<{
-      roleId: IdType;
-      domain: string | null;
-    }>({
-      statement: sql`
-      SELECT 
-        policyDefinition.target_id AS "roleId", 
-        policyDefinition.domain
-      FROM ${policyDefinitionTable} policyDefinition
-      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ASSIGN_ROLE.action}
-        AND policyDefinition.subject_type = ${principal.type}
-        AND policyDefinition.subject_id = ${principal.id}
-        AND policyDefinition.target_type = ${principals.role}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `,
-    });
-
-    const lines: string[] = [];
-    const roleIds: IdType[] = [];
-    for (const row of rows) {
-      roleIds.push(row.roleId);
-      const domain = row.domain ?? '*';
-
-      lines.push(
-        `${AuthorizationPolicyVariants.ASSIGN_ROLE.rule}, ${principal.type}_${principal.id}, ${principals.role}_${row.roleId}, ${domain}`,
-      );
-    }
-
-    return { lines, roleIds };
-  }
-
-  /**
-   * Fetch the principal's `join_domain` edges (restricted to `domainTypes`) as casbin `g2` lines —
-   * the membership relation the matcher uses to scope `ANY_MEMBER` grants.
-   */
-  protected async queryMemberships(opts: {
-    principal: { type: string; id: IdType };
-  }): Promise<string[]> {
-    const { policyDefinition, domainTypes } = this.entities;
-    const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
-    const { principal } = opts;
-
-    const rows = await this.query<{
-      domainType: string;
-      domainId: IdType;
-    }>({
-      statement: sql`
-      SELECT 
-        policyDefinition.target_type AS "domainType", 
-        policyDefinition.target_id AS "domainId"
-      FROM ${policyDefinitionTable} policyDefinition
-      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.JOIN_DOMAIN.action}
-        AND policyDefinition.subject_type = ${principal.type}
-        AND policyDefinition.subject_id = ${principal.id}
-        AND policyDefinition.target_type IN (${sql.join(
-          domainTypes.map(t => sql`${t}`),
-          sql`, `,
-        )})${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `,
-    });
-
-    return rows.map(
-      row =>
-        `${AuthorizationPolicyVariants.JOIN_DOMAIN.rule}, ${principal.type}_${principal.id}, ${row.domainType}_${row.domainId}`,
-    );
-  }
-
-  /**
-   * Fetch `grant` edges for the given subjects joined to `Permission`, as casbin `p` lines. Rows with
-   * no `action` are skipped; null effect defaults to allow, null domain to `ANY_MEMBER`.
-   */
-  protected async queryGrants(opts: {
-    subject: { type: string; ids: IdType[] };
-  }): Promise<string[]> {
-    if (!opts.subject.ids.length) {
-      return [];
-    }
-
-    const { policyDefinition, permission } = this.entities;
+  }): Promise<TPrincipalPolicyRow[]> {
+    const { policyDefinition, permission, principals, domainTypes } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
     const permissionTable = this.qualifiedTable({ table: permission });
-    const { subject } = opts;
+    const { principal } = opts;
 
-    const rows = await this.query<{
-      subjectId: IdType;
-      objectCode: string;
-      action: string | null;
-      effect: string | null;
-      domain: string | null;
-    }>({
+    const metadataColumnName = policyDefinition.metadata?.columnName;
+    const metadataSelection = metadataColumnName
+      ? sql`, policyDefinition.${sql.identifier(metadataColumnName)} AS "metadata"`
+      : sql.empty();
+    const metadataNull = metadataColumnName ? sql`, NULL::jsonb AS "metadata"` : sql.empty();
+
+    const domainTypeList = sql.join(
+      domainTypes.map(domainType => sql`${domainType}`),
+      sql`, `,
+    );
+
+    const rows = await this.query<TPrincipalPolicyRow>({
       statement: sql`
+      WITH RECURSIVE role_closure AS (
+        SELECT policyDefinition.target_id AS role_id
+        FROM ${policyDefinitionTable} policyDefinition
+        WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ASSIGN_ROLE.action}
+          AND policyDefinition.subject_type = ${principal.type}
+          AND policyDefinition.subject_id = ${principal.id}
+          AND policyDefinition.target_type = ${principals.role}${this.softDeleteClause({ alias: 'policyDefinition' })}
+
+        UNION
+
+        SELECT policyDefinition.target_id
+        FROM ${policyDefinitionTable} policyDefinition
+          JOIN role_closure ON policyDefinition.subject_id = role_closure.role_id
+        WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ROLE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
+      ),
+
+      domain_closure AS (
+        SELECT policyDefinition.target_type AS dom_type, policyDefinition.target_id AS dom_id
+        FROM ${policyDefinitionTable} policyDefinition
+        WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.JOIN_DOMAIN.action}
+          AND policyDefinition.subject_type = ${principal.type}
+          AND policyDefinition.subject_id = ${principal.id}
+          AND policyDefinition.target_type IN (${domainTypeList})${this.softDeleteClause({ alias: 'policyDefinition' })}
+
+        UNION
+
+        SELECT policyDefinition.target_type, policyDefinition.target_id
+        FROM ${policyDefinitionTable} policyDefinition
+          JOIN domain_closure ON policyDefinition.subject_type = domain_closure.dom_type
+                             AND policyDefinition.subject_id = domain_closure.dom_id
+        WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.DOMAIN_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
+      )
+
       SELECT
-        policyDefinition.subject_id AS "subjectId",
-        permission.code AS "objectCode",
+        ${PrincipalPolicyEdges.DIRECT}::text AS "kind",
+        policyDefinition.variant,
+        policyDefinition.subject_id::text AS "subjectId",
+        policyDefinition.target_type AS "targetType",
+        policyDefinition.target_id::text AS "targetId",
         policyDefinition.action,
         policyDefinition.effect,
-        policyDefinition.domain
+        policyDefinition.domain,
+        permission.code AS "objectCode",
+        permission.subject AS "objectSubject",
+        permission.method AS "objectMethod"${metadataSelection}
       FROM ${policyDefinitionTable} policyDefinition
-        INNER JOIN ${permissionTable} permission
+        LEFT JOIN ${permissionTable} permission
+          ON policyDefinition.target_id = permission.id${this.softDeleteClause({ alias: 'permission' })}
+      WHERE policyDefinition.subject_type = ${principal.type}
+        AND policyDefinition.subject_id = ${principal.id}
+        AND policyDefinition.variant IN (
+          ${AuthorizationPolicyVariants.ASSIGN_ROLE.action},
+          ${AuthorizationPolicyVariants.JOIN_DOMAIN.action},
+          ${AuthorizationPolicyVariants.GRANT.action}
+        )
+        AND (
+          policyDefinition.variant <> ${AuthorizationPolicyVariants.JOIN_DOMAIN.action}
+          OR policyDefinition.target_type IN (${domainTypeList})
+        )${this.softDeleteClause({ alias: 'policyDefinition' })}
+
+      UNION ALL
+
+      SELECT
+        ${PrincipalPolicyEdges.ROLE_EDGE}::text AS "kind",
+        policyDefinition.variant,
+        policyDefinition.subject_id::text AS "subjectId",
+        policyDefinition.target_type AS "targetType",
+        policyDefinition.target_id::text AS "targetId",
+        NULL AS "action",
+        NULL AS "effect",
+        NULL AS "domain",
+        NULL AS "objectCode",
+        NULL AS "objectSubject",
+        NULL AS "objectMethod"${metadataNull}
+      FROM ${policyDefinitionTable} policyDefinition
+        JOIN role_closure ON policyDefinition.subject_id = role_closure.role_id
+      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ROLE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
+
+      UNION ALL
+
+      SELECT
+        ${PrincipalPolicyEdges.ROLE_GRANT}::text AS "kind",
+        policyDefinition.variant,
+        policyDefinition.subject_id::text AS "subjectId",
+        policyDefinition.target_type AS "targetType",
+        policyDefinition.target_id::text AS "targetId",
+        policyDefinition.action,
+        policyDefinition.effect,
+        policyDefinition.domain,
+        permission.code AS "objectCode",
+        permission.subject AS "objectSubject",
+        permission.method AS "objectMethod"${metadataSelection}
+      FROM ${policyDefinitionTable} policyDefinition
+        JOIN role_closure ON policyDefinition.subject_id = role_closure.role_id
+        LEFT JOIN ${permissionTable} permission
           ON policyDefinition.target_id = permission.id${this.softDeleteClause({ alias: 'permission' })}
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.GRANT.action}
-        AND policyDefinition.subject_type = ${subject.type}
-        AND policyDefinition.subject_id IN (${sql.join(
-          subject.ids.map(id => sql`${id}`),
-          sql`, `,
-        )})${this.softDeleteClause({ alias: 'policyDefinition' })}
+        AND policyDefinition.subject_type = ${principals.role}${this.softDeleteClause({ alias: 'policyDefinition' })}
+
+      UNION ALL
+
+      SELECT
+        ${PrincipalPolicyEdges.DOMAIN_EDGE}::text AS "kind",
+        policyDefinition.variant,
+        policyDefinition.subject_type || '_' || policyDefinition.subject_id::text AS "subjectId",
+        NULL AS "targetType",
+        policyDefinition.target_type || '_' || policyDefinition.target_id::text AS "targetId",
+        NULL AS "action",
+        NULL AS "effect",
+        NULL AS "domain",
+        NULL AS "objectCode",
+        NULL AS "objectSubject",
+        NULL AS "objectMethod"${metadataNull}
+      FROM ${policyDefinitionTable} policyDefinition
+        JOIN domain_closure ON policyDefinition.subject_type = domain_closure.dom_type
+                           AND policyDefinition.subject_id = domain_closure.dom_id
+      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.DOMAIN_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
     `,
     });
 
+    return rows;
+  }
+
+  /** Turn fetched grant rows into casbin lines. Shared by the direct and role-closure branches. */
+  protected async buildGrantLines(opts: {
+    subjectType: string;
+    rows: TGrantRow[];
+  }): Promise<string[]> {
+    const { subjectType, rows } = opts;
+    const metadataColumnName = this.entities.policyDefinition.metadata?.columnName;
+
     const lines: string[] = [];
+    const customRows: Array<{
+      subjectId: IdType;
+      objectSubject: string;
+      ops: string[];
+      domain: string;
+      effect: string;
+    }> = [];
+
     for (const row of rows) {
-      if (!row.action) {
+      if (!row.objectCode) {
+        this.logger
+          .for(this.buildGrantLines.name)
+          .error(
+            'Skipping grant row whose permission did not resolve - the target is missing or soft-deleted | subject: %s_%s',
+            subjectType,
+            row.subjectId,
+          );
         continue;
       }
 
       const domain = row.domain ?? AuthorizationDomainScopes.ANY_MEMBER;
       const effect = row.effect ?? AuthorizationDecisions.ALLOW;
+      const parsed = metadataColumnName
+        ? GrantBuilder.getInstance().parseCustomGrantMetadata({ metadata: row.metadata })
+        : null;
+      const isCustomAction = row.action === AuthorizationActions.CUSTOM;
+
+      if (isCustomAction || parsed) {
+        if (!row.objectSubject || !row.objectMethod) {
+          this.logger
+            .for(this.buildGrantLines.name)
+            .error(
+              'Skipping custom grant row whose subject or method did not resolve - the target is missing or soft-deleted | subject: %s_%s | object: %s',
+              subjectType,
+              row.subjectId,
+              row.objectCode,
+            );
+          continue;
+        }
+
+        const rejection = this.rejectCustomRow({
+          row: {
+            subjectId: row.subjectId,
+            objectCode: row.objectCode,
+            objectMethod: row.objectMethod,
+          },
+          parsed,
+          isCustomAction,
+          metadataColumnName,
+        });
+
+        if (rejection) {
+          this.logger.for(this.buildGrantLines.name).error(rejection);
+          continue;
+        }
+
+        customRows.push({
+          subjectId: row.subjectId,
+          objectSubject: row.objectSubject,
+          ops: parsed!.ops,
+          domain,
+          effect,
+        });
+        continue;
+      }
+
+      if (!row.action) {
+        this.logger
+          .for(this.buildGrantLines.name)
+          .error(
+            'Skipping grant row with no action - the permission it should confer is silently missing | subject: %s_%s | object: %s',
+            subjectType,
+            row.subjectId,
+            row.objectCode,
+          );
+        continue;
+      }
 
       lines.push(
-        `${AuthorizationPolicyVariants.GRANT.rule}, ${subject.type}_${row.subjectId}, ${domain}, ${row.objectCode}, ${row.action}, ${effect}`,
+        `${AuthorizationPolicyVariants.GRANT.rule}, ${subjectType}_${row.subjectId}, ${domain}, ${row.objectCode}, ${row.action}, ${effect}`,
       );
+    }
+
+    lines.push(...(await this.expandCustomGrants({ subjectType, customRows })));
+
+    return lines;
+  }
+
+  /** Why a custom-looking grant row cannot be honoured, or null when it is well formed. */
+  protected rejectCustomRow(opts: {
+    row: { subjectId: IdType; objectCode: string; objectMethod: string };
+    parsed: TCustomGrantMetadata | null;
+    isCustomAction: boolean;
+    metadataColumnName?: string;
+  }): string | null {
+    const { row, parsed, isCustomAction, metadataColumnName } = opts;
+
+    if (isCustomAction && !metadataColumnName) {
+      return `Skipping custom grant - entities.policyDefinition.metadata.columnName is not mapped, so metadata.ops cannot be read | subject id: ${row.subjectId} | object: ${row.objectCode}`;
+    }
+
+    if (isCustomAction && !parsed) {
+      return `Skipping custom grant - metadata.ops is missing, empty, or not an array of non-empty strings | subject id: ${row.subjectId} | object: ${row.objectCode}`;
+    }
+
+    if (!isCustomAction && parsed) {
+      return `Skipping grant - metadata.ops is present but action is not "${AuthorizationActions.CUSTOM}", so the intent is ambiguous | subject id: ${row.subjectId} | object: ${row.objectCode}`;
+    }
+
+    if (row.objectMethod !== AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD) {
+      return `Skipping custom grant - the target must be a subject-level resource node | subject id: ${row.subjectId} | object: ${row.objectCode}`;
+    }
+
+    return null;
+  }
+
+  /** Resolve every custom row's ops in one catalog query, then emit one line per resolved operation. */
+  protected async expandCustomGrants(opts: {
+    subjectType: string;
+    customRows: Array<{
+      subjectId: IdType;
+      objectSubject: string;
+      ops: string[];
+      domain: string;
+      effect: string;
+    }>;
+  }): Promise<string[]> {
+    if (!opts.customRows.length) {
+      return [];
+    }
+
+    const seen = new Set<string>();
+    const pairs: Array<{ subject: string; method: string }> = [];
+
+    for (const row of opts.customRows) {
+      for (const op of row.ops) {
+        const key = `${row.objectSubject}.${op}`;
+        if (seen.has(key)) {
+          continue;
+        }
+
+        seen.add(key);
+        pairs.push({ subject: row.objectSubject, method: op });
+      }
+    }
+
+    const catalog = await this.queryOperationCatalog({ pairs });
+    const byKey = new Map(catalog.map(entry => [`${entry.subject}.${entry.method}`, entry]));
+    const lines: string[] = [];
+
+    for (const row of opts.customRows) {
+      const { valid, unknown } = GrantBuilder.getInstance().validateCustomGrantOps({
+        ops: row.ops,
+        subject: row.objectSubject,
+        catalog,
+      });
+
+      if (unknown.length) {
+        this.logger
+          .for(this.expandCustomGrants.name)
+          .error(
+            'Skipping unresolvable operations in a custom grant | subject id: %s | resource: %s | unknown: %s',
+            row.subjectId,
+            row.objectSubject,
+            unknown.join(', '),
+          );
+      }
+
+      for (const op of valid) {
+        const entry = byKey.get(`${row.objectSubject}.${op}`)!;
+
+        lines.push(
+          `${AuthorizationPolicyVariants.GRANT.rule}, ${opts.subjectType}_${row.subjectId}, ${row.domain}, ${entry.code}, ${entry.action}, ${row.effect}`,
+        );
+      }
     }
 
     return lines;
   }
 
-  /** Load the system-wide hierarchy edges (role/resource/action/domain inherits), read fresh every call. */
-  protected async loadStructuralTrees(): Promise<string[]> {
-    const [roleEdges, resourceEdges, actionEdges, domainEdges] = await Promise.all([
-      this.queryRoleInherits(),
-      this.queryResourceInherits(),
-      this.queryActionInherits(),
-      this.queryDomainInherits(),
-    ]);
+  /** Resolve `(subject, method)` pairs to catalogued operations. One query for the whole extraction. */
+  protected async queryOperationCatalog(opts: {
+    pairs: Array<{ subject: string; method: string }>;
+  }): Promise<Array<{ subject: string; method: string; code: string; action: string }>> {
+    if (!opts.pairs.length) {
+      return [];
+    }
 
-    return [...roleEdges, ...resourceEdges, ...actionEdges, ...domainEdges];
-  }
+    const permissionTable = this.qualifiedTable({ table: this.entities.permission });
 
-  /** Every `role_inherits` edge as a casbin `g` line with a wildcard domain; seeds {@link expandRoleClosure}. */
-  protected async queryRoleInherits(): Promise<string[]> {
-    const { policyDefinition, principals } = this.entities;
-    const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
-
-    const rows = await this.query<{
-      childId: IdType;
-      parentId: IdType;
-    }>({
+    return this.query<{ subject: string; method: string; code: string; action: string }>({
       statement: sql`
-      SELECT
-        policyDefinition.subject_id AS "childId",
-        policyDefinition.target_id AS "parentId"
-      FROM ${policyDefinitionTable} policyDefinition
-      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ROLE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
+      SELECT permission.subject, permission.method, permission.code, permission.action
+      FROM ${permissionTable} permission
+      WHERE (permission.subject, permission.method) IN (${sql.join(
+        opts.pairs.map(pair => sql`(${pair.subject}, ${pair.method})`),
+        sql`, `,
+      )})
+        AND permission.method <> ${AuthorizationPermissionBuilder.RESOURCE_NODE_METHOD}${this.softDeleteClause(
+          { alias: 'permission' },
+        )}
     `,
-    });
-
-    return rows.map(r => {
-      return `${AuthorizationPolicyVariants.ROLE_INHERITS.rule}, ${principals.role}_${r.childId}, ${principals.role}_${r.parentId}, *`;
     });
   }
 
   /**
-   * Every `resource_inherits` edge as a casbin `g4` line (resource codes, `obj` axis) — a permission
-   * on a parent resource also covers its children.
+   * The two code-fixed structural trees only (`g4` resource, `g5` action) - a few hundred rows,
+   * constant regardless of tenant count. Domain edges (`g3`) are principal-scoped in
+   * {@link queryPrincipalPolicies} instead, since that tree grows with the domain count.
    */
-  protected async queryResourceInherits(): Promise<string[]> {
+  protected async queryEdgePolicies(): Promise<string[]> {
     const { policyDefinition, permission } = this.entities;
     const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
     const permissionTable = this.qualifiedTable({ table: permission });
 
-    const rows = await this.query<{ childCode: string; parentCode: string }>({
+    const rows = await this.query<{ rel: string; child: string; parent: string }>({
       statement: sql`
       SELECT
-        child_permission.code AS "childCode",
-        parent_permission.code AS "parentCode"
+        ${AuthorizationPolicyVariants.RESOURCE_INHERITS.rule} AS "rel",
+        child_permission.code AS "child",
+        parent_permission.code AS "parent"
       FROM ${policyDefinitionTable} policyDefinition
         INNER JOIN ${permissionTable} child_permission ON policyDefinition.subject_id = child_permission.id
         INNER JOIN ${permissionTable} parent_permission ON policyDefinition.target_id = parent_permission.id
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.RESOURCE_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `,
-    });
 
-    return rows.map(
-      r => `${AuthorizationPolicyVariants.RESOURCE_INHERITS.rule}, ${r.childCode}, ${r.parentCode}`,
-    );
-  }
+      UNION ALL
 
-  /**
-   * Every `action_inherits` edge as a casbin `g5` line (`act` axis, e.g. `manage` implies `read`).
-   * Kept separate from resource_inherits so resource x action doesn't explode into combined edges.
-   */
-  protected async queryActionInherits(): Promise<string[]> {
-    const { policyDefinition } = this.entities;
-    const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
-
-    const rows = await this.query<{ childCode: string; parentCode: string }>({
-      statement: sql`
       SELECT
-        policyDefinition.subject_id AS "childCode",
-        policyDefinition.target_id AS "parentCode"
+        ${AuthorizationPolicyVariants.ACTION_INHERITS.rule} AS "rel",
+        policyDefinition.subject_id::text AS "child",
+        policyDefinition.target_id::text AS "parent"
       FROM ${policyDefinitionTable} policyDefinition
       WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.ACTION_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
     `,
     });
 
-    return rows.map(
-      r => `${AuthorizationPolicyVariants.ACTION_INHERITS.rule}, ${r.childCode}, ${r.parentCode}`,
-    );
-  }
-
-  /** Every `domain_inherits` edge as a casbin `g3` line — lets a grant on a parent domain cascade down. */
-  protected async queryDomainInherits(): Promise<string[]> {
-    const { policyDefinition } = this.entities;
-    const policyDefinitionTable = this.qualifiedTable({ table: policyDefinition });
-
-    const rows = await this.query<{
-      childType: string;
-      childId: IdType;
-      parentType: string;
-      parentId: IdType;
-    }>({
-      statement: sql`
-      SELECT
-        policyDefinition.subject_type AS "childType",
-        policyDefinition.subject_id AS "childId",
-        policyDefinition.target_type AS "parentType",
-        policyDefinition.target_id AS "parentId"
-      FROM ${policyDefinitionTable} policyDefinition
-      WHERE policyDefinition.variant = ${AuthorizationPolicyVariants.DOMAIN_INHERITS.action}${this.softDeleteClause({ alias: 'policyDefinition' })}
-    `,
-    });
-
-    return rows.map(
-      r =>
-        `${AuthorizationPolicyVariants.DOMAIN_INHERITS.rule}, ${r.childType}_${r.childId}, ${r.parentType}_${r.parentId}`,
-    );
-  }
-
-  /** BFS over role_inherits edges to collect a role set + all transitive parents. Cycle-safe. */
-  protected expandRoleClosure(opts: { role: { ids: IdType[]; edges: string[] } }): IdType[] {
-    const { role } = this.entities.principals;
-    const prefix = `${role}_`;
-
-    const parentsOf = new Map<string, string[]>();
-
-    for (const line of opts.role.edges) {
-      const parts = line.split(',').map(s => s.trim());
-      if (parts[0] !== AuthorizationPolicyVariants.ROLE_INHERITS.rule || parts.length < 3) {
-        continue;
-      }
-
-      const child = parts[1].startsWith(prefix) ? parts[1].slice(prefix.length) : parts[1];
-      const parent = parts[2].startsWith(prefix) ? parts[2].slice(prefix.length) : parts[2];
-      const list = parentsOf.get(child) ?? [];
-
-      list.push(parent);
-      parentsOf.set(child, list);
-    }
-
-    const rs = new Set<string>();
-
-    const queue = opts.role.ids.map(String);
-    while (queue.length) {
-      const current = queue.shift()!;
-
-      if (rs.has(current)) {
-        continue;
-      }
-
-      rs.add(current);
-
-      const parents = parentsOf.get(current) ?? [];
-      for (const parent of parents) {
-        if (!rs.has(parent)) {
-          queue.push(parent);
-        }
-      }
-    }
-
-    return [...rs];
+    return rows.map(row => `${row.rel}, ${row.child}, ${row.parent}`);
   }
 }

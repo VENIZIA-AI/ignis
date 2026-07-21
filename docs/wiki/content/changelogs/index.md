@@ -17,6 +17,10 @@ This section tracks the history of significant changes, refactors, and updates t
 
 | Date | Title | Type |
 |------|-------|------|
+| 2026-07-21 | [BaseFilteredAdapter Connector Resolution Fix](./2026-07-21-casbin-connector-resolution-fix) | Bug Fix |
+| 2026-07-20 | [fromError - Rehydrate a Server Error on the Client](./2026-07-20-error-from-error-client) | New API |
+| 2026-07-20 | [Casbin Single-Wave Extraction - Recursive CTE Replaces the Second Query Wave](./2026-07-20-casbin-single-wave-extraction) | Enhancement, Behavior Change, Bug Fix |
+| 2026-07-20 | [Casbin Custom Grants - Operation-Subset Grants in One Row](./2026-07-20-casbin-custom-grants) | New Feature, Enhancement |
 | 2026-07-18 | [Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading](./2026-07-18-logger-overhaul) | Breaking Change, New Feature, Enhancement, Bug Fix |
 | 2026-07-18 | [Dependency Refresh \& DI Cleanup](./2026-07-18-dependency-refresh) | Maintenance, Breaking Change, Bug Fix |
 | 2026-07-17 | [Error Module Redesign](./2026-07-17-error-module-redesign) | Breaking Change, Enhancement |

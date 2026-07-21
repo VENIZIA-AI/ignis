@@ -1,6 +1,8 @@
 import { describe, test, expect } from 'bun:test';
-import { AuthorizationEnforcerTypes } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
+import {
+  AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
+} from '@/components/auth/authorize/common/constants';
 import { authorize } from '@/components/auth/authorize/middlewares';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import { Container } from '@/helpers/inversion';

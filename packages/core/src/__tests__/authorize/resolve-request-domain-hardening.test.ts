@@ -4,7 +4,7 @@ import type {
   TAuthorizationDomainResolver,
 } from '@/components/auth/authorize/common/types';
 import { AuthorizationDomainScopes } from '@/components/auth/authorize/common/constants';
-import { resolveRequestDomain } from '@/components/auth/authorize/common/resolve-request-domain';
+import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
 import type { TNullable } from '@venizia/ignis-helpers';
 
 /** resolveRequestDomain precedence: spec.domain method -> declarative -> options.domainResolver ->

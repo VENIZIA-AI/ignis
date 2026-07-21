@@ -8,6 +8,20 @@ export type TErrorNormalized = {
 };
 
 /**
+ * The error payload `AppErrorMiddleware` puts on the wire, as a CLIENT receives it - the input to
+ * {@link ApplicationError.fromError}. Every field is optional on purpose: a client parses what a
+ * gateway, a proxy or an older server actually sent, not what it should have.
+ */
+export type TResponsedError = {
+  message?: string;
+  statusCode?: number;
+  normalized?: Partial<TErrorNormalized>;
+  extra?: Record<string, unknown>;
+  requestId?: string;
+  details?: Record<string, unknown>;
+};
+
+/**
  * The message a CALLER supplies. Only `text` is required; the rest is what {@link TErrorNormalized}
  * resolves. Every other message shape below is derived from this one.
  */

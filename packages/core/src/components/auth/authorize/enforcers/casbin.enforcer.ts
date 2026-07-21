@@ -3,6 +3,7 @@ import { inject } from '@/base/metadata/injectors';
 import { BaseHelper, BasePoolHelper, getError, HTTP, TNullable } from '@venizia/ignis-helpers';
 import type { Enforcer as CasbinEnforcerType, Helper as CasbinHelperType } from 'casbin';
 import { Env } from 'hono';
+import { AuthorizationPermissionBuilder } from '../builders';
 import {
   AuthorizationDecisions,
   AuthorizationDomainScopes,
@@ -17,11 +18,11 @@ import {
   ICasbinEnforcerCachedRedis,
   ICasbinEnforcerOptions,
   ICasbinRules,
-  objectMatch,
   type IAuthorizationRequest,
   type TAuthorizationDecision,
   type TCasbinDomainMatchingFunction,
 } from '../common';
+import { ResourceRoleManager } from './resource-role-manager';
 
 /** Normalizer for the scoped/custom payload path — the exact shape returned by defaultScopedPayloadFn(). */
 type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
@@ -338,13 +339,13 @@ export class CasbinAuthorizationEnforcer<
 
     if (isScoped) {
       await enforcer.addNamedDomainMatchingFunc(CasbinRuleVariants.G, casbin.Util.keyMatchFunc);
-      await enforcer.addFunction('objectMatch', objectMatch);
+      await enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
 
-      // objectMatch is the matching func for the resource hierarchy relation (g4 under the
-      // request-tuple numbering); reference the constant so it tracks any future renumber.
-      await enforcer.addNamedMatchingFunc(
+      // A dedicated role manager for the resource axis, NOT addNamedMatchingFunc: a matching func
+      // sets casbin's `hasPattern`, which makes every hasLink rebuild the whole g4 graph.
+      enforcer.setNamedRoleManager(
         AuthorizationPolicyVariants.RESOURCE_INHERITS.rule,
-        objectMatch,
+        new ResourceRoleManager(),
       );
     }
 

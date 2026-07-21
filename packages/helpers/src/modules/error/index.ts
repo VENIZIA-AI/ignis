@@ -6,6 +6,7 @@
 export {
   ApplicationError,
   ErrorScopes,
+  fromError,
   getError,
   isApplicationError,
   MessageCode,
@@ -26,6 +27,7 @@ export type {
   TErrorNormalizeTransformFn,
   TErrorScope,
   TRegisterErrors,
+  TResponsedError,
 } from '@venizia/ignis-inversion';
 
 export * from './types';

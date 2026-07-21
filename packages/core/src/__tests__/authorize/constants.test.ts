@@ -3,8 +3,8 @@ import {
   Authorization,
   AuthorizationActions,
   AuthorizationDecisions,
+  AuthorizeBindingKeys,
 } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 
 describe('Authorization Constants', () => {
   describe('AuthorizationActions', () => {
@@ -37,7 +37,7 @@ describe('Authorization Constants', () => {
     });
 
     test('should have correct SCHEME_SET size', () => {
-      expect(AuthorizationActions.SCHEME_SET.size).toBe(7);
+      expect(AuthorizationActions.SCHEME_SET.size).toBe(8);
     });
 
     test('should reject whitespace-only actions', () => {

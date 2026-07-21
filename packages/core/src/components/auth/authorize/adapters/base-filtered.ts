@@ -1,5 +1,5 @@
 import { readResultRows } from '@/utilities';
-import { BaseHelper } from '@venizia/ignis-helpers';
+import { BaseHelper, getError } from '@venizia/ignis-helpers';
 import { type FilteredAdapter, type Model } from 'casbin';
 import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
@@ -20,7 +20,17 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   }
 
   protected get connector(): TCasbinPolicyConnector {
-    return this.dataSource.connector;
+    const source = this.dataSource;
+    const resolved = source.getConnector?.() ?? source.connector;
+
+    if (!resolved) {
+      throw getError({
+        message:
+          '[BaseFilteredAdapter] datasource exposes neither a getConnector() accessor nor a wired connector - pass a datasource whose getConnector() lazily wires the driver.',
+      });
+    }
+
+    return resolved;
   }
 
   /**

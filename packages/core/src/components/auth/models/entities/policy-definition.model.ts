@@ -1,5 +1,5 @@
 import { getError } from '@venizia/ignis-helpers';
-import { integer, text } from 'drizzle-orm/pg-core';
+import { integer, jsonb, text } from 'drizzle-orm/pg-core';
 
 export type TPolicyDefinitionOptions = {
   idType?: 'string' | 'number';
@@ -12,6 +12,7 @@ export type TPolicyDefinitionCommonColumns = {
   action: ReturnType<typeof text>;
   effect: ReturnType<typeof text>;
   domain: ReturnType<typeof text>;
+  metadata: ReturnType<typeof jsonb>;
 };
 
 type TPolicyDefinitionColumnDef<Opts extends TPolicyDefinitionOptions | undefined = undefined> =
@@ -37,6 +38,9 @@ export const extraPolicyDefinitionColumns = <Opts extends TPolicyDefinitionOptio
     action: text('action'),
     effect: text('effect'),
     domain: text('domain'),
+
+    // Nullable: only subset grants populate it, and a consumer may map its own column instead.
+    metadata: jsonb('metadata'),
   };
 
   switch (idType) {

@@ -8,9 +8,11 @@ import type { IAuthUser } from '../../authenticate';
 import type {
   CasbinEnforcerCachedDrivers,
   CasbinEnforcerModelDrivers,
+  TAuthorizationAction,
   TAuthorizationDecision,
   TCasbinDomainMatchingFunction,
 } from './constants';
+import type { AuthorizationPolicyBuilder } from '../builders/policy.builder';
 export interface IAuthorizationRole {
   readonly name: string;
   readonly priority: number;
@@ -172,3 +174,16 @@ export interface IAuthorizeOptions {
   /** Fallback domain resolver used when a route's spec has no `domain`. */
   domainResolver?: TAuthorizationDomainResolver;
 }
+
+/**
+ * Shape of `PolicyDefinition.metadata` on a subset ("custom") grant. `ops` holds bare method
+ * names (e.g. `"find"`), not full permission codes.
+ */
+export type TCustomGrantMetadata = { ops: string[] };
+
+export type TGrantIntent = { tier: TAuthorizationAction } | { ops: string[] };
+
+/** Per-operation rows carry `targetId` = the operation's code, not a database id; the consumer resolves codes to ids when persisting. */
+export type TPlannedGrantRow = ReturnType<typeof AuthorizationPolicyBuilder.grant> & {
+  metadata?: { ops: string[] };
+};

@@ -16,7 +16,11 @@ export type TCasbinPolicyConnector = PgDatabase<PgQueryResultHKT, Record<string,
 
 /** Minimal source the adapters depend on - any drizzle-backed datasource satisfies it. */
 export interface ICasbinPolicySource {
-  connector: TCasbinPolicyConnector;
+  /** Preferred: lazily wires the driver on first read and survives pool rotation, mirroring repositories. */
+  getConnector?(): TCasbinPolicyConnector;
+
+  /** Back-compat: a pre-wired connector. Prefer getConnector on a real datasource. */
+  connector?: TCasbinPolicyConnector;
 }
 
 /** Maps a logical table onto its physical name + schema. */
@@ -27,11 +31,9 @@ export interface IScopedCasbinTable {
 
 /** All physical mapping the ScopedCasbinAdapter needs. App provides this; framework stays decoupled. */
 export interface IScopedCasbinEntities {
-  /**
-   * The single edge table: each row links subject (type+id) to target (type+id); `variant` names the
-   * edge kind (grant / assign_role / *_inherits) plus optional action / effect / domain.
-   */
-  policyDefinition: IScopedCasbinTable;
+  policyDefinition: IScopedCasbinTable & {
+    metadata?: { columnName: string };
+  };
 
   /** Permission catalog (id, code, ...). */
   permission: IScopedCasbinTable;

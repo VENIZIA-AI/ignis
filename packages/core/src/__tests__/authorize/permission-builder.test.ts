@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test';
 import { AuthorizationActions } from '@/components/auth/authorize/common/constants';
-import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/common/permission-builder';
+import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
 
 const SCOPE = 'SYSTEM';
 

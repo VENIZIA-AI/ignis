@@ -1,7 +1,7 @@
 import type { IdType } from '@/base';
 import type { TNullable } from '@/helpers';
-import type { TAuthorizationAction } from './constants';
-import { AuthorizationActions } from './constants';
+import type { TAuthorizationAction } from '../common/constants';
+import { AuthorizationActions } from '../common/constants';
 
 /**
  * Builders for `Permission` catalog rows (the `obj` axis the scoped matcher resolves). Generic over
@@ -124,5 +124,22 @@ export class AuthorizationPermissionBuilder {
         description: opts.description ? opts.description(ctx) : undefined,
       });
     });
+  }
+
+  /**
+   * g4 resource matcher (r.obj vs p.obj): derives standard edges (endpoint ⊂ subject ⊂ `*`) from the
+   * dotted code {@link operation} produces; non-standard nesting stays explicit stored g4 edges served
+   * by `ResourceRoleManager`. Registered directly via `enforcer.addFunction` - must stay static.
+   */
+  static objectMatch(requested: string, granted: string): boolean {
+    if (granted === '*') {
+      return true;
+    }
+
+    if (requested === granted) {
+      return true;
+    }
+
+    return requested.startsWith(`${granted}.`);
   }
 }

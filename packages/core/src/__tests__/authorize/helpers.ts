@@ -4,9 +4,9 @@ import type { IAuthUser } from '@/components/auth/authenticate/common/types';
 import {
   Authorization,
   AuthorizationDecisions,
+  AuthorizeBindingKeys,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import type {
   IAuthorizationEnforcer,
   IAuthorizationRequest,

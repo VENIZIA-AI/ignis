@@ -18,6 +18,9 @@ export class AuthorizationActions {
   static readonly WRITE = 'write';
   static readonly MANAGE = 'manage';
 
+  /** Grant-mode marker for a subset grant carrying `metadata.ops`; never a member of LATTICE. */
+  static readonly CUSTOM = 'custom';
+
   static readonly SCHEME_SET = new Set([
     this.CREATE,
     this.UPDATE,
@@ -27,6 +30,8 @@ export class AuthorizationActions {
     this.READ,
     this.WRITE,
     this.MANAGE,
+
+    this.CUSTOM,
   ]);
 
   static readonly LATTICE: ReadonlyArray<{
@@ -316,3 +321,12 @@ export class AuthorizationPolicyVariants {
   }
 }
 export type TAuthorizationPolicyVariant = TConstValue<typeof AuthorizationPolicyVariants>;
+
+export class AuthorizeBindingKeys {
+  static readonly OPTIONS = '@app/authorize/options';
+  static readonly ALWAYS_ALLOW_ROLES = '@app/authorize/always-allow-roles';
+
+  static enforcerOptions(name: string): string {
+    return `@app/authorize/enforcers/${name}/options`;
+  }
+}

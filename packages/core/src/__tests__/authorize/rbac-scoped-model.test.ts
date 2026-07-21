@@ -26,28 +26,32 @@ describe('AuthorizationPolicyVariants', () => {
   });
 });
 
-import { objectMatch } from '@/components/auth/authorize/common/object-match';
+import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
 
-describe('objectMatch(requested, granted)', () => {
+describe('AuthorizationPermissionBuilder.objectMatch(requested, granted)', () => {
   test('wildcard grant matches anything', () => {
-    expect(objectMatch('Activation', '*')).toBe(true);
-    expect(objectMatch('Activation.findById', '*')).toBe(true);
+    expect(AuthorizationPermissionBuilder.objectMatch('Activation', '*')).toBe(true);
+    expect(AuthorizationPermissionBuilder.objectMatch('Activation.findById', '*')).toBe(true);
   });
 
   test('exact match', () => {
-    expect(objectMatch('Order', 'Order')).toBe(true);
-    expect(objectMatch('Order.findById', 'Order.findById')).toBe(true);
+    expect(AuthorizationPermissionBuilder.objectMatch('Order', 'Order')).toBe(true);
+    expect(AuthorizationPermissionBuilder.objectMatch('Order.findById', 'Order.findById')).toBe(
+      true,
+    );
   });
 
   test('endpoint is under its subject (dot prefix)', () => {
-    expect(objectMatch('Activation.findById', 'Activation')).toBe(true);
-    expect(objectMatch('Activation.find', 'Activation')).toBe(true);
+    expect(AuthorizationPermissionBuilder.objectMatch('Activation.findById', 'Activation')).toBe(
+      true,
+    );
+    expect(AuthorizationPermissionBuilder.objectMatch('Activation.find', 'Activation')).toBe(true);
   });
 
   test('different subject does not match by prefix', () => {
-    expect(objectMatch('Activation', 'Order')).toBe(false);
-    expect(objectMatch('OrderItem', 'Order')).toBe(false); // sibling, not dot-child → needs g4 edge
-    expect(objectMatch('Order', 'Order.findById')).toBe(false); // broader request, narrower grant
+    expect(AuthorizationPermissionBuilder.objectMatch('Activation', 'Order')).toBe(false);
+    expect(AuthorizationPermissionBuilder.objectMatch('OrderItem', 'Order')).toBe(false); // sibling, not dot-child → needs g4 edge
+    expect(AuthorizationPermissionBuilder.objectMatch('Order', 'Order.findById')).toBe(false); // broader request, narrower grant
   });
 });
 
@@ -67,6 +71,7 @@ describe('CASBIN_RBAC_DOMAIN_SCOPED_MODEL', () => {
 });
 
 import { Helper, newEnforcer, Util } from 'casbin';
+import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
 
 // Build a casbin enforcer on the v2 model, register the matching funcs exactly as the
 // framework will, then hand-feed policy lines. Mirrors how CasbinAuthorizationEnforcer wires it.
@@ -78,10 +83,10 @@ async function buildScopedEnforcer(lines: string[]) {
   await enforcer.addNamedDomainMatchingFunc('g', Util.keyMatchFunc);
   // objectMatch: registered as a direct matcher expression function for "graph-free" prefix/wildcard matching.
   // casbin's role-manager hasLink only traverses stored nodes, so objectMatch must be callable directly in
-  // the matcher expression (objectMatch(r.obj, p.obj)) as well as via g4 for explicit edge traversal.
-  await enforcer.addFunction('objectMatch', objectMatch);
-  // g4: resource prefix/wildcard matching func for stored edge traversal (explicit resource_inherits edges).
-  await enforcer.addNamedMatchingFunc('g4', objectMatch);
+  // the matcher expression (AuthorizationPermissionBuilder.objectMatch(r.obj, p.obj)) as well as via g4's ResourceRoleManager.
+  await enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
+  // g4: dedicated role manager for stored edge traversal (explicit resource_inherits edges).
+  enforcer.setNamedRoleManager('g4', new ResourceRoleManager());
 
   const m = enforcer.getModel();
   for (const line of lines) {

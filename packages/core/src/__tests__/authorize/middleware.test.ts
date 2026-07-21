@@ -3,9 +3,9 @@ import {
   Authorization,
   AuthorizationDecisions,
   AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { authorize } from '@/components/auth/authorize/middlewares';
 import type {
   IAuthorizeOptions,

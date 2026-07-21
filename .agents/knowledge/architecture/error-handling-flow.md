@@ -118,6 +118,26 @@ scrubbed. An `ApplicationError` arrives already normalized and that object is au
 `configs.error.rootKey`, when set, nests this under that key. `requestId` is the join key between the
 response a client saw and the fully detailed server log line.
 
+## The return trip: `fromError`
+
+`fromError({ error })` inverts the payload above - `TResponsedError` (inversion, plain TS) names the
+shape, and the result is a live `ApplicationError`, so a client's `catch` treats a server failure
+and a locally thrown one alike. It is OPTIONAL: reading `error.normalized.code` off the parsed body
+needs no framework help and stays the shortest path.
+
+`normalized` round-trips verbatim; `message` fills `normalized.text` only when `normalized` is
+absent; `requestId` rides the constructor's unknown-key sweep into `extra` (passed via conditional
+spread - a present-but-undefined key would leave `extra` as `{ requestId: undefined }` rather than
+absent); `details` is dropped, since `url`/`path` the client knows and `stack` is the server's.
+
+Every `TResponsedError` field is optional deliberately - a client parses what a gateway or an older
+server actually sent. A non-IGNIS body still yields an `ApplicationError` degraded to
+`MessageCode.DEFAULT` / status 400, so no call site branches on a parse failure.
+
+The wire shape is also described by `ErrorSchema`/`TErrorResponse` in **helpers**, for OpenAPI. That
+one cannot serve a browser: it depends on `@hono/zod-openapi`. `TResponsedError` exists because inversion
+must stay browser-safe, not as a duplicate to be consolidated away.
+
 ## Related
 
 - [Error handling conventions](/conventions/error-handling.md)

@@ -268,6 +268,52 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
 > [!NOTE]
 > `message` and `normalized.text` are the same string unless a `transform` deliberately makes them differ - `message` stays the raw text the throw site wrote, `normalized.text` is what a client shows. Most errors never set `transform`, so most of the time they match.
 
+### Consume the error response from a browser client
+
+The error layer lives in `@venizia/ignis-inversion`, not in helpers, precisely so a browser app can
+share it: it depends only on `lodash`, ships dual CJS+ESM, and pulls in no server module. A frontend
+throws its own failures with the same `getError` the server uses, and reads the server's with the
+same field names.
+
+**Reading is all most clients need.** `normalized` is on every error response - `getError` always
+builds one, a foreign error gets one synthesized, and a `ZodError` builds its own - so there is no
+null-check and no parsing step:
+
+```ts
+const { error } = await response.json(); // `error` is the rootKey, if one is configured
+
+translate(error.normalized.code, error.normalized.args);
+```
+
+**Rehydrating** is for the client that wants one `catch` block for both a server failure and a
+locally thrown one. `fromError` inverts the response the middleware emitted:
+
+```ts
+import { fromError, isApplicationError } from '@venizia/ignis-inversion';
+
+const { error } = await response.json();
+throw fromError({ error }); // now an ApplicationError - isApplicationError() is true
+```
+
+| Wire field   | Where it lands                                                                    |
+| ------------ | --------------------------------------------------------------------------------- |
+| `normalized` | `normalized`, verbatim - `text`, `code` and `args` round-trip unchanged           |
+| `message`    | `normalized.text`, but only when `normalized` is missing entirely                 |
+| `statusCode` | `statusCode`; `400` when the payload carries none                                 |
+| `extra`      | `extra`, verbatim                                                                 |
+| `requestId`  | `extra.requestId` - it is the identifier a support ticket quotes, so it survives   |
+| `details`    | dropped - `url` and `path` the client already knows, and `stack` is the server's   |
+
+Every field of `TResponsedError` is optional by design: a client parses what a gateway, a proxy or an
+older server actually sent. A body that is not an IGNIS error at all still yields an
+`ApplicationError`, degraded to `MessageCode.DEFAULT` and status `400`, so no call site branches on
+a parse failure.
+
+> [!TIP]
+> Prefer `isApplicationError()` over `instanceof ApplicationError` in a browser app. The client
+> bundles its own copy of the class, so `instanceof` fails across the boundary; the guard duck-types
+> on `statusCode` instead.
+
 **Common status codes**
 
 | Scenario                 | Status | `HTTP.ResultCodes` path    |
@@ -291,7 +337,7 @@ The handler is fail-closed on environment: it exposes `stack` and `cause` in `de
 
 - [`packages/helpers/src/modules/error/index.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/index.ts) - module barrel
 - [`packages/helpers/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/modules/error/types.ts) - `ErrorSchema`, `TErrorResponse` (the RESPONSE schema, for OpenAPI)
-- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `isApplicationError`
-- [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `IErrorKeyRegistry`, `TRegisterErrors`
+- [`packages/inversion/src/modules/error/app-error.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/app-error.ts) - `ApplicationError`, `getError`, `fromError`, `isApplicationError`
+- [`packages/inversion/src/modules/error/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/types.ts) - `TError`, `TErrorDefinition`, `TErrorNormalized`, `TResponsedError`, `IErrorKeyRegistry`, `TRegisterErrors`
 - [`packages/inversion/src/modules/error/definition.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/definition.ts) - `ErrorScopes`, `TErrorScope`
 - [`packages/inversion/src/modules/error/message-code.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/inversion/src/modules/error/message-code.ts) - `MessageCode`

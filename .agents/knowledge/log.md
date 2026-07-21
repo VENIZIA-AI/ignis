@@ -6,6 +6,113 @@ not how.
 This file and `index.md` are reserved OKF filenames - they carry no `type:` frontmatter and are not
 counted as concepts.
 
+## 2026-07-21 - authorization docs re-synced; base-filtered connector fallback documented
+
+Two prior doc passes on the authorization component had already drifted from source before this
+sync. `docs/wiki/content/extensions/components/authorization/api.md` still named the query
+`queryPrincipalPolicy` (singular) and listed four separate statements
+(`queryPrincipalPolicy`/`queryResourceInherits`/`queryActionInherits`/`queryDomainInherits`); it now
+matches the entry directly below - `queryPrincipalPolicies` (two recursive CTEs, `role_closure` +
+`domain_closure`, four `kind` branches via the `PrincipalPolicyEdges` const class) and
+`queryEdgePolicies` (`g4` + `g5` only, merged into one statement with two `UNION ALL` branches). Also
+newly documented, in both the wiki and [Casbin authorization](/architecture/authorization-casbin.md):
+`BaseFilteredAdapter`'s `connector` getter now resolves `dataSource.getConnector?.() ??
+dataSource.connector` and throws a named `[BaseFilteredAdapter]` framework error instead of a bare
+`TypeError` when a datasource is cold (neither present); `ICasbinPolicySource.connector` is optional
+now, `getConnector?()` is the preferred lazy accessor. Guarded by
+`base-filtered-connector.test.ts`. The 2026-07-20 single-wave-extraction changelog is left as a
+frozen record of that day's shape (singular name, four statements) - the rename and the
+domain/structural split happened afterward, documented below and in a new changelog entry.
+
+## 2026-07-21 - g3 domain edges are principal-scoped, not load-all
+
+`ScopedCasbinAdapter.queryPrincipalPolicies` gained a second recursive CTE, `domain_closure`,
+alongside `role_closure`: it seeds from the principal's `join_domain` rows and walks up the
+`domain_inherits` parent chain (`UNION`, not `UNION ALL`, so a cyclic domain graph still
+terminates). A new `domainEdge` branch emits only the `domain_inherits` rows whose child is in that
+closure, as `g3, <childToken>, <parentToken>` lines. `queryEdgePolicies` dropped its `DOMAIN_INHERITS`
+branch - it now returns only the two code-fixed trees, `resource_inherits` (`g4`) and
+`action_inherits` (`g5`). `g3` no longer loads the whole domain tree for every user; it scales with
+the domains a principal belongs to (plus ancestors), not with the tenant count. `subjectId`/`targetId`
+in `queryPrincipalPolicies`' other branches (`direct`, `roleEdge`, `roleGrant`) are now cast
+`::text` in the SELECT list so all four branches type-check under one `UNION ALL` regardless of
+whether `PolicyDefinition.subject_id` is `integer` or `text` (`idType` config).
+
+## 2026-07-20 - single-wave extraction replaces the structural cache
+
+`ScopedCasbinAdapter.loadFilteredPolicy` now issues four statements in one `Promise.all` -
+`queryPrincipalPolicy` (a new recursive CTE) plus `queryResourceInherits`/`queryActionInherits`/
+`queryDomainInherits` - instead of the previous two-wave shape (a first-wave query set, an
+in-memory BFS role closure, then a second wave). The role closure is resolved in SQL: the CTE's
+recursive term uses `UNION`, not `UNION ALL`, so cycle termination is de-duplication, not a
+`visited` set. Only `role_inherits` edges reachable from the principal's roles are emitted now,
+narrower than before and behavior-preserving. The permission join is `LEFT JOIN`, not
+`INNER JOIN` - a grant whose target does not resolve is logged and skipped instead of vanishing.
+`queryRoleAssignments`, `queryMemberships`, `queryRoleInherits`, `expandRoleClosure`,
+`loadStructuralTrees`, and the old `queryGrants` are all gone, replaced by `queryPrincipalPolicy` +
+`collectDirectRow` + the shared `buildGrantLines`. The structural cache introduced earlier the same
+day (`structuralCache`, `invalidateStructuralCache()`, 60s TTL) is REMOVED, not deprecated - it was
+never released. Extraction cost is addressed with indexes instead: `(variant, subject_type,
+subject_id)` and `(variant, subject_id)` on `PolicyDefinition` for the CTE, `(variant)` or
+per-variant partial indexes for the three structural queries - the framework does not create them
+(the consumer owns its schema) but does own saying what the queries need, since an unindexed query
+the framework itself writes is the seam that produced the production incident this work descends
+from. Documented in
+[Casbin authorization](/architecture/authorization-casbin.md#the-adapter-situation) and the
+[changelog](/changelogs/2026-07-20-casbin-single-wave-extraction).
+
+## 2026-07-20 - utilities/ folded into builders/, objectMatch became a static method
+
+`authorize/utilities/` (the only role-less folder name in `authorize/`) is gone. `GrantUtility` ->
+`GrantBuilder` and moved to `builders/grant.builder.ts`, alongside `AuthorizationPermissionBuilder`
+(`builders/permission.builder.ts`, moved from `common/permission-builder.ts`) and
+`AuthorizationPolicyBuilder` (`builders/policy.builder.ts`, moved from `common/policy-builder.ts`).
+The free function `objectMatch` (`common/object-match.ts`) is now
+`AuthorizationPermissionBuilder.objectMatch`, a `static` method with no `this` reference - it is
+handed to Casbin by reference (`enforcer.addFunction('objectMatch', ...)`), so an instance method
+would have lost its binding. Pure move + rename - no behavior change, no assertion changed in the
+431-test authorize suite.
+
+## 2026-07-20 - custom grants: an operation subset in one row
+
+A `PolicyDefinition` grant row can carry `action = 'custom'` + `metadata: { ops: [...] }` against a
+subject-level resource node; `ScopedCasbinAdapter.buildGrantLines` (`queryGrants` at the time this
+landed, since folded into the single-wave extraction below) expands it into one `p` line per
+operation, each carrying that operation's catalogued action - identical to per-operation rows, one
+extra batched catalog query per extraction, none when no custom rows are present, and opt-in via
+`entities.policyDefinition.metadata.columnName`. `GrantUtility.planGrant`
+(`utilities/grant.utility.ts`) is the write-side planner: it collapses an `ops` selection into tier
+grants wherever a tier is fully covered and falls back to a custom row only for what does not
+collapse. Documented in
+[Casbin authorization](/architecture/authorization-casbin.md#subset-grants-custom-rows).
+
+## 2026-07-20 - grant-planner folded into GrantUtility
+
+`common/grant-planner.ts` (`planGrant` + its tier helpers) is gone; the logic is now
+`GrantUtility.planGrant` on `utilities/grant.utility.ts`, alongside the renamed
+`CustomGrantUtility` (now `GrantUtility`) it already held. `TGrantIntent`/`TPlannedGrantRow` moved
+to `common/types.ts`. Pure move - the tier-derivation-from-LATTICE and collapse rules are
+unchanged; `scoped-casbin.adapter.ts`'s `customGrantUtility` field is now `grantUtility`.
+
+## 2026-07-20 - g4 role manager, deny-overrides-allow, and a silent-drop fixed
+
+`g4` (resource nesting) is now served by `ResourceRoleManager`, not `addNamedMatchingFunc` -
+`addMatchingFunc` sets Casbin's `hasPattern`, which disables `DefaultRoleManager`'s O(1) fast path
+on every link check. The manager seeds its walk from every stored prefix ancestor of a dotted code.
+This is NOT exact parity with the matching function it replaced: the dot rule only applies to the
+request object, a stored `'*'` node is reachable from any request object, and the old
+`maxHierarchyLevel = 10` ceiling no longer applies - see the architecture concept for the full
+contract. The policy effect
+(`some(where (p.eft == allow)) && !some(where (p.eft == deny))`) was never documented: a deny row
+overrides an allow, and consumers rely on it for carve-outs. `ScopedCasbinAdapter.queryGrants` used
+to silently drop a grant row with a null `action`; it now logs an error and still drops it.
+
+Same pass: the four structural queries (`role_inherits`, `resource_inherits`, `action_inherits`,
+`domain_inherits`) were briefly cached per `ScopedCasbinAdapter` instance in this same pass -
+default on, 60s TTL, `structuralCache: { use, expiresIn }`, `invalidateStructuralCache()`. That
+cache was never released and is REMOVED as of the single-wave extraction entry below - do not
+report it against current source.
+
 ## 2026-07-18 - @injectable removed
 
 The decorator wrote `scope`/`tags` metadata that the container never read - `getInjectableMetadata`
@@ -220,3 +327,10 @@ be false. The concepts document what the source actually does today:
   code?, args? }` so flat call sites still compile. `error` is refused on the free-form branch
   (`error?: never`) - wrap with `cause`. Spreading a definition is now safe. Breaking against the
   PUBLISHED inversion 0.1.1-0.
+- `fromError({ error })` + `TResponsedError` added to inversion's error module: the inverse of the
+  `AppErrorMiddleware` response, rebuilding an `ApplicationError` from a wire payload so a browser
+  client gets one `catch` for server and local failures. Purely additive - reading
+  `error.normalized.code` off the parsed body remains the shortest path and is unchanged. `TResponsedError`
+  is NOT a duplicate of helpers' `ErrorSchema`/`TErrorResponse`: that one needs `@hono/zod-openapi`
+  and cannot ship to a browser. `requestId` lands at `extra.requestId` via conditional spread;
+  `details` is dropped.

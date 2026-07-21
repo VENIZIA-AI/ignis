@@ -1,6 +1,6 @@
 import { describe, test, expect } from 'bun:test';
 import { AuthorizeComponent } from '@/components/auth/authorize/component';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
+import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/constants';
 import type { IAuthorizeOptions } from '@/components/auth/authorize/common/types';
 import type { BaseApplication } from '@/base/applications/base';
 

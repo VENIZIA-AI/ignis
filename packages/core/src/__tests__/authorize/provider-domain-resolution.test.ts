@@ -4,11 +4,11 @@ import {
   AuthorizationDecisions,
   AuthorizationDomainScopes,
   AuthorizationEnforcerTypes,
+  AuthorizeBindingKeys,
   type TAuthorizationDecision,
 } from '@/components/auth/authorize/common/constants';
-import { AuthorizeBindingKeys } from '@/components/auth/authorize/common/keys';
 import { authorize } from '@/components/auth/authorize/middlewares';
-import { resolveRequestDomain } from '@/components/auth/authorize/common/resolve-request-domain';
+import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
 import { ScopedCasbinAdapter } from '@/components/auth/authorize/adapters/scoped-casbin.adapter';
 import type {
   IAuthorizeOptions,

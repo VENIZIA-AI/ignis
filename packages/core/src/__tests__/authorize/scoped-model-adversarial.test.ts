@@ -1,18 +1,20 @@
 import { describe, expect, test } from 'bun:test';
 import { Helper, newEnforcer, newModelFromString, Util } from 'casbin';
 import { CASBIN_RBAC_DOMAIN_SCOPED_MODEL } from '@/components/auth/authorize/enforcers/models/rbac-domain.model';
-import { objectMatch } from '@/components/auth/authorize/common/object-match';
+import { AuthorizationPermissionBuilder } from '@/components/auth/authorize/builders/permission.builder';
+import { ResourceRoleManager } from '@/components/auth/authorize/enforcers/resource-role-manager';
 
 /** Adversarial / decision-table hardening of the scoped RBAC matcher (v2 model): g membership +
  * (SYSTEM_WIDE || ANY_MEMBER via g2 || g3 domain edge) + (objectMatch || g4) + g5 action. Built
- * exactly as the framework wires it: keyMatch on g, objectMatch direct AND as g4, buildRoleLinks(). */
+ * exactly as the framework wires it: keyMatch on g, objectMatch direct, ResourceRoleManager on g4,
+ * buildRoleLinks(). */
 async function buildScopedEnforcer(lines: string[]) {
   const model = newModelFromString(CASBIN_RBAC_DOMAIN_SCOPED_MODEL);
   const enforcer = await newEnforcer(model);
 
   await enforcer.addNamedDomainMatchingFunc('g', Util.keyMatchFunc);
-  await enforcer.addFunction('objectMatch', objectMatch);
-  await enforcer.addNamedMatchingFunc('g4', objectMatch);
+  await enforcer.addFunction('objectMatch', AuthorizationPermissionBuilder.objectMatch);
+  enforcer.setNamedRoleManager('g4', new ResourceRoleManager());
 
   const m = enforcer.getModel();
   for (const line of lines) {
@@ -308,7 +310,7 @@ describe('ADVERSARIAL: wildcard injection in request fields', () => {
   });
 
   test('r.obj="*" must NOT wildcard-match a specific-resource grant', async () => {
-    // objectMatch('*', 'Order') === false (verified in object-match-exhaustive).
+    // AuthorizationPermissionBuilder.objectMatch('*', 'Order') === false (verified in object-match-exhaustive).
     const e = await buildScopedEnforcer([
       'g, User_26, Role_op, *',
       'g2, User_26, Merchant_7',
@@ -398,7 +400,7 @@ describe('ADVERSARIAL: empty / missing request fields', () => {
     expect(e.enforceSync('User_34', '', 'read', 'read')).toBe(false);
   });
 
-  test('empty resource string CAN match a wildcard grant (objectMatch("","*")===true)', async () => {
+  test('empty resource string CAN match a wildcard grant (AuthorizationPermissionBuilder.objectMatch("","*")===true)', async () => {
     // Documents that a `*` resource grant is genuinely catch-all, including the empty request.
     const e = await buildScopedEnforcer([
       'g, User_35, Role_op, *',

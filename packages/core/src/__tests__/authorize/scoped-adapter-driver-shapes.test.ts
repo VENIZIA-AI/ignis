@@ -30,25 +30,26 @@ const buildAdapter = (opts: { shape: (rows: unknown[]) => unknown; rows: unknown
   return new ScopedCasbinAdapter({ dataSource, entities: entities() });
 };
 
-const ROLE_INHERIT_ROWS = [
-  { childId: 'b', parentId: 'a' },
-  { childId: 'c', parentId: 'b' },
+const STRUCTURAL_EDGE_ROWS = [
+  { rel: 'g5', child: 'read', parent: 'manage' },
+  { rel: 'g5', child: 'write', parent: 'manage' },
 ];
 
 /** Exercises the postgres-js result shape THROUGH the adapter (every other fixture is pg `{ rows }`):
  * a reintroduced `result.rows` read would stay green elsewhere while silently loading zero policy
- * lines on postgres-js, denying every authorization decision. */
+ * lines on postgres-js, denying every authorization decision. Uses queryEdgePolicies as the
+ * probe - any single-table, no-join query method exercises the same shared readResultRows() path. */
 describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
   test('node-postgres { rows } and postgres-js RowList produce identical policy lines', async () => {
     const fromNodePostgres = await buildAdapter({
       shape: asNodePostgresResult,
-      rows: ROLE_INHERIT_ROWS,
-    })['queryRoleInherits']();
+      rows: STRUCTURAL_EDGE_ROWS,
+    })['queryEdgePolicies']();
 
     const fromPostgresJs = await buildAdapter({
       shape: asPostgresJsResult,
-      rows: ROLE_INHERIT_ROWS,
-    })['queryRoleInherits']();
+      rows: STRUCTURAL_EDGE_ROWS,
+    })['queryEdgePolicies']();
 
     expect(fromPostgresJs).toEqual(fromNodePostgres);
     expect(fromNodePostgres).toHaveLength(2);
@@ -57,8 +58,8 @@ describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
   test('a postgres-js RowList is not silently read as zero rows', async () => {
     const lines = await buildAdapter({
       shape: asPostgresJsResult,
-      rows: ROLE_INHERIT_ROWS,
-    })['queryRoleInherits']();
+      rows: STRUCTURAL_EDGE_ROWS,
+    })['queryEdgePolicies']();
 
     // The whole point: `result.rows` on a RowList is `undefined`, which would yield [].
     expect(lines.length).toBeGreaterThan(0);
@@ -69,7 +70,7 @@ describe('ScopedCasbinAdapter - driver result shapes are equivalent', () => {
 
     let caught: unknown;
     try {
-      await adapter['queryRoleInherits']();
+      await adapter['queryEdgePolicies']();
     } catch (error) {
       caught = error;
     }

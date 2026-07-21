@@ -1,7 +1,7 @@
 import type { IdType } from '@/base';
 import type { TNullable } from '@/helpers';
-import type { TAuthorizationAction, TAuthorizationDecision } from './constants';
-import { AuthorizationActions, AuthorizationPolicyVariants } from './constants';
+import type { TAuthorizationAction, TAuthorizationDecision } from '../common/constants';
+import { AuthorizationActions, AuthorizationPolicyVariants } from '../common/constants';
 
 /** A grant/assignment domain: a scope literal (`SYSTEM_WIDE`/`ANY_MEMBER`) or a typed domain entity. */
 export type TPolicyDomainInput = string | { type: string; id: IdType };
@@ -45,6 +45,30 @@ export class AuthorizationPolicyBuilder {
       action: opts.action,
       effect: opts.effect,
       domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
+    };
+  }
+
+  /**
+   * A subset grant (casbin `p` x N): role/user -> resource node, with the granted operations in
+   * metadata. `action` is fixed to the CUSTOM sentinel; the adapter expands `ops` at read time.
+   */
+  static customGrant(opts: {
+    subject: { type: string; id: IdType };
+    permission: { type: string; id: IdType };
+    ops: string[];
+    domain?: TNullable<TPolicyDomainInput>;
+    effect: TAuthorizationDecision;
+  }) {
+    return {
+      variant: AuthorizationPolicyVariants.GRANT.action,
+      subjectType: opts.subject.type,
+      subjectId: opts.subject.id,
+      targetType: opts.permission.type,
+      targetId: opts.permission.id,
+      action: AuthorizationActions.CUSTOM,
+      effect: opts.effect,
+      domain: AuthorizationPolicyBuilder.serializeDomain(opts.domain),
+      metadata: { ops: opts.ops },
     };
   }
 

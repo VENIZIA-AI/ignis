@@ -8,7 +8,7 @@ import {
   Authorization,
   AuthorizationDomainScopes,
 } from '@/components/auth/authorize/common/constants';
-import { resolveRequestDomain } from '@/components/auth/authorize/common/resolve-request-domain';
+import { resolveRequestDomain } from '@/components/auth/authorize/providers/request-domain';
 
 // Minimal Hono-context stub exposing the accessors the helper uses.
 function ctxStub(opts: {

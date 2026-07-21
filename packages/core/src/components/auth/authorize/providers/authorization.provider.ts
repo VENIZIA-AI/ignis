@@ -7,8 +7,9 @@ import type { IAuthUser } from '../../authenticate';
 // extends BaseRestController - a value import here forms the base/controllers <-> auth init cycle.
 import { Authentication } from '../../authenticate/common/constants';
 import type { IAuthorizationSpec, TAuthorizeFn } from '../common';
-import { Authorization, AuthorizationDecisions, resolveRequestDomain } from '../common';
+import { Authorization, AuthorizationDecisions } from '../common';
 import { AuthorizationEnforcerRegistry } from '../enforcers';
+import { resolveRequestDomain } from './request-domain';
 
 export class AuthorizationProvider extends BaseHelper implements IProvider<TAuthorizeFn> {
   constructor() {
