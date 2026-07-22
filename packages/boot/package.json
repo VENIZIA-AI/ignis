@@ -1,6 +1,6 @@
 {
   "name": "@venizia/ignis-boot",
-  "version": "0.1.1-3",
+  "version": "0.1.1-4",
   "description": "Convention-based auto-discovery and bootstrapping system for TypeScript applications. Three-phase lifecycle (configure, discover, load) using glob-based file matching and Template Method pattern. Auto-registers controllers, services, repositories, and datasources into the IoC container by file naming conventions. Inspired by LoopBack 4 boot system. Extensible via custom booters for any artifact type.",
   "keywords": [
     "artifact-discovery",
@@ -98,8 +98,8 @@
     "test:watch": "NODE_ENV=test bun test --watch --env-file=.env.test dist/cjs/__tests__/{**/**,**}/*.test.js"
   },
   "dependencies": {
-    "@venizia/ignis-helpers": "^0.1.1-3",
-    "@venizia/ignis-inversion": "^0.1.1-2",
+    "@venizia/ignis-helpers": "^0.1.1-4",
+    "@venizia/ignis-inversion": "^0.1.1-3",
     "glob": "^13.0.6",
     "lodash": "^4.18.1",
     "reflect-metadata": "^0.2.2"
