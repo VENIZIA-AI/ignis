@@ -123,7 +123,7 @@ export class GrantBuilder extends BaseHelper {
   /**
    * Actions a tier confers, derived from LATTICE rather than hardcoded so the two cannot drift.
    */
-  private actionsCoveredBy(opts: { tier: TAuthorizationAction }): Set<string> {
+  actionsCoveredBy(opts: { tier: TAuthorizationAction }): Set<string> {
     const covered = new Set<string>([opts.tier]);
 
     let grew = true;
