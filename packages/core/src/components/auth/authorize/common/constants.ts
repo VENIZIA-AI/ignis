@@ -194,7 +194,7 @@ export class AuthorizationDomainScopes {
   /** Grant applies in EVERY domain the subject is a member of (checked via join_domain / g2). */
   static readonly ANY_MEMBER = 'ANY_MEMBER';
 
-  /** Grant applies system-wide, bypassing membership — super-admin only. */
+  /** Grant applies system-wide, bypassing membership - super-admin only. */
   static readonly SYSTEM_WIDE = 'SYSTEM_WIDE';
 
   static readonly SCHEME_SET = new Set([this.ANY_MEMBER, this.SYSTEM_WIDE]);
@@ -215,19 +215,19 @@ export class CasbinRuleVariants {
 
   /** Numbered in request-tuple order (sub -> dom -> obj -> act): g (sub), g2/g3 (dom), g4 (obj), g5 (act). */
 
-  /** Grouping #1 — role membership + role inheritance (user→role, role→role). The `sub` axis. */
+  /** Grouping #1 - role membership + role inheritance (user→role, role→role). The `sub` axis. */
   static readonly G = 'g';
 
-  /** Grouping #2 — user→domain membership (join_domain). The `dom` axis (membership). */
+  /** Grouping #2 - user→domain membership (join_domain). The `dom` axis (membership). */
   static readonly G2 = 'g2';
 
-  /** Grouping #3 — domain hierarchy. The `dom` axis (nesting). */
+  /** Grouping #3 - domain hierarchy. The `dom` axis (nesting). */
   static readonly G3 = 'g3';
 
-  /** Grouping #4 — resource hierarchy. The `obj` axis. */
+  /** Grouping #4 - resource hierarchy. The `obj` axis. */
   static readonly G4 = 'g4';
 
-  /** Grouping #5 — action hierarchy. The `act` axis. */
+  /** Grouping #5 - action hierarchy. The `act` axis. */
   static readonly G5 = 'g5';
 }
 

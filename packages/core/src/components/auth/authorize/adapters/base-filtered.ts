@@ -5,8 +5,8 @@ import type { SQL } from 'drizzle-orm';
 import type { ICasbinPolicyFilter, ICasbinPolicySource, TCasbinPolicyConnector } from './types';
 
 /**
- * Read-only base for casbin FilteredAdapters backed by a datasource — owns the connector plumbing
- * and no-op write methods; subclasses only implement {@link loadFilteredPolicy} per principal.
+ * Read-only base for casbin FilteredAdapters backed by a datasource - owns connector plumbing
+ * and no-op write methods; subclasses implement {@link loadFilteredPolicy} per principal.
  */
 export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
   extends BaseHelper
@@ -49,7 +49,7 @@ export abstract class BaseFilteredAdapter<TFilter = ICasbinPolicyFilter>
     return true;
   }
 
-  // Read-only adapter — write methods are intentional no-ops.
+  // Read-only adapter - write methods are intentional no-ops.
   async loadPolicy(): Promise<void> {}
   async savePolicy(): Promise<boolean> {
     return true;

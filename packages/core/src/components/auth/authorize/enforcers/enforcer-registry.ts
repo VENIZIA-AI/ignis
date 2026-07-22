@@ -102,7 +102,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     return enforcer;
   }
 
-  /** Drop a user's cached policies on the resolved enforcer. Lazy — next request rebuilds. */
+  /** Drop a user's cached policies on the resolved enforcer. Lazy - next request rebuilds. */
   async invalidateUserCache(opts: {
     user: IAuthorizationUser;
     enforcerName?: string;
@@ -110,7 +110,7 @@ export class AuthorizationEnforcerRegistry extends AbstractAuthRegistry<IAuthori
     const name = opts.enforcerName ?? this.getDefaultEnforcerName();
     const enforcer = await this.resolveEnforcer({ name });
 
-    // Cache management is an optional IAuthorizationEnforcer capability — feature-detect it.
+    // Cache management is an optional IAuthorizationEnforcer capability - feature-detect it.
     if (typeof enforcer.invalidateUserCache !== 'function') {
       throw getError({
         message: `[AuthorizationEnforcerRegistry] Enforcer "${name}" does not support cache invalidation`,

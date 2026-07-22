@@ -24,7 +24,7 @@ import {
 } from '../common';
 import { ResourceRoleManager } from './resource-role-manager';
 
-/** Normalizer for the scoped/custom payload path — the exact shape returned by defaultScopedPayloadFn(). */
+/** Payload shape for the scoped/custom path, matching defaultScopedPayloadFn(). */
 type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   user: IAuthorizationUser;
   action: TAction;
@@ -32,9 +32,8 @@ type TNormalizePayloadFn<E extends Env, TAction, TResource> = (opts: {
   context: TContext<E, string>;
 }) => { subject: string; resource: string; action: string; domain?: string };
 
-// Wraps casbin (optional peer dep). Each request borrows its OWN pooled enforcer: clearPolicy +
-// load user lines + buildRoleLinks + enforceSync run atomically in one pool.use; any error destroys
-// the enforcer (fail-closed). Pooled enforcers carry NO adapter - only extractUserLines uses it.
+// Wraps casbin (optional peer dep). Each request borrows its own pooled enforcer; any error during
+// use destroys it (fail-closed). Pooled enforcers carry no adapter - only extractUserLines uses one.
 
 export class CasbinAuthorizationEnforcer<
   E extends Env = Env,
@@ -49,13 +48,11 @@ export class CasbinAuthorizationEnforcer<
 
   private pool: TNullable<BasePoolHelper<CasbinEnforcerType>> = null;
   private helper: TNullable<typeof CasbinHelperType> = null;
-  // cacheKey → the in-progress line-fetch for that key. Lets concurrent misses for the SAME user
-  // share one extraction instead of all hitting the DB (see fetchLinesWithRedisCache).
+  // cacheKey -> in-progress line-fetch; concurrent misses for the same user share one extraction
+  // instead of all hitting the DB (see fetchLinesWithRedisCache).
   private readonly pendingLineFetches = new Map<string, Promise<string[]>>();
 
-  // Resolved once in configure(): options.normalizePayloadFn / scoped are fixed after configure, so
-  // we memoize the payload normalizer instead of rebuilding a closure on every evaluate() (hot path).
-  // Stays `null` until configure() runs; resolves to `undefined` when not scoped + no custom fn (3-arg path).
+  // Memoized in configure() (options are fixed after) to avoid rebuilding this closure on every evaluate() (hot path).
   private resolvedPayloadFn: TNullable<TNormalizePayloadFn<E, TAction, TResource>> = null;
 
   constructor(
@@ -100,7 +97,6 @@ export class CasbinAuthorizationEnforcer<
       create: async () => {
         const model = this.resolveModel({ casbin, model: this.options.model });
 
-        // NO adapter → no DB load at warmup. Policies are loaded per-request in evaluate().
         const enforcer = await casbin.newEnforcer(model);
         await this.registerMatchers({ enforcer, casbin });
         this.assertMatcherCompilesSync({ enforcer });
@@ -139,12 +135,12 @@ export class CasbinAuthorizationEnforcer<
       opts.enforcer.enforceSync('::warmup', '::warmup', '::warmup');
     } catch (error) {
       throw getError({
-        message: `[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup — the model matcher did not compile (check matcher syntax, that every referenced function is registered, and the request arity). ${String(error)}`,
+        message: `[CasbinAuthorizationEnforcer] Matcher smoke test failed at warmup - the model matcher did not compile (check matcher syntax, that every referenced function is registered, and the request arity). ${String(error)}`,
       });
     }
   }
 
-  // IAuthorizationEnforcer — public API
+  // IAuthorizationEnforcer - public API
 
   async buildRules(opts: {
     user: IAuthorizationUser;
@@ -182,7 +178,6 @@ export class CasbinAuthorizationEnforcer<
 
     return this.pool.use({
       execution: async enforcer => {
-        // Load THIS user's lines + buildRoleLinks BEFORE any enforceSync on the borrowed enforcer.
         await this.loadPolicyLinesIntoModel({ enforcer, lines });
 
         const normalizePayloadFn = this.resolvedPayloadFn;
@@ -203,9 +198,8 @@ export class CasbinAuthorizationEnforcer<
           context,
         });
 
-        // Scoped model is 4-token (sub, dom, obj, act): a request with no resolvable domain MUST
-        // still enforce with one - default SYSTEM_WIDE, never the 3-arg path, which would shift
-        // args against the scoped model and silently misjudge.
+        // Scoped model is 4-token (sub, dom, obj, act): a request with no resolvable domain still
+        // needs one - default SYSTEM_WIDE, never the 3-arg path, which would misalign args and silently misjudge.
         const domain =
           normalized.domain ??
           request.domain ??
@@ -221,10 +215,7 @@ export class CasbinAuthorizationEnforcer<
     });
   }
 
-  /**
-   * Runs the matcher and, on DENY, logs the deciding policy rule. enforceExSync returns
-   * `[isAllowed, matchedPolicy]`, where matchedPolicy is `[]` when nothing matched (default-deny).
-   */
+  /** On DENY, logs the deciding policy rule; matchedPolicy is `[]` when nothing matched (default-deny). */
   protected enforceWithExplain(opts: { enforcer: CasbinEnforcerType; vals: string[] }): boolean {
     const [isAllowed, matchedPolicy] = opts.enforcer.enforceExSync(...opts.vals);
 
@@ -234,14 +225,14 @@ export class CasbinAuthorizationEnforcer<
         .info(
           'DENY | request: [%s] | matchedPolicy: %s',
           opts.vals.join(', '),
-          matchedPolicy.length ? matchedPolicy.join(', ') : '<none — default-deny>',
+          matchedPolicy.length ? matchedPolicy.join(', ') : '<none - default-deny>',
         );
     }
 
     return isAllowed;
   }
 
-  // Cache management — optional IAuthorizationEnforcer members (on-demand)
+  // Cache management - optional IAuthorizationEnforcer members (on-demand)
   async invalidateUserCache(opts: {
     user: IAuthorizationUser;
   }): Promise<{ invalidatedKeys: number }> {
@@ -266,9 +257,8 @@ export class CasbinAuthorizationEnforcer<
   }): Promise<{ cacheKey: string; lineCount: number }> {
     const cached = this.requireRedisCache();
 
-    // Resolve the key once: drop the stale entry, then re-cache warm. Extraction runs on an ISOLATED
-    // throwaway enforcer (not a serving model), so a concurrent request cannot make us cache another
-    // user's policies under this key.
+    // Extraction runs on an isolated throwaway enforcer (not a serving model), so a concurrent
+    // request cannot make us cache another user's policies under this key.
     const cacheKey = await this.resolveCacheKey({ user: opts.user, cached });
     await cached.options.connection.del({ keys: [cacheKey] });
 
@@ -287,7 +277,7 @@ export class CasbinAuthorizationEnforcer<
     return { cacheKey, lineCount: lines.length };
   }
 
-  /** Compute the user's cache key and reject an empty result — consistent with the read path. */
+  /** Compute the user's cache key and reject an empty result - consistent with the read path. */
   protected async resolveCacheKey(opts: {
     user: IAuthorizationUser;
     cached: ICasbinEnforcerCachedRedis & { use: true };
@@ -357,9 +347,8 @@ export class CasbinAuthorizationEnforcer<
     casbin: typeof import('casbin');
     name: TCasbinDomainMatchingFunction;
   }): (arg1: string, arg2: string) => boolean {
-    // casbin Util built-ins, each (requestValue, policyValue) => match. keyMatchFunc treats only `*`
-    // specially (never splits on `/` or `:`), so it can never pattern-match a `Merchant_<uuid>`;
-    // see CasbinDomainMatchingFunctions for the per-function semantics.
+    // casbin Util built-ins: (requestValue, policyValue) => match. keyMatchFunc only special-cases `*`
+    // (never splits on `/` or `:`), so it can't pattern-match a `Merchant_<uuid>`; see CasbinDomainMatchingFunctions for per-function semantics.
     const { Util } = opts.casbin;
     switch (opts.name) {
       case CasbinDomainMatchingFunctions.KEY_MATCH: {
@@ -396,7 +385,7 @@ export class CasbinAuthorizationEnforcer<
       action: TAction;
       resource: TResource;
     }): { subject: string; resource: string; action: string; domain?: string } => {
-      // No domain here — evaluate() fills it from request.domain (set by the provider).
+      // No domain here - evaluate() fills it from request.domain (set by the provider).
       return {
         subject: `${opts.user.principalType}_${opts.user.userId}`,
         resource: String(opts.resource),
@@ -449,7 +438,7 @@ export class CasbinAuthorizationEnforcer<
     const { user, cached } = opts;
     const cacheKey = await this.resolveCacheKey({ user, cached });
 
-    // Cache hit — Redis owns expiry (PX on write), so a present key is fresh by definition.
+    // Cache hit - Redis owns expiry (PX on write), so a present key is fresh by definition.
     // A corrupted/legacy entry must NOT 500 the request: discard it and fall through to refetch.
     const raw = await cached.options.connection.get({ key: cacheKey });
     if (raw) {
@@ -465,7 +454,7 @@ export class CasbinAuthorizationEnforcer<
       return existing;
     }
 
-    // Cache miss (or discarded corrupt entry) — extract from an ISOLATED enforcer so a concurrent
+    // Cache miss (or discarded corrupt entry) - extract from an ISOLATED enforcer so a concurrent
     // load cannot contaminate the cache, persist it, then return the lines for THIS request.
     const task = async () => {
       const lines = await this.extractUserLines({ user });

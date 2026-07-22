@@ -88,7 +88,7 @@ export class AuthorizationPolicyBuilder {
     };
   }
 
-  /** A user joins a domain (casbin `g2`) — backs the `ANY_MEMBER` grant scope. */
+  /** A user joins a domain (casbin `g2`) - backs the `ANY_MEMBER` grant scope. */
   static joinDomain(opts: {
     user: { type: string; id: IdType };
     domain: { type: string; id: IdType };

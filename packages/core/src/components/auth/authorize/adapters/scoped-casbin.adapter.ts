@@ -164,7 +164,7 @@ export class ScopedCasbinAdapter extends BaseFilteredAdapter<IScopedCasbinPolicy
 
   /**
    * `AND <alias>.<col> IS NULL` when soft-delete is on, else empty. Alias is emitted raw (unquoted) to
-   * match the unquoted FROM alias — quoting it would fold to a different case and break the join.
+   * match the unquoted FROM alias - quoting it would fold to a different case and break the join.
    */
   protected softDeleteClause(opts: { alias: string }): SQL {
     const sd = this.entities.softDelete;

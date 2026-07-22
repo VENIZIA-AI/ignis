@@ -102,9 +102,8 @@ export class AuthorizationProvider extends BaseHelper implements IProvider<TAuth
       const resolvedName = enforcerName ?? registry.getDefaultEnforcerName();
       const enforcer = await registry.resolveEnforcer({ name: resolvedName });
 
-      // Only resolve domain scope when it's actually in play (a per-route domain OR a configured
-      // global resolver) — keeps legacy non-domain enforcers untouched and avoids an unnecessary
-      // resolver call (possible DB hit).
+      // Only resolve domain scope when it's actually in play (per-route domain OR a configured
+      // global resolver) - avoids an unnecessary resolver call (possible DB hit) for legacy enforcers.
       if (spec.domain || options?.domainResolver) {
         const domainScope = await resolveRequestDomain({
           spec,
