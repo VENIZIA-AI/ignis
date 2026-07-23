@@ -24,6 +24,9 @@ import { ITypesenseDataSourceSettings } from '@/connectors/typesense/types';
 export class FakeSearchEngineHelper implements ISearchConnector {
   searchCalls: Array<{ collection: string; params: unknown; options?: unknown }> = [];
   searchResponse: ISearchResult = { found: 0, isFoundExact: true, hits: [] };
+  /** When non-empty, each search() consumes the next entry - lets read-retry tests vary the
+   * response per attempt. Falls back to `searchResponse` once drained. */
+  searchResponses: Array<ISearchResult> = [];
   documents: Record<string, unknown> = {};
 
   createDocumentCalls: Array<{ collection: string; document: unknown }> = [];
@@ -233,6 +236,11 @@ export class FakeSearchEngineHelper implements ISearchConnector {
     options?: unknown;
   }): Promise<ISearchResult<TDocument>> {
     this.searchCalls.push(opts);
+
+    if (this.searchResponses.length > 0) {
+      return this.searchResponses.shift() as ISearchResult<TDocument>;
+    }
+
     // Cast to the caller's generic; searchResponse only carries a loose runtime shape.
     return this.searchResponse as ISearchResult<TDocument>;
   }

@@ -124,10 +124,23 @@ try {
 
 See [DataSources](/references/base/datasources) for the rollback-safe pattern (`rollback()` itself can throw). See [Advanced Features](./advanced) for isolation levels and other transaction options.
 
+### Retry a read behind a replicated pool
+
+Pass `retry` in `options` on `find`, `findOne`, or `findById` to re-read until a predicate passes - useful for read-after-write staleness behind a replicated pool (e.g. PgDog primary + replicas).
+
+```typescript
+const user = await userRepository.findById({
+  id,
+  options: { retry: { maxAttempts: 4 } },
+});
+```
+
+See [Advanced Features - Read Retry](./advanced#read-retry-replica-lag) for the typed-per-verb `until` predicate, defaults, and the transaction-skip rule.
+
 ## See also
 
 - [Relations & Includes](./relations) - eager loading, nested `scope` filters, many-to-many
-- [Advanced Features](./advanced) - transactions, hidden properties, `shouldQueryRange`, performance
+- [Advanced Features](./advanced) - transactions, hidden properties, `shouldQueryRange`, performance, read retry
 - [SoftDeletableRepository](./soft-deletable) - soft delete, restore, hard delete
 - [Repository Mixins (Removed)](./mixins) - where `FieldsVisibilityMixin`/`DefaultFilterMixin` behavior lives now
 - [Filter System](/references/base/filter-system/) - every `where` operator, ordering, pagination

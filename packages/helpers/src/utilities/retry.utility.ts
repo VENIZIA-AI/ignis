@@ -347,3 +347,81 @@ export const executeWithRetry = async <T>(opts: {
 
   throw lastError;
 };
+
+/**
+ * Retries `execution` while `until(result)` returns false - for read-after-write staleness behind
+ * a replicated pool. Adding it can never make a call worse than a single un-retried one: on
+ * exhaustion the LAST result is returned rather than an error, and a thrown error from
+ * `execution` is never retried - it propagates immediately. Only wrap idempotent operations.
+ */
+export const executeWithRetryUntil = async <T>(opts: {
+  signal?: AbortSignal;
+  logger?: ILogger;
+  operation: string;
+
+  /** Default 3. */
+  maxAttempts?: number;
+
+  /** Bounds when a NEW attempt may start. It never interrupts an attempt already in flight, so
+   * the first execution always runs to completion - a budget of 0 just means "no retries". */
+  maxTotalMs?: number;
+
+  backoff?: IRetryBackoffOptions;
+
+  execution: (context: { attempt: number; signal?: AbortSignal }) => ValueOrPromise<T>;
+
+  /** Retry while this returns false. */
+  until: (result: T) => boolean;
+}): Promise<T> => {
+  const {
+    signal,
+    logger,
+    operation,
+    maxAttempts = 3,
+    maxTotalMs,
+    backoff,
+    execution,
+    until,
+  } = opts;
+
+  if (maxAttempts < 1) {
+    throw getError({
+      message: `[executeWithRetryUntil][${operation}] maxAttempts must be >= 1 | Got: ${maxAttempts}`,
+    });
+  }
+
+  // Surfaced before the first execution - a misconfigured backoff discovered mid-loop would
+  // discard an already-fetched result.
+  computeBackoffDelayMs({ attempt: 1, backoff });
+
+  const startedAt = Date.now();
+  let lastResult: T | undefined;
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    throwIfAborted({ operation, signal });
+
+    lastResult = await execution({ attempt, signal });
+    if (until(lastResult)) {
+      return lastResult;
+    }
+
+    const elapsedMs = Date.now() - startedAt;
+    if (attempt >= maxAttempts || (maxTotalMs !== undefined && elapsedMs >= maxTotalMs)) {
+      break;
+    }
+
+    logger
+      ?.for('executeWithRetryUntil')
+      .debug('[%s] until condition not met | Attempt: %d', operation, attempt);
+
+    const nextDelayMs = computeBackoffDelayMs({ attempt, backoff });
+    if (nextDelayMs > 0) {
+      await sleepWithSignal({ ms: nextDelayMs, operation, signal });
+    }
+  }
+
+  logger
+    ?.for('executeWithRetryUntil')
+    .warn('[%s] Exhausted retries - returning last (stale) result', operation);
+  return lastResult as T;
+};

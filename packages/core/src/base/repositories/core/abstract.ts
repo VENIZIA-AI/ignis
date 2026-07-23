@@ -3,12 +3,23 @@ import type { AbstractEntity, IdType } from '@/base/models';
 import type { IModelMetadata } from '@/helpers/inversion';
 import { MetadataRegistry } from '@/helpers/inversion';
 import type { TClass, TNullable } from '@venizia/ignis-helpers';
-import { BaseHelper, getError, resolveValue } from '@venizia/ignis-helpers';
+import {
+  BaseHelper,
+  executeWithRetryUntil,
+  getError,
+  resolveValue,
+  RetryBackoffStrategies,
+  RetryJitterModes,
+} from '@venizia/ignis-helpers';
 import type {
   IExtraOptions,
   IPersistableRepository,
+  IWithReadRetry,
   TCount,
-  TDataRange,
+  TDataWithRange,
+  TFindOneOptions,
+  TFindOptions,
+  TFindRangeOptions,
   TRepositoryOperationScope,
 } from '../common';
 import { RepositoryErrorCodes, RepositoryOperationScopes } from '../common';
@@ -148,29 +159,124 @@ export abstract class AbstractRepository<
     });
   }
 
+  /** Shared retry orchestration for read verbs. No `retry` option: zero overhead, today's exact
+   * path. Inside a transaction: skipped - the pool routes transactions to the primary, so there
+   * is no replica lag to wait out. */
+  protected executeReadWithRetry<TResult>(opts: {
+    operation: string;
+    options: IExtraOptions & IWithReadRetry<TResult>;
+    defaultUntil: (result: TResult) => boolean;
+    execution: () => Promise<TResult>;
+  }): Promise<TResult> {
+    const { operation, options, defaultUntil, execution } = opts;
+
+    if (!options.retry) {
+      return execution();
+    }
+
+    if (options.transaction) {
+      this.logger.for(operation).debug('Read retry skipped inside transaction');
+      return execution();
+    }
+
+    const { maxAttempts, maxTotalMs, signal, backoff, until } = options.retry;
+    return executeWithRetryUntil<TResult>({
+      operation: [this.constructor.name, operation].join('.'),
+      execution,
+      until: until ?? defaultUntil,
+      maxAttempts,
+      maxTotalMs,
+      signal,
+      backoff: backoff ?? {
+        strategy: RetryBackoffStrategies.EXPONENTIAL,
+        initialDelayMs: 50,
+        maxDelayMs: 500,
+        jitter: RetryJitterModes.EQUAL,
+      },
+      logger: this.logger,
+    });
+  }
+
+  /** A copy of `options` without `retry`, so re-entering a read verb takes its non-retry path -
+   * what keeps the retry recursion single-depth. Copy-then-delete rather than a rest-destructure
+   * (lint rejects the unused rest sibling) or `lodash/omit` (its `Omit<>` return type is not
+   * assignable back to the generic `TOptions`). */
+  private omitReadRetry<TReadOptions extends { retry?: unknown }>(
+    options: TReadOptions,
+  ): TReadOptions {
+    const rest = { ...options };
+    delete rest.retry;
+    return rest;
+  }
+
+  /** `find`, re-executed until the retry predicate holds. Connectors dispatch here from `find`
+   * when `options.retry` is set. */
+  protected findUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindOptions<TOptions, R>;
+  }): Promise<Array<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<Array<R>>({
+      operation: 'find',
+      options: opts.options,
+      defaultUntil: result => result.length > 0,
+      execution: () => this.find<R>({ filter: opts.filter, options }),
+    });
+  }
+
+  /** `find` with the range envelope, re-executed until the retry predicate holds. Split from
+   * `findUntil` so each result shape is checked against its own `find` overload. */
+  protected findRangeUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindRangeOptions<TOptions, R>;
+  }): Promise<TDataWithRange<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<TDataWithRange<R>>({
+      operation: 'find',
+      options: opts.options,
+      defaultUntil: result => result.data.length > 0,
+      execution: () => this.find<R>({ filter: opts.filter, options }),
+    });
+  }
+
+  /** `findOne`, re-executed until the retry predicate holds. Also serves `findById` via its
+   * findOne delegation. */
+  protected findOneUntil<R = TDataObject>(opts: {
+    filter: TFilter<TDataObject>;
+    options: TFindOneOptions<TOptions, R>;
+  }): Promise<TNullable<R>> {
+    const options = this.omitReadRetry(opts.options);
+    return this.executeReadWithRetry<TNullable<R>>({
+      operation: 'findOne',
+      options: opts.options,
+      defaultUntil: result => result !== null && result !== undefined,
+      execution: () => this.findOne<R>({ filter: opts.filter, options }),
+    });
+  }
+
   abstract count(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<TCount>;
 
   abstract existsWith(opts: { where: TWhere<TDataObject>; options?: TOptions }): Promise<boolean>;
 
   abstract find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options: TOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<TOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   abstract find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: TOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<TOptions, R>;
   }): Promise<R[]>;
 
   abstract findOne<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: TOptions;
+    options?: TFindOneOptions<TOptions, R>;
   }): Promise<TNullable<R>>;
 
   abstract findById<R = TDataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: TOptions;
+    options?: TFindOneOptions<TOptions, R>;
   }): Promise<TNullable<R>>;
 
   abstract create(opts: {

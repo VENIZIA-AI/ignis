@@ -111,6 +111,7 @@ const coreApiSidebar: DefaultTheme.SidebarItem[] = [
       { text: 'Performance', link: '/references/utilities/performance' },
       { text: 'Promise', link: '/references/utilities/promise' },
       { text: 'Request', link: '/references/utilities/request' },
+      { text: 'Retry', link: '/references/utilities/retry' },
       { text: 'Schema', link: '/references/utilities/schema' },
       {
         text: 'Statuses',
@@ -460,6 +461,10 @@ const config = defineConfig({
                 {
                   text: 'Dependency Refresh & DI Cleanup',
                   link: '/changelogs/2026-07-18-dependency-refresh',
+                },
+                {
+                  text: 'Repository Read Retry',
+                  link: '/changelogs/2026-07-18-repository-read-retry',
                 },
               ],
             },

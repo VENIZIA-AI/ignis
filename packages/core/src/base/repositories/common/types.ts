@@ -1,7 +1,7 @@
 import type { AbstractDataSource, ITransaction } from '@/base/datasources';
 import type { AbstractEntity, IdType } from '@/base/models';
 import { z } from '@hono/zod-openapi';
-import type { TLogLevel, TNullable } from '@venizia/ignis-helpers';
+import type { IRetryBackoffOptions, TLogLevel, TNullable } from '@venizia/ignis-helpers';
 import type { Column, SQL } from 'drizzle-orm';
 import type { TFilter, TWhere } from '../query-schemas';
 import type { TLockStrength } from './constants';
@@ -85,6 +85,50 @@ export interface IExtraOptions extends IWithTransaction {
   lock?: TLockOptions;
 }
 
+/** Read-after-write retry for read verbs behind a replicated pool. The read is re-executed while
+ * `until(result)` returns false; on exhaustion the last result is returned as-is. */
+export interface IReadRetryOptions<TResult> {
+  /** Default 3. */
+  maxAttempts?: number;
+
+  /** Total budget across attempts AND sleeps. Default: unlimited. */
+  maxTotalMs?: number;
+
+  /** Aborts between attempts and during backoff sleeps - pass the request signal so a cancelled
+   * request stops retrying instead of finishing the loop on a connection nobody is reading. */
+  signal?: AbortSignal;
+
+  /** Default: EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter - tuned for replica lag. */
+  backoff?: IRetryBackoffOptions;
+
+  /** Retry while false. Default per verb: findOne/findById non-null, find non-empty. */
+  until?: (result: TResult) => boolean;
+}
+
+/** Intersected into READ verb signatures only. A write verb's options type has no `retry`, so an
+ * inline `{ retry }` is rejected at compile time; a pre-built object carrying it is inert, never
+ * read. */
+export interface IWithReadRetry<TResult> {
+  retry?: IReadRetryOptions<TResult>;
+}
+
+/** The `shouldQueryRange: true` result envelope. */
+export type TDataWithRange<R> = { data: Array<R>; range: TDataRange };
+
+/** Options for `find` returning a plain array - the retry predicate sees `Array<R>`. */
+export type TFindOptions<TOptions extends IExtraOptions, R> = TOptions & {
+  shouldQueryRange?: false;
+} & IWithReadRetry<Array<R>>;
+
+/** Options for `find` with the range envelope - the retry predicate sees `{ data, range }`. */
+export type TFindRangeOptions<TOptions extends IExtraOptions, R> = TOptions & {
+  shouldQueryRange: true;
+} & IWithReadRetry<TDataWithRange<R>>;
+
+/** Options for `findOne`/`findById` - the retry predicate sees `TNullable<R>`. */
+export type TFindOneOptions<TOptions extends IExtraOptions, R> = TOptions &
+  IWithReadRetry<TNullable<R>>;
+
 /** Base repository interface shared by every engine. Engine-specific accessors (postgres's
  * `getEntitySchema()`/`getConnector()`) stay on the connector's own repository tier. */
 export interface IRepository {
@@ -103,23 +147,23 @@ export interface IReadableRepository<
 
   find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options: ExtraOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   find<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<ExtraOptions, R>;
   }): Promise<Array<R>>;
 
   findOne<R = TDataObject>(opts: {
     filter: TFilter<TDataObject>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>>;
 
   findById<R = TDataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<TDataObject>, 'where'>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>>;
 }
 

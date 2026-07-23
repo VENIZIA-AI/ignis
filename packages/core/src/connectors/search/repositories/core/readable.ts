@@ -2,8 +2,11 @@ import type { TNullable } from '@venizia/ignis-helpers';
 import type {
   IExtraOptions,
   TCount,
-  TDataRange,
+  TDataWithRange,
   TFilter,
+  TFindOneOptions,
+  TFindOptions,
+  TFindRangeOptions,
   TWhere,
 } from '@/base/repositories/common';
 import { buildDataRange, DEFAULT_LIMIT } from '@/base/repositories/common';
@@ -45,21 +48,28 @@ export class ReadableSearchRepository<
 
   find<R = TDocument>(opts: {
     filter: TFilter;
-    options: IExtraOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<IExtraOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   find<R = TDocument>(opts: {
     filter: TFilter;
-    options?: IExtraOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<IExtraOptions, R>;
   }): Promise<Array<R>>;
 
   /** Bare array or `{ data, range }` per shouldQueryRange, postgres-shaped range. Typesense's `found`
    * already comes back in the same call as `hits`, so unlike SQL no second count query is needed. */
   async find<R = TDocument>(opts: {
     filter: TFilter;
-    options?: IExtraOptions & { shouldQueryRange?: boolean };
-  }): Promise<Array<R> | { data: Array<R>; range: TDataRange }> {
+    options?: TFindOptions<IExtraOptions, R> | TFindRangeOptions<IExtraOptions, R>;
+  }): Promise<Array<R> | TDataWithRange<R>> {
     const { filter, options } = opts;
+
+    if (options?.retry) {
+      return options.shouldQueryRange === true
+        ? this.findRangeUntil<R>({ filter, options })
+        : this.findUntil<R>({ filter, options });
+    }
+
     this.assertNoTransaction(options);
     this.assertNoLock(options);
 
@@ -102,15 +112,28 @@ export class ReadableSearchRepository<
 
   async findOne<R = TDocument>(opts: {
     filter: TFilter;
-    options?: IExtraOptions;
+    options?: TFindOneOptions<IExtraOptions, R>;
   }): Promise<TNullable<R>> {
     const { filter, options } = opts;
-    const results = await this.find<R>({ filter: { ...filter, limit: 1 }, options });
+
+    if (options?.retry) {
+      return this.findOneUntil<R>({ filter, options });
+    }
+
+    // `retry` is already handled above, so it is absent here; TFindOneOptions's retry generic
+    // (TNullable<R>) does not unify with find's own (Array<R>), hence the options-only cast.
+    const results: Array<R> = await this.find<R>({
+      filter: { ...filter, limit: 1 },
+      options: options as TFindOptions<IExtraOptions, R>,
+    });
     return results[0] ?? null;
   }
 
   /** Delegates to findOne with id in where - routes through buildQuery so hiddenFields/defaultFilter apply (a soft-deleted doc resolves to null, not fetched directly). */
-  findById<R = TDocument>(opts: { id: IdType; options?: IExtraOptions }): Promise<TNullable<R>> {
+  findById<R = TDocument>(opts: {
+    id: IdType;
+    options?: TFindOneOptions<IExtraOptions, R>;
+  }): Promise<TNullable<R>> {
     const { id, options } = opts;
     return this.findOne<R>({ filter: { where: { id } }, options });
   }

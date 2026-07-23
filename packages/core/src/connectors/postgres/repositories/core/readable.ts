@@ -2,8 +2,11 @@ import type { IdType } from '@/base/models';
 import type {
   IExtraOptions,
   TCount,
-  TDataRange,
+  TDataWithRange,
   TFilter,
+  TFindOneOptions,
+  TFindOptions,
+  TFindRangeOptions,
   TWhere,
 } from '@/base/repositories/common';
 import {
@@ -134,20 +137,27 @@ export class ReadableRelationalRepository<
   }
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options: ExtraOptions & { shouldQueryRange: true };
-  }): Promise<{ data: Array<R>; range: TDataRange }>;
+    options: TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<TDataWithRange<R>>;
 
   override find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: false };
+    options?: TFindOptions<ExtraOptions, R>;
   }): Promise<Array<R>>;
 
   /** Auto-selects Core API or Query API based on filter complexity. */
   override async find<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions & { shouldQueryRange?: boolean };
-  }): Promise<Array<R> | { data: Array<R>; range: TDataRange }> {
+    options?: TFindOptions<ExtraOptions, R> | TFindRangeOptions<ExtraOptions, R>;
+  }): Promise<Array<R> | TDataWithRange<R>> {
     const { filter, options } = opts;
+
+    if (options?.retry) {
+      return options.shouldQueryRange === true
+        ? this.findRangeUntil<R>({ filter, options })
+        : this.findUntil<R>({ filter, options });
+    }
+
     const shouldQueryRange = options?.shouldQueryRange === true;
 
     const baseFilter = this.applyDefaultFilter({
@@ -208,8 +218,12 @@ export class ReadableRelationalRepository<
   /** Auto-selects Core API or Query API based on filter complexity. */
   override async findOne<R = DataObject>(opts: {
     filter: TFilter<DataObject>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>> {
+    if (opts.options?.retry) {
+      return this.findOneUntil<R>({ filter: opts.filter, options: opts.options });
+    }
+
     const filter = opts.filter;
     const useCoreAPI = this.canUseCoreAPI(filter);
 
@@ -244,7 +258,7 @@ export class ReadableRelationalRepository<
   override findById<R = DataObject>(opts: {
     id: IdType;
     filter?: Omit<TFilter<DataObject>, 'where'>;
-    options?: ExtraOptions;
+    options?: TFindOneOptions<ExtraOptions, R>;
   }): Promise<TNullable<R>> {
     return this.findOne<R>({
       filter: {

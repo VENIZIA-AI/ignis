@@ -23,6 +23,7 @@ This section tracks the history of significant changes, refactors, and updates t
 | 2026-07-20 | [Casbin Custom Grants - Operation-Subset Grants in One Row](./2026-07-20-casbin-custom-grants) | New Feature, Enhancement |
 | 2026-07-18 | [Logger Overhaul - ILogger Tier, Pino Provider, Single-Provider Loading](./2026-07-18-logger-overhaul) | Breaking Change, New Feature, Enhancement, Bug Fix |
 | 2026-07-18 | [Dependency Refresh \& DI Cleanup](./2026-07-18-dependency-refresh) | Maintenance, Breaking Change, Bug Fix |
+| 2026-07-18 | [Repository Read Retry - Predicate-Driven Retries for Replica Lag](./2026-07-18-repository-read-retry) | New Feature |
 | 2026-07-17 | [Error Module Redesign](./2026-07-17-error-module-redesign) | Breaking Change, Enhancement |
 | 2026-07-17 | [Logger Correctness Pass](./2026-07-17-logger-correctness-pass) | Bug Fix, Enhancement, Behavior Change |
 | 2026-07-17 | [Secrets Peers Invisible to Bundlers - No More external node-vault](./2026-07-17-secrets-bundler-invisible-peers) | Bug Fix, Behavior Change |

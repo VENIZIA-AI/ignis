@@ -243,6 +243,23 @@ Zero runtime behavior change - full suite passes unchanged.
 - [helpers](/packages/helpers.md): logger highlight rewritten to describe the tiered folder
   structure and the `ILogger`/`LoggerFactory` selection-point contract.
 
+## 2026-07-18 - repository read retry
+
+Opt-in `retry` (typed `until`) on `find`/`findOne`/`findById` across the postgres and search
+connector tiers, smoothing over read-after-write replica lag behind a pooler. `retry` lives only on
+read-verb option types, so write verbs reject it at compile time. `AbstractRepository` gained
+`findUntil`/`findOneUntil`; helpers gained a public `executeWithRetryUntil` beside `executeWithRetry`.
+
+- [helpers](/packages/helpers.md): `executeWithRetryUntil` documented beside `executeWithRetry`.
+- [Repository hierarchy](/architecture/repository-hierarchy.md): the opt-in `retry` read-verb
+  option, defaults, transaction-skip, and `findUntil`/`findOneUntil`.
+
+Post-review hardening (same day): `maxTotalMs` no longer acts as a per-attempt timeout that could
+abort an in-flight read - it now only bounds whether a NEW attempt may start, so the first read
+always runs to completion and a non-positive budget means "no retries" rather than zero reads. Added
+`signal?: AbortSignal` (rejects on abort, unlike exhaustion's "return the last result"). Split
+`findUntil` into `findUntil`/`findRangeUntil` so each is checked against its own `find` overload.
+
 ## 2026-07-17 - logger correctness pass
 
 The Winston pipeline formats in two stages now: shared prep (label/timestamp/errors/deepSplat) on

@@ -4,6 +4,7 @@ import { getError } from '@/modules/error';
 import {
   computeBackoffDelayMs,
   executeWithRetry,
+  executeWithRetryUntil,
   isRetryTimeoutError,
   RetryBackoffStrategies,
   RetryJitterModes,
@@ -478,5 +479,260 @@ describe('executeWithRetry - an exhausted or zero time budget', () => {
 
     expect(attempts).toBe(3);
     expect((caught as Error).message).toBe('still boom');
+  });
+});
+
+describe('executeWithRetryUntil', () => {
+  const FAST_BACKOFF = {
+    strategy: RetryBackoffStrategies.FIXED,
+    initialDelayMs: 1,
+    ...NO_JITTER,
+  } as const;
+
+  test('returns on the first attempt when until is satisfied', async () => {
+    let calls = 0;
+
+    const result = await executeWithRetryUntil({
+      operation: 'first-attempt',
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        calls += 1;
+        return 'ok';
+      },
+      until: attemptResult => attemptResult === 'ok',
+    });
+
+    expect(result).toBe('ok');
+    expect(calls).toBe(1);
+  });
+
+  test('retries while until returns false and resolves with the first satisfying result', async () => {
+    const responses: Array<string | null> = [null, null, 'visible'];
+    let calls = 0;
+
+    const result = await executeWithRetryUntil<string | null>({
+      operation: 'retry-until-visible',
+      maxAttempts: 5,
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        const response = responses[calls];
+        calls += 1;
+        return response;
+      },
+      until: attemptResult => attemptResult !== null,
+    });
+
+    expect(result).toBe('visible');
+    expect(calls).toBe(3);
+  });
+
+  test('exhaustion returns the LAST result instead of throwing', async () => {
+    let calls = 0;
+
+    const result = await executeWithRetryUntil<string>({
+      operation: 'exhausted',
+      maxAttempts: 3,
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        calls += 1;
+        return 'stale';
+      },
+      until: () => false,
+    });
+
+    expect(result).toBe('stale');
+    expect(calls).toBe(3);
+  });
+
+  test('maxAttempts defaults to 3', async () => {
+    let calls = 0;
+
+    await executeWithRetryUntil<null>({
+      operation: 'default-attempts',
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        calls += 1;
+        return null;
+      },
+      until: attemptResult => attemptResult !== null,
+    });
+
+    expect(calls).toBe(3);
+  });
+
+  test('a thrown error propagates immediately - no retry', async () => {
+    let calls = 0;
+    let caught: unknown;
+
+    try {
+      await executeWithRetryUntil({
+        operation: 'real-error',
+        maxAttempts: 5,
+        backoff: FAST_BACKOFF,
+        execution: () => {
+          calls += 1;
+          throw getError({ message: 'connection refused' });
+        },
+        until: () => true,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toContain('connection refused');
+    expect(calls).toBe(1);
+  });
+
+  test('an error thrown AFTER an unmet attempt still propagates - never masked by lastResult', async () => {
+    let calls = 0;
+    let caught: unknown;
+
+    try {
+      await executeWithRetryUntil<string>({
+        operation: 'error-after-miss',
+        maxAttempts: 5,
+        backoff: FAST_BACKOFF,
+        execution: () => {
+          calls += 1;
+          if (calls === 1) {
+            return 'not-yet';
+          }
+          throw getError({ message: 'connection refused' });
+        },
+        until: attemptResult => attemptResult === 'done',
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toContain('connection refused');
+    expect(calls).toBe(2);
+  });
+
+  test('exhaustion warns exactly once; real errors never warn', async () => {
+    const warnCalls: string[] = [];
+    const fakeLogger = {
+      for: () => ({
+        warn: (message: string) => {
+          warnCalls.push(message);
+        },
+        debug: () => {},
+      }),
+    } as AnyType;
+
+    await executeWithRetryUntil<null>({
+      operation: 'warn-once',
+      maxAttempts: 2,
+      backoff: FAST_BACKOFF,
+      logger: fakeLogger,
+      execution: () => null,
+      until: attemptResult => attemptResult !== null,
+    });
+
+    expect(warnCalls.length).toBe(1);
+    expect(warnCalls[0]).toContain('Exhausted retries');
+  });
+
+  test('a slow read is never aborted by maxTotalMs - the budget only gates new attempts', async () => {
+    let executions = 0;
+
+    const result = await executeWithRetryUntil<string>({
+      operation: 'slow-read',
+      maxAttempts: 3,
+      maxTotalMs: 10,
+      backoff: FAST_BACKOFF,
+      execution: async () => {
+        executions += 1;
+        await new Promise(resolve => setTimeout(resolve, 60));
+        return 'fresh';
+      },
+      until: attemptResult => attemptResult === 'fresh',
+    });
+
+    expect(result).toBe('fresh');
+    expect(executions).toBe(1);
+  });
+
+  test('a non-positive maxTotalMs still runs exactly one execution', async () => {
+    let executions = 0;
+
+    const result = await executeWithRetryUntil<string>({
+      operation: 'zero-budget',
+      maxAttempts: 5,
+      maxTotalMs: 0,
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        executions += 1;
+        return 'stale';
+      },
+      until: () => false,
+    });
+
+    expect(result).toBe('stale');
+    expect(executions).toBe(1);
+
+    let negativeExecutions = 0;
+
+    const negativeResult = await executeWithRetryUntil<string>({
+      operation: 'negative-budget',
+      maxAttempts: 5,
+      maxTotalMs: -50,
+      backoff: FAST_BACKOFF,
+      execution: () => {
+        negativeExecutions += 1;
+        return 'stale';
+      },
+      until: () => false,
+    });
+
+    expect(negativeResult).toBe('stale');
+    expect(negativeExecutions).toBe(1);
+  });
+
+  test('an exhausted budget stops further attempts and returns the last result', async () => {
+    let executions = 0;
+
+    const result = await executeWithRetryUntil<string>({
+      operation: 'budget-exhausted',
+      maxAttempts: 10,
+      maxTotalMs: 30,
+      backoff: FAST_BACKOFF,
+      execution: async () => {
+        executions += 1;
+        await new Promise(resolve => setTimeout(resolve, 20));
+        return 'stale';
+      },
+      until: () => false,
+    });
+
+    expect(result).toBe('stale');
+    expect(executions).toBeGreaterThanOrEqual(1);
+    expect(executions).toBeLessThan(5);
+  });
+
+  test('a misconfigured backoff throws before the first execution runs', async () => {
+    let executions = 0;
+    let caught: unknown;
+
+    try {
+      await executeWithRetryUntil<string>({
+        operation: 'bad-backoff',
+        maxAttempts: 3,
+        backoff: { strategy: RetryBackoffStrategies.SCHEDULE },
+        execution: () => {
+          executions += 1;
+          return 'value';
+        },
+        until: () => false,
+      });
+    } catch (error) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(Error);
+    expect((caught as Error).message).toMatch(/scheduleMs/);
+    expect(executions).toBe(0);
   });
 });

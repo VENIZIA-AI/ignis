@@ -11,7 +11,8 @@ Exhaustive reference for everything beyond basic CRUD - transactions, row-level 
 **Files:**
 
 - [`packages/core/src/base/repositories/core/abstract.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/core/abstract.ts) - engine-neutral `AbstractRepository`
-- [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `IExtraOptions`, `TLockOptions`, `TCount`, `TDataRange`
+- [`packages/core/src/base/repositories/common/types.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/base/repositories/common/types.ts) - `IExtraOptions`, `TLockOptions`, `TCount`, `TDataRange`, `IReadRetryOptions`, `IWithReadRetry`, `TFindOptions`, `TFindOneOptions`, `TFindRangeOptions`, `TDataWithRange`
+- [`packages/helpers/src/utilities/retry.utility.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/helpers/src/utilities/retry.utility.ts) - `executeWithRetryUntil`, the engine behind `options.retry`
 - [`packages/core/src/connectors/postgres/repositories/core/base.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/base.ts) - `RelationalBaseRepository` - hidden-column exclusion, `buildQuery`, `resolveConnector`, lock validation
 - [`packages/core/src/connectors/postgres/repositories/core/readable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/readable.ts) - `ReadableRelationalRepository` - Core API vs. Query API selection, `shouldQueryRange`
 - [`packages/core/src/connectors/postgres/repositories/core/persistable.ts`](https://github.com/VENIZIA-AI/ignis/blob/main/packages/core/src/connectors/postgres/repositories/core/persistable.ts) - `PersistableRelationalRepository` - create/update/delete, empty-where guard
@@ -211,6 +212,67 @@ await repository.findOne({
 ```
 
 **Supported methods:** `find`, `findOne`, `findById` (delegates to `findOne`). Not `count`/`existsWith`.
+
+## Read Retry (Replica Lag)
+
+Behind a replicated pool (e.g. PgDog primary + replicas), a read that follows a write can land on a replica that has not caught up yet - the classic read-after-write staleness problem. Pass `retry` in `options` on `find`, `findOne`, or `findById` to re-read with backoff until a predicate passes, instead of hand-rolling a polling loop.
+
+This works identically on the PostgreSQL chain (`ReadableRelationalRepository` and everything extending it) and the search chain (`ReadableSearchRepository`, both Typesense and Meilisearch) - see [Search & Typesense - Repository Tiers](/guides/core-concepts/persistent/search-typesense#repository-tiers) for the search-side notes.
+
+### Basic usage
+
+Without `until`, each verb falls back to a sensible default predicate:
+
+```typescript
+// create -> find: default "non-null" predicate is enough
+const user = await userRepository.findById({
+  id,
+  options: { retry: { maxAttempts: 4 } },
+});
+```
+
+### Custom predicate
+
+Supply `until` for anything sharper than "non-null" - it is **typed per verb**, so the predicate always sees exactly what that verb returns:
+
+```typescript
+// update -> find: caller supplies the freshness predicate
+const order = await orderRepository.findById({
+  id,
+  options: { retry: { until: result => result?.status === 'PAID' } },
+});
+```
+
+| Verb | `until` sees | Default predicate (no `until` passed) |
+|---|---|---|
+| `findOne` / `findById` | `TNullable<R>` | Result is neither `null` nor `undefined` |
+| `find` | `Array<R>` | Array is non-empty |
+| `find` with `options.shouldQueryRange: true` | `{ data: R[]; range: ... }` | `data.length > 0` |
+
+### Option reference
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `maxAttempts` | `number` | `3` | Total read attempts, including the first. A value below `1` throws immediately, before any read runs - it is a nonsensical configuration. |
+| `maxTotalMs` | `number` | Unlimited | Bounds only whether a NEW attempt may start - an in-flight read is never interrupted, so the first read always runs to completion. A non-positive budget (`0` or negative) simply means "no retries": exactly one read still happens. |
+| `signal` | `AbortSignal` | - | Aborts the retry loop between attempts and during backoff sleeps - pass the incoming request's signal so a cancelled request stops retrying instead of finishing on a connection nobody is reading. |
+| `backoff` | `IRetryBackoffOptions` | EXPONENTIAL from 50ms, capped at 500ms, EQUAL jitter | Tuned for short replica-lag waits - see [Retry Utility](/references/utilities/retry) for the full strategy/jitter reference. |
+| `until` | `(result) => boolean` | Per-verb default above | Return `true` when the result is fresh enough to stop retrying. |
+
+> [!WARNING] `find`'s default predicate treats "no results" as "not yet"
+> The default `until` for `find` is "array is non-empty," so a `find` that legitimately matches nothing retries the full attempt budget with backoff sleeps before returning an empty array. On endpoints where "no results" is a normal answer, pass an explicit `until` or skip `retry` there. `findOne`/`findById` do not have this problem - "just written, therefore must exist" is the normal expectation for those verbs.
+
+### Behavior
+
+- **The read is retried while `until(result)` is `false`.** A real database error is **never** retried - it propagates immediately, exactly as it would without `retry`.
+- **On exhaustion, the LAST result is returned as-is.** No new error is fabricated and no "not found" is invented - a stale-but-successful read after exhausting attempts is still handed back to the caller to handle.
+- **Two configurations reject instead of returning a result.** An invalid `maxAttempts` (below `1`) throws immediately, before any read runs. An aborted `signal` rejects the call once the abort fires - the caller cancelled and no longer wants a result, so `retry` does not fall back to the last (stale) result the way exhaustion does.
+- **Skipped inside a transaction.** Pools route transactions to the primary, so there is no replica lag to wait out - `retry` is a no-op there, not an error.
+- **Locked reads are never retried.** `lock` requires a transaction (see [Row-Level Locking](#row-level-locking) above), and transactions already skip retry.
+- **Write verbs do not accept `retry`.** An inline `options: { retry: ... }` literal is rejected by TypeScript's excess-property check at compile time. A pre-built variable carrying an extra `retry` key passes structurally instead of being rejected, but the key is inert there - it is never read. Routing stays pooler-owned either way: IGNIS never targets a primary or a replica directly.
+
+> [!TIP]
+> `retry` is built on the `executeWithRetryUntil` helper from `@venizia/ignis-helpers`, exported for direct use outside repositories - see [Retry Utility](/references/utilities/retry).
 
 ## Hidden Properties
 
@@ -692,6 +754,12 @@ All repository operations accept an `options` parameter (`IExtraOptions`/its pos
 | `shouldSkipDefaultFilter` | `boolean` | `false` | Bypass the default filter from model settings |
 | `lock` | `TLockOptions` | - | Row-level locking (requires transaction, Core API only) |
 
+Read operations (`find`, `findOne`, `findById`) additionally support:
+
+| Option | Type | Default | Description |
+|--------|------|---------|-------------|
+| `retry` | `IReadRetryOptions` | - | Re-read with backoff until a predicate passes - see [Read Retry](#read-retry-replica-lag). Skipped inside a transaction. Not accepted by write operations. |
+
 Write operations additionally support:
 
 | Option | Type | Default | Description |
@@ -711,6 +779,7 @@ Write operations additionally support:
 | Bypass default filter | `options: { shouldSkipDefaultFilter: true }` |
 | Lock rows for update | `options: { transaction: tx, lock: { strength: 'update' } }` |
 | Lock + skip locked | `options: { transaction: tx, lock: { strength: 'update', config: { skipLocked: true } } }` |
+| Retry a read until fresh | `options: { retry: { until: result => result?.status === 'PAID' } }` |
 | Enable logging | `options: { log: { use: true, level: 'debug' } }` |
 | Force delete all | `options: { force: true }` |
 | Skip returning data | `options: { shouldReturn: false }` |
@@ -727,3 +796,5 @@ Write operations additionally support:
 - [Default Filter](/references/base/filter-system/default-filter) - automatic filter configuration
 - [DataSources - Full Reference](/references/base/datasources-reference) - transaction internals, isolation levels, driver seam
 - [Transactions guide](/guides/core-concepts/persistent/transactions) - multi-operation database transactions
+- [Retry Utility](/references/utilities/retry) - `executeWithRetry`/`executeWithRetryUntil`, backoff strategies, jitter modes
+- [Search & Typesense - Repository Tiers](/guides/core-concepts/persistent/search-typesense#repository-tiers) - `retry` on the search chain

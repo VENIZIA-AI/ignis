@@ -14,6 +14,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 | **Performance** | `ignis-helpers` | Execution timing | `executeWithPerformanceMeasure()`, `getPerformanceCheckpoint()` |
 | **Promise** | `ignis-helpers` | Promise helpers | `executePromiseWithLimit()`, `isPromiseLike()`, `getDeepProperty()` |
 | **Request** | `ignis-helpers` | HTTP utilities | `parseMultipartBody()`, `sanitizeFilename()`, `createContentDispositionHeader()` |
+| **Retry** | `ignis-helpers` | Backoff-driven retries | `executeWithRetry()`, `executeWithRetryUntil()`, `computeBackoffDelayMs()` |
 | **Schema** | `ignis` | Zod schema helpers | `jsonContent()`, `jsonResponse()`, `requiredString()`, `idParamsSchema()` |
 | **Statuses** | `ignis` | Status code constants | `Statuses`, `CommonStatuses`, `UserStatuses`, `RoleStatuses` |
 
@@ -36,6 +37,7 @@ Pure, standalone functions providing common, reusable logic for the IGNIS framew
 - [**JSX**](./jsx.md) - HTML and JSX response utilities for server-side rendering and OpenAPI documentation
 - [**Promise**](./promise.md) - Helper functions for working with Promises including concurrency limiting and value transformation
 - [**Request**](./request.md) - HTTP request utilities for parsing multipart form data and creating secure Content-Disposition headers
+- [**Retry**](./retry.md) - Backoff-driven retry helpers - error-triggered (`executeWithRetry`) and predicate-driven (`executeWithRetryUntil`)
 
 ### Runtime
 
